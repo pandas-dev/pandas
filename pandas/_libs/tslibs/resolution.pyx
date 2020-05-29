@@ -198,7 +198,7 @@ class Resolution(Enum):
         """
         Return resolution code against frequency str.
 
-        `freq` is given the `offset.freqstr` for some DateOffset object.
+        `freq` is given by the `offset.freqstr` for some DateOffset object.
 
         Examples
         --------
