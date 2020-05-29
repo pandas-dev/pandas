@@ -872,6 +872,19 @@ class TestNDFrame:
         assert a.equals(e)
         assert e.equals(f)
 
+    def test_equals_subclass(self):
+        # https://github.com/pandas-dev/pandas/pull/34402
+
+        class MySeries(pd.Series):
+            pass
+
+        s1 = pd.Series([1, 2, 3])
+        s2 = MySeries([1, 2, 3])
+
+        # allow subclass in both directions
+        assert s1.equals(s2)
+        assert s2.equals(s1)
+
     def test_pipe(self):
         df = DataFrame({"A": [1, 2, 3]})
         f = lambda x, y: x ** y
