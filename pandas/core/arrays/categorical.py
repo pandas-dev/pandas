@@ -430,7 +430,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             ...
         ValueError: 1 record(s) belongs to multiple categories: [0]
         """
-        to_drop = dummies.columns[dummies.columns.values.isna()]
+        to_drop = dummies.columns[isna(dummies.columns.values)]
         if len(to_drop):
             dummies = dummies.drop(columns=to_drop)
         df = dummies.astype("boolean")
