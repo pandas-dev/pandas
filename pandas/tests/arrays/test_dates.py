@@ -2,9 +2,9 @@ from pandas import Series
 import pandas as pd
 import numpy as np
 from pandas.core.arrays.dates import DateArray
-from pandas.core.dtypes.common import is_integer_dtype, is_extension_array_dtype
+from pandas.core.dtypes.common import is_integer_dtype, is_extension_array_dtype, pandas_dtype
 import pytest
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 DATETIME_STRINGS = [
     "2001-01-01T12:00",
@@ -71,13 +71,10 @@ def test_date_array_to_datetime64(date_array):
 
 
 def test_date_array_to_str(date_array):
-    object_dates = pd.array(
+    string_dates = pd.array(
         np.array(["1970-01-0%d" % x for x in range(1, 6)]), dtype="string"
     )
-    print(date_array.astype("string"))
-    print(object_dates._ndarray)
-    tm.assert_numpy_array_equal(date_array.astype("string"), object_dates._ndarray)
-
+    tm.assert_extension_array_equal(date_array.astype("string"), string_dates)
 
 def test_series_has_extension_array():
     date_series = Series(DateArray(np.arange(5, dtype=np.int64)))
@@ -109,7 +106,10 @@ def test_other_type_to_date_series(arr):
 def test_date_series_to_other_type_series(type):
     date_series = Series(DateArray(np.arange(5, dtype=np.int64)))
     converted = date_series.astype(type)
-    # tm.assert_series_equal(date_series, other_series)
+    print(converted)
+    print(converted.dtype)
+    print(pandas_dtype(type))
+    assert converted.dtype == pandas_dtype(type)
 
 @pytest.fixture
 def series():
@@ -124,15 +124,16 @@ def df(series: Series):
     df["strings"] = df["strings"].astype("string")
     return df
 
-
-def test_dtype_name_display(df: pd.DataFrame, series: Series):
-    df["dates"] = series.astype("datetime64").astype("date")
-    assert df.dtypes[1] == "date"
-
+def test_set_series_in_df():
+    df["test"] = Series([1, 2, 3, 4])
+    print(df)
+    date_series = series.astype("datetime64").astype("date").copy()
+    date_series.name = "dates"
+    df["dates"] = Series(DateArray(np.arange(5, dtype=np.int64)))
 
 def test_date_display_format(df: pd.DataFrame, series: Series):
-    df["dates"] = series.astype("datetime64").astype("date")
-    display = str(df["dates"])
+    display = str(Series(DateArray(np.arange(5, dtype=np.int64))))
+    print(display)
     expected = (
         "0   2019-01-01\n"
         "1   2020-12-11\n"

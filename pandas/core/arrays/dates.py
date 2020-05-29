@@ -5,6 +5,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_datetime64_dtype,
     is_object_dtype,
+    is_string_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
@@ -170,6 +171,8 @@ class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
             return array(self._data, dtype=DT64NS_DTYPE)
         if is_object_dtype(dtype):
             return self._box_values(self.as_datetime_i8)
+        if is_string_dtype(dtype):
+            return array(self._format_native_types())
         return super().astype(dtype, copy)
 
     def _format_native_types(self, na_rep="NaT", date_format=None):
