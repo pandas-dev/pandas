@@ -432,9 +432,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         to_drop = dummies.columns[dummies.columns.isna()]
         if len(to_drop):
             dummies = dummies.drop(columns=to_drop)
-        df = dummies.astype(bool)
+        df = dummies.astype("boolean")
 
-        multicat_rows = df.sum(axis=1) > 1
+        multicat_rows = df.sum(axis=1, skipna=False) > 1
         if multicat_rows.any():
             raise ValueError(
                 "{} record(s) belongs to multiple categories: {}".format(
