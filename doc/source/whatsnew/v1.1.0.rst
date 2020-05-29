@@ -638,7 +638,7 @@ apply and applymap on ``DataFrame`` evaluates first row/column only once
 .. ipython:: python
 
     In [1]: import pandas as pd
-       ...: df = pd.DataFrame({'a': [1,2], 'b': [3,6]})
+       ...: df = pd.DataFrame({'a': [1, 2], 'b': [3, 6]})
        ...:
 
     In [2]: df
