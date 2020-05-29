@@ -14,6 +14,7 @@ dependencies:
 
   # pandas dependencies
   - beautifulsoup4
+  - fsspec>=0.7.4
   - html5lib
   - ipython
   - jinja2

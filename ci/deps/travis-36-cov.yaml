@@ -18,6 +18,7 @@ dependencies:
   - cython>=0.29.16
   - dask
   - fastparquet>=0.3.2
+  - fsspec>=0.7.4
   - gcsfs
   - geopandas
   - html5lib

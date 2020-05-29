@@ -15,6 +15,7 @@ dependencies:
   # pandas dependencies
   - beautifulsoup4
   - bottleneck
+  - fsspec>=0.7.4
   - gcsfs
   - html5lib
   - jinja2

@@ -16,6 +16,7 @@ dependencies:
   - blosc=1.14.3
   - python-blosc
   - fastparquet=0.3.2
+  - fsspec>=0.7.4
   - gcsfs=0.2.2
   - html5lib
   - ipython

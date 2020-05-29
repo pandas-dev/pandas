@@ -17,6 +17,7 @@ dependencies:
   - beautifulsoup4
   - gcsfs
   - html5lib
+  - fsspec>=0.7.4
   - ipython
   - jinja2
   - lxml
