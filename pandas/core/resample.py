@@ -1696,6 +1696,9 @@ def _get_timestamp_range_edges(
     index_tz = first.tz
     if isinstance(origin, Timestamp) and (origin.tz is None) != (index_tz is None):
         raise ValueError("The origin must have the same timezone as the index.")
+    if origin == "epoch":
+        # set the epoch based on the timezone to have similar result between timezones
+        origin = Timestamp("1970-01-01", tz=index_tz)
 
     if isinstance(freq, Tick):
         if isinstance(freq, Day):

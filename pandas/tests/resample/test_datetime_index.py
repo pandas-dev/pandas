@@ -846,6 +846,34 @@ def test_resample_origin_with_tz():
         ts.resample("5min", origin="12/31/1999 23:57:00+03:00").mean()
 
 
+def test_resample_origin_epoch_with_tz_day_vs_24h():
+    # GH 34474
+    start, end = "2000-10-01 23:30:00+0500", "2000-12-02 00:30:00+0500"
+    rng = pd.date_range(start, end, freq="7min")
+    random_values = np.random.randn(len(rng))
+    ts_1 = pd.Series(random_values, index=rng)
+
+    result_1 = ts_1.resample("D", origin="epoch").mean()
+    result_2 = ts_1.resample("24H", origin="epoch").mean()
+    tm.assert_series_equal(result_1, result_2)
+
+    # check that we have the same behavior with epoch even if we are not timezone aware
+    ts_no_tz = ts_1.tz_localize(None)
+    result_3 = ts_no_tz.resample("D", origin="epoch").mean()
+    result_4 = ts_no_tz.resample("24H", origin="epoch").mean()
+    tm.assert_series_equal(result_1, result_3.tz_localize(rng.tz), check_freq=False)
+    tm.assert_series_equal(result_1, result_4.tz_localize(rng.tz), check_freq=False)
+
+    # check that we have the similar results with two different timezones (+2H and +5H)
+    start, end = "2000-10-01 23:30:00+0200", "2000-12-02 00:30:00+0200"
+    rng = pd.date_range(start, end, freq="7min")
+    ts_2 = pd.Series(random_values, index=rng)
+    result_5 = ts_2.resample("D", origin="epoch").mean()
+    result_6 = ts_2.resample("24H", origin="epoch").mean()
+    tm.assert_series_equal(result_1.tz_localize(None), result_5.tz_localize(None))
+    tm.assert_series_equal(result_1.tz_localize(None), result_6.tz_localize(None))
+
+
 def test_resample_origin_with_day_freq_on_dst():
     # GH 31809
     tz = "America/Chicago"
