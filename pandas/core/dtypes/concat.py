@@ -21,7 +21,8 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCRangeIndex, ABCSeries
 
-from pandas.core.arrays import ExtensionArray, SparseArray
+from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays.sparse import SparseArray
 from pandas.core.construction import array
 
 
