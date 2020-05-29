@@ -388,6 +388,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         ----------
         dummies : DataFrame
             dtypes of columns with non-NA headers must be coercible to bool.
+            Sparse dataframes are not supported.
         ordered : bool
             Whether or not this Categorical is ordered.
 
@@ -429,7 +430,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             ...
         ValueError: 1 record(s) belongs to multiple categories: [0]
         """
-        to_drop = dummies.columns[dummies.columns.isna()]
+        to_drop = dummies.columns[dummies.columns.values.isna()]
         if len(to_drop):
             dummies = dummies.drop(columns=to_drop)
         df = dummies.astype("boolean")
