@@ -1756,18 +1756,22 @@ cdef class _Period:
         -------
         Timestamp
         """
-        if freq is not None:
-            freq = self._maybe_convert_freq(freq)
         how = validate_end_alias(how)
 
         end = how == 'E'
         if end:
+            if freq == "B":
+                # roll forward to ensure we land on B date
+                adjust = Timedelta(1, "D") - Timedelta(1, "ns")
+                return self.to_timestamp(how="start") + adjust
             endpoint = (self + self.freq).to_timestamp(how='start')
             return endpoint - Timedelta(1, 'ns')
 
         if freq is None:
             base, mult = get_freq_code(self.freq)
             freq = get_to_timestamp_base(base)
+        else:
+            freq = self._maybe_convert_freq(freq)
 
         base, mult = get_freq_code(freq)
         val = self.asfreq(freq, how)

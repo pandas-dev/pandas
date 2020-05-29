@@ -632,6 +632,13 @@ class TestPeriodMethods:
         result = p.to_timestamp("5S", how="start")
         assert result == expected
 
+    def test_to_timestamp_business_end(self):
+        per = pd.Period("1990-01-05", "B")  # Friday
+        result = per.to_timestamp("B", how="E")
+
+        expected = pd.Timestamp("1990-01-06") - pd.Timedelta(nanoseconds=1)
+        assert result == expected
+
     # --------------------------------------------------------------
     # Rendering: __repr__, strftime, etc
 
