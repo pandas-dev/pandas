@@ -128,13 +128,13 @@ This conversion is likewise done column by column:
     df_cat['B']
 
 Dummy / indicator / one-hot encoded variables
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Some operations, like regression and classification,
 encodes a single categorical variable as a column for each category,
 with each row having False in all but one column (True).
 These are called dummy variables, or one-hot encoding.
-:class:`pandas.Categorical`s can easily be converted to and from such an encoding:
+:class:`pandas.Categorical` objects can easily be converted to and from such an encoding:
 
 .. ipython:: python
 
