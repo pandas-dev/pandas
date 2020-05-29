@@ -1870,25 +1870,35 @@ This is the correct access method:
 
 .. ipython:: python
 
-   dfc = pd.DataFrame({'A': ['aaa', 'bbb', 'ccc'], 'B': [1, 2, 3]})
-   dfc.loc[0, 'A'] = 11
-   dfc
+   dfc = pd.DataFrame({'a': ['one', 'one', 'two',
+                             'three', 'two', 'one', 'six'],
+                       'c': np.arange(7)})
+   dfd = dfc.copy()
+         
+   # Setting multiple items using a mask (recommended)
+   mask = dfd['a'].str.startswith('o')
+   dfd.loc[mask, 'c'] = 42
+   dfd
 
-This *can* work at times, but it is not guaranteed to, and therefore should be avoided:
+   # Setting a single item (recommended)
+   dfd.loc[2, 'a'] = 11
+   dfd
+
+The following *can* work at times, but it is not guaranteed to, and therefore should be avoided:
 
 .. ipython:: python
    :okwarning:
 
-   dfc = dfc.copy()
-   dfc['A'][0] = 111
-   dfc
+   dfd = dfc.copy()
+   dfd['a'][2] = 111
+   dfd
 
-This will **not** work at all, and so should be avoided:
+Last, the subsequent example will **not** work at all, and so should be avoided:
 
 ::
 
    >>> pd.set_option('mode.chained_assignment','raise')
-   >>> dfc.loc[0]['A'] = 1111
+   >>> dfd.loc[0]['a'] = 1111
    Traceback (most recent call last)
         ...
    SettingWithCopyException:
