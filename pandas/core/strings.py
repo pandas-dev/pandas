@@ -39,6 +39,7 @@ from pandas.core.base import NoNewAttributesMixin
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
+    from pandas import Series
     from pandas.arrays import StringArray
 
 _cpython_optimized_encoders = (
@@ -239,6 +240,117 @@ def _map_object(f, arr, na_mask=False, na_value=np.nan, dtype=np.dtype(object)):
         return result
     else:
         return lib.map_infer(arr, f)
+
+
+def str_format(
+    arr,
+    format: str,
+    name: str = None,
+    positional_only: bool = False,
+    how_na: str = "any",
+) -> "Series":
+    """
+    Format rows according to the format and return a Series with one string per row.
+
+    Parameters
+    ----------
+    arr: DataFrame or Series
+        The values to format.
+    format : str
+        format string.
+    name: Label, optional
+        The name of the returned Series.
+    positional_only: bool, default False
+        If True, only allow positional parameters (i.e. allow "{}", but not "{key}").
+        Setting to ``True`` will improve performance.
+    how_na: str, one of {"all", "any"}, default "any"
+        If "all", return ``NA`` if all values in row are nan values.
+        If "any", return ``NA`` if at least one of the values in row is a nan value.
+
+    Returns
+    -------
+    Series
+        A Series with dtype ``StringDtype``, formatted according to ``format``.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({
+    ...     'state_name': ['California', 'Texas', 'Florida'],
+    ...     'state_abbreviation': ['CA', 'TX', 'FL'],
+    ...     'population': [39_512_223, 28_995_881, 21_477_737],
+    ...     }, index=[1, 2, 3])
+    >>> df
+       state_name state_abbreviation  population
+    1  California                 CA    39512223
+    2       Texas                 TX    28995881
+    3     Florida                 FL    21477737
+    >>> ser = df["population"]
+
+    Formatting using positional arguments:
+
+    >>> ser.format("Population: {:,}")
+    1    Population: 39,512,223
+    2    Population: 28,995,881
+    3    Population: 21,477,737
+    dtype: string
+
+    >>>  df.format("{} ({}): {:,}")
+    1    California (CA): 39,512,223
+    2         Texas (TX): 28,995,881
+    3       Florida (FL): 21,477,737
+    dtype: string
+
+    Using keyword arguments (only works if column labels are strings):
+
+    >>> ser.format("Population: {population:,}")
+    1    Population: 39,512,223
+    2    Population: 28,995,881
+    3    Population: 21,477,737
+    dtype: string
+
+    >>>  df.format("{state_name} ({state_abbreviation}): {population:,}")
+    1    California (CA): 39,512,223
+    2         Texas (TX): 28,995,881
+    3       Florida (FL): 21,477,737
+    dtype: string
+
+    The index can be added using the keyword 'Index':
+
+    >>> df.format("{state_name} ({state_abbreviation}): {population:,} (no. {Index})")
+    1    California (CA): 39,512,223 (no. 1)
+    2         Texas (TX): 28,995,881 (no. 2)
+    3       Florida (FL): 21,477,737 (no. 3)
+    dtype: string
+    """
+    from pandas import NA
+    from pandas.arrays import StringArray
+
+    if not isinstance(arr, ABCDataFrame):
+        result_wrapper = arr._constructor
+        arr_name = arr.name if arr.name is not None else "_1"
+        arr = arr.to_frame(name=arr_name)
+    else:
+        result_wrapper = arr._constructor_sliced
+
+    na_mask = isna(arr)
+    if how_na == "any":
+        na_mask = na_mask.any(axis=1)
+    elif how_na == "all":
+        na_mask = na_mask.all(axis=1)
+    else:
+        raise ValueError(how_na)
+
+    func = format.format
+    if positional_only:
+        named_tups = arr.itertuples(index=False)
+        result = np.array([func(*named_tup) for named_tup in named_tups], dtype=object)
+    else:
+        named_tups = arr.itertuples()
+        res = [func(*named_tup[1:], **named_tup._asdict()) for named_tup in named_tups]
+        result = np.array(res, dtype=object)
+
+    result[na_mask] = NA
+    return result_wrapper(StringArray(result), index=arr.index.copy(), name=name)
 
 
 def str_count(arr, pat, flags=0):

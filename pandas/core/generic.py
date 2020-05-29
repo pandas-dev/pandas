@@ -97,6 +97,7 @@ import pandas.core.indexing as indexing
 from pandas.core.internals import BlockManager
 from pandas.core.missing import find_valid_index
 from pandas.core.ops import _align_method_FRAME
+from pandas.core.strings import str_format
 
 from pandas.io.formats import format as fmt
 from pandas.io.formats.format import DataFrameFormatter, format_percentiles
@@ -105,6 +106,7 @@ from pandas.tseries.offsets import Tick
 
 if TYPE_CHECKING:
     from pandas.core.resample import Resampler
+    from pandas.core.series import Series
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
@@ -3741,6 +3743,19 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     # ----------------------------------------------------------------------
     # Unsorted
+
+    @doc(str_format)
+    def format(
+        self,
+        format: str,
+        name: Optional[str] = None,
+        positional_only: bool = False,
+        how_na: str = "any",
+    ) -> "Series":
+
+        return str_format(
+            self, format, name=name, positional_only=positional_only, how_na=how_na
+        )
 
     def get(self, key, default=None):
         """

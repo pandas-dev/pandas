@@ -30,6 +30,38 @@ For example, the below now works:
    ser[0]
    pd.Series([1, 2, np.nan], dtype="Int64").astype("string")
 
+.. _whatsnew_110.format:
+
+``DataFrame.format`` and ``Series.format`` for complex conversion to StringDtype
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+New methods :meth:`DataFrame.format` and :meth:`Series.format` have been added (:issue:`xxxxx`).
+These methods allow creating a ``string`` Series from arbitrary ``Series`` or ``DataFrame`` using standard python format strings:
+
+.. ipython:: python
+
+    df = pd.DataFrame({
+        'state_name': ['California', 'Texas', 'Florida'],
+        'state_abbreviation': ['CA', 'TX', 'FL'],
+        'population': [39_512_223, 28_995_881, 21_477_737],
+        }, index=[1, 2, 3])
+    df
+    ser = df["population"]
+
+    df.format("{state_name} ({state_abbreviation}): {population:,}")
+
+    ser.format("Population: {population:,}")
+
+The output Series will always have dtype :class:`StringDtype`.
+
+Formatting using positional arguments is also possible (``positional_only=True`` is not necessary, but by disallowing keyword parameters performance is improved):
+
+.. ipython:: python
+
+    df.format("{} ({}): {:,}", positional_only=True)
+
+    ser.format("Population: {:,}", positional_only=True)
+
 
 .. _whatsnew_110.period_index_partial_string_slicing:
 

@@ -46,6 +46,7 @@ Conversion
    DataFrame.astype
    DataFrame.convert_dtypes
    DataFrame.infer_objects
+   DataFrame.format
    DataFrame.copy
    DataFrame.bool
 

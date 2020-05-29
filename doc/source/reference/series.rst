@@ -48,6 +48,7 @@ Conversion
    Series.astype
    Series.convert_dtypes
    Series.infer_objects
+   Series.format
    Series.copy
    Series.bool
    Series.to_numpy
