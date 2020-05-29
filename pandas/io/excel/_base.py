@@ -8,7 +8,7 @@ from pandas._config import config
 
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas.errors import EmptyDataError
-from pandas.util._decorators import Appender
+from pandas.util._decorators import Appender, deprecate_nonkeyword_arguments
 
 from pandas.core.dtypes.common import is_bool, is_float, is_integer, is_list_like
 
@@ -266,6 +266,7 @@ Comment lines in the excel input file can be skipped using the `comment` kwarg
 )
 
 
+@deprecate_nonkeyword_arguments(allowed_args=2, version="2.0")
 @Appender(_read_excel_doc)
 def read_excel(
     io,

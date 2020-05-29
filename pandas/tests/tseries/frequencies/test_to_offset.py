@@ -137,6 +137,7 @@ def test_to_offset_leading_plus(freqstr, expected):
         (dict(hours=1), offsets.Hour(1)),
         (dict(hours=1), frequencies.to_offset("60min")),
         (dict(microseconds=1), offsets.Micro(1)),
+        (dict(microseconds=0), offsets.Nano(0)),
     ],
 )
 def test_to_offset_pd_timedelta(kwargs, expected):
@@ -144,15 +145,6 @@ def test_to_offset_pd_timedelta(kwargs, expected):
     td = Timedelta(**kwargs)
     result = frequencies.to_offset(td)
     assert result == expected
-
-
-def test_to_offset_pd_timedelta_invalid():
-    # see gh-9064
-    msg = "Invalid frequency: 0 days 00:00:00"
-    td = Timedelta(microseconds=0)
-
-    with pytest.raises(ValueError, match=msg):
-        frequencies.to_offset(td)
 
 
 @pytest.mark.parametrize(
