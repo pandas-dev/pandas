@@ -446,7 +446,8 @@ cdef inline timedelta_from_spec(object number, object frac, object unit):
     frac : a list of frac digits
     unit : a list of unit characters
     """
-    cdef object n
+    cdef:
+        str n
 
     try:
         unit = ''.join(unit)
@@ -1376,6 +1377,17 @@ class Timedelta(_Timedelta):
 
 
 cdef bint is_any_td_scalar(object obj):
+    """
+    Cython equivalent for `isinstance(obj, (timedelta, np.timedelta64, Tick))`
+
+    Parameters
+    ----------
+    obj : object
+
+    Returns
+    -------
+    bool
+    """
     return (
         PyDelta_Check(obj) or is_timedelta64_object(obj) or is_tick_object(obj)
     )

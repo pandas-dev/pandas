@@ -1,6 +1,7 @@
 import cython
 
 import operator
+import re
 import time
 from typing import Any
 import warnings
@@ -29,7 +30,7 @@ from pandas._libs.tslibs.util cimport is_integer_object, is_datetime64_object
 from pandas._libs.tslibs.base cimport ABCTimestamp
 
 from pandas._libs.tslibs.ccalendar import (
-    MONTHS, DAYS, MONTH_ALIASES, MONTH_TO_CAL_NUM, weekday_to_int, int_to_weekday,
+    MONTH_ALIASES, MONTH_TO_CAL_NUM, weekday_to_int, int_to_weekday,
 )
 from pandas._libs.tslibs.ccalendar cimport get_days_in_month, dayofweek
 from pandas._libs.tslibs.conversion cimport (
@@ -44,53 +45,6 @@ from pandas._libs.tslibs.tzconversion cimport tz_convert_single
 
 from .timedeltas cimport delta_to_nanoseconds
 
-# ---------------------------------------------------------------------
-# Constants
-
-_offset_to_period_map = {
-    'WEEKDAY': 'D',
-    'EOM': 'M',
-    'BM': 'M',
-    'BQS': 'Q',
-    'QS': 'Q',
-    'BQ': 'Q',
-    'BA': 'A',
-    'AS': 'A',
-    'BAS': 'A',
-    'MS': 'M',
-    'D': 'D',
-    'C': 'C',
-    'B': 'B',
-    'T': 'T',
-    'S': 'S',
-    'L': 'L',
-    'U': 'U',
-    'N': 'N',
-    'H': 'H',
-    'Q': 'Q',
-    'A': 'A',
-    'W': 'W',
-    'M': 'M',
-    'Y': 'A',
-    'BY': 'A',
-    'YS': 'A',
-    'BYS': 'A'}
-
-need_suffix = ['QS', 'BQ', 'BQS', 'YS', 'AS', 'BY', 'BA', 'BYS', 'BAS']
-
-for __prefix in need_suffix:
-    for _m in MONTHS:
-        key = f'{__prefix}-{_m}'
-        _offset_to_period_map[key] = _offset_to_period_map[__prefix]
-
-for __prefix in ['A', 'Q']:
-    for _m in MONTHS:
-        _alias = f'{__prefix}-{_m}'
-        _offset_to_period_map[_alias] = _alias
-
-for _d in DAYS:
-    _offset_to_period_map[f'W-{_d}'] = f'W-{_d}'
-
 
 # ---------------------------------------------------------------------
 # Misc Helpers
@@ -101,17 +55,6 @@ cdef bint is_offset_object(object obj):
 
 cdef bint is_tick_object(object obj):
     return isinstance(obj, Tick)
-
-
-cdef to_offset(object obj):
-    """
-    Wrap pandas.tseries.frequencies.to_offset to keep centralize runtime
-    imports
-    """
-    if isinstance(obj, BaseOffset):
-        return obj
-    from pandas.tseries.frequencies import to_offset
-    return to_offset(obj)
 
 
 cdef datetime _as_datetime(datetime obj):
@@ -1008,7 +951,7 @@ def delta_to_tick(delta: timedelta) -> Tick:
 
 # --------------------------------------------------------------------
 
-class RelativeDeltaOffset(BaseOffset):
+cdef class RelativeDeltaOffset(BaseOffset):
     """
     DateOffset subclass backed by a dateutil relativedelta object.
     """
@@ -1123,6 +1066,120 @@ class RelativeDeltaOffset(BaseOffset):
         return True
 
 
+class OffsetMeta(type):
+    """
+    Metaclass that allows us to pretend that all BaseOffset subclasses
+    inherit from DateOffset (which is needed for backward-compatibility).
+    """
+
+    @classmethod
+    def __instancecheck__(cls, obj) -> bool:
+        return isinstance(obj, BaseOffset)
+
+    @classmethod
+    def __subclasscheck__(cls, obj) -> bool:
+        return issubclass(obj, BaseOffset)
+
+
+# TODO: figure out a way to use a metaclass with a cdef class
+class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
+    """
+    Standard kind of date increment used for a date range.
+
+    Works exactly like relativedelta in terms of the keyword args you
+    pass in, use of the keyword n is discouraged-- you would be better
+    off specifying n in the keywords you use, but regardless it is
+    there for you. n is needed for DateOffset subclasses.
+
+    DateOffset work as follows.  Each offset specify a set of dates
+    that conform to the DateOffset.  For example, Bday defines this
+    set to be the set of dates that are weekdays (M-F).  To test if a
+    date is in the set of a DateOffset dateOffset we can use the
+    is_on_offset method: dateOffset.is_on_offset(date).
+
+    If a date is not on a valid date, the rollback and rollforward
+    methods can be used to roll the date to the nearest valid date
+    before/after the date.
+
+    DateOffsets can be created to move dates forward a given number of
+    valid dates.  For example, Bday(2) can be added to a date to move
+    it two business days forward.  If the date does not start on a
+    valid date, first it is moved to a valid date.  Thus pseudo code
+    is:
+
+    def __add__(date):
+      date = rollback(date) # does nothing if date is valid
+      return date + <n number of periods>
+
+    When a date offset is created for a negative number of periods,
+    the date is first rolled forward.  The pseudo code is:
+
+    def __add__(date):
+      date = rollforward(date) # does nothing is date is valid
+      return date + <n number of periods>
+
+    Zero presents a problem.  Should it roll forward or back?  We
+    arbitrarily have it rollforward:
+
+    date + BDay(0) == BDay.rollforward(date)
+
+    Since 0 is a bit weird, we suggest avoiding its use.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of time periods the offset represents.
+    normalize : bool, default False
+        Whether to round the result of a DateOffset addition down to the
+        previous midnight.
+    **kwds
+        Temporal parameter that add to or replace the offset value.
+
+        Parameters that **add** to the offset (like Timedelta):
+
+        - years
+        - months
+        - weeks
+        - days
+        - hours
+        - minutes
+        - seconds
+        - microseconds
+        - nanoseconds
+
+        Parameters that **replace** the offset value:
+
+        - year
+        - month
+        - day
+        - weekday
+        - hour
+        - minute
+        - second
+        - microsecond
+        - nanosecond.
+
+    See Also
+    --------
+    dateutil.relativedelta.relativedelta : The relativedelta type is designed
+        to be applied to an existing datetime an can replace specific components of
+        that datetime, or represents an interval of time.
+
+    Examples
+    --------
+    >>> from pandas.tseries.offsets import DateOffset
+    >>> ts = pd.Timestamp('2017-01-01 09:10:11')
+    >>> ts + DateOffset(months=3)
+    Timestamp('2017-04-01 09:10:11')
+
+    >>> ts = pd.Timestamp('2017-01-01 09:10:11')
+    >>> ts + DateOffset(months=2)
+    Timestamp('2017-03-01 09:10:11')
+    """
+
+    pass
+
+
 # --------------------------------------------------------------------
 
 
@@ -1133,10 +1190,26 @@ cdef class BusinessMixin(SingleConstructorOffset):
 
     cdef readonly:
         timedelta _offset
+        # Only Custom subclasses use weekmask, holiday, calendar
+        object weekmask, holidays, calendar
 
     def __init__(self, n=1, normalize=False, offset=timedelta(0)):
         BaseOffset.__init__(self, n, normalize)
         self._offset = offset
+
+    cpdef _init_custom(self, weekmask, holidays, calendar):
+        """
+        Additional __init__ for Custom subclasses.
+        """
+        calendar, holidays = _get_calendar(
+            weekmask=weekmask, holidays=holidays, calendar=calendar
+        )
+        # Custom offset instances are identified by the
+        # following two attributes. See DateOffset._params()
+        # holidays, weekmask
+        self.weekmask = weekmask
+        self.holidays = holidays
+        self.calendar = calendar
 
     @property
     def offset(self):
@@ -1162,6 +1235,18 @@ cdef class BusinessMixin(SingleConstructorOffset):
             self._offset = state.pop("_offset")
         elif "offset" in state:
             self._offset = state.pop("offset")
+
+        if self._prefix.startswith("C"):
+            # i.e. this is a Custom class
+            weekmask = state.pop("weekmask")
+            holidays = state.pop("holidays")
+            calendar, holidays = _get_calendar(weekmask=weekmask,
+                                               holidays=holidays,
+                                               calendar=None)
+            self.weekmask = weekmask
+            self.calendar = calendar
+            self.holidays = holidays
+
         BaseOffset.__setstate__(self, state)
 
 
@@ -1211,7 +1296,7 @@ cdef class BusinessDay(BusinessMixin):
                 off_str += str(td.microseconds) + "us"
             return off_str
 
-        if isinstance(self.offset, timedelta):
+        if PyDelta_Check(self.offset):
             zero = timedelta(0, 0, 0)
             if self.offset >= zero:
                 off_str = "+" + get_str(self.offset)
@@ -1223,7 +1308,7 @@ cdef class BusinessDay(BusinessMixin):
 
     @apply_wraps
     def apply(self, other):
-        if isinstance(other, datetime):
+        if PyDateTime_Check(other):
             n = self.n
             wday = other.weekday()
 
@@ -1254,7 +1339,7 @@ cdef class BusinessDay(BusinessMixin):
                 result = result + self.offset
             return result
 
-        elif isinstance(other, (timedelta, Tick)):
+        elif PyDelta_Check(other) or isinstance(other, Tick):
             return BusinessDay(
                 self.n, offset=self.offset + other, normalize=self.normalize
             )
@@ -1535,7 +1620,7 @@ cdef class BusinessHour(BusinessMixin):
 
     @apply_wraps
     def apply(self, other):
-        if isinstance(other, datetime):
+        if PyDateTime_Check(other):
             # used for detecting edge condition
             nanosecond = getattr(other, "nanosecond", 0)
             # reset timezone and nanosecond
@@ -1669,25 +1754,6 @@ cdef class BusinessHour(BusinessMixin):
             return True
         else:
             return False
-
-
-class CustomMixin:
-    """
-    Mixin for classes that define and validate calendar, holidays,
-    and weekdays attributes.
-    """
-
-    def __init__(self, weekmask, holidays, calendar):
-        calendar, holidays = _get_calendar(
-            weekmask=weekmask, holidays=holidays, calendar=calendar
-        )
-        # Custom offset instances are identified by the
-        # following two attributes. See DateOffset._params()
-        # holidays, weekmask
-
-        object.__setattr__(self, "weekmask", weekmask)
-        object.__setattr__(self, "holidays", holidays)
-        object.__setattr__(self, "calendar", calendar)
 
 
 cdef class WeekOfMonthMixin(SingleConstructorOffset):
@@ -2397,7 +2463,7 @@ cdef class Week(SingleConstructorOffset):
         if self.weekday is None:
             return other + self.n * self._inc
 
-        if not isinstance(other, datetime):
+        if not PyDateTime_Check(other):
             raise TypeError(
                 f"Cannot add {type(other).__name__} to {type(self).__name__}"
             )
@@ -3132,6 +3198,488 @@ cdef class Easter(SingleConstructorOffset):
         if self.normalize and not is_normalized(dt):
             return False
         return date(dt.year, dt.month, dt.day) == easter(dt.year)
+
+
+# ----------------------------------------------------------------------
+# Custom Offset classes
+
+
+cdef class CustomBusinessDay(BusinessDay):
+    """
+    DateOffset subclass representing custom business days excluding holidays.
+
+    Parameters
+    ----------
+    n : int, default 1
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    weekmask : str, Default 'Mon Tue Wed Thu Fri'
+        Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
+    holidays : list
+        List/array of dates to exclude from the set of valid business days,
+        passed to ``numpy.busdaycalendar``.
+    calendar : pd.HolidayCalendar or np.busdaycalendar
+    offset : timedelta, default timedelta(0)
+    """
+
+    _prefix = "C"
+    _attributes = frozenset(
+        ["n", "normalize", "weekmask", "holidays", "calendar", "offset"]
+    )
+
+    def __reduce__(self):
+        # np.holidaycalendar cant be pickled, so pass None there and
+        #  it will be re-constructed within __init__
+        tup = (self.n, self.normalize, self.weekmask, self.holidays, None, self.offset)
+        return type(self), tup
+
+    def __init__(
+        self,
+        n=1,
+        normalize=False,
+        weekmask="Mon Tue Wed Thu Fri",
+        holidays=None,
+        calendar=None,
+        offset=timedelta(0),
+    ):
+        BusinessDay.__init__(self, n, normalize, offset)
+        self._init_custom(weekmask, holidays, calendar)
+
+    cpdef __setstate__(self, state):
+        self.holidays = state.pop("holidays")
+        self.weekmask = state.pop("weekmask")
+        BusinessDay.__setstate__(self, state)
+
+    @apply_wraps
+    def apply(self, other):
+        if self.n <= 0:
+            roll = "forward"
+        else:
+            roll = "backward"
+
+        if PyDateTime_Check(other):
+            date_in = other
+            np_dt = np.datetime64(date_in.date())
+
+            np_incr_dt = np.busday_offset(
+                np_dt, self.n, roll=roll, busdaycal=self.calendar
+            )
+
+            dt_date = np_incr_dt.astype(datetime)
+            result = datetime.combine(dt_date, date_in.time())
+
+            if self.offset:
+                result = result + self.offset
+            return result
+
+        elif PyDelta_Check(other) or isinstance(other, Tick):
+            return BDay(self.n, offset=self.offset + other, normalize=self.normalize)
+        else:
+            raise ApplyTypeError(
+                "Only know how to combine trading day with "
+                "datetime, datetime64 or timedelta."
+            )
+
+    def apply_index(self, i):
+        raise NotImplementedError
+
+    def is_on_offset(self, dt: datetime) -> bool:
+        if self.normalize and not is_normalized(dt):
+            return False
+        day64 = to_dt64D(dt)
+        return np.is_busday(day64, busdaycal=self.calendar)
+
+
+cdef class CustomBusinessHour(BusinessHour):
+    """
+    DateOffset subclass representing possibly n custom business days.
+    """
+
+    _prefix = "CBH"
+    _anchor = 0
+    _attributes = frozenset(
+        ["n", "normalize", "weekmask", "holidays", "calendar", "start", "end", "offset"]
+    )
+
+    def __init__(
+        self,
+        n=1,
+        normalize=False,
+        weekmask="Mon Tue Wed Thu Fri",
+        holidays=None,
+        calendar=None,
+        start="09:00",
+        end="17:00",
+        offset=timedelta(0),
+    ):
+        BusinessHour.__init__(self, n, normalize, start=start, end=end, offset=offset)
+        self._init_custom(weekmask, holidays, calendar)
+
+    def __reduce__(self):
+        # None for self.calendar bc np.busdaycalendar doesnt pickle nicely
+        return (
+            type(self),
+            (
+                self.n,
+                self.normalize,
+                self.weekmask,
+                self.holidays,
+                None,
+                self.start,
+                self.end,
+                self.offset,
+            ),
+        )
+
+
+cdef class _CustomBusinessMonth(BusinessMixin):
+    """
+    DateOffset subclass representing custom business month(s).
+
+    Increments between beginning/end of month dates.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of months represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    weekmask : str, Default 'Mon Tue Wed Thu Fri'
+        Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
+    holidays : list
+        List/array of dates to exclude from the set of valid business days,
+        passed to ``numpy.busdaycalendar``.
+    calendar : pd.HolidayCalendar or np.busdaycalendar
+        Calendar to integrate.
+    offset : timedelta, default timedelta(0)
+        Time offset to apply.
+    """
+
+    _attributes = frozenset(
+        ["n", "normalize", "weekmask", "holidays", "calendar", "offset"]
+    )
+
+    def __init__(
+        self,
+        n=1,
+        normalize=False,
+        weekmask="Mon Tue Wed Thu Fri",
+        holidays=None,
+        calendar=None,
+        offset=timedelta(0),
+    ):
+        BusinessMixin.__init__(self, n, normalize, offset)
+        self._init_custom(weekmask, holidays, calendar)
+
+    def __reduce__(self):
+        # None for self.calendar bc np.busdaycalendar doesnt pickle nicely
+        return (
+            type(self),
+            (self.n, self.normalize, self.weekmask, self.holidays, None, self.offset),
+        )
+
+    @cache_readonly
+    def cbday_roll(self):
+        """
+        Define default roll function to be called in apply method.
+        """
+        cbday = CustomBusinessDay(n=self.n, normalize=False, **self.kwds)
+
+        if self._prefix.endswith("S"):
+            # MonthBegin
+            roll_func = cbday.rollforward
+        else:
+            # MonthEnd
+            roll_func = cbday.rollback
+        return roll_func
+
+    @cache_readonly
+    def m_offset(self):
+        if self._prefix.endswith("S"):
+            # MonthBegin
+            moff = MonthBegin(n=1, normalize=False)
+        else:
+            # MonthEnd
+            moff = MonthEnd(n=1, normalize=False)
+        return moff
+
+    @cache_readonly
+    def month_roll(self):
+        """
+        Define default roll function to be called in apply method.
+        """
+        if self._prefix.endswith("S"):
+            # MonthBegin
+            roll_func = self.m_offset.rollback
+        else:
+            # MonthEnd
+            roll_func = self.m_offset.rollforward
+        return roll_func
+
+    @apply_wraps
+    def apply(self, other):
+        # First move to month offset
+        cur_month_offset_date = self.month_roll(other)
+
+        # Find this custom month offset
+        compare_date = self.cbday_roll(cur_month_offset_date)
+        n = roll_convention(other.day, self.n, compare_date.day)
+
+        new = cur_month_offset_date + n * self.m_offset
+        result = self.cbday_roll(new)
+        return result
+
+
+cdef class CustomBusinessMonthEnd(_CustomBusinessMonth):
+    _prefix = "CBM"
+
+
+cdef class CustomBusinessMonthBegin(_CustomBusinessMonth):
+    _prefix = "CBMS"
+
+
+BDay = BusinessDay
+BMonthEnd = BusinessMonthEnd
+BMonthBegin = BusinessMonthBegin
+CBMonthEnd = CustomBusinessMonthEnd
+CBMonthBegin = CustomBusinessMonthBegin
+CDay = CustomBusinessDay
+
+# ----------------------------------------------------------------------
+# to_offset helpers
+
+prefix_mapping = {
+    offset._prefix: offset
+    for offset in [
+        YearBegin,  # 'AS'
+        YearEnd,  # 'A'
+        BYearBegin,  # 'BAS'
+        BYearEnd,  # 'BA'
+        BusinessDay,  # 'B'
+        BusinessMonthBegin,  # 'BMS'
+        BusinessMonthEnd,  # 'BM'
+        BQuarterEnd,  # 'BQ'
+        BQuarterBegin,  # 'BQS'
+        BusinessHour,  # 'BH'
+        CustomBusinessDay,  # 'C'
+        CustomBusinessMonthEnd,  # 'CBM'
+        CustomBusinessMonthBegin,  # 'CBMS'
+        CustomBusinessHour,  # 'CBH'
+        MonthEnd,  # 'M'
+        MonthBegin,  # 'MS'
+        Nano,  # 'N'
+        SemiMonthEnd,  # 'SM'
+        SemiMonthBegin,  # 'SMS'
+        Week,  # 'W'
+        Second,  # 'S'
+        Minute,  # 'T'
+        Micro,  # 'U'
+        QuarterEnd,  # 'Q'
+        QuarterBegin,  # 'QS'
+        Milli,  # 'L'
+        Hour,  # 'H'
+        Day,  # 'D'
+        WeekOfMonth,  # 'WOM'
+        FY5253,
+        FY5253Quarter,
+    ]
+}
+
+# hack to handle WOM-1MON
+opattern = re.compile(
+    r"([+\-]?\d*|[+\-]?\d*\.\d*)\s*([A-Za-z]+([\-][\dA-Za-z\-]+)?)"
+)
+
+_lite_rule_alias = {
+    "W": "W-SUN",
+    "Q": "Q-DEC",
+
+    "A": "A-DEC",      # YearEnd(month=12),
+    "Y": "A-DEC",
+    "AS": "AS-JAN",    # YearBegin(month=1),
+    "YS": "AS-JAN",
+    "BA": "BA-DEC",    # BYearEnd(month=12),
+    "BY": "BA-DEC",
+    "BAS": "BAS-JAN",  # BYearBegin(month=1),
+    "BYS": "BAS-JAN",
+
+    "Min": "T",
+    "min": "T",
+    "ms": "L",
+    "us": "U",
+    "ns": "N",
+}
+
+_dont_uppercase = {"MS", "ms"}
+
+INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
+
+# TODO: still needed?
+# cache of previously seen offsets
+_offset_map = {}
+
+
+cpdef base_and_stride(str freqstr):
+    """
+    Return base freq and stride info from string representation
+
+    Returns
+    -------
+    base : str
+    stride : int
+
+    Examples
+    --------
+    _freq_and_stride('5Min') -> 'Min', 5
+    """
+    groups = opattern.match(freqstr)
+
+    if not groups:
+        raise ValueError(f"Could not evaluate {freqstr}")
+
+    stride = groups.group(1)
+
+    if len(stride):
+        stride = int(stride)
+    else:
+        stride = 1
+
+    base = groups.group(2)
+
+    return base, stride
+
+
+# TODO: better name?
+def _get_offset(name: str) -> BaseOffset:
+    """
+    Return DateOffset object associated with rule name.
+
+    Examples
+    --------
+    _get_offset('EOM') --> BMonthEnd(1)
+    """
+    if name not in _dont_uppercase:
+        name = name.upper()
+        name = _lite_rule_alias.get(name, name)
+        name = _lite_rule_alias.get(name.lower(), name)
+    else:
+        name = _lite_rule_alias.get(name, name)
+
+    if name not in _offset_map:
+        try:
+            split = name.split("-")
+            klass = prefix_mapping[split[0]]
+            # handles case where there's no suffix (and will TypeError if too
+            # many '-')
+            offset = klass._from_name(*split[1:])
+        except (ValueError, TypeError, KeyError) as err:
+            # bad prefix or suffix
+            raise ValueError(INVALID_FREQ_ERR_MSG.format(name)) from err
+        # cache
+        _offset_map[name] = offset
+
+    return _offset_map[name]
+
+
+cpdef to_offset(freq):
+    """
+    Return DateOffset object from string or tuple representation
+    or datetime.timedelta object.
+
+    Parameters
+    ----------
+    freq : str, tuple, datetime.timedelta, DateOffset or None
+
+    Returns
+    -------
+    DateOffset or None
+
+    Raises
+    ------
+    ValueError
+        If freq is an invalid frequency
+
+    See Also
+    --------
+    DateOffset : Standard kind of date increment used for a date range.
+
+    Examples
+    --------
+    >>> to_offset("5min")
+    <5 * Minutes>
+
+    >>> to_offset("1D1H")
+    <25 * Hours>
+
+    >>> to_offset(("W", 2))
+    <2 * Weeks: weekday=6>
+
+    >>> to_offset((2, "B"))
+    <2 * BusinessDays>
+
+    >>> to_offset(pd.Timedelta(days=1))
+    <Day>
+
+    >>> to_offset(Hour())
+    <Hour>
+    """
+    if freq is None:
+        return None
+
+    if isinstance(freq, BaseOffset):
+        return freq
+
+    if isinstance(freq, tuple):
+        name = freq[0]
+        stride = freq[1]
+        if isinstance(stride, str):
+            name, stride = stride, name
+        name, _ = base_and_stride(name)
+        delta = _get_offset(name) * stride
+
+    elif isinstance(freq, timedelta):
+        return delta_to_tick(freq)
+
+    elif isinstance(freq, str):
+        delta = None
+        stride_sign = None
+
+        try:
+            split = re.split(opattern, freq)
+            if split[-1] != "" and not split[-1].isspace():
+                # the last element must be blank
+                raise ValueError("last element must be blank")
+            for sep, stride, name in zip(split[0::4], split[1::4], split[2::4]):
+                if sep != "" and not sep.isspace():
+                    raise ValueError("separator must be spaces")
+                prefix = _lite_rule_alias.get(name) or name
+                if stride_sign is None:
+                    stride_sign = -1 if stride.startswith("-") else 1
+                if not stride:
+                    stride = 1
+
+                from .resolution import Resolution  # TODO: avoid runtime import
+
+                if prefix in Resolution.reso_str_bump_map:
+                    stride, name = Resolution.get_stride_from_decimal(
+                        float(stride), prefix
+                    )
+                stride = int(stride)
+                offset = _get_offset(name)
+                offset = offset * int(np.fabs(stride) * stride_sign)
+                if delta is None:
+                    delta = offset
+                else:
+                    delta = delta + offset
+        except (ValueError, TypeError) as err:
+            raise ValueError(INVALID_FREQ_ERR_MSG.format(freq)) from err
+    else:
+        delta = None
+
+    if delta is None:
+        raise ValueError(INVALID_FREQ_ERR_MSG.format(freq))
+
+    return delta
 
 
 # ----------------------------------------------------------------------
