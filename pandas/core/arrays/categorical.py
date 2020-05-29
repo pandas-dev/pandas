@@ -448,7 +448,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         #  010            020    2    1
         #  001 * 1,2,3 => 003 -> 3 -> 2 = correct codes
         #  100            100    1    0
-        codes = ((df * mult_by).sum(axis=1) - 1).astype("Int64")
+        codes = ((df * mult_by).sum(axis=1, skipna=False) - 1).astype("Int64")
         return cls.from_codes(codes.fillna(-1), df.columns.values, ordered=ordered)
 
     def to_dummies(self, na_column=None) -> "DataFrame":
