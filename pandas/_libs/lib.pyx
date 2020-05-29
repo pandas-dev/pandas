@@ -1,9 +1,5 @@
 from collections import abc
 from decimal import Decimal
-from fractions import Fraction
-from numbers import Number
-
-import sys
 import warnings
 
 import cython
@@ -66,21 +62,26 @@ cdef extern from "numpy/arrayobject.h":
 cdef extern from "src/parse_helper.h":
     int floatify(object, float64_t *result, int *maybe_int) except -1
 
-cimport pandas._libs.util as util
+from pandas._libs cimport util
 from pandas._libs.util cimport is_nan, UINT64_MAX, INT64_MAX, INT64_MIN
 
 from pandas._libs.tslib import array_to_datetime
-from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
+from pandas._libs.tslibs.nattype cimport (
+    NPY_NAT,
+    c_NaT as NaT,
+    checknull_with_nat,
+)
 from pandas._libs.tslibs.conversion cimport convert_to_tsobject
 from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
 from pandas._libs.tslibs.timezones cimport get_timezone, tz_compare
+from pandas._libs.tslibs.period cimport is_period_object
+from pandas._libs.tslibs.offsets cimport is_offset_object
 
 from pandas._libs.missing cimport (
     checknull,
     isnaobj,
     is_null_datetime64,
     is_null_timedelta64,
-    is_null_period,
     C_NA,
 )
 
@@ -185,9 +186,9 @@ def is_scalar(val: object) -> bool:
 
     # Note: PyNumber_Check check includes Decimal, Fraction, numbers.Number
     return (PyNumber_Check(val)
-            or util.is_period_object(val)
+            or is_period_object(val)
             or is_interval(val)
-            or util.is_offset_object(val))
+            or is_offset_object(val))
 
 
 def is_iterator(obj: object) -> bool:
@@ -589,7 +590,7 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
         except TypeError as err:
             # Avoid raising TypeError on tzawareness mismatch
             # TODO: This try/except can be removed if/when Timestamp
-            #  comparisons are change dto match datetime, see GH#28507
+            #  comparisons are changed to match datetime, see GH#28507
             if "tz-naive and tz-aware" in str(err):
                 return False
             raise
@@ -942,7 +943,7 @@ def is_period(val: object) -> bool:
     -------
     bool
     """
-    return util.is_period_object(val)
+    return is_period_object(val)
 
 
 def is_list_like(obj: object, allow_sets: bool = True) -> bool:
@@ -988,7 +989,7 @@ def is_list_like(obj: object, allow_sets: bool = True) -> bool:
     return c_is_list_like(obj, allow_sets)
 
 
-cdef inline bint c_is_list_like(object obj, bint allow_sets):
+cdef inline bint c_is_list_like(object obj, bint allow_sets) except -1:
     return (
         isinstance(obj, abc.Iterable)
         # we do not count strings/unicode/bytes as list-like
@@ -1173,15 +1174,15 @@ cdef class Seen:
                     or self.nat_)
 
 
-cdef object _try_infer_map(object v):
+cdef object _try_infer_map(object dtype):
     """
     If its in our map, just return the dtype.
     """
     cdef:
         object val
         str attr
-    for attr in ['name', 'kind', 'base']:
-        val = getattr(v.dtype, attr)
+    for attr in ["name", "kind", "base"]:
+        val = getattr(dtype, attr)
         if val in _TYPE_MAP:
             return _TYPE_MAP[val]
     return None
@@ -1294,44 +1295,49 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
 
     if util.is_array(value):
         values = value
-    elif hasattr(value, 'dtype'):
+    elif hasattr(value, "inferred_type") and skipna is False:
+        # Index, use the cached attribute if possible, populate the cache otherwise
+        return value.inferred_type
+    elif hasattr(value, "dtype"):
         # this will handle ndarray-like
         # e.g. categoricals
-        try:
-            values = getattr(value, '_values', getattr(value, 'values', value))
-        except TypeError:
-            # This gets hit if we have an EA, since cython expects `values`
-            #  to be an ndarray
-            value = _try_infer_map(value)
+        dtype = value.dtype
+        if not isinstance(dtype, np.dtype):
+            value = _try_infer_map(value.dtype)
             if value is not None:
                 return value
 
-            # its ndarray like but we can't handle
+            # its ndarray-like but we can't handle
             raise ValueError(f"cannot infer type for {type(value)}")
+
+        # Unwrap Series/Index
+        values = np.asarray(value)
 
     else:
         if not isinstance(value, list):
             value = list(value)
+
         from pandas.core.dtypes.cast import (
             construct_1d_object_array_from_listlike)
         values = construct_1d_object_array_from_listlike(value)
 
     # make contiguous
-    values = values.ravel()
+    # for f-contiguous array 1000 x 1000, passing order="K" gives 5000x speedup
+    values = values.ravel(order="K")
 
-    val = _try_infer_map(values)
+    val = _try_infer_map(values.dtype)
     if val is not None:
         return val
 
     if values.dtype != np.object_:
-        values = values.astype('O')
+        values = values.astype("O")
 
     if skipna:
         values = values[~isnaobj(values)]
 
     n = len(values)
     if n == 0:
-        return 'empty'
+        return "empty"
 
     # try to use a valid value
     for i in range(n):
@@ -1412,7 +1418,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         if is_bytes_array(values, skipna=skipna):
             return "bytes"
 
-    elif util.is_period_object(val):
+    elif is_period_object(val):
         if is_period_array(values):
             return "period"
 
@@ -1844,10 +1850,10 @@ cpdef bint is_time_array(ndarray values, bint skipna=False):
 
 cdef class PeriodValidator(TemporalValidator):
     cdef inline bint is_value_typed(self, object value) except -1:
-        return util.is_period_object(value)
+        return is_period_object(value)
 
     cdef inline bint is_valid_null(self, object value) except -1:
-        return is_null_period(value)
+        return checknull_with_nat(value)
 
 
 cpdef bint is_period_array(ndarray values):
@@ -2341,8 +2347,6 @@ def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=Tr
 
             if cnp.PyArray_IsZeroDim(val):
                 # unbox 0-dim arrays, GH#690
-                # TODO: is there a faster way to unbox?
-                #   item_from_zerodim?
                 val = val.item()
 
         result[i] = val
@@ -2383,8 +2387,6 @@ def map_infer(ndarray arr, object f, bint convert=True):
 
         if cnp.PyArray_IsZeroDim(val):
             # unbox 0-dim arrays, GH#690
-            # TODO: is there a faster way to unbox?
-            #   item_from_zerodim?
             val = val.item()
 
         result[i] = val

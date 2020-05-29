@@ -21,10 +21,11 @@ import pytz
 
 from pandas._libs.interval import Interval
 from pandas._libs.tslibs import NaT, Period, Timestamp, timezones
-from pandas._typing import Ordered
+from pandas._libs.tslibs.offsets import BaseOffset
+from pandas._typing import DtypeObj, Ordered
 
 from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCDateOffset, ABCIndexClass
+from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCIndexClass
 from pandas.core.dtypes.inference import is_bool, is_list_like
 
 if TYPE_CHECKING:
@@ -640,6 +641,36 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
         return is_bool_dtype(self.categories)
 
+    def _get_common_dtype(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
+        from pandas.core.arrays.sparse import SparseDtype
+
+        # check if we have all categorical dtype with identical categories
+        if all(isinstance(x, CategoricalDtype) for x in dtypes):
+            first = dtypes[0]
+            if all(first == other for other in dtypes[1:]):
+                return first
+
+        # special case non-initialized categorical
+        # TODO we should figure out the expected return value in general
+        non_init_cats = [
+            isinstance(x, CategoricalDtype) and x.categories is None for x in dtypes
+        ]
+        if all(non_init_cats):
+            return self
+        elif any(non_init_cats):
+            return None
+
+        # categorical is aware of Sparse -> extract sparse subdtypes
+        dtypes = [x.subtype if isinstance(x, SparseDtype) else x for x in dtypes]
+        # extract the categories' dtype
+        non_cat_dtypes = [
+            x.categories.dtype if isinstance(x, CategoricalDtype) else x for x in dtypes
+        ]
+        # TODO should categorical always give an answer?
+        from pandas.core.dtypes.cast import find_common_type
+
+        return find_common_type(non_cat_dtypes)
+
 
 @register_extension_dtype
 class DatetimeTZDtype(PandasExtensionDtype):
@@ -798,6 +829,8 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
     def __eq__(self, other: Any) -> bool:
         if isinstance(other, str):
+            if other.startswith("M8["):
+                other = "datetime64[" + other[3:]
             return other == self.name
 
         return (
@@ -867,7 +900,7 @@ class PeriodDtype(PandasExtensionDtype):
             u._freq = None
             return u
 
-        if not isinstance(freq, ABCDateOffset):
+        if not isinstance(freq, BaseOffset):
             freq = cls._parse_dtype_strict(freq)
 
         try:
@@ -909,7 +942,7 @@ class PeriodDtype(PandasExtensionDtype):
         if (
             isinstance(string, str)
             and (string.startswith("period[") or string.startswith("Period["))
-            or isinstance(string, ABCDateOffset)
+            or isinstance(string, BaseOffset)
         ):
             # do not parse string like U as period[U]
             # avoid tuple to be regarded as freq
