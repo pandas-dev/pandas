@@ -67,6 +67,7 @@ from pandas.util._validators import (
     validate_percentile,
 )
 
+from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
     cast_scalar_to_array,
     coerce_to_dtypes,
@@ -112,7 +113,6 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 from pandas.core.dtypes.missing import isna, notna
-from pandas.core.dtypes.base import ExtensionDtype
 
 from pandas.core import algorithms, common as com, nanops, ops
 from pandas.core.accessor import CachedAccessor
@@ -8353,7 +8353,7 @@ Wild         185.0
         #     # axis is None
         #     return f(self.values)
 
-        if True: #not self._is_homogeneous_type:
+        if True:  # not self._is_homogeneous_type:
             # try to avoid self.values call
 
             if filter_type is None and axis == 0 and len(self) > 0:
@@ -8443,9 +8443,8 @@ Wild         185.0
         """
         result = []
 
-        for i in range(len(self.columns)):
-            val = op(self._data.iget_values(i))
-            result.append(val)
+        for arr in self._iter_column_arrays():
+            result.append(op(arr))
 
         return self._constructor_sliced(result, index=self.columns)
 
