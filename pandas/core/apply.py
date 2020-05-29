@@ -263,7 +263,8 @@ class FrameApply(metaclass=abc.ABCMeta):
 
     def apply_standard(self):
 
-        partial_result = None  # partial result that may be returned from reduction.
+        # partial result that may be returned from reduction
+        partial_result = None
 
         # try to reduce first (by default)
         # this only matters if the reduction in values is of different dtype
@@ -305,12 +306,12 @@ class FrameApply(metaclass=abc.ABCMeta):
             else:
                 if reduction_success:
                     return self.obj._constructor_sliced(result, index=labels)
-                else:
-                    # no exceptions - however reduction was unsuccessful,
-                    # use the computed function result for first element
-                    partial_result = result[0]
-                    if isinstance(partial_result, ABCSeries):
-                        partial_result = partial_result.infer_objects()
+
+                # no exceptions - however reduction was unsuccessful,
+                # use the computed function result for first element
+                partial_result = result[0]
+                if isinstance(partial_result, ABCSeries):
+                    partial_result = partial_result.infer_objects()
 
         # compute the result using the series generator,
         # use the result computed while trying to reduce if available.
@@ -323,7 +324,6 @@ class FrameApply(metaclass=abc.ABCMeta):
         series_gen = self.series_generator
         res_index = self.result_index
 
-        keys = []
         results = {}
 
         # If a partial result was already computed,
@@ -332,7 +332,6 @@ class FrameApply(metaclass=abc.ABCMeta):
         if partial_result is not None:
             i, v = next(series_gen_enumeration)
             results[i] = partial_result
-            keys.append(v.name)
 
         if self.ignore_failures:
             successes = []
@@ -342,7 +341,6 @@ class FrameApply(metaclass=abc.ABCMeta):
                 except Exception:
                     pass
                 else:
-                    keys.append(v.name)
                     successes.append(i)
 
             # so will work with MultiIndex
@@ -353,7 +351,6 @@ class FrameApply(metaclass=abc.ABCMeta):
             for i, v in series_gen_enumeration:
 
                 results[i] = self.f(v)
-                keys.append(v.name)
 
         return results, res_index
 
