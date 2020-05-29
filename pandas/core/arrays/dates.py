@@ -13,6 +13,7 @@ from pandas.core.construction import array
 from pandas._libs.tslibs import Timestamp
 from pandas._libs.tslibs.conversion import DT64NS_DTYPE
 from pandas._libs import tslib, lib
+from pandas.core.arrays._mixins import _T
 
 import numpy as np
 
@@ -129,6 +130,9 @@ class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
         else:
             values = _to_date_values(scalars, copy)
         return cls._simple_new(values)
+
+    def _from_backing_data(self: _T, arr: np.ndarray) -> _T:
+        return type(self)(arr)
 
     @property
     def dtype(self) -> ExtensionDtype:
