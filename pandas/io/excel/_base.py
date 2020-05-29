@@ -103,12 +103,12 @@ dtype : Type name or dict of column -> type, default None
     of dtype conversion.
 engine : str, default None
     If io is not a buffer or path, this must be set to identify io.
-    Acceptable values are None, "xlrd", "openpyxl", "odf", or "pyxlsb".
+    Supported engines: "xlrd", "openpyxl", "odf", "pyxlsb", default "xlrd".
     Engine compatibility:
-    "xlrd" supports most old/new Excel file formats.
-    "openpyxl" engine supports newer Excel file formats.
-    "odf" engine supports OpenDocument file formats (.odf, .ods, .odt).
-    "pyxlsb" engine supports Binary Excel files.
+        - "xlrd" supports most old/new Excel file formats.
+        - "openpyxl" supports newer Excel file formats.
+        - "odf" supports OpenDocument file formats (.odf, .ods, .odt).
+        - "pyxlsb" supports Binary Excel files.
 converters : dict, default None
     Dict of functions for converting values in certain columns. Keys can
     either be integers or column labels, values are functions that take one
@@ -800,12 +800,13 @@ class ExcelFile:
         .xls, .xlsx, .xlsb, .xlsm, .odf, .ods, or .odt file.
     engine : str, default None
         If io is not a buffer or path, this must be set to identify io.
-        Acceptable values are None, ``xlrd``, ``openpyxl``, ``odf``, or ``pyxlsb``.
+        Supported engines: ``xlrd``, ``openpyxl``, ``odf``, ``pyxlsb``,
+            default ``xlrd``.
         Engine compatibility:
-        ``xlrd`` supports most old/new Excel file formats.
-        ``openpyxl`` engine supports newer Excel file formats.
-        ``odf`` engine supports OpenDocument file formats (.odf, .ods, .odt).
-        ``pyxlsb`` engine supports Binary Excel files.
+            - ``xlrd`` supports most old/new Excel file formats.
+            - ``openpyxl`` supports newer Excel file formats.
+            - ``odf`` supports OpenDocument file formats (.odf, .ods, .odt).
+            - ``pyxlsb`` supports Binary Excel files.
     """
 
     from pandas.io.excel._odfreader import _ODFReader
