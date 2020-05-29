@@ -81,7 +81,7 @@ def _cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
         except ValueError:
             return arr.astype(object, copy=False)
 
-    if is_sparse(arr) and not is_sparse(dtype):
+    if is_sparse(arr.dtype) and not is_sparse(dtype):
         # problem case: SparseArray.astype(dtype) doesn't follow the specified
         # dtype exactly, but converts this to Sparse[dtype] -> first manually
         # convert to dense array
