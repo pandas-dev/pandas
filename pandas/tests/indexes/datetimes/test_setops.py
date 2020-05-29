@@ -222,7 +222,7 @@ class TestDatetimeIndexSetOps:
         expected3 = date_range("6/1/2000", "6/20/2000", freq="D", name=None)
 
         rng4 = date_range("7/1/2000", "7/31/2000", freq="D", name="idx")
-        expected4 = DatetimeIndex([], name="idx")
+        expected4 = DatetimeIndex([], freq="D", name="idx")
 
         for (rng, expected) in [
             (rng2, expected2),
@@ -231,9 +231,7 @@ class TestDatetimeIndexSetOps:
         ]:
             result = base.intersection(rng)
             tm.assert_index_equal(result, expected)
-            assert result.name == expected.name
             assert result.freq == expected.freq
-            assert result.tz == expected.tz
 
         # non-monotonic
         base = DatetimeIndex(
@@ -255,6 +253,7 @@ class TestDatetimeIndexSetOps:
         # GH 7880
         rng4 = date_range("7/1/2000", "7/31/2000", freq="D", tz=tz, name="idx")
         expected4 = DatetimeIndex([], tz=tz, name="idx")
+        assert expected4.freq is None
 
         for (rng, expected) in [
             (rng2, expected2),
@@ -265,9 +264,7 @@ class TestDatetimeIndexSetOps:
             if sort is None:
                 expected = expected.sort_values()
             tm.assert_index_equal(result, expected)
-            assert result.name == expected.name
-            assert result.freq is None
-            assert result.tz == expected.tz
+            assert result.freq == expected.freq
 
     # parametrize over both anchored and non-anchored freqs, as they
     #  have different code paths
@@ -285,16 +282,17 @@ class TestDatetimeIndexSetOps:
         assert result.freq == rng.freq
 
         # no overlap GH#33604
+        check_freq = freq != "T"  # We don't preserve freq on non-anchored offsets
         result = rng[:3].intersection(rng[-3:])
         tm.assert_index_equal(result, rng[:0])
-        if freq != "T":
+        if check_freq:
             # We don't preserve freq on non-anchored offsets
             assert result.freq == rng.freq
 
         # swapped left and right
         result = rng[-3:].intersection(rng[:3])
         tm.assert_index_equal(result, rng[:0])
-        if freq != "T":
+        if check_freq:
             # We don't preserve freq on non-anchored offsets
             assert result.freq == rng.freq
 

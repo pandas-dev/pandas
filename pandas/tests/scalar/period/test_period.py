@@ -992,7 +992,8 @@ class TestPeriodComparisons:
         assert not jan == 1
         assert jan != 1
 
-        msg = "Cannot compare type Period with type int"
+        int_or_per = "'(Period|int)'"
+        msg = f"not supported between instances of {int_or_per} and {int_or_per}"
         for left, right in [(jan, 1), (1, jan)]:
 
             with pytest.raises(TypeError, match=msg):
@@ -1060,7 +1061,13 @@ class TestArithmetic:
         per1 = Period(freq="D", year=2008, month=1, day=1)
         per2 = Period(freq="D", year=2008, month=1, day=2)
 
-        msg = r"unsupported operand type\(s\)"
+        msg = "|".join(
+            [
+                r"unsupported operand type\(s\)",
+                "can only concatenate str",
+                "must be str, not Period",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             per1 + "str"
         with pytest.raises(TypeError, match=msg):
@@ -1401,8 +1408,15 @@ class TestArithmetic:
 
     @pytest.mark.parametrize("freq", ["M", "2M", "3M"])
     def test_period_addsub_nat(self, freq):
-        assert NaT - Period("2011-01", freq=freq) is NaT
-        assert Period("2011-01", freq=freq) - NaT is NaT
+        per = Period("2011-01", freq=freq)
+
+        # For subtraction, NaT is treated as another Period object
+        assert NaT - per is NaT
+        assert per - NaT is NaT
+
+        # For addition, NaT is treated as offset-like
+        assert NaT + per is NaT
+        assert per + NaT is NaT
 
     def test_period_ops_offset(self):
         p = Period("2011-04-01", freq="D")
