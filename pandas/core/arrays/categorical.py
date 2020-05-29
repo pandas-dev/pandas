@@ -379,15 +379,15 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
     ) -> "Categorical":
         """Create a `Categorical` using a ``DataFrame`` of dummy variables.
 
-        The ``DataFrame`` must be coercible to boolean,
-        and have no more than one truthy value per row.
+        The ``DataFrame`` must have no more than one truthy value per row.
         The columns of the ``DataFrame`` become the categories of the `Categorical`.
-        A column whose header is NA will be dropped;
-        any row with a NA value will be uncategorised.
+        A column whose header is NA will be dropped:
+        any row containing a NA value will be uncategorised.
 
         Parameters
         ----------
-        dummies : DataFrame of bool-like
+        dummies : DataFrame
+            dtypes of columns with non-NA headers must be coercible to bool.
         ordered : bool
             Whether or not this Categorical is ordered.
 
@@ -402,17 +402,45 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
 
         Examples
         --------
-        >>> df = pd.DataFrame(
-        ... [[1, 0, 0], [0, 1, 0], [0, 0, 1]], columns=["a", "b", "c"]
-        ... )
-        >>> Categorical.from_dummies(df)
+        >>> simple = pd.DataFrame(np.eye(3), columns=["a", "b", "c"])
+        >>> Categorical.from_dummies(simple)
         [a, b, c]
         Categories (3, object): [a, b, c]
-        """
-        df = dummies.drop(columns=np.nan, errors="ignore").astype(bool)
 
-        if (df.sum(axis=1) > 1).any():
-            raise ValueError("Some rows belong to >1 category")
+        >>> nan_col = pd.DataFrame(np.eye(4), columns=["a", "b", np.nan, None])
+        >>> Categorical.from_dummies(nan_col)
+        [a, b, NaN, NaN]
+        Categories (2, object): [a, b]
+
+        >>> nan_cell = pd.DataFrame(
+        ...     [[1, 0, np.nan], [0, 1, 0], [0, 0, 1]],
+        ...     columns=["a", "b", "c"],
+        ... )
+        >>> Categorical.from_dummies(nan_cell)
+        [NaN, b, c]
+        Categories (3, object): [a, b, c]
+
+        >>> multi = pd.DataFrame(
+        ...     [[1, 0, 1], [0, 1, 0], [0, 0, 1]],
+        ...     columns=["a", "b", "c"],
+        ... )
+        >>> Categorical.from_dummies(multi)
+        Traceback (most recent call last):
+            ...
+        ValueError: 1 record(s) belongs to multiple categories: [0]
+        """
+        to_drop = dummies.columns[dummies.columns.isna()]
+        if len(to_drop):
+            dummies = dummies.drop(columns=to_drop)
+        df = dummies.astype(bool)
+
+        multicat_rows = df.sum(axis=1) > 1
+        if multicat_rows.any():
+            raise ValueError(
+                "{} record(s) belongs to multiple categories: {}".format(
+                    multicat_rows.sum(), list(df.index[multicat_rows]),
+                )
+            )
 
         mult_by = np.arange(df.shape[1]) + 1
         #  000            000    0   -1
