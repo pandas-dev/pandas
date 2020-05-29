@@ -409,15 +409,17 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         [a, b, c]
         Categories (3, object): [a, b, c]
         """
-        # GH 8745
         df = dummies.drop(columns=np.nan, errors="ignore").astype(bool)
 
         if (df.sum(axis=1) > 1).any():
             raise ValueError("Some rows belong to >1 category")
 
-        mult_by = np.arange(1, df.shape[1] + 1)
-
-        codes = (df.astype(int) * mult_by).sum(axis=1) - 1
+        mult_by = np.arange(df.shape[1]) + 1
+        #  000            000    0   -1
+        #  010            020    2    1
+        #  001 * 1,2,3 => 003 -> 3 -> 2 = correct codes
+        #  100            100    1    0
+        codes = (df * mult_by).sum(axis=1) - 1
         codes[codes.isna()] = -1
         return cls.from_codes(codes, df.columns.values, ordered=ordered)
 
@@ -453,8 +455,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         1  False  True
         2  False  False
 
-        >>> Categorical(["a", "b", np.nan]).to_dummies("c")
-           a      b      c
+        >>> Categorical(["a", "b", np.nan]).to_dummies("other")
+           a      b      other
         0  True   False  False
         1  False  True   False
         2  False  False  True
