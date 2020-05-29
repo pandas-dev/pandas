@@ -8508,6 +8508,7 @@ NaN 12.3   33.0
 
         """
         # column_wise = kwds.pop("column_wise", False)
+        kwds.pop("column_wise", False)
 
         assert filter_type is None or filter_type == "bool", filter_type
 
