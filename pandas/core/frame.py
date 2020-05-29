@@ -8507,7 +8507,7 @@ NaN 12.3   33.0
         skipna, **kwds : keywords to pass to the `op` function
 
         """
-        column_wise = kwds.pop("column_wise", False)
+        # column_wise = kwds.pop("column_wise", False)
 
         assert filter_type is None or filter_type == "bool", filter_type
 
@@ -8561,69 +8561,96 @@ NaN 12.3   33.0
                 raise NotImplementedError(msg)
             return data
 
-        def blk_func(values):
-            if isinstance(values, ExtensionArray):
-                return values._reduce(name, skipna=skipna, **kwds)
-            else:
-                return op(values, axis=1, skipna=skipna, **kwds)
-
-        if axis == 0 and column_wise:
-            # column-wise reduction
-            df = self
-            if numeric_only is True:
-                df = _get_data(axis_matters=True)
-            return df._reduce_columns(blk_func)
-
-        # if numeric_only is not None and axis in [0, 1]:
-        if numeric_only is not None and axis in [0, 1]:
+        # special case for block-wise
+        if (
+            not self._mgr.any_extension_types
+            and numeric_only is not None
+            and axis in [0, 1]
+        ):
             df = self
             if numeric_only is True:
                 df = _get_data(axis_matters=True)
             if axis == 1:
                 df = df.T
-                # axis = 0
+                axis = 0
 
             out_dtype = "bool" if filter_type == "bool" else None
 
+            def blk_func(values):
+                if isinstance(values, ExtensionArray):
+                    return values._reduce(name, skipna=skipna, **kwds)
+                else:
+                    return op(values, axis=1, skipna=skipna, **kwds)
+
             # After possibly _get_data and transposing, we are now in the
             #  simple case where we can use BlockManager._reduce
-            try:
-                res = df._mgr.reduce(blk_func, ignore_failures=numeric_only is None)
-            except TypeError:
-                # if block-wise fails and numeric_only was None, we try
-                # again after removing non-numerical columns.
-                # (got here with mixed float + string frame and axis=1 -> need
-                # to remove non-numerical columns before transposing)
-                if numeric_only is None:
-                    df = _get_data(axis_matters=True)
-                    if axis == 1:
-                        df = df.T
-                else:
-                    raise
-                res = df._mgr.reduce(blk_func)
+            res = df._mgr.reduce(blk_func)
 
             # breakpoint()
             assert isinstance(res, dict)
-
-            # if len(res):
-            #     assert len(res) == max(list(res.keys())) + 1, res.keys()
-
-            out = df._constructor_sliced(
-                res, index=list(res.keys()), dtype=out_dtype
-            ).sort_index()
-            if len(res) < len(df.columns):
-                out.index = df.columns[np.sort(list(res.keys()))]
-            else:
-                out.index = df.columns
-
-            # if axis == 0 and is_object_dtype(out.dtype):
-            #     out[:] = coerce_to_dtypes(out.values, df.dtypes)
+            if len(res):
+                assert len(res) == max(list(res.keys())) + 1, res.keys()
+            out = df._constructor_sliced(res, index=range(len(res)), dtype=out_dtype)
+            out.index = df.columns
+            if axis == 0 and df.dtypes.apply(needs_i8_conversion).any():
+                # FIXME: needs_i8_conversion check is kludge, not sure
+                #  why it is necessary in this case and this case alone
+                out[:] = coerce_to_dtypes(out.values, df.dtypes)
             return out
-        # else:
-        #     # axis is None
-        #     return f(self.values)
 
-        if True:  # not self._is_homogeneous_type:
+        def array_func(values):
+            if isinstance(values, ExtensionArray):
+                return values._reduce(name, skipna=skipna, **kwds)
+            else:
+                return op(values, skipna=skipna, **kwds)
+
+        # all other options with axis=1 are done column-array-wise
+        if axis == 0:
+            # column-wise reduction
+
+            def _constructor(df, result, index=None):
+                index = index if index is not None else df.columns
+                if len(result):
+                    return df._constructor_sliced(result, index=index)
+                else:
+                    return df._constructor_sliced(result, index=index, dtype="float64")
+
+            def _reduce_columns(df, op):
+                result = [op(arr) for arr in df._iter_column_arrays()]
+                return _constructor(df, result)
+
+            df = self
+            if numeric_only is True:
+                df = _get_data(axis_matters=True)
+
+            if numeric_only is not None:
+                return _reduce_columns(df, array_func)
+            else:
+                # need to catch and ignore exceptions when numeric_
+                try:
+                    return _reduce_columns(df, array_func)
+                except TypeError:
+                    # if column-wise fails and numeric_only was None, we try
+                    # again after removing non-numerical columns.
+                    # (got here with mixed float + string frame and axis=1 -> need
+                    # to remove non-numerical columns before transposing)
+
+                    # df = _get_data(axis_matters=True)
+                    # return _reduce_columns(df, array_func)
+                    result = []
+                    indices = []
+                    for i, arr in enumerate(df._iter_column_arrays()):
+                        try:
+                            res = array_func(arr)
+                        except Exception:
+                            pass
+                        else:
+                            result.append(res)
+                            indices.append(i)
+
+                    return _constructor(df, result, index=df.columns[indices])
+
+        if not self._is_homogeneous_type:
             # try to avoid self.values call
 
             if filter_type is None and axis == 0 and len(self) > 0:
@@ -8697,26 +8724,6 @@ NaN 12.3   33.0
         if constructor is not None:
             result = self._constructor_sliced(result, index=labels)
         return result
-
-    def _reduce_columns(self, op):
-        """
-        Reduce DataFrame column-wise.
-
-        Parameters
-        ----------
-        op : func
-            The reducing function to be called on the values.
-
-        Returns
-        -------
-        Series
-        """
-        result = []
-
-        for arr in self._iter_column_arrays():
-            result.append(op(arr))
-
-        return self._constructor_sliced(result, index=self.columns)
 
     def nunique(self, axis=0, dropna=True) -> Series:
         """
