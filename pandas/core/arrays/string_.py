@@ -201,14 +201,21 @@ class StringArray(PandasArray):
         if dtype:
             assert dtype == "string"
 
-        result = np.asarray(scalars, dtype="object")
-        if copy and result is scalars:
-            result = result.copy()
+        from pandas.core.arrays.masked import BaseMaskedArray
 
-        # Standardize all missing-like values to NA
-        # TODO: it would be nice to do this in _validate / lib.is_string_array
-        # We are already doing a scan over the values there.
-        na_values = isna(result)
+        if isinstance(scalars, BaseMaskedArray):
+            na_values = scalars._mask
+            result = scalars._data
+        else:
+            result = np.asarray(scalars)
+            if copy and result is scalars:
+                result = result.copy()
+
+            # Standardize all missing-like values to NA
+            # TODO: it would be nice to do this in _validate / lib.is_string_array
+            # We are already doing a scan over the values there.
+            na_values = isna(result)
+
         has_nans = na_values.any()
         if has_nans and result is scalars:
             # force a copy now, if we haven't already

@@ -447,7 +447,7 @@ class IntegerArray(BaseMaskedArray):
             casting
         """
         from pandas.core.arrays.boolean import BooleanDtype
-        from pandas.core.arrays.floating import  _FloatingDtype
+        from pandas.core.arrays.floating import _FloatingDtype
         from pandas.core.arrays.string_ import StringDtype
 
         dtype = pandas_dtype(dtype)

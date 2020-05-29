@@ -384,6 +384,7 @@ class FloatingArray(BaseMaskedArray):
         """
         from pandas.core.arrays.boolean import BooleanArray, BooleanDtype
         from pandas.core.arrays.integer import _IntegerDtype, IntegerArray
+        from pandas.core.arrays.string_ import StringDtype, StringArray
 
         dtype = pandas_dtype(dtype)
 
@@ -400,6 +401,8 @@ class FloatingArray(BaseMaskedArray):
         elif isinstance(dtype, BooleanDtype):
             result = self._data.astype("bool", copy=False)
             return BooleanArray(result, mask=self._mask, copy=False)
+        elif isinstance(dtype, StringDtype):
+            return StringArray._from_sequence(self, copy=False)
 
         # coerce
         if is_float_dtype(dtype):
