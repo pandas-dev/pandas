@@ -686,6 +686,10 @@ Deprecations
   version 1.1. All other arguments should be given as keyword
   arguments (:issue:`27573`).
 
+- Passing any arguments but the first 2 to  :func:`read_excel` as
+  positional arguments is deprecated since version 1.1. All other
+  arguments should be given as keyword arguments (:issue:`27573`).
+
 - :func:`pandas.api.types.is_categorical` is deprecated and will be removed in a future version; use `:func:pandas.api.types.is_categorical_dtype` instead (:issue:`33385`)
 - :meth:`Index.get_value` is deprecated and will be removed in a future version (:issue:`19728`)
 - :meth:`Series.dt.week` and `Series.dt.weekofyear` are deprecated and will be removed in a future version, use :meth:`Series.dt.isocalendar().week` instead (:issue:`33595`)
