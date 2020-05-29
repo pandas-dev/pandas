@@ -3001,7 +3001,12 @@ cdef class FY5253Quarter(FY5253Mixin):
 
     _prefix = "REQ"
     _attributes = tuple(
-        ["n", "normalize", "weekday", "startingMonth", "qtr_with_extra_week", "variation"]
+        "n",
+        "normalize",
+        "weekday",
+        "startingMonth",
+        "qtr_with_extra_week",
+        "variation",
     )
 
     cdef readonly:
