@@ -127,6 +127,48 @@ This conversion is likewise done column by column:
     df_cat['A']
     df_cat['B']
 
+Dummy / indicator / one-hot encoded variables
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Some operations, like regression and classification,
+encodes a single categorical variable as a column for each category,
+with each row having False in all but one column (True).
+These are called dummy variables, or one-hot encoding.
+:class:`pandas.Categorical`s can easily be converted to and from such an encoding:
+
+.. ipython:: python
+
+    cat = pd.Categorical(["a", "b", "b", "c"])
+    cat
+
+    dummies = cat.to_dummies()
+    dummies
+
+    pd.Categorical.from_dummies(dummies)
+
+The :meth:`pandas.Categorical.from_dummies` class method accepts a dataframe
+whose dtypes are coercible to boolean, and an ``ordered`` argument
+for whether the resulting ``Categorical`` should be considered ordered
+(like the ``Categorical`` constructor).
+A column with a NA index will be ignored.
+Any row which is entirely falsey, or has a missing value,
+will be uncategorised.
+
+:meth:`pandas.Categorical.to_dummies` produces a boolean dataframe of dummy variables.
+If the ``na_column`` argument is ``None`` (default),
+missing items will result in a row of ``False``.
+Otherwise, the value of ``na_column`` will be used as the index
+of an extra column representing these items:
+
+.. ipython:: python
+
+    cat = pd.Categorical(["a", "b", np.nan])
+    cat.to_dummies(na_column="other")
+
+For more control over data types and column names,
+see :func:`pandas.get_dummies`.
+
+.. versionadded:: 1.1.0
 
 Controlling behavior
 ~~~~~~~~~~~~~~~~~~~~
