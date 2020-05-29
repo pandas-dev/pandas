@@ -63,7 +63,7 @@ cdef datetime _as_datetime(datetime obj):
     return obj
 
 
-cpdef bint is_normalized(datetime dt):
+cdef bint _is_normalized(datetime dt):
     if dt.hour != 0 or dt.minute != 0 or dt.second != 0 or dt.microsecond != 0:
         # Regardless of whether dt is datetime vs Timestamp
         return False
@@ -233,7 +233,7 @@ cpdef int get_firstbday(int year, int month) nogil:
     return first
 
 
-def _get_calendar(weekmask, holidays, calendar):
+cdef _get_calendar(weekmask, holidays, calendar):
     """Generate busdaycalendar"""
     if isinstance(calendar, np.busdaycalendar):
         if not holidays:
@@ -252,7 +252,7 @@ def _get_calendar(weekmask, holidays, calendar):
         holidays = holidays + calendar.holidays().tolist()
     except AttributeError:
         pass
-    holidays = [to_dt64D(dt) for dt in holidays]
+    holidays = [_to_dt64D(dt) for dt in holidays]
     holidays = tuple(sorted(holidays))
 
     kwargs = {'weekmask': weekmask}
@@ -263,7 +263,7 @@ def _get_calendar(weekmask, holidays, calendar):
     return busdaycalendar, holidays
 
 
-def to_dt64D(dt):
+cdef _to_dt64D(dt):
     # Currently
     # > np.datetime64(dt.datetime(2013,5,1),dtype='datetime64[D]')
     # numpy.datetime64('2013-05-01T02:00:00.000000+0200')
@@ -286,7 +286,7 @@ def to_dt64D(dt):
 # Validation
 
 
-def _validate_business_time(t_input):
+cdef _validate_business_time(t_input):
     if isinstance(t_input, str):
         try:
             t = time.strptime(t_input, '%H:%M')
@@ -311,7 +311,7 @@ _relativedelta_kwds = {"years", "months", "weeks", "days", "year", "month",
                        "minutes", "seconds", "microseconds"}
 
 
-def _determine_offset(kwds):
+cdef _determine_offset(kwds):
     # timedelta is used for sub-daily plural offsets and all singular
     # offsets relativedelta is used for plural offsets of daily length or
     # more nanosecond(s) are handled by apply_wraps
@@ -357,7 +357,7 @@ cdef class BaseOffset:
     """
     _typ = "dateoffset"
     _day_opt = None
-    _attributes = frozenset(['n', 'normalize'])
+    _attributes = tuple(["n", "normalize"])
     _use_relativedelta = False
     _adjust_dst = True
     _deprecations = frozenset(["isAnchored", "onOffset"])
@@ -400,7 +400,6 @@ cdef class BaseOffset:
         Returns a tuple containing all of the attributes needed to evaluate
         equality between two DateOffset objects.
         """
-        # NB: non-cython subclasses override property with cache_readonly
         d = getattr(self, "__dict__", {})
         all_paras = d.copy()
         all_paras["n"] = self.n
@@ -614,7 +613,7 @@ cdef class BaseOffset:
         return get_day_of_month(other, self._day_opt)
 
     def is_on_offset(self, dt) -> bool:
-        if self.normalize and not is_normalized(dt):
+        if self.normalize and not _is_normalized(dt):
             return False
 
         # Default (slow) method for determining if some date is a member of the
@@ -658,63 +657,22 @@ cdef class BaseOffset:
 
     def __setstate__(self, state):
         """Reconstruct an instance from a pickled state"""
-        if isinstance(self, MonthOffset):
-            # We can't just override MonthOffset.__setstate__ because of the
-            #  combination of MRO resolution and cython not handling
-            #  multiple inheritance nicely for cdef classes.
-            state.pop("_use_relativedelta", False)
-            state.pop("offset", None)
-            state.pop("_offset", None)
-            state.pop("kwds", {})
-
-        if 'offset' in state:
-            # Older (<0.22.0) versions have offset attribute instead of _offset
-            if '_offset' in state:  # pragma: no cover
-                raise AssertionError('Unexpected key `_offset`')
-            state['_offset'] = state.pop('offset')
-            state['kwds']['offset'] = state['_offset']
-
-        if '_offset' in state and not isinstance(state['_offset'], timedelta):
-            # relativedelta, we need to populate using its kwds
-            offset = state['_offset']
-            odict = offset.__dict__
-            kwds = {key: odict[key] for key in odict if odict[key]}
-            state.update(kwds)
-
         self.n = state.pop("n")
         self.normalize = state.pop("normalize")
         self._cache = state.pop("_cache", {})
-
-        if not len(state):
-            # FIXME: kludge because some classes no longer have a __dict__,
-            #  so we need to short-circuit before raising on the next line
-            return
-
-        self.__dict__.update(state)
-
-        if 'weekmask' in state and 'holidays' in state:
-            weekmask = state.pop("weekmask")
-            holidays = state.pop("holidays")
-            calendar, holidays = _get_calendar(weekmask=weekmask,
-                                               holidays=holidays,
-                                               calendar=None)
-            self.calendar = calendar
-            self.holidays = holidays
+        # At this point we expect state to be empty
 
     def __getstate__(self):
         """Return a pickleable state"""
-        state = getattr(self, "__dict__", {}).copy()
+        state = {}
         state["n"] = self.n
         state["normalize"] = self.normalize
 
         # we don't want to actually pickle the calendar object
         # as its a np.busyday; we recreate on deserialization
-        if 'calendar' in state:
-            del state['calendar']
-        try:
-            state['kwds'].pop('calendar')
-        except KeyError:
-            pass
+        state.pop("calendar", None)
+        if "kwds" in state:
+            state["kwds"].pop("calendar", None)
 
         return state
 
@@ -752,6 +710,17 @@ cdef class SingleConstructorOffset(BaseOffset):
             raise ValueError(f"Bad freq suffix {suffix}")
         return cls()
 
+    def __reduce__(self):
+        # This __reduce__ implementation is for all BaseOffset subclasses
+        #  except for RelativeDeltaOffset
+        # np.busdaycalendar objects do not pickle nicely, but we can reconstruct
+        #  from attributes that do get pickled.
+        tup = tuple(
+            getattr(self, attr) if attr != "calendar" else None
+            for attr in self._attributes
+        )
+        return type(self), tup
+
 
 # ---------------------------------------------------------------------
 # Tick Offsets
@@ -761,7 +730,7 @@ cdef class Tick(SingleConstructorOffset):
     __array_priority__ = 1000
     _adjust_dst = False
     _prefix = "undefined"
-    _attributes = frozenset(["n", "normalize"])
+    _attributes = tuple(["n", "normalize"])
 
     def __init__(self, n=1, normalize=False):
         n = self._validate_n(n)
@@ -883,9 +852,6 @@ cdef class Tick(SingleConstructorOffset):
     # --------------------------------------------------------------------
     # Pickle Methods
 
-    def __reduce__(self):
-        return (type(self), (self.n,))
-
     def __setstate__(self, state):
         self.n = state["n"]
         self.normalize = False
@@ -955,7 +921,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
     """
     DateOffset subclass backed by a dateutil relativedelta object.
     """
-    _attributes = frozenset(["n", "normalize"] + list(_relativedelta_kwds))
+    _attributes = tuple(["n", "normalize"] + list(_relativedelta_kwds))
     _adjust_dst = False
 
     def __init__(self, n=1, normalize=False, **kwds):
@@ -967,6 +933,38 @@ cdef class RelativeDeltaOffset(BaseOffset):
         for key in kwds:
             val = kwds[key]
             object.__setattr__(self, key, val)
+
+    def __getstate__(self):
+        """Return a pickleable state"""
+        # RelativeDeltaOffset (technically DateOffset) is the only non-cdef
+        #  class, so the only one with __dict__
+        state = self.__dict__.copy()
+        state["n"] = self.n
+        state["normalize"] = self.normalize
+        return state
+
+    def __setstate__(self, state):
+        """Reconstruct an instance from a pickled state"""
+
+        if "offset" in state:
+            # Older (<0.22.0) versions have offset attribute instead of _offset
+            if "_offset" in state:  # pragma: no cover
+                raise AssertionError("Unexpected key `_offset`")
+            state["_offset"] = state.pop("offset")
+            state["kwds"]["offset"] = state["_offset"]
+
+        if "_offset" in state and not isinstance(state["_offset"], timedelta):
+            # relativedelta, we need to populate using its kwds
+            offset = state["_offset"]
+            odict = offset.__dict__
+            kwds = {key: odict[key] for key in odict if odict[key]}
+            state.update(kwds)
+
+        self.n = state.pop("n")
+        self.normalize = state.pop("normalize")
+        self._cache = state.pop("_cache", {})
+
+        self.__dict__.update(state)
 
     @apply_wraps
     def apply(self, other):
@@ -1060,7 +1058,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
             )
 
     def is_on_offset(self, dt) -> bool:
-        if self.normalize and not is_normalized(dt):
+        if self.normalize and not _is_normalized(dt):
             return False
         # TODO: see GH#1395
         return True
@@ -1234,6 +1232,7 @@ cdef class BusinessMixin(SingleConstructorOffset):
         if "_offset" in state:
             self._offset = state.pop("_offset")
         elif "offset" in state:
+            # Older (<0.22.0) versions have offset attribute instead of _offset
             self._offset = state.pop("offset")
 
         if self._prefix.startswith("C"):
@@ -1256,7 +1255,7 @@ cdef class BusinessDay(BusinessMixin):
     """
 
     _prefix = "B"
-    _attributes = frozenset(["n", "normalize", "offset"])
+    _attributes = tuple(["n", "normalize", "offset"])
 
     cpdef __setstate__(self, state):
         self.n = state.pop("n")
@@ -1265,10 +1264,6 @@ cdef class BusinessDay(BusinessMixin):
             self._offset = state.pop("_offset")
         elif "offset" in state:
             self._offset = state.pop("offset")
-
-    def __reduce__(self):
-        tup = (self.n, self.normalize, self.offset)
-        return type(self), tup
 
     @property
     def _params(self):
@@ -1371,7 +1366,7 @@ cdef class BusinessDay(BusinessMixin):
         return result
 
     def is_on_offset(self, dt) -> bool:
-        if self.normalize and not is_normalized(dt):
+        if self.normalize and not _is_normalized(dt):
             return False
         return dt.weekday() < 5
 
@@ -1383,7 +1378,7 @@ cdef class BusinessHour(BusinessMixin):
 
     _prefix = "BH"
     _anchor = 0
-    _attributes = frozenset(["n", "normalize", "start", "end", "offset"])
+    _attributes = tuple(["n", "normalize", "start", "end", "offset"])
     _adjust_dst = False
 
     cdef readonly:
@@ -1450,9 +1445,6 @@ cdef class BusinessHour(BusinessMixin):
         state.pop("next_bday", None)
         BusinessMixin.__setstate__(self, state)
 
-    def __reduce__(self):
-        return type(self), (self.n, self.normalize, self.start, self.end, self.offset)
-
     def _repr_attrs(self) -> str:
         out = super()._repr_attrs()
         hours = ",".join(
@@ -1505,7 +1497,6 @@ cdef class BusinessHour(BusinessMixin):
             nb_offset = -1
         if self._prefix.startswith("C"):
             # CustomBusinessHour
-            from pandas.tseries.offsets import CustomBusinessDay
             return CustomBusinessDay(
                 n=nb_offset,
                 weekmask=self.weekmask,
@@ -1662,7 +1653,6 @@ cdef class BusinessHour(BusinessMixin):
             if bd != 0:
                 if self._prefix.startswith("C"):
                     # GH#30593 this is a Custom offset
-                    from pandas.tseries.offsets import CustomBusinessDay
                     skip_bd = CustomBusinessDay(
                         n=bd,
                         weekmask=self.weekmask,
@@ -1722,7 +1712,7 @@ cdef class BusinessHour(BusinessMixin):
             raise ApplyTypeError("Only know how to combine business hour with datetime")
 
     def is_on_offset(self, dt):
-        if self.normalize and not is_normalized(dt):
+        if self.normalize and not _is_normalized(dt):
             return False
 
         if dt.tzinfo is not None:
@@ -1737,7 +1727,7 @@ cdef class BusinessHour(BusinessMixin):
         """
         Slight speedups using calculated values.
         """
-        # if self.normalize and not is_normalized(dt):
+        # if self.normalize and not _is_normalized(dt):
         #     return False
         # Valid BH can be on the different BusinessDay during midnight
         # Distinguish by the time spent from previous opening time
@@ -1786,7 +1776,7 @@ cdef class WeekOfMonthMixin(SingleConstructorOffset):
         return shift_day(shifted, to_day - shifted.day)
 
     def is_on_offset(self, dt) -> bool:
-        if self.normalize and not is_normalized(dt):
+        if self.normalize and not _is_normalized(dt):
             return False
         return dt.day == self._get_offset_day(dt)
 
@@ -1806,7 +1796,7 @@ cdef class YearOffset(SingleConstructorOffset):
     """
     DateOffset that just needs a month.
     """
-    _attributes = frozenset(["n", "normalize", "month"])
+    _attributes = tuple(["n", "normalize", "month"])
 
     # _default_month: int  # FIXME: python annotation here breaks things
 
@@ -1828,9 +1818,6 @@ cdef class YearOffset(SingleConstructorOffset):
         self.normalize = state.pop("normalize")
         self._cache = {}
 
-    def __reduce__(self):
-        return type(self), (self.n, self.normalize, self.month)
-
     @classmethod
     def _from_name(cls, suffix=None):
         kwargs = {}
@@ -1844,7 +1831,7 @@ cdef class YearOffset(SingleConstructorOffset):
         return f"{self._prefix}-{month}"
 
     def is_on_offset(self, dt) -> bool:
-        if self.normalize and not is_normalized(dt):
+        if self.normalize and not _is_normalized(dt):
             return False
         return dt.month == self.month and dt.day == self._get_offset_day(dt)
 
@@ -1943,7 +1930,7 @@ cdef class YearBegin(YearOffset):
 # Quarter-Based Offset Classes
 
 cdef class QuarterOffset(SingleConstructorOffset):
-    _attributes = frozenset(["n", "normalize", "startingMonth"])
+    _attributes = tuple(["n", "normalize", "startingMonth"])
     # TODO: Consider combining QuarterOffset and YearOffset __init__ at some
     #       point.  Also apply_index, is_on_offset, rule_code if
     #       startingMonth vs month attr names are resolved
@@ -1967,9 +1954,6 @@ cdef class QuarterOffset(SingleConstructorOffset):
         self.n = state.pop("n")
         self.normalize = state.pop("normalize")
 
-    def __reduce__(self):
-        return type(self), (self.n, self.normalize, self.startingMonth)
-
     @classmethod
     def _from_name(cls, suffix=None):
         kwargs = {}
@@ -1989,7 +1973,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
         return self.n == 1 and self.startingMonth is not None
 
     def is_on_offset(self, dt) -> bool:
-        if self.normalize and not is_normalized(dt):
+        if self.normalize and not _is_normalized(dt):
             return False
         mod_month = (dt.month - self.startingMonth) % 3
         return mod_month == 0 and dt.day == self._get_offset_day(dt)
@@ -2106,7 +2090,7 @@ cdef class QuarterBegin(QuarterOffset):
 
 cdef class MonthOffset(SingleConstructorOffset):
     def is_on_offset(self, dt) -> bool:
-        if self.normalize and not is_normalized(dt):
+        if self.normalize and not _is_normalized(dt):
             return False
         return dt.day == self._get_offset_day(dt)
 
@@ -2120,6 +2104,14 @@ cdef class MonthOffset(SingleConstructorOffset):
     def apply_index(self, dtindex):
         shifted = shift_months(dtindex.asi8, self.n, self._day_opt)
         return type(dtindex)._simple_new(shifted, dtype=dtindex.dtype)
+
+    cpdef __setstate__(self, state):
+        state.pop("_use_relativedelta", False)
+        state.pop("offset", None)
+        state.pop("_offset", None)
+        state.pop("kwds", {})
+
+        BaseOffset.__setstate__(self, state)
 
 
 cdef class MonthEnd(MonthOffset):
@@ -2182,7 +2174,7 @@ cdef class BusinessMonthBegin(MonthOffset):
 cdef class SemiMonthOffset(SingleConstructorOffset):
     _default_day_of_month = 15
     _min_day_of_month = 2
-    _attributes = frozenset(["n", "normalize", "day_of_month"])
+    _attributes = tuple(["n", "normalize", "day_of_month"])
 
     cdef readonly:
         int day_of_month
@@ -2200,9 +2192,6 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
                 f"{self._min_day_of_month}<=day_of_month<=27, "
                 f"got {self.day_of_month}"
             )
-
-    def __reduce__(self):
-        return type(self), (self.n, self.normalize, self.day_of_month)
 
     cpdef __setstate__(self, state):
         self.n = state.pop("n")
@@ -2310,7 +2299,7 @@ cdef class SemiMonthEnd(SemiMonthOffset):
     _min_day_of_month = 1
 
     def is_on_offset(self, dt) -> bool:
-        if self.normalize and not is_normalized(dt):
+        if self.normalize and not _is_normalized(dt):
             return False
         days_in_month = get_days_in_month(dt.year, dt.month)
         return dt.day in (self.day_of_month, days_in_month)
@@ -2370,7 +2359,7 @@ cdef class SemiMonthBegin(SemiMonthOffset):
     _prefix = "SMS"
 
     def is_on_offset(self, dt) -> bool:
-        if self.normalize and not is_normalized(dt):
+        if self.normalize and not _is_normalized(dt):
             return False
         return dt.day in (1, self.day_of_month)
 
@@ -2428,7 +2417,7 @@ cdef class Week(SingleConstructorOffset):
 
     _inc = timedelta(weeks=1)
     _prefix = "W"
-    _attributes = frozenset(["n", "normalize", "weekday"])
+    _attributes = tuple(["n", "normalize", "weekday"])
 
     cdef readonly:
         object weekday  # int or None
@@ -2440,9 +2429,6 @@ cdef class Week(SingleConstructorOffset):
         if self.weekday is not None:
             if self.weekday < 0 or self.weekday > 6:
                 raise ValueError(f"Day must be 0<=day<=6, got {self.weekday}")
-
-    def __reduce__(self):
-        return type(self), (self.n, self.normalize, self.weekday)
 
     cpdef __setstate__(self, state):
         self.n = state.pop("n")
@@ -2529,7 +2515,7 @@ cdef class Week(SingleConstructorOffset):
         return base + off + Timedelta(1, "ns") - Timedelta(1, "D")
 
     def is_on_offset(self, dt) -> bool:
-        if self.normalize and not is_normalized(dt):
+        if self.normalize and not _is_normalized(dt):
             return False
         elif self.weekday is None:
             return True
@@ -2575,7 +2561,7 @@ cdef class WeekOfMonth(WeekOfMonthMixin):
     """
 
     _prefix = "WOM"
-    _attributes = frozenset(["n", "normalize", "week", "weekday"])
+    _attributes = tuple(["n", "normalize", "week", "weekday"])
 
     def __init__(self, n=1, normalize=False, week=0, weekday=0):
         WeekOfMonthMixin.__init__(self, n, normalize, weekday)
@@ -2589,9 +2575,6 @@ cdef class WeekOfMonth(WeekOfMonthMixin):
         self.normalize = state.pop("normalize")
         self.weekday = state.pop("weekday")
         self.week = state.pop("week")
-
-    def __reduce__(self):
-        return type(self), (self.n, self.normalize, self.week, self.weekday)
 
     def _get_offset_day(self, other: datetime) -> int:
         """
@@ -2643,7 +2626,7 @@ cdef class LastWeekOfMonth(WeekOfMonthMixin):
     """
 
     _prefix = "LWOM"
-    _attributes = frozenset(["n", "normalize", "weekday"])
+    _attributes = tuple(["n", "normalize", "weekday"])
 
     def __init__(self, n=1, normalize=False, weekday=0):
         WeekOfMonthMixin.__init__(self, n, normalize, weekday)
@@ -2651,9 +2634,6 @@ cdef class LastWeekOfMonth(WeekOfMonthMixin):
 
         if self.n == 0:
             raise ValueError("N cannot be 0")
-
-    def __reduce__(self):
-        return type(self), (self.n, self.normalize, self.weekday)
 
     cpdef __setstate__(self, state):
         self.n = state.pop("n")
@@ -2793,14 +2773,10 @@ cdef class FY5253(FY5253Mixin):
     """
 
     _prefix = "RE"
-    _attributes = frozenset(["weekday", "startingMonth", "variation"])
-
-    def __reduce__(self):
-        tup = (self.n, self.normalize, self.weekday, self.startingMonth, self.variation)
-        return type(self), tup
+    _attributes = tuple(["n", "normalize", "weekday", "startingMonth", "variation"])
 
     def is_on_offset(self, dt: datetime) -> bool:
-        if self.normalize and not is_normalized(dt):
+        if self.normalize and not _is_normalized(dt):
             return False
         dt = datetime(dt.year, dt.month, dt.day)
         year_end = self.get_year_end(dt)
@@ -2975,8 +2951,15 @@ cdef class FY5253Quarter(FY5253Mixin):
     """
 
     _prefix = "REQ"
-    _attributes = frozenset(
-        ["weekday", "startingMonth", "qtr_with_extra_week", "variation"]
+    _attributes = tuple(
+        [
+            "n",
+            "normalize",
+            "weekday",
+            "startingMonth",
+            "qtr_with_extra_week",
+            "variation",
+        ]
     )
 
     cdef readonly:
@@ -2999,17 +2982,6 @@ cdef class FY5253Quarter(FY5253Mixin):
     cpdef __setstate__(self, state):
         FY5253Mixin.__setstate__(self, state)
         self.qtr_with_extra_week = state.pop("qtr_with_extra_week")
-
-    def __reduce__(self):
-        tup = (
-            self.n,
-            self.normalize,
-            self.weekday,
-            self.startingMonth,
-            self.qtr_with_extra_week,
-            self.variation,
-        )
-        return type(self), tup
 
     @cache_readonly
     def _offset(self):
@@ -3122,7 +3094,7 @@ cdef class FY5253Quarter(FY5253Mixin):
         return weeks_in_year == 53
 
     def is_on_offset(self, dt: datetime) -> bool:
-        if self.normalize and not is_normalized(dt):
+        if self.normalize and not _is_normalized(dt):
             return False
         if self._offset.is_on_offset(dt):
             return True
@@ -3158,9 +3130,6 @@ cdef class Easter(SingleConstructorOffset):
     Right now uses the revised method which is valid in years 1583-4099.
     """
 
-    def __reduce__(self):
-        return type(self), (self.n, self.normalize)
-
     cpdef __setstate__(self, state):
         self.n = state.pop("n")
         self.normalize = state.pop("normalize")
@@ -3195,7 +3164,7 @@ cdef class Easter(SingleConstructorOffset):
         return new
 
     def is_on_offset(self, dt: datetime) -> bool:
-        if self.normalize and not is_normalized(dt):
+        if self.normalize and not _is_normalized(dt):
             return False
         return date(dt.year, dt.month, dt.day) == easter(dt.year)
 
@@ -3223,15 +3192,9 @@ cdef class CustomBusinessDay(BusinessDay):
     """
 
     _prefix = "C"
-    _attributes = frozenset(
+    _attributes = tuple(
         ["n", "normalize", "weekmask", "holidays", "calendar", "offset"]
     )
-
-    def __reduce__(self):
-        # np.holidaycalendar cant be pickled, so pass None there and
-        #  it will be re-constructed within __init__
-        tup = (self.n, self.normalize, self.weekmask, self.holidays, None, self.offset)
-        return type(self), tup
 
     def __init__(
         self,
@@ -3280,13 +3243,13 @@ cdef class CustomBusinessDay(BusinessDay):
                 "datetime, datetime64 or timedelta."
             )
 
-    def apply_index(self, i):
+    def apply_index(self, dtindex):
         raise NotImplementedError
 
     def is_on_offset(self, dt: datetime) -> bool:
-        if self.normalize and not is_normalized(dt):
+        if self.normalize and not _is_normalized(dt):
             return False
-        day64 = to_dt64D(dt)
+        day64 = _to_dt64D(dt)
         return np.is_busday(day64, busdaycal=self.calendar)
 
 
@@ -3297,7 +3260,7 @@ cdef class CustomBusinessHour(BusinessHour):
 
     _prefix = "CBH"
     _anchor = 0
-    _attributes = frozenset(
+    _attributes = tuple(
         ["n", "normalize", "weekmask", "holidays", "calendar", "start", "end", "offset"]
     )
 
@@ -3314,22 +3277,6 @@ cdef class CustomBusinessHour(BusinessHour):
     ):
         BusinessHour.__init__(self, n, normalize, start=start, end=end, offset=offset)
         self._init_custom(weekmask, holidays, calendar)
-
-    def __reduce__(self):
-        # None for self.calendar bc np.busdaycalendar doesnt pickle nicely
-        return (
-            type(self),
-            (
-                self.n,
-                self.normalize,
-                self.weekmask,
-                self.holidays,
-                None,
-                self.start,
-                self.end,
-                self.offset,
-            ),
-        )
 
 
 cdef class _CustomBusinessMonth(BusinessMixin):
@@ -3355,7 +3302,7 @@ cdef class _CustomBusinessMonth(BusinessMixin):
         Time offset to apply.
     """
 
-    _attributes = frozenset(
+    _attributes = tuple(
         ["n", "normalize", "weekmask", "holidays", "calendar", "offset"]
     )
 
@@ -3370,13 +3317,6 @@ cdef class _CustomBusinessMonth(BusinessMixin):
     ):
         BusinessMixin.__init__(self, n, normalize, offset)
         self._init_custom(weekmask, holidays, calendar)
-
-    def __reduce__(self):
-        # None for self.calendar bc np.busdaycalendar doesnt pickle nicely
-        return (
-            type(self),
-            (self.n, self.normalize, self.weekmask, self.holidays, None, self.offset),
-        )
 
     @cache_readonly
     def cbday_roll(self):
