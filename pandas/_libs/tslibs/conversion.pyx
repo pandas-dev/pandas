@@ -217,11 +217,18 @@ def ensure_timedelta64ns(arr: ndarray, copy: bool=True):
 
     Returns
     -------
-    result : ndarray with dtype timedelta64[ns]
-
+    ndarray[timedelta64[ns]]
     """
-    return arr.astype(TD64NS_DTYPE, copy=copy)
-    # TODO: check for overflows when going from a lower-resolution to nanos
+    assert arr.dtype.kind == "m", arr.dtype
+
+    if arr.dtype == TD64NS_DTYPE:
+        return arr.copy() if copy else arr
+
+    # Re-use the datetime64 machinery to do an overflow-safe `astype`
+    dtype = arr.dtype.str.replace("m8", "M8")
+    dummy = arr.view(dtype)
+    dt64_result = ensure_datetime64ns(dummy, copy)
+    return dt64_result.view(TD64NS_DTYPE)
 
 
 # ----------------------------------------------------------------------
