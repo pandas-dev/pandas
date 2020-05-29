@@ -1509,8 +1509,6 @@ cdef class _Period:
         int64_t ordinal
         object freq
 
-    _typ = 'period'
-
     def __cinit__(self, ordinal, freq):
         self.ordinal = ordinal
         self.freq = freq

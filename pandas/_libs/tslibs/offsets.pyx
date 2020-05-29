@@ -1497,7 +1497,6 @@ cdef class BusinessHour(BusinessMixin):
             nb_offset = -1
         if self._prefix.startswith("C"):
             # CustomBusinessHour
-            from pandas.tseries.offsets import CustomBusinessDay
             return CustomBusinessDay(
                 n=nb_offset,
                 weekmask=self.weekmask,
@@ -1654,7 +1653,6 @@ cdef class BusinessHour(BusinessMixin):
             if bd != 0:
                 if self._prefix.startswith("C"):
                     # GH#30593 this is a Custom offset
-                    from pandas.tseries.offsets import CustomBusinessDay
                     skip_bd = CustomBusinessDay(
                         n=bd,
                         weekmask=self.weekmask,
@@ -2954,12 +2952,14 @@ cdef class FY5253Quarter(FY5253Mixin):
 
     _prefix = "REQ"
     _attributes = tuple(
-        "n",
-        "normalize",
-        "weekday",
-        "startingMonth",
-        "qtr_with_extra_week",
-        "variation",
+        [
+            "n",
+            "normalize",
+            "weekday",
+            "startingMonth",
+            "qtr_with_extra_week",
+            "variation",
+        ]
     )
 
     cdef readonly:
