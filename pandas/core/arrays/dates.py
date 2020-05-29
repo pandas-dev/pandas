@@ -30,13 +30,6 @@ class DateArray(DatetimeLikeArrayMixin, DatelikeOps):
     """
     Pandas ExtensionArray for date (year, month, day only) data.
 
-     .. warning::
-
-       DateArray is currently experimental, and its API may change
-       without warning. In particular, :attr:`DateArray.dtype` is
-       expected to change to always be an instance of an ``ExtensionDtype``
-       subclass.
-
     Parameters
     ----------
     values : Series, Index, DateArray, ndarray
