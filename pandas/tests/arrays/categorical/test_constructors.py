@@ -690,6 +690,8 @@ class TestCategoricalConstructors:
 
     @pytest.mark.parametrize("sparse", [True, False])
     def test_from_dummies(self, sparse):
+        if sparse:
+            pytest.xfail("from sparse is not supported")
         # GH 8745
         raw = ["a", "a", "b", "c", "c", "a"]
         dummies = get_dummies(raw, sparse=sparse)
