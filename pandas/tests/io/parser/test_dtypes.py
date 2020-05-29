@@ -403,7 +403,7 @@ def test_empty_with_multi_index_pass_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_empty_with_mangled_column_pass_dtype_by_names(all_parsers):
+def test_empty_with_mangled_column_pass_dtype_by_names(all_parsers, pyarrow_xfail):
     parser = all_parsers
 
     data = "one,one"

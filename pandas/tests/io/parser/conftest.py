@@ -83,10 +83,8 @@ _pyarrow_parser_ids = ["pyarrow"]
 try:
     pyarrow_version = pkg_resources.get_distribution("pyarrow").version
 except pkg_resources.DistributionNotFound:
-    pyarrow_version = None
-if (
-    distutils.version.LooseVersion(pyarrow_version) > "0.15.0"
-):
+    pyarrow_version = "0"  # represents pyarrow not found
+if distutils.version.LooseVersion(pyarrow_version) > "0.15.0":
     _all_parsers = [*_c_parsers_only, *_py_parsers_only, *_pyarrow_parsers_only]
     _all_parser_ids = [*_c_parser_ids, *_py_parser_ids, *_pyarrow_parser_ids]
 else:

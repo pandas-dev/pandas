@@ -81,7 +81,9 @@ def test_zip_error_invalid_zip(parser_and_data, pyarrow_xfail):
 
 
 @pytest.mark.parametrize("filename", [None, "test.{ext}"])
-def test_compression(parser_and_data, compression_only, buffer, filename, pyarrow_xfail):
+def test_compression(
+    parser_and_data, compression_only, buffer, filename, pyarrow_xfail
+):
     parser, data, expected = parser_and_data
     compress_type = compression_only
 
@@ -125,7 +127,9 @@ def test_infer_compression(all_parsers, csv1, buffer, ext):
     tm.assert_frame_equal(result, expected)
 
 
-def test_compression_utf_encoding(all_parsers, csv_dir_path, utf_value, encoding_fmt, pyarrow_xfail):
+def test_compression_utf_encoding(
+    all_parsers, csv_dir_path, utf_value, encoding_fmt, pyarrow_xfail
+):
     # see gh-18071, gh-24130
     parser = all_parsers
     encoding = encoding_fmt.format(utf_value)

@@ -21,7 +21,7 @@ import pandas._libs.parsers as parsers
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._libs.tslibs import parsing
 from pandas._typing import FilePathOrBuffer
-from pandas.compat._optional import import_optional_dependency, VERSIONS
+from pandas.compat._optional import VERSIONS, import_optional_dependency
 from pandas.errors import (
     AbstractMethodError,
     EmptyDataError,
@@ -447,9 +447,13 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     chunksize = kwds.get("chunksize", None)
     if kwds.get("engine") == "pyarrow":  # chunksize not supported for pyarrow
         if iterator:
-            raise ValueError("The 'iterator' option is not supported with the 'pyarrow' engine")
+            raise ValueError(
+                "The 'iterator' option is not supported with the 'pyarrow' engine"
+            )
         if chunksize is not None:
-            raise ValueError("The 'chunksize' option is not supported with the 'pyarrow' engine")
+            raise ValueError(
+                "The 'chunksize' option is not supported with the 'pyarrow' engine"
+            )
     else:
         chunksize = _validate_integer("chunksize", kwds.get("chunksize", None), 1)
     nrows = kwds.get("nrows", None)
@@ -557,6 +561,7 @@ _pyarrow_unsupported = {
     "skipinitialspace",
     "date_parser",
     "cache_dates",
+    "parse_dates",
 }
 _python_unsupported = {"low_memory", "float_precision"}
 
@@ -838,7 +843,9 @@ class TextFileReader(abc.Iterator):
 
         if kwds.get("dialect") is not None:
             if engine == "pyarrow":
-                raise ValueError("The 'dialect' option is not supported with the 'pyarrow' engine")
+                raise ValueError(
+                    "The 'dialect' option is not supported with the 'pyarrow' engine"
+                )
 
             dialect = kwds["dialect"]
             if dialect in csv.list_dialects():

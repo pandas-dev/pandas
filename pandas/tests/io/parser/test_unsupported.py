@@ -136,7 +136,6 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
                 f"The {repr(default)} option is not "
                 f"supported with the 'pyarrow' engine"
             )
-            print(default)
             kwargs = {default: object()}
             with pytest.raises(ValueError, match=msg):
                 read_csv(StringIO(data), engine="pyarrow", **kwargs)

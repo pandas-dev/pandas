@@ -1561,7 +1561,7 @@ def test_trailing_spaces(all_parsers, kwargs, expected):
     tm.assert_frame_equal(result, expected)
 
 
-def test_raise_on_sep_with_delim_whitespace(all_parsers):
+def test_raise_on_sep_with_delim_whitespace(all_parsers, pyarrow_xfail):
     # see gh-6607
     data = "a b c\n1 2 3"
     parser = all_parsers
