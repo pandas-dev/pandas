@@ -1525,11 +1525,8 @@ class TestPeriodIndexSeriesMethods:
 
     @pytest.mark.parametrize("scalars", ["a", False, 1, 1.0, None])
     def test_comparison_operations(self, scalars):
-        # GH #28980 and GH #28981
+        # GH #28980
         expected = Series([False, False])
         s = Series([pd.Period("2019"), pd.Period("2020")], dtype="period[A-DEC]")
-        result = s == scalars
-        tm.assert_series_equal(result, expected)
-        s = pd.Series([pd.Interval(0, 1), pd.Interval(1, 2)], dtype="interval")
         result = s == scalars
         tm.assert_series_equal(result, expected)
