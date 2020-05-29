@@ -1004,6 +1004,8 @@ class SeriesParser(Parser):
         if self.orient == "split":
             decoded = {str(k): v for k, v in data.items()}
             self.check_keys_split(decoded)
+            if "index" in decoded:
+                decoded["index"] = np.transpose(decoded["index"]).tolist()
             self.obj = create_series_with_explicit_dtype(**decoded)
         else:
             self.obj = create_series_with_explicit_dtype(data, dtype_if_empty=object)
@@ -1095,6 +1097,8 @@ class FrameParser(Parser):
                 for k, v in loads(json, precise_float=self.precise_float).items()
             }
             self.check_keys_split(decoded)
+            if "index" in decoded:
+                decoded["index"] = np.transpose(decoded["index"]).tolist()
             self.obj = DataFrame(dtype=None, **decoded)
         elif orient == "index":
             self.obj = DataFrame.from_dict(

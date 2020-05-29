@@ -1394,6 +1394,22 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
         assert result == expected
 
+    def test_read_json_frame_mutltiindex_split(self):
+        index = pd.MultiIndex.from_tuples([(1, 1), (2, 1), (1, 2), (2, 2)])
+        expected = pd.DataFrame(
+            data=[[1, 1], [2, 2], [3, 3], [4, 4]], columns=["A", "B"], index=index
+        )
+        js = expected.to_json(orient="split")
+        result = pd.read_json(js, orient="split")
+        tm.assert_frame_equal(expected, result)
+
+    def test_read_json_series_mutltiindex_split(self):
+        index = pd.MultiIndex.from_tuples([(1, 1), (2, 1), (1, 2), (2, 2)])
+        expected = pd.Series(data=[1, 2, 3, 4], index=index)
+        js = expected.to_json(orient="split")
+        result = pd.read_json(js, orient="split", typ="series")
+        tm.assert_series_equal(expected, result)
+
     @pytest.mark.parametrize(
         "data",
         [
