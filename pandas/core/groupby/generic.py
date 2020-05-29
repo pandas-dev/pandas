@@ -483,6 +483,8 @@ class SeriesGroupBy(GroupBy[Series]):
         elif func in base.cythonized_kernels:
             # cythonized transform or canned "agg+broadcast"
             return getattr(self, func)(*args, **kwargs)
+        elif func in base.transformation_kernels:
+            return getattr(self, func)(*args, **kwargs)
 
         # If func is a reduction, we need to broadcast the
         # result to the whole group. Compute func result
@@ -1463,6 +1465,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             raise ValueError(msg)
         elif func in base.cythonized_kernels:
             # cythonized transformation or canned "reduction+broadcast"
+            return getattr(self, func)(*args, **kwargs)
+        elif func in base.transformation_kernels:
             return getattr(self, func)(*args, **kwargs)
 
         # GH 30918
