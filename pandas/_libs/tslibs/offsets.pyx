@@ -1,6 +1,7 @@
 import cython
 
 import operator
+import re
 import time
 from typing import Any
 import warnings
@@ -29,7 +30,7 @@ from pandas._libs.tslibs.util cimport is_integer_object, is_datetime64_object
 from pandas._libs.tslibs.base cimport ABCTimestamp
 
 from pandas._libs.tslibs.ccalendar import (
-    MONTHS, DAYS, MONTH_ALIASES, MONTH_TO_CAL_NUM, weekday_to_int, int_to_weekday,
+    MONTH_ALIASES, MONTH_TO_CAL_NUM, weekday_to_int, int_to_weekday,
 )
 from pandas._libs.tslibs.ccalendar cimport get_days_in_month, dayofweek
 from pandas._libs.tslibs.conversion cimport (
@@ -44,53 +45,6 @@ from pandas._libs.tslibs.tzconversion cimport tz_convert_single
 
 from .timedeltas cimport delta_to_nanoseconds
 
-# ---------------------------------------------------------------------
-# Constants
-
-_offset_to_period_map = {
-    'WEEKDAY': 'D',
-    'EOM': 'M',
-    'BM': 'M',
-    'BQS': 'Q',
-    'QS': 'Q',
-    'BQ': 'Q',
-    'BA': 'A',
-    'AS': 'A',
-    'BAS': 'A',
-    'MS': 'M',
-    'D': 'D',
-    'C': 'C',
-    'B': 'B',
-    'T': 'T',
-    'S': 'S',
-    'L': 'L',
-    'U': 'U',
-    'N': 'N',
-    'H': 'H',
-    'Q': 'Q',
-    'A': 'A',
-    'W': 'W',
-    'M': 'M',
-    'Y': 'A',
-    'BY': 'A',
-    'YS': 'A',
-    'BYS': 'A'}
-
-need_suffix = ['QS', 'BQ', 'BQS', 'YS', 'AS', 'BY', 'BA', 'BYS', 'BAS']
-
-for __prefix in need_suffix:
-    for _m in MONTHS:
-        key = f'{__prefix}-{_m}'
-        _offset_to_period_map[key] = _offset_to_period_map[__prefix]
-
-for __prefix in ['A', 'Q']:
-    for _m in MONTHS:
-        _alias = f'{__prefix}-{_m}'
-        _offset_to_period_map[_alias] = _alias
-
-for _d in DAYS:
-    _offset_to_period_map[f'W-{_d}'] = f'W-{_d}'
-
 
 # ---------------------------------------------------------------------
 # Misc Helpers
@@ -101,17 +55,6 @@ cdef bint is_offset_object(object obj):
 
 cdef bint is_tick_object(object obj):
     return isinstance(obj, Tick)
-
-
-cdef to_offset(object obj):
-    """
-    Wrap pandas.tseries.frequencies.to_offset to keep centralize runtime
-    imports
-    """
-    if isinstance(obj, BaseOffset):
-        return obj
-    from pandas.tseries.frequencies import to_offset
-    return to_offset(obj)
 
 
 cdef datetime _as_datetime(datetime obj):
@@ -1353,7 +1296,7 @@ cdef class BusinessDay(BusinessMixin):
                 off_str += str(td.microseconds) + "us"
             return off_str
 
-        if isinstance(self.offset, timedelta):
+        if PyDelta_Check(self.offset):
             zero = timedelta(0, 0, 0)
             if self.offset >= zero:
                 off_str = "+" + get_str(self.offset)
@@ -1365,7 +1308,7 @@ cdef class BusinessDay(BusinessMixin):
 
     @apply_wraps
     def apply(self, other):
-        if isinstance(other, datetime):
+        if PyDateTime_Check(other):
             n = self.n
             wday = other.weekday()
 
@@ -1396,7 +1339,7 @@ cdef class BusinessDay(BusinessMixin):
                 result = result + self.offset
             return result
 
-        elif isinstance(other, (timedelta, Tick)):
+        elif PyDelta_Check(other) or isinstance(other, Tick):
             return BusinessDay(
                 self.n, offset=self.offset + other, normalize=self.normalize
             )
@@ -1677,7 +1620,7 @@ cdef class BusinessHour(BusinessMixin):
 
     @apply_wraps
     def apply(self, other):
-        if isinstance(other, datetime):
+        if PyDateTime_Check(other):
             # used for detecting edge condition
             nanosecond = getattr(other, "nanosecond", 0)
             # reset timezone and nanosecond
@@ -2520,7 +2463,7 @@ cdef class Week(SingleConstructorOffset):
         if self.weekday is None:
             return other + self.n * self._inc
 
-        if not isinstance(other, datetime):
+        if not PyDateTime_Check(other):
             raise TypeError(
                 f"Cannot add {type(other).__name__} to {type(self).__name__}"
             )
@@ -3314,7 +3257,7 @@ cdef class CustomBusinessDay(BusinessDay):
         else:
             roll = "backward"
 
-        if isinstance(other, datetime):
+        if PyDateTime_Check(other):
             date_in = other
             np_dt = np.datetime64(date_in.date())
 
@@ -3329,7 +3272,7 @@ cdef class CustomBusinessDay(BusinessDay):
                 result = result + self.offset
             return result
 
-        elif isinstance(other, (timedelta, Tick)):
+        elif PyDelta_Check(other) or isinstance(other, Tick):
             return BDay(self.n, offset=self.offset + other, normalize=self.normalize)
         else:
             raise ApplyTypeError(
@@ -3347,7 +3290,7 @@ cdef class CustomBusinessDay(BusinessDay):
         return np.is_busday(day64, busdaycal=self.calendar)
 
 
-class CustomBusinessHour(BusinessHour):
+cdef class CustomBusinessHour(BusinessHour):
     """
     DateOffset subclass representing possibly n custom business days.
     """
@@ -3389,7 +3332,7 @@ class CustomBusinessHour(BusinessHour):
         )
 
 
-class _CustomBusinessMonth(BusinessMixin, MonthOffset):
+cdef class _CustomBusinessMonth(BusinessMixin):
     """
     DateOffset subclass representing custom business month(s).
 
@@ -3415,9 +3358,6 @@ class _CustomBusinessMonth(BusinessMixin, MonthOffset):
     _attributes = frozenset(
         ["n", "normalize", "weekmask", "holidays", "calendar", "offset"]
     )
-
-    is_on_offset = BaseOffset.is_on_offset  # override MonthOffset method
-    apply_index = BaseOffset.apply_index  # override MonthOffset method
 
     def __init__(
         self,
@@ -3490,11 +3430,11 @@ class _CustomBusinessMonth(BusinessMixin, MonthOffset):
         return result
 
 
-class CustomBusinessMonthEnd(_CustomBusinessMonth):
+cdef class CustomBusinessMonthEnd(_CustomBusinessMonth):
     _prefix = "CBM"
 
 
-class CustomBusinessMonthBegin(_CustomBusinessMonth):
+cdef class CustomBusinessMonthBegin(_CustomBusinessMonth):
     _prefix = "CBMS"
 
 
@@ -3504,6 +3444,9 @@ BMonthBegin = BusinessMonthBegin
 CBMonthEnd = CustomBusinessMonthEnd
 CBMonthBegin = CustomBusinessMonthBegin
 CDay = CustomBusinessDay
+
+# ----------------------------------------------------------------------
+# to_offset helpers
 
 prefix_mapping = {
     offset._prefix: offset
@@ -3541,6 +3484,202 @@ prefix_mapping = {
         FY5253Quarter,
     ]
 }
+
+# hack to handle WOM-1MON
+opattern = re.compile(
+    r"([+\-]?\d*|[+\-]?\d*\.\d*)\s*([A-Za-z]+([\-][\dA-Za-z\-]+)?)"
+)
+
+_lite_rule_alias = {
+    "W": "W-SUN",
+    "Q": "Q-DEC",
+
+    "A": "A-DEC",      # YearEnd(month=12),
+    "Y": "A-DEC",
+    "AS": "AS-JAN",    # YearBegin(month=1),
+    "YS": "AS-JAN",
+    "BA": "BA-DEC",    # BYearEnd(month=12),
+    "BY": "BA-DEC",
+    "BAS": "BAS-JAN",  # BYearBegin(month=1),
+    "BYS": "BAS-JAN",
+
+    "Min": "T",
+    "min": "T",
+    "ms": "L",
+    "us": "U",
+    "ns": "N",
+}
+
+_dont_uppercase = {"MS", "ms"}
+
+INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
+
+# TODO: still needed?
+# cache of previously seen offsets
+_offset_map = {}
+
+
+cpdef base_and_stride(str freqstr):
+    """
+    Return base freq and stride info from string representation
+
+    Returns
+    -------
+    base : str
+    stride : int
+
+    Examples
+    --------
+    _freq_and_stride('5Min') -> 'Min', 5
+    """
+    groups = opattern.match(freqstr)
+
+    if not groups:
+        raise ValueError(f"Could not evaluate {freqstr}")
+
+    stride = groups.group(1)
+
+    if len(stride):
+        stride = int(stride)
+    else:
+        stride = 1
+
+    base = groups.group(2)
+
+    return base, stride
+
+
+# TODO: better name?
+def _get_offset(name: str) -> BaseOffset:
+    """
+    Return DateOffset object associated with rule name.
+
+    Examples
+    --------
+    _get_offset('EOM') --> BMonthEnd(1)
+    """
+    if name not in _dont_uppercase:
+        name = name.upper()
+        name = _lite_rule_alias.get(name, name)
+        name = _lite_rule_alias.get(name.lower(), name)
+    else:
+        name = _lite_rule_alias.get(name, name)
+
+    if name not in _offset_map:
+        try:
+            split = name.split("-")
+            klass = prefix_mapping[split[0]]
+            # handles case where there's no suffix (and will TypeError if too
+            # many '-')
+            offset = klass._from_name(*split[1:])
+        except (ValueError, TypeError, KeyError) as err:
+            # bad prefix or suffix
+            raise ValueError(INVALID_FREQ_ERR_MSG.format(name)) from err
+        # cache
+        _offset_map[name] = offset
+
+    return _offset_map[name]
+
+
+cpdef to_offset(freq):
+    """
+    Return DateOffset object from string or tuple representation
+    or datetime.timedelta object.
+
+    Parameters
+    ----------
+    freq : str, tuple, datetime.timedelta, DateOffset or None
+
+    Returns
+    -------
+    DateOffset or None
+
+    Raises
+    ------
+    ValueError
+        If freq is an invalid frequency
+
+    See Also
+    --------
+    DateOffset : Standard kind of date increment used for a date range.
+
+    Examples
+    --------
+    >>> to_offset("5min")
+    <5 * Minutes>
+
+    >>> to_offset("1D1H")
+    <25 * Hours>
+
+    >>> to_offset(("W", 2))
+    <2 * Weeks: weekday=6>
+
+    >>> to_offset((2, "B"))
+    <2 * BusinessDays>
+
+    >>> to_offset(pd.Timedelta(days=1))
+    <Day>
+
+    >>> to_offset(Hour())
+    <Hour>
+    """
+    if freq is None:
+        return None
+
+    if isinstance(freq, BaseOffset):
+        return freq
+
+    if isinstance(freq, tuple):
+        name = freq[0]
+        stride = freq[1]
+        if isinstance(stride, str):
+            name, stride = stride, name
+        name, _ = base_and_stride(name)
+        delta = _get_offset(name) * stride
+
+    elif isinstance(freq, timedelta):
+        return delta_to_tick(freq)
+
+    elif isinstance(freq, str):
+        delta = None
+        stride_sign = None
+
+        try:
+            split = re.split(opattern, freq)
+            if split[-1] != "" and not split[-1].isspace():
+                # the last element must be blank
+                raise ValueError("last element must be blank")
+            for sep, stride, name in zip(split[0::4], split[1::4], split[2::4]):
+                if sep != "" and not sep.isspace():
+                    raise ValueError("separator must be spaces")
+                prefix = _lite_rule_alias.get(name) or name
+                if stride_sign is None:
+                    stride_sign = -1 if stride.startswith("-") else 1
+                if not stride:
+                    stride = 1
+
+                from .resolution import Resolution  # TODO: avoid runtime import
+
+                if prefix in Resolution.reso_str_bump_map:
+                    stride, name = Resolution.get_stride_from_decimal(
+                        float(stride), prefix
+                    )
+                stride = int(stride)
+                offset = _get_offset(name)
+                offset = offset * int(np.fabs(stride) * stride_sign)
+                if delta is None:
+                    delta = offset
+                else:
+                    delta = delta + offset
+        except (ValueError, TypeError) as err:
+            raise ValueError(INVALID_FREQ_ERR_MSG.format(freq)) from err
+    else:
+        delta = None
+
+    if delta is None:
+        raise ValueError(INVALID_FREQ_ERR_MSG.format(freq))
+
+    return delta
 
 
 # ----------------------------------------------------------------------
