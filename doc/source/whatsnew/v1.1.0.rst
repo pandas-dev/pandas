@@ -635,7 +635,7 @@ Using :meth:`DataFrame.groupby` with ``as_index=False`` and the function ``idxma
 apply and applymap on ``DataFrame`` evaluates first row/column only once
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. ipython:: python
+.. code-block:: ipython
 
     In [1]: import pandas as pd
        ...: df = pd.DataFrame({'a': [1, 2], 'b': [3, 6]})
@@ -655,7 +655,7 @@ apply and applymap on ``DataFrame`` evaluates first row/column only once
 
 *Previous behavior*:
 
-.. ipython:: python
+.. code-block:: ipython
 
     In [4]: df.apply(func, axis=1)
     a    1
@@ -674,7 +674,7 @@ apply and applymap on ``DataFrame`` evaluates first row/column only once
 
 *New behavior*:
 
-.. ipython:: python
+.. code-block:: ipython
 
     In [4]: df.apply(func, axis=1)
     a    1
