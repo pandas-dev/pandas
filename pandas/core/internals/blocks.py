@@ -33,6 +33,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
+    is_date_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float_dtype,
@@ -67,6 +68,7 @@ from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays import (
     Categorical,
     DatetimeArray,
+    DateArray,
     ExtensionArray,
     PandasArray,
     PandasDtype,
@@ -97,6 +99,7 @@ class Block(PandasObject):
     is_float = False
     is_integer = False
     is_complex = False
+    is_date = False
     is_datetime = False
     is_datetimetz = False
     is_timedelta = False
@@ -2034,8 +2037,15 @@ class DatetimeLikeBlockMixin:
         new_values = values.shift(periods, fill_value=fill_value, axis=axis)
         return self.make_block_same_class(new_values)
 
+class DateBlock(Block):
+    __slots__ = ()
+    is_date = True
 
-class DatetimeBlock(DatetimeLikeBlockMixin, Block):
+    @property
+    def _holder(self):
+        return DateArray
+
+class DatetimeBlock(Block):
     __slots__ = ()
     is_datetime = True
 
@@ -2080,7 +2090,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         dtype = pandas_dtype(dtype)
 
         # if we are passed a datetime64[ns, tz]
-        if is_datetime64tz_dtype(dtype):
+        if is_datetime64tz_dtype(dtype) and not is_date_dtype(dtype):
             values = self.values
             if copy:
                 # this should be the only copy
@@ -2676,6 +2686,8 @@ def get_block_type(values, dtype=None):
     elif issubclass(vtype, np.datetime64):
         assert not is_datetime64tz_dtype(values.dtype)
         cls = DatetimeBlock
+    elif is_date_dtype(values.dtype):
+        cls = DateBlock
     elif is_datetime64tz_dtype(values.dtype):
         cls = DatetimeTZBlock
     elif is_interval_dtype(dtype) or is_period_dtype(dtype):
@@ -2713,12 +2725,13 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None):
     if klass is None:
         dtype = dtype or values.dtype
         klass = get_block_type(values, dtype)
+        print("using", klass, "block type")
 
     elif klass is DatetimeTZBlock and not is_datetime64tz_dtype(values.dtype):
         # TODO: This is no longer hit internally; does it need to be retained
         #  for e.g. pyarrow?
         values = DatetimeArray._simple_new(values, dtype=dtype)
-
+    print("values going to block", values)
     return klass(values, ndim=ndim, placement=placement)
 
 

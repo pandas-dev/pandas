@@ -2,8 +2,7 @@ from pandas import Series
 import pandas as pd
 import numpy as np
 from pandas.core.arrays.dates import DateArray
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import is_integer_dtype, is_extension_array_dtype
 import pytest
 import pandas.util.testing as tm
 
@@ -14,7 +13,11 @@ DATETIME_STRINGS = [
     "2006-01-13",
     "2010-08-13",
 ]
-
+DATE_TEST_ARRAYS = [
+        pd.array(np.arange(5, dtype=np.int64)),
+        pd.array(pd.date_range("1970-01-01", periods=5, freq="D")),
+        DateArray(np.arange(5, dtype=np.int64)),
+    ]
 VALID_CONVERSION_TYPES = ["object", "string", "i8", "datetime64[ns]"]
 SECONDS_IN_A_DAY = 86400
 NANO_SECONDS_IN_A_SECOND = 10 ** 9
@@ -76,22 +79,28 @@ def test_date_array_to_str(date_array):
     tm.assert_numpy_array_equal(date_array.astype("string"), object_dates._ndarray)
 
 
+def test_series_has_extension_array():
+    date_series = Series(DateArray(np.arange(5, dtype=np.int64)))
+    assert is_extension_array_dtype(date_series.values)
+
+
 @pytest.mark.parametrize(
     "arr",
-    [
-        pd.array(np.arange(5, dtype=np.int64)),
-        pd.array(np.arange(5, dtype=np.object)),
-        pd.array(pd.date_range("1970-01-01", periods=5, freq="D")),
-        DateArray(np.arange(5, dtype=np.int64)),
-    ],
+    DATE_TEST_ARRAYS,
 )
 def test_other_type_to_date(arr):
     date_array = DateArray(np.arange(5, dtype=np.int64))
     other_arr_to_date = arr.astype("date")
-    print(other_arr_to_date)
-    print(date_array)
     tm.assert_numpy_array_equal(date_array._data, other_arr_to_date._data)
 
+@pytest.mark.parametrize(
+    "arr",
+    DATE_TEST_ARRAYS,
+)
+def test_other_type_to_date_series(arr):
+    date_series = Series(DateArray(np.arange(5, dtype=np.int64)))
+    other_series = Series(arr).astype("date")
+    tm.assert_series_equal(date_series, other_series)
 
 @pytest.fixture
 def series():
@@ -156,3 +165,10 @@ def test_astype_int(dtype):
 
     assert result.dtype == expected_dtype
     tm.assert_numpy_array_equal(result, expected)
+
+if __name__ == '__main__':
+    series = Series(["2019-01-01", "2020-12-11", "2020-10-11 12:11:12"])
+    series.name = "strings"
+    df = series.to_frame()
+    df["strings"] = df["strings"].astype("string")
+    test_dtype_name_display(df, series)
