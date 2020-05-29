@@ -5,13 +5,18 @@ import numpy as np
 
 from pandas._libs.algos import unique_deltas
 from pandas._libs.tslibs import Timestamp
-from pandas._libs.tslibs.ccalendar import MONTH_ALIASES, MONTH_NUMBERS, int_to_weekday
+from pandas._libs.tslibs.ccalendar import (
+    DAYS,
+    MONTH_ALIASES,
+    MONTH_NUMBERS,
+    MONTHS,
+    int_to_weekday,
+)
 from pandas._libs.tslibs.fields import build_field_sarray
 from pandas._libs.tslibs.offsets import (  # noqa:F401
     DateOffset,
     Day,
     _get_offset,
-    _offset_to_period_map,
     to_offset,
 )
 from pandas._libs.tslibs.parsing import get_rule_month
@@ -38,6 +43,51 @@ _ONE_DAY = 24 * _ONE_HOUR
 
 # ---------------------------------------------------------------------
 # Offset names ("time rules") and related functions
+
+_offset_to_period_map = {
+    "WEEKDAY": "D",
+    "EOM": "M",
+    "BM": "M",
+    "BQS": "Q",
+    "QS": "Q",
+    "BQ": "Q",
+    "BA": "A",
+    "AS": "A",
+    "BAS": "A",
+    "MS": "M",
+    "D": "D",
+    "C": "C",
+    "B": "B",
+    "T": "T",
+    "S": "S",
+    "L": "L",
+    "U": "U",
+    "N": "N",
+    "H": "H",
+    "Q": "Q",
+    "A": "A",
+    "W": "W",
+    "M": "M",
+    "Y": "A",
+    "BY": "A",
+    "YS": "A",
+    "BYS": "A",
+}
+
+_need_suffix = ["QS", "BQ", "BQS", "YS", "AS", "BY", "BA", "BYS", "BAS"]
+
+for _prefix in _need_suffix:
+    for _m in MONTHS:
+        key = f"{_prefix}-{_m}"
+        _offset_to_period_map[key] = _offset_to_period_map[_prefix]
+
+for _prefix in ["A", "Q"]:
+    for _m in MONTHS:
+        _alias = f"{_prefix}-{_m}"
+        _offset_to_period_map[_alias] = _alias
+
+for _d in DAYS:
+    _offset_to_period_map[f"W-{_d}"] = f"W-{_d}"
 
 
 def get_period_alias(offset_str: str) -> Optional[str]:
