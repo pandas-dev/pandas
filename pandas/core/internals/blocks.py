@@ -2040,6 +2040,7 @@ class DatetimeLikeBlockMixin:
 class DateBlock(Block):
     __slots__ = ()
     is_date = True
+    is_extension = True
 
     @property
     def _holder(self):
@@ -2725,13 +2726,10 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None):
     if klass is None:
         dtype = dtype or values.dtype
         klass = get_block_type(values, dtype)
-        print("using", klass, "block type")
-
     elif klass is DatetimeTZBlock and not is_datetime64tz_dtype(values.dtype):
         # TODO: This is no longer hit internally; does it need to be retained
         #  for e.g. pyarrow?
         values = DatetimeArray._simple_new(values, dtype=dtype)
-    print("values going to block", values)
     return klass(values, ndim=ndim, placement=placement)
 
 

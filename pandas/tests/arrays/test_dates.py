@@ -102,6 +102,15 @@ def test_other_type_to_date_series(arr):
     other_series = Series(arr).astype("date")
     tm.assert_series_equal(date_series, other_series)
 
+@pytest.mark.parametrize(
+    "type",
+    VALID_CONVERSION_TYPES,
+)
+def test_date_series_to_other_type_series(type):
+    date_series = Series(DateArray(np.arange(5, dtype=np.int64)))
+    converted = date_series.astype(type)
+    # tm.assert_series_equal(date_series, other_series)
+
 @pytest.fixture
 def series():
     series = Series(["2019-01-01", "2020-12-11", "2020-10-11 12:11:12"])
