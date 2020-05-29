@@ -938,16 +938,23 @@ class _MergeOperation:
         -------
         join_index
         """
-        if self.how in (how, "outer") and not isinstance(other_index, MultiIndex):
+        if self.how in (how, "outer") and not isinstance(index, MultiIndex):
             # if final index requires values in other_index but not target
             # index, indexer may hold missing (-1) values, causing Index.take
             # to take the final value in target index. So, we set the last
             # element to be the desired fill value. We do not use allow_fill
             # and fill_value because it throws a ValueError on integer indices
-            mask = indexer == -1
+            mask = other_indexer == -1
             if np.any(mask):
-                fill_value = na_value_for_dtype(index.dtype, compat=False)
-                index = index.append(Index([fill_value]))
+                fill_value = na_value_for_dtype(other_index.dtype, compat=False)
+                if isinstance(other_index, MultiIndex):
+                    fill_index = MultiIndex.from_tuples(
+                        [[fill_value] * other_index.nlevels]
+                    )
+                else:
+                    fill_index = Index([fill_value])
+                other_index = other_index.append(fill_index)
+            return other_index.take(other_indexer)
         return index.take(indexer)
 
     def _get_merge_keys(self):

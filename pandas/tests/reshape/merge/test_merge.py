@@ -16,6 +16,7 @@ from pandas import (
     DataFrame,
     DatetimeIndex,
     Float64Index,
+    Index,
     Int64Index,
     IntervalIndex,
     MultiIndex,
@@ -361,7 +362,9 @@ class TestMerge:
 
         key = np.array([0, 1, 1, 2, 2, 3], dtype=np.int64)
         merged = merge(left, right, left_index=True, right_on=key, how="outer")
-        tm.assert_series_equal(merged["key_0"], Series(key, name="key_0"))
+        tm.assert_series_equal(
+            merged["key_0"], Series(key, name="key_0", index=[0, 1, 1, 2, 2, np.nan])
+        )
 
     def test_no_overlap_more_informative_error(self):
         dt = datetime.now()
@@ -472,7 +475,10 @@ class TestMerge:
         def check2(exp, kwarg):
             result = pd.merge(left, right, how="right", **kwarg)
             tm.assert_frame_equal(result, exp)
+
+        def check3(exp, kwarg, index):
             result = pd.merge(left, right, how="outer", **kwarg)
+            exp.index = index
             tm.assert_frame_equal(result, exp)
 
         for kwarg in [
@@ -481,6 +487,13 @@ class TestMerge:
         ]:
             check1(exp_in, kwarg)
             check2(exp_out, kwarg)
+
+        check3(exp_out, dict(left_index=True, right_index=True), exp_out.index)
+        check3(
+            exp_out.copy(),
+            dict(left_index=True, right_on="x"),
+            Index([np.nan, np.nan, np.nan]),
+        )
 
         kwarg = dict(left_on="a", right_index=True)
         check1(exp_in, kwarg)
@@ -1300,7 +1313,7 @@ class TestMerge:
             ],
             columns=["a", "key", "b"],
         )
-        expected.set_index(expected_index, inplace=True)
+        expected.set_index(df2.index, inplace=True)
         tm.assert_frame_equal(result, expected)
 
     def test_merge_right_index_right(self):
@@ -1313,7 +1326,7 @@ class TestMerge:
         expected = pd.DataFrame(
             {"a": [1, 2, 3, None], "key": [0, 1, 1, 2], "b": [1, 2, 2, 3]},
             columns=["a", "key", "b"],
-            index=[0, 1, 2, np.nan],
+            index=[0, 1, 1, 2],
         )
         result = left.merge(right, left_on="key", right_index=True, how="right")
         tm.assert_frame_equal(result, expected)
@@ -1350,7 +1363,7 @@ class TestMerge:
                 "key": pd.Categorical(["a", "a", "b", "c"]),
                 "b": [1, 1, 2, 3],
             },
-            index=[0, 1, 2, np.nan],
+            index=pd.Categorical(["a", "a", "b", "c"]),
         )
         expected = expected.reindex(columns=["a", "key", "b"])
         tm.assert_frame_equal(result, expected)
@@ -2227,3 +2240,12 @@ def test_categorical_non_unique_monotonic(n_categories):
         index=left_index,
     )
     tm.assert_frame_equal(expected, result)
+
+
+def test_right_index_true_right_join_target_index():
+    df_left = pd.DataFrame(index=["a", "b"])
+    df_right = pd.DataFrame({"x": ["a", "c"]})
+
+    result = pd.merge(df_left, df_right, left_index=True, right_on="x", how="left")
+    expected = pd.DataFrame({"x": ["a", "b"]}, index=Index(["a", "b"]))
+    tm.assert_frame_equal(result, expected)
