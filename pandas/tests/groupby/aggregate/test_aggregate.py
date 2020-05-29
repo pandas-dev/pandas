@@ -524,7 +524,7 @@ class TestNamedAggregationSeries:
         s = pd.Series([1, 1, 2, 2, 3, 3, 4, 5])
         msg = "func is expected but recieved {}".format(type(inp).__name__)
         with pytest.raises(TypeError, match=msg):
-            s.groupby(s.values).agg(a=pd.NamedAgg(column="anything", aggfunc="min"))
+            s.groupby(s.values).agg(a=inp)
 
 
 class TestNamedAggregationDataFrame:
