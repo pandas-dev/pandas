@@ -199,13 +199,11 @@ fsspec now used for filesystem handling
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 For reading and writing to filesystems other than local and reading from HTTP(S),
-the optional dependency ``fsspec`` will be used to dispatch operations (`GH #33452`_).
+the optional dependency ``fsspec`` will be used to dispatch operations (:issue:`33452`).
 This will give unchanged
 functionality for S3 and GCS storage, which were already supported, but also add
 support for several other storage implementations such as Azure Datalake and Blob,
 SSH, FTP, dropbox and github. For docs and capabilities, see the `fsspec docs`_.
-
-.. _GH #33452: https://github.com/pandas-dev/pandas/issues/33452
 
 .. _fsspec docs: https://filesystem-spec.readthedocs.io/en/latest/
 
