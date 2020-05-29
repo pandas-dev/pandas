@@ -3,6 +3,7 @@ Define extension dtypes.
 """
 
 import re
+import datetime
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -1251,14 +1252,11 @@ class DateDtype(PandasExtensionDtype):
 
     @property
     def name(self) -> str_type:
-        """
-        The alias for DateDtype is ``'string'``.
-        """
         return str(self)
 
     @property
     def type(self):
-        return Timestamp
+        return datetime.date
 
     @property
     def na_value(self):
