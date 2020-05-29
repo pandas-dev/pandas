@@ -334,9 +334,11 @@ def test_transform_transformation_func(transformation_func):
         test_op = lambda x: x.transform("fillna", value=0)
         mock_op = lambda x: x.fillna(value=0)
     elif transformation_func == "tshift":
-        pytest.xfail(
-            "Current behavior of groupby.tshift is inconsitent with other transformations"
+        msg = (
+            "Current behavior of groupby.tshift is inconsitent with other transformations."
+            "See GH34452"
         )
+        pytest.xfail(msg)
     else:
         test_op = lambda x: x.transform(transformation_func)
         mock_op = lambda x: getattr(x, transformation_func)()
