@@ -195,21 +195,21 @@ If needed you can adjust the bins with the argument ``offset`` (a Timedelta) tha
 For a full example, see: :ref:`timeseries.adjust-the-start-of-the-bins`.
 
 
-.. _whatsnew_110.enhancements.other:
-
 fsspec now used for filesystem handling
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 For reading and writing to filesystems other than local and reading from HTTP(S),
-the optional dependency ``fsspec`` will be used to dispatch operations. This will give unchanged
+the optional dependency ``fsspec`` will be used to dispatch operations (`GH #33452`_).
+This will give unchanged
 functionality for S3 and GCS storage, which were already supported, but also add
 support for several other storage implementations such as Azure Datalake and Blob,
 SSH, FTP, dropbox and github. For docs and capabilities, see the `fsspec docs`_.
 
-In the future, we will implement a way to pass parameters to the invoked
-filesystem instances.
+.. _GH #33452: https://github.com/pandas-dev/pandas/issues/33452
 
 .. _fsspec docs: https://filesystem-spec.readthedocs.io/en/latest/
+
+.. _whatsnew_110.enhancements.other:
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
@@ -286,7 +286,9 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | fastparquet     | 0.3.2           |         |
 +-----------------+-----------------+---------+
-| gcsfs           | 0.2.2           |         |
+| fsspec          | 0.7.4           |         |
++-----------------+-----------------+---------+
+| gcsfs           | 0.6.0           |         |
 +-----------------+-----------------+---------+
 | lxml            | 3.8.0           |         |
 +-----------------+-----------------+---------+
@@ -302,7 +304,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | pytables        | 3.4.3           |    X    |
 +-----------------+-----------------+---------+
-| s3fs            | 0.3.0           |         |
+| s3fs            | 0.4.0           |         |
 +-----------------+-----------------+---------+
 | scipy           | 1.2.0           |    X    |
 +-----------------+-----------------+---------+
