@@ -422,6 +422,22 @@ class TestCategoricalAPI:
         dummies = cats.to_dummies(na_column="other")
         assert dummies.columns.categories.dtype == object
 
+    @pytest.mark.parametrize(
+        "vals",
+        [
+            ["a", "b", "b", "a"],
+            ["a", "b", "b", "a", np.nan],
+            [1, 1.5, "a", (1, "b")],
+            [1, 1.5, "a", (1, "b"), np.nan],
+        ],
+    )
+    def test_dummies_roundtrip(self, vals):
+        # GH 8745
+        cats = Categorical(Series(vals))
+        dummies = cats.to_dummies()
+        cats2 = Categorical.from_dummies(dummies)
+        tm.assert_equal(cats, cats2)
+
 
 class TestCategoricalAPIWithFactor(TestCategorical):
     def test_describe(self):
