@@ -1,6 +1,7 @@
 """
 Utility functions related to concat.
 """
+from typing import cast
 
 import numpy as np
 
@@ -20,7 +21,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCRangeIndex, ABCSeries
 
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import ExtensionArray, SparseArray
 from pandas.core.construction import array
 
 
@@ -81,10 +82,11 @@ def _cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
         except ValueError:
             return arr.astype(object, copy=False)
 
-    if is_sparse(arr.dtype) and not is_sparse(dtype):
+    if is_sparse(arr) and not is_sparse(dtype):
         # problem case: SparseArray.astype(dtype) doesn't follow the specified
         # dtype exactly, but converts this to Sparse[dtype] -> first manually
         # convert to dense array
+        arr = cast(SparseArray, arr)
         return arr.to_dense().astype(dtype, copy=False)
 
     if (
