@@ -465,7 +465,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         --------
         :func:`pandas.get_dummies`
         """
-        from pandas import DataFrame, CategoricalIndex
+        from pandas import DataFrame, CategoricalIndex, Series
 
         eye = np.eye(len(self.categories) + 1, dtype=bool)
         arr = eye[self.codes, :]
@@ -473,8 +473,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         if na_column is None:
             return DataFrame(arr[:, :-1], columns=CategoricalIndex(self.categories))
         else:
-            cat_lst = list(self.categories) + [na_column]
-            return DataFrame(arr, columns=CategoricalIndex(cat_lst))
+            cats = CategoricalIndex(Series(list(self.categories) + [na_column]))
+            return DataFrame(arr, columns=cats)
 
     @property
     def dtype(self) -> CategoricalDtype:
