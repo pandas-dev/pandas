@@ -793,6 +793,14 @@ class TestPeriodProperties:
         xp = _ex(2012, 1, 2, 1)
         assert xp == p.end_time
 
+    def test_end_time_business_friday(self):
+        # GH#34449
+        per = Period("1990-01-05", "B")
+        result = per.end_time
+
+        expected = pd.Timestamp("1990-01-06") - pd.Timedelta(nanoseconds=1)
+        assert result == expected
+
     def test_anchor_week_end_time(self):
         def _ex(*args):
             return Timestamp(Timestamp(datetime(*args)).value - 1)
