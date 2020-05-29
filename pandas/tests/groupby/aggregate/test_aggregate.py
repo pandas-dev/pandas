@@ -514,7 +514,7 @@ class TestNamedAggregationSeries:
     def test_agg_namedtuple(self):
         # GH34422
         s = pd.Series([1, 1, 2, 2, 3, 3, 4, 5])
-        msg = "'func' is expected but recieved NamedAgg in **kwargs."
+        msg = "'func' is"
         with pytest.raises(TypeError, match=msg):
             s.groupby(s.values).agg(
                 a=pd.NamedAgg(column='anything', aggfunc='min')
@@ -523,7 +523,7 @@ class TestNamedAggregationSeries:
     def test_agg_with_tuple(self):
         # GH34422
         s = pd.Series([1, 1, 2, 2, 3, 3, 4, 5])
-        msg = "'func' is expected but recieved tuple in **kwargs."
+        msg = "'func' is"
         with pytest.raises(TypeError, match=msg):
             s.groupby(s.values).agg(
                 a=('anything', 'min')
@@ -532,7 +532,7 @@ class TestNamedAggregationSeries:
     def test_agg_with_list(self):
         # GH34422
         s = pd.Series([1, 1, 2, 2, 3, 3, 4, 5])
-        msg = "'func' is expected but recieved list in **kwargs."
+        msg = "'func' is"
         with pytest.raises(TypeError, match=msg):
             s.groupby(s.values).agg(
                 a=['anything', 'min']
