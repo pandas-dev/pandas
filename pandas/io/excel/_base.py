@@ -104,11 +104,11 @@ dtype : Type name or dict of column -> type, default None
 engine : str, default None
     If io is not a buffer or path, this must be set to identify io.
     Supported engines: "xlrd", "openpyxl", "odf", "pyxlsb", default "xlrd".
-    Engine compatibility:
-        - "xlrd" supports most old/new Excel file formats.
-        - "openpyxl" supports newer Excel file formats.
-        - "odf" supports OpenDocument file formats (.odf, .ods, .odt).
-        - "pyxlsb" supports Binary Excel files.
+    Engine compatibility :
+    - "xlrd" supports most old/new Excel file formats.
+    - "openpyxl" supports newer Excel file formats.
+    - "odf" supports OpenDocument file formats (.odf, .ods, .odt).
+    - "pyxlsb" supports Binary Excel files.
 converters : dict, default None
     Dict of functions for converting values in certain columns. Keys can
     either be integers or column labels, values are functions that take one
@@ -790,23 +790,24 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 class ExcelFile:
     """
     Class for parsing tabular excel sheets into DataFrame objects.
-    Uses xlrd by default. See read_excel for more documentation
+
+    Uses xlrd engine by default. See read_excel for more documentation
 
     Parameters
     ----------
     io : str, path object (pathlib.Path or py._path.local.LocalPath),
-        a file-like object, xlrd workbook or openpypl workbook.
+         a file-like object, xlrd workbook or openpypl workbook.
         If a string or path object, expected to be a path to a
         .xls, .xlsx, .xlsb, .xlsm, .odf, .ods, or .odt file.
     engine : str, default None
         If io is not a buffer or path, this must be set to identify io.
         Supported engines: ``xlrd``, ``openpyxl``, ``odf``, ``pyxlsb``,
-            default ``xlrd``.
-        Engine compatibility:
-            - ``xlrd`` supports most old/new Excel file formats.
-            - ``openpyxl`` supports newer Excel file formats.
-            - ``odf`` supports OpenDocument file formats (.odf, .ods, .odt).
-            - ``pyxlsb`` supports Binary Excel files.
+        default ``xlrd``.
+        Engine compatibility :
+        - ``xlrd`` supports most old/new Excel file formats.
+        - ``openpyxl`` supports newer Excel file formats.
+        - ``odf`` supports OpenDocument file formats (.odf, .ods, .odt).
+        - ``pyxlsb`` supports Binary Excel files.
     """
 
     from pandas.io.excel._odfreader import _ODFReader
