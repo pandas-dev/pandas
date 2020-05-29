@@ -291,6 +291,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
             ret = concat(ret, axis=1)
         return ret
+
     agg = aggregate
 
     def _aggregate_multiple_funcs(self, arg):
