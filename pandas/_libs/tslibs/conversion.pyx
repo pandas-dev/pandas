@@ -763,7 +763,7 @@ cpdef inline datetime localize_pydatetime(datetime dt, object tz):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def normalize_i8_timestamps(int64_t[:] stamps, object tz):
+cpdef int64_t[:] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo tz):
     """
     Normalize each of the (nanosecond) timezone aware timestamps in the given
     array by rounding down to the beginning of the day (i.e. midnight).
@@ -771,37 +771,13 @@ def normalize_i8_timestamps(int64_t[:] stamps, object tz):
 
     Parameters
     ----------
-    stamps : int64 ndarray
+    stamps : ndarray[int64]
     tz : tzinfo or None
 
     Returns
     -------
-    result : int64 ndarray of converted of normalized nanosecond timestamps
-    """
-    cdef:
-        int64_t[:] result
-
-    result = _normalize_local(stamps, tz)
-
-    return result.base  # .base to access underlying np.ndarray
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-cdef int64_t[:] _normalize_local(const int64_t[:] stamps, tzinfo tz):
-    """
-    Normalize each of the (nanosecond) timestamps in the given array by
-    rounding down to the beginning of the day (i.e. midnight) for the
-    given timezone `tz`.
-
-    Parameters
-    ----------
-    stamps : int64 ndarray
-    tz : tzinfo
-
-    Returns
-    -------
-    result : int64 ndarray of converted of normalized nanosecond timestamps
+    ndarray[int64]
+        ndarray of converted of normalized nanosecond timestamps.
     """
     cdef:
         Py_ssize_t i, n = len(stamps)
@@ -813,7 +789,17 @@ cdef int64_t[:] _normalize_local(const int64_t[:] stamps, tzinfo tz):
         npy_datetimestruct dts
         int64_t delta, local_val
 
-    if is_tzlocal(tz):
+    if tz is None or is_utc(tz):
+        with nogil:
+            for i in range(n):
+                if stamps[i] == NPY_NAT:
+                    result[i] = NPY_NAT
+                    continue
+                local_val = stamps[i]
+                dt64_to_dtstruct(local_val, &dts)
+                result[i] = _normalized_stamp(&dts)
+
+    elif is_tzlocal(tz):
         for i in range(n):
             if stamps[i] == NPY_NAT:
                 result[i] = NPY_NAT

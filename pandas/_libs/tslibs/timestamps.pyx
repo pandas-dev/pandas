@@ -29,10 +29,11 @@ from pandas._libs.tslibs.base cimport ABCTimedelta, ABCTimestamp
 
 from pandas._libs.tslibs cimport ccalendar
 
-from pandas._libs.tslibs.conversion import normalize_i8_timestamps
 from pandas._libs.tslibs.conversion cimport (
     _TSObject, convert_to_tsobject,
-    convert_datetime_to_tsobject)
+    convert_datetime_to_tsobject,
+    normalize_i8_timestamps,
+)
 from pandas._libs.tslibs.fields import get_start_end_field, get_date_name_field
 from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
 from pandas._libs.tslibs.np_datetime cimport (
@@ -1461,13 +1462,14 @@ default 'raise'
         """
         Normalize Timestamp to midnight, preserving tz information.
         """
-        if self.tz is None or is_utc(self.tz):
-            DAY_NS = ccalendar.DAY_NANOS
-            normalized_value = self.value - (self.value % DAY_NS)
-            return Timestamp(normalized_value).tz_localize(self.tz)
-        normalized_value = normalize_i8_timestamps(
-            np.array([self.value], dtype='i8'), tz=self.tz)[0]
-        return Timestamp(normalized_value).tz_localize(self.tz)
+        cdef:
+            int64_t normalized
+
+        normalized = normalize_i8_timestamps(
+            np.array([self.value], dtype="i8"),
+            tz=self.tzinfo
+        )[0]
+        return Timestamp(normalized).tz_localize(self.tz)
 
 
 # Add the min and max fields at the class level
