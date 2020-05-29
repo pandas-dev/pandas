@@ -688,25 +688,27 @@ class TestCategoricalConstructors:
         tm.assert_numpy_array_equal(cat.codes, expected_codes)
         tm.assert_index_equal(cat.categories, idx)
 
-    def test_from_dummies(self):
+    @pytest.mark.parametrize("sparse", [True, False])
+    def test_from_dummies(self, sparse):
         # GH 8745
         raw = ["a", "a", "b", "c", "c", "a"]
-        dummies = get_dummies(raw)
+        dummies = get_dummies(raw, sparse=sparse)
         cats = Categorical.from_dummies(dummies)
         assert list(cats) == raw
 
-    def test_from_dummies_nan(self):
+    @pytest.mark.parametrize("na_val", [np.nan, pd.NA, None, pd.NaT])
+    def test_from_dummies_nan(self, na_val):
         # GH 8745
-        raw = ["a", "a", "b", "c", "c", "a", np.nan]
+        raw = ["a", "a", "b", "c", "c", "a", na_val]
         dummies = get_dummies(raw)
         cats = Categorical.from_dummies(dummies)
         assert list(cats)[:-1] == raw[:-1]
         assert pd.isna(list(cats)[-1])
 
-    def test_from_dummies_gt1(self):
+    def test_from_dummies_multiple(self):
         # GH 8745
         dummies = DataFrame([[1, 0, 1], [0, 1, 0], [0, 0, 1]], columns=["a", "b", "c"])
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="multiple categories"):
             Categorical.from_dummies(dummies)
 
     @pytest.mark.parametrize("ordered", [None, False, True])
