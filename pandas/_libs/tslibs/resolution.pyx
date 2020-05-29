@@ -65,6 +65,7 @@ _reso_mult_map = {
 
 # ----------------------------------------------------------------------
 
+
 def get_resolution(const int64_t[:] stamps, tz=None):
     cdef:
         Py_ssize_t i, n = len(stamps)
