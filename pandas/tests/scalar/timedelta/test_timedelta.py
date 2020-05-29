@@ -8,8 +8,8 @@ from pandas._libs.tslibs import NaT, iNaT
 
 import pandas as pd
 from pandas import Timedelta, TimedeltaIndex, offsets, to_timedelta
-from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type as ct
 import pandas._testing as tm
+from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type as ct
 
 
 class TestTimedeltaUnaryOps:
@@ -84,7 +84,7 @@ class TestTimedeltas:
         assert rng.microseconds == 0
         assert rng.nanoseconds == 0
 
-        msg = ""Timedelta" object has no attribute "{}""
+        msg = "'Timedelta' object has no attribute '{}'"
         with pytest.raises(AttributeError, match=msg.format("hours")):
             rng.hours
         with pytest.raises(AttributeError, match=msg.format("minutes")):
@@ -110,7 +110,7 @@ class TestTimedeltas:
         assert rng.seconds == 10 * 3600 + 11 * 60 + 12
         assert rng.microseconds == 100 * 1000 + 123
         assert rng.nanoseconds == 456
-        msg = ""Timedelta" object has no attribute "{}""
+        msg = "'Timedelta' object has no attribute '{}'"
         with pytest.raises(AttributeError, match=msg.format("hours")):
             rng.hours
         with pytest.raises(AttributeError, match=msg.format("minutes")):
@@ -266,7 +266,7 @@ class TestTimedeltas:
 
     @pytest.mark.parametrize("unit", ["Y", "y", "M"])
     def test_unit_m_y_raises(self, unit):
-        msg = "Units "M" and "Y" are no longer supported"
+        msg = "Units 'M' and 'Y' are no longer supported"
         with pytest.raises(ValueError, match=msg):
             Timedelta(10, unit)
 
@@ -521,20 +521,23 @@ class TestTimedeltas:
             # GH 9396
             result_method = data.div(delta)
             result_operator = data / delta
-            expected = pd.Series([np.nan, 32.], dtype="float64")
+            expected = pd.Series([np.nan, 32.0], dtype="float64")
             tm.assert_series_equal(result_operator, expected)
             tm.assert_series_equal(result_method, expected)
 
 
-@pytest.mark.parametrize("value, expected", [
-    (Timedelta("10S"), True),
-    (Timedelta("-10S"), True),
-    (Timedelta(10, unit="ns"), True),
-    (Timedelta(0, unit="ns"), False),
-    (Timedelta(-10, unit="ns"), True),
-    (Timedelta(None), True),
-    (pd.NaT, True),
-])
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        (Timedelta("10S"), True),
+        (Timedelta("-10S"), True),
+        (Timedelta(10, unit="ns"), True),
+        (Timedelta(0, unit="ns"), False),
+        (Timedelta(-10, unit="ns"), True),
+        (Timedelta(None), True),
+        (pd.NaT, True),
+    ],
+)
 def test_truthiness(value, expected):
     # https://github.com/pandas-dev/pandas/issues/21484
     assert bool(value) is expected

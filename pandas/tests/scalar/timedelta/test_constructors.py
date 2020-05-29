@@ -291,40 +291,26 @@ def test_timedelta_constructor_identity():
     assert result is expected
 
 
-@pytest.mark.parametrize("value", [
-    3.1415,  # Number with decimals (original test)
-    10,      # Integer number, did not raise before
-])
-@pytest.mark.parametrize("str_unit, unit, expectation", [
-    # Units doubly defined
-    ("s",
-     "d",
-     pytest.raises(ValueError,
-                   message="units were doubly specified, "
-                           "both as an argument (d) and inside string (s)")
-     ),
-
-    # Units doubly defined (same)
-    ("s",
-     "s",
-     pytest.raises(ValueError,
-                   message="units were doubly specified, "
-                           "both as an argument (s) and inside string (s)")),
-
-    # No units
-    ("",
-     None,
-     pytest.warns(DeprecationWarning,
-                  message="number string without units is deprecated and "
-                  " will raise an exception in future versions. "
-                  "Considering as nanoseconds.")),
-])
+@pytest.mark.parametrize(
+    "value, str_unit, unit, expectation",
+    [
+        # Units doubly defined
+        (10, "s", "d", (ValueError, "units were doubly specified")),
+        # Units doubly defined (same)
+        (10, "s", "s", (ValueError, "units were doubly specified")),
+        # No units, decimal string
+        (3.1415, "", None, (ValueError, "no units specified")),
+    ],
+)
 def test_string_with_unit(value, str_unit, unit, expectation):
-    with expectation:
+    exp, match = expectation
+    with pytest.raises(exp, match=match):
         val_str = "{}{}".format(value, str_unit)
         expected_td = Timedelta(value, unit=unit)
 
         assert Timedelta(val_str, unit=unit) == expected_td
         assert to_timedelta(val_str, unit=unit) == expected_td
-        assert all(to_timedelta([val_str, val_str], unit=unit) ==
-                   to_timedelta([expected_td, expected_td]))
+        assert all(
+            to_timedelta([val_str, val_str], unit=unit)
+            == to_timedelta([expected_td, expected_td])
+        )

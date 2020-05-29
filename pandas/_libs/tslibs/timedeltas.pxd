@@ -4,3 +4,4 @@ from numpy cimport int64_t
 cpdef parse_timedelta_string(object ts, object specified_unit=*)
 cpdef int64_t delta_to_nanoseconds(delta) except? -1
 cpdef convert_to_timedelta64(object ts, object unit=*)
+cdef bint is_any_td_scalar(object obj)

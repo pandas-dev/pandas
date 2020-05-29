@@ -1360,7 +1360,7 @@ class TestTSPlot(TestPlotBase):
 
         expected_labels = [f"00:00:00.0000000{i:0>2d}" for i in np.arange(10)]
 
-        rng = timedelta_range('0ns', periods=10, freq='ns')
+        rng = timedelta_range("0ns", periods=10, freq="ns")
         df = DataFrame(np.random.randn(len(rng), 3), rng)
         fig, ax = self.plt.subplots()
         df.plot(fontsize=2, ax=ax)
@@ -1384,7 +1384,7 @@ class TestTSPlot(TestPlotBase):
             "9 days 06:13:20",
         ]
 
-        rng = timedelta_range('0ns', periods=10, freq='1 d')
+        rng = timedelta_range("0ns", periods=10, freq="1 d")
         df = DataFrame(np.random.randn(len(rng), 3), rng)
         fig, ax = self.plt.subplots()
         ax = df.plot(fontsize=2, ax=ax)

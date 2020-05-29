@@ -6,18 +6,20 @@ from pandas import DataFrame, Index, MultiIndex, Series
 import pandas._testing as tm
 from pandas.core.util.hashing import hash_tuples
 from pandas.util import hash_array, hash_pandas_object
-import pandas.util.testing as tm
 
 
-@pytest.fixture(params=[
-    Series([1, 2, 3] * 3, dtype="int32"),
-    Series([None, 2.5, 3.5] * 3, dtype="float32"),
-    Series(["a", "b", "c"] * 3, dtype="category"),
-    Series(["d", "e", "f"] * 3),
-    Series([True, False, True] * 3),
-    Series(pd.date_range("20130101", periods=9)),
-    Series(pd.date_range("20130101", periods=9, tz="US/Eastern")),
-    Series(pd.timedelta_range("2000ns", periods=9))])
+@pytest.fixture(
+    params=[
+        Series([1, 2, 3] * 3, dtype="int32"),
+        Series([None, 2.5, 3.5] * 3, dtype="float32"),
+        Series(["a", "b", "c"] * 3, dtype="category"),
+        Series(["d", "e", "f"] * 3),
+        Series([True, False, True] * 3),
+        Series(pd.date_range("20130101", periods=9)),
+        Series(pd.date_range("20130101", periods=9, tz="US/Eastern")),
+        Series(pd.timedelta_range("2000ns", periods=9)),
+    ]
+)
 def series(request):
     return request.param
 

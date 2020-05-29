@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import IndexSlice, Series, timedelta_range
+from pandas import Series, timedelta_range
 import pandas._testing as tm
 
 

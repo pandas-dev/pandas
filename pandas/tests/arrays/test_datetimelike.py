@@ -546,6 +546,9 @@ class TestDatetimeArray(SharedTests):
 
     @pytest.mark.parametrize("propname", pd.DatetimeIndex._field_ops)
     def test_int_properties(self, datetime_index, propname):
+        if propname in ["week", "weekofyear"]:
+            # GH#33595 Deprecate week and weekofyear
+            return
         dti = datetime_index
         arr = DatetimeArray(dti)
 
@@ -943,7 +946,7 @@ def test_invalid_nat_setitem_array(array, non_casting_nats):
     "array",
     [
         pd.date_range("2000", periods=4).array,
-        pd.timedelta_range("2000", periods=4).array,
+        pd.timedelta_range("2000ns", periods=4).array,
     ],
 )
 def test_to_numpy_extra(array):

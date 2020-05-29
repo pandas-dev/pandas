@@ -73,7 +73,7 @@ def test_resample_single_period_timedelta():
 def test_resample_timedelta_idempotency():
 
     # GH 12072
-    index = pd.timedelta_range("0", periods=9, freq="10L")
+    index = pd.timedelta_range("0ns", periods=9, freq="10L")
     series = Series(range(9), index=index)
     result = series.resample("10L").mean()
     expected = series

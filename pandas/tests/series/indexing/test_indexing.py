@@ -896,7 +896,7 @@ def test_getitem_unrecognized_scalar():
     [
         date_range("2014-01-01", periods=20, freq="MS"),
         period_range("2014-01", periods=20, freq="M"),
-        timedelta_range("0", periods=20, freq="H"),
+        timedelta_range("0ns", periods=20, freq="H"),
     ],
 )
 def test_slice_with_zero_step_raises(index):
@@ -915,7 +915,7 @@ def test_slice_with_zero_step_raises(index):
     [
         date_range("2014-01-01", periods=20, freq="MS"),
         period_range("2014-01", periods=20, freq="M"),
-        timedelta_range("0", periods=20, freq="H"),
+        timedelta_range("0ns", periods=20, freq="H"),
     ],
 )
 def test_slice_with_negative_step(index):

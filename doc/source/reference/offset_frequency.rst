@@ -59,6 +59,9 @@ Properties
     BusinessDay.normalize
     BusinessDay.rule_code
     BusinessDay.n
+    BusinessDay.weekmask
+    BusinessDay.holidays
+    BusinessDay.calendar
 
 Methods
 ~~~~~~~
@@ -95,6 +98,9 @@ Properties
     BusinessHour.n
     BusinessHour.start
     BusinessHour.end
+    BusinessHour.weekmask
+    BusinessHour.holidays
+    BusinessHour.calendar
 
 Methods
 ~~~~~~~
@@ -128,12 +134,16 @@ Properties
     CustomBusinessDay.normalize
     CustomBusinessDay.rule_code
     CustomBusinessDay.n
+    CustomBusinessDay.weekmask
+    CustomBusinessDay.calendar
+    CustomBusinessDay.holidays
 
 Methods
 ~~~~~~~
 .. autosummary::
    :toctree: api/
 
+    CustomBusinessDay.apply_index
     CustomBusinessDay.apply
     CustomBusinessDay.copy
     CustomBusinessDay.isAnchored
@@ -161,6 +171,9 @@ Properties
     CustomBusinessHour.normalize
     CustomBusinessHour.rule_code
     CustomBusinessHour.n
+    CustomBusinessHour.weekmask
+    CustomBusinessHour.calendar
+    CustomBusinessHour.holidays
     CustomBusinessHour.start
     CustomBusinessHour.end
 
@@ -333,6 +346,9 @@ Properties
     CustomBusinessMonthEnd.normalize
     CustomBusinessMonthEnd.rule_code
     CustomBusinessMonthEnd.n
+    CustomBusinessMonthEnd.weekmask
+    CustomBusinessMonthEnd.calendar
+    CustomBusinessMonthEnd.holidays
 
 Methods
 ~~~~~~~
@@ -367,6 +383,9 @@ Properties
     CustomBusinessMonthBegin.normalize
     CustomBusinessMonthBegin.rule_code
     CustomBusinessMonthBegin.n
+    CustomBusinessMonthBegin.weekmask
+    CustomBusinessMonthBegin.calendar
+    CustomBusinessMonthBegin.holidays
 
 Methods
 ~~~~~~~
@@ -380,40 +399,6 @@ Methods
     CustomBusinessMonthBegin.is_anchored
     CustomBusinessMonthBegin.is_on_offset
     CustomBusinessMonthBegin.__call__
-
-SemiMonthOffset
----------------
-.. autosummary::
-   :toctree: api/
-
-    SemiMonthOffset
-
-Properties
-~~~~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    SemiMonthOffset.freqstr
-    SemiMonthOffset.kwds
-    SemiMonthOffset.name
-    SemiMonthOffset.nanos
-    SemiMonthOffset.normalize
-    SemiMonthOffset.rule_code
-    SemiMonthOffset.n
-
-Methods
-~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    SemiMonthOffset.apply
-    SemiMonthOffset.apply_index
-    SemiMonthOffset.copy
-    SemiMonthOffset.isAnchored
-    SemiMonthOffset.onOffset
-    SemiMonthOffset.is_anchored
-    SemiMonthOffset.is_on_offset
-    SemiMonthOffset.__call__
 
 SemiMonthEnd
 ------------
@@ -434,6 +419,7 @@ Properties
     SemiMonthEnd.normalize
     SemiMonthEnd.rule_code
     SemiMonthEnd.n
+    SemiMonthEnd.day_of_month
 
 Methods
 ~~~~~~~
@@ -468,6 +454,7 @@ Properties
     SemiMonthBegin.normalize
     SemiMonthBegin.rule_code
     SemiMonthBegin.n
+    SemiMonthBegin.day_of_month
 
 Methods
 ~~~~~~~
@@ -502,6 +489,7 @@ Properties
     Week.normalize
     Week.rule_code
     Week.n
+    Week.weekday
 
 Methods
 ~~~~~~~
@@ -536,6 +524,7 @@ Properties
     WeekOfMonth.normalize
     WeekOfMonth.rule_code
     WeekOfMonth.n
+    WeekOfMonth.week
 
 Methods
 ~~~~~~~
@@ -571,6 +560,7 @@ Properties
     LastWeekOfMonth.rule_code
     LastWeekOfMonth.n
     LastWeekOfMonth.weekday
+    LastWeekOfMonth.week
 
 Methods
 ~~~~~~~
@@ -922,6 +912,7 @@ Properties
     FY5253Quarter.normalize
     FY5253Quarter.rule_code
     FY5253Quarter.n
+    FY5253Quarter.qtr_with_extra_week
     FY5253Quarter.startingMonth
     FY5253Quarter.variation
     FY5253Quarter.weekday
@@ -1268,6 +1259,9 @@ Properties
     BDay.offset
     BDay.rule_code
     BDay.n
+    BDay.weekmask
+    BDay.holidays
+    BDay.calendar
 
 Methods
 ~~~~~~~
@@ -1383,6 +1377,9 @@ Properties
     CBMonthEnd.offset
     CBMonthEnd.rule_code
     CBMonthEnd.n
+    CBMonthEnd.weekmask
+    CBMonthEnd.holidays
+    CBMonthEnd.calendar
 
 Methods
 ~~~~~~~
@@ -1424,6 +1421,9 @@ Properties
     CBMonthBegin.offset
     CBMonthBegin.rule_code
     CBMonthBegin.n
+    CBMonthBegin.weekmask
+    CBMonthBegin.holidays
+    CBMonthBegin.calendar
 
 Methods
 ~~~~~~~
@@ -1462,6 +1462,9 @@ Properties
     CDay.offset
     CDay.rule_code
     CDay.n
+    CDay.weekmask
+    CDay.calendar
+    CDay.holidays
 
 Methods
 ~~~~~~~
@@ -1478,6 +1481,7 @@ Methods
     CDay.rollback
     CDay.rollforward
     CDay.__call__
+
 
 .. _api.frequencies:
 

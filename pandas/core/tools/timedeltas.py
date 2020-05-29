@@ -5,12 +5,7 @@ timedelta support tools
 import numpy as np
 
 from pandas._libs.tslibs import NaT
-from pandas._libs.tslibs.timedeltas import (
-    Timedelta,
-    convert_to_timedelta64,
-    parse_timedelta_string,
-    parse_timedelta_unit,
-)
+from pandas._libs.tslibs.timedeltas import Timedelta, parse_timedelta_unit
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
@@ -18,7 +13,7 @@ from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.arrays.timedeltas import sequence_to_td64ns
 
 
-def to_timedelta(arg, unit=None, box=True, errors='raise'):
+def to_timedelta(arg, unit=None, box=True, errors="raise"):
     """
     Convert argument to timedelta.
 
@@ -113,14 +108,14 @@ def to_timedelta(arg, unit=None, box=True, errors='raise'):
     return _coerce_scalar_to_timedelta_type(arg, unit=unit, errors=errors)
 
 
-def _coerce_scalar_to_timedelta_type(r, unit=None, box=True, errors='raise'):
+def _coerce_scalar_to_timedelta_type(r, unit=None, box=True, errors="raise"):
     """Convert string 'r' to a timedelta object."""
     try:
         result = Timedelta(r, unit)
     except ValueError:
-        if errors == 'raise':
+        if errors == "raise":
             raise
-        elif errors == 'ignore':
+        elif errors == "ignore":
             return r
 
         # coerce
@@ -129,7 +124,7 @@ def _coerce_scalar_to_timedelta_type(r, unit=None, box=True, errors='raise'):
     return result
 
 
-def _convert_listlike(arg, unit=None, box=True, errors='raise', name=None):
+def _convert_listlike(arg, unit=None, box=True, errors="raise", name=None):
     """Convert a list of objects to a timedelta index object."""
     if isinstance(arg, (list, tuple)) or not hasattr(arg, "dtype"):
         # This is needed only to ensure that in the case where we end up
