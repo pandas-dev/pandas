@@ -21,7 +21,7 @@ from cpython.datetime cimport (datetime, time, PyDateTime_Check, PyDelta_Check,
 PyDateTime_IMPORT
 
 from pandas._libs.tslibs.util cimport (
-    is_datetime64_object, is_float_object, is_integer_object, is_offset_object,
+    is_datetime64_object, is_float_object, is_integer_object,
     is_timedelta64_object, is_array,
 )
 
@@ -40,7 +40,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     cmp_scalar,
 )
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
-from pandas._libs.tslibs.offsets cimport to_offset, is_tick_object
+from pandas._libs.tslibs.offsets cimport to_offset, is_tick_object, is_offset_object
 from pandas._libs.tslibs.timedeltas import Timedelta
 from pandas._libs.tslibs.timezones cimport (
     is_utc, maybe_get_tz, treat_tz_as_pytz, utc_pytz as UTC,
@@ -191,10 +191,10 @@ def integer_op_not_supported(obj):
 
     # GH#30886 using an fstring raises SystemError
     int_addsub_msg = (
-        "Addition/subtraction of integers and integer-arrays with {cls} is "
+        f"Addition/subtraction of integers and integer-arrays with {cls} is "
         "no longer supported.  Instead of adding/subtracting `n`, "
         "use `n * obj.freq`"
-    ).format(cls=cls)
+    )
     return TypeError(int_addsub_msg)
 
 
@@ -808,7 +808,7 @@ class Timestamp(_Timestamp):
         # check that only ts_input is passed
         # checking verbosely, because cython doesn't optimize
         # list comprehensions (as of cython 0.29.x)
-        if (isinstance(ts_input, Timestamp) and freq is None and
+        if (isinstance(ts_input, _Timestamp) and freq is None and
                 tz is None and unit is None and year is None and
                 month is None and day is None and hour is None and
                 minute is None and second is None and
