@@ -511,26 +511,20 @@ class TestNamedAggregationSeries:
         expected = pd.DataFrame({"a": [0, 0], "b": [1, 1]})
         tm.assert_frame_equal(result, expected)
 
-    def test_agg_namedtuple(self):
+    @pytest.mark.parametrize(
+        "inp",
+        [
+            pd.NamedAgg(column="anything", aggfunc="min"),
+            ("anything", "min"),
+            ["anything", "min"],
+        ],
+    )
+    def test_named_agg_nametuple(self, inp):
         # GH34422
         s = pd.Series([1, 1, 2, 2, 3, 3, 4, 5])
-        msg = "func is"
+        msg = "func is expected but recieved {}".format(type(inp).__name__)
         with pytest.raises(TypeError, match=msg):
             s.groupby(s.values).agg(a=pd.NamedAgg(column="anything", aggfunc="min"))
-
-    def test_agg_with_tuple(self):
-        # GH34422
-        s = pd.Series([1, 1, 2, 2, 3, 3, 4, 5])
-        msg = "func is"
-        with pytest.raises(TypeError, match=msg):
-            s.groupby(s.values).agg(a=("anything", "min"))
-
-    def test_agg_with_list(self):
-        # GH34422
-        s = pd.Series([1, 1, 2, 2, 3, 3, 4, 5])
-        msg = "func is"
-        with pytest.raises(TypeError, match=msg):
-            s.groupby(s.values).agg(a=["anything", "min"])
 
 
 class TestNamedAggregationDataFrame:
