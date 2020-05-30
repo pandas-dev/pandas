@@ -840,8 +840,7 @@ cdef int64_t[:] _normalize_local(const int64_t[:] stamps, tzinfo tz):
                 trans, stamps.base, cnp.NPY_SEARCHRIGHT, NULL
             ) - 1
             for i in range(n):
-                local_val = stamps[i]
-                if local_val == NPY_NAT:
+                if stamps[i] == NPY_NAT:
                     result[i] = NPY_NAT
                     continue
                 dt64_to_dtstruct(stamps[i] + deltas[pos[i]], &dts)
