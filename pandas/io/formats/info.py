@@ -42,6 +42,31 @@ def _put_str(s: Union[str, Dtype], space: int) -> str:
     return str(s)[:space].ljust(space)
 
 
+def _get_mem_usage(data: FrameOrSeries, deep: bool) -> int:
+    """
+    Get DataFrame or Series' memory usage in bytes.
+
+    Parameters
+    ----------
+    data : DataFrame or Series
+        Object that `info` was called on.
+    deep : bool
+        If True, introspect the data deeply by interrogating object dtypes
+        for system-level memory consumption, and include it in the returned
+        values.
+
+    Returns
+    -------
+    mem_usage : int
+        Object's total memory usage in bytes.
+    """
+    if isinstance(data, ABCDataFrame):
+        mem_usage = data.memory_usage(index=True, deep=deep).sum()
+    else:
+        mem_usage = data.memory_usage(index=True, deep=deep)
+    return mem_usage
+
+
 def _get_counts(data: FrameOrSeries) -> "Series":
     """
     Get DataFrame or Series' counts.
@@ -290,9 +315,6 @@ def info(
             deep = False
             if "object" in counts or data.index._is_memory_usage_qualified():
                 size_qualifier = "+"
-        if isinstance(data, ABCDataFrame):
-            mem_usage = data.memory_usage(index=True, deep=deep).sum()
-        else:
-            mem_usage = data.memory_usage(index=True, deep=deep)
+        mem_usage = _get_mem_usage(data, deep=deep)
         lines.append(f"memory usage: {_sizeof_fmt(mem_usage, size_qualifier)}\n")
     fmt.buffer_put_lines(buf, lines)
