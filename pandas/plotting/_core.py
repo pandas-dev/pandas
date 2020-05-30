@@ -559,14 +559,14 @@ def boxplot_frame_groupby(
         >>> data = np.random.randn(len(index),4)
         >>> df = pd.DataFrame(data, columns=list('ABCD'), index=index)
         >>> grouped = df.groupby(level='lvl1')
-        >>> boxplot_frame_groupby(grouped, rot=45, fontsize=12)
+        >>> grouped.boxplot(rot=45, fontsize=12, figsize=(8,10))
 
     The ``subplots=False`` option shows the boxplots in a single figure.
 
     .. plot::
         :context: close-figs
 
-        >>> boxplot_frame_groupby(grouped, subplots=False, rot=45, fontsize=12)
+        >>> grouped.boxplot(subplots=False, rot=45, fontsize=12)
     """
     plot_backend = _get_plot_backend(backend)
     return plot_backend.boxplot_frame_groupby(
