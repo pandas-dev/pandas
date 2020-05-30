@@ -78,14 +78,7 @@ ARITHMETIC_BINOPS: Set[str] = {
 }
 
 
-COMPARISON_BINOPS: Set[str] = {
-    "eq",
-    "ne",
-    "lt",
-    "gt",
-    "le",
-    "ge",
-}
+COMPARISON_BINOPS: Set[str] = {"eq", "ne", "lt", "gt", "le", "ge"}
 
 # -----------------------------------------------------------------------------
 # Ops Wrapping Utilities
@@ -246,7 +239,7 @@ def fill_binop(left, right, fill_value):
 # Dispatch logic
 
 
-def dispatch_to_series(left, right, func, axis=None):
+def dispatch_to_series(left, right, func, axis: Optional[int] = None):
     """
     Evaluate the frame operation func(left, right) by evaluating
     column-by-column, dispatching to the Series implementation.
@@ -254,9 +247,9 @@ def dispatch_to_series(left, right, func, axis=None):
     Parameters
     ----------
     left : DataFrame
-    right : scalar or DataFrame
+    right : scalar, Series, or DataFrame
     func : arithmetic or comparison operator
-    axis : {None, 0, 1, "index", "columns"}
+    axis : {None, 0, 1}
 
     Returns
     -------
@@ -266,7 +259,8 @@ def dispatch_to_series(left, right, func, axis=None):
     array_op = get_array_op(func)
 
     right = lib.item_from_zerodim(right)
-    if lib.is_scalar(right) or np.ndim(right) == 0:
+    if not is_list_like(right):
+        # i.e. scalar, faster than checking np.ndim(right) == 0
         bm = left._mgr.apply(array_op, right=right)
         return type(left)(bm)
 
@@ -280,18 +274,13 @@ def dispatch_to_series(left, right, func, axis=None):
         bm = left._mgr.operate_blockwise(right._mgr, array_op)
         return type(left)(bm)
 
-    elif isinstance(right, ABCSeries) and axis == "columns":
-        # We only get here if called via _combine_series_frame,
-        # in which case we specifically want to operate row-by-row
+    elif isinstance(right, ABCSeries) and axis == 1:
+        # axis=1 means we want to operate row-by-row
         assert right.index.equals(left.columns)
 
-        if right.dtype == "timedelta64[ns]":
-            # ensure we treat NaT values as the correct dtype
-            # Note: we do not do this unconditionally as it may be lossy or
-            #  expensive for EA dtypes.
-            right = np.asarray(right)
-        else:
-            right = right._values
+        right = right._values
+        # maybe_align_as_frame ensures we do not have an ndarray here
+        assert not isinstance(right, np.ndarray)
 
         arrays = [array_op(l, r) for l, r in zip(left._iter_column_arrays(), right)]
 
@@ -314,7 +303,7 @@ def dispatch_to_series(left, right, func, axis=None):
 # Series
 
 
-def _align_method_SERIES(left, right, align_asobject=False):
+def _align_method_SERIES(left: "Series", right, align_asobject: bool = False):
     """ align lhs and rhs Series """
     # ToDo: Different from _align_method_FRAME, list, tuple and ndarray
     # are not coerced here
@@ -438,35 +427,6 @@ def _flex_method_SERIES(cls, op, special):
 
 # -----------------------------------------------------------------------------
 # DataFrame
-
-
-def _combine_series_frame(left, right, func, axis: int):
-    """
-    Apply binary operator `func` to self, other using alignment and fill
-    conventions determined by the axis argument.
-
-    Parameters
-    ----------
-    left : DataFrame
-    right : Series
-    func : binary operator
-    axis : {0, 1}
-
-    Returns
-    -------
-    result : DataFrame or Dict[int, Series[]]
-    """
-    # We assume that self.align(other, ...) has already been called
-
-    rvalues = right._values
-    assert not isinstance(rvalues, np.ndarray)  # handled by align_series_as_frame
-
-    if axis == 0:
-        new_data = dispatch_to_series(left, right, func)
-    else:
-        new_data = dispatch_to_series(left, right, func, axis="columns")
-
-    return new_data
 
 
 def _align_method_FRAME(
@@ -624,7 +584,11 @@ def _maybe_align_series_as_frame(frame: "DataFrame", series: "Series", axis: int
     rvalues = series._values
     if not isinstance(rvalues, np.ndarray):
         # TODO(EA2D): no need to special-case with 2D EAs
-        return series
+        if rvalues.dtype == "datetime64[ns]" or rvalues.dtype == "timedelta64[ns]":
+            # We can losslessly+cheaply cast to ndarray
+            rvalues = np.asarray(rvalues)
+        else:
+            return series
 
     if axis == 0:
         rvalues = rvalues.reshape(-1, 1)
@@ -661,6 +625,8 @@ def _arith_method_FRAME(cls: Type["DataFrame"], op, special: bool):
             #  through the DataFrame path
             raise NotImplementedError(f"fill_value {fill_value} not supported.")
 
+        axis = self._get_axis_number(axis) if axis is not None else 1
+
         # TODO: why are we passing flex=True instead of flex=not special?
         #  15 tests fail if we pass flex=not special instead
         self, other = _align_method_FRAME(self, other, axis, flex=True, level=level)
@@ -670,8 +636,7 @@ def _arith_method_FRAME(cls: Type["DataFrame"], op, special: bool):
             new_data = self._combine_frame(other, na_op, fill_value)
 
         elif isinstance(other, ABCSeries):
-            axis = self._get_axis_number(axis) if axis is not None else 1
-            new_data = _combine_series_frame(self, other, op, axis=axis)
+            new_data = dispatch_to_series(self, other, op, axis=axis)
         else:
             # in this case we always have `np.ndim(other) == 0`
             if fill_value is not None:
@@ -698,20 +663,11 @@ def _flex_comp_method_FRAME(cls: Type["DataFrame"], op, special: bool):
 
     @Appender(doc)
     def f(self, other, axis=default_axis, level=None):
+        axis = self._get_axis_number(axis) if axis is not None else 1
 
         self, other = _align_method_FRAME(self, other, axis, flex=True, level=level)
 
-        if isinstance(other, ABCDataFrame):
-            # Another DataFrame
-            new_data = dispatch_to_series(self, other, op)
-
-        elif isinstance(other, ABCSeries):
-            axis = self._get_axis_number(axis) if axis is not None else 1
-            new_data = _combine_series_frame(self, other, op, axis=axis)
-        else:
-            # in this case we always have `np.ndim(other) == 0`
-            new_data = dispatch_to_series(self, other, op)
-
+        new_data = dispatch_to_series(self, other, op, axis=axis)
         return self._construct_result(new_data)
 
     f.__name__ = op_name
@@ -725,12 +681,10 @@ def _comp_method_FRAME(cls: Type["DataFrame"], op, special: bool):
 
     @Appender(f"Wrapper for comparison method {op_name}")
     def f(self, other):
+        axis = 1  # only relevant for Series other case
 
-        self, other = _align_method_FRAME(
-            self, other, axis=None, level=None, flex=False
-        )
+        self, other = _align_method_FRAME(self, other, axis, level=None, flex=False)
 
-        axis = "columns"  # only relevant for Series other case
         # See GH#4537 for discussion of scalar op behavior
         new_data = dispatch_to_series(self, other, op, axis=axis)
         return self._construct_result(new_data)
