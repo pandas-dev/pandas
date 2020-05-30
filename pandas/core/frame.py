@@ -2292,6 +2292,16 @@ class DataFrame(NDFrame):
            col1  col2
         0     1     3
         1     2     4
+
+        If you want to get a buffer to the parquet content you can use a io.BytesIO
+        object, as long as you don't use partition_cols, which creates multiple files.
+
+        >>> import io
+        >>> f = io.BytesIO()
+        >>> df.to_parquet(f)
+        >>> f.seek(0)
+        0
+        >>> content = f.read()
         """
         from pandas.io.parquet import to_parquet
 
