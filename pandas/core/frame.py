@@ -8605,16 +8605,16 @@ NaN 12.3   33.0
             else:
                 return op(values, skipna=skipna, **kwds)
 
-        # all other options with axis=1 are done column-array-wise
+        # all other options with axis=0 are done column-array-wise
         if axis == 0:
-            # column-wise reduction
 
             def _constructor(df, result, index=None):
                 index = index if index is not None else df.columns
                 if len(result):
                     return df._constructor_sliced(result, index=index)
                 else:
-                    return df._constructor_sliced(result, index=index, dtype="float64")
+                    dtype = "bool" if filter_type == "bool" else "float64"
+                    return df._constructor_sliced(result, index=index, dtype=dtype)
 
             def _reduce_columns(df, op):
                 result = [op(arr) for arr in df._iter_column_arrays()]
@@ -8632,9 +8632,7 @@ NaN 12.3   33.0
                     return _reduce_columns(df, array_func)
                 except TypeError:
                     # if column-wise fails and numeric_only was None, we try
-                    # again after removing non-numerical columns.
-                    # (got here with mixed float + string frame and axis=1 -> need
-                    # to remove non-numerical columns before transposing)
+                    # again but removing those columns for which it fails
 
                     # df = _get_data(axis_matters=True)
                     # return _reduce_columns(df, array_func)
