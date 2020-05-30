@@ -233,9 +233,9 @@ def info(
             + _put_str("-" * len_dtype, space_dtype)
         )
 
-        for i, id_ in enumerate(ids):
+        for i, col in enumerate(ids):
             dtype = dtypes[i]
-            id_ = pprint_thing(id_)
+            col = pprint_thing(col)
 
             line_no = _put_str(f" {i}", space_num)
             count = ""
@@ -244,7 +244,7 @@ def info(
 
             lines.append(
                 line_no
-                + _put_str(id_, space)
+                + _put_str(col, space)
                 + _put_str(count_temp.format(count=count), space_count)
                 + _put_str(dtype, space_dtype)
             )
