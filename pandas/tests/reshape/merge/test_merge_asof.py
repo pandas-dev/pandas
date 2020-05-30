@@ -1341,7 +1341,10 @@ class TestAsOfMerge:
         tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("data", [["2019-06-01 00:09:12", "2019-06-01 00:10:29"], [1.0, "2019-06-01 00:10:29"]])
+@pytest.mark.parametrize(
+    "data",
+    [["2019-06-01 00:09:12", "2019-06-01 00:10:29"], [1.0, "2019-06-01 00:10:29"]],
+)
 def test_non_numerical_dtype(data):
     # GH 29130
     left = pd.DataFrame({"x": data})
