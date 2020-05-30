@@ -589,6 +589,8 @@ class TestPeriodMethods:
         from_lst = ["A", "Q", "M", "W", "B", "D", "H", "Min", "S"]
 
         def _ex(p):
+            if p.freq == "B":
+                return p.start_time + Timedelta(days=1, nanoseconds=-1)
             return Timestamp((p + p.freq).start_time.value - 1)
 
         for i, fcode in enumerate(from_lst):
