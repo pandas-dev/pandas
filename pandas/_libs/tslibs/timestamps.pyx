@@ -16,8 +16,15 @@ cnp.import_array()
 from cpython.object cimport (PyObject_RichCompareBool, PyObject_RichCompare,
                              Py_GT, Py_GE, Py_EQ, Py_NE, Py_LT, Py_LE)
 
-from cpython.datetime cimport (datetime, time, PyDateTime_Check, PyDelta_Check,
-                               PyTZInfo_Check, PyDateTime_IMPORT)
+from cpython.datetime cimport (
+    datetime,
+    time,
+    tzinfo,
+    PyDateTime_Check,
+    PyDelta_Check,
+    PyTZInfo_Check,
+    PyDateTime_IMPORT,
+)
 PyDateTime_IMPORT
 
 from pandas._libs.tslibs.util cimport (
@@ -30,7 +37,8 @@ from pandas._libs.tslibs.base cimport ABCTimedelta, ABCTimestamp
 from pandas._libs.tslibs cimport ccalendar
 
 from pandas._libs.tslibs.conversion cimport (
-    _TSObject, convert_to_tsobject,
+    _TSObject,
+    convert_to_tsobject,
     convert_datetime_to_tsobject,
     normalize_i8_timestamps,
 )
@@ -1463,13 +1471,17 @@ default 'raise'
         Normalize Timestamp to midnight, preserving tz information.
         """
         cdef:
-            int64_t normalized
+            ndarray[int64_t] normalized
+            tzinfo own_tz = self.tzinfo  # could be None
+
+        if own_tz is None or is_utc(own_tz):
+            DAY_NS = ccalendar.DAY_NANOS
+            normalized_value = self.value - (self.value % DAY_NS)
+            return Timestamp(normalized_value).tz_localize(own_tz)
 
         normalized = normalize_i8_timestamps(
-            np.array([self.value], dtype="i8"),
-            tz=self.tzinfo
-        )[0]
-        return Timestamp(normalized).tz_localize(self.tz)
+            np.array([self.value], dtype='i8'), tz=own_tz)
+        return Timestamp(normalized[0]).tz_localize(own_tz)
 
 
 # Add the min and max fields at the class level
