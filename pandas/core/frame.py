@@ -455,6 +455,7 @@ class DataFrame(NDFrame):
             mgr = self._init_mgr(
                 data, axes=dict(index=index, columns=columns), dtype=dtype, copy=copy
             )
+
         elif isinstance(data, dict):
             mgr = init_dict(data, index, columns, dtype=dtype)
         elif isinstance(data, ma.MaskedArray):
@@ -1159,7 +1160,7 @@ class DataFrame(NDFrame):
             left = self.reindex(columns=common, copy=False)
             right = other.reindex(index=common, copy=False)
             lvals = left.values
-            rvals = right.values
+            rvals = right._values
         else:
             left = self
             lvals = self.values
@@ -1280,7 +1281,9 @@ class DataFrame(NDFrame):
 
         return cls(data, index=index, columns=columns, dtype=dtype)
 
-    def to_numpy(self, dtype=None, copy: bool = False) -> np.ndarray:
+    def to_numpy(
+        self, dtype=None, copy: bool = False, na_value=lib.no_default
+    ) -> np.ndarray:
         """
         Convert the DataFrame to a NumPy array.
 
@@ -1301,6 +1304,11 @@ class DataFrame(NDFrame):
             another array. Note that ``copy=False`` does not *ensure* that
             ``to_numpy()`` is no-copy. Rather, ``copy=True`` ensure that
             a copy is made, even if not strictly necessary.
+        na_value : Any, optional
+            The value to use for missing values. The default value depends
+            on `dtype` and the dtypes of the DataFrame columns.
+
+            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -1332,7 +1340,10 @@ class DataFrame(NDFrame):
         array([[1, 3.0, Timestamp('2000-01-01 00:00:00')],
                [2, 4.5, Timestamp('2000-01-02 00:00:00')]], dtype=object)
         """
-        result = np.array(self.values, dtype=dtype, copy=copy)
+        result = self._mgr.as_array(
+            transpose=self._AXIS_REVERSED, dtype=dtype, copy=copy, na_value=na_value
+        )
+
         return result
 
     def to_dict(self, orient="dict", into=dict):
@@ -1881,7 +1892,7 @@ class DataFrame(NDFrame):
         if index:
             if isinstance(self.index, MultiIndex):
                 # array of tuples to numpy cols. copy copy copy
-                ix_vals = list(map(np.array, zip(*self.index.values)))
+                ix_vals = list(map(np.array, zip(*self.index._values)))
             else:
                 ix_vals = [self.index.values]
 
@@ -2999,7 +3010,7 @@ class DataFrame(NDFrame):
                 raise ValueError("Array conditional must be same shape as self")
             key = self._constructor(key, **self._construct_axes_dict())
 
-        if key.values.size and not is_bool_dtype(key.values):
+        if key.size and not is_bool_dtype(key.values):
             raise TypeError(
                 "Must pass DataFrame or 2-d ndarray with boolean values only"
             )
@@ -5744,10 +5755,11 @@ class DataFrame(NDFrame):
         -------
         DataFrame
         """
-        out = self._constructor(result, index=self.index, copy=False)
+        out = self._constructor(result, copy=False)
         # Pin columns instead of passing to constructor for compat with
         #  non-unique columns case
         out.columns = self.columns
+        out.index = self.index
         return out
 
     def combine(
@@ -7440,7 +7452,7 @@ NaN 12.3   33.0
         def infer(x):
             if x.empty:
                 return lib.map_infer(x, func)
-            return lib.map_infer(x.astype(object).values, func)
+            return lib.map_infer(x.astype(object)._values, func)
 
         return self.apply(infer)
 

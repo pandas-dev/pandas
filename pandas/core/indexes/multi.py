@@ -387,7 +387,7 @@ class MultiIndex(Index):
         return new_codes
 
     @classmethod
-    def from_arrays(cls, arrays, sortorder=None, names=lib.no_default):
+    def from_arrays(cls, arrays, sortorder=None, names=lib.no_default) -> "MultiIndex":
         """
         Convert arrays to MultiIndex.
 
@@ -1464,7 +1464,7 @@ class MultiIndex(Index):
 
         # reversed() because lexsort() wants the most significant key last.
         values = [
-            self._get_level_values(i).values for i in reversed(range(len(self.levels)))
+            self._get_level_values(i)._values for i in reversed(range(len(self.levels)))
         ]
         try:
             sort_order = np.lexsort(values)
@@ -2455,7 +2455,7 @@ class MultiIndex(Index):
                     "tolerance not implemented yet for MultiIndex"
                 )
             indexer = self._engine.get_indexer(
-                values=self.values, target=target, method=method, limit=limit
+                values=self._values, target=target, method=method, limit=limit
             )
         elif method == "nearest":
             raise NotImplementedError(
