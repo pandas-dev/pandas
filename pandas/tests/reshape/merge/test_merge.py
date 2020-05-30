@@ -2242,10 +2242,14 @@ def test_categorical_non_unique_monotonic(n_categories):
     tm.assert_frame_equal(expected, result)
 
 
-def test_right_index_true_right_join_target_index():
-    df_left = pd.DataFrame(index=["a", "b"])
-    df_right = pd.DataFrame({"x": ["a", "c"]})
+@pytest.mark.parametrize(
+    ("index", "how", "values"),
+    [(Index(["a", "b"]), "left", ["a", "b"]), (Index([0, 1]), "right", ["a", "c"])],
+)
+def test_left_index_true_left_join_target_index(index, how, values):
+    left = pd.DataFrame(index=["a", "b"])
+    right = pd.DataFrame({"x": ["a", "c"]})
 
-    result = pd.merge(df_left, df_right, left_index=True, right_on="x", how="left")
-    expected = pd.DataFrame({"x": ["a", "b"]}, index=Index(["a", "b"]))
+    result = pd.merge(left, right, left_index=True, right_on="x", how=how)
+    expected = pd.DataFrame({"x": values}, index=index)
     tm.assert_frame_equal(result, expected)

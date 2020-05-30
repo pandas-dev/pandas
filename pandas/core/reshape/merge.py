@@ -932,6 +932,7 @@ class _MergeOperation:
         index: Index being rearranged
         other_index: Index used to supply values not found in index
         indexer: how to rearrange index
+        other_indexer: how to rearrange the index in case of self.how from how or outer.
         how: replacement is only necessary if indexer based on other_index
 
         Returns
