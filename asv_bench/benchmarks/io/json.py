@@ -53,6 +53,15 @@ class ReadJSONLines(BaseIO):
     def time_read_json_lines_concat(self, index):
         concat(read_json(self.fname, orient="records", lines=True, chunksize=25000))
 
+    def time_read_json_lines_concat_one(self, index):
+        concat(read_json(self.fname, orient="records", lines=True, chunksize=1))
+
+    def time_read_json_lines_concat_hundred(self, index):
+        concat(read_json(self.fname, orient="records", lines=True, chunksize=100))
+
+    def time_read_json_lines_concat_ten_thousand(self, index):
+        concat(read_json(self.fname, orient="records", lines=True, chunksize=10000))
+
     def time_read_json_lines_read_one_chunk(self, index):
         iterator = read_json(self.fname, orient="records", lines=True, chunksize=25000)
         for i, j in enumerate(iterator):
@@ -82,6 +91,15 @@ class ReadJSONLines(BaseIO):
 
     def peakmem_read_json_lines_concat(self, index):
         concat(read_json(self.fname, orient="records", lines=True, chunksize=25000))
+
+    def peakmem_read_json_lines_concat_one(self, index):
+        concat(read_json(self.fname, orient="records", lines=True, chunksize=1))
+
+    def peakmem_read_json_lines_concat_hundred(self, index):
+        concat(read_json(self.fname, orient="records", lines=True, chunksize=100))
+
+    def peakmem_read_json_lines_concat_ten_thousand(self, index):
+        concat(read_json(self.fname, orient="records", lines=True, chunksize=10000))
 
     def peakmem_read_json_lines_one_chunk(self, index):
         iterator = read_json(self.fname, orient="records", lines=True, chunksize=25000)
