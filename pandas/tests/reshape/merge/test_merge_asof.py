@@ -1350,6 +1350,7 @@ class TestAsOfMerge:
     ],
 )
 def test_merge_asof_index_behavior(kwargs):
+    # GH 33463
     index = Index([1, 5, 10], name="test")
     left = pd.DataFrame({"left": ["a", "b", "c"], "left_time": [1, 4, 10]}, index=index)
     right = pd.DataFrame({"right": [1, 2, 3, 6, 7]}, index=[1, 2, 3, 6, 7])
