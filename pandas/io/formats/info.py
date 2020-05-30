@@ -69,7 +69,7 @@ def _get_mem_usage(data: FrameOrSeries, deep: bool) -> int:
 
 def _get_counts(data: FrameOrSeries) -> "Series":
     """
-    Get DataFrame or Series' counts.
+    Get DataFrame or Series' non-NA counts.
 
     Parameters
     ----------
