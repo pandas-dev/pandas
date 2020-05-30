@@ -1,7 +1,7 @@
 # TODO: Use the fact that axis can have units to simplify the process
 
 import functools
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 import numpy as np
 
@@ -23,6 +23,10 @@ from pandas.plotting._matplotlib.converter import (
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import is_subperiod, is_superperiod
 from pandas.tseries.offsets import DateOffset
+
+if TYPE_CHECKING:
+    from pandas._typing import FrameOrSeries  # noqa: F401
+
 
 # ---------------------------------------------------------------------
 # Plotting functions and monkey patches
@@ -188,7 +192,8 @@ def _get_freq(ax, series):
     return freq, ax_freq
 
 
-def _use_dynamic_x(ax, data):
+def _use_dynamic_x(ax, data: "FrameOrSeries") -> bool:
+
     freq = _get_index_freq(data)
     ax_freq = _get_ax_freq(ax)
 
@@ -202,9 +207,6 @@ def _use_dynamic_x(ax, data):
         return False
 
     freq = get_period_alias(freq)
-
-    if freq is None:
-        return False
 
     # FIXME: hack this for 0.10.1, creating more technical debt...sigh
     if isinstance(data.index, ABCDatetimeIndex):
