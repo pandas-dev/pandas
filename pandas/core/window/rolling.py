@@ -2228,7 +2228,10 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         """
         # Ensure the object we're rolling over is monotonically sorted relative
         # to the groups
-        obj = obj.take(np.concatenate(list(self._groupby.grouper.indices.values())))
+        groupby_order = np.concatenate(
+            list(self._groupby.grouper.indices.values())
+        ).astype(np.int64)
+        obj = obj.take(groupby_order)
         return super()._create_blocks(obj)
 
     def _get_cython_func_type(self, func: str) -> Callable:
