@@ -42,9 +42,30 @@ def _put_str(s: Union[str, Dtype], space: int) -> str:
     return str(s)[:space].ljust(space)
 
 
+def _get_counts(data: FrameOrSeries) -> "Series":
+    """
+    Get DataFrame or Series' counts.
+
+    Parameters
+    ----------
+    data : DataFrame or Series
+        Object that `info` was called on.
+
+    Returns
+    -------
+    counts : Series
+        Count non-NA cells (for each column in the DataFrame case).
+    """
+    if isinstance(data, ABCDataFrame):
+        counts = data.count()
+    else:
+        counts = data._constructor(data.count())
+    return counts
+
+
 def _get_ids_and_dtypes(data: FrameOrSeries) -> Tuple["Index", "Series"]:
     """
-    Get DataFrame's columns (or Series' name) and dtypes.
+    Get DataFrame or Series' columns/name and dtypes.
 
     Parameters
     ----------
@@ -137,58 +158,49 @@ def info(
     ids, dtypes = _get_ids_and_dtypes(data)
     col_count = len(ids)
 
-    if col_count == 0 and isinstance(data, ABCDataFrame):
+    if col_count == 0:
         lines.append(f"Empty {type(data).__name__}")
         fmt.buffer_put_lines(buf, lines)
         return
 
     # hack
-    if max_cols is None and isinstance(data, ABCDataFrame):
+    if max_cols is None:
         max_cols = get_option("display.max_info_columns", col_count + 1)
 
     max_rows = get_option("display.max_info_rows", len(data) + 1)
 
-    if null_counts is None and isinstance(data, ABCDataFrame):
-        assert max_cols is not None  # help mypy
+    if null_counts is None:
         show_counts = (col_count <= max_cols) and (len(data) < max_rows)
-    elif isinstance(data, ABCDataFrame):
+    else:
         show_counts = null_counts
-    else:
-        show_counts = True
-
-    if isinstance(data, ABCDataFrame):
-        assert max_cols is not None  # help mypy
-        exceeds_info_cols = col_count > max_cols
-    else:
-        exceeds_info_cols = False
+    exceeds_info_cols = col_count > max_cols
 
     def _verbose_repr():
 
         id_head = " # "
-        id_space = 2
+        column_head = "Column"
+        col_space = 2
 
+        max_col = max(len(pprint_thing(k)) for k in ids)
+        len_column = len(pprint_thing(column_head))
+
+        max_id = len(pprint_thing(col_count))
         len_id = len(pprint_thing(id_head))
-
-        if isinstance(data, ABCDataFrame):
-            column_head = "Column"
-            lines.append(f"Data columns (total {col_count} columns):")
-            counts = data.count()
-            max_id = len(pprint_thing(col_count))
-            max_col = max(len(pprint_thing(k)) for k in ids)
-            len_column = len(pprint_thing(column_head))
-            space = max(max_col, len_column) + id_space
-            space_num = max(max_id, len_id) + id_space
-            column_string = _put_str("-" * len_column, space)
-        else:
-            lines.append(f"Series name: {data.name}")
-            counts = Index([data.count()])
-            space_num = len_id + id_space
-            column_string = ""
+        space_num = max(max_id, len_id) + col_space
 
         header = _put_str(id_head, space_num)
+
         if isinstance(data, ABCDataFrame):
+            lines.append(f"Data columns (total {col_count} columns):")
+            len_column = len(pprint_thing(column_head))
+            space = max(max_col, len_column) + col_space
             header += _put_str(column_head, space)
+        else:
+            lines.append(f"Series name: {data.name}")
+            space = 0
+
         if show_counts:
+            counts = _get_counts(data)
             if col_count != len(counts):  # pragma: no cover
                 raise AssertionError(
                     f"Columns must equal counts ({col_count} != {len(counts)})"
@@ -197,7 +209,7 @@ def info(
             len_count = len(count_header)
             non_null = " non-null"
             max_count = max(len(pprint_thing(k)) for k in counts) + len(non_null)
-            space_count = max(len_count, max_count) + id_space
+            space_count = max(len_count, max_count) + col_space
             count_temp = "{count}" + non_null
         else:
             count_header = ""
@@ -216,7 +228,7 @@ def info(
         lines.append(header)
         lines.append(
             _put_str("-" * len_id, space_num)
-            + column_string
+            + _put_str("-" * len_column, space)
             + _put_str("-" * len_count, space_count)
             + _put_str("-" * len_dtype, space_dtype)
         )
@@ -230,14 +242,9 @@ def info(
             if show_counts:
                 count = counts[i]
 
-            if isinstance(data, ABCDataFrame):
-                column_string = _put_str(id_, space)
-            else:
-                column_string = ""
-
             lines.append(
                 line_no
-                + column_string
+                + _put_str(id_, space)
                 + _put_str(count_temp.format(count=count), space_count)
                 + _put_str(dtype, space_dtype)
             )
@@ -265,10 +272,7 @@ def info(
             _verbose_repr()
 
     # groupby dtype.name to collect e.g. Categorical columns
-    if isinstance(data, ABCDataFrame):
-        counts = dtypes.value_counts().groupby(lambda x: x.name).sum()
-    else:
-        counts = {data.dtype.name: 1}
+    counts = dtypes.value_counts().groupby(lambda x: x.name).sum()
     collected_dtypes = [f"{k[0]}({k[1]:d})" for k in sorted(counts.items())]
     lines.append(f"dtypes: {', '.join(collected_dtypes)}")
 
