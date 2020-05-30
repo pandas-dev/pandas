@@ -53,6 +53,24 @@ class ReadJSONLines(BaseIO):
     def time_read_json_lines_concat(self, index):
         concat(read_json(self.fname, orient="records", lines=True, chunksize=25000))
 
+    def time_read_json_lines_read_one_chunk(self, index):
+        iterator = read_json(self.fname, orient="records", lines=True, chunksize=25000)
+        for i, j in enumerate(iterator):
+            if i == 0:
+                break
+
+    def time_read_json_lines_read_two_chunk(self, index):
+        iterator = read_json(self.fname, orient="records", lines=True, chunksize=25000)
+        for i, j in enumerate(iterator):
+            if i == 1:
+                break
+
+    def time_read_json_lines_read_three_chunk(self, index):
+        iterator = read_json(self.fname, orient="records", lines=True, chunksize=25000)
+        for i, j in enumerate(iterator):
+            if i == 2:
+                break
+
     def time_read_json_lines_nrows(self, index):
         read_json(self.fname, orient="records", lines=True, nrows=15000)
 
@@ -64,6 +82,24 @@ class ReadJSONLines(BaseIO):
 
     def peakmem_read_json_lines_concat(self, index):
         concat(read_json(self.fname, orient="records", lines=True, chunksize=25000))
+
+    def peakmem_read_json_lines_one_chunk(self, index):
+        iterator = read_json(self.fname, orient="records", lines=True, chunksize=25000)
+        for i, j in enumerate(iterator):
+            if i == 0:
+                break
+
+    def peakmem_read_json_lines_two_chunk(self, index):
+        iterator = read_json(self.fname, orient="records", lines=True, chunksize=25000)
+        for i, j in enumerate(iterator):
+            if i == 1:
+                break
+
+    def peakmem_read_json_lines_three_chunk(self, index):
+        iterator = read_json(self.fname, orient="records", lines=True, chunksize=25000)
+        for i, j in enumerate(iterator):
+            if i == 2:
+                break
 
     def peakmem_read_json_lines_nrows(self, index):
         read_json(self.fname, orient="records", lines=True, nrows=15000)
