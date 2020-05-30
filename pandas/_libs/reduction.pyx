@@ -14,7 +14,7 @@ from numpy cimport (ndarray,
                     flatiter)
 cnp.import_array()
 
-cimport pandas._libs.util as util
+from pandas._libs cimport util
 from pandas._libs.lib import maybe_convert_objects, is_scalar
 
 
@@ -502,7 +502,7 @@ def apply_frame_axis0(object frame, object f, object names,
             # Need to infer if low level index slider will cause segfaults
             require_slow_apply = i == 0 and piece is chunk
             try:
-                if piece.index is not chunk.index:
+                if not piece.index.equals(chunk.index):
                     mutated = True
             except AttributeError:
                 # `piece` might not have an index, could be e.g. an int
@@ -603,7 +603,7 @@ cdef class BlockSlider:
             arr.shape[1] = 0
 
 
-def compute_reduction(arr: np.ndarray, f, axis: int = 0, dummy=None, labels=None):
+def compute_reduction(arr: ndarray, f, axis: int = 0, dummy=None, labels=None):
     """
 
     Parameters

@@ -9,10 +9,8 @@ cimport numpy as cnp
 from numpy cimport (ndarray,
                     int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
                     uint32_t, uint64_t, float32_t, float64_t, complex64_t, complex128_t)
+from numpy.math cimport NAN
 cnp.import_array()
-
-cdef extern from "numpy/npy_math.h":
-    float64_t NAN "NPY_NAN"
 
 from pandas._libs.util cimport numeric, get_nat
 
@@ -779,7 +777,13 @@ def group_quantile(ndarray[float64_t] out,
                 non_na_counts[lab] += 1
 
     # Get an index of values sorted by labels and then values
-    order = (values, labels)
+    if labels.any():
+        # Put '-1' (NaN) labels as the last group so it does not interfere
+        # with the calculations.
+        labels_for_lexsort = np.where(labels == -1, labels.max() + 1, labels)
+    else:
+        labels_for_lexsort = labels
+    order = (values, labels_for_lexsort)
     sort_arr = np.lexsort(order).astype(np.int64, copy=False)
 
     with nogil:

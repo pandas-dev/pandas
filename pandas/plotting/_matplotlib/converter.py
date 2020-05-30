@@ -11,8 +11,7 @@ import matplotlib.units as units
 import numpy as np
 
 from pandas._libs import lib, tslibs
-from pandas._libs.tslibs import resolution
-from pandas._libs.tslibs.frequencies import FreqGroup, get_freq
+from pandas._libs.tslibs.frequencies import FreqGroup, get_freq_code, get_freq_group
 
 from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype,
@@ -550,7 +549,7 @@ def _daily_finder(vmin, vmax, freq):
     elif freq == FreqGroup.FR_DAY:
         periodsperyear = 365
         periodspermonth = 28
-    elif resolution.get_freq_group(freq) == FreqGroup.FR_WK:
+    elif get_freq_group(freq) == FreqGroup.FR_WK:
         periodsperyear = 52
         periodspermonth = 3
     else:  # pragma: no cover
@@ -887,8 +886,8 @@ def _annual_finder(vmin, vmax, freq):
 
 def get_finder(freq):
     if isinstance(freq, str):
-        freq = get_freq(freq)
-    fgroup = resolution.get_freq_group(freq)
+        freq = get_freq_code(freq)[0]
+    fgroup = get_freq_group(freq)
 
     if fgroup == FreqGroup.FR_ANN:
         return _annual_finder
@@ -932,7 +931,7 @@ class TimeSeries_DateLocator(Locator):
         plot_obj=None,
     ):
         if isinstance(freq, str):
-            freq = get_freq(freq)
+            freq = get_freq_code(freq)[0]
         self.freq = freq
         self.base = base
         (self.quarter, self.month, self.day) = (quarter, month, day)
@@ -1011,7 +1010,7 @@ class TimeSeries_DateFormatter(Formatter):
 
     def __init__(self, freq, minor_locator=False, dynamic_mode=True, plot_obj=None):
         if isinstance(freq, str):
-            freq = get_freq(freq)
+            freq = get_freq_code(freq)[0]
         self.format = None
         self.freq = freq
         self.locs = []

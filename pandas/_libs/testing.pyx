@@ -1,4 +1,8 @@
 import numpy as np
+from numpy cimport import_array
+import_array()
+
+from pandas._libs.util cimport is_array
 
 from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.core.dtypes.common import is_dtype_equal
@@ -116,8 +120,8 @@ cpdef assert_almost_equal(a, b,
         assert a == b, f"{a} != {b}"
         return True
 
-    a_is_ndarray = isinstance(a, np.ndarray)
-    b_is_ndarray = isinstance(b, np.ndarray)
+    a_is_ndarray = is_array(a)
+    b_is_ndarray = is_array(b)
 
     if obj is None:
         if a_is_ndarray or b_is_ndarray:
