@@ -5,7 +5,7 @@ import pytest
 import pytz
 
 import pandas as pd
-from pandas import Timedelta, merge_asof, read_csv, to_datetime
+from pandas import Index, Timedelta, merge_asof, read_csv, to_datetime
 import pandas._testing as tm
 from pandas.core.reshape.merge import MergeError
 
@@ -1323,7 +1323,7 @@ class TestAsOfMerge:
                 "from_date": index[1:],
                 "abc": [2.46] * 3 + [2.19],
             },
-            index=pd.Index([1, 2, 3, 4]),
+            index=index[1:],
         )
         tm.assert_frame_equal(result, expected)
 
@@ -1339,3 +1339,24 @@ class TestAsOfMerge:
             index=pd.Index([0, 1, 2, 3, 4]),
         )
         tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"right_index": True, "left_index": True},
+        {"left_on": "left_time", "right_index": True},
+        {"left_index": True, "right_on": "right"},
+    ],
+)
+def test_merge_asof_index_behavior(kwargs):
+    index = Index([1, 5, 10], name="test")
+    left = pd.DataFrame({"left": ["a", "b", "c"], "left_time": [1, 4, 10]}, index=index)
+    right = pd.DataFrame({"right": [1, 2, 3, 6, 7]}, index=[1, 2, 3, 6, 7])
+    result = merge_asof(left, right, **kwargs)
+
+    expected = pd.DataFrame(
+        {"left": ["a", "b", "c"], "left_time": [1, 4, 10], "right": [1, 3, 7]},
+        index=index,
+    )
+    tm.assert_frame_equal(result, expected)

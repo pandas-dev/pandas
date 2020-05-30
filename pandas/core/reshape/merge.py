@@ -938,6 +938,8 @@ class _MergeOperation:
         -------
         join_index
         """
+        if how == "left" and self.how == "asof":
+            return other_index.take(other_indexer)
         if self.how in (how, "outer") and not isinstance(other_index, MultiIndex):
             # if final index requires values in other_index but not target
             # index, indexer may hold missing (-1) values, causing Index.take
