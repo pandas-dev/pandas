@@ -1302,7 +1302,7 @@ to enable easy monitoring of the performance of critical pandas operations.
 These benchmarks are all found in the ``pandas/asv_bench`` directory.  asv
 supports both python2 and python3.
 
-To use all features of asv, you will need either ``conda``, or
+To use all features of asv, you will need either ``conda`` or
 ``virtualenv``. For more details please check the `asv installation
 webpage <https://asv.readthedocs.io/en/latest/installing.html>`_.
 
