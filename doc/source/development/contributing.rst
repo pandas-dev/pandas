@@ -299,8 +299,8 @@ Consult the docs for setting up pyenv `here <https://github.com/pyenv/pyenv>`__.
    # Use an ENV_DIR of your choice. We'll use ~/Users/<yourname>/.pyenv/versions/pandas-dev
 
    pyenv virtualenv <version> <name-to-give-it>
-   
-   #For instance:
+
+   # For instance:
    pyenv virtualenv 3.7.6 pandas-dev
 
    # Activate the virtualenv
