@@ -749,7 +749,7 @@ cdef class Tick(SingleConstructorOffset):
 
     # FIXME: Without making this cpdef, we get AttributeError when calling
     #  from __mul__
-    cpdef Tick next_higher_resolution(Tick self):
+    cpdef Tick _next_higher_resolution(Tick self):
         if type(self) is Day:
             return Hour(self.n * 24)
         if type(self) is Hour:
@@ -825,7 +825,7 @@ cdef class Tick(SingleConstructorOffset):
             #  to a higher-resolution subclass
             if np.isclose(n % 1, 0):
                 return type(self)(int(n))
-            new_self = self.next_higher_resolution()
+            new_self = self._next_higher_resolution()
             return new_self * other
         return BaseOffset.__mul__(self, other)
 
