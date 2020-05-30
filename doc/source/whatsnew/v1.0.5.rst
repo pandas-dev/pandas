@@ -15,15 +15,15 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
-- 
-- 
+-
+-
 
 .. _whatsnew_105.bug_fixes:
 
 Bug fixes
 ~~~~~~~~~
-- 
-- 
+-
+-
 
 Contributors
 ~~~~~~~~~~~~
