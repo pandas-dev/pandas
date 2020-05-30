@@ -1010,10 +1010,8 @@ class Block(PandasObject):
         if is_dtype_equal(self.dtype, dtype):
             return self
 
-        if (
-            is_extension_array_dtype(self.dtype)
-            and not is_categorical_dtype(self.dtype)
-            and not self.is_datetime
+        if is_extension_array_dtype(self.dtype) and not is_categorical_dtype(
+            self.dtype
         ):
             dtype = self.dtype
 
@@ -1060,6 +1058,8 @@ class Block(PandasObject):
             raise AssertionError(
                 f"possible recursion in coerce_to_target_dtype: {self} {other}"
             )
+        if is_categorical_dtype(dtype) or self.is_datetime:
+            return self.astype(object)
 
         try:
             return self.astype(dtype)

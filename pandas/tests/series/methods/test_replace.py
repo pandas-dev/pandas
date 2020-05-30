@@ -3,6 +3,7 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core.arrays import IntervalArray
 
 
 class TestSeriesReplace:
@@ -414,13 +415,13 @@ class TestSeriesReplace:
             (pd.Series([1, 2], dtype="int64"), {1: 10, 2: 20}, "int64"),
             (pd.Series([True, False], dtype="bool"), {True: False}, "bool"),
             (
-                pd.Series(pd.interval_range(0, 5), dtype=pd.IntervalDtype("int64")),
-                {pd.Interval(0, 1): pd.Interval(10, 20)},
+                pd.Series(IntervalArray.from_breaks([1, 2, 3, 4]), dtype=pd.IntervalDtype("int64")),
+                {pd.Interval(1, 2): pd.Interval(10, 20)},
                 "interval[int64]",
             ),
             (
-                pd.Series(pd.interval_range(0, 1), dtype=pd.IntervalDtype("float64")),
-                {pd.Interval(0.0, 1.0): pd.Interval(0.2, 0.3)},
+                pd.Series(IntervalArray.from_breaks([1, 2, 3, 4]), dtype=pd.IntervalDtype("float64")),
+                {pd.Interval(1, 2): pd.Interval(0.2, 0.3)},
                 "interval[float64]",
             ),
             (
@@ -449,5 +450,5 @@ class TestSeriesReplace:
     )
     def test_replace_dtype(self, series, to_replace, expected):
         # GH 33484
-        result = str(series.replace(to_replace).dtype)
+        result = series.replace(to_replace).dtype
         assert expected == result
