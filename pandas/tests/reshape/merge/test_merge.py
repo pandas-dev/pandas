@@ -2246,7 +2246,7 @@ def test_categorical_non_unique_monotonic(n_categories):
     ("index", "how", "values"),
     [(Index(["a", "b"]), "left", ["a", "b"]), (Index([0, 1]), "right", ["a", "c"])],
 )
-def test_left_index_true_left_join_target_index(index, how, values):
+def test_left_index_true_left_and_righ_join_target_index(index, how, values):
     left = pd.DataFrame(index=["a", "b"])
     right = pd.DataFrame({"x": ["a", "c"]})
 
