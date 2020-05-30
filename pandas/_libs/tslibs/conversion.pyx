@@ -809,7 +809,7 @@ cdef int64_t[:] _normalize_local(const int64_t[:] stamps, tzinfo tz):
         ndarray[int64_t] trans
         int64_t[:] deltas
         str typ
-        Py_ssize_t pos
+        Py_ssize_t[:] pos
         npy_datetimestruct dts
         int64_t delta, local_val
 
@@ -835,16 +835,16 @@ cdef int64_t[:] _normalize_local(const int64_t[:] stamps, tzinfo tz):
                 dt64_to_dtstruct(stamps[i] + delta, &dts)
                 result[i] = _normalized_stamp(&dts)
         else:
+            # C equivalent to `trans.searchsorted(stamps, side="right") -1
+            pos = cnp.PyArray_SearchSorted(
+                trans, stamps.base, cnp.NPY_SEARCHRIGHT, NULL
+            ) - 1
             for i in range(n):
                 local_val = stamps[i]
                 if local_val == NPY_NAT:
                     result[i] = NPY_NAT
                     continue
-                # C equivalent to `trans.searchsorted(local_val, side="right")`
-                pos = cnp.PyArray_SearchSorted(
-                    trans, local_val, cnp.NPY_SEARCHRIGHT, NULL
-                )
-                dt64_to_dtstruct(local_val + deltas[pos - 1], &dts)
+                dt64_to_dtstruct(stamps[i] + deltas[pos[i]], &dts)
                 result[i] = _normalized_stamp(&dts)
 
     return result
