@@ -26,7 +26,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
     is_datetime64tz_dtype,
-    is_datetime64_any_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float_dtype,
@@ -36,7 +35,6 @@ from pandas.core.dtypes.common import (
     is_number,
     is_numeric_dtype,
     is_object_dtype,
-    is_timedelta64_dtype,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
