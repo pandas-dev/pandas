@@ -1341,9 +1341,10 @@ class TestAsOfMerge:
         tm.assert_frame_equal(result, expected)
 
 
-def test_non_numerical_dtype():
+@pytest.mark.parametrize("data", [["2019-06-01 00:09:12", "2019-06-01 00:10:29"], [1.0, "2019-06-01 00:10:29"]])
+def test_non_numerical_dtype(data):
     # GH 29130
-    left = pd.DataFrame({"x": ["2019-06-01 00:09:12", "2019-06-01 00:10:29"]})
-    right = pd.DataFrame({"x": ["2019-06-01 00:09:12", "2019-06-01 00:10:29"]})
-    with pytest.raises(ValueError):
+    left = pd.DataFrame({"x": data})
+    right = pd.DataFrame({"x": data})
+    with pytest.raises(TypeError, match="Both inputs have to be from numeric dtype"):
         pd.merge_asof(left, right, on="x")

@@ -1730,11 +1730,8 @@ class _AsOfMerge(_OrderedMerge):
         )
         tolerance = self.tolerance
 
-        if is_object_dtype(right_values):
-            raise ValueError("Right input is not from numerical dtype")
-
-        if is_object_dtype(left_values.dtype):
-            raise ValueError("Left input is not from numerical dtype")
+        if is_object_dtype(right_values.dtype) or is_object_dtype(left_values.dtype):
+            raise TypeError("Both inputs have to be from numeric dtype")
 
         # we require sortedness and non-null values in the join keys
         if not Index(left_values).is_monotonic:
