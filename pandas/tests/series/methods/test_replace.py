@@ -413,6 +413,38 @@ class TestSeriesReplace:
             ),
             (pd.Series([1, 2], dtype="int64"), {1: 10, 2: 20}, "int64"),
             (pd.Series([True, False], dtype="bool"), {True: False}, "bool"),
+            (
+                pd.Series(pd.interval_range(0, 5), dtype=pd.IntervalDtype("int64")),
+                {pd.Interval(0, 1): pd.Interval(10, 20)},
+                "interval[int64]",
+            ),
+            (
+                pd.Series(pd.interval_range(0, 1), dtype=pd.IntervalDtype("float64")),
+                {pd.Interval(0.0, 1.0): pd.Interval(0.2, 0.3)},
+                "interval[float64]",
+            ),
+            (
+                pd.Series([pd.Period("2020-05", freq="M")], dtype=pd.PeriodDtype("M")),
+                {pd.Period("2020-05", freq="M"): pd.Period("2020-06", freq="M")},
+                "period[M]",
+            ),
+            (
+                pd.Series(
+                    pd.arrays.DatetimeArray(
+                        np.array(
+                            ["2000-01-01T12:00:00", "2000-01-02T12:00:00"],
+                            dtype="M8[ns]",
+                        ),
+                        dtype=pd.DatetimeTZDtype(tz="US/Central"),
+                    )
+                ),
+                {
+                    pd.Timestamp(
+                        "2000-01-01 06:00:00-0600", tz="US/Central"
+                    ): pd.Timestamp("2000-01-01 12:00:00-0600", tz="US/Central")
+                },
+                "datetime64[ns, US/Central]",
+            ),
         ],
     )
     def test_replace_dtype(self, series, to_replace, expected):
