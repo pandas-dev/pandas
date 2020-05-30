@@ -1339,3 +1339,11 @@ class TestAsOfMerge:
             index=pd.Index([0, 1, 2, 3, 4]),
         )
         tm.assert_frame_equal(result, expected)
+
+
+def test_non_numerical_dtype():
+    # GH 29130
+    left = pd.DataFrame({"x": ["2019-06-01 00:09:12", "2019-06-01 00:10:29"]})
+    right = pd.DataFrame({"x": ["2019-06-01 00:09:12", "2019-06-01 00:10:29"]})
+    with pytest.raises(ValueError):
+        pd.merge_asof(left, right, on="x")

@@ -26,6 +26,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
     is_datetime64tz_dtype,
+    is_datetime64_any_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float_dtype,
@@ -35,6 +36,7 @@ from pandas.core.dtypes.common import (
     is_number,
     is_numeric_dtype,
     is_object_dtype,
+    is_timedelta64_dtype,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
@@ -1729,6 +1731,12 @@ class _AsOfMerge(_OrderedMerge):
             self.right.index._values if self.right_index else self.right_join_keys[-1]
         )
         tolerance = self.tolerance
+
+        if is_object_dtype(right_values):
+            raise ValueError("Right input is not from numerical dtype")
+
+        if is_object_dtype(left_values.dtype):
+            raise ValueError("Left input is not from numerical dtype")
 
         # we require sortedness and non-null values in the join keys
         if not Index(left_values).is_monotonic:
