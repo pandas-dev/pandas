@@ -61,6 +61,13 @@ JSON
 
 .. currentmodule:: pandas
 
+logfmt
+~~~~~~
+.. autosummary::
+   :toctree: api/
+
+   read_logfmt
+
 HTML
 ~~~~
 .. autosummary::

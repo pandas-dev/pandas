@@ -13,6 +13,24 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+.. _whatsnew_110.logfmt:
+
+logfmt_ parsing was added:
+
+.. _logfmt : https://www.brandur.org/logfmt
+
+
+.. ipython:: python
+   :suppress:
+
+   from io import StringIO
+
+.. ipython:: python
+
+   data = "level=debug x=1\nlevel=debug x=5"
+   pd.read_logfmt(StringIO(data))
+
+
 .. _whatsnew_110.astype_string:
 
 All dtypes can now be converted to ``StringDtype``

@@ -270,6 +270,7 @@ blosc                                        Compression for HDF5
 fastparquet               0.3.2              Parquet reading / writing
 gcsfs                     0.2.2              Google Cloud Storage access
 html5lib                                     HTML parser for read_html (see :ref:`note <optional_html>`)
+logfmt                    0.4.0              logfmt reading
 lxml                      3.8.0              HTML parser for read_html (see :ref:`note <optional_html>`)
 matplotlib                2.2.2              Visualization
 numba                     0.46.0             Alternative execution engine for rolling operations

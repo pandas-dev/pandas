@@ -20,6 +20,12 @@ def jsonl_file(datapath):
 
 
 @pytest.fixture
+def logfmt_file(datapath):
+    """Path to logfmt file"""
+    return datapath("io", "parser", "data", "logfmt.log")
+
+
+@pytest.fixture
 def salaries_table(datapath):
     """DataFrame with the salaries dataset"""
     return read_csv(datapath("io", "parser", "data", "salaries.csv"), sep="\t")
