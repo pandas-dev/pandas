@@ -205,6 +205,9 @@ def _use_dynamic_x(ax, data: "FrameOrSeriesUnion") -> bool:
 
     freq = get_period_alias(freq)
 
+    if freq is None:
+        return False
+
     # FIXME: hack this for 0.10.1, creating more technical debt...sigh
     if isinstance(data.index, ABCDatetimeIndex):
         base = get_freq_code(freq)[0]
