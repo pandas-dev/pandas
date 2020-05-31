@@ -1,12 +1,13 @@
 # TODO: Use the fact that axis can have units to simplify the process
 
 import functools
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
 
 import numpy as np
 
 from pandas._libs.tslibs.frequencies import FreqGroup, base_and_stride, get_freq_code
 from pandas._libs.tslibs.period import Period
+from pandas._typing import FrameOrSeriesUnion
 
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
@@ -23,10 +24,6 @@ from pandas.plotting._matplotlib.converter import (
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import is_subperiod, is_superperiod
 from pandas.tseries.offsets import DateOffset
-
-if TYPE_CHECKING:
-    from pandas._typing import FrameOrSeries  # noqa: F401
-
 
 # ---------------------------------------------------------------------
 # Plotting functions and monkey patches
@@ -192,7 +189,7 @@ def _get_freq(ax, series):
     return freq, ax_freq
 
 
-def _use_dynamic_x(ax, data: "FrameOrSeries") -> bool:
+def _use_dynamic_x(ax, data: "FrameOrSeriesUnion") -> bool:
 
     freq = _get_index_freq(data)
     ax_freq = _get_ax_freq(ax)
