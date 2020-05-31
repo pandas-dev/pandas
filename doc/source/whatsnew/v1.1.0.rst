@@ -936,6 +936,7 @@ Reshaping
 - Bug in :meth:`DataFrame.replace` casts columns to ``object`` dtype if items in ``to_replace`` not in values (:issue:`32988`)
 - Ensure only named functions can be used in :func:`eval()` (:issue:`32460`)
 - Fixed bug in :func:`melt` where melting MultiIndex columns with ``col_level`` > 0 would raise a ``KeyError`` on ``id_vars`` (:issue:`34129`)
+- Fixed bug setting wrong values in result when joining one side over index and other side over column in case of join type not equal to inner (:issue:`17257`, :issue`28220`, :issue:`28243`, :issue:`33232`)
 
 Sparse
 ^^^^^^
