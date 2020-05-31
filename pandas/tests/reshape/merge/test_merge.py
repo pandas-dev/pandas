@@ -484,12 +484,10 @@ class TestMerge:
 
         kwarg = dict(left_on="a", right_index=True)
         check1(exp_in, kwarg)
-        exp_out["a"] = [0, 1, 2]
         check2(exp_out, kwarg)
 
         kwarg = dict(left_on="a", right_on="x")
         check1(exp_in, kwarg)
-        exp_out["a"] = np.array([np.nan] * 3, dtype=object)
         check2(exp_out, kwarg)
 
     def test_merge_left_notempty_right_empty(self):
@@ -1294,9 +1292,9 @@ class TestMerge:
                 [0, 0, 0],
                 [1, 1, 1],
                 [2, 2, 2],
-                [np.nan, 3, 3],
-                [np.nan, 4, 4],
-                [np.nan, 5, 5],
+                [np.nan, np.nan, 3],
+                [np.nan, np.nan, 4],
+                [np.nan, np.nan, 5],
             ],
             columns=["a", "key", "b"],
         )
@@ -1311,7 +1309,7 @@ class TestMerge:
         right = pd.DataFrame({"b": [1, 2, 3]})
 
         expected = pd.DataFrame(
-            {"a": [1, 2, 3, None], "key": [0, 1, 1, 2], "b": [1, 2, 2, 3]},
+            {"a": [1, 2, 3, None], "key": [0, 1, 1, None], "b": [1, 2, 2, 3]},
             columns=["a", "key", "b"],
             index=[0, 1, 2, np.nan],
         )
@@ -1347,7 +1345,7 @@ class TestMerge:
         expected = pd.DataFrame(
             {
                 "a": [1, 2, 3, None],
-                "key": pd.Categorical(["a", "a", "b", "c"]),
+                "key": pd.Categorical(["a", "a", "b", None], dtype=right.index.dtype),
                 "b": [1, 1, 2, 3],
             },
             index=[0, 1, 2, np.nan],
@@ -2227,3 +2225,39 @@ def test_categorical_non_unique_monotonic(n_categories):
         index=left_index,
     )
     tm.assert_frame_equal(expected, result)
+
+
+@pytest.mark.parametrize(
+    ("how", "data"),
+    [
+        ("left", {"y": [1, 2], "x": ["a", np.nan]}),
+        ("right", {"y": [1, np.nan], "x": ["a", "c"]}),
+    ],
+)
+def test_index_true_and_on_combination_values(how, data):
+    # gh 28220 and gh 28243 and gh 17257
+    left = pd.DataFrame({"y": [1, 2]}, index=["a", "b"])
+    right = pd.DataFrame({"x": ["a", "c"]})
+
+    result = pd.merge(left, right, left_index=True, right_on="x", how=how)
+    expected = pd.DataFrame(data, index=result.index)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_index_true_outer_join():
+    # gh 33232 and gh 17257
+    left = pd.DataFrame({"lkey": [0, 3], "value": [1, 5]})
+    right = pd.DataFrame({"rkey": ["foo", "baz"], "value": [0, 1]})
+
+    result = pd.merge(left, right, how="outer", left_on="lkey", right_index=True)
+
+    expected = pd.DataFrame(
+        {
+            "lkey": [0, 3, np.nan],
+            "value_x": [1, 5, np.nan],
+            "rkey": ["foo", np.nan, "baz"],
+            "value_y": [0, np.nan, 1],
+        },
+        index=[0, 1, np.nan],
+    )
+    tm.assert_frame_equal(result, expected)
