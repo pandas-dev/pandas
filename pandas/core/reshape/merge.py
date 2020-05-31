@@ -800,7 +800,11 @@ class _MergeOperation:
                         or self.left_index is True
                         and name in self.left.index.names
                     )
-                if (not right_in or not left_in) and not array_like and self.how != "asof":
+                if (
+                    (not right_in or not left_in)
+                    and not array_like
+                    and self.how != "asof"
+                ):
                     continue
                 if left_indexer is not None and right_indexer is not None:
                     if name in self.left:
