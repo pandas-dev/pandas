@@ -237,8 +237,8 @@ indicator : bool or str, default False
     information on the source of each row. The column can be given a different
     name by providing a string argument. The column will have a Categorical
     type with the value of "left_only" for observations whose merge key only
-    appears in 'left' -> the left DataFrame, "right_only" for observations
-    whose merge key only appears in 'right' -> the right DataFrame, and "both"
+    appears in the left DataFrame, "right_only" for observations
+    whose merge key only appears in the right DataFrame, and "both"
     if the observation's merge key is found in both DataFrames.
 
 validate : str, optional
