@@ -113,7 +113,7 @@ def deregister():
             units.registry[unit] = formatter
 
 
-def _to_ordinalf(tm):
+def _to_ordinalf(tm: pydt.time) -> float:
     tot_sec = tm.hour * 3600 + tm.minute * 60 + tm.second + float(tm.microsecond / 1e6)
     return tot_sec
 
@@ -160,7 +160,7 @@ class TimeFormatter(Formatter):
     def __init__(self, locs):
         self.locs = locs
 
-    def __call__(self, x, pos=0):
+    def __call__(self, x, pos=0) -> str:
         """
         Return the time of day as a formatted string.
 
@@ -1049,7 +1049,7 @@ class TimeSeries_DateFormatter(Formatter):
             (vmin, vmax) = (vmax, vmin)
         self._set_default_format(vmin, vmax)
 
-    def __call__(self, x, pos=0):
+    def __call__(self, x, pos=0) -> str:
 
         if self.formatdict is None:
             return ""
@@ -1066,7 +1066,7 @@ class TimeSeries_TimedeltaFormatter(Formatter):
     """
 
     @staticmethod
-    def format_timedelta_ticks(x, pos, n_decimals):
+    def format_timedelta_ticks(x, pos, n_decimals: int) -> str:
         """
         Convert seconds to 'D days HH:MM:SS.F'
         """
@@ -1082,7 +1082,7 @@ class TimeSeries_TimedeltaFormatter(Formatter):
             s = f"{int(d):d} days {s}"
         return s
 
-    def __call__(self, x, pos=0):
+    def __call__(self, x, pos=0) -> str:
         (vmin, vmax) = tuple(self.axis.get_view_interval())
         n_decimals = int(np.ceil(np.log10(100 * 1e9 / (vmax - vmin))))
         if n_decimals > 9:
