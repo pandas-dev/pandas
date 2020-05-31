@@ -1349,5 +1349,5 @@ def test_non_numerical_dtype(data):
     # GH 29130
     left = pd.DataFrame({"x": data})
     right = pd.DataFrame({"x": data})
-    with pytest.raises(TypeError, match="Both inputs have to be from numeric dtype"):
+    with pytest.raises(TypeError, match="Both inputs must have numeric dtype"):
         pd.merge_asof(left, right, on="x")
