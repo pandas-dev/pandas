@@ -190,7 +190,6 @@ def _get_freq(ax, series):
 
 
 def _use_dynamic_x(ax, data: "FrameOrSeriesUnion") -> bool:
-
     freq = _get_index_freq(data)
     ax_freq = _get_ax_freq(ax)
 
