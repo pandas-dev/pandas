@@ -1516,8 +1516,10 @@ cdef class _Period:
     def __cinit__(self, ordinal, freq):
         self.ordinal = ordinal
         self.freq = freq
-        self.dtype = PeriodDtype.from_date_offset(freq)
-
+        # Note: this is more performant than PeriodDtype.from_date_offset(freq)
+        #  because from_date_offset cannot be made a cdef method (until cython
+        #  supported cdef classmethods)
+        self.dtype = PeriodDtype(freq.period_dtype_code)
 
     @classmethod
     def _maybe_convert_freq(cls, object freq):
