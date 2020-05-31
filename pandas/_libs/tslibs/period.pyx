@@ -53,6 +53,9 @@ from pandas._libs.tslibs.ccalendar cimport (
     get_days_in_month,
 )
 from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
+
+from pandas._libs.tslibs.dtypes cimport PeriodDtype
+
 from pandas._libs.tslibs.frequencies cimport (
     attrname_to_abbrevs,
     get_freq_code,
@@ -73,7 +76,6 @@ from pandas._libs.tslibs.offsets cimport (
 )
 from pandas._libs.tslibs.tzconversion cimport tz_convert_utc_to_tzlocal
 
-from .dtypes cimport PeriodDtype
 
 cdef:
     enum:
