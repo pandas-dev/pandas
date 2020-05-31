@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 import operator
-from typing import Any, Callable, Sequence, Tuple, Type, TypeVar, Union, cast
+from typing import Any, Callable, Optional, Sequence, Tuple, Type, TypeVar, Union, cast
 import warnings
 
 import numpy as np
@@ -804,7 +804,7 @@ class DatetimeLikeArrayMixin(
         return value
 
     def _validate_listlike(
-        self, value, opname: str, cast_str: bool = False, allow_object: bool = False,
+        self, value, opname: str, cast_str: bool = False, allow_object: bool = False
     ):
         if isinstance(value, type(self)):
             return value
@@ -1103,14 +1103,22 @@ class DatetimeLikeArrayMixin(
             return None
 
     @property  # NB: override with cache_readonly in immutable subclasses
-    def _resolution(self):
-        return Resolution.get_reso_from_freq(self.freqstr)
+    def _resolution(self) -> Optional[Resolution]:
+        try:
+            return Resolution.get_reso_from_freq(self.freqstr)
+        except KeyError:
+            return None
 
     @property  # NB: override with cache_readonly in immutable subclasses
     def resolution(self) -> str:
         """
         Returns day, hour, minute, second, millisecond or microsecond
         """
+        if self._resolution is None:
+            if is_period_dtype(self.dtype):
+                # somewhere in the past it was decided we default to day
+                return "day"
+            # otherwise we fall through and will raise
         return Resolution.get_str(self._resolution)
 
     @classmethod
