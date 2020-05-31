@@ -639,7 +639,6 @@ class JsonReader(abc.Iterator):
         compression,
     ):
 
-        self.path_or_buf = filepath_or_buffer
         self.orient = orient
         self.typ = typ
         self.dtype = dtype
