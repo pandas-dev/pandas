@@ -564,6 +564,13 @@ class PandasSQLTest:
         res2 = self.pandasSQL.read_query("SELECT * FROM test_trans")
         assert len(res2) == 1
 
+    def _to_sql_with_negative_npinf(self):
+        engine = sqlalchemy.create_engine("sqlite://", echo=False)
+
+        pd.DataFrame({"foo": [np.inf]}).to_sql("foobar1", engine)
+        pd.DataFrame({"foo": [-np.inf]}).to_sql("foobar2", engine)
+        pd.DataFrame({"foo": [-np.inf], "infe0": ["bar"]}).to_sql("foobar3", engine)
+
 
 # -----------------------------------------------------------------------------
 # -- Testing the public API
