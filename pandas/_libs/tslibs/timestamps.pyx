@@ -1451,13 +1451,8 @@ default 'raise'
             ndarray[int64_t] normalized
             tzinfo own_tz = self.tzinfo  # could be None
 
-        if own_tz is None or is_utc(own_tz):
-            DAY_NS = ccalendar.DAY_NANOS
-            normalized_value = self.value - (self.value % DAY_NS)
-            return Timestamp(normalized_value).tz_localize(own_tz)
-
         normalized = normalize_i8_timestamps(
-            np.array([self.value], dtype='i8'), tz=own_tz)
+            np.array([self.value], dtype="i8"), tz=own_tz)
         return Timestamp(normalized[0]).tz_localize(own_tz)
 
 
