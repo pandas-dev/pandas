@@ -25,7 +25,7 @@ from pandas._libs.tslibs.util cimport (
     is_timedelta64_object, is_array,
 )
 
-from pandas._libs.tslibs.base cimport ABCTimedelta, ABCTimestamp
+from pandas._libs.tslibs.base cimport ABCTimestamp
 
 from pandas._libs.tslibs cimport ccalendar
 
@@ -41,6 +41,7 @@ from pandas._libs.tslibs.np_datetime cimport (
 )
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.offsets cimport to_offset, is_tick_object, is_offset_object
+from pandas._libs.tslibs.timedeltas cimport is_any_td_scalar, delta_to_nanoseconds
 from pandas._libs.tslibs.timedeltas import Timedelta
 from pandas._libs.tslibs.timezones cimport (
     is_utc, maybe_get_tz, treat_tz_as_pytz, utc_pytz as UTC,
@@ -344,37 +345,15 @@ cdef class _Timestamp(ABCTimestamp):
 
     def __add__(self, other):
         cdef:
-            int64_t other_int, nanos = 0
+            int64_t nanos = 0
 
-        if is_timedelta64_object(other):
-            other_int = other.astype('timedelta64[ns]').view('i8')
-            return type(self)(self.value + other_int, tz=self.tzinfo, freq=self.freq)
+        if is_any_td_scalar(other):
+            nanos = delta_to_nanoseconds(other)
+            result = type(self)(self.value + nanos, tz=self.tzinfo, freq=self.freq)
+            return result
 
         elif is_integer_object(other):
             raise integer_op_not_supported(self)
-
-        elif PyDelta_Check(other):
-            # logic copied from delta_to_nanoseconds to prevent circular import
-            if isinstance(other, ABCTimedelta):
-                # pd.Timedelta
-                nanos = other.value
-            else:
-                nanos = (other.days * 24 * 60 * 60 * 1000000 +
-                         other.seconds * 1000000 +
-                         other.microseconds) * 1000
-
-            result = type(self)(self.value + nanos, tz=self.tzinfo, freq=self.freq)
-            return result
-
-        elif is_tick_object(other):
-            try:
-                nanos = other.nanos
-            except OverflowError as err:
-                raise OverflowError(
-                    f"the add operation between {other} and {self} will overflow"
-                ) from err
-            result = type(self)(self.value + nanos, tz=self.tzinfo, freq=self.freq)
-            return result
 
         elif is_array(other):
             if other.dtype.kind in ['i', 'u']:
@@ -395,8 +374,7 @@ cdef class _Timestamp(ABCTimestamp):
 
     def __sub__(self, other):
 
-        if (is_timedelta64_object(other) or is_integer_object(other) or
-                PyDelta_Check(other) or is_tick_object(other)):
+        if is_any_td_scalar(other) or is_integer_object(other):
             neg_other = -other
             return self + neg_other
 
@@ -434,7 +412,6 @@ cdef class _Timestamp(ABCTimestamp):
 
             # scalar Timestamp/datetime - Timestamp/datetime -> yields a
             # Timedelta
-            from pandas._libs.tslibs.timedeltas import Timedelta
             try:
                 return Timedelta(self.value - other.value)
             except (OverflowError, OutOfBoundsDatetime) as err:
