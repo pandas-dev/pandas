@@ -745,6 +745,28 @@ class TestDataFrameApply:
             df.apply(func, axis=1)
             assert names == list(df.index)
 
+    @pytest.mark.xfail(
+        reason="The 'run once' enhancement for apply_raw not implemented yet."
+    )
+    def test_apply_raw_function_runs_once(self):
+        # https://github.com/pandas-dev/pandas/issues/34506
+
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        values = []  # Save row values function is applied to
+
+        def reducing_function(row):
+            values.extend(row)
+
+        def non_reducing_function(row):
+            values.extend(row)
+            return row
+
+        for func in [reducing_function, non_reducing_function]:
+            del values[:]
+
+            df.apply(func, raw=True, axis=1)
+            assert values == list(df.a.to_list())
+
     def test_applymap_function_runs_once(self):
 
         df = pd.DataFrame({"a": [1, 2, 3]})
