@@ -800,36 +800,34 @@ class _MergeOperation:
                         or self.left_index is True
                         and name in self.left.index.names
                     )
-                if right_in and left_in or array_like or self.how == "asof":
-
-                    if left_indexer is not None and right_indexer is not None:
-                        if name in self.left:
-
-                            if left_has_missing is None:
-                                left_has_missing = (left_indexer == -1).any()
-
-                            if left_has_missing:
-                                take_right = self.right_join_keys[i]
-
-                                if not is_dtype_equal(
-                                    result[name].dtype, self.left[name].dtype
-                                ):
-                                    take_left = self.left[name]._values
-
-                        elif name in self.right:
-
-                            if right_has_missing is None:
-                                right_has_missing = (right_indexer == -1).any()
-
-                            if right_has_missing:
-                                take_left = self.left_join_keys[i]
-
-                                if not is_dtype_equal(
-                                    result[name].dtype, self.right[name].dtype
-                                ):
-                                    take_right = self.right[name]._values
-                else:
+                if (not right_in or not left_in) and not array_like and self.how != "asof":
                     continue
+                if left_indexer is not None and right_indexer is not None:
+                    if name in self.left:
+
+                        if left_has_missing is None:
+                            left_has_missing = (left_indexer == -1).any()
+
+                        if left_has_missing:
+                            take_right = self.right_join_keys[i]
+
+                            if not is_dtype_equal(
+                                result[name].dtype, self.left[name].dtype
+                            ):
+                                take_left = self.left[name]._values
+
+                    elif name in self.right:
+
+                        if right_has_missing is None:
+                            right_has_missing = (right_indexer == -1).any()
+
+                        if right_has_missing:
+                            take_left = self.left_join_keys[i]
+
+                            if not is_dtype_equal(
+                                result[name].dtype, self.right[name].dtype
+                            ):
+                                take_right = self.right[name]._values
 
             elif left_indexer is not None and is_array_like(self.left_join_keys[i]):
                 take_left = self.left_join_keys[i]
