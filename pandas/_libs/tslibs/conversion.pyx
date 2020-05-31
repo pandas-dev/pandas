@@ -763,7 +763,7 @@ cpdef inline datetime localize_pydatetime(datetime dt, object tz):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def normalize_i8_timestamps(int64_t[:] stamps, object tz):
+cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo tz):
     """
     Normalize each of the (nanosecond) timezone aware timestamps in the given
     array by rounding down to the beginning of the day (i.e. midnight).
@@ -773,31 +773,6 @@ def normalize_i8_timestamps(int64_t[:] stamps, object tz):
     ----------
     stamps : int64 ndarray
     tz : tzinfo or None
-
-    Returns
-    -------
-    result : int64 ndarray of converted of normalized nanosecond timestamps
-    """
-    cdef:
-        int64_t[:] result
-
-    result = _normalize_local(stamps, tz)
-
-    return result.base  # .base to access underlying np.ndarray
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-cdef int64_t[:] _normalize_local(const int64_t[:] stamps, tzinfo tz):
-    """
-    Normalize each of the (nanosecond) timestamps in the given array by
-    rounding down to the beginning of the day (i.e. midnight) for the
-    given timezone `tz`.
-
-    Parameters
-    ----------
-    stamps : int64 ndarray
-    tz : tzinfo
 
     Returns
     -------
@@ -843,7 +818,7 @@ cdef int64_t[:] _normalize_local(const int64_t[:] stamps, tzinfo tz):
                 dt64_to_dtstruct(stamps[i] + deltas[pos[i]], &dts)
                 result[i] = _normalized_stamp(&dts)
 
-    return result
+    return result.base  # `.base` to access underlying ndarray
 
 
 cdef inline int64_t _normalized_stamp(npy_datetimestruct *dts) nogil:
