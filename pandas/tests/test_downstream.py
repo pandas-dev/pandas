@@ -113,7 +113,7 @@ def test_pandas_gbq(df):
     pandas_gbq = import_module("pandas_gbq")  # noqa
 
 
-@pytest.mark.xfail(reason="0.7.0 pending")
+@pytest.mark.xfail(reason="0.8.1 tries to import urlencode from pd.io.common")
 @tm.network
 def test_pandas_datareader():
 

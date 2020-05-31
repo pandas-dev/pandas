@@ -896,8 +896,16 @@ class TestDataFrameAnalytics:
         # mean of period is not allowed
         df["D"] = pd.period_range("2016", periods=3, freq="A")
 
-        with pytest.raises(TypeError, match="reduction operation 'mean' not allowed"):
+        with pytest.raises(TypeError, match="mean is not implemented for Period"):
             df.mean(numeric_only=False)
+
+    def test_mean_extensionarray_numeric_only_true(self):
+        # https://github.com/pandas-dev/pandas/issues/33256
+        arr = np.random.randint(1000, size=(10, 5))
+        df = pd.DataFrame(arr, dtype="Int64")
+        result = df.mean(numeric_only=True)
+        expected = pd.DataFrame(arr).mean()
+        tm.assert_series_equal(result, expected)
 
     def test_stats_mixed_type(self, float_string_frame):
         # don't blow up
@@ -1250,3 +1258,43 @@ class TestDataFrameReductions:
         res = df.max()
         exp = pd.Series([pd.NaT], index=["foo"])
         tm.assert_series_equal(res, exp)
+
+    def test_min_max_dt64_api_consistency_with_NaT(self):
+        # Calling the following sum functions returned an error for dataframes but
+        # returned NaT for series. These tests check that the API is consistent in
+        # min/max calls on empty Series/DataFrames. See GH:33704 for more
+        # information
+        df = pd.DataFrame(dict(x=pd.to_datetime([])))
+        expected_dt_series = pd.Series(pd.to_datetime([]))
+        # check axis 0
+        assert (df.min(axis=0).x is pd.NaT) == (expected_dt_series.min() is pd.NaT)
+        assert (df.max(axis=0).x is pd.NaT) == (expected_dt_series.max() is pd.NaT)
+
+        # check axis 1
+        tm.assert_series_equal(df.min(axis=1), expected_dt_series)
+        tm.assert_series_equal(df.max(axis=1), expected_dt_series)
+
+    def test_min_max_dt64_api_consistency_empty_df(self):
+        # check DataFrame/Series api consistency when calling min/max on an empty
+        # DataFrame/Series.
+        df = pd.DataFrame(dict(x=[]))
+        expected_float_series = pd.Series([], dtype=float)
+        # check axis 0
+        assert np.isnan(df.min(axis=0).x) == np.isnan(expected_float_series.min())
+        assert np.isnan(df.max(axis=0).x) == np.isnan(expected_float_series.max())
+        # check axis 1
+        tm.assert_series_equal(df.min(axis=1), expected_float_series)
+        tm.assert_series_equal(df.min(axis=1), expected_float_series)
+
+    @pytest.mark.parametrize(
+        "initial",
+        ["2018-10-08 13:36:45+00:00", "2018-10-08 13:36:45+03:00"],  # Non-UTC timezone
+    )
+    @pytest.mark.parametrize("method", ["min", "max"])
+    def test_preserve_timezone(self, initial: str, method):
+        # GH 28552
+        initial_dt = pd.to_datetime(initial)
+        expected = Series([initial_dt])
+        df = DataFrame([expected])
+        result = getattr(df, method)(axis=1)
+        tm.assert_series_equal(result, expected)

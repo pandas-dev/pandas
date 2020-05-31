@@ -552,7 +552,9 @@ class TestTimedelta64ArithmeticUnsorted:
         obj = tm.box_expected(tdi, box)
         other = tm.box_expected(dti, box)
 
-        warn = PerformanceWarning if box is not pd.DataFrame else None
+        warn = None
+        if box is not pd.DataFrame or tz_naive_fixture is None:
+            warn = PerformanceWarning
         with tm.assert_produces_warning(warn):
             result = obj + other.astype(object)
         tm.assert_equal(result, other)
@@ -1081,16 +1083,9 @@ class TestTimedeltaArraylikeAddSubOps:
         with pytest.raises(TypeError, match=msg):
             tdi - pi
 
-        # FIXME: don't leave commented-out
-        # FIXME: this raises with period scalar but not with PeriodIndex?
-        # with pytest.raises(TypeError):
-        #    pi - tdi
-
         # GH#13078 subtraction of Period scalar not supported
         with pytest.raises(TypeError, match=msg):
             tdi - pi[0]
-        with pytest.raises(TypeError, match=msg):
-            pi[0] - tdi
 
     @pytest.mark.parametrize(
         "other",
@@ -1475,8 +1470,6 @@ class TestTimedeltaArraylikeAddSubOps:
             [pd.Timedelta(days=2), pd.Timedelta(days=4), pd.Timestamp("2000-01-07")]
         )
         expected = tm.box_expected(expected, box_with_array)
-        if box_with_array is pd.DataFrame:
-            expected = expected.astype(object)
         tm.assert_equal(result, expected)
 
         msg = "unsupported operand type|cannot subtract a datelike"
@@ -1491,8 +1484,6 @@ class TestTimedeltaArraylikeAddSubOps:
             [pd.Timedelta(0), pd.Timedelta(0), pd.Timestamp("2000-01-01")]
         )
         expected = tm.box_expected(expected, box_with_array)
-        if box_with_array is pd.DataFrame:
-            expected = expected.astype(object)
         tm.assert_equal(result, expected)
 
 
@@ -1918,6 +1909,7 @@ class TestTimedeltaArraylikeMulDivOps:
             "Unable to coerce to Series"
         )
         with pytest.raises(TypeError, match=msg):
+            # length check before dtype check
             idx * idx[:3]
         with pytest.raises(ValueError, match=msg):
             idx * np.array([1, 2])
@@ -2016,7 +2008,7 @@ class TestTimedeltaArraylikeMulDivOps:
         tm.assert_equal(result, expected)
 
         pattern = (
-            "true_divide cannot use operands|"
+            "true_divide'? cannot use operands|"
             "cannot perform __div__|"
             "cannot perform __truediv__|"
             "unsupported operand|"

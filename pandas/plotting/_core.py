@@ -216,9 +216,9 @@ by some other columns. A box plot is a method for graphically depicting
 groups of numerical data through their quartiles.
 The box extends from the Q1 to Q3 quartile values of the data,
 with a line at the median (Q2). The whiskers extend from the edges
-of box to show the range of the data. The position of the whiskers
-is set by default to `1.5 * IQR (IQR = Q3 - Q1)` from the edges of the box.
-Outlier points are those past the end of the whiskers.
+of box to show the range of the data. By default, they extend no more than
+`1.5 * IQR (IQR = Q3 - Q1)` from the edges of the box, ending at the farthest
+data point within that interval. Outliers are plotted as separate dots.
 
 For further details see
 Wikipedia's entry for `boxplot <https://en.wikipedia.org/wiki/Box_plot>`_.
@@ -606,8 +606,21 @@ class PlotAccessor(PandasObject):
         - 'pie' : pie plot
         - 'scatter' : scatter plot
         - 'hexbin' : hexbin plot.
-
+    ax : matplotlib axes object, default None
+        An axes of the current figure.
+    subplots : bool, default False
+        Make separate subplots for each column.
+    sharex : bool, default True if ax is None else False
+        In case ``subplots=True``, share x axis and set some x axis labels
+        to invisible; defaults to True if ax is None otherwise False if
+        an ax is passed in; Be aware, that passing in both an ax and
+        ``sharex=True`` will alter all x axis labels for all axis in a figure.
+    sharey : bool, default False
+        In case ``subplots=True``, share y axis and set some y axis labels to invisible.
+    layout : tuple, optional
+        (rows, columns) for the layout of subplots.
     figsize : a tuple (width, height) in inches
+        Size of a figure object.
     use_index : bool, default True
         Use index as ticks for x axis.
     title : str or list
@@ -637,7 +650,9 @@ class PlotAccessor(PandasObject):
     yticks : sequence
         Values to use for the yticks.
     xlim : 2-tuple/list
+        Set the x limits of the current axes.
     ylim : 2-tuple/list
+        Set the y limits of the current axes.
     rot : int, default None
         Rotation for ticks (xticks for vertical, yticks for horizontal
         plots).
@@ -663,6 +678,13 @@ class PlotAccessor(PandasObject):
         detail.
     xerr : DataFrame, Series, array-like, dict and str
         Equivalent to yerr.
+    stacked : bool, default False in line and bar plots, and True in area plot
+        If True, create stacked plot.
+    sort_columns : bool, default False
+        Sort column names to determine plot ordering.
+    secondary_y : bool or sequence, default False
+        Whether to plot on the secondary y-axis if a list/tuple, which
+        columns to plot on secondary y-axis.
     mark_right : bool, default True
         When using a secondary_y axis, automatically mark the column
         labels with "(right)" in the legend.
@@ -985,6 +1007,13 @@ class PlotAccessor(PandasObject):
             ...                    'lifespan': lifespan}, index=index)
             >>> ax = df.plot.bar(rot=0)
 
+        Plot stacked bar charts for the DataFrame
+
+        .. plot::
+            :context: close-figs
+
+            >>> ax = df.plot.bar(stacked=True)
+
         Instead of nesting, the figure can be split by column with
         ``subplots=True``. In this case, a :class:`numpy.ndarray` of
         :class:`matplotlib.axes.Axes` are returned.
@@ -1065,6 +1094,13 @@ class PlotAccessor(PandasObject):
             >>> df = pd.DataFrame({'speed': speed,
             ...                    'lifespan': lifespan}, index=index)
             >>> ax = df.plot.barh()
+
+        Plot stacked barh charts for the DataFrame
+
+        .. plot::
+            :context: close-figs
+
+            >>> ax = df.plot.barh(stacked=True)
 
         We can specify colors for each column
 
@@ -1439,7 +1475,7 @@ class PlotAccessor(PandasObject):
         .. plot::
             :context: close-figs
 
-            >>> plot = df.plot.pie(subplots=True, figsize=(6, 3))
+            >>> plot = df.plot.pie(subplots=True, figsize=(11, 6))
         """
         if (
             isinstance(self._parent, ABCDataFrame)
@@ -1658,7 +1694,7 @@ def _find_backend(backend: str):
     try:
         return _backends[backend]
     except KeyError:
-        # Fall back to unregisted, module name approach.
+        # Fall back to unregistered, module name approach.
         try:
             module = importlib.import_module(backend)
         except ImportError:

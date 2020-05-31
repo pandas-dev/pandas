@@ -1697,9 +1697,11 @@ class TestIndex(Base):
 
         with pytest.raises(AttributeError, match="has no attribute '_values'"):
             # Index.get_value requires a Series, not an ndarray
-            indices.get_value(values, value)
+            with tm.assert_produces_warning(FutureWarning):
+                indices.get_value(values, value)
 
-        result = indices.get_value(Series(values, index=values), value)
+        with tm.assert_produces_warning(FutureWarning):
+            result = indices.get_value(Series(values, index=values), value)
         tm.assert_almost_equal(result, values[67])
 
     @pytest.mark.parametrize("values", [["foo", "bar", "quux"], {"foo", "bar", "quux"}])
@@ -2420,6 +2422,16 @@ class TestMixedIntIndex(Base):
         exp2 = repr(arr)
         out2 = "Index([True, False, nan], dtype='object')"
         assert out2 == exp2
+
+    @pytest.mark.filterwarnings("ignore:elementwise comparison failed:FutureWarning")
+    def test_index_with_tuple_bool(self):
+        # GH34123
+        # TODO: remove tupleize_cols=False once correct behaviour is restored
+        # TODO: also this op right now produces FutureWarning from numpy
+        idx = Index([("a", "b"), ("b", "c"), ("c", "a")], tupleize_cols=False)
+        result = idx == ("c", "a",)
+        expected = np.array([False, False, True])
+        tm.assert_numpy_array_equal(result, expected)
 
 
 class TestIndexUtils:

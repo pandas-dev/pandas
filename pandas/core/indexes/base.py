@@ -54,7 +54,6 @@ from pandas.core.dtypes.generic import (
     ABCCategorical,
     ABCDataFrame,
     ABCDatetimeIndex,
-    ABCIntervalIndex,
     ABCMultiIndex,
     ABCPandasArray,
     ABCPeriodIndex,
@@ -151,7 +150,6 @@ def _make_arithmetic_op(op, cls):
         return Index(result)
 
     name = f"__{op.__name__}__"
-    # TODO: docstring?
     return set_function_name(index_arithmetic_method, name, cls)
 
 
@@ -632,19 +630,24 @@ class Index(IndexOpsMixin, PandasObject):
         Index
             Index with values cast to specified dtype.
         """
+        if dtype is not None:
+            dtype = pandas_dtype(dtype)
+
         if is_dtype_equal(self.dtype, dtype):
             return self.copy() if copy else self
 
         elif is_categorical_dtype(dtype):
             from pandas.core.indexes.category import CategoricalIndex
 
-            return CategoricalIndex(self.values, name=self.name, dtype=dtype, copy=copy)
+            return CategoricalIndex(
+                self._values, name=self.name, dtype=dtype, copy=copy
+            )
 
         elif is_extension_array_dtype(dtype):
             return Index(np.asarray(self), name=self.name, dtype=dtype, copy=copy)
 
         try:
-            casted = self.values.astype(dtype, copy=copy)
+            casted = self._values.astype(dtype, copy=copy)
         except (TypeError, ValueError) as err:
             raise TypeError(
                 f"Cannot cast {type(self).__name__} to dtype {dtype}"
@@ -905,7 +908,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._format_with_header(header, **kwargs)
 
     def _format_with_header(self, header, na_rep="NaN", **kwargs):
-        values = self.values
+        values = self._values
 
         from pandas.io.formats.format import format_array
 
@@ -1034,13 +1037,48 @@ class Index(IndexOpsMixin, PandasObject):
         index : Index, optional
             Index of resulting Series. If None, defaults to original index.
         name : str, optional
-            Dame of resulting Series. If None, defaults to name of original
+            Name of resulting Series. If None, defaults to name of original
             index.
 
         Returns
         -------
         Series
             The dtype will be based on the type of the Index values.
+
+        See Also
+        --------
+        Index.to_frame : Convert an Index to a DataFrame.
+        Series.to_frame : Convert Series to DataFrame.
+
+        Examples
+        --------
+        >>> idx = pd.Index(['Ant', 'Bear', 'Cow'], name='animal')
+
+        By default, the original Index and original name is reused.
+
+        >>> idx.to_series()
+        animal
+        Ant      Ant
+        Bear    Bear
+        Cow      Cow
+        Name: animal, dtype: object
+
+        To enforce a new Index, specify new labels to ``index``:
+
+        >>> idx.to_series(index=[0, 1, 2])
+        0     Ant
+        1    Bear
+        2     Cow
+        Name: animal, dtype: object
+
+        To override the name of the resulting column, specify `name`:
+
+        >>> idx.to_series(name='zoo')
+        animal
+        Ant      Ant
+        Bear    Bear
+        Cow      Cow
+        Name: zoo, dtype: object
         """
         from pandas import Series
 
@@ -3527,7 +3565,10 @@ class Index(IndexOpsMixin, PandasObject):
 
             multi_join_idx = multi_join_idx.remove_unused_levels()
 
-            return multi_join_idx, lidx, ridx
+            if return_indexers:
+                return multi_join_idx, lidx, ridx
+            else:
+                return multi_join_idx
 
         jl = list(overlap)[0]
 
@@ -4035,7 +4076,7 @@ class Index(IndexOpsMixin, PandasObject):
         promote = self._shallow_copy
 
         if is_scalar(key):
-            key = com.cast_scalar_indexer(key)
+            key = com.cast_scalar_indexer(key, warn_float=True)
             return getitem(key)
 
         if isinstance(key, slice):
@@ -4097,37 +4138,13 @@ class Index(IndexOpsMixin, PandasObject):
         return self._concat(to_concat, name)
 
     def _concat(self, to_concat, name):
-
-        typs = _concat.get_dtype_kinds(to_concat)
-
-        if len(typs) == 1:
-            return self._concat_same_dtype(to_concat, name=name)
-        return Index._concat_same_dtype(self, to_concat, name=name)
-
-    def _concat_same_dtype(self, to_concat, name):
         """
-        Concatenate to_concat which has the same class.
+        Concatenate multiple Index objects.
         """
-        # must be overridden in specific classes
-        klasses = (
-            ABCDatetimeIndex,
-            ABCTimedeltaIndex,
-            ABCPeriodIndex,
-            ExtensionArray,
-            ABCIntervalIndex,
-        )
-        to_concat = [
-            x.astype(object) if isinstance(x, klasses) else x for x in to_concat
-        ]
-
-        self = to_concat[0]
-        attribs = self._get_attributes_dict()
-        attribs["name"] = name
-
         to_concat = [x._values if isinstance(x, Index) else x for x in to_concat]
 
-        res_values = np.concatenate(to_concat)
-        return Index(res_values, name=name)
+        result = _concat.concat_compat(to_concat)
+        return Index(result, name=name)
 
     def putmask(self, mask, value):
         """
@@ -4541,6 +4558,13 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         scalar or Series
         """
+        warnings.warn(
+            "get_value is deprecated and will be removed in a future version. "
+            "Use Series[key] instead",
+            FutureWarning,
+            stacklevel=2,
+        )
+
         self._check_indexing_error(key)
 
         try:
