@@ -385,7 +385,7 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
     from pandas.core.indexes.api import Index
 
     if not key:
-        return values
+        return values.copy()
 
     if isinstance(values, ABCMultiIndex):
         return ensure_key_mapped_multiindex(values, key, level=levels)
