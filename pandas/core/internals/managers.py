@@ -1337,7 +1337,8 @@ class BlockManager(PandasObject):
         # When filling blknos, make sure blknos is updated before appending to
         # blocks list, that way new blkno is exactly len(blocks).
         blocks = []
-        for blkno, mgr_locs in libinternals.get_blkno_placements(blknos, group=True):
+        group = not only_slice
+        for blkno, mgr_locs in libinternals.get_blkno_placements(blknos, group=group):
             if blkno == -1:
                 # If we've got here, fill_value was not lib.no_default
 

@@ -194,6 +194,11 @@ SQL_STRINGS = {
                 "Name"=%(name)s AND "SepalLength"=%(length)s
                 """,
     },
+    "read_no_parameters_with_percent": {
+        "sqlite": "SELECT * FROM iris WHERE Name LIKE '%'",
+        "mysql": "SELECT * FROM iris WHERE `Name` LIKE '%'",
+        "postgresql": "SELECT * FROM iris WHERE \"Name\" LIKE '%'",
+    },
     "create_view": {
         "sqlite": """
                 CREATE VIEW iris_view AS
@@ -422,6 +427,11 @@ class PandasSQLTest:
         query = SQL_STRINGS["read_named_parameters"][self.flavor]
         params = {"name": "Iris-setosa", "length": 5.1}
         iris_frame = self.pandasSQL.read_query(query, params=params)
+        self._check_iris_loaded_frame(iris_frame)
+
+    def _read_sql_iris_no_parameter_with_percent(self):
+        query = SQL_STRINGS["read_no_parameters_with_percent"][self.flavor]
+        iris_frame = self.pandasSQL.read_query(query, params=None)
         self._check_iris_loaded_frame(iris_frame)
 
     def _to_sql(self, method=None):
