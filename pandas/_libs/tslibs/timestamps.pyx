@@ -345,8 +345,7 @@ cdef class _Timestamp(ABCTimestamp):
 
     def __add__(self, other):
         cdef:
-            int64_t other_int, nanos = 0
-
+            int64_t nanos = 0
 
         if is_any_td_scalar(other):
             nanos = delta_to_nanoseconds(other)
