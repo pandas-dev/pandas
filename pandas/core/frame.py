@@ -213,17 +213,17 @@ on : label or list
 left_on : label or list, or array-like
     Column or index level names to join on in the left DataFrame. Can also
     be an array or list of arrays of the length of the left DataFrame.
-    These arrays are treated as if they are columns.
+    These arrays are treated as if they are columns in the result DataFrame.
 right_on : label or list, or array-like
     Column or index level names to join on in the right DataFrame. Can also
     be an array or list of arrays of the length of the right DataFrame.
-    These arrays are treated as if they are columns.
+    These arrays are treated as if they are columns in the result DataFrame.
 left_index : bool, default False
     Use the index from the left DataFrame as the join key(s). If it is a
     MultiIndex, the number of keys in the other DataFrame (either the index
     or a number of columns) must match the number of levels.
 right_index : bool, default False
-    Use the index from the right DataFrame as the join key. Same caveats as
+    Use the index from the right DataFrame as the join key(s). Same caveats as
     left_index.
 sort : bool, default False
     Sort the join keys lexicographically in the result DataFrame. If False,
@@ -324,6 +324,22 @@ Traceback (most recent call last):
 ...
 ValueError: columns overlap but no suffix specified:
     Index(['value'], dtype='object')
+
+Caveats of using left_on/right_on compared to using left_index/right_index
+
+>>> left = pd.DataFrame({'a': [1, 2], 'b': [1, 1],
+...                     "l": [22, 23]}).set_index(['a', 'b'])
+>>> right = pd.DataFrame({'b': [1], "r": [12]}).set_index(['b'])
+>>> pd.merge(left, right, left_on=['b'], right_index=True, how="left")
+      l   r
+a b
+1 1  22  12
+2 1  23  12
+>>> pd.merge(left, right, left_on=['b'], right_on=["b"], how="left")
+    l   r
+b
+1  22  12
+1  23  12
 """
 
 
