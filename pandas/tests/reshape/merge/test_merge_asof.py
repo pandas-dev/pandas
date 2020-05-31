@@ -1351,6 +1351,6 @@ def test_non_numerical_dtype(data):
     right = pd.DataFrame({"x": data})
     with pytest.raises(
         ValueError,
-        match=f"Incompatible merge key \[0\] .*, both sides must have numeric dtype",
+        match=r"Incompatible merge key \[0\] .*, both sides must have numeric dtype",
     ):
         pd.merge_asof(left, right, on="x")
