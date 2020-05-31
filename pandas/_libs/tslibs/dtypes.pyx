@@ -33,18 +33,8 @@ cdef class PeriodDtype:
 
     @classmethod
     def from_date_offset(cls, offset):
-        try:
-            # For some DateOffset classes we have pinned the answer
-            code = offset.period_dtype_code
-        except AttributeError:
-            from .frequencies import get_freq_code
-            code, _ = get_freq_code(offset)
+        code = offset.period_dtype_code
         return cls(code)
-
-    @classmethod
-    def from_freqstr(cls, freqstr: str):
-        # TODO: Check that this is actually obj.freqstr or rule_code or whatever
-        return cls(_period_code_map[freqstr])
 
 
 _period_code_map = {

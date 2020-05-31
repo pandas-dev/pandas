@@ -1923,6 +1923,15 @@ cdef class YearEnd(YearOffset):
     _prefix = "A"
     _day_opt = "end"
 
+    cdef readonly:
+        int period_dtype_code
+
+    def __init__(self, n=1, normalize=False, month=None):
+        # Because YearEnd can be the freq for a Period, define its
+        #  period_dtype_code at construction for performance
+        YearOffset.__init__(self, n, normalize, month)
+        self.period_dtype_code = PeriodDtypeCode.A + self.month % 12
+
 
 cdef class YearBegin(YearOffset):
     """
@@ -2077,6 +2086,14 @@ cdef class QuarterEnd(QuarterOffset):
     _prefix = "Q"
     _day_opt = "end"
 
+    cdef readonly:
+        int period_dtype_code
+
+    def __init__(self, n=1, normalize=False, startingMonth=None):
+        # Because QuarterEnd can be the freq for a Period, define its
+        #  period_dtype_code at construction for performance
+        QuarterOffset.__init__(self, n, normalize, startingMonth)
+        self.period_dtype_code = PeriodDtypeCode.Q_DEC + self.startingMonth % 12
 
 cdef class QuarterBegin(QuarterOffset):
     """
@@ -2430,6 +2447,7 @@ cdef class Week(SingleConstructorOffset):
 
     cdef readonly:
         object weekday  # int or None
+        int period_dtype_code
 
     def __init__(self, n=1, normalize=False, weekday=None):
         BaseOffset.__init__(self, n, normalize)
@@ -2438,6 +2456,8 @@ cdef class Week(SingleConstructorOffset):
         if self.weekday is not None:
             if self.weekday < 0 or self.weekday > 6:
                 raise ValueError(f"Day must be 0<=day<=6, got {self.weekday}")
+
+            self.period_dtype_code = PeriodDtypeCode.W_SUN + (weekday + 1) % 7
 
     cpdef __setstate__(self, state):
         self.n = state.pop("n")
