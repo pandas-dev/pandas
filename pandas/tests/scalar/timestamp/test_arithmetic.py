@@ -38,7 +38,9 @@ class TestTimestampArithmetic:
             r"\<-?\d+ \* Days\> and \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} "
             "will overflow"
         )
-        lmsg = "Python int too large to convert to C long"
+        lmsg = "|".join(
+            ["Python int too large to convert to C long", "int too big to convert"]
+        )
 
         with pytest.raises(OverflowError, match=lmsg):
             stamp + offset_overflow
