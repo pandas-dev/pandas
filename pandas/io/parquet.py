@@ -122,11 +122,10 @@ class PyArrowImpl(BaseImpl):
             file_obj_or_path.close()
 
     def read(self, path, columns=None, **kwargs):
-        parquet_ds = self.api.parquet.ParquetDataset(
-            path, filesystem=get_fs_for_path(path), **kwargs
-        )
-        kwargs["columns"] = columns
-        result = parquet_ds.read_pandas(**kwargs).to_pandas()
+        kwargs["use_pandas_metadata"] = True
+        result = self.api.parquet.read_table(
+            path, columns=columns, filesystem=get_fs_for_path(path), **kwargs
+        ).to_pandas()
         return result
 
 
