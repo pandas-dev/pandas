@@ -3602,7 +3602,7 @@ cpdef to_offset(freq):
     <Hour>
     """
     # TODO: avoid runtime imports
-    from .timedeltas import Timedelta
+    from pandas._libs.tslibs.timedeltas import Timedelta
 
     if freq is None:
         return None
@@ -3642,6 +3642,9 @@ cpdef to_offset(freq):
                     stride = 1
 
                 if prefix in {"D", "H", "T", "S", "L", "U", "N"}:
+                    # For these prefixes, we have something like "3H" or
+                    #  "2.5T", so we can construct a Timedelta with the
+                    #  matching unit and get our offset from delta_to_tick
                     td = Timedelta(1, unit=prefix)
                     off = delta_to_tick(td)
                     offset = off * float(stride)
