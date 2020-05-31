@@ -304,7 +304,7 @@ Consult the docs for setting up pyenv `here <https://github.com/pyenv/pyenv>`__.
    pyenv virtualenv 3.7.6 pandas-dev
 
    # Activate the virtualenv
-   pyenv global pandas-dev
+   pyenv activate pandas-dev
 
    # Now install the build dependencies in the cloned pandas repo
    python -m pip install -r requirements-dev.txt
