@@ -33,7 +33,7 @@ cdef class PeriodDtype:
 
     @classmethod
     def from_date_offset(cls, offset):
-        code = offset.period_dtype_code
+        code = offset._period_dtype_code
         return cls(code)
 
 

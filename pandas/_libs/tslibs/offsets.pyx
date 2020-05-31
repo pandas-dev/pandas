@@ -861,43 +861,43 @@ cdef class Tick(SingleConstructorOffset):
 cdef class Day(Tick):
     _nanos_inc = 24 * 3600 * 1_000_000_000
     _prefix = "D"
-    period_dtype_code = PeriodDtypeCode.D
+    _period_dtype_code = PeriodDtypeCode.D
 
 
 cdef class Hour(Tick):
     _nanos_inc = 3600 * 1_000_000_000
     _prefix = "H"
-    period_dtype_code = PeriodDtypeCode.H
+    _period_dtype_code = PeriodDtypeCode.H
 
 
 cdef class Minute(Tick):
     _nanos_inc = 60 * 1_000_000_000
     _prefix = "T"
-    period_dtype_code = PeriodDtypeCode.T
+    _period_dtype_code = PeriodDtypeCode.T
 
 
 cdef class Second(Tick):
     _nanos_inc = 1_000_000_000
     _prefix = "S"
-    period_dtype_code = PeriodDtypeCode.S
+    _period_dtype_code = PeriodDtypeCode.S
 
 
 cdef class Milli(Tick):
     _nanos_inc = 1_000_000
     _prefix = "L"
-    period_dtype_code = PeriodDtypeCode.L
+    _period_dtype_code = PeriodDtypeCode.L
 
 
 cdef class Micro(Tick):
     _nanos_inc = 1000
     _prefix = "U"
-    period_dtype_code = PeriodDtypeCode.U
+    _period_dtype_code = PeriodDtypeCode.U
 
 
 cdef class Nano(Tick):
     _nanos_inc = 1
     _prefix = "N"
-    period_dtype_code = PeriodDtypeCode.N
+    _period_dtype_code = PeriodDtypeCode.N
 
 
 def delta_to_tick(delta: timedelta) -> Tick:
@@ -1261,7 +1261,7 @@ cdef class BusinessDay(BusinessMixin):
     """
     DateOffset subclass representing possibly n business days.
     """
-    period_dtype_code = PeriodDtypeCode.B
+    _period_dtype_code = PeriodDtypeCode.B
     _prefix = "B"
     _attributes = tuple(["n", "normalize", "offset"])
 
@@ -1924,13 +1924,13 @@ cdef class YearEnd(YearOffset):
     _day_opt = "end"
 
     cdef readonly:
-        int period_dtype_code
+        int _period_dtype_code
 
     def __init__(self, n=1, normalize=False, month=None):
         # Because YearEnd can be the freq for a Period, define its
-        #  period_dtype_code at construction for performance
+        #  _period_dtype_code at construction for performance
         YearOffset.__init__(self, n, normalize, month)
-        self.period_dtype_code = PeriodDtypeCode.A + self.month % 12
+        self._period_dtype_code = PeriodDtypeCode.A + self.month % 12
 
 
 cdef class YearBegin(YearOffset):
@@ -2087,13 +2087,13 @@ cdef class QuarterEnd(QuarterOffset):
     _day_opt = "end"
 
     cdef readonly:
-        int period_dtype_code
+        int _period_dtype_code
 
     def __init__(self, n=1, normalize=False, startingMonth=None):
         # Because QuarterEnd can be the freq for a Period, define its
-        #  period_dtype_code at construction for performance
+        #  _period_dtype_code at construction for performance
         QuarterOffset.__init__(self, n, normalize, startingMonth)
-        self.period_dtype_code = PeriodDtypeCode.Q_DEC + self.startingMonth % 12
+        self._period_dtype_code = PeriodDtypeCode.Q_DEC + self.startingMonth % 12
 
 cdef class QuarterBegin(QuarterOffset):
     """
@@ -2143,7 +2143,7 @@ cdef class MonthEnd(MonthOffset):
     """
     DateOffset of one month end.
     """
-    period_dtype_code = PeriodDtypeCode.M
+    _period_dtype_code = PeriodDtypeCode.M
     _prefix = "M"
     _day_opt = "end"
 
@@ -2447,7 +2447,7 @@ cdef class Week(SingleConstructorOffset):
 
     cdef readonly:
         object weekday  # int or None
-        int period_dtype_code
+        int _period_dtype_code
 
     def __init__(self, n=1, normalize=False, weekday=None):
         BaseOffset.__init__(self, n, normalize)
@@ -2457,7 +2457,7 @@ cdef class Week(SingleConstructorOffset):
             if self.weekday < 0 or self.weekday > 6:
                 raise ValueError(f"Day must be 0<=day<=6, got {self.weekday}")
 
-            self.period_dtype_code = PeriodDtypeCode.W_SUN + (weekday + 1) % 7
+            self._period_dtype_code = PeriodDtypeCode.W_SUN + (weekday + 1) % 7
 
     cpdef __setstate__(self, state):
         self.n = state.pop("n")
