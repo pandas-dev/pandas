@@ -525,7 +525,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if (
             self.is_monotonic
             and reso in ["day", "hour", "minute", "second"]
-            and self._resolution >= libresolution.Resolution.get_reso(reso)
+            and self._resolution >= libresolution.Resolution.from_attrname(reso)
         ):
             # These resolution/monotonicity validations came from GH3931,
             # GH3452 and GH2369.

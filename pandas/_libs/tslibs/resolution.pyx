@@ -27,16 +27,6 @@ cdef:
     int RESO_HR = 5
     int RESO_DAY = 6
 
-reso_str_bump_map = {
-    "D": "H",
-    "H": "T",
-    "T": "S",
-    "S": "L",
-    "L": "U",
-    "U": "N",
-    "N": None,
-}
-
 _abbrev_to_attrnames = {v: k for k, v in attrname_to_abbrevs.items()}
 
 _reso_str_map = {
@@ -168,19 +158,19 @@ class Resolution(Enum):
         return _reso_str_map[reso.value]
 
     @classmethod
-    def get_reso(cls, resostr: str) -> "Resolution":
+    def from_attrname(cls, attrname: str) -> "Resolution":
         """
         Return resolution str against resolution code.
 
         Examples
         --------
-        >>> Resolution.get_reso('second')
+        >>> Resolution.from_attrname('second')
         2
 
-        >>> Resolution.get_reso('second') == Resolution.RESO_SEC
+        >>> Resolution.from_attrname('second') == Resolution.RESO_SEC
         True
         """
-        return cls(_str_reso_map[resostr])
+        return cls(_str_reso_map[attrname])
 
     @classmethod
     def get_attrname_from_abbrev(cls, freq: str) -> str:
@@ -209,47 +199,7 @@ class Resolution(Enum):
         >>> Resolution.get_reso_from_freq('H') == Resolution.RESO_HR
         True
         """
-        return cls.get_reso(cls.get_attrname_from_abbrev(freq))
-
-    @classmethod
-    def get_stride_from_decimal(cls, value: float, freq: str):
-        """
-        Convert freq with decimal stride into a higher freq with integer stride
-
-        Parameters
-        ----------
-        value : float
-        freq : str
-            Frequency string
-
-        Raises
-        ------
-        ValueError
-            If the float cannot be converted to an integer at any resolution.
-
-        Examples
-        --------
-        >>> Resolution.get_stride_from_decimal(1.5, 'T')
-        (90, 'S')
-
-        >>> Resolution.get_stride_from_decimal(1.04, 'H')
-        (3744, 'S')
-
-        >>> Resolution.get_stride_from_decimal(1, 'D')
-        (1, 'D')
-        """
-        if np.isclose(value % 1, 0):
-            return int(value), freq
-        else:
-            start_reso = cls.get_reso_from_freq(freq)
-            if start_reso.value == 0:
-                raise ValueError(
-                    "Could not convert to integer offset at any resolution"
-                )
-
-            next_value = _reso_mult_map[start_reso.value] * value
-            next_name = reso_str_bump_map[freq]
-            return cls.get_stride_from_decimal(next_value, next_name)
+        return cls.from_attrname(cls.get_attrname_from_abbrev(freq))
 
 
 # ----------------------------------------------------------------------

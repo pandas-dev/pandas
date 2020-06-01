@@ -762,7 +762,7 @@ cdef class Tick(SingleConstructorOffset):
             return Micro(self.n * 1000)
         if type(self) is Micro:
             return Nano(self.n * 1000)
-        raise NotImplementedError(type(self))
+        raise ValueError("Could not convert to integer offset at any resolution")
 
     # --------------------------------------------------------------------
 
