@@ -104,13 +104,13 @@ def test_get_to_timestamp_base(freqstr, exp_freqstr):
         ("N", "nanosecond"),
     ],
 )
-def test_get_str_from_freq(freqstr, expected):
-    assert _reso.get_str_from_freq(freqstr) == expected
+def test_get_attrname_from_abbrev(freqstr, expected):
+    assert _reso.get_attrname_from_abbrev(freqstr) == expected
 
 
 @pytest.mark.parametrize("freq", ["A", "Q", "M", "D", "H", "T", "S", "L", "U", "N"])
 def test_get_freq_roundtrip(freq):
-    result = _attrname_to_abbrevs[_reso.get_str_from_freq(freq)]
+    result = _attrname_to_abbrevs[_reso.get_attrname_from_abbrev(freq)]
     assert freq == result
 
 
