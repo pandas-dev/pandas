@@ -568,11 +568,11 @@ class TestParquetPyArrow(Base):
             repeat=1,
         )
 
+    @td.skip_if_no("pyarrow")
     def test_file_like_obj_support(self, df_compat):
         buffer = BytesIO()
         df_compat.to_parquet(buffer)
         df_from_buf = pd.read_parquet(buffer)
-        print(df_from_buf)
         tm.assert_frame_equal(df_compat, df_from_buf)
 
     def test_partition_cols_supported(self, pa, df_full):
