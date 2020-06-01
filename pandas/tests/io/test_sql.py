@@ -1813,23 +1813,17 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         DataFrame({"test_foo_data": [0, 1, 2]}).to_sql("test_foo_data", self.conn)
         main(self.conn)
 
-    def test_to_sql_with_negative_npinf(self):
-        # This tests the example raised in GH issue 34431.
+    @pytest.mark.parametrize(
+        "_input",
+        [{"foo": [np.inf]}, {"foo": [-np.inf]}, {"foo": [-np.inf], "infe0": ["bar"]}],
+    )
+    def test_to_sql_with_negative_npinf(self, _input):
+        # GH 34431
 
-        df1 = pd.DataFrame({"foo": [np.inf]})
-        df1.to_sql("foobar1", self.conn, index=False)
-        res1 = sql.read_sql_table("foobar1", self.conn)
-        tm.assert_equal(df1, res1)
-
-        df2 = pd.DataFrame({"foo": [-np.inf]})
-        df2.to_sql("foobar2", self.conn, index=False)
-        res2 = sql.read_sql_table("foobar2", self.conn)
-        tm.assert_equal(df2, res2)
-
-        df3 = pd.DataFrame({"foo": [-np.inf], "infe0": ["bar"]})
-        df3.to_sql("foobar3", self.conn, index=False)
-        res3 = sql.read_sql_table("foobar3", self.conn)
-        tm.assert_equal(df3, res3)
+        df = pd.DataFrame(_input)
+        df.to_sql("foobar", self.conn, index=False)
+        res = sql.read_sql_table("foobar", self.conn)
+        tm.assert_equal(df, res)
 
     def test_temporary_table(self):
         test_data = "Hello, World!"
