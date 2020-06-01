@@ -1247,9 +1247,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         This function allows two Series or DataFrames to be compared against
         each other to see if they have the same shape and elements. NaNs in
-        the same location are considered equal. The column headers do not
-        need to have the same type, but the elements within the columns must
-        be the same dtype.
+        the same location are considered equal. The row/column index do not need 
+        to have the same type (as long as the values are still considered equal).
+
+        The elements within the columns must be the same dtype.
 
         Parameters
         ----------
