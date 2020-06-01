@@ -40,7 +40,6 @@ from pandas.tests.io.pytables.common import (
     ensure_clean_path,
     ensure_clean_store,
     safe_close,
-    safe_remove,
     tables,
 )
 
@@ -91,7 +90,7 @@ class TestHDFStore:
         except ValueError:
             pass
         finally:
-            safe_remove(path)
+            tm.ensure_clean(path)
 
         try:
             with HDFStore(path) as tbl:
@@ -101,7 +100,7 @@ class TestHDFStore:
                 assert len(tbl) == 1
                 assert type(tbl["a"]) == DataFrame
         finally:
-            safe_remove(path)
+            tm.ensure_clean(path)
 
     def test_conv_read_write(self, setup_path):
         path = create_tempfile(setup_path)
@@ -127,7 +126,7 @@ class TestHDFStore:
             tm.assert_frame_equal(df[df.index > 2], result)
 
         finally:
-            safe_remove(path)
+            tm.ensure_clean(path)
 
     def test_long_strings(self, setup_path):
 
@@ -4168,7 +4167,7 @@ class TestHDFStore:
                         os.close(fd)
                     except (OSError, ValueError):
                         pass
-                    safe_remove(new_f)
+                    tm.ensure_clean(new_f)
 
             # new table
             df = tm.makeDataFrame()
@@ -4181,7 +4180,7 @@ class TestHDFStore:
                 do_copy(f=path)
                 do_copy(f=path, propindexes=False)
             finally:
-                safe_remove(path)
+                tm.ensure_clean(path)
 
     def test_store_datetime_fractional_secs(self, setup_path):
 
