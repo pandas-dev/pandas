@@ -729,6 +729,22 @@ class TestSeriesPlots(TestPlotBase):
         s = Series(values, index=index)
         _check_plot_works(s.plot)
 
+    def test_errorbar_asymmetrical(self):
+        # GH9536
+        s = Series(np.arange(10), name="x")
+        err = np.random.rand(2, 10)
+
+        ax = s.plot(yerr=err, xerr=err)
+
+        yerr_0_0 = ax.collections[1].get_paths()[0].vertices[:, 1]
+        expected_0_0 = err[:, 0] * np.array([-1, 1])
+        tm.assert_almost_equal(yerr_0_0, expected_0_0)
+
+        with pytest.raises(ValueError):
+            s.plot(yerr=err.T)
+
+        tm.close()
+
     @pytest.mark.slow
     def test_errorbar_plot(self):
 
