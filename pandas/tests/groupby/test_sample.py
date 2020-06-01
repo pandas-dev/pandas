@@ -1,3 +1,6 @@
+from copy import copy
+
+import numpy as np
 import pytest
 
 from pandas import DataFrame, Index, Series
@@ -123,3 +126,22 @@ def test_groupby_sample_with_weights():
     result = df.groupby("a")["b"].sample(n=2, replace=True, weights=[1, 0, 1, 0])
     expected = Series(values, name="b", index=Index([0, 0, 2, 2]))
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "random_state",
+    [
+        0,
+        np.array([0, 1, 2]),
+        np.random.RandomState(0),
+        np.random.PCG64(0),
+        np.random.MT19937(0),
+    ],
+)
+def test_groupby_sample_using_random_state(random_state):
+    df = DataFrame({"a": [1] * 50 + [2] * 50, "b": np.random.random(100)})
+    rs = copy(random_state)
+    expected = df.groupby("a").sample(frac=0.5, random_state=rs)
+    rs = copy(random_state)
+    result = df.groupby("a").sample(frac=0.5, random_state=rs)
+    tm.assert_frame_equal(result, expected)
