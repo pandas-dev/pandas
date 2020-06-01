@@ -1640,11 +1640,6 @@ class _AsOfMerge(_OrderedMerge):
 
         # validate index types are the same
         for i, (lk, rk) in enumerate(zip(left_join_keys, right_join_keys)):
-            if is_object_dtype(lk.dtype) or is_object_dtype(rk.dtype):
-                raise ValueError(
-                    f"Incompatible merge key [{i}] dtype, {repr(lk.dtype)} and "
-                    f"{repr(rk.dtype)}, both sides must have numeric dtype"
-                )
 
             if not is_dtype_equal(lk.dtype, rk.dtype):
                 if is_categorical_dtype(lk.dtype) and is_categorical_dtype(rk.dtype):
@@ -1735,6 +1730,12 @@ class _AsOfMerge(_OrderedMerge):
             self.right.index._values if self.right_index else self.right_join_keys[-1]
         )
         tolerance = self.tolerance
+
+        if is_object_dtype(right_values.dtype) or is_object_dtype(left_values.dtype):
+            raise ValueError(
+                f"Incompatible merge dtype, {repr(left_values.dtype)} and "
+                f"{repr(right_values.dtype)}, both sides must have numeric dtype"
+            )
 
         # we require sortedness and non-null values in the join keys
         if not Index(left_values).is_monotonic:
