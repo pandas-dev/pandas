@@ -558,7 +558,7 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False):
         object
     """
 
-    dtype = np.object_
+    dtype = np.dtype(np.object_)
 
     # a 1-element ndarray
     if isinstance(val, np.ndarray):
@@ -577,7 +577,7 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False):
         # instead of np.empty (but then you still don't want things
         # coming out as np.str_!
 
-        dtype = np.object_
+        dtype = np.dtype(np.object_)
 
     elif isinstance(val, (np.datetime64, datetime)):
         val = tslibs.Timestamp(val)
@@ -588,7 +588,7 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False):
                 dtype = DatetimeTZDtype(unit="ns", tz=val.tz)
             else:
                 # return datetimetz as object
-                return np.object_, val
+                return np.dtype(np.object_), val
         val = val.value
 
     elif isinstance(val, (np.timedelta64, timedelta)):
@@ -596,22 +596,22 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False):
         dtype = np.dtype("m8[ns]")
 
     elif is_bool(val):
-        dtype = np.bool_
+        dtype = np.dtype(np.bool_)
 
     elif is_integer(val):
         if isinstance(val, np.integer):
-            dtype = type(val)
+            dtype = np.dtype(type(val))
         else:
-            dtype = np.int64
+            dtype = np.dtype(np.int64)
 
     elif is_float(val):
         if isinstance(val, np.floating):
-            dtype = type(val)
+            dtype = np.dtype(type(val))
         else:
-            dtype = np.float64
+            dtype = np.dtype(np.float64)
 
     elif is_complex(val):
-        dtype = np.complex_
+        dtype = np.dtype(np.complex_)
 
     elif pandas_dtype:
         if lib.is_period(val):
