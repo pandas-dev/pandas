@@ -10,6 +10,7 @@ from pandas._libs.tslibs.frequencies import (
 )
 from pandas._libs.tslibs.resolution import Resolution as _reso
 
+from pandas.tseries.frequencies import to_offset
 import pandas.tseries.offsets as offsets
 
 
@@ -104,19 +105,20 @@ def test_get_to_timestamp_base(freqstr, exp_freqstr):
         ("N", "nanosecond"),
     ],
 )
-def test_get_str_from_freq(freqstr, expected):
-    assert _reso.get_str_from_freq(freqstr) == expected
+def test_get_attrname_from_abbrev(freqstr, expected):
+    assert _reso.get_attrname_from_abbrev(freqstr) == expected
 
 
 @pytest.mark.parametrize("freq", ["A", "Q", "M", "D", "H", "T", "S", "L", "U", "N"])
 def test_get_freq_roundtrip(freq):
-    result = _attrname_to_abbrevs[_reso.get_str_from_freq(freq)]
+    result = _attrname_to_abbrevs[_reso.get_attrname_from_abbrev(freq)]
     assert freq == result
 
 
 @pytest.mark.parametrize("freq", ["D", "H", "T", "S", "L", "U"])
 def test_get_freq_roundtrip2(freq):
-    result = _attrname_to_abbrevs[_reso.get_str(_reso.get_reso_from_freq(freq))]
+    obj = _reso.get_reso_from_freq(freq)
+    result = _attrname_to_abbrevs[_reso.get_str(obj)]
     assert freq == result
 
 
@@ -133,7 +135,9 @@ def test_get_freq_roundtrip2(freq):
 )
 def test_resolution_bumping(args, expected):
     # see gh-14378
-    assert _reso.get_stride_from_decimal(*args) == expected
+    off = to_offset(str(args[0]) + args[1])
+    assert off.n == expected[0]
+    assert off._prefix == expected[1]
 
 
 @pytest.mark.parametrize(
@@ -145,10 +149,10 @@ def test_resolution_bumping(args, expected):
     ],
 )
 def test_cat(args):
-    msg = "Could not convert to integer offset at any resolution"
+    msg = "Invalid frequency"
 
     with pytest.raises(ValueError, match=msg):
-        _reso.get_stride_from_decimal(*args)
+        to_offset(str(args[0]) + args[1])
 
 
 @pytest.mark.parametrize(
