@@ -1,14 +1,12 @@
-import os
-
 import numpy as np
 import pytest
 
 import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
+from pandas._testing import ensure_clean
 
 from pandas.io.excel import ExcelWriter, _OpenpyxlWriter
-from pandas._testing import ensure_clean
 
 openpyxl = pytest.importorskip("openpyxl")
 

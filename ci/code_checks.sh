@@ -268,7 +268,7 @@ if mods:
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check code for instances of os.remove' ; echo $MSG
-    invgrep -R --include="*.py*" -E "os.remove" pandas
+    invgrep -R --include="*.py*" -E "os.remove" pandas/tests/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
