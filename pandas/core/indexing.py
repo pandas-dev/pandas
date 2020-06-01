@@ -769,7 +769,7 @@ class _LocationIndexer(_NDFrameIndexerBase):
             try:
                 result = self._handle_lowerdim_multi_index_axis0(tup)
                 return result
-            except Exception:
+            except IndexingError:
                 pass
 
         if len(tup) > self.ndim:
@@ -821,8 +821,7 @@ class _LocationIndexer(_NDFrameIndexerBase):
             try:
                 result = self._handle_lowerdim_multi_index_axis0(tup)
                 return result
-            except Exception:
-                print("ENTREI")
+            except IndexingError:
                 pass
 
             # this is a series with a multi-index specified a tuple of
@@ -1070,7 +1069,7 @@ class _LocIndexer(_LocationIndexer):
             if len(tup) <= self.obj.index.nlevels and len(tup) > self.ndim:
                 raise ek
 
-        raise Exception("No label returned")
+        raise IndexingError("No label returned")
 
     def _getitem_axis(self, key, axis: int):
         key = item_from_zerodim(key)
