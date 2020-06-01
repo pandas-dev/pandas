@@ -8,7 +8,7 @@ from pandas._config import config
 
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas.errors import EmptyDataError
-from pandas.util._decorators import Appender
+from pandas.util._decorators import Appender, deprecate_nonkeyword_arguments
 
 from pandas.core.dtypes.common import is_bool, is_float, is_integer, is_list_like
 
@@ -34,7 +34,7 @@ _read_excel_doc = (
     """
 Read an Excel file into a pandas DataFrame.
 
-Supports `xls`, `xlsx`, `xlsm`, `xlsb`, and `odf` file extensions
+Supports `xls`, `xlsx`, `xlsm`, `xlsb`, `odf`, `ods` and `odt` file extensions
 read from a local filesystem or URL. Supports an option to read
 a single sheet or a list of sheets.
 
@@ -103,7 +103,12 @@ dtype : Type name or dict of column -> type, default None
     of dtype conversion.
 engine : str, default None
     If io is not a buffer or path, this must be set to identify io.
-    Acceptable values are None, "xlrd", "openpyxl" or "odf".
+    Supported engines: "xlrd", "openpyxl", "odf", "pyxlsb", default "xlrd".
+    Engine compatibility :
+    - "xlrd" supports most old/new Excel file formats.
+    - "openpyxl" supports newer Excel file formats.
+    - "odf" supports OpenDocument file formats (.odf, .ods, .odt).
+    - "pyxlsb" supports Binary Excel files.
 converters : dict, default None
     Dict of functions for converting values in certain columns. Keys can
     either be integers or column labels, values are functions that take one
@@ -266,6 +271,7 @@ Comment lines in the excel input file can be skipped using the `comment` kwarg
 )
 
 
+@deprecate_nonkeyword_arguments(allowed_args=2, version="2.0")
 @Appender(_read_excel_doc)
 def read_excel(
     io,
@@ -784,17 +790,24 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 class ExcelFile:
     """
     Class for parsing tabular excel sheets into DataFrame objects.
-    Uses xlrd. See read_excel for more documentation
+
+    Uses xlrd engine by default. See read_excel for more documentation
 
     Parameters
     ----------
     io : str, path object (pathlib.Path or py._path.local.LocalPath),
-        a file-like object, xlrd workbook or openpypl workbook.
-        If a string or path object, expected to be a path to xls, xlsx or odf file.
+         a file-like object, xlrd workbook or openpypl workbook.
+        If a string or path object, expected to be a path to a
+        .xls, .xlsx, .xlsb, .xlsm, .odf, .ods, or .odt file.
     engine : str, default None
         If io is not a buffer or path, this must be set to identify io.
-        Acceptable values are None, ``xlrd``, ``openpyxl``,  ``odf``, or ``pyxlsb``.
-        Note that ``odf`` reads tables out of OpenDocument formatted files.
+        Supported engines: ``xlrd``, ``openpyxl``, ``odf``, ``pyxlsb``,
+        default ``xlrd``.
+        Engine compatibility :
+        - ``xlrd`` supports most old/new Excel file formats.
+        - ``openpyxl`` supports newer Excel file formats.
+        - ``odf`` supports OpenDocument file formats (.odf, .ods, .odt).
+        - ``pyxlsb`` supports Binary Excel files.
     """
 
     from pandas.io.excel._odfreader import _ODFReader
@@ -816,7 +829,8 @@ class ExcelFile:
             raise ValueError(f"Unknown engine: {engine}")
 
         self.engine = engine
-        # could be a str, ExcelFile, Book, etc.
+
+        # Could be a str, ExcelFile, Book, etc.
         self.io = io
         # Always a string
         self._io = stringify_path(io)

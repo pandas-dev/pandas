@@ -17,7 +17,7 @@ from pandas._libs.tslibs.frequencies import (
     get_freq_str,
 )
 import pandas._libs.tslibs.offsets as liboffsets
-from pandas._libs.tslibs.offsets import ApplyTypeError
+from pandas._libs.tslibs.offsets import ApplyTypeError, _get_offset, _offset_map
 import pandas.compat as compat
 from pandas.compat.numpy import np_datetime64_compat
 from pandas.errors import PerformanceWarning
@@ -27,7 +27,6 @@ from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.series import Series
 
 from pandas.io.pickle import read_pickle
-from pandas.tseries.frequencies import _get_offset, _offset_map
 from pandas.tseries.holiday import USFederalHolidayCalendar
 import pandas.tseries.offsets as offsets
 from pandas.tseries.offsets import (
@@ -653,7 +652,8 @@ class TestCommon(Base):
         # This code was executed once on v0.15.2 to generate the pickle:
         # with open(pickle_path, 'wb') as f: pickle.dump(offsets, f)
         #
-        tm.assert_dict_equal(offsets, read_pickle(pickle_path))
+        result = read_pickle(pickle_path)
+        tm.assert_dict_equal(offsets, result)
 
     def test_pickle_roundtrip(self, offset_types):
         off = self._get_offset(offset_types)

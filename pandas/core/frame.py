@@ -2292,6 +2292,16 @@ class DataFrame(NDFrame):
            col1  col2
         0     1     3
         1     2     4
+
+        If you want to get a buffer to the parquet content you can use a io.BytesIO
+        object, as long as you don't use partition_cols, which creates multiple files.
+
+        >>> import io
+        >>> f = io.BytesIO()
+        >>> df.to_parquet(f)
+        >>> f.seek(0)
+        0
+        >>> content = f.read()
         """
         from pandas.io.parquet import to_parquet
 
@@ -3421,6 +3431,10 @@ class DataFrame(NDFrame):
             * If ``include`` and ``exclude`` have overlapping elements
             * If any kind of string dtype is passed in.
 
+        See Also
+        --------
+        DataFrame.dtypes: Return Series with the data type of each column.
+
         Notes
         -----
         * To select all *numeric* types, use ``np.number`` or ``'number'``
@@ -3468,7 +3482,7 @@ class DataFrame(NDFrame):
         4  1.0
         5  2.0
 
-        >>> df.select_dtypes(exclude=['int'])
+        >>> df.select_dtypes(exclude=['int64'])
                b    c
         0   True  1.0
         1  False  2.0
@@ -5755,6 +5769,116 @@ class DataFrame(NDFrame):
         out.index = self.index
         return out
 
+    @Appender(
+        """
+Returns
+-------
+DataFrame
+    DataFrame that shows the differences stacked side by side.
+
+    The resulting index will be a MultiIndex with 'self' and 'other'
+    stacked alternately at the inner level.
+
+See Also
+--------
+Series.compare : Compare with another Series and show differences.
+
+Notes
+-----
+Matching NaNs will not appear as a difference.
+
+Examples
+--------
+>>> df = pd.DataFrame(
+...     {
+...         "col1": ["a", "a", "b", "b", "a"],
+...         "col2": [1.0, 2.0, 3.0, np.nan, 5.0],
+...         "col3": [1.0, 2.0, 3.0, 4.0, 5.0]
+...     },
+...     columns=["col1", "col2", "col3"],
+... )
+>>> df
+  col1  col2  col3
+0    a   1.0   1.0
+1    a   2.0   2.0
+2    b   3.0   3.0
+3    b   NaN   4.0
+4    a   5.0   5.0
+
+>>> df2 = df.copy()
+>>> df2.loc[0, 'col1'] = 'c'
+>>> df2.loc[2, 'col3'] = 4.0
+>>> df2
+  col1  col2  col3
+0    c   1.0   1.0
+1    a   2.0   2.0
+2    b   3.0   4.0
+3    b   NaN   4.0
+4    a   5.0   5.0
+
+Align the differences on columns
+
+>>> df.compare(df2)
+  col1       col3
+  self other self other
+0    a     c  NaN   NaN
+2  NaN   NaN  3.0   4.0
+
+Stack the differences on rows
+
+>>> df.compare(df2, align_axis=0)
+        col1  col3
+0 self     a   NaN
+  other    c   NaN
+2 self   NaN   3.0
+  other  NaN   4.0
+
+Keep the equal values
+
+>>> df.compare(df2, keep_equal=True)
+  col1       col3
+  self other self other
+0    a     c  1.0   1.0
+2    b     b  3.0   4.0
+
+Keep all original rows and columns
+
+>>> df.compare(df2, keep_shape=True)
+  col1       col2       col3
+  self other self other self other
+0    a     c  NaN   NaN  NaN   NaN
+1  NaN   NaN  NaN   NaN  NaN   NaN
+2  NaN   NaN  NaN   NaN  3.0   4.0
+3  NaN   NaN  NaN   NaN  NaN   NaN
+4  NaN   NaN  NaN   NaN  NaN   NaN
+
+Keep all original rows and columns and also all original values
+
+>>> df.compare(df2, keep_shape=True, keep_equal=True)
+  col1       col2       col3
+  self other self other self other
+0    a     c  1.0   1.0  1.0   1.0
+1    a     a  2.0   2.0  2.0   2.0
+2    b     b  3.0   3.0  3.0   4.0
+3    b     b  NaN   NaN  4.0   4.0
+4    a     a  5.0   5.0  5.0   5.0
+"""
+    )
+    @Appender(_shared_docs["compare"] % _shared_doc_kwargs)
+    def compare(
+        self,
+        other: "DataFrame",
+        align_axis: Axis = 1,
+        keep_shape: bool = False,
+        keep_equal: bool = False,
+    ) -> "DataFrame":
+        return super().compare(
+            other=other,
+            align_axis=align_axis,
+            keep_shape=keep_shape,
+            keep_equal=keep_equal,
+        )
+
     def combine(
         self, other: "DataFrame", func, fill_value=None, overwrite=True
     ) -> "DataFrame":
@@ -7024,40 +7148,14 @@ NaN 12.3   33.0
     # ----------------------------------------------------------------------
     # Time series-related
 
-    def diff(self, periods: int = 1, axis: Axis = 0) -> "DataFrame":
-        """
-        First discrete difference of element.
-
-        Calculates the difference of a DataFrame element compared with another
-        element in the DataFrame (default is the element in the same column
-        of the previous row).
-
-        Parameters
-        ----------
-        periods : int, default 1
-            Periods to shift for calculating difference, accepts negative
-            values.
-        axis : {0 or 'index', 1 or 'columns'}, default 0
-            Take difference over rows (0) or columns (1).
-
-        Returns
-        -------
-        DataFrame
-
-        See Also
-        --------
-        Series.diff: First discrete difference for a Series.
-        DataFrame.pct_change: Percent change over given number of periods.
-        DataFrame.shift: Shift index by desired number of periods with an
-            optional time freq.
-
-        Notes
-        -----
-        For boolean dtypes, this uses :meth:`operator.xor` rather than
-        :meth:`operator.sub`.
-
-        Examples
-        --------
+    @doc(
+        Series.diff,
+        klass="Dataframe",
+        extra_params="axis : {0 or 'index', 1 or 'columns'}, default 0\n    "
+        "Take difference over rows (0) or columns (1).\n",
+        other_klass="Series",
+        examples=dedent(
+            """
         Difference with previous row
 
         >>> df = pd.DataFrame({'a': [1, 2, 3, 4, 5, 6],
@@ -7113,7 +7211,18 @@ NaN 12.3   33.0
         3 -1.0 -2.0  -9.0
         4 -1.0 -3.0 -11.0
         5  NaN  NaN   NaN
-        """
+
+        Overflow in input dtype
+
+        >>> df = pd.DataFrame({'a': [1, 0]}, dtype=np.uint8)
+        >>> df.diff()
+               a
+        0    NaN
+        1  255.0"""
+        ),
+    )
+    def diff(self, periods: int = 1, axis: Axis = 0) -> "DataFrame":
+
         bm_axis = self._get_block_manager_axis(axis)
         self._consolidate_inplace()
 
