@@ -564,13 +564,6 @@ class PandasSQLTest:
         res2 = self.pandasSQL.read_query("SELECT * FROM test_trans")
         assert len(res2) == 1
 
-    def _to_sql_with_negative_npinf(self):
-        engine = sqlalchemy.create_engine("sqlite://", echo=False)
-
-        pd.DataFrame({"foo": [np.inf]}).to_sql("foobar1", engine)
-        pd.DataFrame({"foo": [-np.inf]}).to_sql("foobar2", engine)
-        pd.DataFrame({"foo": [-np.inf], "infe0": ["bar"]}).to_sql("foobar3", engine)
-
 
 # -----------------------------------------------------------------------------
 # -- Testing the public API
@@ -1819,6 +1812,22 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
         DataFrame({"test_foo_data": [0, 1, 2]}).to_sql("test_foo_data", self.conn)
         main(self.conn)
+
+    def _to_sql_with_negative_npinf(self):
+        df1 = pd.DataFrame({"foo": [np.inf]})
+        df1.to_sql("foobar1", self.conn, index=False)
+        res1 = sql.read_sql_table("foobar1", self.conn)
+        tm.assert_equal(df1, res1)
+
+        df2 = pd.DataFrame({"foo": [-np.inf]})
+        df2.to_sql("foobar2", self.conn, index=False)
+        res2 = sql.read_sql_table("foobar2", self.conn)
+        tm.assert_equal(df2, res2)
+
+        df3 = pd.DataFrame({"foo": [-np.inf], "infe0": ["bar"]})
+        df3.to_sql("foobar3", self.conn, index=False)
+        res3 = sql.read_sql_table("foobar3", self.conn)
+        tm.assert_equal(df3, res3)
 
     def test_temporary_table(self):
         test_data = "Hello, World!"
