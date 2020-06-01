@@ -1,3 +1,5 @@
+import warnings
+
 from cpython.object cimport PyObject_RichCompareBool, Py_EQ, Py_NE
 
 from numpy cimport int64_t, import_array, ndarray
@@ -1724,6 +1726,15 @@ cdef class _Period:
         -------
         Timestamp
         """
+        if tz is not None:
+            warnings.warn(
+                "Period.to_timestamp `tz` argument is deprecated and will "
+                "be removed in a future version.  Use "
+                "`per.to_timestamp(...).tz_localize(tz)` instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+
         how = validate_end_alias(how)
 
         end = how == 'E'
