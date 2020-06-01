@@ -3,7 +3,7 @@ import datetime
 from io import BytesIO
 import os
 from textwrap import fill
-from typing import List, Optional, Sequence, Tuple
+from typing import List, Optional, Sequence
 
 from pandas._config import config
 
