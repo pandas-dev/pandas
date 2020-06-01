@@ -25,7 +25,11 @@ cnp.import_array()
 from pandas._libs.properties import cache_readonly
 
 from pandas._libs.tslibs cimport util
-from pandas._libs.tslibs.util cimport is_integer_object, is_datetime64_object
+from pandas._libs.tslibs.util cimport (
+    is_integer_object,
+    is_datetime64_object,
+    is_float_object,
+)
 
 from pandas._libs.tslibs.base cimport ABCTimestamp
 
@@ -743,6 +747,25 @@ cdef class Tick(SingleConstructorOffset):
                 "Tick offset with `normalize=True` are not allowed."
             )
 
+    # FIXME: Without making this cpdef, we get AttributeError when calling
+    #  from __mul__
+    cpdef Tick _next_higher_resolution(Tick self):
+        if type(self) is Day:
+            return Hour(self.n * 24)
+        if type(self) is Hour:
+            return Minute(self.n * 60)
+        if type(self) is Minute:
+            return Second(self.n * 60)
+        if type(self) is Second:
+            return Milli(self.n * 1000)
+        if type(self) is Milli:
+            return Micro(self.n * 1000)
+        if type(self) is Micro:
+            return Nano(self.n * 1000)
+        raise NotImplementedError(type(self))
+
+    # --------------------------------------------------------------------
+
     def _repr_attrs(self) -> str:
         # Since cdef classes have no __dict__, we need to override
         return ""
@@ -790,6 +813,21 @@ cdef class Tick(SingleConstructorOffset):
 
     def __gt__(self, other):
         return self.delta.__gt__(other)
+
+    def __mul__(self, other):
+        if not isinstance(self, Tick):
+            # cython semantics, this is __rmul__
+            return other.__mul__(self)
+        if is_float_object(other):
+            n = other * self.n
+            # If the new `n` is an integer, we can represent it using the
+            #  same Tick subclass as self, otherwise we need to move up
+            #  to a higher-resolution subclass
+            if np.isclose(n % 1, 0):
+                return type(self)(int(n))
+            new_self = self._next_higher_resolution()
+            return new_self * other
+        return BaseOffset.__mul__(self, other)
 
     def __truediv__(self, other):
         if not isinstance(self, Tick):
@@ -3563,6 +3601,9 @@ cpdef to_offset(freq):
     >>> to_offset(Hour())
     <Hour>
     """
+    # TODO: avoid runtime imports
+    from pandas._libs.tslibs.timedeltas import Timedelta
+
     if freq is None:
         return None
 
@@ -3589,7 +3630,9 @@ cpdef to_offset(freq):
             if split[-1] != "" and not split[-1].isspace():
                 # the last element must be blank
                 raise ValueError("last element must be blank")
-            for sep, stride, name in zip(split[0::4], split[1::4], split[2::4]):
+
+            tups = zip(split[0::4], split[1::4], split[2::4])
+            for n, (sep, stride, name) in enumerate(tups):
                 if sep != "" and not sep.isspace():
                     raise ValueError("separator must be spaces")
                 prefix = _lite_rule_alias.get(name) or name
@@ -3598,16 +3641,22 @@ cpdef to_offset(freq):
                 if not stride:
                     stride = 1
 
-                # TODO: avoid runtime import
-                from .resolution import Resolution, reso_str_bump_map
+                if prefix in {"D", "H", "T", "S", "L", "U", "N"}:
+                    # For these prefixes, we have something like "3H" or
+                    #  "2.5T", so we can construct a Timedelta with the
+                    #  matching unit and get our offset from delta_to_tick
+                    td = Timedelta(1, unit=prefix)
+                    off = delta_to_tick(td)
+                    offset = off * float(stride)
+                    if n != 0:
+                        # If n==0, then stride_sign is already incorporated
+                        #  into the offset
+                        offset *= stride_sign
+                else:
+                    stride = int(stride)
+                    offset = _get_offset(name)
+                    offset = offset * int(np.fabs(stride) * stride_sign)
 
-                if prefix in reso_str_bump_map:
-                    stride, name = Resolution.get_stride_from_decimal(
-                        float(stride), prefix
-                    )
-                stride = int(stride)
-                offset = _get_offset(name)
-                offset = offset * int(np.fabs(stride) * stride_sign)
                 if delta is None:
                     delta = offset
                 else:
