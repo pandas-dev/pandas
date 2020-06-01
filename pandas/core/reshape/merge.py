@@ -1637,7 +1637,6 @@ class _AsOfMerge(_OrderedMerge):
 
         # note this function has side effects
         (left_join_keys, right_join_keys, join_names) = super()._get_merge_keys()
-        len_by_cols = 0 if self.left_by is None else len(self.left_by)
 
         # validate index types are the same
         for i, (lk, rk) in enumerate(zip(left_join_keys, right_join_keys)):
@@ -1662,13 +1661,6 @@ class _AsOfMerge(_OrderedMerge):
                         f"{repr(rk.dtype)}, must be the same type"
                     )
                 raise MergeError(msg)
-
-            if i >= len_by_cols:
-                if is_object_dtype(rk.dtype) or is_object_dtype(lk.dtype):
-                    raise ValueError(
-                        f"Incompatible merge [{i}] dtype, {repr(lk.dtype)} and "
-                        f"{repr(rk.dtype)}, both sides must have numeric dtype"
-                    )
 
         # validate tolerance; datetime.timedelta or Timedelta if we have a DTI
         if self.tolerance is not None:
@@ -1713,6 +1705,19 @@ class _AsOfMerge(_OrderedMerge):
             raise MergeError(msg)
 
         return left_join_keys, right_join_keys, join_names
+
+    def _maybe_coerce_merge_keys(self):
+        """Check if the merge keys are not object and call super method."""
+        len_by_cols = 0 if self.left_by is None else len(self.left_by)
+        for i, (lk, rk) in enumerate(zip(self.left_join_keys, self.right_join_keys,)):
+            if i >= len_by_cols:
+                if is_object_dtype(rk.dtype) or is_object_dtype(lk.dtype):
+                    raise ValueError(
+                        f"Incompatible merge [{i}] dtype, {repr(lk.dtype)} and "
+                        f"{repr(rk.dtype)}, both sides must have numeric dtype"
+                    )
+
+        super()._maybe_coerce_merge_keys()
 
     def _get_join_indexers(self):
         """ return the join indexers """
