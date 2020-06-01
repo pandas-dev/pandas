@@ -340,10 +340,6 @@ def test_at_indexing_fails_multiindex():
         index=pd.MultiIndex.from_tuples(idx),
         columns=pd.MultiIndex.from_tuples(cols),
     )
-    ser = df[("a_col", "A")]
 
     with pytest.raises(KeyError, match=r".+? indexing with .+? failing for MultiIndex"):
         df.at["a_row", "A"]
-
-    with pytest.raises(TypeError, match=r".+? got multiple values for argument .+?"):
-        ser.at["a_row", "A"]
