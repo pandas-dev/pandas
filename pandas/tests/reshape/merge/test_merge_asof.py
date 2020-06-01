@@ -1363,4 +1363,11 @@ def test_some_issues():
         ValueError,
         match=r"Incompatible merge \[1\] dtype, .*, both sides must have numeric dtype",
     ):
-        pd.merge_asof(left, right, left_on="left_val1", right_on="a", left_by="a", right_by="left_val")
+        pd.merge_asof(
+            left,
+            right,
+            left_on="left_val1",
+            right_on="a",
+            left_by="a",
+            right_by="left_val",
+        )
