@@ -836,9 +836,7 @@ class TestExcelWriter:
 
         with tm.ensure_clean("__tmp_to_excel_float_format__." + ext) as filename:
             df.to_excel(filename, sheet_name="TestSheet", encoding="utf8")
-            result = pd.read_excel(
-                filename, sheet_name="TestSheet", encoding="utf8", index_col=0
-            )
+            result = pd.read_excel(filename, sheet_name="TestSheet", index_col=0)
             tm.assert_frame_equal(result, df)
 
     def test_to_excel_unicode_filename(self, ext, path):
