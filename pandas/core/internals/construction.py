@@ -233,7 +233,7 @@ def init_dict(data, index, columns, dtype=None):
         if missing.any() and not is_integer_dtype(dtype):
             if dtype is None or np.issubdtype(dtype, np.flexible):
                 # GH#1783
-                nan_dtype = object
+                nan_dtype = np.dtype(object)
             else:
                 nan_dtype = dtype
             val = construct_1d_arraylike_from_scalar(np.nan, len(index), nan_dtype)
