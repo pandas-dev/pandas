@@ -3598,9 +3598,10 @@ cpdef to_offset(freq):
                 if not stride:
                     stride = 1
 
-                from .resolution import Resolution  # TODO: avoid runtime import
+                # TODO: avoid runtime import
+                from .resolution import Resolution, reso_str_bump_map
 
-                if prefix in Resolution.reso_str_bump_map:
+                if prefix in reso_str_bump_map:
                     stride, name = Resolution.get_stride_from_decimal(
                         float(stride), prefix
                     )
