@@ -1814,13 +1814,13 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         main(self.conn)
 
     @pytest.mark.parametrize(
-        "_input",
+        "input",
         [{"foo": [np.inf]}, {"foo": [-np.inf]}, {"foo": [-np.inf], "infe0": ["bar"]}],
     )
-    def test_to_sql_with_negative_npinf(self, _input):
+    def test_to_sql_with_negative_npinf(self, input):
         # GH 34431
 
-        df = pd.DataFrame(_input)
+        df = pd.DataFrame(input)
         df.to_sql("foobar", self.conn, index=False)
         res = sql.read_sql_table("foobar", self.conn)
         tm.assert_equal(df, res)
