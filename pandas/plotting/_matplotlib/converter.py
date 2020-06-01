@@ -11,8 +11,7 @@ import matplotlib.units as units
 import numpy as np
 
 from pandas._libs import lib, tslibs
-from pandas._libs.tslibs import resolution
-from pandas._libs.tslibs.frequencies import FreqGroup, get_freq
+from pandas._libs.tslibs.frequencies import FreqGroup, get_freq_code, get_freq_group
 
 from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype,
@@ -114,7 +113,7 @@ def deregister():
             units.registry[unit] = formatter
 
 
-def _to_ordinalf(tm):
+def _to_ordinalf(tm: pydt.time) -> float:
     tot_sec = tm.hour * 3600 + tm.minute * 60 + tm.second + float(tm.microsecond / 1e6)
     return tot_sec
 
@@ -161,7 +160,7 @@ class TimeFormatter(Formatter):
     def __init__(self, locs):
         self.locs = locs
 
-    def __call__(self, x, pos=0):
+    def __call__(self, x, pos=0) -> str:
         """
         Return the time of day as a formatted string.
 
@@ -550,7 +549,7 @@ def _daily_finder(vmin, vmax, freq):
     elif freq == FreqGroup.FR_DAY:
         periodsperyear = 365
         periodspermonth = 28
-    elif resolution.get_freq_group(freq) == FreqGroup.FR_WK:
+    elif get_freq_group(freq) == FreqGroup.FR_WK:
         periodsperyear = 52
         periodspermonth = 3
     else:  # pragma: no cover
@@ -887,8 +886,8 @@ def _annual_finder(vmin, vmax, freq):
 
 def get_finder(freq):
     if isinstance(freq, str):
-        freq = get_freq(freq)
-    fgroup = resolution.get_freq_group(freq)
+        freq = get_freq_code(freq)[0]
+    fgroup = get_freq_group(freq)
 
     if fgroup == FreqGroup.FR_ANN:
         return _annual_finder
@@ -932,7 +931,7 @@ class TimeSeries_DateLocator(Locator):
         plot_obj=None,
     ):
         if isinstance(freq, str):
-            freq = get_freq(freq)
+            freq = get_freq_code(freq)[0]
         self.freq = freq
         self.base = base
         (self.quarter, self.month, self.day) = (quarter, month, day)
@@ -1011,7 +1010,7 @@ class TimeSeries_DateFormatter(Formatter):
 
     def __init__(self, freq, minor_locator=False, dynamic_mode=True, plot_obj=None):
         if isinstance(freq, str):
-            freq = get_freq(freq)
+            freq = get_freq_code(freq)[0]
         self.format = None
         self.freq = freq
         self.locs = []
@@ -1050,7 +1049,7 @@ class TimeSeries_DateFormatter(Formatter):
             (vmin, vmax) = (vmax, vmin)
         self._set_default_format(vmin, vmax)
 
-    def __call__(self, x, pos=0):
+    def __call__(self, x, pos=0) -> str:
 
         if self.formatdict is None:
             return ""
@@ -1067,7 +1066,7 @@ class TimeSeries_TimedeltaFormatter(Formatter):
     """
 
     @staticmethod
-    def format_timedelta_ticks(x, pos, n_decimals):
+    def format_timedelta_ticks(x, pos, n_decimals: int) -> str:
         """
         Convert seconds to 'D days HH:MM:SS.F'
         """
@@ -1083,7 +1082,7 @@ class TimeSeries_TimedeltaFormatter(Formatter):
             s = f"{int(d):d} days {s}"
         return s
 
-    def __call__(self, x, pos=0):
+    def __call__(self, x, pos=0) -> str:
         (vmin, vmax) = tuple(self.axis.get_view_interval())
         n_decimals = int(np.ceil(np.log10(100 * 1e9 / (vmax - vmin))))
         if n_decimals > 9:

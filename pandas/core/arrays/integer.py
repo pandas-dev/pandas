@@ -1,5 +1,5 @@
 import numbers
-from typing import TYPE_CHECKING, List, Optional, Tuple, Type, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Type, Union
 import warnings
 
 import numpy as np
@@ -20,15 +20,13 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
-    is_scalar,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import nanops, ops
+from pandas.core import ops
 from pandas.core.array_algos import masked_reductions
-from pandas.core.indexers import check_array_indexer
 from pandas.core.ops import invalid_comparison
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.tools.numeric import to_numeric
@@ -417,19 +415,8 @@ class IntegerArray(BaseMaskedArray):
         else:
             return reconstruct(result)
 
-    def __setitem__(self, key, value) -> None:
-        _is_scalar = is_scalar(value)
-        if _is_scalar:
-            value = [value]
-        value, mask = coerce_to_array(value, dtype=self.dtype)
-
-        if _is_scalar:
-            value = value[0]
-            mask = mask[0]
-
-        key = check_array_indexer(self, key)
-        self._data[key] = value
-        self._mask[key] = mask
+    def _coerce_to_array(self, value) -> Tuple[np.ndarray, np.ndarray]:
+        return coerce_to_array(value, dtype=self.dtype)
 
     def astype(self, dtype, copy: bool = True) -> ArrayLike:
         """
@@ -455,17 +442,20 @@ class IntegerArray(BaseMaskedArray):
             if incompatible type with an IntegerDtype, equivalent of same_kind
             casting
         """
-        from pandas.core.arrays.boolean import BooleanArray, BooleanDtype
+        from pandas.core.arrays.boolean import BooleanDtype
+        from pandas.core.arrays.string_ import StringDtype
 
         dtype = pandas_dtype(dtype)
 
         # if we are astyping to an existing IntegerDtype we can fastpath
         if isinstance(dtype, _IntegerDtype):
             result = self._data.astype(dtype.numpy_dtype, copy=False)
-            return type(self)(result, mask=self._mask, copy=False)
+            return dtype.construct_array_type()(result, mask=self._mask, copy=False)
         elif isinstance(dtype, BooleanDtype):
             result = self._data.astype("bool", copy=False)
-            return BooleanArray(result, mask=self._mask, copy=False)
+            return dtype.construct_array_type()(result, mask=self._mask, copy=False)
+        elif isinstance(dtype, StringDtype):
+            return dtype.construct_array_type()._from_sequence(self, copy=False)
 
         # coerce
         if is_float_dtype(dtype):
@@ -517,6 +507,8 @@ class IntegerArray(BaseMaskedArray):
                     raise NotImplementedError(
                         "can only perform ops with 1-d structures"
                     )
+                if len(self) != len(other):
+                    raise ValueError("Lengths must match to compare")
 
             if other is libmissing.NA:
                 # numpy does not handle pd.NA well as "other" scalar (it returns
@@ -550,27 +542,6 @@ class IntegerArray(BaseMaskedArray):
 
         name = f"__{op.__name__}__"
         return set_function_name(cmp_method, name, cls)
-
-    def _reduce(self, name: str, skipna: bool = True, **kwargs):
-        data = self._data
-        mask = self._mask
-
-        if name in {"sum", "prod", "min", "max"}:
-            op = getattr(masked_reductions, name)
-            return op(data, mask, skipna=skipna, **kwargs)
-
-        # coerce to a nan-aware float if needed
-        # (we explicitly use NaN within reductions)
-        if self._hasna:
-            data = self.to_numpy("float64", na_value=np.nan)
-
-        op = getattr(nanops, "nan" + name)
-        result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
-
-        if np.isnan(result):
-            return libmissing.NA
-
-        return result
 
     def sum(self, skipna=True, min_count=0, **kwargs):
         nv.validate_sum((), kwargs)
@@ -620,6 +591,8 @@ class IntegerArray(BaseMaskedArray):
                     raise NotImplementedError(
                         "can only perform ops with 1-d structures"
                     )
+                if len(self) != len(other):
+                    raise ValueError("Lengths must match")
                 if not (is_float_dtype(other) or is_integer_dtype(other)):
                     raise TypeError("can only perform ops with numeric values")
 
@@ -752,7 +725,7 @@ class UInt64Dtype(_IntegerDtype):
     __doc__ = _dtype_docstring.format(dtype="uint64")
 
 
-_dtypes = {
+_dtypes: Dict[str, _IntegerDtype] = {
     "int8": Int8Dtype(),
     "int16": Int16Dtype(),
     "int32": Int32Dtype(),

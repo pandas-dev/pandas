@@ -32,14 +32,16 @@ from dateutil.parser import parse as du_parse
 
 from pandas._config import get_option
 
-from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
-from pandas._libs.tslibs.nattype import nat_strings, NaT
+from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
+from pandas._libs.tslibs.nattype cimport (
+    c_nat_strings as nat_strings,
+    c_NaT as NaT,
+)
 from pandas._libs.tslibs.util cimport (
     is_array,
-    is_offset_object,
     get_c_string_buf_and_size,
 )
-from pandas._libs.tslibs.frequencies cimport get_rule_month
+from pandas._libs.tslibs.offsets cimport is_offset_object
 
 cdef extern from "../src/headers/portable.h":
     int getdigit_ascii(char c, int default) nogil
@@ -374,7 +376,7 @@ cpdef bint _does_string_look_like_datetime(str py_string):
     return True
 
 
-cdef inline object _parse_dateabbr_string(object date_string, object default,
+cdef inline object _parse_dateabbr_string(object date_string, datetime default,
                                           object freq):
     cdef:
         object ret
@@ -435,9 +437,9 @@ cdef inline object _parse_dateabbr_string(object date_string, object default,
                                      f'between 1 and 4: {date_string}')
 
             if freq is not None:
-                # hack attack, #1228
+                # TODO: hack attack, #1228
                 try:
-                    mnum = MONTH_NUMBERS[get_rule_month(freq)] + 1
+                    mnum = c_MONTH_NUMBERS[get_rule_month(freq)] + 1
                 except (KeyError, ValueError):
                     raise DateParseError(f'Unable to retrieve month '
                                          f'information from given '
@@ -1016,3 +1018,34 @@ def concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True):
             result_view[row_idx] = " ".join(list_to_join)
 
     return result
+
+
+# TODO: `default` never used?
+cpdef str get_rule_month(object source, str default="DEC"):
+    """
+    Return starting month of given freq, default is December.
+
+    Parameters
+    ----------
+    source : object
+    default : str, default "DEC"
+
+    Returns
+    -------
+    rule_month: str
+
+    Examples
+    --------
+    >>> get_rule_month('D')
+    'DEC'
+
+    >>> get_rule_month('A-JAN')
+    'JAN'
+    """
+    if is_offset_object(source):
+        source = source.freqstr
+    source = source.upper()
+    if "-" not in source:
+        return default
+    else:
+        return source.split("-")[1]

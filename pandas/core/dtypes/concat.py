@@ -1,6 +1,7 @@
 """
 Utility functions related to concat.
 """
+from typing import cast
 
 import numpy as np
 
@@ -21,6 +22,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCRangeIndex, ABCSeries
 
 from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays.sparse import SparseArray
 from pandas.core.construction import array
 
 
@@ -40,14 +42,14 @@ def get_dtype_kinds(l):
         dtype = arr.dtype
         if is_categorical_dtype(dtype):
             typ = "category"
-        elif is_sparse(arr):
+        elif is_sparse(dtype):
             typ = "sparse"
         elif isinstance(arr, ABCRangeIndex):
             typ = "range"
-        elif is_datetime64tz_dtype(arr):
+        elif is_datetime64tz_dtype(dtype):
             # if to_concat contains different tz,
             # the result must be object dtype
-            typ = str(arr.dtype)
+            typ = str(dtype)
         elif is_datetime64_dtype(dtype):
             typ = "datetime"
         elif is_timedelta64_dtype(dtype):
@@ -57,7 +59,7 @@ def get_dtype_kinds(l):
         elif is_bool_dtype(dtype):
             typ = "bool"
         elif is_extension_array_dtype(dtype):
-            typ = str(arr.dtype)
+            typ = str(dtype)
         else:
             typ = dtype.kind
         typs.add(typ)
@@ -80,6 +82,13 @@ def _cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
             return arr.astype(dtype, copy=False)
         except ValueError:
             return arr.astype(object, copy=False)
+
+    if is_sparse(arr) and not is_sparse(dtype):
+        # problem case: SparseArray.astype(dtype) doesn't follow the specified
+        # dtype exactly, but converts this to Sparse[dtype] -> first manually
+        # convert to dense array
+        arr = cast(SparseArray, arr)
+        return arr.to_dense().astype(dtype, copy=False)
 
     if (
         isinstance(arr, np.ndarray)

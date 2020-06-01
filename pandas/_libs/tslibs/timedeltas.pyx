@@ -6,7 +6,7 @@ from cpython.object cimport Py_NE, Py_EQ, PyObject_RichCompare
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport int64_t
+from numpy cimport int64_t, ndarray
 cnp.import_array()
 
 from cpython.datetime cimport (timedelta,
@@ -21,16 +21,20 @@ from pandas._libs.tslibs.util cimport (
     is_float_object, is_array
 )
 
-from pandas._libs.tslibs.base cimport ABCTimedelta, ABCTimestamp, is_tick_object
+from pandas._libs.tslibs.base cimport ABCTimedelta, ABCTimestamp
 
-from pandas._libs.tslibs.ccalendar import DAY_SECONDS
+from pandas._libs.tslibs.conversion cimport cast_from_unit
 
 from pandas._libs.tslibs.np_datetime cimport (
-    cmp_scalar, reverse_ops, td64_to_tdstruct, pandas_timedeltastruct)
+    cmp_scalar, td64_to_tdstruct, pandas_timedeltastruct)
 
-from pandas._libs.tslibs.nattype import nat_strings
 from pandas._libs.tslibs.nattype cimport (
-    checknull_with_nat, NPY_NAT, c_NaT as NaT)
+    checknull_with_nat,
+    NPY_NAT,
+    c_NaT as NaT,
+    c_nat_strings as nat_strings,
+)
+from pandas._libs.tslibs.offsets cimport is_tick_object
 
 # ----------------------------------------------------------------------
 # Constants
@@ -172,7 +176,7 @@ cdef convert_to_timedelta64(object ts, object unit):
     """
     if checknull_with_nat(ts):
         return np.timedelta64(NPY_NAT)
-    elif isinstance(ts, Timedelta):
+    elif isinstance(ts, _Timedelta):
         # already in the proper format
         ts = np.timedelta64(ts.value)
     elif is_datetime64_object(ts):
@@ -254,77 +258,6 @@ def array_to_timedelta64(object[:] values, unit='ns', errors='raise'):
                     raise
 
     return iresult.base  # .base to access underlying np.ndarray
-
-
-cpdef inline object precision_from_unit(str unit):
-    """
-    Return a casting of the unit represented to nanoseconds + the precision
-    to round the fractional part.
-
-    Notes
-    -----
-    The caller is responsible for ensuring that the default value of "ns"
-    takes the place of None.
-    """
-    cdef:
-        int64_t m
-        int p
-
-    if unit == 'Y':
-        m = 1000000000 * 31556952
-        p = 9
-    elif unit == 'M':
-        m = 1000000000 * 2629746
-        p = 9
-    elif unit == 'W':
-        m = 1000000000 * DAY_SECONDS * 7
-        p = 9
-    elif unit == 'D' or unit == 'd':
-        m = 1000000000 * DAY_SECONDS
-        p = 9
-    elif unit == 'h':
-        m = 1000000000 * 3600
-        p = 9
-    elif unit == 'm':
-        m = 1000000000 * 60
-        p = 9
-    elif unit == 's':
-        m = 1000000000
-        p = 9
-    elif unit == 'ms':
-        m = 1000000
-        p = 6
-    elif unit == 'us':
-        m = 1000
-        p = 3
-    elif unit == 'ns' or unit is None:
-        m = 1
-        p = 0
-    else:
-        raise ValueError(f"cannot cast unit {unit}")
-    return m, p
-
-
-cdef inline int64_t cast_from_unit(object ts, str unit) except? -1:
-    """ return a casting of the unit represented to nanoseconds
-        round the fractional part of a float to our precision, p """
-    cdef:
-        int64_t m
-        int p
-
-    m, p = precision_from_unit(unit)
-
-    # just give me the unit back
-    if ts is None:
-        return m
-
-    # cast the unit, multiply base/frace separately
-    # to avoid precision issues from float -> int
-    base = <int64_t>ts
-    frac = ts - base
-    if p:
-        frac = round(frac, p)
-    return <int64_t>(base * m) + <int64_t>(frac * m)
 
 
 cdef inline int64_t parse_timedelta_string(str ts) except? -1:
@@ -513,7 +446,8 @@ cdef inline timedelta_from_spec(object number, object frac, object unit):
     frac : a list of frac digits
     unit : a list of unit characters
     """
-    cdef object n
+    cdef:
+        str n
 
     try:
         unit = ''.join(unit)
@@ -651,7 +585,7 @@ cdef inline int64_t parse_iso_format_string(str ts) except? -1:
         bint have_dot = 0, have_value = 0, neg = 0
         list number = [], unit = []
 
-    err_msg = "Invalid ISO 8601 Duration format - {}".format(ts)
+    err_msg = f"Invalid ISO 8601 Duration format - {ts}"
 
     for c in ts:
         # number (ascii codes)
@@ -1216,10 +1150,9 @@ class Timedelta(_Timedelta):
 
         # GH 30543 if pd.Timedelta already passed, return it
         # check that only value is passed
-        if (isinstance(value, Timedelta) and unit is None and
-                len(kwargs) == 0):
+        if isinstance(value, _Timedelta) and unit is None and len(kwargs) == 0:
             return value
-        elif isinstance(value, Timedelta):
+        elif isinstance(value, _Timedelta):
             value = value.value
         elif isinstance(value, str):
             if len(value) > 0 and value[0] == 'P':
@@ -1444,6 +1377,17 @@ class Timedelta(_Timedelta):
 
 
 cdef bint is_any_td_scalar(object obj):
+    """
+    Cython equivalent for `isinstance(obj, (timedelta, np.timedelta64, Tick))`
+
+    Parameters
+    ----------
+    obj : object
+
+    Returns
+    -------
+    bool
+    """
     return (
         PyDelta_Check(obj) or is_timedelta64_object(obj) or is_tick_object(obj)
     )
@@ -1469,7 +1413,7 @@ cdef _rfloordiv(int64_t value, right):
 
 cdef _broadcast_floordiv_td64(
     int64_t value,
-    object other,
+    ndarray other,
     object (*operation)(int64_t value, object right)
 ):
     """
@@ -1487,13 +1431,11 @@ cdef _broadcast_floordiv_td64(
     result : varies based on `other`
     """
     # assumes other.dtype.kind == 'm', i.e. other is timedelta-like
-    cdef:
-        int ndim = getattr(other, 'ndim', -1)
 
     # We need to watch out for np.timedelta64('NaT').
     mask = other.view('i8') == NPY_NAT
 
-    if ndim == 0:
+    if other.ndim == 0:
         if mask:
             return np.nan
 

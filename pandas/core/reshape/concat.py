@@ -7,7 +7,7 @@ from typing import Iterable, List, Mapping, Union, overload
 
 import numpy as np
 
-from pandas._typing import FrameOrSeriesUnion, Label
+from pandas._typing import FrameOrSeries, FrameOrSeriesUnion, Label
 
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
@@ -50,7 +50,7 @@ def concat(
 
 @overload
 def concat(
-    objs: Union[Iterable[FrameOrSeriesUnion], Mapping[Label, FrameOrSeriesUnion]],
+    objs: Union[Iterable[FrameOrSeries], Mapping[Label, FrameOrSeries]],
     axis=0,
     join: str = "outer",
     ignore_index: bool = False,
@@ -65,7 +65,7 @@ def concat(
 
 
 def concat(
-    objs: Union[Iterable[FrameOrSeriesUnion], Mapping[Label, FrameOrSeriesUnion]],
+    objs: Union[Iterable[FrameOrSeries], Mapping[Label, FrameOrSeries]],
     axis=0,
     join="outer",
     ignore_index: bool = False,
@@ -469,7 +469,9 @@ class _Concatenator:
             # combine as columns in a frame
             else:
                 data = dict(zip(range(len(self.objs)), self.objs))
-                cons = DataFrame
+
+                # GH28330 Preserves subclassed objects through concat
+                cons = self.objs[0]._constructor_expanddim
 
                 index, columns = self.new_axes
                 df = cons(data, index=index)
