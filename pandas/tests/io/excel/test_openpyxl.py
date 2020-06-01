@@ -4,7 +4,6 @@ import pytest
 import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
-from pandas._testing import ensure_clean
 
 from pandas.io.excel import ExcelWriter, _OpenpyxlWriter
 
@@ -108,8 +107,8 @@ def test_write_append_mode(ext, mode, expected):
 # GH 29854
 def test_to_excel_with_openpyxl_engine(ext, tmpdir):
 
-    with ensure_clean('styled.xlsx') as filename:
-        
+    with tm.ensure_clean('styled.xlsx') as filename:
+
         df1 = DataFrame({"A": np.linspace(1, 10, 10)})
         df2 = DataFrame({"B": np.linspace(1, 20, 10)})
         df = pd.concat([df1, df2], axis=1)
