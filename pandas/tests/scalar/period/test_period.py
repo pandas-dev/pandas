@@ -589,6 +589,8 @@ class TestPeriodMethods:
         from_lst = ["A", "Q", "M", "W", "B", "D", "H", "Min", "S"]
 
         def _ex(p):
+            if p.freq == "B":
+                return p.start_time + Timedelta(days=1, nanoseconds=-1)
             return Timestamp((p + p.freq).start_time.value - 1)
 
         for i, fcode in enumerate(from_lst):
@@ -630,6 +632,13 @@ class TestPeriodMethods:
         result = p.to_timestamp("3H", how="start")
         assert result == expected
         result = p.to_timestamp("5S", how="start")
+        assert result == expected
+
+    def test_to_timestamp_business_end(self):
+        per = pd.Period("1990-01-05", "B")  # Friday
+        result = per.to_timestamp("B", how="E")
+
+        expected = pd.Timestamp("1990-01-06") - pd.Timedelta(nanoseconds=1)
         assert result == expected
 
     # --------------------------------------------------------------
@@ -785,6 +794,14 @@ class TestPeriodProperties:
         p = Period("2012", freq="1H1D")
         xp = _ex(2012, 1, 2, 1)
         assert xp == p.end_time
+
+    def test_end_time_business_friday(self):
+        # GH#34449
+        per = Period("1990-01-05", "B")
+        result = per.end_time
+
+        expected = pd.Timestamp("1990-01-06") - pd.Timedelta(nanoseconds=1)
+        assert result == expected
 
     def test_anchor_week_end_time(self):
         def _ex(*args):
