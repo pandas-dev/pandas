@@ -106,16 +106,15 @@ class _XlrdReader(_BaseExcelReader):
 
         data: List[List[Scalar]] = []
 
-        for i in range(sheet.nrows):
+        sheet_nrows = sheet.nrows
+        if nrows is not None and isinstance(header, int) and isinstance(skiprows, int):
+            sheet_nrows = min(header + skiprows + nrows + 1, sheet_nrows)
 
-            should_continue, should_break = self.should_skip_row(
-                i, header, skiprows, nrows
-            )
-            if should_continue:
+        for i in range(sheet_nrows):
+
+            if self.should_skip_row(i, header, skiprows, nrows):
                 data.append([])
                 continue
-            if should_break:
-                break
 
             row = [
                 _parse_cell(value, typ)

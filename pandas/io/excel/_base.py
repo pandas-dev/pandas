@@ -418,16 +418,12 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
 
         Returns
         -------
-        Tuple with the first bool element determining if row should be
-        skipped and second bool element determining if reading should be stopped.
+        Bool determining if row should be skipped.
         """
         if nrows is not None and isinstance(header, int) and isinstance(skiprows, int):
             if index < header + skiprows - 1:
-                return True, False
-            if index <= header + skiprows + nrows:
-                return False, False
-            return False, True
-        return False, False
+                return True
+        return False
 
     def parse(
         self,

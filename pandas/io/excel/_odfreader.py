@@ -86,16 +86,14 @@ class _ODFReader(_BaseExcelReader):
 
         table: List[List[Scalar]] = []
 
+        if nrows is not None and isinstance(header, int) and isinstance(skiprows, int):
+            sheet_rows = sheet_rows[0 : header + skiprows + nrows + 1]
+
         for i, sheet_row in enumerate(sheet_rows):
 
-            should_continue, should_break = self.should_skip_row(
-                i, header, skiprows, nrows
-            )
-            if should_continue:
+            if self.should_skip_row(i, header, skiprows, nrows):
                 table.append([])
                 continue
-            if should_break:
-                break
 
             sheet_cells = [x for x in sheet_row.childNodes if x.qname in cell_names]
             empty_cells = 0
