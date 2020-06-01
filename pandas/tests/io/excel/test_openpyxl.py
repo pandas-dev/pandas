@@ -107,11 +107,11 @@ def test_write_append_mode(ext, mode, expected):
         for index, cell_value in enumerate(expected):
             assert wb2.worksheets[index]["A1"].value == cell_value
 
-
+# GH 29854
 def test_to_excel_with_openpyxl_engine(ext, tmpdir):
 
     with ensure_clean('styled.xlsx') as filename:
-        # GH 29854
+        
         df1 = DataFrame({"A": np.linspace(1, 10, 10)})
         df2 = DataFrame({"B": np.linspace(1, 20, 10)})
         df = pd.concat([df1, df2], axis=1)
