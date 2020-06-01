@@ -401,7 +401,7 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
         header: Optional[Union[int, Sequence[int]]],
         skiprows: Optional[Union[int, Sequence[int]]],
         nrows: Optional[int],
-    ) -> Tuple[bool, bool]:
+    ) -> bool:
         """
         Determines whether row should be read.
 
