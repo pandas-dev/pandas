@@ -4,6 +4,8 @@ import tempfile
 
 import pytest
 
+import pandas._testing as tm
+
 from pandas.io.pytables import HDFStore
 
 tables = pytest.importorskip("tables")
@@ -43,7 +45,7 @@ def ensure_clean_store(path, mode="a", complevel=None, complib=None, fletcher32=
     finally:
         safe_close(store)
         if mode == "w" or mode == "a":
-            safe_remove(path)
+            tm.ensure_clean(path)
 
 
 @contextmanager
@@ -62,7 +64,7 @@ def ensure_clean_path(path):
             yield filenames[0]
     finally:
         for f in filenames:
-            safe_remove(f)
+            tm.ensure_clean(f)
 
 
 def _maybe_remove(store, key):
