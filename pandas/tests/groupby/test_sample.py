@@ -142,6 +142,6 @@ def test_groupby_sample_using_random_state(random_state):
     df = DataFrame({"a": [1] * 50 + [2] * 50, "b": np.random.random(100)})
     rs = copy(random_state)
     expected = df.groupby("a").sample(frac=0.5, random_state=rs)
-    rs = copy(random_state)
+    rs = random_state
     result = df.groupby("a").sample(frac=0.5, random_state=rs)
     tm.assert_frame_equal(result, expected)
