@@ -822,6 +822,7 @@ class _LocationIndexer(_NDFrameIndexerBase):
                 result = self._handle_lowerdim_multi_index_axis0(tup)
                 return result
             except Exception:
+                print("ENTREI")
                 pass
 
             # this is a series with a multi-index specified a tuple of
