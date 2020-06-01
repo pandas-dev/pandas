@@ -741,7 +741,7 @@ class TestSeriesPlots(TestPlotBase):
         tm.assert_almost_equal(yerr_0_0, expected_0_0)
 
         msg = (
-            f"Asymmetrical error bars should be provided with the shape \(2, {len(s)}\)"
+            f"Asymmetrical error bars should be provided with the shape \\(2, {len(s)}\\)"
         )
         with pytest.raises(ValueError, match=msg):
             s.plot(yerr=np.random.rand(2, 11))
