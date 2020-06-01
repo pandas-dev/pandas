@@ -1351,6 +1351,16 @@ def test_non_numerical_dtype(data):
     right = pd.DataFrame({"x": data})
     with pytest.raises(
         ValueError,
-        match="Incompatible merge dtype, .*, both sides must have numeric dtype",
+        match=r"Incompatible merge \[0\] dtype, .*, both sides must have numeric dtype",
     ):
         pd.merge_asof(left, right, on="x")
+
+
+def test_some_issues():
+    left = pd.DataFrame({"a": ["12", "13", "15"], "left_val1": ["a", "b", "c"]})
+    right = pd.DataFrame({"a": ["a", "b", "c"], "left_val": ["d", "e", "f"]})
+    with pytest.raises(
+        ValueError,
+        match=r"Incompatible merge \[1\] dtype, .*, both sides must have numeric dtype",
+    ):
+        pd.merge_asof(left, right, left_on="left_val1", right_on="a", left_by="a", right_by="left_val")
