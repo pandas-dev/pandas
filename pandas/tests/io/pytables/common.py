@@ -5,22 +5,12 @@ import tempfile
 import pytest
 
 from pandas.io.pytables import HDFStore
-from pandas._testing import ensure_clean
 
 tables = pytest.importorskip("tables")
 # set these parameters so we don't have file sharing
 tables.parameters.MAX_NUMEXPR_THREADS = 1
 tables.parameters.MAX_BLOSC_THREADS = 1
 tables.parameters.MAX_THREADS = 1
-
-
-def safe_remove(path):
-    if path is not None:
-        try:
-            with ensure_clean(path) as filename:
-                ensure_clean(filename)
-        except OSError:
-            pass
 
 
 def safe_close(store):
