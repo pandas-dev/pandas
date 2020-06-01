@@ -9,15 +9,14 @@ from pandas._libs import lib, tslib
 from pandas._libs.tslibs import (
     NaT,
     Timestamp,
-    ccalendar,
     conversion,
     fields,
+    frequencies as libfrequencies,
     iNaT,
     resolution as libresolution,
     timezones,
     tzconversion,
 )
-import pandas._libs.tslibs.frequencies as libfrequencies
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import (
