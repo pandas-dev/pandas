@@ -788,7 +788,16 @@ cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo t
         npy_datetimestruct dts
         int64_t delta, local_val
 
-    if is_tzlocal(tz):
+    if tz is None or is_utc(tz):
+        with nogil:
+            for i in range(n):
+                if stamps[i] == NPY_NAT:
+                    result[i] = NPY_NAT
+                    continue
+                local_val = stamps[i]
+                dt64_to_dtstruct(local_val, &dts)
+                result[i] = _normalized_stamp(&dts)
+    elif is_tzlocal(tz):
         for i in range(n):
             if stamps[i] == NPY_NAT:
                 result[i] = NPY_NAT
