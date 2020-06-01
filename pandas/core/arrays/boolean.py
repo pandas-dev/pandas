@@ -9,7 +9,6 @@ from pandas._typing import ArrayLike
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 
-from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_extension_array_dtype,
@@ -399,8 +398,7 @@ class BooleanArray(BaseMaskedArray):
         if is_float_dtype(dtype):
             na_value = np.nan
         # coerce
-        data = self.to_numpy(na_value=na_value)
-        return astype_nansafe(data, dtype, copy=False)
+        return self.to_numpy(dtype=dtype, na_value=na_value, copy=False)
 
     def _values_for_argsort(self) -> np.ndarray:
         """
