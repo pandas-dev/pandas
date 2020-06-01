@@ -357,6 +357,8 @@ class DataFrame(NDFrame):
     columns : Index or array-like
         Column labels to use for resulting frame. Will default to
         RangeIndex (0, 1, 2, ..., n) if no column labels are provided.
+        Columns Labels should not contain duplicate values, if column 
+        labels are provided.
     dtype : dtype, default None
         Data type to force. Only a single dtype is allowed. If None, infer.
     copy : bool, default False
@@ -442,6 +444,11 @@ class DataFrame(NDFrame):
             data = {}
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
+            
+        #We need columns to have unique labels.
+        if columns != None:
+            if len(columns) != len(set(columns)):
+                raise Exception("Columns should not contain duplicate values.")
 
         if isinstance(data, DataFrame):
             data = data._mgr
