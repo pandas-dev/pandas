@@ -1813,7 +1813,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         DataFrame({"test_foo_data": [0, 1, 2]}).to_sql("test_foo_data", self.conn)
         main(self.conn)
 
-    def _to_sql_with_negative_npinf(self):
+    def test_to_sql_with_negative_npinf(self):
+        # This tests the example raised in GH issue 34431.
+
         df1 = pd.DataFrame({"foo": [np.inf]})
         df1.to_sql("foobar1", self.conn, index=False)
         res1 = sql.read_sql_table("foobar1", self.conn)
