@@ -18,7 +18,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import internals as libinternals, lib
+from pandas._libs import algos as libalgos, internals as libinternals, lib
 from pandas._typing import ArrayLike, DtypeObj, Label, Scalar
 from pandas.util._validators import validate_bool_kwarg
 
@@ -33,6 +33,7 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_extension_array_dtype,
     is_list_like,
+    is_numeric_dtype,
     is_numeric_v_string_like,
     is_scalar,
 )
@@ -42,6 +43,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.dtypes.missing import array_equals, isna
 
 import pandas.core.algorithms as algos
+from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
@@ -66,7 +68,555 @@ from pandas.core.internals.ops import blockwise_all, operate_blockwise
 T = TypeVar("T", bound="BlockManager")
 
 
-class BlockManager(PandasObject):
+class DataManager(PandasObject):
+
+    pass
+
+
+class ArrayManager(DataManager):
+
+    __slots__ = [
+        "_axes",
+        "arrays",
+    ]
+
+    arrays: List[np.ndarray]
+    axes: Sequence[Index]
+
+    def __init__(
+        self,
+        arrays: List[np.ndarray],
+        axes: Sequence[Index],
+        do_integrity_check: bool = True,
+    ):
+        self._axes = axes
+        self.arrays = arrays
+
+        if do_integrity_check:
+            self._axes = [ensure_index(ax) for ax in axes]
+            self._verify_integrity()
+
+    @property
+    def items(self) -> Index:
+        return self._axes[1]
+
+    @property
+    def axes(self) -> Sequence[Index]:
+        return [self._axes[1], self._axes[0]]
+
+    @property
+    def shape(self) -> Tuple[int, ...]:
+        # this still gives the "old" transposed shape
+        return tuple(len(ax) for ax in self.axes)
+
+    @property
+    def shape_proper(self) -> Tuple[int, ...]:
+        # this still gives the "old" transposed shape
+        return tuple(len(ax) for ax in self._axes)
+
+    @staticmethod
+    def _normalize_axis(axis):
+        # switch axis
+        axis = 1 if axis == 0 else 0
+        return axis
+
+    # TODO can be shared
+    @property
+    def ndim(self) -> int:
+        return len(self.axes)
+
+    def consolidate(self) -> "ArrayManager":
+        return self
+
+    def is_consolidated(self) -> bool:
+        return True
+
+    def _consolidate_inplace(self) -> None:
+        pass
+
+    # TODO can be shared
+    def set_axis(self, axis: int, new_labels: Index) -> None:
+        # Caller is responsible for ensuring we have an Index object.
+        axis = self._normalize_axis(axis)
+        old_len = len(self._axes[axis])
+        new_len = len(new_labels)
+
+        if new_len != old_len:
+            raise ValueError(
+                f"Length mismatch: Expected axis has {old_len} elements, new "
+                f"values have {new_len} elements"
+            )
+
+        self._axes[axis] = new_labels
+
+    def get_dtypes(self):
+        return np.array([arr.dtype for arr in self.arrays], dtype="object")
+
+    # TODO setstate getstate
+
+    # TODO can be shared
+    def __len__(self) -> int:
+        return len(self.items)
+
+    def __repr__(self) -> str:
+        output = type(self).__name__
+        output += f"\nIndex: {self._axes[0]}"
+        output += f"\nColumns: {self._axes[1]}"
+        output += f"\n{len(self.arrays)} arrays:"
+        for arr in self.arrays:
+            output += f"\n{arr.dtype}"
+        return output
+
+    def _verify_integrity(self) -> None:
+        pass
+        # TODO
+        # mgr_shape = self.shape
+        # tot_items = sum(len(x.mgr_locs) for x in self.blocks)
+        # for block in self.blocks:
+        #     if block._verify_integrity and block.shape[1:] != mgr_shape[1:]:
+        #         raise construction_error(tot_items, block.shape[1:], self.axes)
+        # if len(self.items) != tot_items:
+        #     raise AssertionError(
+        #         "Number of manager items must equal union of "
+        #         f"block items\n# manager items: {len(self.items)}, # "
+        #         f"tot_items: {tot_items}"
+        #     )
+
+    def apply(self: T, f, align_keys=None, **kwargs) -> T:
+        """
+        Iterate over the blocks, collect and create a new BlockManager.
+
+        Parameters
+        ----------
+        f : str or callable
+            Name of the Block method to apply.
+
+        Returns
+        -------
+        BlockManager
+        """
+        assert "filter" not in kwargs
+
+        align_keys = align_keys or []
+        result_arrays: List[ExtensionArray] = []
+        # fillna: Series/DataFrame is responsible for making sure value is aligned
+
+        aligned_args = {k: kwargs[k] for k in align_keys}
+
+        for a in self.arrays:
+
+            if aligned_args:
+
+                raise NotImplementedError
+
+            if callable(f):
+                applied = f(a, **kwargs)
+            else:
+                applied = getattr(a, f)(**kwargs)
+            result_arrays.append(applied)
+
+        if len(result_arrays) == 0:
+            return self.make_empty(self._axes)
+
+        return type(self)(result_arrays, self._axes)
+
+    def where(
+        self, other, cond, align: bool, errors: str, try_cast: bool, axis: int
+    ) -> "ArrayManager":
+        # TODO can be shared
+        if align:
+            align_keys = ["other", "cond"]
+        else:
+            align_keys = ["cond"]
+            other = extract_array(other, extract_numpy=True)
+
+        return self.apply(
+            "where",
+            align_keys=align_keys,
+            other=other,
+            cond=cond,
+            errors=errors,
+            try_cast=try_cast,
+            axis=axis,
+        )
+
+    def operate_blockwise(self, other: "ArrayManager", array_op) -> "ArrayManager":
+        """
+        Apply array_op blockwise with another (aligned) BlockManager.
+        """
+        left_arrays = self.arrays
+        right_arrays = other.arrays
+        result_arrays = [array_op(l, r) for l, r in zip(left_arrays, right_arrays)]
+        return type(self)(result_arrays, self._axes)
+
+    def copy(self: T, deep=True) -> T:
+        """
+        Make deep or shallow copy of BlockManager
+
+        Parameters
+        ----------
+        deep : bool or string, default True
+            If False, return shallow copy (do not copy data)
+            If 'all', copy data and a deep copy of the index
+
+        Returns
+        -------
+        BlockManager
+        """
+        # this preserves the notion of view copying of axes
+        if deep:
+            # hit in e.g. tests.io.json.test_pandas
+
+            def copy_func(ax):
+                return ax.copy(deep=True) if deep == "all" else ax.view()
+
+            new_axes = [copy_func(ax) for ax in self._axes]
+        else:
+            new_axes = list(self._axes)
+
+        res = self.apply("copy")  # , deep=deep)
+        res._axes = new_axes
+        return res
+
+    def astype(
+        self, dtype, copy: bool = False, errors: str = "raise"
+    ) -> "BlockManager":
+        return self.apply("astype", dtype=dtype, copy=copy)  # , errors=errors)
+
+    def iget(self, i: int) -> "SingleBlockManager":
+        """
+        Return the data as a SingleBlockManager.
+        """
+        values = self.arrays[i]
+        block = make_block(values, placement=slice(0, len(values)), ndim=1)
+
+        return SingleBlockManager(block, self._axes[0])
+
+    def iget_values(self, i: int) -> ArrayLike:
+        """
+        Return the data for column i as the values (ndarray or ExtensionArray).
+        """
+        return self.arrays[i]
+
+    def take(self, indexer, axis: int = 1, verify: bool = True, convert: bool = True):
+        """
+        Take items along any axis.
+        """
+        axis = self._normalize_axis(axis)
+
+        indexer = (
+            np.arange(indexer.start, indexer.stop, indexer.step, dtype="int64")
+            if isinstance(indexer, slice)
+            else np.asanyarray(indexer, dtype="int64")
+        )
+
+        n = self.shape_proper[axis]
+        if convert:
+            indexer = maybe_convert_indices(indexer, n)
+
+        if verify:
+            if ((indexer == -1) | (indexer >= n)).any():
+                raise Exception("Indices must be nonzero and less than the axis length")
+
+        new_labels = self._axes[axis].take(indexer)
+        return self._reindex_indexer(
+            new_axis=new_labels, indexer=indexer, axis=axis, allow_dups=True
+        )
+
+    def _make_na_array(self, fill_value=None):
+        if fill_value is None:
+            fill_value = np.nan
+
+        dtype, fill_value = infer_dtype_from_scalar(fill_value)
+        values = np.empty(self.shape_proper[0], dtype=dtype)
+        values.fill(fill_value)
+        return values
+
+    def reindex_indexer(
+        self: T,
+        new_axis,
+        indexer,
+        axis: int,
+        fill_value=None,
+        allow_dups: bool = False,
+        copy: bool = True,
+    ) -> T:
+        axis = self._normalize_axis(axis)
+        return self._reindex_indexer(
+            new_axis, indexer, axis, fill_value, allow_dups, copy
+        )
+
+    def _reindex_indexer(
+        self: T,
+        new_axis,
+        indexer,
+        axis: int,
+        fill_value=None,
+        allow_dups: bool = False,
+        copy: bool = True,
+    ) -> T:
+        """
+        Parameters
+        ----------
+        new_axis : Index
+        indexer : ndarray of int64 or None
+        axis : int
+        fill_value : object, default None
+        allow_dups : bool, default False
+        copy : bool, default True
+
+
+        pandas-indexer with -1's only.
+        """
+        if indexer is None:
+            if new_axis is self._axes[axis] and not copy:
+                return self
+
+            result = self.copy(deep=copy)
+            result._axes = list(self._axes)
+            result._axes[axis] = new_axis
+            return result
+
+        # some axes don't allow reindexing with dups
+        if not allow_dups:
+            self._axes[axis]._can_reindex(indexer)
+
+        # if axis >= self.ndim:
+        #     raise IndexError("Requested axis not found in manager")
+
+        if axis == 1:
+            new_arrays = []
+            for i in indexer:
+                if i == -1:
+                    arr = self._make_na_array(fill_value=fill_value)
+                else:
+                    arr = self.arrays[i]
+                new_arrays.append(arr)
+
+        else:
+            new_arrays = [
+                algos.take(
+                    array,
+                    indexer,
+                    allow_fill=True,
+                    fill_value=fill_value,  # if fill_value is not None else blk.fill_value
+                )
+                for array in self.arrays
+            ]
+
+        new_axes = list(self._axes)
+        new_axes[axis] = new_axis
+
+        return type(self)(new_arrays, new_axes)
+
+    def get_slice(self, slobj: slice, axis: int = 0) -> "BlockManager":
+        axis = self._normalize_axis(axis)
+
+        if axis == 0:
+            arrays = [arr[slobj] for arr in self.arrays]
+        elif axis == 1:
+            arrays = self.arrays[slobj]
+
+        new_axes = list(self._axes)
+        new_axes[axis] = new_axes[axis][slobj]
+
+        return type(self)(arrays, new_axes, do_integrity_check=False)
+
+    def iset(self, loc: Union[int, slice, np.ndarray], value):
+        """
+        Set new item in-place. Does not consolidate. Adds new Block if not
+        contained in the current set of items
+        """
+        if lib.is_integer(loc):
+            # TODO normalize array
+            assert isinstance(value, np.ndarray)
+            value = value[0, :]
+            assert len(value) == len(self._axes[0])
+            self.arrays[loc] = value
+            return
+
+        # TODO
+        raise Exception
+
+    def insert(self, loc: int, item: Label, value, allow_duplicates: bool = False):
+        """
+        Insert item at selected position.
+
+        Parameters
+        ----------
+        loc : int
+        item : hashable
+        value : array_like
+        allow_duplicates: bool
+            If False, trying to insert non-unique item will raise
+
+        """
+        if not allow_duplicates and item in self.items:
+            # Should this be a different kind of error??
+            raise ValueError(f"cannot insert {item}, already exists")
+
+        if not isinstance(loc, int):
+            raise TypeError("loc must be int")
+
+        # insert to the axis; this could possibly raise a TypeError
+        new_axis = self.items.insert(loc, item)
+
+        if value.ndim == 2:
+            value = value[0, :]
+        assert len(value) == len(self.arrays[0])
+
+        # TODO is this copy needed?
+        arrays = self.arrays.copy()
+        arrays.insert(loc, value)
+
+        self.arrays = arrays
+        self._axes[1] = new_axis
+
+    def fillna(self, value, limit, inplace: bool, downcast) -> "ArrayManager":
+
+        inplace = validate_bool_kwarg(inplace, "inplace")
+
+        def array_fillna(array, value, limit, inplace):
+
+            mask = isna(array)
+            if limit is not None:
+                limit = libalgos._validate_limit(None, limit=limit)
+                mask[mask.cumsum() > limit] = False
+
+            # if not self._can_hold_na:
+            #     if inplace:
+            #         return [self]
+            #     else:
+            #         return [self.copy()]
+            if not inplace:
+                array = array.copy()
+
+            np.putmask(array, mask, value)
+            return array
+
+        return self.apply(array_fillna, value=value, limit=limit, inplace=inplace)
+
+        #     if self._can_hold_element(value):
+        #         # equivalent: _try_coerce_args(value) would not raise
+        #         blocks = self.putmask(mask, value, inplace=inplace)
+        #         return self._maybe_downcast(blocks, downcast)
+
+        #     # we can't process the value, but nothing to do
+        #     if not mask.any():
+        #         return [self] if inplace else [self.copy()]
+
+        #     # operate column-by-column
+        #     def f(mask, val, idx):
+        #         block = self.coerce_to_target_dtype(value)
+
+        #         # slice out our block
+        #         if idx is not None:
+        #             # i.e. self.ndim == 2
+        #             block = block.getitem_block(slice(idx, idx + 1))
+        #         return block.fillna(value, limit=limit, inplace=inplace, downcast=None)
+
+        #     return self.split_and_operate(None, f, inplace)
+
+        # return self.apply(
+        #     "fillna", value=value, limit=limit, inplace=inplace, downcast=downcast
+        # )
+
+    def as_array(
+        self,
+        transpose: bool = False,
+        dtype=None,
+        copy: bool = False,
+        na_value=lib.no_default,
+    ) -> np.ndarray:
+        """
+        Convert the blockmanager data into an numpy array.
+
+        Parameters
+        ----------
+        transpose : bool, default False
+            If True, transpose the return array.
+        dtype : object, default None
+            Data type of the return array.
+        copy : bool, default False
+            If True then guarantee that a copy is returned. A value of
+            False does not guarantee that the underlying data is not
+            copied.
+        na_value : object, default lib.no_default
+            Value to be used as the missing value sentinel.
+
+        Returns
+        -------
+        arr : ndarray
+        """
+        if len(self.arrays) == 0:
+            arr = np.empty(self.shape, dtype=float)
+            return arr.transpose() if transpose else arr
+
+        # We want to copy when na_value is provided to avoid
+        # mutating the original object
+        copy = copy or na_value is not lib.no_default
+
+        if not dtype:
+            dtype = _interleaved_dtype(self.arrays)
+
+        result = np.empty(self.shape_proper, dtype=dtype)
+
+        for i, arr in enumerate(self.arrays):
+            arr = arr.astype(dtype, copy=copy)
+            result[:, i] = arr
+
+        if na_value is not lib.no_default:
+            result[isna(result)] = na_value
+
+        return result
+        # return arr.transpose() if transpose else arr
+
+    def get_bool_data(self, copy: bool = False) -> "BlockManager":
+        """
+        Parameters
+        ----------
+        copy : bool, default False
+            Whether to copy the blocks
+        """
+        mask = self.get_dtypes() == np.dtype("bool")
+        arrays = [self.arrays[i] for i in np.nonzero(mask)[0]]
+        # TODO copy?
+        new_axes = [self._axes[0], self._axes[1][mask]]
+        return type(self)(arrays, new_axes)
+
+    def get_numeric_data(self, copy: bool = False) -> "BlockManager":
+        """
+        Parameters
+        ----------
+        copy : bool, default False
+            Whether to copy the blocks
+        """
+        mask = np.array([is_numeric_dtype(t) for t in self.get_dtypes()])
+        arrays = [self.arrays[i] for i in np.nonzero(mask)[0]]
+        # TODO copy?
+        new_axes = [self._axes[0], self._axes[1][mask]]
+        return type(self)(arrays, new_axes)
+
+    @property
+    def is_view(self) -> bool:
+        """ return a boolean if we are a single block and are a view """
+        return False
+
+    @property
+    def is_mixed_type(self) -> bool:
+        return True
+
+    @property
+    def is_numeric_mixed_type(self) -> bool:
+        return False
+
+    @property
+    def any_extension_types(self) -> bool:
+        """Whether any of the blocks in this manager are extension blocks"""
+        return False  # any(block.is_extension for block in self.blocks)
+
+
+class BlockManager(DataManager):
     """
     Core internal data structure to implement DataFrame, Series, etc.
 

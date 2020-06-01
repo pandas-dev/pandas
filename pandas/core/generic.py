@@ -100,7 +100,7 @@ from pandas.core.indexes.api import Index, MultiIndex, RangeIndex, ensure_index
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import Period, PeriodIndex
 import pandas.core.indexing as indexing
-from pandas.core.internals import BlockManager
+from pandas.core.internals import ArrayManager, BlockManager
 from pandas.core.missing import find_valid_index
 from pandas.core.ops import _align_method_FRAME
 from pandas.core.shared_docs import _shared_docs
@@ -197,7 +197,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     _deprecations: FrozenSet[str] = frozenset(["get_values", "tshift"])
     _metadata: List[str] = []
     _is_copy = None
-    _mgr: BlockManager
+    _mgr: Union[BlockManager, ArrayManager]
     _attrs: Dict[Optional[Hashable], Any]
     _typ: str
 
@@ -206,7 +206,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     def __init__(
         self,
-        data: BlockManager,
+        data: Union[BlockManager, ArrayManager],
         copy: bool = False,
         attrs: Optional[Mapping[Optional[Hashable], Any]] = None,
     ):
@@ -223,7 +223,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         object.__setattr__(self, "_flags", Flags(self, allows_duplicate_labels=True))
 
     @classmethod
-    def _init_mgr(cls, mgr, axes, dtype=None, copy: bool = False) -> BlockManager:
+    def _init_mgr(
+        cls, mgr, axes, dtype=None, copy: bool = False
+    ) -> Union[BlockManager, ArrayManager]:
         """ passed a manager and a axes dict """
         for a, axe in axes.items():
             if axe is not None:
@@ -5372,6 +5374,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Consolidate _mgr -- if the blocks have changed, then clear the
         cache
         """
+        if isinstance(self._mgr, ArrayManager):
+            return f()
         blocks_before = len(self._mgr.blocks)
         result = f()
         if len(self._mgr.blocks) != blocks_before:

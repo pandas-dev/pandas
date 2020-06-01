@@ -1,5 +1,6 @@
 from collections import defaultdict
 import copy
+import itertools
 from typing import Dict, List
 
 import numpy as np
@@ -26,7 +27,7 @@ from pandas.core.dtypes.missing import isna
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
 from pandas.core.internals.blocks import make_block
-from pandas.core.internals.managers import BlockManager
+from pandas.core.internals.managers import ArrayManager, BlockManager
 
 
 def concatenate_block_managers(
@@ -46,6 +47,23 @@ def concatenate_block_managers(
     -------
     BlockManager
     """
+    # breakpoint()
+
+    if isinstance(mgrs_indexers[0][0], ArrayManager):
+
+        if concat_axis == 1:
+            # TODO for now only fastpath without indexers
+            mgrs = [t[0] for t in mgrs_indexers]
+            arrays = [
+                np.concatenate([mgrs[i].arrays[j] for i in range(len(mgrs))])
+                for j in range(len(mgrs[0].arrays))
+            ]
+            return ArrayManager(arrays, [axes[1], axes[0]])
+        elif concat_axis == 0:
+            mgrs = [t[0] for t in mgrs_indexers]
+            arrays = list(itertools.chain.from_iterable([mgr.arrays for mgr in mgrs]))
+            return ArrayManager(arrays, [axes[1], axes[0]])
+
     concat_plans = [
         _get_mgr_concatenation_plan(mgr, indexers) for mgr, indexers in mgrs_indexers
     ]

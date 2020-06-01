@@ -128,7 +128,7 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.multi import MultiIndex, maybe_droplevels
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexing import check_bool_indexer, convert_to_index_sliceable
-from pandas.core.internals import BlockManager
+from pandas.core.internals import ArrayManager, BlockManager
 from pandas.core.internals.construction import (
     arrays_to_mgr,
     dataclasses_to_dicts,
@@ -446,6 +446,7 @@ class DataFrame(NDFrame):
         columns: Optional[Axes] = None,
         dtype: Optional[Dtype] = None,
         copy: bool = False,
+        manager: str = "array",
     ):
         if data is None:
             data = {}
@@ -455,7 +456,7 @@ class DataFrame(NDFrame):
         if isinstance(data, DataFrame):
             data = data._mgr
 
-        if isinstance(data, BlockManager):
+        if isinstance(data, (BlockManager, ArrayManager)):
             if index is None and columns is None and dtype is None and copy is False:
                 # GH#33357 fastpath
                 NDFrame.__init__(
@@ -564,6 +565,11 @@ class DataFrame(NDFrame):
                     values, index, columns, dtype=values.dtype, copy=False
                 )
 
+        if manager == "array" and not isinstance(mgr, ArrayManager):
+            # TODO proper initialization
+            df = DataFrame(mgr, manager="block")
+            arrays = [arr.copy() for arr in df._iter_column_arrays()]
+            mgr = ArrayManager(arrays, [mgr.axes[1], mgr.axes[0]])
         NDFrame.__init__(self, mgr)
 
     # ----------------------------------------------------------------------
@@ -638,6 +644,8 @@ class DataFrame(NDFrame):
         ...    "B": np.array([1, 2], dtype=np.int64)})._is_homogeneous_type
         False
         """
+        if isinstance(self._mgr, ArrayManager):
+            return False
         if self._mgr.any_extension_types:
             return len({block.dtype for block in self._mgr.blocks}) == 1
         else:
