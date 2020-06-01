@@ -104,9 +104,9 @@ def test_write_append_mode(ext, mode, expected):
         for index, cell_value in enumerate(expected):
             assert wb2.worksheets[index]["A1"].value == cell_value
 
-# GH 29854
-def test_to_excel_with_openpyxl_engine(ext, tmpdir):
 
+def test_to_excel_with_openpyxl_engine(ext, tmpdir):
+    # GH 29854
     with tm.ensure_clean('styled.xlsx') as filename:
 
         df1 = DataFrame({"A": np.linspace(1, 10, 10)})
