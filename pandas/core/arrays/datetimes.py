@@ -537,7 +537,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         return conversion.is_date_array_normalized(self.asi8, self.tz)
 
     @property  # NB: override with cache_readonly in immutable subclasses
-    def _resolution(self) -> libresolution.Resolution:
+    def _resolution_obj(self) -> libresolution.Resolution:
         return libresolution.get_resolution(self.asi8, self.tz)
 
     # ----------------------------------------------------------------

@@ -5,9 +5,16 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, NaTType, Period, Timestamp, algos, iNaT, lib
-from pandas._libs.tslibs.resolution import Resolution
-from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
+from pandas._libs import algos, lib
+from pandas._libs.tslibs import (
+    NaT,
+    NaTType,
+    Period,
+    Resolution,
+    Timestamp,
+    delta_to_nanoseconds,
+    iNaT,
+)
 from pandas._libs.tslibs.timestamps import (
     RoundTo,
     integer_op_not_supported,
@@ -1103,7 +1110,7 @@ class DatetimeLikeArrayMixin(
             return None
 
     @property  # NB: override with cache_readonly in immutable subclasses
-    def _resolution(self) -> Optional[Resolution]:
+    def _resolution_obj(self) -> Optional[Resolution]:
         try:
             return Resolution.get_reso_from_freq(self.freqstr)
         except KeyError:
@@ -1114,12 +1121,12 @@ class DatetimeLikeArrayMixin(
         """
         Returns day, hour, minute, second, millisecond or microsecond
         """
-        if self._resolution is None:
+        if self._resolution_obj is None:
             if is_period_dtype(self.dtype):
                 # somewhere in the past it was decided we default to day
                 return "day"
             # otherwise we fall through and will raise
-        return Resolution.get_str(self._resolution)
+        return Resolution.get_str(self._resolution_obj)
 
     @classmethod
     def _validate_frequency(cls, index, freq, **kwargs):
