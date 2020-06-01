@@ -370,11 +370,15 @@ class BooleanArray(BaseMaskedArray):
             if incompatible type with an BooleanDtype, equivalent of same_kind
             casting
         """
+        from pandas.core.arrays.string_ import StringDtype
+
         dtype = pandas_dtype(dtype)
 
         if isinstance(dtype, BooleanDtype):
             values, mask = coerce_to_array(self, copy=copy)
             return BooleanArray(values, mask, copy=False)
+        elif isinstance(dtype, StringDtype):
+            return dtype.construct_array_type()._from_sequence(self, copy=False)
 
         if is_bool_dtype(dtype):
             # astype_nansafe converts np.nan to True
