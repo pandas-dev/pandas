@@ -1727,6 +1727,7 @@ cdef class _Period:
         Timestamp
         """
         if tz is not None:
+            # GH#34522
             warnings.warn(
                 "Period.to_timestamp `tz` argument is deprecated and will "
                 "be removed in a future version.  Use "

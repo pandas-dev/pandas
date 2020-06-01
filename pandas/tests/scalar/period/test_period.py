@@ -506,6 +506,7 @@ class TestPeriodMethods:
 
     @pytest.mark.parametrize("tzstr", ["Europe/Brussels", "Asia/Tokyo", "US/Pacific"])
     def test_to_timestamp_tz_arg(self, tzstr):
+        # GH#34522 tz kwarg deprecated
         with tm.assert_produces_warning(FutureWarning):
             p = Period("1/1/2005", freq="M").to_timestamp(tz=tzstr)
         exp = Timestamp("1/1/2005", tz="UTC").tz_convert(tzstr)
