@@ -1693,14 +1693,15 @@ def _get_timestamp_range_edges(
     -------
     A tuple of length 2, containing the adjusted pd.Timestamp objects.
     """
-    index_tz = first.tz
-    if isinstance(origin, Timestamp) and (origin.tz is None) != (index_tz is None):
-        raise ValueError("The origin must have the same timezone as the index.")
-    if origin == "epoch":
-        # set the epoch based on the timezone to have similar result between timezones
-        origin = Timestamp("1970-01-01", tz=index_tz)
-
     if isinstance(freq, Tick):
+        index_tz = first.tz
+        if isinstance(origin, Timestamp) and (origin.tz is None) != (index_tz is None):
+            raise ValueError("The origin must have the same timezone as the index.")
+        elif origin == "epoch":
+            # set the epoch based on the timezone to have similar bins results when
+            # resampling on the same kind of indexes on different timezones
+            origin = Timestamp("1970-01-01", tz=index_tz)
+
         if isinstance(freq, Day):
             # _adjust_dates_anchored assumes 'D' means 24H, but first/last
             # might contain a DST transition (23H, 24H, or 25H).
