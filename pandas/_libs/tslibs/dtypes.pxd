@@ -51,6 +51,6 @@ cdef enum PeriodDtypeCode:
     N = 12000       # Nanosecondly
 
 
-cdef class PeriodDtype:
+cdef class PeriodPseudoDtype:
     cdef readonly:
         PeriodDtypeCode dtype_code

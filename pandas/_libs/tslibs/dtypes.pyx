@@ -2,7 +2,7 @@
 # originals
 
 
-cdef class PeriodDtype:
+cdef class PeriodPseudoDtype:
     # cdef readonly:
     #    PeriodDtypeCode dtype_code
 
@@ -10,9 +10,9 @@ cdef class PeriodDtype:
         self.dtype_code = code
 
     def __eq__(self, other):
-        if not isinstance(other, PeriodDtype):
+        if not isinstance(other, PeriodPseudoDtype):
             return False
-        if not isinstance(self, PeriodDtype):
+        if not isinstance(self, PeriodPseudoDtype):
             # cython semantics, this is a reversed op
             return False
         return self.dtype_code == other.dtype_code
