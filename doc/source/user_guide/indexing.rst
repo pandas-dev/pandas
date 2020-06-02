@@ -1866,7 +1866,7 @@ A chained assignment can also crop up in setting in a mixed dtype frame.
 
    These setting rules apply to all of ``.loc/.iloc``.
 
-This is the correct access method:
+The following is the recommended access method using ``.loc`` for multiple items (using ``mask``) and a single item using a fixed index:
 
 .. ipython:: python
 
@@ -1874,12 +1874,12 @@ This is the correct access method:
                              'three', 'two', 'one', 'six'],
                        'c': np.arange(7)})
    dfd = dfc.copy()
-   # Setting multiple items using a mask (recommended)
+   # Setting multiple items using a mask
    mask = dfd['a'].str.startswith('o')
    dfd.loc[mask, 'c'] = 42
    dfd
 
-   # Setting a single item (recommended)
+   # Setting a single item
    dfd = dfc.copy()
    dfd.loc[2, 'a'] = 11
    dfd
