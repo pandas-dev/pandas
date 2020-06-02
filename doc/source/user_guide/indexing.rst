@@ -1880,6 +1880,7 @@ This is the correct access method:
    dfd
 
    # Setting a single item (recommended)
+   dfd = dfc.copy()
    dfd.loc[2, 'a'] = 11
    dfd
 
