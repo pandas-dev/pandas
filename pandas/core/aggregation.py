@@ -5,7 +5,7 @@ kwarg aggregations in groupby and DataFrame/Series aggregation
 
 from collections import defaultdict
 from functools import partial
-from typing import Any, DefaultDict, List, Sequence, Tuple, Union, Callable
+from typing import Any, Callable, DefaultDict, List, Sequence, Tuple, Union
 
 from pandas.core.dtypes.common import is_dict_like, is_list_like
 
@@ -219,7 +219,7 @@ def validate_func_kwargs(
     Examples
     --------
     >>> validate_func_kwargs({'one': 'min', 'two': 'max'})
-    (['one', 'two'], ['min','max'])
+    (['one', 'two'], ['min', 'max'])
     >>> validate_func_kwargs({'one': lambda x: x+1, 'two': np.min})
     (['one', 'two'], [lambda x:x+1, np.min])
     """
