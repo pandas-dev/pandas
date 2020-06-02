@@ -34,7 +34,6 @@ class TestDataFrameReprInfoEtc:
         repr(float_string_frame)
         float_string_frame.info(verbose=False, buf=buf)
 
-    @pytest.mark.slow
     def test_repr_mixed_big(self):
         # big mixed
         biggie = DataFrame(
@@ -81,7 +80,6 @@ class TestDataFrameReprInfoEtc:
         with option_context("display.show_dimensions", "truncate"):
             assert "2 rows x 2 columns" not in repr(df)
 
-    @pytest.mark.slow
     def test_repr_big(self):
         # big one
         biggie = DataFrame(np.zeros((200, 4)), columns=range(4), index=range(200))
