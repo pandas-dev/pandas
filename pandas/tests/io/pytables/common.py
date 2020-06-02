@@ -4,8 +4,6 @@ import tempfile
 
 import pytest
 
-import pandas._testing as tm
-
 from pandas.io.pytables import HDFStore
 
 tables = pytest.importorskip("tables")
