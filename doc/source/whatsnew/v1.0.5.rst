@@ -15,7 +15,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
--
+- Fix regression in :meth:`read_parquet` would raise a ``TypeError`` when passing in a file-`like object (:issue:`34467`)
 -
 
 .. _whatsnew_105.bug_fixes:
