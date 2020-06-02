@@ -893,6 +893,8 @@ Missing
 - Bug in :meth:`replace` when argument ``to_replace`` is of type dict/list and is used on a :class:`Series` containing ``<NA>`` was raising a ``TypeError``. The method now handles this by ignoring ``<NA>`` values when doing the comparison for the replacement (:issue:`32621`)
 - Bug in :meth:`~Series.any` and :meth:`~Series.all` incorrectly returning ``<NA>`` for all ``False`` or all ``True`` values using the nulllable boolean dtype and with ``skipna=False`` (:issue:`33253`)
 - Clarified documentation on interpolate with method =akima. The ``der`` parameter must be scalar or None (:issue:`33426`)
+- :meth:`DataFrame.interpolate` uses the correct axis convention now. Previously interpolating along columns lead to interpolation along indices and vice versa. Furthermore interpolating with methods ``pad``, ``ffill``, ``bfill`` and ``backfill`` are identical to using these methods with :meth:`fillna` (:issue:`12918`, :issue:`29146`)
+- Bug in :meth:`DataFrame.interpolate` when called on a DataFrame with column names of string type was throwing a ValueError. The method is no independing of the type of column names (:issue:`33956`)
 
 MultiIndex
 ^^^^^^^^^^
