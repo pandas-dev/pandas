@@ -856,12 +856,18 @@ def test_setitem_slice_into_readonly_backing_data():
 def test_access_none_value_in_multiindex():
     # GH34318: test that you can access a None value using .loc through a Multiindex
 
-    expected = None
-    result = pd.Series([None], pd.MultiIndex.from_arrays([["Level1"], ["Level2"]])).loc[
-        ("Level1", "Level2")
-    ]
+    s = Series([None], pd.MultiIndex.from_arrays([["Level1"], ["Level2"]]))
+    result = s.loc[("Level1", "Level2")]
+    assert result is None
 
-    assert expected == result
+    midx = MultiIndex.from_product([['Level1'], ['Level2_a', 'Level2_b']])
+    s = Series([None] * len(midx), dtype=object, index=midx)
+    result = s.loc[('Level1', 'Level2_a')]
+    assert result is None
+
+    s = Series([1] * len(midx), dtype=object, index=midx)
+    result = s.loc[('Level1', 'Level2_a')]
+    assert result == 1
 
 
 """
