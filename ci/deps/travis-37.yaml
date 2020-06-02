@@ -19,7 +19,7 @@ dependencies:
   - nomkl
   - pyarrow
   - pytz
-  - s3fs
+  - s3fs>=0.4.0
   - tabulate
   - pyreadstat
   - pip

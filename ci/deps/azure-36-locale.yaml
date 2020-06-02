@@ -15,7 +15,7 @@ dependencies:
 
   # pandas dependencies
   - beautifulsoup4
-  - gcsfs
+  - gcsfs>=0.6.0
   - html5lib
   - fsspec>=0.7.4
   - ipython
@@ -32,7 +32,7 @@ dependencies:
   - pytables
   - python-dateutil
   - pytz
-  - s3fs
+  - s3fs>=0.4.0
   - scipy
   - xarray
   - xlrd

@@ -16,7 +16,7 @@ dependencies:
   - beautifulsoup4
   - bottleneck
   - fsspec>=0.7.4
-  - gcsfs
+  - gcsfs>=0.6.0
   - html5lib
   - jinja2
   - lxml
@@ -29,7 +29,7 @@ dependencies:
   - pytables
   - python-dateutil
   - pytz
-  - s3fs
+  - s3fs>=0.4.0
   - scipy
   - sqlalchemy
   - xlrd

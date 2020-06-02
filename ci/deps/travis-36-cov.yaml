@@ -19,7 +19,7 @@ dependencies:
   - dask
   - fastparquet>=0.3.2
   - fsspec>=0.7.4
-  - gcsfs
+  - gcsfs>=0.6.0
   - geopandas
   - html5lib
   - matplotlib
@@ -36,7 +36,7 @@ dependencies:
   - pytables
   - python-snappy
   - pytz
-  - s3fs
+  - s3fs>=0.4.0
   - scikit-learn
   - scipy
   - sqlalchemy
