@@ -339,5 +339,5 @@ constructors using something similar to the following:
    s = pd.Series(newx)
 
 See `the NumPy documentation on byte order
-<https://docs.scipy.org/doc/numpy/user/basics.byteswapping.html>`__ for more
+<https://numpy.org/doc/stable/user/basics.byteswapping.html>`__ for more
 details.

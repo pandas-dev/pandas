@@ -589,6 +589,8 @@ class TestPeriodMethods:
         from_lst = ["A", "Q", "M", "W", "B", "D", "H", "Min", "S"]
 
         def _ex(p):
+            if p.freq == "B":
+                return p.start_time + Timedelta(days=1, nanoseconds=-1)
             return Timestamp((p + p.freq).start_time.value - 1)
 
         for i, fcode in enumerate(from_lst):
@@ -630,6 +632,13 @@ class TestPeriodMethods:
         result = p.to_timestamp("3H", how="start")
         assert result == expected
         result = p.to_timestamp("5S", how="start")
+        assert result == expected
+
+    def test_to_timestamp_business_end(self):
+        per = pd.Period("1990-01-05", "B")  # Friday
+        result = per.to_timestamp("B", how="E")
+
+        expected = pd.Timestamp("1990-01-06") - pd.Timedelta(nanoseconds=1)
         assert result == expected
 
     # --------------------------------------------------------------
@@ -785,6 +794,14 @@ class TestPeriodProperties:
         p = Period("2012", freq="1H1D")
         xp = _ex(2012, 1, 2, 1)
         assert xp == p.end_time
+
+    def test_end_time_business_friday(self):
+        # GH#34449
+        per = Period("1990-01-05", "B")
+        result = per.end_time
+
+        expected = pd.Timestamp("1990-01-06") - pd.Timedelta(nanoseconds=1)
+        assert result == expected
 
     def test_anchor_week_end_time(self):
         def _ex(*args):
@@ -992,7 +1009,8 @@ class TestPeriodComparisons:
         assert not jan == 1
         assert jan != 1
 
-        msg = "Cannot compare type Period with type int"
+        int_or_per = "'(Period|int)'"
+        msg = f"not supported between instances of {int_or_per} and {int_or_per}"
         for left, right in [(jan, 1), (1, jan)]:
 
             with pytest.raises(TypeError, match=msg):
@@ -1060,7 +1078,13 @@ class TestArithmetic:
         per1 = Period(freq="D", year=2008, month=1, day=1)
         per2 = Period(freq="D", year=2008, month=1, day=2)
 
-        msg = r"unsupported operand type\(s\)"
+        msg = "|".join(
+            [
+                r"unsupported operand type\(s\)",
+                "can only concatenate str",
+                "must be str, not Period",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             per1 + "str"
         with pytest.raises(TypeError, match=msg):
@@ -1401,8 +1425,15 @@ class TestArithmetic:
 
     @pytest.mark.parametrize("freq", ["M", "2M", "3M"])
     def test_period_addsub_nat(self, freq):
-        assert NaT - Period("2011-01", freq=freq) is NaT
-        assert Period("2011-01", freq=freq) - NaT is NaT
+        per = Period("2011-01", freq=freq)
+
+        # For subtraction, NaT is treated as another Period object
+        assert NaT - per is NaT
+        assert per - NaT is NaT
+
+        # For addition, NaT is treated as offset-like
+        assert NaT + per is NaT
+        assert per + NaT is NaT
 
     def test_period_ops_offset(self):
         p = Period("2011-04-01", freq="D")

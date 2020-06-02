@@ -339,7 +339,7 @@ def _get_empty_dtype_and_na(join_units):
     if len(join_units) == 1:
         blk = join_units[0].block
         if blk is None:
-            return np.float64, np.nan
+            return np.dtype(np.float64), np.nan
 
     if _is_uniform_reindex(join_units):
         # FIXME: integrate property
@@ -424,7 +424,7 @@ def _get_empty_dtype_and_na(join_units):
                 return g, g.type(np.nan)
             elif is_numeric_dtype(g):
                 if has_none_blocks:
-                    return np.float64, np.nan
+                    return np.dtype(np.float64), np.nan
                 else:
                     return g, None
 
@@ -443,7 +443,7 @@ def _is_uniform_join_units(join_units: List[JoinUnit]) -> bool:
     #  cannot necessarily join
     return (
         # all blocks need to have the same type
-        all(type(ju.block) is type(join_units[0].block) for ju in join_units)
+        all(isinstance(ju.block, type(join_units[0].block)) for ju in join_units)
         and  # noqa
         # no blocks that would get missing values (can lead to type upcasts)
         # unless we're an extension dtype.
