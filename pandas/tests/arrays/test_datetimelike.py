@@ -513,7 +513,7 @@ class TestDatetimeArray(SharedTests):
 
         expected = dti.to_perioddelta(freq=freqstr)
         result = arr.to_perioddelta(freq=freqstr)
-        assert isinstance(result, TimedeltaArray)
+        assert isinstance(result, np.ndarray)
 
         # placeholder until these become actual EA subclasses and we can use
         #  an EA-specific tm.assert_ function
