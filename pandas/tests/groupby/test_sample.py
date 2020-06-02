@@ -1,7 +1,4 @@
-import numpy as np
 import pytest
-
-from pandas.compat.numpy import _np_version_under1p17
 
 from pandas import DataFrame, Index, Series
 import pandas._testing as tm
@@ -126,19 +123,3 @@ def test_groupby_sample_with_weights():
     result = df.groupby("a")["b"].sample(n=2, replace=True, weights=[1, 0, 1, 0])
     expected = Series(values, name="b", index=Index([0, 0, 2, 2]))
     tm.assert_series_equal(result, expected)
-
-
-@pytest.mark.parametrize("random_state", [0, np.array([0, 1, 2])])
-def test_groupby_sample_using_random_state(random_state):
-    df = DataFrame({"a": [1] * 50 + [2] * 50, "b": np.arange(100)})
-    expected = df.groupby("a").sample(frac=0.5, random_state=random_state)
-    result = df.groupby("a").sample(frac=0.5, random_state=random_state)
-    tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.skipif(_np_version_under1p17, reason="Numpy version < 1.17")
-def test_groupby_sample_using_bitgenerator():
-    df = DataFrame({"a": [1] * 50 + [2] * 50, "b": np.arange(100)})
-    expected = df.groupby("a").sample(frac=0.5, random_state=np.random.MT19937(0))
-    result = df.groupby("a").sample(frac=0.5, random_state=np.random.MT19937(0))
-    tm.assert_frame_equal(result, expected)
