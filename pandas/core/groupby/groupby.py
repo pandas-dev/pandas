@@ -2764,14 +2764,14 @@ class GroupBy(_GroupBy[FrameOrSeries]):
                a  b
         4  black  4
         2   blue  2
-        0    red  1
+        1    red  1
 
         Set `frac` to sample fixed proportions rather than counts:
 
         >>> df.groupby("a")["b"].sample(frac=0.5, random_state=2)
         5    5
-        3    2
-        1    0
+        2    2
+        0    0
         Name: b, dtype: int64
         """
         from pandas.core.reshape.concat import concat
