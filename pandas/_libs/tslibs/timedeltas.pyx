@@ -1205,7 +1205,7 @@ class Timedelta(_Timedelta):
         cdef:
             int64_t result, unit
 
-        from pandas.tseries.frequencies import to_offset
+        from pandas._libs.tslibs.offsets import to_offset
         unit = to_offset(freq).nanos
         result = unit * rounder(self.value / float(unit))
         return Timedelta(result, unit='ns')
