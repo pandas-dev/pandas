@@ -465,7 +465,10 @@ class TestBasic(Base):
     @tm.network
     def test_parquet_read_from_url(self, engine, df_compat):
         # TODO:alimcmaster1 update with master URL
-        url = "https://raw.githubusercontent.com/alimcmaster1/pandas/mcmali-parq-fix/pandas/tests/io/data/parquet/simple.parquet"
+        url = (
+            "https://raw.githubusercontent.com/alimcmaster1/pandas/"
+            "mcmali-parq-fix/pandas/tests/io/data/parquet/simple.parquet"
+        )
         df = pd.read_parquet(url, engine=engine)
         tm.assert_frame_equal(df, df_compat)
 
