@@ -9,15 +9,14 @@ from pandas._libs import lib, tslib
 from pandas._libs.tslibs import (
     NaT,
     Timestamp,
-    ccalendar,
     conversion,
     fields,
+    frequencies as libfrequencies,
     iNaT,
     resolution as libresolution,
     timezones,
     tzconversion,
 )
-import pandas._libs.tslibs.frequencies as libfrequencies
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import (
@@ -538,8 +537,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         return conversion.is_date_array_normalized(self.asi8, self.tz)
 
     @property  # NB: override with cache_readonly in immutable subclasses
-    def _resolution(self):
-        return libresolution.resolution(self.asi8, self.tz)
+    def _resolution_obj(self) -> libresolution.Resolution:
+        return libresolution.get_resolution(self.asi8, self.tz)
 
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
@@ -1036,14 +1035,7 @@ default 'raise'
                        '2014-08-01 00:00:00+05:30'],
                        dtype='datetime64[ns, Asia/Calcutta]', freq=None)
         """
-        if self.tz is None or timezones.is_utc(self.tz):
-            not_null = ~self.isna()
-            DAY_NS = ccalendar.DAY_SECONDS * 1_000_000_000
-            new_values = self.asi8.copy()
-            adjustment = new_values[not_null] % DAY_NS
-            new_values[not_null] = new_values[not_null] - adjustment
-        else:
-            new_values = conversion.normalize_i8_timestamps(self.asi8, self.tz)
+        new_values = conversion.normalize_i8_timestamps(self.asi8, self.tz)
         return type(self)(new_values)._with_freq("infer").tz_localize(self.tz)
 
     def to_period(self, freq=None):

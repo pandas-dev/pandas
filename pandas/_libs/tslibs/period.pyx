@@ -76,7 +76,7 @@ from pandas._libs.tslibs.tzconversion cimport tz_convert_utc_to_tzlocal
 
 cdef:
     enum:
-        INT32_MIN = -2_147_483_648
+        INT32_MIN = -2_147_483_648LL
 
 
 ctypedef struct asfreq_info:
@@ -108,9 +108,11 @@ cdef extern from *:
     #define FR_UND -10000    /* Undefined */
 
     // must use npy typedef b/c int64_t is aliased in cython-generated c
+    // unclear why we need LL for that row.
+    // see https://github.com/pandas-dev/pandas/pull/34416/
     static npy_int64 daytime_conversion_factor_matrix[7][7] = {
         {1, 24, 1440, 86400, 86400000, 86400000000, 86400000000000},
-        {0,  1,   60,  3600,  3600000,  3600000000,  3600000000000},
+        {0LL,  1LL,   60LL,  3600LL,  3600000LL,  3600000000LL,  3600000000000LL},
         {0,  0,   1,     60,    60000,    60000000,    60000000000},
         {0,  0,   0,      1,     1000,     1000000,     1000000000},
         {0,  0,   0,      0,        1,        1000,        1000000},
@@ -1509,8 +1511,6 @@ cdef class _Period:
         int64_t ordinal
         object freq
 
-    _typ = 'period'
-
     def __cinit__(self, ordinal, freq):
         self.ordinal = ordinal
         self.freq = freq
@@ -1702,10 +1702,7 @@ cdef class _Period:
 
     @property
     def end_time(self) -> Timestamp:
-        # freq.n can't be negative or 0
-        # ordinal = (self + self.freq.n).start_time.value - 1
-        ordinal = (self + self.freq).start_time.value - 1
-        return Timestamp(ordinal)
+        return self.to_timestamp(how="end")
 
     def to_timestamp(self, freq=None, how='start', tz=None) -> Timestamp:
         """
@@ -1727,18 +1724,22 @@ cdef class _Period:
         -------
         Timestamp
         """
-        if freq is not None:
-            freq = self._maybe_convert_freq(freq)
         how = validate_end_alias(how)
 
         end = how == 'E'
         if end:
+            if freq == "B" or self.freq == "B":
+                # roll forward to ensure we land on B date
+                adjust = Timedelta(1, "D") - Timedelta(1, "ns")
+                return self.to_timestamp(how="start") + adjust
             endpoint = (self + self.freq).to_timestamp(how='start')
             return endpoint - Timedelta(1, 'ns')
 
         if freq is None:
             base, mult = get_freq_code(self.freq)
             freq = get_to_timestamp_base(base)
+        else:
+            freq = self._maybe_convert_freq(freq)
 
         base, mult = get_freq_code(freq)
         val = self.asfreq(freq, how)
