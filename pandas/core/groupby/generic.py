@@ -57,6 +57,7 @@ from pandas.core.aggregation import (
     is_multi_agg_with_relabel,
     maybe_mangle_lambdas,
     normalize_keyword_aggregation,
+    validate_func_kwargs
 )
 import pandas.core.algorithms as algorithms
 from pandas.core.base import DataError, SpecificationError
@@ -233,20 +234,9 @@ class SeriesGroupBy(GroupBy[Series]):
 
         relabeling = func is None
         columns = None
-        no_arg_message = "Must provide 'func' or named aggregation **kwargs."
-        tuple_given_message = "func is expected but recieved {} in **kwargs."
         if relabeling:
-            columns = list(kwargs)
-            func = []
-            for col in columns:
-                if isinstance(kwargs[col], (list, tuple)):
-                    raise TypeError(
-                        tuple_given_message.format(type(kwargs[col]).__name__)
-                    )
-                func.append(kwargs[col])
+            columns, func = validate_func_kwargs(kwargs)
             kwargs = {}
-            if not columns:
-                raise TypeError(no_arg_message)
 
         if isinstance(func, str):
             return getattr(self, func)(*args, **kwargs)
