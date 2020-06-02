@@ -36,7 +36,7 @@ from pandas._libs.tslibs.base cimport ABCTimestamp
 from pandas._libs.tslibs.ccalendar import (
     MONTH_ALIASES, MONTH_TO_CAL_NUM, weekday_to_int, int_to_weekday,
 )
-from pandas._libs.tslibs.ccalendar cimport get_days_in_month, dayofweek, DAY_NANOS
+from pandas._libs.tslibs.ccalendar cimport DAY_NANOS, get_days_in_month, dayofweek
 from pandas._libs.tslibs.conversion cimport (
     convert_datetime_to_tsobject,
     localize_pydatetime,
