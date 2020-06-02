@@ -366,10 +366,10 @@ cdef class BaseOffset:
     _adjust_dst = True
     _deprecations = frozenset(["isAnchored", "onOffset"])
 
-    cdef readonly:
-        int64_t n
-        bint normalize
-        dict _cache
+    # cdef readonly:
+    #    int64_t n
+    #    bint normalize
+    #    dict _cache
 
     def __init__(self, n=1, normalize=False):
         n = self._validate_n(n)

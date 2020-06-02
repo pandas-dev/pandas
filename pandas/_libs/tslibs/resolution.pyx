@@ -48,18 +48,6 @@ _reso_str_map = {
 
 _str_reso_map = {v: k for k, v in _reso_str_map.items()}
 
-# factor to multiply a value by to convert it to the next finer grained
-# resolution
-_reso_mult_map = {
-    RESO_NS: None,
-    RESO_US: 1000,
-    RESO_MS: 1000,
-    RESO_SEC: 1000,
-    RESO_MIN: 60,
-    RESO_HR: 60,
-    RESO_DAY: 24,
-}
-
 # ----------------------------------------------------------------------
 
 
@@ -180,17 +168,17 @@ class Resolution(Enum):
             return FreqGroup.FR_ANN
         raise ValueError(self)
 
-    @classmethod
-    def get_str(cls, reso: "Resolution") -> str:
+    @property
+    def attrname(self) -> str:
         """
-        Return resolution str against resolution code.
+        Return datetime attribute name corresponding to this Resolution.
 
         Examples
         --------
-        >>> Resolution.get_str(Resolution.RESO_SEC)
+        >>> Resolution.RESO_SEC.attrname
         'second'
         """
-        return _reso_str_map[reso.value]
+        return _reso_str_map[self.value]
 
     @classmethod
     def from_attrname(cls, attrname: str) -> "Resolution":
@@ -208,18 +196,6 @@ class Resolution(Enum):
         return cls(_str_reso_map[attrname])
 
     @classmethod
-    def get_attrname_from_abbrev(cls, freq: str) -> str:
-        """
-        Return resolution str against frequency str.
-
-        Examples
-        --------
-        >>> Resolution.get_attrname_from_abbrev('H')
-        'hour'
-        """
-        return _abbrev_to_attrnames[freq]
-
-    @classmethod
     def get_reso_from_freq(cls, freq: str) -> "Resolution":
         """
         Return resolution code against frequency str.
@@ -234,7 +210,8 @@ class Resolution(Enum):
         >>> Resolution.get_reso_from_freq('H') == Resolution.RESO_HR
         True
         """
-        return cls.from_attrname(cls.get_attrname_from_abbrev(freq))
+        attr_name = _abbrev_to_attrnames[freq]
+        return cls.from_attrname(attr_name)
 
 
 # ----------------------------------------------------------------------
