@@ -153,20 +153,20 @@ class TestReducer:
             )
 
         dummy = Series(0.0, index=np.arange(100))
-        result = libreduction.compute_reduction(
+        result, _ = libreduction.compute_reduction(
             arr, np.sum, dummy=dummy, labels=Index(np.arange(4))
         )
         expected = arr.sum(0)
         tm.assert_almost_equal(result, expected)
 
         dummy = Series(0.0, index=np.arange(4))
-        result = libreduction.compute_reduction(
+        result, _ = libreduction.compute_reduction(
             arr, np.sum, axis=1, dummy=dummy, labels=Index(np.arange(100))
         )
         expected = arr.sum(1)
         tm.assert_almost_equal(result, expected)
 
-        result = libreduction.compute_reduction(
+        result, _ = libreduction.compute_reduction(
             arr, np.sum, axis=1, dummy=dummy, labels=Index(np.arange(100))
         )
         tm.assert_almost_equal(result, expected)
