@@ -8,6 +8,7 @@ from pandas._libs.tslibs.util cimport get_nat
 from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, dt64_to_dtstruct)
 from pandas._libs.tslibs.frequencies cimport attrname_to_abbrevs
+from pandas._libs.tslibs.frequencies import FreqGroup
 from pandas._libs.tslibs.timezones cimport (
     is_utc, is_tzlocal, maybe_get_tz, get_dst_info)
 from pandas._libs.tslibs.ccalendar cimport get_days_in_month
@@ -26,6 +27,9 @@ cdef:
     int RESO_MIN = 4
     int RESO_HR = 5
     int RESO_DAY = 6
+    #int RESO_MTH = 7
+    int RESO_QTR = 8
+    int RESO_YR = 9
 
 _abbrev_to_attrnames = {v: k for k, v in attrname_to_abbrevs.items()}
 
@@ -37,6 +41,9 @@ _reso_str_map = {
     RESO_MIN: "minute",
     RESO_HR: "hour",
     RESO_DAY: "day",
+    #RESO_MTH: "month",
+    RESO_QTR: "quarter",
+    RESO_YR: "year",
 }
 
 _str_reso_map = {v: k for k, v in _reso_str_map.items()}
@@ -138,12 +145,40 @@ class Resolution(Enum):
     RESO_MIN = 4
     RESO_HR = 5
     RESO_DAY = 6
+    #RESO_MTH = 7
+    RESO_QTR = 8
+    RESO_YR = 9
 
     def __lt__(self, other):
         return self.value < other.value
 
     def __ge__(self, other):
         return self.value >= other.value
+
+    @property
+    def freq_group(self):
+        # TODO: annotate as returning FreqGroup once that is an enum
+        if self == Resolution.RESO_NS:
+            return FreqGroup.FR_NS
+        if self == Resolution.RESO_US:
+            return FreqGroup.FR_US
+        if self == Resolution.RESO_MS:
+            return FreqGroup.FR_MS
+        if self == Resolution.RESO_SEC:
+            return FreqGroup.FR_SEC
+        if self == Resolution.RESO_MIN:
+            return FreqGroup.FR_MIN
+        if self == Resolution.RESO_HR:
+            return FreqGroup.FR_HR
+        if self == Resolution.RESO_DAY:
+            return FreqGroup.FR_DAY
+        #if self == Resolution.RESO_MTH:
+        #    return FreqGroup.FR_MTH
+        if self == Resolution.RESO_QTR:
+            return FreqGroup.FR_QTR
+        if self == Resolution.RESO_YR:
+            return FreqGroup.FR_ANN
+        raise ValueError(self)
 
     @classmethod
     def get_str(cls, reso: "Resolution") -> str:

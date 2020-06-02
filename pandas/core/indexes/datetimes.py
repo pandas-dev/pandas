@@ -7,7 +7,6 @@ import numpy as np
 
 from pandas._libs import NaT, Period, Timestamp, index as libindex, lib, tslib
 from pandas._libs.tslibs import Resolution, fields, parsing, timezones
-from pandas._libs.tslibs.frequencies import get_freq_group
 from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas._typing import DtypeObj, Label
 from pandas.util._decorators import cache_readonly
@@ -472,7 +471,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         dta = DatetimeArray(snapped, dtype=self.dtype)
         return DatetimeIndex._simple_new(dta, name=self.name)
 
-    def _parsed_string_to_bounds(self, reso: str, parsed: datetime):
+    def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
         """
         Calculate datetime bounds for parsed time string and its resolution.
 
@@ -487,6 +486,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -------
         lower, upper: pd.Timestamp
         """
+        assert isinstance(reso, Resolution), (type(reso), reso)
         valid_resos = {
             "year",
             "month",
@@ -499,10 +499,10 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             "second",
             "microsecond",
         }
-        if reso not in valid_resos:
+        if reso.get_str(reso) not in valid_resos:
             raise KeyError
 
-        grp = get_freq_group(reso)
+        grp = reso.freq_group
         per = Period(parsed, freq=(grp, 1))
         start, end = per.start_time, per.end_time
 
@@ -523,11 +523,12 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             end = end.tz_localize(self.tz)
         return start, end
 
-    def _validate_partial_date_slice(self, reso: str):
+    def _validate_partial_date_slice(self, reso: Resolution):
+        assert isinstance(reso, Resolution), (type(reso), reso)
         if (
             self.is_monotonic
-            and reso in ["day", "hour", "minute", "second"]
-            and self._resolution_obj >= Resolution.from_attrname(reso)
+            and reso.get_str(reso) in ["day", "hour", "minute", "second"]
+            and self._resolution_obj >= reso
         ):
             # These resolution/monotonicity validations came from GH3931,
             # GH3452 and GH2369.
@@ -627,6 +628,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if isinstance(label, str):
             freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
             parsed, reso = parsing.parse_time_string(label, freq)
+            reso = Resolution.from_attrname(reso)
             lower, upper = self._parsed_string_to_bounds(reso, parsed)
             # lower, upper form the half-open interval:
             #   [parsed, parsed + 1 freq)
@@ -643,6 +645,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     def _get_string_slice(self, key: str, use_lhs: bool = True, use_rhs: bool = True):
         freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
         parsed, reso = parsing.parse_time_string(key, freq)
+        reso = Resolution.from_attrname(reso)
         loc = self._partial_date_slice(reso, parsed, use_lhs=use_lhs, use_rhs=use_rhs)
         return loc
 
