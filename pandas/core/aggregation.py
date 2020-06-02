@@ -220,8 +220,6 @@ def validate_func_kwargs(
     --------
     >>> validate_func_kwargs({'one': 'min', 'two': 'max'})
     (['one', 'two'], ['min', 'max'])
-    >>> validate_func_kwargs({'one': lambda x: x+1, 'two': np.min})
-    (['one', 'two'], [lambda x:x+1, np.min])
     """
     no_arg_message = "Must provide 'func' or named aggregation **kwargs."
     tuple_given_message = "func is expected but recieved {} in **kwargs."
