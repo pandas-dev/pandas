@@ -640,8 +640,8 @@ apply and applymap on ``DataFrame`` evaluates first row/column only once
     df = pd.DataFrame({'a': [1, 2], 'b': [3, 6]})
 
     def func(row):
-         print(row)
-         return row
+        print(row)
+        return row
 
 *Previous behavior*:
 
