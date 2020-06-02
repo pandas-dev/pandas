@@ -1126,7 +1126,7 @@ class DatetimeLikeArrayMixin(
                 # somewhere in the past it was decided we default to day
                 return "day"
             # otherwise we fall through and will raise
-        return Resolution.get_str(self._resolution_obj)
+        return self._resolution_obj.attrname
 
     @classmethod
     def _validate_frequency(cls, index, freq, **kwargs):
