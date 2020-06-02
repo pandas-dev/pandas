@@ -374,13 +374,12 @@ class TestFrameFlexArithmetic:
         result2 = df.floordiv(ser.values, axis=0)
         tm.assert_frame_equal(result2, expected)
 
-    @pytest.mark.slow
     @pytest.mark.parametrize("opname", ["floordiv", "pow"])
     def test_floordiv_axis0_numexpr_path(self, opname):
         # case that goes through numexpr and has to fall back to masked_arith_op
         op = getattr(operator, opname)
 
-        arr = np.arange(10 ** 6).reshape(100, -1)
+        arr = np.arange(10 ** 3).reshape(100, -1) * 1000
         df = pd.DataFrame(arr)
         df["C"] = 1.0
 
