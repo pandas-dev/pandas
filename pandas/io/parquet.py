@@ -122,10 +122,14 @@ class PyArrowImpl(BaseImpl):
             file_obj_or_path.close()
 
     def read(self, path, columns=None, **kwargs):
+        path, _, _, should_close = get_filepath_or_buffer(path)
+
         kwargs["use_pandas_metadata"] = True
         result = self.api.parquet.read_table(
             path, columns=columns, filesystem=get_fs_for_path(path), **kwargs
         ).to_pandas()
+        if should_close:
+            path.close()
         return result
 
 
