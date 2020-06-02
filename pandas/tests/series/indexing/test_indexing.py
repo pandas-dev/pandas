@@ -860,13 +860,13 @@ def test_access_none_value_in_multiindex():
     result = s.loc[("Level1", "Level2")]
     assert result is None
 
-    midx = MultiIndex.from_product([['Level1'], ['Level2_a', 'Level2_b']])
+    midx = MultiIndex.from_product([["Level1"], ["Level2_a", "Level2_b"]])
     s = Series([None] * len(midx), dtype=object, index=midx)
-    result = s.loc[('Level1', 'Level2_a')]
+    result = s.loc[("Level1", "Level2_a")]
     assert result is None
 
     s = Series([1] * len(midx), dtype=object, index=midx)
-    result = s.loc[('Level1', 'Level2_a')]
+    result = s.loc[("Level1", "Level2_a")]
     assert result == 1
 
 
