@@ -1874,7 +1874,6 @@ This is the correct access method:
                              'three', 'two', 'one', 'six'],
                        'c': np.arange(7)})
    dfd = dfc.copy()
-         
    # Setting multiple items using a mask (recommended)
    mask = dfd['a'].str.startswith('o')
    dfd.loc[mask, 'c'] = 42
