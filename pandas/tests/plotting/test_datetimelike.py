@@ -326,6 +326,7 @@ class TestTSPlot(TestPlotBase):
         assert PeriodIndex(data=idx).freqstr == "M"
 
     def test_freq_with_no_period_alias(self):
+    # GH34487
         freq = WeekOfMonth()
         bts = tm.makeTimeSeries(5).asfreq(freq)
         _, ax = self.plt.subplots()
