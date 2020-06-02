@@ -472,6 +472,12 @@ class TestBasic(Base):
         df = pd.read_parquet(url, engine=engine)
         tm.assert_frame_equal(df, df_compat)
 
+    def test_read_file_like_obj_support(self, df_compat, engine):
+        buffer = BytesIO()
+        df_compat.to_parquet(buffer)
+        df_from_buf = pd.read_parquet(buffer, engine=engine)
+        tm.assert_frame_equal(df_compat, df_from_buf)
+
 
 class TestParquetPyArrow(Base):
     def test_basic(self, pa, df_full):
@@ -577,13 +583,6 @@ class TestParquetPyArrow(Base):
             check_like=True,
             repeat=1,
         )
-
-    @td.skip_if_no("pyarrow")
-    def test_file_like_obj_support(self, df_compat):
-        buffer = BytesIO()
-        df_compat.to_parquet(buffer)
-        df_from_buf = pd.read_parquet(buffer)
-        tm.assert_frame_equal(df_compat, df_from_buf)
 
     def test_partition_cols_supported(self, pa, df_full):
         # GH #23283
