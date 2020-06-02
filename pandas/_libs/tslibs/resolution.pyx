@@ -27,7 +27,7 @@ cdef:
     int RESO_MIN = 4
     int RESO_HR = 5
     int RESO_DAY = 6
-    #int RESO_MTH = 7
+    int RESO_MTH = 7
     int RESO_QTR = 8
     int RESO_YR = 9
 
@@ -41,7 +41,7 @@ _reso_str_map = {
     RESO_MIN: "minute",
     RESO_HR: "hour",
     RESO_DAY: "day",
-    #RESO_MTH: "month",
+    RESO_MTH: "month",
     RESO_QTR: "quarter",
     RESO_YR: "year",
 }
@@ -133,7 +133,7 @@ class Resolution(Enum):
     RESO_MIN = 4
     RESO_HR = 5
     RESO_DAY = 6
-    #RESO_MTH = 7
+    RESO_MTH = 7
     RESO_QTR = 8
     RESO_YR = 9
 
@@ -160,8 +160,8 @@ class Resolution(Enum):
             return FreqGroup.FR_HR
         if self == Resolution.RESO_DAY:
             return FreqGroup.FR_DAY
-        #if self == Resolution.RESO_MTH:
-        #    return FreqGroup.FR_MTH
+        if self == Resolution.RESO_MTH:
+            return FreqGroup.FR_MTH
         if self == Resolution.RESO_QTR:
             return FreqGroup.FR_QTR
         if self == Resolution.RESO_YR:

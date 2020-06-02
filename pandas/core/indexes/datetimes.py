@@ -499,7 +499,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             "second",
             "microsecond",
         }
-        if reso.get_str(reso) not in valid_resos:
+        if reso.attrname not in valid_resos:
             raise KeyError
 
         grp = reso.freq_group
@@ -527,7 +527,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         assert isinstance(reso, Resolution), (type(reso), reso)
         if (
             self.is_monotonic
-            and reso.get_str(reso) in ["day", "hour", "minute", "second"]
+            and reso.attrname in ["day", "hour", "minute", "second"]
             and self._resolution_obj >= reso
         ):
             # These resolution/monotonicity validations came from GH3931,
