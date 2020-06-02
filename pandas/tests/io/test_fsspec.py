@@ -13,6 +13,8 @@ df1 = DataFrame(
         "dt": date_range("2018-06-18", periods=2),
     }
 )
+# the ignore on the following line accounts for to_csv returning Optional(str)
+# in general, but always str in the case we give no filename
 text = df1.to_csv(index=False).encode()  # type: ignore
 
 
