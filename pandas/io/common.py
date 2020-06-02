@@ -186,7 +186,9 @@ def get_filepath_or_buffer(
         return reader, encoding, compression, True
 
     if is_fsspec_url(filepath_or_buffer):
-        assert isinstance(filepath_or_buffer, str)  # just to appease mypy for this branch
+        assert isinstance(
+            filepath_or_buffer, str
+        )  # just to appease mypy for this branch
         # two special-case s3-like protocols; these have special meaning in Hadoop,
         # but are equivalent to just "s3" from fsspec's point of view
         # cc #11071
