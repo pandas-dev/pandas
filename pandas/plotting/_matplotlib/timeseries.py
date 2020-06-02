@@ -221,7 +221,7 @@ def _use_dynamic_x(ax, data):
         x = data.index
         if base <= FreqGroup.FR_DAY:
             return x[:1].is_normalized
-        return Period(x[0], freq).to_timestamp(tz=x.tz) == x[0]
+        return Period(x[0], freq).to_timestamp().tz_localize(x.tz) == x[0]
     return True
 
 
