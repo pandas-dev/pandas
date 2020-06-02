@@ -117,5 +117,3 @@ def test_to_excel_with_openpyxl_engine(ext, tmpdir):
         ).highlight_max()
 
         styled.to_excel(filename, engine="openpyxl")
-
-        assert filename.exists()
