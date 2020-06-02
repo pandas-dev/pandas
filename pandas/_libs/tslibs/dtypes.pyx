@@ -3,6 +3,10 @@
 
 
 cdef class PeriodPseudoDtype:
+    """
+    Similar to an actual dtype, this contains all of the information
+    describing a PeriodDtype in an integer code.
+    """
     # cdef readonly:
     #    PeriodDtypeCode dtype_code
 
