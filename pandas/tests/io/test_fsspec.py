@@ -13,7 +13,7 @@ df1 = DataFrame(
         "dt": date_range("2018-06-18", periods=2),
     }
 )
-text = df1.to_csv(index=False).encode()
+text = df1.to_csv(index=False).encode()  # type: ignore
 
 
 @pytest.fixture
@@ -74,6 +74,14 @@ def test_from_s3_csv(s3_resource, tips_file):
     # the following are decompressed by pandas, not fsspec
     tm.assert_equal(read_csv("s3://pandas-test/tips.csv.gz"), read_csv(tips_file))
     tm.assert_equal(read_csv("s3://pandas-test/tips.csv.bz2"), read_csv(tips_file))
+
+
+@pytest.mark.parametrize("protocol", ["s3", "s3a", "s3n"])
+@td.skip_if_no("s3fs")
+def test_s3_protocols(s3_resource, tips_file, protocol):
+    tm.assert_equal(
+        read_csv("%s://pandas-test/tips.csv" % protocol), read_csv(tips_file)
+    )
 
 
 @td.skip_if_no("s3fs")

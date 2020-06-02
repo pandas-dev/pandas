@@ -186,6 +186,13 @@ def get_filepath_or_buffer(
         return reader, encoding, compression, True
 
     if is_fsspec_url(filepath_or_buffer):
+        # two special-case s3-like protocols; these have special meaning in Hadoop,
+        # but are equivalent to just "s3" from fsspec's point of view
+        # cc #11071
+        if filepath_or_buffer.startswith("s3a://"):
+            filepath_or_buffer = filepath_or_buffer.replace("s3a://", "s3://")
+        if filepath_or_buffer.startswith("s3n://"):
+            filepath_or_buffer = filepath_or_buffer.replace("s3n://", "s3://")
         fsspec = import_optional_dependency("fsspec")
 
         file_obj = fsspec.open(
