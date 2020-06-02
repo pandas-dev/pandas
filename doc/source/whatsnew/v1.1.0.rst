@@ -665,6 +665,45 @@ Using :meth:`DataFrame.groupby` with ``as_index=False`` and the function ``idxma
 
    df.groupby("a", as_index=False).nunique()
 
+.. _whatsnew_110.api_breaking.apply_applymap_first_once:
+
+apply and applymap on ``DataFrame`` evaluates first row/column only once
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. ipython:: python
+
+    df = pd.DataFrame({'a': [1, 2], 'b': [3, 6]})
+
+    def func(row):
+        print(row)
+        return row
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [4]: df.apply(func, axis=1)
+    a    1
+    b    3
+    Name: 0, dtype: int64
+    a    1
+    b    3
+    Name: 0, dtype: int64
+    a    2
+    b    6
+    Name: 1, dtype: int64
+    Out[4]:
+       a  b
+    0  1  3
+    1  2  6
+
+*New behavior*:
+
+.. ipython:: python
+
+    df.apply(func, axis=1)
+
+
 .. _whatsnew_110.deprecations:
 
 Deprecations
