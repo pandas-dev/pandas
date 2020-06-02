@@ -107,7 +107,7 @@ def test_write_append_mode(ext, mode, expected):
 
 def test_to_excel_with_openpyxl_engine(ext, tmpdir):
     # GH 29854
-    with tm.ensure_clean('styled.xlsx') as filename:
+    with tm.ensure_clean("styled.xlsx") as filename:
 
         df1 = DataFrame({"A": np.linspace(1, 10, 10)})
         df2 = DataFrame({"B": np.linspace(1, 20, 10)})

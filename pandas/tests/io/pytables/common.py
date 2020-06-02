@@ -45,7 +45,7 @@ def ensure_clean_store(path, mode="a", complevel=None, complib=None, fletcher32=
     finally:
         safe_close(store)
         if mode == "w" or mode == "a":
-            tm.ensure_clean(path)
+            os.remove(path)
 
 
 @contextmanager
@@ -64,7 +64,7 @@ def ensure_clean_path(path):
             yield filenames[0]
     finally:
         for f in filenames:
-            tm.ensure_clean(f)
+            os.remove(f)
 
 
 def _maybe_remove(store, key):
