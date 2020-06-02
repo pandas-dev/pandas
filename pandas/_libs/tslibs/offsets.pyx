@@ -1069,7 +1069,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
 
             weeks = kwds.get("weeks", 0) * self.n
             if weeks:
-                index = index + Timedelta(days=7*weeks)
+                index = index + Timedelta(days=7 * weeks)
 
             timedelta_kwds = {
                 k: v
