@@ -1733,7 +1733,7 @@ cdef class _Period:
                 "be removed in a future version.  Use "
                 "`per.to_timestamp(...).tz_localize(tz)` instead.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=1,
             )
 
         how = validate_end_alias(how)
