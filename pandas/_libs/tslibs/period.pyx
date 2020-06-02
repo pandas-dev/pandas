@@ -69,7 +69,10 @@ from pandas._libs.tslibs.nattype cimport (
     c_nat_strings as nat_strings,
 )
 from pandas._libs.tslibs.offsets cimport (
-    to_offset, is_tick_object, is_offset_object,
+    BaseOffset,
+    to_offset,
+    is_tick_object,
+    is_offset_object,
 )
 from pandas._libs.tslibs.tzconversion cimport tz_convert_utc_to_tzlocal
 
@@ -1509,9 +1512,9 @@ cdef class _Period:
 
     cdef readonly:
         int64_t ordinal
-        object freq
+        BaseOffset freq
 
-    def __cinit__(self, ordinal, freq):
+    def __cinit__(self, int64_t ordinal, BaseOffset freq):
         self.ordinal = ordinal
         self.freq = freq
 
