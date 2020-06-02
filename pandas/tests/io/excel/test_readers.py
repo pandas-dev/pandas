@@ -1151,6 +1151,7 @@ class TestExcelFileRead:
     @pytest.mark.parametrize("header, skiprows", [(1, 2), (0, 3)])
     @td.check_file_leaks
     def test_header_skiprows_nrows(self, engine, read_ext, header, skiprows):
+        # GH 32727
         data = pd.read_excel("test1" + read_ext, engine=engine)
         expected = (
             DataFrame(data.iloc[3:6])
