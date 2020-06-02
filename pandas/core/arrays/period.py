@@ -430,7 +430,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
         end = how == "E"
         if end:
-            if freq == "B":
+            if freq == "B" or self.freq == "B":
                 # roll forward to ensure we land on B date
                 adjust = Timedelta(1, "D") - Timedelta(1, "ns")
                 return self.to_timestamp(how="start") + adjust

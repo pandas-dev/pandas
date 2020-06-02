@@ -34,6 +34,7 @@ def test_namespace():
         "OutOfBoundsDatetime",
         "Period",
         "IncompatibleFrequency",
+        "Resolution",
         "Timedelta",
         "Timestamp",
         "delta_to_nanoseconds",

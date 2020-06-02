@@ -1710,10 +1710,7 @@ cdef class _Period:
 
     @property
     def end_time(self) -> Timestamp:
-        # freq.n can't be negative or 0
-        # ordinal = (self + self.freq.n).start_time.value - 1
-        ordinal = (self + self.freq).start_time.value - 1
-        return Timestamp(ordinal)
+        return self.to_timestamp(how="end")
 
     def to_timestamp(self, freq=None, how='start', tz=None) -> Timestamp:
         """
@@ -1735,18 +1732,22 @@ cdef class _Period:
         -------
         Timestamp
         """
-        if freq is not None:
-            freq = self._maybe_convert_freq(freq)
         how = validate_end_alias(how)
 
         end = how == 'E'
         if end:
+            if freq == "B" or self.freq == "B":
+                # roll forward to ensure we land on B date
+                adjust = Timedelta(1, "D") - Timedelta(1, "ns")
+                return self.to_timestamp(how="start") + adjust
             endpoint = (self + self.freq).to_timestamp(how='start')
             return endpoint - Timedelta(1, 'ns')
 
         if freq is None:
             base = self._dtype.dtype_code
             freq = get_to_timestamp_base(base)
+        else:
+            freq = self._maybe_convert_freq(freq)
 
         base, _ = get_freq_code(freq)
         val = self.asfreq(freq, how)
