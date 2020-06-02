@@ -907,6 +907,7 @@ Groupby/resample/rolling
   to the input DataFrame is inconsistent. An internal heuristic to detect index mutation would behave differently for equal but not identical
   indices. In particular, the result index shape might change if a copy of the input would be returned.
   The behaviour now is consistent, independent of internal heuristics. (:issue:`31612`, :issue:`14927`, :issue:`13056`)
+- Bug in :meth:`SeriesGroupBy.agg` where any column name is accepted in named aggregation previously. The behaviour now allows only ``str`` and callables else would raise ``TypeError``. (:issue:`34422`)
 
 Reshaping
 ^^^^^^^^^
