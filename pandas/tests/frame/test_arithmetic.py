@@ -1539,14 +1539,15 @@ def test_dataframe_blockwise_slicelike():
 
 
 @pytest.mark.parametrize(
-    "df",
+    "df, col_dtype",
     [
-        pd.DataFrame([[1, 2], [4, 5]], columns=list("ab")),
-        pd.DataFrame([[1, "b"], [4, "b"]], columns=list("ab")),
+        (pd.DataFrame([[1.0, 2.0], [4.0, 5.0]], columns=list("ab")), "float64"),
+        (pd.DataFrame([[1.0, "b"], [4.0, "b"]], columns=list("ab")), "object"),
     ],
 )
-def test_dataframe_operation_with_non_numeric_types(df):
+def test_dataframe_operation_with_non_numeric_types(df, col_dtype):
     # GH #22663
     expected = pd.DataFrame([[0.0, np.nan], [3.0, np.nan]], columns=list("ab"))
-    result = df + pd.Series([-1], index=list("a"))
-    tm.assert_frame_equal(result, expected, check_dtype=False)
+    expected = expected.astype({"b": col_dtype})
+    result = df + pd.Series([-1.0], index=list("a"))
+    tm.assert_frame_equal(result, expected)
