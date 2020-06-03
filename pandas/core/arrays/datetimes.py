@@ -15,6 +15,7 @@ from pandas._libs.tslibs import (
     iNaT,
     resolution as libresolution,
     timezones,
+    to_offset,
     tzconversion,
 )
 from pandas.errors import PerformanceWarning
@@ -46,7 +47,7 @@ from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
 
-from pandas.tseries.frequencies import get_period_alias, to_offset
+from pandas.tseries.frequencies import get_period_alias
 from pandas.tseries.offsets import BDay, Day, Tick
 
 _midnight = time(0, 0)
