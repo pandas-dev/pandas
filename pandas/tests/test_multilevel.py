@@ -830,7 +830,6 @@ Thur,Lunch,Yes,51.51,17"""
         recons = result.stack()
         tm.assert_frame_equal(recons, df)
 
-    @pytest.mark.slow
     def test_unstack_number_of_levels_larger_than_int32(self):
         # GH 20601
         df = DataFrame(

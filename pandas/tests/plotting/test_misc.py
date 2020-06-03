@@ -68,7 +68,6 @@ class TestSeriesPlots(TestPlotBase):
         self.ts = tm.makeTimeSeries()
         self.ts.name = "ts"
 
-    @pytest.mark.slow
     def test_autocorrelation_plot(self):
         from pandas.plotting import autocorrelation_plot
 
@@ -78,14 +77,12 @@ class TestSeriesPlots(TestPlotBase):
         ax = autocorrelation_plot(self.ts, label="Test")
         self._check_legend_labels(ax, labels=["Test"])
 
-    @pytest.mark.slow
     def test_lag_plot(self):
         from pandas.plotting import lag_plot
 
         _check_plot_works(lag_plot, series=self.ts)
         _check_plot_works(lag_plot, series=self.ts, lag=5)
 
-    @pytest.mark.slow
     def test_bootstrap_plot(self):
         from pandas.plotting import bootstrap_plot
 
@@ -200,7 +197,6 @@ class TestDataFramePlots(TestPlotBase):
         handles, labels = ax.get_legend_handles_labels()
         self._check_colors(handles, linecolors=colors)
 
-    @pytest.mark.slow
     def test_parallel_coordinates(self, iris):
         from pandas.plotting import parallel_coordinates
         from matplotlib import cm
@@ -405,7 +401,6 @@ class TestDataFramePlots(TestPlotBase):
         p = df.A.plot.bar(figsize=(16, 7), color=color_list)
         assert p.patches[1].get_facecolor() == p.patches[17].get_facecolor()
 
-    @pytest.mark.slow
     def test_dictionary_color(self):
         # issue-8193
         # Test plot color dictionary format

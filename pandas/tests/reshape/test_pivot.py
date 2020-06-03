@@ -1985,7 +1985,6 @@ class TestPivotTable:
         expected = pivot_table(self.data, index="A", columns="B", aggfunc=f_numpy)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.slow
     def test_pivot_number_of_levels_larger_than_int32(self):
         # GH 20601
         df = DataFrame(

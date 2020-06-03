@@ -19,7 +19,6 @@ from pandas.core.sorting import (
 
 
 class TestSorting:
-    @pytest.mark.slow
     def test_int64_overflow(self):
 
         B = np.concatenate((np.arange(1000), np.arange(1000), np.arange(500)))

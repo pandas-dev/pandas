@@ -82,7 +82,6 @@ def test_series_set_value():
     tm.assert_series_equal(s, expected)
 
 
-@pytest.mark.slow
 def test_slice_locs_indexerror():
     times = [datetime(2000, 1, 1) + timedelta(minutes=i * 10) for i in range(100000)]
     s = Series(range(100000), times)
