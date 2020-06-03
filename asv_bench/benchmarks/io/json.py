@@ -53,17 +53,8 @@ class ReadJSONLines(BaseIO):
     def time_read_json_lines_concat(self, index):
         concat(read_json(self.fname, orient="records", lines=True, chunksize=25000))
 
-    def time_read_json_lines_concat_hundred(self, index):
-        concat(read_json(self.fname, orient="records", lines=True, chunksize=100))
-
-    def time_read_json_lines_concat_ten_thousand(self, index):
-        concat(read_json(self.fname, orient="records", lines=True, chunksize=10000))
-
     def time_read_json_lines_nrows(self, index):
-        read_json(self.fname, orient="records", lines=True, nrows=15000)
-
-    def time_read_json_lines_nrows_larger(self, index):
-        read_json(self.fname, orient="records", lines=True, nrows=45000)
+        read_json(self.fname, orient="records", lines=True, nrows=25000)
 
     def peakmem_read_json_lines(self, index):
         read_json(self.fname, orient="records", lines=True)
@@ -71,17 +62,8 @@ class ReadJSONLines(BaseIO):
     def peakmem_read_json_lines_concat(self, index):
         concat(read_json(self.fname, orient="records", lines=True, chunksize=25000))
 
-    def peakmem_read_json_lines_concat_hundred(self, index):
-        concat(read_json(self.fname, orient="records", lines=True, chunksize=100))
-
-    def peakmem_read_json_lines_concat_ten_thousand(self, index):
-        concat(read_json(self.fname, orient="records", lines=True, chunksize=10000))
-
     def peakmem_read_json_lines_nrows(self, index):
         read_json(self.fname, orient="records", lines=True, nrows=15000)
-
-    def peakmem_read_json_lines_nrows_larger(self, index):
-        read_json(self.fname, orient="records", lines=True, nrows=45000)
 
 
 class ToJSON(BaseIO):
