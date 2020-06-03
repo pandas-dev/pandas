@@ -20,8 +20,6 @@ import pandas.compat as compat
 from pandas import DataFrame, DatetimeIndex, Index, NaT, Series, Timedelta, date_range
 import pandas._testing as tm
 
-from pandas.io.json import dumps
-
 
 def _clean_dict(d):
     """
@@ -563,15 +561,12 @@ class TestUltraJSONTests:
         assert long_input == ujson.decode(output)
 
     def test_dumps_ints_larger_than_maxsize(self):
-        long_input = sys.maxsize + 1
-        long_input_as_str = str(long_input)
-        with pytest.raises(OverflowError):
-            output = ujson.encode(long_input)
-        output = dumps(long_input)
+        # GH34395
+        big_num = sys.maxsize + 1
+        encoding = ujson.dumps(big_num)
 
-        assert long_input_as_str == json.loads(output)
-        assert output == json.dumps(long_input_as_str)
-        assert long_input_as_str == ujson.decode(output)
+        assert encoding == json.dumps(big_num)
+        assert ujson.loads(big_num) == big_num
 
     @pytest.mark.parametrize(
         "int_exp", ["1337E40", "1.337E40", "1337E+9", "1.337e+40", "1.337E-4"]
