@@ -146,6 +146,8 @@ class TestDataFrameShift:
         tm.assert_frame_equal(shifted[0], shifted[2])
 
     def test_tshift(self, datetime_frame):
+        # TODO: remove this test when tshift deprecation is enforced
+
         # PeriodIndex
         ps = tm.makePeriodFrame()
         shifted = ps.tshift(1)
@@ -186,9 +188,59 @@ class TestDataFrameShift:
         tm.assert_frame_equal(unshifted, inferred_ts)
 
         no_freq = datetime_frame.iloc[[0, 5, 7], :]
-        msg = "Freq was not given and was not set in the index"
+        msg = "Freq was not set in the index hence cannot be inferred"
         with pytest.raises(ValueError, match=msg):
             no_freq.tshift()
+
+    def test_tshift_deprecated(self, datetime_frame):
+        # GH#11631
+        with tm.assert_produces_warning(FutureWarning):
+            datetime_frame.tshift()
+
+    def test_shift_with_freq(self, datetime_frame):
+        # PeriodIndex
+        ps = tm.makePeriodFrame()
+        shifted = ps.shift(1, freq="infer")
+        unshifted = shifted.shift(-1, freq="infer")
+
+        tm.assert_frame_equal(unshifted, ps)
+
+        shifted2 = ps.shift(freq="B")
+        tm.assert_frame_equal(shifted, shifted2)
+
+        shifted3 = ps.tshift(freq=offsets.BDay())
+        tm.assert_frame_equal(shifted, shifted3)
+
+        with pytest.raises(ValueError, match="does not match"):
+            ps.tshift(freq="M")
+
+        # DatetimeIndex
+        shifted = datetime_frame.shift(1, freq="infer")
+        unshifted = shifted.shift(-1, freq="infer")
+
+        tm.assert_frame_equal(datetime_frame, unshifted)
+
+        shifted2 = datetime_frame.tshift(freq=datetime_frame.index.freq)
+        tm.assert_frame_equal(shifted, shifted2)
+
+        inferred_ts = DataFrame(
+            datetime_frame.values,
+            Index(np.asarray(datetime_frame.index)),
+            columns=datetime_frame.columns,
+        )
+        shifted = inferred_ts.shift(1, freq="infer")
+
+        expected = datetime_frame.shift(1, freq="infer")
+        expected.index = expected.index._with_freq(None)
+        tm.assert_frame_equal(shifted, expected)
+
+        unshifted = shifted.shift(-1, freq="infer")
+        tm.assert_frame_equal(unshifted, inferred_ts)
+
+        no_freq = datetime_frame.iloc[[0, 5, 7], :]
+        msg = "Freq was not set in the index hence cannot be inferred"
+        with pytest.raises(ValueError, match=msg):
+            no_freq.shift(freq="infer")
 
     def test_shift_dt64values_int_fill_deprecated(self):
         # GH#31971
