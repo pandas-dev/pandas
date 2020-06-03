@@ -153,6 +153,23 @@ A good implementation for Python users is `has2k1/plotnine <https://github.com/h
 Spun off from the main pandas library, the `qtpandas <https://github.com/draperjames/qtpandas>`__
 library enables DataFrame visualization and manipulation in PyQt4 and PySide applications.
 
+`D-Tale <https://github.com/man-group/dtale>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+D-Tale is a lightweight web client for visualizing pandas data structures. It
+provides a rich spreadsheet-style grid which acts as a wrapper for a lot of
+pandas functionality (query, sort, describe, corr...) so users can quickly
+manipulate their data. There is also an interactive chart-builder using Plotly
+Dash allowing users to build nice portable visualizations. D-Tale can be
+invoked with the following command
+
+.. code:: python
+
+    import dtale; dtale.show(df)
+
+D-Tale integrates seamlessly with jupyter notebooks, python terminals, kaggle
+& Google Colab. Here are some demos of the `grid <http://alphatechadmin.pythonanywhere.com/>`__
+and `chart-builder <http://alphatechadmin.pythonanywhere.com/charts/4?chart_type=surface&query=&x=date&z=Col0&agg=raw&cpg=false&y=%5B%22security_id%22%5D>`__.
 
 .. _ecosystem.ide:
 

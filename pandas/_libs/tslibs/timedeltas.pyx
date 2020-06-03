@@ -446,7 +446,8 @@ cdef inline timedelta_from_spec(object number, object frac, object unit):
     frac : a list of frac digits
     unit : a list of unit characters
     """
-    cdef object n
+    cdef:
+        str n
 
     try:
         unit = ''.join(unit)
@@ -584,7 +585,7 @@ cdef inline int64_t parse_iso_format_string(str ts) except? -1:
         bint have_dot = 0, have_value = 0, neg = 0
         list number = [], unit = []
 
-    err_msg = "Invalid ISO 8601 Duration format - {}".format(ts)
+    err_msg = f"Invalid ISO 8601 Duration format - {ts}"
 
     for c in ts:
         # number (ascii codes)
@@ -1204,7 +1205,7 @@ class Timedelta(_Timedelta):
         cdef:
             int64_t result, unit
 
-        from pandas.tseries.frequencies import to_offset
+        from pandas._libs.tslibs.offsets import to_offset
         unit = to_offset(freq).nanos
         result = unit * rounder(self.value / float(unit))
         return Timedelta(result, unit='ns')
@@ -1376,6 +1377,17 @@ class Timedelta(_Timedelta):
 
 
 cdef bint is_any_td_scalar(object obj):
+    """
+    Cython equivalent for `isinstance(obj, (timedelta, np.timedelta64, Tick))`
+
+    Parameters
+    ----------
+    obj : object
+
+    Returns
+    -------
+    bool
+    """
     return (
         PyDelta_Check(obj) or is_timedelta64_object(obj) or is_tick_object(obj)
     )

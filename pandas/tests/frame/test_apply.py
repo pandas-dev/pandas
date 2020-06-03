@@ -718,11 +718,72 @@ class TestDataFrameApply:
 
     def test_apply_noreduction_tzaware_object(self):
         # https://github.com/pandas-dev/pandas/issues/31505
-        df = pd.DataFrame({"foo": [pd.Timestamp("2020", tz="UTC")]}, dtype="object")
+        df = pd.DataFrame(
+            {"foo": [pd.Timestamp("2020", tz="UTC")]}, dtype="datetime64[ns, UTC]"
+        )
         result = df.apply(lambda x: x)
         tm.assert_frame_equal(result, df)
         result = df.apply(lambda x: x.copy())
         tm.assert_frame_equal(result, df)
+
+    def test_apply_function_runs_once(self):
+        # https://github.com/pandas-dev/pandas/issues/30815
+
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        names = []  # Save row names function is applied to
+
+        def reducing_function(row):
+            names.append(row.name)
+
+        def non_reducing_function(row):
+            names.append(row.name)
+            return row
+
+        for func in [reducing_function, non_reducing_function]:
+            del names[:]
+
+            df.apply(func, axis=1)
+            assert names == list(df.index)
+
+    @pytest.mark.xfail(
+        reason="The 'run once' enhancement for apply_raw not implemented yet."
+    )
+    def test_apply_raw_function_runs_once(self):
+        # https://github.com/pandas-dev/pandas/issues/34506
+
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        values = []  # Save row values function is applied to
+
+        def reducing_function(row):
+            values.extend(row)
+
+        def non_reducing_function(row):
+            values.extend(row)
+            return row
+
+        for func in [reducing_function, non_reducing_function]:
+            del values[:]
+
+            df.apply(func, raw=True, axis=1)
+            assert values == list(df.a.to_list())
+
+    def test_applymap_function_runs_once(self):
+
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        values = []  # Save values function is applied to
+
+        def reducing_function(val):
+            values.append(val)
+
+        def non_reducing_function(val):
+            values.append(val)
+            return val
+
+        for func in [reducing_function, non_reducing_function]:
+            del values[:]
+
+            df.applymap(func)
+            assert values == df.a.to_list()
 
 
 class TestInferOutputShape:
