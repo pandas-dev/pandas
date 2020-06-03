@@ -925,6 +925,8 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name,
     size_t szlen;
     JSONTypeContext tc;
     tc.encoder = enc;
+    
+    printf("running encode \n");
 
     if (enc->level > enc->recursionMax) {
         SetError(obj, enc, "Maximum recursion level reached");
@@ -937,13 +939,14 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name,
     length of _name as encoded worst case +
     maxLength of double to string OR maxLength of JSLONG to string
     */
-
+    printf("Reserving buffer");
     Buffer_Reserve(enc, 256 + RESERVE_STRING(cbName));
     if (enc->errorMsg) {
         return;
     }
 
     if (name) {
+        printf("if (name)");
         Buffer_AppendCharUnchecked(enc, '\"');
 
         if (enc->forceASCII) {
@@ -963,7 +966,7 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name,
         Buffer_AppendCharUnchecked(enc, ' ');
 #endif
     }
-
+    printf("enc->beginTypeContext\n");
     enc->beginTypeContext(obj, &tc);
 
     switch (tc.type) {
@@ -1003,6 +1006,7 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name,
         }
 
         case JT_OBJECT: {
+            printf("running JT_OBJECT \n");
             count = 0;
             enc->iterBegin(obj, &tc);
 
@@ -1035,11 +1039,13 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name,
         }
 
         case JT_LONG: {
+            printf("case: JT_LONG\n");
             Buffer_AppendLongUnchecked(enc, enc->getLongValue(obj, &tc));
             break;
         }
 
         case JT_INT: {
+            printf("case: JT_INT\n");
             Buffer_AppendIntUnchecked(enc, enc->getIntValue(obj, &tc));
             break;
         }
@@ -1070,6 +1076,7 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name,
         }
 
         case JT_DOUBLE: {
+            printf("case: JT_DOUBLE\n");
             if (!Buffer_AppendDoubleUnchecked(obj, enc,
                                               enc->getDoubleValue(obj, &tc))) {
                 enc->endTypeContext(obj, &tc);
@@ -1080,6 +1087,39 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name,
         }
 
         case JT_UTF8: {
+            printf("case: JT_UTF8\n");
+            value = enc->getStringValue(obj, &tc, &szlen);
+            Buffer_Reserve(enc, RESERVE_STRING(szlen));
+            if (enc->errorMsg) {
+                enc->endTypeContext(obj, &tc);
+                return;
+            }
+            Buffer_AppendCharUnchecked(enc, '\"');
+
+            if (enc->forceASCII) {
+                if (!Buffer_EscapeStringValidated(obj, enc, value,
+                                                  value + szlen)) {
+                    enc->endTypeContext(obj, &tc);
+                    enc->level--;
+                    return;
+                }
+            } else {
+                if (!Buffer_EscapeStringUnvalidated(enc, value,
+                                                    value + szlen)) {
+                    enc->endTypeContext(obj, &tc);
+                    enc->level--;
+                    return;
+                }
+            }
+
+            Buffer_AppendCharUnchecked(enc, '\"');
+            break;
+        }
+
+        case JT_BIGNUM: {
+            printf("case JT_BIGNUM:\n");
+            // printf("%s", enc->bigNum);
+            break;
             value = enc->getStringValue(obj, &tc, &szlen);
             Buffer_Reserve(enc, RESERVE_STRING(szlen));
             if (enc->errorMsg) {
