@@ -1,3 +1,5 @@
+import warnings
+
 from cpython.object cimport PyObject_RichCompareBool, Py_EQ, Py_NE
 
 from numpy cimport int64_t, import_array, ndarray
@@ -69,7 +71,10 @@ from pandas._libs.tslibs.nattype cimport (
     c_nat_strings as nat_strings,
 )
 from pandas._libs.tslibs.offsets cimport (
-    to_offset, is_tick_object, is_offset_object,
+    BaseOffset,
+    to_offset,
+    is_tick_object,
+    is_offset_object,
 )
 from pandas._libs.tslibs.tzconversion cimport tz_convert_utc_to_tzlocal
 
@@ -1509,9 +1514,9 @@ cdef class _Period:
 
     cdef readonly:
         int64_t ordinal
-        object freq
+        BaseOffset freq
 
-    def __cinit__(self, ordinal, freq):
+    def __cinit__(self, int64_t ordinal, BaseOffset freq):
         self.ordinal = ordinal
         self.freq = freq
 
@@ -1702,10 +1707,7 @@ cdef class _Period:
 
     @property
     def end_time(self) -> Timestamp:
-        # freq.n can't be negative or 0
-        # ordinal = (self + self.freq.n).start_time.value - 1
-        ordinal = (self + self.freq).start_time.value - 1
-        return Timestamp(ordinal)
+        return self.to_timestamp(how="end")
 
     def to_timestamp(self, freq=None, how='start', tz=None) -> Timestamp:
         """
@@ -1727,18 +1729,32 @@ cdef class _Period:
         -------
         Timestamp
         """
-        if freq is not None:
-            freq = self._maybe_convert_freq(freq)
+        if tz is not None:
+            # GH#34522
+            warnings.warn(
+                "Period.to_timestamp `tz` argument is deprecated and will "
+                "be removed in a future version.  Use "
+                "`per.to_timestamp(...).tz_localize(tz)` instead.",
+                FutureWarning,
+                stacklevel=1,
+            )
+
         how = validate_end_alias(how)
 
         end = how == 'E'
         if end:
+            if freq == "B" or self.freq == "B":
+                # roll forward to ensure we land on B date
+                adjust = Timedelta(1, "D") - Timedelta(1, "ns")
+                return self.to_timestamp(how="start") + adjust
             endpoint = (self + self.freq).to_timestamp(how='start')
             return endpoint - Timedelta(1, 'ns')
 
         if freq is None:
             base, mult = get_freq_code(self.freq)
             freq = get_to_timestamp_base(base)
+        else:
+            freq = self._maybe_convert_freq(freq)
 
         base, mult = get_freq_code(freq)
         val = self.asfreq(freq, how)
