@@ -79,16 +79,19 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         g = df.groupby("c")
 
         kwargs = {"legend": True, "column": column}
-        # We get warnings if kwargs contains "label": None
+
         if label is not None:
             kwargs["label"] = label
-
-        for axes in g.hist(**kwargs):
-            self._check_axes_shape(
-                axes, axes_num=expected_axes_num, layout=expected_layout
-            )
-            for ax, expected_label in zip(axes[0], expected_labels):
-                self._check_legend_labels(ax, expected_label)
+            msg = "Cannot use both legend and label"
+            with pytest.raises(ValueError, match=msg):
+                g.hist(**kwargs)
+        else:
+            for axes in g.hist(**kwargs):
+                self._check_axes_shape(
+                    axes, axes_num=expected_axes_num, layout=expected_layout
+                )
+                for ax, expected_label in zip(axes[0], expected_labels):
+                    self._check_legend_labels(ax, expected_label)
 
     @pytest.mark.parametrize(
         "label, expected_label", [(None, ["1", "2"]), ("d", ["d", "d"])]
@@ -100,10 +103,14 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         g = df.groupby("c")
 
         kwargs = {"legend": True}
+
         # We get warnings if kwargs contains "label": None
         if label is not None:
             kwargs["label"] = label
-
-        for ax in g["a"].hist(**kwargs):
-            self._check_axes_shape(ax, axes_num=1, layout=(1, 1))
-            self._check_legend_labels(ax, expected_label)
+            msg = "Cannot use both legend and label"
+            with pytest.raises(ValueError, match=msg):
+                g.hist(**kwargs)
+        else:
+            for ax in g["a"].hist(**kwargs):
+                self._check_axes_shape(ax, axes_num=1, layout=(1, 1))
+                self._check_legend_labels(ax, expected_label)

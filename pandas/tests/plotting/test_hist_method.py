@@ -142,13 +142,18 @@ class TestSeriesPlots(TestPlotBase):
         s.index.name = "b"
 
         kwargs = {"legend": True, "by": by}
-        # We get warnings if kwargs contains "label": None
+
         if label is not None:
             kwargs["label"] = label
-
-        axes = _check_plot_works(s.hist, **kwargs)
-        self._check_axes_shape(axes, axes_num=expected_axes_num, layout=expected_layout)
-        self._check_legend_labels(axes, expected_label)
+            msg = "Cannot use both legend and label"
+            with pytest.raises(ValueError, match=msg):
+                s.hist(**kwargs)
+        else:
+            axes = _check_plot_works(s.hist, **kwargs)
+            self._check_axes_shape(
+                axes, axes_num=expected_axes_num, layout=expected_layout
+            )
+            self._check_legend_labels(axes, expected_label)
 
 
 @td.skip_if_no_mpl
@@ -329,16 +334,21 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
 
         kwargs = {"legend": True, "by": by, "column": column}
-        # We get warnings if kwargs contains "label": None
+
         if label is not None:
             kwargs["label"] = label
-
-        axes = _check_plot_works(df.hist, **kwargs)
-        self._check_axes_shape(axes, axes_num=expected_axes_num, layout=expected_layout)
-        if by is None and column is None and label is None:
-            axes = axes[0]
-        for expected_label, ax in zip(expected_labels, axes):
-            self._check_legend_labels(ax, expected_label)
+            msg = "Cannot use both legend and label"
+            with pytest.raises(ValueError, match=msg):
+                df.hist(**kwargs)
+        else:
+            axes = _check_plot_works(df.hist, **kwargs)
+            self._check_axes_shape(
+                axes, axes_num=expected_axes_num, layout=expected_layout
+            )
+            if by is None and column is None and label is None:
+                axes = axes[0]
+            for expected_label, ax in zip(expected_labels, axes):
+                self._check_legend_labels(ax, expected_label)
 
 
 @td.skip_if_no_mpl

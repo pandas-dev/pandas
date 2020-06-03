@@ -251,8 +251,7 @@ def _grouped_hist(
     -------
     collection of Matplotlib Axes
     """
-
-    if legend and "label" not in kwargs:
+    if legend:
         if isinstance(data, ABCDataFrame):
             if column is None:
                 kwargs["label"] = data.columns
@@ -308,6 +307,9 @@ def hist_series(
 ):
     import matplotlib.pyplot as plt
 
+    if legend and "label" in kwds:
+        raise ValueError("Cannot use both legend and label")
+
     if by is None:
         if kwds.get("layout", None) is not None:
             raise ValueError("The 'layout' keyword is not supported when 'by' is None")
@@ -322,7 +324,7 @@ def hist_series(
         elif ax.get_figure() != fig:
             raise AssertionError("passed axis not bound to passed figure")
         values = self.dropna().values
-        if legend and "label" not in kwds:
+        if legend:
             kwds["label"] = self.name
         ax.hist(values, bins=bins, **kwds)
         if legend:
@@ -379,6 +381,8 @@ def hist_frame(
     legend: bool = False,
     **kwds,
 ):
+    if legend and "label" in kwds:
+        raise ValueError("Cannot use both legend and label")
     if by is not None:
         axes = _grouped_hist(
             data,
