@@ -10,7 +10,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly, doc
 
 from pandas.core.dtypes.common import is_dtype_equal, is_object_dtype
-from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 from pandas.core.arrays import ExtensionArray
 from pandas.core.indexers import deprecate_ndim_indexing
@@ -55,6 +55,8 @@ def inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = Fal
                 if wrap:
                     if isinstance(result, type(self._data)):
                         return type(self)._simple_new(result, name=self.name)
+                    elif isinstance(result, ABCDataFrame):
+                        return result.set_index(self)
                     return Index(result, name=self.name)
                 return result
 
@@ -77,6 +79,8 @@ def inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = Fal
             if wrap:
                 if isinstance(result, type(self._data)):
                     return type(self)._simple_new(result, name=self.name)
+                elif isinstance(result, ABCDataFrame):
+                    return result.set_index(self)
                 return Index(result, name=self.name)
             return result
 
