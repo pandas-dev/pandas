@@ -205,7 +205,6 @@ class TestEvalNumexprPandas:
         for lhs, rhs, cmp_op in product(bool_lhses, bool_rhses, self.cmp_ops):
             self.check_simple_cmp_op(lhs, cmp_op, rhs)
 
-    @pytest.mark.slow
     def test_binary_arith_ops(self):
         for lhs, op, rhs in product(self.lhses, self.arith_ops, self.rhses):
             self.check_binary_arith_op(lhs, op, rhs)
@@ -224,17 +223,14 @@ class TestEvalNumexprPandas:
         for lhs, rhs in product(self.lhses, self.rhses):
             self.check_pow(lhs, "**", rhs)
 
-    @pytest.mark.slow
     def test_single_invert_op(self):
         for lhs, op, rhs in product(self.lhses, self.cmp_ops, self.rhses):
             self.check_single_invert_op(lhs, op, rhs)
 
-    @pytest.mark.slow
     def test_compound_invert_op(self):
         for lhs, op, rhs in product(self.lhses, self.cmp_ops, self.rhses):
             self.check_compound_invert_op(lhs, op, rhs)
 
-    @pytest.mark.slow
     def test_chained_cmp_op(self):
         mids = self.lhses
         cmp_ops = "<", ">"

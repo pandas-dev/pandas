@@ -78,13 +78,11 @@ class TestDataFramePlots(TestPlotBase):
         lines = list(itertools.chain.from_iterable(d.values()))
         assert len(ax.get_lines()) == len(lines)
 
-    @pytest.mark.slow
     def test_boxplot_return_type_none(self):
         # GH 12216; return_type=None & by=None -> axes
         result = self.hist_df.boxplot()
         assert isinstance(result, self.plt.Axes)
 
-    @pytest.mark.slow
     def test_boxplot_return_type_legacy(self):
         # API change in https://github.com/pandas-dev/pandas/pull/7096
         import matplotlib as mpl  # noqa
@@ -112,7 +110,6 @@ class TestDataFramePlots(TestPlotBase):
             result = df.boxplot(return_type="both")
         self._check_box_return_type(result, "both")
 
-    @pytest.mark.slow
     def test_boxplot_axis_limits(self):
         def _check_ax_limits(col, ax):
             y_min, y_max = ax.get_ylim()
@@ -139,13 +136,11 @@ class TestDataFramePlots(TestPlotBase):
         assert age_ax._sharey == height_ax
         assert dummy_ax._sharey is None
 
-    @pytest.mark.slow
     def test_boxplot_empty_column(self):
         df = DataFrame(np.random.randn(20, 4))
         df.loc[:, 0] = np.nan
         _check_plot_works(df.boxplot, return_type="axes")
 
-    @pytest.mark.slow
     def test_figsize(self):
         df = DataFrame(np.random.rand(10, 5), columns=["A", "B", "C", "D", "E"])
         result = df.boxplot(return_type="axes", figsize=(12, 8))
@@ -253,7 +248,6 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         axes = _check_plot_works(grouped.boxplot, subplots=False, return_type="axes")
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
-    @pytest.mark.slow
     def test_grouped_plot_fignums(self):
         n = 10
         weight = Series(np.random.normal(166, 20, size=n))

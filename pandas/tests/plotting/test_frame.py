@@ -248,7 +248,6 @@ class TestDataFramePlots(TestPlotBase):
         # columns.inferred_type == 'mixed'
         # TODO add MultiIndex test
 
-    @pytest.mark.slow
     @pytest.mark.parametrize(
         "input_log, expected_log", [(True, "log"), ("sym", "symlog")]
     )
@@ -277,7 +276,6 @@ class TestDataFramePlots(TestPlotBase):
         with pytest.raises(ValueError, match=msg):
             df.plot(**{input_param: "sm"})
 
-    @pytest.mark.slow
     def test_xcompat(self):
         import pandas as pd
 
@@ -966,7 +964,6 @@ class TestDataFramePlots(TestPlotBase):
         ]
         assert result == expected
 
-    @pytest.mark.slow
     def test_bar_linewidth(self):
         df = DataFrame(randn(5, 5))
 
@@ -1110,7 +1107,6 @@ class TestDataFramePlots(TestPlotBase):
         expected = [0.0, 0.0, 0.0, 10.0, 0.0, 20.0, 15.0, 10.0, 40.0]
         assert result == expected
 
-    @pytest.mark.slow
     def test_bar_categorical(self):
         # GH 13019
         df1 = pd.DataFrame(
@@ -1254,7 +1250,6 @@ class TestDataFramePlots(TestPlotBase):
 
         _check_plot_works(df.plot.scatter, x=x, y=y)
 
-    @pytest.mark.slow
     def test_plot_scatter_with_c(self):
         df = DataFrame(
             randn(6, 4),
@@ -1460,7 +1455,6 @@ class TestDataFramePlots(TestPlotBase):
         self._check_bar_alignment(df, kind="barh", stacked=True)
         self._check_bar_alignment(df, kind="barh", stacked=True, width=0.9)
 
-    @pytest.mark.slow
     def test_bar_center(self):
         df = DataFrame({"A": [3] * 5, "B": list(range(5))}, index=range(5))
         self._check_bar_alignment(df, kind="bar", stacked=False)
@@ -1468,7 +1462,6 @@ class TestDataFramePlots(TestPlotBase):
         self._check_bar_alignment(df, kind="barh", stacked=False)
         self._check_bar_alignment(df, kind="barh", stacked=False, width=0.9)
 
-    @pytest.mark.slow
     def test_bar_subplots_center(self):
         df = DataFrame({"A": [3] * 5, "B": list(range(5))}, index=range(5))
         self._check_bar_alignment(df, kind="bar", subplots=True)
@@ -1592,7 +1585,6 @@ class TestDataFramePlots(TestPlotBase):
         tm.assert_numpy_array_equal(ax.yaxis.get_ticklocs(), positions)
         assert len(ax.lines) == self.bp_n_objects * len(numeric_cols)
 
-    @pytest.mark.slow
     def test_boxplot_return_type(self):
         df = DataFrame(
             randn(6, 4),
@@ -1653,7 +1645,6 @@ class TestDataFramePlots(TestPlotBase):
         axes = df.plot(kind="kde", logy=True, subplots=True)
         self._check_ax_scales(axes, yaxis="log")
 
-    @pytest.mark.slow
     @td.skip_if_no_scipy
     def test_kde_missing_vals(self):
         df = DataFrame(np.random.uniform(size=(100, 4)))
@@ -1870,7 +1861,6 @@ class TestDataFramePlots(TestPlotBase):
                 expected_w=np.array([6, 7, 8, 9, 10]),
             )
 
-    @pytest.mark.slow
     def test_plot_int_columns(self):
         df = DataFrame(randn(100, 4)).cumsum()
         _check_plot_works(df.plot, legend=True)
@@ -1991,7 +1981,6 @@ class TestDataFramePlots(TestPlotBase):
         leg_title = ax.legend_.get_title()
         self._check_text_labels(leg_title, "new")
 
-    @pytest.mark.slow
     def test_no_legend(self):
         kinds = ["line", "bar", "barh", "kde", "area", "hist"]
         df = DataFrame(rand(3, 3), columns=["a", "b", "c"])
@@ -2001,7 +1990,6 @@ class TestDataFramePlots(TestPlotBase):
             ax = df.plot(kind=kind, legend=False)
             self._check_legend_labels(ax, visible=False)
 
-    @pytest.mark.slow
     def test_style_by_column(self):
         import matplotlib.pyplot as plt
 
@@ -2029,7 +2017,6 @@ class TestDataFramePlots(TestPlotBase):
         ax = s.plot(legend=True)
         assert ax.get_legend().get_texts()[0].get_text() == "None"
 
-    @pytest.mark.slow
     def test_line_colors(self):
         from matplotlib import cm
 
@@ -2968,7 +2955,6 @@ class TestDataFramePlots(TestPlotBase):
                 # need to actually access something to get an error
                 results[key].lines
 
-    @pytest.mark.slow
     def test_df_subplots_patterns_minorticks(self):
         # GH 10657
         import matplotlib.pyplot as plt

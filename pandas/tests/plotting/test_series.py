@@ -35,7 +35,6 @@ class TestSeriesPlots(TestPlotBase):
         self.iseries = tm.makePeriodSeries()
         self.iseries.name = "iseries"
 
-    @pytest.mark.slow
     def test_plot(self):
         _check_plot_works(self.ts.plot, label="foo")
         _check_plot_works(self.ts.plot, use_index=False)
@@ -71,7 +70,6 @@ class TestSeriesPlots(TestPlotBase):
         ax = _check_plot_works(self.ts.plot, subplots=True, layout=(1, -1))
         self._check_axes_shape(ax, axes_num=1, layout=(1, 1))
 
-    @pytest.mark.slow
     def test_plot_figsize_and_title(self):
         # figsize and title
         _, ax = self.plt.subplots()
@@ -209,7 +207,6 @@ class TestSeriesPlots(TestPlotBase):
         label2 = ax2.get_xlabel()
         assert label2 == ""
 
-    @pytest.mark.slow
     def test_bar_log(self):
         expected = np.array([1e-1, 1e0, 1e1, 1e2, 1e3, 1e4])
 
@@ -243,7 +240,6 @@ class TestSeriesPlots(TestPlotBase):
         tm.assert_almost_equal(res[1], ymax)
         tm.assert_numpy_array_equal(ax.xaxis.get_ticklocs(), expected)
 
-    @pytest.mark.slow
     def test_bar_ignore_index(self):
         df = Series([1, 2, 3, 4], index=["a", "b", "c", "d"])
         _, ax = self.plt.subplots()
@@ -352,14 +348,12 @@ class TestSeriesPlots(TestPlotBase):
         result = [x.get_text() for x in ax.texts]
         assert result == expected
 
-    @pytest.mark.slow
     def test_hist_df_kwargs(self):
         df = DataFrame(np.random.randn(10, 2))
         _, ax = self.plt.subplots()
         ax = df.plot.hist(bins=5, ax=ax)
         assert len(ax.patches) == 10
 
-    @pytest.mark.slow
     def test_hist_df_with_nonnumerics(self):
         # GH 9853
         with tm.RNGContext(1):
@@ -397,13 +391,11 @@ class TestSeriesPlots(TestPlotBase):
         with pytest.raises(ValueError):
             self.ts.hist(by=self.ts.index, figure=fig)
 
-    @pytest.mark.slow
     def test_hist_bins_legacy(self):
         df = DataFrame(np.random.randn(10, 2))
         ax = df.hist(bins=2)[0][0]
         assert len(ax.patches) == 2
 
-    @pytest.mark.slow
     def test_hist_layout(self):
         df = self.hist_df
         with pytest.raises(ValueError):
@@ -448,7 +440,6 @@ class TestSeriesPlots(TestPlotBase):
         axes = df.height.hist(by=df.category, layout=(4, 2), figsize=(12, 7))
         self._check_axes_shape(axes, axes_num=4, layout=(4, 2), figsize=(12, 7))
 
-    @pytest.mark.slow
     def test_hist_no_overlap(self):
         from matplotlib.pyplot import subplot, gcf
 
@@ -462,7 +453,6 @@ class TestSeriesPlots(TestPlotBase):
         axes = fig.axes
         assert len(axes) == 2
 
-    @pytest.mark.slow
     def test_hist_secondary_legend(self):
         # GH 9610
         df = DataFrame(np.random.randn(30, 4), columns=list("abcd"))
@@ -501,7 +491,6 @@ class TestSeriesPlots(TestPlotBase):
         assert ax.get_yaxis().get_visible()
         tm.close()
 
-    @pytest.mark.slow
     def test_df_series_secondary_legend(self):
         # GH 9779
         df = DataFrame(np.random.randn(30, 3), columns=list("abc"))
@@ -565,7 +554,6 @@ class TestSeriesPlots(TestPlotBase):
         assert ax.get_yaxis().get_visible()
         tm.close()
 
-    @pytest.mark.slow
     @pytest.mark.parametrize(
         "input_logy, expected_scale", [(True, "log"), ("sym", "symlog")]
     )
@@ -581,7 +569,6 @@ class TestSeriesPlots(TestPlotBase):
         assert ax1.get_yscale() == expected_scale
         assert ax2.get_yscale() == expected_scale
 
-    @pytest.mark.slow
     def test_plot_fails_with_dupe_color_and_style(self):
         x = Series(randn(2))
         with pytest.raises(ValueError):
@@ -625,7 +612,6 @@ class TestSeriesPlots(TestPlotBase):
         self._check_ax_scales(ax, yaxis="log")
         self._check_text_labels(ax.yaxis.get_label(), "Density")
 
-    @pytest.mark.slow
     @td.skip_if_no_scipy
     def test_kde_missing_vals(self):
         s = Series(np.random.uniform(size=50))
@@ -635,7 +621,6 @@ class TestSeriesPlots(TestPlotBase):
         # gh-14821: check if the values have any missing values
         assert any(~np.isnan(axes.lines[0].get_xdata()))
 
-    @pytest.mark.slow
     def test_hist_kwargs(self):
         _, ax = self.plt.subplots()
         ax = self.ts.plot.hist(bins=5, ax=ax)
@@ -652,7 +637,6 @@ class TestSeriesPlots(TestPlotBase):
         ax = self.ts.plot.hist(align="left", stacked=True, ax=ax)
         tm.close()
 
-    @pytest.mark.slow
     @td.skip_if_no_scipy
     def test_hist_kde_color(self):
         _, ax = self.plt.subplots()
@@ -668,7 +652,6 @@ class TestSeriesPlots(TestPlotBase):
         assert len(lines) == 1
         self._check_colors(lines, ["r"])
 
-    @pytest.mark.slow
     def test_boxplot_series(self):
         _, ax = self.plt.subplots()
         ax = self.ts.plot.box(logy=True, ax=ax)
@@ -678,7 +661,6 @@ class TestSeriesPlots(TestPlotBase):
         ylabels = ax.get_yticklabels()
         self._check_text_labels(ylabels, [""] * len(ylabels))
 
-    @pytest.mark.slow
     def test_kind_both_ways(self):
         s = Series(range(3))
         kinds = (
@@ -690,7 +672,6 @@ class TestSeriesPlots(TestPlotBase):
             s.plot(kind=kind, ax=ax)
             getattr(s.plot, kind)()
 
-    @pytest.mark.slow
     def test_invalid_plot_data(self):
         s = Series(list("abcd"))
         _, ax = self.plt.subplots()
@@ -720,7 +701,6 @@ class TestSeriesPlots(TestPlotBase):
         with pytest.raises(ValueError):
             s.plot(kind="aasdf")
 
-    @pytest.mark.slow
     def test_dup_datetime_index_plot(self):
         dr1 = date_range("1/1/2009", periods=4)
         dr2 = date_range("1/2/2009", periods=4)
@@ -783,7 +763,6 @@ class TestSeriesPlots(TestPlotBase):
             plotting.PlotAccessor._series_kinds + plotting.PlotAccessor._common_kinds,
         )
 
-    @pytest.mark.slow
     def test_standard_colors(self):
         from pandas.plotting._matplotlib.style import _get_standard_colors
 
@@ -800,7 +779,6 @@ class TestSeriesPlots(TestPlotBase):
             result = _get_standard_colors(3, color=[c])
             assert result == [c] * 3
 
-    @pytest.mark.slow
     def test_standard_colors_all(self):
         import matplotlib.colors as colors
         from pandas.plotting._matplotlib.style import _get_standard_colors

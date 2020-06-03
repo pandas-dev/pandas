@@ -250,7 +250,6 @@ class TestTSPlot(TestPlotBase):
         ser = Series(np.random.randn(len(dr)), index=dr)
         _check_plot_works(ser.plot)
 
-    @pytest.mark.slow
     def test_plot_multiple_inferred_freq(self):
         dr = Index([datetime(2000, 1, 1), datetime(2000, 1, 6), datetime(2000, 1, 11)])
         ser = Series(np.random.randn(len(dr)), index=dr)
@@ -341,7 +340,6 @@ class TestTSPlot(TestPlotBase):
         idx = ax.get_lines()[0].get_xdata()
         tm.assert_index_equal(bts.index.to_period(), PeriodIndex(idx))
 
-    @pytest.mark.slow
     def test_axis_limits(self):
         def _test(ax):
             xlim = ax.get_xlim()
@@ -438,7 +436,6 @@ class TestTSPlot(TestPlotBase):
         assert rs1 == xpl1
         assert rs2 == xpl2
 
-    @pytest.mark.slow
     def test_finder_monthly(self):
         yrs = [1.15, 2.5, 4, 11]
 
@@ -471,7 +468,6 @@ class TestTSPlot(TestPlotBase):
         xp = Period("1989Q1", "M").ordinal
         assert rs == xp
 
-    @pytest.mark.slow
     def test_finder_annual(self):
         xp = [1987, 1988, 1990, 1990, 1995, 2020, 2070, 2170]
         xp = [Period(x, freq="A").ordinal for x in xp]
@@ -487,7 +483,6 @@ class TestTSPlot(TestPlotBase):
 
         assert rs == xp
 
-    @pytest.mark.slow
     def test_finder_minutely(self):
         nminutes = 50 * 24 * 60
         rng = date_range("1/1/1999", freq="Min", periods=nminutes)
@@ -567,7 +562,6 @@ class TestTSPlot(TestPlotBase):
         mask = data.mask
         assert mask[2:5, 1].all()
 
-    @pytest.mark.slow
     def test_gap_upsample(self):
         low = tm.makeTimeSeries()
         low[5:25] = np.nan
@@ -774,7 +768,6 @@ class TestTSPlot(TestPlotBase):
 
         assert ax.lines[0].get_xdata()[0] == ax.lines[1].get_xdata()[0]
 
-    @pytest.mark.slow
     def test_mixed_freq_lf_first(self):
 
         idxh = date_range("1/1/1999", periods=365, freq="D")
@@ -1119,7 +1112,6 @@ class TestTSPlot(TestPlotBase):
                     xp = time(h, m, s, us).strftime("%H:%M")
                 assert xp == rs
 
-    @pytest.mark.slow
     def test_secondary_upsample(self):
         idxh = date_range("1/1/1999", periods=365, freq="D")
         idxl = date_range("1/1/1999", periods=12, freq="M")
