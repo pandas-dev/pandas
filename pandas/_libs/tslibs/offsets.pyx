@@ -2498,12 +2498,9 @@ cdef class Week(SingleConstructorOffset):
     @apply_index_wraps
     def apply_index(self, dtindex):
         if self.weekday is None:
-            # integer addition on PeriodIndex is deprecated,
-            #  so we use _time_shift directly
-            asper = dtindex.to_period("W")
-
-            shifted = asper._time_shift(self.n)
-            return shifted.to_timestamp() + dtindex.to_perioddelta("W")
+            td = timedelta(days=7 * self.n)
+            td64 = np.timedelta64(td, "ns")
+            return dtindex + td64
         else:
             return self._end_apply_index(dtindex)
 
