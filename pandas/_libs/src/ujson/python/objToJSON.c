@@ -106,6 +106,8 @@ typedef struct __TypeContext {
     double doubleValue;
     JSINT64 longValue;
 
+    char bigNum;
+
     char *cStr;
     NpyArrContext *npyarr;
     PdBlockContext *pdblock;
@@ -1635,7 +1637,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
 
         if (exc && PyErr_ExceptionMatches(PyExc_OverflowError)) {
             PRINTMARK();
-            goto INVALID;
+            tc->type = JT_BIGNUM;
         }
 
         return;
