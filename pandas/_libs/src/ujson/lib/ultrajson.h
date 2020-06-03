@@ -150,6 +150,7 @@ enum JSTYPES {
   JT_INT,      // (JSINT32 (signed 32-bit))
   JT_LONG,     // (JSINT64 (signed 64-bit))
   JT_DOUBLE,   // (double)
+  JT_BIGNUM,   // integer larger than sys.maxsize
   JT_UTF8,     // (char 8-bit)
   JT_ARRAY,    // Array structure
   JT_OBJECT,   // Key/Value structure
