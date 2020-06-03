@@ -225,6 +225,7 @@ Missing data handling
    Series.notna
    Series.notnull
    Series.pad
+   Series.replace
 
 Reshaping, sorting
 ------------------

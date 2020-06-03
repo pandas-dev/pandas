@@ -220,6 +220,7 @@ Missing data handling
    DataFrame.notna
    DataFrame.notnull
    DataFrame.replace
+   DataFrame.pad
 
 Reshaping, sorting, transposing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
