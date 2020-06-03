@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING, Optional
 
 import numpy as np
 
+from pandas._libs.tslibs import Period, to_offset
 from pandas._libs.tslibs.frequencies import FreqGroup, base_and_stride, get_freq_code
-from pandas._libs.tslibs.period import Period
 
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
@@ -20,12 +20,7 @@ from pandas.plotting._matplotlib.converter import (
     TimeSeries_DateLocator,
     TimeSeries_TimedeltaFormatter,
 )
-from pandas.tseries.frequencies import (
-    get_period_alias,
-    is_subperiod,
-    is_superperiod,
-    to_offset,
-)
+from pandas.tseries.frequencies import get_period_alias, is_subperiod, is_superperiod
 from pandas.tseries.offsets import DateOffset
 
 if TYPE_CHECKING:
