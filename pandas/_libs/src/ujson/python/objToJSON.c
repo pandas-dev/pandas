@@ -106,8 +106,6 @@ typedef struct __TypeContext {
     double doubleValue;
     JSINT64 longValue;
 
-    char bigNum;
-
     char *cStr;
     NpyArrContext *npyarr;
     PdBlockContext *pdblock;
