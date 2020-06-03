@@ -522,7 +522,7 @@ class TestNamedAggregationSeries:
     def test_named_agg_nametuple(self, inp):
         # GH34422
         s = pd.Series([1, 1, 2, 2, 3, 3, 4, 5])
-        msg = "func is expected but recieved {}".format(type(inp).__name__)
+        msg = f"func is expected but recieved {type(inp).__name__}"
         with pytest.raises(TypeError, match=msg):
             s.groupby(s.values).agg(a=inp)
 
