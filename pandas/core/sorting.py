@@ -387,6 +387,7 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
     if not key:
         return values
 
+
     if isinstance(values, ABCMultiIndex):
         return ensure_key_mapped_multiindex(values, key, level=levels)
 
