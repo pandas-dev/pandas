@@ -6193,6 +6193,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             method="ffill", axis=axis, inplace=inplace, limit=limit, downcast=downcast
         )
 
+    pad = ffill
+
     def bfill(
         self: FrameOrSeries,
         axis=None,
@@ -6211,6 +6213,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return self.fillna(
             method="bfill", axis=axis, inplace=inplace, limit=limit, downcast=downcast
         )
+
+    backfill = bfill
 
     @doc(klass=_shared_doc_kwargs["klass"])
     def replace(
