@@ -379,7 +379,7 @@ class TestFrameFlexArithmetic:
         # case that goes through numexpr and has to fall back to masked_arith_op
         op = getattr(operator, opname)
 
-        arr = np.arange(10 ** 3).reshape(100, -1) * 1000
+        arr = np.arange(10 ** 4).reshape(100, -1) * 100
         df = pd.DataFrame(arr)
         df["C"] = 1.0
 
