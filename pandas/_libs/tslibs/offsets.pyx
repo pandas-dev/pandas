@@ -1046,8 +1046,6 @@ cdef class RelativeDeltaOffset(BaseOffset):
         -------
         DatetimeIndex
         """
-        from pandas._libs.tslibs.timedeltas import Timedelta
-
         kwds = self.kwds
         relativedelta_fast = {
             "years",
@@ -1069,7 +1067,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
 
             weeks = kwds.get("weeks", 0) * self.n
             if weeks:
-                index = index + Timedelta(days=7 * weeks)
+                index = index + timedelta(days=7 * weeks)
 
             timedelta_kwds = {
                 k: v
@@ -1077,6 +1075,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 if k in ["days", "hours", "minutes", "seconds", "microseconds"]
             }
             if timedelta_kwds:
+                from .timedeltas import Timedelta
                 delta = Timedelta(**timedelta_kwds)
                 index = index + (self.n * delta)
             return index
@@ -1388,7 +1387,7 @@ cdef class BusinessDay(BusinessMixin):
         asper = dtindex.to_period("B")
 
         if self.n > 0:
-            shifted = (dtindex.to_perioddelta("B") - time).view("i8") != 0
+            shifted = (dtindex.to_perioddelta("B") - time).asi8 != 0
 
             # Integer-array addition is deprecated, so we use
             # _time_shift directly
@@ -2274,9 +2273,9 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
         # determine how many days away from the 1st of the month we are
         from pandas import Timedelta
 
-        i8other = dtindex.asi8
         dti = dtindex
-        days_from_start = dtindex.to_perioddelta("M").view("i8")
+        i8other = dtindex.asi8
+        days_from_start = dtindex.to_perioddelta("M").asi8
         delta = Timedelta(days=self.day_of_month - 1).value
 
         # get boolean array for each element before the day_of_month
@@ -2504,10 +2503,11 @@ cdef class Week(SingleConstructorOffset):
     @apply_index_wraps
     def apply_index(self, dtindex):
         if self.weekday is None:
-            from pandas._libs.tslibs.timedeltas import Timedelta
-
-            result = np.asarray(dtindex) + Timedelta(days=7 * self.n)
-            return type(dtindex)._simple_new(result)
+            # integer addition on PeriodIndex is deprecated,
+            #  so we use _time_shift directly
+            td = timedelta(days=7 * self.n)
+            td64 = np.timedelta64(td, "ns")
+            return dtindex + td64
         else:
             return self._end_apply_index(dtindex)
 
@@ -2528,7 +2528,7 @@ cdef class Week(SingleConstructorOffset):
         from .frequencies import get_freq_code  # TODO: avoid circular import
 
         i8other = dtindex.asi8
-        off = (i8other % DAY_NANOS).view("timedelta64[ns]")
+        off = (i8other % DAY_NANOS).view("timedelta64")
 
         base, mult = get_freq_code(self.freqstr)
         base_period = dtindex.to_period(base)
