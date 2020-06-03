@@ -569,19 +569,21 @@ class TestParquetPyArrow(Base):
         )
 
     @tm.network
-    def test_parquet_read_from_url(self, engine, df_compat):
+    @td.skip_if_no("pyarrow")
+    def test_parquet_read_from_url(self, df_compat):
         # TODO:alimcmaster1 update with master URL
         url = (
             "https://raw.githubusercontent.com/alimcmaster1/pandas/"
             "mcmali-parq-fix/pandas/tests/io/data/parquet/simple.parquet"
         )
-        df = pd.read_parquet(url, engine=engine)
+        df = pd.read_parquet(url)
         tm.assert_frame_equal(df, df_compat)
 
-    def test_read_file_like_obj_support(self, df_compat, engine):
+    @td.skip_if_no("pyarrow")
+    def test_read_file_like_obj_support(self, df_compat):
         buffer = BytesIO()
         df_compat.to_parquet(buffer)
-        df_from_buf = pd.read_parquet(buffer, engine=engine)
+        df_from_buf = pd.read_parquet(buffer)
         tm.assert_frame_equal(df_compat, df_from_buf)
 
     def test_partition_cols_supported(self, pa, df_full):
