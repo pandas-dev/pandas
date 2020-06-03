@@ -38,6 +38,7 @@ from pandas._libs.tslibs.ccalendar cimport DAY_NANOS, get_days_in_month, dayofwe
 from pandas._libs.tslibs.conversion cimport (
     convert_datetime_to_tsobject,
     localize_pydatetime,
+    normalize_i8_timestamps,
 )
 from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
 from pandas._libs.tslibs.np_datetime cimport (
@@ -79,21 +80,14 @@ cdef bint _is_normalized(datetime dt):
 def apply_index_wraps(func):
     # Note: normally we would use `@functools.wraps(func)`, but this does
     # not play nicely with cython class methods
-    def wrapper(self, other):
+    def wrapper(self, other) -> np.ndarray:
+        # other is a DatetimeArray
 
-        is_index = not util.is_array(other._data)
-
-        # operate on DatetimeArray
-        arr = other._data if is_index else other
-
-        result = func(self, arr)
-
-        if is_index:
-            # Wrap DatetimeArray result back to DatetimeIndex
-            result = type(other)._simple_new(result, name=other.name)
+        result = func(self, other)
+        result = np.asarray(result)
 
         if self.normalize:
-            result = result.to_period('D').to_timestamp()
+            result = normalize_i8_timestamps(result.view("i8"), None)
         return result
 
     # do @functools.wraps(func) manually since it doesn't work on cdef funcs
@@ -1882,7 +1876,7 @@ cdef class YearOffset(SingleConstructorOffset):
         shifted = shift_quarters(
             dtindex.asi8, self.n, self.month, self._day_opt, modby=12
         )
-        return type(dtindex)._simple_new(shifted, dtype=dtindex.dtype)
+        return shifted
 
 
 cdef class BYearEnd(YearOffset):
@@ -2026,7 +2020,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
         shifted = shift_quarters(
             dtindex.asi8, self.n, self.startingMonth, self._day_opt
         )
-        return type(dtindex)._simple_new(shifted, dtype=dtindex.dtype)
+        return shifted
 
 
 cdef class BQuarterEnd(QuarterOffset):
@@ -2132,7 +2126,7 @@ cdef class MonthOffset(SingleConstructorOffset):
     @apply_index_wraps
     def apply_index(self, dtindex):
         shifted = shift_months(dtindex.asi8, self.n, self._day_opt)
-        return type(dtindex)._simple_new(shifted, dtype=dtindex.dtype)
+        return shifted
 
     cpdef __setstate__(self, state):
         state.pop("_use_relativedelta", False)
@@ -2492,8 +2486,6 @@ cdef class Week(SingleConstructorOffset):
     @apply_index_wraps
     def apply_index(self, dtindex):
         if self.weekday is None:
-            # integer addition on PeriodIndex is deprecated,
-            #  so we use _time_shift directly
             td = timedelta(days=7 * self.n)
             td64 = np.timedelta64(td, "ns")
             return dtindex + td64
