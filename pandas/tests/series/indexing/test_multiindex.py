@@ -1,28 +1,8 @@
 """ test get/set & misc """
 
-from datetime import timedelta
-
-import numpy as np
-import pytest
-
-from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    DataFrame,
-    IndexSlice,
-    MultiIndex,
-    Series,
-    Timedelta,
-    Timestamp,
-    date_range,
-    period_range,
-    timedelta_range,
-)
-import pandas._testing as tm
-
-from pandas.tseries.offsets import BDay
+from pandas import MultiIndex, Series
 
 
 def test_access_none_value_in_multiindex():
