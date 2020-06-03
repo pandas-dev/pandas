@@ -406,7 +406,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
             index = cls._simple_new(values, freq=freq, dtype=tz_to_dtype(_tz))
 
             if tz is not None and index.tz is None:
-                arr = conversion.tz_localize_to_utc(
+                arr = tzconversion.tz_localize_to_utc(
                     index.asi8, tz, ambiguous=ambiguous, nonexistent=nonexistent
                 )
 
@@ -967,7 +967,7 @@ default 'raise'
             tz = timezones.maybe_get_tz(tz)
             # Convert to UTC
 
-            new_dates = conversion.tz_localize_to_utc(
+            new_dates = tzconversion.tz_localize_to_utc(
                 self.asi8, tz, ambiguous=ambiguous, nonexistent=nonexistent
             )
         new_dates = new_dates.view(DT64NS_DTYPE)
@@ -1881,7 +1881,7 @@ def sequence_to_dt64ns(
     dayfirst : bool, default False
     yearfirst : bool, default False
     ambiguous : str, bool, or arraylike, default 'raise'
-        See pandas._libs.tslibs.conversion.tz_localize_to_utc.
+        See pandas._libs.tslibs.tzconversion.tz_localize_to_utc.
 
     Returns
     -------
@@ -1961,7 +1961,7 @@ def sequence_to_dt64ns(
         if tz is not None:
             # Convert tz-naive to UTC
             tz = timezones.maybe_get_tz(tz)
-            data = conversion.tz_localize_to_utc(
+            data = tzconversion.tz_localize_to_utc(
                 data.view("i8"), tz, ambiguous=ambiguous
             )
             data = data.view(DT64NS_DTYPE)
