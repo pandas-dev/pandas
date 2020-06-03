@@ -150,7 +150,7 @@ def get_filepath_or_buffer(
     encoding: Optional[str] = None,
     compression: Optional[str] = None,
     mode: Optional[str] = None,
-    **storage_options: Dict[str, Any],
+    storage_options: Optional[Dict[str, Any]] = None,
 ):
     """
     If the filepath_or_buffer is a url, translate and return the buffer.
@@ -163,7 +163,7 @@ def get_filepath_or_buffer(
     compression : {{'gzip', 'bz2', 'zip', 'xz', None}}, optional
     encoding : the encoding to use to decode bytes, default is 'utf-8'
     mode : str, optional
-    storage_options: dict
+    storage_options: dict, optional
         passed on to fsspec, if using it; this is not yet accessed by the public API
 
     Returns
@@ -199,7 +199,7 @@ def get_filepath_or_buffer(
         fsspec = import_optional_dependency("fsspec")
 
         file_obj = fsspec.open(
-            filepath_or_buffer, mode=mode or "rb", **storage_options
+            filepath_or_buffer, mode=mode or "rb", **(storage_options or {})
         ).open()
         return file_obj, encoding, compression, True
 
