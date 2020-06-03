@@ -3524,7 +3524,7 @@ class TestSemiMonthEnd(Base):
         with tm.assert_produces_warning(None):
             # GH#22535 check that we don't get a FutureWarning from adding
             # an integer array to PeriodIndex
-            result = SemiMonthEnd().apply_index(s)
+            result = SemiMonthEnd() + s
 
         exp = DatetimeIndex(dates[1:])
         tm.assert_index_equal(result, exp)
@@ -3672,7 +3672,7 @@ class TestSemiMonthEnd(Base):
         with tm.assert_produces_warning(None):
             # GH#22535 check that we don't get a FutureWarning from adding
             # an integer array to PeriodIndex
-            result = offset.apply_index(s)
+            result = offset + s
 
         exp = DatetimeIndex(cases.values())
         tm.assert_index_equal(result, exp)
@@ -3783,7 +3783,7 @@ class TestSemiMonthBegin(Base):
         with tm.assert_produces_warning(None):
             # GH#22535 check that we don't get a FutureWarning from adding
             # an integer array to PeriodIndex
-            result = SemiMonthBegin().apply_index(s)
+            result = SemiMonthBegin() + s
 
         exp = DatetimeIndex(dates[1:])
         tm.assert_index_equal(result, exp)
@@ -3936,7 +3936,7 @@ class TestSemiMonthBegin(Base):
         with tm.assert_produces_warning(None):
             # GH#22535 check that we don't get a FutureWarning from adding
             # an integer array to PeriodIndex
-            result = offset.apply_index(s)
+            result = offset + s
 
         exp = DatetimeIndex(cases.values())
         tm.assert_index_equal(result, exp)

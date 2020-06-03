@@ -685,7 +685,9 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
                 values = self.tz_localize(None)
             else:
                 values = self
-            result = offset.apply_index(values).tz_localize(self.tz)
+            result = offset.apply_index(values)
+            result = DatetimeArray._simple_new(result)
+            result = result.tz_localize(self.tz)
 
         except NotImplementedError:
             warnings.warn(
