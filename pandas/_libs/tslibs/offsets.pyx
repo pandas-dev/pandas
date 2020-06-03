@@ -36,7 +36,7 @@ from pandas._libs.tslibs.base cimport ABCTimestamp
 from pandas._libs.tslibs.ccalendar import (
     MONTH_ALIASES, MONTH_TO_CAL_NUM, weekday_to_int, int_to_weekday,
 )
-from pandas._libs.tslibs.ccalendar cimport get_days_in_month, dayofweek
+from pandas._libs.tslibs.ccalendar cimport DAY_NANOS, get_days_in_month, dayofweek
 from pandas._libs.tslibs.conversion cimport (
     convert_datetime_to_tsobject,
     localize_pydatetime,
@@ -1061,11 +1061,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
 
             weeks = kwds.get("weeks", 0) * self.n
             if weeks:
-                # integer addition on PeriodIndex is deprecated,
-                #   so we directly use _time_shift instead
-                asper = index.to_period("W")
-                shifted = asper._time_shift(weeks)
-                index = shifted.to_timestamp() + index.to_perioddelta("W")
+                index = index + timedelta(days=7 * weeks)
 
             timedelta_kwds = {
                 k: v
@@ -1377,7 +1373,9 @@ cdef class BusinessDay(BusinessMixin):
 
     @apply_index_wraps
     def apply_index(self, dtindex):
-        time = dtindex.to_perioddelta("D")
+        i8other = dtindex.asi8
+        time = (i8other % DAY_NANOS).view("timedelta64[ns]")
+
         # to_period rolls forward to next BDay; track and
         # reduce n where it does when rolling forward
         asper = dtindex.to_period("B")
@@ -2270,6 +2268,7 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
         from pandas import Timedelta
 
         dti = dtindex
+        i8other = dtindex.asi8
         days_from_start = dtindex.to_perioddelta("M").asi8
         delta = Timedelta(days=self.day_of_month - 1).value
 
@@ -2283,7 +2282,7 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
         roll = self._get_roll(dtindex, before_day_of_month, after_day_of_month)
 
         # isolate the time since it will be striped away one the next line
-        time = dtindex.to_perioddelta("D")
+        time = (i8other % DAY_NANOS).view("timedelta64[ns]")
 
         # apply the correct number of months
 
@@ -2520,7 +2519,8 @@ cdef class Week(SingleConstructorOffset):
         from pandas import Timedelta
         from .frequencies import get_freq_code  # TODO: avoid circular import
 
-        off = dtindex.to_perioddelta("D")
+        i8other = dtindex.asi8
+        off = (i8other % DAY_NANOS).view("timedelta64")
 
         base, mult = get_freq_code(self.freqstr)
         base_period = dtindex.to_period(base)
