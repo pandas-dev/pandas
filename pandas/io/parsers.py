@@ -555,13 +555,10 @@ _pyarrow_unsupported = {
     "iterator",
     "cache_dates",
     "dayfirst",
-    "keep_date_col",
     "infer_datetime_format",
     "verbose",
     "skipinitialspace",
-    "date_parser",
     "cache_dates",
-    "parse_dates",
 }
 _python_unsupported = {"low_memory", "float_precision"}
 
@@ -2338,10 +2335,11 @@ class ArrowParserWrapper(ParserBase):
         if self.index_col is not None:
             index_col = [frame.columns[i] for i in self.index_col]
             frame.set_index(index_col, drop=True, inplace=True)
+
+        frame.columns, frame = self._do_date_conversions(frame.columns, frame)
+
         if self.kwds.get("dtype") is not None:
             frame = frame.astype(self.kwds.get("dtype"))
-        else:
-            frame = frame.infer_objects()
         return frame
 
 
