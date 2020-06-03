@@ -42,7 +42,9 @@ class TestSeriesApply:
 
     def test_apply_same_length_inference_bug(self):
         s = Series([1, 2])
-        f = lambda x: (x, x + 1)
+
+        def f(x):
+            return (x, x + 1)
 
         result = s.apply(f)
         expected = s.map(f)
@@ -56,7 +58,9 @@ class TestSeriesApply:
     def test_apply_dont_convert_dtype(self):
         s = Series(np.random.randn(10))
 
-        f = lambda x: x if x > 0 else np.nan
+        def f(x):
+            return x if x > 0 else np.nan
+
         result = s.apply(f, convert_dtype=False)
         assert result.dtype == object
 
@@ -458,6 +462,14 @@ class TestSeriesAggregate:
         with pytest.raises(expected):
             # e.g. Series('a b'.split()).cumprod() will raise
             series.agg(func)
+
+    def test_transform_none_to_type(self):
+        # GH34377
+        df = pd.DataFrame({"a": [None]})
+
+        msg = "DataFrame constructor called with incompatible data and dtype"
+        with pytest.raises(TypeError, match=msg):
+            df.transform({"a": int})
 
 
 class TestSeriesMap:
