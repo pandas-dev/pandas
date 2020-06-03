@@ -42,9 +42,9 @@ from pandas._libs.tslibs.util cimport (
     is_timedelta64_object,
 )
 
-from pandas._libs.tslibs.base cimport ABCTimedelta
 from pandas._libs.tslibs.timezones cimport tz_compare
 from pandas._libs.tslibs.timestamps cimport _Timestamp
+from pandas._libs.tslibs.timedeltas cimport _Timedelta
 
 _VALID_CLOSED = frozenset(['left', 'right', 'both', 'neither'])
 
@@ -340,7 +340,7 @@ cdef class Interval(IntervalMixin):
     def _validate_endpoint(self, endpoint):
         # GH 23013
         if not (is_integer_object(endpoint) or is_float_object(endpoint) or
-                isinstance(endpoint, (_Timestamp, ABCTimedelta))):
+                isinstance(endpoint, (_Timestamp, _Timedelta))):
             raise ValueError("Only numeric, Timestamp and Timedelta endpoints "
                              "are allowed when constructing an Interval.")
 

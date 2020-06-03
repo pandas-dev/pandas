@@ -21,7 +21,7 @@ from pandas._libs.tslibs.util cimport (
     is_float_object, is_array
 )
 
-from pandas._libs.tslibs.base cimport ABCTimedelta, ABCTimestamp
+from pandas._libs.tslibs.base cimport ABCTimestamp
 
 from pandas._libs.tslibs.conversion cimport cast_from_unit
 
@@ -675,12 +675,12 @@ cdef _to_py_int_float(v):
 # timedeltas that we need to do object instantiation in python. This will
 # serve as a C extension type that shadows the Python class, where we do any
 # heavy lifting.
-cdef class _Timedelta(ABCTimedelta):
-    cdef readonly:
-        int64_t value      # nanoseconds
-        object freq        # frequency reference
-        bint is_populated  # are my components populated
-        int64_t _d, _h, _m, _s, _ms, _us, _ns
+cdef class _Timedelta(timedelta):
+    # cdef readonly:
+    #    int64_t value      # nanoseconds
+    #    object freq        # frequency reference
+    #    bint is_populated  # are my components populated
+    #    int64_t _d, _h, _m, _s, _ms, _us, _ns
 
     # higher than np.ndarray and np.matrix
     __array_priority__ = 100
