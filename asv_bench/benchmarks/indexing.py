@@ -158,9 +158,9 @@ class DataFrameStringIndexing:
 class DataFrameNumericIndexing:
     def setup(self):
         self.idx_dupe = np.array(range(30)) * 99
-        self.df = DataFrame(np.random.randn(10000, 5))
+        self.df = DataFrame(np.random.randn(100000, 5))
         self.df_dup = concat([self.df, 2 * self.df, 3 * self.df])
-        self.bool_indexer = [True] * 5000 + [False] * 5000
+        self.bool_indexer = [True] * 50000 + [False] * 50000
 
     def time_iloc_dups(self):
         self.df_dup.iloc[self.idx_dupe]

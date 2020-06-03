@@ -5,10 +5,8 @@ import warnings
 
 import numpy as np
 
-from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
-import pandas.core.common as com
 from pandas.core.generic import _shared_docs
 from pandas.core.groupby.base import GroupByMixin
 from pandas.core.indexes.api import MultiIndex
@@ -224,75 +222,6 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
         return _flex_binary_moment(arg2, arg1, f)
 
 
-def _get_center_of_mass(comass, span, halflife, alpha):
-    valid_count = com.count_not_none(comass, span, halflife, alpha)
-    if valid_count > 1:
-        raise ValueError("comass, span, halflife, and alpha are mutually exclusive")
-
-    # Convert to center of mass; domain checks ensure 0 < alpha <= 1
-    if comass is not None:
-        if comass < 0:
-            raise ValueError("comass must satisfy: comass >= 0")
-    elif span is not None:
-        if span < 1:
-            raise ValueError("span must satisfy: span >= 1")
-        comass = (span - 1) / 2.0
-    elif halflife is not None:
-        if halflife <= 0:
-            raise ValueError("halflife must satisfy: halflife > 0")
-        decay = 1 - np.exp(np.log(0.5) / halflife)
-        comass = 1 / decay - 1
-    elif alpha is not None:
-        if alpha <= 0 or alpha > 1:
-            raise ValueError("alpha must satisfy: 0 < alpha <= 1")
-        comass = (1.0 - alpha) / alpha
-    else:
-        raise ValueError("Must pass one of comass, span, halflife, or alpha")
-
-    return float(comass)
-
-
-def calculate_center_offset(window):
-    if not is_integer(window):
-        window = len(window)
-    return int((window - 1) / 2.0)
-
-
-def calculate_min_periods(
-    window: int,
-    min_periods: Optional[int],
-    num_values: int,
-    required_min_periods: int,
-    floor: int,
-) -> int:
-    """
-    Calculates final minimum periods value for rolling aggregations.
-
-    Parameters
-    ----------
-    window : passed window value
-    min_periods : passed min periods value
-    num_values : total number of values
-    required_min_periods : required min periods per aggregation function
-    floor : required min periods per aggregation function
-
-    Returns
-    -------
-    min_periods : int
-    """
-    if min_periods is None:
-        min_periods = window
-    else:
-        min_periods = max(required_min_periods, min_periods)
-    if min_periods > window:
-        raise ValueError(f"min_periods {min_periods} must be <= window {window}")
-    elif min_periods > num_values:
-        min_periods = num_values + 1
-    elif min_periods < 0:
-        raise ValueError("min_periods must be >= 0")
-    return max(min_periods, floor)
-
-
 def zsqrt(x):
     with np.errstate(all="ignore"):
         result = np.sqrt(x)
@@ -317,12 +246,3 @@ def prep_binary(arg1, arg2):
     Y = arg2 + 0 * arg1
 
     return X, Y
-
-
-def get_weighted_roll_func(cfunc: Callable) -> Callable:
-    def func(arg, window, min_periods=None):
-        if min_periods is None:
-            min_periods = len(window)
-        return cfunc(arg, window, min_periods)
-
-    return func

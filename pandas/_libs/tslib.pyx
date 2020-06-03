@@ -41,7 +41,6 @@ from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
 from pandas._libs.tslibs.parsing import parse_datetime_string
 
-from pandas._libs.tslibs.timedeltas cimport cast_from_unit
 from pandas._libs.tslibs.timezones cimport (
     get_dst_info,
     is_utc,
@@ -49,8 +48,11 @@ from pandas._libs.tslibs.timezones cimport (
     utc_pytz as UTC,
 )
 from pandas._libs.tslibs.conversion cimport (
-    _TSObject, convert_datetime_to_tsobject,
-    get_datetime64_nanos)
+    _TSObject,
+    cast_from_unit,
+    convert_datetime_to_tsobject,
+    get_datetime64_nanos,
+)
 
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
