@@ -1,5 +1,6 @@
 import pytest
 
+from pandas._libs.tslibs import to_offset
 from pandas._libs.tslibs.frequencies import (
     FreqGroup,
     _attrname_to_abbrevs,
@@ -10,7 +11,6 @@ from pandas._libs.tslibs.frequencies import (
 )
 from pandas._libs.tslibs.resolution import Resolution as _reso
 
-from pandas.tseries.frequencies import to_offset
 import pandas.tseries.offsets as offsets
 
 

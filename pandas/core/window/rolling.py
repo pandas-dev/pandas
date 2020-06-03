@@ -10,6 +10,7 @@ from typing import Callable, Dict, List, Optional, Set, Tuple, Type, Union
 
 import numpy as np
 
+from pandas._libs.tslibs import to_offset
 import pandas._libs.window.aggregations as window_aggregations
 from pandas._typing import Axis, FrameOrSeries, Scalar
 from pandas.compat._optional import import_optional_dependency
@@ -1977,8 +1978,6 @@ class Rolling(_Rolling_and_Expanding):
         """
         Validate & return window frequency.
         """
-        from pandas.tseries.frequencies import to_offset
-
         try:
             return to_offset(self.window)
         except (TypeError, ValueError) as err:

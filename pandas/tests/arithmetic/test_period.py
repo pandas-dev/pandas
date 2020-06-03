@@ -6,16 +6,14 @@ import operator
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs.period import IncompatibleFrequency
+from pandas._libs.tslibs import IncompatibleFrequency, Period, Timestamp, to_offset
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import Period, PeriodIndex, Series, TimedeltaIndex, Timestamp, period_range
+from pandas import PeriodIndex, Series, TimedeltaIndex, period_range
 import pandas._testing as tm
 from pandas.core import ops
 from pandas.core.arrays import TimedeltaArray
-
-from pandas.tseries.frequencies import to_offset
 
 from .common import assert_invalid_comparison
 

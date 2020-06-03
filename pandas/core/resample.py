@@ -6,8 +6,14 @@ from typing import Dict, Optional, Union, no_type_check
 import numpy as np
 
 from pandas._libs import lib
-from pandas._libs.tslibs import NaT, Period, Timedelta, Timestamp
-from pandas._libs.tslibs.period import IncompatibleFrequency
+from pandas._libs.tslibs import (
+    IncompatibleFrequency,
+    NaT,
+    Period,
+    Timedelta,
+    Timestamp,
+    to_offset,
+)
 from pandas._typing import TimedeltaConvertibleTypes, TimestampConvertibleTypes
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -28,7 +34,7 @@ from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.indexes.period import PeriodIndex, period_range
 from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 
-from pandas.tseries.frequencies import is_subperiod, is_superperiod, to_offset
+from pandas.tseries.frequencies import is_subperiod, is_superperiod
 from pandas.tseries.offsets import DateOffset, Day, Nano, Tick
 
 _shared_docs_kwargs: Dict[str, str] = dict()
