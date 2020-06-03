@@ -25,13 +25,7 @@ from pandas.io.json._table_schema import build_table_schema, parse_table_schema
 from pandas.io.parsers import _validate_integer
 
 loads = json.loads
-
-
-def dumps(obj, default_handler=str, **kwargs):
-    try:
-        return json.dumps(obj, **kwargs)
-    except OverflowError:
-        return json.dumps(default_handler(obj), **kwargs)
+dumps = json.dumps
 
 
 TABLE_SCHEMA_VERSION = "0.20.0"
