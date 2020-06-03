@@ -41,6 +41,7 @@ def test_namespace():
         "ints_to_pytimedelta",
         "localize_pydatetime",
         "tz_convert_single",
+        "to_offset",
     ]
 
     expected = set(submodules + api)

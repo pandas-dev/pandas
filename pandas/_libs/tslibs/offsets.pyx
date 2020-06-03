@@ -36,10 +36,11 @@ from pandas._libs.tslibs.base cimport ABCTimestamp
 from pandas._libs.tslibs.ccalendar import (
     MONTH_ALIASES, MONTH_TO_CAL_NUM, weekday_to_int, int_to_weekday,
 )
-from pandas._libs.tslibs.ccalendar cimport get_days_in_month, dayofweek
+from pandas._libs.tslibs.ccalendar cimport DAY_NANOS, get_days_in_month, dayofweek
 from pandas._libs.tslibs.conversion cimport (
     convert_datetime_to_tsobject,
     localize_pydatetime,
+    normalize_i8_timestamps,
 )
 from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
 from pandas._libs.tslibs.np_datetime cimport (
@@ -80,21 +81,14 @@ cdef bint _is_normalized(datetime dt):
 def apply_index_wraps(func):
     # Note: normally we would use `@functools.wraps(func)`, but this does
     # not play nicely with cython class methods
-    def wrapper(self, other):
+    def wrapper(self, other) -> np.ndarray:
+        # other is a DatetimeArray
 
-        is_index = not util.is_array(other._data)
-
-        # operate on DatetimeArray
-        arr = other._data if is_index else other
-
-        result = func(self, arr)
-
-        if is_index:
-            # Wrap DatetimeArray result back to DatetimeIndex
-            result = type(other)._simple_new(result, name=other.name)
+        result = func(self, other)
+        result = np.asarray(result)
 
         if self.normalize:
-            result = result.to_period('D').to_timestamp()
+            result = normalize_i8_timestamps(result.view("i8"), None)
         return result
 
     # do @functools.wraps(func) manually since it doesn't work on cdef funcs
@@ -1075,11 +1069,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
 
             weeks = kwds.get("weeks", 0) * self.n
             if weeks:
-                # integer addition on PeriodIndex is deprecated,
-                #   so we directly use _time_shift instead
-                asper = index.to_period("W")
-                shifted = asper._time_shift(weeks)
-                index = shifted.to_timestamp() + index.to_perioddelta("W")
+                index = index + timedelta(days=7 * weeks)
 
             timedelta_kwds = {
                 k: v
@@ -1391,7 +1381,9 @@ cdef class BusinessDay(BusinessMixin):
 
     @apply_index_wraps
     def apply_index(self, dtindex):
-        time = dtindex.to_perioddelta("D")
+        i8other = dtindex.asi8
+        time = (i8other % DAY_NANOS).view("timedelta64[ns]")
+
         # to_period rolls forward to next BDay; track and
         # reduce n where it does when rolling forward
         asper = dtindex.to_period("B")
@@ -1899,7 +1891,7 @@ cdef class YearOffset(SingleConstructorOffset):
         shifted = shift_quarters(
             dtindex.asi8, self.n, self.month, self._day_opt, modby=12
         )
-        return type(dtindex)._simple_new(shifted, dtype=dtindex.dtype)
+        return shifted
 
 
 cdef class BYearEnd(YearOffset):
@@ -2052,7 +2044,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
         shifted = shift_quarters(
             dtindex.asi8, self.n, self.startingMonth, self._day_opt
         )
-        return type(dtindex)._simple_new(shifted, dtype=dtindex.dtype)
+        return shifted
 
 
 cdef class BQuarterEnd(QuarterOffset):
@@ -2166,7 +2158,7 @@ cdef class MonthOffset(SingleConstructorOffset):
     @apply_index_wraps
     def apply_index(self, dtindex):
         shifted = shift_months(dtindex.asi8, self.n, self._day_opt)
-        return type(dtindex)._simple_new(shifted, dtype=dtindex.dtype)
+        return shifted
 
     cpdef __setstate__(self, state):
         state.pop("_use_relativedelta", False)
@@ -2302,6 +2294,7 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
         from pandas import Timedelta
 
         dti = dtindex
+        i8other = dtindex.asi8
         days_from_start = dtindex.to_perioddelta("M").asi8
         delta = Timedelta(days=self.day_of_month - 1).value
 
@@ -2315,7 +2308,7 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
         roll = self._get_roll(dtindex, before_day_of_month, after_day_of_month)
 
         # isolate the time since it will be striped away one the next line
-        time = dtindex.to_perioddelta("D")
+        time = (i8other % DAY_NANOS).view("timedelta64[ns]")
 
         # apply the correct number of months
 
@@ -2533,12 +2526,9 @@ cdef class Week(SingleConstructorOffset):
     @apply_index_wraps
     def apply_index(self, dtindex):
         if self.weekday is None:
-            # integer addition on PeriodIndex is deprecated,
-            #  so we use _time_shift directly
-            asper = dtindex.to_period("W")
-
-            shifted = asper._time_shift(self.n)
-            return shifted.to_timestamp() + dtindex.to_perioddelta("W")
+            td = timedelta(days=7 * self.n)
+            td64 = np.timedelta64(td, "ns")
+            return dtindex + td64
         else:
             return self._end_apply_index(dtindex)
 
@@ -2558,7 +2548,8 @@ cdef class Week(SingleConstructorOffset):
         from pandas import Timedelta
         from .frequencies import get_freq_code  # TODO: avoid circular import
 
-        off = dtindex.to_perioddelta("D")
+        i8other = dtindex.asi8
+        off = (i8other % DAY_NANOS).view("timedelta64")
 
         base, mult = get_freq_code(self.freqstr)
         base_period = dtindex.to_period(base)
