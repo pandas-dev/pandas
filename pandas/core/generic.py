@@ -9333,6 +9333,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         Shift the time index, using the index's frequency if available.
 
+        .. deprecated:: 1.1.0
+            Use `shift` instead.
+
         Parameters
         ----------
         periods : int
