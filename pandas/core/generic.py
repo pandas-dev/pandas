@@ -4241,9 +4241,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         Conform %(klass)s to new index with optional filling logic.
 
-        Places NA/NaN in locations having no value in the previous index. A new object
-        is produced unless the new index is equivalent to the current one and
-        ``copy=False``.
+        Places NA/NaN in locations having no value in the previous index. A new
+        DataFrame with an additional index is generated subject to customization
+        with parameters.
 
         Parameters
         ----------
@@ -4286,7 +4286,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Returns
         -------
-        %(klass)s with changed index.
+        %(klass)s with 2 indices.
 
         See Also
         --------
