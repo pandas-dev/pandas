@@ -1053,7 +1053,7 @@ timedelta}, default 'raise'
 
         Parameters
         ----------
-        locale : string, default None (English locale)
+        locale : str, default None (English locale)
             Locale determining the language in which to return the day name.
 
         Returns
@@ -1070,7 +1070,7 @@ timedelta}, default 'raise'
 
         Parameters
         ----------
-        locale : string, default None (English locale)
+        locale : str, default None (English locale)
             Locale determining the language in which to return the month name.
 
         Returns
