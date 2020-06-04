@@ -1,5 +1,6 @@
 from datetime import timedelta
 import operator
+import warnings
 
 import numpy as np
 import pytest
@@ -11,7 +12,6 @@ import pandas as pd
 from pandas import Categorical, Index, Series, bdate_range, date_range, isna
 import pandas._testing as tm
 from pandas.core import nanops, ops
-import warnings
 
 
 def _permute(obj):
