@@ -1292,11 +1292,7 @@ cdef class BusinessDay(BusinessMixin):
             self._offset = state.pop("_offset")
         elif "offset" in state:
             self._offset = state.pop("offset")
-
-    @property
-    def _params(self):
-        # FIXME: using cache_readonly breaks a pytables test
-        return BaseOffset._params.func(self)
+        self._cache = state.pop("_cache", {})
 
     def _offset_str(self) -> str:
         def get_str(td):
