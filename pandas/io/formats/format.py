@@ -1335,7 +1335,7 @@ class GenericArrayFormatter:
                     elif x is NA and self.na_rep != "NaN":
                         return self.na_rep
                     elif x is NA:
-                        return str(NA)
+                        return self.na_rep
                     elif x is NaT or np.isnat(x):
                         return "NaT"
                 except (TypeError, ValueError):
