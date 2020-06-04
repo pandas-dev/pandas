@@ -145,6 +145,7 @@ class TestDataFrameShift:
         tm.assert_frame_equal(shifted[0], shifted[1])
         tm.assert_frame_equal(shifted[0], shifted[2])
 
+    @pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
     def test_tshift(self, datetime_frame):
         # TODO: remove this test when tshift deprecation is enforced
 
@@ -208,11 +209,11 @@ class TestDataFrameShift:
         shifted2 = ps.shift(freq="B")
         tm.assert_frame_equal(shifted, shifted2)
 
-        shifted3 = ps.tshift(freq=offsets.BDay())
+        shifted3 = ps.shift(freq=offsets.BDay())
         tm.assert_frame_equal(shifted, shifted3)
 
         with pytest.raises(ValueError, match="does not match"):
-            ps.tshift(freq="M")
+            ps.shift(freq="M")
 
         # DatetimeIndex
         shifted = datetime_frame.shift(1, freq="infer")
@@ -220,7 +221,7 @@ class TestDataFrameShift:
 
         tm.assert_frame_equal(datetime_frame, unshifted)
 
-        shifted2 = datetime_frame.tshift(freq=datetime_frame.index.freq)
+        shifted2 = datetime_frame.shift(freq=datetime_frame.index.freq)
         tm.assert_frame_equal(shifted, shifted2)
 
         inferred_ts = DataFrame(

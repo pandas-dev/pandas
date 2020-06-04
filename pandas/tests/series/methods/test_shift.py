@@ -181,6 +181,7 @@ class TestShift:
             tm.assert_series_equal(res, exp)
             assert res.dtype == "datetime64[ns, US/Eastern]"
 
+    @pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
     def test_tshift(self, datetime_series):
         # TODO: remove this test when tshift deprecation is enforced
 
@@ -239,15 +240,15 @@ class TestShift:
 
         tm.assert_series_equal(unshifted, ps)
 
-        shifted2 = ps.tshift(freq="B")
+        shifted2 = ps.shift(freq="B")
         tm.assert_series_equal(shifted, shifted2)
 
-        shifted3 = ps.tshift(freq=BDay())
+        shifted3 = ps.shift(freq=BDay())
         tm.assert_series_equal(shifted, shifted3)
 
         msg = "Given freq M does not match PeriodIndex freq B"
         with pytest.raises(ValueError, match=msg):
-            ps.tshift(freq="M")
+            ps.shift(freq="M")
 
         # DatetimeIndex
         shifted = datetime_series.shift(1, freq="infer")
@@ -255,7 +256,7 @@ class TestShift:
 
         tm.assert_series_equal(datetime_series, unshifted)
 
-        shifted2 = datetime_series.tshift(freq=datetime_series.index.freq)
+        shifted2 = datetime_series.shift(freq=datetime_series.index.freq)
         tm.assert_series_equal(shifted, shifted2)
 
         inferred_ts = Series(
@@ -272,7 +273,7 @@ class TestShift:
         no_freq = datetime_series[[0, 5, 7]]
         msg = "Freq was not set in the index hence cannot be inferred"
         with pytest.raises(ValueError, match=msg):
-            no_freq.tshift(freq="infer")
+            no_freq.shift(freq="infer")
 
     def test_shift_int(self, datetime_series):
         ts = datetime_series.astype(int)
