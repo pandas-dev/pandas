@@ -7,6 +7,7 @@ import numpy as np
 
 from pandas._libs.tslibs import Period, to_offset
 from pandas._libs.tslibs.frequencies import FreqGroup, base_and_stride, get_freq_code
+from pandas._typing import FrameOrSeriesUnion
 
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
@@ -192,7 +193,7 @@ def _get_freq(ax, series: "Series"):
     return freq, ax_freq
 
 
-def _use_dynamic_x(ax, data):
+def _use_dynamic_x(ax, data: "FrameOrSeriesUnion") -> bool:
     freq = _get_index_freq(data.index)
     ax_freq = _get_ax_freq(ax)
 
