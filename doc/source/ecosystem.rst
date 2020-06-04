@@ -320,10 +320,10 @@ provide a pandas-like and pandas-compatible toolkit for analytics on multi-
 dimensional arrays, rather than the tabular data for which pandas excels.
 
 
-.. _ecosystem.out-of-core:
+.. _ecosystem.io:
 
-Out-of-core
--------------
+IO
+--
 
 `BCPandas <https://github.com/yehoshuadimarsky/bcpandas>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -333,8 +333,11 @@ far exceeding the performance of the native ``df.to_sql`` method. Internally, it
 Microsoft's BCP utility, but the complexity is fully abstracted away from the end user.
 Rigorously tested, it is a complete replacement for ``df.to_sql``.
 
-(Testing has shown that the same peformance speedup is not achieved when reading data,
-only when writing data, so it is not a full I/O replacement, just the "I" part).
+
+.. _ecosystem.out-of-core:
+
+Out-of-core
+-------------
 
 `Blaze <https://blaze.pydata.org/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
