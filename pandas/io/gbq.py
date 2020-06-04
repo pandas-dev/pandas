@@ -162,14 +162,13 @@ def read_gbq(
     """
     pandas_gbq = _try_import()
 
-    kwargs: Dict[str, Union[str, bool]] = {}
+    kwargs: Dict[str, Union[str, bool, None]] = {}
 
     # START: new kwargs.  Don't populate unless explicitly set.
     if use_bqstorage_api is not None:
         kwargs["use_bqstorage_api"] = use_bqstorage_api
 
-    if progress_bar_type is not None:
-        kwargs["progress_bar_type"] = progress_bar_type
+    kwargs["progress_bar_type"] = progress_bar_type
     # END: new kwargs
 
     return pandas_gbq.read_gbq(

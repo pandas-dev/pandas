@@ -289,6 +289,7 @@ Other enhancements
 - Make :class:`pandas.core.window.Rolling` and :class:`pandas.core.window.Expanding` iterable（:issue:`11704`)
 - Make ``option_context`` a :class:`contextlib.ContextDecorator`, which allows it to be used as a decorator over an entire function (:issue:`34253`).
 - :meth:`groupby.transform` now allows ``func`` to be ``pad``, ``backfill`` and ``cumcount`` (:issue:`31269`).
+- :meth `~pandas.io.gbq.read_gbq` now allows to disable progress bar (:issue:`33360`).
 
 .. ---------------------------------------------------------------------------
 
@@ -354,6 +355,8 @@ Optional libraries below the lowest tested version may still work, but are not c
 | xlsxwriter      | 0.9.8           |         |
 +-----------------+-----------------+---------+
 | xlwt            | 1.2.0           |         |
++-----------------+-----------------+---------+
+| pandas-gbq      | 1.2.0           |    X    |
 +-----------------+-----------------+---------+
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
