@@ -2459,12 +2459,7 @@ cdef class Week(SingleConstructorOffset):
         self.n = state.pop("n")
         self.normalize = state.pop("normalize")
         self.weekday = state.pop("weekday")
-
-    @property
-    def _params(self):
-        # TODO: making this into a property shouldn't be necessary, but otherwise
-        #  we unpickle legacy objects incorrectly
-        return BaseOffset._params.func(self)
+        self._cache = state.pop("_cache", {})
 
     def is_anchored(self) -> bool:
         return self.n == 1 and self.weekday is not None
