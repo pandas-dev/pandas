@@ -355,14 +355,15 @@ def read_json(
     dtype=None,
     convert_axes=None,
     convert_dates=True,
-    keep_default_dates=True,
-    numpy=False,
-    precise_float=False,
+    keep_default_dates: bool = True,
+    numpy: bool = False,
+    precise_float: bool = False,
     date_unit=None,
     encoding=None,
-    lines=False,
-    chunksize=None,
+    lines: bool = False,
+    chunksize: Optional[int] = None,
     compression="infer",
+    nrows: Optional[int] = None,
 ):
     """
     Convert a JSON string to pandas object.
@@ -493,12 +494,20 @@ def read_json(
         for more information on ``chunksize``.
         This can only be passed if `lines=True`.
         If this is None, the file will be read into memory all at once.
+
     compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
         For on-the-fly decompression of on-disk data. If 'infer', then use
         gzip, bz2, zip or xz if path_or_buf is a string ending in
         '.gz', '.bz2', '.zip', or 'xz', respectively, and no decompression
         otherwise. If using 'zip', the ZIP file must contain only one data
         file to be read in. Set to None for no decompression.
+
+    nrows : int, optional
+        The number of lines from the line-delimited jsonfile that has to be read.
+        This can only be passed if `lines=True`.
+        If this is None, all the rows will be returned.
+
+        .. versionadded:: 1.1
 
     Returns
     -------
@@ -600,6 +609,7 @@ def read_json(
         lines=lines,
         chunksize=chunksize,
         compression=compression,
+        nrows=nrows,
     )
 
     if chunksize:
@@ -629,14 +639,15 @@ class JsonReader(abc.Iterator):
         dtype,
         convert_axes,
         convert_dates,
-        keep_default_dates,
-        numpy,
-        precise_float,
+        keep_default_dates: bool,
+        numpy: bool,
+        precise_float: bool,
         date_unit,
         encoding,
-        lines,
-        chunksize,
+        lines: bool,
+        chunksize: Optional[int],
         compression,
+        nrows: Optional[int],
     ):
 
         self.orient = orient
@@ -654,11 +665,16 @@ class JsonReader(abc.Iterator):
         self.chunksize = chunksize
         self.nrows_seen = 0
         self.should_close = False
+        self.nrows = nrows
 
         if self.chunksize is not None:
             self.chunksize = _validate_integer("chunksize", self.chunksize, 1)
             if not self.lines:
                 raise ValueError("chunksize can only be passed if lines=True")
+        if self.nrows is not None:
+            self.nrows = _validate_integer("nrows", self.nrows, 0)
+            if not self.lines:
+                raise ValueError("nrows can only be passed if lines=True")
 
         data = self._get_data_from_filepath(filepath_or_buffer)
         self.data = self._preprocess_data(data)
@@ -671,9 +687,9 @@ class JsonReader(abc.Iterator):
         If self.chunksize, we prepare the data for the `__next__` method.
         Otherwise, we read it into memory for the `read` method.
         """
-        if hasattr(data, "read") and not self.chunksize:
+        if hasattr(data, "read") and (not self.chunksize or not self.nrows):
             data = data.read()
-        if not hasattr(data, "read") and self.chunksize:
+        if not hasattr(data, "read") and (self.chunksize or self.nrows):
             data = StringIO(data)
 
         return data
@@ -721,11 +737,17 @@ class JsonReader(abc.Iterator):
         """
         Read the whole JSON input into a pandas object.
         """
-        if self.lines and self.chunksize:
-            obj = concat(self)
-        elif self.lines:
-            data = ensure_str(self.data)
-            obj = self._get_object_parser(self._combine_lines(data.split("\n")))
+        if self.lines:
+            if self.chunksize:
+                obj = concat(self)
+            elif self.nrows:
+                lines = list(islice(self.data, self.nrows))
+                lines_json = self._combine_lines(lines)
+                obj = self._get_object_parser(lines_json)
+            else:
+                data = ensure_str(self.data)
+                data = data.split("\n")
+                obj = self._get_object_parser(self._combine_lines(data))
         else:
             obj = self._get_object_parser(self.data)
         self.close()
@@ -772,6 +794,11 @@ class JsonReader(abc.Iterator):
                 pass
 
     def __next__(self):
+        if self.nrows:
+            if self.nrows_seen >= self.nrows:
+                self.close()
+                raise StopIteration
+
         lines = list(islice(self.data, self.chunksize))
         if lines:
             lines_json = self._combine_lines(lines)
