@@ -16,7 +16,18 @@ import os
 from pathlib import Path
 import struct
 import sys
-from typing import Any, AnyStr, BinaryIO, Dict, List, Optional, Sequence, Tuple, Union
+from typing import (
+    Any,
+    AnyStr,
+    BinaryIO,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 import warnings
 
 from dateutil.relativedelta import relativedelta
@@ -47,11 +58,17 @@ from pandas.core.frame import DataFrame
 from pandas.core.indexes.base import Index
 from pandas.core.series import Series
 
-from pandas.io.common import get_filepath_or_buffer, stringify_path
+from pandas.io.common import (
+    get_compression_method,
+    get_filepath_or_buffer,
+    get_handle,
+    infer_compression,
+    stringify_path,
+)
 
 _version_error = (
     "Version of given Stata file is {version}. pandas supports importing "
-    "versions 104, 105, 108, 111 (Stata 7SE), 113 (Stata 8/9), "
+    "versions 105, 108, 111 (Stata 7SE), 113 (Stata 8/9), "
     "114 (Stata 10/11), 115 (Stata 12), 117 (Stata 13), 118 (Stata 14/15/16),"
     "and 119 (Stata 15/16, over 32,767 variables)."
 )
@@ -627,7 +644,7 @@ class StataValueLabel:
 
     def generate_value_label(self, byteorder: str) -> bytes:
         """
-        Generate the binary representation of the value labals.
+        Generate the binary representation of the value labels.
 
         Parameters
         ----------
@@ -888,8 +905,8 @@ class StataParser:
             98: 251,  # byte
             105: 252,  # int
             108: 253,  # long
-            102: 254  # float
-            # don't know old code for double
+            102: 254,  # float
+            100: 255,  # double
         }
 
         # These missing values are the generic '.' in Stata, and are used
@@ -1854,13 +1871,18 @@ def read_stata(
     return data
 
 
-def _open_file_binary_write(fname: FilePathOrBuffer) -> Tuple[BinaryIO, bool]:
+def _open_file_binary_write(
+    fname: FilePathOrBuffer, compression: Union[str, Mapping[str, str], None],
+) -> Tuple[BinaryIO, bool, Optional[Union[str, Mapping[str, str]]]]:
     """
     Open a binary file or no-op if file-like.
 
     Parameters
     ----------
     fname : string path, path object or buffer
+        The file name or buffer.
+    compression : {str, dict, None}
+        The compression method to use.
 
     Returns
     -------
@@ -1871,9 +1893,21 @@ def _open_file_binary_write(fname: FilePathOrBuffer) -> Tuple[BinaryIO, bool]:
     """
     if hasattr(fname, "write"):
         # See https://github.com/python/mypy/issues/1424 for hasattr challenges
-        return fname, False  # type: ignore
+        return fname, False, None  # type: ignore
     elif isinstance(fname, (str, Path)):
-        return open(fname, "wb"), True
+        # Extract compression mode as given, if dict
+        compression_typ, compression_args = get_compression_method(compression)
+        compression_typ = infer_compression(fname, compression_typ)
+        path_or_buf, _, compression_typ, _ = get_filepath_or_buffer(
+            fname, compression=compression_typ
+        )
+        if compression_typ is not None:
+            compression = compression_args
+            compression["method"] = compression_typ
+        else:
+            compression = None
+        f, _ = get_handle(path_or_buf, "wb", compression=compression, is_text=False)
+        return f, True, compression
     else:
         raise TypeError("fname must be a binary file, buffer or path-like.")
 
@@ -2050,6 +2084,17 @@ class StataWriter(StataParser):
     variable_labels : dict
         Dictionary containing columns as keys and variable labels as values.
         Each label must be 80 characters or smaller.
+    compression : str or dict, default 'infer'
+        For on-the-fly compression of the output dta. If string, specifies
+        compression mode. If dict, value at key 'method' specifies compression
+        mode. Compression mode must be one of {'infer', 'gzip', 'bz2', 'zip',
+        'xz', None}. If compression mode is 'infer' and `fname` is path-like,
+        then detect compression from the following extensions: '.gz', '.bz2',
+        '.zip', or '.xz' (otherwise no compression). If dict and compression
+        mode is one of {'zip', 'gzip', 'bz2'}, or inferred as one of the above,
+        other entries passed as additional compression options.
+
+        .. versionadded:: 1.1.0
 
     Returns
     -------
@@ -2074,7 +2119,12 @@ class StataWriter(StataParser):
     >>> writer = StataWriter('./data_file.dta', data)
     >>> writer.write_file()
 
-    Or with dates
+    Directly write a zip file
+    >>> compression = {"method": "zip", "archive_name": "data_file.dta"}
+    >>> writer = StataWriter('./data_file.zip', data, compression=compression)
+    >>> writer.write_file()
+
+    Save a DataFrame with dates
     >>> from datetime import datetime
     >>> data = pd.DataFrame([[datetime(2000,1,1)]], columns=['date'])
     >>> writer = StataWriter('./date_data_file.dta', data, {'date' : 'tw'})
@@ -2094,6 +2144,7 @@ class StataWriter(StataParser):
         time_stamp: Optional[datetime.datetime] = None,
         data_label: Optional[str] = None,
         variable_labels: Optional[Dict[Label, str]] = None,
+        compression: Union[str, Mapping[str, str], None] = "infer",
     ):
         super().__init__()
         self._convert_dates = {} if convert_dates is None else convert_dates
@@ -2102,6 +2153,8 @@ class StataWriter(StataParser):
         self._data_label = data_label
         self._variable_labels = variable_labels
         self._own_file = True
+        self._compression = compression
+        self._output_file: Optional[BinaryIO] = None
         # attach nobs, nvars, data, varlist, typlist
         self._prepare_pandas(data)
 
@@ -2389,7 +2442,12 @@ supported types."""
                     self.data[col] = encoded
 
     def write_file(self) -> None:
-        self._file, self._own_file = _open_file_binary_write(self._fname)
+        self._file, self._own_file, compression = _open_file_binary_write(
+            self._fname, self._compression
+        )
+        if compression is not None:
+            self._output_file = self._file
+            self._file = BytesIO()
         try:
             self._write_header(data_label=self._data_label, time_stamp=self._time_stamp)
             self._write_map()
@@ -2434,6 +2492,12 @@ supported types."""
         """
         # Some file-like objects might not support flush
         assert self._file is not None
+        if self._output_file is not None:
+            assert isinstance(self._file, BytesIO)
+            bio = self._file
+            bio.seek(0)
+            self._file = self._output_file
+            self._file.write(bio.read())
         try:
             self._file.flush()
         except AttributeError:
@@ -2898,6 +2962,17 @@ class StataWriter117(StataWriter):
         Smaller columns can be converted by including the column name.  Using
         StrLs can reduce output file size when strings are longer than 8
         characters, and either frequently repeated or sparse.
+    compression : str or dict, default 'infer'
+        For on-the-fly compression of the output dta. If string, specifies
+        compression mode. If dict, value at key 'method' specifies compression
+        mode. Compression mode must be one of {'infer', 'gzip', 'bz2', 'zip',
+        'xz', None}. If compression mode is 'infer' and `fname` is path-like,
+        then detect compression from the following extensions: '.gz', '.bz2',
+        '.zip', or '.xz' (otherwise no compression). If dict and compression
+        mode is one of {'zip', 'gzip', 'bz2'}, or inferred as one of the above,
+        other entries passed as additional compression options.
+
+        .. versionadded:: 1.1.0
 
     Returns
     -------
@@ -2923,8 +2998,12 @@ class StataWriter117(StataWriter):
     >>> writer = StataWriter117('./data_file.dta', data)
     >>> writer.write_file()
 
-    Or with long strings stored in strl format
+    Directly write a zip file
+    >>> compression = {"method": "zip", "archive_name": "data_file.dta"}
+    >>> writer = StataWriter117('./data_file.zip', data, compression=compression)
+    >>> writer.write_file()
 
+    Or with long strings stored in strl format
     >>> data = pd.DataFrame([['A relatively long string'], [''], ['']],
     ...                     columns=['strls'])
     >>> writer = StataWriter117('./data_file_with_long_strings.dta', data,
@@ -2946,6 +3025,7 @@ class StataWriter117(StataWriter):
         data_label: Optional[str] = None,
         variable_labels: Optional[Dict[Label, str]] = None,
         convert_strl: Optional[Sequence[Label]] = None,
+        compression: Union[str, Mapping[str, str], None] = "infer",
     ):
         # Copy to new list since convert_strl might be modified later
         self._convert_strl: List[Label] = []
@@ -2961,6 +3041,7 @@ class StataWriter117(StataWriter):
             time_stamp=time_stamp,
             data_label=data_label,
             variable_labels=variable_labels,
+            compression=compression,
         )
         self._map: Dict[str, int] = {}
         self._strl_blob = b""
@@ -3281,6 +3362,17 @@ class StataWriterUTF8(StataWriter117):
         The dta version to use. By default, uses the size of data to determine
         the version. 118 is used if data.shape[1] <= 32767, and 119 is used
         for storing larger DataFrames.
+    compression : str or dict, default 'infer'
+        For on-the-fly compression of the output dta. If string, specifies
+        compression mode. If dict, value at key 'method' specifies compression
+        mode. Compression mode must be one of {'infer', 'gzip', 'bz2', 'zip',
+        'xz', None}. If compression mode is 'infer' and `fname` is path-like,
+        then detect compression from the following extensions: '.gz', '.bz2',
+        '.zip', or '.xz' (otherwise no compression). If dict and compression
+        mode is one of {'zip', 'gzip', 'bz2'}, or inferred as one of the above,
+        other entries passed as additional compression options.
+
+        .. versionadded:: 1.1.0
 
     Returns
     -------
@@ -3308,6 +3400,11 @@ class StataWriterUTF8(StataWriter117):
     >>> writer = StataWriterUTF8('./data_file.dta', data)
     >>> writer.write_file()
 
+    Directly write a zip file
+    >>> compression = {"method": "zip", "archive_name": "data_file.dta"}
+    >>> writer = StataWriterUTF8('./data_file.zip', data, compression=compression)
+    >>> writer.write_file()
+
     Or with long strings stored in strl format
 
     >>> data = pd.DataFrame([['ᴀ relatively long ŝtring'], [''], ['']],
@@ -3331,6 +3428,7 @@ class StataWriterUTF8(StataWriter117):
         variable_labels: Optional[Dict[Label, str]] = None,
         convert_strl: Optional[Sequence[Label]] = None,
         version: Optional[int] = None,
+        compression: Union[str, Mapping[str, str], None] = "infer",
     ):
         if version is None:
             version = 118 if data.shape[1] <= 32767 else 119
@@ -3352,6 +3450,7 @@ class StataWriterUTF8(StataWriter117):
             data_label=data_label,
             variable_labels=variable_labels,
             convert_strl=convert_strl,
+            compression=compression,
         )
         # Override version set in StataWriter117 init
         self._dta_version = version

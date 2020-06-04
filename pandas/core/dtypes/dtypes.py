@@ -20,7 +20,7 @@ import numpy as np
 import pytz
 
 from pandas._libs.interval import Interval
-from pandas._libs.tslibs import NaT, Period, Timestamp, timezones
+from pandas._libs.tslibs import NaT, Period, Timestamp, timezones, to_offset
 from pandas._libs.tslibs.offsets import BaseOffset
 from pandas._typing import DtypeObj, Ordered
 
@@ -642,6 +642,8 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         return is_bool_dtype(self.categories)
 
     def _get_common_dtype(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
+        from pandas.core.arrays.sparse import SparseDtype
+
         # check if we have all categorical dtype with identical categories
         if all(isinstance(x, CategoricalDtype) for x in dtypes):
             first = dtypes[0]
@@ -658,6 +660,8 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         elif any(non_init_cats):
             return None
 
+        # categorical is aware of Sparse -> extract sparse subdtypes
+        dtypes = [x.subtype if isinstance(x, SparseDtype) else x for x in dtypes]
         # extract the categories' dtype
         non_cat_dtypes = [
             x.categories.dtype if isinstance(x, CategoricalDtype) else x for x in dtypes
@@ -825,6 +829,8 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
     def __eq__(self, other: Any) -> bool:
         if isinstance(other, str):
+            if other.startswith("M8["):
+                other = "datetime64[" + other[3:]
             return other == self.name
 
         return (
@@ -919,7 +925,6 @@ class PeriodDtype(PandasExtensionDtype):
                 m = cls._match.search(freq)
                 if m is not None:
                     freq = m.group("freq")
-            from pandas.tseries.frequencies import to_offset
 
             freq = to_offset(freq)
             if freq is not None:
