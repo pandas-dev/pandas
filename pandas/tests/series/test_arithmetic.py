@@ -11,6 +11,7 @@ import pandas as pd
 from pandas import Categorical, Index, Series, bdate_range, date_range, isna
 import pandas._testing as tm
 from pandas.core import nanops, ops
+import warnings
 
 
 def _permute(obj):
@@ -678,6 +679,38 @@ class TestTimeSeriesArithmetic:
 
         with pytest.raises(Exception, match=msg):
             ser_utc + ser
+
+    def test_series_add_daytime_offset(self):
+        # GH#19211
+        # Ignore PerformanceWarning for this test case
+        warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
+        ser_daytime = pd.Series(
+            [pd.Timestamp("2000-01-01"), pd.Timestamp("2000-02-01")]
+        )
+        ser_offset = pd.Series(
+            [pd.offsets.DateOffset(years=1), pd.offsets.DateOffset(months=2)]
+        )
+
+        result = ser_daytime + ser_offset
+
+        expected = pd.Series([pd.Timestamp("2001-01-01"), pd.Timestamp("2000-04-01")])
+        tm.assert_series_equal(result, expected)
+
+    def test_series_sub_daytime_offset(self):
+        # GH#19211
+        # Ignore PerformanceWarning for this test case
+        warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
+        ser_daytime = pd.Series(
+            [pd.Timestamp("2000-01-01"), pd.Timestamp("2000-03-29")]
+        )
+        ser_offset = pd.Series(
+            [pd.offsets.DateOffset(years=1), pd.offsets.DateOffset(months=2)]
+        )
+
+        result = ser_daytime - ser_offset
+
+        expected = pd.Series([pd.Timestamp("1999-1-1"), pd.Timestamp("2000-1-29")])
+        tm.assert_series_equal(result, expected)
 
     def test_datetime_understood(self):
         # Ensures it doesn't fail to create the right series
