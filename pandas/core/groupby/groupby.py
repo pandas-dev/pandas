@@ -2782,7 +2782,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         else:
             ws = [None] * self.ngroups
 
-        if random_state:
+        if random_state is not None:
             random_state = com.random_state(random_state)
 
         samples = [
