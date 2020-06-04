@@ -1379,8 +1379,6 @@ cdef class BusinessDay(BusinessMixin):
         if self.n > 0:
             shifted = (dtindex.to_perioddelta("B") - time).asi8 != 0
 
-            # Integer-array addition is deprecated, so we use
-            # _time_shift directly
             roll = np.where(shifted, self.n - 1, self.n)
             shifted = asper._addsub_int_array(roll, operator.add)
         else:
@@ -2516,7 +2514,7 @@ cdef class Week(SingleConstructorOffset):
         from .frequencies import get_freq_code  # TODO: avoid circular import
 
         i8other = dtindex.asi8
-        off = (i8other % DAY_NANOS).view("timedelta64")
+        off = (i8other % DAY_NANOS).view("timedelta64[ns]")
 
         base, mult = get_freq_code(self.freqstr)
         base_period = dtindex.to_period(base)
