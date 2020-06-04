@@ -31,8 +31,6 @@ from pandas._libs.tslibs.util cimport (
     is_float_object,
 )
 
-from pandas._libs.tslibs.base cimport ABCTimestamp
-
 from pandas._libs.tslibs.ccalendar import (
     MONTH_ALIASES, MONTH_TO_CAL_NUM, weekday_to_int, int_to_weekday,
 )
@@ -50,7 +48,9 @@ from pandas._libs.tslibs.tzconversion cimport tz_convert_single
 
 from .dtypes cimport PeriodDtypeCode
 from .timedeltas cimport delta_to_nanoseconds
-
+from .timedeltas import Timedelta
+from .timestamps cimport _Timestamp
+from .timestamps import Timestamp
 
 # ---------------------------------------------------------------------
 # Misc Helpers
@@ -64,7 +64,7 @@ cdef bint is_tick_object(object obj):
 
 
 cdef datetime _as_datetime(datetime obj):
-    if isinstance(obj, ABCTimestamp):
+    if isinstance(obj, _Timestamp):
         return obj.to_pydatetime()
     return obj
 
@@ -73,7 +73,7 @@ cdef bint _is_normalized(datetime dt):
     if dt.hour != 0 or dt.minute != 0 or dt.second != 0 or dt.microsecond != 0:
         # Regardless of whether dt is datetime vs Timestamp
         return False
-    if isinstance(dt, ABCTimestamp):
+    if isinstance(dt, _Timestamp):
         return dt.nanosecond == 0
     return True
 
@@ -108,7 +108,6 @@ def apply_wraps(func):
     # not play nicely with cython class methods
 
     def wrapper(self, other):
-        from pandas import Timestamp
 
         if other is NaT:
             return NaT
@@ -585,7 +584,6 @@ cdef class BaseOffset:
         TimeStamp
             Rolled timestamp if not on offset, otherwise unchanged timestamp.
         """
-        from pandas import Timestamp
         dt = Timestamp(dt)
         if not self.is_on_offset(dt):
             dt = dt - type(self)(1, normalize=self.normalize, **self.kwds)
@@ -600,7 +598,6 @@ cdef class BaseOffset:
         TimeStamp
             Rolled timestamp if not on offset, otherwise unchanged timestamp.
         """
-        from pandas import Timestamp
         dt = Timestamp(dt)
         if not self.is_on_offset(dt):
             dt = dt + type(self)(1, normalize=self.normalize, **self.kwds)
@@ -767,7 +764,6 @@ cdef class Tick(SingleConstructorOffset):
 
     @property
     def delta(self):
-        from .timedeltas import Timedelta
         return self.n * Timedelta(self._nanos_inc)
 
     @property
@@ -854,7 +850,7 @@ cdef class Tick(SingleConstructorOffset):
 
     def apply(self, other):
         # Timestamp can handle tz and nano sec, thus no need to use apply_wraps
-        if isinstance(other, ABCTimestamp):
+        if isinstance(other, _Timestamp):
 
             # GH#15126
             # in order to avoid a recursive
@@ -869,7 +865,6 @@ cdef class Tick(SingleConstructorOffset):
             return NaT
         elif is_datetime64_object(other) or PyDate_Check(other):
             # PyDate_Check includes date, datetime
-            from pandas import Timestamp
             return Timestamp(other) + self
 
         if PyDelta_Check(other):
@@ -1028,7 +1023,6 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 # bring tz back from UTC calculation
                 other = localize_pydatetime(other, tzinfo)
 
-            from .timestamps import Timestamp
             return Timestamp(other)
         else:
             return other + timedelta(self.n)
@@ -1077,7 +1071,6 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 if k in ["days", "hours", "minutes", "seconds", "microseconds"]
             }
             if timedelta_kwds:
-                from .timedeltas import Timedelta
                 delta = Timedelta(**timedelta_kwds)
                 index = index + (self.n * delta)
             return index
@@ -2291,7 +2284,6 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
     @apply_index_wraps
     def apply_index(self, dtindex):
         # determine how many days away from the 1st of the month we are
-        from pandas import Timedelta
 
         dti = dtindex
         i8other = dtindex.asi8
@@ -2394,8 +2386,6 @@ cdef class SemiMonthEnd(SemiMonthOffset):
         -------
         result : DatetimeIndex
         """
-        from pandas import Timedelta
-
         nanos = (roll % 2) * Timedelta(days=self.day_of_month).value
         dtindex += nanos.astype("timedelta64[ns]")
         return dtindex + Timedelta(days=-1)
@@ -2453,7 +2443,6 @@ cdef class SemiMonthBegin(SemiMonthOffset):
         -------
         result : DatetimeIndex
         """
-        from pandas import Timedelta
         nanos = (roll % 2) * Timedelta(days=self.day_of_month - 1).value
         return dtindex + nanos.astype("timedelta64[ns]")
 
@@ -2545,7 +2534,6 @@ cdef class Week(SingleConstructorOffset):
         -------
         result : DatetimeIndex
         """
-        from pandas import Timedelta
         from .frequencies import get_freq_code  # TODO: avoid circular import
 
         i8other = dtindex.asi8
@@ -2847,8 +2835,6 @@ cdef class FY5253(FY5253Mixin):
 
     @apply_wraps
     def apply(self, other):
-        from pandas import Timestamp
-
         norm = Timestamp(other).normalize()
 
         n = self.n
@@ -3069,8 +3055,6 @@ cdef class FY5253Quarter(FY5253Mixin):
         num_qtrs : int
         tdelta : Timedelta
         """
-        from pandas import Timestamp, Timedelta
-
         num_qtrs = 0
 
         norm = Timestamp(other).tz_localize(None)
@@ -3101,7 +3085,6 @@ cdef class FY5253Quarter(FY5253Mixin):
     @apply_wraps
     def apply(self, other):
         # Note: self.n == 0 is not allowed.
-        from pandas import Timedelta
 
         n = self.n
 
@@ -3141,8 +3124,6 @@ cdef class FY5253Quarter(FY5253Mixin):
     def year_has_extra_week(self, dt: datetime) -> bool:
         # Avoid round-down errors --> normalize to get
         # e.g. '370D' instead of '360D23H'
-        from pandas import Timestamp
-
         norm = Timestamp(dt).normalize().tz_localize(None)
 
         next_year_end = self._offset.rollforward(norm)
@@ -3621,9 +3602,6 @@ cpdef to_offset(freq):
     >>> to_offset(Hour())
     <Hour>
     """
-    # TODO: avoid runtime imports
-    from pandas._libs.tslibs.timedeltas import Timedelta
-
     if freq is None:
         return None
 
