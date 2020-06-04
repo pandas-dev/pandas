@@ -14,6 +14,7 @@ from pandas._libs.tslibs import (
     Timestamp,
     delta_to_nanoseconds,
     iNaT,
+    to_offset,
 )
 from pandas._libs.tslibs.timestamps import (
     RoundTo,
@@ -427,7 +428,7 @@ default 'raise'
         else:
             # As an internal method, we can ensure this assertion always holds
             assert freq == "infer"
-            freq = frequencies.to_offset(self.inferred_freq)
+            freq = to_offset(self.inferred_freq)
 
         arr = self.view()
         arr._freq = freq
@@ -1081,7 +1082,7 @@ class DatetimeLikeArrayMixin(
     @freq.setter
     def freq(self, value):
         if value is not None:
-            value = frequencies.to_offset(value)
+            value = to_offset(value)
             self._validate_frequency(self, value)
 
         self._freq = value
@@ -1367,7 +1368,7 @@ class DatetimeLikeArrayMixin(
         """
         if freq is not None and freq != self.freq:
             if isinstance(freq, str):
-                freq = frequencies.to_offset(freq)
+                freq = to_offset(freq)
             offset = periods * freq
             result = self + offset
             return result
@@ -1779,7 +1780,7 @@ def maybe_infer_freq(freq):
     if not isinstance(freq, DateOffset):
         # if a passed freq is None, don't infer automatically
         if freq != "infer":
-            freq = frequencies.to_offset(freq)
+            freq = to_offset(freq)
         else:
             freq_infer = True
             freq = None

@@ -30,7 +30,8 @@ import numpy as np
 
 from pandas._config import config
 
-from pandas._libs import Timestamp, lib
+from pandas._libs import lib
+from pandas._libs.tslibs import Timestamp, to_offset
 from pandas._typing import (
     Axis,
     FilePathOrBuffer,
@@ -106,7 +107,6 @@ from pandas.core.ops import _align_method_FRAME
 from pandas.io.formats import format as fmt
 from pandas.io.formats.format import DataFrameFormatter, format_percentiles
 from pandas.io.formats.printing import pprint_thing
-from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import Tick
 
 if TYPE_CHECKING:
@@ -6193,6 +6193,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             method="ffill", axis=axis, inplace=inplace, limit=limit, downcast=downcast
         )
 
+    pad = ffill
+
     def bfill(
         self: FrameOrSeries,
         axis=None,
@@ -6211,6 +6213,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return self.fillna(
             method="bfill", axis=axis, inplace=inplace, limit=limit, downcast=downcast
         )
+
+    backfill = bfill
 
     @doc(klass=_shared_doc_kwargs["klass"])
     def replace(
