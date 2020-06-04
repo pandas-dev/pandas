@@ -1636,6 +1636,8 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         if (exc && PyErr_ExceptionMatches(PyExc_OverflowError)) {
             PRINTMARK();
             tc->type = JT_BIGNUM;
+            /* Question (arw2019): is this where I convert obj into a string 
+            and load result into tc->cStr? */
         }
 
         return;
@@ -2124,6 +2126,12 @@ JSINT64 Object_getLongValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
 
 double Object_getDoubleValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     return GET_TC(tc)->doubleValue;
+}
+
+const char *Object_getBigNumStringValue(JSOBJ obj, JSONTypeContext *tc) {
+    // Question (arw2019): is this function right? 
+    // Do I need the outLen argument for example?
+    return GET_TC(tc)->cStr;
 }
 
 static void Object_releaseObject(JSOBJ _obj) { Py_DECREF((PyObject *)_obj); }
