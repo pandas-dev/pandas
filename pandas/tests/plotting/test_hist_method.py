@@ -132,28 +132,25 @@ class TestSeriesPlots(TestPlotBase):
     @pytest.mark.parametrize(
         "by, expected_axes_num, expected_layout", [(None, 1, (1, 1)), ("b", 2, (1, 2))]
     )
-    @pytest.mark.parametrize("label, expected_label", [(None, "a"), ("c", "c")])
-    def test_hist_with_legend(
-        self, by, expected_axes_num, expected_layout, label, expected_label
-    ):
-        # GH 6279 - Histogram can have a legend
+    def test_hist_with_legend(self, by, expected_axes_num, expected_layout):
+        # GH 6279 - Series histogram can have a legend
         index = 15 * ["1"] + 15 * ["2"]
         s = Series(np.random.randn(30), index=index, name="a")
         s.index.name = "b"
 
-        kwargs = {"legend": True, "by": by}
+        axes = _check_plot_works(s.hist, legend=True, by=by)
+        self._check_axes_shape(axes, axes_num=expected_axes_num, layout=expected_layout)
+        self._check_legend_labels(axes, "a")
 
-        if label is not None:
-            kwargs["label"] = label
-            msg = "Cannot use both legend and label"
-            with pytest.raises(ValueError, match=msg):
-                s.hist(**kwargs)
-        else:
-            axes = _check_plot_works(s.hist, **kwargs)
-            self._check_axes_shape(
-                axes, axes_num=expected_axes_num, layout=expected_layout
-            )
-            self._check_legend_labels(axes, expected_label)
+    @pytest.mark.parametrize("by", [None, "b"])
+    def test_hist_with_legend_raises(self, by):
+        # GH 6279 - Series histogram with legend and label raises
+        index = 15 * ["1"] + 15 * ["2"]
+        s = Series(np.random.randn(30), index=index, name="a")
+        s.index.name = "b"
+
+        with pytest.raises(ValueError, match="Cannot use both legend and label"):
+            s.hist(legend=True, by=by, label="c")
 
 
 @td.skip_if_no_mpl
@@ -321,34 +318,33 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.parametrize("by", [None, "c"])
     @pytest.mark.parametrize("column", [None, "b"])
-    @pytest.mark.parametrize("label", [None, "d"])
-    def test_hist_with_legend(self, by, column, label):
-        # GH 6279 - Histogram can have a legend
+    def test_hist_with_legend(self, by, column):
+        # GH 6279 - DataFrame histogram can have a legend
         expected_axes_num = 1 if by is None and column is not None else 2
         expected_layout = (1, expected_axes_num)
-        expected_labels = label or column or ["a", "b"]
+        expected_labels = column or ["a", "b"]
         if by is not None:
             expected_labels = [expected_labels] * 2
 
         index = Index(15 * ["1"] + 15 * ["2"], name="c")
         df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
 
-        kwargs = {"legend": True, "by": by, "column": column}
+        axes = _check_plot_works(df.hist, legend=True, by=by, column=column)
+        self._check_axes_shape(axes, axes_num=expected_axes_num, layout=expected_layout)
+        if by is None and column is None:
+            axes = axes[0]
+        for expected_label, ax in zip(expected_labels, axes):
+            self._check_legend_labels(ax, expected_label)
 
-        if label is not None:
-            kwargs["label"] = label
-            msg = "Cannot use both legend and label"
-            with pytest.raises(ValueError, match=msg):
-                df.hist(**kwargs)
-        else:
-            axes = _check_plot_works(df.hist, **kwargs)
-            self._check_axes_shape(
-                axes, axes_num=expected_axes_num, layout=expected_layout
-            )
-            if by is None and column is None and label is None:
-                axes = axes[0]
-            for expected_label, ax in zip(expected_labels, axes):
-                self._check_legend_labels(ax, expected_label)
+    @pytest.mark.parametrize("by", [None, "c"])
+    @pytest.mark.parametrize("column", [None, "b"])
+    def test_hist_with_legend_raises(self, by, column):
+        # GH 6279 - DataFrame histogram with legend and label raises
+        index = Index(15 * ["1"] + 15 * ["2"], name="c")
+        df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
+
+        with pytest.raises(ValueError, match="Cannot use both legend and label"):
+            df.hist(legend=True, by=by, column=column, label="d")
 
 
 @td.skip_if_no_mpl

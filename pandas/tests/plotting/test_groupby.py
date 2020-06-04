@@ -68,49 +68,47 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         assert len(res["a"].collections) == 1
 
     @pytest.mark.parametrize("column, expected_axes_num", [(None, 2), ("b", 1)])
-    @pytest.mark.parametrize("label", [None, "d"])
-    def test_groupby_hist_frame_with_legend(self, column, expected_axes_num, label):
-        # GH 6279 - Histogram can have a legend
+    def test_groupby_hist_frame_with_legend(self, column, expected_axes_num):
+        # GH 6279 - DataFrameGroupBy histogram can have a legend
         expected_layout = (1, expected_axes_num)
-        expected_labels = label or column or [["a"], ["b"]]
+        expected_labels = column or [["a"], ["b"]]
 
         index = Index(15 * ["1"] + 15 * ["2"], name="c")
         df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
         g = df.groupby("c")
 
-        kwargs = {"legend": True, "column": column}
-
-        if label is not None:
-            kwargs["label"] = label
-            msg = "Cannot use both legend and label"
-            with pytest.raises(ValueError, match=msg):
-                g.hist(**kwargs)
-        else:
-            for axes in g.hist(**kwargs):
-                self._check_axes_shape(
-                    axes, axes_num=expected_axes_num, layout=expected_layout
-                )
-                for ax, expected_label in zip(axes[0], expected_labels):
-                    self._check_legend_labels(ax, expected_label)
-
-    @pytest.mark.parametrize(
-        "label, expected_label", [(None, ["1", "2"]), ("d", ["d", "d"])]
-    )
-    def test_groupby_hist_series_with_legend(self, label, expected_label):
-        # GH 6279 - Histogram can have a legend
-        index = Index(15 * ["1"] + 15 * ["2"], name="c")
-        df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
-        g = df.groupby("c")
-
-        kwargs = {"legend": True}
-
-        # We get warnings if kwargs contains "label": None
-        if label is not None:
-            kwargs["label"] = label
-            msg = "Cannot use both legend and label"
-            with pytest.raises(ValueError, match=msg):
-                g.hist(**kwargs)
-        else:
-            for ax in g["a"].hist(**kwargs):
-                self._check_axes_shape(ax, axes_num=1, layout=(1, 1))
+        for axes in g.hist(legend=True, column=column):
+            self._check_axes_shape(
+                axes, axes_num=expected_axes_num, layout=expected_layout
+            )
+            for ax, expected_label in zip(axes[0], expected_labels):
                 self._check_legend_labels(ax, expected_label)
+
+    @pytest.mark.parametrize("column", [None, "b"])
+    def test_groupby_hist_frame_with_legend_raises(self, column):
+        # GH 6279 - DataFrameGroupBy histogram with legend and label raises
+        index = Index(15 * ["1"] + 15 * ["2"], name="c")
+        df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
+        g = df.groupby("c")
+
+        with pytest.raises(ValueError, match="Cannot use both legend and label"):
+            g.hist(legend=True, column=column, label="d")
+
+    def test_groupby_hist_series_with_legend(self):
+        # GH 6279 - SeriesGroupBy histogram can have a legend
+        index = Index(15 * ["1"] + 15 * ["2"], name="c")
+        df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
+        g = df.groupby("c")
+
+        for ax in g["a"].hist(legend=True):
+            self._check_axes_shape(ax, axes_num=1, layout=(1, 1))
+            self._check_legend_labels(ax, ["1", "2"])
+
+    def test_groupby_hist_series_with_legend_raises(self):
+        # GH 6279 - SeriesGroupBy histogram with legend and label raises
+        index = Index(15 * ["1"] + 15 * ["2"], name="c")
+        df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
+        g = df.groupby("c")
+
+        with pytest.raises(ValueError, match="Cannot use both legend and label"):
+            g.hist(legend=True, label="d")

@@ -252,13 +252,13 @@ def _grouped_hist(
     collection of Matplotlib Axes
     """
     if legend:
-        if isinstance(data, ABCDataFrame):
-            if column is None:
-                kwargs["label"] = data.columns
-            else:
-                kwargs["label"] = column
-        else:
+        assert "label" not in kwargs
+        if data.ndim == 1:
             kwargs["label"] = data.name
+        elif column is None:
+            kwargs["label"] = data.columns
+        else:
+            kwargs["label"] = column
 
     def plot_group(group, ax):
         ax.hist(group.dropna().values, bins=bins, **kwargs)
