@@ -1293,11 +1293,7 @@ cdef class BusinessDay(BusinessMixin):
             self._offset = state.pop("_offset")
         elif "offset" in state:
             self._offset = state.pop("offset")
-
-    @property
-    def _params(self):
-        # FIXME: using cache_readonly breaks a pytables test
-        return BaseOffset._params.func(self)
+        self._cache = state.pop("_cache", {})
 
     def _offset_str(self) -> str:
         def get_str(td):
@@ -1384,8 +1380,6 @@ cdef class BusinessDay(BusinessMixin):
         if self.n > 0:
             shifted = (dtindex.to_perioddelta("B") - time).asi8 != 0
 
-            # Integer-array addition is deprecated, so we use
-            # _time_shift directly
             roll = np.where(shifted, self.n - 1, self.n)
             shifted = asper._addsub_int_array(roll, operator.add)
         else:
@@ -2483,12 +2477,7 @@ cdef class Week(SingleConstructorOffset):
         self.n = state.pop("n")
         self.normalize = state.pop("normalize")
         self.weekday = state.pop("weekday")
-
-    @property
-    def _params(self):
-        # TODO: making this into a property shouldn't be necessary, but otherwise
-        #  we unpickle legacy objects incorrectly
-        return BaseOffset._params.func(self)
+        self._cache = state.pop("_cache", {})
 
     def is_anchored(self) -> bool:
         return self.n == 1 and self.weekday is not None
@@ -2537,7 +2526,7 @@ cdef class Week(SingleConstructorOffset):
         from .frequencies import get_freq_code  # TODO: avoid circular import
 
         i8other = dtindex.asi8
-        off = (i8other % DAY_NANOS).view("timedelta64")
+        off = (i8other % DAY_NANOS).view("timedelta64[ns]")
 
         base, mult = get_freq_code(self.freqstr)
         base_period = dtindex.to_period(base)
