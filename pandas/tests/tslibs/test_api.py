@@ -9,6 +9,7 @@ def test_namespace():
         "base",
         "ccalendar",
         "conversion",
+        "dtypes",
         "fields",
         "frequencies",
         "nattype",
