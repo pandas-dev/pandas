@@ -10,7 +10,7 @@ import itertools
 import re
 import sys
 from textwrap import fill
-from typing import Any, Dict, Iterable, List, Set
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Set
 import warnings
 
 import numpy as np
@@ -20,7 +20,7 @@ import pandas._libs.ops as libops
 import pandas._libs.parsers as parsers
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._libs.tslibs import parsing
-from pandas._typing import FilePathOrBuffer
+from pandas._typing import FilePathOrBuffer, Union
 from pandas.errors import (
     AbstractMethodError,
     EmptyDataError,
@@ -1168,7 +1168,9 @@ def _is_index_col(col):
     return col is not None and col is not False
 
 
-def _is_potential_multi_index(columns):
+def _is_potential_multi_index(
+    columns, index_col: Optional[Union[bool, Sequence[int]]] = None
+):
     """
     Check whether or not the `columns` parameter
     could be converted into a MultiIndex.
@@ -1177,15 +1179,20 @@ def _is_potential_multi_index(columns):
     ----------
     columns : array-like
         Object which may or may not be convertible into a MultiIndex
+    index_col : None, bool or list, optional
+        Column or columns to use as the (possibly hierarchical) index
 
     Returns
     -------
     boolean : Whether or not columns could become a MultiIndex
     """
+    if index_col is None or isinstance(index_col, bool):
+        index_col = []
+
     return (
         len(columns)
         and not isinstance(columns, MultiIndex)
-        and all(isinstance(c, tuple) for c in columns)
+        and all(isinstance(c, tuple) for c in columns if c not in list(index_col))
     )
 
 
@@ -1570,7 +1577,7 @@ class ParserBase:
         if self.mangle_dupe_cols:
             names = list(names)  # so we can index
             counts = defaultdict(int)
-            is_potential_mi = _is_potential_multi_index(names)
+            is_potential_mi = _is_potential_multi_index(names, self.index_col)
 
             for i, col in enumerate(names):
                 cur_count = counts[col]

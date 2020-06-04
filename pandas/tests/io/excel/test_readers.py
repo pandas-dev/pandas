@@ -1130,3 +1130,16 @@ class TestExcelFileRead:
         # should not produce a segmentation violation
         actual = pd.read_excel("high_surrogate.xlsx")
         tm.assert_frame_equal(expected, actual)
+
+    @pytest.mark.parametrize("filename", ["df_empty.xlsx", "df_equals.xlsx"])
+    def test_header_with_index_col(self, engine, filename):
+        # GH 33476
+        idx = pd.Index(["Z"], name="I2")
+        cols = pd.MultiIndex.from_tuples(
+            [("A", "B"), ("A", "B.1")], names=["I11", "I12"]
+        )
+        expected = pd.DataFrame([[1, 3]], index=idx, columns=cols, dtype="int64")
+        result = pd.read_excel(
+            filename, sheet_name="Sheet1", index_col=0, header=[0, 1]
+        )
+        tm.assert_frame_equal(expected, result)
