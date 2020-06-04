@@ -7,7 +7,6 @@ from pandas.core.indexes.api import (  # noqa:F401
     Index,
     Int64Index,
     IntervalIndex,
-    InvalidIndexError,
     MultiIndex,
     NaT,
     NumericIndex,
@@ -21,6 +20,7 @@ from pandas.core.indexes.api import (  # noqa:F401
     get_objs_combined_axis,
 )
 from pandas.core.indexes.multi import _sparsify  # noqa:F401
+from pandas.errors import InvalidIndexError
 
 # GH#30193
 warnings.warn(
@@ -29,3 +29,5 @@ warnings.warn(
     FutureWarning,
     stacklevel=2,
 )
+
+__all__ = ["InvalidIndexError"]

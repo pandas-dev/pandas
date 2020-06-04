@@ -82,7 +82,6 @@ from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import (
     Float64Index,
     Index,
-    InvalidIndexError,
     MultiIndex,
     ensure_index,
 )
@@ -95,6 +94,7 @@ from pandas.core.internals import SingleBlockManager
 from pandas.core.sorting import ensure_key_mapped
 from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
+from pandas.errors import InvalidIndexError
 
 import pandas.io.formats.format as fmt
 import pandas.plotting

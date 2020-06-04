@@ -32,7 +32,6 @@ from pandas.core.arrays.period import (
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
-    InvalidIndexError,
     _index_shared_docs,
     ensure_index,
     maybe_extract_name,
@@ -42,6 +41,7 @@ from pandas.core.indexes.datetimes import DatetimeIndex, Index
 from pandas.core.indexes.extension import inherit_names
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
+from pandas.errors import InvalidIndexError
 
 from pandas.tseries.offsets import DateOffset, Tick
 

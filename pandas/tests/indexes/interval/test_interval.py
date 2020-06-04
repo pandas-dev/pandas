@@ -19,7 +19,7 @@ from pandas import (
 )
 import pandas._testing as tm
 import pandas.core.common as com
-from pandas.core.indexes.base import InvalidIndexError
+from pandas.errors import InvalidIndexError
 
 
 @pytest.fixture(scope="class", params=[None, "foo"])

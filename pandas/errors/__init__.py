@@ -200,3 +200,9 @@ class NumbaUtilError(Exception):
     """
     Error raised for unsupported Numba engine routines.
     """
+
+
+class InvalidIndexError(Exception):
+    """
+    Exception raised when attemping to use an invalid index key.
+    """

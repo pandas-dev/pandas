@@ -6,7 +6,6 @@ from pandas._libs import NaT, lib
 import pandas.core.common as com
 from pandas.core.indexes.base import (
     Index,
-    InvalidIndexError,
     _new_Index,
     ensure_index,
     ensure_index_from_sequences,
@@ -24,6 +23,7 @@ from pandas.core.indexes.numeric import (
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.range import RangeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
+from pandas.errors import InvalidIndexError
 
 _sort_msg = textwrap.dedent(
     """\

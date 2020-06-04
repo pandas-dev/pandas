@@ -12,7 +12,7 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.indexes.base import InvalidIndexError
+from pandas.errors import InvalidIndexError
 
 
 class TestGetLoc:

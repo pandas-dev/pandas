@@ -26,8 +26,8 @@ from pandas.core.frame import DataFrame
 from pandas.core.groupby import ops
 from pandas.core.groupby.categorical import recode_for_groupby, recode_from_groupby
 from pandas.core.indexes.api import CategoricalIndex, Index, MultiIndex
-from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.series import Series
+from pandas.errors import InvalidIndexError
 
 from pandas.io.formats.printing import pprint_thing
 

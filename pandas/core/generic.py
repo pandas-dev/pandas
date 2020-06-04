@@ -47,7 +47,7 @@ from pandas._typing import (
 from pandas.compat import set_function_name
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
-from pandas.errors import AbstractMethodError
+from pandas.errors import AbstractMethodError, InvalidIndexError
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -92,7 +92,6 @@ import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.indexes.api import (
     Index,
-    InvalidIndexError,
     MultiIndex,
     RangeIndex,
     ensure_index,

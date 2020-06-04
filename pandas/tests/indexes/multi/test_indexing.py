@@ -6,7 +6,7 @@ import pytest
 import pandas as pd
 from pandas import Categorical, Index, MultiIndex, date_range
 import pandas._testing as tm
-from pandas.core.indexes.base import InvalidIndexError
+from pandas.errors import InvalidIndexError
 
 
 class TestSliceLocs:

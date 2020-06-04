@@ -25,8 +25,8 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
-from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
+from pandas.errors import InvalidIndexError
 
 
 class Base:
