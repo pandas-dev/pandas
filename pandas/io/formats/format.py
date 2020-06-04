@@ -1207,7 +1207,7 @@ class GenericArrayFormatter:
                     if x is None:
                         return "None"
                     elif x is NA:
-                        return str(NA)
+                        return self.na_rep
                     elif x is NaT or np.isnat(x):
                         return "NaT"
                 except (TypeError, ValueError):
