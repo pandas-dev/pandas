@@ -276,3 +276,19 @@ class TestShift:
 
         expected = pd.Series([pd.Timestamp(0), ser[0]])
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("periods", [1, 2, 3, 4])
+    def test_shift_preserve_freqstr(self, periods):
+        # GH#21275
+        ser = pd.Series(
+            range(periods),
+            index=pd.date_range("2016-1-1 00:00:00", periods=periods, freq="H"),
+        )
+
+        result = ser.shift(1, "2H")
+
+        expected = pd.Series(
+            range(periods),
+            index=pd.date_range("2016-1-1 02:00:00", periods=periods, freq="H"),
+        )
+        tm.assert_series_equal(result, expected)
