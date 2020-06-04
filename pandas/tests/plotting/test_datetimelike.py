@@ -16,7 +16,7 @@ from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.core.resample import DatetimeIndex
 from pandas.tests.plotting.common import TestPlotBase
 
-from pandas.tseries.offsets import DateOffset
+from pandas.tseries.offsets import DateOffset, WeekOfMonth
 
 
 @td.skip_if_no_mpl
@@ -324,6 +324,18 @@ class TestTSPlot(TestPlotBase):
         assert ax.get_lines()[0].get_xydata()[0, 0] == ts.index[0].ordinal
         idx = ax.get_lines()[0].get_xdata()
         assert PeriodIndex(data=idx).freqstr == "M"
+
+    def test_freq_with_no_period_alias(self):
+        # GH34487
+        freq = WeekOfMonth()
+        bts = tm.makeTimeSeries(5).asfreq(freq)
+        _, ax = self.plt.subplots()
+        bts.plot(ax=ax)
+        assert ax.get_lines()[0].get_xydata()[0, 0] == bts.index[0].toordinal()
+        idx = ax.get_lines()[0].get_xdata()
+        msg = "freq not specified and cannot be inferred"
+        with pytest.raises(ValueError, match=msg):
+            PeriodIndex(data=idx)
 
     def test_nonzero_base(self):
         # GH2571
