@@ -721,8 +721,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         Parameters
         ----------
         time : datetime.time or str
-            Time passed in either as object (datetime.time) or as string in 
-            appropriate format ("%H:%M", "%H%M", "%I:%M%p", "%I%M%p", 
+            Time passed in either as object (datetime.time) or as string in
+            appropriate format ("%H:%M", "%H%M", "%I:%M%p", "%I%M%p",
             "%H:%M:%S", "%H%M%S", "%I:%M:%S%p", "%I%M%S%p").
 
         Returns
@@ -763,7 +763,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         ----------
         start_time, end_time : datetime.time, str
             Time passed either as object (datetime.time) or as string in
-            appropriate format ("%H:%M", "%H%M", "%I:%M%p", "%I%M%p", 
+            appropriate format ("%H:%M", "%H%M", "%I:%M%p", "%I%M%p",
             "%H:%M:%S", "%H%M%S", "%I:%M:%S%p","%I%M%S%p").
         include_start : bool, default True
         include_end : bool, default True
