@@ -2316,7 +2316,8 @@ Name: Max Speed, dtype: float64
         this, other = self.align(other, join="inner", copy=False)
         if len(this) == 0:
             return np.nan
-        return nanops.nancov(this.values, other.values, min_periods=min_periods, ddof=ddof)
+        return nanops.nancov(
+            this.values, other.values, min_periods=min_periods, ddof=ddof)
 
     @doc(
         klass="Series",

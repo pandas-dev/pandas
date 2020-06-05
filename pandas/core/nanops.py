@@ -1377,7 +1377,8 @@ def get_corr_func(method):
 
 
 @disallow("M8", "m8")
-def nancov(a: np.ndarray, b: np.ndarray, min_periods: Optional[int] = None, ddof: Optional[int] = 1):
+def nancov(a: np.ndarray, b: np.ndarray, min_periods: Optional[int] = None, 
+    ddof: Optional[int] = 1):
     if len(a) != len(b):
         raise AssertionError("Operands to nancov must have same size")
 
