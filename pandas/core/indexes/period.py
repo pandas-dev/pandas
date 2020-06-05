@@ -572,10 +572,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         return label
 
     def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
-        assert isinstance(reso, Resolution), (type(reso), reso)
-        #if reso not in ["year", "month", "quarter", "day", "hour", "minute", "second"]:
-        #    raise KeyError(reso)
-
         grp = reso.freq_group
         iv = Period(parsed, freq=(grp, 1))
         return (iv.asfreq(self.freq, how="start"), iv.asfreq(self.freq, how="end"))
