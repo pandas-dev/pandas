@@ -1,7 +1,4 @@
-from cpython.datetime cimport datetime, timedelta
-
-cdef class ABCTimedelta(timedelta):
-    pass
+from cpython.datetime cimport datetime
 
 
 cdef class ABCTimestamp(datetime):

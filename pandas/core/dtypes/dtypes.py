@@ -20,7 +20,7 @@ import numpy as np
 import pytz
 
 from pandas._libs.interval import Interval
-from pandas._libs.tslibs import NaT, Period, Timestamp, timezones
+from pandas._libs.tslibs import NaT, Period, Timestamp, timezones, to_offset
 from pandas._libs.tslibs.offsets import BaseOffset
 from pandas._typing import DtypeObj, Ordered
 
@@ -925,7 +925,6 @@ class PeriodDtype(PandasExtensionDtype):
                 m = cls._match.search(freq)
                 if m is not None:
                     freq = m.group("freq")
-            from pandas.tseries.frequencies import to_offset
 
             freq = to_offset(freq)
             if freq is not None:

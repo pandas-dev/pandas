@@ -21,7 +21,7 @@ from pandas._libs.tslibs.util cimport (
     is_float_object, is_array
 )
 
-from pandas._libs.tslibs.base cimport ABCTimedelta, ABCTimestamp
+from pandas._libs.tslibs.base cimport ABCTimestamp
 
 from pandas._libs.tslibs.conversion cimport cast_from_unit
 
@@ -675,12 +675,12 @@ cdef _to_py_int_float(v):
 # timedeltas that we need to do object instantiation in python. This will
 # serve as a C extension type that shadows the Python class, where we do any
 # heavy lifting.
-cdef class _Timedelta(ABCTimedelta):
-    cdef readonly:
-        int64_t value      # nanoseconds
-        object freq        # frequency reference
-        bint is_populated  # are my components populated
-        int64_t _d, _h, _m, _s, _ms, _us, _ns
+cdef class _Timedelta(timedelta):
+    # cdef readonly:
+    #    int64_t value      # nanoseconds
+    #    object freq        # frequency reference
+    #    bint is_populated  # are my components populated
+    #    int64_t _d, _h, _m, _s, _ms, _us, _ns
 
     # higher than np.ndarray and np.matrix
     __array_priority__ = 100
@@ -907,19 +907,19 @@ cdef class _Timedelta(ABCTimedelta):
         Examples
         --------
         >>> td = pd.Timedelta('1 days 2 min 3 us 42 ns')
-        >>> td.resolution
+        >>> td.resolution_string
         'N'
 
         >>> td = pd.Timedelta('1 days 2 min 3 us')
-        >>> td.resolution
+        >>> td.resolution_string
         'U'
 
         >>> td = pd.Timedelta('2 min 3 s')
-        >>> td.resolution
+        >>> td.resolution_string
         'S'
 
         >>> td = pd.Timedelta(36, unit='us')
-        >>> td.resolution
+        >>> td.resolution_string
         'U'
         """
         self._ensure_components()
@@ -1093,7 +1093,7 @@ class Timedelta(_Timedelta):
 
     Parameters
     ----------
-    value : Timedelta, timedelta, np.timedelta64, string, or integer
+    value : Timedelta, timedelta, np.timedelta64, str, or int
     unit : str, default 'ns'
         Denote the unit of the input, if input is an integer.
 
