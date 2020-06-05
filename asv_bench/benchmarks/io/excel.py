@@ -11,7 +11,7 @@ from ..pandas_vb_common import tm
 
 
 def _generate_dataframe():
-    N = 2000
+    N = 20000
     C = 5
     df = DataFrame(
         np.random.randn(N, C),
