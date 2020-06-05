@@ -2454,7 +2454,7 @@ class Period(_Period):
             raise ValueError(msg)
 
         if ordinal is None:
-            base, mult = get_freq_code(freq)
+            base, _ = get_freq_code(freq)
             ordinal = period_ordinal(dt.year, dt.month, dt.day,
                                      dt.hour, dt.minute, dt.second,
                                      dt.microsecond, 0, base)

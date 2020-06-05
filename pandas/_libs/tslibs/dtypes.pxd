@@ -50,6 +50,8 @@ cdef enum PeriodDtypeCode:
     U = 11000       # Microsecondly
     N = 12000       # Nanosecondly
 
+    UNDEFINED = -10_000
+
 
 cdef class PeriodPseudoDtype:
     cdef readonly:
