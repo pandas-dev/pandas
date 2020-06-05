@@ -556,7 +556,7 @@ cdef class BaseOffset:
     # ------------------------------------------------------------------
 
     @apply_index_wraps
-    def apply_index(self, index):
+    def apply_index(self, dtindex):
         """
         Vectorized apply of DateOffset to DatetimeIndex,
         raises NotImplementedError for offsets without a
@@ -1028,7 +1028,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
             return other + timedelta(self.n)
 
     @apply_index_wraps
-    def apply_index(self, index):
+    def apply_index(self, dtindex):
         """
         Vectorized apply of DateOffset to DatetimeIndex,
         raises NotImplementedError for offsets without a
@@ -1040,8 +1040,9 @@ cdef class RelativeDeltaOffset(BaseOffset):
 
         Returns
         -------
-        DatetimeIndex
+        ndarray[datetime64[ns]]
         """
+        dt64other = np.asarray(dtindex)
         kwds = self.kwds
         relativedelta_fast = {
             "years",
@@ -1058,12 +1059,12 @@ cdef class RelativeDeltaOffset(BaseOffset):
 
             months = (kwds.get("years", 0) * 12 + kwds.get("months", 0)) * self.n
             if months:
-                shifted = shift_months(index.asi8, months)
-                index = type(index)(shifted, dtype=index.dtype)
+                shifted = shift_months(dt64other.view("i8"), months)
+                dt64other = shifted.view("datetime64[ns]")
 
             weeks = kwds.get("weeks", 0) * self.n
             if weeks:
-                index = index + timedelta(days=7 * weeks)
+                dt64other = dt64other + Timedelta(days=7 * weeks)
 
             timedelta_kwds = {
                 k: v
@@ -1072,11 +1073,11 @@ cdef class RelativeDeltaOffset(BaseOffset):
             }
             if timedelta_kwds:
                 delta = Timedelta(**timedelta_kwds)
-                index = index + (self.n * delta)
-            return index
+                dt64other = dt64other + (self.n * delta)
+            return dt64other
         elif not self._use_relativedelta and hasattr(self, "_offset"):
             # timedelta
-            return index + (self._offset * self.n)
+            return dt64other + Timedelta(self._offset * self.n)
         else:
             # relativedelta with other keywords
             kwd = set(kwds) - relativedelta_fast
