@@ -114,12 +114,12 @@ def test_groupby_sample_without_n_or_frac():
 
 def test_groupby_sample_with_weights():
     values = [1] * 2 + [2] * 2
-    df = DataFrame({"a": values, "b": values}, index=Index([0, 1, 2, 3]))
+    df = DataFrame({"a": values, "b": values}, index=Index(["w", "x", "y", "z"]))
 
     result = df.groupby("a").sample(n=2, replace=True, weights=[1, 0, 1, 0])
-    expected = DataFrame({"a": values, "b": values}, index=Index([0, 0, 2, 2]))
+    expected = DataFrame({"a": values, "b": values}, index=Index(["w", "w", "y", "y"]))
     tm.assert_frame_equal(result, expected)
 
     result = df.groupby("a")["b"].sample(n=2, replace=True, weights=[1, 0, 1, 0])
-    expected = Series(values, name="b", index=Index([0, 0, 2, 2]))
+    expected = Series(values, name="b", index=Index(["w", "w", "y", "y"]))
     tm.assert_series_equal(result, expected)

@@ -2789,7 +2789,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         from pandas.core.reshape.concat import concat
 
         if weights is not None:
-            weights = Series(weights)
+            weights = Series(weights, index=self._selected_obj.index)
             ws = [weights[idx] for idx in self.indices.values()]
         else:
             ws = [None] * self.ngroups
