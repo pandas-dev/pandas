@@ -2773,6 +2773,18 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         2    2
         0    0
         Name: b, dtype: int64
+
+        Control sample probabilities within groups by setting weights:
+
+        >>> df.groupby("a").sample(
+        ...     n=1,
+        ...     weights=[1, 1, 1, 0, 0, 1],
+        ...     random_state=1,
+        ... )
+               a  b
+        5  black  5
+        2   blue  2
+        0    red  0
         """
         from pandas.core.reshape.concat import concat
 
