@@ -69,5 +69,9 @@ class ReadExcel:
         fname = self.fname_odf if engine == "odf" else self.fname_excel
         read_excel(fname, engine=engine)
 
+    def nrows_read_excel(self, engine):
+        name = self.fname_odf if engine == "odf" else self.fname_excel
+        read_excel(fname, engine=engine, nrows=1)
+
 
 from ..pandas_vb_common import setup  # noqa: F401 isort:skip
