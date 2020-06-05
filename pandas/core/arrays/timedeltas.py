@@ -4,7 +4,7 @@ from typing import List
 import numpy as np
 
 from pandas._libs import lib, tslibs
-from pandas._libs.tslibs import NaT, Period, Timedelta, Timestamp, iNaT
+from pandas._libs.tslibs import NaT, Period, Timedelta, Timestamp, iNaT, to_offset
 from pandas._libs.tslibs.conversion import precision_from_unit
 from pandas._libs.tslibs.fields import get_timedelta_field
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64, parse_timedelta_unit
@@ -35,7 +35,6 @@ import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
-from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import Tick
 
 
