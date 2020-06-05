@@ -200,8 +200,6 @@ mangle_dupe_cols : bool, default True
     Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
     'X'...'X'. Passing in False will cause data to be overwritten if there
     are duplicate names in the columns.
-**kwds : optional
-        Optional keyword arguments can be passed to ``TextFileReader``.
 
 Returns
 -------
@@ -292,6 +290,7 @@ def read_excel(
     nrows=None,
     na_values=None,
     keep_default_na=True,
+    na_filter=True,
     verbose=False,
     parse_dates=False,
     date_parser=None,
@@ -300,12 +299,7 @@ def read_excel(
     skipfooter=0,
     convert_float=True,
     mangle_dupe_cols=True,
-    **kwds,
 ):
-
-    for arg in ("sheet", "sheetname", "parse_cols"):
-        if arg in kwds:
-            raise TypeError(f"read_excel() got an unexpected keyword argument `{arg}`")
 
     if not isinstance(io, ExcelFile):
         io = ExcelFile(io, engine=engine)
@@ -330,6 +324,7 @@ def read_excel(
         nrows=nrows,
         na_values=na_values,
         keep_default_na=keep_default_na,
+        na_filter=na_filter,
         verbose=verbose,
         parse_dates=parse_dates,
         date_parser=date_parser,
@@ -338,7 +333,6 @@ def read_excel(
         skipfooter=skipfooter,
         convert_float=convert_float,
         mangle_dupe_cols=mangle_dupe_cols,
-        **kwds,
     )
 
 
@@ -922,11 +916,6 @@ class ExcelFile:
         DataFrame or dict of DataFrames
             DataFrame from the passed in Excel file.
         """
-        if "chunksize" in kwds:
-            raise NotImplementedError(
-                "chunksize keyword of read_excel is not implemented"
-            )
-
         return self._reader.parse(
             sheet_name=sheet_name,
             header=header,

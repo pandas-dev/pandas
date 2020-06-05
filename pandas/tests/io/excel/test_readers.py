@@ -897,12 +897,6 @@ class TestReaders:
             with pytest.raises(TypeError, match=msg):
                 pd.read_excel("test1" + read_ext, header=arg)
 
-    def test_read_excel_chunksize(self, read_ext):
-        # GH 8011
-        msg = "chunksize keyword of read_excel is not implemented"
-        with pytest.raises(NotImplementedError, match=msg):
-            pd.read_excel("test1" + read_ext, chunksize=100)
-
     def test_read_excel_skiprows_list(self, read_ext):
         # GH 4903
         if pd.read_excel.keywords["engine"] == "pyxlsb":
@@ -1048,17 +1042,6 @@ class TestExcelFileRead:
         expected = DataFrame(expected, columns=["Test"])
         tm.assert_frame_equal(parsed, expected)
 
-    @pytest.mark.parametrize("arg", ["sheet", "sheetname", "parse_cols"])
-    @td.check_file_leaks
-    def test_unexpected_kwargs_raises(self, read_ext, arg):
-        # gh-17964
-        kwarg = {arg: "Sheet1"}
-        msg = fr"unexpected keyword argument `{arg}`"
-
-        with pd.ExcelFile("test1" + read_ext) as excel:
-            with pytest.raises(TypeError, match=msg):
-                pd.read_excel(excel, **kwarg)
-
     def test_excel_table_sheet_by_index(self, read_ext, df_ref):
         # For some reason pd.read_excel has no attribute 'keywords' here.
         # Skipping based on read_ext instead.
@@ -1147,6 +1130,19 @@ class TestExcelFileRead:
         # should not produce a segmentation violation
         actual = pd.read_excel("high_surrogate.xlsx")
         tm.assert_frame_equal(expected, actual)
+
+    @pytest.mark.parametrize("filename", ["df_empty.xlsx", "df_equals.xlsx"])
+    def test_header_with_index_col(self, engine, filename):
+        # GH 33476
+        idx = pd.Index(["Z"], name="I2")
+        cols = pd.MultiIndex.from_tuples(
+            [("A", "B"), ("A", "B.1")], names=["I11", "I12"]
+        )
+        expected = pd.DataFrame([[1, 3]], index=idx, columns=cols, dtype="int64")
+        result = pd.read_excel(
+            filename, sheet_name="Sheet1", index_col=0, header=[0, 1]
+        )
+        tm.assert_frame_equal(expected, result)
 
     @pytest.mark.parametrize("header, skiprows", [(1, 2), (0, 3)])
     @td.check_file_leaks
