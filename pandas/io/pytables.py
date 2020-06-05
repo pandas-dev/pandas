@@ -1132,7 +1132,7 @@ class HDFStore:
 
             ``'table'``
                 Table format. Write as a PyTables Table structure which may perform
-                worse but allow more flexible operations like searching / selecting 
+                worse but allow more flexible operations like searching / selecting
                 subsets of the data.
         append       : bool, default True
             Append the input data to the existing.
