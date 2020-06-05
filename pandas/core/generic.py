@@ -665,44 +665,27 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     def pop(self: FrameOrSeries, item) -> FrameOrSeries:
         """
-        Return item and drop from frame. Raise KeyError if not found.
+        Return's value and is dropped from series. Raise KeyError if not found.
 
         Parameters
         ----------
-        item : str
-            Label of column to be popped.
+        item : int
+            Index of element that needs to be removed.
 
         Returns
         -------
-        Series
+        Value that is popped from series.
 
         Examples
         --------
-        >>> df = pd.DataFrame([('falcon', 'bird', 389.0),
-        ...                    ('parrot', 'bird', 24.0),
-        ...                    ('lion', 'mammal', 80.5),
-        ...                    ('monkey', 'mammal', np.nan)],
-        ...                   columns=('name', 'class', 'max_speed'))
-        >>> df
-             name   class  max_speed
-        0  falcon    bird      389.0
-        1  parrot    bird       24.0
-        2    lion  mammal       80.5
-        3  monkey  mammal        NaN
+        >>> ser = pd.Series([1,2,3])
+        >>> ser.pop(0)
+        1
 
-        >>> df.pop('class')
-        0      bird
-        1      bird
-        2    mammal
-        3    mammal
-        Name: class, dtype: object
-
-        >>> df
-             name  max_speed
-        0  falcon      389.0
-        1  parrot       24.0
-        2    lion       80.5
-        3  monkey        NaN
+        >>> ser
+        1    2
+        2    3
+        dtype: int64
         """
         result = self[item]
         del self[item]
