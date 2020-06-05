@@ -33,7 +33,7 @@ from numpy cimport (
 cnp.import_array()
 
 
-cimport pandas._libs.util as util
+from pandas._libs cimport util
 
 from pandas._libs.hashtable cimport Int64Vector
 from pandas._libs.tslibs.util cimport (
@@ -42,10 +42,9 @@ from pandas._libs.tslibs.util cimport (
     is_timedelta64_object,
 )
 
-from pandas._libs.tslibs import Timestamp
-from pandas._libs.tslibs.timedeltas import Timedelta
 from pandas._libs.tslibs.timezones cimport tz_compare
-
+from pandas._libs.tslibs.timestamps cimport _Timestamp
+from pandas._libs.tslibs.timedeltas cimport _Timedelta
 
 _VALID_CLOSED = frozenset(['left', 'right', 'both', 'neither'])
 
@@ -329,7 +328,7 @@ cdef class Interval(IntervalMixin):
             raise ValueError(f"invalid option for 'closed': {closed}")
         if not left <= right:
             raise ValueError("left side of interval must be <= right side")
-        if (isinstance(left, Timestamp) and
+        if (isinstance(left, _Timestamp) and
                 not tz_compare(left.tzinfo, right.tzinfo)):
             # GH 18538
             raise ValueError("left and right must have the same time zone, got "
@@ -341,7 +340,7 @@ cdef class Interval(IntervalMixin):
     def _validate_endpoint(self, endpoint):
         # GH 23013
         if not (is_integer_object(endpoint) or is_float_object(endpoint) or
-                isinstance(endpoint, (Timestamp, Timedelta))):
+                isinstance(endpoint, (_Timestamp, _Timedelta))):
             raise ValueError("Only numeric, Timestamp and Timedelta endpoints "
                              "are allowed when constructing an Interval.")
 
@@ -371,7 +370,7 @@ cdef class Interval(IntervalMixin):
         right = self.right
 
         # TODO: need more general formatting methodology here
-        if isinstance(left, Timestamp) and isinstance(right, Timestamp):
+        if isinstance(left, _Timestamp) and isinstance(right, _Timestamp):
             left = left._short_repr
             right = right._short_repr
 

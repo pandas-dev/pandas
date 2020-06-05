@@ -388,7 +388,7 @@ class MultiIndex(Index):
         return new_codes
 
     @classmethod
-    def from_arrays(cls, arrays, sortorder=None, names=lib.no_default):
+    def from_arrays(cls, arrays, sortorder=None, names=lib.no_default) -> "MultiIndex":
         """
         Convert arrays to MultiIndex.
 
@@ -1465,7 +1465,7 @@ class MultiIndex(Index):
 
         # reversed() because lexsort() wants the most significant key last.
         values = [
-            self._get_level_values(i).values for i in reversed(range(len(self.levels)))
+            self._get_level_values(i)._values for i in reversed(range(len(self.levels)))
         ]
         try:
             sort_order = np.lexsort(values)
@@ -1897,7 +1897,7 @@ class MultiIndex(Index):
 
     def __getitem__(self, key):
         if is_scalar(key):
-            key = com.cast_scalar_indexer(key)
+            key = com.cast_scalar_indexer(key, warn_float=True)
 
             retval = []
             for lev, level_codes in zip(self.levels, self.codes):
@@ -2456,7 +2456,7 @@ class MultiIndex(Index):
                     "tolerance not implemented yet for MultiIndex"
                 )
             indexer = self._engine.get_indexer(
-                values=self.values, target=target, method=method, limit=limit
+                values=self._values, target=target, method=method, limit=limit
             )
         elif method == "nearest":
             raise NotImplementedError(
@@ -3218,7 +3218,8 @@ class MultiIndex(Index):
             if not is_object_dtype(other.dtype):
                 # other cannot contain tuples, so cannot match self
                 return False
-
+            elif len(self) != len(other):
+                return False
             return array_equivalent(self._values, other._values)
 
         if self.nlevels != other.nlevels:

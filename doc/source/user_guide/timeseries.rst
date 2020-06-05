@@ -793,6 +793,7 @@ You may obtain the year, week and day components of the ISO year from the ISO 86
 .. ipython:: python
 
    idx = pd.date_range(start='2019-12-29', freq='D', periods=4)
+   idx.isocalendar()
    idx.to_series().dt.isocalendar()
 
 .. _timeseries.offsets:

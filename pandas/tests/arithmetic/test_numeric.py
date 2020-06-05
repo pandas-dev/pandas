@@ -66,7 +66,9 @@ class TestNumericComparisons:
         ts = pd.Timestamp.now()
         df = pd.DataFrame({"x": range(5)})
 
-        msg = "'[<>]' not supported between instances of 'Timestamp' and 'int'"
+        msg = (
+            "'[<>]' not supported between instances of 'numpy.ndarray' and 'Timestamp'"
+        )
         with pytest.raises(TypeError, match=msg):
             df > ts
         with pytest.raises(TypeError, match=msg):
@@ -633,7 +635,7 @@ class TestMultiplicationDivision:
 
     def test_mul_size_mismatch_raises(self, numeric_idx):
         idx = numeric_idx
-        msg = "Lengths must match"
+        msg = "operands could not be broadcast together"
         with pytest.raises(ValueError, match=msg):
             idx * idx[0:3]
         with pytest.raises(ValueError, match=msg):

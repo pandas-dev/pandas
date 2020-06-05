@@ -2,7 +2,6 @@
 High level interface to PyTables for reading and writing pandas data structures
 to disk
 """
-
 import copy
 from datetime import date, tzinfo
 import itertools
@@ -19,6 +18,7 @@ from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslibs import timezones
 from pandas._typing import ArrayLike, FrameOrSeries, Label
 from pandas.compat._optional import import_optional_dependency
+from pandas.compat.pickle_compat import patch_pickle
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
 
@@ -729,10 +729,13 @@ class HDFStore:
         object
             Same type as object stored in file.
         """
-        group = self.get_node(key)
-        if group is None:
-            raise KeyError(f"No object named {key} in the file")
-        return self._read_group(group)
+        with patch_pickle():
+            # GH#31167 Without this patch, pickle doesn't know how to unpickle
+            #  old DateOffset objects now that they are cdef classes.
+            group = self.get_node(key)
+            if group is None:
+                raise KeyError(f"No object named {key} in the file")
+            return self._read_group(group)
 
     def select(
         self,
@@ -984,6 +987,7 @@ class HDFStore:
         data_columns: Optional[List[str]] = None,
         encoding=None,
         errors: str = "strict",
+        track_times: bool = True,
     ):
         """
         Store object in HDFStore.
@@ -1010,6 +1014,12 @@ class HDFStore:
             Provide an encoding for strings.
         dropna   : bool, default False, do not write an ALL nan row to
             The store settable by the option 'io.hdf.dropna_table'.
+        track_times : bool, default True
+            Parameter is propagated to 'create_table' method of 'PyTables'.
+            If set to False it enables to have the same h5 files (same hashes)
+            independent on creation time.
+
+            .. versionadded:: 1.1.0
         """
         if format is None:
             format = get_option("io.hdf.default_format") or "fixed"
@@ -1027,6 +1037,7 @@ class HDFStore:
             data_columns=data_columns,
             encoding=encoding,
             errors=errors,
+            track_times=track_times,
         )
 
     def remove(self, key: str, where=None, start=None, stop=None):
@@ -1626,6 +1637,7 @@ class HDFStore:
         data_columns=None,
         encoding=None,
         errors: str = "strict",
+        track_times: bool = True,
     ):
         group = self.get_node(key)
 
@@ -1688,6 +1700,7 @@ class HDFStore:
             dropna=dropna,
             nan_rep=nan_rep,
             data_columns=data_columns,
+            track_times=track_times,
         )
 
         if isinstance(s, Table) and index:
@@ -4106,8 +4119,8 @@ class AppendableTable(Table):
         dropna=False,
         nan_rep=None,
         data_columns=None,
+        track_times=True,
     ):
-
         if not append and self.is_exists:
             self._handle.remove_node(self.group, "table")
 
@@ -4136,6 +4149,8 @@ class AppendableTable(Table):
 
             # set the table attributes
             table.set_attrs()
+
+            options["track_times"] = track_times
 
             # create the table
             table._handle.create_table(table.group, **options)

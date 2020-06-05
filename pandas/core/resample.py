@@ -6,9 +6,14 @@ from typing import Dict, Optional, Union, no_type_check
 import numpy as np
 
 from pandas._libs import lib
-from pandas._libs.tslibs import NaT, Period, Timedelta, Timestamp
-from pandas._libs.tslibs.frequencies import is_subperiod, is_superperiod
-from pandas._libs.tslibs.period import IncompatibleFrequency
+from pandas._libs.tslibs import (
+    IncompatibleFrequency,
+    NaT,
+    Period,
+    Timedelta,
+    Timestamp,
+    to_offset,
+)
 from pandas._typing import TimedeltaConvertibleTypes, TimestampConvertibleTypes
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -29,7 +34,7 @@ from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.indexes.period import PeriodIndex, period_range
 from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 
-from pandas.tseries.frequencies import to_offset
+from pandas.tseries.frequencies import is_subperiod, is_superperiod
 from pandas.tseries.offsets import DateOffset, Day, Nano, Tick
 
 _shared_docs_kwargs: Dict[str, str] = dict()
@@ -1694,11 +1699,15 @@ def _get_timestamp_range_edges(
     -------
     A tuple of length 2, containing the adjusted pd.Timestamp objects.
     """
-    index_tz = first.tz
-    if isinstance(origin, Timestamp) and (origin.tz is None) != (index_tz is None):
-        raise ValueError("The origin must have the same timezone as the index.")
-
     if isinstance(freq, Tick):
+        index_tz = first.tz
+        if isinstance(origin, Timestamp) and (origin.tz is None) != (index_tz is None):
+            raise ValueError("The origin must have the same timezone as the index.")
+        elif origin == "epoch":
+            # set the epoch based on the timezone to have similar bins results when
+            # resampling on the same kind of indexes on different timezones
+            origin = Timestamp("1970-01-01", tz=index_tz)
+
         if isinstance(freq, Day):
             # _adjust_dates_anchored assumes 'D' means 24H, but first/last
             # might contain a DST transition (23H, 24H, or 25H).
@@ -1709,7 +1718,7 @@ def _get_timestamp_range_edges(
                 origin = origin.tz_localize(None)
 
         first, last = _adjust_dates_anchored(
-            first, last, freq, closed=closed, origin=origin, offset=offset,
+            first, last, freq, closed=closed, origin=origin, offset=offset
         )
         if isinstance(freq, Day):
             first = first.tz_localize(index_tz)
@@ -1771,7 +1780,7 @@ def _get_period_range_edges(
     adjust_last = freq.is_on_offset(last)
 
     first, last = _get_timestamp_range_edges(
-        first, last, freq, closed=closed, origin=origin, offset=offset,
+        first, last, freq, closed=closed, origin=origin, offset=offset
     )
 
     first = (first + int(adjust_first) * freq).to_period(freq)
