@@ -26,8 +26,8 @@ def hist_series(
     yrot: Optional[float] = None,
     figsize: Optional[Tuple[int, int]] = None,
     bins: Union[int, Sequence[int]] = 10,
-    legend: bool = False,
     backend: Optional[str] = None,
+    legend: bool = False,
     **kwargs,
 ):
     """
@@ -56,11 +56,6 @@ def hist_series(
         bin edges are calculated and returned. If bins is a sequence, gives
         bin edges, including left edge of first bin and right edge of last
         bin. In this case, bins is returned unmodified.
-    legend : bool, default False
-        Whether to show the legend.
-
-        ..versionadded:: 1.1.0
-
     backend : str, default None
         Backend to use instead of the backend specified in the option
         ``plotting.backend``. For instance, 'matplotlib'. Alternatively, to
@@ -68,6 +63,11 @@ def hist_series(
         ``pd.options.plotting.backend``.
 
         .. versionadded:: 1.0.0
+
+    legend : bool, default False
+        Whether to show the legend.
+
+        ..versionadded:: 1.1.0
 
     **kwargs
         To be passed to the actual plotting function.
@@ -113,8 +113,8 @@ def hist_frame(
     figsize: Optional[Tuple[int, int]] = None,
     layout: Optional[Tuple[int, int]] = None,
     bins: Union[int, Sequence[int]] = 10,
-    legend: bool = False,
     backend: Optional[str] = None,
+    legend: bool = False,
     **kwargs,
 ):
     """
@@ -167,10 +167,6 @@ def hist_frame(
         bin edges are calculated and returned. If bins is a sequence, gives
         bin edges, including left edge of first bin and right edge of last
         bin. In this case, bins is returned unmodified.
-    legend : bool, default False
-        Whether to show the legend.
-
-        ..versionadded:: 1.1.0
 
     backend : str, default None
         Backend to use instead of the backend specified in the option
@@ -179,6 +175,11 @@ def hist_frame(
         ``pd.options.plotting.backend``.
 
         .. versionadded:: 1.0.0
+
+    legend : bool, default False
+        Whether to show the legend.
+
+        ..versionadded:: 1.1.0
 
     **kwargs
         All other plotting keyword arguments to be passed to
