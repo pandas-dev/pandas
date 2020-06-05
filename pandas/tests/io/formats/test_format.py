@@ -2869,8 +2869,10 @@ class TestGenericArrayFormatter:
     def test_na_rep(self):
         from pandas.io.formats.format import GenericArrayFormatter as gaf
         test_array = np.array([pd.NA, float('nan')])
+        val_na = ['x', 'x']
         assert gaf(test_array, leading_space=False).get_result() == [str(pd.NA), ' NaN']
-        assert gaf(test_array, na_rep='test', leading_space=False).get_result() == ['test', 'test']
+        assert gaf(test_array, na_rep='x', leading_space=False).get_result() == val_na
+
 
 def _three_digit_exp():
     return f"{1.7e8:.4g}" == "1.7e+008"
@@ -2881,7 +2883,6 @@ class TestFloatArrayFormatter:
         obj = fmt.FloatArrayFormatter(np.array([], dtype=np.float64))
         result = obj.get_result()
         assert len(result) == 0
-
 
     def test_format(self):
         obj = fmt.FloatArrayFormatter(np.array([12, 0], dtype=np.float64))
