@@ -2724,8 +2724,8 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         weights : list-like, optional
             Default None results in equal probability weighting.
             If passed a list-like then values must have the same length as
-            the underlying object and will be used as sampling probabilities
-            after normalization within each group.
+            the underlying DataFrame or Series object and will be used as
+            sampling probabilities after normalization within each group.
         random_state : int, array-like, BitGenerator, np.random.RandomState, optional
             If int, array-like, or BitGenerator (NumPy>=1.17), seed for
             random number generator
