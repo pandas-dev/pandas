@@ -1,7 +1,8 @@
-from pandas.tseries.frequencies import is_subperiod, is_superperiod
+import pytest
+
 from pandas._libs.tslibs import offsets
 
-import pytest
+from pandas.tseries.frequencies import is_subperiod, is_superperiod
 
 
 @pytest.mark.parametrize(
