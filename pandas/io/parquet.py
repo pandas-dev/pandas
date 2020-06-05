@@ -92,7 +92,6 @@ class PyArrowImpl(BaseImpl):
         **kwargs,
     ):
         self.validate_dataframe(df)
-        file_obj_or_path, _, _, should_close = get_filepath_or_buffer(path, mode="wb")
 
         from_pandas_kwargs: Dict[str, Any] = {"schema": kwargs.pop("schema", None)}
         if index is not None:
@@ -101,15 +100,22 @@ class PyArrowImpl(BaseImpl):
         table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
         # write_to_dataset does not support a file-like object when
         # a directory path is used, so just pass the path string.
+        if is_fsspec_url(path) and "filesystem" not in kwargs:
+            # TODO: use_legacy_dataset=False will require work, when it is available
+            assert kwargs.get("use_legacy_dataset", False) is False
+            import_optional_dependency("fsspec")
+            import fsspec.core
+
+            fs, path = fsspec.core.url_to_fs(path)
+            kwargs["filesystem"] = fs
+            should_close = False
+        else:
+            file_obj_or_path, _, _, should_close = get_filepath_or_buffer(
+                path, mode="wb"
+            )
         if partition_cols is not None:
             # user may provide filesystem= with an instance, in which case it takes
             # priority and fsspec need not analyse the path
-            if is_fsspec_url(path) and "filesystem" not in kwargs:
-                import_optional_dependency("fsspec")
-                import fsspec.core
-
-                fs, path = fsspec.core.url_to_fs(path)
-                kwargs["filesystem"] = fs
             self.api.parquet.write_to_dataset(
                 table,
                 path,
@@ -118,9 +124,7 @@ class PyArrowImpl(BaseImpl):
                 **kwargs,
             )
         else:
-            self.api.parquet.write_table(
-                table, file_obj_or_path, compression=compression, **kwargs
-            )
+            self.api.parquet.write_table(table, path, compression=compression, **kwargs)
         if should_close:
             file_obj_or_path.close()
 
