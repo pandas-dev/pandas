@@ -1840,7 +1840,8 @@ class _iLocIndexer(_LocationIndexer):
                     if len(value) != len(self.obj.columns):
                         raise ValueError("cannot set a row with mismatched columns")
 
-                value = Series(value, index=self.obj.columns, name=indexer)
+                dtype = object if isinstance(value, dict) else None
+                value = Series(value, index=self.obj.columns, name=indexer, dtype=dtype)
 
             self.obj._mgr = self.obj.append(value)._mgr
             self.obj._maybe_update_cacher(clear=True)
