@@ -70,7 +70,7 @@ class ReadExcel:
         read_excel(fname, engine=engine)
 
     def nrows_read_excel(self, engine):
-        name = self.fname_odf if engine == "odf" else self.fname_excel
+        fname = self.fname_odf if engine == "odf" else self.fname_excel
         read_excel(fname, engine=engine, nrows=1)
 
 
