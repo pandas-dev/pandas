@@ -2427,7 +2427,6 @@ class Period(_Period):
                 value = str(value)
             value = value.upper()
             dt, reso = parse_time_string(value, freq)
-            # TODO: reso = Resolution.from_attrname(reso)
             if dt is NaT:
                 ordinal = NPY_NAT
 

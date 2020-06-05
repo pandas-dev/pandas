@@ -386,7 +386,7 @@ cdef inline object _parse_dateabbr_string(object date_string, datetime default,
     assert isinstance(date_string, str)
 
     if date_string in nat_strings:
-        return NaT, ''  # TODO: reso str here?
+        return NaT, ''
 
     date_string = date_string.upper()
     date_len = len(date_string)
