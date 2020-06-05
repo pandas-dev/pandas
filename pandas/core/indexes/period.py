@@ -8,6 +8,7 @@ from pandas._libs.lib import no_default
 from pandas._libs.tslibs import Period, Resolution
 from pandas._libs.tslibs.parsing import DateParseError, parse_time_string
 from pandas._typing import DtypeObj, Label
+from pandas.errors import InvalidIndexError
 from pandas.util._decorators import Appender, cache_readonly, doc
 
 from pandas.core.dtypes.common import (
@@ -41,7 +42,6 @@ from pandas.core.indexes.datetimes import DatetimeIndex, Index
 from pandas.core.indexes.extension import inherit_names
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
-from pandas.errors import InvalidIndexError
 
 from pandas.tseries.offsets import DateOffset, Tick
 

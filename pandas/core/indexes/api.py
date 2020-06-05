@@ -2,6 +2,7 @@ import textwrap
 from typing import List, Set
 
 from pandas._libs import NaT, lib
+from pandas.errors import InvalidIndexError
 
 import pandas.core.common as com
 from pandas.core.indexes.base import (
@@ -23,7 +24,6 @@ from pandas.core.indexes.numeric import (
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.range import RangeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
-from pandas.errors import InvalidIndexError
 
 _sort_msg = textwrap.dedent(
     """\

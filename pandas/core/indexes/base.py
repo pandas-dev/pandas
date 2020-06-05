@@ -16,8 +16,8 @@ from pandas._libs.tslibs.timezones import tz_compare
 from pandas._typing import DtypeObj, Label
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
 from pandas.errors import InvalidIndexError
+from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
 
 from pandas.core.dtypes import concat as _concat
 from pandas.core.dtypes.cast import (

@@ -8,6 +8,7 @@ import warnings
 import numpy as np
 
 from pandas._typing import FrameOrSeries
+from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -27,7 +28,6 @@ from pandas.core.groupby import ops
 from pandas.core.groupby.categorical import recode_for_groupby, recode_from_groupby
 from pandas.core.indexes.api import CategoricalIndex, Index, MultiIndex
 from pandas.core.series import Series
-from pandas.errors import InvalidIndexError
 
 from pandas.io.formats.printing import pprint_thing
 

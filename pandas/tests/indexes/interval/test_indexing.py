@@ -3,6 +3,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import InvalidIndexError
+
 from pandas import (
     CategoricalIndex,
     Interval,
@@ -12,7 +14,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.errors import InvalidIndexError
 
 
 class TestGetLoc:

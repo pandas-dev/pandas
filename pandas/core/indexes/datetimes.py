@@ -9,6 +9,7 @@ from pandas._libs import NaT, Period, Timestamp, index as libindex, lib, tslib
 from pandas._libs.tslibs import Resolution, fields, parsing, timezones, to_offset
 from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas._typing import DtypeObj, Label
+from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly, doc
 
 from pandas.core.dtypes.common import (
@@ -28,7 +29,6 @@ from pandas.core.indexes.base import Index, maybe_extract_name
 from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
 from pandas.core.indexes.extension import inherit_names
 from pandas.core.tools.times import to_time
-from pandas.errors import InvalidIndexError
 
 
 def _new_DatetimeIndex(cls, d):

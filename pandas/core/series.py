@@ -34,6 +34,7 @@ from pandas._typing import (
     ValueKeyFunc,
 )
 from pandas.compat.numpy import function as nv
+from pandas.errors import InvalidIndexError
 from pandas.util._decorators import Appender, Substitution, doc
 from pandas.util._validators import validate_bool_kwarg, validate_percentile
 
@@ -79,12 +80,7 @@ from pandas.core.construction import (
 from pandas.core.generic import NDFrame
 from pandas.core.indexers import unpack_1tuple
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
-from pandas.core.indexes.api import (
-    Float64Index,
-    Index,
-    MultiIndex,
-    ensure_index,
-)
+from pandas.core.indexes.api import Float64Index, Index, MultiIndex, ensure_index
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex
@@ -94,7 +90,6 @@ from pandas.core.internals import SingleBlockManager
 from pandas.core.sorting import ensure_key_mapped
 from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
-from pandas.errors import InvalidIndexError
 
 import pandas.io.formats.format as fmt
 import pandas.plotting

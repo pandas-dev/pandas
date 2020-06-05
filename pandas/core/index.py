@@ -1,5 +1,7 @@
 import warnings
 
+from pandas.errors import InvalidIndexError
+
 from pandas.core.indexes.api import (  # noqa:F401
     CategoricalIndex,
     DatetimeIndex,
@@ -20,7 +22,6 @@ from pandas.core.indexes.api import (  # noqa:F401
     get_objs_combined_axis,
 )
 from pandas.core.indexes.multi import _sparsify  # noqa:F401
-from pandas.errors import InvalidIndexError
 
 # GH#30193
 warnings.warn(
