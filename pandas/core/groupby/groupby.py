@@ -2715,8 +2715,9 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         Parameters
         ----------
         n : int, optional
-            Number of items to return. Cannot be used with `frac`.
-            Default = 1 if `frac` is None.
+            Number of items to return for each group. Cannot be used with
+            `frac` and must be no larger than the smallest group unless
+            `replace` is True. Default is one if `frac` is None.
         frac : float, optional
             Fraction of items to return. Cannot be used with `n`.
         replace : bool, default False
@@ -2726,6 +2727,8 @@ class GroupBy(_GroupBy[FrameOrSeries]):
             If passed a list-like then values must have the same length as
             the underlying DataFrame or Series object and will be used as
             sampling probabilities after normalization within each group.
+            Values must be non-negative with at least one positive element
+            within each group.
         random_state : int, array-like, BitGenerator, np.random.RandomState, optional
             If int, array-like, or BitGenerator (NumPy>=1.17), seed for
             random number generator
