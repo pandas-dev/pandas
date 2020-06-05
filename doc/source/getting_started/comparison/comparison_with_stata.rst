@@ -112,7 +112,7 @@ Reading external data
 
 Like Stata, pandas provides utilities for reading in data from
 many formats.  The ``tips`` data set, found within the pandas
-tests (`csv <https://raw.github.com/pandas-dev/pandas/master/pandas/tests/data/tips.csv>`_)
+tests (`csv <https://raw.github.com/pandas-dev/pandas/master/pandas/tests/io/data/csv/tips.csv>`_)
 will be used in many of the following examples.
 
 Stata provides ``import delimited`` to read csv data into a data set in memory.
@@ -128,7 +128,7 @@ the data set if presented with a url.
 .. ipython:: python
 
    url = ('https://raw.github.com/pandas-dev'
-          '/pandas/master/pandas/tests/data/tips.csv')
+          '/pandas/master/pandas/tests/io/data/csv/tips.csv')
    tips = pd.read_csv(url)
    tips.head()
 
