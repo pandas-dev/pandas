@@ -9120,60 +9120,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             errors=errors,
         )
 
-    def _tshift(
-        self: FrameOrSeries, periods: int = 1, freq="infer", axis: Axis = 0
-    ) -> FrameOrSeries:
-        """
-        Shift the time index, using the index's frequency if available.
-
-        Parameters
-        ----------
-        periods : int
-            Number of periods to move, can be positive or negative.
-        freq : DateOffset, timedelta, or str, default None
-            Increment to use from the tseries module
-            or time rule expressed as a string (e.g. 'EOM').
-        axis : {0 or ‘index’, 1 or ‘columns’, None}, default 0
-            Corresponds to the axis that contains the Index.
-
-        Returns
-        -------
-        shifted : Series/DataFrame
-        """
-        if periods == 0:
-            return self
-
-        index = self._get_axis(axis)
-        if freq == "infer":
-            freq = getattr(index, "freq", None)
-
-            if freq is None:
-                freq = getattr(index, "inferred_freq", None)
-
-            if freq is None:
-                msg = "Freq was not set in the index hence cannot be inferred"
-                raise ValueError(msg)
-
-        if isinstance(freq, str):
-            freq = to_offset(freq)
-
-        axis = self._get_axis_number(axis)
-        if isinstance(index, PeriodIndex):
-            orig_freq = to_offset(index.freq)
-            if freq != orig_freq:
-                assert orig_freq is not None  # for mypy
-                raise ValueError(
-                    f"Given freq {freq.rule_code} does not match "
-                    f"PeriodIndex freq {orig_freq.rule_code}"
-                )
-            new_ax = index.shift(periods)
-        else:
-            new_ax = index.shift(periods, freq)
-
-        result = self.copy()
-        result.set_axis(new_ax, axis, inplace=True)
-        return result.__finalize__(self, method="_tshift")
-
     @doc(klass=_shared_doc_kwargs["klass"])
     def shift(
         self: FrameOrSeries, periods=1, freq=None, axis=0, fill_value=None
@@ -9281,14 +9227,44 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if periods == 0:
             return self.copy()
 
-        block_axis = self._get_block_manager_axis(axis)
-        if freq is not None:
-            return self._tshift(periods, freq, axis)
+        if freq is None:
+            # when freq is None, data is shifted, index is not
+            block_axis = self._get_block_manager_axis(axis)
+            new_data = self._mgr.shift(
+                periods=periods, axis=block_axis, fill_value=fill_value
+            )
+            return self._constructor(new_data).__finalize__(self, method="shift")
 
-        new_data = self._mgr.shift(
-            periods=periods, axis=block_axis, fill_value=fill_value
-        )
-        return self._constructor(new_data).__finalize__(self, method="shift")
+        # when freq is given, index is shifted, data is not
+        index = self._get_axis(axis)
+
+        if freq == "infer":
+            freq = getattr(index, "freq", None)
+
+            if freq is None:
+                freq = getattr(index, "inferred_freq", None)
+
+            if freq is None:
+                msg = "Freq was not set in the index hence cannot be inferred"
+                raise ValueError(msg)
+
+        elif isinstance(freq, str):
+            freq = to_offset(freq)
+
+        if isinstance(index, PeriodIndex):
+            orig_freq = to_offset(index.freq)
+            if freq != orig_freq:
+                assert orig_freq is not None  # for mypy
+                raise ValueError(
+                    f"Given freq {freq.rule_code} does not match "
+                    f"PeriodIndex freq {orig_freq.rule_code}"
+                )
+            new_ax = index.shift(periods)
+        else:
+            new_ax = index.shift(periods, freq)
+
+        result = self.set_axis(new_ax, axis)
+        return result.__finalize__(self, method="shift")
 
     def slice_shift(self: FrameOrSeries, periods: int = 1, axis=0) -> FrameOrSeries:
         """
@@ -9368,7 +9344,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if freq is None:
             freq = "infer"
 
-        return self._tshift(periods, freq, axis)
+        return self.shift(periods, freq, axis)
 
     def truncate(
         self: FrameOrSeries, before=None, after=None, axis=None, copy: bool_t = True
