@@ -4513,7 +4513,7 @@ Keep all original rows and also all original values
 
     def isin(self, values) -> "Series":
         """
-        Whether elements in Series are contained in 'values'.
+        Whether elements in Series are contained in `values`.
 
         Return a boolean Series showing whether each element in the Series
         matches an element in the passed sequence of `values` exactly.
