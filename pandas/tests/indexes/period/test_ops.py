@@ -9,9 +9,9 @@ import pandas._testing as tm
 class TestPeriodIndexOps:
     @pytest.mark.parametrize("freq,expected",
         [
-            ("A", "day"),
-            ("Q", "day"),
-            ("M", "day"),
+            ("A", "year"),
+            ("Q", "quarter"),
+            ("M", "month"),
             ("D", "day"),
             ("H", "hour"),
             ("T", "minute"),

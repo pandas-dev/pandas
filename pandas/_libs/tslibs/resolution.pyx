@@ -11,7 +11,7 @@ from pandas._libs.tslibs.frequencies cimport attrname_to_abbrevs
 from pandas._libs.tslibs.frequencies import FreqGroup
 from pandas._libs.tslibs.timezones cimport (
     is_utc, is_tzlocal, maybe_get_tz, get_dst_info)
-from pandas._libs.tslibs.ccalendar cimport get_days_in_month
+from pandas._libs.tslibs.ccalendar cimport get_days_in_month, c_MONTH_NUMBERS
 from pandas._libs.tslibs.tzconversion cimport tz_convert_utc_to_tzlocal
 
 # ----------------------------------------------------------------------
@@ -210,7 +210,19 @@ class Resolution(Enum):
         >>> Resolution.get_reso_from_freq('H') == Resolution.RESO_HR
         True
         """
-        attr_name = _abbrev_to_attrnames[freq]
+        try:
+            attr_name = _abbrev_to_attrnames[freq]
+        except KeyError:
+            # For quarterly and yearly resolutions, we need to chop off
+            #  a month string.
+            split_freq = freq.split("-")
+            if len(split_freq) != 2:
+                raise
+            if split_freq[1] not in c_MONTH_NUMBERS:
+                # i.e. we want e.g. "Q-DEC", not "Q-INVALID"
+                raise
+            attr_name = _abbrev_to_attrnames[split_freq[0]]
+
         return cls.from_attrname(attr_name)
 
 
