@@ -2866,6 +2866,10 @@ class TestGenericArrayFormatter:
         expected = "0    [False  True]\n" + "1    [ True False]\n" + "dtype: DtypeStub"
         assert res == expected
 
+    def test_na_rep(self):
+        from pandas.io.formats.format import GenericArrayFormatter
+        assert GenericArrayFormatter(np.array([pd.NA,str(float('nan'))])).get_result() == [' '+str(pd.NA),'  '+str((float('nan')))]
+        assert GenericArrayFormatter(np.array([pd.NA,float('nan')]),na_rep='test').get_result() == [' test',' test']
 
 def _three_digit_exp():
     return f"{1.7e8:.4g}" == "1.7e+008"
