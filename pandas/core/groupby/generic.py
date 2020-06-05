@@ -57,6 +57,7 @@ from pandas.core.aggregation import (
     is_multi_agg_with_relabel,
     maybe_mangle_lambdas,
     normalize_keyword_aggregation,
+    validate_func_kwargs,
 )
 import pandas.core.algorithms as algorithms
 from pandas.core.base import DataError, SpecificationError
@@ -233,13 +234,9 @@ class SeriesGroupBy(GroupBy[Series]):
 
         relabeling = func is None
         columns = None
-        no_arg_message = "Must provide 'func' or named aggregation **kwargs."
         if relabeling:
-            columns = list(kwargs)
-            func = [kwargs[col] for col in columns]
+            columns, func = validate_func_kwargs(kwargs)
             kwargs = {}
-            if not columns:
-                raise TypeError(no_arg_message)
 
         if isinstance(func, str):
             return getattr(self, func)(*args, **kwargs)
@@ -482,6 +479,8 @@ class SeriesGroupBy(GroupBy[Series]):
             raise ValueError(msg)
         elif func in base.cythonized_kernels:
             # cythonized transform or canned "agg+broadcast"
+            return getattr(self, func)(*args, **kwargs)
+        elif func in base.transformation_kernels:
             return getattr(self, func)(*args, **kwargs)
 
         # If func is a reduction, we need to broadcast the
@@ -1463,6 +1462,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             raise ValueError(msg)
         elif func in base.cythonized_kernels:
             # cythonized transformation or canned "reduction+broadcast"
+            return getattr(self, func)(*args, **kwargs)
+        elif func in base.transformation_kernels:
             return getattr(self, func)(*args, **kwargs)
 
         # GH 30918
