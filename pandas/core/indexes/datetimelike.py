@@ -370,7 +370,11 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         raise NotImplementedError
 
     def _partial_date_slice(
-        self, reso: Resolution, parsed: datetime, use_lhs: bool = True, use_rhs: bool = True
+        self,
+        reso: Resolution,
+        parsed: datetime,
+        use_lhs: bool = True,
+        use_rhs: bool = True,
     ):
         """
         Parameters

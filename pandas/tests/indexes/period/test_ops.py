@@ -7,7 +7,8 @@ import pandas._testing as tm
 
 
 class TestPeriodIndexOps:
-    @pytest.mark.parametrize("freq,expected",
+    @pytest.mark.parametrize(
+        "freq,expected",
         [
             ("A", "year"),
             ("Q", "quarter"),
@@ -18,7 +19,7 @@ class TestPeriodIndexOps:
             ("S", "second"),
             ("L", "millisecond"),
             ("U", "microsecond"),
-        ]
+        ],
     )
     def test_resolution(self, freq, expected):
         idx = pd.period_range(start="2013-04-01", periods=30, freq=freq)
