@@ -43,6 +43,58 @@ def _put_str(s: Union[str, Dtype], space: int) -> str:
 
 
 class Info:
+    """
+    Print a concise summary of a %(klass)s.
+
+    This method prints information about a %(klass)s including
+    the index dtype%(type_sub)s, non-null values and memory usage.
+
+    Parameters
+    ----------
+    data : %(klass)s
+        %(klass)s to print information about.
+    verbose : bool, optional
+        Whether to print the full summary. By default, the setting in
+        ``pandas.options.display.max_info_columns`` is followed.
+    buf : writable buffer, defaults to sys.stdout
+        Where to send the output. By default, the output is printed to
+        sys.stdout. Pass a writable buffer if you need to further process
+        the output.
+    %(max_cols_sub)s
+    memory_usage : bool, str, optional
+        Specifies whether total memory usage of the %(klass)s
+        elements (including the index) should be displayed. By default,
+        this follows the ``pandas.options.display.memory_usage`` setting.
+
+        True always show memory usage. False never shows memory usage.
+        A value of 'deep' is equivalent to "True with deep introspection".
+        Memory usage is shown in human-readable units (base-2
+        representation). Without deep introspection a memory estimation is
+        made based in column dtype and number of rows assuming values
+        consume the same memory amount for corresponding dtypes. With deep
+        memory introspection, a real memory usage calculation is performed
+        at the cost of computational resources.
+    null_counts : bool, optional
+        Whether to show the non-null counts. By default, this is shown
+        only if the %(klass)s is smaller than
+        ``pandas.options.display.max_info_rows`` and
+        ``pandas.options.display.max_info_columns``. A value of True always
+        shows the counts, and False never shows the counts.
+
+    Returns
+    -------
+    None
+        This method prints a summary of a %(klass)s and returns None.
+
+    See Also
+    --------
+    %(see_also_sub)s
+
+    Examples
+    --------
+    %(examples_sub)s
+    """
+
     def __init__(
         self,
         data: FrameOrSeries,
@@ -65,59 +117,6 @@ class Info:
         self.null_counts = null_counts
 
     def get_info(self) -> None:
-        """
-        Print a concise summary of a %(klass)s.
-
-        This method prints information about a %(klass)s including
-        the index dtype%(type_sub)s, non-null values and memory usage.
-
-        Parameters
-        ----------
-        data : %(klass)s
-            %(klass)s to print information about.
-        verbose : bool, optional
-            Whether to print the full summary. By default, the setting in
-            ``pandas.options.display.max_info_columns`` is followed.
-        buf : writable buffer, defaults to sys.stdout
-            Where to send the output. By default, the output is printed to
-            sys.stdout. Pass a writable buffer if you need to further process
-            the output.
-        %(max_cols_sub)s
-        memory_usage : bool, str, optional
-            Specifies whether total memory usage of the %(klass)s
-            elements (including the index) should be displayed. By default,
-            this follows the ``pandas.options.display.memory_usage`` setting.
-
-            True always show memory usage. False never shows memory usage.
-            A value of 'deep' is equivalent to "True with deep introspection".
-            Memory usage is shown in human-readable units (base-2
-            representation). Without deep introspection a memory estimation is
-            made based in column dtype and number of rows assuming values
-            consume the same memory amount for corresponding dtypes. With deep
-            memory introspection, a real memory usage calculation is performed
-            at the cost of computational resources.
-        null_counts : bool, optional
-            Whether to show the non-null counts. By default, this is shown
-            only if the %(klass)s is smaller than
-            ``pandas.options.display.max_info_rows`` and
-            ``pandas.options.display.max_info_columns``. A value of True always
-            shows the counts, and False never shows the counts.
-
-        Returns
-        -------
-        None
-            This method prints a summary of a %(klass)s and returns None.
-
-        See Also
-        --------
-        %(see_also_sub)s
-
-        Examples
-        --------
-        %(examples_sub)s
-        """
-        # move this to init
-
         lines = []
 
         lines.append(str(type(self.data)))
@@ -162,11 +161,11 @@ class Info:
             if isinstance(self.data, ABCDataFrame):
                 lines.append(f"Data columns (total {col_count} columns):")
                 len_column = len(pprint_thing(column_head))
-                space = max(max_col, len_column) + col_space
-                header += _put_str(column_head, space)
+                header += _put_str(
+                    column_head, self.space(max_col, len_column, col_space)
+                )
             else:
                 lines.append(f"Series name: {self.data.name}")
-                space = 0
 
             if show_counts:
                 counts = self._get_counts()
@@ -197,7 +196,7 @@ class Info:
             lines.append(header)
             lines.append(
                 _put_str("-" * len_id, space_num)
-                + _put_str("-" * len_column, space)
+                + _put_str("-" * len_column, self.space(max_col, len_column, col_space))
                 + _put_str("-" * len_count, space_count)
                 + _put_str("-" * len_dtype, space_dtype)
             )
@@ -213,7 +212,7 @@ class Info:
 
                 lines.append(
                     line_no
-                    + _put_str(col, space)
+                    + _put_str(col, self.space(max_col, len_column, col_space))
                     + _put_str(count_temp.format(count=count), space_count)
                     + _put_str(dtype, space_dtype)
                 )
@@ -268,6 +267,9 @@ class Info:
         raise NotImplementedError
 
     def _get_counts(self) -> "Series":
+        raise NotImplementedError
+
+    def space(self, max_col, len_column, col_space):
         raise NotImplementedError
 
 
@@ -326,6 +328,9 @@ class DataFrameInfo(Info):
         """
         return self.data.columns, self.data.dtypes
 
+    def space(self, max_col, len_column, col_space):
+        return max(max_col, len_column) + col_space
+
 
 class SeriesInfo(Info):
     def _get_mem_usage(self, deep: bool) -> int:
@@ -381,3 +386,6 @@ class SeriesInfo(Info):
             Dtype of each of the DataFrame's columns or the Series' dtype.
         """
         return Index([self.data.name]), self.data._constructor(self.data.dtypes)
+
+    def space(self, max_col, len_column, col_space):
+        return 0
