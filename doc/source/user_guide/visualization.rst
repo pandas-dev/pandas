@@ -821,7 +821,7 @@ You can create a scatter plot matrix using the
    df = pd.DataFrame(np.random.randn(1000, 4), columns=['a', 'b', 'c', 'd'])
 
    @savefig scatter_matrix_kde.png
-   scatter_matrix(df, alpha=0.2, figsize=(6, 6), diagonal='kde')
+   scatter_matrix(df, alpha=0.2, figsize=(6, 6), diagonal='kde');
 
 .. ipython:: python
    :suppress:
@@ -865,7 +865,7 @@ for more information. By coloring these curves differently for each class
 it is possible to visualize data clustering. Curves belonging to samples
 of the same class will usually be closer together and form larger structures.
 
-**Note**: The "Iris" dataset is available `here <https://raw.github.com/pandas-dev/pandas/master/pandas/tests/data/iris.csv>`__.
+**Note**: The "Iris" dataset is available `here <https://raw.github.com/pandas-dev/pandas/master/pandas/tests/io/data/csv/iris.csv>`__.
 
 .. ipython:: python
 
@@ -1025,7 +1025,7 @@ be colored differently.
 See the R package `Radviz <https://cran.r-project.org/package=Radviz/>`__
 for more information.
 
-**Note**: The "Iris" dataset is available `here <https://raw.github.com/pandas-dev/pandas/master/pandas/tests/data/iris.csv>`__.
+**Note**: The "Iris" dataset is available `here <https://raw.github.com/pandas-dev/pandas/master/pandas/tests/io/data/csv/iris.csv>`__.
 
 .. ipython:: python
 
@@ -1683,4 +1683,4 @@ to generate the plots. Some libraries implementing a backend for pandas are list
 on the ecosystem :ref:`ecosystem.visualization` page.
 
 Developers guide can be found at
-https://dev.pandas.io/docs/development/extending.html#plotting-backends
+https://pandas.pydata.org/docs/dev/development/extending.html#plotting-backends
