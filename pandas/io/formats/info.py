@@ -143,84 +143,6 @@ class Info:
             show_counts = self.null_counts
         exceeds_info_cols = col_count > max_cols
 
-        def _verbose_repr():
-
-            id_head = " # "
-            column_head = "Column"
-            col_space = 2
-
-            max_col = max(len(pprint_thing(k)) for k in ids)
-            len_column = len(pprint_thing(column_head))
-
-            max_id = len(pprint_thing(col_count))
-            len_id = len(pprint_thing(id_head))
-            space_num = max(max_id, len_id) + col_space
-
-            header = _put_str(id_head, space_num)
-
-            if isinstance(self.data, ABCDataFrame):
-                lines.append(f"Data columns (total {col_count} columns):")
-                len_column = len(pprint_thing(column_head))
-                header += _put_str(
-                    column_head, self.space(max_col, len_column, col_space)
-                )
-            else:
-                lines.append(f"Series name: {self.data.name}")
-
-            if show_counts:
-                counts = self._get_counts()
-                if col_count != len(counts):  # pragma: no cover
-                    raise AssertionError(
-                        f"Columns must equal counts ({col_count} != {len(counts)})"
-                    )
-                count_header = "Non-Null Count"
-                len_count = len(count_header)
-                non_null = " non-null"
-                max_count = max(len(pprint_thing(k)) for k in counts) + len(non_null)
-                space_count = max(len_count, max_count) + col_space
-                count_temp = "{count}" + non_null
-            else:
-                count_header = ""
-                space_count = len(count_header)
-                len_count = space_count
-                count_temp = "{count}"
-
-            dtype_header = "Dtype"
-            len_dtype = len(dtype_header)
-            max_dtypes = max(len(pprint_thing(k)) for k in dtypes)
-            space_dtype = max(len_dtype, max_dtypes)
-            header += _put_str(count_header, space_count) + _put_str(
-                dtype_header, space_dtype
-            )
-
-            lines.append(header)
-            lines.append(
-                _put_str("-" * len_id, space_num)
-                + _put_str("-" * len_column, self.space(max_col, len_column, col_space))
-                + _put_str("-" * len_count, space_count)
-                + _put_str("-" * len_dtype, space_dtype)
-            )
-
-            for i, col in enumerate(ids):
-                dtype = dtypes[i]
-                col = pprint_thing(col)
-
-                line_no = _put_str(f" {i}", space_num)
-                count = ""
-                if show_counts:
-                    count = counts[i]
-
-                lines.append(
-                    line_no
-                    + _put_str(col, self.space(max_col, len_column, col_space))
-                    + _put_str(count_temp.format(count=count), space_count)
-                    + _put_str(dtype, space_dtype)
-                )
-
-        def _non_verbose_repr():
-            if isinstance(self.data, ABCDataFrame):
-                lines.append(ids._summary(name="Columns"))
-
         def _sizeof_fmt(num, size_qualifier):
             # returns size in human readable format
             for x in ["bytes", "KB", "MB", "GB", "TB"]:
@@ -230,14 +152,14 @@ class Info:
             return f"{num:3.1f}{size_qualifier} PB"
 
         if self.verbose:
-            _verbose_repr()
+            self._verbose_repr(lines, ids, dtypes, show_counts)
         elif self.verbose is False:  # specifically set to False, not necessarily None
-            _non_verbose_repr()
+            self._non_verbose_repr(lines, ids)
         else:
             if exceeds_info_cols:
-                _non_verbose_repr()
+                self._non_verbose_repr(lines, ids)
             else:
-                _verbose_repr()
+                self._verbose_repr(lines, ids, dtypes, show_counts)
 
         # groupby dtype.name to collect e.g. Categorical columns
         counts = dtypes.value_counts().groupby(lambda x: x.name).sum()
@@ -270,6 +192,12 @@ class Info:
         raise NotImplementedError
 
     def space(self, max_col, len_column, col_space):
+        raise NotImplementedError
+
+    def _verbose_repr(self, lines, ids, dtypes, show_counts):
+        raise NotImplementedError
+
+    def _non_verbose_repr(self, lines, ids):
         raise NotImplementedError
 
 
@@ -331,6 +259,82 @@ class DataFrameInfo(Info):
     def space(self, max_col, len_column, col_space):
         return max(max_col, len_column) + col_space
 
+    def _verbose_repr(self, lines, ids, dtypes, show_counts):
+
+        id_head = " # "
+        column_head = "Column"
+        col_space = 2
+        col_count = len(ids)
+
+        max_col = max(len(pprint_thing(k)) for k in ids)
+        len_column = len(pprint_thing(column_head))
+
+        max_id = len(pprint_thing(col_count))
+        len_id = len(pprint_thing(id_head))
+        space_num = max(max_id, len_id) + col_space
+
+        header = _put_str(id_head, space_num)
+
+        if isinstance(self.data, ABCDataFrame):
+            lines.append(f"Data columns (total {col_count} columns):")
+            len_column = len(pprint_thing(column_head))
+            header += _put_str(column_head, self.space(max_col, len_column, col_space))
+        else:
+            lines.append(f"Series name: {self.data.name}")
+
+        if show_counts:
+            counts = self._get_counts()
+            if col_count != len(counts):  # pragma: no cover
+                raise AssertionError(
+                    f"Columns must equal counts ({col_count} != {len(counts)})"
+                )
+            count_header = "Non-Null Count"
+            len_count = len(count_header)
+            non_null = " non-null"
+            max_count = max(len(pprint_thing(k)) for k in counts) + len(non_null)
+            space_count = max(len_count, max_count) + col_space
+            count_temp = "{count}" + non_null
+        else:
+            count_header = ""
+            space_count = len(count_header)
+            len_count = space_count
+            count_temp = "{count}"
+
+        dtype_header = "Dtype"
+        len_dtype = len(dtype_header)
+        max_dtypes = max(len(pprint_thing(k)) for k in dtypes)
+        space_dtype = max(len_dtype, max_dtypes)
+        header += _put_str(count_header, space_count) + _put_str(
+            dtype_header, space_dtype
+        )
+
+        lines.append(header)
+        lines.append(
+            _put_str("-" * len_id, space_num)
+            + _put_str("-" * len_column, self.space(max_col, len_column, col_space))
+            + _put_str("-" * len_count, space_count)
+            + _put_str("-" * len_dtype, space_dtype)
+        )
+
+        for i, col in enumerate(ids):
+            dtype = dtypes[i]
+            col = pprint_thing(col)
+
+            line_no = _put_str(f" {i}", space_num)
+            count = ""
+            if show_counts:
+                count = counts[i]
+
+            lines.append(
+                line_no
+                + _put_str(col, self.space(max_col, len_column, col_space))
+                + _put_str(count_temp.format(count=count), space_count)
+                + _put_str(dtype, space_dtype)
+            )
+
+    def _non_verbose_repr(self, lines, ids):
+        lines.append(ids._summary(name="Columns"))
+
 
 class SeriesInfo(Info):
     def _get_mem_usage(self, deep: bool) -> int:
@@ -389,3 +393,65 @@ class SeriesInfo(Info):
 
     def space(self, max_col, len_column, col_space):
         return 0
+
+    def _verbose_repr(self, lines, ids, dtypes, show_counts):
+
+        id_head = " # "
+        col_count = len(ids)
+        col_space = 2
+
+        len_id = len(pprint_thing(id_head))
+        space_num = 3 + col_space
+
+        header = _put_str(id_head, space_num)
+
+        lines.append(f"Series name: {self.data.name}")
+
+        if show_counts:
+            counts = self._get_counts()
+            if col_count != len(counts):  # pragma: no cover
+                raise AssertionError(
+                    f"Columns must equal counts ({col_count} != {len(counts)})"
+                )
+            count_header = "Non-Null Count"
+            len_count = len(count_header)
+            non_null = " non-null"
+            max_count = max(len(pprint_thing(k)) for k in counts) + len(non_null)
+            space_count = max(len_count, max_count) + col_space
+            count_temp = "{count}" + non_null
+        else:
+            count_header = ""
+            space_count = len(count_header)
+            len_count = space_count
+            count_temp = "{count}"
+
+        dtype_header = "Dtype"
+        len_dtype = len(dtype_header)
+        max_dtypes = max(len(pprint_thing(k)) for k in dtypes)
+        space_dtype = max(len_dtype, max_dtypes)
+        header += _put_str(count_header, space_count) + _put_str(
+            dtype_header, space_dtype
+        )
+
+        lines.append(header)
+        lines.append(
+            _put_str("-" * len_id, space_num)
+            + _put_str("-" * len_count, space_count)
+            + _put_str("-" * len_dtype, space_dtype)
+        )
+
+        dtype = self.data.dtype
+
+        line_no = _put_str(f" {0}", space_num)
+        count = ""
+        if show_counts:
+            count = self.data.count()
+
+        lines.append(
+            line_no
+            + _put_str(count_temp.format(count=count), space_count)
+            + _put_str(dtype, space_dtype)
+        )
+
+    def _non_verbose_repr(self, lines, ids):
+        pass
