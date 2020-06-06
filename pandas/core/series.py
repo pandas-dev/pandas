@@ -4435,7 +4435,9 @@ Keep all original rows and also all original values
         )
 
     @Appender(generic._shared_docs["pop"] % _shared_doc_kwargs)
-    def pop(self, item,) -> Optional["Series"]:
+    def pop(
+        self, item,
+    ):
         return super().pop(item=item,)
 
     @doc(NDFrame.replace, **_shared_doc_kwargs)
