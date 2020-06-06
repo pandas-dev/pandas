@@ -88,7 +88,7 @@ from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
 
 import pandas.io.formats.format as fmt
-from pandas.io.formats.info import info
+from pandas.io.formats.info import Info, SeriesInfo
 import pandas.plotting
 
 if TYPE_CHECKING:
@@ -4405,7 +4405,7 @@ Name: Max Speed, dtype: float64
             Series.memory_usage: Memory usage of Series."""
         ),
     )
-    @doc(info)
+    @doc(Info)
     def info(
         self,
         verbose: Optional[bool] = None,
@@ -4419,7 +4419,9 @@ Name: Max Speed, dtype: float64
                 "Argument `max_cols` can only be passed "
                 "in DataFrame.info, not Series.info"
             )
-        return info(self, verbose, buf, None, memory_usage, null_counts)
+        return SeriesInfo(
+            self, verbose, buf, max_cols, memory_usage, null_counts
+        ).get_info()
 
     @doc(NDFrame.shift, **_shared_doc_kwargs)
     def shift(self, periods=1, freq=None, axis=0, fill_value=None) -> "Series":
