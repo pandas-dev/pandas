@@ -8,6 +8,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import DataFrame, Series, isna
 import pandas._testing as tm
+import math
 
 
 class TestDataFrameCov:
@@ -59,8 +60,8 @@ class TestDataFrameCov:
         tm.assert_frame_equal(result, expected)
 
     def test_cov_ddof(self):
-        np_array1 = np.random.rand(1, 10)[0]
-        np_array2 = np.random.rand(1, 10)[0]
+        np_array1 = np.random.rand(10)
+        np_array2 = np.random.rand(10)
 
         s1 = Series(np_array1)
         s2 = Series(np_array2)
@@ -69,10 +70,10 @@ class TestDataFrameCov:
 
         result = s1.cov(s2, ddof=rand_ddof)
         expected = np.cov(np_array1, np_array2, ddof=rand_ddof)[0][1]
-        assert expected == result
+        assert math.isclose(expected, result)
 
-        df1 = DataFrame({0: np_array1, 1: np_array2})
-        result = df1.cov(ddof=rand_ddof)
+        df = DataFrame({0: np_array1, 1: np_array2})
+        result = df.cov(ddof=rand_ddof)
         expected_np = np.cov(np_array1, np_array2, ddof=rand_ddof)
         expected = DataFrame(expected_np)
         tm.assert_frame_equal(result, expected)
