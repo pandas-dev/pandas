@@ -3562,7 +3562,7 @@ _lite_rule_alias = {
 
     "Min": "T",
     "min": "T",
-    "ms": "L",
+    "ms": "U",
     "us": "U",
     "ns": "N",
 }

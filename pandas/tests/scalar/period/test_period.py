@@ -632,27 +632,24 @@ class TestPeriodMethods:
         result = p.to_timestamp("5S", how="start")
         assert result == expected
 
-    def test_to_timestamp_round(self):
+    @pytest.mark.parametrize("day_str", ["2020-12-31", "2019-01-01", "1970-01-01"])
+    @pytest.mark.parametrize(
+        "hour, expected",
+        [
+            ("23:59:59.999", 999000),
+            ("23:59:59.999999", 999999),
+            ("23:59:59.000999", 999),
+            ("23:59:59.004999", 4999),
+            ("23:59:59.005", 5000),
+            ("23:59:59.005001", 5001),
+            ("23:59:59.000001", 1),
+            ("23:59:59", 0),
+        ],
+    )
+    @pytest.mark.parametrize("freq", [None, "ms", "ns"])
+    def test_to_timestamp_microsecond(self, day_str, hour, expected, freq):
         # GH 24444
-        result = Period("2020-12-31 23:59:59.9995").to_timestamp().round("1 ms")
-        expected = Period("2021-01-01 00:00:00.000").to_timestamp()
-        assert result == expected
-        result = Period("2020-12-31 23:59:59.999499").to_timestamp().round("1 ms")
-        expected = Period("2020-12-31 23:59:59.999").to_timestamp()
-        assert result == expected
-
-        result = Period("2020-12-31 23:59:59.500").to_timestamp().round("1 s")
-        expected = Period("2021-01-01 00:00:00").to_timestamp()
-        assert result == expected
-        result = Period("2020-12-31 23:59:59.499999").to_timestamp().round("1 s")
-        expected = Period("2020-12-31 23:59:59").to_timestamp()
-        assert result == expected
-
-        result = Period("2020-12-31 23:59:30").to_timestamp().round("1 min")
-        expected = Period("2021-01-01 00:00").to_timestamp()
-        assert result == expected
-        result = Period("2020-12-31 23:59:29.999999").to_timestamp().round("1 min")
-        expected = Period("2020-12-31 23:59").to_timestamp()
+        result = Period(day_str + " " + hour).to_timestamp(freq=freq).microsecond
         assert result == expected
 
     # --------------------------------------------------------------
