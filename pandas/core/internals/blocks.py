@@ -1110,7 +1110,7 @@ class Block(PandasObject):
                 downcast=downcast,
             )
         # validate the interp method
-        m = missing.clean_interp_method(method, **kwargs)
+        m = missing.clean_interp_method(method, index, **kwargs)
 
         r = check_int_bool(self, inplace)
         if r is not None:
@@ -1193,11 +1193,6 @@ class Block(PandasObject):
         if fill_value is None:
             fill_value = self.fill_value
 
-        if method in ("krogh", "piecewise_polynomial", "pchip"):
-            if not index.is_monotonic:
-                raise ValueError(
-                    f"{method} interpolation requires that the index be monotonic."
-                )
         # process 1-d slices in the axis direction
 
         def func(x):

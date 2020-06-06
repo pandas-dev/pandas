@@ -40,19 +40,23 @@ from pandas.util._validators import validate_bool_kwarg, validate_percentile
 from pandas.core.dtypes.cast import (
     convert_dtypes,
     maybe_cast_to_extension_array,
+    maybe_downcast_to_dtype,
     validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_bool,
     is_categorical_dtype,
+    is_datetime64_any_dtype,
     is_dict_like,
     is_extension_array_dtype,
     is_integer,
     is_iterator,
     is_list_like,
+    is_numeric_dtype,
     is_object_dtype,
     is_scalar,
+    is_timedelta64_dtype,
 )
 from pandas.core.dtypes.generic import ABCDataFrame
 from pandas.core.dtypes.inference import is_hashable
@@ -92,6 +96,7 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexing import check_bool_indexer
 from pandas.core.internals import SingleBlockManager
+import pandas.core.missing as missing
 from pandas.core.sorting import ensure_key_mapped
 from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
@@ -2221,6 +2226,91 @@ Name: Max Speed, dtype: float64
         else:
             # scalar
             return result.iloc[0]
+
+    def interpolate(
+        self,
+        method="linear",
+        axis=0,
+        limit=None,
+        inplace=False,
+        limit_direction="forward",
+        limit_area=None,
+        downcast=None,
+        **kwargs,
+    ):
+        """
+        Interpolate values according to different methods.
+        """
+        inplace = validate_bool_kwarg(inplace, "inplace")
+
+        axis = self._get_axis_number(axis)
+
+        if isinstance(self.index, MultiIndex) and method != "linear":
+            raise ValueError(
+                "Only `method=linear` interpolation is supported on MultiIndexes."
+            )
+
+        # for the methods backfill, bfill, pad, ffill limit_direction and limit_area
+        # are being ignored, see gh-26796 for more information
+        if method in ["backfill", "bfill", "pad", "ffill"]:
+            return self.fillna(
+                method=method,
+                axis=axis,
+                inplace=inplace,
+                limit=limit,
+                downcast=downcast,
+            )
+
+        # TODO: get x values from index could be helper function or shared with
+        #  DataFrame ()
+        index = self.index
+        if method == "linear":
+            # prior default
+            index = np.arange(len(index))
+        else:
+            methods = {"index", "values", "nearest", "time"}
+            is_numeric_or_datetime = (
+                is_numeric_dtype(index.dtype)
+                or is_datetime64_any_dtype(index.dtype)
+                or is_timedelta64_dtype(index.dtype)
+            )
+            if method not in methods and not is_numeric_or_datetime:
+                raise ValueError(
+                    "Index column must be numeric or datetime type when "
+                    f"using {method} method other than linear. "
+                    "Try setting a numeric or datetime index column before "
+                    "interpolating."
+                )
+
+        if isna(index).any():
+            raise NotImplementedError(
+                "Interpolation with NaNs in the index "
+                "has not been implemented. Try filling "
+                "those NaNs before interpolating."
+            )
+
+        method = missing.clean_interp_method(method, index, **kwargs)
+
+        arr = missing.interpolate_1d(
+            xvalues=index,
+            yvalues=self.values,
+            method=method,
+            limit=limit,
+            limit_direction=limit_direction,
+            limit_area=limit_area,
+            bounds_error=False,
+            **kwargs,
+        )
+
+        if downcast is not None:
+            arr = maybe_downcast_to_dtype(arr, dtype=downcast)
+
+        result = self._constructor(arr, index=self.index)
+
+        if inplace:
+            return self._update_inplace(result)
+        else:
+            return result.__finalize__(self, method="interpolate")
 
     def corr(self, other, method="pearson", min_periods=None) -> float:
         """

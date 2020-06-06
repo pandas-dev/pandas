@@ -92,7 +92,7 @@ def clean_fill_method(method, allow_nearest=False):
     return method
 
 
-def clean_interp_method(method, **kwargs):
+def clean_interp_method(method, index, **kwargs):
     order = kwargs.get("order")
     valid = [
         "linear",
@@ -118,6 +118,11 @@ def clean_interp_method(method, **kwargs):
         raise ValueError("You must specify the order of the spline or polynomial.")
     if method not in valid:
         raise ValueError(f"method must be one of {valid}. Got '{method}' instead.")
+    if method in ("krogh", "piecewise_polynomial", "pchip"):
+        if not index.is_monotonic:
+            raise ValueError(
+                f"{method} interpolation requires that the index be monotonic."
+            )
 
     return method
 
