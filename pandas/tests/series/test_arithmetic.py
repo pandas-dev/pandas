@@ -1,6 +1,5 @@
 from datetime import timedelta
 import operator
-import warnings
 
 import numpy as np
 import pytest
@@ -679,10 +678,11 @@ class TestTimeSeriesArithmetic:
         with pytest.raises(Exception, match=msg):
             ser_utc + ser
 
+    @pytest.mark.filterwarnings(
+        "ignore:Adding/subtracting object-dtype array to DatetimeArray"
+    )
     def test_series_add_daytime_offset(self):
         # GH#19211
-        # Ignore PerformanceWarning for this test case
-        warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
         ser_daytime = pd.Series(
             [
                 pd.Timestamp("2000-01-01"),
@@ -712,10 +712,11 @@ class TestTimeSeriesArithmetic:
         tm.assert_series_equal(result1, expected)
         tm.assert_series_equal(result2, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:Adding/subtracting object-dtype array to DatetimeArray"
+    )
     def test_series_add_daytime_offset_index(self):
         # GH#19211
-        # Ignore PerformanceWarning for this test case
-        warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
         ser_daytime = pd.Series(
             [
                 pd.Timestamp("2000-01-01"),
@@ -744,10 +745,11 @@ class TestTimeSeriesArithmetic:
         tm.assert_series_equal(result1, expected)
         tm.assert_series_equal(result2, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:Adding/subtracting object-dtype array to DatetimeArray"
+    )
     def test_series_add_daytime_index_offset(self):
         # GH#19211
-        # Ignore PerformanceWarning for this test case
-        warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
         ser_daytime = pd.Series(
             [
                 pd.Timestamp("2000-01-01"),
@@ -776,10 +778,11 @@ class TestTimeSeriesArithmetic:
         tm.assert_series_equal(result1, expected)
         tm.assert_series_equal(result2, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:Adding/subtracting object-dtype array to DatetimeArray"
+    )
     def test_series_sub_daytime_offset(self):
         # GH#19211
-        # Ignore PerformanceWarning for this test case
-        warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
         ser_daytime = pd.Series(
             [
                 pd.Timestamp("2000-01-01"),
@@ -806,10 +809,11 @@ class TestTimeSeriesArithmetic:
         )
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:Adding/subtracting object-dtype array to DatetimeArray"
+    )
     def test_series_sub_daytime_offset_index(self):
         # GH#19211
-        # Ignore PerformanceWarning for this test case
-        warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
         ser_daytime = pd.Series(
             [
                 pd.Timestamp("2000-01-01"),
@@ -836,10 +840,11 @@ class TestTimeSeriesArithmetic:
         )
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:Adding/subtracting object-dtype array to DatetimeArray"
+    )
     def test_series_sub_daytime_index_offset(self):
         # GH#19211
-        # Ignore PerformanceWarning for this test case
-        warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
         ser_daytime = pd.Series(
             [
                 pd.Timestamp("2000-01-01"),
