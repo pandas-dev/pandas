@@ -932,8 +932,8 @@ class Window(_Window):
     different window types see `scipy.signal window functions
     <https://docs.scipy.org/doc/scipy/reference/signal.html#window-functions>`__.
     
-    Certain window types require a scale parameter to be passed. Please see 
-    the third example below on how to add the additional parameters.
+    Certain window types require a scale parameter to be passed. Please see the third example below 
+    on how to add the additional parameters.
 
     Examples
     --------
