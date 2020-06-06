@@ -4701,7 +4701,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
         if self.inferred_type == "date" and isinstance(other, ABCDatetimeIndex):
-            return type(other)(self), other
+            try:
+                return type(other)(self), other
+            except OutOfBoundsDatetime:
+                return self, other
         elif self.inferred_type == "timedelta" and isinstance(other, ABCTimedeltaIndex):
             # TODO: we dont have tests that get here
             return type(other)(self), other

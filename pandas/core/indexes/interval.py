@@ -7,8 +7,9 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import Timedelta, Timestamp, lib
+from pandas._libs import lib
 from pandas._libs.interval import Interval, IntervalMixin, IntervalTree
+from pandas._libs.tslibs import Timedelta, Timestamp, to_offset
 from pandas._typing import AnyArrayLike, Label
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 from pandas.util._exceptions import rewrite_exception
@@ -55,7 +56,6 @@ from pandas.core.indexes.multi import MultiIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 from pandas.core.ops import get_op_result_name
 
-from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import DateOffset
 
 _VALID_CLOSED = {"left", "right", "both", "neither"}
