@@ -595,6 +595,7 @@ class TestSeriesComparison:
         s4 = pd.Series([2, 2, 2, 2], index=list("ABCD"), name="x")
 
         for left, right in [(s1, s2), (s2, s1), (s3, s4), (s4, s3)]:
+
             msg = "Can only compare identically-labeled Series objects"
             with pytest.raises(ValueError, match=msg):
                 left == right
