@@ -565,7 +565,7 @@ class TestUltraJSONTests:
         big_num = sys.maxsize + 1
         encoding = ujson.dumps(big_num)
 
-        assert encoding == json.dumps(big_num)
+        assert str(encoding) == json.dumps(big_num)
         # ujson.loads to be fixed in the future
         # assert ujson.loads(encoding) == big_num
 
