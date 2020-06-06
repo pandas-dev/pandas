@@ -20,7 +20,6 @@ from pandas._libs.tslibs.ccalendar cimport DAY_NANOS, HOUR_NANOS
 from pandas._libs.tslibs.nattype cimport NPY_NAT
 from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, dt64_to_dtstruct)
-from pandas._libs.tslibs.timedeltas cimport delta_to_nanoseconds
 from pandas._libs.tslibs.timezones cimport (
     get_dst_info, is_tzlocal, is_utc, get_timezone, get_utcoffset)
 
@@ -123,6 +122,7 @@ timedelta-like}
     elif nonexistent == 'shift_backward':
         shift_backward = True
     elif PyDelta_Check(nonexistent):
+        from .timedeltas import delta_to_nanoseconds
         shift_delta = delta_to_nanoseconds(nonexistent)
     elif nonexistent not in ('raise', None):
         msg = ("nonexistent must be one of {'NaT', 'raise', 'shift_forward', "
