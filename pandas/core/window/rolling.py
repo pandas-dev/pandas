@@ -922,11 +922,11 @@ class Window(_Window):
     * ``blackmanharris``
     * ``nuttall``
     * ``barthann``
-    * ``kaiser`` (needs beta)
-    * ``gaussian`` (needs std)
-    * ``general_gaussian`` (needs power, width)
-    * ``slepian`` (needs width)
-    * ``exponential`` (needs tau), center is set to None.
+    * ``kaiser`` (needs beta in operation argument)
+    * ``gaussian`` (needs std in operation argument)
+    * ``general_gaussian`` (needs power, width in operation argument)
+    * ``slepian`` (needs width in operation argument)
+    * ``exponential`` (needs tau in operation argument), center is set to None.
 
     If ``win_type=None`` all points are evenly weighted. To learn more about
     different window types see `scipy.signal window functions
