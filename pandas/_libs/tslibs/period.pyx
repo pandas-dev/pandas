@@ -805,19 +805,6 @@ cdef NPY_DATETIMEUNIT get_unit(int freq) nogil:
     Convert the freq to the corresponding NPY_DATETIMEUNIT to pass
     to npy_datetimestruct_to_datetime.
     """
-    # nogil-friendly equivalent to:
-    # unit = {
-    #    FR_MTH: NPY_DATETIMEUNIT.NPY_FR_M,
-    #    FR_DAY: NPY_DATETIMEUNIT.NPY_FR_D,
-    #    FR_HR: NPY_DATETIMEUNIT.NPY_FR_h,
-    #    FR_MIN: NPY_DATETIMEUNIT.NPY_FR_m,
-    #    FR_SEC: NPY_DATETIMEUNIT.NPY_FR_s,
-    #    FR_MS: NPY_DATETIMEUNIT.NPY_FR_ms,
-    #    FR_US: NPY_DATETIMEUNIT.NPY_FR_us,
-    #    FR_NS: NPY_DATETIMEUNIT.NPY_FR_ns,
-    #    FR_UND: NPY_DATETIMEUNIT.NPY_FR_D,  # Default to Day
-    # }[freq]
-    # return unit
     if freq == FR_MTH:
         return NPY_DATETIMEUNIT.NPY_FR_M
     if freq == FR_DAY:
