@@ -58,6 +58,25 @@ class TestDataFrameCov:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_cov_ddof(self):
+        np_array1 = np.random.rand(1, 10)[0]
+        np_array2 = np.random.rand(1, 10)[0]
+
+        s1 = Series(np_array1)
+        s2 = Series(np_array2)
+        np.random.seed(1)
+        rand_ddof = np.random.randint(0, 10, 1)[0]
+
+        result = s1.cov(s2, ddof=rand_ddof)
+        expected = np.cov(np_array1, np_array2, ddof=rand_ddof)[0][1]
+        assert expected == result
+
+        df1 = DataFrame({0: np_array1, 1: np_array2})
+        result = df1.cov(ddof=rand_ddof)
+        expected_np = np.cov(np_array1, np_array2, ddof=rand_ddof)
+        expected = DataFrame(expected_np)
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize(
         "other_column", [pd.array([1, 2, 3]), np.array([1.0, 2.0, 3.0])]
     )
