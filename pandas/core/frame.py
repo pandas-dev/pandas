@@ -72,7 +72,6 @@ from pandas.util._validators import (
     validate_percentile,
 )
 
-from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
     cast_scalar_to_array,
     coerce_to_dtypes,
@@ -8498,8 +8497,6 @@ NaN 12.3   33.0
         skipna, **kwds : keywords to pass to the `op` function
 
         """
-        # column_wise = kwds.pop("column_wise", False)
-        kwds.pop("column_wise", False)
 
         assert filter_type is None or filter_type == "bool", filter_type
 
@@ -8531,10 +8528,7 @@ NaN 12.3   33.0
             constructor = self._constructor
 
         def f(x):
-            if isinstance(x.dtype, ExtensionDtype):
-                return x._values._reduce(name, skipna=skipna, **kwds)
-            else:
-                return op(x, axis=axis, skipna=skipna, **kwds)
+            return op(x, axis=axis, skipna=skipna, **kwds)
 
         def _get_data(axis_matters):
             if filter_type is None:
@@ -8578,15 +8572,12 @@ NaN 12.3   33.0
             #  simple case where we can use BlockManager._reduce
             res = df._mgr.reduce(blk_func)
 
-            # breakpoint()
             assert isinstance(res, dict)
             if len(res):
                 assert len(res) == max(list(res.keys())) + 1, res.keys()
             out = df._constructor_sliced(res, index=range(len(res)), dtype=out_dtype)
             out.index = df.columns
-            if axis == 0 and df.dtypes.apply(needs_i8_conversion).any():
-                # FIXME: needs_i8_conversion check is kludge, not sure
-                #  why it is necessary in this case and this case alone
+            if axis == 0 and is_object_dtype(out.dtype):
                 out[:] = coerce_to_dtypes(out.values, df.dtypes)
             return out
 
@@ -8604,6 +8595,7 @@ NaN 12.3   33.0
                 if len(result):
                     return df._constructor_sliced(result, index=index)
                 else:
+                    # set correct dtype for empty result
                     dtype = "bool" if filter_type == "bool" else "float64"
                     return df._constructor_sliced(result, index=index, dtype=dtype)
 
@@ -8618,15 +8610,12 @@ NaN 12.3   33.0
             if numeric_only is not None:
                 return _reduce_columns(df, array_func)
             else:
-                # need to catch and ignore exceptions when numeric_
+                # need to catch and ignore exceptions when numeric_only=None
                 try:
                     return _reduce_columns(df, array_func)
                 except TypeError:
                     # if column-wise fails and numeric_only was None, we try
                     # again but removing those columns for which it fails
-
-                    # df = _get_data(axis_matters=True)
-                    # return _reduce_columns(df, array_func)
                     result = []
                     indices = []
                     for i, arr in enumerate(df._iter_column_arrays()):

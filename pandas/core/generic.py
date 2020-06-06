@@ -11336,7 +11336,6 @@ def _make_min_count_stat_function(
         min_count=0,
         **kwargs,
     ):
-        column_wise = kwargs.pop("column_wise", False)
         if name == "sum":
             nv.validate_sum(tuple(), kwargs)
         elif name == "prod":
@@ -11358,7 +11357,6 @@ def _make_min_count_stat_function(
             skipna=skipna,
             numeric_only=numeric_only,
             min_count=min_count,
-            column_wise=column_wise,
         )
 
     return set_function_name(stat_func, name, cls)
@@ -11388,7 +11386,6 @@ def _make_stat_function(
     def stat_func(
         self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs
     ):
-        column_wise = kwargs.pop("column_wise", False)
         if name == "median":
             nv.validate_median(tuple(), kwargs)
         else:
@@ -11400,12 +11397,7 @@ def _make_stat_function(
         if level is not None:
             return self._agg_by_level(name, axis=axis, level=level, skipna=skipna)
         return self._reduce(
-            func,
-            name=name,
-            axis=axis,
-            skipna=skipna,
-            numeric_only=numeric_only,
-            column_wise=column_wise,
+            func, name=name, axis=axis, skipna=skipna, numeric_only=numeric_only,
         )
 
     return set_function_name(stat_func, name, cls)

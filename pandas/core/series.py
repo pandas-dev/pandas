@@ -4135,7 +4135,6 @@ Keep all original rows and also all original values
         If we have an ndarray as a value, then simply perform the operation,
         otherwise delegate to the object.
         """
-        kwds.pop("column_wise", None)
         delegate = self._values
 
         if axis is not None:
