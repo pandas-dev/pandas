@@ -4239,12 +4239,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     def reindex(self: FrameOrSeries, *args, **kwargs) -> FrameOrSeries:
         """
-        Generates an object with a new index and columns retained from %(klass)s.
-        The values are only retained for those index that matches those in
-        %(klass)s else NA/Nan.
+        Create an object with a new index and columns retained from %(klass)s.
 
-        If the new index is entirely equivalent to the current one and copy=false
-        then the %(klass)s remains intact.
+        The values are only retained for those index that matches those in %(klass)s else NA/Nan. If the new index is entirely equivalent to the current one and copy=false then the %(klass)s remains intact.
 
         Parameters
         ----------
