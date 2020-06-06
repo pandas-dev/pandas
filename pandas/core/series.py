@@ -120,6 +120,8 @@ _shared_doc_kwargs = dict(
     optional_labels="",
     optional_axis="",
     versionadded_to_excel="\n    .. versionadded:: 0.20.0\n",
+    pop_return_type="Value that is popped from series.",
+    pop_item_param_info="Index of element that needs to be removed.",
 )
 
 
@@ -4430,6 +4432,15 @@ Keep all original rows and also all original values
             inplace=inplace,
             limit=limit,
             downcast=downcast,
+        )
+
+    @Appender(generic._shared_docs["pop"] % _shared_doc_kwargs)
+    def pop(
+        self,
+        item,
+    ) -> Optional["Series"]:
+        return super().pop(
+            item=item,
         )
 
     @doc(NDFrame.replace, **_shared_doc_kwargs)

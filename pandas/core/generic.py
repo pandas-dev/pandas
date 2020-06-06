@@ -123,6 +123,8 @@ _shared_doc_kwargs = dict(
     optional_by="""
         by : str or list of str
             Name or list of names to sort by""",
+    pop_return_type="series",
+    pop_item_param_info="Label of column to be popped.",
 )
 
 
@@ -663,22 +665,26 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         result = self.set_axis(new_labels, axis=axis, inplace=False)
         return result
 
-    def pop(self: FrameOrSeries, item) -> FrameOrSeries:
-        """
-        Return's value and is dropped from series. Raise KeyError if not found.
+    _shared_docs[
+        "pop"
+    ] = """
+        Return item and drops from %(klass)s. Raise KeyError if not found.
 
         Parameters
         ----------
-        item : int
-            Index of element that needs to be removed.
+        item : %(axes_single_arg)s
+            %(pop_item_param_info)s
 
         Returns
         -------
-        Value that is popped from series.
-
+        %(pop_return_type)s
+        
         Examples
         --------
+        **Series**
+
         >>> ser = pd.Series([1,2,3])
+        
         >>> ser.pop(0)
         1
 
@@ -686,7 +692,39 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         1    2
         2    3
         dtype: int64
+
+        **DataFrame**
+
+        >>> df = pd.DataFrame([('falcon', 'bird', 389.0),
+        ...                    ('parrot', 'bird', 24.0),
+        ...                    ('lion', 'mammal', 80.5),
+        ...                    ('monkey', 'mammal', np.nan)],
+        ...                   columns=('name', 'class', 'max_speed'))
+        >>> df
+             name   class  max_speed
+        0  falcon    bird      389.0
+        1  parrot    bird       24.0
+        2    lion  mammal       80.5
+        3  monkey  mammal        NaN
+
+        >>> df.pop('class')
+        0      bird
+        1      bird
+        2    mammal
+        3    mammal
+        Name: class, dtype: object
+
+        >>> df
+             name  max_speed
+        0  falcon      389.0
+        1  parrot       24.0
+        2    lion       80.5
+        3  monkey        NaN
         """
+
+    @Appender(_shared_docs["pop"] % _shared_doc_kwargs)
+    def pop(self: FrameOrSeries, item) -> FrameOrSeries:
+        
         result = self[item]
         del self[item]
         if self.ndim == 2:
