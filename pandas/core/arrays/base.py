@@ -512,7 +512,7 @@ class ExtensionArray:
         kind : {'quicksort', 'mergesort', 'heapsort'}, optional
             Sorting algorithm.
         *args, **kwargs:
-            passed through to :func:`numpy.argsort`.
+            Passed through to :func:`numpy.argsort`.
 
         Returns
         -------
