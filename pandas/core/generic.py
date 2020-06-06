@@ -4239,11 +4239,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     def reindex(self: FrameOrSeries, *args, **kwargs) -> FrameOrSeries:
         """
-        Conform %(klass)s to new index with optional filling logic.
+        Generates an object with a new index and columns retained from %(klass)s.
+        The values are only retained for those index that matches those in
+        %(klass)s else NA/Nan.
 
-        Places NA/NaN in locations having no value in the previous index. A new
-        DataFrame with an additional index is generated subject to customization
-        with parameters.
+        If the new index is entirely equivalent to the current one and copy=false
+        then the %(klass)s remains intact.
 
         Parameters
         ----------
@@ -4286,7 +4287,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Returns
         -------
-        %(klass)s with 2 indices.
+        %(klass)s with a new index.
 
         See Also
         --------
