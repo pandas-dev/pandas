@@ -4242,7 +4242,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Create an object with a new index and columns retained from %(klass)s.
 
         The values are only retained for index that matches in %(klass)s else NA/Nan.
-        If the new index is entirely equivalent to the current one and copy=false then the %(klass)s remains intact.
+        If the new index is entirely equivalent to the current one and copy=false the
+        %(klass)s remains intact.
 
         Parameters
         ----------
