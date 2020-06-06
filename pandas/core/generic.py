@@ -678,13 +678,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Returns
         -------
         %(pop_return_type)s
-        
+
         Examples
         --------
         **Series**
 
         >>> ser = pd.Series([1,2,3])
-        
+
         >>> ser.pop(0)
         1
 
@@ -724,7 +724,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     @Appender(_shared_docs["pop"] % _shared_doc_kwargs)
     def pop(self: FrameOrSeries, item) -> FrameOrSeries:
-        
         result = self[item]
         del self[item]
         if self.ndim == 2:
