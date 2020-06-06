@@ -1,3 +1,4 @@
+import math
 import warnings
 
 import numpy as np
@@ -8,7 +9,6 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import DataFrame, Series, isna
 import pandas._testing as tm
-import math
 
 
 class TestDataFrameCov:
