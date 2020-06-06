@@ -1636,6 +1636,9 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         if (exc && PyErr_ExceptionMatches(PyExc_OverflowError)) {
             PRINTMARK();
             tc->type = JT_BIGNUM;
+
+            // This line generates compiler errors.
+            GET_TC(tc)->cStr = Object_getBigNumStringValue(obj);
         }
 
         return;
@@ -2127,10 +2130,36 @@ double Object_getDoubleValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
 }
 
 // /*
-const char *Object_getBigNumStringValue(JSOBJ obj, JSONTypeContext *tc) {
-    // char wstr[100];
-    int sign = (obj<0) ? -1 : 1;
-    printf("sign %d\n", sign);
+const char *Object_getBigNumStringValue(JSOBJ obj, JSONTypeContext *tc, 
+                                    size_t *_outLen) {
+    /* here goes the code that converts obj into a string
+    char *wstr;
+    if (obj<0) {wstr++ = "-";}
+    int digit;
+    PyObject rem;
+    PyObject ten;
+    long ten_as_long = 10, rem_as_long;
+    ten = PyNumber_FromLong(ten_as_long);
+    do {
+        rem = PyNumber_Remainder(obj, ten);
+        obj = PyNumber_FloorDivide(obj, ten);
+
+        rem_as_long = PyLong_AsLong(rem);
+        wstr++ = char(48 + (int) rem_as_long);
+    } while (obj>10);
+    */
+
+    // we then load that string into tc->cStr
+    GET_TC(tc)->str = wstr;
+    
+    /* _outLen: do we set that here?
+    I can imagine counting the number of digits in the 
+    do-while loop and then setting
+    _outLen = (number of digits);
+    I'm not quite sure how that would work though
+    since _outLen is an argument to this function
+    */
+
     return GET_TC(tc)->cStr;
 }
 // */
