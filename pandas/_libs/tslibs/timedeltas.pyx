@@ -21,7 +21,7 @@ from pandas._libs.tslibs.util cimport (
     is_float_object, is_array
 )
 
-from pandas._libs.tslibs.base cimport ABCTimedelta, ABCTimestamp
+from pandas._libs.tslibs.base cimport ABCTimestamp
 
 from pandas._libs.tslibs.conversion cimport cast_from_unit
 
@@ -446,7 +446,8 @@ cdef inline timedelta_from_spec(object number, object frac, object unit):
     frac : a list of frac digits
     unit : a list of unit characters
     """
-    cdef object n
+    cdef:
+        str n
 
     try:
         unit = ''.join(unit)
@@ -584,7 +585,7 @@ cdef inline int64_t parse_iso_format_string(str ts) except? -1:
         bint have_dot = 0, have_value = 0, neg = 0
         list number = [], unit = []
 
-    err_msg = "Invalid ISO 8601 Duration format - {}".format(ts)
+    err_msg = f"Invalid ISO 8601 Duration format - {ts}"
 
     for c in ts:
         # number (ascii codes)
@@ -674,12 +675,12 @@ cdef _to_py_int_float(v):
 # timedeltas that we need to do object instantiation in python. This will
 # serve as a C extension type that shadows the Python class, where we do any
 # heavy lifting.
-cdef class _Timedelta(ABCTimedelta):
-    cdef readonly:
-        int64_t value      # nanoseconds
-        object freq        # frequency reference
-        bint is_populated  # are my components populated
-        int64_t _d, _h, _m, _s, _ms, _us, _ns
+cdef class _Timedelta(timedelta):
+    # cdef readonly:
+    #    int64_t value      # nanoseconds
+    #    object freq        # frequency reference
+    #    bint is_populated  # are my components populated
+    #    int64_t _d, _h, _m, _s, _ms, _us, _ns
 
     # higher than np.ndarray and np.matrix
     __array_priority__ = 100
@@ -906,19 +907,19 @@ cdef class _Timedelta(ABCTimedelta):
         Examples
         --------
         >>> td = pd.Timedelta('1 days 2 min 3 us 42 ns')
-        >>> td.resolution
+        >>> td.resolution_string
         'N'
 
         >>> td = pd.Timedelta('1 days 2 min 3 us')
-        >>> td.resolution
+        >>> td.resolution_string
         'U'
 
         >>> td = pd.Timedelta('2 min 3 s')
-        >>> td.resolution
+        >>> td.resolution_string
         'S'
 
         >>> td = pd.Timedelta(36, unit='us')
-        >>> td.resolution
+        >>> td.resolution_string
         'U'
         """
         self._ensure_components()
@@ -1092,7 +1093,7 @@ class Timedelta(_Timedelta):
 
     Parameters
     ----------
-    value : Timedelta, timedelta, np.timedelta64, string, or integer
+    value : Timedelta, timedelta, np.timedelta64, str, or int
     unit : str, default 'ns'
         Denote the unit of the input, if input is an integer.
 
@@ -1204,7 +1205,7 @@ class Timedelta(_Timedelta):
         cdef:
             int64_t result, unit
 
-        from pandas.tseries.frequencies import to_offset
+        from pandas._libs.tslibs.offsets import to_offset
         unit = to_offset(freq).nanos
         result = unit * rounder(self.value / float(unit))
         return Timedelta(result, unit='ns')
@@ -1376,6 +1377,17 @@ class Timedelta(_Timedelta):
 
 
 cdef bint is_any_td_scalar(object obj):
+    """
+    Cython equivalent for `isinstance(obj, (timedelta, np.timedelta64, Tick))`
+
+    Parameters
+    ----------
+    obj : object
+
+    Returns
+    -------
+    bool
+    """
     return (
         PyDelta_Check(obj) or is_timedelta64_object(obj) or is_tick_object(obj)
     )

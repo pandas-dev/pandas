@@ -6,13 +6,11 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
+from pandas._libs.tslibs import OutOfBoundsDatetime, to_offset
 
 import pandas as pd
 from pandas import DatetimeIndex, Timestamp, date_range
 import pandas._testing as tm
-
-from pandas.tseries.frequencies import to_offset
 
 
 class TestDatetimeIndexOps:
@@ -40,8 +38,6 @@ class TestDatetimeIndexOps:
         [
             "dayofweek",
             "dayofyear",
-            "week",
-            "weekofyear",
             "quarter",
             "days_in_month",
             "is_month_start",
@@ -57,6 +53,12 @@ class TestDatetimeIndexOps:
         idx = tm.makeDateIndex(100)
         expected = getattr(idx, field)[-1]
         result = getattr(Timestamp(idx[-1]), field)
+        assert result == expected
+
+    def test_dti_timestamp_isocalendar_fields(self):
+        idx = tm.makeDateIndex(100)
+        expected = tuple(idx.isocalendar().iloc[-1].to_list())
+        result = idx[-1].isocalendar()
         assert result == expected
 
     def test_dti_timestamp_freq_fields(self):

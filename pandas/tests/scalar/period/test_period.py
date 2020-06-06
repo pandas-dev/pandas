@@ -506,7 +506,9 @@ class TestPeriodMethods:
 
     @pytest.mark.parametrize("tzstr", ["Europe/Brussels", "Asia/Tokyo", "US/Pacific"])
     def test_to_timestamp_tz_arg(self, tzstr):
-        p = Period("1/1/2005", freq="M").to_timestamp(tz=tzstr)
+        # GH#34522 tz kwarg deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            p = Period("1/1/2005", freq="M").to_timestamp(tz=tzstr)
         exp = Timestamp("1/1/2005", tz="UTC").tz_convert(tzstr)
         exp_zone = pytz.timezone(tzstr).normalize(p)
 
@@ -514,7 +516,8 @@ class TestPeriodMethods:
         assert p.tz == exp_zone.tzinfo
         assert p.tz == exp.tz
 
-        p = Period("1/1/2005", freq="3H").to_timestamp(tz=tzstr)
+        with tm.assert_produces_warning(FutureWarning):
+            p = Period("1/1/2005", freq="3H").to_timestamp(tz=tzstr)
         exp = Timestamp("1/1/2005", tz="UTC").tz_convert(tzstr)
         exp_zone = pytz.timezone(tzstr).normalize(p)
 
@@ -522,7 +525,8 @@ class TestPeriodMethods:
         assert p.tz == exp_zone.tzinfo
         assert p.tz == exp.tz
 
-        p = Period("1/1/2005", freq="A").to_timestamp(freq="A", tz=tzstr)
+        with tm.assert_produces_warning(FutureWarning):
+            p = Period("1/1/2005", freq="A").to_timestamp(freq="A", tz=tzstr)
         exp = Timestamp("31/12/2005", tz="UTC").tz_convert(tzstr)
         exp_zone = pytz.timezone(tzstr).normalize(p)
 
@@ -530,7 +534,8 @@ class TestPeriodMethods:
         assert p.tz == exp_zone.tzinfo
         assert p.tz == exp.tz
 
-        p = Period("1/1/2005", freq="A").to_timestamp(freq="3H", tz=tzstr)
+        with tm.assert_produces_warning(FutureWarning):
+            p = Period("1/1/2005", freq="A").to_timestamp(freq="3H", tz=tzstr)
         exp = Timestamp("1/1/2005", tz="UTC").tz_convert(tzstr)
         exp_zone = pytz.timezone(tzstr).normalize(p)
 
@@ -544,20 +549,23 @@ class TestPeriodMethods:
     )
     def test_to_timestamp_tz_arg_dateutil(self, tzstr):
         tz = maybe_get_tz(tzstr)
-        p = Period("1/1/2005", freq="M").to_timestamp(tz=tz)
+        with tm.assert_produces_warning(FutureWarning):
+            p = Period("1/1/2005", freq="M").to_timestamp(tz=tz)
         exp = Timestamp("1/1/2005", tz="UTC").tz_convert(tzstr)
         assert p == exp
         assert p.tz == dateutil_gettz(tzstr.split("/", 1)[1])
         assert p.tz == exp.tz
 
-        p = Period("1/1/2005", freq="M").to_timestamp(freq="3H", tz=tz)
+        with tm.assert_produces_warning(FutureWarning):
+            p = Period("1/1/2005", freq="M").to_timestamp(freq="3H", tz=tz)
         exp = Timestamp("1/1/2005", tz="UTC").tz_convert(tzstr)
         assert p == exp
         assert p.tz == dateutil_gettz(tzstr.split("/", 1)[1])
         assert p.tz == exp.tz
 
     def test_to_timestamp_tz_arg_dateutil_from_string(self):
-        p = Period("1/1/2005", freq="M").to_timestamp(tz="dateutil/Europe/Brussels")
+        with tm.assert_produces_warning(FutureWarning):
+            p = Period("1/1/2005", freq="M").to_timestamp(tz="dateutil/Europe/Brussels")
         assert p.tz == dateutil_gettz("Europe/Brussels")
 
     def test_to_timestamp_mult(self):
@@ -589,6 +597,8 @@ class TestPeriodMethods:
         from_lst = ["A", "Q", "M", "W", "B", "D", "H", "Min", "S"]
 
         def _ex(p):
+            if p.freq == "B":
+                return p.start_time + Timedelta(days=1, nanoseconds=-1)
             return Timestamp((p + p.freq).start_time.value - 1)
 
         for i, fcode in enumerate(from_lst):
@@ -630,6 +640,13 @@ class TestPeriodMethods:
         result = p.to_timestamp("3H", how="start")
         assert result == expected
         result = p.to_timestamp("5S", how="start")
+        assert result == expected
+
+    def test_to_timestamp_business_end(self):
+        per = pd.Period("1990-01-05", "B")  # Friday
+        result = per.to_timestamp("B", how="E")
+
+        expected = pd.Timestamp("1990-01-06") - pd.Timedelta(nanoseconds=1)
         assert result == expected
 
     # --------------------------------------------------------------
@@ -785,6 +802,14 @@ class TestPeriodProperties:
         p = Period("2012", freq="1H1D")
         xp = _ex(2012, 1, 2, 1)
         assert xp == p.end_time
+
+    def test_end_time_business_friday(self):
+        # GH#34449
+        per = Period("1990-01-05", "B")
+        result = per.end_time
+
+        expected = pd.Timestamp("1990-01-06") - pd.Timedelta(nanoseconds=1)
+        assert result == expected
 
     def test_anchor_week_end_time(self):
         def _ex(*args):

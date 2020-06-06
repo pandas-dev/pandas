@@ -323,15 +323,22 @@ def test_transform_transformation_func(transformation_func):
         {
             "A": ["foo", "foo", "foo", "foo", "bar", "bar", "baz"],
             "B": [1, 2, np.nan, 3, 3, np.nan, 4],
-        }
+        },
+        index=pd.date_range("2020-01-01", "2020-01-07"),
     )
 
-    if transformation_func in ["pad", "backfill", "tshift", "cumcount"]:
-        # These transformation functions are not yet covered in this test
-        pytest.xfail("See GH 31269")
+    if transformation_func == "cumcount":
+        test_op = lambda x: x.transform("cumcount")
+        mock_op = lambda x: Series(range(len(x)), x.index)
     elif transformation_func == "fillna":
         test_op = lambda x: x.transform("fillna", value=0)
         mock_op = lambda x: x.fillna(value=0)
+    elif transformation_func == "tshift":
+        msg = (
+            "Current behavior of groupby.tshift is inconsistent with other "
+            "transformations. See GH34452 for more details"
+        )
+        pytest.xfail(msg)
     else:
         test_op = lambda x: x.transform(transformation_func)
         mock_op = lambda x: getattr(x, transformation_func)()
@@ -340,7 +347,10 @@ def test_transform_transformation_func(transformation_func):
     groups = [df[["B"]].iloc[:4], df[["B"]].iloc[4:6], df[["B"]].iloc[6:]]
     expected = concat([mock_op(g) for g in groups])
 
-    tm.assert_frame_equal(result, expected)
+    if transformation_func == "cumcount":
+        tm.assert_series_equal(result, expected)
+    else:
+        tm.assert_frame_equal(result, expected)
 
 
 def test_transform_select_columns(df):
@@ -1022,7 +1032,7 @@ def test_groupby_transform_with_datetimes(func, values):
     dates = pd.date_range("1/1/2011", periods=10, freq="D")
 
     stocks = pd.DataFrame({"price": np.arange(10.0)}, index=dates)
-    stocks["week_id"] = pd.to_datetime(stocks.index).week
+    stocks["week_id"] = dates.isocalendar().week
 
     result = stocks.groupby(stocks["week_id"])["price"].transform(func)
 
