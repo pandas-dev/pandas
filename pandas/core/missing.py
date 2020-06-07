@@ -94,7 +94,8 @@ def clean_fill_method(method, allow_nearest=False):
     return method
 
 
-def clean_interp_method(method: str, order: Optional[int] = None, **kwargs) -> str:
+def clean_interp_method(method: str, **kwargs) -> str:
+    order = kwargs.get("order")
     valid = [
         "linear",
         "time",
