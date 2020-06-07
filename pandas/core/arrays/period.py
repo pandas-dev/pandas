@@ -7,9 +7,12 @@ import numpy as np
 from pandas._libs.tslibs import (
     NaT,
     NaTType,
+    Timedelta,
+    delta_to_nanoseconds,
     frequencies as libfrequencies,
     iNaT,
     period as libperiod,
+    to_offset,
 )
 from pandas._libs.tslibs.fields import isleapyear_arr
 from pandas._libs.tslibs.offsets import Tick, delta_to_tick
@@ -20,7 +23,6 @@ from pandas._libs.tslibs.period import (
     get_period_field_arr,
     period_asfreq_arr,
 )
-from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
 from pandas._typing import AnyArrayLike
 from pandas.util._decorators import cache_readonly
 
@@ -45,14 +47,13 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
 
-from pandas.tseries import frequencies
 from pandas.tseries.offsets import DateOffset
 
 
-def _field_accessor(name: str, alias: int, docstring=None):
+def _field_accessor(name: str, docstring=None):
     def f(self):
-        base, mult = libfrequencies.get_freq_code(self.freq)
-        result = get_period_field_arr(alias, self.asi8, base)
+        base, _ = libfrequencies.get_freq_code(self.freq)
+        result = get_period_field_arr(name, self.asi8, base)
         return result
 
     f.__name__ = name
@@ -324,80 +325,69 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
     year = _field_accessor(
         "year",
-        0,
         """
         The year of the period.
         """,
     )
     month = _field_accessor(
         "month",
-        3,
         """
         The month as January=1, December=12.
         """,
     )
     day = _field_accessor(
         "day",
-        4,
         """
         The days of the period.
         """,
     )
     hour = _field_accessor(
         "hour",
-        5,
         """
         The hour of the period.
         """,
     )
     minute = _field_accessor(
         "minute",
-        6,
         """
         The minute of the period.
         """,
     )
     second = _field_accessor(
         "second",
-        7,
         """
         The second of the period.
         """,
     )
     weekofyear = _field_accessor(
         "week",
-        8,
         """
         The week ordinal of the year.
         """,
     )
     week = weekofyear
     dayofweek = _field_accessor(
-        "dayofweek",
-        10,
+        "weekday",
         """
         The day of the week with Monday=0, Sunday=6.
         """,
     )
     weekday = dayofweek
     dayofyear = day_of_year = _field_accessor(
-        "dayofyear",
-        9,
+        "day_of_year",
         """
         The ordinal day of the year.
         """,
     )
     quarter = _field_accessor(
         "quarter",
-        2,
         """
         The quarter of the date.
         """,
     )
-    qyear = _field_accessor("qyear", 1)
+    qyear = _field_accessor("qyear")
     days_in_month = _field_accessor(
         "days_in_month",
-        11,
         """
         The number of days in the month.
         """,
@@ -441,7 +431,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
         end = how == "E"
         if end:
-            if freq == "B":
+            if freq == "B" or self.freq == "B":
                 # roll forward to ensure we land on B date
                 adjust = Timedelta(1, "D") - Timedelta(1, "ns")
                 return self.to_timestamp(how="start") + adjust
@@ -665,7 +655,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         res_values[self._isnan] = iNaT
         return type(self)(res_values, freq=self.freq)
 
-    def _add_offset(self, other):
+    def _add_offset(self, other: DateOffset):
         assert not isinstance(other, Tick)
 
         if other.base != self.freq.base:
@@ -913,7 +903,7 @@ def validate_dtype_freq(dtype, freq):
     IncompatibleFrequency : mismatch between dtype and freq
     """
     if freq is not None:
-        freq = frequencies.to_offset(freq)
+        freq = to_offset(freq)
 
     if dtype is not None:
         dtype = pandas_dtype(dtype)

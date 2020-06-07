@@ -59,6 +59,9 @@ Properties
     BusinessDay.normalize
     BusinessDay.rule_code
     BusinessDay.n
+    BusinessDay.weekmask
+    BusinessDay.holidays
+    BusinessDay.calendar
 
 Methods
 ~~~~~~~
@@ -93,6 +96,11 @@ Properties
     BusinessHour.normalize
     BusinessHour.rule_code
     BusinessHour.n
+    BusinessHour.start
+    BusinessHour.end
+    BusinessHour.weekmask
+    BusinessHour.holidays
+    BusinessHour.calendar
 
 Methods
 ~~~~~~~
@@ -126,12 +134,16 @@ Properties
     CustomBusinessDay.normalize
     CustomBusinessDay.rule_code
     CustomBusinessDay.n
+    CustomBusinessDay.weekmask
+    CustomBusinessDay.calendar
+    CustomBusinessDay.holidays
 
 Methods
 ~~~~~~~
 .. autosummary::
    :toctree: api/
 
+    CustomBusinessDay.apply_index
     CustomBusinessDay.apply
     CustomBusinessDay.copy
     CustomBusinessDay.isAnchored
@@ -159,6 +171,11 @@ Properties
     CustomBusinessHour.normalize
     CustomBusinessHour.rule_code
     CustomBusinessHour.n
+    CustomBusinessHour.weekmask
+    CustomBusinessHour.calendar
+    CustomBusinessHour.holidays
+    CustomBusinessHour.start
+    CustomBusinessHour.end
 
 Methods
 ~~~~~~~
@@ -172,40 +189,6 @@ Methods
     CustomBusinessHour.is_anchored
     CustomBusinessHour.is_on_offset
     CustomBusinessHour.__call__
-
-MonthOffset
------------
-.. autosummary::
-   :toctree: api/
-
-    MonthOffset
-
-Properties
-~~~~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    MonthOffset.freqstr
-    MonthOffset.kwds
-    MonthOffset.name
-    MonthOffset.nanos
-    MonthOffset.normalize
-    MonthOffset.rule_code
-    MonthOffset.n
-
-Methods
-~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    MonthOffset.apply
-    MonthOffset.apply_index
-    MonthOffset.copy
-    MonthOffset.isAnchored
-    MonthOffset.onOffset
-    MonthOffset.is_anchored
-    MonthOffset.is_on_offset
-    MonthOffset.__call__
 
 MonthEnd
 --------
@@ -363,6 +346,9 @@ Properties
     CustomBusinessMonthEnd.normalize
     CustomBusinessMonthEnd.rule_code
     CustomBusinessMonthEnd.n
+    CustomBusinessMonthEnd.weekmask
+    CustomBusinessMonthEnd.calendar
+    CustomBusinessMonthEnd.holidays
 
 Methods
 ~~~~~~~
@@ -397,6 +383,9 @@ Properties
     CustomBusinessMonthBegin.normalize
     CustomBusinessMonthBegin.rule_code
     CustomBusinessMonthBegin.n
+    CustomBusinessMonthBegin.weekmask
+    CustomBusinessMonthBegin.calendar
+    CustomBusinessMonthBegin.holidays
 
 Methods
 ~~~~~~~
@@ -410,40 +399,6 @@ Methods
     CustomBusinessMonthBegin.is_anchored
     CustomBusinessMonthBegin.is_on_offset
     CustomBusinessMonthBegin.__call__
-
-SemiMonthOffset
----------------
-.. autosummary::
-   :toctree: api/
-
-    SemiMonthOffset
-
-Properties
-~~~~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    SemiMonthOffset.freqstr
-    SemiMonthOffset.kwds
-    SemiMonthOffset.name
-    SemiMonthOffset.nanos
-    SemiMonthOffset.normalize
-    SemiMonthOffset.rule_code
-    SemiMonthOffset.n
-
-Methods
-~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    SemiMonthOffset.apply
-    SemiMonthOffset.apply_index
-    SemiMonthOffset.copy
-    SemiMonthOffset.isAnchored
-    SemiMonthOffset.onOffset
-    SemiMonthOffset.is_anchored
-    SemiMonthOffset.is_on_offset
-    SemiMonthOffset.__call__
 
 SemiMonthEnd
 ------------
@@ -464,6 +419,7 @@ Properties
     SemiMonthEnd.normalize
     SemiMonthEnd.rule_code
     SemiMonthEnd.n
+    SemiMonthEnd.day_of_month
 
 Methods
 ~~~~~~~
@@ -498,6 +454,7 @@ Properties
     SemiMonthBegin.normalize
     SemiMonthBegin.rule_code
     SemiMonthBegin.n
+    SemiMonthBegin.day_of_month
 
 Methods
 ~~~~~~~
@@ -532,6 +489,7 @@ Properties
     Week.normalize
     Week.rule_code
     Week.n
+    Week.weekday
 
 Methods
 ~~~~~~~
@@ -566,6 +524,7 @@ Properties
     WeekOfMonth.normalize
     WeekOfMonth.rule_code
     WeekOfMonth.n
+    WeekOfMonth.week
 
 Methods
 ~~~~~~~
@@ -579,6 +538,7 @@ Methods
     WeekOfMonth.is_anchored
     WeekOfMonth.is_on_offset
     WeekOfMonth.__call__
+    WeekOfMonth.weekday
 
 LastWeekOfMonth
 ---------------
@@ -599,6 +559,8 @@ Properties
     LastWeekOfMonth.normalize
     LastWeekOfMonth.rule_code
     LastWeekOfMonth.n
+    LastWeekOfMonth.weekday
+    LastWeekOfMonth.week
 
 Methods
 ~~~~~~~
@@ -612,40 +574,6 @@ Methods
     LastWeekOfMonth.is_anchored
     LastWeekOfMonth.is_on_offset
     LastWeekOfMonth.__call__
-
-QuarterOffset
--------------
-.. autosummary::
-   :toctree: api/
-
-    QuarterOffset
-
-Properties
-~~~~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    QuarterOffset.freqstr
-    QuarterOffset.kwds
-    QuarterOffset.name
-    QuarterOffset.nanos
-    QuarterOffset.normalize
-    QuarterOffset.rule_code
-    QuarterOffset.n
-
-Methods
-~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    QuarterOffset.apply
-    QuarterOffset.apply_index
-    QuarterOffset.copy
-    QuarterOffset.isAnchored
-    QuarterOffset.onOffset
-    QuarterOffset.is_anchored
-    QuarterOffset.is_on_offset
-    QuarterOffset.__call__
 
 BQuarterEnd
 -----------
@@ -666,6 +594,7 @@ Properties
     BQuarterEnd.normalize
     BQuarterEnd.rule_code
     BQuarterEnd.n
+    BQuarterEnd.startingMonth
 
 Methods
 ~~~~~~~
@@ -700,6 +629,7 @@ Properties
     BQuarterBegin.normalize
     BQuarterBegin.rule_code
     BQuarterBegin.n
+    BQuarterBegin.startingMonth
 
 Methods
 ~~~~~~~
@@ -734,6 +664,7 @@ Properties
     QuarterEnd.normalize
     QuarterEnd.rule_code
     QuarterEnd.n
+    QuarterEnd.startingMonth
 
 Methods
 ~~~~~~~
@@ -768,6 +699,7 @@ Properties
     QuarterBegin.normalize
     QuarterBegin.rule_code
     QuarterBegin.n
+    QuarterBegin.startingMonth
 
 Methods
 ~~~~~~~
@@ -782,40 +714,6 @@ Methods
     QuarterBegin.is_anchored
     QuarterBegin.is_on_offset
     QuarterBegin.__call__
-
-YearOffset
-----------
-.. autosummary::
-   :toctree: api/
-
-    YearOffset
-
-Properties
-~~~~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    YearOffset.freqstr
-    YearOffset.kwds
-    YearOffset.name
-    YearOffset.nanos
-    YearOffset.normalize
-    YearOffset.rule_code
-    YearOffset.n
-
-Methods
-~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-    YearOffset.apply
-    YearOffset.apply_index
-    YearOffset.copy
-    YearOffset.isAnchored
-    YearOffset.onOffset
-    YearOffset.is_anchored
-    YearOffset.is_on_offset
-    YearOffset.__call__
 
 BYearEnd
 --------
@@ -836,6 +734,7 @@ Properties
     BYearEnd.normalize
     BYearEnd.rule_code
     BYearEnd.n
+    BYearEnd.month
 
 Methods
 ~~~~~~~
@@ -870,6 +769,7 @@ Properties
     BYearBegin.normalize
     BYearBegin.rule_code
     BYearBegin.n
+    BYearBegin.month
 
 Methods
 ~~~~~~~
@@ -904,6 +804,7 @@ Properties
     YearEnd.normalize
     YearEnd.rule_code
     YearEnd.n
+    YearEnd.month
 
 Methods
 ~~~~~~~
@@ -938,6 +839,7 @@ Properties
     YearBegin.normalize
     YearBegin.rule_code
     YearBegin.n
+    YearBegin.month
 
 Methods
 ~~~~~~~
@@ -972,6 +874,9 @@ Properties
     FY5253.normalize
     FY5253.rule_code
     FY5253.n
+    FY5253.startingMonth
+    FY5253.variation
+    FY5253.weekday
 
 Methods
 ~~~~~~~
@@ -1007,6 +912,10 @@ Properties
     FY5253Quarter.normalize
     FY5253Quarter.rule_code
     FY5253Quarter.n
+    FY5253Quarter.qtr_with_extra_week
+    FY5253Quarter.startingMonth
+    FY5253Quarter.variation
+    FY5253Quarter.weekday
 
 Methods
 ~~~~~~~
@@ -1015,6 +924,7 @@ Methods
 
     FY5253Quarter.apply
     FY5253Quarter.copy
+    FY5253Quarter.get_rule_code_suffix
     FY5253Quarter.get_weeks
     FY5253Quarter.isAnchored
     FY5253Quarter.onOffset
@@ -1349,6 +1259,9 @@ Properties
     BDay.offset
     BDay.rule_code
     BDay.n
+    BDay.weekmask
+    BDay.holidays
+    BDay.calendar
 
 Methods
 ~~~~~~~
@@ -1464,6 +1377,9 @@ Properties
     CBMonthEnd.offset
     CBMonthEnd.rule_code
     CBMonthEnd.n
+    CBMonthEnd.weekmask
+    CBMonthEnd.holidays
+    CBMonthEnd.calendar
 
 Methods
 ~~~~~~~
@@ -1505,6 +1421,9 @@ Properties
     CBMonthBegin.offset
     CBMonthBegin.rule_code
     CBMonthBegin.n
+    CBMonthBegin.weekmask
+    CBMonthBegin.holidays
+    CBMonthBegin.calendar
 
 Methods
 ~~~~~~~
@@ -1543,6 +1462,9 @@ Properties
     CDay.offset
     CDay.rule_code
     CDay.n
+    CDay.weekmask
+    CDay.calendar
+    CDay.holidays
 
 Methods
 ~~~~~~~
@@ -1559,6 +1481,7 @@ Methods
     CDay.rollback
     CDay.rollforward
     CDay.__call__
+
 
 .. _api.frequencies:
 

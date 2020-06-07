@@ -145,8 +145,6 @@ cdef class _NaT(datetime):
             return c_NaT
         elif util.is_datetime64_object(other) or util.is_timedelta64_object(other):
             return c_NaT
-        elif util.is_offset_object(other):
-            return c_NaT
 
         elif util.is_integer_object(other):
             # For Period compat
@@ -162,7 +160,7 @@ cdef class _NaT(datetime):
                 return result
             raise TypeError(f"Cannot add NaT to ndarray with dtype {other.dtype}")
 
-        # Includes Period going through here
+        # Includes Period, DateOffset going through here
         return NotImplemented
 
     def __sub__(self, other):
@@ -181,8 +179,6 @@ cdef class _NaT(datetime):
         elif PyDelta_Check(other):
             return c_NaT
         elif util.is_datetime64_object(other) or util.is_timedelta64_object(other):
-            return c_NaT
-        elif util.is_offset_object(other):
             return c_NaT
 
         elif util.is_integer_object(other):
@@ -216,7 +212,7 @@ cdef class _NaT(datetime):
                 f"Cannot subtract NaT from ndarray with dtype {other.dtype}"
             )
 
-        # Includes Period going through here
+        # Includes Period, DateOffset going through here
         return NotImplemented
 
     def __pos__(self):
@@ -401,7 +397,7 @@ class NaTType(_NaT):
 
         Parameters
         ----------
-        locale : string, default None (English locale)
+        locale : str, default None (English locale)
             Locale determining the language in which to return the month name.
 
         Returns
@@ -418,7 +414,7 @@ class NaTType(_NaT):
 
         Parameters
         ----------
-        locale : string, default None (English locale)
+        locale : str, default None (English locale)
             Locale determining the language in which to return the day name.
 
         Returns

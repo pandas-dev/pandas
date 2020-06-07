@@ -1,3 +1,5 @@
+import warnings
+
 from cpython.object cimport PyObject_RichCompareBool, Py_EQ, Py_NE
 
 from numpy cimport int64_t, import_array, ndarray
@@ -40,7 +42,10 @@ cimport pandas._libs.tslibs.util as util
 from pandas._libs.tslibs.timestamps import Timestamp
 from pandas._libs.tslibs.timezones cimport is_utc, is_tzlocal, get_dst_info
 from pandas._libs.tslibs.timedeltas import Timedelta
-from pandas._libs.tslibs.timedeltas cimport delta_to_nanoseconds
+from pandas._libs.tslibs.timedeltas cimport (
+    delta_to_nanoseconds,
+    is_any_td_scalar,
+)
 
 from pandas._libs.tslibs.ccalendar cimport (
     dayofweek,
@@ -50,13 +55,16 @@ from pandas._libs.tslibs.ccalendar cimport (
     get_days_in_month,
 )
 from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
+
+from pandas._libs.tslibs.dtypes cimport PeriodPseudoDtype
+
 from pandas._libs.tslibs.frequencies cimport (
     attrname_to_abbrevs,
     get_freq_code,
     get_freq_str,
-    get_rule_month,
     get_to_timestamp_base,
 )
+from pandas._libs.tslibs.parsing cimport get_rule_month
 from pandas._libs.tslibs.parsing import parse_time_string
 from pandas._libs.tslibs.nattype cimport (
     _nat_scalar_rules,
@@ -65,13 +73,18 @@ from pandas._libs.tslibs.nattype cimport (
     c_NaT as NaT,
     c_nat_strings as nat_strings,
 )
-from pandas._libs.tslibs.offsets cimport to_offset, is_tick_object
+from pandas._libs.tslibs.offsets cimport (
+    BaseOffset,
+    to_offset,
+    is_tick_object,
+    is_offset_object,
+)
 from pandas._libs.tslibs.tzconversion cimport tz_convert_utc_to_tzlocal
 
 
 cdef:
     enum:
-        INT32_MIN = -2_147_483_648
+        INT32_MIN = -2_147_483_648LL
 
 
 ctypedef struct asfreq_info:
@@ -103,9 +116,11 @@ cdef extern from *:
     #define FR_UND -10000    /* Undefined */
 
     // must use npy typedef b/c int64_t is aliased in cython-generated c
+    // unclear why we need LL for that row.
+    // see https://github.com/pandas-dev/pandas/pull/34416/
     static npy_int64 daytime_conversion_factor_matrix[7][7] = {
         {1, 24, 1440, 86400, 86400000, 86400000000, 86400000000000},
-        {0,  1,   60,  3600,  3600000,  3600000000,  3600000000000},
+        {0LL,  1LL,   60LL,  3600LL,  3600000LL,  3600000000LL,  3600000000000LL},
         {0,  0,   1,     60,    60000,    60000000,    60000000000},
         {0,  0,   0,      1,     1000,     1000000,     1000000000},
         {0,  0,   0,      0,        1,        1000,        1000000},
@@ -955,35 +970,6 @@ cdef inline int month_to_quarter(int month) nogil:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def dt64arr_to_periodarr(const int64_t[:] dtarr, int freq, tz=None):
-    """
-    Convert array of datetime64 values (passed in as 'i8' dtype) to a set of
-    periods corresponding to desired frequency, per period convention.
-    """
-    cdef:
-        int64_t[:] out
-        Py_ssize_t i, l
-        npy_datetimestruct dts
-
-    l = len(dtarr)
-
-    out = np.empty(l, dtype='i8')
-
-    if tz is None:
-        with nogil:
-            for i in range(l):
-                if dtarr[i] == NPY_NAT:
-                    out[i] = NPY_NAT
-                    continue
-                dt64_to_dtstruct(dtarr[i], &dts)
-                out[i] = get_period_ordinal(&dts, freq)
-    else:
-        out = localize_dt64arr_to_period(dtarr, freq, tz)
-    return out.base  # .base to access underlying np.ndarray
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
 def periodarr_to_dt64arr(const int64_t[:] periodarr, int freq):
     """
     Convert array to datetime64 values from a set of ordinals corresponding to
@@ -1279,14 +1265,16 @@ cdef int pyear(int64_t ordinal, int freq):
 @cython.cdivision
 cdef int pqyear(int64_t ordinal, int freq):
     cdef:
-        int year, quarter
+        int year = 0
+        int quarter = 0
     get_yq(ordinal, freq, &quarter, &year)
     return year
 
 
 cdef int pquarter(int64_t ordinal, int freq):
     cdef:
-        int year, quarter
+        int year = 0
+        int quarter = 0
     get_yq(ordinal, freq, &quarter, &year)
     return quarter
 
@@ -1356,15 +1344,15 @@ cdef int pdays_in_month(int64_t ordinal, int freq):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def get_period_field_arr(int code, const int64_t[:] arr, int freq):
+def get_period_field_arr(str field, const int64_t[:] arr, int freq):
     cdef:
         Py_ssize_t i, sz
         int64_t[:] out
         accessor f
 
-    func = _get_accessor_func(code)
+    func = _get_accessor_func(field)
     if func is NULL:
-        raise ValueError(f"Unrecognized period code: {code}")
+        raise ValueError(f"Unrecognized field name: {field}")
 
     sz = len(arr)
     out = np.empty(sz, dtype=np.int64)
@@ -1378,30 +1366,30 @@ def get_period_field_arr(int code, const int64_t[:] arr, int freq):
     return out.base  # .base to access underlying np.ndarray
 
 
-cdef accessor _get_accessor_func(int code):
-    if code == 0:
+cdef accessor _get_accessor_func(str field):
+    if field == "year":
         return <accessor>pyear
-    elif code == 1:
+    elif field == "qyear":
         return <accessor>pqyear
-    elif code == 2:
+    elif field == "quarter":
         return <accessor>pquarter
-    elif code == 3:
+    elif field == "month":
         return <accessor>pmonth
-    elif code == 4:
+    elif field == "day":
         return <accessor>pday
-    elif code == 5:
+    elif field == "hour":
         return <accessor>phour
-    elif code == 6:
+    elif field == "minute":
         return <accessor>pminute
-    elif code == 7:
+    elif field == "second":
         return <accessor>psecond
-    elif code == 8:
+    elif field == "week":
         return <accessor>pweek
-    elif code == 9:
+    elif field == "day_of_year":
         return <accessor>pday_of_year
-    elif code == 10:
+    elif field == "weekday":
         return <accessor>pweekday
-    elif code == 11:
+    elif field == "days_in_month":
         return <accessor>pdays_in_month
     return NULL
 
@@ -1454,12 +1442,8 @@ def extract_freq(ndarray[object] values):
     for i in range(n):
         value = values[i]
 
-        try:
-            # now Timestamp / NaT has freq attr
-            if is_period_object(value):
-                return value.freq
-        except AttributeError:
-            pass
+        if is_period_object(value):
+            return value.freq
 
     raise ValueError('freq not specified and cannot be inferred')
 
@@ -1469,8 +1453,7 @@ def extract_freq(ndarray[object] values):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef int64_t[:] localize_dt64arr_to_period(const int64_t[:] stamps,
-                                           int freq, object tz):
+def dt64arr_to_periodarr(const int64_t[:] stamps, int freq, object tz):
     cdef:
         Py_ssize_t n = len(stamps)
         int64_t[:] result = np.empty(n, dtype=np.int64)
@@ -1519,7 +1502,7 @@ cdef int64_t[:] localize_dt64arr_to_period(const int64_t[:] stamps,
                 dt64_to_dtstruct(stamps[i] + deltas[pos[i]], &dts)
                 result[i] = get_period_ordinal(&dts, freq)
 
-    return result
+    return result.base  # .base to get underlying ndarray
 
 
 DIFFERENT_FREQ = ("Input has different freq={other_freq} "
@@ -1534,13 +1517,16 @@ cdef class _Period:
 
     cdef readonly:
         int64_t ordinal
-        object freq
+        PeriodPseudoDtype _dtype
+        BaseOffset freq
 
-    _typ = 'period'
-
-    def __cinit__(self, ordinal, freq):
+    def __cinit__(self, int64_t ordinal, BaseOffset freq):
         self.ordinal = ordinal
         self.freq = freq
+        # Note: this is more performant than PeriodDtype.from_date_offset(freq)
+        #  because from_date_offset cannot be made a cdef method (until cython
+        #  supported cdef classmethods)
+        self._dtype = PeriodPseudoDtype(freq._period_dtype_code)
 
     @classmethod
     def _maybe_convert_freq(cls, object freq):
@@ -1578,36 +1564,37 @@ cdef class _Period:
             return PyObject_RichCompareBool(self.ordinal, other.ordinal, op)
         elif other is NaT:
             return _nat_scalar_rules[op]
-        return NotImplemented
+        return NotImplemented  # TODO: ndarray[object]?
 
     def __hash__(self):
         return hash((self.ordinal, self.freqstr))
 
-    def _add_delta(self, other):
+    def _add_delta(self, other) -> "Period":
         cdef:
             int64_t nanos, offset_nanos
 
-        if (PyDelta_Check(other) or util.is_timedelta64_object(other) or
-                is_tick_object(other)):
-            offset = to_offset(self.freq.rule_code)
-            if is_tick_object(offset):
-                nanos = delta_to_nanoseconds(other)
-                offset_nanos = delta_to_nanoseconds(offset)
-                if nanos % offset_nanos == 0:
-                    ordinal = self.ordinal + (nanos // offset_nanos)
-                    return Period(ordinal=ordinal, freq=self.freq)
-            raise IncompatibleFrequency("Input cannot be converted to "
-                                        f"Period(freq={self.freqstr})")
-        elif util.is_offset_object(other):
-            if other.base == self.freq.base:
-                ordinal = self.ordinal + other.n
+        if is_tick_object(self.freq):
+            nanos = delta_to_nanoseconds(other)
+            offset_nanos = self.freq.base.nanos
+            if nanos % offset_nanos == 0:
+                ordinal = self.ordinal + (nanos // offset_nanos)
                 return Period(ordinal=ordinal, freq=self.freq)
-            msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
-                                        own_freq=self.freqstr,
-                                        other_freq=other.freqstr)
-            raise IncompatibleFrequency(msg)
-        else:  # pragma no cover
-            return NotImplemented
+        raise IncompatibleFrequency("Input cannot be converted to "
+                                    f"Period(freq={self.freqstr})")
+
+    def _add_offset(self, other) -> "Period":
+        # Non-Tick DateOffset other
+        cdef:
+            int64_t ordinal
+
+        if other.base == self.freq.base:
+            ordinal = self.ordinal + other.n
+            return Period(ordinal=ordinal, freq=self.freq)
+
+        msg = DIFFERENT_FREQ.format(cls=type(self).__name__,
+                                    own_freq=self.freqstr,
+                                    other_freq=other.freqstr)
+        raise IncompatibleFrequency(msg)
 
     def __add__(self, other):
         if not is_period_object(self):
@@ -1616,9 +1603,10 @@ cdef class _Period:
                 return NaT
             return other.__add__(self)
 
-        if (PyDelta_Check(other) or util.is_timedelta64_object(other) or
-                util.is_offset_object(other)):
+        if is_any_td_scalar(other):
             return self._add_delta(other)
+        elif is_offset_object(other):
+            return self._add_offset(other)
         elif other is NaT:
             return NaT
         elif util.is_integer_object(other):
@@ -1642,8 +1630,11 @@ cdef class _Period:
                 return NaT
             return NotImplemented
 
-        elif (PyDelta_Check(other) or util.is_timedelta64_object(other) or
-                util.is_offset_object(other)):
+        elif is_any_td_scalar(other):
+            neg_other = -other
+            return self + neg_other
+        elif is_offset_object(other):
+            # Non-Tick DateOffset
             neg_other = -other
             return self + neg_other
         elif util.is_integer_object(other):
@@ -1679,13 +1670,13 @@ cdef class _Period:
         """
         freq = self._maybe_convert_freq(freq)
         how = validate_end_alias(how)
-        base1, mult1 = get_freq_code(self.freq)
-        base2, mult2 = get_freq_code(freq)
+        base1 = self._dtype.dtype_code
+        base2, _ = get_freq_code(freq)
 
-        # mult1 can't be negative or 0
+        # self.n can't be negative or 0
         end = how == 'E'
         if end:
-            ordinal = self.ordinal + mult1 - 1
+            ordinal = self.ordinal + self.freq.n - 1
         else:
             ordinal = self.ordinal
         ordinal = period_asfreq(ordinal, base1, base2, end)
@@ -1724,10 +1715,7 @@ cdef class _Period:
 
     @property
     def end_time(self) -> Timestamp:
-        # freq.n can't be negative or 0
-        # ordinal = (self + self.freq.n).start_time.value - 1
-        ordinal = (self + self.freq).start_time.value - 1
-        return Timestamp(ordinal)
+        return self.to_timestamp(how="end")
 
     def to_timestamp(self, freq=None, how='start', tz=None) -> Timestamp:
         """
@@ -1749,20 +1737,34 @@ cdef class _Period:
         -------
         Timestamp
         """
-        if freq is not None:
-            freq = self._maybe_convert_freq(freq)
+        if tz is not None:
+            # GH#34522
+            warnings.warn(
+                "Period.to_timestamp `tz` argument is deprecated and will "
+                "be removed in a future version.  Use "
+                "`per.to_timestamp(...).tz_localize(tz)` instead.",
+                FutureWarning,
+                stacklevel=1,
+            )
+
         how = validate_end_alias(how)
 
         end = how == 'E'
         if end:
+            if freq == "B" or self.freq == "B":
+                # roll forward to ensure we land on B date
+                adjust = Timedelta(1, "D") - Timedelta(1, "ns")
+                return self.to_timestamp(how="start") + adjust
             endpoint = (self + self.freq).to_timestamp(how='start')
             return endpoint - Timedelta(1, 'ns')
 
         if freq is None:
-            base, mult = get_freq_code(self.freq)
+            base = self._dtype.dtype_code
             freq = get_to_timestamp_base(base)
+        else:
+            freq = self._maybe_convert_freq(freq)
 
-        base, mult = get_freq_code(freq)
+        base, _ = get_freq_code(freq)
         val = self.asfreq(freq, how)
 
         dt64 = period_ordinal_to_dt64(val.ordinal, base)
@@ -1770,12 +1772,12 @@ cdef class _Period:
 
     @property
     def year(self) -> int:
-        base, mult = get_freq_code(self.freq)
+        base = self._dtype.dtype_code
         return pyear(self.ordinal, base)
 
     @property
     def month(self) -> int:
-        base, mult = get_freq_code(self.freq)
+        base = self._dtype.dtype_code
         return pmonth(self.ordinal, base)
 
     @property
@@ -1798,7 +1800,7 @@ cdef class _Period:
         >>> p.day
         11
         """
-        base, mult = get_freq_code(self.freq)
+        base = self._dtype.dtype_code
         return pday(self.ordinal, base)
 
     @property
@@ -1828,7 +1830,7 @@ cdef class _Period:
         >>> p.hour
         0
         """
-        base, mult = get_freq_code(self.freq)
+        base = self._dtype.dtype_code
         return phour(self.ordinal, base)
 
     @property
@@ -1852,7 +1854,7 @@ cdef class _Period:
         >>> p.minute
         3
         """
-        base, mult = get_freq_code(self.freq)
+        base = self._dtype.dtype_code
         return pminute(self.ordinal, base)
 
     @property
@@ -1876,12 +1878,12 @@ cdef class _Period:
         >>> p.second
         12
         """
-        base, mult = get_freq_code(self.freq)
+        base = self._dtype.dtype_code
         return psecond(self.ordinal, base)
 
     @property
     def weekofyear(self) -> int:
-        base, mult = get_freq_code(self.freq)
+        base = self._dtype.dtype_code
         return pweek(self.ordinal, base)
 
     @property
@@ -1962,7 +1964,7 @@ cdef class _Period:
         >>> per.end_time.dayofweek
         2
         """
-        base, mult = get_freq_code(self.freq)
+        base = self._dtype.dtype_code
         return pweekday(self.ordinal, base)
 
     @property
@@ -2050,12 +2052,12 @@ cdef class _Period:
         >>> period.dayofyear
         1
         """
-        base, mult = get_freq_code(self.freq)
+        base = self._dtype.dtype_code
         return pday_of_year(self.ordinal, base)
 
     @property
     def quarter(self) -> int:
-        base, mult = get_freq_code(self.freq)
+        base = self._dtype.dtype_code
         return pquarter(self.ordinal, base)
 
     @property
@@ -2099,7 +2101,7 @@ cdef class _Period:
         >>> per.year
         2017
         """
-        base, mult = get_freq_code(self.freq)
+        base = self._dtype.dtype_code
         return pqyear(self.ordinal, base)
 
     @property
@@ -2133,7 +2135,7 @@ cdef class _Period:
         >>> p.days_in_month
         29
         """
-        base, mult = get_freq_code(self.freq)
+        base = self._dtype.dtype_code
         return pdays_in_month(self.ordinal, base)
 
     @property
@@ -2171,7 +2173,7 @@ cdef class _Period:
         return self.freq.freqstr
 
     def __repr__(self) -> str:
-        base, mult = get_freq_code(self.freq)
+        base = self._dtype.dtype_code
         formatted = period_format(self.ordinal, base)
         return f"Period('{formatted}', '{self.freqstr}')"
 
@@ -2179,7 +2181,7 @@ cdef class _Period:
         """
         Return a string representation for a particular DataFrame
         """
-        base, mult = get_freq_code(self.freq)
+        base = self._dtype.dtype_code
         formatted = period_format(self.ordinal, base)
         value = str(formatted)
         return value
@@ -2331,7 +2333,7 @@ cdef class _Period:
         >>> a.strftime('%b. %d, %Y was a %A')
         'Jan. 01, 2001 was a Monday'
         """
-        base, mult = get_freq_code(self.freq)
+        base = self._dtype.dtype_code
         return period_format(self.ordinal, base, fmt)
 
 
@@ -2504,6 +2506,7 @@ def quarter_to_myear(year: int, quarter: int, freq):
         year -= 1
 
     return year, month
+    # TODO: This whole func is really similar to parsing.pyx L434-L450
 
 
 def validate_end_alias(how):
