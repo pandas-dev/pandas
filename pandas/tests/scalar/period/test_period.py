@@ -666,7 +666,7 @@ class TestPeriodMethods:
     @pytest.mark.parametrize("freq", [None, "us", "ns"])
     def test_to_timestamp_microsecond(self, ts, expected, freq):
         # GH 24444
-        result = Period(f"{ts}").to_timestamp(freq=freq).microsecond
+        result = Period(ts).to_timestamp(freq=freq).microsecond
         assert result == expected
 
     # --------------------------------------------------------------
