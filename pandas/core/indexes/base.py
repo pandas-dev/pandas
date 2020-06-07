@@ -476,6 +476,26 @@ class Index(IndexOpsMixin, PandasObject):
     def _constructor(self):
         return type(self)
 
+    def _maybe_check_unique(self):
+        from pandas.errors import DuplicateLabelError
+
+        if not self.is_unique:
+            # TODO: position, value, not too large.
+            msg = """Index has duplicates."""
+            duplicates = self._format_duplicate_message()
+            msg += "\n{}".format(duplicates)
+
+            raise DuplicateLabelError(msg)
+
+    def _format_duplicate_message(self):
+        from pandas import Series
+
+        duplicates = self[self.duplicated(keep="first")].unique()
+        assert len(duplicates)
+
+        out = Series(np.arange(len(self))).groupby(self).agg(list)[duplicates]
+        return out.rename_axis("label").to_frame(name="positions")
+
     # --------------------------------------------------------------------
     # Index Internals Methods
 

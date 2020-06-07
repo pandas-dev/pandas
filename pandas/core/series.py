@@ -178,6 +178,21 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         The name to give to the Series.
     copy : bool, default False
         Copy input data.
+    allows_duplicate_labels : bool, default True
+        Whether to allow duplicate labels in this Series. By default,
+        duplicate labels are permitted. Setting this to ``False`` will
+        cause an :class:`errors.DuplicateLabelError` to be raised when
+        `index` is not unique, or any subsequent operation on this Series
+        introduces duplicates. See :ref:`duplicates.disallow` for more.
+
+        .. versionadded:: 1.1.0
+
+        .. warning::
+
+           This is an experimental feature. Currently, many methods fail to
+           propagate the ``allows_duplicate_labels`` value. In future versions
+           it is expected that every method taking or returning one or more
+           DataFrame or Series objects will propage ``allows_duplicate_labels``
     """
 
     _typ = "series"
@@ -204,7 +219,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # Constructors
 
     def __init__(
-        self, data=None, index=None, dtype=None, name=None, copy=False, fastpath=False
+        self,
+        data=None,
+        index=None,
+        dtype=None,
+        name=None,
+        copy=False,
+        allows_duplicate_labels=True,
+        fastpath=False,
     ):
 
         if (
@@ -214,7 +236,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             and copy is False
         ):
             # GH#33357 called with just the SingleBlockManager
-            NDFrame.__init__(self, data)
+            NDFrame.__init__(
+                self, data, allows_duplicate_labels=allows_duplicate_labels
+            )
             self.name = name
             return
 
@@ -333,7 +357,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
                 data = SingleBlockManager.from_array(data, index)
 
-        generic.NDFrame.__init__(self, data)
+        generic.NDFrame.__init__(
+            self, data, allows_duplicate_labels=allows_duplicate_labels
+        )
         self.name = name
         self._set_axis(0, index, fastpath=True)
 

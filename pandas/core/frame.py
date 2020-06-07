@@ -361,6 +361,23 @@ class DataFrame(NDFrame):
         Data type to force. Only a single dtype is allowed. If None, infer.
     copy : bool, default False
         Copy data from inputs. Only affects DataFrame / 2d ndarray input.
+    allows_duplicate_labels : bool, default True
+        Whether to allow duplicate row or column labels in this DataFrame.
+        By default, duplicate labels are permitted. Setting this to ``False``
+        will cause an :class:`errors.DuplicateLabelError` to be raised when
+        `index` or `columns` are not unique, or when any subsequent operation
+        on this DataFrame introduces duplicates. See :ref:`duplicates.disallow`
+        for more.
+
+        .. versionadded:: 1.1.0
+
+        .. warning::
+
+           This is an experimental feature. Currently, many methods fail to
+           propagate the ``allows_duplicate_labels`` value. In future versions
+           it is expected that every method taking or returning one or more
+           DataFrame or Series objects will propage ``allows_duplicate_labels``
+
 
     See Also
     --------
@@ -437,6 +454,7 @@ class DataFrame(NDFrame):
         columns: Optional[Axes] = None,
         dtype: Optional[Dtype] = None,
         copy: bool = False,
+        allows_duplicate_labels=True,
     ):
         if data is None:
             data = {}
@@ -449,7 +467,9 @@ class DataFrame(NDFrame):
         if isinstance(data, BlockManager):
             if index is None and columns is None and dtype is None and copy is False:
                 # GH#33357 fastpath
-                NDFrame.__init__(self, data)
+                NDFrame.__init__(
+                    self, data, allows_duplicate_labels=allows_duplicate_labels
+                )
                 return
 
             mgr = self._init_mgr(
@@ -535,7 +555,7 @@ class DataFrame(NDFrame):
             else:
                 raise ValueError("DataFrame constructor not properly called!")
 
-        NDFrame.__init__(self, mgr)
+        NDFrame.__init__(self, mgr, allows_duplicate_labels=allows_duplicate_labels)
 
     # ----------------------------------------------------------------------
 

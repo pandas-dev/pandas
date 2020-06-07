@@ -202,6 +202,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self,
         data: BlockManager,
         copy: bool = False,
+        allows_duplicate_labels: bool = True,
         attrs: Optional[Mapping[Optional[Hashable], Any]] = None,
     ):
         # copy kwarg is retained for mypy compat, is not used
@@ -214,6 +215,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         else:
             attrs = dict(attrs)
         object.__setattr__(self, "_attrs", attrs)
+        object.__setattr__(self, "allows_duplicate_labels", allows_duplicate_labels)
 
     @classmethod
     def _init_mgr(cls, mgr, axes, dtype=None, copy: bool = False) -> BlockManager:
@@ -251,6 +253,22 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     @attrs.setter
     def attrs(self, value: Mapping[Optional[Hashable], Any]) -> None:
         self._attrs = dict(value)
+
+    @property
+    def allows_duplicate_labels(self) -> bool:
+        """
+        Whether this object allows duplicate labels.
+        """
+        return self._allows_duplicate_labels
+
+    @allows_duplicate_labels.setter
+    def allows_duplicate_labels(self, value: bool):
+        value = bool(value)
+        if not value:
+            for ax in self.axes:
+                ax._maybe_check_unique()
+
+        self._allows_duplicate_labels = value
 
     @classmethod
     def _validate_dtype(cls, dtype):
@@ -5198,10 +5216,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if isinstance(other, NDFrame):
             for name in other.attrs:
                 self.attrs[name] = other.attrs[name]
+
+            self.allows_duplicate_labels = other.allows_duplicate_labels
             # For subclasses using _metadata.
             for name in self._metadata:
                 assert isinstance(name, str)
                 object.__setattr__(self, name, getattr(other, name, None))
+
         return self
 
     def __getattr__(self, name: str):

@@ -203,6 +203,47 @@ For example:
     pd.to_datetime(tz_strs, format='%Y-%m-%d %H:%M:%S %z', utc=True)
     pd.to_datetime(tz_strs, format='%Y-%m-%d %H:%M:%S %z')
 
+.. _whatsnew_110.duplicate_labels:
+
+Optionally disallow duplicate labels
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:class:`Series` and :class:`DataFrame` can now be created with ``allows_duplicate_labels=False`` flag to
+control whether the index or columns can contain duplicate labels. This can be used to prevent accidental
+introduction of duplicate labels, which can affect downstream operations.
+
+By default, duplicates continue to be allowed
+
+.. ipython:: python
+
+  pd.Series([1, 2], index=['a', 'a'])
+
+.. ipython:: python
+  :okexcept:
+
+  pd.Series([1, 2], index=['a', 'a'], allows_duplicate_labels=False)
+
+Pandas will propagate the ``allows_duplicate_labels`` property through many operations.
+
+.. ipython:: python
+  :okexcept:
+
+  a = pd.Series([1, 2], index=['a', 'b'], allows_duplicate_labels=False)
+  a
+  # An operation introducing duplicates
+  a.reindex(['a', 'b', 'a'])
+
+.. warning::
+
+   This is an experimental feature. Currently, many methods fail to
+   propagate the ``allows_duplicate_labels`` value. In future versions
+   it is expected that every method taking or returning one or more
+   DataFrame or Series objects will propage ``allows_duplicate_labels``
+
+See :ref:`duplicates` for more.
+
+
+
 .. _whatsnew_110.grouper_resample_origin:
 
 Grouper and resample now supports the arguments origin and offset

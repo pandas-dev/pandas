@@ -200,3 +200,16 @@ class NumbaUtilError(Exception):
     """
     Error raised for unsupported Numba engine routines.
     """
+
+
+class DuplicateLabelError(ValueError):
+    """
+    Error raised when an operation would introduce duplicate labels.
+    Examples
+    --------
+    >>> s = pd.Series([0, 1, 2], index=['a', 'b', 'c'], allows_duplicates=False)
+    >>> s.reindex(['a', 'a', 'b'])
+    Traceback (most recent call last):
+       ...
+    DuplicateLabelError: Duplicate labels are not allowed on this pandas object.
+    """
