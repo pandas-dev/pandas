@@ -2,7 +2,16 @@ from collections import abc
 from datetime import datetime
 from functools import partial
 from itertools import islice
-from typing import TYPE_CHECKING, Callable, Optional, TypeVar, Union, overload
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    List,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+    overload,
+)
 import warnings
 
 import numpy as np
@@ -49,12 +58,10 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------
 # types used in annotations
 
-ArrayConvertible = Union[list, tuple, ArrayLike, "Series"]
+ArrayConvertible = Union[List, Tuple, ArrayLike, "Series"]
 Scalar = Union[int, float, str]
 DatetimeScalar = TypeVar("DatetimeScalar", Scalar, datetime)
-DatetimeScalarOrArrayConvertible = Union[
-    DatetimeScalar, list, tuple, ArrayLike, "Series"
-]
+DatetimeScalarOrArrayConvertible = Union[DatetimeScalar, ArrayConvertible]
 
 
 # ---------------------------------------------------------------------
@@ -580,7 +587,7 @@ def to_datetime(
 
 @overload
 def to_datetime(
-    arg: Union[list, tuple],
+    arg: Union[List, Tuple],
     errors: str = ...,
     dayfirst: bool = ...,
     yearfirst: bool = ...,
