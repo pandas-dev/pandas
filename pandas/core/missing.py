@@ -2,7 +2,7 @@
 Routines for filling missing data.
 """
 
-from typing import TYPE_CHECKING, Any, List, Optional, Set, Union
+from typing import Any, List, Optional, Set, Union
 
 import numpy as np
 
@@ -21,9 +21,6 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
 )
 from pandas.core.dtypes.missing import isna
-
-if TYPE_CHECKING:
-    from pandas import Index
 
 
 def mask_missing(arr, values_to_mask):
@@ -98,7 +95,7 @@ def clean_fill_method(method, allow_nearest=False):
 
 
 def clean_interp_method(
-    method: str, index: "Index", order: Optional[int] = None, **kwargs
+    method: str, order: Optional[int] = None, **kwargs
 ) -> str:
     valid = [
         "linear",
