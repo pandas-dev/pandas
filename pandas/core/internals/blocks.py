@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import inspect
 import re
-from typing import Any, List, Optional
+from typing import TYPE_CHECKING, Any, List, Optional
 import warnings
 
 import numpy as np
@@ -82,6 +82,9 @@ from pandas.core.indexers import (
 )
 import pandas.core.missing as missing
 from pandas.core.nanops import nanpercentile
+
+if TYPE_CHECKING:
+    from pandas import Index
 
 
 class Block(PandasObject):
@@ -1066,16 +1069,16 @@ class Block(PandasObject):
 
     def interpolate(
         self,
-        method="pad",
-        axis=0,
-        index=None,
-        inplace=False,
-        limit=None,
-        limit_direction="forward",
-        limit_area=None,
-        fill_value=None,
-        coerce=False,
-        downcast=None,
+        method: str = "pad",
+        axis: int = 0,
+        index: Optional["Index"] = None,
+        inplace: bool = False,
+        limit: Optional[int] = None,
+        limit_direction: str = "forward",
+        limit_area: Optional[str] = None,
+        fill_value: Optional[Any] = None,
+        coerce: bool = False,
+        downcast: Optional[str] = None,
         **kwargs,
     ):
 
@@ -1102,12 +1105,10 @@ class Block(PandasObject):
                 downcast=downcast,
             )
 
-        # validate the interp method and get xvalues
-        m, xvalues = missing.clean_interp_method(method, index, **kwargs)
-
+        assert index is not None  # for mypy
         return self._interpolate(
-            method=m,
-            xvalues=xvalues,
+            method=method,
+            index=index,
             axis=axis,
             limit=limit,
             limit_direction=limit_direction,
@@ -1123,7 +1124,7 @@ class Block(PandasObject):
         method: str = "pad",
         axis: int = 0,
         inplace: bool = False,
-        limit: Optional[str] = None,
+        limit: Optional[int] = None,
         fill_value: Optional[Any] = None,
         coerce: bool = False,
         downcast: Optional[str] = None,
@@ -1159,8 +1160,8 @@ class Block(PandasObject):
 
     def _interpolate(
         self,
-        method: Optional[str] = None,
-        xvalues: Optional[np.ndarray] = None,
+        method: str,
+        index: "Index",
         fill_value: Optional[Any] = None,
         axis: int = 0,
         limit: Optional[int] = None,
@@ -1173,6 +1174,9 @@ class Block(PandasObject):
         """ interpolate using scipy wrappers """
         inplace = validate_bool_kwarg(inplace, "inplace")
         data = self.values if inplace else self.values.copy()
+
+        # validate the interp method and get xvalues
+        method, xvalues = missing.clean_interp_method(method, index, **kwargs)
 
         # only deal with floats
         if not self.is_float:
