@@ -270,7 +270,7 @@ Creating a Python environment (pip)
 If you aren't using conda for your development environment, follow these instructions.
 You'll need to have at least Python 3.6.1 installed on your system.
 
-**Unix**/**Mac OS**
+**Unix**/**Mac OS with virtualenv**
 
 .. code-block:: bash
 
@@ -286,7 +286,31 @@ You'll need to have at least Python 3.6.1 installed on your system.
    python -m pip install -r requirements-dev.txt
 
    # Build and install pandas
-   python setup.py build_ext --inplace -j 0
+   python setup.py build_ext --inplace -j 4
+   python -m pip install -e . --no-build-isolation --no-use-pep517
+
+**Unix**/**Mac OS with pyenv**
+
+Consult the docs for setting up pyenv `here <https://github.com/pyenv/pyenv>`__.
+
+.. code-block:: bash
+
+   # Create a virtual environment
+   # Use an ENV_DIR of your choice. We'll use ~/Users/<yourname>/.pyenv/versions/pandas-dev
+
+   pyenv virtualenv <version> <name-to-give-it>
+
+   # For instance:
+   pyenv virtualenv 3.7.6 pandas-dev
+
+   # Activate the virtualenv
+   pyenv activate pandas-dev
+
+   # Now install the build dependencies in the cloned pandas repo
+   python -m pip install -r requirements-dev.txt
+
+   # Build and install pandas
+   python setup.py build_ext --inplace -j 4
    python -m pip install -e . --no-build-isolation --no-use-pep517
 
 **Windows**
@@ -312,7 +336,7 @@ should already exist.
    python -m pip install -r requirements-dev.txt
 
    # Build and install pandas
-   python setup.py build_ext --inplace -j 0
+   python setup.py build_ext --inplace -j 4
    python -m pip install -e . --no-build-isolation --no-use-pep517
 
 Creating a branch
