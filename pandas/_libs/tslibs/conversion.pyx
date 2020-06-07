@@ -227,7 +227,24 @@ def ensure_timedelta64ns(arr: ndarray, copy: bool=True):
     # Re-use the datetime64 machinery to do an overflow-safe `astype`
     dtype = arr.dtype.str.replace("m8", "M8")
     dummy = arr.view(dtype)
-    dt64_result = ensure_datetime64ns(dummy, copy)
+    try:
+        dt64_result = ensure_datetime64ns(dummy, copy)
+    except OutOfBoundsDatetime as err:
+        # Re-write the exception in terms of timedelta64 instead of dt64
+
+        # Find the value that we are going to report as causing an overflow
+        tdmin = arr.min()
+        tdmax = arr.max()
+        if np.abs(tdmin) >= np.abs(tdmax):
+            bad_val = tdmin
+        else:
+            bad_val = tdmax
+
+        unit_str = arr.dtype.str.split("[")[-1][:-1]
+        raise OutOfBoundsDatetime(
+            f"Out of bounds for nanosecond timedelta {bad_val}[{unit_str}]"
+        )
+
     return dt64_result.view(TD64NS_DTYPE)
 
 

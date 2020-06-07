@@ -88,7 +88,8 @@ def test_ensure_datetime64ns_bigendian():
 
 def test_ensure_timedelta64ns_overflows():
     arr = np.arange(10).astype("m8[Y]") * 100
-    with pytest.raises(OutOfBoundsDatetime, match="Out of bounds"):
+    msg = r"Out of bounds for nanosecond timedelta 900\[Y\]"
+    with pytest.raises(OutOfBoundsDatetime, match=msg):
         conversion.ensure_timedelta64ns(arr)
 
 
