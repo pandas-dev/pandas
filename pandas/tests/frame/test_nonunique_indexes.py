@@ -530,6 +530,14 @@ def test_iloc_with_boolean_operation():
     expected = DataFrame([[0, 4], [8, 12], [8, 10], [12, np.nan]])
     tm.assert_frame_equal(result, expected)
 
+    result.iloc[result.index <= 2, 0] *= 2
+    expected = DataFrame([[0, 4], [16, 12], [16, 10], [12, np.nan]])
+    tm.assert_frame_equal(result, expected)
+
+    result.iloc[result.index > 2, 0] *= 2
+    expected = DataFrame([[0, 4], [16, 12], [16, 10], [24, np.nan]])
+    tm.assert_frame_equal(result, expected)
+
     result.iloc[[False, False, True, True]] /= 2
-    expected = DataFrame([[0.0, 4.0], [8.0, 12.0], [4.0, 5.0], [6.0, np.nan]])
+    expected = DataFrame([[0.0, 4.0], [16.0, 12.0], [8.0, 5.0], [12.0, np.nan]])
     tm.assert_frame_equal(result, expected)
