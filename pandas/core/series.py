@@ -2224,6 +2224,7 @@ Name: Max Speed, dtype: float64
             # scalar
             return result.iloc[0]
 
+    @doc(NDFrame.interpolate)
     def interpolate(
         self,
         method: str = "linear",
@@ -2235,9 +2236,6 @@ Name: Max Speed, dtype: float64
         downcast: Optional[str] = None,
         **kwargs,
     ) -> Optional["Series"]:
-        """
-        Interpolate values according to different methods.
-        """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         axis = self._get_axis_number(axis)
