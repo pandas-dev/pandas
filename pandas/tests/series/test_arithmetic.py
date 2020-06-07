@@ -595,7 +595,6 @@ class TestSeriesComparison:
         s4 = pd.Series([2, 2, 2, 2], index=list("ABCD"), name="x")
 
         for left, right in [(s1, s2), (s2, s1), (s3, s4), (s4, s3)]:
-
             msg = "Can only compare identically-labeled Series objects"
             with pytest.raises(ValueError, match=msg):
                 left == right
@@ -682,195 +681,102 @@ class TestTimeSeriesArithmetic:
     @pytest.mark.filterwarnings(
         "ignore:Adding/subtracting object-dtype array to DatetimeArray"
     )
-    def test_series_add_daytime_offset(self):
-        # GH#19211
-        ser_daytime = pd.Series(
+    @pytest.mark.parametrize(
+        "daytime",
+        [
             [
                 pd.Timestamp("2000-01-01"),
                 pd.Timestamp("2000-02-01"),
                 pd.Timestamp("2000-05-01"),
             ]
-        )
-        ser_offset = pd.Series(
+        ],
+    )
+    @pytest.mark.parametrize(
+        "offset",
+        [
             [
                 pd.offsets.DateOffset(years=1),
                 pd.offsets.DateOffset(months=2),
                 pd.offsets.MonthEnd(),
             ]
-        )
-
-        result1 = ser_offset + ser_daytime
-        result2 = ser_daytime + ser_offset
-
-        expected = pd.Series(
+        ],
+    )
+    @pytest.mark.parametrize(
+        "expected",
+        [
             [
                 pd.Timestamp("2001-01-01"),
                 pd.Timestamp("2000-04-01"),
                 pd.Timestamp("2000-05-31"),
             ]
-        )
-
-        tm.assert_series_equal(result1, expected)
-        tm.assert_series_equal(result2, expected)
+        ],
+    )
+    @pytest.mark.parametrize(
+        "constr_daytime, constr_offset, constr_expected",
+        [
+            (pd.Series, pd.Series, pd.Series),
+            (pd.Series, pd.Index, pd.Series),
+            (pd.DatetimeIndex, pd.Series, pd.Series),
+        ],
+    )
+    def test_add_daytime_offset(
+        self, daytime, offset, expected, constr_daytime, constr_offset, constr_expected
+    ):
+        # GH#19211
+        result1 = constr_offset(offset) + constr_daytime(daytime)
+        result2 = constr_daytime(daytime) + constr_offset(offset)
+        tm.assert_series_equal(result1, constr_expected(expected))
+        tm.assert_series_equal(result2, constr_expected(expected))
 
     @pytest.mark.filterwarnings(
         "ignore:Adding/subtracting object-dtype array to DatetimeArray"
     )
-    def test_series_add_daytime_offset_index(self):
-        # GH#19211
-        ser_daytime = pd.Series(
-            [
-                pd.Timestamp("2000-01-01"),
-                pd.Timestamp("2000-02-01"),
-                pd.Timestamp("2000-05-01"),
-            ]
-        )
-        ser_offset = pd.Series(
-            [
-                pd.offsets.DateOffset(years=1),
-                pd.offsets.DateOffset(months=2),
-                pd.offsets.MonthEnd(),
-            ]
-        )
-
-        result1 = pd.Index(ser_offset) + ser_daytime
-        result2 = ser_daytime + pd.Index(ser_offset)
-
-        expected = pd.Series(
-            [
-                pd.Timestamp("2001-01-01"),
-                pd.Timestamp("2000-04-01"),
-                pd.Timestamp("2000-05-31"),
-            ]
-        )
-        tm.assert_series_equal(result1, expected)
-        tm.assert_series_equal(result2, expected)
-
-    @pytest.mark.filterwarnings(
-        "ignore:Adding/subtracting object-dtype array to DatetimeArray"
-    )
-    def test_series_add_daytime_index_offset(self):
-        # GH#19211
-        ser_daytime = pd.Series(
-            [
-                pd.Timestamp("2000-01-01"),
-                pd.Timestamp("2000-02-01"),
-                pd.Timestamp("2000-05-01"),
-            ]
-        )
-        ser_offset = pd.Series(
-            [
-                pd.offsets.DateOffset(years=1),
-                pd.offsets.DateOffset(months=2),
-                pd.offsets.MonthEnd(),
-            ]
-        )
-
-        result1 = ser_offset + pd.DatetimeIndex(ser_daytime)
-        result2 = pd.DatetimeIndex(ser_daytime) + ser_offset
-
-        expected = pd.Series(
-            [
-                pd.Timestamp("2001-01-01"),
-                pd.Timestamp("2000-04-01"),
-                pd.Timestamp("2000-05-31"),
-            ]
-        )
-        tm.assert_series_equal(result1, expected)
-        tm.assert_series_equal(result2, expected)
-
-    @pytest.mark.filterwarnings(
-        "ignore:Adding/subtracting object-dtype array to DatetimeArray"
-    )
-    def test_series_sub_daytime_offset(self):
-        # GH#19211
-        ser_daytime = pd.Series(
+    @pytest.mark.parametrize(
+        "daytime",
+        [
             [
                 pd.Timestamp("2000-01-01"),
                 pd.Timestamp("2000-03-29"),
                 pd.Timestamp("2000-05-15"),
             ]
-        )
-        ser_offset = pd.Series(
-            [
-                pd.offsets.DateOffset(years=1),
-                pd.offsets.DateOffset(months=2),
-                pd.offsets.MonthBegin(),
-            ]
-        )
-
-        result = ser_daytime - ser_offset
-
-        expected = pd.Series(
-            [
-                pd.Timestamp("1999-1-1"),
-                pd.Timestamp("2000-1-29"),
-                pd.Timestamp("2000-05-01"),
-            ]
-        )
-        tm.assert_series_equal(result, expected)
-
-    @pytest.mark.filterwarnings(
-        "ignore:Adding/subtracting object-dtype array to DatetimeArray"
+        ],
     )
-    def test_series_sub_daytime_offset_index(self):
-        # GH#19211
-        ser_daytime = pd.Series(
-            [
-                pd.Timestamp("2000-01-01"),
-                pd.Timestamp("2000-03-29"),
-                pd.Timestamp("2000-05-15"),
-            ]
-        )
-        ser_offset = pd.Series(
+    @pytest.mark.parametrize(
+        "offset",
+        [
             [
                 pd.offsets.DateOffset(years=1),
                 pd.offsets.DateOffset(months=2),
                 pd.offsets.MonthBegin(),
             ]
-        )
-
-        result = ser_daytime - pd.Index(ser_offset)
-
-        expected = pd.Series(
-            [
-                pd.Timestamp("1999-1-1"),
-                pd.Timestamp("2000-1-29"),
-                pd.Timestamp("2000-05-01"),
-            ]
-        )
-        tm.assert_series_equal(result, expected)
-
-    @pytest.mark.filterwarnings(
-        "ignore:Adding/subtracting object-dtype array to DatetimeArray"
+        ],
     )
-    def test_series_sub_daytime_index_offset(self):
+    @pytest.mark.parametrize(
+        "expected",
+        [
+            pd.Series(
+                [
+                    pd.Timestamp("1999-1-1"),
+                    pd.Timestamp("2000-1-29"),
+                    pd.Timestamp("2000-05-01"),
+                ]
+            )
+        ],
+    )
+    @pytest.mark.parametrize(
+        "constr_daytime, constr_offset, constr_expected",
+        [
+            (pd.Series, pd.Series, pd.Series),
+            (pd.Series, pd.Index, pd.Series),
+            (pd.DatetimeIndex, pd.Series, pd.Series),
+        ],
+    )
+    def test_sub_daytime_offset(
+        self, daytime, offset, expected, constr_daytime, constr_offset, constr_expected
+    ):
         # GH#19211
-        ser_daytime = pd.Series(
-            [
-                pd.Timestamp("2000-01-01"),
-                pd.Timestamp("2000-03-29"),
-                pd.Timestamp("2000-05-15"),
-            ]
-        )
-        ser_offset = pd.Series(
-            [
-                pd.offsets.DateOffset(years=1),
-                pd.offsets.DateOffset(months=2),
-                pd.offsets.MonthBegin(),
-            ]
-        )
-
-        result = pd.DatetimeIndex(ser_daytime) - ser_offset
-
-        expected = pd.Series(
-            [
-                pd.Timestamp("1999-1-1"),
-                pd.Timestamp("2000-1-29"),
-                pd.Timestamp("2000-05-01"),
-            ]
-        )
-        tm.assert_series_equal(result, expected)
+        result = constr_daytime(daytime) - constr_offset(offset)
+        tm.assert_series_equal(result, constr_expected(expected))
 
     def test_datetime_understood(self):
         # Ensures it doesn't fail to create the right series
