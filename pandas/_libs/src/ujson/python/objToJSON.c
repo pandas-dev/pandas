@@ -2130,9 +2130,10 @@ const char *Object_getBigNumStringValue(JSOBJ obj, JSONTypeContext *tc,
                                     size_t *_outLen) {
     PyObject* repr = PyObject_Repr(obj);
     PyObject* str = PyUnicode_AsEncodedString(repr, "utf-8", "~E~");
-    const char *bytes = PyBytes_AS_STRING(str);
+    char *bytes = PyBytes_AS_STRING(str);
 
-    GET_TC(tc)->str = bytes;
+    PyObject_Free(GET_TC(tc)->cStr);
+    GET_TC(tc)->cStr = bytes;
     
     return GET_TC(tc)->cStr;
 }
