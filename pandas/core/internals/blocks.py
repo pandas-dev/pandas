@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import inspect
 import re
-from typing import Any, List
+from typing import Any, List, Optional
 import warnings
 
 import numpy as np
@@ -1081,14 +1081,9 @@ class Block(PandasObject):
 
         inplace = validate_bool_kwarg(inplace, "inplace")
 
-        def check_int_bool(self, inplace):
-            # Only FloatBlocks will contain NaNs.
-            # timedelta subclasses IntBlock
-            if (self.is_bool or self.is_integer) and not self.is_timedelta:
-                if inplace:
-                    return self
-                else:
-                    return self.copy()
+        # Only FloatBlocks will contain NaNs. timedelta subclasses IntBlock
+        if (self.is_bool or self.is_integer) and not self.is_timedelta:
+            return self if inplace else self.copy()
 
         # a fill na type method
         try:
@@ -1097,9 +1092,6 @@ class Block(PandasObject):
             m = None
 
         if m is not None:
-            r = check_int_bool(self, inplace)
-            if r is not None:
-                return r
             return self._interpolate_with_fill(
                 method=m,
                 axis=axis,
@@ -1109,15 +1101,13 @@ class Block(PandasObject):
                 coerce=coerce,
                 downcast=downcast,
             )
-        # validate the interp method
-        m = missing.clean_interp_method(method, index, **kwargs)
 
-        r = check_int_bool(self, inplace)
-        if r is not None:
-            return r
+        # validate the interp method and get xvalues
+        m, xvalues = missing.clean_interp_method(method, index, **kwargs)
+
         return self._interpolate(
             method=m,
-            index=index,
+            xvalues=xvalues,
             axis=axis,
             limit=limit,
             limit_direction=limit_direction,
@@ -1130,13 +1120,13 @@ class Block(PandasObject):
 
     def _interpolate_with_fill(
         self,
-        method="pad",
-        axis=0,
-        inplace=False,
-        limit=None,
-        fill_value=None,
-        coerce=False,
-        downcast=None,
+        method: str = "pad",
+        axis: int = 0,
+        inplace: bool = False,
+        limit: Optional[str] = None,
+        fill_value: Optional[Any] = None,
+        coerce: bool = False,
+        downcast: Optional[str] = None,
     ) -> List["Block"]:
         """ fillna but using the interpolate machinery """
         inplace = validate_bool_kwarg(inplace, "inplace")
@@ -1169,15 +1159,15 @@ class Block(PandasObject):
 
     def _interpolate(
         self,
-        method=None,
-        index=None,
-        fill_value=None,
-        axis=0,
-        limit=None,
-        limit_direction="forward",
-        limit_area=None,
-        inplace=False,
-        downcast=None,
+        method: Optional[str] = None,
+        xvalues: Optional[np.ndarray] = None,
+        fill_value: Optional[Any] = None,
+        axis: int = 0,
+        limit: Optional[int] = None,
+        limit_direction: str = "forward",
+        limit_area: Optional[str] = None,
+        inplace: bool = False,
+        downcast: Optional[str] = None,
         **kwargs,
     ) -> List["Block"]:
         """ interpolate using scipy wrappers """
@@ -1195,14 +1185,14 @@ class Block(PandasObject):
 
         # process 1-d slices in the axis direction
 
-        def func(x):
+        def func(yvalues: np.ndarray) -> np.ndarray:
 
             # process a 1-d slice, returning it
             # should the axis argument be handled below in apply_along_axis?
             # i.e. not an arg to missing.interpolate_1d
             return missing.interpolate_1d(
-                index,
-                x,
+                xvalues=xvalues,
+                yvalues=yvalues,
                 method=method,
                 limit=limit,
                 limit_direction=limit_direction,

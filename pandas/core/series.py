@@ -47,16 +47,13 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_bool,
     is_categorical_dtype,
-    is_datetime64_any_dtype,
     is_dict_like,
     is_extension_array_dtype,
     is_integer,
     is_iterator,
     is_list_like,
-    is_numeric_dtype,
     is_object_dtype,
     is_scalar,
-    is_timedelta64_dtype,
 )
 from pandas.core.dtypes.generic import ABCDataFrame
 from pandas.core.dtypes.inference import is_hashable
@@ -2229,26 +2226,21 @@ Name: Max Speed, dtype: float64
 
     def interpolate(
         self,
-        method="linear",
-        axis=0,
-        limit=None,
-        inplace=False,
-        limit_direction="forward",
-        limit_area=None,
-        downcast=None,
+        method: str = "linear",
+        axis: Axis = 0,
+        limit: Optional[int] = None,
+        inplace: bool = False,
+        limit_direction: str = "forward",
+        limit_area: Optional[str] = None,
+        downcast: Optional[str] = None,
         **kwargs,
-    ):
+    ) -> Optional["Series"]:
         """
         Interpolate values according to different methods.
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         axis = self._get_axis_number(axis)
-
-        if isinstance(self.index, MultiIndex) and method != "linear":
-            raise ValueError(
-                "Only `method=linear` interpolation is supported on MultiIndexes."
-            )
 
         # for the methods backfill, bfill, pad, ffill limit_direction and limit_area
         # are being ignored, see gh-26796 for more information
@@ -2261,39 +2253,12 @@ Name: Max Speed, dtype: float64
                 downcast=downcast,
             )
 
-        # TODO: get x values from index could be helper function or shared with
-        #  DataFrame ()
-        index = self.index
-        if method == "linear":
-            # prior default
-            index = np.arange(len(index))
-        else:
-            methods = {"index", "values", "nearest", "time"}
-            is_numeric_or_datetime = (
-                is_numeric_dtype(index.dtype)
-                or is_datetime64_any_dtype(index.dtype)
-                or is_timedelta64_dtype(index.dtype)
-            )
-            if method not in methods and not is_numeric_or_datetime:
-                raise ValueError(
-                    "Index column must be numeric or datetime type when "
-                    f"using {method} method other than linear. "
-                    "Try setting a numeric or datetime index column before "
-                    "interpolating."
-                )
-
-        if isna(index).any():
-            raise NotImplementedError(
-                "Interpolation with NaNs in the index "
-                "has not been implemented. Try filling "
-                "those NaNs before interpolating."
-            )
-
-        method = missing.clean_interp_method(method, index, **kwargs)
+        # validate the interp method and get xvalues
+        method, xvalues = missing.clean_interp_method(method, self.index, **kwargs)
 
         arr = missing.interpolate_1d(
-            xvalues=index,
-            yvalues=self.values,
+            xvalues,
+            self.values,
             method=method,
             limit=limit,
             limit_direction=limit_direction,
@@ -2305,10 +2270,11 @@ Name: Max Speed, dtype: float64
         if downcast is not None:
             arr = maybe_downcast_to_dtype(arr, dtype=downcast)
 
-        result = self._constructor(arr, index=self.index)
+        result = self._constructor(arr, index=self.index, fastpath=True)
 
         if inplace:
-            return self._update_inplace(result)
+            self._update_inplace(result)
+            return None
         else:
             return result.__finalize__(self, method="interpolate")
 

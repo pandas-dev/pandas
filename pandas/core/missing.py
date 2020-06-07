@@ -2,6 +2,8 @@
 Routines for filling missing data.
 """
 
+from typing import TYPE_CHECKING, Any, List, Optional, Set, Tuple, Union
+
 import numpy as np
 
 from pandas._libs import algos, lib
@@ -10,15 +12,21 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.core.dtypes.cast import infer_dtype_from_array
 from pandas.core.dtypes.common import (
     ensure_float64,
+    is_datetime64_any_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_integer_dtype,
+    is_numeric_dtype,
     is_numeric_v_string_like,
     is_scalar,
     is_timedelta64_dtype,
     needs_i8_conversion,
 )
+from pandas.core.dtypes.generic import ABCMultiIndex
 from pandas.core.dtypes.missing import isna
+
+if TYPE_CHECKING:
+    from pandas import Index
 
 
 def mask_missing(arr, values_to_mask):
@@ -92,8 +100,16 @@ def clean_fill_method(method, allow_nearest=False):
     return method
 
 
-def clean_interp_method(method, index, **kwargs):
-    order = kwargs.get("order")
+def clean_interp_method(
+    method: str, index: "Index", order: Optional[int] = None, **kwargs
+) -> Tuple[str, np.ndarray]:
+    """
+    Validate Index and order keyword for interpolation methods.
+
+    Returns
+    -------
+    tuple of str, np.ndarray
+    """
     valid = [
         "linear",
         "time",
@@ -123,8 +139,44 @@ def clean_interp_method(method, index, **kwargs):
             raise ValueError(
                 f"{method} interpolation requires that the index be monotonic."
             )
+    elif method == "time":
+        if not getattr(index, "is_all_dates", None):
+            raise ValueError(
+                "time-weighted interpolation only works "
+                "on Series or DataFrames with a DatetimeIndex"
+            )
+        method = "values"
 
-    return method
+    if method == "linear":
+        xvalues = np.arange(len(index))
+    else:
+        if isinstance(index, ABCMultiIndex):
+            raise ValueError(
+                "Only `method=linear` interpolation is supported on MultiIndexes."
+            )
+
+        methods = {"index", "values", "nearest", "time"}
+        is_numeric_or_datetime = (
+            is_numeric_dtype(index.dtype)
+            or is_datetime64_any_dtype(index.dtype)
+            or is_timedelta64_dtype(index.dtype)
+        )
+        if method not in methods and not is_numeric_or_datetime:
+            raise ValueError(
+                "Index column must be numeric or datetime type when "
+                f"using {method} method other than linear. "
+                "Try setting a numeric or datetime index column before "
+                "interpolating."
+            )
+        if isna(index).any():
+            raise NotImplementedError(
+                "Interpolation with NaNs in the index "
+                "has not been implemented. Try filling "
+                "those NaNs before interpolating."
+            )
+        xvalues = index.values
+
+    return method, xvalues
 
 
 def find_valid_index(values, how: str):
@@ -165,15 +217,15 @@ def find_valid_index(values, how: str):
 
 
 def interpolate_1d(
-    xvalues,
-    yvalues,
-    method="linear",
-    limit=None,
-    limit_direction="forward",
-    limit_area=None,
-    fill_value=None,
-    bounds_error=False,
-    order=None,
+    xvalues: np.ndarray,
+    yvalues: np.ndarray,
+    method: Optional[str] = "linear",
+    limit: Optional[int] = None,
+    limit_direction: str = "forward",
+    limit_area: Optional[str] = None,
+    fill_value: Optional[Any] = None,
+    bounds_error: bool = False,
+    order: Optional[int] = None,
     **kwargs,
 ):
     """
@@ -197,16 +249,6 @@ def interpolate_1d(
 
     if valid.all():
         return yvalues
-
-    if method == "time":
-        if not getattr(xvalues, "is_all_dates", None):
-            # if not issubclass(xvalues.dtype.type, np.datetime64):
-            raise ValueError(
-                "time-weighted interpolation only works "
-                "on Series or DataFrames with a "
-                "DatetimeIndex"
-            )
-        method = "values"
 
     valid_limit_directions = ["forward", "backward", "both"]
     limit_direction = limit_direction.lower()
@@ -243,6 +285,7 @@ def interpolate_1d(
     # are more than'limit' away from the prior non-NaN.
 
     # set preserve_nans based on direction using _interp_limit
+    preserve_nans: Union[List, Set]
     if limit_direction == "forward":
         preserve_nans = start_nans | set(_interp_limit(invalid, limit, 0))
     elif limit_direction == "backward":
