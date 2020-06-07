@@ -1523,7 +1523,31 @@ def test_dataframe_blockwise_slicelike():
     df2 = df1.copy()
     df2.iloc[0, [1, 3, 7]] = np.nan
 
-    res = df1 + df2
+    df3 = df1.copy()
+    df3.iloc[0, [5]] = np.nan
 
-    expected = pd.DataFrame({i: df1[i] + df2[i] for i in df1.columns})
-    tm.assert_frame_equal(res, expected)
+    df4 = df1.copy()
+    df4.iloc[0, np.arange(2, 5)] = np.nan
+    df5 = df1.copy()
+    df5.iloc[0, np.arange(4, 7)] = np.nan
+
+    for left, right in [(df1, df2), (df2, df3), (df4, df5)]:
+        res = left + right
+
+        expected = pd.DataFrame({i: left[i] + right[i] for i in left.columns})
+        tm.assert_frame_equal(res, expected)
+
+
+@pytest.mark.parametrize(
+    "df, col_dtype",
+    [
+        (pd.DataFrame([[1.0, 2.0], [4.0, 5.0]], columns=list("ab")), "float64"),
+        (pd.DataFrame([[1.0, "b"], [4.0, "b"]], columns=list("ab")), "object"),
+    ],
+)
+def test_dataframe_operation_with_non_numeric_types(df, col_dtype):
+    # GH #22663
+    expected = pd.DataFrame([[0.0, np.nan], [3.0, np.nan]], columns=list("ab"))
+    expected = expected.astype({"b": col_dtype})
+    result = df + pd.Series([-1.0], index=list("a"))
+    tm.assert_frame_equal(result, expected)

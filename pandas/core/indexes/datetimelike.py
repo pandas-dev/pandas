@@ -7,7 +7,7 @@ from typing import Any, List, Optional, TypeVar, Union, cast
 import numpy as np
 
 from pandas._libs import NaT, Timedelta, iNaT, join as libjoin, lib
-from pandas._libs.tslibs import timezones
+from pandas._libs.tslibs import Resolution, timezones
 from pandas._libs.tslibs.parsing import DateParseError
 from pandas._typing import Label
 from pandas.compat.numpy import function as nv
@@ -78,7 +78,7 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
 
 
 @inherit_names(
-    ["inferred_freq", "_isnan", "_resolution", "resolution"],
+    ["inferred_freq", "_isnan", "_resolution_obj", "resolution"],
     DatetimeLikeArrayMixin,
     cache=True,
 )
@@ -93,7 +93,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     _data: Union[DatetimeArray, TimedeltaArray, PeriodArray]
     freq: Optional[DateOffset]
     freqstr: Optional[str]
-    _resolution: int
+    _resolution_obj: Resolution
     _bool_ops: List[str] = []
     _field_ops: List[str] = []
 
