@@ -6881,6 +6881,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
         index = self._get_axis(axis)
 
+        if isinstance(self.index, MultiIndex) and method != "linear":
+            raise ValueError(
+                "Only `method=linear` interpolation is supported on MultiIndexes."
+            )
+
         # for the methods backfill, bfill, pad, ffill limit_direction and limit_area
         # are being ignored, see gh-26796 for more information
         if method in ["backfill", "bfill", "pad", "ffill"]:
@@ -6899,14 +6904,39 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         else:
             df = self.T
 
-        if np.all(self.dtypes == np.dtype(object)):
+        if self.ndim == 2 and np.all(self.dtypes == np.dtype(object)):
             raise TypeError(
                 "Cannot interpolate with all object-dtype columns "
                 "in the DataFrame. Try setting at least one "
                 "column to a numeric dtype."
             )
 
-        new_data = df._mgr.interpolate(
+        if method == "linear":
+            # prior default
+            index = np.arange(len(df.index))
+        else:
+            methods = {"index", "values", "nearest", "time"}
+            is_numeric_or_datetime = (
+                is_numeric_dtype(index.dtype)
+                or is_datetime64_any_dtype(index.dtype)
+                or is_timedelta64_dtype(index.dtype)
+            )
+            if method not in methods and not is_numeric_or_datetime:
+                raise ValueError(
+                    "Index column must be numeric or datetime type when "
+                    f"using {method} method other than linear. "
+                    "Try setting a numeric or datetime index column before "
+                    "interpolating."
+                )
+
+        if isna(index).any():
+            raise NotImplementedError(
+                "Interpolation with NaNs in the index "
+                "has not been implemented. Try filling "
+                "those NaNs before interpolating."
+            )
+        data = df._mgr
+        new_data = data.interpolate(
             method=method,
             axis=self._info_axis_number,
             index=index,

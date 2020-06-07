@@ -1084,9 +1084,14 @@ class Block(PandasObject):
 
         inplace = validate_bool_kwarg(inplace, "inplace")
 
-        # Only FloatBlocks will contain NaNs. timedelta subclasses IntBlock
-        if (self.is_bool or self.is_integer) and not self.is_timedelta:
-            return self if inplace else self.copy()
+        def check_int_bool(self, inplace):
+            # Only FloatBlocks will contain NaNs.
+            # timedelta subclasses IntBlock
+            if (self.is_bool or self.is_integer) and not self.is_timedelta:
+                if inplace:
+                    return self
+                else:
+                    return self.copy()
 
         # a fill na type method
         try:
@@ -1095,6 +1100,9 @@ class Block(PandasObject):
             m = None
 
         if m is not None:
+            r = check_int_bool(self, inplace)
+            if r is not None:
+                return r
             return self._interpolate_with_fill(
                 method=m,
                 axis=axis,
@@ -1104,10 +1112,17 @@ class Block(PandasObject):
                 coerce=coerce,
                 downcast=downcast,
             )
+        # validate the interp method
+        m = missing.clean_interp_method(method, **kwargs)
+
+        r = check_int_bool(self, inplace)
+        if r is not None:
+            return r
 
         assert index is not None  # for mypy
+
         return self._interpolate(
-            method=method,
+            method=m,
             index=index,
             axis=axis,
             limit=limit,
@@ -1175,9 +1190,6 @@ class Block(PandasObject):
         inplace = validate_bool_kwarg(inplace, "inplace")
         data = self.values if inplace else self.values.copy()
 
-        # validate the interp method and get xvalues
-        method, xvalues = missing.clean_interp_method(method, index, **kwargs)
-
         # only deal with floats
         if not self.is_float:
             if not self.is_integer:
@@ -1187,6 +1199,11 @@ class Block(PandasObject):
         if fill_value is None:
             fill_value = self.fill_value
 
+        if method in ("krogh", "piecewise_polynomial", "pchip"):
+            if not index.is_monotonic:
+                raise ValueError(
+                    f"{method} interpolation requires that the index be monotonic."
+                )
         # process 1-d slices in the axis direction
 
         def func(yvalues: np.ndarray) -> np.ndarray:
@@ -1195,7 +1212,7 @@ class Block(PandasObject):
             # should the axis argument be handled below in apply_along_axis?
             # i.e. not an arg to missing.interpolate_1d
             return missing.interpolate_1d(
-                xvalues=xvalues,
+                xvalues=index,
                 yvalues=yvalues,
                 method=method,
                 limit=limit,
