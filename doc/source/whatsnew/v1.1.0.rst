@@ -289,6 +289,8 @@ Other enhancements
 - Make :class:`pandas.core.window.Rolling` and :class:`pandas.core.window.Expanding` iterable（:issue:`11704`)
 - Make ``option_context`` a :class:`contextlib.ContextDecorator`, which allows it to be used as a decorator over an entire function (:issue:`34253`).
 - :meth:`groupby.transform` now allows ``func`` to be ``pad``, ``backfill`` and ``cumcount`` (:issue:`31269`).
+- :meth:`~pandas.io.json.read_json` now accepts `nrows` parameter. (:issue:`33916`).
+- :meth `~pandas.io.gbq.read_gbq` now allows to disable progress bar (:issue:`33360`).
 - :meth:`Series.plot` now supports asymmetric error bars. Previously, if :meth:`Series.plot` received a "2xN" array with
   error values for `yerr` and/or `xerr`, the left/lower values (first row) would be mirrored, while the right/upper values (second row) are
   ignored. Now, the first row represents the left/lower error values and the second row the right/upper error values. (:issue:`9536`)
@@ -357,6 +359,8 @@ Optional libraries below the lowest tested version may still work, but are not c
 | xlsxwriter      | 0.9.8           |         |
 +-----------------+-----------------+---------+
 | xlwt            | 1.2.0           |         |
++-----------------+-----------------+---------+
+| pandas-gbq      | 1.2.0           |    X    |
 +-----------------+-----------------+---------+
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
@@ -952,6 +956,7 @@ I/O
 - Bug in :meth:`~DataFrame.read_feather` was raising an `ArrowIOError` when reading an s3 or http file path (:issue:`29055`)
 - Bug in :meth:`~DataFrame.to_excel` could not handle the column name `render` and was raising an ``KeyError`` (:issue:`34331`)
 - Bug in :meth:`~SQLDatabase.execute` was raising a ``ProgrammingError`` for some DB-API drivers when the SQL statement contained the `%` character and no parameters were present (:issue:`34211`)
+- Bug in :meth:`~pandas.io.stata.StataReader` which resulted in categorical variables with difference dtypes when reading data using an iterator. (:issue:`31544`)
 
 Plotting
 ^^^^^^^^
