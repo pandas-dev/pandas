@@ -6,7 +6,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import NaT, Period, Timestamp, index as libindex, lib, tslib
-from pandas._libs.tslibs import fields, parsing, resolution as libresolution, timezones
+from pandas._libs.tslibs import Resolution, fields, parsing, timezones, to_offset
 from pandas._libs.tslibs.frequencies import get_freq_group
 from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas._typing import DtypeObj, Label
@@ -29,8 +29,6 @@ from pandas.core.indexes.base import Index, InvalidIndexError, maybe_extract_nam
 from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
 from pandas.core.indexes.extension import inherit_names
 from pandas.core.tools.times import to_time
-
-from pandas.tseries.frequencies import to_offset
 
 
 def _new_DatetimeIndex(cls, d):
@@ -72,7 +70,9 @@ def _new_DatetimeIndex(cls, d):
     DatetimeArray,
     wrap=True,
 )
-@inherit_names(["_timezone", "is_normalized", "_resolution"], DatetimeArray, cache=True)
+@inherit_names(
+    ["_timezone", "is_normalized", "_resolution_obj"], DatetimeArray, cache=True
+)
 @inherit_names(
     [
         "_bool_ops",
@@ -525,7 +525,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if (
             self.is_monotonic
             and reso in ["day", "hour", "minute", "second"]
-            and self._resolution >= libresolution.Resolution.from_attrname(reso)
+            and self._resolution_obj >= Resolution.from_attrname(reso)
         ):
             # These resolution/monotonicity validations came from GH3931,
             # GH3452 and GH2369.
