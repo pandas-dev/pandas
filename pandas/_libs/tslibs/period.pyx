@@ -1529,7 +1529,16 @@ cdef class _Period:
         self._dtype = PeriodPseudoDtype(freq._period_dtype_code)
 
     @classmethod
-    def _maybe_convert_freq(cls, object freq):
+    def _maybe_convert_freq(cls, object freq) -> BaseOffset:
+        """
+        Internally we allow integer and tuple representations (for now) that
+        are not recognized by to_offset, so we convert them here.  Also, a
+        Period's freq attribute must have `freq.n > 0`, which we check for here.
+
+        Returns
+        -------
+        DateOffset
+        """
         if isinstance(freq, (int, tuple)):
             code, stride = get_freq_code(freq)
             freq = get_freq_str(code, stride)
