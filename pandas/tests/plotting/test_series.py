@@ -736,9 +736,9 @@ class TestSeriesPlots(TestPlotBase):
 
         ax = s.plot(yerr=err, xerr=err)
 
-        yerr_0_0 = ax.collections[1].get_paths()[0].vertices[:, 1]
-        expected_0_0 = err[:, 0] * np.array([-1, 1])
-        tm.assert_almost_equal(yerr_0_0, expected_0_0)
+        result = np.vstack([i.vertices[:, 1] for i in ax.collections[1].get_paths()])
+        expected = (err.T * np.array([-1, 1])) + list(zip(s, s))
+        tm.assert_almost_equal(result, expected)
 
         msg = (
             "Asymmetrical error bars should be provided "
