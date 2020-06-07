@@ -17,7 +17,7 @@ from pandas._libs.tslibs.frequencies import (
     get_freq_str,
 )
 import pandas._libs.tslibs.offsets as liboffsets
-from pandas._libs.tslibs.offsets import ApplyTypeError
+from pandas._libs.tslibs.offsets import ApplyTypeError, _get_offset, _offset_map
 import pandas.compat as compat
 from pandas.compat.numpy import np_datetime64_compat
 from pandas.errors import PerformanceWarning
@@ -27,7 +27,6 @@ from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.series import Series
 
 from pandas.io.pickle import read_pickle
-from pandas.tseries.frequencies import _get_offset, _offset_map
 from pandas.tseries.holiday import USFederalHolidayCalendar
 import pandas.tseries.offsets as offsets
 from pandas.tseries.offsets import (
@@ -3525,7 +3524,7 @@ class TestSemiMonthEnd(Base):
         with tm.assert_produces_warning(None):
             # GH#22535 check that we don't get a FutureWarning from adding
             # an integer array to PeriodIndex
-            result = SemiMonthEnd().apply_index(s)
+            result = SemiMonthEnd() + s
 
         exp = DatetimeIndex(dates[1:])
         tm.assert_index_equal(result, exp)
@@ -3673,7 +3672,7 @@ class TestSemiMonthEnd(Base):
         with tm.assert_produces_warning(None):
             # GH#22535 check that we don't get a FutureWarning from adding
             # an integer array to PeriodIndex
-            result = offset.apply_index(s)
+            result = offset + s
 
         exp = DatetimeIndex(cases.values())
         tm.assert_index_equal(result, exp)
@@ -3784,7 +3783,7 @@ class TestSemiMonthBegin(Base):
         with tm.assert_produces_warning(None):
             # GH#22535 check that we don't get a FutureWarning from adding
             # an integer array to PeriodIndex
-            result = SemiMonthBegin().apply_index(s)
+            result = SemiMonthBegin() + s
 
         exp = DatetimeIndex(dates[1:])
         tm.assert_index_equal(result, exp)
@@ -3937,7 +3936,7 @@ class TestSemiMonthBegin(Base):
         with tm.assert_produces_warning(None):
             # GH#22535 check that we don't get a FutureWarning from adding
             # an integer array to PeriodIndex
-            result = offset.apply_index(s)
+            result = offset + s
 
         exp = DatetimeIndex(cases.values())
         tm.assert_index_equal(result, exp)

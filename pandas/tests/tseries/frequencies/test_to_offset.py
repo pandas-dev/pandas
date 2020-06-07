@@ -2,16 +2,13 @@ import re
 
 import pytest
 
-from pandas import Timedelta
-
-import pandas.tseries.frequencies as frequencies
-import pandas.tseries.offsets as offsets
+from pandas._libs.tslibs import Timedelta, offsets, to_offset
 
 
 @pytest.mark.parametrize(
     "freq_input,expected",
     [
-        (frequencies.to_offset("10us"), offsets.Micro(10)),
+        (to_offset("10us"), offsets.Micro(10)),
         (offsets.Hour(), offsets.Hour()),
         ((5, "T"), offsets.Minute(5)),
         ("2h30min", offsets.Minute(150)),
@@ -33,7 +30,7 @@ import pandas.tseries.offsets as offsets
     ],
 )
 def test_to_offset(freq_input, expected):
-    result = frequencies.to_offset(freq_input)
+    result = to_offset(freq_input)
     assert result == expected
 
 
@@ -41,7 +38,7 @@ def test_to_offset(freq_input, expected):
     "freqstr,expected", [("-1S", -1), ("-2SM", -2), ("-1SMS", -1), ("-5min10s", -310)]
 )
 def test_to_offset_negative(freqstr, expected):
-    result = frequencies.to_offset(freqstr)
+    result = to_offset(freqstr)
     assert result.n == expected
 
 
@@ -88,12 +85,12 @@ def test_to_offset_invalid(freqstr):
     # inputs contain regex special characters.
     msg = re.escape(f"Invalid frequency: {freqstr}")
     with pytest.raises(ValueError, match=msg):
-        frequencies.to_offset(freqstr)
+        to_offset(freqstr)
 
 
 def test_to_offset_no_evaluate():
     with pytest.raises(ValueError, match="Could not evaluate"):
-        frequencies.to_offset(("", ""))
+        to_offset(("", ""))
 
 
 @pytest.mark.parametrize(
@@ -108,7 +105,7 @@ def test_to_offset_no_evaluate():
     ],
 )
 def test_to_offset_whitespace(freqstr, expected):
-    result = frequencies.to_offset(freqstr)
+    result = to_offset(freqstr)
     assert result == expected
 
 
@@ -116,13 +113,13 @@ def test_to_offset_whitespace(freqstr, expected):
     "freqstr,expected", [("00H 00T 01S", 1), ("-00H 03T 14S", -194)]
 )
 def test_to_offset_leading_zero(freqstr, expected):
-    result = frequencies.to_offset(freqstr)
+    result = to_offset(freqstr)
     assert result.n == expected
 
 
 @pytest.mark.parametrize("freqstr,expected", [("+1d", 1), ("+2h30min", 150)])
 def test_to_offset_leading_plus(freqstr, expected):
-    result = frequencies.to_offset(freqstr)
+    result = to_offset(freqstr)
     assert result.n == expected
 
 
@@ -135,24 +132,16 @@ def test_to_offset_leading_plus(freqstr, expected):
         (dict(hours=1, minutes=-10), offsets.Minute(50)),
         (dict(weeks=1), offsets.Day(7)),
         (dict(hours=1), offsets.Hour(1)),
-        (dict(hours=1), frequencies.to_offset("60min")),
+        (dict(hours=1), to_offset("60min")),
         (dict(microseconds=1), offsets.Micro(1)),
+        (dict(microseconds=0), offsets.Nano(0)),
     ],
 )
 def test_to_offset_pd_timedelta(kwargs, expected):
     # see gh-9064
     td = Timedelta(**kwargs)
-    result = frequencies.to_offset(td)
+    result = to_offset(td)
     assert result == expected
-
-
-def test_to_offset_pd_timedelta_invalid():
-    # see gh-9064
-    msg = "Invalid frequency: 0 days 00:00:00"
-    td = Timedelta(microseconds=0)
-
-    with pytest.raises(ValueError, match=msg):
-        frequencies.to_offset(td)
 
 
 @pytest.mark.parametrize(
@@ -172,5 +161,5 @@ def test_to_offset_pd_timedelta_invalid():
     ],
 )
 def test_anchored_shortcuts(shortcut, expected):
-    result = frequencies.to_offset(shortcut)
+    result = to_offset(shortcut)
     assert result == expected
