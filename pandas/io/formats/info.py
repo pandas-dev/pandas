@@ -396,30 +396,22 @@ class SeriesInfo(Info):
 
     def _verbose_repr(self, lines, ids, dtypes, show_counts):
 
-        id_head = " # "
-        col_count = len(ids)
-        col_space = 2
+        id_space = 2
 
-        len_id = len(pprint_thing(id_head))
-        space_num = 3 + col_space
-
-        header = _put_str(id_head, space_num)
+        header = ""
 
         lines.append(f"Series name: {self.data.name}")
 
         if show_counts:
-            counts = self._get_counts()
-            if col_count != len(counts):  # pragma: no cover
-                raise AssertionError(
-                    f"Columns must equal counts ({col_count} != {len(counts)})"
-                )
+            count = self.data.count()
             count_header = "Non-Null Count"
             len_count = len(count_header)
             non_null = " non-null"
-            max_count = max(len(pprint_thing(k)) for k in counts) + len(non_null)
-            space_count = max(len_count, max_count) + col_space
+            max_count = len(pprint_thing(self.data.count())) + len(non_null)
+            space_count = max(len_count, max_count) + id_space
             count_temp = "{count}" + non_null
         else:
+            count = ""
             count_header = ""
             space_count = len(count_header)
             len_count = space_count
@@ -435,22 +427,13 @@ class SeriesInfo(Info):
 
         lines.append(header)
         lines.append(
-            _put_str("-" * len_id, space_num)
-            + _put_str("-" * len_count, space_count)
+            _put_str("-" * len_count, space_count)
             + _put_str("-" * len_dtype, space_dtype)
         )
 
-        dtype = self.data.dtype
-
-        line_no = _put_str(f" {0}", space_num)
-        count = ""
-        if show_counts:
-            count = self.data.count()
-
         lines.append(
-            line_no
-            + _put_str(count_temp.format(count=count), space_count)
-            + _put_str(dtype, space_dtype)
+            _put_str(count_temp.format(count=count), space_count)
+            + _put_str(dtypes[0], space_dtype)
         )
 
     def _non_verbose_repr(self, lines, ids):

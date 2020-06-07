@@ -105,9 +105,9 @@ MultiIndex: 10 entries, ('foo', 'one') to ('qux', 'three')
 """
     if verbose:
         expected += """Series name: sth
- #   Non-Null Count  Dtype
----  --------------  -----
- 0   10 non-null     int64
+Non-Null Count  Dtype
+--------------  -----
+10 non-null     int64
 """
     expected += f"""dtypes: int64(1)
 memory usage: {s.memory_usage()}.0+ bytes
@@ -169,9 +169,9 @@ def test_info_memory():
     <class 'pandas.core.series.Series'>
     RangeIndex: 2 entries, 0 to 1
     Series name: None
-     #   Non-Null Count  Dtype
-    ---  --------------  -----
-     0   2 non-null      int64
+    Non-Null Count  Dtype
+    --------------  -----
+    2 non-null      int64
     dtypes: int64(1)
     memory usage: {bytes} bytes
     """
@@ -254,7 +254,7 @@ def test_info_shows_column_dtypes():
         buf = StringIO()
         s.info(buf=buf)
         res = buf.getvalue()
-        name = f" 0   {n:d} non-null     {dtype}"
+        name = f"{n:d} non-null     {dtype}"
         assert name in res
 
 
