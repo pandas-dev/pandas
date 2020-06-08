@@ -56,7 +56,22 @@ from pandas._libs.tslibs.ccalendar cimport (
 )
 from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
 
-from pandas._libs.tslibs.dtypes cimport PeriodDtypeBase
+from pandas._libs.tslibs.dtypes cimport (
+    PeriodDtypeBase,
+    FR_UND,
+    FR_ANN,
+    FR_QTR,
+    FR_MTH,
+    FR_WK,
+    FR_BUS,
+    FR_DAY,
+    FR_HR,
+    FR_MIN,
+    FR_SEC,
+    FR_MS,
+    FR_US,
+    FR_NS,
+)
 
 from pandas._libs.tslibs.frequencies cimport (
     attrname_to_abbrevs,
@@ -98,23 +113,6 @@ ctypedef int64_t (*freq_conv_func)(int64_t, asfreq_info*) nogil
 
 cdef extern from *:
     """
-    /*** FREQUENCY CONSTANTS ***/
-    // See frequencies.pyx for more detailed variants
-
-    #define FR_ANN 1000      /* Annual */
-    #define FR_QTR 2000      /* Quarterly - December year end (default Q) */
-    #define FR_MTH 3000      /* Monthly */
-    #define FR_WK 4000       /* Weekly */
-    #define FR_BUS 5000      /* Business days */
-    #define FR_DAY 6000      /* Daily */
-    #define FR_HR 7000       /* Hourly */
-    #define FR_MIN 8000      /* Minutely */
-    #define FR_SEC 9000      /* Secondly */
-    #define FR_MS 10000      /* Millisecondly */
-    #define FR_US 11000      /* Microsecondly */
-    #define FR_NS 12000      /* Nanosecondly */
-    #define FR_UND -10000    /* Undefined */
-
     // must use npy typedef b/c int64_t is aliased in cython-generated c
     // unclear why we need LL for that row.
     // see https://github.com/pandas-dev/pandas/pull/34416/
@@ -128,20 +126,6 @@ cdef extern from *:
         {0,  0,   0,      0,        0,           0,              1}};
     """
     int64_t daytime_conversion_factor_matrix[7][7]
-    # TODO: Can we get these frequencies from frequencies.FreqGroup?
-    int FR_ANN
-    int FR_QTR
-    int FR_MTH
-    int FR_WK
-    int FR_DAY
-    int FR_HR
-    int FR_MIN
-    int FR_SEC
-    int FR_MS
-    int FR_US
-    int FR_NS
-    int FR_BUS
-    int FR_UND
 
 
 cdef int max_value(int left, int right) nogil:
@@ -1157,30 +1141,29 @@ cdef str period_format(int64_t value, int freq, object fmt=None):
 
     if fmt is None:
         freq_group = get_freq_group(freq)
-        if freq_group == 1000:    # FR_ANN
+        if freq_group == FR_ANN:
             fmt = b'%Y'
-        elif freq_group == 2000:  # FR_QTR
+        elif freq_group == FR_QTR:
             fmt = b'%FQ%q'
-        elif freq_group == 3000:  # FR_MTH
+        elif freq_group == FR_MTH:
             fmt = b'%Y-%m'
-        elif freq_group == 4000:  # WK
-            left = period_asfreq(value, freq, 6000, 0)
-            right = period_asfreq(value, freq, 6000, 1)
-            return f"{period_format(left, 6000)}/{period_format(right, 6000)}"
-        elif (freq_group == 5000      # BUS
-              or freq_group == 6000):  # DAY
+        elif freq_group == FR_WK:
+            left = period_asfreq(value, freq, FR_DAY, 0)
+            right = period_asfreq(value, freq, FR_DAY, 1)
+            return f"{period_format(left, FR_DAY)}/{period_format(right, FR_DAY)}"
+        elif freq_group == FR_BUS or freq_group == FR_DAY:
             fmt = b'%Y-%m-%d'
-        elif freq_group == 7000:   # HR
+        elif freq_group == FR_HR:
             fmt = b'%Y-%m-%d %H:00'
-        elif freq_group == 8000:   # MIN
+        elif freq_group == FR_MIN:
             fmt = b'%Y-%m-%d %H:%M'
-        elif freq_group == 9000:   # SEC
+        elif freq_group == FR_SEC:
             fmt = b'%Y-%m-%d %H:%M:%S'
-        elif freq_group == 10000:  # MILLISEC
+        elif freq_group == FR_MS:
             fmt = b'%Y-%m-%d %H:%M:%S.%l'
-        elif freq_group == 11000:  # MICROSEC
+        elif freq_group == FR_US:
             fmt = b'%Y-%m-%d %H:%M:%S.%u'
-        elif freq_group == 12000:  # NANOSEC
+        elif freq_group == FR_NS:
             fmt = b'%Y-%m-%d %H:%M:%S.%n'
         else:
             raise ValueError(f"Unknown freq: {freq}")

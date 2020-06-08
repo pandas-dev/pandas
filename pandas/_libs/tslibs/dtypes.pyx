@@ -106,3 +106,20 @@ _period_code_map.update({
     "W": 4000,   # Weekly
     "C": 5000,   # Custom Business Day
 })
+
+
+class FreqGroup:
+    # Mirrors c_FreqGroup in the .pxd file
+    FR_ANN = 1000
+    FR_QTR = 2000
+    FR_MTH = 3000
+    FR_WK = 4000
+    FR_BUS = 5000
+    FR_DAY = 6000
+    FR_HR = 7000
+    FR_MIN = 8000
+    FR_SEC = 9000
+    FR_MS = 10000
+    FR_US = 11000
+    FR_NS = 12000
+    FR_UND = -10000  # undefined
