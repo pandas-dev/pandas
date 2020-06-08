@@ -6,13 +6,11 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
+from pandas._libs.tslibs import OutOfBoundsDatetime, to_offset
 
 import pandas as pd
 from pandas import DatetimeIndex, Timestamp, date_range
 import pandas._testing as tm
-
-from pandas.tseries.frequencies import to_offset
 
 
 class TestDatetimeIndexOps:

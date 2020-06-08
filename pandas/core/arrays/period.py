@@ -7,9 +7,12 @@ import numpy as np
 from pandas._libs.tslibs import (
     NaT,
     NaTType,
+    Timedelta,
+    delta_to_nanoseconds,
     frequencies as libfrequencies,
     iNaT,
     period as libperiod,
+    to_offset,
 )
 from pandas._libs.tslibs.fields import isleapyear_arr
 from pandas._libs.tslibs.offsets import Tick, delta_to_tick
@@ -20,7 +23,6 @@ from pandas._libs.tslibs.period import (
     get_period_field_arr,
     period_asfreq_arr,
 )
-from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
 from pandas._typing import AnyArrayLike
 from pandas.util._decorators import cache_readonly
 
@@ -45,7 +47,6 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
 
-from pandas.tseries import frequencies
 from pandas.tseries.offsets import DateOffset
 
 
@@ -430,7 +431,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
         end = how == "E"
         if end:
-            if freq == "B":
+            if freq == "B" or self.freq == "B":
                 # roll forward to ensure we land on B date
                 adjust = Timedelta(1, "D") - Timedelta(1, "ns")
                 return self.to_timestamp(how="start") + adjust
@@ -902,7 +903,7 @@ def validate_dtype_freq(dtype, freq):
     IncompatibleFrequency : mismatch between dtype and freq
     """
     if freq is not None:
-        freq = frequencies.to_offset(freq)
+        freq = to_offset(freq)
 
     if dtype is not None:
         dtype = pandas_dtype(dtype)
