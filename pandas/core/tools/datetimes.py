@@ -24,7 +24,7 @@ from pandas._libs.tslibs.parsing import (  # noqa
     _guess_datetime_format,
 )
 from pandas._libs.tslibs.strptime import array_strptime
-from pandas._typing import ArrayLike, Label
+from pandas._typing import ArrayLike, Label, Timezone
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -258,7 +258,7 @@ def _convert_listlike_datetimes(
     arg,
     format: Optional[str],
     name: Label = None,
-    tz: Optional[str] = None,
+    tz: Optional[Timezone] = None,
     unit: Optional[str] = None,
     errors: Optional[str] = None,
     infer_datetime_format: Optional[bool] = None,
