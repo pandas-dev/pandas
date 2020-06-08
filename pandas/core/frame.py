@@ -8152,6 +8152,7 @@ NaN 12.3   33.0
         ddof : int, default 1
             Delta degrees of Freedom.  The divisor used in calculations
             is ``N - ddof``, where ``N`` represents the number of elements.
+
             versionadded:: 1.1.0
 
         Returns

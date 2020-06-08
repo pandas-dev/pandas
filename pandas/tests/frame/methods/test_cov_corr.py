@@ -1,4 +1,3 @@
-import math
 import warnings
 
 import numpy as np
@@ -63,14 +62,6 @@ class TestDataFrameCov:
     def test_cov_ddof(self, test_ddof):
         np_array1 = np.random.rand(10)
         np_array2 = np.random.rand(10)
-
-        s1 = Series(np_array1)
-        s2 = Series(np_array2)
-
-        result = s1.cov(s2, ddof=test_ddof)
-        expected = np.cov(np_array1, np_array2, ddof=test_ddof)[0][1]
-        assert math.isclose(expected, result)
-
         df = DataFrame({0: np_array1, 1: np_array2})
         result = df.cov(ddof=test_ddof)
         expected_np = np.cov(np_array1, np_array2, ddof=test_ddof)
