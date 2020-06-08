@@ -345,24 +345,6 @@ cdef inline int64_t transform_via_day(int64_t ordinal,
 # --------------------------------------------------------------------
 # Conversion _to_ Daily Freq
 
-cdef void adjust_dts_for_month(npy_datetimestruct* dts, int from_end) nogil:
-    if from_end != 12:
-        dts.month += from_end
-        if dts.month > 12:
-            dts.month -= 12
-        else:
-            dts.year -= 1
-
-
-cdef void adjust_dts_for_qtr(npy_datetimestruct* dts, int to_end) nogil:
-    if to_end != 12:
-        dts.month -= to_end
-        if dts.month <= 0:
-            dts.month += 12
-        else:
-            dts.year += 1
-
-
 cdef int64_t asfreq_AtoDT(int64_t ordinal, asfreq_info *af_info) nogil:
     cdef:
         int64_t unix_date
@@ -718,6 +700,24 @@ cdef inline int get_freq_group(int freq) nogil:
 
 cdef inline int get_freq_group_index(int freq) nogil:
     return freq // 1000
+
+
+cdef void adjust_dts_for_month(npy_datetimestruct* dts, int from_end) nogil:
+    if from_end != 12:
+        dts.month += from_end
+        if dts.month > 12:
+            dts.month -= 12
+        else:
+            dts.year -= 1
+
+
+cdef void adjust_dts_for_qtr(npy_datetimestruct* dts, int to_end) nogil:
+    if to_end != 12:
+        dts.month -= to_end
+        if dts.month <= 0:
+            dts.month += 12
+        else:
+            dts.year += 1
 
 
 # Find the unix_date (days elapsed since datetime(1970, 1, 1)
