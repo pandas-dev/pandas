@@ -124,14 +124,14 @@ def test_fast_apply():
         (DataFrame({"a": [1, 1, 1, 2, 2, 1, 1, 2], "b": range(8)}), [1, 2]),
         (DataFrame({"a": [1, 2, 3, 1, 2, 3], "two": [4, 5, 6, 7, 8, 9]}), [1, 2, 3]),
         (
-                DataFrame(
-                    {
-                        "a": list("aaabbbcccc"),
-                        "B": [3, 4, 3, 6, 5, 2, 1, 9, 5, 4],
-                        "C": [4, 0, 2, 2, 2, 7, 8, 6, 2, 8],
-                    }
-                ),
-                ["a", "b", "c"],
+            DataFrame(
+                {
+                    "a": list("aaabbbcccc"),
+                    "B": [3, 4, 3, 6, 5, 2, 1, 9, 5, 4],
+                    "C": [4, 0, 2, 2, 2, 7, 8, 6, 2, 8],
+                }
+            ),
+            ["a", "b", "c"],
         ),
         (DataFrame([[1, 2, 3], [2, 2, 3]], columns=["a", "b", "c"]), [1, 2]),
     ],
@@ -897,12 +897,12 @@ def test_apply_index_has_complex_internals(index):
         (lambda x: set(x.index.to_list()), [{0, 1}, {2, 3}]),
         (lambda x: tuple(x.index.to_list()), [(0, 1), (2, 3)]),
         (
-                lambda x: {n: i for (n, i) in enumerate(x.index.to_list())},
-                [{0: 0, 1: 1}, {0: 2, 1: 3}],
+            lambda x: {n: i for (n, i) in enumerate(x.index.to_list())},
+            [{0: 0, 1: 1}, {0: 2, 1: 3}],
         ),
         (
-                lambda x: [{n: i} for (n, i) in enumerate(x.index.to_list())],
-                [[{0: 0}, {1: 1}], [{0: 2}, {1: 3}]],
+            lambda x: [{n: i} for (n, i) in enumerate(x.index.to_list())],
+            [[{0: 0}, {1: 1}], [{0: 2}, {1: 3}]],
         ),
     ],
 )
