@@ -288,6 +288,7 @@ Other enhancements
 - :meth:`HDFStore.put` now accepts `track_times` parameter. Parameter is passed to ``create_table`` method of ``PyTables`` (:issue:`32682`).
 - Make :class:`pandas.core.window.Rolling` and :class:`pandas.core.window.Expanding` iterable（:issue:`11704`)
 - Make ``option_context`` a :class:`contextlib.ContextDecorator`, which allows it to be used as a decorator over an entire function (:issue:`34253`).
+- :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` now accept an ``errors`` argument (:issue:`22610`)
 - :meth:`groupby.transform` now allows ``func`` to be ``pad``, ``backfill`` and ``cumcount`` (:issue:`31269`).
 - :meth:`~pandas.io.json.read_json` now accepts `nrows` parameter. (:issue:`33916`).
 - :meth `~pandas.io.gbq.read_gbq` now allows to disable progress bar (:issue:`33360`).
