@@ -1442,8 +1442,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         mode : str, optional
             Mode in which file is opened.
         **kwargs
-        These parameters will be passed to `tabulate \
-            <https://pypi.org/project/tabulate>`_.
+            These parameters will be passed to `tabulate \
+                <https://pypi.org/project/tabulate>`_.
 
         Returns
         -------
