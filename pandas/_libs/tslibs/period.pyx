@@ -56,7 +56,22 @@ from pandas._libs.tslibs.ccalendar cimport (
 )
 from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
 
-from pandas._libs.tslibs.dtypes cimport PeriodPseudoDtype
+from pandas._libs.tslibs.dtypes cimport (
+    PeriodDtypeBase,
+    FR_UND,
+    FR_ANN,
+    FR_QTR,
+    FR_MTH,
+    FR_WK,
+    FR_BUS,
+    FR_DAY,
+    FR_HR,
+    FR_MIN,
+    FR_SEC,
+    FR_MS,
+    FR_US,
+    FR_NS,
+)
 
 from pandas._libs.tslibs.frequencies cimport (
     attrname_to_abbrevs,
@@ -98,23 +113,6 @@ ctypedef int64_t (*freq_conv_func)(int64_t, asfreq_info*) nogil
 
 cdef extern from *:
     """
-    /*** FREQUENCY CONSTANTS ***/
-    // See frequencies.pyx for more detailed variants
-
-    #define FR_ANN 1000      /* Annual */
-    #define FR_QTR 2000      /* Quarterly - December year end (default Q) */
-    #define FR_MTH 3000      /* Monthly */
-    #define FR_WK 4000       /* Weekly */
-    #define FR_BUS 5000      /* Business days */
-    #define FR_DAY 6000      /* Daily */
-    #define FR_HR 7000       /* Hourly */
-    #define FR_MIN 8000      /* Minutely */
-    #define FR_SEC 9000      /* Secondly */
-    #define FR_MS 10000      /* Millisecondly */
-    #define FR_US 11000      /* Microsecondly */
-    #define FR_NS 12000      /* Nanosecondly */
-    #define FR_UND -10000    /* Undefined */
-
     // must use npy typedef b/c int64_t is aliased in cython-generated c
     // unclear why we need LL for that row.
     // see https://github.com/pandas-dev/pandas/pull/34416/
@@ -128,20 +126,6 @@ cdef extern from *:
         {0,  0,   0,      0,        0,           0,              1}};
     """
     int64_t daytime_conversion_factor_matrix[7][7]
-    # TODO: Can we get these frequencies from frequencies.FreqGroup?
-    int FR_ANN
-    int FR_QTR
-    int FR_MTH
-    int FR_WK
-    int FR_DAY
-    int FR_HR
-    int FR_MIN
-    int FR_SEC
-    int FR_MS
-    int FR_US
-    int FR_NS
-    int FR_BUS
-    int FR_UND
 
 
 cdef int max_value(int left, int right) nogil:
@@ -475,27 +459,26 @@ cdef int64_t asfreq_DTtoA(int64_t ordinal, asfreq_info *af_info) nogil:
         return <int64_t>(dts.year - 1970)
 
 
-cdef int DtoQ_yq(int64_t ordinal, asfreq_info *af_info, int *year) nogil:
+cdef int DtoQ_yq(int64_t ordinal, asfreq_info *af_info, npy_datetimestruct* dts) nogil:
     cdef:
-        npy_datetimestruct dts
         int quarter
 
-    pandas_datetime_to_datetimestruct(ordinal, NPY_FR_D, &dts)
-    adjust_dts_for_qtr(&dts, af_info.to_end)
+    pandas_datetime_to_datetimestruct(ordinal, NPY_FR_D, dts)
+    adjust_dts_for_qtr(dts, af_info.to_end)
 
-    year[0] = dts.year
     quarter = month_to_quarter(dts.month)
     return quarter
 
 
 cdef int64_t asfreq_DTtoQ(int64_t ordinal, asfreq_info *af_info) nogil:
     cdef:
-        int year, quarter
+        int quarter
+        npy_datetimestruct dts
 
     ordinal = downsample_daytime(ordinal, af_info)
 
-    quarter = DtoQ_yq(ordinal, af_info, &year)
-    return <int64_t>((year - 1970) * 4 + quarter - 1)
+    quarter = DtoQ_yq(ordinal, af_info, &dts)
+    return <int64_t>((dts.year - 1970) * 4 + quarter - 1)
 
 
 cdef int64_t asfreq_DTtoM(int64_t ordinal, asfreq_info *af_info) nogil:
@@ -910,7 +893,7 @@ cdef int64_t get_time_nanos(int freq, int64_t unix_date, int64_t ordinal) nogil:
     return sub * factor
 
 
-cdef int get_yq(int64_t ordinal, int freq, int *quarter, int *year):
+cdef int get_yq(int64_t ordinal, int freq, npy_datetimestruct* dts):
     """
     Find the year and quarter of a Period with the given ordinal and frequency
 
@@ -918,22 +901,22 @@ cdef int get_yq(int64_t ordinal, int freq, int *quarter, int *year):
     ----------
     ordinal : int64_t
     freq : int
-    quarter : *int
-    year : *int
+    dts : *npy_datetimestruct
 
     Returns
     -------
-    qtr_freq : int
+    quarter : int
         describes the implied quarterly frequency associated with `freq`
 
     Notes
     -----
-    Sets quarter and year inplace
+    Sets dts.year in-place.
     """
     cdef:
         asfreq_info af_info
         int qtr_freq
         int64_t unix_date
+        int quarter
 
     unix_date = get_unix_date(ordinal, freq)
 
@@ -942,11 +925,10 @@ cdef int get_yq(int64_t ordinal, int freq, int *quarter, int *year):
     else:
         qtr_freq = FR_QTR
 
-    assert (qtr_freq % 1000) <= 12
     get_asfreq_info(FR_DAY, qtr_freq, True, &af_info)
 
-    quarter[0] = DtoQ_yq(unix_date, &af_info, year)
-    return qtr_freq
+    quarter = DtoQ_yq(unix_date, &af_info, dts)
+    return quarter
 
 
 cdef inline int month_to_quarter(int month) nogil:
@@ -1150,30 +1132,29 @@ cdef str period_format(int64_t value, int freq, object fmt=None):
 
     if fmt is None:
         freq_group = get_freq_group(freq)
-        if freq_group == 1000:    # FR_ANN
+        if freq_group == FR_ANN:
             fmt = b'%Y'
-        elif freq_group == 2000:  # FR_QTR
+        elif freq_group == FR_QTR:
             fmt = b'%FQ%q'
-        elif freq_group == 3000:  # FR_MTH
+        elif freq_group == FR_MTH:
             fmt = b'%Y-%m'
-        elif freq_group == 4000:  # WK
-            left = period_asfreq(value, freq, 6000, 0)
-            right = period_asfreq(value, freq, 6000, 1)
-            return f"{period_format(left, 6000)}/{period_format(right, 6000)}"
-        elif (freq_group == 5000      # BUS
-              or freq_group == 6000):  # DAY
+        elif freq_group == FR_WK:
+            left = period_asfreq(value, freq, FR_DAY, 0)
+            right = period_asfreq(value, freq, FR_DAY, 1)
+            return f"{period_format(left, FR_DAY)}/{period_format(right, FR_DAY)}"
+        elif freq_group == FR_BUS or freq_group == FR_DAY:
             fmt = b'%Y-%m-%d'
-        elif freq_group == 7000:   # HR
+        elif freq_group == FR_HR:
             fmt = b'%Y-%m-%d %H:00'
-        elif freq_group == 8000:   # MIN
+        elif freq_group == FR_MIN:
             fmt = b'%Y-%m-%d %H:%M'
-        elif freq_group == 9000:   # SEC
+        elif freq_group == FR_SEC:
             fmt = b'%Y-%m-%d %H:%M:%S'
-        elif freq_group == 10000:  # MILLISEC
+        elif freq_group == FR_MS:
             fmt = b'%Y-%m-%d %H:%M:%S.%l'
-        elif freq_group == 11000:  # MICROSEC
+        elif freq_group == FR_US:
             fmt = b'%Y-%m-%d %H:%M:%S.%u'
-        elif freq_group == 12000:  # NANOSEC
+        elif freq_group == FR_NS:
             fmt = b'%Y-%m-%d %H:%M:%S.%n'
         else:
             raise ValueError(f"Unknown freq: {freq}")
@@ -1216,15 +1197,15 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt):
 
     for i in range(len(extra_fmts)):
         if found_pat[i]:
-            if get_yq(value, freq, &quarter, &year) < 0:
-                raise ValueError('Unable to get quarter and year')
+
+            quarter = get_yq(value, freq, &dts)
 
             if i == 0:
                 repl = str(quarter)
             elif i == 1:  # %f, 2-digit year
-                repl = f"{(year % 100):02d}"
+                repl = f"{(dts.year % 100):02d}"
             elif i == 2:
-                repl = str(year)
+                repl = str(dts.year)
             elif i == 3:
                 repl = f"{(value % 1_000):03d}"
             elif i == 4:
@@ -1250,20 +1231,19 @@ cdef int pyear(int64_t ordinal, int freq):
     return dts.year
 
 
-@cython.cdivision
 cdef int pqyear(int64_t ordinal, int freq):
     cdef:
-        int year = 0
-        int quarter = 0
-    get_yq(ordinal, freq, &quarter, &year)
-    return year
+        npy_datetimestruct dts
+
+    get_yq(ordinal, freq, &dts)
+    return dts.year
 
 
 cdef int pquarter(int64_t ordinal, int freq):
     cdef:
-        int year = 0
-        int quarter = 0
-    get_yq(ordinal, freq, &quarter, &year)
+        int quarter
+        npy_datetimestruct dts
+    quarter = get_yq(ordinal, freq, &dts)
     return quarter
 
 
@@ -1505,7 +1485,7 @@ cdef class _Period:
 
     cdef readonly:
         int64_t ordinal
-        PeriodPseudoDtype _dtype
+        PeriodDtypeBase _dtype
         BaseOffset freq
 
     def __cinit__(self, int64_t ordinal, BaseOffset freq):
@@ -1514,7 +1494,7 @@ cdef class _Period:
         # Note: this is more performant than PeriodDtype.from_date_offset(freq)
         #  because from_date_offset cannot be made a cdef method (until cython
         #  supported cdef classmethods)
-        self._dtype = PeriodPseudoDtype(freq._period_dtype_code)
+        self._dtype = PeriodDtypeBase(freq._period_dtype_code)
 
     @classmethod
     def _maybe_convert_freq(cls, object freq) -> BaseOffset:
@@ -2451,7 +2431,7 @@ class Period(_Period):
             raise ValueError(msg)
 
         if ordinal is None:
-            base, mult = get_freq_code(freq)
+            base, _ = get_freq_code(freq)
             ordinal = period_ordinal(dt.year, dt.month, dt.day,
                                      dt.hour, dt.minute, dt.second,
                                      dt.microsecond, 0, base)
