@@ -961,3 +961,13 @@ def test_apply_function_with_indexing():
         name="col2",
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_apply_function_with_indexing_return_column():
+    # GH: 7002
+    df = DataFrame({'foo1': ['one', 'two', 'two', 'three', 'one', 'two'],
+                    'foo2': np.random.randn(6)})
+    result = df.groupby('foo1', as_index=False).apply(lambda x: x.mean())
+    expected = df.groupby('foo1', as_index=False).mean()
+    tm.assert_frame_equal(result, expected)
+    assert 'foo1' in result.columns
