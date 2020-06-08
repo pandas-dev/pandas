@@ -318,9 +318,7 @@ def _convert_listlike_datetimes(
                 pass
         elif tz:
             # DatetimeArray, DatetimeIndex
-            # error: Item "DatetimeIndex" of "Union[DatetimeArray, DatetimeIndex]" has
-            # no attribute "tz_localize"
-            return arg.tz_localize(tz)  # type: ignore
+            return arg.tz_localize(tz)
 
         return arg
 

@@ -255,8 +255,8 @@ def test_object_series_ok():
         pd.array([1, 3, 2], dtype="int64"),
         pd.array([1, 10, 0], dtype="Sparse[int]"),
         pd.to_datetime(["2000", "2010", "2001"]),
-        pd.to_datetime(["2000", "2010", "2001"]).tz_localize("CET"),  # type: ignore
-        pd.to_datetime(["2000", "2010", "2001"]).to_period(freq="D"),  # type: ignore
+        pd.to_datetime(["2000", "2010", "2001"]).tz_localize("CET"),
+        pd.to_datetime(["2000", "2010", "2001"]).to_period(freq="D"),
     ],
 )
 def test_reduce(values):
