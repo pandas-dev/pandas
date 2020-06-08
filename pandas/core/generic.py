@@ -1866,6 +1866,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if typ is not None:
                 attrs = state.get("_attrs", {})
                 object.__setattr__(self, "_attrs", attrs)
+                allows_duplicate_labels = state.get("_allows_duplicate_labels", True)
+                object.__setattr__(
+                    self, "_allows_duplicate_labels", allows_duplicate_labels
+                )
 
                 # set in the order of internal names
                 # to avoid definitional recursion

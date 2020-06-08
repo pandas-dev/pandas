@@ -509,3 +509,11 @@ def test_read_pickle_with_subclass():
 
     tm.assert_series_equal(result[0], expected[0])
     assert isinstance(result[1], MyTz)
+
+
+def test_allows_duplicate_labels():
+    s = pd.Series(dtype=float, allows_duplicate_labels=False)
+    tm.round_trip_pickle(s)
+
+    df = pd.DataFrame(allows_duplicate_labels=False)
+    tm.round_trip_pickle(df)
