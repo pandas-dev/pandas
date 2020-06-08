@@ -997,12 +997,14 @@ class HDFStore:
         key : str
         value : {Series, DataFrame}
         format : 'fixed(f)|table(t)', default is 'fixed'
-            fixed(f) : Fixed format
-                       Fast writing/reading. Not-appendable, nor searchable.
-            table(t) : Table format
-                       Write as a PyTables Table structure which may perform
-                       worse but allow more flexible operations like searching
-                       / selecting subsets of the data.
+            Format to use when storing object in HDFStore. Value can be one of:
+
+            ``'fixed'``
+                Fixed format.  Fast writing/reading. Not-appendable, nor searchable.
+            ``'table'``
+                Table format.  Write as a PyTables Table structure which may perform
+                worse but allow more flexible operations like searching / selecting
+                subsets of the data.
         append   : bool, default False
             This will force Table format, append the input data to the
             existing.
@@ -1126,10 +1128,12 @@ class HDFStore:
         key : str
         value : {Series, DataFrame}
         format : 'table' is the default
-            table(t) : table format
-                       Write as a PyTables Table structure which may perform
-                       worse but allow more flexible operations like searching
-                       / selecting subsets of the data.
+            Format to use when storing object in HDFStore.  Value can be one of:
+
+            ``'table'``
+                Table format. Write as a PyTables Table structure which may perform
+                worse but allow more flexible operations like searching / selecting
+                subsets of the data.
         append       : bool, default True
             Append the input data to the existing.
         data_columns : list of columns, or True, default None
