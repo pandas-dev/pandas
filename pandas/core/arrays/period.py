@@ -442,10 +442,11 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         if freq is None:
             base = self.freq._period_dtype_code
             freq = libfrequencies.get_to_timestamp_base(base)
+            base = freq
         else:
             freq = Period._maybe_convert_freq(freq)
+            base = freq._period_dtype_code
 
-        base, _ = libfrequencies.get_freq_code(freq)
         new_data = self.asfreq(freq, how=how)
 
         new_data = libperiod.periodarr_to_dt64arr(new_data.asi8, base)
@@ -962,7 +963,8 @@ def _get_ordinal_range(start, end, periods, freq, mult=1):
         )
 
     if freq is not None:
-        _, mult = libfrequencies.get_freq_code(freq)
+        freq = to_offset(freq)
+        mult = freq.n
 
     if start is not None:
         start = Period(start, freq)
@@ -1024,10 +1026,11 @@ def _range_from_fields(
 
     if quarter is not None:
         if freq is None:
-            freq = "Q"
+            freq = to_offset("Q")
             base = libfrequencies.FreqGroup.FR_QTR
         else:
-            base, mult = libfrequencies.get_freq_code(freq)
+            freq = to_offset(freq)
+            base = libperiod.freq_to_dtype_code(freq)
             if base != libfrequencies.FreqGroup.FR_QTR:
                 raise AssertionError("base must equal FR_QTR")
 
@@ -1037,7 +1040,8 @@ def _range_from_fields(
             val = libperiod.period_ordinal(y, m, 1, 1, 1, 1, 0, 0, base)
             ordinals.append(val)
     else:
-        base, mult = libfrequencies.get_freq_code(freq)
+        freq = to_offset(freq)
+        base = libperiod.freq_to_dtype_code(freq)
         arrays = _make_field_arrays(year, month, day, hour, minute, second)
         for y, mth, d, h, mn, s in zip(*arrays):
             ordinals.append(libperiod.period_ordinal(y, mth, d, h, mn, s, 0, 0, base))
