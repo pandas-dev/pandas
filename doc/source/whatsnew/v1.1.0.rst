@@ -827,6 +827,7 @@ Timedelta
 - Bug in :func:`timedelta_range` that produced an extra point on a edge case (:issue:`30353`, :issue:`33498`)
 - Bug in :meth:`DataFrame.resample` that produced an extra point on a edge case (:issue:`30353`, :issue:`13022`, :issue:`33498`)
 - Bug in :meth:`DataFrame.resample` that ignored the ``loffset`` argument when dealing with timedelta (:issue:`7687`, :issue:`33498`)
+- Bug in :class:`Timedelta` and `pandas.to_timedelta` that ignored `unit`-argument for string input (:issue:`12136`)
 
 Timezones
 ^^^^^^^^^
