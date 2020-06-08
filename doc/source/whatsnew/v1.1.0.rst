@@ -1013,6 +1013,7 @@ Reshaping
 - Ensure only named functions can be used in :func:`eval()` (:issue:`32460`)
 - Bug in :func:`Dataframe.aggregate` and :func:`Series.aggregate` was causing recursive loop in some cases (:issue:`34224`)
 - Fixed bug in :func:`melt` where melting MultiIndex columns with ``col_level`` > 0 would raise a ``KeyError`` on ``id_vars`` (:issue:`34129`)
+- Bug in :meth:`Series.where` with an empty Series and empty ``cond`` having non-bool dtype (:issue:`34592`)
 
 Sparse
 ^^^^^^
