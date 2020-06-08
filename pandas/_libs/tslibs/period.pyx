@@ -497,12 +497,11 @@ cdef int64_t asfreq_DTtoA(int64_t ordinal, asfreq_info *af_info) nogil:
         return <int64_t>(dts.year - 1970)
 
 
-cdef int DtoQ_yq(int64_t ordinal, asfreq_info *af_info, int *year) nogil:
+cdef int DtoQ_yq(int64_t ordinal, asfreq_info *af_info, npy_datetimestruct* dts) nogil:
     cdef:
-        npy_datetimestruct dts
         int quarter
 
-    pandas_datetime_to_datetimestruct(ordinal, NPY_FR_D, &dts)
+    pandas_datetime_to_datetimestruct(ordinal, NPY_FR_D, dts)
     if af_info.to_end != 12:
         dts.month -= af_info.to_end
         if dts.month <= 0:
@@ -510,19 +509,19 @@ cdef int DtoQ_yq(int64_t ordinal, asfreq_info *af_info, int *year) nogil:
         else:
             dts.year += 1
 
-    year[0] = dts.year
     quarter = month_to_quarter(dts.month)
     return quarter
 
 
 cdef int64_t asfreq_DTtoQ(int64_t ordinal, asfreq_info *af_info) nogil:
     cdef:
-        int year, quarter
+        int quarter
+        npy_datetimestruct dts
 
     ordinal = downsample_daytime(ordinal, af_info)
 
-    quarter = DtoQ_yq(ordinal, af_info, &year)
-    return <int64_t>((year - 1970) * 4 + quarter - 1)
+    quarter = DtoQ_yq(ordinal, af_info, &dts)
+    return <int64_t>((dts.year - 1970) * 4 + quarter - 1)
 
 
 cdef int64_t asfreq_DTtoM(int64_t ordinal, asfreq_info *af_info) nogil:
@@ -919,7 +918,7 @@ cdef int64_t get_time_nanos(int freq, int64_t unix_date, int64_t ordinal) nogil:
     return sub * factor
 
 
-cdef int get_yq(int64_t ordinal, int freq, int *quarter, int *year):
+cdef int get_yq(int64_t ordinal, int freq, npy_datetimestruct* dts):
     """
     Find the year and quarter of a Period with the given ordinal and frequency
 
@@ -927,22 +926,22 @@ cdef int get_yq(int64_t ordinal, int freq, int *quarter, int *year):
     ----------
     ordinal : int64_t
     freq : int
-    quarter : *int
-    year : *int
+    dts : *npy_datetimestruct
 
     Returns
     -------
-    qtr_freq : int
+    quarter : int
         describes the implied quarterly frequency associated with `freq`
 
     Notes
     -----
-    Sets quarter and year inplace
+    Sets dts.year in-place.
     """
     cdef:
         asfreq_info af_info
         int qtr_freq
         int64_t unix_date
+        int quarter
 
     unix_date = get_unix_date(ordinal, freq)
 
@@ -951,11 +950,10 @@ cdef int get_yq(int64_t ordinal, int freq, int *quarter, int *year):
     else:
         qtr_freq = FR_QTR
 
-    assert (qtr_freq % 1000) <= 12
     get_asfreq_info(FR_DAY, qtr_freq, True, &af_info)
 
-    quarter[0] = DtoQ_yq(unix_date, &af_info, year)
-    return qtr_freq
+    quarter = DtoQ_yq(unix_date, &af_info, dts)
+    return quarter
 
 
 cdef inline int month_to_quarter(int month) nogil:
@@ -1225,15 +1223,15 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt):
 
     for i in range(len(extra_fmts)):
         if found_pat[i]:
-            if get_yq(value, freq, &quarter, &year) < 0:
-                raise ValueError('Unable to get quarter and year')
+
+            quarter = get_yq(value, freq, &dts)
 
             if i == 0:
                 repl = str(quarter)
             elif i == 1:  # %f, 2-digit year
-                repl = f"{(year % 100):02d}"
+                repl = f"{(dts.year % 100):02d}"
             elif i == 2:
-                repl = str(year)
+                repl = str(dts.year)
             elif i == 3:
                 repl = f"{(value % 1_000):03d}"
             elif i == 4:
@@ -1259,20 +1257,19 @@ cdef int pyear(int64_t ordinal, int freq):
     return dts.year
 
 
-@cython.cdivision
 cdef int pqyear(int64_t ordinal, int freq):
     cdef:
-        int year = 0
-        int quarter = 0
-    get_yq(ordinal, freq, &quarter, &year)
-    return year
+        npy_datetimestruct dts
+
+    get_yq(ordinal, freq, &dts)
+    return dts.year
 
 
 cdef int pquarter(int64_t ordinal, int freq):
     cdef:
-        int year = 0
-        int quarter = 0
-    get_yq(ordinal, freq, &quarter, &year)
+        int quarter
+        npy_datetimestruct dts
+    quarter = get_yq(ordinal, freq, &dts)
     return quarter
 
 
