@@ -123,8 +123,6 @@ _shared_doc_kwargs = dict(
     optional_by="""
         by : str or list of str
             Name or list of names to sort by""",
-    pop_return_type="series",
-    pop_item_param_info="Label of column to be popped.",
 )
 
 
@@ -669,32 +667,20 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         "pop"
     ] = """
         Return item and drops from %(klass)s. Raise KeyError if not found.
-
+        """
+    @Appender(
+        """
         Parameters
         ----------
-        item : %(axes_single_arg)s
-            %(pop_item_param_info)s
+        item : str
+            Label of column to be popped.
 
         Returns
         -------
-        %(pop_return_type)s
+        Series
 
         Examples
         --------
-        **Series**
-
-        >>> ser = pd.Series([1,2,3])
-
-        >>> ser.pop(0)
-        1
-
-        >>> ser
-        1    2
-        2    3
-        dtype: int64
-
-        **DataFrame**
-
         >>> df = pd.DataFrame([('falcon', 'bird', 389.0),
         ...                    ('parrot', 'bird', 24.0),
         ...                    ('lion', 'mammal', 80.5),
@@ -721,8 +707,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2    lion       80.5
         3  monkey        NaN
         """
-
-    @Appender(_shared_docs["pop"] % _shared_doc_kwargs)
+    )
+    @Substitution(klass="DataFrame")
+    @Appender(_shared_docs["pop"])
     def pop(self: FrameOrSeries, item) -> FrameOrSeries:
         result = self[item]
         del self[item]
