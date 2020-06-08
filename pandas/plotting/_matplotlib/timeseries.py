@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Optional
 import numpy as np
 
 from pandas._libs.tslibs import Period, to_offset
-from pandas._libs.tslibs.frequencies import FreqGroup, base_and_stride, get_freq_code
+from pandas._libs.tslibs.frequencies import FreqGroup, base_and_stride
 from pandas._typing import FrameOrSeriesUnion
 
 from pandas.core.dtypes.generic import (
@@ -213,7 +213,7 @@ def _use_dynamic_x(ax, data: "FrameOrSeriesUnion") -> bool:
 
     # FIXME: hack this for 0.10.1, creating more technical debt...sigh
     if isinstance(data.index, ABCDatetimeIndex):
-        base = get_freq_code(freq)[0]
+        base = to_offset(freq)._period_dtype_code
         x = data.index
         if base <= FreqGroup.FR_DAY:
             return x[:1].is_normalized

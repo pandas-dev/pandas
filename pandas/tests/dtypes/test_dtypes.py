@@ -67,7 +67,11 @@ class Base:
 
         # force back to the cache
         result = tm.round_trip_pickle(dtype)
-        assert not len(dtype._cache)
+        if not isinstance(dtype, PeriodDtype):
+            # Because PeriodDtype has a cython class as a base class,
+            #  it has different pickle semantics, and its cache is re-populated
+            #  on un-pickling.
+            assert not len(dtype._cache)
         assert result == dtype
 
 

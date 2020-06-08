@@ -2529,12 +2529,10 @@ cdef class Week(SingleConstructorOffset):
         -------
         result : DatetimeIndex
         """
-        from .frequencies import get_freq_code  # TODO: avoid circular import
-
         i8other = dtindex.asi8
         off = (i8other % DAY_NANOS).view("timedelta64[ns]")
 
-        base, mult = get_freq_code(self.freqstr)
+        base = self._period_dtype_code
         base_period = dtindex.to_period(base)
 
         if self.n > 0:
