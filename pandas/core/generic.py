@@ -668,6 +668,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     ] = """
         Return item and drops from %(klass)s. Raise KeyError if not found.
         """
+
     @Appender(
         """
         Parameters
