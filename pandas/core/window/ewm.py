@@ -1,3 +1,4 @@
+from functools import partial
 from textwrap import dedent
 
 import numpy as np
@@ -219,7 +220,7 @@ class EWM(_Rolling):
 
     agg = aggregate
 
-    def _apply(self, func, **kwargs):
+    def _apply(self, func):
         """
         Rolling statistical measure using supplied function. Designed to be
         used with passed-in Cython array-based functions.
@@ -253,23 +254,6 @@ class EWM(_Rolling):
                 results.append(values.copy())
                 continue
 
-            # if we have a string function name, wrap it
-            if isinstance(func, str):
-                cfunc = getattr(window_aggregations, func, None)
-                if cfunc is None:
-                    raise ValueError(
-                        f"we do not support this function in window_aggregations.{func}"
-                    )
-
-                def func(arg):
-                    return cfunc(
-                        arg,
-                        self.com,
-                        int(self.adjust),
-                        int(self.ignore_na),
-                        int(self.min_periods),
-                    )
-
             results.append(np.apply_along_axis(func, self.axis, values))
 
         return self._wrap_results(results, block_list, obj, exclude)
@@ -286,7 +270,15 @@ class EWM(_Rolling):
             Arguments and keyword arguments to be passed into func.
         """
         nv.validate_window_func("mean", args, kwargs)
-        return self._apply("ewma", **kwargs)
+        window_func = self._get_roll_func("ewma")
+        window_func = partial(
+            window_func,
+            com=self.com,
+            adjust=int(self.adjust),
+            ignore_na=self.ignore_na,
+            minp=int(self.min_periods),
+        )
+        return self._apply(window_func)
 
     @Substitution(name="ewm", func_name="std")
     @Appender(_doc_template)
@@ -320,7 +312,7 @@ class EWM(_Rolling):
                 int(bias),
             )
 
-        return self._apply(f, **kwargs)
+        return self._apply(f)
 
     @Substitution(name="ewm", func_name="cov")
     @Appender(_doc_template)
