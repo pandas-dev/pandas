@@ -8,6 +8,7 @@ shadows the python class, where we do any heavy lifting.
 """
 import warnings
 import time as _time
+import re
 
 import numpy as np
 cimport numpy as cnp
@@ -508,7 +509,14 @@ cdef class _Timestamp(ABCTimestamp):
 
     @property
     def _time_repr(self) -> str:
-        return self.strftime('%H:%M:%S.%f')
+        result = f'{self.hour:02d}:{self.minute:02d}:{self.second:02d}'
+  
+        if self.nanosecond != 0:
+            result += f'.{self.nanosecond + 1000 * self.microsecond:09d}'
+        elif self.microsecond != 0:
+            result += f'.{self.microsecond:06d}'
+  
+        return result
 
     @property
     def _short_repr(self) -> str:
@@ -1466,8 +1474,8 @@ default 'raise'
     def strftime(self, format: str) -> str:
         # only do nanosecond processing if necessary
         if self.nanosecond and '%f' in format:
-            newformat = re.sub('%f', f'%f{self.nanosecond}', format)
-        return _time.strftime(newformat, self.timetuple())
+            format = re.sub('%f', f'%f{self.nanosecond}', format)
+        return _time.strftime(format, self.timetuple())
 
 
 # Add the min and max fields at the class level
