@@ -2207,7 +2207,7 @@ class DataFrame(NDFrame):
         +----+------------+------------+
         |  1 | pig        | quetzal    |
         +----+------------+------------+
-        """
+        """,
     )
     def to_markdown(
         self, buf: Optional[IO[str]] = None, mode: Optional[str] = None, **kwargs
