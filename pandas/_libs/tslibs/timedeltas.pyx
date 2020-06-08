@@ -234,15 +234,19 @@ def array_to_timedelta64(object[:] values, unit=None, errors='raise'):
     n = values.shape[0]
     result = np.empty(n, dtype='m8[ns]')
     iresult = result.view('i8')
-    has_string = False
+
+    if unit is not None:
+        for i in range(n):
+            if isinstance(values[i], str):
+                raise ValueError(
+                    "unit must not be specified if the input contains a str"
+                )
 
     # Usually, we have all strings. If so, we hit the fast path.
     # If this path fails, we try conversion a different way, and
     # this is where all of the error handling will take place.
     try:
         for i in range(n):
-            if isinstance(values[i], str):
-                has_string = True
             if values[i] is NaT:
                 # we allow this check in the fast-path because NaT is a C-object
                 #  so this is an inexpensive check
@@ -259,9 +263,6 @@ def array_to_timedelta64(object[:] values, unit=None, errors='raise'):
                     result[i] = NPY_NAT
                 else:
                     raise
-
-    if has_string and unit is not None:
-        raise ValueError("unit must be un-specified if the input contains a str")
 
     return iresult.base  # .base to access underlying np.ndarray
 
@@ -1162,7 +1163,7 @@ class Timedelta(_Timedelta):
             value = value.value
         elif isinstance(value, str):
             if unit is not None:
-                raise ValueError("unit must be un-specified if the value is a str")
+                raise ValueError("unit must not be specified if the value is a str")
             if len(value) > 0 and value[0] == 'P':
                 value = parse_iso_format_string(value)
             else:

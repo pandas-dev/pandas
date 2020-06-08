@@ -294,9 +294,9 @@ def test_timedelta_constructor_identity():
 @pytest.mark.parametrize(
     "constructor, value, unit, expectation",
     [
-        (Timedelta, "10s", "ms", (ValueError, "unit must be un-specified")),
-        (to_timedelta, "10s", "ms", (ValueError, "unit must be un-specified")),
-        (to_timedelta, ["1", 2, 3], "s", (ValueError, "unit must be un-specified")),
+        (Timedelta, "10s", "ms", (ValueError, "unit must not be specified")),
+        (to_timedelta, "10s", "ms", (ValueError, "unit must not be specified")),
+        (to_timedelta, ["1", 2, 3], "s", (ValueError, "unit must not be specified")),
     ],
 )
 def test_string_with_unit(constructor, value, unit, expectation):

@@ -27,7 +27,7 @@ def to_timedelta(arg, unit=None, errors="raise"):
     arg : str, timedelta, list-like or Series
         The data to be converted to timedelta.
     unit : str, default 'ns'
-        Must be un-specified if the arg is/contains a str.
+        Must not be specified if the arg is/contains a str.
         Denotes the unit of the arg. Possible values:
         ('W', 'D', 'days', 'day', 'hours', hour', 'hr', 'h',
         'm', 'minute', 'min', 'minutes', 'T', 'S', 'seconds',
@@ -107,7 +107,7 @@ def to_timedelta(arg, unit=None, errors="raise"):
         )
 
     if isinstance(arg, str) and unit is not None:
-        raise ValueError("unit must be un-specified if the input is/contains a str")
+        raise ValueError("unit must not be specified if the input is/contains a str")
 
     # ...so it must be a scalar value. Return scalar.
     return _coerce_scalar_to_timedelta_type(arg, unit=unit, errors=errors)
