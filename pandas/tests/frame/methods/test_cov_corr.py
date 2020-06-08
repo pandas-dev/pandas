@@ -59,7 +59,7 @@ class TestDataFrameCov:
         )
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("test_ddof", [1, 2, 3])
+    @pytest.mark.parametrize("test_ddof", [0, 1, 2, 3])
     def test_cov_ddof(self, test_ddof):
         np_array1 = np.random.rand(10)
         np_array2 = np.random.rand(10)
