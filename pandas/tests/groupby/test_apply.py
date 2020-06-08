@@ -5,8 +5,8 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas._testing as tm
 from pandas import DataFrame, Index, MultiIndex, Series, bdate_range
+import pandas._testing as tm
 
 
 def test_apply_issues():
@@ -65,8 +65,8 @@ def test_apply_trivial():
 
 @pytest.mark.xfail(
     reason="GH#20066; function passed into apply "
-           "returns a DataFrame with the same index "
-           "as the one to create GroupBy object."
+    "returns a DataFrame with the same index "
+    "as the one to create GroupBy object."
 )
 def test_apply_trivial_fail():
     # GH 20066
@@ -965,9 +965,13 @@ def test_apply_function_with_indexing():
 
 def test_apply_function_with_indexing_return_column():
     # GH: 7002
-    df = DataFrame({'foo1': ['one', 'two', 'two', 'three', 'one', 'two'],
-                    'foo2': np.random.randn(6)})
-    result = df.groupby('foo1', as_index=False).apply(lambda x: x.mean())
-    expected = df.groupby('foo1', as_index=False).mean()
+    df = DataFrame(
+        {
+            "foo1": ["one", "two", "two", "three", "one", "two"],
+            "foo2": np.random.randn(6),
+        }
+    )
+    result = df.groupby("foo1", as_index=False).apply(lambda x: x.mean())
+    expected = df.groupby("foo1", as_index=False).mean()
     tm.assert_frame_equal(result, expected)
-    assert 'foo1' in result.columns
+    assert "foo1" in result.columns
