@@ -47,6 +47,7 @@ from pandas._libs.tslibs.timezones cimport utc_pytz as UTC
 from pandas._libs.tslibs.tzconversion cimport tz_convert_single
 
 from .dtypes cimport PeriodDtypeCode
+from .fields import get_start_end_field
 from .timedeltas cimport delta_to_nanoseconds
 from .timedeltas import Timedelta
 from .timestamps cimport _Timestamp
@@ -2291,7 +2292,7 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
         after_day_of_month = days_from_start > delta
 
         # determine the correct n for each date in dtindex
-        roll = self._get_roll(dtindex, before_day_of_month, after_day_of_month)
+        roll = self._get_roll(i8other, before_day_of_month, after_day_of_month)
 
         # isolate the time since it will be striped away one the next line
         time = (i8other % DAY_NANOS).view("timedelta64[ns]")
@@ -2304,24 +2305,26 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
 
         shifted = asper._addsub_int_array(roll // 2, operator.add)
         dtindex = type(dti)(shifted.to_timestamp())
+        dt64other = np.asarray(dtindex)
 
         # apply the correct day
-        dtindex = self._apply_index_days(dtindex, roll)
+        dt64result = self._apply_index_days(dt64other, roll)
 
-        return dtindex + time
+        return dt64result + time
 
-    def _get_roll(self, dtindex, before_day_of_month, after_day_of_month):
+    def _get_roll(self, i8other, before_day_of_month, after_day_of_month):
         """
         Return an array with the correct n for each date in dtindex.
 
         The roll array is based on the fact that dtindex gets rolled back to
         the first day of the month.
         """
+        # before_day_of_month and after_day_of_month are ndarray[bool]
         raise NotImplementedError
 
-    def _apply_index_days(self, dtindex, roll):
+    def _apply_index_days(self, dt64other, roll):
         """
-        Apply the correct day for each date in dtindex.
+        Apply the correct day for each date in dt64other.
         """
         raise NotImplementedError
 
@@ -2352,9 +2355,10 @@ cdef class SemiMonthEnd(SemiMonthOffset):
         day = 31 if n % 2 else self.day_of_month
         return shift_month(other, months, day)
 
-    def _get_roll(self, dtindex, before_day_of_month, after_day_of_month):
+    def _get_roll(self, i8other, before_day_of_month, after_day_of_month):
+        # before_day_of_month and after_day_of_month are ndarray[bool]
         n = self.n
-        is_month_end = dtindex.is_month_end
+        is_month_end = get_start_end_field(i8other, "is_month_end")
         if n > 0:
             roll_end = np.where(is_month_end, 1, 0)
             roll_before = np.where(before_day_of_month, n, n + 1)
@@ -2367,22 +2371,22 @@ cdef class SemiMonthEnd(SemiMonthOffset):
             roll = np.where(after_day_of_month, n + 2, n + 1)
         return roll
 
-    def _apply_index_days(self, dtindex, roll):
+    def _apply_index_days(self, dt64other, roll):
         """
-        Add days portion of offset to DatetimeIndex dtindex.
+        Add days portion of offset to dt64other.
 
         Parameters
         ----------
-        dtindex : DatetimeIndex
+        dt64other : ndarray[datetime64[ns]]
         roll : ndarray[int64_t]
 
         Returns
         -------
-        result : DatetimeIndex
+        ndarray[datetime64[ns]]
         """
         nanos = (roll % 2) * Timedelta(days=self.day_of_month).value
-        dtindex += nanos.astype("timedelta64[ns]")
-        return dtindex + Timedelta(days=-1)
+        dt64other += nanos.astype("timedelta64[ns]")
+        return dt64other + Timedelta(days=-1)
 
 
 cdef class SemiMonthBegin(SemiMonthOffset):
@@ -2409,9 +2413,10 @@ cdef class SemiMonthBegin(SemiMonthOffset):
         day = 1 if n % 2 else self.day_of_month
         return shift_month(other, months, day)
 
-    def _get_roll(self, dtindex, before_day_of_month, after_day_of_month):
+    def _get_roll(self, i8other, before_day_of_month, after_day_of_month):
+        # before_day_of_month and after_day_of_month are ndarray[bool]
         n = self.n
-        is_month_start = dtindex.is_month_start
+        is_month_start = get_start_end_field(i8other, "is_month_start")
         if n > 0:
             roll = np.where(before_day_of_month, n, n + 1)
         elif n == 0:
@@ -2424,21 +2429,21 @@ cdef class SemiMonthBegin(SemiMonthOffset):
             roll = roll_after + roll_start
         return roll
 
-    def _apply_index_days(self, dtindex, roll):
+    def _apply_index_days(self, dt64other, roll):
         """
-        Add days portion of offset to DatetimeIndex dtindex.
+        Add days portion of offset to dt64other.
 
         Parameters
         ----------
-        dtindex : DatetimeIndex
+        dt64other : ndarray[datetime64[ns]]
         roll : ndarray[int64_t]
 
         Returns
         -------
-        result : DatetimeIndex
+        ndarray[datetime64[ns]]
         """
         nanos = (roll % 2) * Timedelta(days=self.day_of_month - 1).value
-        return dtindex + nanos.astype("timedelta64[ns]")
+        return dt64other + nanos.astype("timedelta64[ns]")
 
 
 # ---------------------------------------------------------------------

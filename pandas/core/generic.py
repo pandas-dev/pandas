@@ -1917,7 +1917,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     mode : str, optional
         Mode in which file is opened.
     **kwargs
-        These parameters will be passed to `tabulate`.
+        These parameters will be passed to `tabulate \
+            <https://pypi.org/project/tabulate>`_.
 
     Returns
     -------
@@ -6863,16 +6864,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     @Appender(_shared_docs["interpolate"] % _shared_doc_kwargs)
     def interpolate(
-        self,
-        method="linear",
-        axis=0,
-        limit=None,
-        inplace=False,
-        limit_direction="forward",
-        limit_area=None,
-        downcast=None,
+        self: FrameOrSeries,
+        method: str = "linear",
+        axis: Axis = 0,
+        limit: Optional[int] = None,
+        inplace: bool_t = False,
+        limit_direction: str = "forward",
+        limit_area: Optional[str] = None,
+        downcast: Optional[str] = None,
         **kwargs,
-    ):
+    ) -> Optional[FrameOrSeries]:
         """
         Interpolate values according to different methods.
         """
@@ -8830,16 +8831,17 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         msg = "Boolean array expected for the condition, not {dtype}"
 
-        if not isinstance(cond, ABCDataFrame):
-            # This is a single-dimensional object.
-            if not is_bool_dtype(cond):
-                raise ValueError(msg.format(dtype=cond.dtype))
-        elif not cond.empty:
-            for dt in cond.dtypes:
-                if not is_bool_dtype(dt):
-                    raise ValueError(msg.format(dtype=dt))
+        if not cond.empty:
+            if not isinstance(cond, ABCDataFrame):
+                # This is a single-dimensional object.
+                if not is_bool_dtype(cond):
+                    raise ValueError(msg.format(dtype=cond.dtype))
+            else:
+                for dt in cond.dtypes:
+                    if not is_bool_dtype(dt):
+                        raise ValueError(msg.format(dtype=dt))
         else:
-            # GH#21947 we have an empty DataFrame, could be object-dtype
+            # GH#21947 we have an empty DataFrame/Series, could be object-dtype
             cond = cond.astype(bool)
 
         cond = -cond if inplace else cond
