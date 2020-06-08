@@ -56,7 +56,7 @@ from pandas._libs.tslibs.ccalendar cimport (
 )
 from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
 
-from pandas._libs.tslibs.dtypes cimport PeriodDtypeBase, PeriodDtypeCode
+from pandas._libs.tslibs.dtypes cimport PeriodDtypeBase
 
 from pandas._libs.tslibs.frequencies cimport (
     attrname_to_abbrevs,
