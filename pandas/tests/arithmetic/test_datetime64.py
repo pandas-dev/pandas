@@ -782,33 +782,25 @@ class TestDatetime64Arithmetic:
         "ignore:Adding/subtracting object-dtype array to DatetimeArray"
     )
     @pytest.mark.parametrize(
-        "dt64arr",
+        "dt64arr, offset_arr, expected",
         [
-            [
-                pd.Timestamp("2000-01-01"),
-                pd.Timestamp("2000-02-01"),
-                pd.Timestamp("2000-05-01"),
-            ]
-        ],
-    )
-    @pytest.mark.parametrize(
-        "offset_arr",
-        [
-            [
-                pd.offsets.DateOffset(years=1),
-                pd.offsets.DateOffset(months=2),
-                pd.offsets.MonthEnd(),
-            ]
-        ],
-    )
-    @pytest.mark.parametrize(
-        "expected",
-        [
-            [
-                pd.Timestamp("2001-01-01"),
-                pd.Timestamp("2000-04-01"),
-                pd.Timestamp("2000-05-31"),
-            ]
+            (
+                [
+                    pd.Timestamp("2000-01-01"),
+                    pd.Timestamp("2000-02-01"),
+                    pd.Timestamp("2000-05-01"),
+                ],
+                [
+                    pd.offsets.DateOffset(years=1),
+                    pd.offsets.DateOffset(months=2),
+                    pd.offsets.MonthEnd(),
+                ],
+                [
+                    pd.Timestamp("2001-01-01"),
+                    pd.Timestamp("2000-04-01"),
+                    pd.Timestamp("2000-05-31"),
+                ],
+            )
         ],
     )
     @pytest.mark.parametrize(
@@ -860,34 +852,24 @@ class TestDatetime64Arithmetic:
         "ignore:Adding/subtracting object-dtype array to DatetimeArray"
     )
     @pytest.mark.parametrize(
-        "dt64arr",
+        "dt64arr, offset_arr, expected",
         [
-            [
-                pd.Timestamp("2000-01-01"),
-                pd.Timestamp("2000-03-29"),
-                pd.Timestamp("2000-05-15"),
-            ]
-        ],
-    )
-    @pytest.mark.parametrize(
-        "offset_arr",
-        [
-            [
-                pd.offsets.DateOffset(years=1),
-                pd.offsets.DateOffset(months=2),
-                pd.offsets.MonthBegin(),
-            ]
-        ],
-    )
-    @pytest.mark.parametrize(
-        "expected",
-        [
-            pd.Series(
+            (
+                [
+                    pd.Timestamp("2000-01-01"),
+                    pd.Timestamp("2000-03-29"),
+                    pd.Timestamp("2000-05-15"),
+                ],
+                [
+                    pd.offsets.DateOffset(years=1),
+                    pd.offsets.DateOffset(months=2),
+                    pd.offsets.MonthBegin(),
+                ],
                 [
                     pd.Timestamp("1999-1-1"),
                     pd.Timestamp("2000-1-29"),
                     pd.Timestamp("2000-05-01"),
-                ]
+                ],
             )
         ],
     )
