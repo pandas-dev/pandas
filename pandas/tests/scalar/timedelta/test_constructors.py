@@ -289,3 +289,17 @@ def test_timedelta_constructor_identity():
     expected = Timedelta(np.timedelta64(1, "s"))
     result = Timedelta(expected)
     assert result is expected
+
+
+@pytest.mark.parametrize(
+    "constructor, value, unit, expectation",
+    [
+        (Timedelta, "10s", "ms", (ValueError, "unit must not be specified")),
+        (to_timedelta, "10s", "ms", (ValueError, "unit must not be specified")),
+        (to_timedelta, ["1", 2, 3], "s", (ValueError, "unit must not be specified")),
+    ],
+)
+def test_string_with_unit(constructor, value, unit, expectation):
+    exp, match = expectation
+    with pytest.raises(exp, match=match):
+        _ = constructor(value, unit=unit)
