@@ -2,7 +2,7 @@
 # originals
 
 
-cdef class PeriodPseudoDtype:
+cdef class PeriodDtypeBase:
     """
     Similar to an actual dtype, this contains all of the information
     describing a PeriodDtype in an integer code.
@@ -14,9 +14,9 @@ cdef class PeriodPseudoDtype:
         self.dtype_code = code
 
     def __eq__(self, other):
-        if not isinstance(other, PeriodPseudoDtype):
+        if not isinstance(other, PeriodDtypeBase):
             return False
-        if not isinstance(self, PeriodPseudoDtype):
+        if not isinstance(self, PeriodDtypeBase):
             # cython semantics, this is a reversed op
             return False
         return self.dtype_code == other.dtype_code

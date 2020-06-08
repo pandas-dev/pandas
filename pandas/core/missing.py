@@ -2,6 +2,8 @@
 Routines for filling missing data.
 """
 
+from typing import Any, List, Optional, Set, Union
+
 import numpy as np
 
 from pandas._libs import algos, lib
@@ -92,7 +94,7 @@ def clean_fill_method(method, allow_nearest=False):
     return method
 
 
-def clean_interp_method(method, **kwargs):
+def clean_interp_method(method: str, **kwargs) -> str:
     order = kwargs.get("order")
     valid = [
         "linear",
@@ -160,15 +162,15 @@ def find_valid_index(values, how: str):
 
 
 def interpolate_1d(
-    xvalues,
-    yvalues,
-    method="linear",
-    limit=None,
-    limit_direction="forward",
-    limit_area=None,
-    fill_value=None,
-    bounds_error=False,
-    order=None,
+    xvalues: np.ndarray,
+    yvalues: np.ndarray,
+    method: Optional[str] = "linear",
+    limit: Optional[int] = None,
+    limit_direction: str = "forward",
+    limit_area: Optional[str] = None,
+    fill_value: Optional[Any] = None,
+    bounds_error: bool = False,
+    order: Optional[int] = None,
     **kwargs,
 ):
     """
@@ -238,6 +240,7 @@ def interpolate_1d(
     # are more than'limit' away from the prior non-NaN.
 
     # set preserve_nans based on direction using _interp_limit
+    preserve_nans: Union[List, Set]
     if limit_direction == "forward":
         preserve_nans = start_nans | set(_interp_limit(invalid, limit, 0))
     elif limit_direction == "backward":

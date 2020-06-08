@@ -57,7 +57,7 @@ from pandas._libs.tslibs.ccalendar cimport (
 from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
 
 from pandas._libs.tslibs.dtypes cimport (
-    PeriodPseudoDtype,
+    PeriodDtypeBase,
     FR_UND,
     FR_ANN,
     FR_QTR,
@@ -747,10 +747,9 @@ cdef int64_t get_period_ordinal(npy_datetimestruct *dts, int freq) nogil:
     period_ordinal : int64_t
     """
     cdef:
-        int64_t unix_date, seconds, delta
-        int64_t weeks
-        int64_t day_adj
+        int64_t unix_date
         int freq_group, fmonth, mdiff
+        NPY_DATETIMEUNIT unit
 
     freq_group = get_freq_group(freq)
 
@@ -773,44 +772,42 @@ cdef int64_t get_period_ordinal(npy_datetimestruct *dts, int freq) nogil:
         mdiff = dts.month - fmonth + 12
         return (dts.year - 1970) * 4 + (mdiff - 1) // 3
 
-    elif freq == FR_MTH:
-        return (dts.year - 1970) * 12 + dts.month - 1
-
-    unix_date = npy_datetimestruct_to_datetime(NPY_FR_D, dts)
-
-    if freq >= FR_SEC:
-        seconds = unix_date * 86400 + dts.hour * 3600 + dts.min * 60 + dts.sec
-
-        if freq == FR_MS:
-            return seconds * 1000 + dts.us // 1000
-
-        elif freq == FR_US:
-            return seconds * 1000000 + dts.us
-
-        elif freq == FR_NS:
-            return (seconds * 1000000000 +
-                    dts.us * 1000 + dts.ps // 1000)
-
-        else:
-            return seconds
-
-    elif freq == FR_MIN:
-        return unix_date * 1440 + dts.hour * 60 + dts.min
-
-    elif freq == FR_HR:
-        return unix_date * 24 + dts.hour
-
-    elif freq == FR_DAY:
-        return unix_date
-
-    elif freq == FR_UND:
-        return unix_date
+    elif freq_group == FR_WK:
+        unix_date = npy_datetimestruct_to_datetime(NPY_FR_D, dts)
+        return unix_date_to_week(unix_date, freq - FR_WK)
 
     elif freq == FR_BUS:
+        unix_date = npy_datetimestruct_to_datetime(NPY_FR_D, dts)
         return DtoB(dts, 0, unix_date)
 
-    elif freq_group == FR_WK:
-        return unix_date_to_week(unix_date, freq - FR_WK)
+    unit = get_unit(freq)
+    return npy_datetimestruct_to_datetime(unit, dts)
+
+
+cdef NPY_DATETIMEUNIT get_unit(int freq) nogil:
+    """
+    Convert the freq to the corresponding NPY_DATETIMEUNIT to pass
+    to npy_datetimestruct_to_datetime.
+    """
+    if freq == FR_MTH:
+        return NPY_DATETIMEUNIT.NPY_FR_M
+    elif freq == FR_DAY:
+        return NPY_DATETIMEUNIT.NPY_FR_D
+    elif freq == FR_HR:
+        return NPY_DATETIMEUNIT.NPY_FR_h
+    elif freq == FR_MIN:
+        return NPY_DATETIMEUNIT.NPY_FR_m
+    elif freq == FR_SEC:
+        return NPY_DATETIMEUNIT.NPY_FR_s
+    elif freq == FR_MS:
+        return NPY_DATETIMEUNIT.NPY_FR_ms
+    elif freq == FR_US:
+        return NPY_DATETIMEUNIT.NPY_FR_us
+    elif freq == FR_NS:
+        return NPY_DATETIMEUNIT.NPY_FR_ns
+    elif freq == FR_UND:
+        # Default to Day
+        return NPY_DATETIMEUNIT.NPY_FR_D
 
 
 cdef void get_date_info(int64_t ordinal, int freq, npy_datetimestruct *dts) nogil:
@@ -1500,7 +1497,7 @@ cdef class _Period:
 
     cdef readonly:
         int64_t ordinal
-        PeriodPseudoDtype _dtype
+        PeriodDtypeBase _dtype
         BaseOffset freq
 
     def __cinit__(self, int64_t ordinal, BaseOffset freq):
@@ -1509,10 +1506,19 @@ cdef class _Period:
         # Note: this is more performant than PeriodDtype.from_date_offset(freq)
         #  because from_date_offset cannot be made a cdef method (until cython
         #  supported cdef classmethods)
-        self._dtype = PeriodPseudoDtype(freq._period_dtype_code)
+        self._dtype = PeriodDtypeBase(freq._period_dtype_code)
 
     @classmethod
-    def _maybe_convert_freq(cls, object freq):
+    def _maybe_convert_freq(cls, object freq) -> BaseOffset:
+        """
+        Internally we allow integer and tuple representations (for now) that
+        are not recognized by to_offset, so we convert them here.  Also, a
+        Period's freq attribute must have `freq.n > 0`, which we check for here.
+
+        Returns
+        -------
+        DateOffset
+        """
         if isinstance(freq, (int, tuple)):
             code, stride = get_freq_code(freq)
             freq = get_freq_str(code, stride)
@@ -2437,7 +2443,7 @@ class Period(_Period):
             raise ValueError(msg)
 
         if ordinal is None:
-            base, mult = get_freq_code(freq)
+            base, _ = get_freq_code(freq)
             ordinal = period_ordinal(dt.year, dt.month, dt.day,
                                      dt.hour, dt.minute, dt.second,
                                      dt.microsecond, 0, base)
