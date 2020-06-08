@@ -848,7 +848,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
 
 @register_extension_dtype
-class PeriodDtype(dtypes.PeriodPseudoDtype, PandasExtensionDtype):
+class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
     """
     An ExtensionDtype for Period data.
 
@@ -897,7 +897,7 @@ class PeriodDtype(dtypes.PeriodPseudoDtype, PandasExtensionDtype):
         elif freq is None:
             # empty constructor for pickle compat
             # -10_000 corresponds to PeriodDtypeCode.UNDEFINED
-            u = dtypes.PeriodPseudoDtype.__new__(cls, -10_000)
+            u = dtypes.PeriodDtypeBase.__new__(cls, -10_000)
             u._freq = None
             return u
 
@@ -908,7 +908,7 @@ class PeriodDtype(dtypes.PeriodPseudoDtype, PandasExtensionDtype):
             return cls._cache[freq.freqstr]
         except KeyError:
             dtype_code = freq._period_dtype_code
-            u = dtypes.PeriodPseudoDtype.__new__(cls, dtype_code)
+            u = dtypes.PeriodDtypeBase.__new__(cls, dtype_code)
             u._freq = freq
             cls._cache[freq.freqstr] = u
             return u

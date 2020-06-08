@@ -53,6 +53,6 @@ cdef enum PeriodDtypeCode:
     UNDEFINED = -10_000
 
 
-cdef class PeriodPseudoDtype:
+cdef class PeriodDtypeBase:
     cdef readonly:
         PeriodDtypeCode dtype_code

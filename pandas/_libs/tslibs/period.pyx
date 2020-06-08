@@ -56,7 +56,7 @@ from pandas._libs.tslibs.ccalendar cimport (
 )
 from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
 
-from pandas._libs.tslibs.dtypes cimport PeriodPseudoDtype
+from pandas._libs.tslibs.dtypes cimport PeriodDtypeBase
 
 from pandas._libs.tslibs.frequencies cimport (
     attrname_to_abbrevs,
@@ -1517,7 +1517,7 @@ cdef class _Period:
 
     cdef readonly:
         int64_t ordinal
-        PeriodPseudoDtype _dtype
+        PeriodDtypeBase _dtype
         BaseOffset freq
 
     def __cinit__(self, int64_t ordinal, BaseOffset freq):
@@ -1526,7 +1526,7 @@ cdef class _Period:
         # Note: this is more performant than PeriodDtype.from_date_offset(freq)
         #  because from_date_offset cannot be made a cdef method (until cython
         #  supported cdef classmethods)
-        self._dtype = PeriodPseudoDtype(freq._period_dtype_code)
+        self._dtype = PeriodDtypeBase(freq._period_dtype_code)
 
     @classmethod
     def _maybe_convert_freq(cls, object freq) -> BaseOffset:
