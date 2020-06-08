@@ -101,7 +101,7 @@ def clean_fill_method(method, allow_nearest=False):
 
 
 def clean_interp_method(
-    method: str, index: "Index", order: Optional[int] = None, **kwargs
+    method: str, index: "Index", **kwargs
 ) -> Tuple[str, np.ndarray]:
     """
     Validate Index and order keyword for interpolation methods.
@@ -110,6 +110,7 @@ def clean_interp_method(
     -------
     tuple of str, np.ndarray
     """
+    order = kwargs.get("order")
     valid = [
         "linear",
         "time",
