@@ -2146,6 +2146,6 @@ a,b
     expected = DataFrame(
         [["1", "2020-05-23 01:00:00"]], columns=["a", "b"], dtype="string"
     )
-    expected['b'] = to_datetime(expected['b'])
+    expected["b"] = to_datetime(expected["b"])
     result = parser.read_csv(StringIO(data), dtype="string", parse_dates=["b"])
     tm.assert_frame_equal(result, expected)
