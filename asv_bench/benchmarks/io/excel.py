@@ -69,7 +69,7 @@ class ReadExcel:
         fname = self.fname_odf if engine == "odf" else self.fname_excel
         read_excel(fname, engine=engine)
 
-    def nrows_read_excel(self, engine):
+    def time_read_excel_nrows(self, engine):
         fname = self.fname_odf if engine == "odf" else self.fname_excel
         read_excel(fname, engine=engine, nrows=1)
 
