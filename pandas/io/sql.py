@@ -332,7 +332,7 @@ def read_sql_query(
     ----------
     sql : str SQL query or SQLAlchemy Selectable (select or text object)
         SQL query to be executed.
-    con : SQLAlchemy connectable, str, or sqlite3 connectionSQLAlchemy
+    con : SQLAlchemy connectable, str, or sqlite3 connection
         Using SQLAlchemy makes it possible to use any DB supported by that
         library. If a DBAPI2 object, only sqlite3 is supported.
     index_col : str or list of str, optional, default: None
