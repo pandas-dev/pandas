@@ -116,6 +116,7 @@ def test_ndarray_compat_properties(index_or_series_obj):
 @pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
 def test_memory_usage(index_or_series_obj):
     obj = index_or_series_obj
+
     res = obj.memory_usage()
     res_deep = obj.memory_usage(deep=True)
 

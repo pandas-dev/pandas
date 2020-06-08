@@ -268,7 +268,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             for ax in self.axes:
                 ax._maybe_check_unique()
 
-        self._allows_duplicate_labels = value
+        # avoid `can_hold_identifiers` check.
+        object.__setattr__(self, "_allows_duplicate_labels", value)
 
     @classmethod
     def _validate_dtype(cls, dtype):
