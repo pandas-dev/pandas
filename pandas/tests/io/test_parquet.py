@@ -487,7 +487,7 @@ class TestParquetPyArrow(Base):
 
     # GH#33077 2020-03-27
     @pytest.mark.xfail(
-        locale.getlocale()[0] == "zh_CN",
+        locale.getlocale()[0] in ["zh_CN", "it_IT"]
         reason="dateutil cannot parse e.g. '五, 27 3月 2020 21:45:38 GMT'",
     )
     def test_s3_roundtrip(self, df_compat, s3_resource, pa):
