@@ -54,6 +54,7 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 
 if TYPE_CHECKING:
     from pandas import Series  # noqa:F401
+    from pandas._libs.tslibs.nattype import NaTType  # noqa:F401
 
 # ---------------------------------------------------------------------
 # types used in annotations
@@ -562,7 +563,7 @@ def to_datetime(
     infer_datetime_format: bool = ...,
     origin=...,
     cache: bool = ...,
-) -> Timestamp:
+) -> Union[DatetimeScalar, "NaTType"]:
     ...
 
 
@@ -612,7 +613,7 @@ def to_datetime(
     infer_datetime_format: bool = False,
     origin="unix",
     cache: bool = True,
-) -> Union[DatetimeIndex, "Series", Timestamp]:
+) -> Union[DatetimeIndex, "Series", DatetimeScalar, "NaTType"]:
     """
     Convert argument to datetime.
 
