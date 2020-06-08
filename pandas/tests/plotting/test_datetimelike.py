@@ -6,6 +6,7 @@ import sys
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs import to_offset
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Index, NaT, Series, isna
@@ -397,12 +398,12 @@ class TestTSPlot(TestPlotBase):
     def test_get_finder(self):
         import pandas.plotting._matplotlib.converter as conv
 
-        assert conv.get_finder("B") == conv._daily_finder
-        assert conv.get_finder("D") == conv._daily_finder
-        assert conv.get_finder("M") == conv._monthly_finder
-        assert conv.get_finder("Q") == conv._quarterly_finder
-        assert conv.get_finder("A") == conv._annual_finder
-        assert conv.get_finder("W") == conv._daily_finder
+        assert conv.get_finder(to_offset("B")) == conv._daily_finder
+        assert conv.get_finder(to_offset("D")) == conv._daily_finder
+        assert conv.get_finder(to_offset("M")) == conv._monthly_finder
+        assert conv.get_finder(to_offset("Q")) == conv._quarterly_finder
+        assert conv.get_finder(to_offset("A")) == conv._annual_finder
+        assert conv.get_finder(to_offset("W")) == conv._daily_finder
 
     @pytest.mark.slow
     def test_finder_daily(self):
