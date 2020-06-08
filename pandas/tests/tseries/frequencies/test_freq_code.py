@@ -1,5 +1,6 @@
 import pytest
 
+from pandas._libs.tslibs import Resolution, offsets, to_offset
 from pandas._libs.tslibs.frequencies import (
     FreqGroup,
     _attrname_to_abbrevs,
@@ -8,9 +9,6 @@ from pandas._libs.tslibs.frequencies import (
     get_freq_group,
     get_to_timestamp_base,
 )
-from pandas._libs.tslibs.resolution import Resolution as _reso
-
-import pandas.tseries.offsets as offsets
 
 
 @pytest.fixture(params=list(_period_code_map.items()))
@@ -92,9 +90,6 @@ def test_get_to_timestamp_base(freqstr, exp_freqstr):
 @pytest.mark.parametrize(
     "freqstr,expected",
     [
-        ("A", "year"),
-        ("Q", "quarter"),
-        ("M", "month"),
         ("D", "day"),
         ("H", "hour"),
         ("T", "minute"),
@@ -104,19 +99,21 @@ def test_get_to_timestamp_base(freqstr, exp_freqstr):
         ("N", "nanosecond"),
     ],
 )
-def test_get_str_from_freq(freqstr, expected):
-    assert _reso.get_str_from_freq(freqstr) == expected
+def test_get_attrname_from_abbrev(freqstr, expected):
+    assert Resolution.get_reso_from_freq(freqstr).attrname == expected
 
 
-@pytest.mark.parametrize("freq", ["A", "Q", "M", "D", "H", "T", "S", "L", "U", "N"])
-def test_get_freq_roundtrip(freq):
-    result = _attrname_to_abbrevs[_reso.get_str_from_freq(freq)]
-    assert freq == result
+@pytest.mark.parametrize("freq", ["A", "Q", "M"])
+def test_get_freq_unsupported_(freq):
+    # Lowest-frequency resolution is for Day
+    with pytest.raises(KeyError, match=freq.lower()):
+        Resolution.get_reso_from_freq(freq)
 
 
-@pytest.mark.parametrize("freq", ["D", "H", "T", "S", "L", "U"])
+@pytest.mark.parametrize("freq", ["D", "H", "T", "S", "L", "U", "N"])
 def test_get_freq_roundtrip2(freq):
-    result = _attrname_to_abbrevs[_reso.get_str(_reso.get_reso_from_freq(freq))]
+    obj = Resolution.get_reso_from_freq(freq)
+    result = _attrname_to_abbrevs[obj.attrname]
     assert freq == result
 
 
@@ -133,7 +130,9 @@ def test_get_freq_roundtrip2(freq):
 )
 def test_resolution_bumping(args, expected):
     # see gh-14378
-    assert _reso.get_stride_from_decimal(*args) == expected
+    off = to_offset(str(args[0]) + args[1])
+    assert off.n == expected[0]
+    assert off._prefix == expected[1]
 
 
 @pytest.mark.parametrize(
@@ -145,10 +144,10 @@ def test_resolution_bumping(args, expected):
     ],
 )
 def test_cat(args):
-    msg = "Could not convert to integer offset at any resolution"
+    msg = "Invalid frequency"
 
     with pytest.raises(ValueError, match=msg):
-        _reso.get_stride_from_decimal(*args)
+        to_offset(str(args[0]) + args[1])
 
 
 @pytest.mark.parametrize(
