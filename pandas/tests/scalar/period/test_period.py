@@ -649,6 +649,26 @@ class TestPeriodMethods:
         expected = pd.Timestamp("1990-01-06") - pd.Timedelta(nanoseconds=1)
         assert result == expected
 
+    @pytest.mark.parametrize(
+        "ts, expected",
+        [
+            ("1970-01-01 00:00:00", 0),
+            ("1970-01-01 00:00:00.000001", 1),
+            ("1970-01-01 00:00:00.00001", 10),
+            ("1970-01-01 00:00:00.499", 499000),
+            ("1999-12-31 23:59:59.999", 999000),
+            ("1999-12-31 23:59:59.999999", 999999),
+            ("2050-12-31 23:59:59.5", 500000),
+            ("2050-12-31 23:59:59.500001", 500001),
+            ("2050-12-31 23:59:59.123456", 123456),
+        ],
+    )
+    @pytest.mark.parametrize("freq", [None, "us", "ns"])
+    def test_to_timestamp_microsecond(self, ts, expected, freq):
+        # GH 24444
+        result = Period(ts).to_timestamp(freq=freq).microsecond
+        assert result == expected
+
     # --------------------------------------------------------------
     # Rendering: __repr__, strftime, etc
 
