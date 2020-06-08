@@ -807,21 +807,21 @@ cdef NPY_DATETIMEUNIT get_unit(int freq) nogil:
     """
     if freq == FR_MTH:
         return NPY_DATETIMEUNIT.NPY_FR_M
-    if freq == FR_DAY:
+    elif freq == FR_DAY:
         return NPY_DATETIMEUNIT.NPY_FR_D
-    if freq == FR_HR:
+    elif freq == FR_HR:
         return NPY_DATETIMEUNIT.NPY_FR_h
-    if freq == FR_MIN:
+    elif freq == FR_MIN:
         return NPY_DATETIMEUNIT.NPY_FR_m
-    if freq == FR_SEC:
+    elif freq == FR_SEC:
         return NPY_DATETIMEUNIT.NPY_FR_s
-    if freq == FR_MS:
+    elif freq == FR_MS:
         return NPY_DATETIMEUNIT.NPY_FR_ms
-    if freq == FR_US:
+    elif freq == FR_US:
         return NPY_DATETIMEUNIT.NPY_FR_us
-    if freq == FR_NS:
+    elif freq == FR_NS:
         return NPY_DATETIMEUNIT.NPY_FR_ns
-    if freq == FR_UND:
+    elif freq == FR_UND:
         # Default to Day
         return NPY_DATETIMEUNIT.NPY_FR_D
 
