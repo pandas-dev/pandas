@@ -2,6 +2,7 @@ from datetime import datetime
 from functools import partial
 from io import StringIO
 
+from dateutil.tz import tzlocal
 import numpy as np
 import pytest
 import pytz
@@ -480,7 +481,26 @@ def test_upsample_with_limit():
 @pytest.mark.parametrize("rule", ["Y", "3M", "15D", "30H", "15Min", "30S"])
 def test_nearest_upsample_with_limit(tz_aware_fixture, freq, rule):
     # GH 33939
+    tz = tz_aware_fixture
+    if str(tz) == "tzlocal()" and rule == "30S" and freq in ["Y", "10M"]:
+        # GH#34413 separate these so we can mark as slow, see
+        #  test_nearest_upsample_with_limit_tzlocal
+        return
     rng = date_range("1/1/2000", periods=3, freq=freq, tz=tz_aware_fixture)
+    ts = Series(np.random.randn(len(rng)), rng)
+
+    result = ts.resample(rule).nearest(limit=2)
+    expected = ts.reindex(result.index, method="nearest", limit=2)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("freq", ["Y", "10M"])
+def test_nearest_upsample_with_limit_tzlocal(freq):
+    # GH#33939, GH#34413 split off from test_nearest_upsample_with_limit
+    rule = "30S"
+    tz = tzlocal()
+    rng = date_range("1/1/2000", periods=3, freq=freq, tz=tz)
     ts = Series(np.random.randn(len(rng)), rng)
 
     result = ts.resample(rule).nearest(limit=2)
