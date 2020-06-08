@@ -10,7 +10,7 @@ from pandas.io.parsers import read_csv
 @pytest.fixture
 def tips_file(datapath):
     """Path to the tips dataset"""
-    return datapath("io", "parser", "data", "tips.csv")
+    return datapath("io", "data", "csv", "tips.csv")
 
 
 @pytest.fixture
