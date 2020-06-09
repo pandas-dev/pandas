@@ -738,12 +738,7 @@ class ExtensionArray:
                 # boolean array with NA -> fill with False
                 equal_values = equal_values.fillna(False)
             equal_na = self.isna() & other.isna()
-            result = (equal_values | equal_na).all()
-
-            if isinstance(result, np.bool_):
-                return result.item()
-            else:
-                return result
+            return bool((equal_values | equal_na).all())
 
     def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:
         """
