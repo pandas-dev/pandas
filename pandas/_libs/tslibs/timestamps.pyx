@@ -495,7 +495,7 @@ cdef class _Timestamp(ABCTimestamp):
     @property
     def _time_repr(self) -> str:
         fmt = '%H:%M:%S'
-        if self.microseond or self.nanosecond:
+        if self.microsecond or self.nanosecond:
             fmt = '%H:%M:%S.%f'
         return self.strftime(fmt)
 
