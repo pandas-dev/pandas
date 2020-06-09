@@ -29,6 +29,10 @@ def data_missing():
     return ArrowBoolArray.from_scalars([None, True])
 
 
+def test_basic_equals(data):
+    assert pd.Series(data).equals(pd.Series(data))
+
+
 class BaseArrowTests:
     pass
 

@@ -8,6 +8,7 @@ current implementation is not efficient.
 """
 import copy
 import itertools
+import operator
 from typing import Type
 
 import numpy as np
@@ -106,6 +107,27 @@ class ArrowExtensionArray(ExtensionArray):
     def dtype(self):
         return self._dtype
 
+    def _boolean_op(self, other, op):
+        if not isinstance(other, type(self)):
+            raise NotImplementedError()
+
+        result = op(np.array(self._data), np.array(other._data))
+        return ArrowBoolArray(
+            pa.chunked_array([pa.array(result, mask=pd.isna(self._data.to_pandas()))])
+        )
+
+    def __eq__(self, other):
+        if not isinstance(other, type(self)):
+            return False
+
+        return self._boolean_op(other, operator.eq)
+
+    def __and__(self, other):
+        return self._boolean_op(other, operator.and_)
+
+    def __or__(self, other):
+        return self._boolean_op(other, operator.or_)
+
     @property
     def nbytes(self):
         return sum(
@@ -153,10 +175,12 @@ class ArrowExtensionArray(ExtensionArray):
         return op(**kwargs)
 
     def any(self, axis=0, out=None):
-        return self._data.to_pandas().any()
+        # Explicitly return a plain bool to reproduce GH-34660
+        return bool(self._data.to_pandas().any())
 
     def all(self, axis=0, out=None):
-        return self._data.to_pandas().all()
+        # Explicitly return a plain bool to reproduce GH-34660
+        return bool(self._data.to_pandas().all())
 
 
 class ArrowBoolArray(ArrowExtensionArray):
