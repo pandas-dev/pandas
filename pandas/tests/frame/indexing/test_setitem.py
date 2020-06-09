@@ -126,3 +126,27 @@ class TestDataFrameSetItem:
         df["new_column"] = sp_series
         expected = Series(SparseArray([1, 0, 0]), name="new_column")
         tm.assert_series_equal(df["new_column"], expected)
+
+    def test_setitem_dict_preserves_dtypes(self):
+        # https://github.com/pandas-dev/pandas/issues/34573
+        expected = DataFrame(
+            {
+                "a": Series([0, 1, 2], dtype="int64"),
+                "b": Series([1, 2, 3], dtype=float),
+                "c": Series([1, 2, 3], dtype=float),
+            }
+        )
+        df = DataFrame(
+            {
+                "a": Series([], dtype="int64"),
+                "b": Series([], dtype=float),
+                "c": Series([], dtype=float),
+            }
+        )
+        for idx, b in enumerate([1, 2, 3]):
+            df.loc[df.shape[0]] = {
+                "a": int(idx),
+                "b": float(b),
+                "c": float(b),
+            }
+        tm.assert_frame_equal(df, expected)
