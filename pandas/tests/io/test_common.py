@@ -207,8 +207,8 @@ bar2,12,13,14,15
     @pytest.mark.parametrize(
         "reader, module, path",
         [
-            (pd.read_csv, "os", ("data", "iris.csv")),
-            (pd.read_table, "os", ("data", "iris.csv")),
+            (pd.read_csv, "os", ("io", "data", "csv", "iris.csv")),
+            (pd.read_table, "os", ("io", "data", "csv", "iris.csv")),
             (
                 pd.read_fwf,
                 "os",
@@ -234,6 +234,11 @@ bar2,12,13,14,15
                 ("io", "data", "pickle", "categorical.0.25.0.pickle"),
             ),
         ],
+    )
+    @pytest.mark.filterwarnings(
+        "ignore:This method will be removed in future versions.  "
+        r"Use 'tree.iter\(\)' or 'list\(tree.iter\(\)\)' instead."
+        ":PendingDeprecationWarning"
     )
     def test_read_fspath_all(self, reader, module, path, datapath):
         pytest.importorskip(module)

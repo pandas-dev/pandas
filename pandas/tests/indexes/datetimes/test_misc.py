@@ -156,8 +156,8 @@ class TestDatetime64:
             assert dti.dayofyear[0] == 1
             assert dti.dayofyear[120] == 121
 
-            assert dti.weekofyear[0] == 1
-            assert dti.weekofyear[120] == 18
+            assert dti.isocalendar().week[0] == 1
+            assert dti.isocalendar().week[120] == 18
 
             assert dti.quarter[0] == 1
             assert dti.quarter[120] == 2
@@ -192,7 +192,7 @@ class TestDatetime64:
             assert len(dti.microsecond) == 365
             assert len(dti.dayofweek) == 365
             assert len(dti.dayofyear) == 365
-            assert len(dti.weekofyear) == 365
+            assert len(dti.isocalendar()) == 365
             assert len(dti.quarter) == 365
             assert len(dti.is_month_start) == 365
             assert len(dti.is_month_end) == 365
@@ -205,6 +205,9 @@ class TestDatetime64:
 
             # non boolean accessors -> return Index
             for accessor in DatetimeIndex._field_ops:
+                if accessor in ["week", "weekofyear"]:
+                    # GH#33595 Deprecate week and weekofyear
+                    continue
                 res = getattr(dti, accessor)
                 assert len(res) == 365
                 assert isinstance(res, Index)
@@ -285,7 +288,7 @@ class TestDatetime64:
         dates = ["2013/12/29", "2013/12/30", "2013/12/31"]
         dates = DatetimeIndex(dates, tz="Europe/Brussels")
         expected = [52, 1, 1]
-        assert dates.weekofyear.tolist() == expected
+        assert dates.isocalendar().week.tolist() == expected
         assert [d.weekofyear for d in dates] == expected
 
     # GH 12806
@@ -383,6 +386,15 @@ def test_iter_readonly():
     list(dti)
 
 
+def test_week_and_weekofyear_are_deprecated():
+    # GH#33595 Deprecate week and weekofyear
+    idx = pd.date_range(start="2019-12-29", freq="D", periods=4)
+    with tm.assert_produces_warning(FutureWarning):
+        idx.week
+    with tm.assert_produces_warning(FutureWarning):
+        idx.weekofyear
+
+
 def test_isocalendar_returns_correct_values_close_to_new_year_with_tz():
     # GH 6538: Check that DatetimeIndex and its TimeStamp elements
     # return the same weekofyear accessor close to new year w/ tz
@@ -392,6 +404,7 @@ def test_isocalendar_returns_correct_values_close_to_new_year_with_tz():
     expected_data_frame = pd.DataFrame(
         [[2013, 52, 7], [2014, 1, 1], [2014, 1, 2]],
         columns=["year", "week", "day"],
+        index=dates,
         dtype="UInt32",
     )
     tm.assert_frame_equal(result, expected_data_frame)

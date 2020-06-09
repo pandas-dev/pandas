@@ -5,8 +5,10 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, Period, Timestamp, index as libindex, lib, tslib as libts
-from pandas._libs.tslibs import fields, parsing, timezones
+from pandas._libs import NaT, Period, Timestamp, index as libindex, lib, tslib
+from pandas._libs.tslibs import Resolution, fields, parsing, timezones, to_offset
+from pandas._libs.tslibs.frequencies import get_freq_group
+from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas._typing import DtypeObj, Label
 from pandas.util._decorators import cache_readonly
 
@@ -26,10 +28,7 @@ import pandas.core.common as com
 from pandas.core.indexes.base import Index, InvalidIndexError, maybe_extract_name
 from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
 from pandas.core.indexes.extension import inherit_names
-import pandas.core.tools.datetimes as tools
-
-from pandas.tseries.frequencies import Resolution, to_offset
-from pandas.tseries.offsets import prefix_mapping
+from pandas.core.tools.times import to_time
 
 
 def _new_DatetimeIndex(cls, d):
@@ -65,13 +64,15 @@ def _new_DatetimeIndex(cls, d):
 
 
 @inherit_names(
-    ["to_period", "to_perioddelta", "to_julian_date", "strftime"]
+    ["to_period", "to_perioddelta", "to_julian_date", "strftime", "isocalendar"]
     + DatetimeArray._field_ops
     + DatetimeArray._datetimelike_methods,
     DatetimeArray,
     wrap=True,
 )
-@inherit_names(["_timezone", "is_normalized", "_resolution"], DatetimeArray, cache=True)
+@inherit_names(
+    ["_timezone", "is_normalized", "_resolution_obj"], DatetimeArray, cache=True
+)
 @inherit_names(
     [
         "_bool_ops",
@@ -89,7 +90,6 @@ def _new_DatetimeIndex(cls, d):
         "date",
         "time",
         "timetz",
-        "isocalendar",
     ]
     + DatetimeArray._bool_ops,
     DatetimeArray,
@@ -323,7 +323,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
-        return libts.ints_to_pydatetime(self.asi8, self.tz)
+        return tslib.ints_to_pydatetime(self.asi8, self.tz)
 
     @property
     def _formatter_func(self):
@@ -439,7 +439,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             # preserve the tz & copy
             values = self.copy(deep=True)
         else:
-            values = self.values.copy()
+            values = self._values.view("M8[ns]").copy()
 
         return Series(values, index=index, name=name)
 
@@ -500,8 +500,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if reso not in valid_resos:
             raise KeyError
 
-        grp = Resolution.get_freq_group(reso)
-        per = Period(parsed, freq=(grp, 1))
+        grp = get_freq_group(reso)
+        per = Period(parsed, freq=grp)
         start, end = per.start_time, per.end_time
 
         # GH 24076
@@ -525,7 +525,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if (
             self.is_monotonic
             and reso in ["day", "hour", "minute", "second"]
-            and self._resolution >= Resolution.get_reso(reso)
+            and self._resolution_obj >= Resolution.from_attrname(reso)
         ):
             # These resolution/monotonicity validations came from GH3931,
             # GH3452 and GH2369.
@@ -721,9 +721,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         Parameters
         ----------
         time : datetime.time or str
-            datetime.time or string in appropriate format ("%H:%M", "%H%M",
-            "%I:%M%p", "%I%M%p", "%H:%M:%S", "%H%M%S", "%I:%M:%S%p",
-            "%I%M%S%p").
+            Time passed in either as object (datetime.time) or as string in
+            appropriate format ("%H:%M", "%H%M", "%I:%M%p", "%I%M%p",
+            "%H:%M:%S", "%H%M%S", "%I:%M:%S%p", "%I%M%S%p").
 
         Returns
         -------
@@ -762,9 +762,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         Parameters
         ----------
         start_time, end_time : datetime.time, str
-            datetime.time or string in appropriate format ("%H:%M", "%H%M",
-            "%I:%M%p", "%I%M%p", "%H:%M:%S", "%H%M%S", "%I:%M:%S%p",
-            "%I%M%S%p").
+            Time passed either as object (datetime.time) or as string in
+            appropriate format ("%H:%M", "%H%M", "%I:%M%p", "%I%M%p",
+            "%H:%M:%S", "%H%M%S", "%I:%M:%S%p","%I%M%S%p").
         include_start : bool, default True
         include_end : bool, default True
 
@@ -777,8 +777,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         indexer_at_time : Get index locations of values at particular time of day.
         DataFrame.between_time : Select values between particular times of day.
         """
-        start_time = tools.to_time(start_time)
-        end_time = tools.to_time(end_time)
+        start_time = to_time(start_time)
+        end_time = to_time(end_time)
         time_micros = self._get_time_micros()
         start_micros = _time_to_micros(start_time)
         end_micros = _time_to_micros(end_time)

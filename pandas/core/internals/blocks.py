@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import inspect
 import re
-from typing import Any, List
+from typing import TYPE_CHECKING, Any, List, Optional
 import warnings
 
 import numpy as np
@@ -82,6 +82,9 @@ from pandas.core.indexers import (
 )
 import pandas.core.missing as missing
 from pandas.core.nanops import nanpercentile
+
+if TYPE_CHECKING:
+    from pandas import Index
 
 
 class Block(PandasObject):
@@ -251,7 +254,7 @@ class Block(PandasObject):
             placement = self.mgr_locs
         if ndim is None:
             ndim = self.ndim
-        return make_block(values, placement=placement, ndim=ndim, klass=type(self))
+        return type(self)(values, placement=placement, ndim=ndim)
 
     def __repr__(self) -> str:
         # don't want to print out all of the items here
@@ -535,10 +538,13 @@ class Block(PandasObject):
             )
             raise TypeError(msg)
 
+        if dtype is not None:
+            dtype = pandas_dtype(dtype)
+
         # may need to convert to categorical
         if is_categorical_dtype(dtype):
 
-            if is_categorical_dtype(self.values):
+            if is_categorical_dtype(self.values.dtype):
                 # GH 10696/18593: update an existing categorical efficiently
                 return self.make_block(self.values.astype(dtype, copy=copy))
 
@@ -725,11 +731,6 @@ class Block(PandasObject):
 
         mask = missing.mask_missing(values, to_replace)
 
-        if not mask.any():
-            if inplace:
-                return [self]
-            return [self.copy()]
-
         try:
             blocks = self.putmask(mask, value, inplace=inplace)
             # Note: it is _not_ the case that self._can_hold_element(value)
@@ -822,12 +823,14 @@ class Block(PandasObject):
 
             return self.astype(dtype).setitem(indexer, value)
 
-        # value must be storeable at this moment
+        # value must be storable at this moment
         if is_extension_array_dtype(getattr(value, "dtype", None)):
             # We need to be careful not to allow through strings that
             #  can be parsed to EADtypes
+            is_ea_value = True
             arr_value = value
         else:
+            is_ea_value = False
             arr_value = np.array(value)
 
         if transpose:
@@ -854,6 +857,11 @@ class Block(PandasObject):
             # we need to create a new categorical block
             values[indexer] = value
             return self.make_block(Categorical(self.values, dtype=arr_value.dtype))
+
+        elif exact_match and is_ea_value:
+            # GH#32395 if we're going to replace the values entirely, just
+            #  substitute in the new array
+            return self.make_block(arr_value)
 
         # if we are an exact match (ex-broadcasting),
         # then use the resultant dtype
@@ -1061,29 +1069,24 @@ class Block(PandasObject):
 
     def interpolate(
         self,
-        method="pad",
-        axis=0,
-        index=None,
-        inplace=False,
-        limit=None,
-        limit_direction="forward",
-        limit_area=None,
-        fill_value=None,
-        coerce=False,
-        downcast=None,
+        method: str = "pad",
+        axis: int = 0,
+        index: Optional["Index"] = None,
+        inplace: bool = False,
+        limit: Optional[int] = None,
+        limit_direction: str = "forward",
+        limit_area: Optional[str] = None,
+        fill_value: Optional[Any] = None,
+        coerce: bool = False,
+        downcast: Optional[str] = None,
         **kwargs,
     ):
 
         inplace = validate_bool_kwarg(inplace, "inplace")
 
-        def check_int_bool(self, inplace):
-            # Only FloatBlocks will contain NaNs.
-            # timedelta subclasses IntBlock
-            if (self.is_bool or self.is_integer) and not self.is_timedelta:
-                if inplace:
-                    return self
-                else:
-                    return self.copy()
+        # Only FloatBlocks will contain NaNs. timedelta subclasses IntBlock
+        if (self.is_bool or self.is_integer) and not self.is_timedelta:
+            return self if inplace else self.copy()
 
         # a fill na type method
         try:
@@ -1092,9 +1095,6 @@ class Block(PandasObject):
             m = None
 
         if m is not None:
-            r = check_int_bool(self, inplace)
-            if r is not None:
-                return r
             return self._interpolate_with_fill(
                 method=m,
                 axis=axis,
@@ -1107,9 +1107,8 @@ class Block(PandasObject):
         # validate the interp method
         m = missing.clean_interp_method(method, **kwargs)
 
-        r = check_int_bool(self, inplace)
-        if r is not None:
-            return r
+        assert index is not None  # for mypy
+
         return self._interpolate(
             method=m,
             index=index,
@@ -1125,13 +1124,13 @@ class Block(PandasObject):
 
     def _interpolate_with_fill(
         self,
-        method="pad",
-        axis=0,
-        inplace=False,
-        limit=None,
-        fill_value=None,
-        coerce=False,
-        downcast=None,
+        method: str = "pad",
+        axis: int = 0,
+        inplace: bool = False,
+        limit: Optional[int] = None,
+        fill_value: Optional[Any] = None,
+        coerce: bool = False,
+        downcast: Optional[str] = None,
     ) -> List["Block"]:
         """ fillna but using the interpolate machinery """
         inplace = validate_bool_kwarg(inplace, "inplace")
@@ -1164,15 +1163,15 @@ class Block(PandasObject):
 
     def _interpolate(
         self,
-        method=None,
-        index=None,
-        fill_value=None,
-        axis=0,
-        limit=None,
-        limit_direction="forward",
-        limit_area=None,
-        inplace=False,
-        downcast=None,
+        method: str,
+        index: "Index",
+        fill_value: Optional[Any] = None,
+        axis: int = 0,
+        limit: Optional[int] = None,
+        limit_direction: str = "forward",
+        limit_area: Optional[str] = None,
+        inplace: bool = False,
+        downcast: Optional[str] = None,
         **kwargs,
     ) -> List["Block"]:
         """ interpolate using scipy wrappers """
@@ -1195,14 +1194,14 @@ class Block(PandasObject):
                 )
         # process 1-d slices in the axis direction
 
-        def func(x):
+        def func(yvalues: np.ndarray) -> np.ndarray:
 
             # process a 1-d slice, returning it
             # should the axis argument be handled below in apply_along_axis?
             # i.e. not an arg to missing.interpolate_1d
             return missing.interpolate_1d(
-                index,
-                x,
+                xvalues=index,
+                yvalues=yvalues,
                 method=method,
                 limit=limit,
                 limit_direction=limit_direction,
@@ -1327,7 +1326,7 @@ class Block(PandasObject):
             fastres = expressions.where(cond, values, other)
             return fastres
 
-        if cond.ravel().all():
+        if cond.ravel("K").all():
             result = values
         else:
             # see if we can operate on the entire block, or need item-by-item
@@ -1596,7 +1595,7 @@ class ExtensionBlock(Block):
 
         new_values = self.values if inplace else self.values.copy()
 
-        if isinstance(new, np.ndarray) and len(new) == len(mask):
+        if isinstance(new, (np.ndarray, ExtensionArray)) and len(new) == len(mask):
             new = new[mask]
 
         mask = _safe_reshape(mask, new_values.shape)
@@ -1629,7 +1628,10 @@ class ExtensionBlock(Block):
     @property
     def fill_value(self):
         # Used in reindex_indexer
-        return self.values.dtype.na_value
+        if is_sparse(self.values):
+            return self.values.dtype.fill_value
+        else:
+            return self.values.dtype.na_value
 
     @property
     def _can_hold_na(self):
@@ -1721,7 +1723,7 @@ class ExtensionBlock(Block):
         return self.make_block_same_class(new_values, new_mgr_locs)
 
     def _can_hold_element(self, element: Any) -> bool:
-        # XXX: We may need to think about pushing this onto the array.
+        # TODO: We may need to think about pushing this onto the array.
         # We're doing the same as CategoricalBlock here.
         return True
 
@@ -1860,6 +1862,9 @@ class ExtensionBlock(Block):
             )
 
         return [self.make_block_same_class(result, placement=self.mgr_locs)]
+
+    def equals(self, other) -> bool:
+        return self.values.equals(other.values)
 
     def _unstack(self, unstacker, fill_value, new_placement):
         # ExtensionArray-safe unstack.
@@ -2237,7 +2242,12 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             # Cannot currently calculate diff across multiple blocks since this
             # function is invoked via apply
             raise NotImplementedError
-        new_values = (self.values - self.shift(n, axis=axis)[0].values).asi8
+
+        if n == 0:
+            # Fastpath avoids making a copy in `shift`
+            new_values = np.zeros(self.values.shape, dtype=np.int64)
+        else:
+            new_values = (self.values - self.shift(n, axis=axis)[0].values).asi8
 
         # Reshape the new_values like how algos.diff does for timedelta data
         new_values = new_values.reshape(1, len(new_values))
@@ -2376,7 +2386,7 @@ class ObjectBlock(Block):
         we can be a bool if we have only bool values but are of type
         object
         """
-        return lib.is_bool_array(self.values.ravel())
+        return lib.is_bool_array(self.values.ravel("K"))
 
     def convert(
         self,
@@ -2668,13 +2678,13 @@ def get_block_type(values, dtype=None):
     elif is_categorical_dtype(values.dtype):
         cls = CategoricalBlock
     elif issubclass(vtype, np.datetime64):
-        assert not is_datetime64tz_dtype(values)
+        assert not is_datetime64tz_dtype(values.dtype)
         cls = DatetimeBlock
-    elif is_datetime64tz_dtype(values):
+    elif is_datetime64tz_dtype(values.dtype):
         cls = DatetimeTZBlock
     elif is_interval_dtype(dtype) or is_period_dtype(dtype):
         cls = ObjectValuesExtensionBlock
-    elif is_extension_array_dtype(values):
+    elif is_extension_array_dtype(values.dtype):
         cls = ExtensionBlock
     elif issubclass(vtype, np.floating):
         cls = FloatBlock
@@ -2708,7 +2718,7 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None):
         dtype = dtype or values.dtype
         klass = get_block_type(values, dtype)
 
-    elif klass is DatetimeTZBlock and not is_datetime64tz_dtype(values):
+    elif klass is DatetimeTZBlock and not is_datetime64tz_dtype(values.dtype):
         # TODO: This is no longer hit internally; does it need to be retained
         #  for e.g. pyarrow?
         values = DatetimeArray._simple_new(values, dtype=dtype)

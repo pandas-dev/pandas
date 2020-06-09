@@ -18,6 +18,7 @@ from pandas._typing import F, FrameOrSeries, Label
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
+from pandas.core.dtypes.cast import maybe_cast_result
 from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_int64,
@@ -56,11 +57,8 @@ from pandas.core.sorting import (
 )
 from pandas.core.util.numba_ import (
     NUMBA_FUNC_CACHE,
-    check_kwargs_and_nopython,
-    get_jit_arguments,
-    jit_user_function,
+    generate_numba_func,
     split_for_numba,
-    validate_udf,
 )
 
 
@@ -408,8 +406,8 @@ class BaseGrouper:
 
         Parameters
         ----------
-        kind : sttr
-        how : srt
+        kind : str
+        how : str
         values : np.ndarray
         is_numeric : bool
 
@@ -461,14 +459,14 @@ class BaseGrouper:
 
         # categoricals are only 1d, so we
         # are not setup for dim transforming
-        if is_categorical_dtype(values) or is_sparse(values):
+        if is_categorical_dtype(values.dtype) or is_sparse(values.dtype):
             raise NotImplementedError(f"{values.dtype} dtype not supported")
-        elif is_datetime64_any_dtype(values):
+        elif is_datetime64_any_dtype(values.dtype):
             if how in ["add", "prod", "cumsum", "cumprod"]:
                 raise NotImplementedError(
                     f"datetime64 type does not support {how} operations"
                 )
-        elif is_timedelta64_dtype(values):
+        elif is_timedelta64_dtype(values.dtype):
             if how in ["prod", "cumprod"]:
                 raise NotImplementedError(
                     f"timedelta64 type does not support {how} operations"
@@ -476,8 +474,8 @@ class BaseGrouper:
 
         if is_datetime64tz_dtype(values.dtype):
             # Cast to naive; we'll cast back at the end of the function
-            # TODO: possible need to reshape?  kludge can be avoided when
-            #  2D EA is allowed.
+            # TODO: possible need to reshape?
+            # TODO(EA2D):kludge can be avoided when 2D EA is allowed.
             values = values.view("M8[ns]")
 
         is_datetimelike = needs_i8_conversion(values.dtype)
@@ -487,7 +485,7 @@ class BaseGrouper:
             values = values.view("int64")
             is_numeric = True
         elif is_bool_dtype(values.dtype):
-            values = ensure_float64(values)
+            values = ensure_int_or_float(values)
         elif is_integer_dtype(values):
             # we use iNaT for the missing value on ints
             # so pre-convert to guard this condition
@@ -551,17 +549,6 @@ class BaseGrouper:
             if mask.any():
                 result = result.astype("float64")
                 result[mask] = np.nan
-        elif (
-            how == "add"
-            and is_integer_dtype(orig_values.dtype)
-            and is_extension_array_dtype(orig_values.dtype)
-        ):
-            # We need this to ensure that Series[Int64Dtype].resample().sum()
-            # remains int64 dtype.
-            # Two options for avoiding this special case
-            # 1. mask-aware ops and avoid casting to float with NaN above
-            # 2. specify the result dtype when calling this method
-            result = result.astype("int64")
 
         if kind == "aggregate" and self._filter_empty_groups and not counts.all():
             assert result.ndim != 2
@@ -584,6 +571,9 @@ class BaseGrouper:
             result = type(orig_values)(result.astype(np.int64), dtype=orig_values.dtype)
         elif is_datetimelike and kind == "aggregate":
             result = result.astype(orig_values.dtype)
+
+        if is_extension_array_dtype(orig_values.dtype):
+            result = maybe_cast_result(result=result, obj=orig_values, how=how)
 
         return result, names
 
@@ -646,7 +636,7 @@ class BaseGrouper:
             return self._aggregate_series_pure_python(obj, func)
 
         elif obj.index._has_complex_internals:
-            # Pre-empt TypeError in _aggregate_series_fast
+            # Preempt TypeError in _aggregate_series_fast
             return self._aggregate_series_pure_python(obj, func)
 
         try:
@@ -689,12 +679,8 @@ class BaseGrouper:
     ):
 
         if engine == "numba":
-            nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
-            check_kwargs_and_nopython(kwargs, nopython)
-            validate_udf(func)
-            cache_key = (func, "groupby_agg")
-            numba_func = NUMBA_FUNC_CACHE.get(
-                cache_key, jit_user_function(func, nopython, nogil, parallel)
+            numba_func, cache_key = generate_numba_func(
+                func, engine_kwargs, kwargs, "groupby_agg"
             )
 
         group_index, _, ngroups = self.group_info
@@ -717,7 +703,7 @@ class BaseGrouper:
                 if isinstance(res, (Series, Index, np.ndarray)):
                     if len(res) == 1:
                         # e.g. test_agg_lambda_with_timezone lambda e: e.head(1)
-                        # FIXME: are we potentially losing import res.index info?
+                        # FIXME: are we potentially losing important res.index info?
                         res = res.item()
                     else:
                         raise ValueError("Function does not reduce")
@@ -902,7 +888,7 @@ class BinGrouper(BaseGrouper):
         assert len(self.bins) > 0  # otherwise we'd get IndexError in get_result
 
         if is_extension_array_dtype(obj.dtype):
-            # pre-empt SeriesBinGrouper from raising TypeError
+            # preempt SeriesBinGrouper from raising TypeError
             return self._aggregate_series_pure_python(obj, func)
 
         dummy = obj[:0]
@@ -966,7 +952,9 @@ class DataSplitter:
 
 class SeriesSplitter(DataSplitter):
     def _chop(self, sdata: Series, slice_obj: slice) -> Series:
-        return sdata.iloc[slice_obj]
+        # fastpath equivalent to `sdata.iloc[slice_obj]`
+        mgr = sdata._mgr.get_slice(slice_obj)
+        return type(sdata)(mgr, name=sdata.name, fastpath=True)
 
 
 class FrameSplitter(DataSplitter):
@@ -976,10 +964,13 @@ class FrameSplitter(DataSplitter):
         return libreduction.apply_frame_axis0(sdata, f, names, starts, ends)
 
     def _chop(self, sdata: DataFrame, slice_obj: slice) -> DataFrame:
-        if self.axis == 0:
-            return sdata.iloc[slice_obj]
-        else:
-            return sdata.iloc[:, slice_obj]
+        # Fastpath equivalent to:
+        # if self.axis == 0:
+        #     return sdata.iloc[slice_obj]
+        # else:
+        #     return sdata.iloc[:, slice_obj]
+        mgr = sdata._mgr.get_slice(slice_obj, axis=1 - self.axis)
+        return type(sdata)(mgr)
 
 
 def get_splitter(

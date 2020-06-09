@@ -511,6 +511,21 @@ class TestNamedAggregationSeries:
         expected = pd.DataFrame({"a": [0, 0], "b": [1, 1]})
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "inp",
+        [
+            pd.NamedAgg(column="anything", aggfunc="min"),
+            ("anything", "min"),
+            ["anything", "min"],
+        ],
+    )
+    def test_named_agg_nametuple(self, inp):
+        # GH34422
+        s = pd.Series([1, 1, 2, 2, 3, 3, 4, 5])
+        msg = f"func is expected but recieved {type(inp).__name__}"
+        with pytest.raises(TypeError, match=msg):
+            s.groupby(s.values).agg(a=inp)
+
 
 class TestNamedAggregationDataFrame:
     def test_agg_relabel(self):
@@ -940,3 +955,11 @@ class TestLambdaMangling:
             weight_min=pd.NamedAgg(column="weight", aggfunc=lambda x: np.min(x)),
         )
         tm.assert_frame_equal(result2, expected)
+
+
+def test_groupby_get_by_index():
+    # GH 33439
+    df = pd.DataFrame({"A": ["S", "W", "W"], "B": [1.0, 1.0, 2.0]})
+    res = df.groupby("A").agg({"B": lambda x: x.get(x.index[-1])})
+    expected = pd.DataFrame(dict(A=["S", "W"], B=[1.0, 2.0])).set_index("A")
+    pd.testing.assert_frame_equal(res, expected)

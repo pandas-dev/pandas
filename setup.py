@@ -33,7 +33,7 @@ def is_platform_mac():
     return sys.platform == "darwin"
 
 
-min_numpy_ver = "1.13.3"
+min_numpy_ver = "1.15.4"
 min_cython_ver = "0.29.16"  # note: sync with pyproject.toml
 
 try:
@@ -307,8 +307,9 @@ class CheckSDist(sdist_class):
         "pandas/_libs/sparse.pyx",
         "pandas/_libs/ops.pyx",
         "pandas/_libs/parsers.pyx",
-        "pandas/_libs/tslibs/c_timestamp.pyx",
+        "pandas/_libs/tslibs/base.pyx",
         "pandas/_libs/tslibs/ccalendar.pyx",
+        "pandas/_libs/tslibs/dtypes.pyx",
         "pandas/_libs/tslibs/period.pyx",
         "pandas/_libs/tslibs/strptime.pyx",
         "pandas/_libs/tslibs/np_datetime.pyx",
@@ -602,11 +603,9 @@ ext_data = {
     "_libs.reshape": {"pyxfile": "_libs/reshape", "depends": []},
     "_libs.sparse": {"pyxfile": "_libs/sparse", "depends": _pxi_dep["sparse"]},
     "_libs.tslib": {"pyxfile": "_libs/tslib", "depends": tseries_depends},
-    "_libs.tslibs.c_timestamp": {
-        "pyxfile": "_libs/tslibs/c_timestamp",
-        "depends": tseries_depends,
-    },
+    "_libs.tslibs.base": {"pyxfile": "_libs/tslibs/base"},
     "_libs.tslibs.ccalendar": {"pyxfile": "_libs/tslibs/ccalendar"},
+    "_libs.tslibs.dtypes": {"pyxfile": "_libs/tslibs/dtypes"},
     "_libs.tslibs.conversion": {
         "pyxfile": "_libs/tslibs/conversion",
         "depends": tseries_depends,
