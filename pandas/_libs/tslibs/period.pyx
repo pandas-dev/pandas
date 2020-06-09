@@ -329,56 +329,34 @@ cdef inline int64_t transform_via_day(int64_t ordinal,
 # --------------------------------------------------------------------
 # Conversion _to_ Daily Freq
 
-cdef void AtoD_ym(int64_t ordinal, int64_t *year,
-                  int *month, asfreq_info *af_info) nogil:
-    year[0] = ordinal + 1970
-    month[0] = 1
-
-    if af_info.from_end != 12:
-        month[0] += af_info.from_end
-        if month[0] > 12:
-            #  This case is never reached, but is kept for symmetry
-            # with QtoD_ym
-            month[0] -= 12
-        else:
-            year[0] -= 1
-
-
 cdef int64_t asfreq_AtoDT(int64_t ordinal, asfreq_info *af_info) nogil:
     cdef:
-        int64_t unix_date, year
-        int month
+        int64_t unix_date
+        npy_datetimestruct dts
 
     ordinal += af_info.is_end
-    AtoD_ym(ordinal, &year, &month, af_info)
 
-    unix_date = unix_date_from_ymd(year, month, 1)
+    dts.year = ordinal + 1970
+    dts.month = 1
+    adjust_dts_for_month(&dts, af_info.from_end)
+
+    unix_date = unix_date_from_ymd(dts.year, dts.month, 1)
     unix_date -= af_info.is_end
     return upsample_daytime(unix_date, af_info)
-
-
-cdef void QtoD_ym(int64_t ordinal, int *year,
-                  int *month, asfreq_info *af_info) nogil:
-    year[0] = ordinal // 4 + 1970
-    month[0] = (ordinal % 4) * 3 + 1
-
-    if af_info.from_end != 12:
-        month[0] += af_info.from_end
-        if month[0] > 12:
-            month[0] -= 12
-        else:
-            year[0] -= 1
 
 
 cdef int64_t asfreq_QtoDT(int64_t ordinal, asfreq_info *af_info) nogil:
     cdef:
         int64_t unix_date
-        int year, month
+        npy_datetimestruct dts
 
     ordinal += af_info.is_end
-    QtoD_ym(ordinal, &year, &month, af_info)
 
-    unix_date = unix_date_from_ymd(year, month, 1)
+    dts.year = ordinal // 4 + 1970
+    dts.month = (ordinal % 4) * 3 + 1
+    adjust_dts_for_month(&dts, af_info.from_end)
+
+    unix_date = unix_date_from_ymd(dts.year, dts.month, 1)
     unix_date -= af_info.is_end
     return upsample_daytime(unix_date, af_info)
 
@@ -486,12 +464,7 @@ cdef int DtoQ_yq(int64_t ordinal, asfreq_info *af_info, npy_datetimestruct* dts)
         int quarter
 
     pandas_datetime_to_datetimestruct(ordinal, NPY_FR_D, dts)
-    if af_info.to_end != 12:
-        dts.month -= af_info.to_end
-        if dts.month <= 0:
-            dts.month += 12
-        else:
-            dts.year += 1
+    adjust_dts_for_qtr(dts, af_info.to_end)
 
     quarter = month_to_quarter(dts.month)
     return quarter
@@ -710,6 +683,24 @@ cdef inline int get_freq_group(int freq) nogil:
 
 cdef inline int get_freq_group_index(int freq) nogil:
     return freq // 1000
+
+
+cdef void adjust_dts_for_month(npy_datetimestruct* dts, int from_end) nogil:
+    if from_end != 12:
+        dts.month += from_end
+        if dts.month > 12:
+            dts.month -= 12
+        else:
+            dts.year -= 1
+
+
+cdef void adjust_dts_for_qtr(npy_datetimestruct* dts, int to_end) nogil:
+    if to_end != 12:
+        dts.month -= to_end
+        if dts.month <= 0:
+            dts.month += 12
+        else:
+            dts.year += 1
 
 
 # Find the unix_date (days elapsed since datetime(1970, 1, 1)
