@@ -1469,7 +1469,7 @@ default 'raise'
         str
             String representation of Timestamp
         """
-        if '%f' in format and self.nanosecond:
+        if self.nanosecond and '%f' in format:
             replacement = f'{self.microsecond * 1000 + self.nanosecond:09d}'
             format = re.sub('%f', replacement, format)
         return super().strftime(format)
