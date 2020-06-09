@@ -292,6 +292,7 @@ Other enhancements
 - :meth:`groupby.transform` now allows ``func`` to be ``pad``, ``backfill`` and ``cumcount`` (:issue:`31269`).
 - :meth:`~pandas.io.json.read_json` now accepts `nrows` parameter. (:issue:`33916`).
 - :meth `~pandas.io.gbq.read_gbq` now allows to disable progress bar (:issue:`33360`).
+- :meth:`~pandas.io.gbq.read_gbq` now supports the ``max_results`` kwarg from ``pandas-gbq`` (:issue:`34639`).
 
 .. ---------------------------------------------------------------------------
 
