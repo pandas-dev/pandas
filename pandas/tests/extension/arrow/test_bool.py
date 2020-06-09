@@ -30,6 +30,7 @@ def data_missing():
 
 
 def test_basic_equals(data):
+    # https://github.com/pandas-dev/pandas/issues/34660
     assert pd.Series(data).equals(pd.Series(data))
 
 
