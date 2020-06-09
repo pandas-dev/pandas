@@ -90,6 +90,9 @@ def test_get_to_timestamp_base(freqstr, exp_freqstr):
 @pytest.mark.parametrize(
     "freqstr,expected",
     [
+        ("A", "year"),
+        ("Q", "quarter"),
+        ("M", "month"),
         ("D", "day"),
         ("H", "hour"),
         ("T", "minute"),
@@ -101,13 +104,6 @@ def test_get_to_timestamp_base(freqstr, exp_freqstr):
 )
 def test_get_attrname_from_abbrev(freqstr, expected):
     assert Resolution.get_reso_from_freq(freqstr).attrname == expected
-
-
-@pytest.mark.parametrize("freq", ["A", "Q", "M"])
-def test_get_freq_unsupported_(freq):
-    # Lowest-frequency resolution is for Day
-    with pytest.raises(KeyError, match=freq.lower()):
-        Resolution.get_reso_from_freq(freq)
 
 
 @pytest.mark.parametrize("freq", ["D", "H", "T", "S", "L", "U", "N"])
