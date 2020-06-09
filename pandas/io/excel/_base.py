@@ -799,8 +799,8 @@ class ExcelFile:
 
     Parameters
     ----------
-    path_or_io : str, path object (pathlib.Path or py._path.local.LocalPath),
-         a file-like object, xlrd workbook or openpypl workbook.
+    path_or_buffer : str, path object (pathlib.Path or py._path.local.LocalPath),
+        a file-like object, xlrd workbook or openpypl workbook.
         If a string or path object, expected to be a path to a
         .xls, .xlsx, .xlsb, .xlsm, .odf, .ods, or .odt file.
     engine : str, default None
@@ -826,14 +826,14 @@ class ExcelFile:
         "pyxlsb": _PyxlsbReader,
     }
 
-    def __init__(self, path_or_io, engine=None):
+    def __init__(self, path_or_buffer, engine=None):
         if engine is None:
             engine = "xlrd"
-            if isinstance(path_or_io, IOBase):
-                if _is_ods_stream(path_or_io):
+            if isinstance(path_or_buffer, IOBase):
+                if _is_ods_stream(path_or_buffer):
                     engine = "odf"
             else:
-                ext = os.path.splitext(str(path_or_io))[-1]
+                ext = os.path.splitext(str(path_or_buffer))[-1]
                 if ext == ".ods":
                     engine = "odf"
         if engine not in self._engines:
@@ -842,9 +842,9 @@ class ExcelFile:
         self.engine = engine
 
         # Could be a str, ExcelFile, Book, etc.
-        self.io = path_or_io
+        self.io = path_or_buffer
         # Always a string
-        self._io = stringify_path(path_or_io)
+        self._io = stringify_path(path_or_buffer)
 
         self._reader = self._engines[engine](self._io)
 
