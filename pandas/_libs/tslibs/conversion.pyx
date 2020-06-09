@@ -785,7 +785,6 @@ cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo t
         int64_t[:] deltas
         str typ
         Py_ssize_t[:] pos
-        npy_datetimestruct dts
         int64_t delta, local_val
 
     if tz is None or is_utc(tz):
@@ -795,16 +794,14 @@ cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo t
                     result[i] = NPY_NAT
                     continue
                 local_val = stamps[i]
-                dt64_to_dtstruct(local_val, &dts)
-                result[i] = _normalized_stamp(&dts)
+                result[i] = _normalize_i8_stamp(local_val)
     elif is_tzlocal(tz):
         for i in range(n):
             if stamps[i] == NPY_NAT:
                 result[i] = NPY_NAT
                 continue
             local_val = tz_convert_utc_to_tzlocal(stamps[i], tz)
-            dt64_to_dtstruct(local_val, &dts)
-            result[i] = _normalized_stamp(&dts)
+            result[i] = _normalize_i8_stamp(local_val)
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
         trans, deltas, typ = get_dst_info(tz)
@@ -816,38 +813,36 @@ cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo t
                 if stamps[i] == NPY_NAT:
                     result[i] = NPY_NAT
                     continue
-                dt64_to_dtstruct(stamps[i] + delta, &dts)
-                result[i] = _normalized_stamp(&dts)
+                local_val = stamps[i] + delta
+                result[i] = _normalize_i8_stamp(local_val)
         else:
             pos = trans.searchsorted(stamps, side='right') - 1
             for i in range(n):
                 if stamps[i] == NPY_NAT:
                     result[i] = NPY_NAT
                     continue
-                dt64_to_dtstruct(stamps[i] + deltas[pos[i]], &dts)
-                result[i] = _normalized_stamp(&dts)
+                local_val = stamps[i] + deltas[pos[i]]
+                result[i] = _normalize_i8_stamp(local_val)
 
     return result.base  # `.base` to access underlying ndarray
 
 
-cdef inline int64_t _normalized_stamp(npy_datetimestruct *dts) nogil:
+@cython.cdivision
+cdef inline int64_t _normalize_i8_stamp(int64_t local_val) nogil:
     """
-    Normalize the given datetimestruct to midnight, then convert to int64_t.
+    Round the localized nanosecond timestamp down to the previous midnight.
 
     Parameters
     ----------
-    *dts : pointer to npy_datetimestruct
+    local_val : int64_t
 
     Returns
     -------
-    stamp : int64
+    int64_t
     """
-    dts.hour = 0
-    dts.min = 0
-    dts.sec = 0
-    dts.us = 0
-    dts.ps = 0
-    return dtstruct_to_dt64(dts)
+    cdef:
+        int64_t day_nanos = 24 * 3600 * 1_000_000_000
+    return local_val - (local_val % day_nanos)
 
 
 @cython.wraparound(False)
