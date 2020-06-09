@@ -1047,7 +1047,7 @@ def assert_extension_array_equal(
     check_exact : bool, default False
         Whether to compare number exactly.
     index_values : numpy.ndarray, default None
-        optional index (shared by both left and right), used in output.
+        Optional index (shared by both left and right), used in output.
 
     Notes
     -----
