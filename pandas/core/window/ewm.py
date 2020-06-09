@@ -123,7 +123,7 @@ class EWM(_Rolling):
         identifies the columns.
     times : str, 1-D array like, default None
         Times corresponding to the observations. Must be monotonically increasing and of
-        ``datetime64[ns]`` dtype.
+        ``datetime64[ns]`` dtype. Only applicable for ``mean()``.
 
         If str, the name of the column in the DataFrame representing the times.
 
