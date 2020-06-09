@@ -394,6 +394,42 @@ class TestTimestamp:
         result = ts.strftime(fmt)
         assert result == _output
 
+    @pytest.mark.parametrize(
+        "fmt",
+        [
+            "%a",
+            "%A",
+            "%w",
+            "%d",
+            "%b",
+            "%B",
+            "%m",
+            "%y",
+            "%Y",
+            "%H",
+            "%I",
+            "%p",
+            "%M",
+            "%S",
+            "%f",
+            "%z",
+            "%Z",
+            "%j",
+            "%U",
+            "%W",
+            "%c",
+            "%x",
+            "%X",
+            "%G",
+            "%u",
+            "%V",
+        ],
+    )
+    def test_strftime_components(self, fmt):
+        ts = Timestamp("2020-06-09 09:04:11.123456", tz="UTC")
+        dt = to_datetime(ts)
+        assert ts.strftime(fmt) == dt.strftime(fmt)
+
 
 class TestTimestampNsOperations:
     def test_nanosecond_string_parsing(self):
