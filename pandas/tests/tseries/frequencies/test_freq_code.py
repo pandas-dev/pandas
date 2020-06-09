@@ -1,6 +1,6 @@
 import pytest
 
-from pandas._libs.tslibs import to_offset
+from pandas._libs.tslibs import Resolution, offsets, to_offset
 from pandas._libs.tslibs.frequencies import (
     FreqGroup,
     _attrname_to_abbrevs,
@@ -9,9 +9,6 @@ from pandas._libs.tslibs.frequencies import (
     get_freq_group,
     get_to_timestamp_base,
 )
-from pandas._libs.tslibs.resolution import Resolution as _reso
-
-import pandas.tseries.offsets as offsets
 
 
 @pytest.fixture(params=list(_period_code_map.items()))
@@ -93,6 +90,9 @@ def test_get_to_timestamp_base(freqstr, exp_freqstr):
 @pytest.mark.parametrize(
     "freqstr,expected",
     [
+        ("A", "year"),
+        ("Q", "quarter"),
+        ("M", "month"),
         ("D", "day"),
         ("H", "hour"),
         ("T", "minute"),
@@ -103,19 +103,12 @@ def test_get_to_timestamp_base(freqstr, exp_freqstr):
     ],
 )
 def test_get_attrname_from_abbrev(freqstr, expected):
-    assert _reso.get_reso_from_freq(freqstr).attrname == expected
-
-
-@pytest.mark.parametrize("freq", ["A", "Q", "M"])
-def test_get_freq_unsupported_(freq):
-    # Lowest-frequency resolution is for Day
-    with pytest.raises(KeyError, match=freq.lower()):
-        _reso.get_reso_from_freq(freq)
+    assert Resolution.get_reso_from_freq(freqstr).attrname == expected
 
 
 @pytest.mark.parametrize("freq", ["D", "H", "T", "S", "L", "U", "N"])
 def test_get_freq_roundtrip2(freq):
-    obj = _reso.get_reso_from_freq(freq)
+    obj = Resolution.get_reso_from_freq(freq)
     result = _attrname_to_abbrevs[obj.attrname]
     assert freq == result
 
