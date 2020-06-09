@@ -7,7 +7,6 @@ construction requirements, we need to do object instantiation in python
 shadows the python class, where we do any heavy lifting.
 """
 import warnings
-import time as _time
 import re
 
 import numpy as np
@@ -1451,15 +1450,10 @@ default 'raise'
         return Timestamp(normalized[0]).tz_localize(own_tz)
 
     def strftime(self, format: str) -> str:
-        # time.strftime() doesn't support %f so we manually replace it
-        if '%f' in format:
-            # always show six digits of microseconds, even if its 0s
-            replacement = f'{self.microsecond:06d}'
-            # only show nanoseconds if we have them (for comparison to datetime)
-            if self.nanosecond:
-                replacement = f'{self.microsecond * 1000 + self.nanosecond:09d}'
+        if '%f' in format and self.nanosecond:
+            replacement = f'{self.microsecond * 1000 + self.nanosecond:09d}'
             format = re.sub('%f', replacement, format)
-        return _time.strftime(format, self.timetuple())
+        return super().strftime(format)
 
 
 # Add the min and max fields at the class level
