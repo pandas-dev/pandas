@@ -5335,8 +5335,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     @property
     def _is_numeric_mixed_type(self) -> bool_t:
-        f = lambda: self._mgr.is_numeric_mixed_type
-        return self._protect_consolidate(f)
+        return self._mgr.is_numeric_mixed_type
 
     def _check_inplace_setting(self, value) -> bool_t:
         """ check whether we allow in-place setting with this type of value """
