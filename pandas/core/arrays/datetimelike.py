@@ -1122,11 +1122,6 @@ class DatetimeLikeArrayMixin(
         """
         Returns day, hour, minute, second, millisecond or microsecond
         """
-        if self._resolution_obj is None:
-            if is_period_dtype(self.dtype):
-                # somewhere in the past it was decided we default to day
-                return "day"
-            # otherwise we fall through and will raise
         return self._resolution_obj.attrname  # type: ignore
 
     @classmethod
