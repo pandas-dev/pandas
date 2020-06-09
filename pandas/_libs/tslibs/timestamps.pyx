@@ -1456,9 +1456,8 @@ default 'raise'
         """
         Constructs datetime style `format` string from Timestamp.
 
-        See `datetime`_ module for all available directives.
-        .. _datetime: https://docs.python.org/3/library/datetime\
-.html#strftime-and-strptime-format-codes
+        See `datetime <https://docs.python.org/3/library/datetime\
+.html#strftime-and-strptime-format-codes>`_ module for all available directives.
 
         Parameters
         ----------
