@@ -109,7 +109,7 @@ class TimestampProperties:
         self.ts.month_name()
 
 
-class TimestampMethods:
+class TimestampStrftimeMethod:
     params = ["%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M:%S.%f"]
     param_names = ["fmt"]
 

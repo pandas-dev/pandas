@@ -394,6 +394,37 @@ class ToDatetimeCache:
 
 class DatetimeAccessor:
 
+    params = ["T", "S", "NS"]
+    param_anmes = ["frequency"]
+
+    def setup(self, frequency):
+        N = 100000
+        self.series = Series(date_range(start="1/1/2000", periods=N, freq=frequency))
+
+    def time_dt_accessor(self):
+        self.series.dt
+
+    def time_dt_accessor_normalize(self):
+        self.series.dt.normalize()
+
+    def time_dt_accessor_month_name(self):
+        self.series.dt.month_name()
+
+    def time_dt_accessor_day_name(self):
+        self.series.dt.day_name()
+
+    def time_dt_accessor_time(self):
+        self.series.dt.time
+
+    def time_dt_accessor_date(self):
+        self.series.dt.date
+
+    def time_dt_accessor_year(self):
+        self.series.dt.year
+
+
+class DateTimeAccessorStrftime:
+
     params = (
         [None, "US/Eastern", "UTC", dateutil.tz.tzutc()],
         ["%Y-%m-%d %H:%M:%S.%f%z", "%Y-%m-%d %H:%M:%S%z"],
@@ -406,27 +437,6 @@ class DatetimeAccessor:
         self.series = Series(
             date_range(start="1/1/2000", periods=N, freq=frequency, tz=tz)
         )
-
-    def time_dt_accessor(self, tz, fmt, frequency):
-        self.series.dt
-
-    def time_dt_accessor_normalize(self, tz, fmt, frequency):
-        self.series.dt.normalize()
-
-    def time_dt_accessor_month_name(self, tz, fmt, frequency):
-        self.series.dt.month_name()
-
-    def time_dt_accessor_day_name(self, tz, fmt, frequency):
-        self.series.dt.day_name()
-
-    def time_dt_accessor_time(self, tz, fmt, frequency):
-        self.series.dt.time
-
-    def time_dt_accessor_date(self, tz, fmt, frequency):
-        self.series.dt.date
-
-    def time_dt_accessor_year(self, tz, fmt, frequency):
-        self.series.dt.year
 
     def time_dt_accessor_strftime(self, tz, fmt, frequency):
         self.series.dt.strftime(fmt)
