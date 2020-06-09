@@ -573,7 +573,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
         grp = reso.freq_group
-        iv = Period(parsed, freq=(grp, 1))
+        iv = Period(parsed, freq=grp)
         return (iv.asfreq(self.freq, how="start"), iv.asfreq(self.freq, how="end"))
 
     def _validate_partial_date_slice(self, reso: Resolution):
