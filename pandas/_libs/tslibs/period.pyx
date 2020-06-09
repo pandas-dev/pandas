@@ -94,6 +94,7 @@ from pandas._libs.tslibs.offsets cimport (
     is_tick_object,
     is_offset_object,
 )
+from pandas._libs.tslibs.offsets import INVALID_FREQ_ERR_MSG
 from pandas._libs.tslibs.tzconversion cimport tz_convert_utc_to_tzlocal
 
 
@@ -1649,7 +1650,7 @@ cdef class _Period:
         freq = self._maybe_convert_freq(freq)
         how = validate_end_alias(how)
         base1 = self._dtype.dtype_code
-        base2, _ = get_freq_code(freq)
+        base2 = freq_to_dtype_code(freq)
 
         # self.n can't be negative or 0
         end = how == 'E'
@@ -1739,10 +1740,11 @@ cdef class _Period:
         if freq is None:
             base = self._dtype.dtype_code
             freq = get_to_timestamp_base(base)
+            base = freq
         else:
             freq = self._maybe_convert_freq(freq)
+            base = freq._period_dtype_code
 
-        base, _ = get_freq_code(freq)
         val = self.asfreq(freq, how)
 
         dt64 = period_ordinal_to_dt64(val.ordinal, base)
@@ -2386,8 +2388,7 @@ class Period(_Period):
 
         elif is_period_object(value):
             other = value
-            if freq is None or get_freq_code(
-                    freq) == get_freq_code(other.freq):
+            if freq is None or freq._period_dtype_code == other.freq._period_dtype_code:
                 ordinal = other.ordinal
                 freq = other.freq
             else:
@@ -2414,6 +2415,7 @@ class Period(_Period):
                 except KeyError:
                     raise ValueError(f"Invalid frequency or could not "
                                      f"infer: {reso}")
+                freq = to_offset(freq)
 
         elif PyDateTime_Check(value):
             dt = value
@@ -2432,7 +2434,7 @@ class Period(_Period):
             raise ValueError(msg)
 
         if ordinal is None:
-            base, _ = get_freq_code(freq)
+            base = freq_to_dtype_code(freq)
             ordinal = period_ordinal(dt.year, dt.month, dt.day,
                                      dt.hour, dt.minute, dt.second,
                                      dt.microsecond, 0, base)
@@ -2444,9 +2446,17 @@ cdef bint is_period_object(object obj):
     return isinstance(obj, _Period)
 
 
+cpdef int freq_to_dtype_code(BaseOffset freq) except? -1:
+    try:
+        return freq._period_dtype_code
+    except AttributeError as err:
+        raise ValueError(INVALID_FREQ_ERR_MSG) from err
+
+
 cdef int64_t _ordinal_from_fields(int year, int month, quarter, int day,
-                                  int hour, int minute, int second, freq):
-    base, mult = get_freq_code(freq)
+                                  int hour, int minute, int second,
+                                  BaseOffset freq):
+    base = freq_to_dtype_code(freq)
     if quarter is not None:
         year, month = quarter_to_myear(year, quarter, freq)
 
