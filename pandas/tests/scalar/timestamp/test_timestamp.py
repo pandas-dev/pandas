@@ -426,9 +426,8 @@ class TestTimestamp:
         ],
     )
     def test_strftime_components(self, fmt):
-        ts = Timestamp("2020-06-09 09:04:11.123456", tz="UTC")
-        dt = to_datetime(ts)
-        assert isinstance(ts, Timestamp) and isinstance(dt, datetime)
+        ts = Timestamp("2020-06-09 09:04:11.123456", tzinfo=utc)
+        dt = datetime(2020, 6, 9, 9, 4, 11, 123456, tzinfo=utc)
         assert ts.strftime(fmt) == dt.strftime(fmt)
 
 
