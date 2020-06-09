@@ -1458,9 +1458,14 @@ default 'raise'
         return Timestamp(normalized[0]).tz_localize(own_tz)
 
     def strftime(self, format: str) -> str:
-        # only do nanosecond processing if necessary
-        if self.nanosecond and '%f' in format:
-            format = re.sub('%f', f'%f{self.nanosecond}', format)
+        # time.strftime() doesn't support %f so we manually replace it
+        if '%f' in format:
+            # always show six digits of microseconds, even if its 0s
+            replacement = f'{self.microsecond:06d}'
+            # only show nanoseconds if we have them (for comparison to datetime)
+            if self.nanosecond:
+                replacement = f'{self.microsecond * 1000 + self.nanosecond:09d}'
+            format = re.sub('%f', replacement, format)
         return _time.strftime(format, self.timetuple())
 
 
