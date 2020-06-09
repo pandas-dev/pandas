@@ -1450,6 +1450,24 @@ default 'raise'
         return Timestamp(normalized[0]).tz_localize(own_tz)
 
     def strftime(self, format: str) -> str:
+        """
+        Constructs datetime style `format` string from Timestamp.
+
+        See `datetime`_ module for all available directives.
+        .. _datetime: https://docs.python.org/3/library/datetime\
+.html#strftime-and-strptime-format-codes
+        
+        Parameters
+        ----------
+        format : str
+            String of formatting directives
+
+        Returns
+        -------
+        str
+            String representation of Timestamp
+            
+        """
         if '%f' in format and self.nanosecond:
             replacement = f'{self.microsecond * 1000 + self.nanosecond:09d}'
             format = re.sub('%f', replacement, format)
