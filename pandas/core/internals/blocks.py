@@ -1084,14 +1084,9 @@ class Block(PandasObject):
 
         inplace = validate_bool_kwarg(inplace, "inplace")
 
-        def check_int_bool(self, inplace):
-            # Only FloatBlocks will contain NaNs.
-            # timedelta subclasses IntBlock
-            if (self.is_bool or self.is_integer) and not self.is_timedelta:
-                if inplace:
-                    return self
-                else:
-                    return self.copy()
+        # Only FloatBlocks will contain NaNs. timedelta subclasses IntBlock
+        if (self.is_bool or self.is_integer) and not self.is_timedelta:
+            return self if inplace else self.copy()
 
         # a fill na type method
         try:
@@ -1100,9 +1095,6 @@ class Block(PandasObject):
             m = None
 
         if m is not None:
-            r = check_int_bool(self, inplace)
-            if r is not None:
-                return r
             return self._interpolate_with_fill(
                 method=m,
                 axis=axis,
@@ -1114,10 +1106,6 @@ class Block(PandasObject):
             )
         # validate the interp method
         m = missing.clean_interp_method(method, **kwargs)
-
-        r = check_int_bool(self, inplace)
-        if r is not None:
-            return r
 
         assert index is not None  # for mypy
 
