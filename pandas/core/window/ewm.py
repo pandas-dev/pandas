@@ -69,10 +69,14 @@ class EWM(_Rolling):
     span : float, optional
         Specify decay in terms of span,
         :math:`\alpha = 2 / (span + 1)`, for :math:`span \geq 1`.
-    halflife : float, optional
+    halflife : float, str, timedelta, optional
         Specify decay in terms of half-life,
         :math:`\alpha = 1 - \exp\left(-\ln(2) / halflife\right)`, for
         :math:`halflife > 0`.
+
+        If ``times`` is specified, the time unit (str or timedelta) over which an observation
+        decays to half its value.
+
     alpha : float, optional
         Specify smoothing factor :math:`\alpha` directly,
         :math:`0 < \alpha \leq 1`.
@@ -117,6 +121,13 @@ class EWM(_Rolling):
     axis : {0 or 'index', 1 or 'columns'}, default 0
         The axis to use. The value 0 identifies the rows, and 1
         identifies the columns.
+    times : str, 1-D array like, default None
+        Times corresponding to the observations. Must be monotonically increasing and of
+        ``datetime64[ns]`` dtype.
+
+        If str, the name of the column in the DataFrame representing the times.
+
+        If 1-D array like, a sequence with the same shape as the observations.
 
     Returns
     -------
@@ -167,6 +178,7 @@ class EWM(_Rolling):
         adjust=True,
         ignore_na=False,
         axis=0,
+        times=None,
     ):
         self.obj = obj
         self.com = get_center_of_mass(com, span, halflife, alpha)
