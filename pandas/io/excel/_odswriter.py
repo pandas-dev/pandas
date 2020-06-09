@@ -1,6 +1,6 @@
 from collections import defaultdict
 import datetime
-from typing import Any, DefaultDict, Dict, List, Tuple
+from typing import Any, DefaultDict, Dict, List, Optional, Tuple
 
 import pandas._libs.json as json
 
@@ -13,7 +13,7 @@ class _ODSWriter(ExcelWriter):
     supported_extensions = (".ods",)
 
     def __init__(
-        self, path: str, engine: Dict = None, mode: str = "w", **engine_kwargs
+        self, path: str, engine: Optional[str] = None, mode: str = "w", **engine_kwargs
     ):
         from odf.opendocument import OpenDocumentSpreadsheet
 
@@ -38,10 +38,10 @@ class _ODSWriter(ExcelWriter):
     def write_cells(
         self,
         cells,
-        sheet_name: str = None,
+        sheet_name: Optional[str] = None,
         startrow: int = 0,
         startcol: int = 0,
-        freeze_panes: List = None,
+        freeze_panes: Optional[List] = None,
     ) -> None:
         """
         Write the frame cells using odf
@@ -100,7 +100,7 @@ class _ODSWriter(ExcelWriter):
         attributes : Dict[str, object]
             Dictionary with attributes and attribute values
         """
-        attributes = {}
+        attributes: Dict[str, object] = {}
         style_name = self._process_style(cell.style)
         if style_name is not None:
             attributes["stylename"] = style_name
