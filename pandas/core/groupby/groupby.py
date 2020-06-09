@@ -497,7 +497,6 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         self._selection = selection
 
         assert isinstance(obj, NDFrame), type(obj)
-        obj._consolidate_inplace()
 
         self.level = level
 
