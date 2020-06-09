@@ -12,8 +12,9 @@ class _ODSWriter(ExcelWriter):
     engine = "odf"
     supported_extensions = (".ods",)
 
-    def __init__(self, path: str, engine: Dict = None, mode: str = "w",
-                 **engine_kwargs):
+    def __init__(
+        self, path: str, engine: Dict = None, mode: str = "w", **engine_kwargs
+    ):
         from odf.opendocument import OpenDocumentSpreadsheet
 
         engine_kwargs["engine"] = engine
@@ -35,8 +36,12 @@ class _ODSWriter(ExcelWriter):
         self.book.save(self.path)
 
     def write_cells(
-            self, cells, sheet_name: str = None, startrow: int = 0, startcol: int = 0,
-            freeze_panes: List = None
+        self,
+        cells,
+        sheet_name: str = None,
+        startrow: int = 0,
+        startcol: int = 0,
+        freeze_panes: List = None,
     ) -> None:
         """
         Write the frame cells using odf
