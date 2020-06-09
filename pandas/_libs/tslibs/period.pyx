@@ -1507,9 +1507,10 @@ cdef class _Period:
         -------
         DateOffset
         """
-        if isinstance(freq, (int, tuple)):
-            code, stride = get_freq_code(freq)
-            freq = get_freq_str(code, stride)
+        if isinstance(freq, int):
+            # We already have a dtype code
+            dtype = PeriodDtypeBase(freq)
+            freq = dtype.date_offset
 
         freq = to_offset(freq)
 

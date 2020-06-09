@@ -574,7 +574,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             raise KeyError(reso)
 
         grp = get_freq_group(reso)
-        iv = Period(parsed, freq=(grp, 1))
+        iv = Period(parsed, freq=grp)
         return (iv.asfreq(self.freq, how="start"), iv.asfreq(self.freq, how="end"))
 
     def _validate_partial_date_slice(self, reso: str):
