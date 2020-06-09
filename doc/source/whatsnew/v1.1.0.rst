@@ -292,6 +292,7 @@ Other enhancements
 - :meth:`groupby.transform` now allows ``func`` to be ``pad``, ``backfill`` and ``cumcount`` (:issue:`31269`).
 - :meth:`~pandas.io.json.read_json` now accepts `nrows` parameter. (:issue:`33916`).
 - :meth `~pandas.io.gbq.read_gbq` now allows to disable progress bar (:issue:`33360`).
+- :meth:`~pandas.io.gbq.read_gbq` now supports the ``max_results`` kwarg from ``pandas-gbq`` (:issue:`34639`).
 
 .. ---------------------------------------------------------------------------
 
@@ -896,6 +897,7 @@ Indexing
 - Bug in :meth:`DataFrame.truncate` and :meth:`Series.truncate` where index was assumed to be monotone increasing (:issue:`33756`)
 - Indexing with a list of strings representing datetimes failed on :class:`DatetimeIndex` or :class:`PeriodIndex`(:issue:`11278`)
 - Bug in :meth:`Series.at` when used with a :class:`MultiIndex` would raise an exception on valid inputs (:issue:`26989`)
+- Bug in :meth:`DataFrame.loc` with dictionary of values changes columns with dtype of ``int`` to ``float`` (:issue:`34573`)
 - Bug in :meth:`Series.loc` when used with a :class:`MultiIndex` would raise an IndexingError when accessing a None value (:issue:`34318`)
 
 Missing

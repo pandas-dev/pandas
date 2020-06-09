@@ -148,25 +148,26 @@ class Resolution(Enum):
         # TODO: annotate as returning FreqGroup once that is an enum
         if self == Resolution.RESO_NS:
             return FreqGroup.FR_NS
-        if self == Resolution.RESO_US:
+        elif self == Resolution.RESO_US:
             return FreqGroup.FR_US
-        if self == Resolution.RESO_MS:
+        elif self == Resolution.RESO_MS:
             return FreqGroup.FR_MS
-        if self == Resolution.RESO_SEC:
+        elif self == Resolution.RESO_SEC:
             return FreqGroup.FR_SEC
-        if self == Resolution.RESO_MIN:
+        elif self == Resolution.RESO_MIN:
             return FreqGroup.FR_MIN
-        if self == Resolution.RESO_HR:
+        elif self == Resolution.RESO_HR:
             return FreqGroup.FR_HR
-        if self == Resolution.RESO_DAY:
+        elif self == Resolution.RESO_DAY:
             return FreqGroup.FR_DAY
-        if self == Resolution.RESO_MTH:
+        elif self == Resolution.RESO_MTH:
             return FreqGroup.FR_MTH
-        if self == Resolution.RESO_QTR:
+        elif self == Resolution.RESO_QTR:
             return FreqGroup.FR_QTR
-        if self == Resolution.RESO_YR:
+        elif self == Resolution.RESO_YR:
             return FreqGroup.FR_ANN
-        raise ValueError(self)
+        else:
+            raise ValueError(self)
 
     @property
     def attrname(self) -> str:
