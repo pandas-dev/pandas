@@ -1836,7 +1836,10 @@ class _iLocIndexer(_LocationIndexer):
                 # append a Series
                 value = value.reindex(index=self.obj.columns, copy=True)
                 value.name = indexer
-
+            elif isinstance(value, dict):
+                value = Series(
+                    value, index=self.obj.columns, name=indexer, dtype=object
+                )
             else:
                 # a list-list
                 if is_list_like_indexer(value):
@@ -1844,8 +1847,7 @@ class _iLocIndexer(_LocationIndexer):
                     if len(value) != len(self.obj.columns):
                         raise ValueError("cannot set a row with mismatched columns")
 
-                dtype = object if isinstance(value, dict) else None
-                value = Series(value, index=self.obj.columns, name=indexer, dtype=dtype)
+                value = Series(value, index=self.obj.columns, name=indexer)
 
             self.obj._mgr = self.obj.append(value)._mgr
             self.obj._maybe_update_cacher(clear=True)
