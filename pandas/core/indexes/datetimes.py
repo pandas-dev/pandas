@@ -501,7 +501,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             raise KeyError
 
         grp = get_freq_group(reso)
-        per = Period(parsed, freq=(grp, 1))
+        per = Period(parsed, freq=grp)
         start, end = per.start_time, per.end_time
 
         # GH 24076
