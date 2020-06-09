@@ -1,6 +1,6 @@
 from collections import defaultdict
 import datetime
-from typing import DefaultDict, Dict
+from typing import Any, DefaultDict, Dict, List, Tuple
 
 import pandas._libs.json as json
 
@@ -12,7 +12,8 @@ class _ODSWriter(ExcelWriter):
     engine = "odf"
     supported_extensions = (".ods",)
 
-    def __init__(self, path, engine=None, encoding=None, mode="w", **engine_kwargs):
+    def __init__(self, path: str, engine: Dict = None, mode: str = "w",
+                 **engine_kwargs):
         from odf.opendocument import OpenDocumentSpreadsheet
 
         engine_kwargs["engine"] = engine
@@ -25,17 +26,18 @@ class _ODSWriter(ExcelWriter):
         self.book = OpenDocumentSpreadsheet()
         self._style_dict: Dict[str, str] = {}
 
-    def save(self):
+    def save(self) -> None:
         """
         Save workbook to disk.
         """
         for sheet in self.sheets.values():
             self.book.spreadsheet.addElement(sheet)
-        return self.book.save(self.path)
+        self.book.save(self.path)
 
     def write_cells(
-        self, cells, sheet_name=None, startrow=0, startcol=0, freeze_panes=None
-    ):
+            self, cells, sheet_name: str = None, startrow: int = 0, startcol: int = 0,
+            freeze_panes: List = None
+    ) -> None:
         """
         Write the frame cells using odf
         """
@@ -80,7 +82,19 @@ class _ODSWriter(ExcelWriter):
         for row_nr in range(max(rows.keys()) + 1):
             wks.addElement(rows[row_nr])
 
-    def _make_table_cell_attributes(self, cell):
+    def _make_table_cell_attributes(self, cell) -> Dict[str, object]:
+        """Convert cell attributes to OpenDocument attributes
+
+        Parameters
+        ----------
+        cell : ExcelCell
+            Spreadsheet cell data
+
+        Returns
+        -------
+        attributes : Dict[str, object]
+            Dictionary with attributes and attribute values
+        """
         attributes = {}
         style_name = self._process_style(cell.style)
         if style_name is not None:
@@ -90,7 +104,19 @@ class _ODSWriter(ExcelWriter):
             attributes["numbercolumnsspanned"] = cell.mergeend
         return attributes
 
-    def _make_table_cell(self, cell):
+    def _make_table_cell(self, cell) -> Tuple[str, object]:
+        """Convert cell data to an OpenDocument spreadsheet cell
+
+        Parameters
+        ----------
+        cell : ExcelCell
+            Spreadsheet cell data
+
+        Returns
+        -------
+        pvalue, cell : Tuple[str, object]
+            Display value, Cell value
+        """
         from odf.table import TableCell
 
         attributes = self._make_table_cell_attributes(cell)
@@ -129,7 +155,19 @@ class _ODSWriter(ExcelWriter):
                 ),
             )
 
-    def _process_style(self, style):
+    def _process_style(self, style: Dict[str, Any]) -> str:
+        """Convert a style dictionary to a OpenDocument style sheet
+
+        Parameters
+        ----------
+        style : Dict
+            Style dictionary
+
+        Returns
+        -------
+        style_key : str
+            Unique style key for for later reference in sheet
+        """
         from odf.style import (
             ParagraphProperties,
             Style,
@@ -169,7 +207,16 @@ class _ODSWriter(ExcelWriter):
         self.book.styles.addElement(odf_style)
         return name
 
-    def _create_freeze_panes(self, sheet_name, freeze_panes):
+    def _create_freeze_panes(self, sheet_name: str, freeze_panes: List[int]) -> None:
+        """Create freeze panes in the sheet
+
+        Parameters
+        ----------
+        sheet_name : str
+            Name of the spreadsheet
+        freeze_panes : list
+            Freeze pane location x and y
+        """
         from odf.config import (
             ConfigItem,
             ConfigItemMapEntry,
