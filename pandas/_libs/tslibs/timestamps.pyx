@@ -494,7 +494,10 @@ cdef class _Timestamp(ABCTimestamp):
 
     @property
     def _time_repr(self) -> str:
-        return self.strftime('%H:%M:%S.%f')
+        fmt = '%H:%M:%S'
+        if self.microseond or self.nanosecond:
+            fmt = '%H:%M:%S.%f'
+        return self.strftime(fmt)
 
     @property
     def _short_repr(self) -> str:
@@ -1456,7 +1459,7 @@ default 'raise'
         See `datetime`_ module for all available directives.
         .. _datetime: https://docs.python.org/3/library/datetime\
 .html#strftime-and-strptime-format-codes
-        
+
         Parameters
         ----------
         format : str
