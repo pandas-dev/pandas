@@ -1466,7 +1466,6 @@ default 'raise'
         -------
         str
             String representation of Timestamp
-            
         """
         if '%f' in format and self.nanosecond:
             replacement = f'{self.microsecond * 1000 + self.nanosecond:09d}'
