@@ -2129,13 +2129,14 @@ double Object_getDoubleValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
 const char *Object_getBigNumStringValue(JSOBJ obj, JSONTypeContext *tc, 
                                     size_t *_outLen) {
     PyObject* repr = PyObject_Str(obj);
-    PyObject* str = PyUnicode_AsEncodedString(repr, "utf-8", "~E~");
-    char *bytes = PyBytes_AS_STRING(str);
+    PyObject* str = PyUnicode_AsUTF8AndSize(repr, _outLen);
+    char bytes[_outlen];
+    memcpy(bytes, PyBytes_AS_STRING(str), _outLen);
+    memcpy(GET_TC(tc)->cStr, bytes, _outLen);
 
     Py_XDECREF(repr);
     Py_XDECREF(str);
-
-    GET_TC(tc)->cStr = bytes;
+    free(bytes);
     
     return GET_TC(tc)->cStr;
 }
