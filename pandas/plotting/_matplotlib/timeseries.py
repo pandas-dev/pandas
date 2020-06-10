@@ -6,7 +6,8 @@ from typing import TYPE_CHECKING, Optional
 import numpy as np
 
 from pandas._libs.tslibs import Period, to_offset
-from pandas._libs.tslibs.frequencies import FreqGroup, base_and_stride
+from pandas._libs.tslibs.frequencies import FreqGroup
+from pandas._libs.tslibs.offsets import base_and_stride
 from pandas._typing import FrameOrSeriesUnion
 
 from pandas.core.dtypes.generic import (

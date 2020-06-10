@@ -11,8 +11,8 @@ from pandas._libs.tslibs import (
     Timestamp,
     conversion,
     fields,
-    frequencies as libfrequencies,
     iNaT,
+    offsets as liboffsets,
     resolution as libresolution,
     timezones,
     to_offset,
@@ -1106,7 +1106,7 @@ default 'raise'
 
             #  https://github.com/pandas-dev/pandas/issues/33358
             if res is None:
-                base, stride = libfrequencies.base_and_stride(freq)
+                base, stride = liboffsets.base_and_stride(freq)
                 res = f"{stride}{base}"
 
             freq = res

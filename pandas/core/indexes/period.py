@@ -503,7 +503,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
             reso = Resolution.from_attrname(reso)
             grp = reso.freq_group
-            freqn = get_freq_group(self.freq)
+            freqn = get_freq_group(self.dtype.dtype_code)
 
             # _get_string_slice will handle cases where grp < freqn
             assert grp >= freqn
@@ -579,7 +579,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     def _validate_partial_date_slice(self, reso: Resolution):
         assert isinstance(reso, Resolution), (type(reso), reso)
         grp = reso.freq_group
-        freqn = get_freq_group(self.freq)
+        freqn = get_freq_group(self.dtype.dtype_code)
 
         if not grp < freqn:
             # TODO: we used to also check for
