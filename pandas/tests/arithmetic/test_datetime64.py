@@ -747,7 +747,7 @@ class TestDatetime64Arithmetic:
     #  over DataFrame/Series/Index/DatetimeArray
 
     # -------------------------------------------------------------
-    # Addition/Subtraction of timedelta-like scalars
+    # Addition/Subtraction of timedelta-like
 
     def test_dt64arr_add_timedeltalike_scalar(
         self, tz_naive_fixture, two_hours, box_with_array
@@ -778,48 +778,6 @@ class TestDatetime64Arithmetic:
         rng += two_hours
         tm.assert_equal(rng, expected)
 
-    @pytest.mark.filterwarnings(
-        "ignore:Adding/subtracting object-dtype array to DatetimeArray"
-    )
-    @pytest.mark.parametrize(
-        "dt64arr, offset_arr, expected",
-        [
-            (
-                [
-                    pd.Timestamp("2000-01-01"),
-                    pd.Timestamp("2000-02-01"),
-                    pd.Timestamp("2000-05-01"),
-                ],
-                [
-                    pd.offsets.DateOffset(years=1),
-                    pd.offsets.DateOffset(months=2),
-                    pd.offsets.MonthEnd(),
-                ],
-                [
-                    pd.Timestamp("2001-01-01"),
-                    pd.Timestamp("2000-04-01"),
-                    pd.Timestamp("2000-05-31"),
-                ],
-            )
-        ],
-    )
-    @pytest.mark.parametrize(
-        "constr_dt, constr_offset, constr_expected",
-        [
-            (pd.Series, pd.Series, pd.Series),
-            (pd.Series, pd.Index, pd.Series),
-            (pd.DatetimeIndex, pd.Series, pd.Series),
-        ],
-    )
-    def test_dt64arr_add_offset_scalar(
-        self, dt64arr, offset_arr, expected, constr_dt, constr_offset, constr_expected,
-    ):
-        # GH#19211
-        result1 = constr_offset(offset_arr) + constr_dt(dt64arr)
-        result2 = constr_dt(dt64arr) + constr_offset(offset_arr)
-        tm.assert_series_equal(result1, constr_expected(expected))
-        tm.assert_series_equal(result2, constr_expected(expected))
-
     def test_dt64arr_sub_timedeltalike_scalar(
         self, tz_naive_fixture, two_hours, box_with_array
     ):
@@ -847,46 +805,6 @@ class TestDatetime64Arithmetic:
 
         rng -= two_hours
         tm.assert_equal(rng, expected)
-
-    @pytest.mark.filterwarnings(
-        "ignore:Adding/subtracting object-dtype array to DatetimeArray"
-    )
-    @pytest.mark.parametrize(
-        "dt64arr, offset_arr, expected",
-        [
-            (
-                [
-                    pd.Timestamp("2000-01-01"),
-                    pd.Timestamp("2000-03-29"),
-                    pd.Timestamp("2000-05-15"),
-                ],
-                [
-                    pd.offsets.DateOffset(years=1),
-                    pd.offsets.DateOffset(months=2),
-                    pd.offsets.MonthBegin(),
-                ],
-                [
-                    pd.Timestamp("1999-1-1"),
-                    pd.Timestamp("2000-1-29"),
-                    pd.Timestamp("2000-05-01"),
-                ],
-            )
-        ],
-    )
-    @pytest.mark.parametrize(
-        "constr_dt, constr_offset, constr_expected",
-        [
-            (pd.Series, pd.Series, pd.Series),
-            (pd.Series, pd.Index, pd.Series),
-            (pd.DatetimeIndex, pd.Series, pd.Series),
-        ],
-    )
-    def test_dt64arr_sub_offset_scalar(
-        self, dt64arr, offset_arr, expected, constr_dt, constr_offset, constr_expected,
-    ):
-        # GH#19211
-        result = constr_dt(dt64arr) - constr_offset(offset_arr)
-        tm.assert_series_equal(result, constr_expected(expected))
 
     # TODO: redundant with test_dt64arr_add_timedeltalike_scalar
     def test_dt64arr_add_td64_scalar(self, box_with_array):
@@ -2458,12 +2376,10 @@ class TestDatetimeIndexArithmetic:
         tm.assert_index_equal(result4, expected)
 
     @pytest.mark.parametrize("op", [operator.add, roperator.radd, operator.sub])
-    def test_dti_addsub_offset_arraylike(
-        self, tz_naive_fixture, names, op, index_or_series
-    ):
-        # GH#18849, GH#19744
+    def test_dti_addsub_offset_arraylike(self, tz_naive_fixture, names, op, box):
+        # GH#18849, GH#19744, GH#19211
         box = pd.Index
-        other_box = index_or_series
+        other_box = box
 
         tz = tz_naive_fixture
         dti = pd.date_range("2017-01-01", periods=2, tz=tz, name=names[0])
