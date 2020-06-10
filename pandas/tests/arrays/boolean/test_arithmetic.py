@@ -16,12 +16,12 @@ def data():
 
 
 @pytest.fixture
-def a():
+def left_array():
     return pd.array([True] * 3 + [False] * 3 + [None] * 3, dtype="boolean")
 
 
 @pytest.fixture
-def b():
+def right_array():
     return pd.array([True, False, None] * 3, dtype="boolean")
 
 
@@ -37,22 +37,22 @@ def b():
     ],
     ids=["add", "mul"],
 )
-def test_add_mul(a, b, opname, exp):
+def test_add_mul(left_array, right_array, opname, exp):
     op = getattr(operator, opname)
-    result = op(a, b)
+    result = op(left_array, right_array)
     expected = pd.array(exp, dtype="boolean")
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_sub(a, b):
+def test_sub(left_array, right_array):
     with pytest.raises(TypeError):
         # numpy points to ^ operator or logical_xor function instead
-        a - b
+        left_array - right_array
 
 
-def test_div(a, b):
+def test_div(left_array, right_array):
     # for now division gives a float numpy array
-    result = a / b
+    result = left_array / right_array
     expected = np.array(
         [1.0, np.inf, np.nan, 0.0, np.nan, np.nan, np.nan, np.nan, np.nan],
         dtype="float64",
@@ -70,14 +70,14 @@ def test_div(a, b):
         ),
     ],
 )
-def test_op_int8(a, b, opname):
+def test_op_int8(left_array, right_array, opname):
     op = getattr(operator, opname)
-    result = op(a, b)
-    expected = op(a.astype("Int8"), b.astype("Int8"))
+    result = op(left_array, right_array)
+    expected = op(left_array.astype("Int8"), right_array.astype("Int8"))
     tm.assert_extension_array_equal(result, expected)
 
 
-# Test generic charachteristics / errors
+# Test generic characteristics / errors
 # -----------------------------------------------------------------------------
 
 

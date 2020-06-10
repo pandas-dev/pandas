@@ -123,7 +123,7 @@ def test_series(data, all_arithmetic_operators):
     tm.assert_series_equal(result, expected)
 
 
-# Test generic charachteristics / errors
+# Test generic characteristics / errors
 # -----------------------------------------------------------------------------
 
 

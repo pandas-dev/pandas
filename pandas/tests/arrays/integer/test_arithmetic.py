@@ -145,7 +145,7 @@ def test_numpy_zero_dim_ndarray(other):
     tm.assert_equal(result, expected)
 
 
-# Test generic charachteristics / errors
+# Test generic characteristics / errors
 # -----------------------------------------------------------------------------
 
 

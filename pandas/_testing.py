@@ -2761,7 +2761,7 @@ def get_cython_table_params(ndframe, func_names_and_expected):
     return results
 
 
-def get_op_from_name(op_name):
+def get_op_from_name(op_name: str) -> Callable:
     """
     The operator function for a given op name.
 

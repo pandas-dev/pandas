@@ -723,6 +723,8 @@ class BooleanArray(BaseMaskedArray):
                 mask = self._mask | mask
 
             if other is libmissing.NA:
+                # if other is NA, the result will be all NA and we can't run the
+                # actual op, so we need to choose the resulting dtype manually
                 if op_name in {"floordiv", "rfloordiv", "mod", "rmod", "pow", "rpow"}:
                     dtype = "int8"
                 else:
