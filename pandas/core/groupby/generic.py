@@ -1731,10 +1731,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         DataFrame
         """
         indexed_output = {key.position: val for key, val in output.items()}
-        if self.axis == 0:
-            name = self._obj_with_exclusions.columns.name
-        else:
-            name = self._obj_with_exclusions.index.name
+        name = self._obj_with_exclusions._get_axis(1 - self.axis).name
         columns = Index([key.label for key in output], name=name)
 
         result = self.obj._constructor(indexed_output)
