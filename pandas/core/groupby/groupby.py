@@ -35,7 +35,7 @@ from pandas._config.config import option_context
 
 from pandas._libs import Timestamp
 import pandas._libs.groupby as libgroupby
-from pandas._typing import FrameOrSeries, Scalar
+from pandas._typing import F, FrameOrSeries, FrameOrSeriesUnion, Scalar
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
@@ -497,7 +497,6 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         self._selection = selection
 
         assert isinstance(obj, NDFrame), type(obj)
-        obj._consolidate_inplace()
 
         self.level = level
 
@@ -735,11 +734,11 @@ b  2""",
 
         # need to setup the selection
         # as are not passed directly but in the grouper
-        f = getattr(self._selected_obj, name)
+        f = getattr(self._obj_with_exclusions, name)
         if not isinstance(f, types.MethodType):
             return self.apply(lambda self: getattr(self, name))
 
-        f = getattr(type(self._selected_obj), name)
+        f = getattr(type(self._obj_with_exclusions), name)
         sig = inspect.signature(f)
 
         def wrapper(*args, **kwargs):
@@ -762,7 +761,7 @@ b  2""",
                 return self.apply(curried)
 
             try:
-                return self.apply(curried)
+                return self._python_apply_general(curried, self._obj_with_exclusions)
             except TypeError as err:
                 if not re.search(
                     "reduction operation '.*' not allowed for this dtype", str(err)
@@ -853,7 +852,7 @@ b  2""",
         # ignore SettingWithCopy here in case the user mutates
         with option_context("mode.chained_assignment", None):
             try:
-                result = self._python_apply_general(f)
+                result = self._python_apply_general(f, self._selected_obj)
             except TypeError:
                 # gh-20949
                 # try again, with .apply acting as a filtering
@@ -864,12 +863,29 @@ b  2""",
                 # on a string grouper column
 
                 with _group_selection_context(self):
-                    return self._python_apply_general(f)
+                    return self._python_apply_general(f, self._selected_obj)
 
         return result
 
-    def _python_apply_general(self, f):
-        keys, values, mutated = self.grouper.apply(f, self._selected_obj, self.axis)
+    def _python_apply_general(
+        self, f: F, data: FrameOrSeriesUnion
+    ) -> FrameOrSeriesUnion:
+        """
+        Apply function f in python space
+
+        Parameters
+        ----------
+        f : callable
+            Function to apply
+        data : Series or DataFrame
+            Data to apply f to
+
+        Returns
+        -------
+        Series or DataFrame
+            data after applying f
+        """
+        keys, values, mutated = self.grouper.apply(f, data, self.axis)
 
         return self._wrap_applied_output(
             keys, values, not_indexed_same=mutated or self.mutated
@@ -1067,7 +1083,7 @@ b  2""",
             output[key] = maybe_cast_result(result, obj, numeric_only=True)
 
         if len(output) == 0:
-            return self._python_apply_general(f)
+            return self._python_apply_general(f, self._selected_obj)
 
         if self.grouper._filter_empty_groups:
 
@@ -1970,7 +1986,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
 
         grb = dropped.groupby(grouper, as_index=self.as_index, sort=self.sort)
         sizes, result = grb.size(), grb.nth(n)
-        mask = (sizes < max_len).values
+        mask = (sizes < max_len)._values
 
         # set the results which don't meet the criteria
         if len(result) and mask.any():
