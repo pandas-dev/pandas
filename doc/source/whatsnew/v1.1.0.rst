@@ -329,9 +329,11 @@ Other enhancements
 - :meth:`HDFStore.put` now accepts `track_times` parameter. Parameter is passed to ``create_table`` method of ``PyTables`` (:issue:`32682`).
 - Make :class:`pandas.core.window.Rolling` and :class:`pandas.core.window.Expanding` iterable（:issue:`11704`)
 - Make ``option_context`` a :class:`contextlib.ContextDecorator`, which allows it to be used as a decorator over an entire function (:issue:`34253`).
+- :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` now accept an ``errors`` argument (:issue:`22610`)
 - :meth:`groupby.transform` now allows ``func`` to be ``pad``, ``backfill`` and ``cumcount`` (:issue:`31269`).
 - :meth:`~pandas.io.json.read_json` now accepts `nrows` parameter. (:issue:`33916`).
 - :meth `~pandas.io.gbq.read_gbq` now allows to disable progress bar (:issue:`33360`).
+- :meth:`~pandas.io.gbq.read_gbq` now supports the ``max_results`` kwarg from ``pandas-gbq`` (:issue:`34639`).
 
 .. ---------------------------------------------------------------------------
 
@@ -442,6 +444,8 @@ Backwards incompatible API changes
 - :func: `pandas.api.dtypes.is_string_dtype` no longer incorrectly identifies categorical series as string.
 - :func:`read_excel` no longer takes ``**kwds`` arguments. This means that passing in keyword ``chunksize`` now raises a ``TypeError``
   (previously raised a ``NotImplementedError``), while passing in keyword ``encoding`` now raises a ``TypeError`` (:issue:`34464`)
+- :func: `merge` now checks ``suffixes`` parameter type to be ``tuple`` and raises ``TypeError``, whereas before a ``list`` or ``set`` were accepted and that the ``set`` could produce unexpected results (:issue:`33740`)
+- :class:`Period` no longer accepts tuples for the ``freq`` argument (:issue:`34658`)
 
 ``MultiIndex.get_indexer`` interprets `method` argument differently
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -867,6 +871,7 @@ Timedelta
 - Bug in :func:`timedelta_range` that produced an extra point on a edge case (:issue:`30353`, :issue:`33498`)
 - Bug in :meth:`DataFrame.resample` that produced an extra point on a edge case (:issue:`30353`, :issue:`13022`, :issue:`33498`)
 - Bug in :meth:`DataFrame.resample` that ignored the ``loffset`` argument when dealing with timedelta (:issue:`7687`, :issue:`33498`)
+- Bug in :class:`Timedelta` and `pandas.to_timedelta` that ignored `unit`-argument for string input (:issue:`12136`)
 
 Timezones
 ^^^^^^^^^
@@ -933,6 +938,7 @@ Indexing
 - Bug in :meth:`DataFrame.truncate` and :meth:`Series.truncate` where index was assumed to be monotone increasing (:issue:`33756`)
 - Indexing with a list of strings representing datetimes failed on :class:`DatetimeIndex` or :class:`PeriodIndex`(:issue:`11278`)
 - Bug in :meth:`Series.at` when used with a :class:`MultiIndex` would raise an exception on valid inputs (:issue:`26989`)
+- Bug in :meth:`DataFrame.loc` with dictionary of values changes columns with dtype of ``int`` to ``float`` (:issue:`34573`)
 - Bug in :meth:`Series.loc` when used with a :class:`MultiIndex` would raise an IndexingError when accessing a None value (:issue:`34318`)
 
 Missing
@@ -1053,6 +1059,7 @@ Reshaping
 - Ensure only named functions can be used in :func:`eval()` (:issue:`32460`)
 - Bug in :func:`Dataframe.aggregate` and :func:`Series.aggregate` was causing recursive loop in some cases (:issue:`34224`)
 - Fixed bug in :func:`melt` where melting MultiIndex columns with ``col_level`` > 0 would raise a ``KeyError`` on ``id_vars`` (:issue:`34129`)
+- Bug in :meth:`Series.where` with an empty Series and empty ``cond`` having non-bool dtype (:issue:`34592`)
 
 Sparse
 ^^^^^^

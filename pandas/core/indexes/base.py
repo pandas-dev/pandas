@@ -537,7 +537,7 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         other : object
-            other object to compare against.
+            Other object to compare against.
 
         Returns
         -------
