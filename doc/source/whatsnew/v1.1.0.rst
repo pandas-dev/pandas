@@ -291,7 +291,7 @@ Other enhancements
 - :meth:`groupby.transform` now allows ``func`` to be ``pad``, ``backfill`` and ``cumcount`` (:issue:`31269`).
 - :meth:`~pandas.io.json.read_json` now accepts `nrows` parameter. (:issue:`33916`).
 - :meth `~pandas.io.gbq.read_gbq` now allows to disable progress bar (:issue:`33360`).
-- :meth:`DataFrame.hist`, :meth:`Series.hist`, :meth:`DataFrameGroupby.hist`, and :meth:`SeriesGroupby.hist` have gained the ``legend`` argument. Set to True to show a legend in the histogram. (:issue:`6279`)
+- :meth:`DataFrame.hist`, :meth:`Series.hist`, :meth:`core.groupby.DataFrameGroupBy.hist`, and :meth:`core.groupby.SeriesGroupBy.hist` have gained the ``legend`` argument. Set to True to show a legend in the histogram. (:issue:`6279`)
 
 .. ---------------------------------------------------------------------------
 
