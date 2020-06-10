@@ -365,13 +365,11 @@ class TestPandasContainer:
         with pytest.raises(ValueError, match=msg):
             df.to_json(orient="garbage")
 
-
     def test_frame_roundtrip_period_index(self, orient, period_frame):
         # GH32665: Fix to_json when converting Period column/series
-        
         if orient == 'split':
             pytest.skip('skipping orient=split due to different conversion schema')
-        
+
         data = period_frame.to_json(orient=orient)
         result = pd.read_json(data, typ="frame", orient=orient)
 
@@ -383,12 +381,11 @@ class TestPandasContainer:
                 expected = expected.T.reset_index(drop=True).T
         if orient in ("index", "columns"):
             result.index = result.index.to_period(freq=expected.index.freq)
-        
         expected.name = None
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.skip(reason = 'Conversion of Period-like column in dict-like format')
+    @pytest.mark.skip(reason='Conversion of Period-like column in dict-like format')
     def test_frame_roundtrip_period_columns(self, orient, period_frame):
         # GH32665: Fix to_json when converting Period column/series
 
@@ -403,7 +400,6 @@ class TestPandasContainer:
             expected.name = None
 
         tm.assert_frame_equal(result, expected)
-
 
     def test_frame_empty(self):
         df = DataFrame(columns=["jim", "joe"])
@@ -694,7 +690,7 @@ class TestPandasContainer:
         # GH32665: Fix to_json when converting Period column/series
         if orient == 'split':
             pytest.skip('skipping orient=split due to different conversion schema')
-        
+
         data = period_series.to_json(orient=orient)
         result = pd.read_json(data, typ="series", orient=orient)
 
