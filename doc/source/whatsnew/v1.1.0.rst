@@ -216,33 +216,31 @@ By default, duplicates continue to be allowed
 
 .. ipython:: python
 
-  pd.Series([1, 2], index=['a', 'a'])
+   pd.Series([1, 2], index=['a', 'a'])
 
 .. ipython:: python
-  :okexcept:
+   :okexcept:
 
-  pd.Series([1, 2], index=['a', 'a'], allows_duplicate_labels=False)
+   pd.Series([1, 2], index=['a', 'a'], allows_duplicate_labels=False)
 
 Pandas will propagate the ``allows_duplicate_labels`` property through many operations.
 
 .. ipython:: python
-  :okexcept:
+   :okexcept:
 
-  a = pd.Series([1, 2], index=['a', 'b'], allows_duplicate_labels=False)
-  a
-  # An operation introducing duplicates
-  a.reindex(['a', 'b', 'a'])
+   a = pd.Series([1, 2], index=['a', 'b'], allows_duplicate_labels=False)
+   a
+   # An operation introducing duplicates
+   a.reindex(['a', 'b', 'a'])
 
 .. warning::
 
    This is an experimental feature. Currently, many methods fail to
    propagate the ``allows_duplicate_labels`` value. In future versions
    it is expected that every method taking or returning one or more
-   DataFrame or Series objects will propage ``allows_duplicate_labels``
+   DataFrame or Series objects will propagate ``allows_duplicate_labels``.
 
 See :ref:`duplicates` for more.
-
-
 
 .. _whatsnew_110.grouper_resample_origin:
 
