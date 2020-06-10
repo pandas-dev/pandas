@@ -67,7 +67,7 @@ This applies to row labels as well
 Duplicate Label Detection
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can check with an :class:`Index` (storing the row or column labels) is
+You can check whether an :class:`Index` (storing the row or column labels) is
 unique with :attr:`Index.is_unique`:
 
 .. ipython:: python
@@ -131,7 +131,7 @@ This applies to both row and column labels for a :class:`DataFrame`
    pd.DataFrame([[0, 1, 2], [3, 4, 5]], columns=["A", "B", "C"],
                 allows_duplicate_labels=False)
 
-This attribute can be checked with :attr:`~DataFrame.allows_duplicate_labels`,
+This attribute can be checked or set with :attr:`~DataFrame.allows_duplicate_labels`,
 which indicates whether that object can have duplicate labels.
 
 .. ipython:: python
@@ -163,3 +163,10 @@ operations.
    s1 = pd.Series(0, index=['a', 'b'], allows_duplicate_labels=False)
    s1
    s1.head().rename({"a": "b"})
+
+.. warning::
+
+   This is an experimental feature. Currently, many methods fail to
+   propagate the ``allows_duplicate_labels`` value. In future versions
+   it is expected that every method taking or returning one or more
+   DataFrame or Series objects will propagate ``allows_duplicate_labels``.
