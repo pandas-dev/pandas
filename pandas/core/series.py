@@ -4846,7 +4846,7 @@ Keep all original rows and also all original values
 
         if not isinstance(self.index, DatetimeIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
-        new_index = self.index.to_period(freq=freq)  # type: ignore
+        new_index = self.index.to_period(freq=freq)
         return self._constructor(new_values, index=new_index).__finalize__(
             self, method="to_period"
         )
