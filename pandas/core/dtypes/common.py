@@ -60,16 +60,13 @@ _POSSIBLY_CAST_DTYPES = {
 
 DT64NS_DTYPE = conversion.DT64NS_DTYPE
 TD64NS_DTYPE = conversion.TD64NS_DTYPE
-_INT64_DTYPE = np.dtype(np.int64)
+INT64_DTYPE = np.dtype(np.int64)
 
 # oh the troubles to reduce import time
 _is_scipy_sparse = None
 
 ensure_float64 = algos.ensure_float64
 ensure_float32 = algos.ensure_float32
-
-_ensure_datetime64ns = conversion.ensure_datetime64ns
-_ensure_timedelta64ns = conversion.ensure_timedelta64ns
 
 
 def ensure_float(arr):
@@ -487,7 +484,6 @@ def is_period_dtype(arr_or_dtype) -> bool:
         # GH#33400 fastpath for dtype object
         return arr_or_dtype.type is Period
 
-    # TODO: Consider making Period an instance of PeriodDtype
     if arr_or_dtype is None:
         return False
     return PeriodDtype.is_dtype(arr_or_dtype)
@@ -526,7 +522,6 @@ def is_interval_dtype(arr_or_dtype) -> bool:
         # GH#33400 fastpath for dtype object
         return arr_or_dtype.type is Interval
 
-    # TODO: Consider making Interval an instance of IntervalDtype
     if arr_or_dtype is None:
         return False
     return IntervalDtype.is_dtype(arr_or_dtype)
@@ -604,7 +599,7 @@ def is_string_dtype(arr_or_dtype) -> bool:
         """
         These have kind = "O" but aren't string dtypes so need to be explicitly excluded
         """
-        is_excluded_checks = (is_period_dtype, is_interval_dtype)
+        is_excluded_checks = (is_period_dtype, is_interval_dtype, is_categorical_dtype)
         return any(is_excluded(dtype) for is_excluded in is_excluded_checks)
 
     return _is_dtype(arr_or_dtype, condition)

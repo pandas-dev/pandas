@@ -13,7 +13,7 @@ from cpython.datetime cimport (datetime, time, tzinfo,
                                PyDateTime_IMPORT)
 PyDateTime_IMPORT
 
-from pandas._libs.tslibs.c_timestamp cimport _Timestamp
+from pandas._libs.tslibs.base cimport ABCTimestamp
 
 from pandas._libs.tslibs.np_datetime cimport (
     check_dts_bounds, npy_datetimestruct, pandas_datetime_to_datetimestruct,
@@ -25,21 +25,25 @@ from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.util cimport (
     is_datetime64_object, is_integer_object, is_float_object)
 
-from pandas._libs.tslibs.timedeltas cimport cast_from_unit
 from pandas._libs.tslibs.timezones cimport (
     is_utc, is_tzlocal, is_fixed_offset, get_utcoffset, get_dst_info,
-    get_timezone, maybe_get_tz, tz_compare)
-from pandas._libs.tslibs.timezones import UTC
+    get_timezone, maybe_get_tz, tz_compare,
+    utc_pytz as UTC,
+)
 from pandas._libs.tslibs.parsing import parse_datetime_string
 
-from pandas._libs.tslibs.nattype import nat_strings
 from pandas._libs.tslibs.nattype cimport (
-    NPY_NAT, checknull_with_nat, c_NaT as NaT)
+    NPY_NAT,
+    checknull_with_nat,
+    c_NaT as NaT,
+    c_nat_strings as nat_strings,
+)
 
-from pandas._libs.tslibs.tzconversion import (
-    tz_localize_to_utc, tz_convert_single)
+from pandas._libs.tslibs.tzconversion import tz_localize_to_utc
 from pandas._libs.tslibs.tzconversion cimport (
-    _tz_convert_tzlocal_utc, _tz_convert_tzlocal_fromutc)
+    tz_convert_utc_to_tzlocal,
+    tz_convert_single,
+)
 
 # ----------------------------------------------------------------------
 # Constants
@@ -49,7 +53,78 @@ TD64NS_DTYPE = np.dtype('m8[ns]')
 
 
 # ----------------------------------------------------------------------
-# Misc Helpers
+# Unit Conversion Helpers
+
+cdef inline int64_t cast_from_unit(object ts, str unit) except? -1:
+    """ return a casting of the unit represented to nanoseconds
+        round the fractional part of a float to our precision, p """
+    cdef:
+        int64_t m
+        int p
+
+    m, p = precision_from_unit(unit)
+
+    # just give me the unit back
+    if ts is None:
+        return m
+
+    # cast the unit, multiply base/frace separately
+    # to avoid precision issues from float -> int
+    base = <int64_t>ts
+    frac = ts - base
+    if p:
+        frac = round(frac, p)
+    return <int64_t>(base * m) + <int64_t>(frac * m)
+
+
+cpdef inline object precision_from_unit(str unit):
+    """
+    Return a casting of the unit represented to nanoseconds + the precision
+    to round the fractional part.
+
+    Notes
+    -----
+    The caller is responsible for ensuring that the default value of "ns"
+    takes the place of None.
+    """
+    cdef:
+        int64_t m
+        int p
+
+    if unit == "Y":
+        m = 1_000_000_000 * 31556952
+        p = 9
+    elif unit == "M":
+        m = 1_000_000_000 * 2629746
+        p = 9
+    elif unit == "W":
+        m = 1_000_000_000 * 3600 * 24 * 7
+        p = 9
+    elif unit == "D" or unit == "d":
+        m = 1_000_000_000 * 3600 * 24
+        p = 9
+    elif unit == "h":
+        m = 1_000_000_000 * 3600
+        p = 9
+    elif unit == "m":
+        m = 1_000_000_000 * 60
+        p = 9
+    elif unit == "s":
+        m = 1_000_000_000
+        p = 9
+    elif unit == "ms":
+        m = 1_000_000
+        p = 6
+    elif unit == "us":
+        m = 1000
+        p = 3
+    elif unit == "ns" or unit is None:
+        m = 1
+        p = 0
+    else:
+        raise ValueError(f"cannot cast unit {unit}")
+    return m, p
+
 
 cdef inline int64_t get_datetime64_nanos(object val) except? -1:
     """
@@ -103,10 +178,10 @@ def ensure_datetime64ns(arr: ndarray, copy: bool=True):
         dtype = arr.dtype
         arr = arr.astype(dtype.newbyteorder("<"))
 
-    ivalues = arr.view(np.int64).ravel()
+    ivalues = arr.view(np.int64).ravel("K")
 
     result = np.empty(shape, dtype=DT64NS_DTYPE)
-    iresult = result.ravel().view(np.int64)
+    iresult = result.ravel("K").view(np.int64)
 
     if len(iresult) == 0:
         result = arr.view(DT64NS_DTYPE)
@@ -147,6 +222,9 @@ def ensure_timedelta64ns(arr: ndarray, copy: bool=True):
     """
     return arr.astype(TD64NS_DTYPE, copy=copy)
     # TODO: check for overflows when going from a lower-resolution to nanos
+
+
+# ----------------------------------------------------------------------
 
 
 @cython.boundscheck(False)
@@ -265,7 +343,7 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
             ts = <int64_t>ts
         except OverflowError:
             # GH#26651 re-raise as OutOfBoundsDatetime
-            raise OutOfBoundsDatetime(ts)
+            raise OutOfBoundsDatetime(f"Out of bounds nanosecond timestamp {ts}")
         if ts == NPY_NAT:
             obj.value = NPY_NAT
         else:
@@ -285,10 +363,11 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
         # Keep the converter same as PyDateTime's
         ts = datetime.combine(ts, time())
         return convert_datetime_to_tsobject(ts, tz)
-    elif getattr(ts, '_typ', None) == 'period':
-        raise ValueError("Cannot convert Period to Timestamp "
-                         "unambiguously. Use to_timestamp")
     else:
+        from .period import Period
+        if isinstance(ts, Period):
+            raise ValueError("Cannot convert Period to Timestamp "
+                             "unambiguously. Use to_timestamp")
         raise TypeError(f'Cannot convert input [{ts}] of type {type(ts)} to '
                         f'Timestamp')
 
@@ -352,7 +431,7 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
         offset = get_utcoffset(obj.tzinfo, ts)
         obj.value -= int(offset.total_seconds() * 1e9)
 
-    if isinstance(ts, _Timestamp):
+    if isinstance(ts, ABCTimestamp):
         obj.value += ts.nanosecond
         obj.dts.ps = ts.nanosecond * 1000
 
@@ -402,7 +481,7 @@ cdef _TSObject create_tsobject_tz_using_offset(npy_datetimestruct dts,
     if is_utc(tz):
         pass
     elif is_tzlocal(tz):
-        _tz_convert_tzlocal_fromutc(obj.value, tz, &obj.fold)
+        tz_convert_utc_to_tzlocal(obj.value, tz, &obj.fold)
     else:
         trans, deltas, typ = get_dst_info(tz)
 
@@ -564,7 +643,7 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz):
     elif obj.value == NPY_NAT:
         pass
     elif is_tzlocal(tz):
-        local_val = _tz_convert_tzlocal_fromutc(obj.value, tz, &obj.fold)
+        local_val = tz_convert_utc_to_tzlocal(obj.value, tz, &obj.fold)
         dt64_to_dtstruct(local_val, &obj.dts)
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
@@ -667,7 +746,7 @@ cpdef inline datetime localize_pydatetime(datetime dt, object tz):
     """
     if tz is None:
         return dt
-    elif isinstance(dt, _Timestamp):
+    elif isinstance(dt, ABCTimestamp):
         return dt.tz_localize(tz)
     elif is_utc(tz):
         return _localize_pydatetime(dt, tz)
@@ -682,40 +761,9 @@ cpdef inline datetime localize_pydatetime(datetime dt, object tz):
 # Normalization
 
 
-def normalize_date(dt: object) -> datetime:
-    """
-    Normalize datetime.datetime value to midnight. Returns datetime.date as a
-    datetime.datetime at midnight
-
-    Parameters
-    ----------
-    dt : date, datetime, or Timestamp
-
-    Returns
-    -------
-    normalized : datetime.datetime or Timestamp
-
-    Raises
-    ------
-    TypeError : if input is not datetime.date, datetime.datetime, or Timestamp
-    """
-    if PyDateTime_Check(dt):
-        if isinstance(dt, _Timestamp):
-            return dt.replace(hour=0, minute=0, second=0, microsecond=0,
-                              nanosecond=0)
-        else:
-            # regular datetime object
-            return dt.replace(hour=0, minute=0, second=0, microsecond=0)
-            # TODO: Make sure DST crossing is handled correctly here
-    elif PyDate_Check(dt):
-        return datetime(dt.year, dt.month, dt.day)
-    else:
-        raise TypeError(f'Unrecognized type: {type(dt)}')
-
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def normalize_i8_timestamps(int64_t[:] stamps, object tz):
+cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo tz):
     """
     Normalize each of the (nanosecond) timezone aware timestamps in the given
     array by rounding down to the beginning of the day (i.e. midnight).
@@ -731,49 +779,29 @@ def normalize_i8_timestamps(int64_t[:] stamps, object tz):
     result : int64 ndarray of converted of normalized nanosecond timestamps
     """
     cdef:
-        Py_ssize_t n = len(stamps)
-        int64_t[:] result = np.empty(n, dtype=np.int64)
-
-    result = _normalize_local(stamps, tz)
-
-    return result.base  # .base to access underlying np.ndarray
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-cdef int64_t[:] _normalize_local(const int64_t[:] stamps, tzinfo tz):
-    """
-    Normalize each of the (nanosecond) timestamps in the given array by
-    rounding down to the beginning of the day (i.e. midnight) for the
-    given timezone `tz`.
-
-    Parameters
-    ----------
-    stamps : int64 ndarray
-    tz : tzinfo
-
-    Returns
-    -------
-    result : int64 ndarray of converted of normalized nanosecond timestamps
-    """
-    cdef:
         Py_ssize_t i, n = len(stamps)
         int64_t[:] result = np.empty(n, dtype=np.int64)
         ndarray[int64_t] trans
         int64_t[:] deltas
         str typ
         Py_ssize_t[:] pos
-        npy_datetimestruct dts
         int64_t delta, local_val
 
-    if is_tzlocal(tz):
+    if tz is None or is_utc(tz):
+        with nogil:
+            for i in range(n):
+                if stamps[i] == NPY_NAT:
+                    result[i] = NPY_NAT
+                    continue
+                local_val = stamps[i]
+                result[i] = _normalize_i8_stamp(local_val)
+    elif is_tzlocal(tz):
         for i in range(n):
             if stamps[i] == NPY_NAT:
                 result[i] = NPY_NAT
                 continue
-            local_val = _tz_convert_tzlocal_utc(stamps[i], tz, to_utc=False)
-            dt64_to_dtstruct(local_val, &dts)
-            result[i] = _normalized_stamp(&dts)
+            local_val = tz_convert_utc_to_tzlocal(stamps[i], tz)
+            result[i] = _normalize_i8_stamp(local_val)
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
         trans, deltas, typ = get_dst_info(tz)
@@ -785,38 +813,36 @@ cdef int64_t[:] _normalize_local(const int64_t[:] stamps, tzinfo tz):
                 if stamps[i] == NPY_NAT:
                     result[i] = NPY_NAT
                     continue
-                dt64_to_dtstruct(stamps[i] + delta, &dts)
-                result[i] = _normalized_stamp(&dts)
+                local_val = stamps[i] + delta
+                result[i] = _normalize_i8_stamp(local_val)
         else:
             pos = trans.searchsorted(stamps, side='right') - 1
             for i in range(n):
                 if stamps[i] == NPY_NAT:
                     result[i] = NPY_NAT
                     continue
-                dt64_to_dtstruct(stamps[i] + deltas[pos[i]], &dts)
-                result[i] = _normalized_stamp(&dts)
+                local_val = stamps[i] + deltas[pos[i]]
+                result[i] = _normalize_i8_stamp(local_val)
 
-    return result
+    return result.base  # `.base` to access underlying ndarray
 
 
-cdef inline int64_t _normalized_stamp(npy_datetimestruct *dts) nogil:
+@cython.cdivision
+cdef inline int64_t _normalize_i8_stamp(int64_t local_val) nogil:
     """
-    Normalize the given datetimestruct to midnight, then convert to int64_t.
+    Round the localized nanosecond timestamp down to the previous midnight.
 
     Parameters
     ----------
-    *dts : pointer to npy_datetimestruct
+    local_val : int64_t
 
     Returns
     -------
-    stamp : int64
+    int64_t
     """
-    dts.hour = 0
-    dts.min = 0
-    dts.sec = 0
-    dts.us = 0
-    dts.ps = 0
-    return dtstruct_to_dt64(dts)
+    cdef:
+        int64_t day_nanos = 24 * 3600 * 1_000_000_000
+    return local_val - (local_val % day_nanos)
 
 
 @cython.wraparound(False)
@@ -852,7 +878,7 @@ def is_date_array_normalized(const int64_t[:] stamps, object tz=None):
                 return False
     elif is_tzlocal(tz):
         for i in range(n):
-            local_val = _tz_convert_tzlocal_utc(stamps[i], tz, to_utc=False)
+            local_val = tz_convert_utc_to_tzlocal(stamps[i], tz)
             dt64_to_dtstruct(local_val, &dts)
             if (dts.hour + dts.min + dts.sec + dts.us) > 0:
                 return False

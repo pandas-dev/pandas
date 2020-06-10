@@ -110,7 +110,7 @@ version control to allow many people to work together on the project.
 Some great resources for learning Git:
 
 * the `GitHub help pages <https://help.github.com/>`_.
-* the `NumPy's documentation <https://docs.scipy.org/doc/numpy/dev/index.html>`_.
+* the `NumPy's documentation <https://numpy.org/doc/stable/dev/index.html>`_.
 * Matthew Brett's `Pydagogue <https://matthew-brett.github.com/pydagogue/>`_.
 
 Getting started with Git
@@ -270,7 +270,7 @@ Creating a Python environment (pip)
 If you aren't using conda for your development environment, follow these instructions.
 You'll need to have at least Python 3.6.1 installed on your system.
 
-**Unix**/**Mac OS**
+**Unix**/**Mac OS with virtualenv**
 
 .. code-block:: bash
 
@@ -286,7 +286,31 @@ You'll need to have at least Python 3.6.1 installed on your system.
    python -m pip install -r requirements-dev.txt
 
    # Build and install pandas
-   python setup.py build_ext --inplace -j 0
+   python setup.py build_ext --inplace -j 4
+   python -m pip install -e . --no-build-isolation --no-use-pep517
+
+**Unix**/**Mac OS with pyenv**
+
+Consult the docs for setting up pyenv `here <https://github.com/pyenv/pyenv>`__.
+
+.. code-block:: bash
+
+   # Create a virtual environment
+   # Use an ENV_DIR of your choice. We'll use ~/Users/<yourname>/.pyenv/versions/pandas-dev
+
+   pyenv virtualenv <version> <name-to-give-it>
+
+   # For instance:
+   pyenv virtualenv 3.7.6 pandas-dev
+
+   # Activate the virtualenv
+   pyenv activate pandas-dev
+
+   # Now install the build dependencies in the cloned pandas repo
+   python -m pip install -r requirements-dev.txt
+
+   # Build and install pandas
+   python setup.py build_ext --inplace -j 4
    python -m pip install -e . --no-build-isolation --no-use-pep517
 
 **Windows**
@@ -312,7 +336,7 @@ should already exist.
    python -m pip install -r requirements-dev.txt
 
    # Build and install pandas
-   python setup.py build_ext --inplace -j 0
+   python setup.py build_ext --inplace -j 4
    python -m pip install -e . --no-build-isolation --no-use-pep517
 
 Creating a branch
@@ -581,7 +605,7 @@ do not make sudden changes to the code that could have the potential to break
 a lot of user code as a result, that is, we need it to be as *backwards compatible*
 as possible to avoid mass breakages.
 
-Additional standards are outlined on the `pandas code style guide <code_style>`_
+Additional standards are outlined on the :ref:`pandas code style guide <code_style>`
 
 Optional dependencies
 ---------------------
@@ -974,7 +998,7 @@ it is worth getting in the habit of writing tests ahead of time so this is never
 Like many packages, pandas uses `pytest
 <https://docs.pytest.org/en/latest/>`_ and the convenient
 extensions in `numpy.testing
-<https://docs.scipy.org/doc/numpy/reference/routines.testing.html>`_.
+<https://numpy.org/doc/stable/reference/routines.testing.html>`_.
 
 .. note::
 
@@ -1275,8 +1299,8 @@ Performance matters and it is worth considering whether your code has introduced
 performance regressions. pandas is in the process of migrating to
 `asv benchmarks <https://github.com/spacetelescope/asv>`__
 to enable easy monitoring of the performance of critical pandas operations.
-These benchmarks are all found in the ``pandas/asv_bench`` directory.  asv
-supports both python2 and python3.
+These benchmarks are all found in the ``pandas/asv_bench`` directory, and the
+test results can be found `here <https://pandas.pydata.org/speed/pandas/#/>`__.
 
 To use all features of asv, you will need either ``conda`` or
 ``virtualenv``. For more details please check the `asv installation

@@ -44,6 +44,7 @@ class CSVFormatter:
         index_label: Optional[Union[bool, Hashable, Sequence[Hashable]]] = None,
         mode: str = "w",
         encoding: Optional[str] = None,
+        errors: str = "strict",
         compression: Union[str, Mapping[str, str], None] = "infer",
         quoting: Optional[int] = None,
         line_terminator="\n",
@@ -62,7 +63,7 @@ class CSVFormatter:
         # Extract compression mode as given, if dict
         compression, self.compression_args = get_compression_method(compression)
 
-        self.path_or_buf, _, _, _ = get_filepath_or_buffer(
+        self.path_or_buf, _, _, self.should_close = get_filepath_or_buffer(
             path_or_buf, encoding=encoding, compression=compression, mode=mode
         )
         self.sep = sep
@@ -77,6 +78,7 @@ class CSVFormatter:
         if encoding is None:
             encoding = "utf-8"
         self.encoding = encoding
+        self.errors = errors
         self.compression = infer_compression(self.path_or_buf, compression)
 
         if quoting is None:
@@ -184,6 +186,7 @@ class CSVFormatter:
                 self.path_or_buf,
                 self.mode,
                 encoding=self.encoding,
+                errors=self.errors,
                 compression=dict(self.compression_args, method=self.compression),
             )
             close = True
@@ -215,6 +218,7 @@ class CSVFormatter:
                         self.path_or_buf,
                         self.mode,
                         encoding=self.encoding,
+                        errors=self.errors,
                         compression=compression,
                     )
                     f.write(buf)
@@ -223,6 +227,8 @@ class CSVFormatter:
                 f.close()
                 for _fh in handles:
                     _fh.close()
+            elif self.should_close:
+                f.close()
 
     def _save_header(self):
         writer = self.writer

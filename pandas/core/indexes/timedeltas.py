@@ -1,6 +1,7 @@
 """ implement the TimedeltaIndex """
 
-from pandas._libs import NaT, Timedelta, index as libindex
+from pandas._libs import index as libindex, lib
+from pandas._libs.tslibs import Timedelta, to_offset
 from pandas._typing import DtypeObj, Label
 from pandas.util._decorators import doc
 
@@ -13,7 +14,6 @@ from pandas.core.dtypes.common import (
     is_timedelta64_ns_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.missing import is_valid_nat_for_dtype
 
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.timedeltas import TimedeltaArray
@@ -24,8 +24,6 @@ from pandas.core.indexes.datetimelike import (
     DatetimeTimedeltaMixin,
 )
 from pandas.core.indexes.extension import inherit_names
-
-from pandas.tseries.frequencies import to_offset
 
 
 @inherit_names(
@@ -48,11 +46,10 @@ from pandas.tseries.frequencies import to_offset
         "std",
         "median",
         "_format_native_types",
-        "freq",
     ],
     TimedeltaArray,
 )
-class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
+class TimedeltaIndex(DatetimeTimedeltaMixin):
     """
     Immutable ndarray of timedelta64 data, represented internally as int64, and
     which can be boxed to timedelta objects.
@@ -112,7 +109,6 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
     _comparables = ["name", "freq"]
     _attributes = ["name", "freq"]
     _is_numeric_dtype = True
-    _infer_as_myclass = True
 
     _data: TimedeltaArray
 
@@ -123,7 +119,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
         cls,
         data=None,
         unit=None,
-        freq=None,
+        freq=lib.no_default,
         closed=None,
         dtype=TD64NS_DTYPE,
         copy=False,
@@ -143,12 +139,12 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
                 "represent unambiguous timedelta values durations."
             )
 
-        if isinstance(data, TimedeltaArray) and freq is None:
+        if isinstance(data, TimedeltaArray) and freq is lib.no_default:
             if copy:
                 data = data.copy()
             return cls._simple_new(data, name=name)
 
-        if isinstance(data, TimedeltaIndex) and freq is None and name is None:
+        if isinstance(data, TimedeltaIndex) and freq is lib.no_default and name is None:
             if copy:
                 return data.copy()
             else:
@@ -199,11 +195,6 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
             return Index(result.astype("i8"), name=self.name)
         return DatetimeIndexOpsMixin.astype(self, dtype, copy=copy)
 
-    def _maybe_promote(self, other):
-        if other.inferred_type == "timedelta":
-            other = TimedeltaIndex(other)
-        return self, other
-
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         """
         Can we compare values of the given dtype to our own?
@@ -221,20 +212,11 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
         if not is_scalar(key):
             raise InvalidIndexError(key)
 
-        if is_valid_nat_for_dtype(key, self.dtype):
-            key = NaT
-
-        elif isinstance(key, str):
-            try:
-                key = Timedelta(key)
-            except ValueError as err:
-                raise KeyError(key) from err
-
-        elif isinstance(key, self._data._recognized_scalars) or key is NaT:
-            key = Timedelta(key)
-
-        else:
-            raise KeyError(key)
+        msg = str(key)
+        try:
+            key = self._data._validate_scalar(key, msg, cast_str=True)
+        except TypeError as err:
+            raise KeyError(key) from err
 
         return Index.get_loc(self, key, method, tolerance)
 
@@ -347,6 +329,6 @@ def timedelta_range(
     if freq is None and com.any_none(periods, start, end):
         freq = "D"
 
-    freq, freq_infer = dtl.maybe_infer_freq(freq)
+    freq, _ = dtl.maybe_infer_freq(freq)
     tdarr = TimedeltaArray._generate_range(start, end, periods, freq, closed=closed)
     return TimedeltaIndex._simple_new(tdarr, name=name)
