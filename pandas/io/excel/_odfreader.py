@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, cast
 
 from pandas._typing import FilePathOrBuffer, Scalar
 from pandas.compat._optional import import_optional_dependency
@@ -179,7 +179,9 @@ class _ODFReader(_BaseExcelReader):
             cell_value = cell.attributes.get((OFFICENS, "date-value"))
             return pd.to_datetime(cell_value)
         elif cell_type == "time":
-            return pd.to_datetime(str(cell)).time()
+            result = pd.to_datetime(str(cell))
+            result = cast(pd.Timestamp, result)
+            return result.time()
         else:
             raise ValueError(f"Unrecognized type {cell_type}")
 
