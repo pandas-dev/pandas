@@ -363,19 +363,23 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    def _validate_partial_date_slice(self, reso: str):
+    def _validate_partial_date_slice(self, reso: Resolution):
         raise NotImplementedError
 
-    def _parsed_string_to_bounds(self, reso: str, parsed: datetime):
+    def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
         raise NotImplementedError
 
     def _partial_date_slice(
-        self, reso: str, parsed: datetime, use_lhs: bool = True, use_rhs: bool = True
+        self,
+        reso: Resolution,
+        parsed: datetime,
+        use_lhs: bool = True,
+        use_rhs: bool = True,
     ):
         """
         Parameters
         ----------
-        reso : str
+        reso : Resolution
         parsed : datetime
         use_lhs : bool, default True
         use_rhs : bool, default True
