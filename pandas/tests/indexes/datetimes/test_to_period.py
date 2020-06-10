@@ -6,7 +6,7 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs.ccalendar import MONTHS
-from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
+from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 
 from pandas import (
     DatetimeIndex,

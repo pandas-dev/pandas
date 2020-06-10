@@ -6,9 +6,8 @@ import pytz
 
 from pandas._libs.tslibs import iNaT, period as libperiod
 from pandas._libs.tslibs.ccalendar import DAYS, MONTHS
-from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
 from pandas._libs.tslibs.parsing import DateParseError
-from pandas._libs.tslibs.period import IncompatibleFrequency
+from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG, IncompatibleFrequency
 from pandas._libs.tslibs.timezones import dateutil_gettz, maybe_get_tz
 from pandas.compat.numpy import np_datetime64_compat
 

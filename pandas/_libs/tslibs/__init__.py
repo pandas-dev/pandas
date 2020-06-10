@@ -18,7 +18,7 @@ __all__ = [
     "to_offset",
 ]
 
-from . import dtypes  # type: ignore
+from . import dtypes
 from .conversion import localize_pydatetime
 from .nattype import NaT, NaTType, iNaT, is_null_datetimelike, nat_strings
 from .np_datetime import OutOfBoundsDatetime

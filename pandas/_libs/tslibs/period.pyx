@@ -75,8 +75,6 @@ from pandas._libs.tslibs.dtypes cimport (
 
 from pandas._libs.tslibs.frequencies cimport (
     attrname_to_abbrevs,
-    get_freq_code,
-    get_freq_str,
     get_to_timestamp_base,
 )
 from pandas._libs.tslibs.parsing cimport get_rule_month

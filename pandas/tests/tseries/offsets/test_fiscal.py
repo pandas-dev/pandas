@@ -6,7 +6,7 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import pytest
 
-from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
+from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 
 from pandas import Timestamp
 import pandas._testing as tm
