@@ -2132,7 +2132,7 @@ const char *Object_getBigNumStringValue(JSOBJ obj, JSONTypeContext *tc,
     Py_ssize_t* _py_ssize_t_outLen;
     const char *str = PyUnicode_AsUTF8AndSize(repr,_py_ssize_t_outLen);
     // need to cast _py_ssize_t_outLen as C size_t type (_outLen)
-    char* bytes = malloc(&_outLen);
+    char* bytes = malloc(*_outLen);
     memcpy(bytes, PyBytes_AS_STRING(str), &_outLen);
     memcpy(GET_TC(tc)->cStr, bytes, &_outLen);
 
