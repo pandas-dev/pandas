@@ -5,6 +5,8 @@ Tests for TimedeltaIndex methods behaving like their Timedelta counterparts
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs.offsets import INVALID_FREQ_ERR_MSG
+
 import pandas as pd
 from pandas import Index, Series, Timedelta, TimedeltaIndex, timedelta_range
 import pandas._testing as tm
@@ -58,7 +60,7 @@ class TestVectorizedTimedelta:
         tm.assert_index_equal(td.round(freq="H"), expected_rng)
         assert elt.round(freq="H") == expected_elt
 
-        msg = pd._libs.tslibs.frequencies.INVALID_FREQ_ERR_MSG
+        msg = INVALID_FREQ_ERR_MSG
         with pytest.raises(ValueError, match=msg):
             td.round(freq="foo")
         with pytest.raises(ValueError, match=msg):
