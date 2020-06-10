@@ -14,7 +14,6 @@ dependencies:
 
   # pandas dependencies
   - beautifulsoup4
-  - fsspec>=0.7.4
   - html5lib
   - ipython
   - jinja2
@@ -28,7 +27,6 @@ dependencies:
   - pytables
   - python-dateutil
   - pytz
-  - s3fs>=0.4.0
   - scipy
   - xarray
   - xlrd
