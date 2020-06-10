@@ -482,7 +482,7 @@ def period_series():
     """Fixture for Series with Period-type index.
     """
     s = tm.makePeriodSeries()
-    s.name = 'ps'
+    s.name = "ps"
     return s
 
 
