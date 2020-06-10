@@ -377,7 +377,6 @@ class DataFrame(NDFrame):
            it is expected that every method taking or returning one or more
            DataFrame or Series objects will propage ``allows_duplicate_labels``
 
-
     See Also
     --------
     DataFrame.from_records : Constructor from tuples, also record arrays.
