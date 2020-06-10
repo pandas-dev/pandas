@@ -9,7 +9,7 @@ from pandas._typing import FilePathOrBuffer, Label
 from pandas.io.common import stringify_path
 
 if TYPE_CHECKING:
-    from pandas import DataFrame
+    from pandas import DataFrame  # noqa: F401
 
 
 # TODO(PY38): replace with Protocol in Python 3.8
@@ -47,7 +47,7 @@ def read_sas(
     encoding: Optional[str] = ...,
     chunksize: None = ...,
     iterator: bool = ...,
-) -> Union[DataFrame, ReaderBase]:
+) -> Union["DataFrame", ReaderBase]:
     ...
 
 
@@ -58,7 +58,7 @@ def read_sas(
     encoding: Optional[str] = None,
     chunksize: Optional[int] = None,
     iterator: bool = False,
-) -> Union[DataFrame, ReaderBase]:
+) -> Union["DataFrame", ReaderBase]:
     """
     Read SAS files stored as either XPORT or SAS7BDAT format files.
 
