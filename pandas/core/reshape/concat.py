@@ -345,7 +345,7 @@ class _Concatenator:
         if len(objs) == 0:
             raise ValueError("All objects passed were None")
 
-        # consolidate data & figure out what our result ndim is going to be
+        # figure out what our result ndim is going to be
         ndims = set()
         for obj in objs:
             if not isinstance(obj, (Series, DataFrame)):
@@ -355,8 +355,6 @@ class _Concatenator:
                 )
                 raise TypeError(msg)
 
-            # consolidate
-            obj._consolidate(inplace=True)
             ndims.add(obj.ndim)
 
         # get the sample
