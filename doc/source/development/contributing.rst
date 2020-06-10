@@ -137,7 +137,8 @@ This creates the directory `pandas-yourname` and connects your repository to
 the upstream (main project) *pandas* repository.
 
 Note that performing a shallow clone (with `--depth==N`, for some `N` greater
-or equal to 1) might break some tests and features as `pd.show_versions()`.
+or equal to 1) might break some tests and features as `pd.show_versions()`
+as the version number cannot be computed anymore.
 
 .. _contributing.dev_env:
 
