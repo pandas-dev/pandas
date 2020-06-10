@@ -84,7 +84,7 @@ def test_setitem_float_labels():
 
 def test_slice_float_get_set(datetime_series):
     msg = lambda key: (
-        f"cannot do slice indexing on DatetimeIndex with these indexers "
+        "cannot do slice indexing on DatetimeIndex with these indexers "
         f"\[{key}\] of type float"
     )
     with pytest.raises(TypeError, match=msg(key=r"4\.0")):
@@ -134,5 +134,3 @@ def test_int_indexing():
 def test_getitem_int64(datetime_series):
     idx = np.int64(5)
     assert datetime_series[idx] == datetime_series[5]
-
-

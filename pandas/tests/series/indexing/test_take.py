@@ -31,6 +31,3 @@ def test_take_categorical():
         pd.Categorical(["b", "b", "a"], categories=["a", "b", "c"]), index=[1, 1, 0]
     )
     tm.assert_series_equal(result, expected)
-
-
-

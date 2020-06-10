@@ -222,7 +222,9 @@ def test_where_setitem_invalid():
     # GH 2702
     # make sure correct exceptions are raised on invalid list assignment
 
-    msg = lambda x : f"cannot set using a {x} indexer with a different length than the value"
+    msg = (
+        lambda x: f"cannot set using a {x} indexer with a different length than the value"
+    )
     # slice
     s = Series(list("abc"))
 
@@ -442,4 +444,3 @@ def test_where_sparse():
     result = ser.where(ser >= 2, 0)
     expected = pd.Series(pd.arrays.SparseArray([0, 2]))
     tm.assert_series_equal(result, expected)
-
