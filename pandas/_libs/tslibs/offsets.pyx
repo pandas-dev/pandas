@@ -3583,10 +3583,10 @@ cpdef to_offset(freq):
     >>> to_offset("1D1H")
     <25 * Hours>
 
-    >>> to_offset(("W", 2))
+    >>> to_offset("2W")
     <2 * Weeks: weekday=6>
 
-    >>> to_offset((2, "B"))
+    >>> to_offset("2B")
     <2 * BusinessDays>
 
     >>> to_offset(pd.Timedelta(days=1))
@@ -3602,12 +3602,9 @@ cpdef to_offset(freq):
         return freq
 
     if isinstance(freq, tuple):
-        name = freq[0]
-        stride = freq[1]
-        if isinstance(stride, str):
-            name, stride = stride, name
-        name, _ = base_and_stride(name)
-        delta = _get_offset(name) * stride
+        raise TypeError(
+            f"to_offset does not support tuples {freq}, pass as a string instead"
+        )
 
     elif isinstance(freq, timedelta):
         return delta_to_tick(freq)

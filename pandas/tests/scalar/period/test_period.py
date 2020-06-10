@@ -48,8 +48,9 @@ class TestPeriodConstruction:
         i1 = Period("1982", freq="min")
         i2 = Period("1982", freq="MIN")
         assert i1 == i2
-        i2 = Period("1982", freq=("Min", 1))
-        assert i1 == i2
+
+        with pytest.raises(TypeError, match="pass as a string instead"):
+            Period("1982", freq=("Min", 1))
 
         i1 = Period(year=2005, month=3, day=1, freq="D")
         i2 = Period("3/1/2005", freq="D")

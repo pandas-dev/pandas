@@ -946,10 +946,8 @@ class TestTimeSeries:
         assert idx[0] == sdate + 0 * offsets.BDay()
         assert idx.freq == "B"
 
-        idx = date_range(end=edate, freq=("D", 5), periods=20)
-        assert len(idx) == 20
-        assert idx[-1] == edate
-        assert idx.freq == "5D"
+        with pytest.raises(TypeError, match="pass as a string instead"):
+            date_range(end=edate, freq=("D", 5), periods=20)
 
         idx1 = date_range(start=sdate, end=edate, freq="W-SUN")
         idx2 = date_range(start=sdate, end=edate, freq=offsets.Week(weekday=6))
