@@ -292,6 +292,7 @@ Other enhancements
 - :meth:`groupby.transform` now allows ``func`` to be ``pad``, ``backfill`` and ``cumcount`` (:issue:`31269`).
 - :meth:`~pandas.io.json.read_json` now accepts `nrows` parameter. (:issue:`33916`).
 - :meth `~pandas.io.gbq.read_gbq` now allows to disable progress bar (:issue:`33360`).
+- :meth:`~pandas.io.gbq.read_gbq` now supports the ``max_results`` kwarg from ``pandas-gbq`` (:issue:`34639`).
 
 .. ---------------------------------------------------------------------------
 
@@ -403,6 +404,7 @@ Backwards incompatible API changes
 - :func:`read_excel` no longer takes ``**kwds`` arguments. This means that passing in keyword ``chunksize`` now raises a ``TypeError``
   (previously raised a ``NotImplementedError``), while passing in keyword ``encoding`` now raises a ``TypeError`` (:issue:`34464`)
 - :func: `merge` now checks ``suffixes`` parameter type to be ``tuple`` and raises ``TypeError``, whereas before a ``list`` or ``set`` were accepted and that the ``set`` could produce unexpected results (:issue:`33740`)
+- :class:`Period` no longer accepts tuples for the ``freq`` argument (:issue:`34658`)
 
 ``MultiIndex.get_indexer`` interprets `method` argument differently
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -895,6 +897,7 @@ Indexing
 - Bug in :meth:`DataFrame.truncate` and :meth:`Series.truncate` where index was assumed to be monotone increasing (:issue:`33756`)
 - Indexing with a list of strings representing datetimes failed on :class:`DatetimeIndex` or :class:`PeriodIndex`(:issue:`11278`)
 - Bug in :meth:`Series.at` when used with a :class:`MultiIndex` would raise an exception on valid inputs (:issue:`26989`)
+- Bug in :meth:`DataFrame.loc` with dictionary of values changes columns with dtype of ``int`` to ``float`` (:issue:`34573`)
 - Bug in :meth:`Series.loc` when used with a :class:`MultiIndex` would raise an IndexingError when accessing a None value (:issue:`34318`)
 
 Missing

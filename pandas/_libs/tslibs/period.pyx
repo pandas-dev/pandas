@@ -75,8 +75,6 @@ from pandas._libs.tslibs.dtypes cimport (
 
 from pandas._libs.tslibs.frequencies cimport (
     attrname_to_abbrevs,
-    get_freq_code,
-    get_freq_str,
     get_to_timestamp_base,
 )
 from pandas._libs.tslibs.parsing cimport get_rule_month
@@ -94,6 +92,7 @@ from pandas._libs.tslibs.offsets cimport (
     is_tick_object,
     is_offset_object,
 )
+from pandas._libs.tslibs.offsets import INVALID_FREQ_ERR_MSG
 from pandas._libs.tslibs.tzconversion cimport tz_convert_utc_to_tzlocal
 
 
@@ -329,56 +328,34 @@ cdef inline int64_t transform_via_day(int64_t ordinal,
 # --------------------------------------------------------------------
 # Conversion _to_ Daily Freq
 
-cdef void AtoD_ym(int64_t ordinal, int64_t *year,
-                  int *month, asfreq_info *af_info) nogil:
-    year[0] = ordinal + 1970
-    month[0] = 1
-
-    if af_info.from_end != 12:
-        month[0] += af_info.from_end
-        if month[0] > 12:
-            #  This case is never reached, but is kept for symmetry
-            # with QtoD_ym
-            month[0] -= 12
-        else:
-            year[0] -= 1
-
-
 cdef int64_t asfreq_AtoDT(int64_t ordinal, asfreq_info *af_info) nogil:
     cdef:
-        int64_t unix_date, year
-        int month
+        int64_t unix_date
+        npy_datetimestruct dts
 
     ordinal += af_info.is_end
-    AtoD_ym(ordinal, &year, &month, af_info)
 
-    unix_date = unix_date_from_ymd(year, month, 1)
+    dts.year = ordinal + 1970
+    dts.month = 1
+    adjust_dts_for_month(&dts, af_info.from_end)
+
+    unix_date = unix_date_from_ymd(dts.year, dts.month, 1)
     unix_date -= af_info.is_end
     return upsample_daytime(unix_date, af_info)
-
-
-cdef void QtoD_ym(int64_t ordinal, int *year,
-                  int *month, asfreq_info *af_info) nogil:
-    year[0] = ordinal // 4 + 1970
-    month[0] = (ordinal % 4) * 3 + 1
-
-    if af_info.from_end != 12:
-        month[0] += af_info.from_end
-        if month[0] > 12:
-            month[0] -= 12
-        else:
-            year[0] -= 1
 
 
 cdef int64_t asfreq_QtoDT(int64_t ordinal, asfreq_info *af_info) nogil:
     cdef:
         int64_t unix_date
-        int year, month
+        npy_datetimestruct dts
 
     ordinal += af_info.is_end
-    QtoD_ym(ordinal, &year, &month, af_info)
 
-    unix_date = unix_date_from_ymd(year, month, 1)
+    dts.year = ordinal // 4 + 1970
+    dts.month = (ordinal % 4) * 3 + 1
+    adjust_dts_for_month(&dts, af_info.from_end)
+
+    unix_date = unix_date_from_ymd(dts.year, dts.month, 1)
     unix_date -= af_info.is_end
     return upsample_daytime(unix_date, af_info)
 
@@ -486,12 +463,7 @@ cdef int DtoQ_yq(int64_t ordinal, asfreq_info *af_info, npy_datetimestruct* dts)
         int quarter
 
     pandas_datetime_to_datetimestruct(ordinal, NPY_FR_D, dts)
-    if af_info.to_end != 12:
-        dts.month -= af_info.to_end
-        if dts.month <= 0:
-            dts.month += 12
-        else:
-            dts.year += 1
+    adjust_dts_for_qtr(dts, af_info.to_end)
 
     quarter = month_to_quarter(dts.month)
     return quarter
@@ -710,6 +682,24 @@ cdef inline int get_freq_group(int freq) nogil:
 
 cdef inline int get_freq_group_index(int freq) nogil:
     return freq // 1000
+
+
+cdef void adjust_dts_for_month(npy_datetimestruct* dts, int from_end) nogil:
+    if from_end != 12:
+        dts.month += from_end
+        if dts.month > 12:
+            dts.month -= 12
+        else:
+            dts.year -= 1
+
+
+cdef void adjust_dts_for_qtr(npy_datetimestruct* dts, int to_end) nogil:
+    if to_end != 12:
+        dts.month -= to_end
+        if dts.month <= 0:
+            dts.month += 12
+        else:
+            dts.year += 1
 
 
 # Find the unix_date (days elapsed since datetime(1970, 1, 1)
@@ -1516,9 +1506,10 @@ cdef class _Period:
         -------
         DateOffset
         """
-        if isinstance(freq, (int, tuple)):
-            code, stride = get_freq_code(freq)
-            freq = get_freq_str(code, stride)
+        if isinstance(freq, int):
+            # We already have a dtype code
+            dtype = PeriodDtypeBase(freq)
+            freq = dtype.date_offset
 
         freq = to_offset(freq)
 
@@ -1657,7 +1648,7 @@ cdef class _Period:
         freq = self._maybe_convert_freq(freq)
         how = validate_end_alias(how)
         base1 = self._dtype.dtype_code
-        base2, _ = get_freq_code(freq)
+        base2 = freq_to_dtype_code(freq)
 
         # self.n can't be negative or 0
         end = how == 'E'
@@ -1747,10 +1738,11 @@ cdef class _Period:
         if freq is None:
             base = self._dtype.dtype_code
             freq = get_to_timestamp_base(base)
+            base = freq
         else:
             freq = self._maybe_convert_freq(freq)
+            base = freq._period_dtype_code
 
-        base, _ = get_freq_code(freq)
         val = self.asfreq(freq, how)
 
         dt64 = period_ordinal_to_dt64(val.ordinal, base)
@@ -2394,8 +2386,7 @@ class Period(_Period):
 
         elif is_period_object(value):
             other = value
-            if freq is None or get_freq_code(
-                    freq) == get_freq_code(other.freq):
+            if freq is None or freq._period_dtype_code == other.freq._period_dtype_code:
                 ordinal = other.ordinal
                 freq = other.freq
             else:
@@ -2422,6 +2413,7 @@ class Period(_Period):
                 except KeyError:
                     raise ValueError(f"Invalid frequency or could not "
                                      f"infer: {reso}")
+                freq = to_offset(freq)
 
         elif PyDateTime_Check(value):
             dt = value
@@ -2440,7 +2432,7 @@ class Period(_Period):
             raise ValueError(msg)
 
         if ordinal is None:
-            base, _ = get_freq_code(freq)
+            base = freq_to_dtype_code(freq)
             ordinal = period_ordinal(dt.year, dt.month, dt.day,
                                      dt.hour, dt.minute, dt.second,
                                      dt.microsecond, 0, base)
@@ -2452,9 +2444,17 @@ cdef bint is_period_object(object obj):
     return isinstance(obj, _Period)
 
 
+cpdef int freq_to_dtype_code(BaseOffset freq) except? -1:
+    try:
+        return freq._period_dtype_code
+    except AttributeError as err:
+        raise ValueError(INVALID_FREQ_ERR_MSG) from err
+
+
 cdef int64_t _ordinal_from_fields(int year, int month, quarter, int day,
-                                  int hour, int minute, int second, freq):
-    base, mult = get_freq_code(freq)
+                                  int hour, int minute, int second,
+                                  BaseOffset freq):
+    base = freq_to_dtype_code(freq)
     if quarter is not None:
         year, month = quarter_to_myear(year, quarter, freq)
 
