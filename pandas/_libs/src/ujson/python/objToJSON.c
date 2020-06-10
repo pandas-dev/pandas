@@ -2136,7 +2136,7 @@ const char *Object_getBigNumStringValue(JSOBJ obj, JSONTypeContext *tc,
     memcpy(bytes, PyBytes_AS_STRING(str), &_outLen);
     memcpy(GET_TC(tc)->cStr, bytes, &_outLen);
 
-    Py_XDECREF(repr);
+    Py_DECREF(repr);
     Py_DECREF(str);
     free(bytes);
     
