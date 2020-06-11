@@ -518,7 +518,7 @@ def nanmean(
     values: np.ndarray,
     axis: Optional[int] = None,
     skipna: bool = True,
-    mask: np.ndarray = None,
+    mask: Optional[np.ndarray] = None,
 ) -> float:
     """
     Compute the mean of the element along an axis ignoring NaNs
@@ -562,7 +562,7 @@ def nanmean(
     count = _get_counts(values.shape, mask, axis, dtype=dtype_count)
     the_sum = _ensure_numeric(values.sum(axis, dtype=dtype_sum))
 
-    if not is_scalar(count):
+    if axis is not None and getattr(the_sum, "ndim", False):
         count = cast(np.ndarray, count)
         with np.errstate(all="ignore"):
             # suppress division by zero warnings
