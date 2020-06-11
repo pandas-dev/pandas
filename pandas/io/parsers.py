@@ -215,8 +215,6 @@ na_filter : bool, default True
     Detect missing value markers (empty strings and the value of na_values). In
     data without any NAs, passing na_filter=False can improve the performance
     of reading a large file.
-verbose : bool, default False
-    Indicate number of NA values placed in non-numeric columns.
 skip_blank_lines : bool, default True
     If True, skip over blank lines rather than interpreting as NaN values.
 parse_dates : bool or list of int or names or list of lists or dict, \
@@ -498,7 +496,6 @@ _parser_defaults = {
     "usecols": None,
     # 'iterator': False,
     "chunksize": None,
-    "verbose": False,
     "encoding": None,
     "squeeze": False,
     "compression": None,
@@ -554,7 +551,6 @@ def _make_parser_function(name, default_sep=","):
         na_values=None,
         keep_default_na=True,
         na_filter=True,
-        verbose=False,
         skip_blank_lines=True,
         # Datetime Handling
         parse_dates=False,
@@ -658,7 +654,6 @@ def _make_parser_function(name, default_sep=","):
             converters=converters,
             dtype=dtype,
             usecols=usecols,
-            verbose=verbose,
             encoding=encoding,
             squeeze=squeeze,
             memory_map=memory_map,
@@ -1710,7 +1705,7 @@ class ParserBase:
         return index
 
     def _convert_to_ndarrays(
-        self, dct, na_values, na_fvalues, verbose=False, converters=None, dtypes=None
+        self, dct, na_values, na_fvalues, converters=None, dtypes=None
     ):
         result = {}
         for c, values in dct.items():
@@ -1780,7 +1775,7 @@ class ParserBase:
                     cvals = self._cast_types(cvals, cast_type, c)
 
             result[c] = cvals
-            if verbose and na_count:
+            if na_count:
                 print(f"Filled {na_count} NA values in column {c!s}")
         return result
 
@@ -2303,7 +2298,6 @@ class PythonParser(ParserBase):
         if "has_index_names" in kwds:
             self.has_index_names = kwds["has_index_names"]
 
-        self.verbose = kwds["verbose"]
         self.converters = kwds["converters"]
 
         self.dtype = kwds["dtype"]
@@ -2588,7 +2582,6 @@ class PythonParser(ParserBase):
             data,
             clean_na_values,
             clean_na_fvalues,
-            self.verbose,
             clean_conv,
             clean_dtypes,
         )
