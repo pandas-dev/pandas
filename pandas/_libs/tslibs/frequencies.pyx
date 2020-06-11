@@ -1,18 +1,5 @@
-cimport numpy as cnp
-cnp.import_array()
 
-from pandas._libs.tslibs.util cimport is_integer_object
-
-from pandas._libs.tslibs.offsets cimport is_offset_object
-from pandas._libs.tslibs.offsets import (
-    INVALID_FREQ_ERR_MSG,
-    _dont_uppercase,
-    _lite_rule_alias,
-    base_and_stride,
-    opattern,
-)
-
-from .dtypes import FreqGroup, _period_code_map, _reverse_period_code_map
+from .dtypes import FreqGroup
 
 # ---------------------------------------------------------------------
 # Period codes
@@ -36,129 +23,20 @@ cdef dict attrname_to_abbrevs = _attrname_to_abbrevs
 
 # ----------------------------------------------------------------------
 
-def get_freq_group(freq) -> int:
+# TODO: this is now identical to the version in libperiod
+def get_freq_group(freq: int) -> int:
     """
     Return frequency code group of given frequency str or offset.
 
     Examples
     --------
-    >>> get_freq_group('W-MON')
+    >>> get_freq_group(4001)
     4000
 
-    >>> get_freq_group('W-FRI')
+    >>> get_freq_group(4006)
     4000
     """
-    if is_offset_object(freq):
-        freq = freq.rule_code
-
-    if isinstance(freq, str):
-        freq = attrname_to_abbrevs.get(freq, freq)
-        base, mult = get_freq_code(freq)
-        freq = base
-    elif isinstance(freq, int):
-        pass
-    else:
-        raise ValueError('input must be str, offset or int')
     return (freq // 1000) * 1000
-
-
-cpdef get_freq_code(freqstr):
-    """
-    Return freq str or tuple to freq code and stride (mult)
-
-    Parameters
-    ----------
-    freqstr : str or tuple
-
-    Returns
-    -------
-    return : tuple of base frequency code and stride (mult)
-
-    Raises
-    ------
-    TypeError : if passed a tuple witth incorrect types
-
-    Examples
-    --------
-    >>> get_freq_code('3D')
-    (6000, 3)
-
-    >>> get_freq_code('D')
-    (6000, 1)
-
-    >>> get_freq_code(('D', 3))
-    (6000, 3)
-    """
-    if is_offset_object(freqstr):
-        freqstr = (freqstr.rule_code, freqstr.n)
-
-    if isinstance(freqstr, tuple):
-        if is_integer_object(freqstr[0]) and is_integer_object(freqstr[1]):
-            # e.g., freqstr = (2000, 1)
-            return freqstr
-        elif is_integer_object(freqstr[0]):
-            # Note: passing freqstr[1] below will raise TypeError if that
-            #  is not a str
-            code = _period_str_to_code(freqstr[1])
-            stride = freqstr[0]
-            return code, stride
-        else:
-            # e.g., freqstr = ('T', 5)
-            code = _period_str_to_code(freqstr[0])
-            stride = freqstr[1]
-            return code, stride
-
-    if is_integer_object(freqstr):
-        return freqstr, 1
-
-    base, stride = base_and_stride(freqstr)
-    code = _period_str_to_code(base)
-
-    return code, stride
-
-
-cpdef _period_str_to_code(str freqstr):
-    freqstr = _lite_rule_alias.get(freqstr, freqstr)
-
-    if freqstr not in _dont_uppercase:
-        lower = freqstr.lower()
-        freqstr = _lite_rule_alias.get(lower, freqstr)
-
-    if freqstr not in _dont_uppercase:
-        freqstr = freqstr.upper()
-    try:
-        return _period_code_map[freqstr]
-    except KeyError:
-        raise ValueError(INVALID_FREQ_ERR_MSG.format(freqstr))
-
-
-cpdef str get_freq_str(base, mult=1):
-    """
-    Return the summary string associated with this offset code, possibly
-    adjusted by a multiplier.
-
-    Parameters
-    ----------
-    base : int (member of FreqGroup)
-
-    Returns
-    -------
-    freq_str : str
-
-    Examples
-    --------
-    >>> get_freq_str(1000)
-    'A-DEC'
-
-    >>> get_freq_str(2000, 2)
-    '2Q-DEC'
-
-    >>> get_freq_str("foo")
-    """
-    code = _reverse_period_code_map.get(base)
-    if mult == 1:
-        return code
-    return str(mult) + code
 
 
 cpdef int get_to_timestamp_base(int base):
