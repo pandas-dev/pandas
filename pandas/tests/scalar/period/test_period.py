@@ -6,9 +6,8 @@ import pytz
 
 from pandas._libs.tslibs import iNaT, period as libperiod
 from pandas._libs.tslibs.ccalendar import DAYS, MONTHS
-from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
 from pandas._libs.tslibs.parsing import DateParseError
-from pandas._libs.tslibs.period import IncompatibleFrequency
+from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG, IncompatibleFrequency
 from pandas._libs.tslibs.timezones import dateutil_gettz, maybe_get_tz
 from pandas.compat.numpy import np_datetime64_compat
 
@@ -647,6 +646,26 @@ class TestPeriodMethods:
         result = per.to_timestamp("B", how="E")
 
         expected = pd.Timestamp("1990-01-06") - pd.Timedelta(nanoseconds=1)
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "ts, expected",
+        [
+            ("1970-01-01 00:00:00", 0),
+            ("1970-01-01 00:00:00.000001", 1),
+            ("1970-01-01 00:00:00.00001", 10),
+            ("1970-01-01 00:00:00.499", 499000),
+            ("1999-12-31 23:59:59.999", 999000),
+            ("1999-12-31 23:59:59.999999", 999999),
+            ("2050-12-31 23:59:59.5", 500000),
+            ("2050-12-31 23:59:59.500001", 500001),
+            ("2050-12-31 23:59:59.123456", 123456),
+        ],
+    )
+    @pytest.mark.parametrize("freq", [None, "us", "ns"])
+    def test_to_timestamp_microsecond(self, ts, expected, freq):
+        # GH 24444
+        result = Period(ts).to_timestamp(freq=freq).microsecond
         assert result == expected
 
     # --------------------------------------------------------------
