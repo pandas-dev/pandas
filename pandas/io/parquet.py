@@ -101,7 +101,6 @@ class PyArrowImpl(BaseImpl):
         # write_to_dataset does not support a file-like object when
         # a directory path is used, so just pass the path string.
         if is_fsspec_url(path) and "filesystem" not in kwargs:
-            # TODO: use_legacy_dataset=False will require work, when it is available
             import_optional_dependency("fsspec")
             import fsspec.core
 

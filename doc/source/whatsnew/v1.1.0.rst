@@ -253,8 +253,13 @@ For reading and writing to filesystems other than local and reading from HTTP(S)
 the optional dependency ``fsspec`` will be used to dispatch operations (:issue:`33452`).
 This will give unchanged
 functionality for S3 and GCS storage, which were already supported, but also add
-support for several other storage implementations such as Azure Datalake and Blob,
+support for several other storage implementations such as `Azure Datalake and Blob`_,
 SSH, FTP, dropbox and github. For docs and capabilities, see the `fsspec docs`_.
+
+The existing capability to interface with S3 and GCS will be unaffected by this
+change, as ``fsspec`` will still bring in the same packages as before.
+
+.. _Azure Datalake and Blob: https://github.com/dask/adlfs
 
 .. _fsspec docs: https://filesystem-spec.readthedocs.io/en/latest/
 
