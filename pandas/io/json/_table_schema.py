@@ -194,7 +194,7 @@ def build_table_schema(
     index: bool = True,
     primary_key: Optional[bool] = None,
     version: bool = True,
-) -> Dict[str, Any]:
+) -> Dict[str, JSONSerializable]:
     """
     Create a Table schema from ``data``.
 
