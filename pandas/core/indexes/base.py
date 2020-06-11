@@ -4339,7 +4339,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def asof_locs(self, where, mask):
         """
-        Returns the locations (indices) of labels in the index.
+        Return the locations (indices) of labels in the index.
 
         As in the `asof` function, if the label (a particular entry in
         `where`) is not in the index, the latest index label up to the
