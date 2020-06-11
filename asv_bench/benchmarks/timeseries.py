@@ -394,32 +394,32 @@ class ToDatetimeCache:
 
 class DatetimeAccessor:
 
-    params = ["T", "S", "NS"]
-    param_anmes = ["frequency"]
+    params = [None, "US/Easter", "UTC", dateutil.tz.tzutc()]
+    param_names = "tz"
 
-    def setup(self, frequency):
+    def setup(self, tz):
         N = 100000
-        self.series = Series(date_range(start="1/1/2000", periods=N, freq=frequency))
+        self.series = Series(date_range(start="1/1/2000", periods=N, freq="T", tz=tz))
 
-    def time_dt_accessor(self):
+    def time_dt_accessor(self, tz):
         self.series.dt
 
-    def time_dt_accessor_normalize(self):
+    def time_dt_accessor_normalize(self, tz):
         self.series.dt.normalize()
 
-    def time_dt_accessor_month_name(self):
+    def time_dt_accessor_month_name(self, tz):
         self.series.dt.month_name()
 
-    def time_dt_accessor_day_name(self):
+    def time_dt_accessor_day_name(self, tz):
         self.series.dt.day_name()
 
-    def time_dt_accessor_time(self):
+    def time_dt_accessor_time(self, tz):
         self.series.dt.time
 
-    def time_dt_accessor_date(self):
+    def time_dt_accessor_date(self, tz):
         self.series.dt.date
 
-    def time_dt_accessor_year(self):
+    def time_dt_accessor_year(self, tz):
         self.series.dt.year
 
 
