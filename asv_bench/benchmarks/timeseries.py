@@ -394,7 +394,7 @@ class ToDatetimeCache:
 
 class DatetimeAccessor:
 
-    params = [None, "US/Easter", "UTC", dateutil.tz.tzutc()]
+    params = [None, "US/Eastern", "UTC", dateutil.tz.tzutc()]
     param_names = "tz"
 
     def setup(self, tz):
