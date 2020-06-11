@@ -22,7 +22,8 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+
+- Fixed building from source with Python 3.8 fetching the wrong version of NumPy (:issue:`34666`)
 -
 
 Contributors
