@@ -2937,9 +2937,8 @@ Keep all original rows and also all original values
         """
         Modify Series in place using values from passed Series.
 
-        Uses non-NA values from passed Series to make updates.
-        Aligns on index.
-
+        Uses non-NA values from passed Series to make updates. Aligns 
+        on index.
 
         Parameters
         ----------
@@ -4830,8 +4829,7 @@ Keep all original rows and also all original values
 
     def to_period(self, freq=None, copy=True) -> "Series":
         """
-        Convert Series from DatetimeIndex to PeriodIndex with desired
-        frequency (inferred from index if not passed).
+        Convert Series from DatetimeIndex to PeriodIndex. 
 
         Parameters
         ----------
