@@ -609,7 +609,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def astype(self, dtype, copy=True):
         """
-        Create an Index with values cast to dtypes. 
+        Create an Index with values cast to dtypes.
 
         The class of a new Index is determined by dtype. When conversion is
         impossible, a ValueError exception is raised.
@@ -2198,7 +2198,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def unique(self, level=None):
         """
-        Return unique values in the index. 
+        Return unique values in the index.
 
         Unique values are returned in order of appearance, this does NOT sort.
 
@@ -4549,7 +4549,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def get_value(self, series: "Series", key):
         """
-        Fast lookup of value from 1-dimensional ndarray. 
+        Fast lookup of value from 1-dimensional ndarray.
 
         Only use this if you know what you're doing.
 
