@@ -7,7 +7,6 @@ construction requirements, we need to do object instantiation in python
 shadows the python class, where we do any heavy lifting.
 """
 import warnings
-import re
 
 import numpy as np
 cimport numpy as cnp
@@ -1471,7 +1470,7 @@ default 'raise'
         """
         if self.nanosecond and '%f' in format:
             replacement = f'{self.microsecond * 1000 + self.nanosecond:09d}'
-            format = re.sub('%f', replacement, format)
+            format = format.replace('%f', replacement)
         return super().strftime(format)
 
 
