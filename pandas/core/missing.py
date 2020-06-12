@@ -685,6 +685,83 @@ def _interp_limit(
     Returns
     -------
     boolean ndarray
+
+    Notes
+    -----
+    There follows a description of the implementation used for creating a mask
+    for forward interpolation with a limit. To create a backwards fill, we first
+    reverse the array and use the same algorithm.
+    To fill in both directions we combine the masks from both forward and backwards
+    fills.
+
+    Say we start with the following array
+
+    array([nan, nan,  1.,  3., nan, nan, nan, 11., nan, nan])
+
+    create (or get from masked arrays) a boolean array of missing values
+
+    >>> arr = pd.core.missing.isna(arr)
+    >>> arr
+    array([ True,  True, False, False,  True,  True,  True, False,  True,
+            True])
+
+    we convert the boolean array to integer array for counting the streaks
+
+    >>> arr = arr.astype(int)
+    >>> arr
+    array([1, 1, 0, 0, 1, 1, 1, 0, 1, 1])
+
+    cumsum will get us off to a good start, we store this as we will need this later
+
+    >>> cumsum = arr.cumsum()
+    >>> cumsum
+    array([1, 2, 2, 2, 3, 4, 5, 5, 6, 7], dtype=int32)
+
+    multiplying this accumulation with the original array of ones to get non-zero
+    values where we originally had ones
+
+    >>> arr = cumsum * arr
+    >>> arr
+    array([1, 2, 0, 0, 3, 4, 5, 0, 6, 7])
+
+    the previous result is close to what we want, but we want to restart
+    each streak at one. start by using the diff method to substract the previous
+    value for each element
+
+    >>> arr = np.diff(arr, prepend=0)
+    >>> arr
+    array([ 1,  1, -2,  0,  3,  1,  1, -5,  6,  1])
+
+    a negative value now represents the end of a streak of missing values
+    so let's first select just the negative values
+
+    >>> arr = np.where(arr < 0, arr, 0)
+    >>> arr
+    array([ 0,  0, -2,  0,  0,  0,  0, -5,  0,  0])
+
+    we will need to propegate the negative values
+
+    >>> arr = np.minimum.accumulate(arr)
+    >>> arr
+    array([ 0,  0, -2, -2, -2, -2, -2, -5, -5, -5], dtype=int32)
+
+    and then subtract the excess accumlation
+
+    >>> arr = arr + cumsum
+    >>> arr
+    array([1, 2, 0, 0, 1, 2, 3, 0, 1, 2], dtype=int32)
+
+    we will now select only values within a set limit, say 2
+
+    >>> arr = np.where(arr > 2, 0, arr)
+    >>> arr
+    array([1, 2, 0, 0, 1, 2, 0, 0, 1, 2], dtype=int32)
+
+    and finally convert back into a boolean mask
+
+    >>> arr.astype(bool)
+    array([ True,  True, False, False,  True,  True, False, False,  True,
+            True])
     """
 
     def inner(arr, limit):
