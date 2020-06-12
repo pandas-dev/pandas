@@ -2,7 +2,7 @@
 Routines for filling missing data.
 """
 
-from typing import Any, List, Optional, Set, Union
+from typing import Any, Optional
 
 import numpy as np
 
@@ -225,41 +225,25 @@ def interpolate_1d(
     # default limit is unlimited GH #16282
     limit = algos._validate_limit(nobs=None, limit=limit)
 
-    # These are sets of index pointers to invalid values... i.e. {0, 1, etc...
-    all_nans = set(np.flatnonzero(invalid))
-    start_nans = set(range(find_valid_index(yvalues, "first")))
-    end_nans = set(range(1 + find_valid_index(yvalues, "last"), len(valid)))
-    mid_nans = all_nans - start_nans - end_nans
-
-    # Like the sets above, preserve_nans contains indices of invalid values,
-    # but in this case, it is the final set of indices that need to be
-    # preserved as NaN after the interpolation.
-
-    # For example if limit_direction='forward' then preserve_nans will
-    # contain indices of NaNs at the beginning of the series, and NaNs that
-    # are more than'limit' away from the prior non-NaN.
-
-    # set preserve_nans based on direction using _interp_limit
-    preserve_nans: Union[List, Set]
+    first = find_valid_index(yvalues, "first")
+    last = find_valid_index(yvalues, "last")
     if limit_direction == "forward":
-        preserve_nans = start_nans | set(_interp_limit(invalid, limit, 0))
+        nans_to_interpolate = _interp_limit(invalid, limit, 0, first, last)
     elif limit_direction == "backward":
-        preserve_nans = end_nans | set(_interp_limit(invalid, 0, limit))
+        nans_to_interpolate = _interp_limit(invalid, 0, limit, first, last)
     else:
         # both directions... just use _interp_limit
-        preserve_nans = set(_interp_limit(invalid, limit, limit))
+        nans_to_interpolate = _interp_limit(invalid, limit, limit, first, last)
 
     # if limit_area is set, add either mid or outside indices
     # to preserve_nans GH #16284
     if limit_area == "inside":
         # preserve NaNs on the outside
-        preserve_nans |= start_nans | end_nans
+        nans_to_interpolate[:first] = False
+        nans_to_interpolate[last + 1 :] = False
     elif limit_area == "outside":
         # preserve NaNs on the inside
-        preserve_nans |= mid_nans
-
-    # sort preserve_nans and covert to list
-    preserve_nans = sorted(preserve_nans)
+        nans_to_interpolate[first : last + 1] = False
 
     xvalues = getattr(xvalues, "values", xvalues)
     yvalues = getattr(yvalues, "values", yvalues)
@@ -277,10 +261,9 @@ def interpolate_1d(
             inds = xvalues
         # np.interp requires sorted X values, #21037
         indexer = np.argsort(inds[valid])
-        result[invalid] = np.interp(
-            inds[invalid], inds[valid][indexer], yvalues[valid][indexer]
+        result[nans_to_interpolate] = np.interp(
+            inds[nans_to_interpolate], inds[valid][indexer], yvalues[valid][indexer]
         )
-        result[preserve_nans] = np.nan
         return result
 
     sp_methods = [
@@ -305,17 +288,16 @@ def interpolate_1d(
         # hack for DatetimeIndex, #1646
         if issubclass(inds.dtype.type, np.datetime64):
             inds = inds.view(np.int64)
-        result[invalid] = _interpolate_scipy_wrapper(
+        result[nans_to_interpolate] = _interpolate_scipy_wrapper(
             inds[valid],
             yvalues[valid],
-            inds[invalid],
+            inds[nans_to_interpolate],
             method=method,
             fill_value=fill_value,
             bounds_error=bounds_error,
             order=order,
             **kwargs,
         )
-        result[preserve_nans] = np.nan
         return result
 
 
@@ -678,10 +660,15 @@ def clean_reindex_fill_method(method):
     return clean_fill_method(method, allow_nearest=True)
 
 
-def _interp_limit(invalid, fw_limit, bw_limit):
+def _interp_limit(
+    invalid: np.ndarray,
+    fw_limit: Optional[int],
+    bw_limit: Optional[int],
+    first: int,
+    last: int,
+) -> np.ndarray:
     """
-    Get indexers of values that won't be filled
-    because they exceed the limits.
+    Update mask to exclude elements not within limits
 
     Parameters
     ----------
@@ -690,71 +677,42 @@ def _interp_limit(invalid, fw_limit, bw_limit):
         forward limit to index
     bw_limit : int or None
         backward limit to index
+    first: int
+        first valid index
+    last: int
+        last valid index
 
     Returns
     -------
-    set of indexers
-
-    Notes
-    -----
-    This is equivalent to the more readable, but slower
-
-    .. code-block:: python
-
-        def _interp_limit(invalid, fw_limit, bw_limit):
-            for x in np.where(invalid)[0]:
-                if invalid[max(0, x - fw_limit):x + bw_limit + 1].all():
-                    yield x
+    boolean ndarray
     """
-    # handle forward first; the backward direction is the same except
-    # 1. operate on the reversed array
-    # 2. subtract the returned indices from N - 1
-    N = len(invalid)
-    f_idx = set()
-    b_idx = set()
 
-    def inner(invalid, limit):
-        limit = min(limit, N)
-        windowed = _rolling_window(invalid, limit + 1).all(1)
-        idx = set(np.where(windowed)[0] + limit) | set(
-            np.where((~invalid[: limit + 1]).cumsum() == 0)[0]
-        )
-        return idx
+    def inner(arr, limit):
+        if limit is None:
+            return arr.copy()
+        arr = arr.astype(int)
+        cumsum = arr.cumsum()
+        arr = cumsum * arr
+        arr = np.diff(arr, prepend=0)
+        arr = np.where(arr < 0, arr, 0)
+        arr = np.minimum.accumulate(arr)
+        arr = arr + cumsum
+        return np.where(arr > limit, 0, arr).astype(bool)
 
-    if fw_limit is not None:
+    if fw_limit == 0:
+        f_idx = invalid
+    else:
+        f_idx = inner(invalid, fw_limit)
+        f_idx[:first] = False
 
+    if bw_limit == 0:
+        # then we don't even need to care about backwards
+        # just use forwards
+        return f_idx
+    else:
+        b_idx = inner(invalid[::-1], bw_limit)[::-1]
+        b_idx[last + 1 :] = False
         if fw_limit == 0:
-            f_idx = set(np.where(invalid)[0])
-        else:
-            f_idx = inner(invalid, fw_limit)
+            return b_idx
 
-    if bw_limit is not None:
-
-        if bw_limit == 0:
-            # then we don't even need to care about backwards
-            # just use forwards
-            return f_idx
-        else:
-            b_idx = list(inner(invalid[::-1], bw_limit))
-            b_idx = set(N - 1 - np.asarray(b_idx))
-            if fw_limit == 0:
-                return b_idx
-
-    return f_idx & b_idx
-
-
-def _rolling_window(a, window):
-    """
-    [True, True, False, True, False], 2 ->
-
-    [
-        [True,  True],
-        [True, False],
-        [False, True],
-        [True, False],
-    ]
-    """
-    # https://stackoverflow.com/a/6811241
-    shape = a.shape[:-1] + (a.shape[-1] - window + 1, window)
-    strides = a.strides + (a.strides[-1],)
-    return np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)
+    return f_idx | b_idx
