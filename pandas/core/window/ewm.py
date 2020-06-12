@@ -3,6 +3,7 @@ from textwrap import dedent
 
 import numpy as np
 
+from pandas._libs.tslibs import Timedelta
 import pandas._libs.window.aggregations as window_aggregations
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
@@ -11,6 +12,7 @@ from pandas.core.dtypes.generic import ABCDataFrame
 
 from pandas.core.base import DataError
 import pandas.core.common as com
+from pandas.core.dtypes.common import is_datetime64_ns_dtype
 from pandas.core.window.common import _doc_template, _shared_docs, zsqrt
 from pandas.core.window.rolling import _flex_binary_moment, _Rolling
 
@@ -121,8 +123,8 @@ class EWM(_Rolling):
     axis : {0 or 'index', 1 or 'columns'}, default 0
         The axis to use. The value 0 identifies the rows, and 1
         identifies the columns.
-    times : str, 1-D array like, default None
-        Times corresponding to the observations. Must be monotonically increasing and of
+    times : str, np.ndarray, Series, default None
+        Times corresponding to the observations. Must be monotonically increasing and
         ``datetime64[ns]`` dtype. Only applicable for ``mean()``.
 
         If str, the name of the column in the DataFrame representing the times.
@@ -187,6 +189,17 @@ class EWM(_Rolling):
         self.ignore_na = ignore_na
         self.axis = axis
         self.on = None
+        if times is not None:
+            if isinstance(times, str):
+                times = self._selected_obj[times]
+            if not is_datetime64_ns_dtype(times):
+                raise ValueError("times must be datetime64[ns] dtype.")
+            if len(times) != len(obj):
+                raise ValueError("times must be the same length as the object.")
+            self.distances = np.asarray((times - times[0]) / Timedelta(halflife))
+        else:
+            # We assume that the "distance" between observations are equally spaced
+            self.distances = np.ones(len(obj))
 
     @property
     def _constructor(self):
