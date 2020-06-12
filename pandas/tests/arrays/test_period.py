@@ -37,6 +37,7 @@ def test_registered():
         ([pd.Period("2017", "D"), None], None, [17167, iNaT]),
         (pd.Series(pd.date_range("2017", periods=3)), None, [17167, 17168, 17169]),
         (pd.date_range("2017", periods=3), None, [17167, 17168, 17169]),
+        (pd.period_range("2017", periods=4, freq="Q"), None, [188, 189, 190, 191]),
     ],
 )
 def test_period_array_ok(data, freq, expected):
@@ -413,3 +414,21 @@ def test_arrow_table_roundtrip():
     result = table2.to_pandas()
     expected = pd.concat([df, df], ignore_index=True)
     tm.assert_frame_equal(result, expected)
+
+
+@pyarrow_skip
+def test_arrow_table_roundtrip_without_metadata():
+    import pyarrow as pa
+
+    arr = PeriodArray([1, 2, 3], freq="H")
+    arr[1] = pd.NaT
+    df = pd.DataFrame({"a": arr})
+
+    table = pa.table(df)
+    # remove the metadata
+    table = table.replace_schema_metadata()
+    assert table.schema.metadata is None
+
+    result = table.to_pandas()
+    assert isinstance(result["a"].dtype, PeriodDtype)
+    tm.assert_frame_equal(result, df)

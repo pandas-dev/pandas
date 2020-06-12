@@ -6,6 +6,8 @@ import functools
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.common import is_integer_dtype
+
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, concat
 import pandas._testing as tm
@@ -340,6 +342,30 @@ def test_groupby_agg_coercing_bools():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "op",
+    [
+        lambda x: x.sum(),
+        lambda x: x.cumsum(),
+        lambda x: x.transform("sum"),
+        lambda x: x.transform("cumsum"),
+        lambda x: x.agg("sum"),
+        lambda x: x.agg("cumsum"),
+    ],
+)
+def test_bool_agg_dtype(op):
+    # GH 7001
+    # Bool sum aggregations result in int
+    df = pd.DataFrame({"a": [1, 1], "b": [False, True]})
+    s = df.set_index("a")["b"]
+
+    result = op(df.groupby("a"))["b"].dtype
+    assert is_integer_dtype(result)
+
+    result = op(s.groupby("a")).dtype
+    assert is_integer_dtype(result)
+
+
 def test_order_aggregate_multiple_funcs():
     # GH 25692
     df = pd.DataFrame({"A": [1, 1, 2, 2], "B": [1, 2, 3, 4]})
@@ -484,6 +510,21 @@ class TestNamedAggregationSeries:
         result = gr.agg(a=lambda x: 0, b=lambda x: 1)
         expected = pd.DataFrame({"a": [0, 0], "b": [1, 1]})
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "inp",
+        [
+            pd.NamedAgg(column="anything", aggfunc="min"),
+            ("anything", "min"),
+            ["anything", "min"],
+        ],
+    )
+    def test_named_agg_nametuple(self, inp):
+        # GH34422
+        s = pd.Series([1, 1, 2, 2, 3, 3, 4, 5])
+        msg = f"func is expected but recieved {type(inp).__name__}"
+        with pytest.raises(TypeError, match=msg):
+            s.groupby(s.values).agg(a=inp)
 
 
 class TestNamedAggregationDataFrame:
@@ -914,3 +955,11 @@ class TestLambdaMangling:
             weight_min=pd.NamedAgg(column="weight", aggfunc=lambda x: np.min(x)),
         )
         tm.assert_frame_equal(result2, expected)
+
+
+def test_groupby_get_by_index():
+    # GH 33439
+    df = pd.DataFrame({"A": ["S", "W", "W"], "B": [1.0, 1.0, 2.0]})
+    res = df.groupby("A").agg({"B": lambda x: x.get(x.index[-1])})
+    expected = pd.DataFrame(dict(A=["S", "W"], B=[1.0, 2.0])).set_index("A")
+    pd.testing.assert_frame_equal(res, expected)

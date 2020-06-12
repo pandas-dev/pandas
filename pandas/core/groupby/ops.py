@@ -14,10 +14,11 @@ import numpy as np
 from pandas._libs import NaT, iNaT, lib
 import pandas._libs.groupby as libgroupby
 import pandas._libs.reduction as libreduction
-from pandas._typing import FrameOrSeries
+from pandas._typing import F, FrameOrSeries, Label
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
+from pandas.core.dtypes.cast import maybe_cast_result
 from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_int64,
@@ -53,6 +54,11 @@ from pandas.core.sorting import (
     get_group_index,
     get_group_index_sorter,
     get_indexer_dict,
+)
+from pandas.core.util.numba_ import (
+    NUMBA_FUNC_CACHE,
+    generate_numba_func,
+    split_for_numba,
 )
 
 
@@ -102,7 +108,7 @@ class BaseGrouper:
         return self._groupings
 
     @property
-    def shape(self):
+    def shape(self) -> Tuple[int, ...]:
         return tuple(ping.ngroups for ping in self.groupings)
 
     def __iter__(self):
@@ -148,7 +154,7 @@ class BaseGrouper:
             # provide "flattened" iterator for multi-group setting
             return get_flattened_iterator(comp_ids, ngroups, self.levels, self.codes)
 
-    def apply(self, f, data: FrameOrSeries, axis: int = 0):
+    def apply(self, f: F, data: FrameOrSeries, axis: int = 0):
         mutated = self.mutated
         splitter = self._get_splitter(data, axis=axis)
         group_keys = self._get_group_keys()
@@ -229,7 +235,7 @@ class BaseGrouper:
         return [ping.group_index for ping in self.groupings]
 
     @property
-    def names(self):
+    def names(self) -> List[Label]:
         return [ping.name for ping in self.groupings]
 
     def size(self) -> Series:
@@ -307,7 +313,7 @@ class BaseGrouper:
         )
         return result
 
-    def get_group_levels(self):
+    def get_group_levels(self) -> List[Index]:
         if not self.compressed and len(self.groupings) == 1:
             return [self.groupings[0].result_index]
 
@@ -356,7 +362,9 @@ class BaseGrouper:
         """
         return SelectionMixin._builtin_table.get(arg, arg)
 
-    def _get_cython_function(self, kind: str, how: str, values, is_numeric: bool):
+    def _get_cython_function(
+        self, kind: str, how: str, values: np.ndarray, is_numeric: bool
+    ):
 
         dtype_str = values.dtype.name
         ftype = self._cython_functions[kind][how]
@@ -398,8 +406,8 @@ class BaseGrouper:
 
         Parameters
         ----------
-        kind : sttr
-        how : srt
+        kind : str
+        how : str
         values : np.ndarray
         is_numeric : bool
 
@@ -425,7 +433,7 @@ class BaseGrouper:
         return func, values
 
     def _cython_operation(
-        self, kind: str, values, how: str, axis, min_count: int = -1, **kwargs
+        self, kind: str, values, how: str, axis: int, min_count: int = -1, **kwargs
     ) -> Tuple[np.ndarray, Optional[List[str]]]:
         """
         Returns the values of a cython operation as a Tuple of [data, names].
@@ -451,14 +459,14 @@ class BaseGrouper:
 
         # categoricals are only 1d, so we
         # are not setup for dim transforming
-        if is_categorical_dtype(values) or is_sparse(values):
+        if is_categorical_dtype(values.dtype) or is_sparse(values.dtype):
             raise NotImplementedError(f"{values.dtype} dtype not supported")
-        elif is_datetime64_any_dtype(values):
+        elif is_datetime64_any_dtype(values.dtype):
             if how in ["add", "prod", "cumsum", "cumprod"]:
                 raise NotImplementedError(
                     f"datetime64 type does not support {how} operations"
                 )
-        elif is_timedelta64_dtype(values):
+        elif is_timedelta64_dtype(values.dtype):
             if how in ["prod", "cumprod"]:
                 raise NotImplementedError(
                     f"timedelta64 type does not support {how} operations"
@@ -466,8 +474,8 @@ class BaseGrouper:
 
         if is_datetime64tz_dtype(values.dtype):
             # Cast to naive; we'll cast back at the end of the function
-            # TODO: possible need to reshape?  kludge can be avoided when
-            #  2D EA is allowed.
+            # TODO: possible need to reshape?
+            # TODO(EA2D):kludge can be avoided when 2D EA is allowed.
             values = values.view("M8[ns]")
 
         is_datetimelike = needs_i8_conversion(values.dtype)
@@ -477,7 +485,7 @@ class BaseGrouper:
             values = values.view("int64")
             is_numeric = True
         elif is_bool_dtype(values.dtype):
-            values = ensure_float64(values)
+            values = ensure_int_or_float(values)
         elif is_integer_dtype(values):
             # we use iNaT for the missing value on ints
             # so pre-convert to guard this condition
@@ -525,9 +533,7 @@ class BaseGrouper:
                 np.empty(out_shape, dtype=out_dtype), fill_value=np.nan
             )
             counts = np.zeros(self.ngroups, dtype=np.int64)
-            result = self._aggregate(
-                result, counts, values, codes, func, is_datetimelike, min_count
-            )
+            result = self._aggregate(result, counts, values, codes, func, min_count)
         elif kind == "transform":
             result = _maybe_fill(
                 np.empty_like(values, dtype=out_dtype), fill_value=np.nan
@@ -543,17 +549,6 @@ class BaseGrouper:
             if mask.any():
                 result = result.astype("float64")
                 result[mask] = np.nan
-        elif (
-            how == "add"
-            and is_integer_dtype(orig_values.dtype)
-            and is_extension_array_dtype(orig_values.dtype)
-        ):
-            # We need this to ensure that Series[Int64Dtype].resample().sum()
-            # remains int64 dtype.
-            # Two options for avoiding this special case
-            # 1. mask-aware ops and avoid casting to float with NaN above
-            # 2. specify the result dtype when calling this method
-            result = result.astype("int64")
 
         if kind == "aggregate" and self._filter_empty_groups and not counts.all():
             assert result.ndim != 2
@@ -577,6 +572,9 @@ class BaseGrouper:
         elif is_datetimelike and kind == "aggregate":
             result = result.astype(orig_values.dtype)
 
+        if is_extension_array_dtype(orig_values.dtype):
+            result = maybe_cast_result(result=result, obj=orig_values, how=how)
+
         return result, names
 
     def aggregate(
@@ -590,14 +588,7 @@ class BaseGrouper:
         return self._cython_operation("transform", values, how, axis, **kwargs)
 
     def _aggregate(
-        self,
-        result,
-        counts,
-        values,
-        comp_ids,
-        agg_func,
-        is_datetimelike: bool,
-        min_count: int = -1,
+        self, result, counts, values, comp_ids, agg_func, min_count: int = -1,
     ):
         if agg_func is libgroupby.group_nth:
             # different signature from the others
@@ -617,10 +608,22 @@ class BaseGrouper:
 
         return result
 
-    def agg_series(self, obj: Series, func):
+    def agg_series(
+        self,
+        obj: Series,
+        func: F,
+        *args,
+        engine: str = "cython",
+        engine_kwargs=None,
+        **kwargs,
+    ):
         # Caller is responsible for checking ngroups != 0
         assert self.ngroups != 0
 
+        if engine == "numba":
+            return self._aggregate_series_pure_python(
+                obj, func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+            )
         if len(obj) == 0:
             # SeriesGrouper would raise if we were to call _aggregate_series_fast
             return self._aggregate_series_pure_python(obj, func)
@@ -633,7 +636,7 @@ class BaseGrouper:
             return self._aggregate_series_pure_python(obj, func)
 
         elif obj.index._has_complex_internals:
-            # Pre-empt TypeError in _aggregate_series_fast
+            # Preempt TypeError in _aggregate_series_fast
             return self._aggregate_series_pure_python(obj, func)
 
         try:
@@ -646,7 +649,7 @@ class BaseGrouper:
                 raise
         return self._aggregate_series_pure_python(obj, func)
 
-    def _aggregate_series_fast(self, obj: Series, func):
+    def _aggregate_series_fast(self, obj: Series, func: F):
         # At this point we have already checked that
         #  - obj.index is not a MultiIndex
         #  - obj is backed by an ndarray, not ExtensionArray
@@ -665,7 +668,20 @@ class BaseGrouper:
         result, counts = grouper.get_result()
         return result, counts
 
-    def _aggregate_series_pure_python(self, obj: Series, func):
+    def _aggregate_series_pure_python(
+        self,
+        obj: Series,
+        func: F,
+        *args,
+        engine: str = "cython",
+        engine_kwargs=None,
+        **kwargs,
+    ):
+
+        if engine == "numba":
+            numba_func, cache_key = generate_numba_func(
+                func, engine_kwargs, kwargs, "groupby_agg"
+            )
 
         group_index, _, ngroups = self.group_info
 
@@ -675,12 +691,19 @@ class BaseGrouper:
         splitter = get_splitter(obj, group_index, ngroups, axis=0)
 
         for label, group in splitter:
-            res = func(group)
+            if engine == "numba":
+                values, index = split_for_numba(group)
+                res = numba_func(values, index, *args)
+                if cache_key not in NUMBA_FUNC_CACHE:
+                    NUMBA_FUNC_CACHE[cache_key] = numba_func
+            else:
+                res = func(group, *args, **kwargs)
+
             if result is None:
                 if isinstance(res, (Series, Index, np.ndarray)):
                     if len(res) == 1:
                         # e.g. test_agg_lambda_with_timezone lambda e: e.head(1)
-                        # FIXME: are we potentially losing import res.index info?
+                        # FIXME: are we potentially losing important res.index info?
                         res = res.item()
                     else:
                         raise ValueError("Function does not reduce")
@@ -691,7 +714,7 @@ class BaseGrouper:
 
         assert result is not None
         result = lib.maybe_convert_objects(result, try_float=0)
-        # TODO: try_cast back to EA?
+        # TODO: maybe_cast_to_extension_array?
 
         return result, counts
 
@@ -837,11 +860,11 @@ class BinGrouper(BaseGrouper):
         return self.binlabels
 
     @property
-    def levels(self):
+    def levels(self) -> List[Index]:
         return [self.binlabels]
 
     @property
-    def names(self):
+    def names(self) -> List[Label]:
         return [self.binlabels.name]
 
     @property
@@ -851,13 +874,21 @@ class BinGrouper(BaseGrouper):
             for lvl, name in zip(self.levels, self.names)
         ]
 
-    def agg_series(self, obj: Series, func):
+    def agg_series(
+        self,
+        obj: Series,
+        func: F,
+        *args,
+        engine: str = "cython",
+        engine_kwargs=None,
+        **kwargs,
+    ):
         # Caller is responsible for checking ngroups != 0
         assert self.ngroups != 0
         assert len(self.bins) > 0  # otherwise we'd get IndexError in get_result
 
         if is_extension_array_dtype(obj.dtype):
-            # pre-empt SeriesBinGrouper from raising TypeError
+            # preempt SeriesBinGrouper from raising TypeError
             return self._aggregate_series_pure_python(obj, func)
 
         dummy = obj[:0]
@@ -921,20 +952,25 @@ class DataSplitter:
 
 class SeriesSplitter(DataSplitter):
     def _chop(self, sdata: Series, slice_obj: slice) -> Series:
-        return sdata.iloc[slice_obj]
+        # fastpath equivalent to `sdata.iloc[slice_obj]`
+        mgr = sdata._mgr.get_slice(slice_obj)
+        return type(sdata)(mgr, name=sdata.name, fastpath=True)
 
 
 class FrameSplitter(DataSplitter):
-    def fast_apply(self, f, sdata: FrameOrSeries, names):
+    def fast_apply(self, f: F, sdata: FrameOrSeries, names):
         # must return keys::list, values::list, mutated::bool
         starts, ends = lib.generate_slices(self.slabels, self.ngroups)
         return libreduction.apply_frame_axis0(sdata, f, names, starts, ends)
 
     def _chop(self, sdata: DataFrame, slice_obj: slice) -> DataFrame:
-        if self.axis == 0:
-            return sdata.iloc[slice_obj]
-        else:
-            return sdata.iloc[:, slice_obj]
+        # Fastpath equivalent to:
+        # if self.axis == 0:
+        #     return sdata.iloc[slice_obj]
+        # else:
+        #     return sdata.iloc[:, slice_obj]
+        mgr = sdata._mgr.get_slice(slice_obj, axis=1 - self.axis)
+        return type(sdata)(mgr)
 
 
 def get_splitter(

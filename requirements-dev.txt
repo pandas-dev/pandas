@@ -2,13 +2,13 @@
 # See that file for comments about the need/usage of each dependency.
 
 numpy>=1.15
-python-dateutil>=2.6.1
+python-dateutil>=2.7.3
 pytz
 asv
-cython>=0.29.13
+cython==0.29.19
 black==19.10b0
 cpplint
-flake8
+flake8<3.8.0
 flake8-comprehensions>=3.1.0
 flake8-rst>=0.6.0,<=0.7.0
 isort
@@ -50,12 +50,12 @@ ipython>=7.11.1
 jinja2
 matplotlib>=2.2.2
 numexpr>=2.6.8
-scipy>=1.1
+scipy>=1.2
 numba>=0.46.0
 beautifulsoup4>=4.6.0
 html5lib
 lxml
-openpyxl<=3.0.1
+openpyxl
 xlrd
 xlsxwriter
 xlwt
@@ -64,11 +64,12 @@ fastparquet>=0.3.2
 pyarrow>=0.13.1
 python-snappy
 pyqt5>=5.9.2
-tables>=3.4.2
+tables>=3.4.3
 s3fs
 sqlalchemy
 xarray
+cftime
 pyreadstat
 tabulate>=0.8.3
-git+https://github.com/pandas-dev/pandas-sphinx-theme.git@master
+git+https://github.com/pandas-dev/pydata-sphinx-theme.git@master
 git+https://github.com/numpy/numpydoc

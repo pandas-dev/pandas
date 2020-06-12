@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series, Timedelta, Timestamp, date_range
+from pandas import DataFrame, Series, Timedelta, Timestamp, date_range, period_range
 import pandas._testing as tm
 from pandas.tests.indexing.common import Base
 
@@ -127,6 +127,46 @@ class TestScalar2:
 
         result = df.iat[2, 0]
         assert result == 2
+
+    def test_frame_at_with_duplicate_axes(self):
+        # GH#33041
+        arr = np.random.randn(6).reshape(3, 2)
+        df = DataFrame(arr, columns=["A", "A"])
+
+        result = df.at[0, "A"]
+        expected = df.iloc[0]
+
+        tm.assert_series_equal(result, expected)
+
+        result = df.T.at["A", 0]
+        tm.assert_series_equal(result, expected)
+
+        # setter
+        df.at[1, "A"] = 2
+        expected = Series([2.0, 2.0], index=["A", "A"], name=1)
+        tm.assert_series_equal(df.iloc[1], expected)
+
+    def test_frame_at_with_duplicate_axes_requires_scalar_lookup(self):
+        # GH#33041 check that falling back to loc doesn't allow non-scalar
+        #  args to slip in
+
+        arr = np.random.randn(6).reshape(3, 2)
+        df = DataFrame(arr, columns=["A", "A"])
+
+        msg = "Invalid call for scalar access"
+        with pytest.raises(ValueError, match=msg):
+            df.at[[1, 2]]
+        with pytest.raises(ValueError, match=msg):
+            df.at[1, ["A"]]
+        with pytest.raises(ValueError, match=msg):
+            df.at[:, "A"]
+
+        with pytest.raises(ValueError, match=msg):
+            df.at[[1, 2]] = 1
+        with pytest.raises(ValueError, match=msg):
+            df.at[1, ["A"]] = 1
+        with pytest.raises(ValueError, match=msg):
+            df.at[:, "A"] = 1
 
     def test_series_at_raises_type_error(self):
         # at should not fallback
@@ -302,3 +342,74 @@ def test_iat_dont_wrap_object_datetimelike():
         assert result is ser2[1]
         assert isinstance(result, timedelta)
         assert not isinstance(result, Timedelta)
+
+
+def test_iat_series_with_period_index():
+    # GH 4390, iat incorrectly indexing
+    index = period_range("1/1/2001", periods=10)
+    ser = Series(np.random.randn(10), index=index)
+    expected = ser[index[0]]
+    result = ser.iat[0]
+    assert expected == result
+
+
+def test_at_with_tuple_index_get():
+    # GH 26989
+    # DataFrame.at getter works with Index of tuples
+    df = DataFrame({"a": [1, 2]}, index=[(1, 2), (3, 4)])
+    assert df.index.nlevels == 1
+    assert df.at[(1, 2), "a"] == 1
+
+    # Series.at getter works with Index of tuples
+    series = df["a"]
+    assert series.index.nlevels == 1
+    assert series.at[(1, 2)] == 1
+
+
+def test_at_with_tuple_index_set():
+    # GH 26989
+    # DataFrame.at setter works with Index of tuples
+    df = DataFrame({"a": [1, 2]}, index=[(1, 2), (3, 4)])
+    assert df.index.nlevels == 1
+    df.at[(1, 2), "a"] = 2
+    assert df.at[(1, 2), "a"] == 2
+
+    # Series.at setter works with Index of tuples
+    series = df["a"]
+    assert series.index.nlevels == 1
+    series.at[1, 2] = 3
+    assert series.at[1, 2] == 3
+
+
+def test_multiindex_at_get():
+    # GH 26989
+    # DataFrame.at and DataFrame.loc getter works with MultiIndex
+    df = DataFrame({"a": [1, 2]}, index=[[1, 2], [3, 4]])
+    assert df.index.nlevels == 2
+    assert df.at[(1, 3), "a"] == 1
+    assert df.loc[(1, 3), "a"] == 1
+
+    # Series.at and Series.loc getter works with MultiIndex
+    series = df["a"]
+    assert series.index.nlevels == 2
+    assert series.at[1, 3] == 1
+    assert series.loc[1, 3] == 1
+
+
+def test_multiindex_at_set():
+    # GH 26989
+    # DataFrame.at and DataFrame.loc setter works with MultiIndex
+    df = DataFrame({"a": [1, 2]}, index=[[1, 2], [3, 4]])
+    assert df.index.nlevels == 2
+    df.at[(1, 3), "a"] = 3
+    assert df.at[(1, 3), "a"] == 3
+    df.loc[(1, 3), "a"] = 4
+    assert df.loc[(1, 3), "a"] == 4
+
+    # Series.at and Series.loc setter works with MultiIndex
+    series = df["a"]
+    assert series.index.nlevels == 2
+    series.at[1, 3] = 5
+    assert series.at[1, 3] == 5
+    series.loc[1, 3] = 6
+    assert series.loc[1, 3] == 6

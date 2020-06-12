@@ -28,6 +28,7 @@ The full license is in the LICENSE file, distributed with this software.
 void *new_file_source(char *fname, size_t buffer_size) {
     file_source *fs = (file_source *)malloc(sizeof(file_source));
     if (fs == NULL) {
+        PyErr_NoMemory();
         return NULL;
     }
 
@@ -41,17 +42,20 @@ void *new_file_source(char *fname, size_t buffer_size) {
         int required = MultiByteToWideChar(CP_UTF8, 0, fname, -1, NULL, 0);
         if (required == 0) {
             free(fs);
+            PyErr_SetFromWindowsErr(0);
             return NULL;
         }
         wname = (wchar_t*)malloc(required * sizeof(wchar_t));
         if (wname == NULL) {
             free(fs);
+            PyErr_NoMemory();
             return NULL;
         }
         if (MultiByteToWideChar(CP_UTF8, 0, fname, -1, wname, required) <
                                                                 required) {
             free(wname);
             free(fs);
+            PyErr_SetFromWindowsErr(0);
             return NULL;
         }
         fs->fd = _wopen(wname, O_RDONLY | O_BINARY);
@@ -62,6 +66,7 @@ void *new_file_source(char *fname, size_t buffer_size) {
 #endif
     if (fs->fd == -1) {
         free(fs);
+        PyErr_SetFromErrnoWithFilename(PyExc_OSError, fname);
         return NULL;
     }
 
@@ -71,6 +76,7 @@ void *new_file_source(char *fname, size_t buffer_size) {
     if (fs->buffer == NULL) {
         close(fs->fd);
         free(fs);
+        PyErr_NoMemory();
         return NULL;
     }
 
@@ -83,6 +89,10 @@ void *new_file_source(char *fname, size_t buffer_size) {
 void *new_rd_source(PyObject *obj) {
     rd_source *rds = (rd_source *)malloc(sizeof(rd_source));
 
+    if (rds == NULL) {
+        PyErr_NoMemory();
+        return NULL;
+    }
     /* hold on to this object */
     Py_INCREF(obj);
     rds->obj = obj;
@@ -220,20 +230,15 @@ void *new_mmap(char *fname) {
 
     mm = (memory_map *)malloc(sizeof(memory_map));
     if (mm == NULL) {
-        fprintf(stderr, "new_file_buffer: malloc() failed.\n");
-        return (NULL);
+        return NULL;
     }
     mm->fd = open(fname, O_RDONLY | O_BINARY);
     if (mm->fd == -1) {
-        fprintf(stderr, "new_file_buffer: open(%s) failed. errno =%d\n",
-          fname, errno);
         free(mm);
         return NULL;
     }
 
     if (fstat(mm->fd, &stat) == -1) {
-        fprintf(stderr, "new_file_buffer: fstat() failed. errno =%d\n",
-          errno);
         close(mm->fd);
         free(mm);
         return NULL;
@@ -242,8 +247,6 @@ void *new_mmap(char *fname) {
 
     mm->memmap = mmap(NULL, filesize, PROT_READ, MAP_SHARED, mm->fd, 0);
     if (mm->memmap == MAP_FAILED) {
-        /* XXX Eventually remove this print statement. */
-        fprintf(stderr, "new_file_buffer: mmap() failed.\n");
         close(mm->fd);
         free(mm);
         return NULL;

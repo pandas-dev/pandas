@@ -6,7 +6,7 @@ dependencies:
   - python=3.6.*
 
   # tools
-  - cython>=0.29.13
+  - cython>=0.29.16
   - pytest>=5.0.1
   - pytest-xdist>=1.21
   - hypothesis>=3.58.0
@@ -27,7 +27,7 @@ dependencies:
   - numexpr
   - numpy
   - openpyxl
-  - pandas-gbq=0.8.0
+  - pandas-gbq=0.12.0
   - psycopg2=2.6.2
   - pymysql=0.7.11
   - pytables

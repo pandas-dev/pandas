@@ -7,6 +7,7 @@ from typing import Type
 import numpy as np
 
 from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.common import pandas_dtype
 
 import pandas as pd
 from pandas.api.extensions import no_default, register_extension_dtype
@@ -79,7 +80,9 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
 
     _HANDLED_TYPES = (decimal.Decimal, numbers.Number, np.ndarray)
 
-    def to_numpy(self, dtype=None, copy=False, na_value=no_default, decimals=None):
+    def to_numpy(
+        self, dtype=None, copy: bool = False, na_value=no_default, decimals=None
+    ) -> np.ndarray:
         result = np.asarray(self, dtype=dtype)
         if decimals is not None:
             result = np.asarray([round(x, decimals) for x in result])
@@ -128,9 +131,11 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
         return type(self)(self._data.copy())
 
     def astype(self, dtype, copy=True):
+        dtype = pandas_dtype(dtype)
         if isinstance(dtype, type(self.dtype)):
             return type(self)(self._data, context=dtype.context)
-        return np.asarray(self, dtype=dtype)
+
+        return super().astype(dtype, copy=copy)
 
     def __setitem__(self, key, value):
         if pd.api.types.is_list_like(value):

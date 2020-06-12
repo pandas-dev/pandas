@@ -53,7 +53,7 @@ def test_series_bin_grouper():
 
 
 def assert_block_lengths(x):
-    assert len(x) == len(x._data.blocks[0].mgr_locs)
+    assert len(x) == len(x._mgr.blocks[0].mgr_locs)
     return 0
 
 
@@ -153,20 +153,20 @@ class TestReducer:
             )
 
         dummy = Series(0.0, index=np.arange(100))
-        result = libreduction.compute_reduction(
+        result, _ = libreduction.compute_reduction(
             arr, np.sum, dummy=dummy, labels=Index(np.arange(4))
         )
         expected = arr.sum(0)
         tm.assert_almost_equal(result, expected)
 
         dummy = Series(0.0, index=np.arange(4))
-        result = libreduction.compute_reduction(
+        result, _ = libreduction.compute_reduction(
             arr, np.sum, axis=1, dummy=dummy, labels=Index(np.arange(100))
         )
         expected = arr.sum(1)
         tm.assert_almost_equal(result, expected)
 
-        result = libreduction.compute_reduction(
+        result, _ = libreduction.compute_reduction(
             arr, np.sum, axis=1, dummy=dummy, labels=Index(np.arange(100))
         )
         tm.assert_almost_equal(result, expected)

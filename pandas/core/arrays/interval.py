@@ -27,9 +27,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
-    ABCExtensionArray,
     ABCIndexClass,
-    ABCInterval,
     ABCIntervalIndex,
     ABCPeriodIndex,
     ABCSeries,
@@ -150,10 +148,17 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     can_hold_na = True
     _na_value = _fill_value = np.nan
 
-    def __new__(cls, data, closed=None, dtype=None, copy=False, verify_integrity=True):
+    def __new__(
+        cls,
+        data,
+        closed=None,
+        dtype=None,
+        copy: bool = False,
+        verify_integrity: bool = True,
+    ):
 
-        if isinstance(data, ABCSeries) and is_interval_dtype(data):
-            data = data.values
+        if isinstance(data, ABCSeries) and is_interval_dtype(data.dtype):
+            data = data._values
 
         if isinstance(data, (cls, ABCIntervalIndex)):
             left = data.left
@@ -529,7 +534,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             value_left, value_right = value, value
 
         # scalar interval
-        elif is_interval_dtype(value) or isinstance(value, ABCInterval):
+        elif is_interval_dtype(value) or isinstance(value, Interval):
             self._check_closed_matches(value, name="value")
             value_left, value_right = value.left, value.right
 
@@ -543,19 +548,19 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 msg = f"'value' should be an interval type, got {type(value)} instead."
                 raise TypeError(msg) from err
 
+        if needs_float_conversion:
+            raise ValueError("Cannot set float NaN to integer-backed IntervalArray")
+
         key = check_array_indexer(self, key)
+
         # Need to ensure that left and right are updated atomically, so we're
         # forced to copy, update the copy, and swap in the new values.
         left = self.left.copy(deep=True)
-        if needs_float_conversion:
-            left = left.astype("float")
-        left.values[key] = value_left
+        left._values[key] = value_left
         self._left = left
 
         right = self.right.copy(deep=True)
-        if needs_float_conversion:
-            right = right.astype("float")
-        right.values[key] = value_right
+        right._values[key] = value_right
         self._right = right
 
     def __eq__(self, other):
@@ -570,8 +575,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         # determine the dtype of the elements we want to compare
         if isinstance(other, Interval):
-            other_dtype = "interval"
-        elif not is_categorical_dtype(other):
+            other_dtype = pandas_dtype("interval")
+        elif not is_categorical_dtype(other.dtype):
             other_dtype = other.dtype
         else:
             # for categorical defer to categories for dtype
@@ -607,9 +612,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         return result
 
-    def __ne__(self, other):
-        return ~self.__eq__(other)
-
     def fillna(self, value=None, method=None, limit=None):
         """
         Fill NA/NaN values using the specified method.
@@ -642,14 +644,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if limit is not None:
             raise TypeError("limit is not supported for IntervalArray.")
 
-        if not isinstance(value, ABCInterval):
+        if not isinstance(value, Interval):
             msg = (
                 "'IntervalArray.fillna' only supports filling with a "
                 f"scalar 'pandas.Interval'. Got a '{type(value).__name__}' instead."
             )
             raise TypeError(msg)
 
-        value = getattr(value, "_values", value)
         self._check_closed_matches(value, name="value")
 
         left = self.left.fillna(value=value.left)
@@ -679,7 +680,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         array : ExtensionArray or ndarray
             ExtensionArray or NumPy ndarray with 'dtype' for its dtype.
         """
-        dtype = pandas_dtype(dtype)
+        from pandas.core.arrays.string_ import StringDtype
+
+        if dtype is not None:
+            dtype = pandas_dtype(dtype)
+
         if is_interval_dtype(dtype):
             if dtype == self.dtype:
                 return self.copy() if copy else self
@@ -696,6 +701,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             return self._shallow_copy(new_left, new_right)
         elif is_categorical_dtype(dtype):
             return Categorical(np.asarray(self))
+        elif isinstance(dtype, StringDtype):
+            return dtype.construct_array_type()._from_sequence(self, copy=False)
+
         # TODO: This try/except will be repeated.
         try:
             return np.asarray(self).astype(dtype, copy=copy)
@@ -764,7 +772,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         # Avoid materializing self.values
         return self.left.size
 
-    def shift(self, periods: int = 1, fill_value: object = None) -> ABCExtensionArray:
+    def shift(self, periods: int = 1, fill_value: object = None) -> "IntervalArray":
         if not len(self) or periods == 0:
             return self.copy()
 
@@ -1046,6 +1054,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         points) and is either monotonic increasing or monotonic decreasing,
         else False.
         """
+
     # https://github.com/python/mypy/issues/1362
     # Mypy does not support decorated properties
     @property  # type: ignore

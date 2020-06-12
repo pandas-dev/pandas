@@ -139,7 +139,7 @@ and comments contain guidance for properly implementing the interface.
 
 .. _extending.extension.operator:
 
-:class:`~pandas.api.extensions.ExtensionArray` Operator Support
+:class:`~pandas.api.extensions.ExtensionArray` operator support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. versionadded:: 0.24.0
@@ -210,7 +210,7 @@ will
 
 .. _extending.extension.ufunc:
 
-NumPy Universal Functions
+NumPy universal functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :class:`Series` implements ``__array_ufunc__``. As part of the implementation,
@@ -219,7 +219,7 @@ and re-boxes it if necessary.
 
 If applicable, we highly recommend that you implement ``__array_ufunc__`` in your
 extension array to avoid coercion to an ndarray. See
-`the numpy documentation <https://docs.scipy.org/doc/numpy/reference/generated/numpy.lib.mixins.NDArrayOperatorsMixin.html>`__
+`the numpy documentation <https://numpy.org/doc/stable/reference/generated/numpy.lib.mixins.NDArrayOperatorsMixin.html>`__
 for an example.
 
 As part of your implementation, we require that you defer to pandas when a pandas

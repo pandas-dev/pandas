@@ -9,10 +9,8 @@ cimport numpy as cnp
 from numpy cimport (ndarray,
                     int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
                     uint32_t, uint64_t, float32_t, float64_t, complex64_t, complex128_t)
+from numpy.math cimport NAN
 cnp.import_array()
-
-cdef extern from "numpy/npy_math.h":
-    float64_t NAN "NPY_NAN"
 
 from pandas._libs.util cimport numeric, get_nat
 
@@ -779,7 +777,13 @@ def group_quantile(ndarray[float64_t] out,
                 non_na_counts[lab] += 1
 
     # Get an index of values sorted by labels and then values
-    order = (values, labels)
+    if labels.any():
+        # Put '-1' (NaN) labels as the last group so it does not interfere
+        # with the calculations.
+        labels_for_lexsort = np.where(labels == -1, labels.max() + 1, labels)
+    else:
+        labels_for_lexsort = labels
+    order = (values, labels_for_lexsort)
     sort_arr = np.lexsort(order).astype(np.int64, copy=False)
 
     with nogil:
@@ -869,7 +873,9 @@ def group_last(rank_t[:, :] out,
 
     assert min_count == -1, "'min_count' only used in add and prod"
 
-    if not len(values) == len(labels):
+    # TODO(cython 3.0):
+    # Instead of `labels.shape[0]` use `len(labels)`
+    if not len(values) == labels.shape[0]:
         raise AssertionError("len(index) != len(labels)")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
@@ -891,7 +897,9 @@ def group_last(rank_t[:, :] out,
             for j in range(K):
                 val = values[i, j]
 
-                if not checknull(val):
+                # None should not be treated like other NA-like
+                # so that it won't be converted to nan
+                if not checknull(val) or val is None:
                     # NB: use _treat_as_na here once
                     #  conditional-nogil is available.
                     nobs[lab, j] += 1
@@ -960,7 +968,9 @@ def group_nth(rank_t[:, :] out,
 
     assert min_count == -1, "'min_count' only used in add and prod"
 
-    if not len(values) == len(labels):
+    # TODO(cython 3.0):
+    # Instead of `labels.shape[0]` use `len(labels)`
+    if not len(values) == labels.shape[0]:
         raise AssertionError("len(index) != len(labels)")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
@@ -982,7 +992,9 @@ def group_nth(rank_t[:, :] out,
             for j in range(K):
                 val = values[i, j]
 
-                if not checknull(val):
+                # None should not be treated like other NA-like
+                # so that it won't be converted to nan
+                if not checknull(val) or val is None:
                     # NB: use _treat_as_na here once
                     #  conditional-nogil is available.
                     nobs[lab, j] += 1
@@ -1254,7 +1266,9 @@ def group_max(groupby_t[:, :] out,
 
     assert min_count == -1, "'min_count' only used in add and prod"
 
-    if not len(values) == len(labels):
+    # TODO(cython 3.0):
+    # Instead of `labels.shape[0]` use `len(labels)`
+    if not len(values) == labels.shape[0]:
         raise AssertionError("len(index) != len(labels)")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
@@ -1327,7 +1341,9 @@ def group_min(groupby_t[:, :] out,
 
     assert min_count == -1, "'min_count' only used in add and prod"
 
-    if not len(values) == len(labels):
+    # TODO(cython 3.0):
+    # Instead of `labels.shape[0]` use `len(labels)`
+    if not len(values) == labels.shape[0]:
         raise AssertionError("len(index) != len(labels)")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)

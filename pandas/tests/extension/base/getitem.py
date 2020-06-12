@@ -40,6 +40,34 @@ class BaseGetitemTests(BaseExtensionTests):
         result = df.iloc[:4, 0]
         self.assert_series_equal(result, expected)
 
+        # GH#32959 slice columns with step
+        result = df.iloc[:, ::2]
+        self.assert_frame_equal(result, df[["A"]])
+        result = df[["B", "A"]].iloc[:, ::2]
+        self.assert_frame_equal(result, df[["B"]])
+
+    def test_iloc_frame_single_block(self, data):
+        # GH#32959 null slice along index, slice along columns with single-block
+        df = pd.DataFrame({"A": data})
+
+        result = df.iloc[:, :]
+        self.assert_frame_equal(result, df)
+
+        result = df.iloc[:, :1]
+        self.assert_frame_equal(result, df)
+
+        result = df.iloc[:, :2]
+        self.assert_frame_equal(result, df)
+
+        result = df.iloc[:, ::2]
+        self.assert_frame_equal(result, df)
+
+        result = df.iloc[:, 1:2]
+        self.assert_frame_equal(result, df.iloc[:, :0])
+
+        result = df.iloc[:, -1:]
+        self.assert_frame_equal(result, df)
+
     def test_loc_series(self, data):
         ser = pd.Series(data)
         result = ser.loc[:3]
@@ -202,7 +230,8 @@ class BaseGetitemTests(BaseExtensionTests):
         with pytest.raises(ValueError, match=msg):
             data[idx]
 
-        # TODO this raises KeyError about labels not found (it tries label-based)
+        # FIXME: dont leave commented-out
+        # TODO: this raises KeyError about labels not found (it tries label-based)
         # import pandas._testing as tm
         # s = pd.Series(data, index=[tm.rands(4) for _ in range(len(data))])
         # with pytest.raises(ValueError, match=msg):
@@ -356,7 +385,7 @@ class BaseGetitemTests(BaseExtensionTests):
         # see GH-27785 take_nd with indexer of len 1 resulting in wrong ndim
         df = pd.DataFrame({"A": data})
         res = df.loc[[0], "A"]
-        assert res._data._block.ndim == 1
+        assert res._mgr._block.ndim == 1
 
     def test_item(self, data):
         # https://github.com/pandas-dev/pandas/pull/30175
@@ -370,3 +399,31 @@ class BaseGetitemTests(BaseExtensionTests):
 
         with pytest.raises(ValueError, match=msg):
             s.item()
+
+    def test_boolean_mask_frame_fill_value(self, data):
+        # https://github.com/pandas-dev/pandas/issues/27781
+        df = pd.DataFrame({"A": data})
+
+        mask = np.random.choice([True, False], df.shape[0])
+        result = pd.isna(df.iloc[mask]["A"])
+        expected = pd.isna(df["A"].iloc[mask])
+        self.assert_series_equal(result, expected)
+
+        mask = pd.Series(mask, index=df.index)
+        result = pd.isna(df.loc[mask]["A"])
+        expected = pd.isna(df["A"].loc[mask])
+        self.assert_series_equal(result, expected)
+
+    def test_fancy_index_frame_fill_value(self, data):
+        # https://github.com/pandas-dev/pandas/issues/29563
+        df = pd.DataFrame({"A": data})
+
+        mask = np.random.choice(df.shape[0], df.shape[0])
+        result = pd.isna(df.iloc[mask]["A"])
+        expected = pd.isna(df["A"].iloc[mask])
+        self.assert_series_equal(result, expected)
+
+        mask = pd.Series(mask, index=df.index)
+        result = pd.isna(df.loc[mask]["A"])
+        expected = pd.isna(df["A"].loc[mask])
+        self.assert_series_equal(result, expected)

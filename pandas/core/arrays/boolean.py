@@ -9,8 +9,6 @@ from pandas._typing import ArrayLike
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 
-from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_extension_array_dtype,
@@ -19,24 +17,22 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_numeric_dtype,
-    is_scalar,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import isna
 
-from pandas.core import nanops, ops
-from pandas.core.indexers import check_array_indexer
+from pandas.core import ops
 
-from .masked import BaseMaskedArray
+from .masked import BaseMaskedArray, BaseMaskedDtype
 
 if TYPE_CHECKING:
     import pyarrow  # noqa: F401
 
 
 @register_extension_dtype
-class BooleanDtype(ExtensionDtype):
+class BooleanDtype(BaseMaskedDtype):
     """
     Extension dtype for boolean data.
 
@@ -64,23 +60,16 @@ class BooleanDtype(ExtensionDtype):
     name = "boolean"
 
     @property
-    def na_value(self) -> libmissing.NAType:
-        """
-        BooleanDtype uses :attr:`pandas.NA` as the missing NA value.
-
-        .. warning::
-
-           `na_value` may change in a future release.
-        """
-        return libmissing.NA
-
-    @property
     def type(self) -> Type[np.bool_]:
         return np.bool_
 
     @property
     def kind(self) -> str:
         return "b"
+
+    @property
+    def numpy_dtype(self) -> np.dtype:
+        return np.dtype("bool")
 
     @classmethod
     def construct_array_type(cls) -> Type["BooleanArray"]:
@@ -98,6 +87,10 @@ class BooleanDtype(ExtensionDtype):
 
     @property
     def _is_boolean(self) -> bool:
+        return True
+
+    @property
+    def _is_numeric(self) -> bool:
         return True
 
     def __from_arrow__(
@@ -270,18 +263,8 @@ class BooleanArray(BaseMaskedArray):
         if not (isinstance(values, np.ndarray) and values.dtype == np.bool_):
             raise TypeError(
                 "values should be boolean numpy array. Use "
-                "the 'array' function instead"
+                "the 'pd.array' function instead"
             )
-        if not (isinstance(mask, np.ndarray) and mask.dtype == np.bool_):
-            raise TypeError(
-                "mask should be boolean numpy array. Use "
-                "the 'array' function instead"
-            )
-        if not values.ndim == 1:
-            raise ValueError("values must be a 1D array")
-        if not mask.ndim == 1:
-            raise ValueError("mask must be a 1D array")
-
         self._dtype = BooleanDtype()
         super().__init__(values, mask, copy=copy)
 
@@ -312,15 +295,6 @@ class BooleanArray(BaseMaskedArray):
 
         scalars = [map_string(x) for x in strings]
         return cls._from_sequence(scalars, dtype, copy)
-
-    def _values_for_factorize(self) -> Tuple[np.ndarray, int]:
-        data = self._data.astype("int8")
-        data[self._mask] = -1
-        return data, -1
-
-    @classmethod
-    def _from_factorized(cls, values, original: "BooleanArray") -> "BooleanArray":
-        return cls._from_sequence(values, dtype=original.dtype)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number, bool, np.bool_)
 
@@ -369,19 +343,8 @@ class BooleanArray(BaseMaskedArray):
         else:
             return reconstruct(result)
 
-    def __setitem__(self, key, value) -> None:
-        _is_scalar = is_scalar(value)
-        if _is_scalar:
-            value = [value]
-        value, mask = coerce_to_array(value)
-
-        if _is_scalar:
-            value = value[0]
-            mask = mask[0]
-
-        key = check_array_indexer(self, key)
-        self._data[key] = value
-        self._mask[key] = mask
+    def _coerce_to_array(self, value) -> Tuple[np.ndarray, np.ndarray]:
+        return coerce_to_array(value)
 
     def astype(self, dtype, copy: bool = True) -> ArrayLike:
         """
@@ -407,11 +370,15 @@ class BooleanArray(BaseMaskedArray):
             if incompatible type with an BooleanDtype, equivalent of same_kind
             casting
         """
+        from pandas.core.arrays.string_ import StringDtype
+
         dtype = pandas_dtype(dtype)
 
         if isinstance(dtype, BooleanDtype):
             values, mask = coerce_to_array(self, copy=copy)
             return BooleanArray(values, mask, copy=False)
+        elif isinstance(dtype, StringDtype):
+            return dtype.construct_array_type()._from_sequence(self, copy=False)
 
         if is_bool_dtype(dtype):
             # astype_nansafe converts np.nan to True
@@ -435,8 +402,7 @@ class BooleanArray(BaseMaskedArray):
         if is_float_dtype(dtype):
             na_value = np.nan
         # coerce
-        data = self.to_numpy(na_value=na_value)
-        return astype_nansafe(data, dtype, copy=False)
+        return self.to_numpy(dtype=dtype, na_value=na_value, copy=False)
 
     def _values_for_argsort(self) -> np.ndarray:
         """
@@ -519,7 +485,7 @@ class BooleanArray(BaseMaskedArray):
         if skipna:
             return result
         else:
-            if result or len(self) == 0:
+            if result or len(self) == 0 or not self._mask.any():
                 return result
             else:
                 return self.dtype.na_value
@@ -586,7 +552,7 @@ class BooleanArray(BaseMaskedArray):
         if skipna:
             return result
         else:
-            if not result or len(self) == 0:
+            if not result or len(self) == 0 or not self._mask.any():
                 return result
             else:
                 return self.dtype.na_value
@@ -692,29 +658,7 @@ class BooleanArray(BaseMaskedArray):
         if name in {"any", "all"}:
             return getattr(self, name)(skipna=skipna, **kwargs)
 
-        data = self._data
-        mask = self._mask
-
-        # coerce to a nan-aware float if needed
-        if self._hasna:
-            data = self.to_numpy("float64", na_value=np.nan)
-
-        op = getattr(nanops, "nan" + name)
-        result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
-
-        if np.isnan(result):
-            return libmissing.NA
-
-        # if we have numeric op that would result in an int, coerce to int if possible
-        if name in ["sum", "prod"] and notna(result):
-            int_result = np.int64(result)
-            if int_result == result:
-                result = int_result
-
-        elif name in ["min", "max"] and notna(result):
-            result = np.bool_(result)
-
-        return result
+        return super()._reduce(name, skipna, **kwargs)
 
     def _maybe_mask_result(self, result, mask, other, op_name: str):
         """

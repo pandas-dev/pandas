@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
+from cpython.datetime cimport datetime, tzinfo
 
-from cpython.datetime cimport datetime
-
-from numpy cimport int64_t, int32_t
+from numpy cimport int64_t, int32_t, ndarray
 
 from pandas._libs.tslibs.np_datetime cimport npy_datetimestruct
 
@@ -25,3 +23,6 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
 cdef int64_t get_datetime64_nanos(object val) except? -1
 
 cpdef datetime localize_pydatetime(datetime dt, object tz)
+cdef int64_t cast_from_unit(object ts, str unit) except? -1
+
+cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo tz)

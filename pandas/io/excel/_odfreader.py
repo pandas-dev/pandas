@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, cast
 
 from pandas._typing import FilePathOrBuffer, Scalar
 from pandas.compat._optional import import_optional_dependency
@@ -171,7 +171,7 @@ class _ODFReader(_BaseExcelReader):
             cell_value = cell.attributes.get((OFFICENS, "value"))
             return float(cell_value)
         elif cell_type == "string":
-            return str(cell)
+            return self._get_cell_string_value(cell)
         elif cell_type == "currency":
             cell_value = cell.attributes.get((OFFICENS, "value"))
             return float(cell_value)
@@ -179,6 +179,33 @@ class _ODFReader(_BaseExcelReader):
             cell_value = cell.attributes.get((OFFICENS, "date-value"))
             return pd.to_datetime(cell_value)
         elif cell_type == "time":
-            return pd.to_datetime(str(cell)).time()
+            result = pd.to_datetime(str(cell))
+            result = cast(pd.Timestamp, result)
+            return result.time()
         else:
             raise ValueError(f"Unrecognized type {cell_type}")
+
+    def _get_cell_string_value(self, cell) -> str:
+        """
+        Find and decode OpenDocument text:s tags that represent
+        a run length encoded sequence of space characters.
+        """
+        from odf.element import Text, Element
+        from odf.text import S, P
+        from odf.namespaces import TEXTNS
+
+        text_p = P().qname
+        text_s = S().qname
+
+        p = cell.childNodes[0]
+
+        value = []
+        if p.qname == text_p:
+            for k, fragment in enumerate(p.childNodes):
+                if isinstance(fragment, Text):
+                    value.append(fragment.data)
+                elif isinstance(fragment, Element):
+                    if fragment.qname == text_s:
+                        spaces = int(fragment.attributes.get((TEXTNS, "c"), 1))
+                    value.append(" " * spaces)
+        return "".join(value)

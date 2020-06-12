@@ -1,5 +1,4 @@
 from copy import copy
-from distutils.version import LooseVersion
 
 from cython import Py_ssize_t
 from cpython.ref cimport Py_INCREF
@@ -15,7 +14,7 @@ from numpy cimport (ndarray,
                     flatiter)
 cnp.import_array()
 
-cimport pandas._libs.util as util
+from pandas._libs cimport util
 from pandas._libs.lib import maybe_convert_objects, is_scalar
 
 
@@ -37,7 +36,12 @@ cdef class Reducer:
         object dummy, f, labels, typ, ityp, index
         ndarray arr
 
-    def __init__(self, ndarray arr, object f, axis=1, dummy=None, labels=None):
+    def __init__(
+        self, ndarray arr, object f, int axis=1, object dummy=None, object labels=None
+    ):
+        cdef:
+            Py_ssize_t n, k
+
         n, k = (<object>arr).shape
 
         if axis == 0:
@@ -61,7 +65,7 @@ cdef class Reducer:
         self.dummy, self.typ, self.index, self.ityp = self._check_dummy(
             dummy=dummy)
 
-    cdef _check_dummy(self, dummy=None):
+    cdef _check_dummy(self, object dummy=None):
         cdef:
             object index = None, typ = None, ityp = None
 
@@ -103,6 +107,7 @@ cdef class Reducer:
 
         result = np.empty(self.nresults, dtype='O')
         it = <flatiter>PyArray_IterNew(result)
+        reduction_success = True
 
         try:
             for i in range(self.nresults):
@@ -123,32 +128,46 @@ cdef class Reducer:
                     name = labels[i]
 
                     object.__setattr__(
-                        cached_typ._data._block, 'values', chunk)
+                        cached_typ._mgr._block, 'values', chunk)
                     object.__setattr__(cached_typ, 'name', name)
                     res = self.f(cached_typ)
                 else:
                     res = self.f(chunk)
 
                 # TODO: reason for not squeezing here?
-                res = _extract_result(res, squeeze=False)
+                extracted_res = _extract_result(res, squeeze=False)
                 if i == 0:
                     # On the first pass, we check the output shape to see
                     #  if this looks like a reduction.
-                    _check_result_array(res, len(self.dummy))
+                    #  If it does not, return the computed value to be used by the
+                    #  pure python implementation,
+                    #  so the function won't be called twice on the same object,
+                    #  and side effects would occur twice
+                    try:
+                        _check_result_array(extracted_res, len(self.dummy))
+                    except ValueError as err:
+                        if "Function does not reduce" not in str(err):
+                            # catch only the specific exception
+                            raise
 
-                PyArray_SETITEM(result, PyArray_ITER_DATA(it), res)
+                        reduction_success = False
+                        PyArray_SETITEM(result, PyArray_ITER_DATA(it), copy(res))
+                        break
+
+                PyArray_SETITEM(result, PyArray_ITER_DATA(it), extracted_res)
                 chunk.data = chunk.data + self.increment
                 PyArray_ITER_NEXT(it)
+
         finally:
             # so we don't free the wrong memory
             chunk.data = dummy_buf
 
         result = maybe_convert_objects(result)
-        return result
+        return result, reduction_success
 
 
 cdef class _BaseGrouper:
-    cdef _check_dummy(self, dummy):
+    cdef _check_dummy(self, object dummy):
         # both values and index must be an ndarray!
 
         values = dummy.values
@@ -176,8 +195,8 @@ cdef class _BaseGrouper:
             # to a 1-d ndarray like datetime / timedelta / period.
             object.__setattr__(cached_ityp, '_index_data', islider.buf)
             cached_ityp._engine.clear_mapping()
-            object.__setattr__(cached_typ._data._block, 'values', vslider.buf)
-            object.__setattr__(cached_typ._data._block, 'mgr_locs',
+            object.__setattr__(cached_typ._mgr._block, 'values', vslider.buf)
+            object.__setattr__(cached_typ._mgr._block, 'mgr_locs',
                                slice(len(vslider.buf)))
             object.__setattr__(cached_typ, '_index', cached_ityp)
             object.__setattr__(cached_typ, 'name', self.name)
@@ -191,13 +210,16 @@ cdef class _BaseGrouper:
         """
         Call self.f on our new group, then update to the next group.
         """
+        cdef:
+            object res
+
         cached_ityp._engine.clear_mapping()
         res = self.f(cached_typ)
         res = _extract_result(res)
         if not initialized:
             # On the first pass, we check the output shape to see
             #  if this looks like a reduction.
-            initialized = 1
+            initialized = True
             _check_result_array(res, len(self.dummy_arr))
 
         islider.advance(group_size)
@@ -495,7 +517,7 @@ def apply_frame_axis0(object frame, object f, object names,
             # Need to infer if low level index slider will cause segfaults
             require_slow_apply = i == 0 and piece is chunk
             try:
-                if piece.index is not chunk.index:
+                if not piece.index.equals(chunk.index):
                     mutated = True
             except AttributeError:
                 # `piece` might not have an index, could be e.g. an int
@@ -535,12 +557,16 @@ cdef class BlockSlider:
     cdef:
         char **base_ptrs
 
-    def __init__(self, frame):
+    def __init__(self, object frame):
+        cdef:
+            Py_ssize_t i
+            object b
+
         self.frame = frame
         self.dummy = frame[:0]
         self.index = self.dummy.index
 
-        self.blocks = [b.values for b in self.dummy._data.blocks]
+        self.blocks = [b.values for b in self.dummy._mgr.blocks]
 
         for x in self.blocks:
             util.set_array_not_contiguous(x)
@@ -592,7 +618,7 @@ cdef class BlockSlider:
             arr.shape[1] = 0
 
 
-def compute_reduction(arr: np.ndarray, f, axis: int = 0, dummy=None, labels=None):
+def compute_reduction(arr: ndarray, f, axis: int = 0, dummy=None, labels=None):
     """
 
     Parameters

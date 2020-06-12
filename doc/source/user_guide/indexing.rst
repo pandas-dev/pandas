@@ -374,7 +374,7 @@ For getting values with a boolean array:
    df1.loc['a'] > 0
    df1.loc[:, df1.loc['a'] > 0]
 
-NA values in a boolean array propogate as ``False``:
+NA values in a boolean array propagate as ``False``:
 
 .. versionchanged:: 1.0.2
 
@@ -881,7 +881,7 @@ The operators are: ``|`` for ``or``, ``&`` for ``and``, and ``~`` for ``not``.
 These **must** be grouped by using parentheses, since by default Python will
 evaluate an expression such as ``df['A'] > 2 & df['B'] < 3`` as
 ``df['A'] > (2 & df['B']) < 3``, while the desired evaluation order is
-``(df['A > 2) & (df['B'] < 3)``.
+``(df['A'] > 2) & (df['B'] < 3)``.
 
 Using a boolean vector to index a Series works exactly as in a NumPy ndarray:
 
@@ -1866,29 +1866,39 @@ A chained assignment can also crop up in setting in a mixed dtype frame.
 
    These setting rules apply to all of ``.loc/.iloc``.
 
-This is the correct access method:
+The following is the recommended access method using ``.loc`` for multiple items (using ``mask``) and a single item using a fixed index:
 
 .. ipython:: python
 
-   dfc = pd.DataFrame({'A': ['aaa', 'bbb', 'ccc'], 'B': [1, 2, 3]})
-   dfc.loc[0, 'A'] = 11
-   dfc
+   dfc = pd.DataFrame({'a': ['one', 'one', 'two',
+                             'three', 'two', 'one', 'six'],
+                       'c': np.arange(7)})
+   dfd = dfc.copy()
+   # Setting multiple items using a mask
+   mask = dfd['a'].str.startswith('o')
+   dfd.loc[mask, 'c'] = 42
+   dfd
 
-This *can* work at times, but it is not guaranteed to, and therefore should be avoided:
+   # Setting a single item
+   dfd = dfc.copy()
+   dfd.loc[2, 'a'] = 11
+   dfd
+
+The following *can* work at times, but it is not guaranteed to, and therefore should be avoided:
 
 .. ipython:: python
    :okwarning:
 
-   dfc = dfc.copy()
-   dfc['A'][0] = 111
-   dfc
+   dfd = dfc.copy()
+   dfd['a'][2] = 111
+   dfd
 
-This will **not** work at all, and so should be avoided:
+Last, the subsequent example will **not** work at all, and so should be avoided:
 
 ::
 
    >>> pd.set_option('mode.chained_assignment','raise')
-   >>> dfc.loc[0]['A'] = 1111
+   >>> dfd.loc[0]['a'] = 1111
    Traceback (most recent call last)
         ...
    SettingWithCopyException:
