@@ -129,18 +129,23 @@ class PyArrowImpl(BaseImpl):
     def read(self, path, columns=None, **kwargs):
         if is_fsspec_url(path) and "filesystem" not in kwargs:
             import_optional_dependency("fsspec")
-            assert kwargs.get("use_legacy_dataset", True) is True
             import fsspec.core
 
             fs, path = fsspec.core.url_to_fs(path)
-            parquet_ds = self.api.parquet.ParquetDataset(path, filesystem=fs, **kwargs)
+            should_close = False
         else:
-            parquet_ds = self.api.parquet.ParquetDataset(path, **kwargs)
-            # this key valid for ParquetDataset but not read_pandas
-            kwargs.pop("filesystem", None)
+            fs = None
 
-        kwargs["columns"] = columns
-        result = parquet_ds.read_pandas(**kwargs).to_pandas()
+        if not fs:
+            path, _, _, should_close = get_filepath_or_buffer(path)
+
+        kwargs["use_pandas_metadata"] = True
+        result = self.api.parquet.read_table(
+            path, columns=columns, filesystem=fs, **kwargs
+        ).to_pandas()
+        if should_close:
+            path.close()
+
         return result
 
 
