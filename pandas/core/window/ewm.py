@@ -308,6 +308,7 @@ class EWM(_Rolling):
             adjust=int(self.adjust),
             ignore_na=self.ignore_na,
             minp=int(self.min_periods),
+            distances=self.distances,
         )
         return self._apply(window_func)
 
@@ -341,6 +342,7 @@ class EWM(_Rolling):
                 int(self.ignore_na),
                 int(self.min_periods),
                 int(bias),
+                self.distances,
             )
 
         return self._apply(f)
@@ -385,6 +387,7 @@ class EWM(_Rolling):
                 int(self.ignore_na),
                 int(self.min_periods),
                 int(bias),
+                self.distances,
             )
             return X._wrap_result(cov)
 
@@ -432,6 +435,7 @@ class EWM(_Rolling):
                     int(self.ignore_na),
                     int(self.min_periods),
                     1,
+                    self.distances,
                 )
 
             x_values = X._prep_values()
