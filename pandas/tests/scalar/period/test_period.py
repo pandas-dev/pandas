@@ -484,7 +484,6 @@ class TestPeriodConstruction:
         with pytest.raises(ValueError, match=msg):
             Period("2011-01", freq="1D1W")
 
-    #@pytest.mark.xfail
     @pytest.mark.parametrize("day_", ["1970/01/01 ", "2020-12-31 ", "1981/09/13 "])
     @pytest.mark.parametrize("hour_", ["00:00:00", "00:00:01", "23:59:59", "12:00:59"])
     @pytest.mark.parametrize(
