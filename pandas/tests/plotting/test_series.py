@@ -737,7 +737,7 @@ class TestSeriesPlots(TestPlotBase):
         ax = s.plot(yerr=err, xerr=err)
 
         result = np.vstack([i.vertices[:, 1] for i in ax.collections[1].get_paths()])
-        expected = (err.T * np.array([-1, 1])) + list(zip(s, s))
+        expected = (err.T * np.array([-1, 1])) + s.to_numpy().reshape(-1, 1)
         tm.assert_numpy_array_equal(result, expected)
 
         msg = (
