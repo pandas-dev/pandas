@@ -3,6 +3,8 @@ import warnings
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import _np_version_under1p20
+
 import pandas as pd
 
 from .base import BaseExtensionTests
@@ -70,12 +72,16 @@ class BaseDtypeTests(BaseExtensionTests):
 
         # np.dtype('int64') == 'Int64' == 'int64'
         # so can't distinguish
-        if dtype.name == "Int64":
+        if dtype.name == "Int64" and _np_version_under1p20:
+            # TODO(numpy-1.20): This if block and the warnings filter can be removed
+            # once we require numpy>=1.20
             expected = pd.Series([True, True, False, True], index=list("ABCD"))
         else:
             expected = pd.Series([True, True, False, False], index=list("ABCD"))
 
-        result = df.dtypes == str(dtype)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            result = df.dtypes == str(dtype)
 
         self.assert_series_equal(result, expected)
 
