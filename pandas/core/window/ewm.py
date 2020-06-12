@@ -1,3 +1,4 @@
+import datetime
 from functools import partial
 from textwrap import dedent
 
@@ -125,7 +126,7 @@ class EWM(_Rolling):
         identifies the columns.
     times : str, np.ndarray, Series, default None
         Times corresponding to the observations. Must be monotonically increasing and
-        ``datetime64[ns]`` dtype. Only applicable for ``mean()``.
+        ``datetime64[ns]`` dtype.
 
         If str, the name of the column in the DataFrame representing the times.
 
@@ -183,7 +184,6 @@ class EWM(_Rolling):
         times=None,
     ):
         self.obj = obj
-        self.com = get_center_of_mass(com, span, halflife, alpha)
         self.min_periods = min_periods
         self.adjust = adjust
         self.ignore_na = ignore_na
@@ -196,10 +196,16 @@ class EWM(_Rolling):
                 raise ValueError("times must be datetime64[ns] dtype.")
             if len(times) != len(obj):
                 raise ValueError("times must be the same length as the object.")
-            self.distances = np.asarray((times - times[0]) / Timedelta(halflife))
+            if not isinstance(halflife, (str, datetime.timedelta)):
+                raise ValueError(
+                    "halflife must be a string or datetime.timedelta object"
+                )
+            self.com = get_center_of_mass(com, span, Timedelta(halflife).value, alpha)
+            self.distances = np.asarray(times - times[0]).astype(np.float64)
         else:
             # We assume that the "distance" between observations are equally spaced
-            self.distances = np.ones(len(obj))
+            self.distances = np.ones(len(obj), dtype=np.float64)
+            self.com = get_center_of_mass(com, span, halflife, alpha)
 
     @property
     def _constructor(self):
