@@ -452,3 +452,9 @@ class BaseMethodsTests(BaseExtensionTests):
         # other types
         assert data.equals(None) is False
         assert data[[0]].equals(data[0]) is False
+
+    def test_replace_nonsense(self, data):
+        # https://github.com/pandas-dev/pandas/issues/34530
+        ser = pd.Series(data)
+        ser.replace("", "")  # no exception
+        ser.to_frame().replace("", "")  # no exception

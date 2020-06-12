@@ -1003,6 +1003,7 @@ Reshaping
 - Bug where :meth:`Index.astype` would lose the name attribute when converting from ``Float64Index`` to ``Int64Index``, or when casting to an ``ExtensionArray`` dtype (:issue:`32013`)
 - :meth:`Series.append` will now raise a ``TypeError`` when passed a DataFrame or a sequence containing Dataframe (:issue:`31413`)
 - :meth:`DataFrame.replace` and :meth:`Series.replace` will raise a ``TypeError`` if ``to_replace`` is not an expected type. Previously the ``replace`` would fail silently (:issue:`18634`)
+- Bug in :meth:`~DataFrame.replace` raising an ``AssertionError`` when replacing values in an extension dtype with values of a different dtype (:issue:`34530`)
 - Bug on inplace operation of a Series that was adding a column to the DataFrame from where it was originally dropped from (using inplace=True) (:issue:`30484`)
 - Bug in :meth:`DataFrame.apply` where callback was called with :class:`Series` parameter even though ``raw=True`` requested. (:issue:`32423`)
 - Bug in :meth:`DataFrame.pivot_table` losing timezone information when creating a :class:`MultiIndex` level from a column with timezone-aware dtype (:issue:`32558`)
