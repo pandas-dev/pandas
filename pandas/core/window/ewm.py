@@ -304,7 +304,10 @@ class EWM(_Rolling):
             Arguments and keyword arguments to be passed into func.
         """
         nv.validate_window_func("mean", args, kwargs)
-        window_func = self._get_roll_func("ewma")
+        if self.distances is not None:
+            window_func = self._get_roll_func("ewma")
+        else:
+            window_func = self._get_roll_func("ewma_time")
         window_func = partial(
             window_func,
             com=self.com,
