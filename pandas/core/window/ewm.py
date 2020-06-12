@@ -78,7 +78,7 @@ class EWM(_Rolling):
         :math:`halflife > 0`.
 
         If ``times`` is specified, the time unit (str or timedelta) over which an observation
-        decays to half its value.
+        decays to half its value. Only applicable to ``mean()``.
 
     alpha : float, optional
         Specify smoothing factor :math:`\alpha` directly,
@@ -131,6 +131,8 @@ class EWM(_Rolling):
         If str, the name of the column in the DataFrame representing the times.
 
         If 1-D array like, a sequence with the same shape as the observations.
+
+        Only applicable to ``mean()``.
 
     Returns
     -------
@@ -200,11 +202,12 @@ class EWM(_Rolling):
                 raise ValueError(
                     "halflife must be a string or datetime.timedelta object"
                 )
-            self.com = get_center_of_mass(com, span, Timedelta(halflife).value, alpha)
             self.distances = np.asarray(times - times[0]).astype(np.float64)
+            self.halflife = Timedelta(halflife).value
+            self.com = None
         else:
-            # We assume that the "distance" between observations are equally spaced
-            self.distances = np.ones(len(obj), dtype=np.float64)
+            self.distances = None
+            self.halflife = halflife
             self.com = get_center_of_mass(com, span, halflife, alpha)
 
     @property
@@ -308,7 +311,6 @@ class EWM(_Rolling):
             adjust=int(self.adjust),
             ignore_na=self.ignore_na,
             minp=int(self.min_periods),
-            distances=self.distances,
         )
         return self._apply(window_func)
 
@@ -342,7 +344,6 @@ class EWM(_Rolling):
                 int(self.ignore_na),
                 int(self.min_periods),
                 int(bias),
-                self.distances,
             )
 
         return self._apply(f)
@@ -387,7 +388,6 @@ class EWM(_Rolling):
                 int(self.ignore_na),
                 int(self.min_periods),
                 int(bias),
-                self.distances,
             )
             return X._wrap_result(cov)
 
@@ -435,7 +435,6 @@ class EWM(_Rolling):
                     int(self.ignore_na),
                     int(self.min_periods),
                     1,
-                    self.distances,
                 )
 
             x_values = X._prep_values()

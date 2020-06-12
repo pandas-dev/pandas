@@ -1759,8 +1759,7 @@ def roll_weighted_var(float64_t[:] values, float64_t[:] weights,
 # Exponentially weighted moving average
 
 
-def ewma(float64_t[:] vals, float64_t com, int adjust, bint ignore_na, int minp,
-         float64_t[:] distances):
+def ewma(float64_t[:] vals, float64_t com, int adjust, bint ignore_na, int minp):
     """
     Compute exponentially-weighted moving average using center-of-mass.
 
@@ -1771,7 +1770,6 @@ def ewma(float64_t[:] vals, float64_t com, int adjust, bint ignore_na, int minp,
     adjust: int
     ignore_na : bool
     minp : int
-    distances : ndarray (float64 dtype)
 
     Returns
     -------
@@ -1833,8 +1831,7 @@ def ewma(float64_t[:] vals, float64_t com, int adjust, bint ignore_na, int minp,
 
 
 def ewmcov(float64_t[:] input_x, float64_t[:] input_y,
-           float64_t com, int adjust, bint ignore_na, int minp, int bias,
-           float64_t[:] distances):
+           float64_t com, int adjust, bint ignore_na, int minp, int bias):
     """
     Compute exponentially-weighted moving variance using center-of-mass.
 
@@ -1847,7 +1844,6 @@ def ewmcov(float64_t[:] input_x, float64_t[:] input_y,
     ignore_na: bool
     minp : int
     bias : int
-    distances : ndarray (float64 dtype)
 
     Returns
     -------
