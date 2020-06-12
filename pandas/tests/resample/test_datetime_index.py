@@ -2,6 +2,7 @@ from datetime import datetime
 from functools import partial
 from io import StringIO
 
+from dateutil.tz import tzlocal
 import numpy as np
 import pytest
 import pytz
@@ -480,7 +481,26 @@ def test_upsample_with_limit():
 @pytest.mark.parametrize("rule", ["Y", "3M", "15D", "30H", "15Min", "30S"])
 def test_nearest_upsample_with_limit(tz_aware_fixture, freq, rule):
     # GH 33939
+    tz = tz_aware_fixture
+    if str(tz) == "tzlocal()" and rule == "30S" and freq in ["Y", "10M"]:
+        # GH#34413 separate these so we can mark as slow, see
+        #  test_nearest_upsample_with_limit_tzlocal
+        return
     rng = date_range("1/1/2000", periods=3, freq=freq, tz=tz_aware_fixture)
+    ts = Series(np.random.randn(len(rng)), rng)
+
+    result = ts.resample(rule).nearest(limit=2)
+    expected = ts.reindex(result.index, method="nearest", limit=2)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("freq", ["Y", "10M"])
+def test_nearest_upsample_with_limit_tzlocal(freq):
+    # GH#33939, GH#34413 split off from test_nearest_upsample_with_limit
+    rule = "30S"
+    tz = tzlocal()
+    rng = date_range("1/1/2000", periods=3, freq=freq, tz=tz)
     ts = Series(np.random.randn(len(rng)), rng)
 
     result = ts.resample(rule).nearest(limit=2)
@@ -844,6 +864,34 @@ def test_resample_origin_with_tz():
     ts = Series(np.random.randn(len(rng)), index=rng)
     with pytest.raises(ValueError, match=msg):
         ts.resample("5min", origin="12/31/1999 23:57:00+03:00").mean()
+
+
+def test_resample_origin_epoch_with_tz_day_vs_24h():
+    # GH 34474
+    start, end = "2000-10-01 23:30:00+0500", "2000-12-02 00:30:00+0500"
+    rng = pd.date_range(start, end, freq="7min")
+    random_values = np.random.randn(len(rng))
+    ts_1 = pd.Series(random_values, index=rng)
+
+    result_1 = ts_1.resample("D", origin="epoch").mean()
+    result_2 = ts_1.resample("24H", origin="epoch").mean()
+    tm.assert_series_equal(result_1, result_2)
+
+    # check that we have the same behavior with epoch even if we are not timezone aware
+    ts_no_tz = ts_1.tz_localize(None)
+    result_3 = ts_no_tz.resample("D", origin="epoch").mean()
+    result_4 = ts_no_tz.resample("24H", origin="epoch").mean()
+    tm.assert_series_equal(result_1, result_3.tz_localize(rng.tz), check_freq=False)
+    tm.assert_series_equal(result_1, result_4.tz_localize(rng.tz), check_freq=False)
+
+    # check that we have the similar results with two different timezones (+2H and +5H)
+    start, end = "2000-10-01 23:30:00+0200", "2000-12-02 00:30:00+0200"
+    rng = pd.date_range(start, end, freq="7min")
+    ts_2 = pd.Series(random_values, index=rng)
+    result_5 = ts_2.resample("D", origin="epoch").mean()
+    result_6 = ts_2.resample("24H", origin="epoch").mean()
+    tm.assert_series_equal(result_1.tz_localize(None), result_5.tz_localize(None))
+    tm.assert_series_equal(result_1.tz_localize(None), result_6.tz_localize(None))
 
 
 def test_resample_origin_with_day_freq_on_dst():

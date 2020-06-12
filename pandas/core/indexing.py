@@ -8,6 +8,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import (
+    is_array_like,
     is_hashable,
     is_integer,
     is_iterator,
@@ -22,6 +23,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCMultiIndex, ABCSeries
 from pandas.core.dtypes.missing import _infer_fill_value, isna
 
 import pandas.core.common as com
+from pandas.core.construction import array as pd_array
 from pandas.core.indexers import (
     check_array_indexer,
     is_list_like_indexer,
@@ -766,9 +768,11 @@ class _LocationIndexer(_NDFrameIndexerBase):
         # ...but iloc should handle the tuple as simple integer-location
         # instead of checking it as multiindex representation (GH 13797)
         if isinstance(ax0, ABCMultiIndex) and self.name != "iloc":
-            result = self._handle_lowerdim_multi_index_axis0(tup)
-            if result is not None:
+            try:
+                result = self._handle_lowerdim_multi_index_axis0(tup)
                 return result
+            except IndexingError:
+                pass
 
         if len(tup) > self.ndim:
             raise IndexingError("Too many indexers. handle elsewhere")
@@ -816,9 +820,11 @@ class _LocationIndexer(_NDFrameIndexerBase):
             if self.name != "loc":
                 # This should never be reached, but lets be explicit about it
                 raise ValueError("Too many indices")
-            result = self._handle_lowerdim_multi_index_axis0(tup)
-            if result is not None:
+            try:
+                result = self._handle_lowerdim_multi_index_axis0(tup)
                 return result
+            except IndexingError:
+                pass
 
             # this is a series with a multi-index specified a tuple of
             # selectors
@@ -1065,7 +1071,7 @@ class _LocIndexer(_LocationIndexer):
             if len(tup) <= self.obj.index.nlevels and len(tup) > self.ndim:
                 raise ek
 
-        return None
+        raise IndexingError("No label returned")
 
     def _getitem_axis(self, key, axis: int):
         key = item_from_zerodim(key)
@@ -1830,7 +1836,10 @@ class _iLocIndexer(_LocationIndexer):
                 # append a Series
                 value = value.reindex(index=self.obj.columns, copy=True)
                 value.name = indexer
-
+            elif isinstance(value, dict):
+                value = Series(
+                    value, index=self.obj.columns, name=indexer, dtype=object
+                )
             else:
                 # a list-list
                 if is_list_like_indexer(value):
@@ -2016,10 +2025,10 @@ class _ScalarAccessIndexer(_NDFrameIndexerBase):
 
         if not isinstance(key, tuple):
             key = _tuplify(self.ndim, key)
+        key = list(self._convert_key(key, is_setter=True))
         if len(key) != self.ndim:
             raise ValueError("Not enough indexers for scalar access (setting)!")
 
-        key = list(self._convert_key(key, is_setter=True))
         self.obj._set_value(*key, value=value, takeable=self._takeable)
 
 
@@ -2032,6 +2041,12 @@ class _AtIndexer(_ScalarAccessIndexer):
         Require they keys to be the same type as the index. (so we don't
         fallback)
         """
+        # GH 26989
+        # For series, unpacking key needs to result in the label.
+        # This is already the case for len(key) == 1; e.g. (1,)
+        if self.ndim == 1 and len(key) > 1:
+            key = (key,)
+
         # allow arbitrary setting
         if is_setter:
             return list(key)
@@ -2161,15 +2176,15 @@ def check_bool_indexer(index: Index, key) -> np.ndarray:
                 "indexer (index of the boolean Series and of "
                 "the indexed object do not match)."
             )
-        result = result.astype(bool)._values
-    elif is_object_dtype(key):
+        return result.astype(bool)._values
+    if is_object_dtype(key):
         # key might be object-dtype bool, check_array_indexer needs bool array
         result = np.asarray(result, dtype=bool)
-        result = check_array_indexer(index, result)
-    else:
-        result = check_array_indexer(index, result)
-
-    return result
+    elif not is_array_like(result):
+        # GH 33924
+        # key may contain nan elements, check_array_indexer needs bool array
+        result = pd_array(result, dtype=bool)
+    return check_array_indexer(index, result)
 
 
 def convert_missing_indexer(indexer):
