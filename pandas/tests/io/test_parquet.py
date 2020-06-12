@@ -571,10 +571,9 @@ class TestParquetPyArrow(Base):
     @tm.network
     @td.skip_if_no("pyarrow")
     def test_parquet_read_from_url(self, df_compat):
-        # TODO:alimcmaster1 update with master URL
         url = (
-            "https://raw.githubusercontent.com/alimcmaster1/pandas/"
-            "mcmali-parq-fix/pandas/tests/io/data/parquet/simple.parquet"
+            "https://raw.githubusercontent.com/pandas-dev/pandas/"
+            "master/pandas/tests/io/data/parquet/simple.parquet"
         )
         df = pd.read_parquet(url)
         tm.assert_frame_equal(df, df_compat)
