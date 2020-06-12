@@ -96,13 +96,17 @@ class TestSeriesPlots(TestPlotBase):
 class TestDataFramePlots(TestPlotBase):
     @td.skip_if_no_scipy
     def test_scatter_matrix_axis(self):
+        from pandas.plotting._matplotlib.compat import _mpl_ge_3_0_0
+
         scatter_matrix = plotting.scatter_matrix
 
         with tm.RNGContext(42):
             df = DataFrame(randn(100, 3))
 
         # we are plotting multiples on a sub-plot
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(
+            UserWarning, raise_on_extra_warnings=_mpl_ge_3_0_0()
+        ):
             axes = _check_plot_works(
                 scatter_matrix, filterwarnings="always", frame=df, range_padding=0.1
             )
