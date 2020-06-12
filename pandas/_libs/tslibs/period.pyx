@@ -32,6 +32,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_FR_D,
     NPY_FR_us,
 )
+from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
 cdef extern from "src/datetime/np_datetime.h":
     int64_t npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT fr,
@@ -2410,8 +2411,8 @@ class Period(_Period):
                 nanosecond = ts.nanosecond
                 if nanosecond != 0:
                     reso = 'nanosecond'
-            except:
-                pass
+            except OutOfBoundsDatetime:
+                nanosecond = 0
             if dt is NaT:
                 ordinal = NPY_NAT
 
@@ -2443,7 +2444,7 @@ class Period(_Period):
             base = freq_to_dtype_code(freq)
             ordinal = period_ordinal(dt.year, dt.month, dt.day,
                                      dt.hour, dt.minute, dt.second,
-                                     dt.microsecond, nanosecond, base)
+                                     dt.microsecond, 1000*nanosecond, base)
 
         return cls._from_ordinal(ordinal, freq)
 
