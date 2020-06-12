@@ -225,25 +225,26 @@ def interpolate_1d(
     # default limit is unlimited GH #16282
     limit = algos._validate_limit(nobs=None, limit=limit)
 
-    first = find_valid_index(yvalues, "first")
-    last = find_valid_index(yvalues, "last")
     if limit_direction == "forward":
-        nans_to_interpolate = _interp_limit(invalid, limit, 0, first, last)
+        nans_to_interpolate = _interp_limit(invalid, limit, 0)
     elif limit_direction == "backward":
-        nans_to_interpolate = _interp_limit(invalid, 0, limit, first, last)
+        nans_to_interpolate = _interp_limit(invalid, 0, limit)
     else:
         # both directions... just use _interp_limit
-        nans_to_interpolate = _interp_limit(invalid, limit, limit, first, last)
+        nans_to_interpolate = _interp_limit(invalid, limit, limit)
 
     # if limit_area is set, add either mid or outside indices
     # to preserve_nans GH #16284
-    if limit_area == "inside":
-        # preserve NaNs on the outside
-        nans_to_interpolate[:first] = False
-        nans_to_interpolate[last + 1 :] = False
-    elif limit_area == "outside":
-        # preserve NaNs on the inside
-        nans_to_interpolate[first : last + 1] = False
+    if limit_area:
+        first = find_valid_index(yvalues, "first")
+        last = find_valid_index(yvalues, "last")
+        if limit_area == "inside":
+            # preserve NaNs on the outside
+            nans_to_interpolate[:first] = False
+            nans_to_interpolate[last + 1 :] = False
+        else:
+            # preserve NaNs on the inside
+            nans_to_interpolate[first : last + 1] = False
 
     xvalues = getattr(xvalues, "values", xvalues)
     yvalues = getattr(yvalues, "values", yvalues)
@@ -661,11 +662,7 @@ def clean_reindex_fill_method(method):
 
 
 def _interp_limit(
-    invalid: np.ndarray,
-    fw_limit: Optional[int],
-    bw_limit: Optional[int],
-    first: int,
-    last: int,
+    invalid: np.ndarray, fw_limit: Optional[int], bw_limit: Optional[int]
 ) -> np.ndarray:
     """
     Update mask to exclude elements not within limits
@@ -677,10 +674,6 @@ def _interp_limit(
         forward limit to index
     bw_limit : int or None
         backward limit to index
-    first: int
-        first valid index
-    last: int
-        last valid index
 
     Returns
     -------
@@ -751,36 +744,45 @@ def _interp_limit(
     >>> arr
     array([1, 2, 0, 0, 1, 2, 3, 0, 1, 2], dtype=int32)
 
+    remember that positive values represent missing values and zeros represent
+    valid values. We have a array with some missing values at the start. For a
+    forward fill algorithm, we want to update the mask to leave these missing
+    values unchanged.
+
+    >>> arr[: arr.argmin()] = 0
+    >>> arr
+    array([0, 0, 0, 0, 1, 2, 3, 0, 1, 2], dtype=int32)
+
     we will now select only values within a set limit, say 2
 
     >>> arr = np.where(arr > 2, 0, arr)
     >>> arr
-    array([1, 2, 0, 0, 1, 2, 0, 0, 1, 2], dtype=int32)
+    array([0, 0, 0, 0, 1, 2, 0, 0, 1, 2], dtype=int32)
 
     and finally convert back into a boolean mask
 
     >>> arr.astype(bool)
-    array([ True,  True, False, False,  True,  True, False, False,  True,
+    array([ False,  False, False, False,  True,  True, False, False,  True,
             True])
     """
 
     def inner(arr, limit):
-        if limit is None:
-            return arr.copy()
         arr = arr.astype(int)
-        cumsum = arr.cumsum()
-        arr = cumsum * arr
-        arr = np.diff(arr, prepend=0)
-        arr = np.where(arr < 0, arr, 0)
-        arr = np.minimum.accumulate(arr)
-        arr = arr + cumsum
-        return np.where(arr > limit, 0, arr).astype(bool)
+        arr[: arr.argmin()] = 0
+        if limit:
+            cumsum = arr.cumsum()
+            arr = cumsum * arr
+            arr = np.diff(arr, prepend=0)
+            arr = np.where(arr < 0, arr, 0)
+            arr = np.minimum.accumulate(arr)
+            arr = arr + cumsum
+            arr = np.where(arr > limit, 0, arr)
+        return arr.astype(bool)
 
     if fw_limit == 0:
         f_idx = invalid
     else:
         f_idx = inner(invalid, fw_limit)
-        f_idx[:first] = False
 
     if bw_limit == 0:
         # then we don't even need to care about backwards
@@ -788,7 +790,6 @@ def _interp_limit(
         return f_idx
     else:
         b_idx = inner(invalid[::-1], bw_limit)[::-1]
-        b_idx[last + 1 :] = False
         if fw_limit == 0:
             return b_idx
 
