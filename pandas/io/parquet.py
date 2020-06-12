@@ -134,7 +134,7 @@ class PyArrowImpl(BaseImpl):
             fs, path = fsspec.core.url_to_fs(path)
             should_close = False
         else:
-            fs = None
+            fs = kwargs.pop('filesystem', None)
 
         if not fs:
             path, _, _, should_close = get_filepath_or_buffer(path)
