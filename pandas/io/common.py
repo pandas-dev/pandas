@@ -142,7 +142,7 @@ def is_fsspec_url(url: FilePathOrBuffer) -> bool:
     Returns true if the given URL looks like
     something fsspec can handle
     """
-    return isinstance(url, str) and "://" in url
+    return isinstance(url, str) and "://" in url and not url.startswith(('http://', 'https://'))
 
 
 def get_filepath_or_buffer(
