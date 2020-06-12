@@ -350,6 +350,12 @@ class NAType(C_NAType):
         return "<NA>"
 
     def __format__(self, format_spec) -> str:
+        # accept same format_spec as np.nan
+        try:
+            format(np.nan, format_spec)
+        except ValueError:
+            raise ValueError("Invalid format specifier")
+        # if a string format_spec use it, else just return the repr
         try:
             return self.__repr__().__format__(format_spec)
         except ValueError:
