@@ -135,6 +135,7 @@ class PyArrowImpl(BaseImpl):
             should_close = False
         else:
             fs = kwargs.pop('filesystem', None)
+            should_close = False
 
         if not fs:
             path, _, _, should_close = get_filepath_or_buffer(path)
