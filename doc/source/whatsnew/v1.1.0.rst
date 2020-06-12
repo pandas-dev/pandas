@@ -760,6 +760,7 @@ Deprecations
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
+- Fixed performance regression in :meth:`TimedeltaIndex.get_loc` (:issue:`34510`)
 - Performance improvement in :class:`Timedelta` constructor (:issue:`30543`)
 - Performance improvement in :class:`Timestamp` constructor (:issue:`30543`)
 - Performance improvement in flex arithmetic ops between :class:`DataFrame` and :class:`Series` with ``axis=0`` (:issue:`31296`)
