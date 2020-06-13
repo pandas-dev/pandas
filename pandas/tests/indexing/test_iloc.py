@@ -705,7 +705,7 @@ class TestiLoc2:
         expected = pd.Categorical(["C", "B", "A"])
         tm.assert_categorical_equal(cat, expected)
 
-    def test_iloc_with_boolean_operation():
+    def test_iloc_with_boolean_operation(self):
         # GH 20627
         result = DataFrame([[0, 1], [2, 3], [4, 5], [6, np.nan]])
         result.iloc[result.index <= 2] *= 2
