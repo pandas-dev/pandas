@@ -229,7 +229,7 @@ class DataFrameInfo(Info):
         self, lines: List[str], ids: "Index", dtypes: "Series", show_counts: bool
     ) -> None:
         """
-        Display name, non-null count (optionally), and dtype for each column.
+        Append name, non-null count (optional), and dtype for each column to `lines`.
 
         Parameters
         ----------
