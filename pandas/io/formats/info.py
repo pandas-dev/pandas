@@ -244,6 +244,7 @@ class DataFrameInfo(Info):
         """
         col_count = len(ids)
         lines.append(f"Data columns (total {col_count} columns):")
+
         id_head = " # "
         column_head = "Column"
         col_space = 2
