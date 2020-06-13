@@ -26,18 +26,11 @@ def test_format():
     # GH-34740
     assert format(NA) == "<NA>"
     assert format(NA, ">10") == "      <NA>"
+    assert format(NA, "xxx") == "<NA>"  # NA is flexible, accept any format spec
 
     assert "{}".format(NA) == "<NA>"
     assert "{:>10}".format(NA) == "      <NA>"
-
-
-def test_format_raises():
-    # GH-34740
-    with pytest.raises(ValueError, match="Invalid format specifier"):
-        format(NA, "xxx")
-
-    with pytest.raises(ValueError, match="Invalid format specifier"):
-        "{:xxx}".format(NA)
+    assert "{:xxx}".format(NA) == "<NA>"
 
 
 def test_truthiness():
