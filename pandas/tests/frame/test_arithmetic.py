@@ -10,6 +10,7 @@ import pytz
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series
 import pandas._testing as tm
+from pandas.core.computation.expressions import _USE_NUMEXPR, _MIN_ELEMENTS
 import pandas.core.common as com
 from pandas.tests.frame.common import _check_mixed_float, _check_mixed_int
 
@@ -379,8 +380,9 @@ class TestFrameFlexArithmetic:
         # case that goes through numexpr and has to fall back to masked_arith_op
         op = getattr(operator, opname)
 
-        arr = np.arange(10 ** 4).reshape(100, -1) * 100
+        arr = np.arange(_MIN_ELEMENTS + 100).reshape(_MIN_ELEMENTS // 100 + 1, -1) * 100
         df = pd.DataFrame(arr)
+        assert _USE_NUMEXPR
         df["C"] = 1.0
 
         ser = df[0]
