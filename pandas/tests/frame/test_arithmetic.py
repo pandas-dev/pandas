@@ -382,7 +382,8 @@ class TestFrameFlexArithmetic:
 
         arr = np.arange(_MIN_ELEMENTS + 100).reshape(_MIN_ELEMENTS // 100 + 1, -1) * 100
         df = pd.DataFrame(arr)
-        assert _USE_NUMEXPR
+        if _NUMEXPR_INSTALLED:
+            assert _USE_NUMEXPR
         df["C"] = 1.0
 
         ser = df[0]
