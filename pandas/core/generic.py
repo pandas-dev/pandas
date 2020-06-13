@@ -6742,7 +6742,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 raises ValueError if `limit_direction` is 'backward' or 'both' and
                     method is 'pad' or 'ffill'.
 
-
         limit_area : {`None`, 'inside', 'outside'}, default None
             If limit is specified, consecutive NaNs will be filled with this
             restriction.
