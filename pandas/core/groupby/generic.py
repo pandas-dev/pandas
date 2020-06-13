@@ -1575,8 +1575,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def filter(self, func, dropna=True, *args, **kwargs):
         """
-        Return a copy of a DataFrame excluding elements from groups that
-        do not satisfy the boolean criterion specified by func.
+        Return a copy of a DataFrame excluding filtered elements.
+
+        Elements from groups are filtered if they do not satisfy the
+        boolean criterion specified by func.
 
         Parameters
         ----------
@@ -1837,8 +1839,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def nunique(self, dropna: bool = True):
         """
-        Return DataFrame with number of distinct observations per group for
-        each column.
+        Return DataFrame with counts of unique elements in each position.
 
         Parameters
         ----------
