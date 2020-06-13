@@ -256,9 +256,7 @@ class DataFrameInfo(Info):
         space_num = max(max_id, len_id) + col_space
 
         lines.append(f"Data columns (total {col_count} columns):")
-        len_column = len(pprint_thing(column_head))
         header = _put_str(id_head, space_num) + _put_str(column_head, space)
-
         if show_counts:
             counts = self.data.count()
             if col_count != len(counts):  # pragma: no cover
