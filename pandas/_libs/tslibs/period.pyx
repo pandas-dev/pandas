@@ -2411,7 +2411,7 @@ class Period(_Period):
                 nanosecond = ts.nanosecond
                 if nanosecond != 0:
                     reso = 'nanosecond'
-            except OutOfBoundsDatetime:
+            except (ValueError, OutOfBoundsDatetime):
                 nanosecond = 0
             if dt is NaT:
                 ordinal = NPY_NAT
