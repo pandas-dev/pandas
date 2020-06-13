@@ -255,8 +255,6 @@ class DataFrameInfo(Info):
         len_id = len(pprint_thing(id_head))
         space_num = max(max_id, len_id) + col_space
 
-        header = _put_str(id_head, space_num)
-
         lines.append(f"Data columns (total {col_count} columns):")
         len_column = len(pprint_thing(column_head))
         header = _put_str(id_head, space_num) + _put_str(column_head, space)
