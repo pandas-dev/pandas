@@ -11,7 +11,7 @@ import matplotlib.units as units
 import numpy as np
 
 from pandas._libs import lib
-from pandas._libs.tslibs import to_offset, Timestamp
+from pandas._libs.tslibs import Timestamp, to_offset
 from pandas._libs.tslibs.dtypes import FreqGroup
 from pandas._libs.tslibs.offsets import BaseOffset
 
