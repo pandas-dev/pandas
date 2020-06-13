@@ -64,8 +64,7 @@ def _new_PeriodIndex(cls, **d):
 
 
 @inherit_names(
-    ["strftime", "to_timestamp", "asfreq", "start_time", "end_time"]
-    + PeriodArray._field_ops,
+    ["strftime", "to_timestamp", "start_time", "end_time"] + PeriodArray._field_ops,
     PeriodArray,
     wrap=True,
 )
@@ -151,6 +150,14 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     _engine_type = libindex.PeriodEngine
     _supports_partial_string_indexing = True
+
+    # --------------------------------------------------------------------
+    # methods that dispatch to array and wrap result in PeriodIndex
+
+    @doc(PeriodArray.asfreq)
+    def asfreq(self, freq=None, how: str = "E") -> "PeriodIndex":
+        arr = self._data.asfreq(freq, how)
+        return type(self)._simple_new(arr, name=self.name)
 
     # ------------------------------------------------------------------------
     # Index Constructors
