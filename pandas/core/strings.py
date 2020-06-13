@@ -1177,7 +1177,7 @@ def str_extractall(arr, pat, flags=0):
 def str_get_dummies(arr, sep="|"):
     """
     Return DataFrame of dummy/indicator variables for Series.
-    
+
     Each string in Series is split by sep and returned as a DataFrame
     of dummy/indicator variables.
 
