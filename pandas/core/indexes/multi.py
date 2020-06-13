@@ -903,8 +903,7 @@ class MultiIndex(Index):
 
     def set_codes(self, codes, level=None, inplace=False, verify_integrity=True):
         """
-        Set new codes on MultiIndex. Defaults to returning
-        new index.
+        Set new codes on MultiIndex. Defaults to returning new index.
 
         .. versionadded:: 0.24.0
 
@@ -1541,8 +1540,7 @@ class MultiIndex(Index):
 
     def get_level_values(self, level):
         """
-        Return vector of label values for requested level,
-        equal to the length of the index.
+        Return label values for requested level.
 
         Parameters
         ----------
@@ -1797,8 +1795,7 @@ class MultiIndex(Index):
 
     def remove_unused_levels(self):
         """
-        Create a new MultiIndex from the current that removes
-        unused levels, meaning that they are not expressed in the labels.
+        Create a new MultiIndex that removes unused levels.
 
         The resulting MultiIndex will have the same outward
         appearance, meaning the same .values and ordering. It will also
@@ -2195,8 +2192,7 @@ class MultiIndex(Index):
 
     def sortlevel(self, level=0, ascending=True, sort_remaining=True):
         """
-        Sort MultiIndex at the requested level. The result will respect the
-        original ordering of the associated factor at that level.
+        Sort MultiIndex at the requested level(s).
 
         Parameters
         ----------
@@ -2634,8 +2630,7 @@ class MultiIndex(Index):
 
     def get_loc(self, key, method=None):
         """
-        Get location for a label or a tuple of labels as an integer, slice or
-        boolean mask.
+        Get location for a label or a tuple of labels.
 
         Parameters
         ----------
@@ -2743,8 +2738,7 @@ class MultiIndex(Index):
 
     def get_loc_level(self, key, level=0, drop_level: bool = True):
         """
-        Get both the location for the requested label(s) and the
-        resulting sliced index.
+        Get the location and sliced index for the requested label(s).
 
         Parameters
         ----------
