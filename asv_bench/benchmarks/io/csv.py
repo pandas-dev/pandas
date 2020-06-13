@@ -146,10 +146,10 @@ class ReadCSVConcatDatetimeBadDateValue(StringIORewind):
 class ReadCSVSkipRows(BaseIO):
 
     fname = "__test__.csv"
-    params = [None, 10000]
-    param_names = ["skiprows"]
+    params = ([None, 10000], ["c", "pyarrow"])
+    param_names = ["skiprows", "engine"]
 
-    def setup(self, skiprows):
+    def setup(self, skiprows, engine):
         N = 20000
         index = tm.makeStringIndex(N)
         df = DataFrame(
@@ -164,8 +164,8 @@ class ReadCSVSkipRows(BaseIO):
         )
         df.to_csv(self.fname)
 
-    def time_skipprows(self, skiprows):
-        read_csv(self.fname, skiprows=skiprows)
+    def time_skipprows(self, skiprows, engine):
+        read_csv(self.fname, skiprows=skiprows, engine=engine)
 
 
 class ReadUint64Integers(StringIORewind):
@@ -261,31 +261,20 @@ class ReadCSVFloatPrecision(StringIORewind):
 
 
 class ReadCSVEngine(StringIORewind):
-    def setup(self):
-        data = ["A,B,C,D,E"] + (["1,2,3,4,5"] * 1000000)
+    params = ["c", "python", "pyarrow"]
+    param_names = ["engine"]
+
+    def setup(self, engine):
+        data = ["A,B,C,D,E"] + (["1,2,3,4,5"] * 100000)
         self.StringIO_input = StringIO("\n".join(data))
         # simulate reading from file
         self.BytesIO_input = BytesIO(self.StringIO_input.read().encode("utf-8"))
 
-    def time_read_stringcsv_c(self):
-        read_csv(self.data(self.StringIO_input))
+    def time_read_stringcsv(self, engine):
+        read_csv(self.data(self.StringIO_input), engine=engine)
 
-    def time_read_stringcsv_arrow(self):
-        read_csv(self.data(self.StringIO_input), engine="pyarrow")
-
-    def time_read_stringcsv_python_engine(self):
-        read_csv(
-            self.data(self.StringIO_input), engine="python",
-        )
-
-    def time_read_bytescsv_c(self):
-        read_csv(self.BytesIO_input)
-
-    def time_read_bytescsv_arrow(self):
-        read_csv(self.BytesIO_input, engine="pyarrow")
-
-    def time_read_bytescsv_python_engine(self):
-        read_csv(self.BytesIO_input, engine="python")
+    def time_read_bytescsv(self, engine):
+        read_csv(self.data(self.BytesIO_input), engine=engine)
 
 
 class ReadCSVCategorical(BaseIO):
@@ -305,7 +294,10 @@ class ReadCSVCategorical(BaseIO):
 
 
 class ReadCSVParseDates(StringIORewind):
-    def setup(self):
+    params = ["c", "pyarrow", "python"]
+    param_names = ["engine"]
+
+    def setup(self, engine):
         data = """{},19:00:00,18:56:00,0.8100,2.8100,7.2000,0.0000,280.0000\n
                   {},20:00:00,19:56:00,0.0100,2.2100,7.2000,0.0000,260.0000\n
                   {},21:00:00,20:56:00,-0.5900,2.2100,5.7000,0.0000,280.0000\n
@@ -316,18 +308,20 @@ class ReadCSVParseDates(StringIORewind):
         data = data.format(*two_cols)
         self.StringIO_input = StringIO(data)
 
-    def time_multiple_date(self):
+    def time_multiple_date(self, engine):
         read_csv(
             self.data(self.StringIO_input),
+            engine=engine,
             sep=",",
             header=None,
             names=list(string.digits[:9]),
             parse_dates=[[1, 2], [1, 3]],
         )
 
-    def time_baseline(self):
+    def time_baseline(self, engine):
         read_csv(
             self.data(self.StringIO_input),
+            engine=engine,
             sep=",",
             header=None,
             parse_dates=[1],
@@ -336,17 +330,18 @@ class ReadCSVParseDates(StringIORewind):
 
 
 class ReadCSVCachedParseDates(StringIORewind):
-    params = ([True, False],)
-    param_names = ["do_cache"]
+    params = ([True, False], ["c", "pyarrow", "python"])
+    param_names = ["do_cache", "engine"]
 
-    def setup(self, do_cache):
+    def setup(self, do_cache, engine):
         data = ("\n".join(f"10/{year}" for year in range(2000, 2100)) + "\n") * 10
         self.StringIO_input = StringIO(data)
 
-    def time_read_csv_cached(self, do_cache):
+    def time_read_csv_cached(self, do_cache, engine):
         try:
             read_csv(
                 self.data(self.StringIO_input),
+                engine=engine,
                 header=None,
                 parse_dates=[0],
                 cache_dates=do_cache,
@@ -376,22 +371,23 @@ class ReadCSVMemoryGrowth(BaseIO):
 
 
 class ReadCSVParseSpecialDate(StringIORewind):
-    params = (["mY", "mdY", "hm"],)
-    param_names = ["value"]
+    params = (["mY", "mdY", "hm"], ["c", "pyarrow", "python"])
+    param_names = ["value", "engine"]
     objects = {
         "mY": "01-2019\n10-2019\n02/2000\n",
         "mdY": "12/02/2010\n",
         "hm": "21:34\n",
     }
 
-    def setup(self, value):
+    def setup(self, value, engine):
         count_elem = 10000
         data = self.objects[value] * count_elem
         self.StringIO_input = StringIO(data)
 
-    def time_read_special_date(self, value):
+    def time_read_special_date(self, value, engine):
         read_csv(
             self.data(self.StringIO_input),
+            engine=engine,
             sep=",",
             header=None,
             names=["Date"],

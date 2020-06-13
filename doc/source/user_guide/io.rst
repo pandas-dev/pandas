@@ -160,9 +160,11 @@ dtype : Type name or dict of column -> type, default ``None``
   (unsupported with ``engine='python'``). Use `str` or `object` together
   with suitable ``na_values`` settings to preserve and
   not interpret dtype.
-engine : {``'c'``, ``'python'``}
-  Parser engine to use. The C engine is faster while the Python engine is
-  currently more feature-complete.
+engine : {``'c'``, ``'pyarrow'``,``'python'``}
+  Parser engine to use. In terms of performance, the pyarrow engine,
+  which requires pyarrow>=0.15.0, is faster than the C engine, which
+  is faster than the python engine. However, the pyarrow and C engines
+  are currently less feature complete than their Python counterpart.
 converters : dict, default ``None``
   Dict of functions for converting values in certain columns. Keys can either be
   integers or column labels.

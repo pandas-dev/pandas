@@ -1,8 +1,6 @@
-import distutils.version
 import os
 from typing import List, Optional
 
-import pkg_resources
 import pytest
 
 from pandas import read_csv, read_table
@@ -80,16 +78,8 @@ _py_parser_ids = ["python"]
 _c_parser_ids = ["c_high", "c_low"]
 _pyarrow_parser_ids = ["pyarrow"]
 
-try:
-    pyarrow_version = pkg_resources.get_distribution("pyarrow").version
-except pkg_resources.DistributionNotFound:
-    pyarrow_version = "0"  # represents pyarrow not found
-if distutils.version.LooseVersion(pyarrow_version) > "0.15.0":
-    _all_parsers = [*_c_parsers_only, *_py_parsers_only, *_pyarrow_parsers_only]
-    _all_parser_ids = [*_c_parser_ids, *_py_parser_ids, *_pyarrow_parser_ids]
-else:
-    _all_parsers = [*_c_parsers_only, *_py_parsers_only]
-    _all_parser_ids = [*_c_parser_ids, *_py_parser_ids]
+_all_parsers = [*_c_parsers_only, *_py_parsers_only, *_pyarrow_parsers_only]
+_all_parser_ids = [*_c_parser_ids, *_py_parser_ids, *_pyarrow_parser_ids]
 
 
 @pytest.fixture(params=_all_parsers, ids=_all_parser_ids)
@@ -97,6 +87,8 @@ def all_parsers(request):
     """
     Fixture all of the CSV parsers.
     """
+    if request.param.engine == "pyarrow":
+        pytest.importorskip("pyarrow", "0.15.0")
     return request.param
 
 

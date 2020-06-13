@@ -170,9 +170,8 @@ dtype : Type name or dict of column -> type, optional
     of dtype conversion.
 engine : {{'c', 'python', 'pyarrow'}}, optional
     Parser engine to use. The C and pyarrow engines are faster, while the python engine
-    is currently more feature-complete. The pyarrow engine requires ``pyarrow`` > 0.15
+    is currently more feature-complete. The pyarrow engine requires ``pyarrow`` >= 0.15
     as a dependency however.
-
     .. versionchanged:: 1.1
         The "pyarrow" engine was added.
 converters : dict, optional
@@ -445,7 +444,8 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     # Extract some of the arguments (pass chunksize on).
     iterator = kwds.get("iterator", False)
     chunksize = kwds.get("chunksize", None)
-    if kwds.get("engine") == "pyarrow":  # chunksize not supported for pyarrow
+    # chunksize and iterator not supported for pyarrow
+    if kwds.get("engine") == "pyarrow":
         if iterator:
             raise ValueError(
                 "The 'iterator' option is not supported with the 'pyarrow' engine"
@@ -523,6 +523,7 @@ _parser_defaults = {
     "skip_blank_lines": True,
 }
 
+
 _c_parser_defaults = {
     "delim_whitespace": False,
     "na_filter": True,
@@ -553,12 +554,11 @@ _pyarrow_unsupported = {
     "converters",
     "decimal",
     "iterator",
-    "cache_dates",
     "dayfirst",
     "infer_datetime_format",
     "verbose",
     "skipinitialspace",
-    "cache_dates",
+    "low_memory",
 }
 _python_unsupported = {"low_memory", "float_precision"}
 
@@ -939,10 +939,6 @@ class TextFileReader(abc.Iterator):
                         f"The {repr(argname)} option is not supported with the "
                         f"'pyarrow' engine"
                     )
-            if argname == "iterator" and engine == "pyarrow":
-                raise ValueError(
-                    "The iterator option is not supported with the 'pyarrow' engine"
-                )
             # see gh-12935
             if argname == "mangle_dupe_cols" and not value:
                 raise ValueError("Setting mangle_dupe_cols=False is not supported yet")
@@ -2255,14 +2251,18 @@ class CParserWrapper(ParserBase):
 
 
 class BytesIOWrapper:
-    def __init__(self, string_buffer, encoding="utf-8"):
+    """
+    Allows the pyarrow engine for read_csv() to read from string buffers
+    """
+
+    def __init__(self, string_buffer: StringIO, encoding: str = "utf-8"):
         self.string_buffer = string_buffer
         self.encoding = encoding
 
-    def __getattr__(self, attr):
+    def __getattr__(self, attr: str):
         return getattr(self.string_buffer, attr)
 
-    def read(self, size=-1):
+    def read(self, size: int = -1):
         content = self.string_buffer.read(size)
         return content.encode(self.encoding)
 
@@ -2332,15 +2332,84 @@ class ArrowParserWrapper(ParserBase):
                 elif self.header is None:
                     self.names = range(num_cols)
             frame.columns = self.names
-        if self.index_col is not None:
-            index_col = [frame.columns[i] for i in self.index_col]
-            frame.set_index(index_col, drop=True, inplace=True)
 
-        frame.columns, frame = self._do_date_conversions(frame.columns, frame)
+        frame = self._date_conversion(
+            frame, self._date_conv, self.parse_dates, keep_date_col=self.keep_date_col
+        )
+
+        if self.index_col is not None:
+            for i, item in enumerate(self.index_col):
+                if is_integer(item):
+                    self.index_col[i] = frame.columns[item]
+            frame.set_index(self.index_col, drop=True, inplace=True)
 
         if self.kwds.get("dtype") is not None:
             frame = frame.astype(self.kwds.get("dtype"))
         return frame
+
+    def _date_conversion(
+        self, data, converter, parse_spec, keep_date_col=False,
+    ):
+
+        orig_names = data.columns
+        columns = list(data.columns)
+
+        date_cols = set()
+
+        if parse_spec is None or isinstance(parse_spec, bool):
+            return data, columns
+
+        if isinstance(parse_spec, list):
+            # list of column lists
+            for colspec in parse_spec:
+                if is_scalar(colspec):
+                    if isinstance(colspec, int) and colspec not in data:
+                        colspec = orig_names[colspec]
+                    data[colspec] = converter(data[colspec].values)
+                else:
+                    new_name, col, old_names = self._try_convert_dates(
+                        converter, colspec, data, orig_names
+                    )
+                    if new_name in data:
+                        raise ValueError(f"New date column already in dict {new_name}")
+                    data[new_name] = col
+                    date_cols.update(old_names)
+
+        elif isinstance(parse_spec, dict):
+            # dict of new name to column list
+            for new_name, colspec in parse_spec.items():
+                if new_name in data:
+                    raise ValueError(f"Date column {new_name} already in dict")
+
+                _, col, old_names = self._try_convert_dates(
+                    converter, colspec, data, orig_names
+                )
+
+                data[new_name] = col
+                date_cols.update(old_names)
+
+        if not keep_date_col:
+            data = data.drop(date_cols, axis=1)
+
+        return data
+
+    def _try_convert_dates(self, parser, colspec, data, columns):
+        colset = set(columns)
+        colnames = []
+
+        for c in colspec:
+            if c in colset:
+                colnames.append(c)
+            elif isinstance(c, int) and c not in columns:
+                colnames.append(columns[c])
+            else:
+                colnames.append(c)
+
+        new_name = "_".join(str(x) for x in colnames)
+        to_parse = [data[c].values for c in colnames if c in data]
+
+        new_col = parser(*to_parse)
+        return new_name, new_col, colnames
 
 
 def TextParser(*args, **kwds):
@@ -3548,6 +3617,7 @@ def _try_convert_dates(parser, colspec, data_dict, columns):
 
 
 def _clean_na_values(na_values, keep_default_na=True):
+
     if na_values is None:
         if keep_default_na:
             na_values = STR_NA_VALUES
