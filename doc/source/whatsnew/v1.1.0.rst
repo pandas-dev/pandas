@@ -405,6 +405,7 @@ Backwards incompatible API changes
   (previously raised a ``NotImplementedError``), while passing in keyword ``encoding`` now raises a ``TypeError`` (:issue:`34464`)
 - :func: `merge` now checks ``suffixes`` parameter type to be ``tuple`` and raises ``TypeError``, whereas before a ``list`` or ``set`` were accepted and that the ``set`` could produce unexpected results (:issue:`33740`)
 - :class:`Period` no longer accepts tuples for the ``freq`` argument (:issue:`34658`)
+- :method:`Series.interpolate` and :method:`DataFrame.interpolate` now raises ValueError if ``limit_direction`` is 'forward' or 'both' and ``method`` is 'backfill' or 'bfill' or ``limit_direction`` is 'backward' or 'both' and ``method`` is 'pad' or 'ffill' (:issue:`XXXXX`)
 
 ``MultiIndex.get_indexer`` interprets `method` argument differently
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -903,7 +904,6 @@ Indexing
 Missing
 ^^^^^^^
 - Calling :meth:`fillna` on an empty Series now correctly returns a shallow copied object. The behaviour is now consistent with :class:`Index`, :class:`DataFrame` and a non-empty :class:`Series` (:issue:`32543`).
-- Bug in :meth:`Series.interpolate` where kwarg ``limit_area`` and ``limit_direction`` had no effect when using methods ``pad`` and `backfill`` (:issue:`31048`)
 - Bug in :meth:`replace` when argument ``to_replace`` is of type dict/list and is used on a :class:`Series` containing ``<NA>`` was raising a ``TypeError``. The method now handles this by ignoring ``<NA>`` values when doing the comparison for the replacement (:issue:`32621`)
 - Bug in :meth:`~Series.any` and :meth:`~Series.all` incorrectly returning ``<NA>`` for all ``False`` or all ``True`` values using the nulllable boolean dtype and with ``skipna=False`` (:issue:`33253`)
 - Clarified documentation on interpolate with method =akima. The ``der`` parameter must be scalar or None (:issue:`33426`)

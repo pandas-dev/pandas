@@ -1100,7 +1100,6 @@ class Block(PandasObject):
                 axis=axis,
                 inplace=inplace,
                 limit=limit,
-                limit_area=limit_area,
                 fill_value=fill_value,
                 coerce=coerce,
                 downcast=downcast,
@@ -1129,7 +1128,6 @@ class Block(PandasObject):
         axis: int = 0,
         inplace: bool = False,
         limit: Optional[int] = None,
-        limit_area=None,
         fill_value: Optional[Any] = None,
         coerce: bool = False,
         downcast: Optional[str] = None,
@@ -1151,17 +1149,16 @@ class Block(PandasObject):
         # We only get here for non-ExtensionBlock
         fill_value = convert_scalar_for_putitemlike(fill_value, self.values.dtype)
 
-        interp_values = missing.interpolate_2d(
+        values = missing.interpolate_2d(
             values,
             method=method,
             axis=axis,
             limit=limit,
             fill_value=fill_value,
-            limit_area=limit_area,
             dtype=self.dtype,
         )
 
-        blocks = [self.make_block_same_class(interp_values, ndim=self.ndim)]
+        blocks = [self.make_block_same_class(values, ndim=self.ndim)]
         return self._maybe_downcast(blocks, downcast)
 
     def _interpolate(

@@ -6724,11 +6724,25 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             0.
         inplace : bool, default False
             Update the data in place if possible.
-        limit_direction : {'forward', 'backward', 'both'}, default is 'forward'
-            If limit is specified, consecutive NaNs will be filled in this
-            direction. If the methods 'pad' or 'ffill' are used it must be
-            None or 'forward'. If 'backfill' or 'bfill' are use it must be
-            None or 'backwards'.
+        limit_direction : {'forward', 'backward', 'both'}, Optional
+            Consecutive NaNs will be filled in this direction.
+
+            If limit is specified:
+                * If 'method' is 'pad' or 'ffill', 'limit_direction' must be 'forward'.
+                * If 'method' is 'backfill' or 'bfill', 'limit_direction' must be
+                  'backwards'.
+
+            If 'limit' is not specified:
+                * If 'method' is 'backfill' or 'bfill', the default is 'backward'
+                * else the default is 'forward'
+
+            .. versionchanged:: 1.1.0
+                raises ValueError if `limit_direction` is 'forward' or 'both' and
+                    method is 'backfill' or 'bfill'.
+                raises ValueError if `limit_direction` is 'backward' or 'both' and
+                    method is 'pad' or 'ffill'.
+
+
         limit_area : {`None`, 'inside', 'outside'}, default None
             If limit is specified, consecutive NaNs will be filled with this
             restriction.
@@ -6897,8 +6911,23 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 "Only `method=linear` interpolation is supported on MultiIndexes."
             )
 
-        # for the methods backfill, bfill, pad, ffill limit_direction and limit_area
-        # are being ignored, see gh-26796 for more information
+        # Set `limit_direction` depending on `method`
+        if limit_direction is None:
+            limit_direction = (
+                "backward" if method in ("backfill", "bfill") else "forward"
+            )
+        else:
+            if method in ("pad", "ffill") and limit_direction != "forward":
+                raise ValueError(
+                    f"`limit_direction` must be 'forward' for method `{method}`"
+                )
+            if method in ("backfill", "bfill") and limit_direction != "backward":
+                raise ValueError(
+                    f"`limit_direction` must be 'backward' for method `{method}`"
+                )
+
+        # for the methods backfill, bfill, pad, ffill limit_area
+        # is being ignored, see gh-26796 for more information
         if method in ["backfill", "bfill", "pad", "ffill"]:
             return self.fillna(
                 method=method,
@@ -6922,29 +6951,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 "column to a numeric dtype."
             )
 
-        # Set `limit_direction` depending on `method`
-        if (method == "pad") or (method == "ffill"):
-            if (limit_direction == "backward") or (limit_direction == "both"):
-                raise ValueError(
-                    f"`limit_direction` must not be `{limit_direction}` "
-                    f"for method `{method}`"
-                )
-            else:
-                limit_direction = "forward"
-        elif (method == "backfill") or (method == "bfill"):
-            if (limit_direction == "forward") or (limit_direction == "both"):
-                raise ValueError(
-                    f"`limit_direction` must not be `{limit_direction}` "
-                    f"for method `{method}`"
-                )
-            else:
-                limit_direction = "backward"
-        else:
-            # Set default
-            if limit_direction is None:
-                limit_direction = "forward"
-
-        # create/use the index
         if method == "linear":
             # prior default
             index = np.arange(len(df.index))
