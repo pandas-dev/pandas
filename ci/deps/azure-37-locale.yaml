@@ -5,7 +5,8 @@ dependencies:
   - python=3.7.*
 
   # tools
-  - cython>=0.29.16
+  # Cython pin for https://github.com/pandas-dev/pandas/issues/34704
+  - cython==0.29.19
   - pytest>=5.0.1
   - pytest-xdist>=1.21
   - pytest-asyncio
