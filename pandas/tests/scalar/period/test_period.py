@@ -6,6 +6,7 @@ import pytz
 
 from pandas._libs.tslibs import iNaT, period as libperiod
 from pandas._libs.tslibs.ccalendar import DAYS, MONTHS
+from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.parsing import DateParseError
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG, IncompatibleFrequency
 from pandas._libs.tslibs.timezones import dateutil_gettz, maybe_get_tz
@@ -766,6 +767,34 @@ class TestPeriodProperties:
             p2 = Period(ordinal=1, freq=exp)
             assert isinstance(p1, Period)
             assert isinstance(p2, Period)
+
+    @pytest.mark.parametrize("bound, offset", [(Timestamp.min, -1), (Timestamp.max, 1)])
+    def test_start_time_and_end_time_bounds(self, bound, offset):
+        # GH #13346
+        period = Period(
+            year=bound.year,
+            month=bound.month,
+            day=bound.day,
+            hour=bound.hour,
+            minute=bound.minute,
+            second=bound.second - offset,
+            freq="us",
+        )
+        period.start_time
+        period.end_time
+        period = Period(
+            year=bound.year,
+            month=bound.month,
+            day=bound.day,
+            hour=bound.hour,
+            minute=bound.minute,
+            second=bound.second + offset,
+            freq="us",
+        )
+        with pytest.raises(OutOfBoundsDatetime, match="Out of bounds nanosecond"):
+            period.start_time
+        with pytest.raises(OutOfBoundsDatetime, match="Out of bounds nanosecond"):
+            period.end_time
 
     def test_start_time(self):
         freq_lst = ["A", "Q", "M", "D", "H", "T", "S"]
