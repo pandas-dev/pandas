@@ -223,7 +223,8 @@ def test_where_setitem_invalid():
     # make sure correct exceptions are raised on invalid list assignment
 
     msg = (
-        lambda x: f"cannot set using a {x} indexer with a different length than the value"
+        lambda x: f"cannot set using a {x} indexer with a "
+        "different length than the value"
     )
     # slice
     s = Series(list("abc"))
