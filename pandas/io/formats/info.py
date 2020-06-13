@@ -242,10 +242,11 @@ class DataFrameInfo(Info):
         show_counts : bool
             If True, count of non-NA cells for each column will be appended to `lines`.
         """
+        col_count = len(ids)
+        lines.append(f"Data columns (total {col_count} columns):")
         id_head = " # "
         column_head = "Column"
         col_space = 2
-        col_count = len(ids)
 
         max_col = max(len(pprint_thing(k)) for k in ids)
         len_column = len(pprint_thing(column_head))
@@ -255,7 +256,6 @@ class DataFrameInfo(Info):
         len_id = len(pprint_thing(id_head))
         space_num = max(max_id, len_id) + col_space
 
-        lines.append(f"Data columns (total {col_count} columns):")
         header = _put_str(id_head, space_num) + _put_str(column_head, space)
         if show_counts:
             counts = self.data.count()
