@@ -1,3 +1,4 @@
+from abc import ABCMeta, abstractmethod
 import sys
 from typing import IO, TYPE_CHECKING, List, Optional, Tuple, Union
 
@@ -40,7 +41,7 @@ def _put_str(s: Union[str, Dtype], space: int) -> str:
     return str(s)[:space].ljust(space)
 
 
-class Info:
+class Info(metaclass=ABCMeta):
     def __init__(
         self,
         data: FrameOrSeries,
@@ -62,17 +63,21 @@ class Info:
         self.memory_usage = memory_usage
         self.null_counts = null_counts
 
+    @abstractmethod
     def _get_mem_usage(self, deep: bool) -> int:
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def _get_ids_and_dtypes(self) -> Tuple["Index", "Series"]:
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def _verbose_repr(self, lines, ids, dtypes, show_counts):
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def _non_verbose_repr(self, lines, ids):
-        raise NotImplementedError
+        pass
 
     def info(self) -> None:
         """
