@@ -709,7 +709,7 @@ int skip_this_line(parser_t *self, int64_t rownum) {
 }
 
 int tokenize_bytes(parser_t *self,
-                   size_t line_limit, int64_t start_lines) {
+                   size_t line_limit, uint64_t start_lines) {
     int64_t i;
     uint64_t slen;
     int should_skip;
@@ -1348,7 +1348,7 @@ int parser_trim_buffers(parser_t *self) {
 
 int _tokenize_helper(parser_t *self, size_t nrows, int all) {
     int status = 0;
-    int64_t start_lines = self->lines;
+    uint64_t start_lines = self->lines;
 
     if (self->state == FINISHED) {
         return 0;

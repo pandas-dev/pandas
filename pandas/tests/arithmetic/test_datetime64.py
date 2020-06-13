@@ -962,7 +962,9 @@ class TestDatetime64Arithmetic:
         obj = tm.box_expected(dti, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
 
-        warn = PerformanceWarning if box_with_array is not pd.DataFrame else None
+        warn = None
+        if box_with_array is not pd.DataFrame or tz_naive_fixture is None:
+            warn = PerformanceWarning
         with tm.assert_produces_warning(warn):
             result = obj - obj.astype(object)
         tm.assert_equal(result, expected)
@@ -1465,7 +1467,7 @@ class TestDatetime64DateOffsetArithmetic:
             other = tm.box_expected(other, box_with_array)
 
         warn = PerformanceWarning
-        if box_with_array is pd.DataFrame and not (tz is None and not box_other):
+        if box_with_array is pd.DataFrame and tz is not None:
             warn = None
         with tm.assert_produces_warning(warn):
             res = op(dtarr, other)

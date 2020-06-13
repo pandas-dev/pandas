@@ -139,6 +139,12 @@ class TestCasting(BaseNumPyTests, base.BaseCastingTests):
         # ValueError: setting an array element with a sequence
         super().test_astype_str(data)
 
+    @skip_nested
+    def test_astype_string(self, data):
+        # GH-33465
+        # ValueError: setting an array element with a sequence
+        super().test_astype_string(data)
+
 
 class TestConstructors(BaseNumPyTests, base.BaseConstructorsTests):
     @pytest.mark.skip(reason="We don't register our dtype")
@@ -275,6 +281,12 @@ class TestMethods(BaseNumPyTests, base.BaseMethodsTests):
     @pytest.mark.xfail(reason="PandasArray.diff may fail on dtype")
     def test_diff(self, data, periods):
         return super().test_diff(data, periods)
+
+    @skip_nested
+    @pytest.mark.parametrize("box", [pd.array, pd.Series, pd.DataFrame])
+    def test_equals(self, data, na_value, as_series, box):
+        # Fails creating with _from_sequence
+        super().test_equals(data, na_value, as_series, box)
 
 
 @skip_nested

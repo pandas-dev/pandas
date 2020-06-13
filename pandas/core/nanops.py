@@ -143,7 +143,7 @@ def _bn_ok_dtype(dtype: DtypeObj, name: str) -> bool:
 
         # GH 9422
         # further we also want to preserve NaN when all elements
-        # are NaN, unlinke bottleneck/numpy which consider this
+        # are NaN, unlike bottleneck/numpy which consider this
         # to be 0
         if name in ["nansum", "nanprod"]:
             return False
@@ -155,9 +155,9 @@ def _bn_ok_dtype(dtype: DtypeObj, name: str) -> bool:
 def _has_infs(result) -> bool:
     if isinstance(result, np.ndarray):
         if result.dtype == "f8":
-            return lib.has_infs_f8(result.ravel())
+            return lib.has_infs_f8(result.ravel("K"))
         elif result.dtype == "f4":
-            return lib.has_infs_f4(result.ravel())
+            return lib.has_infs_f4(result.ravel("K"))
     try:
         return np.isinf(result).any()
     except (TypeError, NotImplementedError):
@@ -384,8 +384,12 @@ def _na_for_min_count(
     else:
         assert axis is not None  # assertion to make mypy happy
         result_shape = values.shape[:axis] + values.shape[axis + 1 :]
-        result = np.empty(result_shape, dtype=values.dtype)
-        result.fill(fill_value)
+        # calling np.full with dtype parameter throws an ValueError when called
+        # with dtype=np.datetime64 and and fill_value=pd.NaT
+        try:
+            result = np.full(result_shape, fill_value, dtype=values.dtype)
+        except ValueError:
+            result = np.full(result_shape, fill_value)
         return result
 
 
@@ -608,7 +612,7 @@ def nanmedian(values, axis=None, skipna=True, mask=None):
             values[mask] = np.nan
 
     if axis is None:
-        values = values.ravel()
+        values = values.ravel("K")
 
     notempty = values.size
 
@@ -755,12 +759,12 @@ def nanvar(values, axis=None, skipna=True, ddof=1, mask=None):
     values = extract_array(values, extract_numpy=True)
     dtype = values.dtype
     mask = _maybe_get_mask(values, skipna, mask)
-    if is_any_int_dtype(values):
+    if is_any_int_dtype(dtype):
         values = values.astype("f8")
         if mask is not None:
             values[mask] = np.nan
 
-    if is_float_dtype(values):
+    if is_float_dtype(values.dtype):
         count, d = _get_counts_nanvar(values.shape, mask, axis, ddof, values.dtype)
     else:
         count, d = _get_counts_nanvar(values.shape, mask, axis, ddof)
@@ -1279,7 +1283,7 @@ def _maybe_null_out(
 
 def check_below_min_count(
     shape: Tuple[int, ...], mask: Optional[np.ndarray], min_count: int
-):
+) -> bool:
     """
     Check for the `min_count` keyword. Returns True if below `min_count` (when
     missing value should be returned from the reduction).

@@ -8,6 +8,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
+    is_float,
     is_hashable,
     is_integer,
     is_iterator,
@@ -247,7 +248,7 @@ class MPLPlot:
                 yield col, values.values
 
     @property
-    def nseries(self):
+    def nseries(self) -> int:
         if self.data.ndim == 1:
             return 1
         else:
@@ -282,10 +283,10 @@ class MPLPlot:
             return self._get_ax_layer(ax)
 
         if hasattr(ax, "right_ax"):
-            # if it has right_ax proparty, ``ax`` must be left axes
+            # if it has right_ax property, ``ax`` must be left axes
             return ax.right_ax
         elif hasattr(ax, "left_ax"):
-            # if it has left_ax proparty, ``ax`` must be right axes
+            # if it has left_ax property, ``ax`` must be right axes
             return ax
         else:
             # otherwise, create twin axes
@@ -387,7 +388,7 @@ class MPLPlot:
         if self.include_bool is True:
             include_type.append(np.bool_)
 
-        # GH22799, exclude datatime-like type for boxplot
+        # GH22799, exclude datetime-like type for boxplot
         exclude_type = None
         if self._kind == "box":
             # TODO: change after solving issue 27881
@@ -1103,7 +1104,7 @@ class LinePlot(MPLPlot):
 
     @classmethod
     def _plot(cls, ax, x, y, style=None, column_num=None, stacking_id=None, **kwds):
-        # column_num is used to get the target column from protf in line and
+        # column_num is used to get the target column from plotf in line and
         # area plots
         if column_num == 0:
             cls._initialize_stacker(ax, stacking_id, len(y))
@@ -1188,6 +1189,8 @@ class LinePlot(MPLPlot):
         from matplotlib.ticker import FixedLocator
 
         def get_label(i):
+            if is_float(i) and i.is_integer():
+                i = int(i)
             try:
                 return pprint_thing(data.index[i])
             except Exception:

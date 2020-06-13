@@ -56,12 +56,6 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.generic import (
-    ABCDatetimeIndex,
-    ABCMultiIndex,
-    ABCPeriodIndex,
-    ABCTimedeltaIndex,
-)
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core.arrays.datetimes import DatetimeArray
@@ -69,7 +63,7 @@ from pandas.core.arrays.timedeltas import TimedeltaArray
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.construction import extract_array
-from pandas.core.indexes.api import Index, ensure_index
+from pandas.core.indexes.api import Index, MultiIndex, PeriodIndex, ensure_index
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
@@ -294,7 +288,7 @@ class SeriesFormatter:
 
         if getattr(self.series.index, "freq", None) is not None:
             assert isinstance(
-                self.series.index, (ABCDatetimeIndex, ABCPeriodIndex, ABCTimedeltaIndex)
+                self.series.index, (DatetimeIndex, PeriodIndex, TimedeltaIndex)
             )
             footer += f"Freq: {self.series.index.freqstr}"
 
@@ -329,7 +323,7 @@ class SeriesFormatter:
 
     def _get_formatted_index(self) -> Tuple[List[str], bool]:
         index = self.tr_series.index
-        is_multi = isinstance(index, ABCMultiIndex)
+        is_multi = isinstance(index, MultiIndex)
 
         if is_multi:
             have_header = any(name for name in index.names)
@@ -976,7 +970,7 @@ class DataFrameFormatter(TableFormatter):
 
         columns = frame.columns
 
-        if isinstance(columns, ABCMultiIndex):
+        if isinstance(columns, MultiIndex):
             fmt_columns = columns.format(sparsify=False, adjoin=False)
             fmt_columns = list(zip(*fmt_columns))
             dtypes = self.frame.dtypes._values
@@ -1036,7 +1030,7 @@ class DataFrameFormatter(TableFormatter):
         columns = frame.columns
         fmt = self._get_formatter("__index__")
 
-        if isinstance(index, ABCMultiIndex):
+        if isinstance(index, MultiIndex):
             fmt_index = index.format(
                 sparsify=self.sparsify,
                 adjoin=False,
@@ -1071,7 +1065,7 @@ class DataFrameFormatter(TableFormatter):
     def _get_column_name_list(self) -> List[str]:
         names: List[str] = []
         columns = self.frame.columns
-        if isinstance(columns, ABCMultiIndex):
+        if isinstance(columns, MultiIndex):
             names.extend("" if name is None else name for name in columns.names)
         else:
             names.append("" if columns.name is None else columns.name)
@@ -1122,7 +1116,7 @@ def format_array(
     fmt_klass: Type[GenericArrayFormatter]
     if is_datetime64_dtype(values.dtype):
         fmt_klass = Datetime64Formatter
-    elif is_datetime64tz_dtype(values):
+    elif is_datetime64tz_dtype(values.dtype):
         fmt_klass = Datetime64TZFormatter
     elif is_timedelta64_dtype(values.dtype):
         fmt_klass = Timedelta64Formatter
@@ -1767,7 +1761,7 @@ def _trim_zeros_float(
 
 
 def _has_names(index: Index) -> bool:
-    if isinstance(index, ABCMultiIndex):
+    if isinstance(index, MultiIndex):
         return com.any_not_none(*index.names)
     else:
         return index.name is not None

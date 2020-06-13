@@ -23,7 +23,16 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib, properties, reshape, tslibs
-from pandas._typing import ArrayLike, Axis, DtypeObj, IndexKeyFunc, Label, ValueKeyFunc
+from pandas._libs.lib import no_default
+from pandas._typing import (
+    ArrayLike,
+    Axis,
+    DtypeObj,
+    FrameOrSeriesUnion,
+    IndexKeyFunc,
+    Label,
+    ValueKeyFunc,
+)
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, doc
 from pandas.util._validators import validate_bool_kwarg, validate_percentile
@@ -45,13 +54,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCDatetimeIndex,
-    ABCMultiIndex,
-    ABCPeriodIndex,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCDataFrame
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import (
     isna,
@@ -272,7 +275,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                         "Cannot construct a Series from an ndarray with "
                         "compound dtype.  Use DataFrame instead."
                     )
-            elif isinstance(data, ABCSeries):
+            elif isinstance(data, Series):
                 if index is None:
                     index = data.index
                 else:
@@ -912,7 +915,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _get_with(self, key):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
-            # _convert_slice_indexer to determin if this slice is positional
+            # _convert_slice_indexer to determine if this slice is positional
             #  or label based, and if the latter, convert to positional
             slobj = self.index._convert_slice_indexer(key, kind="getitem")
             return self._slice(slobj)
@@ -1419,6 +1422,21 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         |  1 | pig      |
         |  2 | dog      |
         |  3 | quetzal  |
+
+        Output markdown with a tabulate option.
+
+        >>> print(s.to_markdown(tablefmt="grid"))
+        +----+----------+
+        |    | animal   |
+        +====+==========+
+        |  0 | elk      |
+        +----+----------+
+        |  1 | pig      |
+        +----+----------+
+        |  2 | dog      |
+        +----+----------+
+        |  3 | quetzal  |
+        +----+----------+
         """
     )
     @Substitution(klass="Series")
@@ -1609,6 +1627,34 @@ Type
 Captive    210.0
 Wild       185.0
 Name: Max Speed, dtype: float64
+
+We can also choose to include `NA` in group keys or not by defining
+`dropna` parameter, the default setting is `True`:
+
+>>> ser = pd.Series([1, 2, 3, 3], index=["a", 'a', 'b', np.nan])
+>>> ser.groupby(level=0).sum()
+a    3
+b    3
+dtype: int64
+
+>>> ser.groupby(level=0, dropna=False).sum()
+a    3
+b    3
+NaN  3
+dtype: int64
+
+>>> arrays = ['Falcon', 'Falcon', 'Parrot', 'Parrot']
+>>> ser = pd.Series([390., 350., 30., 20.], index=arrays, name="Max Speed")
+>>> ser.groupby(["a", "b", "a", np.nan]).mean()
+a    210.0
+b    350.0
+Name: Max Speed, dtype: float64
+
+>>> ser.groupby(["a", "b", "a", np.nan], dropna=False).mean()
+a    210.0
+b    350.0
+NaN   20.0
+Name: Max Speed, dtype: float64
 """
     )
     @Appender(generic._shared_docs["groupby"] % _shared_doc_kwargs)
@@ -1620,10 +1666,23 @@ Name: Max Speed, dtype: float64
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool = True,
-        squeeze: bool = False,
+        squeeze: bool = no_default,
         observed: bool = False,
+        dropna: bool = True,
     ) -> "SeriesGroupBy":
         from pandas.core.groupby.generic import SeriesGroupBy
+
+        if squeeze is not no_default:
+            warnings.warn(
+                (
+                    "The `squeeze` parameter is deprecated and "
+                    "will be removed in a future version."
+                ),
+                FutureWarning,
+                stacklevel=2,
+            )
+        else:
+            squeeze = False
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
@@ -1639,6 +1698,7 @@ Name: Max Speed, dtype: float64
             group_keys=group_keys,
             squeeze=squeeze,
             observed=observed,
+            dropna=dropna,
         )
 
     # ----------------------------------------------------------------------
@@ -2269,38 +2329,12 @@ Name: Max Speed, dtype: float64
             return np.nan
         return nanops.nancov(this.values, other.values, min_periods=min_periods)
 
-    def diff(self, periods: int = 1) -> "Series":
-        """
-        First discrete difference of element.
-
-        Calculates the difference of a Series element compared with another
-        element in the Series (default is element in previous row).
-
-        Parameters
-        ----------
-        periods : int, default 1
-            Periods to shift for calculating difference, accepts negative
-            values.
-
-        Returns
-        -------
-        Series
-            First differences of the Series.
-
-        See Also
-        --------
-        Series.pct_change: Percent change over given number of periods.
-        Series.shift: Shift index by desired number of periods with an
-            optional time freq.
-        DataFrame.diff: First discrete difference of object.
-
-        Notes
-        -----
-        For boolean dtypes, this uses :meth:`operator.xor` rather than
-        :meth:`operator.sub`.
-
-        Examples
-        --------
+    @doc(
+        klass="Series",
+        extra_params="",
+        other_klass="DataFrame",
+        examples=dedent(
+            """
         Difference with previous row
 
         >>> s = pd.Series([1, 1, 2, 3, 5, 8])
@@ -2334,6 +2368,51 @@ Name: Max Speed, dtype: float64
         4   -3.0
         5    NaN
         dtype: float64
+
+        Overflow in input dtype
+
+        >>> s = pd.Series([1, 0], dtype=np.uint8)
+        >>> s.diff()
+        0      NaN
+        1    255.0
+        dtype: float64"""
+        ),
+    )
+    def diff(self, periods: int = 1) -> "Series":
+        """
+        First discrete difference of element.
+
+        Calculates the difference of a {klass} element compared with another
+        element in the {klass} (default is element in previous row).
+
+        Parameters
+        ----------
+        periods : int, default 1
+            Periods to shift for calculating difference, accepts negative
+            values.
+        {extra_params}
+        Returns
+        -------
+        {klass}
+            First differences of the Series.
+
+        See Also
+        --------
+        {klass}.pct_change: Percent change over given number of periods.
+        {klass}.shift: Shift index by desired number of periods with an
+            optional time freq.
+        {other_klass}.diff: First discrete difference of object.
+
+        Notes
+        -----
+        For boolean dtypes, this uses :meth:`operator.xor` rather than
+        :meth:`operator.sub`.
+        The result is calculated according to current dtype in {klass},
+        however dtype of the result is always float64.
+
+        Examples
+        --------
+        {examples}
         """
         result = algorithms.diff(self.array, periods)
         return self._constructor(result, index=self.index).__finalize__(
@@ -2560,10 +2639,7 @@ Name: Max Speed, dtype: float64
         else:
             to_concat = [self, to_append]
         if any(isinstance(x, (ABCDataFrame,)) for x in to_concat[1:]):
-            msg = (
-                f"to_append should be a Series or list/tuple of Series, "
-                f"got DataFrame"
-            )
+            msg = "to_append should be a Series or list/tuple of Series, got DataFrame"
             raise TypeError(msg)
         return concat(
             to_concat, ignore_index=ignore_index, verify_integrity=verify_integrity
@@ -2641,6 +2717,83 @@ Name: Max Speed, dtype: float64
         #  would set it back to self.name
         out.name = name
         return out
+
+    @Appender(
+        """
+Returns
+-------
+Series or DataFrame
+    If axis is 0 or 'index' the result will be a Series.
+    The resulting index will be a MultiIndex with 'self' and 'other'
+    stacked alternately at the inner level.
+
+    If axis is 1 or 'columns' the result will be a DataFrame.
+    It will have two columns namely 'self' and 'other'.
+
+See Also
+--------
+DataFrame.compare : Compare with another DataFrame and show differences.
+
+Notes
+-----
+Matching NaNs will not appear as a difference.
+
+Examples
+--------
+>>> s1 = pd.Series(["a", "b", "c", "d", "e"])
+>>> s2 = pd.Series(["a", "a", "c", "b", "e"])
+
+Align the differences on columns
+
+>>> s1.compare(s2)
+  self other
+1    b     a
+3    d     b
+
+Stack the differences on indices
+
+>>> s1.compare(s2, align_axis=0)
+1  self     b
+   other    a
+3  self     d
+   other    b
+dtype: object
+
+Keep all original rows
+
+>>> s1.compare(s2, keep_shape=True)
+  self other
+0  NaN   NaN
+1    b     a
+2  NaN   NaN
+3    d     b
+4  NaN   NaN
+
+Keep all original rows and also all original values
+
+>>> s1.compare(s2, keep_shape=True, keep_equal=True)
+  self other
+0    a     a
+1    b     a
+2    c     c
+3    d     b
+4    e     e
+"""
+    )
+    @Appender(generic._shared_docs["compare"] % _shared_doc_kwargs)
+    def compare(
+        self,
+        other: "Series",
+        align_axis: Axis = 1,
+        keep_shape: bool = False,
+        keep_equal: bool = False,
+    ) -> FrameOrSeriesUnion:
+        return super().compare(
+            other=other,
+            align_axis=align_axis,
+            keep_shape=keep_shape,
+            keep_equal=keep_equal,
+        )
 
     def combine(self, other, func, fill_value=None) -> "Series":
         """
@@ -2782,8 +2935,10 @@ Name: Max Speed, dtype: float64
 
     def update(self, other) -> None:
         """
-        Modify Series in place using non-NA values from passed
-        Series. Aligns on index.
+        Modify Series in place using values from passed Series.
+
+        Uses non-NA values from passed Series to make updates. Aligns
+        on index.
 
         Parameters
         ----------
@@ -3298,6 +3453,8 @@ Name: Max Speed, dtype: float64
 
     def argsort(self, axis=0, kind="quicksort", order=None) -> "Series":
         """
+        Return the integer indices that would sort the Series values.
+
         Override ndarray.argsort. Argsorts the value, omitting NA/null values,
         and places the result in the same locations as the non-NA values.
 
@@ -3377,7 +3534,7 @@ Name: Max Speed, dtype: float64
         ...                         "Malta": 434000, "Maldives": 434000,
         ...                         "Brunei": 434000, "Iceland": 337000,
         ...                         "Nauru": 11300, "Tuvalu": 11300,
-        ...                         "Anguilla": 11300, "Monserat": 5200}
+        ...                         "Anguilla": 11300, "Montserrat": 5200}
         >>> s = pd.Series(countries_population)
         >>> s
         Italy       59000000
@@ -3389,7 +3546,7 @@ Name: Max Speed, dtype: float64
         Nauru          11300
         Tuvalu         11300
         Anguilla       11300
-        Monserat        5200
+        Montserrat      5200
         dtype: int64
 
         The `n` largest elements where ``n=5`` by default.
@@ -3475,7 +3632,7 @@ Name: Max Speed, dtype: float64
         ...                         "Brunei": 434000, "Malta": 434000,
         ...                         "Maldives": 434000, "Iceland": 337000,
         ...                         "Nauru": 11300, "Tuvalu": 11300,
-        ...                         "Anguilla": 11300, "Monserat": 5200}
+        ...                         "Anguilla": 11300, "Montserrat": 5200}
         >>> s = pd.Series(countries_population)
         >>> s
         Italy       59000000
@@ -3487,13 +3644,13 @@ Name: Max Speed, dtype: float64
         Nauru          11300
         Tuvalu         11300
         Anguilla       11300
-        Monserat        5200
+        Montserrat      5200
         dtype: int64
 
         The `n` smallest elements where ``n=5`` by default.
 
         >>> s.nsmallest()
-        Monserat      5200
+        Montserrat    5200
         Nauru        11300
         Tuvalu       11300
         Anguilla     11300
@@ -3504,7 +3661,7 @@ Name: Max Speed, dtype: float64
         'first' so Nauru and Tuvalu will be kept.
 
         >>> s.nsmallest(3)
-        Monserat     5200
+        Montserrat   5200
         Nauru       11300
         Tuvalu      11300
         dtype: int64
@@ -3514,7 +3671,7 @@ Name: Max Speed, dtype: float64
         with value 11300 based on the index order.
 
         >>> s.nsmallest(3, keep='last')
-        Monserat     5200
+        Montserrat   5200
         Anguilla    11300
         Tuvalu      11300
         dtype: int64
@@ -3523,7 +3680,7 @@ Name: Max Speed, dtype: float64
         that the returned Series has four elements due to the three duplicates.
 
         >>> s.nsmallest(3, keep='all')
-        Monserat     5200
+        Montserrat   5200
         Nauru       11300
         Tuvalu      11300
         Anguilla    11300
@@ -3549,7 +3706,7 @@ Name: Max Speed, dtype: float64
         Series
             Series with levels swapped in MultiIndex.
         """
-        assert isinstance(self.index, ABCMultiIndex)
+        assert isinstance(self.index, MultiIndex)
         new_index = self.index.swaplevel(i, j)
         return self._constructor(self._values, index=new_index, copy=copy).__finalize__(
             self, method="swaplevel"
@@ -3574,14 +3731,13 @@ Name: Max Speed, dtype: float64
             raise Exception("Can only reorder levels on a hierarchical axis.")
 
         result = self.copy()
-        assert isinstance(result.index, ABCMultiIndex)
+        assert isinstance(result.index, MultiIndex)
         result.index = result.index.reorder_levels(order)
         return result
 
     def explode(self) -> "Series":
         """
-        Transform each element of a list-like to a row, replicating the
-        index values.
+        Transform each element of a list-like to a row.
 
         .. versionadded:: 0.25.0
 
@@ -3631,12 +3787,15 @@ Name: Max Speed, dtype: float64
 
         values, counts = reshape.explode(np.asarray(self.array))
 
-        result = Series(values, index=self.index.repeat(counts), name=self.name)
+        result = self._constructor(
+            values, index=self.index.repeat(counts), name=self.name
+        )
         return result
 
     def unstack(self, level=-1, fill_value=None):
         """
         Unstack, also known as pivot, Series with MultiIndex to produce DataFrame.
+
         The level involved will automatically get sorted.
 
         Parameters
@@ -4373,7 +4532,7 @@ Name: Max Speed, dtype: float64
 
     def isin(self, values) -> "Series":
         """
-        Check whether `values` are contained in Series.
+        Whether elements in Series are contained in `values`.
 
         Return a boolean Series showing whether each element in the Series
         matches an element in the passed sequence of `values` exactly.
@@ -4661,16 +4820,16 @@ Name: Max Speed, dtype: float64
         if copy:
             new_values = new_values.copy()
 
-        assert isinstance(self.index, (ABCDatetimeIndex, ABCPeriodIndex))
-        new_index = self.index.to_timestamp(freq=freq, how=how)
+        if not isinstance(self.index, PeriodIndex):
+            raise TypeError(f"unsupported Type {type(self.index).__name__}")
+        new_index = self.index.to_timestamp(freq=freq, how=how)  # type: ignore
         return self._constructor(new_values, index=new_index).__finalize__(
             self, method="to_timestamp"
         )
 
     def to_period(self, freq=None, copy=True) -> "Series":
         """
-        Convert Series from DatetimeIndex to PeriodIndex with desired
-        frequency (inferred from index if not passed).
+        Convert Series from DatetimeIndex to PeriodIndex.
 
         Parameters
         ----------
@@ -4688,7 +4847,8 @@ Name: Max Speed, dtype: float64
         if copy:
             new_values = new_values.copy()
 
-        assert isinstance(self.index, ABCDatetimeIndex)
+        if not isinstance(self.index, DatetimeIndex):
+            raise TypeError(f"unsupported Type {type(self.index).__name__}")
         new_index = self.index.to_period(freq=freq)
         return self._constructor(new_values, index=new_index).__finalize__(
             self, method="to_period"

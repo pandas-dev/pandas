@@ -1,6 +1,7 @@
 """ implement the TimedeltaIndex """
 
-from pandas._libs import NaT, Timedelta, index as libindex, lib
+from pandas._libs import index as libindex, lib
+from pandas._libs.tslibs import Timedelta, to_offset
 from pandas._typing import DtypeObj, Label
 from pandas.util._decorators import doc
 
@@ -13,7 +14,6 @@ from pandas.core.dtypes.common import (
     is_timedelta64_ns_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.missing import is_valid_nat_for_dtype
 
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.timedeltas import TimedeltaArray
@@ -24,8 +24,6 @@ from pandas.core.indexes.datetimelike import (
     DatetimeTimedeltaMixin,
 )
 from pandas.core.indexes.extension import inherit_names
-
-from pandas.tseries.frequencies import to_offset
 
 
 @inherit_names(
@@ -214,20 +212,11 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         if not is_scalar(key):
             raise InvalidIndexError(key)
 
-        if is_valid_nat_for_dtype(key, self.dtype):
-            key = NaT
-
-        elif isinstance(key, str):
-            try:
-                key = Timedelta(key)
-            except ValueError as err:
-                raise KeyError(key) from err
-
-        elif isinstance(key, self._data._recognized_scalars) or key is NaT:
-            key = Timedelta(key)
-
-        else:
-            raise KeyError(key)
+        msg = str(key)
+        try:
+            key = self._data._validate_scalar(key, msg, cast_str=True)
+        except TypeError as err:
+            raise KeyError(key) from err
 
         return Index.get_loc(self, key, method, tolerance)
 
