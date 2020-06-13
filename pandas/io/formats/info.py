@@ -1,11 +1,11 @@
 import sys
-from typing import IO, TYPE_CHECKING, Optional, Tuple, Union
+from typing import IO, TYPE_CHECKING, List, Optional, Tuple, Union
 
 from pandas._config import get_option
 
 from pandas._typing import Dtype, FrameOrSeries
 
-from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.indexes.api import Index
 
@@ -116,6 +116,18 @@ class Info:
         self.memory_usage = memory_usage
         self.null_counts = null_counts
 
+    def _get_mem_usage(self, deep: bool) -> int:
+        raise NotImplementedError
+
+    def _get_ids_and_dtypes(self) -> Tuple["Index", "Series"]:
+        raise NotImplementedError
+
+    def _verbose_repr(self, lines, ids, dtypes, show_counts):
+        raise NotImplementedError
+
+    def _non_verbose_repr(self, lines, ids):
+        raise NotImplementedError
+
     def get_info(self) -> None:
         lines = []
 
@@ -182,34 +194,14 @@ class Info:
             lines.append(f"memory usage: {_sizeof_fmt(mem_usage, size_qualifier)}\n")
         fmt.buffer_put_lines(self.buf, lines)
 
-    def _get_mem_usage(self, deep: bool) -> int:
-        raise NotImplementedError
-
-    def _get_ids_and_dtypes(self) -> Tuple["Index", "Series"]:
-        raise NotImplementedError
-
-    def _get_counts(self) -> "Series":
-        raise NotImplementedError
-
-    def space(self, max_col, len_column, col_space):
-        raise NotImplementedError
-
-    def _verbose_repr(self, lines, ids, dtypes, show_counts):
-        raise NotImplementedError
-
-    def _non_verbose_repr(self, lines, ids):
-        raise NotImplementedError
-
 
 class DataFrameInfo(Info):
     def _get_mem_usage(self, deep: bool) -> int:
         """
-        Get DataFrame or Series' memory usage in bytes.
+        Get DataFrame's memory usage in bytes.
 
         Parameters
         ----------
-        data : DataFrame or Series
-            Object that `info` was called on.
         deep : bool
             If True, introspect the data deeply by interrogating object dtypes
             for system-level memory consumption, and include it in the returned
@@ -222,45 +214,36 @@ class DataFrameInfo(Info):
         """
         return self.data.memory_usage(index=True, deep=deep).sum()
 
-    def _get_counts(self) -> "Series":
-        """
-        Get DataFrame or Series' non-NA counts.
-
-        Parameters
-        ----------
-        data : DataFrame or Series
-            Object that `info` was called on.
-
-        Returns
-        -------
-        counts : Series
-            Count non-NA cells (for each column in the DataFrame case).
-        """
-        return self.data.count()
-
     def _get_ids_and_dtypes(self) -> Tuple["Index", "Series"]:
         """
-        Get DataFrame or Series' columns/name and dtypes.
-
-        Parameters
-        ----------
-        data : DataFrame or Series
-            Object that `info` was called on.
+        Get DataFrame's column names and dtypes.
 
         Returns
         -------
         ids : Index
-            DataFrame's columns or Series' name.
+            DataFrame's column names.
         dtypes : Series
-            Dtype of each of the DataFrame's columns or the Series' dtype.
+            Dtype of each of the DataFrame's columns.
         """
         return self.data.columns, self.data.dtypes
 
-    def space(self, max_col, len_column, col_space):
-        return max(max_col, len_column) + col_space
+    def _verbose_repr(
+        self, lines: List[str], ids: "Index", dtypes: "Series", show_counts: bool
+    ) -> None:
+        """
+        Display name, non-null count (optionally), and dtype for each column.
 
-    def _verbose_repr(self, lines, ids, dtypes, show_counts):
-
+        Parameters
+        ----------
+        lines : List[str]
+            Lines that will contain `info` representation.
+        ids : Index
+            The DataFrame's column names.
+        dtypes : Series
+            The DataFrame's columns' dtypes.
+        show_counts : bool
+            If True, count of non-NA cells for each column will be appended to `lines`.
+        """
         id_head = " # "
         column_head = "Column"
         col_space = 2
@@ -268,6 +251,7 @@ class DataFrameInfo(Info):
 
         max_col = max(len(pprint_thing(k)) for k in ids)
         len_column = len(pprint_thing(column_head))
+        space = max(max_col, len_column) + col_space
 
         max_id = len(pprint_thing(col_count))
         len_id = len(pprint_thing(id_head))
@@ -275,15 +259,12 @@ class DataFrameInfo(Info):
 
         header = _put_str(id_head, space_num)
 
-        if isinstance(self.data, ABCDataFrame):
-            lines.append(f"Data columns (total {col_count} columns):")
-            len_column = len(pprint_thing(column_head))
-            header += _put_str(column_head, self.space(max_col, len_column, col_space))
-        else:
-            lines.append(f"Series name: {self.data.name}")
+        lines.append(f"Data columns (total {col_count} columns):")
+        len_column = len(pprint_thing(column_head))
+        header = _put_str(id_head, space_num) + _put_str(column_head, space)
 
         if show_counts:
-            counts = self._get_counts()
+            counts = self.data.count()
             if col_count != len(counts):  # pragma: no cover
                 raise AssertionError(
                     f"Columns must equal counts ({col_count} != {len(counts)})"
@@ -311,7 +292,7 @@ class DataFrameInfo(Info):
         lines.append(header)
         lines.append(
             _put_str("-" * len_id, space_num)
-            + _put_str("-" * len_column, self.space(max_col, len_column, col_space))
+            + _put_str("-" * len_column, space)
             + _put_str("-" * len_count, space_count)
             + _put_str("-" * len_dtype, space_dtype)
         )
@@ -327,24 +308,32 @@ class DataFrameInfo(Info):
 
             lines.append(
                 line_no
-                + _put_str(col, self.space(max_col, len_column, col_space))
+                + _put_str(col, space)
                 + _put_str(count_temp.format(count=count), space_count)
                 + _put_str(dtype, space_dtype)
             )
 
-    def _non_verbose_repr(self, lines, ids):
+    def _non_verbose_repr(self, lines: List[str], ids: "Series") -> None:
+        """
+        Append short summary of columns' names to `lines`.
+
+        Parameters
+        ----------
+        lines : List[str]
+            Lines that will contain `info` representation.
+        ids : Index
+            The DataFrame's column names.
+        """
         lines.append(ids._summary(name="Columns"))
 
 
 class SeriesInfo(Info):
     def _get_mem_usage(self, deep: bool) -> int:
         """
-        Get DataFrame or Series' memory usage in bytes.
+        Get Series' memory usage in bytes.
 
         Parameters
         ----------
-        data : DataFrame or Series
-            Object that `info` was called on.
         deep : bool
             If True, introspect the data deeply by interrogating object dtypes
             for system-level memory consumption, and include it in the returned
@@ -357,44 +346,35 @@ class SeriesInfo(Info):
         """
         return self.data.memory_usage(index=True, deep=deep)
 
-    def _get_counts(self) -> "Series":
-        """
-        Get DataFrame or Series' non-NA counts.
-
-        Parameters
-        ----------
-        data : DataFrame or Series
-            Object that `info` was called on.
-
-        Returns
-        -------
-        counts : Series
-            Count non-NA cells (for each column in the DataFrame case).
-        """
-        return self.data._constructor(self.data.count())
-
     def _get_ids_and_dtypes(self) -> Tuple["Index", "Series"]:
         """
-        Get DataFrame or Series' columns/name and dtypes.
-
-        Parameters
-        ----------
-        data : DataFrame or Series
-            Object that `info` was called on.
+        Get Series' name and dtypes.
 
         Returns
         -------
         ids : Index
-            DataFrame's columns or Series' name.
+            Series' name.
         dtypes : Series
-            Dtype of each of the DataFrame's columns or the Series' dtype.
+            Series' dtype.
         """
+        assert isinstance(self.data, ABCSeries)  # help mypy
         return Index([self.data.name]), self.data._constructor(self.data.dtypes)
 
-    def space(self, max_col, len_column, col_space):
-        return 0
+    def _verbose_repr(self, lines, ids, dtypes, show_counts) -> None:
+        """
+        Display name, non-null count (optionally), and dtype.
 
-    def _verbose_repr(self, lines, ids, dtypes, show_counts):
+        Parameters
+        ----------
+        lines : List[str]
+            Lines that will contain `info` representation.
+        ids : Index
+            The Series' name.
+        dtypes : Series
+            The Series' dtype.
+        show_counts : bool
+            If True, count of non-NA cells will be appended to `lines`.
+        """
 
         id_space = 2
 
