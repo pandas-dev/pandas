@@ -1178,8 +1178,7 @@ def str_get_dummies(arr, sep="|"):
     """
     Return DataFrame of dummy/indicator variables for Series.
     
-    Each string in Series is split by sep.
-    Split each string in the Series by sep and return a DataFrame
+    Each string in Series is split by sep and returned as a DataFrame
     of dummy/indicator variables.
 
     Parameters
@@ -2078,7 +2077,8 @@ class StringMethods(NoNewAttributesMixin):
     Vectorized string functions for Series and Index.
 
     NAs stay NA unless handled otherwise by a particular method.
-    Patterned after Python's string methods, with some inspiration from R's stringr package.
+    Patterned after Python's string methods, with some inspiration from
+    R's stringr package.
 
     Examples
     --------
@@ -3205,8 +3205,8 @@ class StringMethods(NoNewAttributesMixin):
     Return %(side)s indexes in each string in Series/Index.
 
     Each of the returned indexes corresponds to the position where the
-    substring is fully contained between [start:end]. This is the same 
-    as ``str.%(similar)s`` except instead of returning -1, it raises a 
+    substring is fully contained between [start:end]. This is the same
+    as ``str.%(similar)s`` except instead of returning -1, it raises a
     ValueError when the substring is not found. Equivalent to standard
     ``str.%(method)s``.
 
