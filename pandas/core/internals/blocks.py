@@ -1194,16 +1194,22 @@ class Block(PandasObject):
                 )
         # process 1-d slices in the axis direction
 
-        func = missing.interpolate_1d(
-            xvalues=index,
-            method=method,
-            limit=limit,
-            limit_direction=limit_direction,
-            limit_area=limit_area,
-            fill_value=fill_value,
-            bounds_error=False,
-            **kwargs,
-        )
+        def func(yvalues: np.ndarray) -> np.ndarray:
+
+            # process a 1-d slice, returning it
+            # should the axis argument be handled below in apply_along_axis?
+            # i.e. not an arg to missing.interpolate_1d
+            return missing.interpolate_1d(
+                xvalues=index,
+                yvalues=yvalues,
+                method=method,
+                limit=limit,
+                limit_direction=limit_direction,
+                limit_area=limit_area,
+                fill_value=fill_value,
+                bounds_error=False,
+                **kwargs,
+            )
 
         # interp each column independently
         interp_values = np.apply_along_axis(func, axis, data)
