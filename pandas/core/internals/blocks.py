@@ -1088,7 +1088,7 @@ class Block(PandasObject):
         if (self.is_bool or self.is_integer) and not self.is_timedelta:
             return self if inplace else self.copy()
 
-        # a fill na type method
+        # a fillna type method
         try:
             m = missing.clean_fill_method(method)
         except ValueError:
@@ -1129,7 +1129,7 @@ class Block(PandasObject):
         axis: int = 0,
         inplace: bool = False,
         limit: Optional[int] = None,
-        limit_area=None,
+        limit_area: Optional[str] = None,
         fill_value: Optional[Any] = None,
         coerce: bool = False,
         downcast: Optional[str] = None,
@@ -1151,7 +1151,7 @@ class Block(PandasObject):
         # We only get here for non-ExtensionBlock
         fill_value = convert_scalar_for_putitemlike(fill_value, self.values.dtype)
 
-        interp_values = missing.interpolate_2d(
+        values = missing.interpolate_2d(
             values,
             method=method,
             axis=axis,
@@ -1161,7 +1161,7 @@ class Block(PandasObject):
             dtype=self.dtype,
         )
 
-        blocks = [self.make_block_same_class(interp_values, ndim=self.ndim)]
+        blocks = [self.make_block_same_class(values, ndim=self.ndim)]
         return self._maybe_downcast(blocks, downcast)
 
     def _interpolate(

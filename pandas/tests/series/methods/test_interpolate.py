@@ -430,7 +430,7 @@ class TestSeriesInterpolateData:
             s.interpolate(method="linear", limit_area="abc")
 
     def test_interp_limit_area_with_pad(self):
-        # Test for issue #26796
+        # https://github.com/pandas-dev/pandas/issues/26796
         s = Series([np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan])
 
         expected = Series([np.nan, np.nan, 3.0, 3.0, 3.0, 3.0, 7.0, np.nan, np.nan])
@@ -454,7 +454,7 @@ class TestSeriesInterpolateData:
         tm.assert_series_equal(result, expected)
 
     def test_interp_limit_area_with_backfill(self):
-        # Test for issue #26796
+        # https://github.com/pandas-dev/pandas/issues/26796
         s = Series([np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan])
 
         expected = Series([np.nan, np.nan, 3.0, 7.0, 7.0, 7.0, 7.0, np.nan, np.nan])
@@ -476,27 +476,6 @@ class TestSeriesInterpolateData:
         )
         result = s.interpolate(method="bfill", limit_area="outside", limit=1)
         tm.assert_series_equal(result, expected)
-
-    def test_interp_raise_limit_direction_and_pad_or_bfill(self):
-        s = Series([1, 2, 3])
-        forbidden_combinations = [
-            ("pad", "backward"),
-            ("ffill", "backward"),
-            ("backfill", "forward"),
-            ("bfill", "forward"),
-            ("pad", "both"),
-            ("ffill", "both"),
-            ("backfill", "both"),
-            ("bfill", "both"),
-        ]
-
-        for method, limit_direction in forbidden_combinations:
-            msg = (
-                f"`limit_direction` must not be `{limit_direction}` "
-                f"for method `{method}`"
-            )
-            with pytest.raises(ValueError, match=msg):
-                s.interpolate(method=method, limit_direction=limit_direction)
 
     def test_interp_limit_direction(self):
         # These tests are for issue #9218 -- fill NaNs in both directions.
