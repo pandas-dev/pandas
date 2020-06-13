@@ -129,7 +129,6 @@ _attrname_to_abbrevs = {
 cdef dict attrname_to_abbrevs = _attrname_to_abbrevs
 
 
-
 class FreqGroup:
     # Mirrors c_FreqGroup in the .pxd file
     FR_ANN = 1000
