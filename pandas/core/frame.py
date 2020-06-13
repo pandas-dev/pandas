@@ -140,7 +140,7 @@ from pandas.core.sorting import ensure_key_mapped
 
 from pandas.io.common import get_filepath_or_buffer
 from pandas.io.formats import console, format as fmt
-from pandas.io.formats.info import DataFrameInfo, Info
+from pandas.io.formats.info import DataFrameInfo
 import pandas.plotting
 
 if TYPE_CHECKING:
@@ -2530,7 +2530,7 @@ class DataFrame(NDFrame):
             DataFrame.memory_usage: Memory usage of DataFrame columns."""
         ),
     )
-    @doc(Info)
+    @doc(DataFrameInfo.info)
     def info(
         self,
         verbose: Optional[bool] = None,
@@ -2541,7 +2541,7 @@ class DataFrame(NDFrame):
     ) -> None:
         return DataFrameInfo(
             self, verbose, buf, max_cols, memory_usage, null_counts
-        ).get_info()
+        ).info()
 
     def memory_usage(self, index=True, deep=False) -> Series:
         """
