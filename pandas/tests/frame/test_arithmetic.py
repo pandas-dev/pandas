@@ -10,7 +10,11 @@ import pytz
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series
 import pandas._testing as tm
-from pandas.core.computation.expressions import _USE_NUMEXPR, _MIN_ELEMENTS
+from pandas.core.computation.expressions import (
+    _USE_NUMEXPR,
+    _MIN_ELEMENTS,
+    _NUMEXPR_INSTALLED,
+)
 import pandas.core.common as com
 from pandas.tests.frame.common import _check_mixed_float, _check_mixed_int
 
@@ -384,6 +388,8 @@ class TestFrameFlexArithmetic:
         df = pd.DataFrame(arr)
         if _NUMEXPR_INSTALLED:
             assert _USE_NUMEXPR
+        else:
+            return
         df["C"] = 1.0
 
         ser = df[0]
