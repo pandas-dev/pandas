@@ -6,11 +6,10 @@ import warnings
 import numpy as np
 
 from pandas._libs import NaT, Period, Timestamp, index as libindex, lib, tslib
-from pandas._libs.tslibs import fields, parsing, resolution as libresolution, timezones
-from pandas._libs.tslibs.frequencies import get_freq_group
+from pandas._libs.tslibs import Resolution, fields, parsing, timezones, to_offset
 from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas._typing import DtypeObj, Label
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import cache_readonly, doc
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
@@ -29,8 +28,6 @@ from pandas.core.indexes.base import Index, InvalidIndexError, maybe_extract_nam
 from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
 from pandas.core.indexes.extension import inherit_names
 from pandas.core.tools.times import to_time
-
-from pandas.tseries.frequencies import to_offset
 
 
 def _new_DatetimeIndex(cls, d):
@@ -66,13 +63,19 @@ def _new_DatetimeIndex(cls, d):
 
 
 @inherit_names(
-    ["to_period", "to_perioddelta", "to_julian_date", "strftime", "isocalendar"]
+    ["to_perioddelta", "to_julian_date", "strftime", "isocalendar"]
     + DatetimeArray._field_ops
-    + DatetimeArray._datetimelike_methods,
+    + [
+        method
+        for method in DatetimeArray._datetimelike_methods
+        if method not in ("tz_localize",)
+    ],
     DatetimeArray,
     wrap=True,
 )
-@inherit_names(["_timezone", "is_normalized", "_resolution"], DatetimeArray, cache=True)
+@inherit_names(
+    ["_timezone", "is_normalized", "_resolution_obj"], DatetimeArray, cache=True
+)
 @inherit_names(
     [
         "_bool_ops",
@@ -217,6 +220,21 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     _data: DatetimeArray
     tz: Optional[tzinfo]
+
+    # --------------------------------------------------------------------
+    # methods that dispatch to array and wrap result in DatetimeIndex
+
+    @doc(DatetimeArray.tz_localize)
+    def tz_localize(
+        self, tz, ambiguous="raise", nonexistent="raise"
+    ) -> "DatetimeIndex":
+        arr = self._data.tz_localize(tz, ambiguous, nonexistent)
+        return type(self)._simple_new(arr, name=self.name)
+
+    @doc(DatetimeArray.to_period)
+    def to_period(self, freq=None) -> "DatetimeIndex":
+        arr = self._data.to_period(freq)
+        return type(self)._simple_new(arr, name=self.name)
 
     # --------------------------------------------------------------------
     # Constructors
@@ -470,7 +488,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         dta = DatetimeArray(snapped, dtype=self.dtype)
         return DatetimeIndex._simple_new(dta, name=self.name)
 
-    def _parsed_string_to_bounds(self, reso: str, parsed: datetime):
+    def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
         """
         Calculate datetime bounds for parsed time string and its resolution.
 
@@ -485,6 +503,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -------
         lower, upper: pd.Timestamp
         """
+        assert isinstance(reso, Resolution), (type(reso), reso)
         valid_resos = {
             "year",
             "month",
@@ -497,11 +516,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             "second",
             "microsecond",
         }
-        if reso not in valid_resos:
+        if reso.attrname not in valid_resos:
             raise KeyError
 
-        grp = get_freq_group(reso)
-        per = Period(parsed, freq=(grp, 1))
+        grp = reso.freq_group
+        per = Period(parsed, freq=grp)
         start, end = per.start_time, per.end_time
 
         # GH 24076
@@ -521,11 +540,12 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             end = end.tz_localize(self.tz)
         return start, end
 
-    def _validate_partial_date_slice(self, reso: str):
+    def _validate_partial_date_slice(self, reso: Resolution):
+        assert isinstance(reso, Resolution), (type(reso), reso)
         if (
             self.is_monotonic
-            and reso in ["day", "hour", "minute", "second"]
-            and self._resolution >= libresolution.Resolution.get_reso(reso)
+            and reso.attrname in ["day", "hour", "minute", "second"]
+            and self._resolution_obj >= reso
         ):
             # These resolution/monotonicity validations came from GH3931,
             # GH3452 and GH2369.
@@ -625,6 +645,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if isinstance(label, str):
             freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
             parsed, reso = parsing.parse_time_string(label, freq)
+            reso = Resolution.from_attrname(reso)
             lower, upper = self._parsed_string_to_bounds(reso, parsed)
             # lower, upper form the half-open interval:
             #   [parsed, parsed + 1 freq)
@@ -641,6 +662,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     def _get_string_slice(self, key: str, use_lhs: bool = True, use_rhs: bool = True):
         freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
         parsed, reso = parsing.parse_time_string(key, freq)
+        reso = Resolution.from_attrname(reso)
         loc = self._partial_date_slice(reso, parsed, use_lhs=use_lhs, use_rhs=use_rhs)
         return loc
 
@@ -721,9 +743,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         Parameters
         ----------
         time : datetime.time or str
-            datetime.time or string in appropriate format ("%H:%M", "%H%M",
-            "%I:%M%p", "%I%M%p", "%H:%M:%S", "%H%M%S", "%I:%M:%S%p",
-            "%I%M%S%p").
+            Time passed in either as object (datetime.time) or as string in
+            appropriate format ("%H:%M", "%H%M", "%I:%M%p", "%I%M%p",
+            "%H:%M:%S", "%H%M%S", "%I:%M:%S%p", "%I%M%S%p").
 
         Returns
         -------
@@ -762,9 +784,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         Parameters
         ----------
         start_time, end_time : datetime.time, str
-            datetime.time or string in appropriate format ("%H:%M", "%H%M",
-            "%I:%M%p", "%I%M%p", "%H:%M:%S", "%H%M%S", "%I:%M:%S%p",
-            "%I%M%S%p").
+            Time passed either as object (datetime.time) or as string in
+            appropriate format ("%H:%M", "%H%M", "%I:%M%p", "%I%M%p",
+            "%H:%M:%S", "%H%M%S", "%I:%M:%S%p","%I%M%S%p").
         include_start : bool, default True
         include_end : bool, default True
 

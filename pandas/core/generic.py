@@ -30,7 +30,8 @@ import numpy as np
 
 from pandas._config import config
 
-from pandas._libs import Timestamp, lib
+from pandas._libs import lib
+from pandas._libs.tslibs import Timestamp, to_offset
 from pandas._typing import (
     Axis,
     FilePathOrBuffer,
@@ -106,7 +107,6 @@ from pandas.core.ops import _align_method_FRAME
 from pandas.io.formats import format as fmt
 from pandas.io.formats.format import DataFrameFormatter, format_percentiles
 from pandas.io.formats.printing import pprint_thing
-from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import Tick
 
 if TYPE_CHECKING:
@@ -1917,7 +1917,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     mode : str, optional
         Mode in which file is opened.
     **kwargs
-        These parameters will be passed to `tabulate`.
+        These parameters will be passed to `tabulate \
+            <https://pypi.org/project/tabulate>`_.
 
     Returns
     -------
@@ -3048,6 +3049,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         doublequote: bool_t = True,
         escapechar: Optional[str] = None,
         decimal: Optional[str] = ".",
+        errors: str = "strict",
     ) -> Optional[str]:
         r"""
         Write object to a comma-separated values (csv) file.
@@ -3142,6 +3144,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         decimal : str, default '.'
             Character recognized as decimal separator. E.g. use ',' for
             European data.
+        errors : str, default 'strict'
+            Specifies how encoding and decoding errors are to be handled.
+            See the errors argument for :func:`open` for a full list
+            of options.
+
+            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -3179,6 +3187,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             line_terminator=line_terminator,
             sep=sep,
             encoding=encoding,
+            errors=errors,
             compression=compression,
             quoting=quoting,
             na_rep=na_rep,
@@ -6193,6 +6202,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             method="ffill", axis=axis, inplace=inplace, limit=limit, downcast=downcast
         )
 
+    pad = ffill
+
     def bfill(
         self: FrameOrSeries,
         axis=None,
@@ -6211,6 +6222,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return self.fillna(
             method="bfill", axis=axis, inplace=inplace, limit=limit, downcast=downcast
         )
+
+    backfill = bfill
 
     @doc(klass=_shared_doc_kwargs["klass"])
     def replace(
@@ -6859,46 +6872,58 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     @Appender(_shared_docs["interpolate"] % _shared_doc_kwargs)
     def interpolate(
-        self,
-        method="linear",
-        axis=0,
-        limit=None,
-        inplace=False,
-        limit_direction="forward",
-        limit_area=None,
-        downcast=None,
+        self: FrameOrSeries,
+        method: str = "linear",
+        axis: Axis = 0,
+        limit: Optional[int] = None,
+        inplace: bool_t = False,
+        limit_direction: str = "forward",
+        limit_area: Optional[str] = None,
+        downcast: Optional[str] = None,
         **kwargs,
-    ):
+    ) -> Optional[FrameOrSeries]:
         """
         Interpolate values according to different methods.
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         axis = self._get_axis_number(axis)
+        index = self._get_axis(axis)
 
+        if isinstance(self.index, MultiIndex) and method != "linear":
+            raise ValueError(
+                "Only `method=linear` interpolation is supported on MultiIndexes."
+            )
+
+        # for the methods backfill, bfill, pad, ffill limit_direction and limit_area
+        # are being ignored, see gh-26796 for more information
+        if method in ["backfill", "bfill", "pad", "ffill"]:
+            return self.fillna(
+                method=method,
+                axis=axis,
+                inplace=inplace,
+                limit=limit,
+                downcast=downcast,
+            )
+
+        # Currently we need this to call the axis correctly inside the various
+        # interpolation methods
         if axis == 0:
             df = self
         else:
             df = self.T
 
-        if isinstance(df.index, MultiIndex) and method != "linear":
-            raise ValueError(
-                "Only `method=linear` interpolation is supported on MultiIndexes."
-            )
-
-        if df.ndim == 2 and np.all(df.dtypes == np.dtype(object)):
+        if self.ndim == 2 and np.all(self.dtypes == np.dtype(object)):
             raise TypeError(
                 "Cannot interpolate with all object-dtype columns "
                 "in the DataFrame. Try setting at least one "
                 "column to a numeric dtype."
             )
 
-        # create/use the index
         if method == "linear":
             # prior default
             index = np.arange(len(df.index))
         else:
-            index = df.index
             methods = {"index", "values", "nearest", "time"}
             is_numeric_or_datetime = (
                 is_numeric_dtype(index.dtype)
@@ -8814,16 +8839,17 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         msg = "Boolean array expected for the condition, not {dtype}"
 
-        if not isinstance(cond, ABCDataFrame):
-            # This is a single-dimensional object.
-            if not is_bool_dtype(cond):
-                raise ValueError(msg.format(dtype=cond.dtype))
-        elif not cond.empty:
-            for dt in cond.dtypes:
-                if not is_bool_dtype(dt):
-                    raise ValueError(msg.format(dtype=dt))
+        if not cond.empty:
+            if not isinstance(cond, ABCDataFrame):
+                # This is a single-dimensional object.
+                if not is_bool_dtype(cond):
+                    raise ValueError(msg.format(dtype=cond.dtype))
+            else:
+                for dt in cond.dtypes:
+                    if not is_bool_dtype(dt):
+                        raise ValueError(msg.format(dtype=dt))
         else:
-            # GH#21947 we have an empty DataFrame, could be object-dtype
+            # GH#21947 we have an empty DataFrame/Series, could be object-dtype
             cond = cond.astype(bool)
 
         cond = -cond if inplace else cond

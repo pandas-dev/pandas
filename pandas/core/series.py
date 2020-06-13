@@ -1422,6 +1422,21 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         |  1 | pig      |
         |  2 | dog      |
         |  3 | quetzal  |
+
+        Output markdown with a tabulate option.
+
+        >>> print(s.to_markdown(tablefmt="grid"))
+        +----+----------+
+        |    | animal   |
+        +====+==========+
+        |  0 | elk      |
+        +----+----------+
+        |  1 | pig      |
+        +----+----------+
+        |  2 | dog      |
+        +----+----------+
+        |  3 | quetzal  |
+        +----+----------+
         """
     )
     @Substitution(klass="Series")
@@ -2314,38 +2329,12 @@ Name: Max Speed, dtype: float64
             return np.nan
         return nanops.nancov(this.values, other.values, min_periods=min_periods)
 
-    def diff(self, periods: int = 1) -> "Series":
-        """
-        First discrete difference of element.
-
-        Calculates the difference of a Series element compared with another
-        element in the Series (default is element in previous row).
-
-        Parameters
-        ----------
-        periods : int, default 1
-            Periods to shift for calculating difference, accepts negative
-            values.
-
-        Returns
-        -------
-        Series
-            First differences of the Series.
-
-        See Also
-        --------
-        Series.pct_change: Percent change over given number of periods.
-        Series.shift: Shift index by desired number of periods with an
-            optional time freq.
-        DataFrame.diff: First discrete difference of object.
-
-        Notes
-        -----
-        For boolean dtypes, this uses :meth:`operator.xor` rather than
-        :meth:`operator.sub`.
-
-        Examples
-        --------
+    @doc(
+        klass="Series",
+        extra_params="",
+        other_klass="DataFrame",
+        examples=dedent(
+            """
         Difference with previous row
 
         >>> s = pd.Series([1, 1, 2, 3, 5, 8])
@@ -2379,6 +2368,51 @@ Name: Max Speed, dtype: float64
         4   -3.0
         5    NaN
         dtype: float64
+
+        Overflow in input dtype
+
+        >>> s = pd.Series([1, 0], dtype=np.uint8)
+        >>> s.diff()
+        0      NaN
+        1    255.0
+        dtype: float64"""
+        ),
+    )
+    def diff(self, periods: int = 1) -> "Series":
+        """
+        First discrete difference of element.
+
+        Calculates the difference of a {klass} element compared with another
+        element in the {klass} (default is element in previous row).
+
+        Parameters
+        ----------
+        periods : int, default 1
+            Periods to shift for calculating difference, accepts negative
+            values.
+        {extra_params}
+        Returns
+        -------
+        {klass}
+            First differences of the Series.
+
+        See Also
+        --------
+        {klass}.pct_change: Percent change over given number of periods.
+        {klass}.shift: Shift index by desired number of periods with an
+            optional time freq.
+        {other_klass}.diff: First discrete difference of object.
+
+        Notes
+        -----
+        For boolean dtypes, this uses :meth:`operator.xor` rather than
+        :meth:`operator.sub`.
+        The result is calculated according to current dtype in {klass},
+        however dtype of the result is always float64.
+
+        Examples
+        --------
+        {examples}
         """
         result = algorithms.diff(self.array, periods)
         return self._constructor(result, index=self.index).__finalize__(
@@ -2901,8 +2935,10 @@ Keep all original rows and also all original values
 
     def update(self, other) -> None:
         """
-        Modify Series in place using non-NA values from passed
-        Series. Aligns on index.
+        Modify Series in place using values from passed Series.
+
+        Uses non-NA values from passed Series to make updates. Aligns
+        on index.
 
         Parameters
         ----------
@@ -3417,6 +3453,8 @@ Keep all original rows and also all original values
 
     def argsort(self, axis=0, kind="quicksort", order=None) -> "Series":
         """
+        Return the integer indices that would sort the Series values.
+
         Override ndarray.argsort. Argsorts the value, omitting NA/null values,
         and places the result in the same locations as the non-NA values.
 
@@ -3699,8 +3737,7 @@ Keep all original rows and also all original values
 
     def explode(self) -> "Series":
         """
-        Transform each element of a list-like to a row, replicating the
-        index values.
+        Transform each element of a list-like to a row.
 
         .. versionadded:: 0.25.0
 
@@ -3758,6 +3795,7 @@ Keep all original rows and also all original values
     def unstack(self, level=-1, fill_value=None):
         """
         Unstack, also known as pivot, Series with MultiIndex to produce DataFrame.
+
         The level involved will automatically get sorted.
 
         Parameters
@@ -4494,7 +4532,7 @@ Keep all original rows and also all original values
 
     def isin(self, values) -> "Series":
         """
-        Check whether `values` are contained in Series.
+        Whether elements in Series are contained in `values`.
 
         Return a boolean Series showing whether each element in the Series
         matches an element in the passed sequence of `values` exactly.
@@ -4791,8 +4829,7 @@ Keep all original rows and also all original values
 
     def to_period(self, freq=None, copy=True) -> "Series":
         """
-        Convert Series from DatetimeIndex to PeriodIndex with desired
-        frequency (inferred from index if not passed).
+        Convert Series from DatetimeIndex to PeriodIndex.
 
         Parameters
         ----------
@@ -4812,7 +4849,7 @@ Keep all original rows and also all original values
 
         if not isinstance(self.index, DatetimeIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
-        new_index = self.index.to_period(freq=freq)  # type: ignore
+        new_index = self.index.to_period(freq=freq)
         return self._constructor(new_values, index=new_index).__finalize__(
             self, method="to_period"
         )
