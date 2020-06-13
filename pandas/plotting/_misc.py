@@ -224,10 +224,10 @@ def andrews_curves(
     frame, class_column, ax=None, samples=200, color=None, colormap=None, **kwargs
 ):
     """
-    Generate a matplotlib plot of Andrews curves, for visualising clusters of
-    multivariate data.
+    Generate a matplotlib plot of Andrews curves.
 
-    Andrews curves have the functional form:
+    Andrews curves are used for visualising clusters of multivariate
+    data and have the functional form:
 
     f(t) = x_1/sqrt(2) + x_2 sin(t) + x_3 cos(t) +
            x_4 sin(2t) + x_5 cos(2t) + ...

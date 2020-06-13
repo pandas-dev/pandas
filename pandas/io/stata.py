@@ -1871,8 +1871,7 @@ The repeated labels are:
 
     def variable_labels(self) -> Dict[str, str]:
         """
-        Return variable labels as a dict, associating each variable name
-        with corresponding label.
+        Return dict with variable name (keys) and labels (values).
 
         Returns
         -------
@@ -1882,8 +1881,7 @@ The repeated labels are:
 
     def value_labels(self) -> Dict[str, Dict[Union[float, int], str]]:
         """
-        Return a dict, associating each variable name a dict, associating
-        each value its corresponding label.
+        Return dict with labels (keys) and variable names (value).
 
         Returns
         -------

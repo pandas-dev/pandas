@@ -1120,8 +1120,9 @@ class HDFStore:
         errors: str = "strict",
     ):
         """
-        Append to Table in file. Node must already exist and be Table
-        format.
+        Append to Table in file.
+
+        Node must already exist and be in Table format.
 
         Parameters
         ----------

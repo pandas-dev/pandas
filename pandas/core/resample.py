@@ -299,8 +299,7 @@ class Resampler(_GroupBy, ShallowMixin):
 
     def transform(self, arg, *args, **kwargs):
         """
-        Call function producing a like-indexed Series on each group and return
-        a Series with the transformed values.
+        Return Series with values transformed by function (arg).
 
         Parameters
         ----------
