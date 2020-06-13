@@ -966,7 +966,8 @@ class _GroupByMixin(GroupByMixin):
         for attr in self._attributes:
             setattr(self, attr, kwargs.get(attr, getattr(parent, attr)))
 
-        super().__init__(None)
+        # error: Too many arguments for "__init__" of "object"
+        super().__init__(None)  # type: ignore
         self._groupby = groupby
         self._groupby.mutated = True
         self._groupby.grouper.mutated = True
@@ -1553,7 +1554,7 @@ class TimeGrouper(Grouper):
 
         return binner, bins, labels
 
-    def _get_time_period_bins(self, ax):
+    def _get_time_period_bins(self, ax: DatetimeIndex):
         if not isinstance(ax, DatetimeIndex):
             raise TypeError(
                 "axis must be a DatetimeIndex, but got "
@@ -1569,13 +1570,13 @@ class TimeGrouper(Grouper):
         labels = binner = period_range(start=ax[0], end=ax[-1], freq=freq, name=ax.name)
 
         end_stamps = (labels + freq).asfreq(freq, "s").to_timestamp()
-        if ax.tzinfo:
-            end_stamps = end_stamps.tz_localize(ax.tzinfo)
+        if ax.tz:
+            end_stamps = end_stamps.tz_localize(ax.tz)
         bins = ax.searchsorted(end_stamps, side="left")
 
         return binner, bins, labels
 
-    def _get_period_bins(self, ax):
+    def _get_period_bins(self, ax: PeriodIndex):
         if not isinstance(ax, PeriodIndex):
             raise TypeError(
                 "axis must be a PeriodIndex, but got "
@@ -1898,6 +1899,7 @@ def _asfreq_compat(index, freq):
         raise ValueError(
             "Can only set arbitrary freq for empty DatetimeIndex or TimedeltaIndex"
         )
+    new_index: Index
     if isinstance(index, PeriodIndex):
         new_index = index.asfreq(freq=freq)
     else:
