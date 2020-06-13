@@ -443,7 +443,7 @@ class TestSeriesInterpolateData:
         ],
     )
     def test_interp_limit_direction_raises(self, method, limit_direction, expected):
-        # https://github.com/pandas-dev/pandas/pull/XXXX
+        # https://github.com/pandas-dev/pandas/pull/34746
         s = Series([1, 2, 3])
 
         msg = f"`limit_direction` must be '{expected}' for method `{method}`"
