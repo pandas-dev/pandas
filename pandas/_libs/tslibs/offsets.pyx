@@ -3482,36 +3482,6 @@ INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
 _offset_map = {}
 
 
-cdef _base_and_stride(str freqstr):
-    """
-    Return base freq and stride info from string representation
-
-    Returns
-    -------
-    base : str
-    stride : int
-
-    Examples
-    --------
-    _base_and_stride('5Min') -> 'Min', 5
-    """
-    groups = opattern.match(freqstr)
-
-    if not groups:
-        raise ValueError(f"Could not evaluate {freqstr}")
-
-    stride = groups.group(1)
-
-    if len(stride):
-        stride = int(stride)
-    else:
-        stride = 1
-
-    base = groups.group(2)
-
-    return base, stride
-
-
 # TODO: better name?
 def _get_offset(name: str) -> BaseOffset:
     """
