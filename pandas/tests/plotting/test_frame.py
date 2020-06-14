@@ -3352,7 +3352,7 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.parametrize(
         "index_name, old_label, new_label",
-        [(None, "", "new"), ("old", "old", "new"), (None, "", ""), (None, "", 1),],
+        [(None, "", "new"), ("old", "old", "new"), (None, "", ""), (None, "", 1), ],
     )
     @pytest.mark.parametrize("kind", ["line", "area", "bar"])
     def test_xlabel_ylabel_dataframe_single_plot(
@@ -3374,7 +3374,7 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.parametrize(
         "index_name, old_label, new_label",
-        [(None, "", "new"), ("old", "old", "new"), (None, "", ""), (None, "", 1),],
+        [(None, "", "new"), ("old", "old", "new"), (None, "", ""), (None, "", 1), ],
     )
     @pytest.mark.parametrize("kind", ["line", "area", "bar"])
     def test_xlabel_ylabel_dataframe_subplots(
