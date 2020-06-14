@@ -26,7 +26,12 @@ _bias_template = """
 """
 
 
-def get_center_of_mass(comass: Optional[float], span: Optional[float], halflife: Optional[float], alpha: Optional[float]) -> float:
+def get_center_of_mass(
+    comass: Optional[float],
+    span: Optional[float],
+    halflife: Optional[float],
+    alpha: Optional[float],
+) -> float:
     valid_count = com.count_not_none(comass, span, halflife, alpha)
     if valid_count > 1:
         raise ValueError("comass, span, halflife, and alpha are mutually exclusive")
@@ -165,7 +170,7 @@ class EWM(_Rolling):
         span: Optional[float] = None,
         halflife: Optional[float] = None,
         alpha: Optional[float] = None,
-        min_periods: Optional[int] = 0,
+        min_periods: int = 0,
         adjust: bool = True,
         ignore_na: bool = False,
         axis: int = 0,
@@ -305,20 +310,20 @@ class EWM(_Rolling):
 
         def f(arg):
             return window_aggregations.ewmcov(
-                arg,
-                arg,
-                self.com,
-                self.adjust,
-                self.ignore_na,
-                self.min_periods,
-                bias,
+                arg, arg, self.com, self.adjust, self.ignore_na, self.min_periods, bias,
             )
 
         return self._apply(f)
 
     @Substitution(name="ewm", func_name="cov")
     @Appender(_doc_template)
-    def cov(self, other: Optional[Union[np.ndarray, FrameOrSeries]] = None, pairwise: Optional[bool] = None, bias: Optional[bool] = False, **kwargs):
+    def cov(
+        self,
+        other: Optional[Union[np.ndarray, FrameOrSeries]] = None,
+        pairwise: Optional[bool] = None,
+        bias: bool = False,
+        **kwargs,
+    ):
         """
         Exponential weighted sample covariance.
 
@@ -365,7 +370,12 @@ class EWM(_Rolling):
 
     @Substitution(name="ewm", func_name="corr")
     @Appender(_doc_template)
-    def corr(self, other: Optional[Union[np.ndarray, FrameOrSeries]] = None, pairwise: Optional[bool] = None, **kwargs):
+    def corr(
+        self,
+        other: Optional[Union[np.ndarray, FrameOrSeries]] = None,
+        pairwise: Optional[bool] = None,
+        **kwargs,
+    ):
         """
         Exponential weighted sample correlation.
 
@@ -396,13 +406,7 @@ class EWM(_Rolling):
 
             def _cov(x, y):
                 return window_aggregations.ewmcov(
-                    x,
-                    y,
-                    self.com,
-                    self.adjust,
-                    self.ignore_na,
-                    self.min_periods,
-                    1,
+                    x, y, self.com, self.adjust, self.ignore_na, self.min_periods, 1,
                 )
 
             x_values = X._prep_values()
