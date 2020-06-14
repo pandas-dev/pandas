@@ -275,6 +275,7 @@ Other enhancements
   such as ``dict`` and ``list``, mirroring the behavior of :meth:`DataFrame.update` (:issue:`33215`)
 - :meth:`~pandas.core.groupby.GroupBy.transform` and :meth:`~pandas.core.groupby.GroupBy.aggregate` has gained ``engine`` and ``engine_kwargs`` arguments that supports executing functions with ``Numba`` (:issue:`32854`, :issue:`33388`)
 - :meth:`~pandas.core.resample.Resampler.interpolate` now supports SciPy interpolation method :class:`scipy.interpolate.CubicSpline` as method ``cubicspline`` (:issue:`33670`)
+- :class:`~pandas.core.groupby.generic.DataFrameGroupBy` and :class:`~pandas.core.groupby.generic.SeriesGroupBy` now implement the ``sample`` method for doing random sampling within groups (:issue:`31775`)
 - :meth:`DataFrame.to_numpy` now supports the ``na_value`` keyword to control the NA sentinel in the output array (:issue:`33820`)
 - The ``ExtensionArray`` class has now an :meth:`~pandas.arrays.ExtensionArray.equals`
   method, similarly to :meth:`Series.equals` (:issue:`27081`).
