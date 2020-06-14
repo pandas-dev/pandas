@@ -196,7 +196,7 @@ I want the values for the three stations as separate columns next to each other
 
     no2_subset.pivot(columns="location", values="value")
 
-The :meth:`~pandas.pivot_table` function is purely reshaping of the data: a single value
+The :meth:`~pandas.pivot` function is purely reshaping of the data: a single value
 for each index/column combination is required.
 
 .. raw:: html
