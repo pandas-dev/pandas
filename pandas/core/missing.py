@@ -120,6 +120,7 @@ SP_METHODS = [
 
 def clean_interp_method(method: str, **kwargs) -> str:
     order = kwargs.get("order")
+
     if method in ("spline", "polynomial") and order is None:
         raise ValueError("You must specify the order of the spline or polynomial.")
 
@@ -301,6 +302,7 @@ def interpolate_1d(
                 order=order,
                 **kwargs,
             )
+
         result[preserve_nans] = np.nan
         return result
 
