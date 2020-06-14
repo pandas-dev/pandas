@@ -3756,19 +3756,8 @@ cdef shift_quarters(
                 dt64_to_dtstruct(dtindex[i], &dts)
                 n = quarters
 
-                months_since = (dts.month - q1start_month) % modby
-                compare_day = get_day_of_month(&dts, day_opt)
-
-                # offset semantics - if on the anchor point and going backwards
-                # shift to next
-                if n <= 0 and (months_since != 0 or
-                               (months_since == 0 and dts.day > compare_day)):
-                    # make sure to roll forward, so negate
-                    n += 1
-                elif n > 0 and (months_since == 0 and dts.day < compare_day):
-                    # pretend to roll back if on same month but
-                    # before compare_day
-                    n -= 1
+                months_since = dts.month % modby - q1start_month % modby
+                n = _roll_qtrday(&dts, n, q1start_month, "start", modby)
 
                 dts.year = year_add_months(dts, modby * n - months_since)
                 dts.month = month_add_months(dts, modby * n - months_since)
@@ -3786,17 +3775,8 @@ cdef shift_quarters(
                 dt64_to_dtstruct(dtindex[i], &dts)
                 n = quarters
 
-                months_since = (dts.month - q1start_month) % modby
-                compare_day = get_day_of_month(&dts, day_opt)
-
-                if n <= 0 and (months_since != 0 or
-                               (months_since == 0 and dts.day > compare_day)):
-                    # make sure to roll forward, so negate
-                    n += 1
-                elif n > 0 and (months_since == 0 and dts.day < compare_day):
-                    # pretend to roll back if on same month but
-                    # before compare_day
-                    n -= 1
+                months_since = dts.month % modby - q1start_month % modby
+                n = _roll_qtrday(&dts, n, q1start_month, "end", modby)
 
                 dts.year = year_add_months(dts, modby * n - months_since)
                 dts.month = month_add_months(dts, modby * n - months_since)
@@ -3814,23 +3794,11 @@ cdef shift_quarters(
                 dt64_to_dtstruct(dtindex[i], &dts)
                 n = quarters
 
-                months_since = (dts.month - q1start_month) % modby
-                # compare_day is only relevant for comparison in the case
-                # where months_since == 0.
-                compare_day = get_day_of_month(&dts, day_opt)
-
-                if n <= 0 and (months_since != 0 or
-                               (months_since == 0 and dts.day > compare_day)):
-                    # make sure to roll forward, so negate
-                    n += 1
-                elif n > 0 and (months_since == 0 and dts.day < compare_day):
-                    # pretend to roll back if on same month but
-                    # before compare_day
-                    n -= 1
+                months_since = dts.month % modby - q1start_month % modby
+                n = _roll_qtrday(&dts, n, q1start_month, "business_start", modby)
 
                 dts.year = year_add_months(dts, modby * n - months_since)
                 dts.month = month_add_months(dts, modby * n - months_since)
-
                 dts.day = get_day_of_month(&dts, day_opt)
 
                 out[i] = dtstruct_to_dt64(&dts)
@@ -3845,23 +3813,11 @@ cdef shift_quarters(
                 dt64_to_dtstruct(dtindex[i], &dts)
                 n = quarters
 
-                months_since = (dts.month - q1start_month) % modby
-                # compare_day is only relevant for comparison in the case
-                # where months_since == 0.
-                compare_day = get_day_of_month(&dts, day_opt)
-
-                if n <= 0 and (months_since != 0 or
-                               (months_since == 0 and dts.day > compare_day)):
-                    # make sure to roll forward, so negate
-                    n += 1
-                elif n > 0 and (months_since == 0 and dts.day < compare_day):
-                    # pretend to roll back if on same month but
-                    # before compare_day
-                    n -= 1
+                months_since = dts.month % modby - q1start_month % modby
+                n = _roll_qtrday(&dts, n, q1start_month, "business_end", modby)
 
                 dts.year = year_add_months(dts, modby * n - months_since)
                 dts.month = month_add_months(dts, modby * n - months_since)
-
                 dts.day = get_day_of_month(&dts, day_opt)
 
                 out[i] = dtstruct_to_dt64(&dts)
@@ -4161,19 +4117,29 @@ def roll_qtrday(other: datetime, n: int, month: int,
     # TODO: Merge this with roll_yearday by setting modby=12 there?
     #       code de-duplication versus perf hit?
     # TODO: with small adjustments this could be used in shift_quarters
-    months_since = other.month % modby - month % modby
+    return _roll_qtrday(&dts, n, month, day_opt, modby)
+
+
+cdef inline int _roll_qtrday(npy_datetimestruct* dts,
+                             int n,
+                             int month,
+                             str day_opt,
+                             int modby) nogil:
+    """See roll_qtrday.__doc__"""
+    cdef:
+        int months_since
+
+    months_since = dts.month % modby - month % modby
 
     if n > 0:
         if months_since < 0 or (months_since == 0 and
-                                other.day < get_day_of_month(&dts,
-                                                             day_opt)):
+                                dts.day < get_day_of_month(dts, day_opt)):
             # pretend to roll back if on same month but
             # before compare_day
             n -= 1
     else:
         if months_since > 0 or (months_since == 0 and
-                                other.day > get_day_of_month(&dts,
-                                                             day_opt)):
+                                dts.day > get_day_of_month(dts, day_opt)):
             # make sure to roll forward, so negate
             n += 1
     return n
