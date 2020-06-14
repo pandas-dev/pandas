@@ -35,7 +35,7 @@ def _construct_dataframe(num_rows):
     return df
 
 
-@pytest.marks.slow
+@pytest.mark.slow
 def test_multi_thread_string_io_read_csv(all_parsers):
     # see gh-11786
     parser = all_parsers
@@ -128,7 +128,7 @@ def _generate_multi_thread_dataframe(parser, path, num_rows, num_tasks):
     return final_dataframe
 
 
-@pytest.marks.slow
+@pytest.mark.slow
 def test_multi_thread_path_multipart_read_csv(all_parsers):
     # see gh-11786
     num_tasks = 4
