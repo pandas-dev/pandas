@@ -693,6 +693,12 @@ class TestGetValue:
             result2 = idx2.get_value(input2, p1)
         tm.assert_series_equal(result2, expected2)
 
+    def test_loc_str(self):
+        # https://github.com/pandas-dev/pandas/issues/33964
+        index = pd.period_range(start="2000", periods=20, freq="B")
+        series = pd.Series(range(20), index=index)
+        assert series.loc["2000-01-14"] == 9
+
     @pytest.mark.parametrize("freq", ["H", "D"])
     def test_get_value_datetime_hourly(self, freq):
         # get_loc and get_value should treat datetime objects symmetrically
