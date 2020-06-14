@@ -4868,6 +4868,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         See Also
         --------
+        DataFrameGroupBy.sample: Generates random samples from each group of a
+            DataFrame object.
+        SeriesGroupBy.sample: Generates random samples from each group of a
+            Series object.
         numpy.random.choice: Generates a random sample from a given 1-D numpy
             array.
 
@@ -6889,12 +6893,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         axis = self._get_axis_number(axis)
 
-        fillna_methods = (
-            "ffill",
-            "bfill",
-            "pad",
-            "backfill",
-        )
+        fillna_methods = ["ffill", "bfill", "pad", "backfill"]
         should_transpose = axis == 1 and method not in fillna_methods
 
         obj = self.T if should_transpose else self
@@ -6940,8 +6939,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 "has not been implemented. Try filling "
                 "those NaNs before interpolating."
             )
-        data = obj._mgr
-        new_data = data.interpolate(
+        new_data = obj._mgr.interpolate(
             method=method,
             axis=axis,
             index=index,
