@@ -6728,9 +6728,24 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             0.
         inplace : bool, default False
             Update the data in place if possible.
-        limit_direction : {'forward', 'backward', 'both'}, default 'forward'
-            If limit is specified, consecutive NaNs will be filled in this
-            direction.
+        limit_direction : {'forward', 'backward', 'both'}, Optional
+            Consecutive NaNs will be filled in this direction.
+
+            If limit is specified:
+                * If 'method' is 'pad' or 'ffill', 'limit_direction' must be 'forward'.
+                * If 'method' is 'backfill' or 'bfill', 'limit_direction' must be
+                  'backwards'.
+
+            If 'limit' is not specified:
+                * If 'method' is 'backfill' or 'bfill', the default is 'backward'
+                * else the default is 'forward'
+
+            .. versionchanged:: 1.1.0
+                raises ValueError if `limit_direction` is 'forward' or 'both' and
+                    method is 'backfill' or 'bfill'.
+                raises ValueError if `limit_direction` is 'backward' or 'both' and
+                    method is 'pad' or 'ffill'.
+
         limit_area : {`None`, 'inside', 'outside'}, default None
             If limit is specified, consecutive NaNs will be filled with this
             restriction.
@@ -6881,7 +6896,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         axis: Axis = 0,
         limit: Optional[int] = None,
         inplace: bool_t = False,
-        limit_direction: str = "forward",
+        limit_direction: Optional[str] = None,
         limit_area: Optional[str] = None,
         downcast: Optional[str] = None,
         **kwargs,
@@ -6905,6 +6920,21 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             raise ValueError(
                 "Only `method=linear` interpolation is supported on MultiIndexes."
             )
+
+        # Set `limit_direction` depending on `method`
+        if limit_direction is None:
+            limit_direction = (
+                "backward" if method in ("backfill", "bfill") else "forward"
+            )
+        else:
+            if method in ("pad", "ffill") and limit_direction != "forward":
+                raise ValueError(
+                    f"`limit_direction` must be 'forward' for method `{method}`"
+                )
+            if method in ("backfill", "bfill") and limit_direction != "backward":
+                raise ValueError(
+                    f"`limit_direction` must be 'backward' for method `{method}`"
+                )
 
         if obj.ndim == 2 and np.all(obj.dtypes == np.dtype(object)):
             raise TypeError(
