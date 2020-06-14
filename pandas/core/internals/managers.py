@@ -627,16 +627,14 @@ class BlockManager(PandasObject):
                 for b in rb:
                     m = masks[i][b.mgr_locs.indexer]
                     convert = i == src_len  # only convert once at the end
-                    start = b.mgr_locs.indexer.start
-                    step = b.mgr_locs.indexer.step
-                    idx_ = start
 
                     def f(mask, values, idx):
-                        nonlocal idx_
-                        block = b.getitem_block(slice(idx_, idx_ + 1))
-                        idx_ += step
+                        if idx is not None:
+                            block = b.getitem_block(slice(idx, idx + 1))
+                        else:
+                            block = b
                         return block._replace_coerce(
-                            mask=mask,
+                            mask=mask.reshape(block.shape),
                             to_replace=s,
                             value=d,
                             inplace=inplace,
