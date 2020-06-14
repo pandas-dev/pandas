@@ -47,7 +47,7 @@ from pandas._typing import (
 from pandas.compat import set_function_name
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
-from pandas.errors import AbstractMethodError
+from pandas.errors import AbstractMethodError, InvalidIndexError
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -90,13 +90,7 @@ import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
 import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
-from pandas.core.indexes.api import (
-    Index,
-    InvalidIndexError,
-    MultiIndex,
-    RangeIndex,
-    ensure_index,
-)
+from pandas.core.indexes.api import Index, MultiIndex, RangeIndex, ensure_index
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import Period, PeriodIndex
 import pandas.core.indexing as indexing
@@ -4868,6 +4862,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         See Also
         --------
+        DataFrameGroupBy.sample: Generates random samples from each group of a
+            DataFrame object.
+        SeriesGroupBy.sample: Generates random samples from each group of a
+            Series object.
         numpy.random.choice: Generates a random sample from a given 1-D numpy
             array.
 
@@ -6724,9 +6722,24 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             0.
         inplace : bool, default False
             Update the data in place if possible.
-        limit_direction : {'forward', 'backward', 'both'}, default 'forward'
-            If limit is specified, consecutive NaNs will be filled in this
-            direction.
+        limit_direction : {'forward', 'backward', 'both'}, Optional
+            Consecutive NaNs will be filled in this direction.
+
+            If limit is specified:
+                * If 'method' is 'pad' or 'ffill', 'limit_direction' must be 'forward'.
+                * If 'method' is 'backfill' or 'bfill', 'limit_direction' must be
+                  'backwards'.
+
+            If 'limit' is not specified:
+                * If 'method' is 'backfill' or 'bfill', the default is 'backward'
+                * else the default is 'forward'
+
+            .. versionchanged:: 1.1.0
+                raises ValueError if `limit_direction` is 'forward' or 'both' and
+                    method is 'backfill' or 'bfill'.
+                raises ValueError if `limit_direction` is 'backward' or 'both' and
+                    method is 'pad' or 'ffill'.
+
         limit_area : {`None`, 'inside', 'outside'}, default None
             If limit is specified, consecutive NaNs will be filled with this
             restriction.
@@ -6877,7 +6890,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         axis: Axis = 0,
         limit: Optional[int] = None,
         inplace: bool_t = False,
-        limit_direction: str = "forward",
+        limit_direction: Optional[str] = None,
         limit_area: Optional[str] = None,
         downcast: Optional[str] = None,
         **kwargs,
@@ -6888,42 +6901,48 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         axis = self._get_axis_number(axis)
-        index = self._get_axis(axis)
 
-        if isinstance(self.index, MultiIndex) and method != "linear":
+        fillna_methods = ["ffill", "bfill", "pad", "backfill"]
+        should_transpose = axis == 1 and method not in fillna_methods
+
+        obj = self.T if should_transpose else self
+
+        if method not in fillna_methods:
+            axis = self._info_axis_number
+
+        if isinstance(obj.index, MultiIndex) and method != "linear":
             raise ValueError(
                 "Only `method=linear` interpolation is supported on MultiIndexes."
             )
 
-        # for the methods backfill, bfill, pad, ffill limit_direction and limit_area
-        # are being ignored, see gh-26796 for more information
-        if method in ["backfill", "bfill", "pad", "ffill"]:
-            return self.fillna(
-                method=method,
-                axis=axis,
-                inplace=inplace,
-                limit=limit,
-                downcast=downcast,
+        # Set `limit_direction` depending on `method`
+        if limit_direction is None:
+            limit_direction = (
+                "backward" if method in ("backfill", "bfill") else "forward"
             )
-
-        # Currently we need this to call the axis correctly inside the various
-        # interpolation methods
-        if axis == 0:
-            df = self
         else:
-            df = self.T
+            if method in ("pad", "ffill") and limit_direction != "forward":
+                raise ValueError(
+                    f"`limit_direction` must be 'forward' for method `{method}`"
+                )
+            if method in ("backfill", "bfill") and limit_direction != "backward":
+                raise ValueError(
+                    f"`limit_direction` must be 'backward' for method `{method}`"
+                )
 
-        if self.ndim == 2 and np.all(self.dtypes == np.dtype(object)):
+        if obj.ndim == 2 and np.all(obj.dtypes == np.dtype(object)):
             raise TypeError(
                 "Cannot interpolate with all object-dtype columns "
                 "in the DataFrame. Try setting at least one "
                 "column to a numeric dtype."
             )
 
+        # create/use the index
         if method == "linear":
             # prior default
-            index = np.arange(len(df.index))
+            index = np.arange(len(obj.index))
         else:
+            index = obj.index
             methods = {"index", "values", "nearest", "time"}
             is_numeric_or_datetime = (
                 is_numeric_dtype(index.dtype)
@@ -6944,10 +6963,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 "has not been implemented. Try filling "
                 "those NaNs before interpolating."
             )
-        data = df._mgr
-        new_data = data.interpolate(
+        new_data = obj._mgr.interpolate(
             method=method,
-            axis=self._info_axis_number,
+            axis=axis,
             index=index,
             limit=limit,
             limit_direction=limit_direction,
@@ -6958,7 +6976,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         )
 
         result = self._constructor(new_data)
-        if axis == 1:
+        if should_transpose:
             result = result.T
         if inplace:
             return self._update_inplace(result)
