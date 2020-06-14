@@ -4,7 +4,7 @@ import numpy as np
 
 from pandas._libs.indexing import _NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
-from pandas.errors import AbstractMethodError
+from pandas.errors import AbstractMethodError, InvalidIndexError
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import (
@@ -29,7 +29,7 @@ from pandas.core.indexers import (
     is_list_like_indexer,
     length_of_indexer,
 )
-from pandas.core.indexes.api import Index, InvalidIndexError
+from pandas.core.indexes.api import Index
 
 if TYPE_CHECKING:
     from pandas import DataFrame  # noqa:F401

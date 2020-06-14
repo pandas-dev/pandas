@@ -382,7 +382,7 @@ Other API changes
 - ``loc`` lookups with an object-dtype :class:`Index` and an integer key will now raise ``KeyError`` instead of ``TypeError`` when key is missing (:issue:`31905`)
 - Using a :func:`pandas.api.indexers.BaseIndexer` with ``count``, ``min``, ``max``, ``median``, ``skew``,  ``cov``, ``corr`` will now return correct results for any monotonic :func:`pandas.api.indexers.BaseIndexer` descendant (:issue:`32865`)
 - Added a :func:`pandas.api.indexers.FixedForwardWindowIndexer` class to support forward-looking windows during ``rolling`` operations.
--
+- Added :class:`pandas.errors.InvalidIndexError` (:issue:`34570`).
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

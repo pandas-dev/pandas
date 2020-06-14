@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import period as libperiod
+from pandas.errors import InvalidIndexError
 
 import pandas as pd
 from pandas import (
@@ -19,7 +20,6 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
-from pandas.core.indexes.base import InvalidIndexError
 
 
 class TestGetItem:

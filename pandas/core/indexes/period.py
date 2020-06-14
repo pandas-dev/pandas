@@ -8,6 +8,7 @@ from pandas._libs.lib import no_default
 from pandas._libs.tslibs import Period, Resolution
 from pandas._libs.tslibs.parsing import DateParseError, parse_time_string
 from pandas._typing import DtypeObj, Label
+from pandas.errors import InvalidIndexError
 from pandas.util._decorators import Appender, cache_readonly, doc
 
 from pandas.core.dtypes.common import (
@@ -32,7 +33,6 @@ from pandas.core.arrays.period import (
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
-    InvalidIndexError,
     _index_shared_docs,
     ensure_index,
     maybe_extract_name,
