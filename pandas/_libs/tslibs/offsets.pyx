@@ -3712,7 +3712,7 @@ cdef shift_quarters(
     const int64_t[:] dtindex,
     int quarters,
     int q1start_month,
-    object day,
+    object day_opt,
     int modby=3,
 ):
     """
@@ -3724,7 +3724,7 @@ cdef shift_quarters(
     dtindex : int64_t[:] timestamps for input dates
     quarters : int number of quarters to shift
     q1start_month : int month in which Q1 begins by convention
-    day : {'start', 'end', 'business_start', 'business_end'}
+    day_opt : {'start', 'end', 'business_start', 'business_end'}
     modby : int (3 for quarters, 12 for years)
 
     Returns
@@ -3737,9 +3737,9 @@ cdef shift_quarters(
         int count = len(dtindex)
         int months_to_roll, months_since, n, compare_day
         bint roll_check
-        int64_t[:] out = np.empty(count, dtype='int64')
+        int64_t[:] out = np.empty(count, dtype="int64")
 
-    if day == 'start':
+    if day_opt == "start":
         with nogil:
             for i in range(count):
                 if dtindex[i] == NPY_NAT:
@@ -3763,7 +3763,7 @@ cdef shift_quarters(
 
                 out[i] = dtstruct_to_dt64(&dts)
 
-    elif day == 'end':
+    elif day_opt == "end":
         with nogil:
             for i in range(count):
                 if dtindex[i] == NPY_NAT:
@@ -3792,7 +3792,7 @@ cdef shift_quarters(
 
                 out[i] = dtstruct_to_dt64(&dts)
 
-    elif day == 'business_start':
+    elif day_opt == "business_start":
         with nogil:
             for i in range(count):
                 if dtindex[i] == NPY_NAT:
@@ -3823,7 +3823,7 @@ cdef shift_quarters(
 
                 out[i] = dtstruct_to_dt64(&dts)
 
-    elif day == 'business_end':
+    elif day_opt == "business_end":
         with nogil:
             for i in range(count):
                 if dtindex[i] == NPY_NAT:
@@ -3863,12 +3863,12 @@ cdef shift_quarters(
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def shift_months(const int64_t[:] dtindex, int months, object day=None):
+def shift_months(const int64_t[:] dtindex, int months, object day_opt=None):
     """
     Given an int64-based datetime index, shift all elements
     specified number of months using DateOffset semantics
 
-    day: {None, 'start', 'end'}
+    day_opt: {None, 'start', 'end', 'business_start', 'business_end'}
        * None: day of month
        * 'start' 1st day of month
        * 'end' last day of month
@@ -3879,9 +3879,9 @@ def shift_months(const int64_t[:] dtindex, int months, object day=None):
         int count = len(dtindex)
         int months_to_roll
         bint roll_check
-        int64_t[:] out = np.empty(count, dtype='int64')
+        int64_t[:] out = np.empty(count, dtype="int64")
 
-    if day is None:
+    if day_opt is None:
         with nogil:
             for i in range(count):
                 if dtindex[i] == NPY_NAT:
@@ -3894,7 +3894,7 @@ def shift_months(const int64_t[:] dtindex, int months, object day=None):
 
                 dts.day = min(dts.day, get_days_in_month(dts.year, dts.month))
                 out[i] = dtstruct_to_dt64(&dts)
-    elif day == 'start':
+    elif day_opt == "start":
         roll_check = False
         if months <= 0:
             months += 1
@@ -3918,7 +3918,7 @@ def shift_months(const int64_t[:] dtindex, int months, object day=None):
                 dts.day = 1
 
                 out[i] = dtstruct_to_dt64(&dts)
-    elif day == 'end':
+    elif day_opt == "end":
         roll_check = False
         if months > 0:
             months -= 1
@@ -3944,7 +3944,7 @@ def shift_months(const int64_t[:] dtindex, int months, object day=None):
                 dts.day = get_days_in_month(dts.year, dts.month)
                 out[i] = dtstruct_to_dt64(&dts)
 
-    elif day == 'business_start':
+    elif day_opt == "business_start":
         with nogil:
             for i in range(count):
                 if dtindex[i] == NPY_NAT:
@@ -3964,7 +3964,7 @@ def shift_months(const int64_t[:] dtindex, int months, object day=None):
                 dts.day = get_firstbday(dts.year, dts.month)
                 out[i] = dtstruct_to_dt64(&dts)
 
-    elif day == 'business_end':
+    elif day_opt == "business_end":
         with nogil:
             for i in range(count):
                 if dtindex[i] == NPY_NAT:
@@ -4060,13 +4060,11 @@ cdef int get_day_of_month(datetime other, day_opt) except? -1:
     Parameters
     ----------
     other : datetime or Timestamp
-    day_opt : 'start', 'end', 'business_start', 'business_end', or int
+    day_opt : {'start', 'end', 'business_start', 'business_end'}
         'start': returns 1
         'end': returns last day of the month
         'business_start': returns the first business day of the month
         'business_end': returns the last business day of the month
-        int: returns the day in the month indicated by `other`, or the last of
-            day the month if the value exceeds in that month's number of days.
 
     Returns
     -------
@@ -4095,9 +4093,6 @@ cdef int get_day_of_month(datetime other, day_opt) except? -1:
     elif day_opt == 'business_end':
         # last business day of month
         return get_lastbday(other.year, other.month)
-    elif is_integer_object(day_opt):
-        days_in_month = get_days_in_month(other.year, other.month)
-        return min(day_opt, days_in_month)
     elif day_opt is None:
         # Note: unlike `shift_month`, get_day_of_month does not
         # allow day_opt = None
