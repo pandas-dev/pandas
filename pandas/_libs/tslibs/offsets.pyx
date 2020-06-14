@@ -3974,6 +3974,18 @@ def shift_months(const int64_t[:] dtindex, int months, object day_opt=None):
 
 
 cdef ndarray[int64_t] shift_bdays(const int64_t[:] i8other, int periods):
+    """
+    Implementation of BusinessDay.apply_offset.
+
+    Parameters
+    ----------
+    i8other : const int64_t[:]
+    periods : int
+
+    Returns
+    -------
+    ndarray[int64_t]
+    """
     cdef:
         Py_ssize_t i, n = len(i8other)
         int64_t[:] result = np.empty(n, dtype="i8")
