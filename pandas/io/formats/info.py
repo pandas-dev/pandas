@@ -35,13 +35,13 @@ def _put_str(s: Union[str, Dtype], space: int) -> str:
     --------
     >>> pd.io.formats.info._put_str("panda", 6)
     'panda '
-    >>> pd.io.formats.info._put_str("panda", 4)
+    >>> pd.io.formats.info._pute_str("panda", 4)
     'pand'
     """
     return str(s)[:space].ljust(space)
 
 
-class Info(metaclass=ABCMeta):
+class BaseInfo(metaclass=ABCMeta):
     def __init__(
         self,
         data: FrameOrSeries,
@@ -197,7 +197,7 @@ class Info(metaclass=ABCMeta):
         fmt.buffer_put_lines(self.buf, lines)
 
 
-class DataFrameInfo(Info):
+class DataFrameInfo(BaseInfo):
     def _get_mem_usage(self, deep: bool) -> int:
         """
         Get DataFrame's memory usage in bytes.
