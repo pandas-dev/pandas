@@ -3350,6 +3350,19 @@ class TestDataFramePlots(TestPlotBase):
         for legend, line in zip(result.get_legend().legendHandles, result.lines):
             assert legend.get_color() == line.get_color()
 
+    def test_plot_with_rot(self):
+        df = pd.DataFrame({"b": [0, 1, 0], "a": [1, 2, 3]})
+        ax = _check_plot_works(df.plot, rot=30)
+        ax.yaxis.set_tick_params(rotation=30)
+        with pytest.raises(AssertionError):
+            self._check_ticks_props(ax, xrot=0)
+        with pytest.raises(AssertionError):
+            self._check_ticks_props(ax, xlabelsize=0)
+        with pytest.raises(AssertionError):
+            self._check_ticks_props(ax, yrot=0)
+        with pytest.raises(AssertionError):
+            self._check_ticks_props(ax, ylabelsize=0)
+
 
 def _generate_4_axes_via_gridspec():
     import matplotlib.pyplot as plt
