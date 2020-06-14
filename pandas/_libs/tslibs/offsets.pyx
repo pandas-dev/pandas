@@ -18,7 +18,7 @@ from dateutil.easter import easter
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport int64_t
+from numpy cimport int64_t, ndarray
 cnp.import_array()
 
 # TODO: formalize having _libs.properties "above" tslibs in the dependency structure
@@ -1380,24 +1380,7 @@ cdef class BusinessDay(BusinessMixin):
     @apply_index_wraps
     def apply_index(self, dtindex):
         i8other = dtindex.asi8
-        time = (i8other % DAY_NANOS).view("timedelta64[ns]")
-
-        # to_period rolls forward to next BDay; track and
-        # reduce n where it does when rolling forward
-        asper = dtindex.to_period("B")
-
-        if self.n > 0:
-            shifted = (dtindex.to_perioddelta("B") - time).asi8 != 0
-
-            roll = np.where(shifted, self.n - 1, self.n)
-            shifted = asper._addsub_int_array(roll, operator.add)
-        else:
-            # Integer addition is deprecated, so we use _time_shift directly
-            roll = self.n
-            shifted = asper._time_shift(roll)
-
-        result = shifted.to_timestamp() + time
-        return result
+        return shift_bdays(i8other, self.n)
 
     def is_on_offset(self, dt) -> bool:
         if self.normalize and not _is_normalized(dt):
@@ -3993,6 +3976,63 @@ def shift_months(const int64_t[:] dtindex, int months, object day_opt=None):
                          "'business_start', or 'business_end'")
 
     return np.asarray(out)
+
+
+cdef ndarray[int64_t] shift_bdays(const int64_t[:] i8other, int periods):
+    """
+    Implementation of BusinessDay.apply_offset.
+
+    Parameters
+    ----------
+    i8other : const int64_t[:]
+    periods : int
+
+    Returns
+    -------
+    ndarray[int64_t]
+    """
+    cdef:
+        Py_ssize_t i, n = len(i8other)
+        int64_t[:] result = np.empty(n, dtype="i8")
+        int64_t val, res
+        int wday, nadj, days
+        npy_datetimestruct dts
+
+    for i in range(n):
+        val = i8other[i]
+        if val == NPY_NAT:
+            result[i] = NPY_NAT
+        else:
+            # The rest of this is effectively a copy of BusinessDay.apply
+            nadj = periods
+            weeks = nadj // 5
+            dt64_to_dtstruct(val, &dts)
+            wday = dayofweek(dts.year, dts.month, dts.day)
+
+            if nadj <= 0 and wday > 4:
+                # roll forward
+                nadj += 1
+
+            nadj -= 5 * weeks
+
+            # nadj is always >= 0 at this point
+            if nadj == 0 and wday > 4:
+                # roll back
+                days = 4 - wday
+            elif wday > 4:
+                # roll forward
+                days = (7 - wday) + (nadj - 1)
+            elif wday + nadj <= 4:
+                # shift by n days without leaving the current week
+                days = nadj
+            else:
+                # shift by nadj days plus 2 to get past the weekend
+                days = nadj + 2
+
+            res = val + (7 * weeks + days) * DAY_NANOS
+            result[i] = res
+
+    return result.base
 
 
 def shift_month(stamp: datetime, months: int,
