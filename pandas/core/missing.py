@@ -761,7 +761,8 @@ def _interp_limit(
         if limit:
             cumsum = arr.cumsum()
             arr = cumsum * arr
-            arr = np.diff(arr, prepend=0)
+            arr = np.diff(arr)
+            arr = np.pad(arr, (1, 0))
             arr = np.where(arr < 0, arr, 0)
             arr = np.minimum.accumulate(arr)
             arr = arr + cumsum
