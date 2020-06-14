@@ -4868,6 +4868,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         See Also
         --------
+        DataFrameGroupBy.sample: Generates random samples from each group of a
+            DataFrame object.
+        SeriesGroupBy.sample: Generates random samples from each group of a
+            Series object.
         numpy.random.choice: Generates a random sample from a given 1-D numpy
             array.
 
