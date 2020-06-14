@@ -3757,16 +3757,22 @@ cdef shift_quarters(
                 n = quarters
 
                 months_since = (dts.month - q1start_month) % modby
+                compare_day = get_day_of_month(&dts, day_opt)
 
                 # offset semantics - if on the anchor point and going backwards
                 # shift to next
                 if n <= 0 and (months_since != 0 or
-                               (months_since == 0 and dts.day > 1)):
+                               (months_since == 0 and dts.day > compare_day)):
+                    # make sure to roll forward, so negate
                     n += 1
+                elif n > 0 and (months_since == 0 and dts.day < compare_day):
+                    # pretend to roll back if on same month but
+                    # before compare_day
+                    n -= 1
 
                 dts.year = year_add_months(dts, modby * n - months_since)
                 dts.month = month_add_months(dts, modby * n - months_since)
-                dts.day = 1
+                dts.day = get_day_of_month(&dts, day_opt)
 
                 out[i] = dtstruct_to_dt64(&dts)
 
@@ -3781,21 +3787,20 @@ cdef shift_quarters(
                 n = quarters
 
                 months_since = (dts.month - q1start_month) % modby
+                compare_day = get_day_of_month(&dts, day_opt)
 
-                if n <= 0 and months_since != 0:
-                    # The general case of this condition would be
-                    # `months_since != 0 or (months_since == 0 and
-                    #    dts.day > get_days_in_month(dts.year, dts.month))`
-                    # but the get_days_in_month inequality would never hold.
+                if n <= 0 and (months_since != 0 or
+                               (months_since == 0 and dts.day > compare_day)):
+                    # make sure to roll forward, so negate
                     n += 1
-                elif n > 0 and (months_since == 0 and
-                                dts.day < get_days_in_month(dts.year,
-                                                            dts.month)):
+                elif n > 0 and (months_since == 0 and dts.day < compare_day):
+                    # pretend to roll back if on same month but
+                    # before compare_day
                     n -= 1
 
                 dts.year = year_add_months(dts, modby * n - months_since)
                 dts.month = month_add_months(dts, modby * n - months_since)
-                dts.day = get_days_in_month(dts.year, dts.month)
+                dts.day = get_day_of_month(&dts, day_opt)
 
                 out[i] = dtstruct_to_dt64(&dts)
 
@@ -3812,7 +3817,7 @@ cdef shift_quarters(
                 months_since = (dts.month - q1start_month) % modby
                 # compare_day is only relevant for comparison in the case
                 # where months_since == 0.
-                compare_day = get_firstbday(dts.year, dts.month)
+                compare_day = get_day_of_month(&dts, day_opt)
 
                 if n <= 0 and (months_since != 0 or
                                (months_since == 0 and dts.day > compare_day)):
@@ -3826,7 +3831,7 @@ cdef shift_quarters(
                 dts.year = year_add_months(dts, modby * n - months_since)
                 dts.month = month_add_months(dts, modby * n - months_since)
 
-                dts.day = get_firstbday(dts.year, dts.month)
+                dts.day = get_day_of_month(&dts, day_opt)
 
                 out[i] = dtstruct_to_dt64(&dts)
 
@@ -3843,7 +3848,7 @@ cdef shift_quarters(
                 months_since = (dts.month - q1start_month) % modby
                 # compare_day is only relevant for comparison in the case
                 # where months_since == 0.
-                compare_day = get_lastbday(dts.year, dts.month)
+                compare_day = get_day_of_month(&dts, day_opt)
 
                 if n <= 0 and (months_since != 0 or
                                (months_since == 0 and dts.day > compare_day)):
@@ -3857,7 +3862,7 @@ cdef shift_quarters(
                 dts.year = year_add_months(dts, modby * n - months_since)
                 dts.month = month_add_months(dts, modby * n - months_since)
 
-                dts.day = get_lastbday(dts.year, dts.month)
+                dts.day = get_day_of_month(&dts, day_opt)
 
                 out[i] = dtstruct_to_dt64(&dts)
 
@@ -3909,7 +3914,7 @@ def shift_months(const int64_t[:] dtindex, int months, object day_opt=None):
 
                 dt64_to_dtstruct(dtindex[i], &dts)
                 months_to_roll = months
-                compare_day = 1
+                compare_day = get_day_of_month(&dts, day_opt)
 
                 # offset semantics - if on the anchor point and going backwards
                 # shift to next
@@ -3918,7 +3923,7 @@ def shift_months(const int64_t[:] dtindex, int months, object day_opt=None):
 
                 dts.year = year_add_months(dts, months_to_roll)
                 dts.month = month_add_months(dts, months_to_roll)
-                dts.day = 1
+                dts.day = get_day_of_month(&dts, day_opt)
 
                 out[i] = dtstruct_to_dt64(&dts)
     elif day_opt == "end":
@@ -3930,7 +3935,7 @@ def shift_months(const int64_t[:] dtindex, int months, object day_opt=None):
 
                 dt64_to_dtstruct(dtindex[i], &dts)
                 months_to_roll = months
-                compare_day = get_days_in_month(dts.year, dts.month)
+                compare_day = get_day_of_month(&dts, day_opt)
 
                 # similar semantics - when adding shift forward by one
                 # month if already at an end of month
@@ -3940,7 +3945,7 @@ def shift_months(const int64_t[:] dtindex, int months, object day_opt=None):
                 dts.year = year_add_months(dts, months_to_roll)
                 dts.month = month_add_months(dts, months_to_roll)
 
-                dts.day = get_days_in_month(dts.year, dts.month)
+                dts.day = get_day_of_month(&dts, day_opt)
                 out[i] = dtstruct_to_dt64(&dts)
 
     elif day_opt == "business_start":
@@ -3952,7 +3957,7 @@ def shift_months(const int64_t[:] dtindex, int months, object day_opt=None):
 
                 dt64_to_dtstruct(dtindex[i], &dts)
                 months_to_roll = months
-                compare_day = get_firstbday(dts.year, dts.month)
+                compare_day = get_day_of_month(&dts, day_opt)
 
                 months_to_roll = roll_convention(dts.day, months_to_roll,
                                                  compare_day)
@@ -3960,7 +3965,7 @@ def shift_months(const int64_t[:] dtindex, int months, object day_opt=None):
                 dts.year = year_add_months(dts, months_to_roll)
                 dts.month = month_add_months(dts, months_to_roll)
 
-                dts.day = get_firstbday(dts.year, dts.month)
+                dts.day = get_day_of_month(&dts, day_opt)
                 out[i] = dtstruct_to_dt64(&dts)
 
     elif day_opt == "business_end":
@@ -3972,7 +3977,7 @@ def shift_months(const int64_t[:] dtindex, int months, object day_opt=None):
 
                 dt64_to_dtstruct(dtindex[i], &dts)
                 months_to_roll = months
-                compare_day = get_lastbday(dts.year, dts.month)
+                compare_day = get_day_of_month(&dts, day_opt)
 
                 months_to_roll = roll_convention(dts.day, months_to_roll,
                                                  compare_day)
@@ -3980,7 +3985,7 @@ def shift_months(const int64_t[:] dtindex, int months, object day_opt=None):
                 dts.year = year_add_months(dts, months_to_roll)
                 dts.month = month_add_months(dts, months_to_roll)
 
-                dts.day = get_lastbday(dts.year, dts.month)
+                dts.day = get_day_of_month(&dts, day_opt)
                 out[i] = dtstruct_to_dt64(&dts)
 
     else:
@@ -4051,7 +4056,7 @@ def shift_month(stamp: datetime, months: int,
     return stamp.replace(year=year, month=month, day=day)
 
 
-cdef int get_day_of_month(npy_datetimestruct* dts, day_opt) nogil except? -1:
+cdef inline int get_day_of_month(npy_datetimestruct* dts, day_opt) nogil except? -1:
     """
     Find the day in `other`'s month that satisfies a DateOffset's is_on_offset
     policy, as described by the `day_opt` argument.
