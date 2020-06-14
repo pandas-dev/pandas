@@ -6,7 +6,6 @@ import numpy as np
 from pandas._libs import index as libindex
 from pandas._libs.lib import no_default
 from pandas._libs.tslibs import Period, Resolution
-from pandas._libs.tslibs.frequencies import get_freq_group
 from pandas._libs.tslibs.parsing import DateParseError, parse_time_string
 from pandas._typing import DtypeObj, Label
 from pandas.util._decorators import Appender, cache_readonly, doc
@@ -510,7 +509,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
             reso = Resolution.from_attrname(reso)
             grp = reso.freq_group
-            freqn = get_freq_group(self.dtype.dtype_code)
+            freqn = self.dtype.freq_group
 
             # _get_string_slice will handle cases where grp < freqn
             assert grp >= freqn
@@ -586,7 +585,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     def _validate_partial_date_slice(self, reso: Resolution):
         assert isinstance(reso, Resolution), (type(reso), reso)
         grp = reso.freq_group
-        freqn = get_freq_group(self.dtype.dtype_code)
+        freqn = self.dtype.freq_group
 
         if not grp < freqn:
             # TODO: we used to also check for

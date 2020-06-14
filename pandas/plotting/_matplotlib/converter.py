@@ -10,9 +10,9 @@ from matplotlib.transforms import nonsingular
 import matplotlib.units as units
 import numpy as np
 
-from pandas._libs import lib, tslibs
-from pandas._libs.tslibs import to_offset
-from pandas._libs.tslibs.frequencies import FreqGroup, get_freq_group
+from pandas._libs import lib
+from pandas._libs.tslibs import Timestamp, to_offset
+from pandas._libs.tslibs.dtypes import FreqGroup
 from pandas._libs.tslibs.offsets import BaseOffset
 
 from pandas.core.dtypes.common import (
@@ -45,7 +45,7 @@ _mpl_units = {}  # Cache for units overwritten by us
 
 def get_pairs():
     pairs = [
-        (tslibs.Timestamp, DatetimeConverter),
+        (Timestamp, DatetimeConverter),
         (Period, PeriodConverter),
         (pydt.datetime, DatetimeConverter),
         (pydt.date, DatetimeConverter),
@@ -281,7 +281,7 @@ class DatetimeConverter(dates.DateConverter):
         if isinstance(values, (datetime, pydt.date)):
             return _dt_to_float_ordinal(values)
         elif isinstance(values, np.datetime64):
-            return _dt_to_float_ordinal(tslibs.Timestamp(values))
+            return _dt_to_float_ordinal(Timestamp(values))
         elif isinstance(values, pydt.time):
             return dates.date2num(values)
         elif is_integer(values) or is_float(values):
@@ -553,7 +553,7 @@ def _daily_finder(vmin, vmax, freq: BaseOffset):
     elif dtype_code == FreqGroup.FR_DAY:
         periodsperyear = 365
         periodspermonth = 28
-    elif get_freq_group(dtype_code) == FreqGroup.FR_WK:
+    elif FreqGroup.get_freq_group(dtype_code) == FreqGroup.FR_WK:
         periodsperyear = 52
         periodspermonth = 3
     else:  # pragma: no cover
