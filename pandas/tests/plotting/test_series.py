@@ -937,7 +937,7 @@ class TestSeriesPlots(TestPlotBase):
 
     @pytest.mark.parametrize(
         "index_name, old_label, new_label",
-        [(None, "", "new"), ("old", "old", "new"), (None, "", ""), ],
+        [(None, "", "new"), ("old", "old", "new"), (None, "", "")],
     )
     @pytest.mark.parametrize("kind", ["line", "area", "bar"])
     def test_xlabel_ylabel_series(self, kind, index_name, old_label, new_label):
