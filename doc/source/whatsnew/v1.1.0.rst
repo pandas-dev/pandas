@@ -676,6 +676,44 @@ Using :meth:`DataFrame.groupby` with ``as_index=False`` and the function ``idxma
 
    df.groupby("a", as_index=False).nunique()
 
+
+.. _whatsnew_110.api_breaking.groupby_results_lost_as_index_false:
+
+:meth:`DataFrameGroupby.agg` lost results with ``as_index`` ``False`` when relabeling columns
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously :meth:`DataFrameGroupby.agg` lost the result columns, when the ``as_index`` option was
+set to ``False`` and the result columns were relabeled. In this case he result values were replaced with
+the previous index (:issue:`32240`).
+
+.. ipython:: python
+
+   df = pd.DataFrame({"key": ["x", "y", "z", "x", "y", "z"],
+                      "val": [1.0, 0.8, 2.0, 3.0, 3.6, 0.75]})
+   df
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+   In [2]: grouped = df.groupby("key", as_index=False)
+   In [3]: result = grouped.agg(min_val=pd.NamedAgg(column="val", aggfunc="min"))
+   In [4]: result
+   Out[4]:
+        min_val
+    0 	x
+    1 	y
+    2 	z
+
+*New behavior*:
+
+.. ipython:: python
+
+   grouped = df.groupby("key", as_index=False)
+   result = grouped.agg(min_val=pd.NamedAgg(column="val", aggfunc="min"))
+   result
+
+
 .. _whatsnew_110.api_breaking.apply_applymap_first_once:
 
 apply and applymap on ``DataFrame`` evaluates first row/column only once
@@ -713,43 +751,6 @@ apply and applymap on ``DataFrame`` evaluates first row/column only once
 .. ipython:: python
 
     df.apply(func, axis=1)
-
-
-.. _whatsnew_110.api_breaking.groupby_results_los_as_index_false:
-
-:meth:`DataFrameGroupby.agg` lost results with ``as_index`` ``False`` when relabeling columns
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Previously :meth:`DataFrameGroupby.agg` lost the result columns, when the ``as_index`` option was
-set to ``False`` and the result columns were relabeled. In this case he result values were replaced with
-the previous index (:issue:`32240`).
-
-.. ipython:: python
-
-   df = pd.DataFrame({"key": ["x", "y", "z", "x", "y", "z"],
-                      "val": [1.0, 0.8, 2.0, 3.0, 3.6, 0.75]})
-   df
-
-*Previous behavior*:
-
-.. code-block:: ipython
-
-   In [2]: grouped = df.groupby("key", as_index=False)
-   In [3]: result = grouped.agg(min_val=pd.NamedAgg(column="val", aggfunc="min"))
-   In [4]: result
-   Out[4]:
-        min_val
-    0 	x
-    1 	y
-    2 	z
-
-*New behavior*:
-
-.. ipython:: python
-
-   grouped = df.groupby("key", as_index=False)
-   result = grouped.agg(min_val=pd.NamedAgg(column="val", aggfunc="min"))
-   result
 
 
 .. _whatsnew_110.deprecations:
@@ -1029,7 +1030,6 @@ Groupby/resample/rolling
   The behaviour now is consistent, independent of internal heuristics. (:issue:`31612`, :issue:`14927`, :issue:`13056`)
 - Bug in :meth:`SeriesGroupBy.agg` where any column name was accepted in the named aggregation of ``SeriesGroupBy`` previously. The behaviour now allows only ``str`` and callables else would raise ``TypeError``. (:issue:`34422`)
 - Bug in :meth:`DataFrame.groupby` lost index, when one of the ``agg`` keys referenced an empty list (:issue:`32580`)
-- Bug in :meth:`DataFrameGroupby.agg` lost results, when ``as_index`` option was set to ``False`` and the result columns were relabeled. The result values were replaced with the index values (:issue:`32240`).
 
 Reshaping
 ^^^^^^^^^
