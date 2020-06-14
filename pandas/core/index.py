@@ -1,7 +1,5 @@
 import warnings
 
-from pandas.errors import InvalidIndexError
-
 from pandas.core.indexes.api import (  # noqa:F401
     CategoricalIndex,
     DatetimeIndex,
@@ -30,5 +28,3 @@ warnings.warn(
     FutureWarning,
     stacklevel=2,
 )
-
-__all__ = ["InvalidIndexError"]
