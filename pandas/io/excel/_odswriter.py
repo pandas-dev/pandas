@@ -1,6 +1,6 @@
 from collections import defaultdict
 import datetime
-from typing import Any, DefaultDict, Dict, List, Optional, Tuple
+from typing import Any, DefaultDict, Dict, List, Optional, Tuple, Union
 
 import pandas._libs.json as json
 
@@ -89,7 +89,7 @@ class _ODSWriter(ExcelWriter):
         for row_nr in range(max(rows.keys()) + 1):
             wks.addElement(rows[row_nr])
 
-    def _make_table_cell_attributes(self, cell) -> Dict[str, Any]:
+    def _make_table_cell_attributes(self, cell) -> Dict[str, Union[int, str]]:
         """Convert cell attributes to OpenDocument attributes
 
         Parameters
@@ -99,10 +99,10 @@ class _ODSWriter(ExcelWriter):
 
         Returns
         -------
-        attributes : Dict[str, object]
+        attributes : Dict[str, Union[int, str]]
             Dictionary with attributes and attribute values
         """
-        attributes: Dict[str, object] = {}
+        attributes: Dict[str, Union[int, str]] = {}
         style_name = self._process_style(cell.style)
         if style_name is not None:
             attributes["stylename"] = style_name
