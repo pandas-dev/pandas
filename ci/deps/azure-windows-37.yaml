@@ -22,7 +22,7 @@ dependencies:
   - matplotlib=2.2.*
   - moto
   - numexpr
-  - numpy=1.14.*
+  - numpy=1.18.*
   - openpyxl
   - pyarrow=0.14
   - pytables
