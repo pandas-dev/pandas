@@ -1,4 +1,4 @@
-from datetime import datetime, time, timedelta
+from datetime import date, datetime, time, timedelta
 
 import numpy as np
 import pytest
@@ -174,7 +174,6 @@ class TestWhere:
     def test_where_invalid_dtypes(self):
         dti = pd.date_range("20130101", periods=3, tz="US/Eastern")
 
-        i2 = dti.copy()
         i2 = Index([pd.NaT, pd.NaT] + dti[2:].tolist())
 
         with pytest.raises(TypeError, match="Where requires matching dtype"):
@@ -193,6 +192,20 @@ class TestWhere:
 
         with pytest.raises(TypeError, match="Where requires matching dtype"):
             dti.where(notna(i2), i2.asi8)
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            # non-matching scalar
+            dti.where(notna(i2), pd.Timedelta(days=4))
+
+    def test_where_mismatched_nat(self, tz_aware_fixture):
+        tz = tz_aware_fixture
+        dti = pd.date_range("2013-01-01", periods=3, tz=tz)
+        cond = np.array([True, False, True])
+
+        msg = "Where requires matching dtype"
+        with pytest.raises(TypeError, match=msg):
+            # wrong-dtyped NaT
+            dti.where(cond, np.timedelta64("NaT", "ns"))
 
     def test_where_tz(self):
         i = pd.date_range("20130101", periods=3, tz="US/Eastern")
@@ -505,6 +518,21 @@ class TestContains:
         ix = DatetimeIndex([d, d])
         assert d in ix
 
+    @pytest.mark.parametrize(
+        "vals",
+        [
+            [0, 1, 0],
+            [0, 0, -1],
+            [0, -1, -1],
+            ["2015", "2015", "2016"],
+            ["2015", "2015", "2014"],
+        ],
+    )
+    def test_contains_nonunique(self, vals):
+        # GH#9512
+        idx = DatetimeIndex(vals)
+        assert idx[0] in idx
+
 
 class TestGetIndexer:
     def test_get_indexer(self):
@@ -547,6 +575,38 @@ class TestGetIndexer:
         with pytest.raises(ValueError, match="abbreviation w/o a number"):
             idx.get_indexer(idx[[0]], method="nearest", tolerance="foo")
 
+    @pytest.mark.parametrize(
+        "target",
+        [
+            [date(2020, 1, 1), pd.Timestamp("2020-01-02")],
+            [pd.Timestamp("2020-01-01"), date(2020, 1, 2)],
+        ],
+    )
+    def test_get_indexer_mixed_dtypes(self, target):
+        # https://github.com/pandas-dev/pandas/issues/33741
+        values = pd.DatetimeIndex(
+            [pd.Timestamp("2020-01-01"), pd.Timestamp("2020-01-02")]
+        )
+        result = values.get_indexer(target)
+        expected = np.array([0, 1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "target, positions",
+        [
+            ([date(9999, 1, 1), pd.Timestamp("2020-01-01")], [-1, 0]),
+            ([pd.Timestamp("2020-01-01"), date(9999, 1, 1)], [0, -1]),
+            ([date(9999, 1, 1), date(9999, 1, 1)], [-1, -1]),
+        ],
+    )
+    def test_get_indexer_out_of_bounds_date(self, target, positions):
+        values = pd.DatetimeIndex(
+            [pd.Timestamp("2020-01-01"), pd.Timestamp("2020-01-02")]
+        )
+        result = values.get_indexer(target)
+        expected = np.array(positions, dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
 
 class TestMaybeCastSliceBound:
     def test_maybe_cast_slice_bounds_empty(self):
@@ -580,13 +640,17 @@ class TestDatetimeIndex:
         key = dti[1]
 
         with pytest.raises(AttributeError, match="has no attribute '_values'"):
-            dti.get_value(arr, key)
+            with tm.assert_produces_warning(FutureWarning):
+                dti.get_value(arr, key)
 
-        result = dti.get_value(ser, key)
+        with tm.assert_produces_warning(FutureWarning):
+            result = dti.get_value(ser, key)
         assert result == 7
 
-        result = dti.get_value(ser, key.to_pydatetime())
+        with tm.assert_produces_warning(FutureWarning):
+            result = dti.get_value(ser, key.to_pydatetime())
         assert result == 7
 
-        result = dti.get_value(ser, key.to_datetime64())
+        with tm.assert_produces_warning(FutureWarning):
+            result = dti.get_value(ser, key.to_datetime64())
         assert result == 7
