@@ -320,6 +320,20 @@ provide a pandas-like and pandas-compatible toolkit for analytics on multi-
 dimensional arrays, rather than the tabular data for which pandas excels.
 
 
+.. _ecosystem.io:
+
+IO
+--
+
+`BCPandas <https://github.com/yehoshuadimarsky/bcpandas>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+BCPandas provides high performance writes from pandas to Microsoft SQL Server,
+far exceeding the performance of the native ``df.to_sql`` method. Internally, it uses
+Microsoft's BCP utility, but the complexity is fully abstracted away from the end user.
+Rigorously tested, it is a complete replacement for ``df.to_sql``.
+
+
 .. _ecosystem.out-of-core:
 
 Out-of-core
