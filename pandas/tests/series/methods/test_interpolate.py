@@ -477,6 +477,22 @@ class TestSeriesInterpolateData:
         result = s.interpolate(method="bfill", limit_area="outside", limit=1)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("method", ["backfill", "bfill", "pad", "ffill"])
+    @pytest.mark.parametrize("limit_area", ["inside", "outside", "both", None])
+    def test_interp_limit_area_all_missing(self, method, limit_area):
+        # https://github.com/pandas-dev/pandas/issues/26796
+        ser = Series([np.nan, np.nan, np.nan])
+        result = ser.interpolate(method=method, limit_area=limit_area)
+        tm.assert_series_equal(result, ser)
+
+    @pytest.mark.parametrize("method", ["backfill", "bfill", "pad", "ffill"])
+    @pytest.mark.parametrize("limit_area", ["inside", "outside", "both", None])
+    def test_interp_limit_area_none_missing(self, method, limit_area):
+        # https://github.com/pandas-dev/pandas/issues/26796
+        ser = Series([1, 2, 3])
+        result = ser.interpolate(method=method, limit_area=limit_area)
+        tm.assert_series_equal(result, ser)
+
     def test_interp_limit_direction(self):
         # These tests are for issue #9218 -- fill NaNs in both directions.
         s = Series([1, 3, np.nan, np.nan, np.nan, 11])
