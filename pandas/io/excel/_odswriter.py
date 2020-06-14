@@ -6,6 +6,7 @@ import pandas._libs.json as json
 
 from pandas.io.excel._base import ExcelWriter
 from pandas.io.excel._util import _validate_freeze_panes
+from pandas.io.formats.excel import ExcelCell
 
 
 class _ODSWriter(ExcelWriter):
@@ -37,7 +38,7 @@ class _ODSWriter(ExcelWriter):
 
     def write_cells(
         self,
-        cells,
+        cells: List[ExcelCell],
         sheet_name: Optional[str] = None,
         startrow: int = 0,
         startcol: int = 0,
@@ -111,7 +112,7 @@ class _ODSWriter(ExcelWriter):
             attributes["numbercolumnsspanned"] = cell.mergeend
         return attributes
 
-    def _make_table_cell(self, cell) -> Tuple[str, object]:
+    def _make_table_cell(self, cell) -> Tuple[str, Any]:
         """Convert cell data to an OpenDocument spreadsheet cell
 
         Parameters
@@ -121,7 +122,7 @@ class _ODSWriter(ExcelWriter):
 
         Returns
         -------
-        pvalue, cell : Tuple[str, object]
+        pvalue, cell : Tuple[str, TableCell]
             Display value, Cell value
         """
         from odf.table import TableCell
