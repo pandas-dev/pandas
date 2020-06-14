@@ -85,7 +85,8 @@ class EWM(_Rolling):
         :math:`halflife > 0`.
 
         If ``times`` is specified, the time unit (str or timedelta) over which an observation
-        decays to half its value. Only applicable to ``mean()``.
+        decays to half its value. Only applicable to ``mean()`` and halflife value
+        will not apply to the other functions.
 
     alpha : float, optional
         Specify smoothing factor :math:`\alpha` directly,
@@ -213,7 +214,11 @@ class EWM(_Rolling):
                 np.asarray(times - times[0]).astype(np.float64)
                 / Timedelta(halflife).value
             )
-            self.com = None
+            # Halflife is no longer applicable to calculating COM
+            if com.count_not_none(com, span, alpha) > 0:
+                self.com = get_center_of_mass(com, span, None, alpha)
+            else:
+                self.com = None
         else:
             self.time_weights = None
             self.com = get_center_of_mass(com, span, halflife, alpha)
