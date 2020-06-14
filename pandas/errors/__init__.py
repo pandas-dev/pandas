@@ -205,4 +205,6 @@ class NumbaUtilError(Exception):
 class InvalidIndexError(Exception):
     """
     Exception raised when attemping to use an invalid index key.
+
+    .. versionadded:: 1.1.0
     """
