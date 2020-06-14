@@ -7,7 +7,6 @@ from pandas.core.indexes.api import (  # noqa:F401
     Index,
     Int64Index,
     IntervalIndex,
-    InvalidIndexError,
     MultiIndex,
     NaT,
     NumericIndex,

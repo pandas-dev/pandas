@@ -11,6 +11,7 @@ from pandas._libs import lib
 from pandas._libs.interval import Interval, IntervalMixin, IntervalTree
 from pandas._libs.tslibs import Timedelta, Timestamp, to_offset
 from pandas._typing import AnyArrayLike, Label
+from pandas.errors import InvalidIndexError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 from pandas.util._exceptions import rewrite_exception
 
@@ -44,7 +45,6 @@ from pandas.core.indexers import is_valid_positional_slice
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
-    InvalidIndexError,
     _index_shared_docs,
     default_pprint,
     ensure_index,

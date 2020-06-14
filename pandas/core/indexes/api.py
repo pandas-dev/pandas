@@ -2,11 +2,11 @@ import textwrap
 from typing import List, Set
 
 from pandas._libs import NaT, lib
+from pandas.errors import InvalidIndexError
 
 import pandas.core.common as com
 from pandas.core.indexes.base import (
     Index,
-    InvalidIndexError,
     _new_Index,
     ensure_index,
     ensure_index_from_sequences,
