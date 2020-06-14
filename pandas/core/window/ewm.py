@@ -1,9 +1,11 @@
 from functools import partial
 from textwrap import dedent
+from typing import Optional, Union
 
 import numpy as np
 
 import pandas._libs.window.aggregations as window_aggregations
+from pandas._typing import FrameOrSeries
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 
@@ -24,7 +26,7 @@ _bias_template = """
 """
 
 
-def get_center_of_mass(comass, span, halflife, alpha) -> float:
+def get_center_of_mass(comass: Optional[float], span: Optional[float], halflife: Optional[float], alpha: Optional[float]) -> float:
     valid_count = com.count_not_none(comass, span, halflife, alpha)
     if valid_count > 1:
         raise ValueError("comass, span, halflife, and alpha are mutually exclusive")
@@ -114,7 +116,7 @@ class EWM(_Rolling):
           used in calculating the final weighted average of
           [:math:`x_0`, None, :math:`x_2`] are :math:`1-\alpha` and :math:`1` if
           ``adjust=True``, and :math:`1-\alpha` and :math:`\alpha` if ``adjust=False``.
-    axis : {0 or 'index', 1 or 'columns'}, default 0
+    axis : {0, 1}, default 0
         The axis to use. The value 0 identifies the rows, and 1
         identifies the columns.
 
@@ -159,14 +161,14 @@ class EWM(_Rolling):
     def __init__(
         self,
         obj,
-        com=None,
-        span=None,
-        halflife=None,
-        alpha=None,
-        min_periods=0,
-        adjust=True,
-        ignore_na=False,
-        axis=0,
+        com: Optional[float] = None,
+        span: Optional[float] = None,
+        halflife: Optional[float] = None,
+        alpha: Optional[float] = None,
+        min_periods: Optional[int] = 0,
+        adjust: bool = True,
+        ignore_na: bool = False,
+        axis: int = 0,
     ):
         self.obj = obj
         self.com = get_center_of_mass(com, span, halflife, alpha)
@@ -283,7 +285,7 @@ class EWM(_Rolling):
     @Substitution(name="ewm", func_name="std")
     @Appender(_doc_template)
     @Appender(_bias_template)
-    def std(self, bias=False, *args, **kwargs):
+    def std(self, bias: bool = False, *args, **kwargs):
         """
         Exponential weighted moving stddev.
         """
@@ -295,7 +297,7 @@ class EWM(_Rolling):
     @Substitution(name="ewm", func_name="var")
     @Appender(_doc_template)
     @Appender(_bias_template)
-    def var(self, bias=False, *args, **kwargs):
+    def var(self, bias: bool = False, *args, **kwargs):
         """
         Exponential weighted moving variance.
         """
@@ -316,7 +318,7 @@ class EWM(_Rolling):
 
     @Substitution(name="ewm", func_name="cov")
     @Appender(_doc_template)
-    def cov(self, other=None, pairwise=None, bias=False, **kwargs):
+    def cov(self, other: Optional[Union[np.ndarray, FrameOrSeries]] = None, pairwise: Optional[bool] = None, bias: Optional[bool] = False, **kwargs):
         """
         Exponential weighted sample covariance.
 
@@ -363,7 +365,7 @@ class EWM(_Rolling):
 
     @Substitution(name="ewm", func_name="corr")
     @Appender(_doc_template)
-    def corr(self, other=None, pairwise=None, **kwargs):
+    def corr(self, other: Optional[Union[np.ndarray, FrameOrSeries]] = None, pairwise: Optional[bool] = None, **kwargs):
         """
         Exponential weighted sample correlation.
 

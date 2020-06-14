@@ -1829,7 +1829,7 @@ def ewma(float64_t[:] vals, float64_t com, int adjust, bint ignore_na, int minp)
 
 
 def ewmcov(float64_t[:] input_x, float64_t[:] input_y,
-           float64_t com, int adjust, bint ignore_na, int minp, int bias):
+           float64_t com, int adjust, bint ignore_na, int minp, bint bias):
     """
     Compute exponentially-weighted moving variance using center-of-mass.
 
