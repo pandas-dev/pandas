@@ -170,7 +170,7 @@ class EWM(_Rolling):
     ):
         self.obj = obj
         self.com = get_center_of_mass(com, span, halflife, alpha)
-        self.min_periods = min_periods
+        self.min_periods = max(int(min_periods), 1)
         self.adjust = adjust
         self.ignore_na = ignore_na
         self.axis = axis
@@ -276,7 +276,7 @@ class EWM(_Rolling):
             com=self.com,
             adjust=int(self.adjust),
             ignore_na=self.ignore_na,
-            minp=int(self.min_periods),
+            minp=self.min_periods,
         )
         return self._apply(window_func)
 
@@ -308,7 +308,7 @@ class EWM(_Rolling):
                 self.com,
                 int(self.adjust),
                 int(self.ignore_na),
-                int(self.min_periods),
+                self.min_periods,
                 int(bias),
             )
 
@@ -352,7 +352,7 @@ class EWM(_Rolling):
                 self.com,
                 int(self.adjust),
                 int(self.ignore_na),
-                int(self.min_periods),
+                self.min_periods,
                 int(bias),
             )
             return X._wrap_result(cov)
@@ -399,7 +399,7 @@ class EWM(_Rolling):
                     self.com,
                     int(self.adjust),
                     int(self.ignore_na),
-                    int(self.min_periods),
+                    self.min_periods,
                     1,
                 )
 

@@ -1786,8 +1786,6 @@ def ewma(float64_t[:] vals, float64_t com, int adjust, bint ignore_na, int minp)
     if N == 0:
         return output
 
-    minp = max(minp, 1)
-
     alpha = 1. / (1. + com)
     old_wt_factor = 1. - alpha
     new_wt = 1. if adjust else alpha
@@ -1865,8 +1863,6 @@ def ewmcov(float64_t[:] input_x, float64_t[:] input_y,
     output = np.empty(N, dtype=float)
     if N == 0:
         return output
-
-    minp = max(minp, 1)
 
     alpha = 1. / (1. + com)
     old_wt_factor = 1. - alpha
