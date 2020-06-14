@@ -976,6 +976,7 @@ Groupby/resample/rolling
 
 - Bug in :meth:`GroupBy.apply` raises ``ValueError`` when the ``by`` axis is not sorted and has duplicates and the applied ``func`` does not mutate passed in objects (:issue:`30667`)
 - Bug in :meth:`DataFrameGroupby.transform` produces incorrect result with transformation functions (:issue:`30918`)
+- Bug in :meth:`Groupby.transform` was returning the wrong result when grouping by multiple keys of which some were categorical and others not (:issue:`32494`)
 - Bug in :meth:`GroupBy.count` causes segmentation fault when grouped-by column contains NaNs (:issue:`32841`)
 - Bug in :meth:`DataFrame.groupby` and :meth:`Series.groupby` produces inconsistent type when aggregating Boolean series (:issue:`32894`)
 - Bug in :meth:`DataFrameGroupBy.sum` and :meth:`SeriesGroupBy.sum` where a large negative number would be returned when the number of non-null values was below ``min_count`` for nullable integer dtypes (:issue:`32861`)
