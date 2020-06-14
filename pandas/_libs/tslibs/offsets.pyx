@@ -3743,19 +3743,11 @@ cdef shift_quarters(
         Py_ssize_t count = len(dtindex)
         int64_t[:] out = np.empty(count, dtype="int64")
 
-    if day_opt == "start":
-        _shift_quarters(dtindex, out, count, quarters, q1start_month, day_opt, modby)
-    elif day_opt == "end":
-        _shift_quarters(dtindex, out, count, quarters, q1start_month, day_opt, modby)
-    elif day_opt == "business_start":
-        _shift_quarters(dtindex, out, count, quarters, q1start_month, day_opt, modby)
-    elif day_opt == "business_end":
-        _shift_quarters(dtindex, out, count, quarters, q1start_month, day_opt, modby)
-
-    else:
+    if day_opt not in ["start", "end", "business_start", "business_end"]:
         raise ValueError("day must be None, 'start', 'end', "
                          "'business_start', or 'business_end'")
 
+    _shift_quarters(dtindex, out, count, quarters, q1start_month, day_opt, modby)
     return np.asarray(out)
 
 
@@ -3790,13 +3782,7 @@ def shift_months(const int64_t[:] dtindex, int months, object day_opt=None):
 
                 dts.day = min(dts.day, get_days_in_month(dts.year, dts.month))
                 out[i] = dtstruct_to_dt64(&dts)
-    elif day_opt == "start":
-        _shift_months(dtindex, out, count, months, day_opt)
-    elif day_opt == "end":
-        _shift_months(dtindex, out, count, months, day_opt)
-    elif day_opt == "business_start":
-        _shift_months(dtindex, out, count, months, day_opt)
-    elif day_opt == "business_end":
+    elif day_opt in ["start", "end", "business_start", "business_end"]:
         _shift_months(dtindex, out, count, months, day_opt)
 
     else:
