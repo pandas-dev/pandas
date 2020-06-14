@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import numpy as np
 from numpy.random import randn
@@ -301,4 +301,10 @@ def series():
 @pytest.fixture(params=[_create_series(), _create_frame()])
 def which(request):
     """Turn parametrized which as fixture for series and frame"""
+    return request.param
+
+
+@pytest.fixture(params=["1 day", timedelta(days=1)])
+def halflife_with_times(request):
+    """Halflife argument for EWM when times is specified."""
     return request.param

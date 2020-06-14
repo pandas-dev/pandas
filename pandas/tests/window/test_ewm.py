@@ -3,8 +3,9 @@ import pytest
 
 from pandas.errors import UnsupportedFunctionCall
 
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, date_range
 from pandas.core.window import EWM
+import pandas._testing as tm
 
 
 def test_doc_string():
@@ -64,3 +65,40 @@ def test_numpy_compat(method):
         getattr(e, method)(1, 2, 3)
     with pytest.raises(UnsupportedFunctionCall, match=msg):
         getattr(e, method)(dtype=np.float64)
+
+
+def test_ewma_times_not_datetime_type():
+    msg = "times must be datetime64[ns] dtype."
+    with pytest.raises(ValueError, match=msg):
+        Series(range(5)).ewm(times=np.arange(5))
+
+
+def test_ewma_times_not_same_length():
+    msg = "times must be the same length as the object."
+    with pytest.raises(ValueError, match=msg):
+        Series(range(5)).ewm(times=np.arange(4).astype("datetime64[ns]"))
+
+
+def test_ewma_halflife_not_correct_type():
+    msg = "halflife must be a string or datetime.timedelta object"
+    with pytest.raises(ValueError, match=msg):
+        Series(range(5)).ewm(halflife=1, times=np.arange(5).astype("datetime64[ns]"))
+
+
+@pytest.mark.parametrize(
+    "times",
+    [
+        np.arange(10).astype("datetime64[ns]"),
+        date_range("2000", freq="ns", periods=10),
+        date_range("2000", freq="ns", periods=10).tz_localize("UTC"),
+        "time_col",
+    ],
+)
+def test_ewma_with_times(halflife_with_times, times):
+    halflife = halflife_with_times
+    df = DataFrame(
+        {"A": range(10), "time_col": date_range("2000", freq="ns", periods=10)}
+    )
+    result = df.ewma(halflife=halflife, times=times).mean()
+    expected = None
+    tm.assert_frame_equal(result, expected)
