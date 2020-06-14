@@ -1759,7 +1759,7 @@ def roll_weighted_var(float64_t[:] values, float64_t[:] weights,
 # Exponentially weighted moving average
 
 
-def ewma(float64_t[:] vals, float64_t com, int adjust, bint ignore_na, int minp):
+def ewma(float64_t[:] vals, float64_t com, bint adjust, bint ignore_na, int minp):
     """
     Compute exponentially-weighted moving average using center-of-mass.
 
@@ -1777,16 +1777,13 @@ def ewma(float64_t[:] vals, float64_t com, int adjust, bint ignore_na, int minp)
     """
 
     cdef:
-        Py_ssize_t N = len(vals)
+        Py_ssize_t i, nobs, N = len(vals)
         ndarray[float64_t] output = np.empty(N, dtype=float)
         float64_t alpha, old_wt_factor, new_wt, weighted_avg, old_wt, cur
-        Py_ssize_t i, nobs
         bint is_observation
 
     if N == 0:
         return output
-
-    minp = max(minp, 1)
 
     alpha = 1. / (1. + com)
     old_wt_factor = 1. - alpha
@@ -1831,7 +1828,7 @@ def ewma(float64_t[:] vals, float64_t com, int adjust, bint ignore_na, int minp)
 
 
 def ewmcov(float64_t[:] input_x, float64_t[:] input_y,
-           float64_t com, int adjust, bint ignore_na, int minp, int bias):
+           float64_t com, bint adjust, bint ignore_na, int minp, bint bias):
     """
     Compute exponentially-weighted moving variance using center-of-mass.
 
@@ -1851,11 +1848,10 @@ def ewmcov(float64_t[:] input_x, float64_t[:] input_y,
     """
 
     cdef:
-        Py_ssize_t N = len(input_x), M = len(input_y)
+        Py_ssize_t i, nobs, N = len(input_x), M = len(input_y)
         float64_t alpha, old_wt_factor, new_wt, mean_x, mean_y, cov
         float64_t sum_wt, sum_wt2, old_wt, cur_x, cur_y, old_mean_x, old_mean_y
         float64_t numerator, denominator
-        Py_ssize_t i, nobs
         ndarray[float64_t] output
         bint is_observation
 
@@ -1865,8 +1861,6 @@ def ewmcov(float64_t[:] input_x, float64_t[:] input_y,
     output = np.empty(N, dtype=float)
     if N == 0:
         return output
-
-    minp = max(minp, 1)
 
     alpha = 1. / (1. + com)
     old_wt_factor = 1. - alpha
