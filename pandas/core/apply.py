@@ -220,14 +220,12 @@ class FrameApply(metaclass=abc.ABCMeta):
 
     def apply_raw(self):
         """ apply to the values as a numpy array """
-        try:
-            result = libreduction.compute_reduction(self.values, self.f, axis=self.axis)
-        except ValueError as err:
-            if "Function does not reduce" not in str(err):
-                # catch only ValueError raised intentionally in libreduction
-                raise
-            # We expect np.apply_along_axis to give a two-dimensional result, or
-            #  also raise.
+        result, reduction_success = libreduction.compute_reduction(
+            self.values, self.f, axis=self.axis
+        )
+
+        # We expect np.apply_along_axis to give a two-dimensional result, or raise.
+        if not reduction_success:
             result = np.apply_along_axis(self.f, self.axis, self.values)
 
         # TODO: mixed type case
@@ -265,6 +263,9 @@ class FrameApply(metaclass=abc.ABCMeta):
 
     def apply_standard(self):
 
+        # partial result that may be returned from reduction
+        partial_result = None
+
         # try to reduce first (by default)
         # this only matters if the reduction in values is of different dtype
         # e.g. if we want to apply to a SparseFrame, then can't directly reduce
@@ -292,13 +293,9 @@ class FrameApply(metaclass=abc.ABCMeta):
             )
 
             try:
-                result = libreduction.compute_reduction(
+                result, reduction_success = libreduction.compute_reduction(
                     values, self.f, axis=self.axis, dummy=dummy, labels=labels
                 )
-            except ValueError as err:
-                if "Function does not reduce" not in str(err):
-                    # catch only ValueError raised intentionally in libreduction
-                    raise
             except TypeError:
                 # e.g. test_apply_ignore_failures we just ignore
                 if not self.ignore_failures:
@@ -307,29 +304,43 @@ class FrameApply(metaclass=abc.ABCMeta):
                 # reached via numexpr; fall back to python implementation
                 pass
             else:
-                return self.obj._constructor_sliced(result, index=labels)
+                if reduction_success:
+                    return self.obj._constructor_sliced(result, index=labels)
 
-        # compute the result using the series generator
-        results, res_index = self.apply_series_generator()
+                # no exceptions - however reduction was unsuccessful,
+                # use the computed function result for first element
+                partial_result = result[0]
+                if isinstance(partial_result, ABCSeries):
+                    partial_result = partial_result.infer_objects()
+
+        # compute the result using the series generator,
+        # use the result computed while trying to reduce if available.
+        results, res_index = self.apply_series_generator(partial_result)
 
         # wrap results
         return self.wrap_results(results, res_index)
 
-    def apply_series_generator(self) -> Tuple[ResType, "Index"]:
+    def apply_series_generator(self, partial_result=None) -> Tuple[ResType, "Index"]:
         series_gen = self.series_generator
         res_index = self.result_index
 
-        keys = []
         results = {}
+
+        # If a partial result was already computed,
+        # use it instead of running on the first element again
+        series_gen_enumeration = enumerate(series_gen)
+        if partial_result is not None:
+            i, v = next(series_gen_enumeration)
+            results[i] = partial_result
+
         if self.ignore_failures:
             successes = []
-            for i, v in enumerate(series_gen):
+            for i, v in series_gen_enumeration:
                 try:
                     results[i] = self.f(v)
                 except Exception:
                     pass
                 else:
-                    keys.append(v.name)
                     successes.append(i)
 
             # so will work with MultiIndex
@@ -337,9 +348,9 @@ class FrameApply(metaclass=abc.ABCMeta):
                 res_index = res_index.take(successes)
 
         else:
-            for i, v in enumerate(series_gen):
+            for i, v in series_gen_enumeration:
+
                 results[i] = self.f(v)
-                keys.append(v.name)
 
         return results, res_index
 

@@ -517,7 +517,7 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         other : object
-            other object to compare against.
+            Other object to compare against.
 
         Returns
         -------
@@ -609,9 +609,10 @@ class Index(IndexOpsMixin, PandasObject):
 
     def astype(self, dtype, copy=True):
         """
-        Create an Index with values cast to dtypes. The class of a new Index
-        is determined by dtype. When conversion is impossible, a ValueError
-        exception is raised.
+        Create an Index with values cast to dtypes.
+
+        The class of a new Index is determined by dtype. When conversion is
+        impossible, a ValueError exception is raised.
 
         Parameters
         ----------
@@ -639,13 +640,15 @@ class Index(IndexOpsMixin, PandasObject):
         elif is_categorical_dtype(dtype):
             from pandas.core.indexes.category import CategoricalIndex
 
-            return CategoricalIndex(self.values, name=self.name, dtype=dtype, copy=copy)
+            return CategoricalIndex(
+                self._values, name=self.name, dtype=dtype, copy=copy
+            )
 
         elif is_extension_array_dtype(dtype):
             return Index(np.asarray(self), name=self.name, dtype=dtype, copy=copy)
 
         try:
-            casted = self.values.astype(dtype, copy=copy)
+            casted = self._values.astype(dtype, copy=copy)
         except (TypeError, ValueError) as err:
             raise TypeError(
                 f"Cannot cast {type(self).__name__} to dtype {dtype}"
@@ -906,7 +909,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._format_with_header(header, **kwargs)
 
     def _format_with_header(self, header, na_rep="NaN", **kwargs):
-        values = self.values
+        values = self._values
 
         from pandas.io.formats.format import format_array
 
@@ -1035,13 +1038,48 @@ class Index(IndexOpsMixin, PandasObject):
         index : Index, optional
             Index of resulting Series. If None, defaults to original index.
         name : str, optional
-            Dame of resulting Series. If None, defaults to name of original
+            Name of resulting Series. If None, defaults to name of original
             index.
 
         Returns
         -------
         Series
             The dtype will be based on the type of the Index values.
+
+        See Also
+        --------
+        Index.to_frame : Convert an Index to a DataFrame.
+        Series.to_frame : Convert Series to DataFrame.
+
+        Examples
+        --------
+        >>> idx = pd.Index(['Ant', 'Bear', 'Cow'], name='animal')
+
+        By default, the original Index and original name is reused.
+
+        >>> idx.to_series()
+        animal
+        Ant      Ant
+        Bear    Bear
+        Cow      Cow
+        Name: animal, dtype: object
+
+        To enforce a new Index, specify new labels to ``index``:
+
+        >>> idx.to_series(index=[0, 1, 2])
+        0     Ant
+        1    Bear
+        2     Cow
+        Name: animal, dtype: object
+
+        To override the name of the resulting column, specify `name`:
+
+        >>> idx.to_series(name='zoo')
+        animal
+        Ant      Ant
+        Bear    Bear
+        Cow      Cow
+        Name: zoo, dtype: object
         """
         from pandas import Series
 
@@ -2160,8 +2198,9 @@ class Index(IndexOpsMixin, PandasObject):
 
     def unique(self, level=None):
         """
-        Return unique values in the index. Uniques are returned in order
-        of appearance, this does NOT sort.
+        Return unique values in the index.
+
+        Unique values are returned in order of appearance, this does NOT sort.
 
         Parameters
         ----------
@@ -2638,8 +2677,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def difference(self, other, sort=None):
         """
-        Return a new Index with elements from the index that are not in
-        `other`.
+        Return a new Index with elements of index not in `other`.
 
         This is the set difference of two Index objects.
 
@@ -3234,8 +3272,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def reindex(self, target, method=None, level=None, limit=None, tolerance=None):
         """
-        Create index with target's values (move/add/delete values
-        as necessary).
+        Create index with target's values.
 
         Parameters
         ----------
@@ -4039,7 +4076,7 @@ class Index(IndexOpsMixin, PandasObject):
         promote = self._shallow_copy
 
         if is_scalar(key):
-            key = com.cast_scalar_indexer(key)
+            key = com.cast_scalar_indexer(key, warn_float=True)
             return getitem(key)
 
         if isinstance(key, slice):
@@ -4216,8 +4253,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def identical(self, other) -> bool:
         """
-        Similar to equals, but check that other comparable attributes are
-        also equal.
+        Similar to equals, but checks that object attributes and types are also equal.
 
         Returns
         -------
@@ -4303,8 +4339,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def asof_locs(self, where, mask):
         """
-        Find the locations (indices) of the labels from the index for
-        every entry in the `where` argument.
+        Return the locations (indices) of labels in the index.
 
         As in the `asof` function, if the label (a particular entry in
         `where`) is not in the index, the latest index label up to the
@@ -4514,8 +4549,9 @@ class Index(IndexOpsMixin, PandasObject):
 
     def get_value(self, series: "Series", key):
         """
-        Fast lookup of value from 1-dimensional ndarray. Only use this if you
-        know what you're doing.
+        Fast lookup of value from 1-dimensional ndarray.
+
+        Only use this if you know what you're doing.
 
         Returns
         -------
@@ -4664,7 +4700,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
         if self.inferred_type == "date" and isinstance(other, ABCDatetimeIndex):
-            return type(other)(self), other
+            try:
+                return type(other)(self), other
+            except OutOfBoundsDatetime:
+                return self, other
         elif self.inferred_type == "timedelta" and isinstance(other, ABCTimedeltaIndex):
             # TODO: we dont have tests that get here
             return type(other)(self), other
@@ -4865,8 +4904,9 @@ class Index(IndexOpsMixin, PandasObject):
 
     def slice_indexer(self, start=None, end=None, step=None, kind=None):
         """
-        For an ordered or unique index, compute the slice indexer for input
-        labels and step.
+        Compute the slice indexer for input labels and step.
+
+        Index needs to be ordered and unique.
 
         Parameters
         ----------
