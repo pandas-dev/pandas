@@ -1439,7 +1439,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
             aggregate=True,
             needs_counts=True,
             needs_values=True,
-            needs_2d=True,
+            needs_at_least2d=True,
             cython_dtype=np.dtype(np.float64),
             post_processing=lambda vals, inference: np.sqrt(vals),
             ddof=ddof,
@@ -2366,7 +2366,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         numeric_only: bool = True,
         needs_counts: bool = False,
         needs_values: bool = False,
-        needs_2d: bool = False,
+        needs_at_least2d: bool = False,
         min_count: Optional[int] = None,
         needs_mask: bool = False,
         needs_ngroups: bool = False,
@@ -2393,9 +2393,9 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         needs_values : bool, default False
             Whether the values should be a part of the Cython call
             signature
-        needs_2d : bool, default False
+        needs_at_least2d : bool, default False
             Whether the values and result of the Cython call signature
-            are 2-dimensional.
+            are at least 2-dimensional.
         min_count : int, default None
             When not None, min_count for the Cython call
         needs_mask : bool, default False
@@ -2455,7 +2455,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
             else:
                 result_sz = len(values)
 
-            if needs_2d:
+            if needs_at_least2d:
                 result = np.zeros((result_sz, 1), dtype=cython_dtype)
             else:
                 result = np.zeros(result_sz, dtype=cython_dtype)
@@ -2471,7 +2471,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
                 vals = values
                 if pre_processing:
                     vals, inferences = pre_processing(vals)
-                if needs_2d:
+                if needs_at_least2d:
                     vals = vals.reshape((-1, 1))
                 vals = vals.astype(cython_dtype, copy=False)
                 func = partial(func, vals)
@@ -2490,7 +2490,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
 
             func(**kwargs)  # Call func to modify indexer values in place
 
-            if needs_2d:
+            if needs_at_least2d:
                 result = result.reshape(-1)
 
             if result_is_index:
