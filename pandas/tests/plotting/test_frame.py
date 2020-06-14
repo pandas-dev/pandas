@@ -3444,6 +3444,7 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.parametrize("method", ["bar", "barh"])
     def test_bar_ticklabel_consistence(self, method):
         # Draw two consecutiv bar plot with consistent ticklabels
+        # The labels positions should not move between two drawing on the same axis
         # GH: 26186
         def get_main_axis(ax):
             if method == "barh":
@@ -3451,17 +3452,26 @@ class TestDataFramePlots(TestPlotBase):
             elif method == "bar":
                 return ax.xaxis
 
+        # Plot the first bar plot
         data = {"A": 0, "B": 3, "C": -4}
         df = pd.DataFrame.from_dict(data, orient="index", columns=["Value"])
         ax = getattr(df.plot, method)()
         ax.get_figure().canvas.draw()
+
+        # Retrieve the label positions for the first drawing
         xticklabels = [t.get_text() for t in get_main_axis(ax).get_ticklabels()]
         label_positions_1 = dict(zip(xticklabels, get_main_axis(ax).get_ticklocs()))
+
+        # Modify the dataframe order and values and plot on same axis
         df = df.sort_values("Value") * -2
         ax = getattr(df.plot, method)(ax=ax, color="red")
         ax.get_figure().canvas.draw()
+
+        # Retrieve the label positions for the second drawing
         xticklabels = [t.get_text() for t in get_main_axis(ax).get_ticklabels()]
         label_positions_2 = dict(zip(xticklabels, get_main_axis(ax).get_ticklocs()))
+
+        # Assert that the label positions did not change between the plotting
         assert label_positions_1 == label_positions_2
 
     def test_bar_numeric(self):
