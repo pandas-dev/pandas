@@ -12,6 +12,8 @@ class _ODSWriter(ExcelWriter):
     engine = "odf"
     supported_extensions = (".ods",)
 
+    from odf.table import Table, TableCell, TableRow
+
     def __init__(
         self, path: str, engine: Optional[str] = None, mode: str = "w", **engine_kwargs
     ):
@@ -24,7 +26,7 @@ class _ODSWriter(ExcelWriter):
 
         super().__init__(path, mode=mode, **engine_kwargs)
 
-        self.book = OpenDocumentSpreadsheet()
+        self.book: OpenDocumentSpreadsheet = OpenDocumentSpreadsheet()
         self._style_dict: Dict[str, str] = {}
 
     def save(self) -> None:
@@ -46,7 +48,6 @@ class _ODSWriter(ExcelWriter):
         """
         Write the frame cells using odf
         """
-        from odf.table import Table, TableCell, TableRow
         from odf.text import P
 
         sheet_name = self._get_sheet_name(sheet_name)
@@ -109,7 +110,7 @@ class _ODSWriter(ExcelWriter):
             attributes["numbercolumnsspanned"] = cell.mergeend
         return attributes
 
-    def _make_table_cell(self, cell) -> Tuple[str, object]:
+    def _make_table_cell(self, cell) -> Tuple[str, TableCell]:
         """Convert cell data to an OpenDocument spreadsheet cell
 
         Parameters
@@ -122,7 +123,6 @@ class _ODSWriter(ExcelWriter):
         pvalue, cell : Tuple[str, object]
             Display value, Cell value
         """
-        from odf.table import TableCell
 
         attributes = self._make_table_cell_attributes(cell)
         val, fmt = self._value_with_fmt(cell.val)
