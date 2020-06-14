@@ -514,7 +514,11 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             # _get_string_slice will handle cases where grp < freqn
             assert grp >= freqn
 
-            if grp == freqn:
+            # BusinessDay is a bit strange. It has a *lower* code, but we never parse
+            # a string as "BusinessDay" resolution, just Day.
+            if grp == freqn or (
+                reso == Resolution.RESO_DAY and self.dtype.freq.name == "B"
+            ):
                 key = Period(asdt, freq=self.freq)
                 loc = self.get_loc(key, method=method, tolerance=tolerance)
                 return loc
