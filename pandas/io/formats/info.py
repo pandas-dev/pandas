@@ -35,7 +35,7 @@ def _put_str(s: Union[str, Dtype], space: int) -> str:
     --------
     >>> pd.io.formats.info._put_str("panda", 6)
     'panda '
-    >>> pd.io.formats.info._pute_str("panda", 4)
+    >>> pd.io.formats.info._put_str("panda", 4)
     'pand'
     """
     return str(s)[:space].ljust(space)
