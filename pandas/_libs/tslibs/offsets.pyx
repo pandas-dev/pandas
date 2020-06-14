@@ -3736,7 +3736,6 @@ cdef shift_quarters(
         npy_datetimestruct dts
         int count = len(dtindex)
         int months_to_roll, months_since, n, compare_day
-        bint roll_check
         int64_t[:] out = np.empty(count, dtype='int64')
 
     if day == 'start':
@@ -3878,7 +3877,6 @@ def shift_months(const int64_t[:] dtindex, int months, object day=None):
         npy_datetimestruct dts
         int count = len(dtindex)
         int months_to_roll
-        bint roll_check
         int64_t[:] out = np.empty(count, dtype='int64')
 
     if day is None:
@@ -3895,10 +3893,6 @@ def shift_months(const int64_t[:] dtindex, int months, object day=None):
                 dts.day = min(dts.day, get_days_in_month(dts.year, dts.month))
                 out[i] = dtstruct_to_dt64(&dts)
     elif day == 'start':
-        roll_check = False
-        if months <= 0:
-            months += 1
-            roll_check = True
         with nogil:
             for i in range(count):
                 if dtindex[i] == NPY_NAT:
@@ -3907,11 +3901,12 @@ def shift_months(const int64_t[:] dtindex, int months, object day=None):
 
                 dt64_to_dtstruct(dtindex[i], &dts)
                 months_to_roll = months
+                compare_day = 1
 
                 # offset semantics - if on the anchor point and going backwards
                 # shift to next
-                if roll_check and dts.day == 1:
-                    months_to_roll -= 1
+                months_to_roll = roll_convention(dts.day, months_to_roll,
+                                                 compare_day)
 
                 dts.year = year_add_months(dts, months_to_roll)
                 dts.month = month_add_months(dts, months_to_roll)
@@ -3919,10 +3914,6 @@ def shift_months(const int64_t[:] dtindex, int months, object day=None):
 
                 out[i] = dtstruct_to_dt64(&dts)
     elif day == 'end':
-        roll_check = False
-        if months > 0:
-            months -= 1
-            roll_check = True
         with nogil:
             for i in range(count):
                 if dtindex[i] == NPY_NAT:
@@ -3931,12 +3922,12 @@ def shift_months(const int64_t[:] dtindex, int months, object day=None):
 
                 dt64_to_dtstruct(dtindex[i], &dts)
                 months_to_roll = months
+                compare_day = get_days_in_month(dts.year, dts.month)
 
                 # similar semantics - when adding shift forward by one
                 # month if already at an end of month
-                if roll_check and dts.day == get_days_in_month(dts.year,
-                                                               dts.month):
-                    months_to_roll += 1
+                months_to_roll = roll_convention(dts.day, months_to_roll,
+                                                 compare_day)
 
                 dts.year = year_add_months(dts, months_to_roll)
                 dts.month = month_add_months(dts, months_to_roll)
