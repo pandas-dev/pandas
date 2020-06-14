@@ -180,6 +180,7 @@ groupby_other_methods = frozenset(
         "tail",
         "take",
         "transform",
+        "sample",
     ]
 )
 # Valid values  of `name` for `groupby.transform(name)`
