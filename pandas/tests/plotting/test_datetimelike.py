@@ -8,7 +8,7 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Index, NaT, Series, isna
+from pandas import DataFrame, Index, NaT, Series, isna, to_datetime
 import pandas._testing as tm
 from pandas.core.indexes.datetimes import bdate_range, date_range
 from pandas.core.indexes.period import Period, PeriodIndex, period_range
@@ -1477,6 +1477,36 @@ class TestTSPlot(TestPlotBase):
         else:
             expected = "2017-12-12"
         assert label.get_text() == expected
+
+    def test_check_xticks_rot(self):
+        # https://github.com/pandas-dev/pandas/issues/29460
+        # irregular time series
+        df = DataFrame(
+            {
+                "x": to_datetime(["2020-05-01", "2020-05-02", "2020-05-04"]),
+                "y": [1, 2, 3],
+            }
+        )
+        axes = df.plot(x="x", y="y")
+        self._check_ticks_props(axes, xrot=30)
+
+        # use timeseries index
+        axes = df.set_index("x").plot(y="y", use_index=True)
+        self._check_ticks_props(axes, xrot=30)
+
+        # use non-timeseries index
+        axes = df.plot(y="y", use_index=True)
+        self._check_ticks_props(axes, xrot=0)
+
+        # dont sharex
+        axes = df.plot(x="x", y="y", sharex=False)
+        self._check_ticks_props(axes, xrot=0)
+        axes = df.plot(x="x", y="y", subplots=False, sharex=True)
+        self._check_ticks_props(axes, xrot=0)
+
+        # sharex
+        axes = df.plot(x="x", y="y", sharex=True)
+        self._check_ticks_props(axes, xrot=30)
 
 
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
