@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas._libs.tslibs import Timedelta
 import pandas._libs.window.aggregations as window_aggregations
-from pandas._typing import FrameOrSeries
+from pandas._typing import FrameOrSeries, TimedeltaConvertibleTypes
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 
@@ -184,16 +184,15 @@ class EWM(_Rolling):
         obj,
         com: Optional[float] = None,
         span: Optional[float] = None,
-        halflife: Optional[float] = None,
+        halflife: Optional[Union[float, TimedeltaConvertibleTypes]] = None,
         alpha: Optional[float] = None,
         min_periods: int = 0,
         adjust: bool = True,
         ignore_na: bool = False,
         axis: int = 0,
-        times=None
+        times: Optional[Union[str, np.ndarray, FrameOrSeries]] = None,
     ):
         self.obj = obj
-        self.com = get_center_of_mass(com, span, halflife, alpha)
         self.min_periods = max(int(min_periods), 1)
         self.adjust = adjust
         self.ignore_na = ignore_na
@@ -210,7 +209,10 @@ class EWM(_Rolling):
                 raise ValueError(
                     "halflife must be a string or datetime.timedelta object"
                 )
-            self.time_weights = np.asarray(times - times[0]).astype(np.float64) / Timedelta(halflife).value
+            self.time_weights = (
+                np.asarray(times - times[0]).astype(np.float64)
+                / Timedelta(halflife).value
+            )
             self.com = None
         else:
             self.time_weights = None
@@ -313,9 +315,7 @@ class EWM(_Rolling):
         if self.distances is not None:
             window_func = self._get_roll_func("ewma")
             window_func = partial(
-                window_func,
-                minp=int(self.min_periods),
-                time_weights=self.time_weights
+                window_func, minp=int(self.min_periods), time_weights=self.time_weights
             )
         else:
             window_func = self._get_roll_func("ewma_time")

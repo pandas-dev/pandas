@@ -1779,8 +1779,6 @@ def ewma_time(float64_t[:] vals, int minp, float64_t[:] time_weights):
     if N == 0:
         return output
 
-    minp = max(minp, 1)
-
     weighted_avg = vals[0]
     is_observation = weighted_avg == weighted_avg
     nobs = int(is_observation)
