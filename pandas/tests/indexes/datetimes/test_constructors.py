@@ -946,9 +946,6 @@ class TestTimeSeries:
         assert idx[0] == sdate + 0 * offsets.BDay()
         assert idx.freq == "B"
 
-        with pytest.raises(TypeError, match="pass as a string instead"):
-            date_range(end=edate, freq=("D", 5), periods=20)
-
         idx1 = date_range(start=sdate, end=edate, freq="W-SUN")
         idx2 = date_range(start=sdate, end=edate, freq=offsets.Week(weekday=6))
         assert len(idx1) == len(idx2)
@@ -976,6 +973,12 @@ class TestTimeSeries:
         expected = Index(rng.to_pydatetime(), dtype=object)
 
         tm.assert_numpy_array_equal(idx.values, expected.values)
+
+    def test_date_range_tuple_freq_raises(self):
+        # GH#34703
+        edate = datetime(2000, 1, 1)
+        with pytest.raises(TypeError, match="pass as a string instead"):
+            date_range(end=edate, freq=("D", 5), periods=20)
 
 
 def test_timestamp_constructor_invalid_fold_raise():
