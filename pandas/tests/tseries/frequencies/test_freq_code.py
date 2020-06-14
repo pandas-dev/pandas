@@ -1,7 +1,8 @@
 import pytest
 
 from pandas._libs.tslibs import Resolution, to_offset
-from pandas._libs.tslibs.frequencies import _attrname_to_abbrevs, get_to_timestamp_base
+from pandas._libs.tslibs.dtypes import _attrname_to_abbrevs
+from pandas._libs.tslibs.frequencies import get_to_timestamp_base
 
 
 @pytest.mark.parametrize(
