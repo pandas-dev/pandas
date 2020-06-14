@@ -606,7 +606,7 @@ class HDFStore:
         if include == "pandas":
             return [n._v_pathname for n in self.groups()]
 
-        if include == "native":
+        elif include == "native":
             assert self._handle is not None  # mypy
             return [
                 n._v_pathname for n in self._handle.walk_nodes("/", classname="Table")
