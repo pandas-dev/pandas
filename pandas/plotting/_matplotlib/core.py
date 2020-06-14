@@ -1356,10 +1356,12 @@ class BarPlot(MPLPlot):
                 self.lim_offset = 0
 
         if isinstance(self.data.index, ABCMultiIndex):
-            # No real handling for MultiIndex yet
-            warnings.warn(
-                "Bar plot with a MultiIndex is not supported.", UserWarning,
-            )
+            if kwargs["ax"] is not None and kwargs["ax"].has_data():
+                warnings.warn(
+                    "Redrawing a bar plot with a MultiIndex is not supported "
+                    + "and may lead to inconsistent label positions.",
+                    UserWarning,
+                )
             self.ax_index = np.arange(len(data))
         else:
             self.ax_index = self.data.index

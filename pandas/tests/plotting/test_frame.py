@@ -3509,9 +3509,11 @@ class TestDataFramePlots(TestPlotBase):
         errors = gp3.std()
 
         # No assertion we just ensure that we can plot a MultiIndex bar plot
-        # and are getting a UserWarning
+        # and are getting a UserWarning if redrawing
+        with tm.assert_produces_warning(None):
+            ax = means.plot.bar(yerr=errors, capsize=4)
         with tm.assert_produces_warning(UserWarning):
-            means.plot.bar(yerr=errors, capsize=4)
+            means.plot.bar(yerr=errors, capsize=4, ax=ax)
 
 
 def _generate_4_axes_via_gridspec():
