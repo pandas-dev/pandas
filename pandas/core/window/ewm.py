@@ -202,12 +202,10 @@ class EWM(_Rolling):
                 raise ValueError(
                     "halflife must be a string or datetime.timedelta object"
                 )
-            self.distances = np.asarray(times - times[0]).astype(np.float64)
-            self.halflife = Timedelta(halflife).value
+            self.time_weights = np.asarray(times - times[0]).astype(np.float64) / Timedelta(halflife).value
             self.com = None
         else:
-            self.distances = None
-            self.halflife = halflife
+            self.time_weights = None
             self.com = get_center_of_mass(com, span, halflife, alpha)
 
     @property
@@ -306,15 +304,20 @@ class EWM(_Rolling):
         nv.validate_window_func("mean", args, kwargs)
         if self.distances is not None:
             window_func = self._get_roll_func("ewma")
+            window_func = partial(
+                window_func,
+                minp=int(self.min_periods),
+                time_weights=self.time_weights
+            )
         else:
             window_func = self._get_roll_func("ewma_time")
-        window_func = partial(
-            window_func,
-            com=self.com,
-            adjust=int(self.adjust),
-            ignore_na=self.ignore_na,
-            minp=int(self.min_periods),
-        )
+            window_func = partial(
+                window_func,
+                com=self.com,
+                adjust=int(self.adjust),
+                ignore_na=self.ignore_na,
+                minp=int(self.min_periods),
+            )
         return self._apply(window_func)
 
     @Substitution(name="ewm", func_name="std")

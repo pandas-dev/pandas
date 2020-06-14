@@ -1758,6 +1758,54 @@ def roll_weighted_var(float64_t[:] values, float64_t[:] weights,
 # ----------------------------------------------------------------------
 # Exponentially weighted moving average
 
+def ewma_time(float64_t[:] vals, int minp, float64_t[:] time_weights):
+    """
+    Compute exponentially-weighted moving average using half.
+
+    Parameters
+    ----------
+    vals : ndarray (float64 type)
+    minp : int
+    time_weights : ndarray[float64]
+
+    Returns
+    -------
+    ndarray
+    """
+    cdef:
+        Py_ssize_t i, N = len(vals)
+        ndarray[float64_t] output = np.empty(N, dtype=float)
+
+    if N == 0:
+        return output
+
+    minp = max(minp, 1)
+
+    weighted_avg = vals[0]
+    is_observation = weighted_avg == weighted_avg
+    nobs = int(is_observation)
+    output[0] = weighted_avg if nobs >= minp else NaN
+
+    numerator = weighted_avg
+    denominator = 1
+
+    with nogil:
+        for i in range(1, N):
+            cur = vals[i]
+            is_observation = cur == cur
+            nobs += is_observation
+            if weighted_avg == weighted_avg:
+                if is_observation:
+                    time_weight = 0.5**time_weights[i]
+                    numerator += cur * time_weight
+                    denominator += time_weight
+                    weighted_avg = numerator / denominator
+            elif is_observation:
+                weighted_avg = cur
+
+            output[i] = weighted_avg if nobs >= minp else NaN
+
+    return output
 
 def ewma(float64_t[:] vals, float64_t com, int adjust, bint ignore_na, int minp):
     """
