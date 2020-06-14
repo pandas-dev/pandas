@@ -406,6 +406,7 @@ Backwards incompatible API changes
   (previously raised a ``NotImplementedError``), while passing in keyword ``encoding`` now raises a ``TypeError`` (:issue:`34464`)
 - :func: `merge` now checks ``suffixes`` parameter type to be ``tuple`` and raises ``TypeError``, whereas before a ``list`` or ``set`` were accepted and that the ``set`` could produce unexpected results (:issue:`33740`)
 - :class:`Period` no longer accepts tuples for the ``freq`` argument (:issue:`34658`)
+- :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` now raises ValueError if ``limit_direction`` is 'forward' or 'both' and ``method`` is 'backfill' or 'bfill' or ``limit_direction`` is 'backward' or 'both' and ``method`` is 'pad' or 'ffill' (:issue:`34746`)
 
 ``MultiIndex.get_indexer`` interprets `method` argument differently
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
