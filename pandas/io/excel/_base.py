@@ -1,8 +1,9 @@
 import abc
 import datetime
-from io import BytesIO, IOBase
+from io import BytesIO, BufferedIOBase, RawIOBase
 import os
 from textwrap import fill
+from typing import Union
 
 from pandas._config import config
 
@@ -778,7 +779,22 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         return self.save()
 
 
-def _is_ods_stream(stream):
+def _is_ods_stream(stream: Union[BufferedIOBase, RawIOBase]) -> bool:
+    """
+    Check if the stream is an OpenDocument Spreadsheet (.ods) file
+
+    It uses magic values inside the stream
+
+    Parameters
+    ----------
+    stream : Union[BufferedIOBase, RawIOBase]
+        IO stream with data which might be an ODS file
+
+    Returns
+    -------
+    is_ods : bool
+        Boolean indication that this is indeed an ODS file or not
+    """
     stream.seek(0)
     is_ods = False
     if stream.read(4) == b"PK\003\004":
@@ -829,7 +845,7 @@ class ExcelFile:
     def __init__(self, path_or_buffer, engine=None):
         if engine is None:
             engine = "xlrd"
-            if isinstance(path_or_buffer, IOBase):
+            if isinstance(path_or_buffer, (BufferedIOBase, RawIOBase)):
                 if _is_ods_stream(path_or_buffer):
                     engine = "odf"
             else:
