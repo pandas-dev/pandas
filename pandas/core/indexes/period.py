@@ -5,8 +5,7 @@ import numpy as np
 
 from pandas._libs import index as libindex
 from pandas._libs.lib import no_default
-from pandas._libs.tslibs import Period
-from pandas._libs.tslibs.frequencies import get_freq_group
+from pandas._libs.tslibs import Period, Resolution
 from pandas._libs.tslibs.parsing import DateParseError, parse_time_string
 from pandas._typing import DtypeObj, Label
 from pandas.util._decorators import Appender, cache_readonly, doc
@@ -64,8 +63,7 @@ def _new_PeriodIndex(cls, **d):
 
 
 @inherit_names(
-    ["strftime", "to_timestamp", "asfreq", "start_time", "end_time"]
-    + PeriodArray._field_ops,
+    ["strftime", "to_timestamp", "start_time", "end_time"] + PeriodArray._field_ops,
     PeriodArray,
     wrap=True,
 )
@@ -151,6 +149,14 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     _engine_type = libindex.PeriodEngine
     _supports_partial_string_indexing = True
+
+    # --------------------------------------------------------------------
+    # methods that dispatch to array and wrap result in PeriodIndex
+
+    @doc(PeriodArray.asfreq)
+    def asfreq(self, freq=None, how: str = "E") -> "PeriodIndex":
+        arr = self._data.asfreq(freq, how)
+        return type(self)._simple_new(arr, name=self.name)
 
     # ------------------------------------------------------------------------
     # Index Constructors
@@ -501,13 +507,18 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
                 # A string with invalid format
                 raise KeyError(f"Cannot interpret '{key}' as period") from err
 
-            grp = get_freq_group(reso)
-            freqn = get_freq_group(self.freq)
+            reso = Resolution.from_attrname(reso)
+            grp = reso.freq_group
+            freqn = self.dtype.freq_group
 
             # _get_string_slice will handle cases where grp < freqn
             assert grp >= freqn
 
-            if grp == freqn:
+            # BusinessDay is a bit strange. It has a *lower* code, but we never parse
+            # a string as "BusinessDay" resolution, just Day.
+            if grp == freqn or (
+                reso == Resolution.RESO_DAY and self.dtype.freq.name == "B"
+            ):
                 key = Period(asdt, freq=self.freq)
                 loc = self.get_loc(key, method=method, tolerance=tolerance)
                 return loc
@@ -558,6 +569,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         elif isinstance(label, str):
             try:
                 parsed, reso = parse_time_string(label, self.freq)
+                reso = Resolution.from_attrname(reso)
                 bounds = self._parsed_string_to_bounds(reso, parsed)
                 return bounds[0 if side == "left" else 1]
             except ValueError as err:
@@ -569,17 +581,15 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
         return label
 
-    def _parsed_string_to_bounds(self, reso: str, parsed: datetime):
-        if reso not in ["year", "month", "quarter", "day", "hour", "minute", "second"]:
-            raise KeyError(reso)
-
-        grp = get_freq_group(reso)
-        iv = Period(parsed, freq=(grp, 1))
+    def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
+        grp = reso.freq_group
+        iv = Period(parsed, freq=grp)
         return (iv.asfreq(self.freq, how="start"), iv.asfreq(self.freq, how="end"))
 
-    def _validate_partial_date_slice(self, reso: str):
-        grp = get_freq_group(reso)
-        freqn = get_freq_group(self.freq)
+    def _validate_partial_date_slice(self, reso: Resolution):
+        assert isinstance(reso, Resolution), (type(reso), reso)
+        grp = reso.freq_group
+        freqn = self.dtype.freq_group
 
         if not grp < freqn:
             # TODO: we used to also check for
@@ -590,7 +600,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     def _get_string_slice(self, key: str, use_lhs: bool = True, use_rhs: bool = True):
         # TODO: Check for non-True use_lhs/use_rhs
         parsed, reso = parse_time_string(key, self.freq)
-
+        reso = Resolution.from_attrname(reso)
         try:
             return self._partial_date_slice(reso, parsed, use_lhs, use_rhs)
         except KeyError as err:

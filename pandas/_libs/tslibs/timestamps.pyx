@@ -16,8 +16,15 @@ cnp.import_array()
 from cpython.object cimport (PyObject_RichCompareBool, PyObject_RichCompare,
                              Py_GT, Py_GE, Py_EQ, Py_NE, Py_LT, Py_LE)
 
-from cpython.datetime cimport (datetime, time, PyDateTime_Check, PyDelta_Check,
-                               PyTZInfo_Check, PyDateTime_IMPORT)
+from cpython.datetime cimport (
+    datetime,
+    time,
+    tzinfo,
+    PyDateTime_Check,
+    PyDelta_Check,
+    PyTZInfo_Check,
+    PyDateTime_IMPORT,
+)
 PyDateTime_IMPORT
 
 from pandas._libs.tslibs.util cimport (
@@ -29,10 +36,12 @@ from pandas._libs.tslibs.base cimport ABCTimestamp
 
 from pandas._libs.tslibs cimport ccalendar
 
-from pandas._libs.tslibs.conversion import normalize_i8_timestamps
 from pandas._libs.tslibs.conversion cimport (
-    _TSObject, convert_to_tsobject,
-    convert_datetime_to_tsobject)
+    _TSObject,
+    convert_to_tsobject,
+    convert_datetime_to_tsobject,
+    normalize_i8_timestamps,
+)
 from pandas._libs.tslibs.fields import get_start_end_field, get_date_name_field
 from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
 from pandas._libs.tslibs.np_datetime cimport (
@@ -1044,7 +1053,7 @@ timedelta}, default 'raise'
 
         Parameters
         ----------
-        locale : string, default None (English locale)
+        locale : str, default None (English locale)
             Locale determining the language in which to return the day name.
 
         Returns
@@ -1061,7 +1070,7 @@ timedelta}, default 'raise'
 
         Parameters
         ----------
-        locale : string, default None (English locale)
+        locale : str, default None (English locale)
             Locale determining the language in which to return the month name.
 
         Returns
@@ -1438,13 +1447,13 @@ default 'raise'
         """
         Normalize Timestamp to midnight, preserving tz information.
         """
-        if self.tz is None or is_utc(self.tz):
-            DAY_NS = ccalendar.DAY_NANOS
-            normalized_value = self.value - (self.value % DAY_NS)
-            return Timestamp(normalized_value).tz_localize(self.tz)
-        normalized_value = normalize_i8_timestamps(
-            np.array([self.value], dtype='i8'), tz=self.tz)[0]
-        return Timestamp(normalized_value).tz_localize(self.tz)
+        cdef:
+            ndarray[int64_t] normalized
+            tzinfo own_tz = self.tzinfo  # could be None
+
+        normalized = normalize_i8_timestamps(
+            np.array([self.value], dtype="i8"), tz=own_tz)
+        return Timestamp(normalized[0]).tz_localize(own_tz)
 
 
 # Add the min and max fields at the class level
