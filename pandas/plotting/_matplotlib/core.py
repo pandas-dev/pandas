@@ -1202,6 +1202,11 @@ class LinePlot(MPLPlot):
             ax.set_xticklabels(xticklabels)
             ax.xaxis.set_major_locator(FixedLocator(xticks))
 
+        # If the index is an irregular time series, then by default
+        # we rotate the tick labels. The exception is if there are
+        # subplots which don't share their x-axes, in which we case
+        # we don't rotate the ticklabels as by default the subplots
+        # would be too close together.
         condition = (
             not self._use_dynamic_x()
             and (data.index.is_all_dates and self.use_index)
