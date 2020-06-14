@@ -155,7 +155,6 @@ def test_group_apply_once_per_group(df, group_names):
     # once per group
 
     names = []
-
     # cannot parameterize over the functions since they need external
     # `names` to detect side effects
 
@@ -684,6 +683,7 @@ def test_time_field_bug():
 
 
 def test_gb_apply_list_of_unequal_len_arrays():
+
     # GH1738
     df = DataFrame(
         {
