@@ -2,6 +2,7 @@ import re
 from typing import List, Optional
 import warnings
 
+from matplotlib.artist import Artist
 import numpy as np
 
 from pandas._typing import Label
@@ -159,8 +160,8 @@ class MPLPlot:
 
         self.grid = grid
         self.legend = legend
-        self.legend_handles: List = []
-        self.legend_labels: List = []
+        self.legend_handles: List[Artist] = []
+        self.legend_labels: List[Label] = []
 
         for attr in self._pop_attributes:
             value = kwds.pop(attr, self._attr_defaults.get(attr, None))
