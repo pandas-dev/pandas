@@ -214,7 +214,7 @@ class EWM(_Rolling):
                 np.asarray(times - times[0]).astype(np.float64)
                 / Timedelta(halflife).value
             )
-            # Halflife is no longer applicable to calculating COM
+            # Halflife is no longer applicable when calculating COM
             if com.count_not_none(com, span, alpha) > 0:
                 self.com = get_center_of_mass(com, span, None, alpha)
             else:
