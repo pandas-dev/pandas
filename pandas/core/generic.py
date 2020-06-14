@@ -30,7 +30,8 @@ import numpy as np
 
 from pandas._config import config
 
-from pandas._libs import Timestamp, lib
+from pandas._libs import lib
+from pandas._libs.tslibs import Timestamp, to_offset
 from pandas._typing import (
     Axis,
     FilePathOrBuffer,
@@ -106,7 +107,6 @@ from pandas.core.ops import _align_method_FRAME
 from pandas.io.formats import format as fmt
 from pandas.io.formats.format import DataFrameFormatter, format_percentiles
 from pandas.io.formats.printing import pprint_thing
-from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import Tick
 
 if TYPE_CHECKING:
@@ -1917,7 +1917,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     mode : str, optional
         Mode in which file is opened.
     **kwargs
-        These parameters will be passed to `tabulate`.
+        These parameters will be passed to `tabulate \
+            <https://pypi.org/project/tabulate>`_.
 
     Returns
     -------
@@ -3048,6 +3049,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         doublequote: bool_t = True,
         escapechar: Optional[str] = None,
         decimal: Optional[str] = ".",
+        errors: str = "strict",
     ) -> Optional[str]:
         r"""
         Write object to a comma-separated values (csv) file.
@@ -3142,6 +3144,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         decimal : str, default '.'
             Character recognized as decimal separator. E.g. use ',' for
             European data.
+        errors : str, default 'strict'
+            Specifies how encoding and decoding errors are to be handled.
+            See the errors argument for :func:`open` for a full list
+            of options.
+
+            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -3179,6 +3187,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             line_terminator=line_terminator,
             sep=sep,
             encoding=encoding,
+            errors=errors,
             compression=compression,
             quoting=quoting,
             na_rep=na_rep,
@@ -4859,6 +4868,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         See Also
         --------
+        DataFrameGroupBy.sample: Generates random samples from each group of a
+            DataFrame object.
+        SeriesGroupBy.sample: Generates random samples from each group of a
+            Series object.
         numpy.random.choice: Generates a random sample from a given 1-D numpy
             array.
 
@@ -6193,6 +6206,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             method="ffill", axis=axis, inplace=inplace, limit=limit, downcast=downcast
         )
 
+    pad = ffill
+
     def bfill(
         self: FrameOrSeries,
         axis=None,
@@ -6211,6 +6226,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return self.fillna(
             method="bfill", axis=axis, inplace=inplace, limit=limit, downcast=downcast
         )
+
+    backfill = bfill
 
     @doc(klass=_shared_doc_kwargs["klass"])
     def replace(
@@ -6859,16 +6876,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     @Appender(_shared_docs["interpolate"] % _shared_doc_kwargs)
     def interpolate(
-        self,
-        method="linear",
-        axis=0,
-        limit=None,
-        inplace=False,
-        limit_direction="forward",
-        limit_area=None,
-        downcast=None,
+        self: FrameOrSeries,
+        method: str = "linear",
+        axis: Axis = 0,
+        limit: Optional[int] = None,
+        inplace: bool_t = False,
+        limit_direction: str = "forward",
+        limit_area: Optional[str] = None,
+        downcast: Optional[str] = None,
         **kwargs,
-    ):
+    ) -> Optional[FrameOrSeries]:
         """
         Interpolate values according to different methods.
         """
@@ -6876,17 +6893,20 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         axis = self._get_axis_number(axis)
 
-        if axis == 0:
-            df = self
-        else:
-            df = self.T
+        fillna_methods = ["ffill", "bfill", "pad", "backfill"]
+        should_transpose = axis == 1 and method not in fillna_methods
 
-        if isinstance(df.index, MultiIndex) and method != "linear":
+        obj = self.T if should_transpose else self
+
+        if method not in fillna_methods:
+            axis = self._info_axis_number
+
+        if isinstance(obj.index, MultiIndex) and method != "linear":
             raise ValueError(
                 "Only `method=linear` interpolation is supported on MultiIndexes."
             )
 
-        if df.ndim == 2 and np.all(df.dtypes == np.dtype(object)):
+        if obj.ndim == 2 and np.all(obj.dtypes == np.dtype(object)):
             raise TypeError(
                 "Cannot interpolate with all object-dtype columns "
                 "in the DataFrame. Try setting at least one "
@@ -6896,9 +6916,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # create/use the index
         if method == "linear":
             # prior default
-            index = np.arange(len(df.index))
+            index = np.arange(len(obj.index))
         else:
-            index = df.index
+            index = obj.index
             methods = {"index", "values", "nearest", "time"}
             is_numeric_or_datetime = (
                 is_numeric_dtype(index.dtype)
@@ -6919,10 +6939,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 "has not been implemented. Try filling "
                 "those NaNs before interpolating."
             )
-        data = df._mgr
-        new_data = data.interpolate(
+        new_data = obj._mgr.interpolate(
             method=method,
-            axis=self._info_axis_number,
+            axis=axis,
             index=index,
             limit=limit,
             limit_direction=limit_direction,
@@ -6933,7 +6952,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         )
 
         result = self._constructor(new_data)
-        if axis == 1:
+        if should_transpose:
             result = result.T
         if inplace:
             return self._update_inplace(result)
@@ -8403,6 +8422,104 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         return ranker(data)
 
+    _shared_docs[
+        "compare"
+    ] = """
+        Compare to another %(klass)s and show the differences.
+
+        .. versionadded:: 1.1.0
+
+        Parameters
+        ----------
+        other : %(klass)s
+            Object to compare with.
+
+        align_axis : {0 or 'index', 1 or 'columns'}, default 1
+            Determine which axis to align the comparison on.
+
+            * 0, or 'index' : Resulting differences are stacked vertically
+                with rows drawn alternately from self and other.
+            * 1, or 'columns' : Resulting differences are aligned horizontally
+                with columns drawn alternately from self and other.
+
+        keep_shape : bool, default False
+            If true, all rows and columns are kept.
+            Otherwise, only the ones with different values are kept.
+
+        keep_equal : bool, default False
+            If true, the result keeps values that are equal.
+            Otherwise, equal values are shown as NaNs.
+        """
+
+    @Appender(_shared_docs["compare"] % _shared_doc_kwargs)
+    def compare(
+        self,
+        other,
+        align_axis: Axis = 1,
+        keep_shape: bool_t = False,
+        keep_equal: bool_t = False,
+    ):
+        from pandas.core.reshape.concat import concat
+
+        if type(self) is not type(other):
+            cls_self, cls_other = type(self).__name__, type(other).__name__
+            raise TypeError(
+                f"can only compare '{cls_self}' (not '{cls_other}') with '{cls_self}'"
+            )
+
+        mask = ~((self == other) | (self.isna() & other.isna()))
+        keys = ["self", "other"]
+
+        if not keep_equal:
+            self = self.where(mask)
+            other = other.where(mask)
+
+        if not keep_shape:
+            if isinstance(self, ABCDataFrame):
+                cmask = mask.any()
+                rmask = mask.any(axis=1)
+                self = self.loc[rmask, cmask]
+                other = other.loc[rmask, cmask]
+            else:
+                self = self[mask]
+                other = other[mask]
+
+        if align_axis in (1, "columns"):  # This is needed for Series
+            axis = 1
+        else:
+            axis = self._get_axis_number(align_axis)
+
+        diff = concat([self, other], axis=axis, keys=keys)
+
+        if axis >= self.ndim:
+            # No need to reorganize data if stacking on new axis
+            # This currently applies for stacking two Series on columns
+            return diff
+
+        ax = diff._get_axis(axis)
+        ax_names = np.array(ax.names)
+
+        # set index names to positions to avoid confusion
+        ax.names = np.arange(len(ax_names))
+
+        # bring self-other to inner level
+        order = list(range(1, ax.nlevels)) + [0]
+        if isinstance(diff, ABCDataFrame):
+            diff = diff.reorder_levels(order, axis=axis)
+        else:
+            diff = diff.reorder_levels(order)
+
+        # restore the index names in order
+        diff._get_axis(axis=axis).names = ax_names[order]
+
+        # reorder axis to keep things organized
+        indices = (
+            np.arange(diff.shape[axis]).reshape([2, diff.shape[axis] // 2]).T.flatten()
+        )
+        diff = diff.take(indices, axis=axis)
+
+        return diff
+
     @doc(**_shared_doc_kwargs)
     def align(
         self,
@@ -8716,16 +8833,17 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         msg = "Boolean array expected for the condition, not {dtype}"
 
-        if not isinstance(cond, ABCDataFrame):
-            # This is a single-dimensional object.
-            if not is_bool_dtype(cond):
-                raise ValueError(msg.format(dtype=cond.dtype))
-        elif not cond.empty:
-            for dt in cond.dtypes:
-                if not is_bool_dtype(dt):
-                    raise ValueError(msg.format(dtype=dt))
+        if not cond.empty:
+            if not isinstance(cond, ABCDataFrame):
+                # This is a single-dimensional object.
+                if not is_bool_dtype(cond):
+                    raise ValueError(msg.format(dtype=cond.dtype))
+            else:
+                for dt in cond.dtypes:
+                    if not is_bool_dtype(dt):
+                        raise ValueError(msg.format(dtype=dt))
         else:
-            # GH#21947 we have an empty DataFrame, could be object-dtype
+            # GH#21947 we have an empty DataFrame/Series, could be object-dtype
             cond = cond.astype(bool)
 
         cond = -cond if inplace else cond

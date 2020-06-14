@@ -57,6 +57,7 @@ from pandas.core.aggregation import (
     is_multi_agg_with_relabel,
     maybe_mangle_lambdas,
     normalize_keyword_aggregation,
+    validate_func_kwargs,
 )
 import pandas.core.algorithms as algorithms
 from pandas.core.base import DataError, SpecificationError
@@ -233,13 +234,9 @@ class SeriesGroupBy(GroupBy[Series]):
 
         relabeling = func is None
         columns = None
-        no_arg_message = "Must provide 'func' or named aggregation **kwargs."
         if relabeling:
-            columns = list(kwargs)
-            func = [kwargs[col] for col in columns]
+            columns, func = validate_func_kwargs(kwargs)
             kwargs = {}
-            if not columns:
-                raise TypeError(no_arg_message)
 
         if isinstance(func, str):
             return getattr(self, func)(*args, **kwargs)
@@ -483,6 +480,8 @@ class SeriesGroupBy(GroupBy[Series]):
         elif func in base.cythonized_kernels:
             # cythonized transform or canned "agg+broadcast"
             return getattr(self, func)(*args, **kwargs)
+        elif func in base.transformation_kernels:
+            return getattr(self, func)(*args, **kwargs)
 
         # If func is a reduction, we need to broadcast the
         # result to the whole group. Compute func result
@@ -547,6 +546,7 @@ class SeriesGroupBy(GroupBy[Series]):
         builtin/cythonizable functions
         """
         ids, _, ngroup = self.grouper.group_info
+        result = result.reindex(self.grouper.result_index, copy=False)
         cast = self._transform_should_cast(func_nm)
         out = algorithms.take_1d(result._values, ids)
         if cast:
@@ -1464,6 +1464,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         elif func in base.cythonized_kernels:
             # cythonized transformation or canned "reduction+broadcast"
             return getattr(self, func)(*args, **kwargs)
+        elif func in base.transformation_kernels:
+            return getattr(self, func)(*args, **kwargs)
 
         # GH 30918
         # Use _transform_fast only when we know func is an aggregation
@@ -1495,6 +1497,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # for each col, reshape to to size of original frame
         # by take operation
         ids, _, ngroup = self.grouper.group_info
+        result = result.reindex(self.grouper.result_index, copy=False)
         output = []
         for i, _ in enumerate(result.columns):
             res = algorithms.take_1d(result.iloc[:, i].values, ids)
@@ -1572,8 +1575,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def filter(self, func, dropna=True, *args, **kwargs):
         """
-        Return a copy of a DataFrame excluding elements from groups that
-        do not satisfy the boolean criterion specified by func.
+        Return a copy of a DataFrame excluding filtered elements.
+
+        Elements from groups are filtered if they do not satisfy the
+        boolean criterion specified by func.
 
         Parameters
         ----------
@@ -1834,8 +1839,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def nunique(self, dropna: bool = True):
         """
-        Return DataFrame with number of distinct observations per group for
-        each column.
+        Return DataFrame with counts of unique elements in each position.
 
         Parameters
         ----------
