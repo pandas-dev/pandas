@@ -1760,7 +1760,8 @@ def roll_weighted_var(float64_t[:] values, float64_t[:] weights,
 
 def ewma_time(float64_t[:] vals, int minp, float64_t[:] time_weights):
     """
-    Compute exponentially-weighted moving average using half.
+    Compute exponentially-weighted moving average using halflife and time
+    distances.
 
     Parameters
     ----------
@@ -1773,35 +1774,30 @@ def ewma_time(float64_t[:] vals, int minp, float64_t[:] time_weights):
     ndarray
     """
     cdef:
-        Py_ssize_t i, N = len(vals)
-        ndarray[float64_t] output = np.empty(N, dtype=float)
+        Py_ssize_t i, num_not_nan = 0, N = len(vals)
+        bint is_not_nan
+        float64_t numerator = 0., denominator = 0., time_weight, observation
+        ndarray[float64_t] output = np.empty(N, dtype=np.float64)
 
     if N == 0:
         return output
 
-    weighted_avg = vals[0]
-    is_observation = weighted_avg == weighted_avg
-    nobs = int(is_observation)
-    output[0] = weighted_avg if nobs >= minp else NaN
-
-    numerator = weighted_avg
-    denominator = 1
-
     with nogil:
-        for i in range(1, N):
-            cur = vals[i]
-            is_observation = cur == cur
-            nobs += is_observation
-            if weighted_avg == weighted_avg:
-                if is_observation:
-                    time_weight = 0.5**time_weights[i]
-                    numerator += cur * time_weight
-                    denominator += time_weight
-                    weighted_avg = numerator / denominator
-            elif is_observation:
-                weighted_avg = cur
+        for i in range(N):
+            observation = vals[i]
+            is_not_nan = observation == observation
+            num_not_nan += is_not_nan
+            if is_not_nan:
+                time_weight = 0.5**time_weights[i]
+                numerator += observation * time_weight
+                denominator += time_weight
 
-            output[i] = weighted_avg if nobs >= minp else NaN
+                if num_not_nan >= minp:
+                    output[i] = numerator / denominator
+                else:
+                    output[i] = NaN
+            else:
+                output[i] = NaN
 
     return output
 

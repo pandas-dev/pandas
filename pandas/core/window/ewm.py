@@ -215,6 +215,7 @@ class EWM(_Rolling):
                 / Timedelta(halflife).value
             )
             # Halflife is no longer applicable when calculating COM
+            # But allow COM to still be calculated if the user passes other decay args
             if com.count_not_none(com, span, alpha) > 0:
                 self.com = get_center_of_mass(com, span, None, alpha)
             else:
@@ -317,19 +318,19 @@ class EWM(_Rolling):
             Arguments and keyword arguments to be passed into func.
         """
         nv.validate_window_func("mean", args, kwargs)
-        if self.distances is not None:
-            window_func = self._get_roll_func("ewma")
+        if self.time_weights is not None:
+            window_func = self._get_roll_func("ewma_time")
             window_func = partial(
-                window_func, minp=int(self.min_periods), time_weights=self.time_weights
+                window_func, minp=self.min_periods, time_weights=self.time_weights
             )
         else:
-            window_func = self._get_roll_func("ewma_time")
+            window_func = self._get_roll_func("ewma")
             window_func = partial(
                 window_func,
                 com=self.com,
-                adjust=int(self.adjust),
+                adjust=self.adjust,
                 ignore_na=self.ignore_na,
-                minp=int(self.min_periods),
+                minp=self.min_periods,
             )
         return self._apply(window_func)
 
