@@ -276,7 +276,7 @@ class EWM(_Rolling):
         window_func = partial(
             window_func,
             com=self.com,
-            adjust=int(self.adjust),
+            adjust=self.adjust,
             ignore_na=self.ignore_na,
             minp=self.min_periods,
         )
@@ -308,10 +308,10 @@ class EWM(_Rolling):
                 arg,
                 arg,
                 self.com,
-                int(self.adjust),
-                int(self.ignore_na),
+                self.adjust,
+                self.ignore_na,
                 self.min_periods,
-                int(bias),
+                bias,
             )
 
         return self._apply(f)
@@ -352,10 +352,10 @@ class EWM(_Rolling):
                 X._prep_values(),
                 Y._prep_values(),
                 self.com,
-                int(self.adjust),
-                int(self.ignore_na),
+                self.adjust,
+                self.ignore_na,
                 self.min_periods,
-                int(bias),
+                bias,
             )
             return X._wrap_result(cov)
 
@@ -399,8 +399,8 @@ class EWM(_Rolling):
                     x,
                     y,
                     self.com,
-                    int(self.adjust),
-                    int(self.ignore_na),
+                    self.adjust,
+                    self.ignore_na,
                     self.min_periods,
                     1,
                 )
