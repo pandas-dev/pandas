@@ -3491,7 +3491,7 @@ INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
 _offset_map = {}
 
 
-cpdef base_and_stride(str freqstr):
+cdef _base_and_stride(str freqstr):
     """
     Return base freq and stride info from string representation
 
@@ -3502,7 +3502,7 @@ cpdef base_and_stride(str freqstr):
 
     Examples
     --------
-    _freq_and_stride('5Min') -> 'Min', 5
+    _base_and_stride('5Min') -> 'Min', 5
     """
     groups = opattern.match(freqstr)
 
@@ -3606,7 +3606,7 @@ cpdef to_offset(freq):
         stride = freq[1]
         if isinstance(stride, str):
             name, stride = stride, name
-        name, _ = base_and_stride(name)
+        name, _ = _base_and_stride(name)
         delta = _get_offset(name) * stride
 
     elif isinstance(freq, timedelta):
