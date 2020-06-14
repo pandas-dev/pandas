@@ -16,6 +16,7 @@ from pandas._libs.tslibs.timezones import tz_compare
 from pandas._typing import DtypeObj, Label
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
+from pandas.errors import InvalidIndexError
 from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
 
 from pandas.core.dtypes import concat as _concat
@@ -151,10 +152,6 @@ def _make_arithmetic_op(op, cls):
 
     name = f"__{op.__name__}__"
     return set_function_name(index_arithmetic_method, name, cls)
-
-
-class InvalidIndexError(Exception):
-    pass
 
 
 _o_dtype = np.dtype(object)
