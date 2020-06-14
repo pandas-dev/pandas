@@ -1,9 +1,9 @@
-import operator
 from typing import Optional, Type
 
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core import ops
 
 from .base import BaseExtensionTests
@@ -11,15 +11,7 @@ from .base import BaseExtensionTests
 
 class BaseOpsUtil(BaseExtensionTests):
     def get_op_from_name(self, op_name):
-        short_opname = op_name.strip("_")
-        try:
-            op = getattr(operator, short_opname)
-        except AttributeError:
-            # Assume it is the reverse operator
-            rop = getattr(operator, short_opname[1:])
-            op = lambda x, y: rop(y, x)
-
-        return op
+        return tm.get_op_from_name(op_name)
 
     def check_opname(self, s, op_name, other, exc=Exception):
         op = self.get_op_from_name(op_name)
