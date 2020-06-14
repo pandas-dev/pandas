@@ -50,6 +50,7 @@ class _ODSWriter(ExcelWriter):
         from odf.text import P
 
         sheet_name = self._get_sheet_name(sheet_name)
+        assert sheet_name is not None
 
         if sheet_name in self.sheets:
             wks = self.sheets[sheet_name]
@@ -58,6 +59,7 @@ class _ODSWriter(ExcelWriter):
             self.sheets[sheet_name] = wks
 
         if _validate_freeze_panes(freeze_panes):
+            assert freeze_panes is not None
             self._create_freeze_panes(sheet_name, freeze_panes)
 
         for _ in range(startrow):
@@ -87,7 +89,7 @@ class _ODSWriter(ExcelWriter):
         for row_nr in range(max(rows.keys()) + 1):
             wks.addElement(rows[row_nr])
 
-    def _make_table_cell_attributes(self, cell) -> Dict[str, object]:
+    def _make_table_cell_attributes(self, cell) -> Dict[str, Any]:
         """Convert cell attributes to OpenDocument attributes
 
         Parameters
