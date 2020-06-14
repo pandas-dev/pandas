@@ -71,12 +71,10 @@ from pandas._libs.tslibs.dtypes cimport (
     FR_MS,
     FR_US,
     FR_NS,
+    attrname_to_abbrevs,
 )
 
-from pandas._libs.tslibs.frequencies cimport (
-    attrname_to_abbrevs,
-    get_to_timestamp_base,
-)
+from pandas._libs.tslibs.frequencies cimport get_to_timestamp_base
 from pandas._libs.tslibs.parsing cimport get_rule_month
 from pandas._libs.tslibs.parsing import parse_time_string
 from pandas._libs.tslibs.nattype cimport (

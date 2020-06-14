@@ -1,42 +1,7 @@
 
 from .dtypes import FreqGroup
 
-# ---------------------------------------------------------------------
-# Period codes
-
-
-# Map attribute-name resolutions to resolution abbreviations
-_attrname_to_abbrevs = {
-    "year": "A",
-    "quarter": "Q",
-    "month": "M",
-    "day": "D",
-    "hour": "H",
-    "minute": "T",
-    "second": "S",
-    "millisecond": "L",
-    "microsecond": "U",
-    "nanosecond": "N",
-}
-cdef dict attrname_to_abbrevs = _attrname_to_abbrevs
-
-
 # ----------------------------------------------------------------------
-
-# TODO: this is now identical to the version in libperiod
-def get_freq_group(freq: int) -> int:
-    """
-    Return frequency code group of given frequency str or offset.
-
-    Examples
-    --------
-    >>> get_freq_group(4001)
-    4000
-
-    >>> get_freq_group(4006)
-    4000
-    """
-    return (freq // 1000) * 1000
 
 
 cpdef int get_to_timestamp_base(int base):

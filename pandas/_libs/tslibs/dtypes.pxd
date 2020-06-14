@@ -1,3 +1,4 @@
+cdef dict attrname_to_abbrevs
 
 cdef enum c_FreqGroup:
     # Mirrors FreqGroup in the .pxy file
