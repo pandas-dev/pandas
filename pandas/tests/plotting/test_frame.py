@@ -3351,6 +3351,7 @@ class TestDataFramePlots(TestPlotBase):
             assert legend.get_color() == line.get_color()
 
     def test_plot_with_rot(self):
+        # GH 34768
         df = pd.DataFrame({"b": [0, 1, 0], "a": [1, 2, 3]})
         ax = _check_plot_works(df.plot, rot=30)
         ax.yaxis.set_tick_params(rotation=30)
