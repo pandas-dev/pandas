@@ -140,6 +140,17 @@ class TestDataFrameReshape:
         expected = expected[["a", "b"]]
         tm.assert_frame_equal(result, expected)
 
+    def test_unstack_not_consolidated(self):
+        # Gh#34708
+        df = pd.DataFrame({"x": [1, 2, np.NaN], "y": [3.0, 4, np.NaN]})
+        df2 = df[["x"]]
+        df2["y"] = df["y"]
+        assert len(df2._mgr.blocks) == 2
+
+        res = df2.unstack()
+        expected = df.unstack()
+        tm.assert_series_equal(res, expected)
+
     def test_unstack_fill(self):
 
         # GH #9746: fill_value keyword argument for Series
