@@ -22,6 +22,11 @@ cdef class PeriodDtypeBase:
         return self.dtype_code == other.dtype_code
 
     @property
+    def freq_group(self) -> int:
+        # See also: libperiod.get_freq_group
+        return (self.dtype_code // 1000) * 1000
+
+    @property
     def date_offset(self):
         """
         Corresponding DateOffset object.
@@ -108,6 +113,22 @@ _period_code_map.update({
 })
 
 
+# Map attribute-name resolutions to resolution abbreviations
+_attrname_to_abbrevs = {
+    "year": "A",
+    "quarter": "Q",
+    "month": "M",
+    "day": "D",
+    "hour": "H",
+    "minute": "T",
+    "second": "S",
+    "millisecond": "L",
+    "microsecond": "U",
+    "nanosecond": "N",
+}
+cdef dict attrname_to_abbrevs = _attrname_to_abbrevs
+
+
 class FreqGroup:
     # Mirrors c_FreqGroup in the .pxd file
     FR_ANN = 1000
@@ -123,3 +144,8 @@ class FreqGroup:
     FR_US = 11000
     FR_NS = 12000
     FR_UND = -10000  # undefined
+
+    @staticmethod
+    def get_freq_group(code: int) -> int:
+        # See also: PeriodDtypeBase.freq_group
+        return (code // 1000) * 1000

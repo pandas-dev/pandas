@@ -1,6 +1,7 @@
 """ test parquet compat """
 import datetime
 from distutils.version import LooseVersion
+from io import BytesIO
 import os
 from warnings import catch_warnings
 
@@ -566,6 +567,23 @@ class TestParquetPyArrow(Base):
             check_like=True,
             repeat=1,
         )
+
+    @tm.network
+    @td.skip_if_no("pyarrow")
+    def test_parquet_read_from_url(self, df_compat):
+        url = (
+            "https://raw.githubusercontent.com/pandas-dev/pandas/"
+            "master/pandas/tests/io/data/parquet/simple.parquet"
+        )
+        df = pd.read_parquet(url)
+        tm.assert_frame_equal(df, df_compat)
+
+    @td.skip_if_no("pyarrow")
+    def test_read_file_like_obj_support(self, df_compat):
+        buffer = BytesIO()
+        df_compat.to_parquet(buffer)
+        df_from_buf = pd.read_parquet(buffer)
+        tm.assert_frame_equal(df_compat, df_from_buf)
 
     def test_partition_cols_supported(self, pa, df_full):
         # GH #23283
