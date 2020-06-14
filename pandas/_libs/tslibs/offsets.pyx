@@ -1879,7 +1879,7 @@ cdef class YearOffset(SingleConstructorOffset):
 
     @apply_wraps
     def apply(self, other):
-        years = roll_yearday(other, self.n, self.month, self._day_opt)
+        years = roll_qtrday(other, self.n, self.month, self._day_opt, modby=12)
         months = years * 12 + (self.month - other.month)
         return shift_month(other, months, self._day_opt)
 
@@ -4158,10 +4158,13 @@ def roll_qtrday(other: datetime, n: int, month: int,
         npy_datetimestruct dts
     pydate_to_dtstruct(other, &dts)
 
-    # TODO: Merge this with roll_yearday by setting modby=12 there?
-    #       code de-duplication versus perf hit?
     # TODO: with small adjustments this could be used in shift_quarters
-    months_since = other.month % modby - month % modby
+
+    if modby == 12:
+        # We care about the month-of-year, not month-of-quarter, so skip mod
+        months_since = other.month - month
+    else:
+        months_since = other.month % modby - month % modby
 
     if n > 0:
         if months_since < 0 or (months_since == 0 and
@@ -4175,86 +4178,5 @@ def roll_qtrday(other: datetime, n: int, month: int,
                                 other.day > get_day_of_month(&dts,
                                                              day_opt)):
             # make sure to roll forward, so negate
-            n += 1
-    return n
-
-
-def roll_yearday(other: datetime, n: int, month: int, day_opt: object) -> int:
-    """
-    Possibly increment or decrement the number of periods to shift
-    based on rollforward/rollbackward conventions.
-
-    Parameters
-    ----------
-    other : datetime or Timestamp
-    n : number of periods to increment, before adjusting for rolling
-    month : reference month giving the first month of the year
-    day_opt : 'start', 'end', 'business_start', 'business_end', or int
-        The day of the month to compare against that of `other` when
-        incrementing or decrementing the number of periods:
-
-        'start': 1
-        'end': last day of the month
-        'business_start': first business day of the month
-        'business_end': last business day of the month
-        int: day in the month indicated by `other`, or the last of day
-            the month if the value exceeds in that month's number of days.
-
-    Returns
-    -------
-    n : int number of periods to increment
-
-    Notes
-    -----
-    * Mirrors `roll_check` in shift_months
-
-    Examples
-    -------
-    >>> month = 3
-    >>> day_opt = 'start'              # `other` will be compared to March 1
-    >>> other = datetime(2017, 2, 10)  # before March 1
-    >>> roll_yearday(other, 2, month, day_opt)
-    1
-    >>> roll_yearday(other, -7, month, day_opt)
-    -7
-    >>>
-    >>> other = Timestamp('2014-03-15', tz='US/Eastern')  # after March 1
-    >>> roll_yearday(other, 2, month, day_opt)
-    2
-    >>> roll_yearday(other, -7, month, day_opt)
-    -6
-
-    >>> month = 6
-    >>> day_opt = 'end'                # `other` will be compared to June 30
-    >>> other = datetime(1999, 6, 29)  # before June 30
-    >>> roll_yearday(other, 5, month, day_opt)
-    4
-    >>> roll_yearday(other, -7, month, day_opt)
-    -7
-    >>>
-    >>> other = Timestamp(2072, 8, 24, 6, 17, 18)  # after June 30
-    >>> roll_yearday(other, 5, month, day_opt)
-    5
-    >>> roll_yearday(other, -7, month, day_opt)
-    -6
-
-    """
-    cdef:
-        npy_datetimestruct dts
-    pydate_to_dtstruct(other, &dts)
-
-    # Note: The other.day < ... condition will never hold when day_opt=='start'
-    # and the other.day > ... condition will never hold when day_opt=='end'.
-    # At some point these extra checks may need to be optimized away.
-    # But that point isn't today.
-    if n > 0:
-        if other.month < month or (other.month == month and
-                                   other.day < get_day_of_month(&dts,
-                                                                day_opt)):
-            n -= 1
-    else:
-        if other.month > month or (other.month == month and
-                                   other.day > get_day_of_month(&dts,
-                                                                day_opt)):
             n += 1
     return n
