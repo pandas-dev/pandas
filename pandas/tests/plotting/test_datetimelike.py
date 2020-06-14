@@ -1481,6 +1481,7 @@ class TestTSPlot(TestPlotBase):
     def test_check_xticks_rot(self):
         # https://github.com/pandas-dev/pandas/issues/29460
         # irregular time series
+        fig, axes = self.plt.subplots()
         df = DataFrame(
             {
                 "x": to_datetime(["2020-05-01", "2020-05-02", "2020-05-04"]),
@@ -1488,25 +1489,29 @@ class TestTSPlot(TestPlotBase):
             }
         )
         axes = df.plot(x="x", y="y")
-        self._check_ticks_props(axes, xrot=30)
+        self._check_ticks_props(axes, xrot=0.0)
 
-        # use timeseries index
-        axes = df.set_index("x").plot(y="y", use_index=True)
-        self._check_ticks_props(axes, xrot=30)
+        # # use timeseries index
+        # df.set_index("x").plot(y="y", use_index=True, ax=axes)
+        # self._check_ticks_props(axes, xrot=0)
 
-        # use non-timeseries index
-        axes = df.plot(y="y", use_index=True)
-        self._check_ticks_props(axes, xrot=0)
+        # # use non-timeseries index
+        # axes = df.plot(y="y", use_index=True)
+        # self._check_ticks_props(axes, xrot=0)
 
-        # dont sharex
-        axes = df.plot(x="x", y="y", sharex=False)
-        self._check_ticks_props(axes, xrot=0)
-        axes = df.plot(x="x", y="y", subplots=False, sharex=True)
-        self._check_ticks_props(axes, xrot=0)
+        # # dont sharex
+        # axes = df.plot(x="x", y="y", sharex=False)
+        # self._check_ticks_props(axes, xrot=0)
+        # axes = df.plot(x="x", y="y", subplots=False, sharex=True)
+        # self._check_ticks_props(axes, xrot=0)
 
-        # sharex
-        axes = df.plot(x="x", y="y", sharex=True)
-        self._check_ticks_props(axes, xrot=30)
+        # # sharex
+        # axes = df.plot(x="x", y="y", sharex=True)
+        # self._check_ticks_props(axes, xrot=30)
+
+        # # index of dates but don't use index
+        # axes = df.set_index('x').plot(y='y', use_index=False)
+        # self._check_ticks_props(axes, xrot=30)
 
 
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):

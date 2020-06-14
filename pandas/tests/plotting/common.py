@@ -272,7 +272,7 @@ class TestPlotBase:
 
         axes = self._flatten_visible(axes)
         for ax in axes:
-            if xlabelsize or xrot:
+            if xlabelsize or xrot is not None:
                 if isinstance(ax.xaxis.get_minor_formatter(), NullFormatter):
                     # If minor ticks has NullFormatter, rot / fontsize are not
                     # retained
