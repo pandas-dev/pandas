@@ -3723,136 +3723,14 @@ cdef shift_quarters(
     out : ndarray[int64_t]
     """
     cdef:
-        Py_ssize_t i
-        npy_datetimestruct dts
-        int count = len(dtindex)
-        int months_to_roll, months_since, n, compare_day
+        Py_ssize_t count = len(dtindex)
         int64_t[:] out = np.empty(count, dtype="int64")
 
-    if day_opt == "start":
-        with nogil:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT:
-                    out[i] = NPY_NAT
-                    continue
-
-                dt64_to_dtstruct(dtindex[i], &dts)
-                n = quarters
-
-                months_since = (dts.month - q1start_month) % modby
-                compare_day = get_day_of_month(&dts, day_opt)
-
-                # offset semantics - if on the anchor point and going backwards
-                # shift to next
-                if n <= 0 and (months_since != 0 or
-                               (months_since == 0 and dts.day > compare_day)):
-                    # make sure to roll forward, so negate
-                    n += 1
-                elif n > 0 and (months_since == 0 and dts.day < compare_day):
-                    # pretend to roll back if on same month but
-                    # before compare_day
-                    n -= 1
-
-                dts.year = year_add_months(dts, modby * n - months_since)
-                dts.month = month_add_months(dts, modby * n - months_since)
-                dts.day = get_day_of_month(&dts, day_opt)
-
-                out[i] = dtstruct_to_dt64(&dts)
-
-    elif day_opt == "end":
-        with nogil:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT:
-                    out[i] = NPY_NAT
-                    continue
-
-                dt64_to_dtstruct(dtindex[i], &dts)
-                n = quarters
-
-                months_since = (dts.month - q1start_month) % modby
-                compare_day = get_day_of_month(&dts, day_opt)
-
-                if n <= 0 and (months_since != 0 or
-                               (months_since == 0 and dts.day > compare_day)):
-                    # make sure to roll forward, so negate
-                    n += 1
-                elif n > 0 and (months_since == 0 and dts.day < compare_day):
-                    # pretend to roll back if on same month but
-                    # before compare_day
-                    n -= 1
-
-                dts.year = year_add_months(dts, modby * n - months_since)
-                dts.month = month_add_months(dts, modby * n - months_since)
-                dts.day = get_day_of_month(&dts, day_opt)
-
-                out[i] = dtstruct_to_dt64(&dts)
-
-    elif day_opt == "business_start":
-        with nogil:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT:
-                    out[i] = NPY_NAT
-                    continue
-
-                dt64_to_dtstruct(dtindex[i], &dts)
-                n = quarters
-
-                months_since = (dts.month - q1start_month) % modby
-                # compare_day is only relevant for comparison in the case
-                # where months_since == 0.
-                compare_day = get_day_of_month(&dts, day_opt)
-
-                if n <= 0 and (months_since != 0 or
-                               (months_since == 0 and dts.day > compare_day)):
-                    # make sure to roll forward, so negate
-                    n += 1
-                elif n > 0 and (months_since == 0 and dts.day < compare_day):
-                    # pretend to roll back if on same month but
-                    # before compare_day
-                    n -= 1
-
-                dts.year = year_add_months(dts, modby * n - months_since)
-                dts.month = month_add_months(dts, modby * n - months_since)
-
-                dts.day = get_day_of_month(&dts, day_opt)
-
-                out[i] = dtstruct_to_dt64(&dts)
-
-    elif day_opt == "business_end":
-        with nogil:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT:
-                    out[i] = NPY_NAT
-                    continue
-
-                dt64_to_dtstruct(dtindex[i], &dts)
-                n = quarters
-
-                months_since = (dts.month - q1start_month) % modby
-                # compare_day is only relevant for comparison in the case
-                # where months_since == 0.
-                compare_day = get_day_of_month(&dts, day_opt)
-
-                if n <= 0 and (months_since != 0 or
-                               (months_since == 0 and dts.day > compare_day)):
-                    # make sure to roll forward, so negate
-                    n += 1
-                elif n > 0 and (months_since == 0 and dts.day < compare_day):
-                    # pretend to roll back if on same month but
-                    # before compare_day
-                    n -= 1
-
-                dts.year = year_add_months(dts, modby * n - months_since)
-                dts.month = month_add_months(dts, modby * n - months_since)
-
-                dts.day = get_day_of_month(&dts, day_opt)
-
-                out[i] = dtstruct_to_dt64(&dts)
-
-    else:
+    if day_opt not in ["start", "end", "business_start", "business_end"]:
         raise ValueError("day must be None, 'start', 'end', "
                          "'business_start', or 'business_end'")
 
+    _shift_quarters(dtindex, out, count, quarters, q1start_month, day_opt, modby)
     return np.asarray(out)
 
 
@@ -3872,7 +3750,6 @@ def shift_months(const int64_t[:] dtindex, int months, object day_opt=None):
         Py_ssize_t i
         npy_datetimestruct dts
         int count = len(dtindex)
-        int months_to_roll
         int64_t[:] out = np.empty(count, dtype="int64")
 
     if day_opt is None:
@@ -3888,94 +3765,90 @@ def shift_months(const int64_t[:] dtindex, int months, object day_opt=None):
 
                 dts.day = min(dts.day, get_days_in_month(dts.year, dts.month))
                 out[i] = dtstruct_to_dt64(&dts)
-    elif day_opt == "start":
-        with nogil:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT:
-                    out[i] = NPY_NAT
-                    continue
-
-                dt64_to_dtstruct(dtindex[i], &dts)
-                months_to_roll = months
-                compare_day = get_day_of_month(&dts, day_opt)
-
-                # offset semantics - if on the anchor point and going backwards
-                # shift to next
-                months_to_roll = roll_convention(dts.day, months_to_roll,
-                                                 compare_day)
-
-                dts.year = year_add_months(dts, months_to_roll)
-                dts.month = month_add_months(dts, months_to_roll)
-                dts.day = get_day_of_month(&dts, day_opt)
-
-                out[i] = dtstruct_to_dt64(&dts)
-    elif day_opt == "end":
-        with nogil:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT:
-                    out[i] = NPY_NAT
-                    continue
-
-                dt64_to_dtstruct(dtindex[i], &dts)
-                months_to_roll = months
-                compare_day = get_day_of_month(&dts, day_opt)
-
-                # similar semantics - when adding shift forward by one
-                # month if already at an end of month
-                months_to_roll = roll_convention(dts.day, months_to_roll,
-                                                 compare_day)
-
-                dts.year = year_add_months(dts, months_to_roll)
-                dts.month = month_add_months(dts, months_to_roll)
-
-                dts.day = get_day_of_month(&dts, day_opt)
-                out[i] = dtstruct_to_dt64(&dts)
-
-    elif day_opt == "business_start":
-        with nogil:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT:
-                    out[i] = NPY_NAT
-                    continue
-
-                dt64_to_dtstruct(dtindex[i], &dts)
-                months_to_roll = months
-                compare_day = get_day_of_month(&dts, day_opt)
-
-                months_to_roll = roll_convention(dts.day, months_to_roll,
-                                                 compare_day)
-
-                dts.year = year_add_months(dts, months_to_roll)
-                dts.month = month_add_months(dts, months_to_roll)
-
-                dts.day = get_day_of_month(&dts, day_opt)
-                out[i] = dtstruct_to_dt64(&dts)
-
-    elif day_opt == "business_end":
-        with nogil:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT:
-                    out[i] = NPY_NAT
-                    continue
-
-                dt64_to_dtstruct(dtindex[i], &dts)
-                months_to_roll = months
-                compare_day = get_day_of_month(&dts, day_opt)
-
-                months_to_roll = roll_convention(dts.day, months_to_roll,
-                                                 compare_day)
-
-                dts.year = year_add_months(dts, months_to_roll)
-                dts.month = month_add_months(dts, months_to_roll)
-
-                dts.day = get_day_of_month(&dts, day_opt)
-                out[i] = dtstruct_to_dt64(&dts)
+    elif day_opt in ["start", "end", "business_start", "business_end"]:
+        _shift_months(dtindex, out, count, months, day_opt)
 
     else:
         raise ValueError("day must be None, 'start', 'end', "
                          "'business_start', or 'business_end'")
 
     return np.asarray(out)
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline void _shift_months(const int64_t[:] dtindex,
+                               int64_t[:] out,
+                               Py_ssize_t count,
+                               int months,
+                               str day_opt) nogil:
+    """See shift_months.__doc__"""
+    cdef:
+        Py_ssize_t i
+        int months_to_roll, compare_day
+        npy_datetimestruct dts
+
+    for i in range(count):
+        if dtindex[i] == NPY_NAT:
+            out[i] = NPY_NAT
+            continue
+
+        dt64_to_dtstruct(dtindex[i], &dts)
+        months_to_roll = months
+        compare_day = get_day_of_month(&dts, day_opt)
+
+        months_to_roll = roll_convention(dts.day, months_to_roll,
+                                         compare_day)
+
+        dts.year = year_add_months(dts, months_to_roll)
+        dts.month = month_add_months(dts, months_to_roll)
+        dts.day = get_day_of_month(&dts, day_opt)
+
+        out[i] = dtstruct_to_dt64(&dts)
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline void _shift_quarters(const int64_t[:] dtindex,
+                                 int64_t[:] out,
+                                 Py_ssize_t count,
+                                 int quarters,
+                                 int q1start_month,
+                                 str day_opt,
+                                 int modby) nogil:
+    """See shift_quarters.__doc__"""
+    cdef:
+        Py_ssize_t i
+        int months_since, compare_day, n
+        npy_datetimestruct dts
+
+    for i in range(count):
+        if dtindex[i] == NPY_NAT:
+            out[i] = NPY_NAT
+            continue
+
+        dt64_to_dtstruct(dtindex[i], &dts)
+        n = quarters
+
+        months_since = (dts.month - q1start_month) % modby
+        compare_day = get_day_of_month(&dts, day_opt)
+
+        # offset semantics - if on the anchor point and going backwards
+        # shift to next
+        if n <= 0 and (months_since != 0 or
+                       (months_since == 0 and dts.day > compare_day)):
+            # make sure to roll forward, so negate
+            n += 1
+        elif n > 0 and (months_since == 0 and dts.day < compare_day):
+            # pretend to roll back if on same month but
+            # before compare_day
+            n -= 1
+
+        dts.year = year_add_months(dts, modby * n - months_since)
+        dts.month = month_add_months(dts, modby * n - months_since)
+        dts.day = get_day_of_month(&dts, day_opt)
+
+        out[i] = dtstruct_to_dt64(&dts)
 
 
 cdef ndarray[int64_t] shift_bdays(const int64_t[:] i8other, int periods):
@@ -4035,8 +3908,7 @@ cdef ndarray[int64_t] shift_bdays(const int64_t[:] i8other, int periods):
     return result.base
 
 
-def shift_month(stamp: datetime, months: int,
-                day_opt: object=None) -> datetime:
+def shift_month(stamp: datetime, months: int, day_opt: object=None) -> datetime:
     """
     Given a datetime (or Timestamp) `stamp`, an integer `months` and an
     option `day_opt`, return a new datetimelike that many months later,
@@ -4078,14 +3950,14 @@ def shift_month(stamp: datetime, months: int,
     if day_opt is None:
         days_in_month = get_days_in_month(year, month)
         day = min(stamp.day, days_in_month)
-    elif day_opt == 'start':
+    elif day_opt == "start":
         day = 1
-    elif day_opt == 'end':
+    elif day_opt == "end":
         day = get_days_in_month(year, month)
-    elif day_opt == 'business_start':
+    elif day_opt == "business_start":
         # first business day of month
         day = get_firstbday(year, month)
-    elif day_opt == 'business_end':
+    elif day_opt == "business_end":
         # last business day of month
         day = get_lastbday(year, month)
     elif is_integer_object(day_opt):
@@ -4126,15 +3998,15 @@ cdef inline int get_day_of_month(npy_datetimestruct* dts, day_opt) nogil except?
     cdef:
         int days_in_month
 
-    if day_opt == 'start':
+    if day_opt == "start":
         return 1
-    elif day_opt == 'end':
+    elif day_opt == "end":
         days_in_month = get_days_in_month(dts.year, dts.month)
         return days_in_month
-    elif day_opt == 'business_start':
+    elif day_opt == "business_start":
         # first business day of month
         return get_firstbday(dts.year, dts.month)
-    elif day_opt == 'business_end':
+    elif day_opt == "business_end":
         # last business day of month
         return get_lastbday(dts.year, dts.month)
     elif day_opt is not None:
