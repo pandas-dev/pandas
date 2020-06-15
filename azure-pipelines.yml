@@ -1,9 +1,11 @@
 # Adapted from https://github.com/numba/numba/blob/master/azure-pipelines.yml
 trigger:
 - master
+- 1.0.x
 
 pr:
 - master
+- 1.0.x
 
 jobs:
 # Mac and Linux use the same template
