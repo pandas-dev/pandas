@@ -3352,7 +3352,7 @@ class TestDataFramePlots(TestPlotBase):
         for legend, line in zip(result.get_legend().legendHandles, result.lines):
             assert legend.get_color() == line.get_color()
 
-    def test_plot_with_rot(self):
+    def test__check_ticks_props(self):
         # GH 34768
         df = pd.DataFrame({"b": [0, 1, 0], "a": [1, 2, 3]})
         ax = _check_plot_works(df.plot, rot=30)
