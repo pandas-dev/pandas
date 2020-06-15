@@ -232,12 +232,11 @@ class TestShift:
         with tm.assert_produces_warning(FutureWarning):
             datetime_series.tshift()
 
-    def test_shift_with_freq(self, datetime_series):
-        # PeriodIndex
+    def test_period_index_series_shift_with_freq(self):
         ps = tm.makePeriodSeries()
+
         shifted = ps.shift(1, freq="infer")
         unshifted = shifted.shift(-1, freq="infer")
-
         tm.assert_series_equal(unshifted, ps)
 
         shifted2 = ps.shift(freq="B")
@@ -246,14 +245,9 @@ class TestShift:
         shifted3 = ps.shift(freq=BDay())
         tm.assert_series_equal(shifted, shifted3)
 
-        msg = "Given freq M does not match PeriodIndex freq B"
-        with pytest.raises(ValueError, match=msg):
-            ps.shift(freq="M")
-
-        # DatetimeIndex
+    def test_datetime_series_shift_with_freq(self, datetime_series):
         shifted = datetime_series.shift(1, freq="infer")
         unshifted = shifted.shift(-1, freq="infer")
-
         tm.assert_series_equal(datetime_series, unshifted)
 
         shifted2 = datetime_series.shift(freq=datetime_series.index.freq)
@@ -270,6 +264,13 @@ class TestShift:
         unshifted = shifted.shift(-1, freq="infer")
         tm.assert_series_equal(unshifted, inferred_ts)
 
+    def test_period_index_series_shift_with_freq_error(self):
+        ps = tm.makePeriodSeries()
+        msg = "Given freq M does not match PeriodIndex freq B"
+        with pytest.raises(ValueError, match=msg):
+            ps.shift(freq="M")
+
+    def test_datetime_series_shift_with_freq_error(self, datetime_series):
         no_freq = datetime_series[[0, 5, 7]]
         msg = "Freq was not set in the index hence cannot be inferred"
         with pytest.raises(ValueError, match=msg):
