@@ -1012,7 +1012,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
         self.__dict__.update(state)
 
     @apply_wraps
-    def apply(self, other):
+    def apply(self, other: datetime) -> datetime:
         if self._use_relativedelta:
             other = _as_datetime(other)
 
@@ -1782,10 +1782,7 @@ cdef class WeekOfMonthMixin(SingleConstructorOffset):
         compare_day = self._get_offset_day(other)
 
         months = self.n
-        if months > 0 and compare_day > other.day:
-            months -= 1
-        elif months <= 0 and compare_day < other.day:
-            months += 1
+        months = roll_convention(other.day, months, compare_day)
 
         shifted = shift_month(other, months, "start")
         to_day = self._get_offset_day(shifted)
@@ -2758,7 +2755,7 @@ cdef class FY5253(FY5253Mixin):
             return year_end == dt
 
     @apply_wraps
-    def apply(self, other) -> datetime:
+    def apply(self, other: datetime) -> datetime:
         norm = Timestamp(other).normalize()
 
         n = self.n
@@ -3098,7 +3095,7 @@ cdef class Easter(SingleConstructorOffset):
         self.normalize = state.pop("normalize")
 
     @apply_wraps
-    def apply(self, other) -> datetime:
+    def apply(self, other: datetime) -> datetime:
         current_easter = easter(other.year)
         current_easter = datetime(
             current_easter.year, current_easter.month, current_easter.day
@@ -3320,7 +3317,7 @@ cdef class _CustomBusinessMonth(BusinessMixin):
         return roll_func
 
     @apply_wraps
-    def apply(self, other):
+    def apply(self, other: datetime) -> datetime:
         # First move to month offset
         cur_month_offset_date = self.month_roll(other)
 
