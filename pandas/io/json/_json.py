@@ -1,6 +1,6 @@
 from collections import abc
 import functools
-from io import StringIO
+from io import StringIO, BytesIO
 from itertools import islice
 import os
 from typing import Any, Callable, Optional, Type
@@ -690,8 +690,6 @@ class JsonReader(abc.Iterator):
         if hasattr(data, "read") and (not self.chunksize or not self.nrows):
             data = data.read()
         if not hasattr(data, "read") and (self.chunksize or self.nrows):
-            if isinstance(data, bytes):
-                data = data.decode()
             data = StringIO(data)
 
         return data
@@ -725,6 +723,9 @@ class JsonReader(abc.Iterator):
             )
             self.should_close = True
             self.open_stream = data
+
+        if isinstance(data, BytesIO):
+            data = data.getvalue().decode()
 
         return data
 
