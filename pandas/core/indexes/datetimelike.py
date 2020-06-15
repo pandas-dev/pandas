@@ -7,7 +7,8 @@ from typing import Any, List, Optional, TypeVar, Union, cast
 import numpy as np
 
 from pandas._libs import NaT, Timedelta, iNaT, join as libjoin, lib
-from pandas._libs.tslibs import timezones
+from pandas._libs.tslibs import Resolution, timezones
+from pandas._libs.tslibs.parsing import DateParseError
 from pandas._typing import Label
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -29,6 +30,8 @@ from pandas.core import algorithms
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 from pandas.core.base import IndexOpsMixin
+import pandas.core.common as com
+from pandas.core.construction import array as pd_array, extract_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.extension import (
@@ -75,7 +78,7 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
 
 
 @inherit_names(
-    ["inferred_freq", "_isnan", "_resolution", "resolution"],
+    ["inferred_freq", "_isnan", "_resolution_obj", "resolution"],
     DatetimeLikeArrayMixin,
     cache=True,
 )
@@ -90,7 +93,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     _data: Union[DatetimeArray, TimedeltaArray, PeriodArray]
     freq: Optional[DateOffset]
     freqstr: Optional[str]
-    _resolution: int
+    _resolution_obj: Resolution
     _bool_ops: List[str] = []
     _field_ops: List[str] = []
 
@@ -360,19 +363,23 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    def _validate_partial_date_slice(self, reso: str):
+    def _validate_partial_date_slice(self, reso: Resolution):
         raise NotImplementedError
 
-    def _parsed_string_to_bounds(self, reso: str, parsed: datetime):
+    def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
         raise NotImplementedError
 
     def _partial_date_slice(
-        self, reso: str, parsed: datetime, use_lhs: bool = True, use_rhs: bool = True
+        self,
+        reso: Resolution,
+        parsed: datetime,
+        use_lhs: bool = True,
+        use_rhs: bool = True,
     ):
         """
         Parameters
         ----------
-        reso : str
+        reso : Resolution
         parsed : datetime
         use_lhs : bool, default True
         use_rhs : bool, default True
@@ -572,6 +579,22 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         new_data = type(self._data)._simple_new(joined, dtype=self.dtype, freq=freq)
 
         return type(self)._simple_new(new_data, name=name)
+
+    @doc(Index._convert_arr_indexer)
+    def _convert_arr_indexer(self, keyarr):
+        if lib.infer_dtype(keyarr) == "string":
+            # Weak reasoning that indexer is a list of strings
+            # representing datetime or timedelta or period
+            try:
+                extension_arr = pd_array(keyarr, self.dtype)
+            except (ValueError, DateParseError):
+                # Fail to infer keyarr from self.dtype
+                return keyarr
+
+            converted_arr = extract_array(extension_arr, extract_numpy=True)
+        else:
+            converted_arr = com.asarray_tuplesafe(keyarr)
+        return converted_arr
 
 
 class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):

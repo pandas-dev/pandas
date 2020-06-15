@@ -17,6 +17,7 @@ from pandas.core.dtypes.common import (
     TD64NS_DTYPE,
     ensure_object,
     is_bool_dtype,
+    is_categorical_dtype,
     is_complex_dtype,
     is_datetimelike_v_numeric,
     is_dtype_equal,
@@ -209,8 +210,8 @@ def _isna_ndarraylike(obj, inf_as_na: bool = False):
     dtype = values.dtype
 
     if is_extension_array_dtype(dtype):
-        if inf_as_na:
-            result = values.isna() | (values == -np.inf) | (values == np.inf)
+        if inf_as_na and is_categorical_dtype(dtype):
+            result = libmissing.isnaobj_old(values.to_numpy())
         else:
             result = values.isna()
     elif is_string_dtype(dtype):
@@ -392,7 +393,7 @@ def array_equivalent(left, right, strict_nan: bool = False) -> bool:
 
     # Object arrays can contain None, NaN and NaT.
     # string dtypes must be come to this path for NumPy 1.7.1 compat
-    if is_string_dtype(left) or is_string_dtype(right):
+    if is_string_dtype(left.dtype) or is_string_dtype(right.dtype):
 
         if not strict_nan:
             # isna considers NaN and None to be equivalent.
@@ -519,7 +520,9 @@ def na_value_for_dtype(dtype, compat: bool = True):
             return 0
         return np.nan
     elif is_bool_dtype(dtype):
-        return False
+        if compat:
+            return False
+        return np.nan
     return np.nan
 
 
