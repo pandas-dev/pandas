@@ -349,6 +349,12 @@ class NAType(C_NAType):
     def __repr__(self) -> str:
         return "<NA>"
 
+    def __format__(self, format_spec) -> str:
+        try:
+            return self.__repr__().__format__(format_spec)
+        except ValueError:
+            return self.__repr__()
+
     def __bool__(self):
         raise TypeError("boolean value of NA is ambiguous")
 
