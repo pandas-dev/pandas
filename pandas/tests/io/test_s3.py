@@ -31,4 +31,4 @@ def test_streaming_s3_objects():
 def test_read_csv_from_public_bucket():
     # https://github.com/pandas-dev/pandas/issues/34626
     result = read_csv("s3://nyc-tlc/misc/taxi _zone_lookup.csv")
-    assert result.shape == (265, 4)
+    assert result.shape == (265, 42)
