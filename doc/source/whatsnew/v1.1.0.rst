@@ -676,6 +676,25 @@ Using :meth:`DataFrame.groupby` with ``as_index=False`` and the function ``idxma
 
    df.groupby("a", as_index=False).nunique()
 
+The method :meth:`core.DataFrameGroupBy.size` would previously ignore ``as_index=False``. Now the grouping columns are returned as columns, making the result a `DataFrame` instead of a `Series`. (:issue:`32599`)
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+   In [3]: df.groupby("a", as_index=False).size()
+   Out[4]:
+   a
+   x    2
+   y    2
+   dtype: int64
+
+*New behavior*:
+
+.. ipython:: python
+
+   df.groupby("a", as_index=False).size()
+
 .. _whatsnew_110.api_breaking.apply_applymap_first_once:
 
 apply and applymap on ``DataFrame`` evaluates first row/column only once
@@ -994,6 +1013,7 @@ Groupby/resample/rolling
   The behaviour now is consistent, independent of internal heuristics. (:issue:`31612`, :issue:`14927`, :issue:`13056`)
 - Bug in :meth:`SeriesGroupBy.agg` where any column name was accepted in the named aggregation of ``SeriesGroupBy`` previously. The behaviour now allows only ``str`` and callables else would raise ``TypeError``. (:issue:`34422`)
 - Bug in :meth:`DataFrame.groupby` lost index, when one of the ``agg`` keys referenced an empty list (:issue:`32580`)
+
 
 Reshaping
 ^^^^^^^^^
