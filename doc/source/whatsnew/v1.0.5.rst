@@ -15,8 +15,11 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
--
--
+
+- Fix regression in :meth:`read_parquet` when reading from file-like objects or
+  from public S3 buckets. Note this disables the ability to read from
+  directories on S3 again, which was added in the 1.0.4 release, but is now
+  targeted for pandas 1.1.0 (:issue:`34467`, :issue:`34626`, :issue:`34632`).
 
 .. _whatsnew_105.bug_fixes:
 
@@ -24,7 +27,6 @@ Bug fixes
 ~~~~~~~~~
 
 - Fixed building from source with Python 3.8 fetching the wrong version of NumPy (:issue:`34666`)
--
 
 Contributors
 ~~~~~~~~~~~~
