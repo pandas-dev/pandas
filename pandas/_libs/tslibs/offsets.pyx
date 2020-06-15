@@ -2507,6 +2507,8 @@ cdef class Week(SingleConstructorOffset):
         else:
             return self._end_apply_index(dtindex)
 
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
     def _end_apply_index(self, dtindex):
         """
         Add self to the given DatetimeIndex, specialized for case where
@@ -2518,31 +2520,37 @@ cdef class Week(SingleConstructorOffset):
 
         Returns
         -------
-        result : DatetimeIndex
+        ndarray[int64_t]
         """
-        i8other = dtindex.asi8
-        off = (i8other % DAY_NANOS).view("timedelta64[ns]")
+        cdef:
+            int64_t[:] i8other = dtindex.view("i8")
+            Py_ssize_t i, count = len(i8other)
+            int64_t val
+            int64_t[:] out = np.empty(count, dtype="i8")
+            npy_datetimestruct dts
+            int wday, days, weeks, n = self.n
+            int anchor_weekday = self.weekday
 
-        base = self._period_dtype_code
-        base_period = dtindex.to_period(base)
+        with nogil:
+            for i in range(count):
+                val = i8other[i]
+                if val == NPY_NAT:
+                    out[i] = NPY_NAT
+                    continue
 
-        if self.n > 0:
-            # when adding, dates on end roll to next
-            normed = dtindex - off + Timedelta(1, "D") - Timedelta(1, "ns")
-            roll = np.where(
-                base_period.to_timestamp(how="end") == normed, self.n, self.n - 1
-            )
-            # integer-array addition on PeriodIndex is deprecated,
-            #  so we use _addsub_int_array directly
-            shifted = base_period._addsub_int_array(roll, operator.add)
-            base = shifted.to_timestamp(how="end")
-        else:
-            # integer addition on PeriodIndex is deprecated,
-            #  so we use _time_shift directly
-            roll = self.n
-            base = base_period._time_shift(roll).to_timestamp(how="end")
+                dt64_to_dtstruct(val, &dts)
+                wday = dayofweek(dts.year, dts.month, dts.day)
 
-        return base + off + Timedelta(1, "ns") - Timedelta(1, "D")
+                days = 0
+                weeks = n
+                if wday != anchor_weekday:
+                    days = (anchor_weekday - wday) % 7
+                    if weeks > 0:
+                        weeks -= 1
+
+                out[i] = val + (7 * weeks + days) * DAY_NANOS
+
+        return out.base
 
     def is_on_offset(self, dt) -> bool:
         if self.normalize and not _is_normalized(dt):
