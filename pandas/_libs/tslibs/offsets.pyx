@@ -358,7 +358,6 @@ cdef class BaseOffset:
     Base class for DateOffset methods that are not overridden by subclasses
     and will (after pickle errors are resolved) go into a cdef class.
     """
-    _typ = "dateoffset"
     _day_opt = None
     _attributes = tuple(["n", "normalize"])
     _use_relativedelta = False
@@ -394,7 +393,7 @@ cdef class BaseOffset:
     def __ne__(self, other):
         return not self == other
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self._params)
 
     @cache_readonly
@@ -422,10 +421,10 @@ cdef class BaseOffset:
         return params
 
     @property
-    def kwds(self):
+    def kwds(self) -> dict:
         # for backwards-compatibility
         kwds = {name: getattr(self, name, None) for name in self._attributes
-                if name not in ['n', 'normalize']}
+                if name not in ["n", "normalize"]}
         return {name: kwds[name] for name in kwds if kwds[name] is not None}
 
     @property
@@ -861,16 +860,8 @@ cdef class Tick(SingleConstructorOffset):
     def apply(self, other):
         # Timestamp can handle tz and nano sec, thus no need to use apply_wraps
         if isinstance(other, _Timestamp):
-
             # GH#15126
-            # in order to avoid a recursive
-            # call of __add__ and __radd__ if there is
-            # an exception, when we call using the + operator,
-            # we directly call the known method
-            result = other.__add__(self)
-            if result is NotImplemented:
-                raise OverflowError
-            return result
+            return other + self.delta
         elif other is NaT:
             return NaT
         elif is_datetime64_object(other) or PyDate_Check(other):
@@ -1788,7 +1779,7 @@ cdef class WeekOfMonthMixin(SingleConstructorOffset):
         to_day = self._get_offset_day(shifted)
         return shift_day(shifted, to_day - shifted.day)
 
-    def is_on_offset(self, dt) -> bool:
+    def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         return dt.day == self._get_offset_day(dt)
@@ -1843,12 +1834,12 @@ cdef class YearOffset(SingleConstructorOffset):
         month = MONTH_ALIASES[self.month]
         return f"{self._prefix}-{month}"
 
-    def is_on_offset(self, dt) -> bool:
+    def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         return dt.month == self.month and dt.day == self._get_offset_day(dt)
 
-    def _get_offset_day(self, other) -> int:
+    def _get_offset_day(self, other: datetime) -> int:
         # override BaseOffset method to use self.month instead of other.month
         cdef:
             npy_datetimestruct dts
@@ -1995,7 +1986,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
     def is_anchored(self) -> bool:
         return self.n == 1 and self.startingMonth is not None
 
-    def is_on_offset(self, dt) -> bool:
+    def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         mod_month = (dt.month - self.startingMonth) % 3
@@ -2119,7 +2110,7 @@ cdef class QuarterBegin(QuarterOffset):
 # Month-Based Offset Classes
 
 cdef class MonthOffset(SingleConstructorOffset):
-    def is_on_offset(self, dt) -> bool:
+    def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         return dt.day == self._get_offset_day(dt)
@@ -2339,7 +2330,7 @@ cdef class SemiMonthEnd(SemiMonthOffset):
     _prefix = "SM"
     _min_day_of_month = 1
 
-    def is_on_offset(self, dt) -> bool:
+    def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         days_in_month = get_days_in_month(dt.year, dt.month)
@@ -2360,7 +2351,7 @@ cdef class SemiMonthBegin(SemiMonthOffset):
 
     _prefix = "SMS"
 
-    def is_on_offset(self, dt) -> bool:
+    def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         return dt.day in (1, self.day_of_month)
@@ -2375,8 +2366,8 @@ cdef class Week(SingleConstructorOffset):
     Weekly offset.
 
     Parameters
-    ----------f
-    weekday : int, default None
+    ----------
+    weekday : int or None, default None
         Always generate specific day of week. 0 for Monday.
     """
 
