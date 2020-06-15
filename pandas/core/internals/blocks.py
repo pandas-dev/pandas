@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import inspect
 import re
-from typing import Any, List
+from typing import TYPE_CHECKING, Any, List, Optional
 import warnings
 
 import numpy as np
@@ -82,6 +82,9 @@ from pandas.core.indexers import (
 )
 import pandas.core.missing as missing
 from pandas.core.nanops import nanpercentile
+
+if TYPE_CHECKING:
+    from pandas import Index
 
 
 class Block(PandasObject):
@@ -903,8 +906,7 @@ class Block(PandasObject):
         mask = _extract_bool_array(mask)
         assert not isinstance(new, (ABCIndexClass, ABCSeries, ABCDataFrame))
 
-        new_values = self.values if inplace else self.values.copy()
-
+        new_values = self.values  # delay copy if possible.
         # if we are passed a scalar None, convert it here
         if not is_list_like(new) and isna(new) and not self.is_object:
             # FIXME: make sure we have compatible NA
@@ -914,7 +916,7 @@ class Block(PandasObject):
             # We only get here for non-Extension Blocks, so _try_coerce_args
             #  is only relevant for DatetimeBlock and TimedeltaBlock
             if lib.is_scalar(new):
-                new = convert_scalar_for_putitemlike(new, new_values.dtype)
+                new = convert_scalar_for_putitemlike(new, self.values.dtype)
 
             if transpose:
                 new_values = new_values.T
@@ -926,6 +928,8 @@ class Block(PandasObject):
                     new = np.repeat(new, new_values.shape[-1]).reshape(self.shape)
                 new = new.astype(new_values.dtype)
 
+            if new_values is self.values and not inplace:
+                new_values = new_values.copy()
             # we require exact matches between the len of the
             # values we are setting (or is compat). np.putmask
             # doesn't check this and will simply truncate / pad
@@ -997,6 +1001,8 @@ class Block(PandasObject):
             return [self]
 
         if transpose:
+            if new_values is None:
+                new_values = self.values if inplace else self.values.copy()
             new_values = new_values.T
 
         return [self.make_block(new_values)]
@@ -1066,29 +1072,24 @@ class Block(PandasObject):
 
     def interpolate(
         self,
-        method="pad",
-        axis=0,
-        index=None,
-        inplace=False,
-        limit=None,
-        limit_direction="forward",
-        limit_area=None,
-        fill_value=None,
-        coerce=False,
-        downcast=None,
+        method: str = "pad",
+        axis: int = 0,
+        index: Optional["Index"] = None,
+        inplace: bool = False,
+        limit: Optional[int] = None,
+        limit_direction: str = "forward",
+        limit_area: Optional[str] = None,
+        fill_value: Optional[Any] = None,
+        coerce: bool = False,
+        downcast: Optional[str] = None,
         **kwargs,
     ):
 
         inplace = validate_bool_kwarg(inplace, "inplace")
 
-        def check_int_bool(self, inplace):
-            # Only FloatBlocks will contain NaNs.
-            # timedelta subclasses IntBlock
-            if (self.is_bool or self.is_integer) and not self.is_timedelta:
-                if inplace:
-                    return self
-                else:
-                    return self.copy()
+        # Only FloatBlocks will contain NaNs. timedelta subclasses IntBlock
+        if (self.is_bool or self.is_integer) and not self.is_timedelta:
+            return self if inplace else self.copy()
 
         # a fill na type method
         try:
@@ -1097,9 +1098,6 @@ class Block(PandasObject):
             m = None
 
         if m is not None:
-            r = check_int_bool(self, inplace)
-            if r is not None:
-                return r
             return self._interpolate_with_fill(
                 method=m,
                 axis=axis,
@@ -1112,9 +1110,8 @@ class Block(PandasObject):
         # validate the interp method
         m = missing.clean_interp_method(method, **kwargs)
 
-        r = check_int_bool(self, inplace)
-        if r is not None:
-            return r
+        assert index is not None  # for mypy
+
         return self._interpolate(
             method=m,
             index=index,
@@ -1130,13 +1127,13 @@ class Block(PandasObject):
 
     def _interpolate_with_fill(
         self,
-        method="pad",
-        axis=0,
-        inplace=False,
-        limit=None,
-        fill_value=None,
-        coerce=False,
-        downcast=None,
+        method: str = "pad",
+        axis: int = 0,
+        inplace: bool = False,
+        limit: Optional[int] = None,
+        fill_value: Optional[Any] = None,
+        coerce: bool = False,
+        downcast: Optional[str] = None,
     ) -> List["Block"]:
         """ fillna but using the interpolate machinery """
         inplace = validate_bool_kwarg(inplace, "inplace")
@@ -1169,15 +1166,15 @@ class Block(PandasObject):
 
     def _interpolate(
         self,
-        method=None,
-        index=None,
-        fill_value=None,
-        axis=0,
-        limit=None,
-        limit_direction="forward",
-        limit_area=None,
-        inplace=False,
-        downcast=None,
+        method: str,
+        index: "Index",
+        fill_value: Optional[Any] = None,
+        axis: int = 0,
+        limit: Optional[int] = None,
+        limit_direction: str = "forward",
+        limit_area: Optional[str] = None,
+        inplace: bool = False,
+        downcast: Optional[str] = None,
         **kwargs,
     ) -> List["Block"]:
         """ interpolate using scipy wrappers """
@@ -1200,14 +1197,14 @@ class Block(PandasObject):
                 )
         # process 1-d slices in the axis direction
 
-        def func(x):
+        def func(yvalues: np.ndarray) -> np.ndarray:
 
             # process a 1-d slice, returning it
             # should the axis argument be handled below in apply_along_axis?
             # i.e. not an arg to missing.interpolate_1d
             return missing.interpolate_1d(
-                index,
-                x,
+                xvalues=index,
+                yvalues=yvalues,
                 method=method,
                 limit=limit,
                 limit_direction=limit_direction,
