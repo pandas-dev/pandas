@@ -3482,36 +3482,6 @@ INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
 _offset_map = {}
 
 
-cdef _base_and_stride(str freqstr):
-    """
-    Return base freq and stride info from string representation
-
-    Returns
-    -------
-    base : str
-    stride : int
-
-    Examples
-    --------
-    _base_and_stride('5Min') -> 'Min', 5
-    """
-    groups = opattern.match(freqstr)
-
-    if not groups:
-        raise ValueError(f"Could not evaluate {freqstr}")
-
-    stride = groups.group(1)
-
-    if len(stride):
-        stride = int(stride)
-    else:
-        stride = 1
-
-    base = groups.group(2)
-
-    return base, stride
-
-
 # TODO: better name?
 def _get_offset(name: str) -> BaseOffset:
     """
@@ -3574,10 +3544,10 @@ cpdef to_offset(freq):
     >>> to_offset("1D1H")
     <25 * Hours>
 
-    >>> to_offset(("W", 2))
+    >>> to_offset("2W")
     <2 * Weeks: weekday=6>
 
-    >>> to_offset((2, "B"))
+    >>> to_offset("2B")
     <2 * BusinessDays>
 
     >>> to_offset(pd.Timedelta(days=1))
@@ -3593,12 +3563,9 @@ cpdef to_offset(freq):
         return freq
 
     if isinstance(freq, tuple):
-        name = freq[0]
-        stride = freq[1]
-        if isinstance(stride, str):
-            name, stride = stride, name
-        name, _ = _base_and_stride(name)
-        delta = _get_offset(name) * stride
+        raise TypeError(
+            f"to_offset does not support tuples {freq}, pass as a string instead"
+        )
 
     elif isinstance(freq, timedelta):
         return delta_to_tick(freq)
