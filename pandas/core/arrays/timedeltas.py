@@ -882,9 +882,10 @@ def sequence_to_td64ns(data, copy=False, unit=None, errors="raise"):
     ----------
     data : list-like
     copy : bool, default False
-    unit : str, default "ns"
-        The timedelta unit to treat integers as multiples of.
-        Must be un-specifed if the data contains a str.
+    unit : str, optional
+        The timedelta unit to treat integers as multiples of. For numeric
+        data this defaults to ``'ns'``.
+        Must be un-specified if the data contains a str and ``errors=="raise"``.
     errors : {"raise", "coerce", "ignore"}, default "raise"
         How to handle elements that cannot be converted to timedelta64[ns].
         See ``pandas.to_timedelta`` for details.
