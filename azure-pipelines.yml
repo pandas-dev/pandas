@@ -4,8 +4,10 @@ trigger:
 - 1.0.x
 
 pr:
-- master
-- 1.0.x
+  branches:
+    include:
+    - master/*
+    - 1.0.x/*
 
 jobs:
 # Mac and Linux use the same template
