@@ -11,13 +11,9 @@ from pandas._libs.tslibs import (
     conversion,
     timezones,
 )
-from pandas._libs.tslibs.frequencies import (
-    INVALID_FREQ_ERR_MSG,
-    get_freq_code,
-    get_freq_str,
-)
 import pandas._libs.tslibs.offsets as liboffsets
 from pandas._libs.tslibs.offsets import ApplyTypeError, _get_offset, _offset_map
+from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 import pandas.compat as compat
 from pandas.compat.numpy import np_datetime64_compat
 from pandas.errors import PerformanceWarning
@@ -4111,13 +4107,6 @@ class TestOffsetAliases:
                 alias = "-".join([base, v])
                 assert alias == _get_offset(alias).rule_code
                 assert alias == (_get_offset(alias) * 5).rule_code
-
-        lst = ["M", "D", "B", "H", "T", "S", "L", "U"]
-        for k in lst:
-            code, stride = get_freq_code("3" + k)
-            assert isinstance(code, int)
-            assert stride == 3
-            assert k == get_freq_str(code)
 
 
 def test_dateoffset_misc():

@@ -476,7 +476,7 @@ def test_upsample_with_limit():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("freq", ["Y", "10M", "5D", "10H", "5Min", "10S"])
+@pytest.mark.parametrize("freq", ["5D", "10H", "5Min", "10S"])
 @pytest.mark.parametrize("rule", ["Y", "3M", "15D", "30H", "15Min", "30S"])
 def test_nearest_upsample_with_limit(tz_aware_fixture, freq, rule):
     # GH 33939
