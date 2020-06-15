@@ -14,7 +14,7 @@ from pandas.util._decorators import Appender, Substitution
 from pandas.core.dtypes.generic import ABCDataFrame
 
 from pandas.core.base import DataError
-import pandas.core.common as com
+import pandas.core.common as common
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
 from pandas.core.window.common import _doc_template, _shared_docs, zsqrt
 from pandas.core.window.rolling import _flex_binary_moment, _Rolling
@@ -35,7 +35,7 @@ def get_center_of_mass(
     halflife: Optional[float],
     alpha: Optional[float],
 ) -> float:
-    valid_count = com.count_not_none(comass, span, halflife, alpha)
+    valid_count = common.count_not_none(comass, span, halflife, alpha)
     if valid_count > 1:
         raise ValueError("comass, span, halflife, and alpha are mutually exclusive")
 
@@ -216,7 +216,7 @@ class EWM(_Rolling):
             )
             # Halflife is no longer applicable when calculating COM
             # But allow COM to still be calculated if the user passes other decay args
-            if com.count_not_none(com, span, alpha) > 0:
+            if common.count_not_none(com, span, alpha) > 0:
                 self.com = get_center_of_mass(com, span, None, alpha)
             else:
                 self.com = None

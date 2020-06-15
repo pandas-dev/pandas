@@ -10587,6 +10587,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             adjust=True,
             ignore_na=False,
             axis=0,
+            times=None,
         ):
             axis = self._get_axis_number(axis)
             return EWM(
@@ -10599,6 +10600,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 adjust=adjust,
                 ignore_na=ignore_na,
                 axis=axis,
+                times=times,
             )
 
         cls.ewm = ewm

@@ -68,7 +68,7 @@ def test_numpy_compat(method):
 
 
 def test_ewma_times_not_datetime_type():
-    msg = "times must be datetime64[ns] dtype."
+    msg = "times must be datetime64\[ns\] dtype."
     with pytest.raises(ValueError, match=msg):
         Series(range(5)).ewm(times=np.arange(5))
 
@@ -99,6 +99,6 @@ def test_ewma_with_times(halflife_with_times, times):
     df = DataFrame(
         {"A": range(10), "time_col": date_range("2000", freq="ns", periods=10)}
     )
-    result = df.ewma(halflife=halflife, times=times).mean()
+    result = df.ewm(halflife=halflife, times=times).mean()
     expected = None
     tm.assert_frame_equal(result, expected)
