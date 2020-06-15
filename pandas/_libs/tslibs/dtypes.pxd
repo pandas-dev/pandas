@@ -1,3 +1,4 @@
+cdef dict attrname_to_abbrevs
 
 cdef enum c_FreqGroup:
     # Mirrors FreqGroup in the .pxy file
@@ -72,4 +73,4 @@ cdef enum PeriodDtypeCode:
 
 cdef class PeriodDtypeBase:
     cdef readonly:
-        PeriodDtypeCode dtype_code
+        PeriodDtypeCode _dtype_code
