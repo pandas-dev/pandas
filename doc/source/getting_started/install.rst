@@ -220,7 +220,7 @@ Dependencies
 Package                                                          Minimum supported version
 ================================================================ ==========================
 `setuptools <https://setuptools.readthedocs.io/en/latest/>`__    24.2.0
-`NumPy <https://www.numpy.org>`__                                1.13.3
+`NumPy <https://www.numpy.org>`__                                1.15.4
 `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.7.3
 `pytz <https://pypi.org/project/pytz/>`__                        2017.2
 ================================================================ ==========================
@@ -274,7 +274,7 @@ lxml                      3.8.0              HTML parser for read_html (see :ref
 matplotlib                2.2.2              Visualization
 numba                     0.46.0             Alternative execution engine for rolling operations
 openpyxl                  2.5.7              Reading / writing for xlsx files
-pandas-gbq                0.8.0              Google Big Query access
+pandas-gbq                0.12.0             Google Big Query access
 psycopg2                                     PostgreSQL engine for sqlalchemy
 pyarrow                   0.12.0             Parquet, ORC (requires 0.13.0), and feather reading / writing
 pymysql                   0.7.11             MySQL engine for sqlalchemy

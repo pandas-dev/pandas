@@ -194,6 +194,11 @@ SQL_STRINGS = {
                 "Name"=%(name)s AND "SepalLength"=%(length)s
                 """,
     },
+    "read_no_parameters_with_percent": {
+        "sqlite": "SELECT * FROM iris WHERE Name LIKE '%'",
+        "mysql": "SELECT * FROM iris WHERE `Name` LIKE '%'",
+        "postgresql": "SELECT * FROM iris WHERE \"Name\" LIKE '%'",
+    },
     "create_view": {
         "sqlite": """
                 CREATE VIEW iris_view AS
@@ -273,7 +278,7 @@ class PandasSQLTest:
         else:
             return self.conn.cursor()
 
-    @pytest.fixture(params=[("data", "iris.csv")])
+    @pytest.fixture(params=[("io", "data", "csv", "iris.csv")])
     def load_iris_data(self, datapath, request):
         import io
 
@@ -422,6 +427,11 @@ class PandasSQLTest:
         query = SQL_STRINGS["read_named_parameters"][self.flavor]
         params = {"name": "Iris-setosa", "length": 5.1}
         iris_frame = self.pandasSQL.read_query(query, params=params)
+        self._check_iris_loaded_frame(iris_frame)
+
+    def _read_sql_iris_no_parameter_with_percent(self):
+        query = SQL_STRINGS["read_no_parameters_with_percent"][self.flavor]
+        iris_frame = self.pandasSQL.read_query(query, params=None)
         self._check_iris_loaded_frame(iris_frame)
 
     def _to_sql(self, method=None):
@@ -1130,8 +1140,6 @@ class _EngineToConnMixin:
         self.conn.close()
         self.conn = self.__engine
         self.pandasSQL = sql.SQLDatabase(self.__engine)
-        # XXX:
-        # super().teardown_method(method)
 
 
 @pytest.mark.single
@@ -1491,7 +1499,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def test_naive_datetimeindex_roundtrip(self):
         # GH 23510
         # Ensure that a naive DatetimeIndex isn't converted to UTC
-        dates = date_range("2018-01-01", periods=5, freq="6H")
+        dates = date_range("2018-01-01", periods=5, freq="6H")._with_freq(None)
         expected = DataFrame({"nums": range(5)}, index=dates)
         expected.to_sql("foo_table", self.conn, index_label="info_date")
         result = sql.read_sql_table("foo_table", self.conn, index_col="info_date")

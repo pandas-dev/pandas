@@ -6,9 +6,10 @@ from pandas._libs import tslibs
 def test_namespace():
 
     submodules = [
-        "c_timestamp",
+        "base",
         "ccalendar",
         "conversion",
+        "dtypes",
         "fields",
         "frequencies",
         "nattype",
@@ -29,17 +30,18 @@ def test_namespace():
         "NaTType",
         "iNaT",
         "is_null_datetimelike",
-        "NullFrequencyError",
+        "nat_strings",
         "OutOfBoundsDatetime",
         "Period",
         "IncompatibleFrequency",
+        "Resolution",
         "Timedelta",
         "Timestamp",
         "delta_to_nanoseconds",
         "ints_to_pytimedelta",
         "localize_pydatetime",
-        "normalize_date",
         "tz_convert_single",
+        "to_offset",
     ]
 
     expected = set(submodules + api)

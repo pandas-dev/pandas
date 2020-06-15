@@ -13,6 +13,7 @@ from pandas._libs import lib
 import pandas._libs.sparse as splib
 from pandas._libs.sparse import BlockIndex, IntIndex, SparseIndex
 from pandas._libs.tslibs import NaT
+from pandas._typing import Scalar
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning
@@ -35,7 +36,7 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries, ABCSparseArray
+from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 import pandas.core.algorithms as algos
@@ -46,6 +47,7 @@ import pandas.core.common as com
 from pandas.core.construction import extract_array, sanitize_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import interpolate_2d
+from pandas.core.nanops import check_below_min_count
 import pandas.core.ops as ops
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
@@ -58,7 +60,7 @@ import pandas.io.formats.printing as printing
 _sparray_doc_kwargs = dict(klass="SparseArray")
 
 
-def _get_fill(arr: ABCSparseArray) -> np.ndarray:
+def _get_fill(arr: "SparseArray") -> np.ndarray:
     """
     Create a 0-dim ndarray containing the fill value
 
@@ -83,7 +85,7 @@ def _get_fill(arr: ABCSparseArray) -> np.ndarray:
 
 
 def _sparse_array_op(
-    left: ABCSparseArray, right: ABCSparseArray, op: Callable, name: str
+    left: "SparseArray", right: "SparseArray", op: Callable, name: str
 ) -> Any:
     """
     Perform a binary operation between two arrays.
@@ -335,7 +337,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         # TODO: disentangle the fill_value dtype inference from
         # dtype inference
         if data is None:
-            # XXX: What should the empty dtype be? Object or float?
+            # TODO: What should the empty dtype be? Object or float?
             data = np.array([], dtype=dtype)
 
         if not is_array_like(data):
@@ -784,7 +786,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             # TODO: I think we can avoid densifying when masking a
             # boolean SparseArray with another. Need to look at the
             # key's fill_value for True / False, and then do an intersection
-            # on the indicies of the sp_values.
+            # on the indices of the sp_values.
             if isinstance(key, SparseArray):
                 if is_bool_dtype(key):
                     key = key.to_dense()
@@ -952,27 +954,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     @classmethod
     def _concat_same_type(cls, to_concat):
-        fill_values = [x.fill_value for x in to_concat]
-
-        fill_value = fill_values[0]
-
-        # np.nan isn't a singleton, so we may end up with multiple
-        # NaNs here, so we ignore tha all NA case too.
-        if not (len(set(fill_values)) == 1 or isna(fill_values).all()):
-            warnings.warn(
-                "Concatenating sparse arrays with multiple fill "
-                f"values: '{fill_values}'. Picking the first and "
-                "converting the rest.",
-                PerformanceWarning,
-                stacklevel=6,
-            )
-            keep = to_concat[0]
-            to_concat2 = [keep]
-
-            for arr in to_concat[1:]:
-                to_concat2.append(cls(np.asarray(arr), fill_value=fill_value))
-
-            to_concat = to_concat2
+        fill_value = to_concat[0].fill_value
 
         values = []
         length = 0
@@ -1081,7 +1063,9 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         """
         dtype = self.dtype.update_dtype(dtype)
         subtype = dtype._subtype_with_str
-        sp_values = astype_nansafe(self.sp_values, subtype, copy=copy)
+        # TODO copy=False is broken for astype_nansafe with int -> float, so cannot
+        # passthrough copy keyword: https://github.com/pandas-dev/pandas/issues/34456
+        sp_values = astype_nansafe(self.sp_values, subtype, copy=True)
         if sp_values is self.sp_values and copy:
             sp_values = sp_values.copy()
 
@@ -1240,21 +1224,36 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         return values.any().item()
 
-    def sum(self, axis=0, *args, **kwargs):
+    def sum(self, axis: int = 0, min_count: int = 0, *args, **kwargs) -> Scalar:
         """
         Sum of non-NA/null values
 
+        Parameters
+        ----------
+        axis : int, default 0
+            Not Used. NumPy compatibility.
+        min_count : int, default 0
+            The required number of valid values to perform the summation. If fewer
+            than ``min_count`` valid values are present, the result will be the missing
+            value indicator for subarray type.
+        *args, **kwargs
+            Not Used. NumPy compatibility.
+
         Returns
         -------
-        sum : float
+        scalar
         """
         nv.validate_sum(args, kwargs)
         valid_vals = self._valid_sp_values
         sp_sum = valid_vals.sum()
         if self._null_fill_value:
+            if check_below_min_count(valid_vals.shape, None, min_count):
+                return na_value_for_dtype(self.dtype.subtype, compat=False)
             return sp_sum
         else:
             nsparse = self.sp_index.ngaps
+            if check_below_min_count(valid_vals.shape, None, min_count - nsparse):
+                return na_value_for_dtype(self.dtype.subtype, compat=False)
             return sp_sum + self.fill_value * nsparse
 
     def cumsum(self, axis=0, *args, **kwargs):
@@ -1537,7 +1536,7 @@ def make_sparse(arr: np.ndarray, kind="block", fill_value=None, dtype=None, copy
         mask = notna(arr)
     else:
         # cast to object comparison to be safe
-        if is_string_dtype(arr):
+        if is_string_dtype(arr.dtype):
             arr = arr.astype(object)
 
         if is_object_dtype(arr.dtype):

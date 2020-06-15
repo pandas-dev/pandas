@@ -190,6 +190,46 @@ def test_group_apply_once_per_group(df, group_names):
         assert names == group_names
 
 
+def test_apply_fast_slow_identical():
+    # GH 31613
+
+    df = DataFrame({"A": [0, 0, 1], "b": range(3)})
+
+    # For simple index structures we check for fast/slow apply using
+    # an identity check on in/output
+    def slow(group):
+        return group
+
+    def fast(group):
+        return group.copy()
+
+    fast_df = df.groupby("A").apply(fast)
+    slow_df = df.groupby("A").apply(slow)
+
+    tm.assert_frame_equal(fast_df, slow_df)
+
+
+@pytest.mark.parametrize(
+    "func",
+    [
+        lambda x: x,
+        lambda x: x[:],
+        lambda x: x.copy(deep=False),
+        lambda x: x.copy(deep=True),
+    ],
+)
+def test_groupby_apply_identity_maybecopy_index_identical(func):
+    # GH 14927
+    # Whether the function returns a copy of the input data or not should not
+    # have an impact on the index structure of the result since this is not
+    # transparent to the user
+
+    df = pd.DataFrame({"g": [1, 2, 2, 2], "a": [1, 2, 3, 4], "b": [5, 6, 7, 8]})
+
+    result = df.groupby("g").apply(func)
+    tm.assert_frame_equal(result, df)
+
+
 def test_apply_with_mixed_dtype():
     # GH3480, apply with mixed dtype on axis=1 breaks in 0.11
     df = DataFrame(
@@ -489,6 +529,26 @@ def test_apply_with_duplicated_non_sorted_axis(test_series):
         result = result.sort_values("Y")
         expected = df.sort_values("Y")
         tm.assert_frame_equal(result, expected)
+
+
+def test_apply_reindex_values():
+    # GH: 26209
+    # reindexing from a single column of a groupby object with duplicate indices caused
+    # a ValueError (cannot reindex from duplicate axis) in 0.24.2, the problem was
+    # solved in #30679
+    values = [1, 2, 3, 4]
+    indices = [1, 1, 2, 2]
+    df = pd.DataFrame(
+        {"group": ["Group1", "Group2"] * 2, "value": values}, index=indices
+    )
+    expected = pd.Series(values, index=indices, name="value")
+
+    def reindex_helper(x):
+        return x.reindex(np.arange(x.index.min(), x.index.max() + 1))
+
+    # the following group by raised a ValueError
+    result = df.groupby("group").value.apply(reindex_helper)
+    tm.assert_series_equal(expected, result)
 
 
 def test_apply_corner_cases():
@@ -901,3 +961,16 @@ def test_apply_function_with_indexing():
         name="col2",
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_apply_function_with_indexing_return_column():
+    # GH: 7002
+    df = DataFrame(
+        {
+            "foo1": ["one", "two", "two", "three", "one", "two"],
+            "foo2": [1, 2, 4, 4, 5, 6],
+        }
+    )
+    result = df.groupby("foo1", as_index=False).apply(lambda x: x.mean())
+    expected = DataFrame({"foo1": ["one", "three", "two"], "foo2": [3.0, 4.0, 4.0]})
+    tm.assert_frame_equal(result, expected)

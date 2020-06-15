@@ -1729,7 +1729,7 @@ class TestMergeCategorical:
 
         X = change(right.X.astype("object"))
         right = right.assign(X=X)
-        assert is_categorical_dtype(left.X.values)
+        assert is_categorical_dtype(left.X.values.dtype)
         # assert not left.X.values.is_dtype_equal(right.X.values)
 
         merged = pd.merge(left, right, on="X", how=join_type)
@@ -2004,8 +2004,8 @@ def test_merge_series(on, left_on, right_on, left_index, right_index, nm):
         ("b", "b", dict(suffixes=(None, "_y")), ["b", "b_y"]),
         ("a", "a", dict(suffixes=("_x", None)), ["a_x", "a"]),
         ("a", "b", dict(suffixes=("_x", None)), ["a", "b"]),
-        ("a", "a", dict(suffixes=[None, "_x"]), ["a", "a_x"]),
-        (0, 0, dict(suffixes=["_a", None]), ["0_a", 0]),
+        ("a", "a", dict(suffixes=(None, "_x")), ["a", "a_x"]),
+        (0, 0, dict(suffixes=("_a", None)), ["0_a", 0]),
         ("a", "a", dict(), ["a_x", "a_y"]),
         (0, 0, dict(), ["0_x", "0_y"]),
     ],
@@ -2025,14 +2025,38 @@ def test_merge_suffix(col1, col2, kwargs, expected_cols):
 
 
 @pytest.mark.parametrize(
-    "col1, col2, suffixes",
+    "how,expected",
     [
-        ("a", "a", [None, None]),
-        ("a", "a", (None, None)),
-        ("a", "a", ("", None)),
-        (0, 0, [None, None]),
-        (0, 0, (None, "")),
+        (
+            "right",
+            DataFrame(
+                {"A": [100, 200, 300], "B1": [60, 70, np.nan], "B2": [600, 700, 800]}
+            ),
+        ),
+        (
+            "outer",
+            DataFrame(
+                {
+                    "A": [100, 200, 1, 300],
+                    "B1": [60, 70, 80, np.nan],
+                    "B2": [600, 700, np.nan, 800],
+                }
+            ),
+        ),
     ],
+)
+def test_merge_duplicate_suffix(how, expected):
+    left_df = DataFrame({"A": [100, 200, 1], "B": [60, 70, 80]})
+    right_df = DataFrame({"A": [100, 200, 300], "B": [600, 700, 800]})
+    result = merge(left_df, right_df, on="A", how=how, suffixes=("_x", "_x"))
+    expected.columns = ["A", "B_x", "B_x"]
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "col1, col2, suffixes",
+    [("a", "a", (None, None)), ("a", "a", ("", None)), (0, 0, (None, ""))],
 )
 def test_merge_suffix_error(col1, col2, suffixes):
     # issue: 24782
@@ -2045,15 +2069,32 @@ def test_merge_suffix_error(col1, col2, suffixes):
         pd.merge(a, b, left_index=True, right_index=True, suffixes=suffixes)
 
 
-@pytest.mark.parametrize("col1, col2, suffixes", [("a", "a", None), (0, 0, None)])
-def test_merge_suffix_none_error(col1, col2, suffixes):
-    # issue: 24782
+@pytest.mark.parametrize(
+    "col1, col2, suffixes", [("a", "a", {"a", "b"}), ("a", "a", None), (0, 0, None)],
+)
+def test_merge_suffix_type_error(col1, col2, suffixes):
     a = pd.DataFrame({col1: [1, 2, 3]})
     b = pd.DataFrame({col2: [3, 4, 5]})
 
-    # TODO: might reconsider current raise behaviour, see GH24782
-    msg = "iterable"
+    msg = (
+        f"suffixes should be tuple of \\(str, str\\). But got {type(suffixes).__name__}"
+    )
     with pytest.raises(TypeError, match=msg):
+        pd.merge(a, b, left_index=True, right_index=True, suffixes=suffixes)
+
+
+@pytest.mark.parametrize(
+    "col1, col2, suffixes, msg",
+    [
+        ("a", "a", ("a", "b", "c"), r"too many values to unpack \(expected 2\)"),
+        ("a", "a", tuple("a"), r"not enough values to unpack \(expected 2, got 1\)"),
+    ],
+)
+def test_merge_suffix_length_error(col1, col2, suffixes, msg):
+    a = pd.DataFrame({col1: [1, 2, 3]})
+    b = pd.DataFrame({col2: [3, 4, 5]})
+
+    with pytest.raises(ValueError, match=msg):
         pd.merge(a, b, left_index=True, right_index=True, suffixes=suffixes)
 
 
