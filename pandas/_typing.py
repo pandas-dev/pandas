@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, tzinfo
 from pathlib import Path
 from typing import (
     IO,
@@ -42,6 +43,16 @@ PythonScalar = Union[str, int, float, bool]
 DatetimeLikeScalar = TypeVar("DatetimeLikeScalar", "Period", "Timestamp", "Timedelta")
 PandasScalar = Union["Period", "Timestamp", "Timedelta", "Interval"]
 Scalar = Union[PythonScalar, PandasScalar]
+
+# timestamp and timedelta convertible types
+
+TimestampConvertibleTypes = Union[
+    "Timestamp", datetime, np.datetime64, int, np.int64, float, str
+]
+TimedeltaConvertibleTypes = Union[
+    "Timedelta", timedelta, np.timedelta64, int, np.int64, float, str
+]
+Timezone = Union[str, tzinfo]
 
 # other
 

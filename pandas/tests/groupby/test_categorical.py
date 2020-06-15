@@ -502,9 +502,9 @@ def test_dataframe_categorical_ordered_observed_sort(ordered, observed, sort):
         aggr[aggr.isna()] = "missing"
     if not all(label == aggr):
         msg = (
-            f"Labels and aggregation results not consistently sorted\n"
-            + "for (ordered={ordered}, observed={observed}, sort={sort})\n"
-            + "Result:\n{result}"
+            "Labels and aggregation results not consistently sorted\n"
+            f"for (ordered={ordered}, observed={observed}, sort={sort})\n"
+            f"Result:\n{result}"
         )
         assert False, msg
 
@@ -1260,7 +1260,7 @@ def test_get_nonexistent_category():
 
 
 def test_series_groupby_on_2_categoricals_unobserved(
-    reduction_func: str, observed: bool
+    reduction_func: str, observed: bool, request
 ):
     # GH 17605
 
@@ -1268,7 +1268,8 @@ def test_series_groupby_on_2_categoricals_unobserved(
         pytest.skip("ngroup is not truly a reduction")
 
     if reduction_func == "corrwith":  # GH 32293
-        pytest.xfail("TODO: implemented SeriesGroupBy.corrwith")
+        mark = pytest.mark.xfail(reason="TODO: implemented SeriesGroupBy.corrwith")
+        request.node.add_marker(mark)
 
     df = pd.DataFrame(
         {

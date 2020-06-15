@@ -5,7 +5,7 @@ kwarg aggregations in groupby and DataFrame/Series aggregation
 
 from collections import defaultdict
 from functools import partial
-from typing import Any, DefaultDict, List, Sequence, Tuple
+from typing import Any, Callable, DefaultDict, List, Sequence, Tuple, Union
 
 from pandas.core.dtypes.common import is_dict_like, is_list_like
 
@@ -89,7 +89,7 @@ def normalize_keyword_aggregation(kwargs: dict) -> Tuple[dict, List[str], List[i
     ]
     uniquified_aggspec = _make_unique_kwarg_list(aggspec_order)
 
-    # get the new indice of columns by comparison
+    # get the new index of columns by comparison
     col_idx_order = Index(uniquified_aggspec).get_indexer(uniquified_order)
     return aggspec, columns, col_idx_order
 
@@ -182,7 +182,7 @@ def maybe_mangle_lambdas(agg_spec: Any) -> Any:
     is_dict = is_dict_like(agg_spec)
     if not (is_dict or is_list_like(agg_spec)):
         return agg_spec
-    mangled_aggspec = type(agg_spec)()  # dict or OrderdDict
+    mangled_aggspec = type(agg_spec)()  # dict or OrderedDict
 
     if is_dict:
         for key, aggfuncs in agg_spec.items():
@@ -196,3 +196,39 @@ def maybe_mangle_lambdas(agg_spec: Any) -> Any:
         mangled_aggspec = _managle_lambda_list(agg_spec)
 
     return mangled_aggspec
+
+
+def validate_func_kwargs(
+    kwargs: dict,
+) -> Tuple[List[str], List[Union[str, Callable[..., Any]]]]:
+    """
+    Validates types of user-provided "named aggregation" kwargs.
+    `TypeError` is raised if aggfunc is not `str` or callable.
+
+    Parameters
+    ----------
+    kwargs : dict
+
+    Returns
+    -------
+    columns : List[str]
+        List of user-provied keys.
+    func : List[Union[str, callable[...,Any]]]
+        List of user-provided aggfuncs
+
+    Examples
+    --------
+    >>> validate_func_kwargs({'one': 'min', 'two': 'max'})
+    (['one', 'two'], ['min', 'max'])
+    """
+    no_arg_message = "Must provide 'func' or named aggregation **kwargs."
+    tuple_given_message = "func is expected but recieved {} in **kwargs."
+    columns = list(kwargs)
+    func = []
+    for col_func in kwargs.values():
+        if not (isinstance(col_func, str) or callable(col_func)):
+            raise TypeError(tuple_given_message.format(type(col_func).__name__))
+        func.append(col_func)
+    if not columns:
+        raise TypeError(no_arg_message)
+    return columns, func

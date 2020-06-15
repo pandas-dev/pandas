@@ -214,8 +214,7 @@ class PandasArray(
 
     def __array_ufunc__(self, ufunc, method: str, *inputs, **kwargs):
         # Lightly modified version of
-        # https://docs.scipy.org/doc/numpy-1.15.1/reference/generated/\
-        # numpy.lib.mixins.NDArrayOperatorsMixin.html
+        # https://numpy.org/doc/stable/reference/generated/numpy.lib.mixins.NDArrayOperatorsMixin.html
         # The primary modification is not boxing scalar return values
         # in PandasArray, since pandas' ExtensionArrays are 1-d.
         out = kwargs.get("out", ())

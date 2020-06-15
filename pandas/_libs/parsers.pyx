@@ -34,7 +34,7 @@ cimport numpy as cnp
 from numpy cimport ndarray, uint8_t, uint64_t, int64_t, float64_t
 cnp.import_array()
 
-cimport pandas._libs.util as util
+from pandas._libs cimport util
 from pandas._libs.util cimport UINT64_MAX, INT64_MAX, INT64_MIN
 import pandas._libs.lib as lib
 
