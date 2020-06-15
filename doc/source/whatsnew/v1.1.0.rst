@@ -746,6 +746,7 @@ Deprecations
 - :meth:`DataFrame.to_dict` has deprecated accepting short names for ``orient`` in future versions (:issue:`32515`)
 - :meth:`Categorical.to_dense` is deprecated and will be removed in a future version, use ``np.asarray(cat)`` instead (:issue:`32639`)
 - The ``fastpath`` keyword in the ``SingleBlockManager`` constructor is deprecated and will be removed in a future version (:issue:`33092`)
+- Providing ``suffixes`` as a ``set`` in :func:`pandas.merge` is deprecated. Provide a tuple instead (:issue:`33740`, `34741`).
 - :meth:`Index.is_mixed` is deprecated and will be removed in a future version, check ``index.inferred_type`` directly instead (:issue:`32922`)
 
 - Passing any arguments but the first one to  :func:`read_html` as

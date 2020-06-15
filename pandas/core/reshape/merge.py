@@ -2072,9 +2072,13 @@ def _items_overlap_with_suffix(left: Index, right: Index, suffixes: Tuple[str, s
     If corresponding suffix is empty, the entry is simply converted to string.
 
     """
-    if not isinstance(suffixes, tuple):
-        raise TypeError(
-            f"suffixes should be tuple of (str, str). But got {type(suffixes).__name__}"
+    if isinstance(suffixes, set):
+        warnings.warn(
+            "Passing 'suffixes' as a set, which is unordered, may result in "
+            "unexpected results. Provide 'suffixes' as a tuple instead. In the "
+            "future a 'TypeError' will be raised.",
+            FutureWarning,
+            stacklevel=4,
         )
 
     to_rename = left.intersection(right)
