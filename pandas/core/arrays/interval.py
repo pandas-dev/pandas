@@ -1070,6 +1070,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         points) and is either monotonic increasing or monotonic decreasing,
         else False.
         """
+
     # https://github.com/python/mypy/issues/1362
     # Mypy does not support decorated properties
     @property  # type: ignore
