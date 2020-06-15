@@ -931,6 +931,7 @@ Missing
 - Clarified documentation on interpolate with method =akima. The ``der`` parameter must be scalar or None (:issue:`33426`)
 - :meth:`DataFrame.interpolate` uses the correct axis convention now. Previously interpolating along columns lead to interpolation along indices and vice versa. Furthermore interpolating with methods ``pad``, ``ffill``, ``bfill`` and ``backfill`` are identical to using these methods with :meth:`fillna` (:issue:`12918`, :issue:`29146`)
 - Bug in :meth:`DataFrame.interpolate` when called on a DataFrame with column names of string type was throwing a ValueError. The method is no independing of the type of column names (:issue:`33956`)
+- passing :class:`NA` will into a format string using format specs will now work. For example ``"{:.1f}".format(pd.NA)`` would previously raise a ``ValueError``, but will now return the string ``"<NA>"`` (:issue:`34740`)
 
 MultiIndex
 ^^^^^^^^^^

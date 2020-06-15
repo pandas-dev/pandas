@@ -22,6 +22,17 @@ def test_repr():
     assert str(NA) == "<NA>"
 
 
+def test_format():
+    # GH-34740
+    assert format(NA) == "<NA>"
+    assert format(NA, ">10") == "      <NA>"
+    assert format(NA, "xxx") == "<NA>"  # NA is flexible, accept any format spec
+
+    assert "{}".format(NA) == "<NA>"
+    assert "{:>10}".format(NA) == "      <NA>"
+    assert "{:xxx}".format(NA) == "<NA>"
+
+
 def test_truthiness():
     msg = "boolean value of NA is ambiguous"
 
