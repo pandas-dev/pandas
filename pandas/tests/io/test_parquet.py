@@ -1,8 +1,8 @@
 """ test parquet compat """
 import datetime
 from distutils.version import LooseVersion
-import locale
 from io import BytesIO
+import locale
 import os
 from warnings import catch_warnings
 
@@ -494,33 +494,6 @@ class TestParquetPyArrow(Base):
     def test_s3_roundtrip(self, df_compat, s3_resource, pa):
         # GH #19134
         check_round_trip(df_compat, pa, path="s3://pandas-test/pyarrow.parquet")
-
-    @td.skip_if_no("s3fs")
-    @pytest.mark.parametrize("partition_col", [["A"], []])
-    def test_s3_roundtrip_for_dir(self, df_compat, s3_resource, pa, partition_col):
-        from pandas.io.s3 import get_fs as get_s3_fs
-
-        # GH #26388
-        # https://github.com/apache/arrow/blob/master/python/pyarrow/tests/test_parquet.py#L2716
-        # As per pyarrow partitioned columns become 'categorical' dtypes
-        # and are added to back of dataframe on read
-
-        expected_df = df_compat.copy()
-        if partition_col:
-            expected_df[partition_col] = expected_df[partition_col].astype("category")
-        check_round_trip(
-            df_compat,
-            pa,
-            expected=expected_df,
-            path="s3://pandas-test/parquet_dir",
-            write_kwargs={
-                "partition_cols": partition_col,
-                "compression": None,
-                "filesystem": get_s3_fs(),
-            },
-            check_like=True,
-            repeat=1,
-        )
 
     @tm.network
     @td.skip_if_no("pyarrow")
