@@ -267,7 +267,40 @@ class TestDataFrameDescribe:
             },
             index=["count", "mean", "min", "25%", "50%", "75%", "max", "std"],
         )
-        result = df.describe(include="all")
+        result = df.describe(include="all", datetime_is_numeric=True)
+        tm.assert_frame_equal(result, expected)
+
+        s1_ = s1.describe()
+        s2_ = pd.Series(
+            [
+                5,
+                5,
+                s2.value_counts().index[0],
+                1,
+                start.tz_localize(tz),
+                end.tz_localize(tz),
+            ],
+            index=["count", "unique", "top", "freq", "first", "last"],
+        )
+        idx = [
+            "count",
+            "unique",
+            "top",
+            "freq",
+            "first",
+            "last",
+            "mean",
+            "std",
+            "min",
+            "25%",
+            "50%",
+            "75%",
+            "max",
+        ]
+        expected = pd.concat([s1_, s2_], axis=1, keys=["s1", "s2"]).loc[idx]
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.describe(include="all")
         tm.assert_frame_equal(result, expected)
 
     def test_describe_percentiles_integer_idx(self):

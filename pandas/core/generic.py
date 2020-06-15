@@ -9792,7 +9792,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return np.abs(self)
 
     def describe(
-        self: FrameOrSeries, percentiles=None, include=None, exclude=None
+        self: FrameOrSeries,
+        percentiles=None,
+        include=None,
+        exclude=None,
+        datetime_is_numeric=False,
     ) -> FrameOrSeries:
         """
         Generate descriptive statistics.
@@ -9838,6 +9842,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
               ``select_dtypes`` (e.g. ``df.describe(include=['O'])``). To
               exclude pandas categorical columns, use ``'category'``
             - None (default) : The result will exclude nothing.
+        datetime_is_numeric : bool, default False
+            Whether to treat datetime dtypes as numeric.
+
+            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -10073,8 +10081,37 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             dtype = None
             if result[1] > 0:
                 top, freq = objcounts.index[0], objcounts.iloc[0]
-                names += ["top", "freq"]
-                result += [top, freq]
+                if is_datetime64_any_dtype(data.dtype):
+                    if self.ndim == 1:
+                        stacklevel = 4
+                    else:
+                        stacklevel = 5
+                    warnings.warn(
+                        "Treating datetime data as categorical rather than numeric in "
+                        "`.describe` is deprecated and will be removed in a future "
+                        "version of pandas. Specify `datetime_is_numeric=True` to "
+                        "silence this warning and adopt the future behavior now.",
+                        FutureWarning,
+                        stacklevel=stacklevel,
+                    )
+                    tz = data.dt.tz
+                    asint = data.dropna().values.view("i8")
+                    top = Timestamp(top)
+                    if top.tzinfo is not None and tz is not None:
+                        # Don't tz_localize(None) if key is already tz-aware
+                        top = top.tz_convert(tz)
+                    else:
+                        top = top.tz_localize(tz)
+                    names += ["top", "freq", "first", "last"]
+                    result += [
+                        top,
+                        freq,
+                        Timestamp(asint.min(), tz=tz),
+                        Timestamp(asint.max(), tz=tz),
+                    ]
+                else:
+                    names += ["top", "freq"]
+                    result += [top, freq]
 
             # If the DataFrame is empty, set 'top' and 'freq' to None
             # to maintain output shape consistency
@@ -10100,7 +10137,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 return describe_categorical_1d(data)
             elif is_numeric_dtype(data):
                 return describe_numeric_1d(data)
-            elif is_datetime64_any_dtype(data.dtype):
+            elif is_datetime64_any_dtype(data.dtype) and datetime_is_numeric:
                 return describe_timestamp_1d(data)
             elif is_timedelta64_dtype(data.dtype):
                 return describe_numeric_1d(data)
