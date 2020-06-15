@@ -511,6 +511,21 @@ class TestNamedAggregationSeries:
         expected = pd.DataFrame({"a": [0, 0], "b": [1, 1]})
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "inp",
+        [
+            pd.NamedAgg(column="anything", aggfunc="min"),
+            ("anything", "min"),
+            ["anything", "min"],
+        ],
+    )
+    def test_named_agg_nametuple(self, inp):
+        # GH34422
+        s = pd.Series([1, 1, 2, 2, 3, 3, 4, 5])
+        msg = f"func is expected but recieved {type(inp).__name__}"
+        with pytest.raises(TypeError, match=msg):
+            s.groupby(s.values).agg(a=inp)
+
 
 class TestNamedAggregationDataFrame:
     def test_agg_relabel(self):
@@ -714,6 +729,27 @@ def test_agg_relabel_multiindex_duplicates():
     )
     idx = pd.Index(["a", "b"], name=("x", "group"))
     expected = DataFrame({"a": [0, 2], "b": [0, 2]}, index=idx)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("kwargs", [{"c": ["min"]}, {"b": [], "c": ["min"]}])
+def test_groupby_aggregate_empty_key(kwargs):
+    # GH: 32580
+    df = pd.DataFrame({"a": [1, 1, 2], "b": [1, 2, 3], "c": [1, 2, 4]})
+    result = df.groupby("a").agg(kwargs)
+    expected = pd.DataFrame(
+        [1, 4],
+        index=pd.Index([1, 2], dtype="int64", name="a"),
+        columns=pd.MultiIndex.from_tuples([["c", "min"]]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_aggregate_empty_key_empty_return():
+    # GH: 32580 Check if everything works, when return is empty
+    df = pd.DataFrame({"a": [1, 1, 2], "b": [1, 2, 3], "c": [1, 2, 4]})
+    result = df.groupby("a").agg({"b": []})
+    expected = pd.DataFrame(columns=pd.MultiIndex(levels=[["b"], []], codes=[[], []]))
     tm.assert_frame_equal(result, expected)
 
 
