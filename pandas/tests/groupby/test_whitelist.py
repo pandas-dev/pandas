@@ -340,6 +340,7 @@ def test_groupby_function_rename(mframe):
         assert f.__name__ == name
 
 
+@pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
 def test_groupby_selection_with_methods(df):
     # some methods which require DatetimeIndex
     rng = date_range("2014", periods=len(df))

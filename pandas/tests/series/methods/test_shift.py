@@ -181,7 +181,10 @@ class TestShift:
             tm.assert_series_equal(res, exp)
             assert res.dtype == "datetime64[ns, US/Eastern]"
 
+    @pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
     def test_tshift(self, datetime_series):
+        # TODO: remove this test when tshift deprecation is enforced
+
         # PeriodIndex
         ps = tm.makePeriodSeries()
         shifted = ps.tshift(1)
@@ -220,9 +223,58 @@ class TestShift:
         tm.assert_series_equal(unshifted, inferred_ts)
 
         no_freq = datetime_series[[0, 5, 7]]
-        msg = "Freq was not given and was not set in the index"
+        msg = "Freq was not set in the index hence cannot be inferred"
         with pytest.raises(ValueError, match=msg):
             no_freq.tshift()
+
+    def test_tshift_deprecated(self, datetime_series):
+        # GH#11631
+        with tm.assert_produces_warning(FutureWarning):
+            datetime_series.tshift()
+
+    def test_period_index_series_shift_with_freq(self):
+        ps = tm.makePeriodSeries()
+
+        shifted = ps.shift(1, freq="infer")
+        unshifted = shifted.shift(-1, freq="infer")
+        tm.assert_series_equal(unshifted, ps)
+
+        shifted2 = ps.shift(freq="B")
+        tm.assert_series_equal(shifted, shifted2)
+
+        shifted3 = ps.shift(freq=BDay())
+        tm.assert_series_equal(shifted, shifted3)
+
+    def test_datetime_series_shift_with_freq(self, datetime_series):
+        shifted = datetime_series.shift(1, freq="infer")
+        unshifted = shifted.shift(-1, freq="infer")
+        tm.assert_series_equal(datetime_series, unshifted)
+
+        shifted2 = datetime_series.shift(freq=datetime_series.index.freq)
+        tm.assert_series_equal(shifted, shifted2)
+
+        inferred_ts = Series(
+            datetime_series.values, Index(np.asarray(datetime_series.index)), name="ts"
+        )
+        shifted = inferred_ts.shift(1, freq="infer")
+        expected = datetime_series.shift(1, freq="infer")
+        expected.index = expected.index._with_freq(None)
+        tm.assert_series_equal(shifted, expected)
+
+        unshifted = shifted.shift(-1, freq="infer")
+        tm.assert_series_equal(unshifted, inferred_ts)
+
+    def test_period_index_series_shift_with_freq_error(self):
+        ps = tm.makePeriodSeries()
+        msg = "Given freq M does not match PeriodIndex freq B"
+        with pytest.raises(ValueError, match=msg):
+            ps.shift(freq="M")
+
+    def test_datetime_series_shift_with_freq_error(self, datetime_series):
+        no_freq = datetime_series[[0, 5, 7]]
+        msg = "Freq was not set in the index hence cannot be inferred"
+        with pytest.raises(ValueError, match=msg):
+            no_freq.shift(freq="infer")
 
     def test_shift_int(self, datetime_series):
         ts = datetime_series.astype(int)

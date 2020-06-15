@@ -516,7 +516,7 @@ The ``DatetimeIndex`` class contains many time series related optimizations:
 * A large range of dates for various offsets are pre-computed and cached
   under the hood in order to make generating subsequent date ranges very fast
   (just have to grab a slice).
-* Fast shifting using the ``shift`` and ``tshift`` method on pandas objects.
+* Fast shifting using the ``shift`` method on pandas objects.
 * Unioning of overlapping ``DatetimeIndex`` objects with the same frequency is
   very fast (important for fast data alignment).
 * Quick access to date fields via properties such as ``year``, ``month``, etc.
@@ -1462,23 +1462,19 @@ the pandas objects.
 
 The ``shift`` method accepts an ``freq`` argument which can accept a
 ``DateOffset`` class or other ``timedelta``-like object or also an
-:ref:`offset alias <timeseries.offset_aliases>`:
+:ref:`offset alias <timeseries.offset_aliases>`.
+
+When ``freq`` is specified, ``shift`` method changes all the dates in the index
+rather than changing the alignment of the data and the index:
 
 .. ipython:: python
 
+   ts.shift(5, freq='D')
    ts.shift(5, freq=pd.offsets.BDay())
    ts.shift(5, freq='BM')
 
-Rather than changing the alignment of the data and the index, ``DataFrame`` and
-``Series`` objects also have a :meth:`~Series.tshift` convenience method that
-changes all the dates in the index by a specified number of offsets:
-
-.. ipython:: python
-
-   ts.tshift(5, freq='D')
-
-Note that with ``tshift``, the leading entry is no longer NaN because the data
-is not being realigned.
+Note that with when ``freq`` is specified, the leading entry is no longer NaN
+because the data is not being realigned.
 
 Frequency conversion
 ~~~~~~~~~~~~~~~~~~~~
