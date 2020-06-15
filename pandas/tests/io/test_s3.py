@@ -2,6 +2,8 @@ from io import BytesIO
 
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import read_csv
 
 from pandas.io.common import is_s3_url
@@ -23,3 +25,10 @@ def test_streaming_s3_objects():
     for el in data:
         body = StreamingBody(BytesIO(el), content_length=len(el))
         read_csv(body)
+
+
+@td.skip_if_no("s3fs")
+def test_read_csv_from_public_bucket():
+    # https://github.com/pandas-dev/pandas/issues/34626
+    result = read_csv("s3://nyc-tlc/misc/taxi _zone_lookup.csv")
+    assert result.shape == (265, 4)
