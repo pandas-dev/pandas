@@ -10,7 +10,6 @@ from pandas._libs.tslibs import Timedelta, offsets, to_offset
     [
         (to_offset("10us"), offsets.Micro(10)),
         (offsets.Hour(), offsets.Hour()),
-        ((5, "T"), offsets.Minute(5)),
         ("2h30min", offsets.Minute(150)),
         ("2h 30min", offsets.Minute(150)),
         ("2h30min15s", offsets.Second(150 * 60 + 15)),
@@ -89,8 +88,14 @@ def test_to_offset_invalid(freqstr):
 
 
 def test_to_offset_no_evaluate():
-    with pytest.raises(ValueError, match="Could not evaluate"):
+    msg = str(("", ""))
+    with pytest.raises(TypeError, match=msg):
         to_offset(("", ""))
+
+
+def test_to_offset_tuple_unsupported():
+    with pytest.raises(TypeError, match="pass as a string instead"):
+        to_offset((5, "T"))
 
 
 @pytest.mark.parametrize(

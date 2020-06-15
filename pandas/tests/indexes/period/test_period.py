@@ -172,12 +172,6 @@ class TestPeriodIndex(DatetimeLike):
         assert (i1 == i2).all()
         assert i1.freq == i2.freq
 
-        end_intv = Period("2006-12-31", ("w", 1))
-        i2 = period_range(end=end_intv, periods=10)
-        assert len(i1) == len(i2)
-        assert (i1 == i2).all()
-        assert i1.freq == i2.freq
-
         msg = "start and end must have same freq"
         with pytest.raises(ValueError, match=msg):
             period_range(start=start, end=end_intv)
