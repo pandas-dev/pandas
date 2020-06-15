@@ -9923,7 +9923,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ...   np.datetime64("2010-01-01"),
         ...   np.datetime64("2010-01-01")
         ... ])
-        >>> s.describe()
+        >>> s.describe(datetime_is_numeric=True)
         count                      3
         mean     2006-09-01 08:00:00
         min      2000-01-01 00:00:00
