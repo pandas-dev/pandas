@@ -12,7 +12,6 @@ from pandas._libs.tslibs import (
     conversion,
     fields,
     iNaT,
-    offsets as liboffsets,
     resolution as libresolution,
     timezones,
     to_offset,
@@ -1106,8 +1105,7 @@ default 'raise'
 
             #  https://github.com/pandas-dev/pandas/issues/33358
             if res is None:
-                base, stride = liboffsets.base_and_stride(freq)
-                res = f"{stride}{base}"
+                res = freq
 
             freq = res
 
