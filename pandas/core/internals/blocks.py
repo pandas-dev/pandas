@@ -745,7 +745,11 @@ class Block(PandasObject):
             if is_object_dtype(self):
                 raise
 
-            assert not self._can_hold_element(value), value
+            if not self.is_extension:
+                # TODO: https://github.com/pandas-dev/pandas/issues/32586
+                # Need an ExtensionArray._can_hold_element to indicate whether
+                # a scalar value can be placed in the array.
+                assert not self._can_hold_element(value), value
 
             # try again with a compatible block
             block = self.astype(object)
