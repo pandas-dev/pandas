@@ -2,9 +2,13 @@ name: CI
 
 on:
   push:
-    branches: master
+    branches:
+      - master
+      - 1.0.x
   pull_request:
-    branches: master
+    branches:
+      - master
+      - 1.0.x
 
 env:
   ENV_FILE: environment.yml
