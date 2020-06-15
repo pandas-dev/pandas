@@ -42,6 +42,11 @@ def data_for_twos(request):
 
 
 @pytest.fixture(params=[0, np.nan])
+def data_zeros(request):
+    return SparseArray(np.zeros(100, dtype=int), fill_value=request.param)
+
+
+@pytest.fixture(params=[0, np.nan])
 def data_missing(request):
     """Length 2 array with [NA, Valid]"""
     return SparseArray([np.nan, 1], fill_value=request.param)
@@ -342,6 +347,16 @@ class TestCasting(BaseSparseTests, base.BaseCastingTests):
         # check that we can compare the dtypes
         # comp = result.dtypes.equals(df.dtypes)
         # assert not comp.any()
+
+    def test_astype_str(self, data):
+        result = pd.Series(data[:5]).astype(str)
+        expected_dtype = pd.SparseDtype(str, str(data.fill_value))
+        expected = pd.Series([str(x) for x in data[:5]], dtype=expected_dtype)
+        self.assert_series_equal(result, expected)
+
+    @pytest.mark.xfail(raises=TypeError, reason="no sparse StringDtype")
+    def test_astype_string(self, data):
+        super().test_astype_string(data)
 
 
 class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
