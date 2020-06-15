@@ -26,15 +26,24 @@ def to_timedelta(arg, unit=None, errors="raise"):
     ----------
     arg : str, timedelta, list-like or Series
         The data to be converted to timedelta.
-    unit : str, default 'ns'
-        Must not be specified if the arg is/contains a str.
-        Denotes the unit of the arg. Possible values:
-        ('W', 'D', 'days', 'day', 'hours', hour', 'hr', 'h',
-        'm', 'minute', 'min', 'minutes', 'T', 'S', 'seconds',
-        'sec', 'second', 'ms', 'milliseconds', 'millisecond',
-        'milli', 'millis', 'L', 'us', 'microseconds', 'microsecond',
-        'micro', 'micros', 'U', 'ns', 'nanoseconds', 'nano', 'nanos',
-        'nanosecond', 'N').
+    unit : str, optional
+        Denotes the unit of the arg for numeric `arg`. Defaults to ``"ns"``.
+
+        Possible values:
+
+        * 'W'
+        * 'D' / 'days' / 'day'
+        * 'hours' / 'hour' / 'hr' / 'h'
+        * 'm' / 'minute' / 'min' / 'minutes' / 'T'
+        * 'S' / 'seconds' / 'sec' / 'second'
+        * 'ms' / 'milliseconds' / 'millisecond' / 'milli' / 'millis' / 'L'
+        * 'us' / 'microseconds' / 'microsecond' / 'micro' / 'micros' / 'U'
+        * 'ns' / 'nanoseconds' / 'nano' / 'nanos' / 'nanosecond' / 'N'
+
+        .. versionchanged:: 1.1.0
+
+           Must not be specified when `arg` context strings and
+           ``errors="raise"``.
 
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
