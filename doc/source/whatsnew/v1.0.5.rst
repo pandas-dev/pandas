@@ -24,6 +24,8 @@ Note this disables the ability to read Parquet files from directories on S3
 again (:issue:`26388`, :issue:`34632`), which was added in the 1.0.4 release,
 but is now targeted for pandas 1.1.0.
 
+- Fixed regression in :meth:`~DataFrame.replace` raising an ``AssertionError`` when replacing values in an extension dtype with values of a different dtype (:issue:`34530`)
+
 .. _whatsnew_105.bug_fixes:
 
 Bug fixes
