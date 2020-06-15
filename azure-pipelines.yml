@@ -6,8 +6,8 @@ trigger:
 pr:
   branches:
     include:
-    - master/*
-    - 1.0.x/*
+    - master
+    - 1.0.x
 
 jobs:
 # Mac and Linux use the same template
