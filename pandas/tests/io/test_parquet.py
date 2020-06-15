@@ -591,6 +591,17 @@ class TestParquetPyArrow(Base):
         )
         check_round_trip(df, pa)
 
+    @td.skip_if_no("pyarrow", min_version="0.17")
+    def test_filter_row_groups(self, pa):
+        # https://github.com/pandas-dev/pandas/issues/26551
+        df = pd.DataFrame({"a": list(range(0, 3))})
+        with tm.ensure_clean() as path:
+            df.to_parquet(path, pa)
+            result = read_parquet(
+                path, pa, filters=[("a", "==", 0)], use_legacy_dataset=False
+            )
+        assert len(result) == 1
+
 
 class TestParquetFastParquet(Base):
     @td.skip_if_no("fastparquet", min_version="0.3.2")
