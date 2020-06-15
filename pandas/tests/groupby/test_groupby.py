@@ -668,11 +668,14 @@ def test_ops_not_as_index(reduction_func):
     if reduction_func in ("corrwith",):
         pytest.skip("Test not applicable")
 
-    if reduction_func in ("nth", "ngroup", "size",):
+    if reduction_func in ("nth", "ngroup",):
         pytest.skip("Skip until behavior is determined (GH #5755)")
 
     df = DataFrame(np.random.randint(0, 5, size=(100, 2)), columns=["a", "b"])
-    expected = getattr(df.groupby("a"), reduction_func)().reset_index()
+    expected = getattr(df.groupby("a"), reduction_func)()
+    if reduction_func == "size":
+        expected = expected.rename("size")
+    expected = expected.reset_index()
 
     g = df.groupby("a", as_index=False)
 
