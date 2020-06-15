@@ -219,3 +219,15 @@ def test_readjson_nrows_requires_lines():
     msg = "nrows can only be passed if lines=True"
     with pytest.raises(ValueError, match=msg):
         pd.read_json(jsonl, lines=False, nrows=2)
+
+
+def test_readjson_lines_chunks_fileurl(datapath):
+    # GH 27135
+    # Test reading line-format JSON from file url
+    os_path = datapath("io", "json", "data", "line_delimited.json")
+    file_url = "file://localhost" + os_path
+    path_reader = pd.read_json(os_path, lines=True, chunksize=1)
+    df_list = list(path_reader)
+    url_reader = pd.read_json(file_url, lines=True, chunksize=1)
+    for index, chuck in enumerate(url_reader):
+        tm.assert_frame_equal(chuck, df_list[index])
