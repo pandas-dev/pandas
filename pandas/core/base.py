@@ -438,7 +438,13 @@ class SelectionMixin:
                 # we have a dict of DataFrames
                 # return a MI DataFrame
 
-                return concat([result[k] for k in keys], keys=keys, axis=1), True
+                keys_to_use = [k for k in keys if not result[k].empty]
+                # Have to check, if at least one DataFrame is not empty.
+                keys_to_use = keys_to_use if keys_to_use != [] else keys
+                return (
+                    concat([result[k] for k in keys_to_use], keys=keys_to_use, axis=1),
+                    True,
+                )
 
             elif isinstance(self, ABCSeries) and is_any_series():
 
@@ -1257,8 +1263,7 @@ class IndexOpsMixin:
     def unique(self):
         values = self._values
 
-        if hasattr(values, "unique"):
-
+        if not isinstance(values, np.ndarray):
             result = values.unique()
             if self.dtype.kind in ["m", "M"] and isinstance(self, ABCSeries):
                 # GH#31182 Series._values returns EA, unpack for backward-compat

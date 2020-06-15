@@ -1869,12 +1869,13 @@ class TestConcatenate:
 
         # trying to concat a ndframe with a non-ndframe
         df1 = tm.makeCustomDataframe(10, 2)
-        msg = (
-            "cannot concatenate object of type '{}'; "
-            "only Series and DataFrame objs are valid"
-        )
         for obj in [1, dict(), [1, 2], (1, 2)]:
-            with pytest.raises(TypeError, match=msg.format(type(obj))):
+
+            msg = (
+                f"cannot concatenate object of type '{type(obj)}'; "
+                "only Series and DataFrame objs are valid"
+            )
+            with pytest.raises(TypeError, match=msg):
                 concat([df1, obj])
 
     def test_concat_invalid_first_argument(self):
@@ -2756,6 +2757,17 @@ def test_concat_sparse():
     tm.assert_frame_equal(result, expected)
 
 
+def test_concat_dense_sparse():
+    # GH 30668
+    a = pd.Series(pd.arrays.SparseArray([1, None]), dtype=np.float)
+    b = pd.Series([1], dtype=np.float)
+    expected = pd.Series(data=[1, None, 1], index=[0, 1, 0]).astype(
+        pd.SparseDtype(np.float64, None)
+    )
+    result = pd.concat([a, b], axis=0)
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("test_series", [True, False])
 def test_concat_copy_index(test_series, axis):
     # GH 29879
@@ -2817,3 +2829,17 @@ def test_duplicate_keys(keys):
     )
     expected = DataFrame(expected_values, columns=expected_columns)
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "obj",
+    [
+        tm.SubclassedDataFrame({"A": np.arange(0, 10)}),
+        tm.SubclassedSeries(np.arange(0, 10), name="A"),
+    ],
+)
+def test_concat_preserves_subclass(obj):
+    # GH28330 -- preserve subclass
+
+    result = concat([obj, obj])
+    assert isinstance(result, type(obj))

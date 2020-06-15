@@ -328,6 +328,7 @@ def test_tab_completion(mframe):
         "rolling",
         "expanding",
         "pipe",
+        "sample",
     }
     assert results == expected
 
@@ -406,7 +407,7 @@ def test_all_methods_categorized(mframe):
     if new_names:
         msg = f"""
 There are uncatgeorized methods defined on the Grouper class:
-{names}.
+{new_names}.
 
 Was a new method recently added?
 
