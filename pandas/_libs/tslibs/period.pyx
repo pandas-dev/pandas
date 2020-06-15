@@ -2498,7 +2498,7 @@ def quarter_to_myear(year: int, quarter: int, freq):
     mnum = c_MONTH_NUMBERS[get_rule_month(freq)] + 1
     month = (mnum + (quarter - 1) * 3) % 12 + 1
     if month > mnum:
-        year -= 1ough to only use ValueError, as that would already cover the OutOfBoundsDatet
+        year -= 1
 
     return year, month
     # TODO: This whole func is really similar to parsing.pyx L434-L450
