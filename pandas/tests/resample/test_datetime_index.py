@@ -1067,7 +1067,7 @@ def test_resample_anchored_intraday(simple_date_range_series):
     tm.assert_frame_equal(result, expected)
 
     result = df.resample("M", closed="left").mean()
-    exp = df.tshift(1, freq="D").resample("M", kind="period").mean()
+    exp = df.shift(1, freq="D").resample("M", kind="period").mean()
     exp = exp.to_timestamp(how="end")
 
     exp.index = exp.index + Timedelta(1, "ns") - Timedelta(1, "D")
@@ -1086,7 +1086,7 @@ def test_resample_anchored_intraday(simple_date_range_series):
     tm.assert_frame_equal(result, expected)
 
     result = df.resample("Q", closed="left").mean()
-    expected = df.tshift(1, freq="D").resample("Q", kind="period", closed="left").mean()
+    expected = df.shift(1, freq="D").resample("Q", kind="period", closed="left").mean()
     expected = expected.to_timestamp(how="end")
     expected.index += Timedelta(1, "ns") - Timedelta(1, "D")
     expected.index._data.freq = "Q"

@@ -438,11 +438,21 @@ _all_methods = [
     (pd.DataFrame, frame_data, operator.methodcaller("mask", np.array([[True]]))),
     (pd.Series, ([1, 2],), operator.methodcaller("slice_shift")),
     (pd.DataFrame, frame_data, operator.methodcaller("slice_shift")),
-    (pd.Series, (1, pd.date_range("2000", periods=4)), operator.methodcaller("tshift")),
-    (
-        pd.DataFrame,
-        ({"A": [1, 1, 1, 1]}, pd.date_range("2000", periods=4)),
-        operator.methodcaller("tshift"),
+    pytest.param(
+        (
+            pd.Series,
+            (1, pd.date_range("2000", periods=4)),
+            operator.methodcaller("tshift"),
+        ),
+        marks=pytest.mark.filterwarnings("ignore::FutureWarning"),
+    ),
+    pytest.param(
+        (
+            pd.DataFrame,
+            ({"A": [1, 1, 1, 1]}, pd.date_range("2000", periods=4)),
+            operator.methodcaller("tshift"),
+        ),
+        marks=pytest.mark.filterwarnings("ignore::FutureWarning"),
     ),
     (pd.Series, ([1, 2],), operator.methodcaller("truncate", before=0)),
     (pd.DataFrame, frame_data, operator.methodcaller("truncate", before=0)),
