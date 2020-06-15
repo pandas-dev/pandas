@@ -3786,7 +3786,7 @@ cdef inline void _shift_quarters(const int64_t[:] dtindex,
     """See shift_quarters.__doc__"""
     cdef:
         Py_ssize_t i
-        int months_since, compare_day, n
+        int months_since, n
         npy_datetimestruct dts
 
     for i in range(count):
@@ -3798,18 +3798,7 @@ cdef inline void _shift_quarters(const int64_t[:] dtindex,
         n = quarters
 
         months_since = (dts.month - q1start_month) % modby
-        compare_day = get_day_of_month(&dts, day_opt)
-
-        # offset semantics - if on the anchor point and going backwards
-        # shift to next
-        if n <= 0 and (months_since != 0 or
-                       (months_since == 0 and dts.day > compare_day)):
-            # make sure to roll forward, so negate
-            n += 1
-        elif n > 0 and (months_since == 0 and dts.day < compare_day):
-            # pretend to roll back if on same month but
-            # before compare_day
-            n -= 1
+        n = _roll_qtrday(&dts, n, months_since, day_opt)
 
         dts.year = year_add_months(dts, modby * n - months_since)
         dts.month = month_add_months(dts, modby * n - months_since)
@@ -4009,7 +3998,7 @@ cpdef int roll_convention(int other, int n, int compare) nogil:
 
 
 def roll_qtrday(other: datetime, n: int, month: int,
-                day_opt: object, modby: int=3) -> int:
+                day_opt: object, modby: int) -> int:
     """
     Possibly increment or decrement the number of periods to shift
     based on rollforward/rollbackward conventions.
@@ -4037,25 +4026,30 @@ def roll_qtrday(other: datetime, n: int, month: int,
         npy_datetimestruct dts
     pydate_to_dtstruct(other, &dts)
 
-    # TODO: with small adjustments this could be used in shift_quarters
-
     if modby == 12:
         # We care about the month-of-year, not month-of-quarter, so skip mod
         months_since = other.month - month
     else:
         months_since = other.month % modby - month % modby
 
+    return _roll_qtrday(&dts, n, months_since, day_opt)
+
+
+cdef inline int _roll_qtrday(npy_datetimestruct* dts,
+                             int n,
+                             int months_since,
+                             str day_opt) nogil except? -1:
+    """See roll_qtrday.__doc__"""
+
     if n > 0:
         if months_since < 0 or (months_since == 0 and
-                                other.day < get_day_of_month(&dts,
-                                                             day_opt)):
+                                dts.day < get_day_of_month(dts, day_opt)):
             # pretend to roll back if on same month but
             # before compare_day
             n -= 1
     else:
         if months_since > 0 or (months_since == 0 and
-                                other.day > get_day_of_month(&dts,
-                                                             day_opt)):
+                                dts.day > get_day_of_month(dts, day_opt)):
             # make sure to roll forward, so negate
             n += 1
     return n
