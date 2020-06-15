@@ -1388,6 +1388,19 @@ def test_groupby_agg_non_numeric():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("func", ["first", "last"])
+def test_groupy_first_returned_categorical_instead_of_dataframe(func):
+    # GH 28641: groupby drops index, when grouping over categorical column with
+    # first/last. Renamed Categorical instead of DataFrame previously.
+    df = pd.DataFrame(
+        {"A": [1997], "B": pd.Series(["b"], dtype="category").cat.as_ordered()}
+    )
+    df_grouped = df.groupby("A")["B"]
+    result = getattr(df_grouped, func)()
+    expected = pd.Series(["b"], index=pd.Index([1997], name="A"), name="B")
+    tm.assert_series_equal(result, expected)
+
+
 def test_read_only_category_no_sort():
     # GH33410
     cats = np.array([1, 2])
