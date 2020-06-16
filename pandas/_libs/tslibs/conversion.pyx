@@ -445,7 +445,7 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
 
 
 cdef _TSObject create_tsobject_tz_using_offset(npy_datetimestruct dts,
-                                               int tzoffset, object tz=None):
+                                               int tzoffset, tzinfo tz=None):
     """
     Convert a datetimestruct `dts`, along with initial timezone offset
     `tzoffset` to a _TSObject (with timezone object `tz` - optional).
@@ -847,7 +847,7 @@ cdef inline int64_t _normalize_i8_stamp(int64_t local_val) nogil:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def is_date_array_normalized(const int64_t[:] stamps, object tz=None):
+def is_date_array_normalized(const int64_t[:] stamps, tzinfo tz=None):
     """
     Check if all of the given (nanosecond) timestamps are normalized to
     midnight, i.e. hour == minute == second == 0.  If the optional timezone
@@ -867,20 +867,20 @@ def is_date_array_normalized(const int64_t[:] stamps, object tz=None):
         ndarray[int64_t] trans
         int64_t[:] deltas
         intp_t[:] pos
-        npy_datetimestruct dts
         int64_t local_val, delta
         str typ
+        int64_t day_nanos = 24 * 3600 * 1_000_000_000
 
     if tz is None or is_utc(tz):
         for i in range(n):
-            dt64_to_dtstruct(stamps[i], &dts)
-            if (dts.hour + dts.min + dts.sec + dts.us) > 0:
+            local_val = stamps[i]
+            if local_val % day_nanos != 0:
                 return False
+
     elif is_tzlocal(tz):
         for i in range(n):
             local_val = tz_convert_utc_to_tzlocal(stamps[i], tz)
-            dt64_to_dtstruct(local_val, &dts)
-            if (dts.hour + dts.min + dts.sec + dts.us) > 0:
+            if local_val % day_nanos != 0:
                 return False
     else:
         trans, deltas, typ = get_dst_info(tz)
@@ -890,16 +890,16 @@ def is_date_array_normalized(const int64_t[:] stamps, object tz=None):
             delta = deltas[0]
             for i in range(n):
                 # Adjust datetime64 timestamp, recompute datetimestruct
-                dt64_to_dtstruct(stamps[i] + delta, &dts)
-                if (dts.hour + dts.min + dts.sec + dts.us) > 0:
+                local_val = stamps[i] + delta
+                if local_val % day_nanos != 0:
                     return False
 
         else:
             pos = trans.searchsorted(stamps) - 1
             for i in range(n):
                 # Adjust datetime64 timestamp, recompute datetimestruct
-                dt64_to_dtstruct(stamps[i] + deltas[pos[i]], &dts)
-                if (dts.hour + dts.min + dts.sec + dts.us) > 0:
+                local_val = stamps[i] + deltas[pos[i]]
+                if local_val % day_nanos != 0:
                     return False
 
     return True

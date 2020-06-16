@@ -16,6 +16,7 @@ from pandas._libs.tslibs.timezones import tz_compare
 from pandas._typing import DtypeObj, Label
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
+from pandas.errors import InvalidIndexError
 from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
 
 from pandas.core.dtypes import concat as _concat
@@ -151,10 +152,6 @@ def _make_arithmetic_op(op, cls):
 
     name = f"__{op.__name__}__"
     return set_function_name(index_arithmetic_method, name, cls)
-
-
-class InvalidIndexError(Exception):
-    pass
 
 
 _o_dtype = np.dtype(object)
@@ -609,9 +606,10 @@ class Index(IndexOpsMixin, PandasObject):
 
     def astype(self, dtype, copy=True):
         """
-        Create an Index with values cast to dtypes. The class of a new Index
-        is determined by dtype. When conversion is impossible, a ValueError
-        exception is raised.
+        Create an Index with values cast to dtypes.
+
+        The class of a new Index is determined by dtype. When conversion is
+        impossible, a ValueError exception is raised.
 
         Parameters
         ----------
@@ -2197,8 +2195,9 @@ class Index(IndexOpsMixin, PandasObject):
 
     def unique(self, level=None):
         """
-        Return unique values in the index. Uniques are returned in order
-        of appearance, this does NOT sort.
+        Return unique values in the index.
+
+        Unique values are returned in order of appearance, this does NOT sort.
 
         Parameters
         ----------
@@ -2675,8 +2674,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def difference(self, other, sort=None):
         """
-        Return a new Index with elements from the index that are not in
-        `other`.
+        Return a new Index with elements of index not in `other`.
 
         This is the set difference of two Index objects.
 
@@ -3271,8 +3269,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def reindex(self, target, method=None, level=None, limit=None, tolerance=None):
         """
-        Create index with target's values (move/add/delete values
-        as necessary).
+        Create index with target's values.
 
         Parameters
         ----------
@@ -4253,8 +4250,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def identical(self, other) -> bool:
         """
-        Similar to equals, but check that other comparable attributes are
-        also equal.
+        Similar to equals, but checks that object attributes and types are also equal.
 
         Returns
         -------
@@ -4340,8 +4336,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def asof_locs(self, where, mask):
         """
-        Find the locations (indices) of the labels from the index for
-        every entry in the `where` argument.
+        Return the locations (indices) of labels in the index.
 
         As in the `asof` function, if the label (a particular entry in
         `where`) is not in the index, the latest index label up to the
@@ -4551,8 +4546,9 @@ class Index(IndexOpsMixin, PandasObject):
 
     def get_value(self, series: "Series", key):
         """
-        Fast lookup of value from 1-dimensional ndarray. Only use this if you
-        know what you're doing.
+        Fast lookup of value from 1-dimensional ndarray.
+
+        Only use this if you know what you're doing.
 
         Returns
         -------
@@ -4905,8 +4901,9 @@ class Index(IndexOpsMixin, PandasObject):
 
     def slice_indexer(self, start=None, end=None, step=None, kind=None):
         """
-        For an ordered or unique index, compute the slice indexer for input
-        labels and step.
+        Compute the slice indexer for input labels and step.
+
+        Index needs to be ordered and unique.
 
         Parameters
         ----------
