@@ -2,24 +2,29 @@
 # originals
 
 
-cdef class PeriodPseudoDtype:
+cdef class PeriodDtypeBase:
     """
     Similar to an actual dtype, this contains all of the information
     describing a PeriodDtype in an integer code.
     """
     # cdef readonly:
-    #    PeriodDtypeCode dtype_code
+    #    PeriodDtypeCode _dtype_code
 
     def __cinit__(self, PeriodDtypeCode code):
-        self.dtype_code = code
+        self._dtype_code = code
 
     def __eq__(self, other):
-        if not isinstance(other, PeriodPseudoDtype):
+        if not isinstance(other, PeriodDtypeBase):
             return False
-        if not isinstance(self, PeriodPseudoDtype):
+        if not isinstance(self, PeriodDtypeBase):
             # cython semantics, this is a reversed op
             return False
-        return self.dtype_code == other.dtype_code
+        return self._dtype_code == other._dtype_code
+
+    @property
+    def freq_group(self) -> int:
+        # See also: libperiod.get_freq_group
+        return (self._dtype_code // 1000) * 1000
 
     @property
     def date_offset(self):
@@ -30,8 +35,8 @@ cdef class PeriodPseudoDtype:
         """
         from .offsets import to_offset
 
-        freqstr = _reverse_period_code_map.get(self.dtype_code)
-        # equiv: freqstr = libfrequencies.get_freq_str(self.dtype_code)
+        freqstr = _reverse_period_code_map.get(self._dtype_code)
+        # equiv: freqstr = libfrequencies.get_freq_str(self._dtype_code)
 
         return to_offset(freqstr)
 
@@ -106,3 +111,41 @@ _period_code_map.update({
     "W": 4000,   # Weekly
     "C": 5000,   # Custom Business Day
 })
+
+
+# Map attribute-name resolutions to resolution abbreviations
+_attrname_to_abbrevs = {
+    "year": "A",
+    "quarter": "Q",
+    "month": "M",
+    "day": "D",
+    "hour": "H",
+    "minute": "T",
+    "second": "S",
+    "millisecond": "L",
+    "microsecond": "U",
+    "nanosecond": "N",
+}
+cdef dict attrname_to_abbrevs = _attrname_to_abbrevs
+
+
+class FreqGroup:
+    # Mirrors c_FreqGroup in the .pxd file
+    FR_ANN = 1000
+    FR_QTR = 2000
+    FR_MTH = 3000
+    FR_WK = 4000
+    FR_BUS = 5000
+    FR_DAY = 6000
+    FR_HR = 7000
+    FR_MIN = 8000
+    FR_SEC = 9000
+    FR_MS = 10000
+    FR_US = 11000
+    FR_NS = 12000
+    FR_UND = -10000  # undefined
+
+    @staticmethod
+    def get_freq_group(code: int) -> int:
+        # See also: PeriodDtypeBase.freq_group
+        return (code // 1000) * 1000
