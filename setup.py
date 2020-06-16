@@ -319,7 +319,6 @@ class CheckSDist(sdist_class):
         "pandas/_libs/tslibs/conversion.pyx",
         "pandas/_libs/tslibs/fields.pyx",
         "pandas/_libs/tslibs/offsets.pyx",
-        "pandas/_libs/tslibs/frequencies.pyx",
         "pandas/_libs/tslibs/resolution.pyx",
         "pandas/_libs/tslibs/parsing.pyx",
         "pandas/_libs/tslibs/tzconversion.pyx",
@@ -615,7 +614,6 @@ ext_data = {
         "pyxfile": "_libs/tslibs/fields",
         "depends": tseries_depends,
     },
-    "_libs.tslibs.frequencies": {"pyxfile": "_libs/tslibs/frequencies"},
     "_libs.tslibs.nattype": {"pyxfile": "_libs/tslibs/nattype"},
     "_libs.tslibs.np_datetime": {
         "pyxfile": "_libs/tslibs/np_datetime",
