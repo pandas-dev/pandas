@@ -74,7 +74,6 @@ from pandas._libs.tslibs.dtypes cimport (
     attrname_to_abbrevs,
 )
 
-from pandas._libs.tslibs.frequencies cimport get_to_timestamp_base
 from pandas._libs.tslibs.parsing cimport get_rule_month
 from pandas._libs.tslibs.parsing import parse_time_string
 from pandas._libs.tslibs.nattype cimport (
@@ -1478,7 +1477,30 @@ class IncompatibleFrequency(ValueError):
     pass
 
 
-cdef class _Period:
+cdef class PeriodMixin:
+    # Methods shared between Period and PeriodArray
+
+    cpdef int _get_to_timestamp_base(self):
+        """
+        Return frequency code group used for base of to_timestamp against
+        frequency code.
+
+        Return day freq code against longer freq than day.
+        Return second freq code against hour between second.
+
+        Returns
+        -------
+        int
+        """
+        base = self._dtype._dtype_code
+        if base < FR_BUS:
+            return FR_DAY
+        elif FR_HR <= base <= FR_SEC:
+            return FR_SEC
+        return base
+
+
+cdef class _Period(PeriodMixin):
 
     cdef readonly:
         int64_t ordinal
@@ -1734,8 +1756,7 @@ cdef class _Period:
             return endpoint - Timedelta(1, 'ns')
 
         if freq is None:
-            base = self._dtype._dtype_code
-            freq = get_to_timestamp_base(base)
+            freq = self._get_to_timestamp_base()
             base = freq
         else:
             freq = self._maybe_convert_freq(freq)
