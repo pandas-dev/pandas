@@ -362,3 +362,8 @@ class TestSeriesReplace:
         expected = pd.Series(exp)
 
         tm.assert_series_equal(result, expected)
+
+    def test_replace_extension_other(self):
+        # https://github.com/pandas-dev/pandas/issues/34530
+        ser = pd.Series(pd.array([1, 2, 3], dtype="Int64"))
+        ser.replace("", "")  # no exception
