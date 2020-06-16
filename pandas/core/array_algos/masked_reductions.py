@@ -110,4 +110,5 @@ def max(values: np.ndarray, mask: np.ndarray, *, skipna: bool = True):
 
 
 def mean(values: np.ndarray, mask: np.ndarray, skipna: bool = True, min_count: int = 0):
-     return sum(values=values, mask=mask, skipna=skipna, min_count=min_count) / np.count_nonzero(~mask) 
+    return sum(values=values, mask=mask, skipna=skipna, min_count=min_count) / np.count_nonzero(~mask)
+
