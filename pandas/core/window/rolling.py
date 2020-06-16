@@ -150,7 +150,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         obj,
         window=None,
         min_periods: Optional[int] = None,
-        center: Optional[bool] = False,
+        center: bool = False,
         win_type: Optional[str] = None,
         axis: Axis = 0,
         on: Optional[Union[str, Index]] = None,
