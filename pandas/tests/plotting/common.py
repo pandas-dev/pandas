@@ -272,7 +272,7 @@ class TestPlotBase:
 
         axes = self._flatten_visible(axes)
         for ax in axes:
-            if xlabelsize or xrot:
+            if xlabelsize is not None or xrot is not None:
                 if isinstance(ax.xaxis.get_minor_formatter(), NullFormatter):
                     # If minor ticks has NullFormatter, rot / fontsize are not
                     # retained
@@ -286,7 +286,7 @@ class TestPlotBase:
                     if xrot is not None:
                         tm.assert_almost_equal(label.get_rotation(), xrot)
 
-            if ylabelsize or yrot:
+            if ylabelsize is not None or yrot is not None:
                 if isinstance(ax.yaxis.get_minor_formatter(), NullFormatter):
                     labels = ax.get_yticklabels()
                 else:
