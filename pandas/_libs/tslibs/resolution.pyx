@@ -1,17 +1,15 @@
-from enum import Enum
 
 import numpy as np
 from numpy cimport ndarray, int64_t, int32_t
 
 from pandas._libs.tslibs.util cimport get_nat
 
-from pandas._libs.tslibs.dtypes cimport attrname_to_abbrevs
+from pandas._libs.tslibs.dtypes import Resolution
 from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, dt64_to_dtstruct)
-from pandas._libs.tslibs.frequencies import FreqGroup
 from pandas._libs.tslibs.timezones cimport (
     is_utc, is_tzlocal, maybe_get_tz, get_dst_info)
-from pandas._libs.tslibs.ccalendar cimport get_days_in_month, c_MONTH_NUMBERS
+from pandas._libs.tslibs.ccalendar cimport get_days_in_month
 from pandas._libs.tslibs.tzconversion cimport tz_convert_utc_to_tzlocal
 
 # ----------------------------------------------------------------------
@@ -31,22 +29,6 @@ cdef:
     int RESO_QTR = 8
     int RESO_YR = 9
 
-_abbrev_to_attrnames = {v: k for k, v in attrname_to_abbrevs.items()}
-
-_reso_str_map = {
-    RESO_NS: "nanosecond",
-    RESO_US: "microsecond",
-    RESO_MS: "millisecond",
-    RESO_SEC: "second",
-    RESO_MIN: "minute",
-    RESO_HR: "hour",
-    RESO_DAY: "day",
-    RESO_MTH: "month",
-    RESO_QTR: "quarter",
-    RESO_YR: "year",
-}
-
-_str_reso_map = {v: k for k, v in _reso_str_map.items()}
 
 # ----------------------------------------------------------------------
 
@@ -120,111 +102,6 @@ cdef inline int _reso_stamp(npy_datetimestruct *dts):
     elif dts.hour != 0:
         return RESO_HR
     return RESO_DAY
-
-
-class Resolution(Enum):
-
-    # Note: cython won't allow us to reference the cdef versions at the
-    # module level
-    RESO_NS = 0
-    RESO_US = 1
-    RESO_MS = 2
-    RESO_SEC = 3
-    RESO_MIN = 4
-    RESO_HR = 5
-    RESO_DAY = 6
-    RESO_MTH = 7
-    RESO_QTR = 8
-    RESO_YR = 9
-
-    def __lt__(self, other):
-        return self.value < other.value
-
-    def __ge__(self, other):
-        return self.value >= other.value
-
-    @property
-    def freq_group(self):
-        # TODO: annotate as returning FreqGroup once that is an enum
-        if self == Resolution.RESO_NS:
-            return FreqGroup.FR_NS
-        elif self == Resolution.RESO_US:
-            return FreqGroup.FR_US
-        elif self == Resolution.RESO_MS:
-            return FreqGroup.FR_MS
-        elif self == Resolution.RESO_SEC:
-            return FreqGroup.FR_SEC
-        elif self == Resolution.RESO_MIN:
-            return FreqGroup.FR_MIN
-        elif self == Resolution.RESO_HR:
-            return FreqGroup.FR_HR
-        elif self == Resolution.RESO_DAY:
-            return FreqGroup.FR_DAY
-        elif self == Resolution.RESO_MTH:
-            return FreqGroup.FR_MTH
-        elif self == Resolution.RESO_QTR:
-            return FreqGroup.FR_QTR
-        elif self == Resolution.RESO_YR:
-            return FreqGroup.FR_ANN
-        else:
-            raise ValueError(self)
-
-    @property
-    def attrname(self) -> str:
-        """
-        Return datetime attribute name corresponding to this Resolution.
-
-        Examples
-        --------
-        >>> Resolution.RESO_SEC.attrname
-        'second'
-        """
-        return _reso_str_map[self.value]
-
-    @classmethod
-    def from_attrname(cls, attrname: str) -> "Resolution":
-        """
-        Return resolution str against resolution code.
-
-        Examples
-        --------
-        >>> Resolution.from_attrname('second')
-        2
-
-        >>> Resolution.from_attrname('second') == Resolution.RESO_SEC
-        True
-        """
-        return cls(_str_reso_map[attrname])
-
-    @classmethod
-    def get_reso_from_freq(cls, freq: str) -> "Resolution":
-        """
-        Return resolution code against frequency str.
-
-        `freq` is given by the `offset.freqstr` for some DateOffset object.
-
-        Examples
-        --------
-        >>> Resolution.get_reso_from_freq('H')
-        4
-
-        >>> Resolution.get_reso_from_freq('H') == Resolution.RESO_HR
-        True
-        """
-        try:
-            attr_name = _abbrev_to_attrnames[freq]
-        except KeyError:
-            # For quarterly and yearly resolutions, we need to chop off
-            #  a month string.
-            split_freq = freq.split("-")
-            if len(split_freq) != 2:
-                raise
-            if split_freq[1] not in c_MONTH_NUMBERS:
-                # i.e. we want e.g. "Q-DEC", not "Q-INVALID"
-                raise
-            attr_name = _abbrev_to_attrnames[split_freq[0]]
-
-        return cls.from_attrname(attr_name)
 
 
 # ----------------------------------------------------------------------
