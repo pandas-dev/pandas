@@ -11,7 +11,7 @@ RUN apt-get update \
     # Install C compilers (gcc not enough, so just went with build-essential which admittedly might be overkill),
     # needed to build pandas C extensions
     && apt-get -y install build-essential \
-    # Install python snappy.
+    # Install lib-snappy (dependency of python-snappy).
     && apt-get -y install libsnappy-dev \
     #
     # cleanup
