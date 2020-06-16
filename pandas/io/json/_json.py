@@ -1,6 +1,6 @@
 from collections import abc
 import functools
-from io import StringIO, BytesIO
+from io import BytesIO, StringIO
 from itertools import islice
 import os
 from typing import Any, Callable, Optional, Type

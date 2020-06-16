@@ -1,4 +1,6 @@
 from io import StringIO
+from pathlib import PureWindowsPath
+from platform import system
 
 import pytest
 
@@ -226,6 +228,8 @@ def test_readjson_lines_chunks_fileurl(datapath):
     # Test reading line-format JSON from file url
     os_path = datapath("io", "json", "data", "line_delimited.json")
     file_url = "file://localhost" + os_path
+    if system() == "Windows":
+        file_url = PureWindowsPath(file_url)
     path_reader = pd.read_json(os_path, lines=True, chunksize=1)
     df_list = list(path_reader)
     url_reader = pd.read_json(file_url, lines=True, chunksize=1)
