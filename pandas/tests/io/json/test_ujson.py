@@ -676,14 +676,14 @@ class TestUltraJSONTests:
 class TestNumpyJSONTests:
     @pytest.mark.parametrize("bool_input", [True, False])
     def test_bool(self, bool_input):
-        b = np.bool(bool_input)
+        b = bool(bool_input)
         assert ujson.decode(ujson.encode(b)) == b
 
     def test_bool_array(self):
         bool_array = np.array(
-            [True, False, True, True, False, True, False, False], dtype=np.bool
+            [True, False, True, True, False, True, False, False], dtype=bool
         )
-        output = np.array(ujson.decode(ujson.encode(bool_array)), dtype=np.bool)
+        output = np.array(ujson.decode(ujson.encode(bool_array)), dtype=bool)
         tm.assert_numpy_array_equal(bool_array, output)
 
     def test_int(self, any_int_dtype):

@@ -1354,7 +1354,7 @@ def is_bool_dtype(arr_or_dtype) -> bool:
     False
     >>> is_bool_dtype(bool)
     True
-    >>> is_bool_dtype(np.bool)
+    >>> is_bool_dtype(np.bool_)
     True
     >>> is_bool_dtype(np.array(['a', 'b']))
     False

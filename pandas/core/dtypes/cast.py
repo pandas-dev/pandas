@@ -225,7 +225,7 @@ def maybe_downcast_numeric(result, dtype, do_round: bool = False):
             # if we have any nulls, then we are done
             return result
 
-        elif not isinstance(r[0], (np.integer, np.floating, np.bool, int, float, bool)):
+        elif not isinstance(r[0], (np.integer, np.floating, int, float, bool)):
             # a comparable, e.g. a Decimal may slip in here
             return result
 
@@ -315,7 +315,7 @@ def maybe_cast_result_dtype(dtype: DtypeObj, how: str) -> DtypeObj:
     from pandas.core.arrays.boolean import BooleanDtype
     from pandas.core.arrays.integer import Int64Dtype
 
-    if how in ["add", "cumsum", "sum"] and (dtype == np.dtype(np.bool)):
+    if how in ["add", "cumsum", "sum"] and (dtype == np.dtype(bool)):
         return np.dtype(np.int64)
     elif how in ["add", "cumsum", "sum"] and isinstance(dtype, BooleanDtype):
         return Int64Dtype()

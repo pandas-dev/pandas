@@ -89,7 +89,7 @@ class TestSparseArray:
         assert arr.fill_value is False
         arr_expected = np.array(data, dtype=np.object)
         it = (type(x) == type(y) and x == y for x, y in zip(arr, arr_expected))
-        assert np.fromiter(it, dtype=np.bool).all()
+        assert np.fromiter(it, dtype=np.bool_).all()
 
     @pytest.mark.parametrize("dtype", [SparseDtype(int, 0), int])
     def test_constructor_na_dtype(self, dtype):
@@ -445,15 +445,15 @@ class TestSparseArray:
 
     def test_constructor_bool_fill_value(self):
         arr = SparseArray([True, False, True], dtype=None)
-        assert arr.dtype == SparseDtype(np.bool)
+        assert arr.dtype == SparseDtype(np.bool_)
         assert not arr.fill_value
 
-        arr = SparseArray([True, False, True], dtype=np.bool)
-        assert arr.dtype == SparseDtype(np.bool)
+        arr = SparseArray([True, False, True], dtype=np.bool_)
+        assert arr.dtype == SparseDtype(np.bool_)
         assert not arr.fill_value
 
-        arr = SparseArray([True, False, True], dtype=np.bool, fill_value=True)
-        assert arr.dtype == SparseDtype(np.bool, True)
+        arr = SparseArray([True, False, True], dtype=np.bool_, fill_value=True)
+        assert arr.dtype == SparseDtype(np.bool_, True)
         assert arr.fill_value
 
     def test_constructor_float32(self):
@@ -588,7 +588,7 @@ class TestSparseArray:
         arr.fill_value = np.nan
         assert np.isnan(arr.fill_value)
 
-        arr = SparseArray([True, False, True], fill_value=False, dtype=np.bool)
+        arr = SparseArray([True, False, True], fill_value=False, dtype=np.bool_)
         arr.fill_value = True
         assert arr.fill_value
 
@@ -605,7 +605,7 @@ class TestSparseArray:
 
     @pytest.mark.parametrize("val", [[1, 2, 3], np.array([1, 2]), (1, 2, 3)])
     def test_set_fill_invalid_non_scalar(self, val):
-        arr = SparseArray([True, False, True], fill_value=False, dtype=np.bool)
+        arr = SparseArray([True, False, True], fill_value=False, dtype=np.bool_)
         msg = "fill_value must be a scalar"
 
         with pytest.raises(ValueError, match=msg):

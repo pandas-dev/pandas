@@ -1246,7 +1246,7 @@ class TestNumberScalar:
         assert is_number(1)
         assert is_number(1.1)
         assert is_number(1 + 3j)
-        assert is_number(np.bool(False))
+        assert is_number(np.bool_(False))
         assert is_number(np.int64(1))
         assert is_number(np.float64(1.1))
         assert is_number(np.complex128(1 + 3j))
@@ -1267,7 +1267,7 @@ class TestNumberScalar:
 
     def test_is_bool(self):
         assert is_bool(True)
-        assert is_bool(np.bool(False))
+        assert is_bool(bool(False))
         assert is_bool(np.bool_(False))
 
         assert not is_bool(1)
@@ -1317,7 +1317,7 @@ class TestNumberScalar:
         assert not is_float(True)
         assert not is_float(1)
         assert not is_float(1 + 3j)
-        assert not is_float(np.bool(False))
+        assert not is_float(bool(False))
         assert not is_float(np.bool_(False))
         assert not is_float(np.int64(1))
         assert not is_float(np.complex128(1 + 3j))

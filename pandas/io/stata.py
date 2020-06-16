@@ -553,7 +553,7 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
     ws = ""
     #                  original, if small, if large
     conversion_data = (
-        (np.bool, np.int8, np.int8),
+        (np.bool_, np.int8, np.int8),
         (np.uint8, np.int8, np.int16),
         (np.uint16, np.int16, np.int32),
         (np.uint32, np.int32, np.int64),

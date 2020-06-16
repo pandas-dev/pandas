@@ -55,7 +55,7 @@ class TestDataFrameDataTypes:
         odict = OrderedDict
         df = pd.DataFrame(odict([("a", 1), ("b", True), ("c", 1.0)]), index=[1, 2, 3])
         ex_dtypes = pd.Series(
-            odict([("a", np.int64), ("b", np.bool), ("c", np.float64)])
+            odict([("a", np.int64), ("b", np.bool_), ("c", np.float64)])
         )
         tm.assert_series_equal(df.dtypes, ex_dtypes)
 

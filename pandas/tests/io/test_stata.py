@@ -689,7 +689,7 @@ class TestStata:
     @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     @pytest.mark.parametrize("byteorder", [">", "<"])
     def test_bool_uint(self, byteorder, version):
-        s0 = Series([0, 1, True], dtype=np.bool)
+        s0 = Series([0, 1, True], dtype=np.bool_)
         s1 = Series([0, 1, 100], dtype=np.uint8)
         s2 = Series([0, 1, 255], dtype=np.uint8)
         s3 = Series([0, 1, 2 ** 15 - 100], dtype=np.uint16)
