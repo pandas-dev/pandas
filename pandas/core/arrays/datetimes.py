@@ -9,15 +9,14 @@ from pandas._libs import lib, tslib
 from pandas._libs.tslibs import (
     NaT,
     Timestamp,
-    ccalendar,
     conversion,
     fields,
     iNaT,
     resolution as libresolution,
     timezones,
+    to_offset,
     tzconversion,
 )
-import pandas._libs.tslibs.frequencies as libfrequencies
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import (
@@ -47,7 +46,7 @@ from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
 
-from pandas.tseries.frequencies import get_period_alias, to_offset
+from pandas.tseries.frequencies import get_period_alias
 from pandas.tseries.offsets import BDay, Day, Tick
 
 _midnight = time(0, 0)
@@ -407,7 +406,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
             index = cls._simple_new(values, freq=freq, dtype=tz_to_dtype(_tz))
 
             if tz is not None and index.tz is None:
-                arr = conversion.tz_localize_to_utc(
+                arr = tzconversion.tz_localize_to_utc(
                     index.asi8, tz, ambiguous=ambiguous, nonexistent=nonexistent
                 )
 
@@ -538,8 +537,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         return conversion.is_date_array_normalized(self.asi8, self.tz)
 
     @property  # NB: override with cache_readonly in immutable subclasses
-    def _resolution(self):
-        return libresolution.resolution(self.asi8, self.tz)
+    def _resolution_obj(self) -> libresolution.Resolution:
+        return libresolution.get_resolution(self.asi8, self.tz)
 
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
@@ -686,7 +685,9 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
                 values = self.tz_localize(None)
             else:
                 values = self
-            result = offset.apply_index(values).tz_localize(self.tz)
+            result = offset.apply_index(values)
+            result = DatetimeArray._simple_new(result)
+            result = result.tz_localize(self.tz)
 
         except NotImplementedError:
             warnings.warn(
@@ -968,7 +969,7 @@ default 'raise'
             tz = timezones.maybe_get_tz(tz)
             # Convert to UTC
 
-            new_dates = conversion.tz_localize_to_utc(
+            new_dates = tzconversion.tz_localize_to_utc(
                 self.asi8, tz, ambiguous=ambiguous, nonexistent=nonexistent
             )
         new_dates = new_dates.view(DT64NS_DTYPE)
@@ -1036,14 +1037,7 @@ default 'raise'
                        '2014-08-01 00:00:00+05:30'],
                        dtype='datetime64[ns, Asia/Calcutta]', freq=None)
         """
-        if self.tz is None or timezones.is_utc(self.tz):
-            not_null = ~self.isna()
-            DAY_NS = ccalendar.DAY_SECONDS * 1_000_000_000
-            new_values = self.asi8.copy()
-            adjustment = new_values[not_null] % DAY_NS
-            new_values[not_null] = new_values[not_null] - adjustment
-        else:
-            new_values = conversion.normalize_i8_timestamps(self.asi8, self.tz)
+        new_values = conversion.normalize_i8_timestamps(self.asi8, self.tz)
         return type(self)(new_values)._with_freq("infer").tz_localize(self.tz)
 
     def to_period(self, freq=None):
@@ -1111,8 +1105,7 @@ default 'raise'
 
             #  https://github.com/pandas-dev/pandas/issues/33358
             if res is None:
-                base, stride = libfrequencies.base_and_stride(freq)
-                res = f"{stride}{base}"
+                res = freq
 
             freq = res
 
@@ -1272,17 +1265,17 @@ default 'raise'
         --------
         >>> idx = pd.date_range(start='2019-12-29', freq='D', periods=4)
         >>> idx.isocalendar()
-           year  week  day
-        0  2019    52    7
-        1  2020     1    1
-        2  2020     1    2
-        3  2020     1    3
+                    year  week  day
+        2019-12-29  2019    52    7
+        2019-12-30  2020     1    1
+        2019-12-31  2020     1    2
+        2020-01-01  2020     1    3
         >>> idx.isocalendar().week
-        0    52
-        1     1
-        2     1
-        3     1
-        Name: week, dtype: UInt32
+        2019-12-29    52
+        2019-12-30     1
+        2019-12-31     1
+        2020-01-01     1
+        Freq: D, Name: week, dtype: UInt32
         """
         from pandas import DataFrame
 
@@ -1297,6 +1290,32 @@ default 'raise'
         if self._hasnans:
             iso_calendar_df.iloc[self._isnan] = None
         return iso_calendar_df
+
+    @property
+    def weekofyear(self):
+        """
+        The week ordinal of the year.
+
+        .. deprecated:: 1.1.0
+
+        weekofyear and week have been deprecated.
+        Please use DatetimeIndex.isocalendar().week instead.
+        """
+        warnings.warn(
+            "weekofyear and week have been deprecated, please use "
+            "DatetimeIndex.isocalendar().week instead, which returns "
+            "a Series.  To exactly reproduce the behavior of week and "
+            "weekofyear and return an Index, you may call "
+            "pd.Int64Index(idx.isocalendar().week)",
+            FutureWarning,
+            stacklevel=3,
+        )
+        week_series = self.isocalendar().week
+        if week_series.hasnans:
+            return week_series.to_numpy(dtype="float64", na_value=np.nan)
+        return week_series.to_numpy(dtype="int64")
+
+    week = weekofyear
 
     year = _field_accessor(
         "year",
@@ -1482,14 +1501,6 @@ default 'raise'
         dtype: int64
         """,
     )
-    weekofyear = _field_accessor(
-        "weekofyear",
-        "woy",
-        """
-        The week ordinal of the year.
-        """,
-    )
-    week = weekofyear
     _dayofweek_doc = """
     The day of the week with Monday=0, Sunday=6.
 
@@ -1871,7 +1882,7 @@ def sequence_to_dt64ns(
     dayfirst : bool, default False
     yearfirst : bool, default False
     ambiguous : str, bool, or arraylike, default 'raise'
-        See pandas._libs.tslibs.conversion.tz_localize_to_utc.
+        See pandas._libs.tslibs.tzconversion.tz_localize_to_utc.
 
     Returns
     -------
@@ -1951,7 +1962,7 @@ def sequence_to_dt64ns(
         if tz is not None:
             # Convert tz-naive to UTC
             tz = timezones.maybe_get_tz(tz)
-            data = conversion.tz_localize_to_utc(
+            data = tzconversion.tz_localize_to_utc(
                 data.view("i8"), tz, ambiguous=ambiguous
             )
             data = data.view(DT64NS_DTYPE)

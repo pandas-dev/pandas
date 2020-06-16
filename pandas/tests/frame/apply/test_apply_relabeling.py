@@ -42,7 +42,7 @@ class TestDataFrameNamedAggregate:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_agg_relable_partial_functions(self):
+    def test_agg_relabel_partial_functions(self):
         # GH 26513, test on partial, functools or more complex cases
         df = pd.DataFrame({"A": [1, 2, 1, 2], "B": [1, 2, 3, 4], "C": [3, 4, 5, 6]})
         result = df.agg(foo=("A", np.mean), bar=("A", "mean"), cat=("A", min))
@@ -61,7 +61,7 @@ class TestDataFrameNamedAggregate:
         expected = pd.DataFrame(
             {
                 "A": [1.0, 1.0, np.nan, np.nan, np.nan],
-                "B": [np.nan, np.nan, 10.0, np.nan, 4.0],
+                "B": [np.nan, np.nan, 4.0, np.nan, 10.0],
                 "C": [np.nan, np.nan, np.nan, 3.0, np.nan],
             },
             index=pd.Index(["foo", "bar", "cat", "dat", "f"]),

@@ -341,6 +341,40 @@ class TestHDFStore:
         # checksums are NOT same if track_time = True
         assert checksum_0_tt_true != checksum_1_tt_true
 
+    def test_non_pandas_keys(self, setup_path):
+        class Table1(tables.IsDescription):
+            value1 = tables.Float32Col()
+
+        class Table2(tables.IsDescription):
+            value2 = tables.Float32Col()
+
+        class Table3(tables.IsDescription):
+            value3 = tables.Float32Col()
+
+        with ensure_clean_path(setup_path) as path:
+            with tables.open_file(path, mode="w") as h5file:
+                group = h5file.create_group("/", "group")
+                h5file.create_table(group, "table1", Table1, "Table 1")
+                h5file.create_table(group, "table2", Table2, "Table 2")
+                h5file.create_table(group, "table3", Table3, "Table 3")
+            with HDFStore(path) as store:
+                assert len(store.keys(include="native")) == 3
+                expected = {"/group/table1", "/group/table2", "/group/table3"}
+                assert set(store.keys(include="native")) == expected
+                assert set(store.keys(include="pandas")) == set()
+                for name in expected:
+                    df = store.get(name)
+                    assert len(df.columns) == 1
+
+    def test_keys_illegal_include_keyword_value(self, setup_path):
+        with ensure_clean_store(setup_path) as store:
+            with pytest.raises(
+                ValueError,
+                match="`include` should be either 'pandas' or 'native' "
+                "but is 'illegal'",
+            ):
+                store.keys(include="illegal")
+
     def test_keys_ignore_hdf_softlink(self, setup_path):
 
         # GH 20523

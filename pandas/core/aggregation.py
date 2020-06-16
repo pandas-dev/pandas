@@ -19,12 +19,14 @@ from typing import (
 
 import numpy as np
 
+from pandas._typing import Label
+
 from pandas.core.dtypes.common import is_dict_like, is_list_like
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 from pandas.core.base import SpecificationError
 import pandas.core.common as com
 from pandas.core.indexes.api import Index
+from pandas.core.series import FrameOrSeriesUnion, Series
 
 
 def reconstruct_func(
@@ -269,11 +271,11 @@ def maybe_mangle_lambdas(agg_spec: Any) -> Any:
 
 
 def _relabel_result(
-    result: Union[ABCSeries, ABCDataFrame],
+    result: FrameOrSeriesUnion,
     func: Dict[str, List[Union[Callable, str]]],
     columns: Tuple,
     order: List[int],
-) -> Dict[str, ABCSeries]:
+) -> Dict[Label, Series]:
     """Internal function to reorder result if relabelling is True for
     dataframe.agg, and return the reordered result in dict.
 
@@ -299,16 +301,77 @@ def _relabel_result(
     reordered_indexes = [
         pair[0] for pair in sorted(zip(columns, order), key=lambda t: t[1])
     ]
-    reordered_result_in_dict = {}
+    reordered_result_in_dict: Dict[Label, Series] = {}
     idx = 0
 
-    # The reason is self._aggregate outputs different type of result if
-    # any column is only used once in aggregation
-    mask = isinstance(result, ABCDataFrame) and np.any(result.isna())
-
+    reorder_mask = len(result.columns) > 1
     for col, fun in func.items():
-        s = result[col][::-1].dropna() if mask else result[col]
+
+        # In the `_aggregate`, the callable names are obtained and used in `result`, and
+        # these names are ordered alphabetically. e.g.
+        #           C2   C1
+        # <lambda>   1  NaN
+        # amax     NaN  4.0
+        # max      NaN  2.0
+        # sum     18.0  6.0
+        # Therefore, the order of functions for each column could be shuffled
+        # accordingly so need to get the callable name if it is not parsed names, and
+        # reorder the aggregated result for each column.
+        # e.g. if df.agg(c1=("C2", sum), c2=("C2", lambda x: min(x))), correct order is
+        # [sum, <lambda>], but in `result`, it will be [<lambda>, sum], and we need to
+        # reorder so that aggregated values map to their functions.
+        fun = [com.get_callable_name(f) if not isinstance(f, str) else f for f in fun]
+        s = result[col].dropna()
+
+        # If there is only one column being used for aggregation, not need to reorder
+        # since the index is not sorted, e.g.
+        #         A
+        # min   1.0
+        # mean  1.5
+        # mean  1.5
+        if reorder_mask:
+            col_idx_order = Index(s.index).get_indexer(fun)
+            s = s[col_idx_order]
+
+        # assign the new user-provided "named aggregation" as index names, and reindex it
+        # based on the whole user-provided names.
         s.index = reordered_indexes[idx : idx + len(fun)]
-        reordered_result_in_dict[col] = s.reindex(columns)
+        reordered_result_in_dict[col] = s.reindex(columns, copy=False)
         idx = idx + len(fun)
     return reordered_result_in_dict
+
+
+def validate_func_kwargs(
+    kwargs: dict,
+) -> Tuple[List[str], List[Union[str, Callable[..., Any]]]]:
+    """
+    Validates types of user-provided "named aggregation" kwargs.
+    `TypeError` is raised if aggfunc is not `str` or callable.
+
+    Parameters
+    ----------
+    kwargs : dict
+
+    Returns
+    -------
+    columns : List[str]
+        List of user-provied keys.
+    func : List[Union[str, callable[...,Any]]]
+        List of user-provided aggfuncs
+
+    Examples
+    --------
+    >>> validate_func_kwargs({'one': 'min', 'two': 'max'})
+    (['one', 'two'], ['min', 'max'])
+    """
+    no_arg_message = "Must provide 'func' or named aggregation **kwargs."
+    tuple_given_message = "func is expected but recieved {} in **kwargs."
+    columns = list(kwargs)
+    func = []
+    for col_func in kwargs.values():
+        if not (isinstance(col_func, str) or callable(col_func)):
+            raise TypeError(tuple_given_message.format(type(col_func).__name__))
+        func.append(col_func)
+    if not columns:
+        raise TypeError(no_arg_message)
+    return columns, func

@@ -6,16 +6,14 @@ import operator
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs.period import IncompatibleFrequency
+from pandas._libs.tslibs import IncompatibleFrequency, Period, Timestamp, to_offset
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import Period, PeriodIndex, Series, TimedeltaIndex, Timestamp, period_range
+from pandas import PeriodIndex, Series, TimedeltaIndex, period_range
 import pandas._testing as tm
 from pandas.core import ops
 from pandas.core.arrays import TimedeltaArray
-
-from pandas.tseries.frequencies import to_offset
 
 from .common import assert_invalid_comparison
 
@@ -1522,3 +1520,11 @@ class TestPeriodIndexSeriesMethods:
         exp = pd.TimedeltaIndex([np.nan, np.nan, np.nan, np.nan], name="idx")
         tm.assert_index_equal(idx - pd.Period("NaT", freq="M"), exp)
         tm.assert_index_equal(pd.Period("NaT", freq="M") - idx, exp)
+
+    @pytest.mark.parametrize("scalars", ["a", False, 1, 1.0, None])
+    def test_comparison_operations(self, scalars):
+        # GH 28980
+        expected = Series([False, False])
+        s = Series([pd.Period("2019"), pd.Period("2020")], dtype="period[A-DEC]")
+        result = s == scalars
+        tm.assert_series_equal(result, expected)

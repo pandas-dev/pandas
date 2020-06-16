@@ -49,7 +49,7 @@ def check_compressed_urls(salaries_table, compression, extension, mode, engine):
 @pytest.fixture
 def tips_df(datapath):
     """DataFrame with the tips dataset."""
-    return read_csv(datapath("io", "parser", "data", "tips.csv"))
+    return read_csv(datapath("io", "data", "csv", "tips.csv"))
 
 
 @pytest.mark.usefixtures("s3_resource")
