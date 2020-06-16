@@ -1,6 +1,6 @@
 import abc
 import datetime
-from io import BytesIO, BufferedIOBase, RawIOBase
+from io import BufferedIOBase, BytesIO, RawIOBase
 import os
 from textwrap import fill
 from typing import Union
