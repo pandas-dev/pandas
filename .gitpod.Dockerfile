@@ -1,7 +1,5 @@
 FROM gitpod/workspace-full:latest
 
-USER gitpod
-
 RUN apt-get update \
     && apt-get -y install --no-install-recommends apt-utils dialog 2>&1 \
     #
@@ -16,3 +14,5 @@ RUN apt-get update \
     && apt-get autoremove -y \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/*
+
+USER gitpod
