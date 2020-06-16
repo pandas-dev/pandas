@@ -107,3 +107,7 @@ def min(values: np.ndarray, mask: np.ndarray, *, skipna: bool = True):
 
 def max(values: np.ndarray, mask: np.ndarray, *, skipna: bool = True):
     return _minmax(np.max, values=values, mask=mask, skipna=skipna)
+
+
+def mean(values: np.ndarray, mask: np.ndarray, skipna: bool = True, min_count: int = 0):
+     return sum(values=values, mask=mask, skipna=skipna, min_count=min_count) / np.count_nonzero(~mask) 
