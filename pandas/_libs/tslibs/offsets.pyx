@@ -581,7 +581,7 @@ cdef class BaseOffset:
             "does not have a vectorized implementation"
         )
 
-    def rollback(self, dt):
+    def rollback(self, dt) -> datetime:
         """
         Roll provided date backward to next offset only if not on offset.
 
@@ -595,7 +595,7 @@ cdef class BaseOffset:
             dt = dt - type(self)(1, normalize=self.normalize, **self.kwds)
         return dt
 
-    def rollforward(self, dt):
+    def rollforward(self, dt) -> datetime:
         """
         Roll provided date forward to next offset only if not on offset.
 
@@ -617,7 +617,7 @@ cdef class BaseOffset:
         pydate_to_dtstruct(other, &dts)
         return get_day_of_month(&dts, self._day_opt)
 
-    def is_on_offset(self, dt) -> bool:
+    def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
 
@@ -779,6 +779,8 @@ cdef class Tick(SingleConstructorOffset):
     def nanos(self) -> int64_t:
         return self.n * self._nanos_inc
 
+    # FIXME: This should be typed as datetime, but we DatetimeLikeIndex.insert
+    #  checks self.freq.is_on_offset with a Timedelta sometimes.
     def is_on_offset(self, dt) -> bool:
         return True
 
@@ -1088,7 +1090,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 "applied vectorized"
             )
 
-    def is_on_offset(self, dt) -> bool:
+    def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         # TODO: see GH#1395
@@ -1375,7 +1377,7 @@ cdef class BusinessDay(BusinessMixin):
         i8other = dtindex.view("i8")
         return shift_bdays(i8other, self.n)
 
-    def is_on_offset(self, dt) -> bool:
+    def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         return dt.weekday() < 5
