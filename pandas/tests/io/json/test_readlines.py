@@ -1,6 +1,5 @@
 from io import StringIO
-from pathlib import PureWindowsPath
-from platform import system
+from pathlib import Path
 
 import pytest
 
@@ -232,9 +231,7 @@ def test_readjson_lines_chunks_fileurl(datapath):
         pd.DataFrame([[5, 6]], columns=["a", "b"], index=[2]),
     ]
     os_path = datapath("io", "json", "data", "line_delimited.json")
-    file_url = "file://localhost" + os_path
-    if system() == "Windows":
-        file_url = PureWindowsPath(file_url)
+    file_url = Path(os_path).as_uri()
     url_reader = pd.read_json(file_url, lines=True, chunksize=1)
     for index, chuck in enumerate(url_reader):
         tm.assert_frame_equal(chuck, df_list_expected[index])
