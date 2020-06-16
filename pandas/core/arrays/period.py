@@ -20,10 +20,10 @@ from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ,
     IncompatibleFrequency,
     Period,
+    PeriodMixin,
     get_period_field_arr,
     period_asfreq_arr,
 )
-
 from pandas._typing import AnyArrayLike
 from pandas.util._decorators import cache_readonly
 
@@ -62,7 +62,7 @@ def _field_accessor(name: str, docstring=None):
     return property(f)
 
 
-class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
+class PeriodArray(PeriodMixin, dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     """
     Pandas ExtensionArray for storing Period data.
 
@@ -441,7 +441,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
                 return (self + self.freq).to_timestamp(how="start") - adjust
 
         if freq is None:
-            freq = self.dtype.get_to_timestamp_base()
+            freq = self._get_to_timestamp_base()
             base = freq
         else:
             freq = Period._maybe_convert_freq(freq)
