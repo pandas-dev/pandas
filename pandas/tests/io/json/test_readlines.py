@@ -226,12 +226,15 @@ def test_readjson_nrows_requires_lines():
 def test_readjson_lines_chunks_fileurl(datapath):
     # GH 27135
     # Test reading line-format JSON from file url
+    df_list_expected = [
+        pd.DataFrame([[1, 2]], columns=["a", "b"], index=[0]),
+        pd.DataFrame([[3, 4]], columns=["a", "b"], index=[1]),
+        pd.DataFrame([[5, 6]], columns=["a", "b"], index=[2]),
+    ]
     os_path = datapath("io", "json", "data", "line_delimited.json")
     file_url = "file://localhost" + os_path
     if system() == "Windows":
         file_url = PureWindowsPath(file_url)
-    path_reader = pd.read_json(os_path, lines=True, chunksize=1)
-    df_list = list(path_reader)
     url_reader = pd.read_json(file_url, lines=True, chunksize=1)
     for index, chuck in enumerate(url_reader):
-        tm.assert_frame_equal(chuck, df_list[index])
+        tm.assert_frame_equal(chuck, df_list_expected[index])
