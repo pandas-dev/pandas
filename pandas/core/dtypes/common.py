@@ -11,13 +11,13 @@ from pandas._libs import Interval, Period, algos
 from pandas._libs.tslibs import conversion
 from pandas._typing import ArrayLike, DtypeObj
 
+from pandas.core.dtypes.base import registry
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
     IntervalDtype,
     PeriodDtype,
-    registry,
 )
 from pandas.core.dtypes.generic import ABCCategorical, ABCIndexClass
 from pandas.core.dtypes.inference import (  # noqa:F401
