@@ -306,6 +306,7 @@ def _relabel_result(
 
     reorder_mask = len(result.columns) > 1
     for col, fun in func.items():
+        s = result[col].dropna()
 
         # In the `_aggregate`, the callable names are obtained and used in `result`, and
         # these names are ordered alphabetically. e.g.
@@ -320,8 +321,6 @@ def _relabel_result(
         # e.g. if df.agg(c1=("C2", sum), c2=("C2", lambda x: min(x))), correct order is
         # [sum, <lambda>], but in `result`, it will be [<lambda>, sum], and we need to
         # reorder so that aggregated values map to their functions.
-        fun = [com.get_callable_name(f) if not isinstance(f, str) else f for f in fun]
-        s = result[col].dropna()
 
         # If there is only one column being used for aggregation, not need to reorder
         # since the index is not sorted, e.g.
@@ -330,6 +329,7 @@ def _relabel_result(
         # mean  1.5
         # mean  1.5
         if reorder_mask:
+            fun = [com.get_callable_name(f) if not isinstance(f, str) else f for f in fun]
             col_idx_order = Index(s.index).get_indexer(fun)
             s = s[col_idx_order]
 
