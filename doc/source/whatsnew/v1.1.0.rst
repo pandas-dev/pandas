@@ -297,116 +297,10 @@ Other enhancements
 
 .. ---------------------------------------------------------------------------
 
-Increased minimum versions for dependencies
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Some minimum supported versions of dependencies were updated (:issue:`33718`, :issue:`29766`, :issue:`29723`, pytables >= 3.4.3).
-If installed, we now require:
-
-+-----------------+-----------------+----------+---------+
-| Package         | Minimum Version | Required | Changed |
-+=================+=================+==========+=========+
-| numpy           | 1.15.4          |    X     |    X    |
-+-----------------+-----------------+----------+---------+
-| pytz            | 2015.4          |    X     |         |
-+-----------------+-----------------+----------+---------+
-| python-dateutil | 2.7.3           |    X     |    X    |
-+-----------------+-----------------+----------+---------+
-| bottleneck      | 1.2.1           |          |         |
-+-----------------+-----------------+----------+---------+
-| numexpr         | 2.6.2           |          |         |
-+-----------------+-----------------+----------+---------+
-| pytest (dev)    | 4.0.2           |          |         |
-+-----------------+-----------------+----------+---------+
-
-For `optional libraries <https://dev.pandas.io/docs/install.html#dependencies>`_ the general recommendation is to use the latest version.
-The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
-Optional libraries below the lowest tested version may still work, but are not considered supported.
-
-+-----------------+-----------------+---------+
-| Package         | Minimum Version | Changed |
-+=================+=================+=========+
-| beautifulsoup4  | 4.6.0           |         |
-+-----------------+-----------------+---------+
-| fastparquet     | 0.3.2           |         |
-+-----------------+-----------------+---------+
-| gcsfs           | 0.2.2           |         |
-+-----------------+-----------------+---------+
-| lxml            | 3.8.0           |         |
-+-----------------+-----------------+---------+
-| matplotlib      | 2.2.2           |         |
-+-----------------+-----------------+---------+
-| numba           | 0.46.0          |         |
-+-----------------+-----------------+---------+
-| openpyxl        | 2.5.7           |         |
-+-----------------+-----------------+---------+
-| pyarrow         | 0.13.0          |         |
-+-----------------+-----------------+---------+
-| pymysql         | 0.7.1           |         |
-+-----------------+-----------------+---------+
-| pytables        | 3.4.3           |    X    |
-+-----------------+-----------------+---------+
-| s3fs            | 0.3.0           |         |
-+-----------------+-----------------+---------+
-| scipy           | 1.2.0           |    X    |
-+-----------------+-----------------+---------+
-| sqlalchemy      | 1.1.4           |         |
-+-----------------+-----------------+---------+
-| xarray          | 0.8.2           |         |
-+-----------------+-----------------+---------+
-| xlrd            | 1.1.0           |         |
-+-----------------+-----------------+---------+
-| xlsxwriter      | 0.9.8           |         |
-+-----------------+-----------------+---------+
-| xlwt            | 1.2.0           |         |
-+-----------------+-----------------+---------+
-| pandas-gbq      | 1.2.0           |    X    |
-+-----------------+-----------------+---------+
-
-See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
-
-Development Changes
-^^^^^^^^^^^^^^^^^^^
-
-- The minimum version of Cython is now the most recent bug-fix version (0.29.16) (:issue:`33334`).
-
-.. _whatsnew_110.api.other:
-
-Other API changes
-^^^^^^^^^^^^^^^^^
-
-- :meth:`Series.describe` will now show distribution percentiles for ``datetime`` dtypes, statistics ``first`` and ``last``
-  will now be ``min`` and ``max`` to match with numeric dtypes in :meth:`DataFrame.describe` (:issue:`30164`)
-- Added :meth:`DataFrame.value_counts` (:issue:`5377`)
-- :meth:`Groupby.groups` now returns an abbreviated representation when called on large dataframes (:issue:`1135`)
-- ``loc`` lookups with an object-dtype :class:`Index` and an integer key will now raise ``KeyError`` instead of ``TypeError`` when key is missing (:issue:`31905`)
-- Using a :func:`pandas.api.indexers.BaseIndexer` with ``count``, ``min``, ``max``, ``median``, ``skew``,  ``cov``, ``corr`` will now return correct results for any monotonic :func:`pandas.api.indexers.BaseIndexer` descendant (:issue:`32865`)
-- Added a :func:`pandas.api.indexers.FixedForwardWindowIndexer` class to support forward-looking windows during ``rolling`` operations.
-- Added :class:`pandas.errors.InvalidIndexError` (:issue:`34570`).
+.. _whatsnew_110.api:
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-- :meth:`DataFrame.swaplevels` now raises a  ``TypeError`` if the axis is not a :class:`MultiIndex`.
-  Previously an ``AttributeError`` was raised (:issue:`31126`)
-- :meth:`DataFrame.xs` now raises a  ``TypeError`` if a ``level`` keyword is supplied and the axis is not a :class:`MultiIndex`.
-  Previously an ``AttributeError`` was raised (:issue:`33610`)
-- :meth:`DataFrameGroupby.mean` and :meth:`SeriesGroupby.mean` (and similarly for :meth:`~DataFrameGroupby.median`, :meth:`~DataFrameGroupby.std` and :meth:`~DataFrameGroupby.var`)
-  now raise a  ``TypeError`` if a not-accepted keyword argument is passed into it.
-  Previously a ``UnsupportedFunctionCall`` was raised (``AssertionError`` if ``min_count`` passed into :meth:`~DataFrameGroupby.median`) (:issue:`31485`)
-- :meth:`DataFrame.at` and :meth:`Series.at` will raise a ``TypeError`` instead of a ``ValueError`` if an incompatible key is passed, and ``KeyError`` if a missing key is passed, matching the behavior of ``.loc[]`` (:issue:`31722`)
-- Passing an integer dtype other than ``int64`` to ``np.array(period_index, dtype=...)`` will now raise ``TypeError`` instead of incorrectly using ``int64`` (:issue:`32255`)
-- Passing an invalid ``fill_value`` to :meth:`Categorical.take` raises a ``ValueError`` instead of ``TypeError`` (:issue:`33660`)
-- Combining a ``Categorical`` with integer categories and which contains missing values
-  with a float dtype column in operations such as :func:`concat` or :meth:`~DataFrame.append`
-  will now result in a float column instead of an object dtyped column (:issue:`33607`)
-- :meth:`Series.to_timestamp` now raises a ``TypeError`` if the axis is not a :class:`PeriodIndex`. Previously an ``AttributeError`` was raised (:issue:`33327`)
-- :meth:`Series.to_period` now raises a ``TypeError`` if the axis is not a :class:`DatetimeIndex`. Previously an ``AttributeError`` was raised (:issue:`33327`)
-- :func: `pandas.api.dtypes.is_string_dtype` no longer incorrectly identifies categorical series as string.
-- :func:`read_excel` no longer takes ``**kwds`` arguments. This means that passing in keyword ``chunksize`` now raises a ``TypeError``
-  (previously raised a ``NotImplementedError``), while passing in keyword ``encoding`` now raises a ``TypeError`` (:issue:`34464`)
-- :func: `merge` now checks ``suffixes`` parameter type to be ``tuple`` and raises ``TypeError``, whereas before a ``list`` or ``set`` were accepted and that the ``set`` could produce unexpected results (:issue:`33740`)
-- :class:`Period` no longer accepts tuples for the ``freq`` argument (:issue:`34658`)
-- :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` now raises ValueError if ``limit_direction`` is 'forward' or 'both' and ``method`` is 'backfill' or 'bfill' or ``limit_direction`` is 'backward' or 'both' and ``method`` is 'pad' or 'ffill' (:issue:`34746`)
 
 ``MultiIndex.get_indexer`` interprets `method` argument differently
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -732,6 +626,115 @@ apply and applymap on ``DataFrame`` evaluates first row/column only once
 .. ipython:: python
 
     df.apply(func, axis=1)
+
+.. _whatsnew_110.api.other:
+
+Other API changes
+^^^^^^^^^^^^^^^^^
+
+- :meth:`Series.describe` will now show distribution percentiles for ``datetime`` dtypes, statistics ``first`` and ``last``
+  will now be ``min`` and ``max`` to match with numeric dtypes in :meth:`DataFrame.describe` (:issue:`30164`)
+- Added :meth:`DataFrame.value_counts` (:issue:`5377`)
+- :meth:`Groupby.groups` now returns an abbreviated representation when called on large dataframes (:issue:`1135`)
+- ``loc`` lookups with an object-dtype :class:`Index` and an integer key will now raise ``KeyError`` instead of ``TypeError`` when key is missing (:issue:`31905`)
+- Using a :func:`pandas.api.indexers.BaseIndexer` with ``count``, ``min``, ``max``, ``median``, ``skew``,  ``cov``, ``corr`` will now return correct results for any monotonic :func:`pandas.api.indexers.BaseIndexer` descendant (:issue:`32865`)
+- Added a :func:`pandas.api.indexers.FixedForwardWindowIndexer` class to support forward-looking windows during ``rolling`` operations.
+- Added :class:`pandas.errors.InvalidIndexError` (:issue:`34570`).
+- :meth:`DataFrame.swaplevels` now raises a  ``TypeError`` if the axis is not a :class:`MultiIndex`.
+  Previously an ``AttributeError`` was raised (:issue:`31126`)
+- :meth:`DataFrame.xs` now raises a  ``TypeError`` if a ``level`` keyword is supplied and the axis is not a :class:`MultiIndex`.
+  Previously an ``AttributeError`` was raised (:issue:`33610`)
+- :meth:`DataFrameGroupby.mean` and :meth:`SeriesGroupby.mean` (and similarly for :meth:`~DataFrameGroupby.median`, :meth:`~DataFrameGroupby.std` and :meth:`~DataFrameGroupby.var`)
+  now raise a  ``TypeError`` if a not-accepted keyword argument is passed into it.
+  Previously a ``UnsupportedFunctionCall`` was raised (``AssertionError`` if ``min_count`` passed into :meth:`~DataFrameGroupby.median`) (:issue:`31485`)
+- :meth:`DataFrame.at` and :meth:`Series.at` will raise a ``TypeError`` instead of a ``ValueError`` if an incompatible key is passed, and ``KeyError`` if a missing key is passed, matching the behavior of ``.loc[]`` (:issue:`31722`)
+- Passing an integer dtype other than ``int64`` to ``np.array(period_index, dtype=...)`` will now raise ``TypeError`` instead of incorrectly using ``int64`` (:issue:`32255`)
+- Passing an invalid ``fill_value`` to :meth:`Categorical.take` raises a ``ValueError`` instead of ``TypeError`` (:issue:`33660`)
+- Combining a ``Categorical`` with integer categories and which contains missing values
+  with a float dtype column in operations such as :func:`concat` or :meth:`~DataFrame.append`
+  will now result in a float column instead of an object dtyped column (:issue:`33607`)
+- :meth:`Series.to_timestamp` now raises a ``TypeError`` if the axis is not a :class:`PeriodIndex`. Previously an ``AttributeError`` was raised (:issue:`33327`)
+- :meth:`Series.to_period` now raises a ``TypeError`` if the axis is not a :class:`DatetimeIndex`. Previously an ``AttributeError`` was raised (:issue:`33327`)
+- :func: `pandas.api.dtypes.is_string_dtype` no longer incorrectly identifies categorical series as string.
+- :func:`read_excel` no longer takes ``**kwds`` arguments. This means that passing in keyword ``chunksize`` now raises a ``TypeError``
+  (previously raised a ``NotImplementedError``), while passing in keyword ``encoding`` now raises a ``TypeError`` (:issue:`34464`)
+- :func: `merge` now checks ``suffixes`` parameter type to be ``tuple`` and raises ``TypeError``, whereas before a ``list`` or ``set`` were accepted and that the ``set`` could produce unexpected results (:issue:`33740`)
+- :class:`Period` no longer accepts tuples for the ``freq`` argument (:issue:`34658`)
+- :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` now raises ValueError if ``limit_direction`` is 'forward' or 'both' and ``method`` is 'backfill' or 'bfill' or ``limit_direction`` is 'backward' or 'both' and ``method`` is 'pad' or 'ffill' (:issue:`34746`)
+
+
+Increased minimum versions for dependencies
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Some minimum supported versions of dependencies were updated (:issue:`33718`, :issue:`29766`, :issue:`29723`, pytables >= 3.4.3).
+If installed, we now require:
+
++-----------------+-----------------+----------+---------+
+| Package         | Minimum Version | Required | Changed |
++=================+=================+==========+=========+
+| numpy           | 1.15.4          |    X     |    X    |
++-----------------+-----------------+----------+---------+
+| pytz            | 2015.4          |    X     |         |
++-----------------+-----------------+----------+---------+
+| python-dateutil | 2.7.3           |    X     |    X    |
++-----------------+-----------------+----------+---------+
+| bottleneck      | 1.2.1           |          |         |
++-----------------+-----------------+----------+---------+
+| numexpr         | 2.6.2           |          |         |
++-----------------+-----------------+----------+---------+
+| pytest (dev)    | 4.0.2           |          |         |
++-----------------+-----------------+----------+---------+
+
+For `optional libraries <https://dev.pandas.io/docs/install.html#dependencies>`_ the general recommendation is to use the latest version.
+The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
+Optional libraries below the lowest tested version may still work, but are not considered supported.
+
++-----------------+-----------------+---------+
+| Package         | Minimum Version | Changed |
++=================+=================+=========+
+| beautifulsoup4  | 4.6.0           |         |
++-----------------+-----------------+---------+
+| fastparquet     | 0.3.2           |         |
++-----------------+-----------------+---------+
+| gcsfs           | 0.2.2           |         |
++-----------------+-----------------+---------+
+| lxml            | 3.8.0           |         |
++-----------------+-----------------+---------+
+| matplotlib      | 2.2.2           |         |
++-----------------+-----------------+---------+
+| numba           | 0.46.0          |         |
++-----------------+-----------------+---------+
+| openpyxl        | 2.5.7           |         |
++-----------------+-----------------+---------+
+| pyarrow         | 0.13.0          |         |
++-----------------+-----------------+---------+
+| pymysql         | 0.7.1           |         |
++-----------------+-----------------+---------+
+| pytables        | 3.4.3           |    X    |
++-----------------+-----------------+---------+
+| s3fs            | 0.3.0           |         |
++-----------------+-----------------+---------+
+| scipy           | 1.2.0           |    X    |
++-----------------+-----------------+---------+
+| sqlalchemy      | 1.1.4           |         |
++-----------------+-----------------+---------+
+| xarray          | 0.8.2           |         |
++-----------------+-----------------+---------+
+| xlrd            | 1.1.0           |         |
++-----------------+-----------------+---------+
+| xlsxwriter      | 0.9.8           |         |
++-----------------+-----------------+---------+
+| xlwt            | 1.2.0           |         |
++-----------------+-----------------+---------+
+| pandas-gbq      | 1.2.0           |    X    |
++-----------------+-----------------+---------+
+
+See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
+
+Development Changes
+^^^^^^^^^^^^^^^^^^^
+
+- The minimum version of Cython is now the most recent bug-fix version (0.29.16) (:issue:`33334`).
 
 
 .. _whatsnew_110.deprecations:
