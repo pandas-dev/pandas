@@ -1,2 +1,4 @@
 image:
   file: .gitpod.Dockerfile
+tasks:
+  - init: pip install -r requirements-dev.txt && make develop
