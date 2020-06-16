@@ -17,8 +17,6 @@ from typing import (
     Union,
 )
 
-import numpy as np
-
 from pandas._typing import Label
 
 from pandas.core.dtypes.common import is_dict_like, is_list_like
@@ -329,12 +327,14 @@ def _relabel_result(
         # mean  1.5
         # mean  1.5
         if reorder_mask:
-            fun = [com.get_callable_name(f) if not isinstance(f, str) else f for f in fun]
+            fun = [
+                com.get_callable_name(f) if not isinstance(f, str) else f for f in fun
+            ]
             col_idx_order = Index(s.index).get_indexer(fun)
             s = s[col_idx_order]
 
-        # assign the new user-provided "named aggregation" as index names, and reindex it
-        # based on the whole user-provided names.
+        # assign the new user-provided "named aggregation" as index names, and reindex
+        # it based on the whole user-provided names.
         s.index = reordered_indexes[idx : idx + len(fun)]
         reordered_result_in_dict[col] = s.reindex(columns, copy=False)
         idx = idx + len(fun)
