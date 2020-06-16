@@ -1,5 +1,7 @@
 FROM gitpod/workspace-full:latest
 
+USER root
+
 RUN apt-get update \
     && apt-get -y install --no-install-recommends apt-utils dialog 2>&1 \
     #
