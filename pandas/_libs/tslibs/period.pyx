@@ -1478,7 +1478,7 @@ class IncompatibleFrequency(ValueError):
 
 
 cdef class PeriodMixin:
-    # Methods shared between PeriodArray
+    # Methods shared between Period and PeriodArray
 
     cpdef int _get_to_timestamp_base(self):
         """
