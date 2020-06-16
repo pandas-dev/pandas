@@ -186,11 +186,7 @@ class TestSeriesReplace:
         check_replace(tr, v, e)
 
         # test an object with dates + floats + integers + strings
-        dr = (
-            pd.date_range("1/1/2001", "1/10/2001", freq="D")
-            .to_series()
-            .reset_index(drop=True)
-        )
+        dr = pd.Series(pd.date_range("1/1/2001", "1/10/2001", freq="D"))
         result = dr.astype(object).replace([dr[0], dr[1], dr[2]], [1.0, 2, "a"])
         expected = pd.Series([1.0, 2, "a"] + dr[3:].tolist(), dtype=object)
         tm.assert_series_equal(result, expected)
@@ -406,3 +402,8 @@ class TestSeriesReplace:
         msg = "Series.replace cannot use dict-value and non-None to_replace"
         with pytest.raises(ValueError, match=msg):
             ser.replace(to_replace, value)
+
+    def test_replace_extension_other(self):
+        # https://github.com/pandas-dev/pandas/issues/34530
+        ser = pd.Series(pd.array([1, 2, 3], dtype="Int64"))
+        ser.replace("", "")  # no exception

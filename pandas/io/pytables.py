@@ -2,7 +2,6 @@
 High level interface to PyTables for reading and writing pandas data structures
 to disk
 """
-
 import copy
 from datetime import date, tzinfo
 import itertools
@@ -19,6 +18,7 @@ from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslibs import timezones
 from pandas._typing import ArrayLike, FrameOrSeries, Label
 from pandas.compat._optional import import_optional_dependency
+from pandas.compat.pickle_compat import patch_pickle
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
 
@@ -230,7 +230,7 @@ def to_hdf(
     min_itemsize: Optional[Union[int, Dict[str, int]]] = None,
     nan_rep=None,
     dropna: Optional[bool] = None,
-    data_columns: Optional[List[str]] = None,
+    data_columns: Optional[Union[bool, List[str]]] = None,
     errors: str = "strict",
     encoding: str = "UTF-8",
 ):
@@ -387,7 +387,10 @@ def read_hdf(
         if key is None:
             groups = store.groups()
             if len(groups) == 0:
-                raise ValueError("No dataset in HDF5 file.")
+                raise ValueError(
+                    "Dataset(s) incompatible with Pandas data types, "
+                    "not table, or no datasets found in HDF5 file."
+                )
             candidate_only_group = groups[0]
 
             # For the HDF file to have only one dataset, all other groups
@@ -577,16 +580,39 @@ class HDFStore:
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
 
-    def keys(self) -> List[str]:
+    def keys(self, include: str = "pandas") -> List[str]:
         """
         Return a list of keys corresponding to objects stored in HDFStore.
+
+        Parameters
+        ----------
+
+        include : str, default 'pandas'
+                When kind equals 'pandas' return pandas objects
+                When kind equals 'native' return native HDF5 Table objects
+
+                .. versionadded:: 1.1.0
 
         Returns
         -------
         list
             List of ABSOLUTE path-names (e.g. have the leading '/').
+
+        Raises
+        ------
+        raises ValueError if kind has an illegal value
         """
-        return [n._v_pathname for n in self.groups()]
+        if include == "pandas":
+            return [n._v_pathname for n in self.groups()]
+
+        elif include == "native":
+            assert self._handle is not None  # mypy
+            return [
+                n._v_pathname for n in self._handle.walk_nodes("/", classname="Table")
+            ]
+        raise ValueError(
+            f"`include` should be either 'pandas' or 'native' but is '{include}'"
+        )
 
     def __iter__(self):
         return iter(self.keys())
@@ -726,10 +752,13 @@ class HDFStore:
         object
             Same type as object stored in file.
         """
-        group = self.get_node(key)
-        if group is None:
-            raise KeyError(f"No object named {key} in the file")
-        return self._read_group(group)
+        with patch_pickle():
+            # GH#31167 Without this patch, pickle doesn't know how to unpickle
+            #  old DateOffset objects now that they are cdef classes.
+            group = self.get_node(key)
+            if group is None:
+                raise KeyError(f"No object named {key} in the file")
+            return self._read_group(group)
 
     def select(
         self,
@@ -981,6 +1010,7 @@ class HDFStore:
         data_columns: Optional[List[str]] = None,
         encoding=None,
         errors: str = "strict",
+        track_times: bool = True,
     ):
         """
         Store object in HDFStore.
@@ -990,12 +1020,14 @@ class HDFStore:
         key : str
         value : {Series, DataFrame}
         format : 'fixed(f)|table(t)', default is 'fixed'
-            fixed(f) : Fixed format
-                       Fast writing/reading. Not-appendable, nor searchable.
-            table(t) : Table format
-                       Write as a PyTables Table structure which may perform
-                       worse but allow more flexible operations like searching
-                       / selecting subsets of the data.
+            Format to use when storing object in HDFStore. Value can be one of:
+
+            ``'fixed'``
+                Fixed format.  Fast writing/reading. Not-appendable, nor searchable.
+            ``'table'``
+                Table format.  Write as a PyTables Table structure which may perform
+                worse but allow more flexible operations like searching / selecting
+                subsets of the data.
         append   : bool, default False
             This will force Table format, append the input data to the
             existing.
@@ -1007,6 +1039,12 @@ class HDFStore:
             Provide an encoding for strings.
         dropna   : bool, default False, do not write an ALL nan row to
             The store settable by the option 'io.hdf.dropna_table'.
+        track_times : bool, default True
+            Parameter is propagated to 'create_table' method of 'PyTables'.
+            If set to False it enables to have the same h5 files (same hashes)
+            independent on creation time.
+
+            .. versionadded:: 1.1.0
         """
         if format is None:
             format = get_option("io.hdf.default_format") or "fixed"
@@ -1024,6 +1062,7 @@ class HDFStore:
             data_columns=data_columns,
             encoding=encoding,
             errors=errors,
+            track_times=track_times,
         )
 
     def remove(self, key: str, where=None, start=None, stop=None):
@@ -1112,10 +1151,12 @@ class HDFStore:
         key : str
         value : {Series, DataFrame}
         format : 'table' is the default
-            table(t) : table format
-                       Write as a PyTables Table structure which may perform
-                       worse but allow more flexible operations like searching
-                       / selecting subsets of the data.
+            Format to use when storing object in HDFStore.  Value can be one of:
+
+            ``'table'``
+                Table format. Write as a PyTables Table structure which may perform
+                worse but allow more flexible operations like searching / selecting
+                subsets of the data.
         append       : bool, default True
             Append the input data to the existing.
         data_columns : list of columns, or True, default None
@@ -1623,6 +1664,7 @@ class HDFStore:
         data_columns=None,
         encoding=None,
         errors: str = "strict",
+        track_times: bool = True,
     ):
         group = self.get_node(key)
 
@@ -1685,6 +1727,7 @@ class HDFStore:
             dropna=dropna,
             nan_rep=nan_rep,
             data_columns=data_columns,
+            track_times=track_times,
         )
 
         if isinstance(s, Table) and index:
@@ -2210,19 +2253,20 @@ class DataCol(IndexCol):
         return self.data
 
     @classmethod
-    def _get_atom(cls, values: Union[np.ndarray, ABCExtensionArray]) -> "Col":
+    def _get_atom(cls, values: ArrayLike) -> "Col":
         """
         Get an appropriately typed and shaped pytables.Col object for values.
         """
         dtype = values.dtype
-        itemsize = dtype.itemsize
+        itemsize = dtype.itemsize  # type: ignore
 
         shape = values.shape
         if values.ndim == 1:
             # EA, use block shape pretending it is 2D
+            # TODO(EA2D): not necessary with 2D EAs
             shape = (1, values.size)
 
-        if is_categorical_dtype(dtype):
+        if isinstance(values, Categorical):
             codes = values.codes
             atom = cls.get_atom_data(shape, kind=codes.dtype.name)
         elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
@@ -2622,7 +2666,7 @@ class GenericFixed(Fixed):
     _reverse_index_map = {v: k for k, v in _index_type_map.items()}
     attributes: List[str] = []
 
-    # indexer helpders
+    # indexer helpers
     def _class_to_alias(self, cls) -> str:
         return self._index_type_map.get(cls, "")
 
@@ -2815,7 +2859,7 @@ class GenericFixed(Fixed):
     ) -> Index:
         data = node[start:stop]
         # If the index was an empty array write_array_empty() will
-        # have written a sentinel. Here we relace it with the original.
+        # have written a sentinel. Here we replace it with the original.
         if "shape" in node._v_attrs and np.prod(node._v_attrs.shape) == 0:
             data = np.empty(node._v_attrs.shape, dtype=node._v_attrs.value_type,)
         kind = _ensure_decoded(node._v_attrs.kind)
@@ -2884,7 +2928,7 @@ class GenericFixed(Fixed):
         empty_array = value.size == 0
         transposed = False
 
-        if is_categorical_dtype(value):
+        if is_categorical_dtype(value.dtype):
             raise NotImplementedError(
                 "Cannot store a category dtype in a HDF5 dataset that uses format="
                 '"fixed". Use format="table".'
@@ -2921,7 +2965,7 @@ class GenericFixed(Fixed):
 
             # infer the type, warn if we have a non-string type here (for
             # performance)
-            inferred_type = lib.infer_dtype(value.ravel(), skipna=False)
+            inferred_type = lib.infer_dtype(value, skipna=False)
             if empty_array:
                 pass
             elif inferred_type == "string":
@@ -3588,7 +3632,7 @@ class Table(Fixed):
             )
 
         # evaluate the passed data_columns, True == use all columns
-        # take only valide axis labels
+        # take only valid axis labels
         if data_columns is True:
             data_columns = list(axis_labels)
         elif data_columns is None:
@@ -3709,7 +3753,7 @@ class Table(Fixed):
         # Now we can construct our new index axis
         idx = axes[0]
         a = obj.axes[idx]
-        axis_name = obj._AXIS_NAMES[idx]
+        axis_name = obj._get_axis_name(idx)
         new_index = _convert_index(axis_name, a, self.encoding, self.errors)
         new_index.axis = idx
 
@@ -3792,7 +3836,7 @@ class Table(Fixed):
             tz = _get_tz(data_converted.tz) if hasattr(data_converted, "tz") else None
 
             meta = metadata = ordered = None
-            if is_categorical_dtype(data_converted):
+            if is_categorical_dtype(data_converted.dtype):
                 ordered = data_converted.ordered
                 meta = "category"
                 metadata = np.array(data_converted.categories, copy=False).ravel()
@@ -3916,7 +3960,7 @@ class Table(Fixed):
 
                 def process_filter(field, filt):
 
-                    for axis_name in obj._AXIS_NAMES.values():
+                    for axis_name in obj._AXIS_ORDERS:
                         axis_number = obj._get_axis_number(axis_name)
                         axis_values = obj._get_axis(axis_name)
                         assert axis_number is not None
@@ -4102,8 +4146,8 @@ class AppendableTable(Table):
         dropna=False,
         nan_rep=None,
         data_columns=None,
+        track_times=True,
     ):
-
         if not append and self.is_exists:
             self._handle.remove_node(self.group, "table")
 
@@ -4132,6 +4176,8 @@ class AppendableTable(Table):
 
             # set the table attributes
             table.set_attrs()
+
+            options["track_times"] = track_times
 
             # create the table
             table._handle.create_table(table.group, **options)
@@ -4765,7 +4811,7 @@ def _maybe_convert_for_string_atom(
     data = block.values
 
     # see if we have a valid string type
-    inferred_type = lib.infer_dtype(data.ravel(), skipna=False)
+    inferred_type = lib.infer_dtype(data, skipna=False)
     if inferred_type != "string":
 
         # we cannot serialize this data, so report an exception on a column
@@ -4773,7 +4819,7 @@ def _maybe_convert_for_string_atom(
         for i in range(len(block.shape[0])):
 
             col = block.iget(i)
-            inferred_type = lib.infer_dtype(col.ravel(), skipna=False)
+            inferred_type = lib.infer_dtype(col, skipna=False)
             if inferred_type != "string":
                 iloc = block.mgr_locs.indexer[i]
                 raise TypeError(

@@ -94,6 +94,17 @@ def test_nth_with_na_object(index, nulls_fixture):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("method", ["first", "last"])
+def test_first_last_with_None(method):
+    # https://github.com/pandas-dev/pandas/issues/32800
+    # None should be preserved as object dtype
+    df = pd.DataFrame.from_dict({"id": ["a"], "value": [None]})
+    groups = df.groupby("id", as_index=False)
+    result = getattr(groups, method)()
+
+    tm.assert_frame_equal(result, df)
+
+
 def test_first_last_nth_dtypes(df_mixed_floats):
 
     df = df_mixed_floats.copy()
@@ -127,6 +138,18 @@ def test_first_last_nth_dtypes(df_mixed_floats):
     assert s.dtype == "int64"
     f = s.groupby(level=0).first()
     assert f.dtype == "int64"
+
+
+def test_first_last_nth_nan_dtype():
+    # GH 33591
+    df = pd.DataFrame({"data": ["A"], "nans": pd.Series([np.nan], dtype=object)})
+
+    grouped = df.groupby("data")
+    expected = df.set_index("data").nans
+    tm.assert_series_equal(grouped.nans.first(), expected)
+    tm.assert_series_equal(grouped.nans.last(), expected)
+    tm.assert_series_equal(grouped.nans.nth(-1), expected)
+    tm.assert_series_equal(grouped.nans.nth(0), expected)
 
 
 def test_first_strings_timestamps():

@@ -695,6 +695,21 @@ class TestDataFrameQueryNumExprPandas:
             result = df.query(q, engine=self.engine, parser=self.parser)
             tm.assert_frame_equal(result, expected)
 
+    def test_check_tz_aware_index_query(self, tz_aware_fixture):
+        # https://github.com/pandas-dev/pandas/issues/29463
+        tz = tz_aware_fixture
+        df_index = pd.date_range(
+            start="2019-01-01", freq="1d", periods=10, tz=tz, name="time"
+        )
+        expected = pd.DataFrame(index=df_index)
+        df = pd.DataFrame(index=df_index)
+        result = df.query('"2018-01-03 00:00:00+00" < time')
+        tm.assert_frame_equal(result, expected)
+
+        expected = pd.DataFrame(df_index)
+        result = df.reset_index().query('"2018-01-03 00:00:00+00" < time')
+        tm.assert_frame_equal(result, expected)
+
 
 @td.skip_if_no_ne
 class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
@@ -1181,3 +1196,24 @@ class TestDataFrameQueryBacktickQuoting:
     def test_failing_hashtag(self, df):
         with pytest.raises(SyntaxError):
             df.query("`foo#bar` > 4")
+
+    def test_call_non_named_expression(self, df):
+        """
+        Only attributes and variables ('named functions') can be called.
+        .__call__() is not an allowed attribute because that would allow
+        calling anything.
+        https://github.com/pandas-dev/pandas/pull/32460
+        """
+
+        def func(*_):
+            return 1
+
+        funcs = [func]  # noqa
+
+        df.eval("@func()")
+
+        with pytest.raises(TypeError, match="Only named functions are supported"):
+            df.eval("@funcs[0]()")
+
+        with pytest.raises(TypeError, match="Only named functions are supported"):
+            df.eval("@funcs[0].__call__()")

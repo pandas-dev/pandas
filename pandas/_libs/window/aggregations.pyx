@@ -843,7 +843,8 @@ def roll_kurt_variable(ndarray[float64_t] values, ndarray[int64_t] start,
 
 
 def roll_median_c(ndarray[float64_t] values, ndarray[int64_t] start,
-                  ndarray[int64_t] end, int64_t minp, int64_t win):
+                  ndarray[int64_t] end, int64_t minp, int64_t win=0):
+    # GH 32865. win argument kept for compatibility
     cdef:
         float64_t val, res, prev
         bint err = False
@@ -858,7 +859,7 @@ def roll_median_c(ndarray[float64_t] values, ndarray[int64_t] start,
     # actual skiplist ops outweigh any window computation costs
     output = np.empty(N, dtype=float)
 
-    if win == 0 or (end - start).max() == 0:
+    if (end - start).max() == 0:
         output[:] = NaN
         return output
     win = (end - start).max()
@@ -970,8 +971,8 @@ cdef inline numeric calc_mm(int64_t minp, Py_ssize_t nobs,
     return result
 
 
-def roll_max_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
-                   ndarray[int64_t] end, int64_t minp, int64_t win):
+def roll_max_fixed(float64_t[:] values, int64_t[:] start,
+                   int64_t[:] end, int64_t minp, int64_t win):
     """
     Moving max of 1d array of any numeric type along axis=0 ignoring NaNs.
 
@@ -987,7 +988,7 @@ def roll_max_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
             make the interval closed on the right, left,
             both or neither endpoints
     """
-    return _roll_min_max_fixed(values, start, end, minp, win, is_max=1)
+    return _roll_min_max_fixed(values, minp, win, is_max=1)
 
 
 def roll_max_variable(ndarray[float64_t] values, ndarray[int64_t] start,
@@ -1010,8 +1011,8 @@ def roll_max_variable(ndarray[float64_t] values, ndarray[int64_t] start,
     return _roll_min_max_variable(values, start, end, minp, is_max=1)
 
 
-def roll_min_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
-                   ndarray[int64_t] end, int64_t minp, int64_t win):
+def roll_min_fixed(float64_t[:] values, int64_t[:] start,
+                   int64_t[:] end, int64_t minp, int64_t win):
     """
     Moving min of 1d array of any numeric type along axis=0 ignoring NaNs.
 
@@ -1024,7 +1025,7 @@ def roll_min_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
     index : ndarray, optional
        index for window computation
     """
-    return _roll_min_max_fixed(values, start, end, minp, win, is_max=0)
+    return _roll_min_max_fixed(values, minp, win, is_max=0)
 
 
 def roll_min_variable(ndarray[float64_t] values, ndarray[int64_t] start,
@@ -1111,9 +1112,7 @@ cdef _roll_min_max_variable(ndarray[numeric] values,
     return output
 
 
-cdef _roll_min_max_fixed(ndarray[numeric] values,
-                         ndarray[int64_t] starti,
-                         ndarray[int64_t] endi,
+cdef _roll_min_max_fixed(numeric[:] values,
                          int64_t minp,
                          int64_t win,
                          bint is_max):
@@ -1760,7 +1759,7 @@ def roll_weighted_var(float64_t[:] values, float64_t[:] weights,
 # Exponentially weighted moving average
 
 
-def ewma(float64_t[:] vals, float64_t com, int adjust, bint ignore_na, int minp):
+def ewma(float64_t[:] vals, float64_t com, bint adjust, bint ignore_na, int minp):
     """
     Compute exponentially-weighted moving average using center-of-mass.
 
@@ -1778,35 +1777,32 @@ def ewma(float64_t[:] vals, float64_t com, int adjust, bint ignore_na, int minp)
     """
 
     cdef:
-        Py_ssize_t N = len(vals)
+        Py_ssize_t i, nobs, N = len(vals)
         ndarray[float64_t] output = np.empty(N, dtype=float)
         float64_t alpha, old_wt_factor, new_wt, weighted_avg, old_wt, cur
-        Py_ssize_t i, nobs
         bint is_observation
 
     if N == 0:
         return output
-
-    minp = max(minp, 1)
 
     alpha = 1. / (1. + com)
     old_wt_factor = 1. - alpha
     new_wt = 1. if adjust else alpha
 
     weighted_avg = vals[0]
-    is_observation = (weighted_avg == weighted_avg)
+    is_observation = weighted_avg == weighted_avg
     nobs = int(is_observation)
-    output[0] = weighted_avg if (nobs >= minp) else NaN
+    output[0] = weighted_avg if nobs >= minp else NaN
     old_wt = 1.
 
     with nogil:
         for i in range(1, N):
             cur = vals[i]
-            is_observation = (cur == cur)
+            is_observation = cur == cur
             nobs += is_observation
             if weighted_avg == weighted_avg:
 
-                if is_observation or (not ignore_na):
+                if is_observation or not ignore_na:
 
                     old_wt *= old_wt_factor
                     if is_observation:
@@ -1822,7 +1818,7 @@ def ewma(float64_t[:] vals, float64_t com, int adjust, bint ignore_na, int minp)
             elif is_observation:
                 weighted_avg = cur
 
-            output[i] = weighted_avg if (nobs >= minp) else NaN
+            output[i] = weighted_avg if nobs >= minp else NaN
 
     return output
 
@@ -1832,7 +1828,7 @@ def ewma(float64_t[:] vals, float64_t com, int adjust, bint ignore_na, int minp)
 
 
 def ewmcov(float64_t[:] input_x, float64_t[:] input_y,
-           float64_t com, int adjust, bint ignore_na, int minp, int bias):
+           float64_t com, bint adjust, bint ignore_na, int minp, bint bias):
     """
     Compute exponentially-weighted moving variance using center-of-mass.
 
@@ -1852,22 +1848,19 @@ def ewmcov(float64_t[:] input_x, float64_t[:] input_y,
     """
 
     cdef:
-        Py_ssize_t N = len(input_x)
+        Py_ssize_t i, nobs, N = len(input_x), M = len(input_y)
         float64_t alpha, old_wt_factor, new_wt, mean_x, mean_y, cov
         float64_t sum_wt, sum_wt2, old_wt, cur_x, cur_y, old_mean_x, old_mean_y
         float64_t numerator, denominator
-        Py_ssize_t i, nobs
         ndarray[float64_t] output
         bint is_observation
 
-    if <Py_ssize_t>len(input_y) != N:
-        raise ValueError(f"arrays are of different lengths ({N} and {len(input_y)})")
+    if M != N:
+        raise ValueError(f"arrays are of different lengths ({N} and {M})")
 
     output = np.empty(N, dtype=float)
     if N == 0:
         return output
-
-    minp = max(minp, 1)
 
     alpha = 1. / (1. + com)
     old_wt_factor = 1. - alpha
@@ -1875,12 +1868,12 @@ def ewmcov(float64_t[:] input_x, float64_t[:] input_y,
 
     mean_x = input_x[0]
     mean_y = input_y[0]
-    is_observation = ((mean_x == mean_x) and (mean_y == mean_y))
+    is_observation = (mean_x == mean_x) and (mean_y == mean_y)
     nobs = int(is_observation)
     if not is_observation:
         mean_x = NaN
         mean_y = NaN
-    output[0] = (0. if bias else NaN) if (nobs >= minp) else NaN
+    output[0] = (0. if bias else NaN) if nobs >= minp else NaN
     cov = 0.
     sum_wt = 1.
     sum_wt2 = 1.
@@ -1891,10 +1884,10 @@ def ewmcov(float64_t[:] input_x, float64_t[:] input_y,
         for i in range(1, N):
             cur_x = input_x[i]
             cur_y = input_y[i]
-            is_observation = ((cur_x == cur_x) and (cur_y == cur_y))
+            is_observation = (cur_x == cur_x) and (cur_y == cur_y)
             nobs += is_observation
             if mean_x == mean_x:
-                if is_observation or (not ignore_na):
+                if is_observation or not ignore_na:
                     sum_wt *= old_wt_factor
                     sum_wt2 *= (old_wt_factor * old_wt_factor)
                     old_wt *= old_wt_factor
@@ -1930,8 +1923,8 @@ def ewmcov(float64_t[:] input_x, float64_t[:] input_y,
                 if not bias:
                     numerator = sum_wt * sum_wt
                     denominator = numerator - sum_wt2
-                    if (denominator > 0.):
-                        output[i] = ((numerator / denominator) * cov)
+                    if denominator > 0:
+                        output[i] = (numerator / denominator) * cov
                     else:
                         output[i] = NaN
                 else:

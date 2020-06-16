@@ -8,7 +8,12 @@ from pandas.errors import AbstractMethodError
 
 from pandas import DataFrame, get_option
 
-from pandas.io.common import get_filepath_or_buffer, is_gcs_url, is_s3_url
+from pandas.io.common import (
+    get_filepath_or_buffer,
+    get_fs_for_path,
+    is_gcs_url,
+    is_s3_url,
+)
 
 
 def get_engine(engine: str) -> "BaseImpl":
@@ -92,13 +97,15 @@ class PyArrowImpl(BaseImpl):
         **kwargs,
     ):
         self.validate_dataframe(df)
-        path, _, _, _ = get_filepath_or_buffer(path, mode="wb")
+        file_obj_or_path, _, _, should_close = get_filepath_or_buffer(path, mode="wb")
 
         from_pandas_kwargs: Dict[str, Any] = {"schema": kwargs.pop("schema", None)}
         if index is not None:
             from_pandas_kwargs["preserve_index"] = index
 
         table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
+        # write_to_dataset does not support a file-like object when
+        # a directory path is used, so just pass the path string.
         if partition_cols is not None:
             self.api.parquet.write_to_dataset(
                 table,
@@ -108,14 +115,23 @@ class PyArrowImpl(BaseImpl):
                 **kwargs,
             )
         else:
-            self.api.parquet.write_table(table, path, compression=compression, **kwargs)
+            self.api.parquet.write_table(
+                table, file_obj_or_path, compression=compression, **kwargs
+            )
+        if should_close:
+            file_obj_or_path.close()
 
     def read(self, path, columns=None, **kwargs):
-        path, _, _, should_close = get_filepath_or_buffer(path)
+        fs = get_fs_for_path(path)
+        should_close = None
+        # Avoid calling get_filepath_or_buffer for s3/gcs URLs since
+        # since it returns an S3File which doesn't support dir reads in arrow
+        if not fs:
+            path, _, _, should_close = get_filepath_or_buffer(path)
 
         kwargs["use_pandas_metadata"] = True
         result = self.api.parquet.read_table(
-            path, columns=columns, **kwargs
+            path, columns=columns, filesystem=fs, **kwargs
         ).to_pandas()
         if should_close:
             path.close()
@@ -183,7 +199,7 @@ class FastParquetImpl(BaseImpl):
 
             # When path is s3:// an S3File is returned.
             # We need to retain the original path(str) while also
-            # pass the S3File().open function to fsatparquet impl.
+            # pass the S3File().open function to fastparquet impl.
             s3, filesystem = get_file_and_filesystem(path)
             try:
                 parquet_file = self.api.ParquetFile(path, open_with=filesystem.open)
@@ -271,7 +287,7 @@ def read_parquet(path, engine: str = "auto", columns=None, **kwargs):
         A file URL can also be a path to a directory that contains multiple
         partitioned parquet files. Both pyarrow and fastparquet support
         paths to directories as well as file URLs. A directory path could be:
-        ``file://localhost/path/to/tables``
+        ``file://localhost/path/to/tables`` or ``s3://bucket/partition_dir``
 
         If you want to pass in a path object, pandas accepts any
         ``os.PathLike``.
