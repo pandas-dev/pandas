@@ -1,8 +1,7 @@
 import pytest
 
 from pandas._libs.tslibs import Resolution, to_offset
-from pandas._libs.tslibs.dtypes import _attrname_to_abbrevs
-from pandas._libs.tslibs.frequencies import get_to_timestamp_base
+from pandas._libs.tslibs.dtypes import _attrname_to_abbrevs, PeriodDtypeBase
 
 
 @pytest.mark.parametrize(
@@ -12,7 +11,9 @@ from pandas._libs.tslibs.frequencies import get_to_timestamp_base
 def test_get_to_timestamp_base(freqstr, exp_freqstr):
     left_code = to_offset(freqstr)._period_dtype_code
     exp_code = to_offset(exp_freqstr)._period_dtype_code
-    assert get_to_timestamp_base(left_code) == exp_code
+
+    result_code = PeriodDtypeBase(left_code).get_to_timestamp_base()
+    assert result_code == exp_code
 
 
 @pytest.mark.parametrize(

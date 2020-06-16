@@ -9,11 +9,11 @@ from pandas._libs.tslibs import (
     NaTType,
     Timedelta,
     delta_to_nanoseconds,
-    frequencies as libfrequencies,
     iNaT,
     period as libperiod,
     to_offset,
 )
+from pandas._libs.tslibs.dtypes import FreqGroup
 from pandas._libs.tslibs.fields import isleapyear_arr
 from pandas._libs.tslibs.offsets import Tick, delta_to_tick
 from pandas._libs.tslibs.period import (
@@ -23,6 +23,7 @@ from pandas._libs.tslibs.period import (
     get_period_field_arr,
     period_asfreq_arr,
 )
+
 from pandas._typing import AnyArrayLike
 from pandas.util._decorators import cache_readonly
 
@@ -440,8 +441,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
                 return (self + self.freq).to_timestamp(how="start") - adjust
 
         if freq is None:
-            base = self.freq._period_dtype_code
-            freq = libfrequencies.get_to_timestamp_base(base)
+            freq = self.dtype.get_to_timestamp_base()
             base = freq
         else:
             freq = Period._maybe_convert_freq(freq)
@@ -1027,11 +1027,11 @@ def _range_from_fields(
     if quarter is not None:
         if freq is None:
             freq = to_offset("Q")
-            base = libfrequencies.FreqGroup.FR_QTR
+            base = FreqGroup.FR_QTR
         else:
             freq = to_offset(freq)
             base = libperiod.freq_to_dtype_code(freq)
-            if base != libfrequencies.FreqGroup.FR_QTR:
+            if base != FreqGroup.FR_QTR:
                 raise AssertionError("base must equal FR_QTR")
 
         year, quarter = _make_field_arrays(year, quarter)

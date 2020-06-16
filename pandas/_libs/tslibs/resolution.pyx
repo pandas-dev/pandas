@@ -6,9 +6,9 @@ from numpy cimport ndarray, int64_t, int32_t
 from pandas._libs.tslibs.util cimport get_nat
 
 from pandas._libs.tslibs.dtypes cimport attrname_to_abbrevs
+from pandas._libs.tslibs.dtypes import FreqGroup
 from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, dt64_to_dtstruct)
-from pandas._libs.tslibs.frequencies import FreqGroup
 from pandas._libs.tslibs.timezones cimport (
     is_utc, is_tzlocal, maybe_get_tz, get_dst_info)
 from pandas._libs.tslibs.ccalendar cimport get_days_in_month, c_MONTH_NUMBERS

@@ -74,7 +74,6 @@ from pandas._libs.tslibs.dtypes cimport (
     attrname_to_abbrevs,
 )
 
-from pandas._libs.tslibs.frequencies cimport get_to_timestamp_base
 from pandas._libs.tslibs.parsing cimport get_rule_month
 from pandas._libs.tslibs.parsing import parse_time_string
 from pandas._libs.tslibs.nattype cimport (
@@ -1734,8 +1733,7 @@ cdef class _Period:
             return endpoint - Timedelta(1, 'ns')
 
         if freq is None:
-            base = self._dtype._dtype_code
-            freq = get_to_timestamp_base(base)
+            freq = self._dtype.get_to_timestamp_base()
             base = freq
         else:
             freq = self._maybe_convert_freq(freq)

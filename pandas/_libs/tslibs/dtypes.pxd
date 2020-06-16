@@ -74,3 +74,5 @@ cdef enum PeriodDtypeCode:
 cdef class PeriodDtypeBase:
     cdef readonly:
         PeriodDtypeCode _dtype_code
+
+    cpdef PeriodDtypeCode get_to_timestamp_base(self)
