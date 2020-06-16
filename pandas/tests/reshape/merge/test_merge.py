@@ -1999,6 +1999,7 @@ def test_merge_series(on, left_on, right_on, left_index, right_index, nm):
         (0, 0, dict(suffixes=("", "_dup")), ["0", "0_dup"]),
         (0, 0, dict(suffixes=(None, "_dup")), [0, "0_dup"]),
         (0, 0, dict(suffixes=("_x", "_y")), ["0_x", "0_y"]),
+        (0, 0, dict(suffixes=["_x", "_y"]), ["0_x", "0_y"]),
         ("a", 0, dict(suffixes=(None, "_y")), ["a", 0]),
         (0.0, 0.0, dict(suffixes=("_x", None)), ["0.0_x", 0.0]),
         ("b", "b", dict(suffixes=(None, "_y")), ["b", "b_y"]),
