@@ -104,18 +104,18 @@ class _Unstacker:
         self.removed_level = self.new_index_levels.pop(self.level)
         self.removed_level_full = index.levels[self.level]
 
-        # Bug fix GH 20601
+        # Bug fix GH 20601 & 26314
         # If the data frame is too big, the number of unique index combination
-        # will cause int32 overflow on windows environments.
+        # will cause int64 overflow
         # We want to check and raise an error before this happens
         num_rows = np.max([index_level.size for index_level in self.new_index_levels])
         num_columns = self.removed_level.size
 
-        # GH20601: This forces an overflow if the number of cells is too high.
-        num_cells = np.multiply(num_rows, num_columns, dtype=np.int32)
+        # GH20601 & GH26314: This forces an overflow if the number of cells is too high.
+        num_cells = np.multiply(num_rows, num_columns, dtype=np.int64)
 
         if num_rows > 0 and num_columns > 0 and num_cells <= 0:
-            raise ValueError("Unstacked DataFrame is too big, causing int32 overflow")
+            raise ValueError("Unstacked DataFrame is too big, causing int64 overflow")
 
         self._make_selectors()
 
