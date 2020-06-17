@@ -23,7 +23,6 @@ from pandas.core.dtypes.common import is_dict_like, is_list_like
 
 from pandas.core.base import SpecificationError
 import pandas.core.common as com
-from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import Index
 from pandas.core.series import FrameOrSeriesUnion, Series
 
@@ -303,7 +302,7 @@ def _relabel_result(
     reordered_result_in_dict: Dict[Label, Series] = {}
     idx = 0
 
-    reorder_mask = isinstance(result, DataFrame) and len(result.columns) > 1
+    reorder_mask = not isinstance(result, Series) and len(result.columns) > 1
     for col, fun in func.items():
         s = result[col].dropna()
 
