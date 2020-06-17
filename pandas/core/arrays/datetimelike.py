@@ -1,13 +1,21 @@
 from datetime import datetime, timedelta
 import operator
-from typing import Any, Callable, Sequence, Tuple, Type, TypeVar, Union, cast
+from typing import Any, Callable, Optional, Sequence, Tuple, Type, TypeVar, Union, cast
 import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, NaTType, Period, Timestamp, algos, iNaT, lib
-from pandas._libs.tslibs.resolution import Resolution
-from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
+from pandas._libs import algos, lib
+from pandas._libs.tslibs import (
+    NaT,
+    NaTType,
+    Period,
+    Resolution,
+    Timestamp,
+    delta_to_nanoseconds,
+    iNaT,
+    to_offset,
+)
 from pandas._libs.tslibs.timestamps import (
     RoundTo,
     integer_op_not_supported,
@@ -27,6 +35,7 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_datetime_or_timedelta_dtype,
     is_dtype_equal,
+    is_extension_array_dtype,
     is_float_dtype,
     is_integer_dtype,
     is_list_like,
@@ -98,6 +107,10 @@ def _datetimelike_array_cmp(cls, op):
 
     @unpack_zerodim_and_defer(opname)
     def wrapper(self, other):
+        if self.ndim > 1 and getattr(other, "shape", None) == self.shape:
+            # TODO: handle 2D-like listlikes
+            return op(self.ravel(), other.ravel()).reshape(self.shape)
+
         try:
             other = _validate_comparison_value(self, other)
         except InvalidComparison:
@@ -415,7 +428,7 @@ default 'raise'
         else:
             # As an internal method, we can ensure this assertion always holds
             assert freq == "infer"
-            freq = frequencies.to_offset(self.inferred_freq)
+            freq = to_offset(self.inferred_freq)
 
         arr = self.view()
         arr._freq = freq
@@ -615,7 +628,11 @@ class DatetimeLikeArrayMixin(
         if is_object_dtype(dtype):
             return self._box_values(self.asi8.ravel()).reshape(self.shape)
         elif is_string_dtype(dtype) and not is_categorical_dtype(dtype):
-            return self._format_native_types()
+            if is_extension_array_dtype(dtype):
+                arr_cls = dtype.construct_array_type()
+                return arr_cls._from_sequence(self, dtype=dtype)
+            else:
+                return self._format_native_types()
         elif is_integer_dtype(dtype):
             # we deliberately ignore int32 vs. int64 here.
             # See https://github.com/pandas-dev/pandas/issues/24381 for more.
@@ -753,21 +770,25 @@ class DatetimeLikeArrayMixin(
                 "will raise in a future version, pass "
                 f"{self._scalar_type.__name__} instead.",
                 FutureWarning,
-                stacklevel=10,
+                stacklevel=8,
             )
             fill_value = new_fill
 
         return self._unbox(fill_value)
 
-    def _validate_scalar(self, value, msg: str, cast_str: bool = False):
+    def _validate_scalar(
+        self, value, msg: Optional[str] = None, cast_str: bool = False
+    ):
         """
         Validate that the input value can be cast to our scalar_type.
 
         Parameters
         ----------
         value : object
-        msg : str
+        msg : str, optional.
             Message to raise in TypeError on invalid input.
+            If not provided, `value` is cast to a str and used
+            as the message.
         cast_str : bool, default False
             Whether to try to parse string input to scalar_type.
 
@@ -790,12 +811,14 @@ class DatetimeLikeArrayMixin(
             value = self._scalar_type(value)  # type: ignore
 
         else:
+            if msg is None:
+                msg = str(value)
             raise TypeError(msg)
 
         return value
 
     def _validate_listlike(
-        self, value, opname: str, cast_str: bool = False, allow_object: bool = False,
+        self, value, opname: str, cast_str: bool = False, allow_object: bool = False
     ):
         if isinstance(value, type(self)):
             return value
@@ -1065,7 +1088,7 @@ class DatetimeLikeArrayMixin(
     @freq.setter
     def freq(self, value):
         if value is not None:
-            value = frequencies.to_offset(value)
+            value = to_offset(value)
             self._validate_frequency(self, value)
 
         self._freq = value
@@ -1094,15 +1117,18 @@ class DatetimeLikeArrayMixin(
             return None
 
     @property  # NB: override with cache_readonly in immutable subclasses
-    def _resolution(self):
-        return Resolution.get_reso_from_freq(self.freqstr)
+    def _resolution_obj(self) -> Optional[Resolution]:
+        try:
+            return Resolution.get_reso_from_freq(self.freqstr)
+        except KeyError:
+            return None
 
     @property  # NB: override with cache_readonly in immutable subclasses
     def resolution(self) -> str:
         """
         Returns day, hour, minute, second, millisecond or microsecond
         """
-        return Resolution.get_str(self._resolution)
+        return self._resolution_obj.attrname  # type: ignore
 
     @classmethod
     def _validate_frequency(cls, index, freq, **kwargs):
@@ -1308,10 +1334,12 @@ class DatetimeLikeArrayMixin(
         """
         assert op in [operator.add, operator.sub]
         if len(other) == 1:
+            # If both 1D then broadcasting is unambiguous
+            # TODO(EA2D): require self.ndim == other.ndim here
             return op(self, other[0])
 
         warnings.warn(
-            "Adding/subtracting array of DateOffsets to "
+            "Adding/subtracting object-dtype array to "
             f"{type(self).__name__} not vectorized",
             PerformanceWarning,
         )
@@ -1319,7 +1347,7 @@ class DatetimeLikeArrayMixin(
         # Caller is responsible for broadcasting if necessary
         assert self.shape == other.shape, (self.shape, other.shape)
 
-        res_values = op(self.astype("O"), np.array(other))
+        res_values = op(self.astype("O"), np.asarray(other))
         result = array(res_values.ravel())
         result = extract_array(result, extract_numpy=True).reshape(self.shape)
         return result
@@ -1341,7 +1369,7 @@ class DatetimeLikeArrayMixin(
         """
         if freq is not None and freq != self.freq:
             if isinstance(freq, str):
-                freq = frequencies.to_offset(freq)
+                freq = to_offset(freq)
             offset = periods * freq
             result = self + offset
             return result
@@ -1753,7 +1781,7 @@ def maybe_infer_freq(freq):
     if not isinstance(freq, DateOffset):
         # if a passed freq is None, don't infer automatically
         if freq != "infer":
-            freq = frequencies.to_offset(freq)
+            freq = to_offset(freq)
         else:
             freq_infer = True
             freq = None

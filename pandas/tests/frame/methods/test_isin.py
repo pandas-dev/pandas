@@ -164,7 +164,7 @@ class TestDataFrameIsIn:
         tm.assert_frame_equal(result, expected)
 
         df2.index = idx
-        expected = df2.values.astype(np.bool)
+        expected = df2.values.astype(bool)
         expected[:, 1] = ~expected[:, 1]
         expected = DataFrame(expected, columns=["A", "B"], index=idx)
 
