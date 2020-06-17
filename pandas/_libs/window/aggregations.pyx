@@ -1809,7 +1809,7 @@ def ewma(float64_t[:] vals, float64_t com, bint adjust, bint ignore_na, int minp
     ----------
     vals : ndarray (float64 type)
     com : float64
-    adjust: int
+    adjust : int
     ignore_na : bool
     minp : int
 
@@ -1879,8 +1879,8 @@ def ewmcov(float64_t[:] input_x, float64_t[:] input_y,
     input_x : ndarray (float64 type)
     input_y : ndarray (float64 type)
     com : float64
-    adjust: int
-    ignore_na: bool
+    adjust : int
+    ignore_na : bool
     minp : int
     bias : int
 
