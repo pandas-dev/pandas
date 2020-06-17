@@ -2759,8 +2759,8 @@ def test_concat_sparse():
 
 def test_concat_dense_sparse():
     # GH 30668
-    a = pd.Series(pd.arrays.SparseArray([1, None]), dtype=np.float)
-    b = pd.Series([1], dtype=np.float)
+    a = pd.Series(pd.arrays.SparseArray([1, None]), dtype=float)
+    b = pd.Series([1], dtype=float)
     expected = pd.Series(data=[1, None, 1], index=[0, 1, 0]).astype(
         pd.SparseDtype(np.float64, None)
     )

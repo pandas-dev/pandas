@@ -205,11 +205,25 @@ class NumbaUtilError(Exception):
 class DuplicateLabelError(ValueError):
     """
     Error raised when an operation would introduce duplicate labels.
+
+    .. versionadded:: 1.1.0
+
     Examples
     --------
-    >>> s = pd.Series([0, 1, 2], index=['a', 'b', 'c'], allows_duplicates=False)
+    >>> s = pd.Series([0, 1, 2], index=['a', 'b', 'c'], allows_duplicate_labels=False)
     >>> s.reindex(['a', 'a', 'b'])
     Traceback (most recent call last):
        ...
-    DuplicateLabelError: Duplicate labels are not allowed on this pandas object.
+    DuplicateLabelError: Index has duplicates.
+          positions
+    label
+    a        [0, 1]
+    """
+
+
+class InvalidIndexError(Exception):
+    """
+    Exception raised when attemping to use an invalid index key.
+
+    .. versionadded:: 1.1.0
     """
