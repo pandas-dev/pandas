@@ -224,7 +224,7 @@ class EWM(_Rolling):
         else:
             if halflife is not None and not isinstance(halflife, float):
                 raise ValueError(
-                    "halflife can only be a timedelta convertable argument if "
+                    "halflife can only be a timedelta convertible argument if "
                     "times is not None."
                 )
             self.time_weights = None
