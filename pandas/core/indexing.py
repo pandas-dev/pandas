@@ -4,7 +4,7 @@ import numpy as np
 
 from pandas._libs.indexing import _NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
-from pandas.errors import AbstractMethodError
+from pandas.errors import AbstractMethodError, InvalidIndexError
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import (
@@ -29,7 +29,7 @@ from pandas.core.indexers import (
     is_list_like_indexer,
     length_of_indexer,
 )
-from pandas.core.indexes.api import Index, InvalidIndexError
+from pandas.core.indexes.api import Index
 
 if TYPE_CHECKING:
     from pandas import DataFrame  # noqa:F401
@@ -768,9 +768,11 @@ class _LocationIndexer(_NDFrameIndexerBase):
         # ...but iloc should handle the tuple as simple integer-location
         # instead of checking it as multiindex representation (GH 13797)
         if isinstance(ax0, ABCMultiIndex) and self.name != "iloc":
-            result = self._handle_lowerdim_multi_index_axis0(tup)
-            if result is not None:
+            try:
+                result = self._handle_lowerdim_multi_index_axis0(tup)
                 return result
+            except IndexingError:
+                pass
 
         if len(tup) > self.ndim:
             raise IndexingError("Too many indexers. handle elsewhere")
@@ -818,9 +820,11 @@ class _LocationIndexer(_NDFrameIndexerBase):
             if self.name != "loc":
                 # This should never be reached, but lets be explicit about it
                 raise ValueError("Too many indices")
-            result = self._handle_lowerdim_multi_index_axis0(tup)
-            if result is not None:
+            try:
+                result = self._handle_lowerdim_multi_index_axis0(tup)
                 return result
+            except IndexingError:
+                pass
 
             # this is a series with a multi-index specified a tuple of
             # selectors
@@ -1067,7 +1071,7 @@ class _LocIndexer(_LocationIndexer):
             if len(tup) <= self.obj.index.nlevels and len(tup) > self.ndim:
                 raise ek
 
-        return None
+        raise IndexingError("No label returned")
 
     def _getitem_axis(self, key, axis: int):
         key = item_from_zerodim(key)
@@ -1832,7 +1836,10 @@ class _iLocIndexer(_LocationIndexer):
                 # append a Series
                 value = value.reindex(index=self.obj.columns, copy=True)
                 value.name = indexer
-
+            elif isinstance(value, dict):
+                value = Series(
+                    value, index=self.obj.columns, name=indexer, dtype=object
+                )
             else:
                 # a list-list
                 if is_list_like_indexer(value):

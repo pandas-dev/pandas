@@ -14,6 +14,7 @@ from pandas._libs.tslibs import (
     Timestamp,
     delta_to_nanoseconds,
     iNaT,
+    to_offset,
 )
 from pandas._libs.tslibs.timestamps import (
     RoundTo,
@@ -427,7 +428,7 @@ default 'raise'
         else:
             # As an internal method, we can ensure this assertion always holds
             assert freq == "infer"
-            freq = frequencies.to_offset(self.inferred_freq)
+            freq = to_offset(self.inferred_freq)
 
         arr = self.view()
         arr._freq = freq
@@ -775,15 +776,19 @@ class DatetimeLikeArrayMixin(
 
         return self._unbox(fill_value)
 
-    def _validate_scalar(self, value, msg: str, cast_str: bool = False):
+    def _validate_scalar(
+        self, value, msg: Optional[str] = None, cast_str: bool = False
+    ):
         """
         Validate that the input value can be cast to our scalar_type.
 
         Parameters
         ----------
         value : object
-        msg : str
+        msg : str, optional.
             Message to raise in TypeError on invalid input.
+            If not provided, `value` is cast to a str and used
+            as the message.
         cast_str : bool, default False
             Whether to try to parse string input to scalar_type.
 
@@ -806,6 +811,8 @@ class DatetimeLikeArrayMixin(
             value = self._scalar_type(value)  # type: ignore
 
         else:
+            if msg is None:
+                msg = str(value)
             raise TypeError(msg)
 
         return value
@@ -1081,7 +1088,7 @@ class DatetimeLikeArrayMixin(
     @freq.setter
     def freq(self, value):
         if value is not None:
-            value = frequencies.to_offset(value)
+            value = to_offset(value)
             self._validate_frequency(self, value)
 
         self._freq = value
@@ -1121,11 +1128,6 @@ class DatetimeLikeArrayMixin(
         """
         Returns day, hour, minute, second, millisecond or microsecond
         """
-        if self._resolution_obj is None:
-            if is_period_dtype(self.dtype):
-                # somewhere in the past it was decided we default to day
-                return "day"
-            # otherwise we fall through and will raise
         return self._resolution_obj.attrname  # type: ignore
 
     @classmethod
@@ -1367,7 +1369,7 @@ class DatetimeLikeArrayMixin(
         """
         if freq is not None and freq != self.freq:
             if isinstance(freq, str):
-                freq = frequencies.to_offset(freq)
+                freq = to_offset(freq)
             offset = periods * freq
             result = self + offset
             return result
@@ -1779,7 +1781,7 @@ def maybe_infer_freq(freq):
     if not isinstance(freq, DateOffset):
         # if a passed freq is None, don't infer automatically
         if freq != "infer":
-            freq = frequencies.to_offset(freq)
+            freq = to_offset(freq)
         else:
             freq_infer = True
             freq = None

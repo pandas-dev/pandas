@@ -1884,7 +1884,7 @@ Fallback behavior
 If the JSON serializer cannot handle the container contents directly it will
 fall back in the following manner:
 
-* if the dtype is unsupported (e.g. ``np.complex``) then the ``default_handler``, if provided, will be called
+* if the dtype is unsupported (e.g. ``np.complex_``) then the ``default_handler``, if provided, will be called
   for each value, otherwise an exception is raised.
 
 * if an object is unsupported it will attempt the following:
