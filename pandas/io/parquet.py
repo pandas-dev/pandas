@@ -104,7 +104,7 @@ class PyArrowImpl(BaseImpl):
             from_pandas_kwargs["preserve_index"] = index
 
         table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
-        
+
         fs = get_fs_for_path(path)
         # write_to_dataset does not support a file-like object when
         # a directory path is used, so just pass the path string.
