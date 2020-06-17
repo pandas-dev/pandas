@@ -1502,29 +1502,25 @@ class TestTSPlot(TestPlotBase):
             }
         )
         axes = df.plot(x="x", y="y")
-        self._check_ticks_props(axes, xrot=0.0)
+        self._check_ticks_props(axes, xrot=30)
 
-        # # use timeseries index
-        # df.set_index("x").plot(y="y", use_index=True, ax=axes)
-        # self._check_ticks_props(axes, xrot=0)
+        # use timeseries index
+        df.set_index("x").plot(y="y", use_index=True, ax=axes)
+        self._check_ticks_props(axes, xrot=30)
 
-        # # use non-timeseries index
-        # axes = df.plot(y="y", use_index=True)
-        # self._check_ticks_props(axes, xrot=0)
+        # use non-timeseries index
+        axes = df.plot(y="y", use_index=True)
+        self._check_ticks_props(axes, xrot=0)
 
-        # # dont sharex
-        # axes = df.plot(x="x", y="y", sharex=False)
-        # self._check_ticks_props(axes, xrot=0)
-        # axes = df.plot(x="x", y="y", subplots=False, sharex=True)
-        # self._check_ticks_props(axes, xrot=0)
+        # separate subplots
+        axes = df.plot(x="x", y="y", subplots=True, sharex=True)
+        self._check_ticks_props(axes, xrot=30)
+        axes = df.plot(x="x", y="y", subplots=True, sharex=False)
+        self._check_ticks_props(axes, xrot=0)
 
-        # # sharex
-        # axes = df.plot(x="x", y="y", sharex=True)
-        # self._check_ticks_props(axes, xrot=30)
-
-        # # index of dates but don't use index
-        # axes = df.set_index('x').plot(y='y', use_index=False)
-        # self._check_ticks_props(axes, xrot=30)
+        # index of dates but don't use index
+        axes = df.set_index("x").plot(y="y", use_index=False)
+        self._check_ticks_props(axes, xrot=0)
 
 
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
