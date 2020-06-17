@@ -48,6 +48,7 @@ class TestDataFramePlots(TestPlotBase):
         for ax, exp in zip(axes, expected):
             self._check_visible(ax.get_xticklabels(), visible=exp)
 
+    @pytest.mark.xfail(reason="Waiting for PR 34334", strict=True)
     @pytest.mark.slow
     def test_plot(self):
         from pandas.plotting._matplotlib.compat import _mpl_ge_3_1_0
@@ -467,6 +468,7 @@ class TestDataFramePlots(TestPlotBase):
         expected = [False, False, True, True]
         self._assert_xtickslabels_visibility(axes, expected)
 
+    @pytest.mark.xfail(reason="Waiting for PR 34334", strict=True)
     @pytest.mark.slow
     def test_subplots_timeseries(self):
         idx = date_range(start="2014-07-01", freq="M", periods=10)
