@@ -57,14 +57,15 @@ class TestDataFrameNamedAggregate:
             cat=("B", max),
             dat=("C", "min"),
             f=("B", np.sum),
+            kk=("B", lambda x: min(x)),
         )
         expected = pd.DataFrame(
             {
-                "A": [1.0, 1.0, np.nan, np.nan, np.nan],
-                "B": [np.nan, np.nan, 4.0, np.nan, 10.0],
-                "C": [np.nan, np.nan, np.nan, 3.0, np.nan],
+                "A": [1.0, 1.0, np.nan, np.nan, np.nan, np.nan],
+                "B": [np.nan, np.nan, 4.0, np.nan, 10.0, 1.0],
+                "C": [np.nan, np.nan, np.nan, 3.0, np.nan, np.nan],
             },
-            index=pd.Index(["foo", "bar", "cat", "dat", "f"]),
+            index=pd.Index(["foo", "bar", "cat", "dat", "f", "kk"]),
         )
         tm.assert_frame_equal(result, expected)
 

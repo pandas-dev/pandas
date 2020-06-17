@@ -311,17 +311,17 @@ def _relabel_result(
         #           C2   C1
         # <lambda>   1  NaN
         # amax     NaN  4.0
-        # max      NaN  2.0
+        # max      NaN  4.0
         # sum     18.0  6.0
         # Therefore, the order of functions for each column could be shuffled
         # accordingly so need to get the callable name if it is not parsed names, and
         # reorder the aggregated result for each column.
         # e.g. if df.agg(c1=("C2", sum), c2=("C2", lambda x: min(x))), correct order is
         # [sum, <lambda>], but in `result`, it will be [<lambda>, sum], and we need to
-        # reorder so that aggregated values map to their functions.
+        # reorder so that aggregated values map to their functions regarding the order.
 
-        # If there is only one column being used for aggregation, not need to reorder
-        # since the index is not sorted, e.g.
+        # However there is only one column being used for aggregation, not need to
+        # reorder since the index is not sorted, and keep as is in `funcs`, e.g.
         #         A
         # min   1.0
         # mean  1.5
