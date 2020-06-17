@@ -327,16 +327,16 @@ class BlockManager(PandasObject):
                 f"tot_items: {tot_items}"
             )
 
-    def reduce(self, func, *args, **kwargs):
+    def reduce(self, func):
         # If 2D, we assume that we're operating column-wise
         if self.ndim == 1:
             # we'll be returning a scalar
             blk = self.blocks[0]
-            return func(blk.values, *args, **kwargs)
+            return func(blk.values)
 
         res = {}
         for blk in self.blocks:
-            bres = func(blk.values, *args, **kwargs)
+            bres = func(blk.values)
 
             if np.ndim(bres) == 0:
                 # EA
@@ -344,7 +344,7 @@ class BlockManager(PandasObject):
                 new_res = zip(blk.mgr_locs.as_array, [bres])
             else:
                 assert bres.ndim == 1, bres.shape
-                assert blk.shape[0] == len(bres), (blk.shape, bres.shape, args, kwargs)
+                assert blk.shape[0] == len(bres), (blk.shape, bres.shape)
                 new_res = zip(blk.mgr_locs.as_array, bres)
 
             nr = dict(new_res)
@@ -1337,7 +1337,8 @@ class BlockManager(PandasObject):
         # When filling blknos, make sure blknos is updated before appending to
         # blocks list, that way new blkno is exactly len(blocks).
         blocks = []
-        for blkno, mgr_locs in libinternals.get_blkno_placements(blknos, group=True):
+        group = not only_slice
+        for blkno, mgr_locs in libinternals.get_blkno_placements(blknos, group=group):
             if blkno == -1:
                 # If we've got here, fill_value was not lib.no_default
 
