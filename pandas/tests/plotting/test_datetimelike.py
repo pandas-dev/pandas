@@ -1513,6 +1513,12 @@ class TestTSPlot(TestPlotBase):
         axes = df.set_index("x").plot(y="y", use_index=False)
         self._check_ticks_props(axes, xrot=0)
 
+        # regular time series
+        x = to_datetime(["2020-05-01", "2020-05-02", "2020-05-03"])
+        df = DataFrame({"x": x, "y": [1, 2, 3]})
+        axes = df.plot(x="x", y="y")
+        self._check_ticks_props(axes, xrot=0)
+
 
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
     import matplotlib.pyplot as plt
