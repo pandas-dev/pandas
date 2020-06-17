@@ -224,7 +224,8 @@ class EWM(_Rolling):
         else:
             if halflife is not None and not isinstance(halflife, float):
                 raise ValueError(
-                    "halflife can only be a timedelta convertable argument if times is not None."
+                    "halflife can only be a timedelta convertable argument if "
+                    "times is not None."
                 )
             self.time_weights = None
             self.com = get_center_of_mass(com, span, halflife, alpha)
