@@ -11534,27 +11534,6 @@ def _make_cum_function(
 
         result = self._mgr.apply(block_accum_func)
 
-        # y = com.values_from_object(self).copy()
-
-        # if skipna and issubclass(y.dtype.type, (np.datetime64, np.timedelta64)):
-        #     result = accum_func(y, axis)
-        #     mask = isna(self)
-        #     np.putmask(result, mask, iNaT)
-        # elif skipna and not issubclass(y.dtype.type, (np.integer, np.bool_)):
-        #     mask = isna(self)
-        #     np.putmask(y, mask, mask_a)
-        #     result = accum_func(y, axis)
-        #     np.putmask(result, mask, mask_b)
-        # # TODO: probably here, we need to call
-        # self._accumulate if the proper subclass is available
-        # else:
-        #     result = accum_func(y, axis)
-
-        # TODO: check later if these 3 commands are necessary -> check for failing tests
-        # d = self._construct_axes_dict()
-        # d["copy"] = False
-        # return self._constructor(result, **d).__finalize__(self, method=name)
-
         return self._constructor(result).__finalize__(self, method=name)
 
     return set_function_name(cum_func, name, cls)
