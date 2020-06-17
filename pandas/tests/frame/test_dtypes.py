@@ -37,15 +37,13 @@ class TestDataFrameDataTypes:
 
     def test_empty_frame_dtypes(self):
         empty_df = pd.DataFrame()
-        tm.assert_series_equal(empty_df.dtypes, pd.Series(dtype=np.object))
+        tm.assert_series_equal(empty_df.dtypes, pd.Series(dtype=object))
 
         nocols_df = pd.DataFrame(index=[1, 2, 3])
-        tm.assert_series_equal(nocols_df.dtypes, pd.Series(dtype=np.object))
+        tm.assert_series_equal(nocols_df.dtypes, pd.Series(dtype=object))
 
         norows_df = pd.DataFrame(columns=list("abc"))
-        tm.assert_series_equal(
-            norows_df.dtypes, pd.Series(np.object, index=list("abc"))
-        )
+        tm.assert_series_equal(norows_df.dtypes, pd.Series(object, index=list("abc")))
 
         norows_int_df = pd.DataFrame(columns=list("abc")).astype(np.int32)
         tm.assert_series_equal(

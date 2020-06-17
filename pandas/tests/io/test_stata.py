@@ -855,7 +855,7 @@ class TestStata:
         expected[5][2] = expected[5][3] = expected[5][4] = datetime(1677, 10, 1)
         expected[5][5] = expected[5][6] = datetime(1678, 1, 1)
 
-        expected = DataFrame(expected, columns=columns, dtype=np.object)
+        expected = DataFrame(expected, columns=columns, dtype=object)
         parsed_115 = read_stata(self.dta18_115)
         parsed_117 = read_stata(self.dta18_117)
         tm.assert_frame_equal(expected, parsed_115, check_datetimelike_compat=True)

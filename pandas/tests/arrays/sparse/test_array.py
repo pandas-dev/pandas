@@ -74,20 +74,20 @@ class TestSparseArray:
 
     def test_constructor_object_dtype(self):
         # GH 11856
-        arr = SparseArray(["A", "A", np.nan, "B"], dtype=np.object)
-        assert arr.dtype == SparseDtype(np.object)
+        arr = SparseArray(["A", "A", np.nan, "B"], dtype=object)
+        assert arr.dtype == SparseDtype(object)
         assert np.isnan(arr.fill_value)
 
-        arr = SparseArray(["A", "A", np.nan, "B"], dtype=np.object, fill_value="A")
-        assert arr.dtype == SparseDtype(np.object, "A")
+        arr = SparseArray(["A", "A", np.nan, "B"], dtype=object, fill_value="A")
+        assert arr.dtype == SparseDtype(object, "A")
         assert arr.fill_value == "A"
 
         # GH 17574
         data = [False, 0, 100.0, 0.0]
-        arr = SparseArray(data, dtype=np.object, fill_value=False)
-        assert arr.dtype == SparseDtype(np.object, False)
+        arr = SparseArray(data, dtype=object, fill_value=False)
+        assert arr.dtype == SparseDtype(object, False)
         assert arr.fill_value is False
-        arr_expected = np.array(data, dtype=np.object)
+        arr_expected = np.array(data, dtype=object)
         it = (type(x) == type(y) and x == y for x, y in zip(arr, arr_expected))
         assert np.fromiter(it, dtype=np.bool_).all()
 
@@ -625,7 +625,7 @@ class TestSparseArray:
             ([0, 0, 0, 0, 0], (5,), None),
             ([], (0,), None),
             ([0], (1,), None),
-            (["A", "A", np.nan, "B"], (4,), np.object),
+            (["A", "A", np.nan, "B"], (4,), object),
         ],
     )
     def test_shape(self, data, shape, dtype):

@@ -1163,7 +1163,7 @@ def test_warn_if_chunks_have_mismatched_type(all_parsers):
 
     with tm.assert_produces_warning(warning_type):
         df = parser.read_csv(StringIO(data))
-    assert df.a.dtype == np.object
+    assert df.a.dtype == object
 
 
 @pytest.mark.parametrize("sep", [" ", r"\s+"])

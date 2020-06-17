@@ -112,7 +112,7 @@ dtypes = dict(
     period=PeriodDtype("D"),
     integer=np.dtype(np.int64),
     float=np.dtype(np.float64),
-    object=np.dtype(np.object),
+    object=np.dtype(object),
     category=com.pandas_dtype("category"),
 )
 
