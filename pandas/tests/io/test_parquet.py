@@ -581,7 +581,7 @@ class TestParquetPyArrow(Base):
             pa,
             expected=expected_df,
             path="s3://pandas-test/parquet_dir",
-            write_kwargs={"partition_cols": partition_col, "compression": None,},
+            write_kwargs={"partition_cols": partition_col, "compression": None},
             check_like=True,
             repeat=1,
         )
