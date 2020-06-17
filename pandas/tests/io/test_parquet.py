@@ -587,7 +587,7 @@ class TestParquetPyArrow(Base):
             check_like=True,
             repeat=1,
         )
-   
+
     @tm.network
     @td.skip_if_no("pyarrow")
     def test_parquet_read_from_url(self, df_compat):
