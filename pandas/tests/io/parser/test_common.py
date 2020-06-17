@@ -1147,7 +1147,7 @@ def test_chunks_have_consistent_numerical_type(all_parsers):
         result = parser.read_csv(StringIO(data))
 
     assert type(result.a[0]) is np.float64
-    assert result.a.dtype == np.float
+    assert result.a.dtype == float
 
 
 def test_warn_if_chunks_have_mismatched_type(all_parsers):

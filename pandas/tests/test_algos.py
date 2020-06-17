@@ -2290,7 +2290,7 @@ class TestMode:
             exp = Series(exp_multi, dtype=dt)
             tm.assert_series_equal(algos.mode(s), exp)
 
-        exp = Series([1], dtype=np.int)
+        exp = Series([1], dtype=int)
         tm.assert_series_equal(algos.mode([1]), exp)
 
         exp = Series(["a", "b", "c"], dtype=object)

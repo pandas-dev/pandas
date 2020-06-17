@@ -717,7 +717,7 @@ class TestSeriesMap:
         result = s.map(lambda x: "A")
         exp = pd.Series(["A"] * 7, name="XX", index=list("abcdefg"))
         tm.assert_series_equal(result, exp)
-        assert result.dtype == np.object
+        assert result.dtype == object
 
         with pytest.raises(NotImplementedError):
             s.map(lambda x: x, na_action="ignore")

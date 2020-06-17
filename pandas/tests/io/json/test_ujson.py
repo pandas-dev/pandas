@@ -693,7 +693,7 @@ class TestNumpyJSONTests:
         assert klass(ujson.decode(ujson.encode(num))) == num
 
     def test_int_array(self, any_int_dtype):
-        arr = np.arange(100, dtype=np.int)
+        arr = np.arange(100, dtype=int)
         arr_input = arr.astype(any_int_dtype)
 
         arr_output = np.array(
@@ -723,7 +723,7 @@ class TestNumpyJSONTests:
         assert klass(ujson.decode(ujson.encode(num))) == num
 
     def test_float_array(self, float_dtype):
-        arr = np.arange(12.5, 185.72, 1.7322, dtype=np.float)
+        arr = np.arange(12.5, 185.72, 1.7322, dtype=float)
         float_input = arr.astype(float_dtype)
 
         float_output = np.array(
@@ -901,7 +901,7 @@ class TestPandasJSONTests:
             [[1, 2, 3], [4, 5, 6]],
             index=["a", "b"],
             columns=["x", "y", "z"],
-            dtype=np.int,
+            dtype=int,
         )
         kwargs = {} if orient is None else dict(orient=orient)
 

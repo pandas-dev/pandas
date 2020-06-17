@@ -1293,7 +1293,7 @@ class TestNumberScalar:
         assert not is_integer(True)
         assert not is_integer(1.1)
         assert not is_integer(1 + 3j)
-        assert not is_integer(np.bool(False))
+        assert not is_integer(False)
         assert not is_integer(np.bool_(False))
         assert not is_integer(np.float64(1.1))
         assert not is_integer(np.complex128(1 + 3j))

@@ -451,7 +451,7 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
         conv_dates = 4 * (d.year - stata_epoch.year) + (d.month - 1) // 3
     elif fmt in ["%th", "th"]:
         d = parse_dates_safe(dates, year=True)
-        conv_dates = 2 * (d.year - stata_epoch.year) + (d.month > 6).astype(np.int)
+        conv_dates = 2 * (d.year - stata_epoch.year) + (d.month > 6).astype(int)
     elif fmt in ["%ty", "ty"]:
         d = parse_dates_safe(dates, year=True)
         conv_dates = d.year
