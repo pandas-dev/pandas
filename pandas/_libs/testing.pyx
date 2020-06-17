@@ -11,7 +11,7 @@ cdef NUMERIC_TYPES = (
     bool,
     int,
     float,
-    np.bool,
+    np.bool_,
     np.int8,
     np.int16,
     np.int32,

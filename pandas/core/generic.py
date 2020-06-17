@@ -10024,7 +10024,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Including only string columns in a ``DataFrame`` description.
 
-        >>> df.describe(include=[np.object])  # doctest: +SKIP
+        >>> df.describe(include=[object])  # doctest: +SKIP
                object
         count       3
         unique      3
@@ -10051,7 +10051,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Excluding object columns from a ``DataFrame`` description.
 
-        >>> df.describe(exclude=[np.object])  # doctest: +SKIP
+        >>> df.describe(exclude=[object])  # doctest: +SKIP
                categorical  numeric
         count            3      3.0
         unique           3      NaN

@@ -925,7 +925,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         # only appends one value
         expected = DataFrame({"x": [1.0], "y": [np.nan]})
-        df = DataFrame(columns=["x", "y"], dtype=np.float)
+        df = DataFrame(columns=["x", "y"], dtype=float)
         df.loc[0, "x"] = expected.loc[0, "x"]
         tm.assert_frame_equal(df, expected)
 

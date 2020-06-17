@@ -171,7 +171,7 @@ def _ensure_data(
         return values, dtype
 
     # we have failed, return object
-    values = np.asarray(values, dtype=np.object)
+    values = np.asarray(values, dtype=object)
     return ensure_object(values), np.dtype("object")
 
 

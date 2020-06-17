@@ -171,7 +171,7 @@ class TestDataFrameReshape:
         # From a series with incorrect data type for fill_value
         result = data.unstack(fill_value=0.5)
         expected = DataFrame(
-            {"a": [1, 0.5, 5], "b": [2, 4, 0.5]}, index=["x", "y", "z"], dtype=np.float
+            {"a": [1, 0.5, 5], "b": [2, 4, 0.5]}, index=["x", "y", "z"], dtype=float
         )
         tm.assert_frame_equal(result, expected)
 
@@ -229,7 +229,7 @@ class TestDataFrameReshape:
         result = df.unstack(fill_value=0.5)
 
         rows = [[1, 3, 2, 4], [0.5, 5, 0.5, 6], [7, 0.5, 8, 0.5]]
-        expected = DataFrame(rows, index=list("xyz"), dtype=np.float)
+        expected = DataFrame(rows, index=list("xyz"), dtype=float)
         expected.columns = MultiIndex.from_tuples(
             [("A", "a"), ("A", "b"), ("B", "a"), ("B", "b")]
         )

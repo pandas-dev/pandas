@@ -868,7 +868,7 @@ def test_groupby_apply_datetime_result_dtypes():
     )
     result = data.groupby("color").apply(lambda g: g.iloc[0]).dtypes
     expected = Series(
-        [np.dtype("datetime64[ns]"), np.object, np.object, np.int64, np.object],
+        [np.dtype("datetime64[ns]"), object, object, np.int64, object],
         index=["observation", "color", "mood", "intensity", "score"],
     )
     tm.assert_series_equal(result, expected)

@@ -180,7 +180,7 @@ def test_resample_size_empty_dataframe(freq, empty_frame_dti):
 
 
 @pytest.mark.parametrize("index", tm.all_timeseries_index_generator(0))
-@pytest.mark.parametrize("dtype", [np.float, np.int, np.object, "datetime64[ns]"])
+@pytest.mark.parametrize("dtype", [float, int, object, "datetime64[ns]"])
 def test_resample_empty_dtypes(index, dtype, resample_method):
     # Empty series were sometimes causing a segfault (for the functions
     # with Cython bounds-checking disabled) or an IndexError.  We just run

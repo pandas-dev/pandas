@@ -676,14 +676,14 @@ class TestUltraJSONTests:
 class TestNumpyJSONTests:
     @pytest.mark.parametrize("bool_input", [True, False])
     def test_bool(self, bool_input):
-        b = np.bool(bool_input)
+        b = bool(bool_input)
         assert ujson.decode(ujson.encode(b)) == b
 
     def test_bool_array(self):
         bool_array = np.array(
-            [True, False, True, True, False, True, False, False], dtype=np.bool
+            [True, False, True, True, False, True, False, False], dtype=bool
         )
-        output = np.array(ujson.decode(ujson.encode(bool_array)), dtype=np.bool)
+        output = np.array(ujson.decode(ujson.encode(bool_array)), dtype=bool)
         tm.assert_numpy_array_equal(bool_array, output)
 
     def test_int(self, any_int_dtype):
@@ -693,7 +693,7 @@ class TestNumpyJSONTests:
         assert klass(ujson.decode(ujson.encode(num))) == num
 
     def test_int_array(self, any_int_dtype):
-        arr = np.arange(100, dtype=np.int)
+        arr = np.arange(100, dtype=int)
         arr_input = arr.astype(any_int_dtype)
 
         arr_output = np.array(
@@ -723,7 +723,7 @@ class TestNumpyJSONTests:
         assert klass(ujson.decode(ujson.encode(num))) == num
 
     def test_float_array(self, float_dtype):
-        arr = np.arange(12.5, 185.72, 1.7322, dtype=np.float)
+        arr = np.arange(12.5, 185.72, 1.7322, dtype=float)
         float_input = arr.astype(float_dtype)
 
         float_output = np.array(
@@ -901,7 +901,7 @@ class TestPandasJSONTests:
             [[1, 2, 3], [4, 5, 6]],
             index=["a", "b"],
             columns=["x", "y", "z"],
-            dtype=np.int,
+            dtype=int,
         )
         kwargs = {} if orient is None else dict(orient=orient)
 

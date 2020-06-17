@@ -207,8 +207,8 @@ def test_usecols_dtypes(c_parser_only):
         dtype={"b": int, "c": float},
     )
 
-    assert (result.dtypes == [object, np.int, np.float]).all()
-    assert (result2.dtypes == [object, np.float]).all()
+    assert (result.dtypes == [object, int, float]).all()
+    assert (result2.dtypes == [object, float]).all()
 
 
 def test_disable_bool_parsing(c_parser_only):

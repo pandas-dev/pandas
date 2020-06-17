@@ -270,9 +270,9 @@ class TestCategoricalIndex(Base):
                 [2, "a", "b"],
                 list("abc"),
                 {
-                    "first": np.zeros(shape=(3), dtype=np.bool),
-                    "last": np.zeros(shape=(3), dtype=np.bool),
-                    False: np.zeros(shape=(3), dtype=np.bool),
+                    "first": np.zeros(shape=(3), dtype=np.bool_),
+                    "last": np.zeros(shape=(3), dtype=np.bool_),
+                    False: np.zeros(shape=(3), dtype=np.bool_),
                 },
             ),
             (

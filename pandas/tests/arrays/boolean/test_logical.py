@@ -14,8 +14,8 @@ class TestLogicalOps(BaseOpsUtil):
         a = pd.array([True, False, None], dtype="boolean")
         op = getattr(a, all_logical_operators)
 
-        tm.assert_extension_array_equal(op(True), op(np.bool(True)))
-        tm.assert_extension_array_equal(op(False), op(np.bool(False)))
+        tm.assert_extension_array_equal(op(True), op(np.bool_(True)))
+        tm.assert_extension_array_equal(op(False), op(np.bool_(False)))
 
     def get_op_from_name(self, op_name):
         short_opname = op_name.strip("_")

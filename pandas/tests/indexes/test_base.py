@@ -1375,8 +1375,8 @@ class TestIndex(Base):
         # is mangled
         if unique_nulls_fixture is unique_nulls_fixture2:
             return  # skip it, values are not unique
-        arr = np.array([unique_nulls_fixture, unique_nulls_fixture2], dtype=np.object)
-        index = pd.Index(arr, dtype=np.object)
+        arr = np.array([unique_nulls_fixture, unique_nulls_fixture2], dtype=object)
+        index = pd.Index(arr, dtype=object)
         result = index.get_indexer(
             [unique_nulls_fixture, unique_nulls_fixture2, "Unknown"]
         )

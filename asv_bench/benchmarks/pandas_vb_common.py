@@ -33,7 +33,7 @@ numeric_dtypes = [
     np.uint8,
 ]
 datetime_dtypes = [np.datetime64, np.timedelta64]
-string_dtypes = [np.object]
+string_dtypes = [object]
 try:
     extension_dtypes = [
         pd.Int8Dtype,

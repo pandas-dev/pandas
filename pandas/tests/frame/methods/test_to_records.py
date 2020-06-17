@@ -163,7 +163,7 @@ class TestDataFrameToRecords:
             ),
             # Pass in a type instance.
             (
-                dict(column_dtypes=np.unicode),
+                dict(column_dtypes=str),
                 np.rec.array(
                     [("0", "1", "0.2", "a"), ("1", "2", "1.5", "bc")],
                     dtype=[("index", "<i8"), ("A", "<U"), ("B", "<U"), ("C", "<U")],
