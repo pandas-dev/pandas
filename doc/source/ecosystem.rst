@@ -153,6 +153,23 @@ A good implementation for Python users is `has2k1/plotnine <https://github.com/h
 Spun off from the main pandas library, the `qtpandas <https://github.com/draperjames/qtpandas>`__
 library enables DataFrame visualization and manipulation in PyQt4 and PySide applications.
 
+`D-Tale <https://github.com/man-group/dtale>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+D-Tale is a lightweight web client for visualizing pandas data structures. It
+provides a rich spreadsheet-style grid which acts as a wrapper for a lot of
+pandas functionality (query, sort, describe, corr...) so users can quickly
+manipulate their data. There is also an interactive chart-builder using Plotly
+Dash allowing users to build nice portable visualizations. D-Tale can be
+invoked with the following command
+
+.. code:: python
+
+    import dtale; dtale.show(df)
+
+D-Tale integrates seamlessly with jupyter notebooks, python terminals, kaggle
+& Google Colab. Here are some demos of the `grid <http://alphatechadmin.pythonanywhere.com/>`__
+and `chart-builder <http://alphatechadmin.pythonanywhere.com/charts/4?chart_type=surface&query=&x=date&z=Col0&agg=raw&cpg=false&y=%5B%22security_id%22%5D>`__.
 
 .. _ecosystem.ide:
 
@@ -301,6 +318,20 @@ xarray brings the labeled data power of pandas to the physical sciences by
 providing N-dimensional variants of the core pandas data structures. It aims to
 provide a pandas-like and pandas-compatible toolkit for analytics on multi-
 dimensional arrays, rather than the tabular data for which pandas excels.
+
+
+.. _ecosystem.io:
+
+IO
+--
+
+`BCPandas <https://github.com/yehoshuadimarsky/bcpandas>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+BCPandas provides high performance writes from pandas to Microsoft SQL Server,
+far exceeding the performance of the native ``df.to_sql`` method. Internally, it uses
+Microsoft's BCP utility, but the complexity is fully abstracted away from the end user.
+Rigorously tested, it is a complete replacement for ``df.to_sql``.
 
 
 .. _ecosystem.out-of-core:

@@ -7,20 +7,23 @@ import numpy as np
 from pandas._libs.tslibs import (
     NaT,
     NaTType,
-    frequencies as libfrequencies,
+    Timedelta,
+    delta_to_nanoseconds,
     iNaT,
     period as libperiod,
+    to_offset,
 )
+from pandas._libs.tslibs.dtypes import FreqGroup
 from pandas._libs.tslibs.fields import isleapyear_arr
 from pandas._libs.tslibs.offsets import Tick, delta_to_tick
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ,
     IncompatibleFrequency,
     Period,
+    PeriodMixin,
     get_period_field_arr,
     period_asfreq_arr,
 )
-from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
 from pandas._typing import AnyArrayLike
 from pandas.util._decorators import cache_readonly
 
@@ -45,14 +48,13 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
 
-from pandas.tseries import frequencies
 from pandas.tseries.offsets import DateOffset
 
 
-def _field_accessor(name: str, alias: int, docstring=None):
+def _field_accessor(name: str, docstring=None):
     def f(self):
-        base, mult = libfrequencies.get_freq_code(self.freq)
-        result = get_period_field_arr(alias, self.asi8, base)
+        base = self.freq._period_dtype_code
+        result = get_period_field_arr(name, self.asi8, base)
         return result
 
     f.__name__ = name
@@ -60,7 +62,7 @@ def _field_accessor(name: str, alias: int, docstring=None):
     return property(f)
 
 
-class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
+class PeriodArray(PeriodMixin, dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     """
     Pandas ExtensionArray for storing Period data.
 
@@ -324,80 +326,69 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
     year = _field_accessor(
         "year",
-        0,
         """
         The year of the period.
         """,
     )
     month = _field_accessor(
         "month",
-        3,
         """
         The month as January=1, December=12.
         """,
     )
     day = _field_accessor(
         "day",
-        4,
         """
         The days of the period.
         """,
     )
     hour = _field_accessor(
         "hour",
-        5,
         """
         The hour of the period.
         """,
     )
     minute = _field_accessor(
         "minute",
-        6,
         """
         The minute of the period.
         """,
     )
     second = _field_accessor(
         "second",
-        7,
         """
         The second of the period.
         """,
     )
     weekofyear = _field_accessor(
         "week",
-        8,
         """
         The week ordinal of the year.
         """,
     )
     week = weekofyear
     dayofweek = _field_accessor(
-        "dayofweek",
-        10,
+        "weekday",
         """
         The day of the week with Monday=0, Sunday=6.
         """,
     )
     weekday = dayofweek
     dayofyear = day_of_year = _field_accessor(
-        "dayofyear",
-        9,
+        "day_of_year",
         """
         The ordinal day of the year.
         """,
     )
     quarter = _field_accessor(
         "quarter",
-        2,
         """
         The quarter of the date.
         """,
     )
-    qyear = _field_accessor("qyear", 1)
+    qyear = _field_accessor("qyear")
     days_in_month = _field_accessor(
         "days_in_month",
-        11,
         """
         The number of days in the month.
         """,
@@ -441,7 +432,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
         end = how == "E"
         if end:
-            if freq == "B":
+            if freq == "B" or self.freq == "B":
                 # roll forward to ensure we land on B date
                 adjust = Timedelta(1, "D") - Timedelta(1, "ns")
                 return self.to_timestamp(how="start") + adjust
@@ -450,12 +441,12 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
                 return (self + self.freq).to_timestamp(how="start") - adjust
 
         if freq is None:
-            base, mult = libfrequencies.get_freq_code(self.freq)
-            freq = libfrequencies.get_to_timestamp_base(base)
+            freq = self._get_to_timestamp_base()
+            base = freq
         else:
             freq = Period._maybe_convert_freq(freq)
+            base = freq._period_dtype_code
 
-        base, mult = libfrequencies.get_freq_code(freq)
         new_data = self.asfreq(freq, how=how)
 
         new_data = libperiod.periodarr_to_dt64arr(new_data.asi8, base)
@@ -533,14 +524,14 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
         freq = Period._maybe_convert_freq(freq)
 
-        base1, mult1 = libfrequencies.get_freq_code(self.freq)
-        base2, mult2 = libfrequencies.get_freq_code(freq)
+        base1 = self.freq._period_dtype_code
+        base2 = freq._period_dtype_code
 
         asi8 = self.asi8
-        # mult1 can't be negative or 0
+        # self.freq.n can't be negative or 0
         end = how == "E"
         if end:
-            ordinal = asi8 + mult1 - 1
+            ordinal = asi8 + self.freq.n - 1
         else:
             ordinal = asi8
 
@@ -913,7 +904,7 @@ def validate_dtype_freq(dtype, freq):
     IncompatibleFrequency : mismatch between dtype and freq
     """
     if freq is not None:
-        freq = frequencies.to_offset(freq)
+        freq = to_offset(freq)
 
     if dtype is not None:
         dtype = pandas_dtype(dtype)
@@ -960,7 +951,7 @@ def dt64arr_to_periodarr(data, freq, tz=None):
     if isinstance(data, (ABCIndexClass, ABCSeries)):
         data = data._values
 
-    base, mult = libfrequencies.get_freq_code(freq)
+    base = freq._period_dtype_code
     return libperiod.dt64arr_to_periodarr(data.view("i8"), base, tz), freq
 
 
@@ -972,7 +963,8 @@ def _get_ordinal_range(start, end, periods, freq, mult=1):
         )
 
     if freq is not None:
-        _, mult = libfrequencies.get_freq_code(freq)
+        freq = to_offset(freq)
+        mult = freq.n
 
     if start is not None:
         start = Period(start, freq)
@@ -1034,11 +1026,12 @@ def _range_from_fields(
 
     if quarter is not None:
         if freq is None:
-            freq = "Q"
-            base = libfrequencies.FreqGroup.FR_QTR
+            freq = to_offset("Q")
+            base = FreqGroup.FR_QTR
         else:
-            base, mult = libfrequencies.get_freq_code(freq)
-            if base != libfrequencies.FreqGroup.FR_QTR:
+            freq = to_offset(freq)
+            base = libperiod.freq_to_dtype_code(freq)
+            if base != FreqGroup.FR_QTR:
                 raise AssertionError("base must equal FR_QTR")
 
         year, quarter = _make_field_arrays(year, quarter)
@@ -1047,7 +1040,8 @@ def _range_from_fields(
             val = libperiod.period_ordinal(y, m, 1, 1, 1, 1, 0, 0, base)
             ordinals.append(val)
     else:
-        base, mult = libfrequencies.get_freq_code(freq)
+        freq = to_offset(freq)
+        base = libperiod.freq_to_dtype_code(freq)
         arrays = _make_field_arrays(year, month, day, hour, minute, second)
         for y, mth, d, h, mn, s in zip(*arrays):
             ordinals.append(libperiod.period_ordinal(y, mth, d, h, mn, s, 0, 0, base))

@@ -57,6 +57,7 @@ from pandas.core.aggregation import (
     is_multi_agg_with_relabel,
     maybe_mangle_lambdas,
     normalize_keyword_aggregation,
+    validate_func_kwargs,
 )
 import pandas.core.algorithms as algorithms
 from pandas.core.base import DataError, SpecificationError
@@ -233,13 +234,9 @@ class SeriesGroupBy(GroupBy[Series]):
 
         relabeling = func is None
         columns = None
-        no_arg_message = "Must provide 'func' or named aggregation **kwargs."
         if relabeling:
-            columns = list(kwargs)
-            func = [kwargs[col] for col in columns]
+            columns, func = validate_func_kwargs(kwargs)
             kwargs = {}
-            if not columns:
-                raise TypeError(no_arg_message)
 
         if isinstance(func, str):
             return getattr(self, func)(*args, **kwargs)
@@ -483,6 +480,8 @@ class SeriesGroupBy(GroupBy[Series]):
         elif func in base.cythonized_kernels:
             # cythonized transform or canned "agg+broadcast"
             return getattr(self, func)(*args, **kwargs)
+        elif func in base.transformation_kernels:
+            return getattr(self, func)(*args, **kwargs)
 
         # If func is a reduction, we need to broadcast the
         # result to the whole group. Compute func result
@@ -547,6 +546,7 @@ class SeriesGroupBy(GroupBy[Series]):
         builtin/cythonizable functions
         """
         ids, _, ngroup = self.grouper.group_info
+        result = result.reindex(self.grouper.result_index, copy=False)
         cast = self._transform_should_cast(func_nm)
         out = algorithms.take_1d(result._values, ids)
         if cast:
@@ -1265,7 +1265,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
             v = values[0]
 
-            if isinstance(v, (np.ndarray, Index, Series)):
+            if isinstance(v, (np.ndarray, Index, Series)) or not self.as_index:
                 if isinstance(v, Series):
                     applied_index = self._selected_obj._get_axis(self.axis)
                     all_indexed_same = all_indexes_same([x.index for x in values])
@@ -1341,6 +1341,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     result = self.obj._constructor(
                         stacked_values.T, index=v.index, columns=key_index
                     )
+                elif not self.as_index:
+                    # We add grouping column below, so create a frame here
+                    result = DataFrame(
+                        values, index=key_index, columns=[self._selection]
+                    )
                 else:
                     # GH#1738: values is list of arrays of unequal lengths
                     #  fall through to the outer else clause
@@ -1357,6 +1362,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     result = _recast_datetimelike_result(result)
                 else:
                     result = result._convert(datetime=True)
+
+                if not self.as_index:
+                    self._insert_inaxis_grouper_inplace(result)
 
                 return self._reindex_output(result)
 
@@ -1456,6 +1464,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         elif func in base.cythonized_kernels:
             # cythonized transformation or canned "reduction+broadcast"
             return getattr(self, func)(*args, **kwargs)
+        elif func in base.transformation_kernels:
+            return getattr(self, func)(*args, **kwargs)
 
         # GH 30918
         # Use _transform_fast only when we know func is an aggregation
@@ -1487,6 +1497,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # for each col, reshape to to size of original frame
         # by take operation
         ids, _, ngroup = self.grouper.group_info
+        result = result.reindex(self.grouper.result_index, copy=False)
         output = []
         for i, _ in enumerate(result.columns):
             res = algorithms.take_1d(result.iloc[:, i].values, ids)
@@ -1564,8 +1575,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def filter(self, func, dropna=True, *args, **kwargs):
         """
-        Return a copy of a DataFrame excluding elements from groups that
-        do not satisfy the boolean criterion specified by func.
+        Return a copy of a DataFrame excluding filtered elements.
+
+        Elements from groups are filtered if they do not satisfy the
+        boolean criterion specified by func.
 
         Parameters
         ----------
@@ -1700,9 +1713,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 ),
             )
         )
-
+        columns = result.columns
         for name, lev, in_axis in izip:
-            if in_axis:
+            # GH #28549
+            # When using .apply(-), name will be in columns already
+            if in_axis and name not in columns:
                 result.insert(0, name, lev)
 
     def _wrap_aggregated_output(
@@ -1824,8 +1839,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def nunique(self, dropna: bool = True):
         """
-        Return DataFrame with number of distinct observations per group for
-        each column.
+        Return DataFrame with counts of unique elements in each position.
 
         Parameters
         ----------
@@ -1852,11 +1866,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         5   ham       5      y
 
         >>> df.groupby('id').nunique()
-            id  value1  value2
+              value1  value2
         id
-        egg    1       1       1
-        ham    1       1       2
-        spam   1       2       1
+        egg        1       1
+        ham        1       2
+        spam       2       1
 
         Check for rows with the same id but conflicting values:
 
@@ -1867,37 +1881,37 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         4   ham       5      x
         5   ham       5      y
         """
-        obj = self._selected_obj
+        from pandas.core.reshape.concat import concat
 
-        def groupby_series(obj, col=None):
-            return SeriesGroupBy(obj, selection=col, grouper=self.grouper).nunique(
-                dropna=dropna
-            )
+        # TODO: this is duplicative of how GroupBy naturally works
+        # Try to consolidate with normal wrapping functions
 
-        if isinstance(obj, Series):
-            results = groupby_series(obj)
+        obj = self._obj_with_exclusions
+        axis_number = obj._get_axis_number(self.axis)
+        other_axis = int(not axis_number)
+        if axis_number == 0:
+            iter_func = obj.items
         else:
-            # TODO: this is duplicative of how GroupBy naturally works
-            # Try to consolidate with normal wrapping functions
-            from pandas.core.reshape.concat import concat
+            iter_func = obj.iterrows
 
-            axis_number = obj._get_axis_number(self.axis)
-            other_axis = int(not axis_number)
-            if axis_number == 0:
-                iter_func = obj.items
-            else:
-                iter_func = obj.iterrows
+        results = concat(
+            [
+                SeriesGroupBy(content, selection=label, grouper=self.grouper).nunique(
+                    dropna
+                )
+                for label, content in iter_func()
+            ],
+            axis=1,
+        )
 
-            results = [groupby_series(content, label) for label, content in iter_func()]
-            results = concat(results, axis=1)
+        if axis_number == 1:
+            results = results.T
 
-            if axis_number == 1:
-                results = results.T
-
-            results._get_axis(other_axis).names = obj._get_axis(other_axis).names
+        results._get_axis(other_axis).names = obj._get_axis(other_axis).names
 
         if not self.as_index:
             results.index = ibase.default_index(len(results))
+            self._insert_inaxis_grouper_inplace(results)
         return results
 
     boxplot = boxplot_frame_groupby
