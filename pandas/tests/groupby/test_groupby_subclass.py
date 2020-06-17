@@ -14,6 +14,7 @@ import pandas._testing as tm
         tm.SubclassedSeries(np.arange(0, 10), name="A"),
     ],
 )
+@pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
 def test_groupby_preserves_subclass(obj, groupby_func):
     # GH28330 -- preserve subclass through groupby operations
 
