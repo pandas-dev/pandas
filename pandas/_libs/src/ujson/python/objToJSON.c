@@ -136,6 +136,8 @@ typedef struct __PyObjectEncoder {
     int outputFormat;
     int originalOutputFormat;
 
+    const char *Object_getBigNumStringValue;
+
     PyObject *defaultHandler;
 } PyObjectEncoder;
 
@@ -1636,7 +1638,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         if (exc && PyErr_ExceptionMatches(PyExc_OverflowError)) {
             PRINTMARK();
             tc->type = JT_BIGNUM;
-            pc->PyTypeToUTF8 = Object_getBigNumStringValue;
+            pc->PyTypeToUTF8 = enc->Object_getBigNumStringValue;
         }
 
         return;
