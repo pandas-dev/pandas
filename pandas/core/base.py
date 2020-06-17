@@ -1520,7 +1520,7 @@ class IndexOpsMixin:
     def duplicated(self, keep="first"):
         if isinstance(self, ABCIndexClass):
             if self.is_unique:
-                return np.zeros(len(self), dtype=np.bool)
+                return np.zeros(len(self), dtype=bool)
             return duplicated(self, keep=keep)
         else:
             return self._constructor(

@@ -100,21 +100,19 @@ class TestBuildSchema:
 
 
 class TestTableSchemaType:
-    @pytest.mark.parametrize("int_type", [np.int, np.int16, np.int32, np.int64])
+    @pytest.mark.parametrize("int_type", [int, np.int16, np.int32, np.int64])
     def test_as_json_table_type_int_data(self, int_type):
         int_data = [1, 2, 3]
         assert as_json_table_type(np.array(int_data, dtype=int_type).dtype) == "integer"
 
-    @pytest.mark.parametrize(
-        "float_type", [np.float, np.float16, np.float32, np.float64]
-    )
+    @pytest.mark.parametrize("float_type", [float, np.float16, np.float32, np.float64])
     def test_as_json_table_type_float_data(self, float_type):
         float_data = [1.0, 2.0, 3.0]
         assert (
             as_json_table_type(np.array(float_data, dtype=float_type).dtype) == "number"
         )
 
-    @pytest.mark.parametrize("bool_type", [bool, np.bool])
+    @pytest.mark.parametrize("bool_type", [bool, np.bool_])
     def test_as_json_table_type_bool_data(self, bool_type):
         bool_data = [True, False]
         assert (
@@ -154,17 +152,15 @@ class TestTableSchemaType:
     # ------
     # dtypes
     # ------
-    @pytest.mark.parametrize("int_dtype", [np.int, np.int16, np.int32, np.int64])
+    @pytest.mark.parametrize("int_dtype", [int, np.int16, np.int32, np.int64])
     def test_as_json_table_type_int_dtypes(self, int_dtype):
         assert as_json_table_type(int_dtype) == "integer"
 
-    @pytest.mark.parametrize(
-        "float_dtype", [np.float, np.float16, np.float32, np.float64]
-    )
+    @pytest.mark.parametrize("float_dtype", [float, np.float16, np.float32, np.float64])
     def test_as_json_table_type_float_dtypes(self, float_dtype):
         assert as_json_table_type(float_dtype) == "number"
 
-    @pytest.mark.parametrize("bool_dtype", [bool, np.bool])
+    @pytest.mark.parametrize("bool_dtype", [bool, np.bool_])
     def test_as_json_table_type_bool_dtypes(self, bool_dtype):
         assert as_json_table_type(bool_dtype) == "boolean"
 

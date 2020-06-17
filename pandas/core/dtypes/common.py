@@ -1354,7 +1354,7 @@ def is_bool_dtype(arr_or_dtype) -> bool:
     False
     >>> is_bool_dtype(bool)
     True
-    >>> is_bool_dtype(np.bool)
+    >>> is_bool_dtype(np.bool_)
     True
     >>> is_bool_dtype(np.array(['a', 'b']))
     False
@@ -1526,7 +1526,7 @@ def is_complex_dtype(arr_or_dtype) -> bool:
     False
     >>> is_complex_dtype(int)
     False
-    >>> is_complex_dtype(np.complex)
+    >>> is_complex_dtype(np.complex_)
     True
     >>> is_complex_dtype(np.array(['a', 'b']))
     False

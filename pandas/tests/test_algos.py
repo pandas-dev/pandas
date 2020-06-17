@@ -713,7 +713,7 @@ class TestUnique:
         NAN2 = struct.unpack("d", struct.pack("=Q", bits_for_nan2))[0]
         assert NAN1 != NAN1
         assert NAN2 != NAN2
-        for el_type in [np.float64, np.object]:
+        for el_type in [np.float64, object]:
             a = np.array([NAN1, NAN2], dtype=el_type)
             result = pd.unique(a)
             assert result.size == 1
@@ -725,7 +725,7 @@ class TestUnique:
         # GH 22295
         if unique_nulls_fixture is unique_nulls_fixture2:
             return  # skip it, values not unique
-        a = np.array([unique_nulls_fixture, unique_nulls_fixture2], dtype=np.object)
+        a = np.array([unique_nulls_fixture, unique_nulls_fixture2], dtype=object)
         result = pd.unique(a)
         assert result.size == 2
         assert a[0] is unique_nulls_fixture
@@ -886,7 +886,7 @@ class TestIsin:
 
         # as object-array:
         result = algos.isin(
-            np.asarray(comps, dtype=np.object), np.asarray(values, dtype=np.object)
+            np.asarray(comps, dtype=object), np.asarray(values, dtype=object)
         )
         tm.assert_numpy_array_equal(np.array([True]), result)
 
@@ -916,8 +916,8 @@ class TestIsin:
 
     def test_different_nan_objects(self):
         # GH 22119
-        comps = np.array(["nan", np.nan * 1j, float("nan")], dtype=np.object)
-        vals = np.array([float("nan")], dtype=np.object)
+        comps = np.array(["nan", np.nan * 1j, float("nan")], dtype=object)
+        vals = np.array([float("nan")], dtype=object)
         expected = np.array([False, False, True])
         result = algos.isin(comps, vals)
         tm.assert_numpy_array_equal(expected, result)
@@ -1157,7 +1157,7 @@ class TestValueCounts:
     def test_value_counts_normalized(self):
         # GH12558
         s = Series([1, 2, np.nan, np.nan, np.nan])
-        dtypes = (np.float64, np.object, "M8[ns]")
+        dtypes = (np.float64, object, "M8[ns]")
         for t in dtypes:
             s_typed = s.astype(t)
             result = s_typed.value_counts(normalize=True, dropna=False)
@@ -2290,10 +2290,10 @@ class TestMode:
             exp = Series(exp_multi, dtype=dt)
             tm.assert_series_equal(algos.mode(s), exp)
 
-        exp = Series([1], dtype=np.int)
+        exp = Series([1], dtype=int)
         tm.assert_series_equal(algos.mode([1]), exp)
 
-        exp = Series(["a", "b", "c"], dtype=np.object)
+        exp = Series(["a", "b", "c"], dtype=object)
         tm.assert_series_equal(algos.mode(["a", "b", "c"]), exp)
 
     def test_number_mode(self):

@@ -301,7 +301,7 @@ def _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey):
             try:
                 # first find out the ax layout,
                 # so that we can correctly handle 'gaps"
-                layout = np.zeros((nrows + 1, ncols + 1), dtype=np.bool)
+                layout = np.zeros((nrows + 1, ncols + 1), dtype=np.bool_)
                 for ax in axarr:
                     layout[row_num(ax), col_num(ax)] = ax.get_visible()
 

@@ -94,7 +94,7 @@ cpdef value_count_{{dtype}}({{c_type}}[:] values, bint dropna):
     build_count_table_{{dtype}}(values, table, dropna)
     {{endif}}
 
-    result_keys = np.empty(table.n_occupied, dtype=np.{{dtype}})
+    result_keys = np.empty(table.n_occupied, '{{dtype}}')
     result_counts = np.zeros(table.n_occupied, dtype=np.int64)
 
     {{if dtype == 'object'}}

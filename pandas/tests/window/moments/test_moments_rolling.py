@@ -515,7 +515,7 @@ def test_cmov_window_regular(win_types):
 @td.skip_if_no_scipy
 def test_cmov_window_regular_linear_range(win_types):
     # GH 8238
-    vals = np.array(range(10), dtype=np.float)
+    vals = np.array(range(10), dtype=float)
     xp = vals.copy()
     xp[:2] = np.nan
     xp[-2:] = np.nan
@@ -718,7 +718,7 @@ def test_cmov_window_special_linear_range(win_types_special):
         "exponential": {"tau": 10},
     }
 
-    vals = np.array(range(10), dtype=np.float)
+    vals = np.array(range(10), dtype=float)
     xp = vals.copy()
     xp[:2] = np.nan
     xp[-2:] = np.nan

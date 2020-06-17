@@ -319,13 +319,13 @@ class BaseSetitemTests(BaseExtensionTests):
     def test_setitem_series_with_index(self, data):
         # https://github.com/pandas-dev/pandas/issues/32395
         ser = expected = pd.Series(data, name="data")
-        result = pd.Series(index=ser.index, dtype=np.object, name="data")
+        result = pd.Series(index=ser.index, dtype=object, name="data")
         result.loc[ser.index] = ser
         self.assert_series_equal(result, expected)
 
     def test_setitem_series_without_index(self, data):
         # https://github.com/pandas-dev/pandas/issues/32395
         ser = expected = pd.Series(data, name="data")
-        result = pd.Series(index=ser.index, dtype=np.object, name="data")
+        result = pd.Series(index=ser.index, dtype=object, name="data")
         result.loc[:] = ser
         self.assert_series_equal(result, expected)

@@ -374,7 +374,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return UInt64Index(data, copy=copy, dtype=dtype, name=name)
             elif is_float_dtype(data.dtype):
                 return Float64Index(data, copy=copy, dtype=dtype, name=name)
-            elif issubclass(data.dtype.type, np.bool) or is_bool_dtype(data):
+            elif issubclass(data.dtype.type, bool) or is_bool_dtype(data):
                 subarr = data.astype("object")
             else:
                 subarr = com.asarray_tuplesafe(data, dtype=object)

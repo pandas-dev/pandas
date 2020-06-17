@@ -28,7 +28,7 @@ class TestFancy:
         # len of indexer vs length of the 1d ndarray
         df = DataFrame(index=Index(np.arange(1, 11)))
         df["foo"] = np.zeros(10, dtype=np.float64)
-        df["bar"] = np.zeros(10, dtype=np.complex)
+        df["bar"] = np.zeros(10, dtype=complex)
 
         # invalid
         with pytest.raises(ValueError):
@@ -46,7 +46,7 @@ class TestFancy:
         # dtype getting changed?
         df = DataFrame(index=Index(np.arange(1, 11)))
         df["foo"] = np.zeros(10, dtype=np.float64)
-        df["bar"] = np.zeros(10, dtype=np.complex)
+        df["bar"] = np.zeros(10, dtype=complex)
 
         with pytest.raises(ValueError):
             df[2:5] = np.arange(1, 4) * 1j

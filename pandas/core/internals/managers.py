@@ -1951,7 +1951,7 @@ def _compare_or_regex_search(
     if isinstance(result, np.ndarray):
         # The shape of the mask can differ to that of the result
         # since we may compare only a subset of a's or b's elements
-        tmp = np.zeros(mask.shape, dtype=np.bool)
+        tmp = np.zeros(mask.shape, dtype=np.bool_)
         tmp[mask] = result
         result = tmp
 
