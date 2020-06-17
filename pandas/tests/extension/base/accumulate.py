@@ -38,6 +38,8 @@ class BaseNumericAccumulateTests(BaseAccumulateTests):
         op_name = all_numeric_accumulations
         s = pd.Series(data)
 
+        # TODO: check if needed, copied from reduce
+        # min/max with empty produce numpy warnings
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", RuntimeWarning)
             self.check_accumulate(s, op_name, skipna)
