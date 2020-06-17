@@ -86,6 +86,7 @@ from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
 from pandas.core import missing, nanops
+from pandas.core._shared_docs import _shared_docs
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
 import pandas.core.common as com
@@ -108,7 +109,6 @@ if TYPE_CHECKING:
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
-_shared_docs: Dict[str, str] = dict()
 _shared_doc_kwargs = dict(
     axes="keywords for axes",
     klass="Series/DataFrame",
