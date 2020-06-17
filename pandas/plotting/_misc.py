@@ -160,7 +160,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
     Parameters
     ----------
     frame : `DataFrame`
-        pandas object holding the data.
+        Object holding the data.
     class_column : str
         Column name containing the name of the data point category.
     ax : :class:`matplotlib.axes.Axes`, optional
@@ -294,7 +294,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     Parameters
     ----------
     series : pandas.Series
-        pandas Series from where to get the samplings for the bootstrapping.
+        Series from where to get the samplings for the bootstrapping.
     fig : matplotlib.figure.Figure, default None
         If given, it will use the `fig` reference for plotting instead of
         creating a new one with default parameters.
