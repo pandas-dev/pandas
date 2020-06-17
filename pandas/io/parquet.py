@@ -105,7 +105,7 @@ class PyArrowImpl(BaseImpl):
 
         table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
 
-        fs = kwargs.pop('filesystem', get_fs_for_path(path))
+        fs = kwargs.pop("filesystem", get_fs_for_path(path))
 
         # write_to_dataset does not support a file-like object when
         # a directory path is used, so just pass the path string.
@@ -120,10 +120,7 @@ class PyArrowImpl(BaseImpl):
             )
         else:
             self.api.parquet.write_table(
-                table,
-                file_obj_or_path,
-                compression=compression,
-                **kwargs,
+                table, file_obj_or_path, compression=compression, **kwargs,
             )
         if should_close:
             file_obj_or_path.close()
