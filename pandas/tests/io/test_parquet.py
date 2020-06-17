@@ -568,6 +568,26 @@ class TestParquetPyArrow(Base):
             repeat=1,
         )
 
+    @td.skip_if_no("s3fs")
+    @pytest.mark.parametrize("partition_col", [["A"], []])
+    def test_s3_roundtrip_for_dir_infer_fs(self, df_compat, s3_resource, pa,
+                                           partition_col):
+        expected_df = df_compat.copy()
+        if partition_col:
+            expected_df[partition_col] = expected_df[partition_col].astype("category")
+        check_round_trip(
+            df_compat,
+            pa,
+            expected=expected_df,
+            path="s3://pandas-test/parquet_dir",
+            write_kwargs={
+                "partition_cols": partition_col,
+                "compression": None,
+            },
+            check_like=True,
+            repeat=1,
+        )
+    
     @tm.network
     @td.skip_if_no("pyarrow")
     def test_parquet_read_from_url(self, df_compat):
