@@ -105,7 +105,7 @@ class PyArrowImpl(BaseImpl):
 
         table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
 
-        fs = get_fs_for_path(path)
+        fs = kwargs.get('filesystem', get_fs_for_path(path))
         # write_to_dataset does not support a file-like object when
         # a directory path is used, so just pass the path string.
         if partition_cols is not None:
