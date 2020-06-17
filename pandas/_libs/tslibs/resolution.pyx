@@ -1,11 +1,12 @@
+
 import numpy as np
 from numpy cimport ndarray, int64_t, int32_t
 
 from pandas._libs.tslibs.util cimport get_nat
 
+from pandas._libs.tslibs.dtypes import Resolution
 from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, dt64_to_dtstruct)
-from pandas._libs.tslibs.frequencies cimport attrname_to_abbrevs
 from pandas._libs.tslibs.timezones cimport (
     is_utc, is_tzlocal, maybe_get_tz, get_dst_info)
 from pandas._libs.tslibs.ccalendar cimport get_days_in_month
@@ -24,11 +25,15 @@ cdef:
     int RESO_MIN = 4
     int RESO_HR = 5
     int RESO_DAY = 6
+    int RESO_MTH = 7
+    int RESO_QTR = 8
+    int RESO_YR = 9
 
 
 # ----------------------------------------------------------------------
 
-def resolution(const int64_t[:] stamps, tz=None):
+
+def get_resolution(const int64_t[:] stamps, tz=None):
     cdef:
         Py_ssize_t i, n = len(stamps)
         npy_datetimestruct dts
@@ -82,7 +87,7 @@ def resolution(const int64_t[:] stamps, tz=None):
                 if curr_reso < reso:
                     reso = curr_reso
 
-    return reso
+    return Resolution(reso)
 
 
 cdef inline int _reso_stamp(npy_datetimestruct *dts):
@@ -97,146 +102,6 @@ cdef inline int _reso_stamp(npy_datetimestruct *dts):
     elif dts.hour != 0:
         return RESO_HR
     return RESO_DAY
-
-
-class Resolution:
-
-    # Note: cython won't allow us to reference the cdef versions at the
-    # module level
-    RESO_NS = 0
-    RESO_US = 1
-    RESO_MS = 2
-    RESO_SEC = 3
-    RESO_MIN = 4
-    RESO_HR = 5
-    RESO_DAY = 6
-
-    _reso_str_map = {
-        RESO_NS: 'nanosecond',
-        RESO_US: 'microsecond',
-        RESO_MS: 'millisecond',
-        RESO_SEC: 'second',
-        RESO_MIN: 'minute',
-        RESO_HR: 'hour',
-        RESO_DAY: 'day'}
-
-    # factor to multiply a value by to convert it to the next finer grained
-    # resolution
-    _reso_mult_map = {
-        RESO_NS: None,
-        RESO_US: 1000,
-        RESO_MS: 1000,
-        RESO_SEC: 1000,
-        RESO_MIN: 60,
-        RESO_HR: 60,
-        RESO_DAY: 24}
-
-    reso_str_bump_map = {
-        'D': 'H',
-        'H': 'T',
-        'T': 'S',
-        'S': 'L',
-        'L': 'U',
-        'U': 'N',
-        'N': None}
-
-    _str_reso_map = {v: k for k, v in _reso_str_map.items()}
-
-    _freq_reso_map = {v: k for k, v in attrname_to_abbrevs.items()}
-
-    @classmethod
-    def get_str(cls, reso: int) -> str:
-        """
-        Return resolution str against resolution code.
-
-        Examples
-        --------
-        >>> Resolution.get_str(Resolution.RESO_SEC)
-        'second'
-        """
-        return cls._reso_str_map.get(reso, 'day')
-
-    @classmethod
-    def get_reso(cls, resostr: str) -> int:
-        """
-        Return resolution str against resolution code.
-
-        Examples
-        --------
-        >>> Resolution.get_reso('second')
-        2
-
-        >>> Resolution.get_reso('second') == Resolution.RESO_SEC
-        True
-        """
-        return cls._str_reso_map.get(resostr, cls.RESO_DAY)
-
-    @classmethod
-    def get_str_from_freq(cls, freq: str) -> str:
-        """
-        Return resolution str against frequency str.
-
-        Examples
-        --------
-        >>> Resolution.get_str_from_freq('H')
-        'hour'
-        """
-        return cls._freq_reso_map.get(freq, 'day')
-
-    @classmethod
-    def get_reso_from_freq(cls, freq: str) -> int:
-        """
-        Return resolution code against frequency str.
-
-        Examples
-        --------
-        >>> Resolution.get_reso_from_freq('H')
-        4
-
-        >>> Resolution.get_reso_from_freq('H') == Resolution.RESO_HR
-        True
-        """
-        return cls.get_reso(cls.get_str_from_freq(freq))
-
-    @classmethod
-    def get_stride_from_decimal(cls, value, freq):
-        """
-        Convert freq with decimal stride into a higher freq with integer stride
-
-        Parameters
-        ----------
-        value : int or float
-        freq : str
-            Frequency string
-
-        Raises
-        ------
-        ValueError
-            If the float cannot be converted to an integer at any resolution.
-
-        Examples
-        --------
-        >>> Resolution.get_stride_from_decimal(1.5, 'T')
-        (90, 'S')
-
-        >>> Resolution.get_stride_from_decimal(1.04, 'H')
-        (3744, 'S')
-
-        >>> Resolution.get_stride_from_decimal(1, 'D')
-        (1, 'D')
-        """
-        if np.isclose(value % 1, 0):
-            return int(value), freq
-        else:
-            start_reso = cls.get_reso_from_freq(freq)
-            if start_reso == 0:
-                raise ValueError(
-                    "Could not convert to integer offset at any resolution"
-                )
-
-            next_value = cls._reso_mult_map[start_reso] * value
-            next_name = cls.reso_str_bump_map[freq]
-            return cls.get_stride_from_decimal(next_value, next_name)
 
 
 # ----------------------------------------------------------------------
