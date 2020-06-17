@@ -512,6 +512,7 @@ class TestDatetimeArray(SharedTests):
         arr = DatetimeArray(dti)
 
         with tm.assert_produces_warning(FutureWarning):
+            # Deprecation GH#34853
             expected = dti.to_perioddelta(freq=freqstr)
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             # stacklevel is chosen to be "correct" for DatetimeIndex, not

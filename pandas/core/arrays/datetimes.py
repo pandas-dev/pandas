@@ -1125,6 +1125,7 @@ default 'raise'
         -------
         TimedeltaArray/Index
         """
+        # Deprecaation GH#34853
         warnings.warn(
             "to_perioddelta is deprecated and will be removed in a "
             "future version.  "
