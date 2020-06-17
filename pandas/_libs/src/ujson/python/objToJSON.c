@@ -2130,7 +2130,7 @@ double Object_getDoubleValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
 const char *Object_getBigNumStringValue(JSOBJ obj, JSONTypeContext *tc, 
                                     size_t *_outLen) {
     PyObject* repr = PyObject_Str(obj);
-    const char *str = PyUnicode_AsUTF8AndSize(repr, (<Py_ssize_t> *_outLen));
+    const char *str = PyUnicode_AsUTF8AndSize(repr, (Py_ssize_t *) _outLen);
     char* bytes = malloc(*_outLen);
     memcpy(bytes, str, *_outLen);
     GET_TC(tc)->cStr = bytes;
