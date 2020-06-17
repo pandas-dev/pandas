@@ -4,8 +4,8 @@ import pytest
 from pandas.errors import UnsupportedFunctionCall
 
 from pandas import DataFrame, Series, date_range
-from pandas.core.window import EWM
 import pandas._testing as tm
+from pandas.core.window import EWM
 
 
 def test_doc_string():

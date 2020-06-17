@@ -11,11 +11,11 @@ from pandas._typing import FrameOrSeries, TimedeltaConvertibleTypes
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 
+from pandas.core.dtypes.common import is_datetime64_ns_dtype
 from pandas.core.dtypes.generic import ABCDataFrame
 
 from pandas.core.base import DataError
 import pandas.core.common as common
-from pandas.core.dtypes.common import is_datetime64_ns_dtype
 from pandas.core.window.common import _doc_template, _shared_docs, zsqrt
 from pandas.core.window.rolling import _flex_binary_moment, _Rolling
 
