@@ -47,7 +47,7 @@ from pandas._typing import (
 from pandas.compat import set_function_name
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
-from pandas.errors import AbstractMethodError
+from pandas.errors import AbstractMethodError, InvalidIndexError
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -90,13 +90,7 @@ import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
 import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
-from pandas.core.indexes.api import (
-    Index,
-    InvalidIndexError,
-    MultiIndex,
-    RangeIndex,
-    ensure_index,
-)
+from pandas.core.indexes.api import Index, MultiIndex, RangeIndex, ensure_index
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import Period, PeriodIndex
 import pandas.core.indexing as indexing
@@ -188,7 +182,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     ]
     _internal_names_set: Set[str] = set(_internal_names)
     _accessors: Set[str] = set()
-    _deprecations: FrozenSet[str] = frozenset(["get_values"])
+    _deprecations: FrozenSet[str] = frozenset(["get_values", "tshift"])
     _metadata: List[str] = []
     _is_copy = None
     _mgr: BlockManager
@@ -5337,15 +5331,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         f = lambda: self._mgr.is_mixed_type
         return self._protect_consolidate(f)
 
-    @property
-    def _is_numeric_mixed_type(self) -> bool_t:
-        f = lambda: self._mgr.is_numeric_mixed_type
-        return self._protect_consolidate(f)
-
     def _check_inplace_setting(self, value) -> bool_t:
         """ check whether we allow in-place setting with this type of value """
         if self._is_mixed_type:
-            if not self._is_numeric_mixed_type:
+            if not self._mgr.is_numeric_mixed_type:
 
                 # allow an actual np.nan thru
                 if is_float(value) and np.isnan(value):
@@ -9168,7 +9157,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         When `freq` is not passed, shift the index without realigning the data.
         If `freq` is passed (in this case, the index must be date or datetime,
         or it will raise a `NotImplementedError`), the index will be
-        increased using the periods and the `freq`.
+        increased using the periods and the `freq`. `freq` can be inferred
+        when specified as "infer" as long as either freq or inferred_freq
+        attribute is set in the index.
 
         Parameters
         ----------
@@ -9179,6 +9170,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             If `freq` is specified then the index values are shifted but the
             data is not realigned. That is, use `freq` if you would like to
             extend the index when shifting and preserve the original data.
+            If `freq` is specified as "infer" then it will be inferred from
+            the freq or inferred_freq attributes of the index. If neither of
+            those attributes exist, a ValueError is thrown
         axis : {{0 or 'index', 1 or 'columns', None}}, default None
             Shift direction.
         fill_value : object, optional
@@ -9188,7 +9182,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             For datetime, timedelta, or period data, etc. :attr:`NaT` is used.
             For extension dtypes, ``self.dtype.na_value`` is used.
 
-            .. versionchanged:: 0.24.0
+            .. versionchanged:: 1.1.0
 
         Returns
         -------
@@ -9205,46 +9199,99 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({{'Col1': [10, 20, 15, 30, 45],
-        ...                    'Col2': [13, 23, 18, 33, 48],
-        ...                    'Col3': [17, 27, 22, 37, 52]}})
+        >>> df = pd.DataFrame({{"Col1": [10, 20, 15, 30, 45],
+        ...                    "Col2": [13, 23, 18, 33, 48],
+        ...                    "Col3": [17, 27, 22, 37, 52]}},
+        ...                   index=pd.date_range("2020-01-01", "2020-01-05"))
+        >>> df
+                    Col1  Col2  Col3
+        2020-01-01    10    13    17
+        2020-01-02    20    23    27
+        2020-01-03    15    18    22
+        2020-01-04    30    33    37
+        2020-01-05    45    48    52
 
         >>> df.shift(periods=3)
-           Col1  Col2  Col3
-        0   NaN   NaN   NaN
-        1   NaN   NaN   NaN
-        2   NaN   NaN   NaN
-        3  10.0  13.0  17.0
-        4  20.0  23.0  27.0
+                    Col1  Col2  Col3
+        2020-01-01   NaN   NaN   NaN
+        2020-01-02   NaN   NaN   NaN
+        2020-01-03   NaN   NaN   NaN
+        2020-01-04  10.0  13.0  17.0
+        2020-01-05  20.0  23.0  27.0
 
-        >>> df.shift(periods=1, axis='columns')
-           Col1  Col2  Col3
-        0   NaN  10.0  13.0
-        1   NaN  20.0  23.0
-        2   NaN  15.0  18.0
-        3   NaN  30.0  33.0
-        4   NaN  45.0  48.0
+        >>> df.shift(periods=1, axis="columns")
+                    Col1  Col2  Col3
+        2020-01-01   NaN  10.0  13.0
+        2020-01-02   NaN  20.0  23.0
+        2020-01-03   NaN  15.0  18.0
+        2020-01-04   NaN  30.0  33.0
+        2020-01-05   NaN  45.0  48.0
 
         >>> df.shift(periods=3, fill_value=0)
-           Col1  Col2  Col3
-        0     0     0     0
-        1     0     0     0
-        2     0     0     0
-        3    10    13    17
-        4    20    23    27
+                    Col1  Col2  Col3
+        2020-01-01     0     0     0
+        2020-01-02     0     0     0
+        2020-01-03     0     0     0
+        2020-01-04    10    13    17
+        2020-01-05    20    23    27
+
+        >>> df.shift(periods=3, freq="D")
+                    Col1  Col2  Col3
+        2020-01-04    10    13    17
+        2020-01-05    20    23    27
+        2020-01-06    15    18    22
+        2020-01-07    30    33    37
+        2020-01-08    45    48    52
+
+        >>> df.shift(periods=3, freq="infer")
+                    Col1  Col2  Col3
+        2020-01-04    10    13    17
+        2020-01-05    20    23    27
+        2020-01-06    15    18    22
+        2020-01-07    30    33    37
+        2020-01-08    45    48    52
         """
         if periods == 0:
             return self.copy()
 
-        block_axis = self._get_block_manager_axis(axis)
         if freq is None:
+            # when freq is None, data is shifted, index is not
+            block_axis = self._get_block_manager_axis(axis)
             new_data = self._mgr.shift(
                 periods=periods, axis=block_axis, fill_value=fill_value
             )
-        else:
-            return self.tshift(periods, freq)
+            return self._constructor(new_data).__finalize__(self, method="shift")
 
-        return self._constructor(new_data).__finalize__(self, method="shift")
+        # when freq is given, index is shifted, data is not
+        index = self._get_axis(axis)
+
+        if freq == "infer":
+            freq = getattr(index, "freq", None)
+
+            if freq is None:
+                freq = getattr(index, "inferred_freq", None)
+
+            if freq is None:
+                msg = "Freq was not set in the index hence cannot be inferred"
+                raise ValueError(msg)
+
+        elif isinstance(freq, str):
+            freq = to_offset(freq)
+
+        if isinstance(index, PeriodIndex):
+            orig_freq = to_offset(index.freq)
+            if freq != orig_freq:
+                assert orig_freq is not None  # for mypy
+                raise ValueError(
+                    f"Given freq {freq.rule_code} does not match "
+                    f"PeriodIndex freq {orig_freq.rule_code}"
+                )
+            new_ax = index.shift(periods)
+        else:
+            new_ax = index.shift(periods, freq)
+
+        result = self.set_axis(new_ax, axis)
+        return result.__finalize__(self, method="shift")
 
     def slice_shift(self: FrameOrSeries, periods: int = 1, axis=0) -> FrameOrSeries:
         """
@@ -9289,6 +9336,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         Shift the time index, using the index's frequency if available.
 
+        .. deprecated:: 1.1.0
+            Use `shift` instead.
+
         Parameters
         ----------
         periods : int
@@ -9309,39 +9359,19 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         attributes of the index. If neither of those attributes exist, a
         ValueError is thrown
         """
-        index = self._get_axis(axis)
-        if freq is None:
-            freq = getattr(index, "freq", None)
+        warnings.warn(
+            (
+                "tshift is deprecated and will be removed in a future version. "
+                "Please use shift instead."
+            ),
+            FutureWarning,
+            stacklevel=2,
+        )
 
         if freq is None:
-            freq = getattr(index, "inferred_freq", None)
+            freq = "infer"
 
-        if freq is None:
-            msg = "Freq was not given and was not set in the index"
-            raise ValueError(msg)
-
-        if periods == 0:
-            return self
-
-        if isinstance(freq, str):
-            freq = to_offset(freq)
-
-        axis = self._get_axis_number(axis)
-        if isinstance(index, PeriodIndex):
-            orig_freq = to_offset(index.freq)
-            if freq != orig_freq:
-                assert orig_freq is not None  # for mypy
-                raise ValueError(
-                    f"Given freq {freq.rule_code} does not match "
-                    f"PeriodIndex freq {orig_freq.rule_code}"
-                )
-            new_ax = index.shift(periods)
-        else:
-            new_ax = index.shift(periods, freq)
-
-        result = self.copy()
-        result.set_axis(new_ax, axis, inplace=True)
-        return result.__finalize__(self, method="tshift")
+        return self.shift(periods, freq, axis)
 
     def truncate(
         self: FrameOrSeries, before=None, after=None, axis=None, copy: bool_t = True
