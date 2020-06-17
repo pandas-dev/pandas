@@ -111,12 +111,17 @@ class PyArrowImpl(BaseImpl):
                 table,
                 path,
                 compression=compression,
+                filesystem=get_fs_for_path(path),
                 partition_cols=partition_cols,
                 **kwargs,
             )
         else:
             self.api.parquet.write_table(
-                table, file_obj_or_path, compression=compression, **kwargs
+                table,
+                file_obj_or_path, 
+                compression=compression,
+                filesystem=get_fs_for_path(path),
+                 **kwargs
             )
         if should_close:
             file_obj_or_path.close()
