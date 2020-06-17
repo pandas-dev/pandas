@@ -100,5 +100,5 @@ def test_ewma_with_times(halflife_with_times, times):
         {"A": range(10), "time_col": date_range("2000", freq="ns", periods=10)}
     )
     result = df.ewm(halflife=halflife, times=times).mean()
-    expected = DataFrame({'A': np.arange(0, 5, step=0.5)})
+    expected = DataFrame({"A": np.arange(0, 5, step=0.5)})
     tm.assert_frame_equal(result, expected)

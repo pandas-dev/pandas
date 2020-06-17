@@ -84,9 +84,9 @@ class EWM(_Rolling):
         :math:`\alpha = 1 - \exp\left(-\ln(2) / halflife\right)`, for
         :math:`halflife > 0`.
 
-        If ``times`` is specified, the time unit (str or timedelta) over which an observation
-        decays to half its value. Only applicable to ``mean()`` and halflife value
-        will not apply to the other functions.
+        If ``times`` is specified, the time unit (str or timedelta) over which an
+        observation decays to half its value. Only applicable to ``mean()``
+        and halflife value will not apply to the other functions.
 
     alpha : float, optional
         Specify smoothing factor :math:`\alpha` directly,
