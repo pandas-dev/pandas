@@ -934,7 +934,7 @@ def read_html(
     index_col: Union[int, Sequence[int], None] = None,
     skiprows: Union[int, Sequence[int], slice, None] = None,
     attrs: Optional[Dict[str, str]] = None,
-    parse_dates: Optional[bool] = False,
+    parse_dates: bool = False,
     thousands: str = ",",
     encoding: Optional[str] = None,
     decimal: str = ".",
