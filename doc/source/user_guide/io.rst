@@ -232,8 +232,6 @@ na_filter : boolean, default ``True``
   Detect missing value markers (empty strings and the value of na_values). In
   data without any NAs, passing ``na_filter=False`` can improve the performance
   of reading a large file.
-verbose : boolean, default ``False``
-  Indicate number of NA values placed in non-numeric columns.
 skip_blank_lines : boolean, default ``True``
   If ``True``, skip over blank lines rather than interpreting as NaN values.
 
