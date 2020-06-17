@@ -85,6 +85,12 @@ def test_ewma_halflife_not_correct_type():
         Series(range(5)).ewm(halflife=1, times=np.arange(5).astype("datetime64[ns]"))
 
 
+def test_ewma_halflife_without_times(halflife_with_times):
+    msg = "halflife can only be a timedelta convertable argument if times is specified."
+    with pytest.raises(ValueError, match=msg):
+        Series(range(5)).ewm(halflife=halflife_with_times)
+
+
 @pytest.mark.parametrize(
     "times",
     [

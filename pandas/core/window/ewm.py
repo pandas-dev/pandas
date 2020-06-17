@@ -193,6 +193,7 @@ class EWM(_Rolling):
         axis: int = 0,
         times: Optional[Union[str, np.ndarray, FrameOrSeries]] = None,
     ):
+        self.com: Optional[float]
         self.obj = obj
         self.min_periods = max(int(min_periods), 1)
         self.adjust = adjust
@@ -221,6 +222,10 @@ class EWM(_Rolling):
             else:
                 self.com = None
         else:
+            if halflife is not None and not isinstance(halflife, float):
+                raise ValueError(
+                    "halflife can only be a timedelta convertable argument if times is not None."
+                )
             self.time_weights = None
             self.com = get_center_of_mass(com, span, halflife, alpha)
 
