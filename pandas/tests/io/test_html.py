@@ -507,8 +507,7 @@ class TestReadHtml:
         Make sure that read_html reads tfoot, containing td or th.
         Ignores empty tfoot
         """
-        data_template = (
-            lambda footer: f"""<table>
+        data_template = """<table>
             <thead>
                 <tr>
                     <th>A</th>
@@ -525,7 +524,6 @@ class TestReadHtml:
                 {footer}
             </tfoot>
         </table>"""
-        )
 
         expected1 = DataFrame(data=[["bodyA", "bodyB"]], columns=["A", "B"])
 
@@ -533,8 +531,8 @@ class TestReadHtml:
             data=[["bodyA", "bodyB"], ["footA", "footB"]], columns=["A", "B"]
         )
 
-        data1 = data_template(footer="")
-        data2 = data_template(footer="<tr><td>footA</td><th>footB</th></tr>")
+        data1 = data_template.format(footer="")
+        data2 = data_template.format(footer="<tr><td>footA</td><th>footB</th></tr>")
 
         result1 = self.read_html(data1)[0]
         result2 = self.read_html(data2)[0]
