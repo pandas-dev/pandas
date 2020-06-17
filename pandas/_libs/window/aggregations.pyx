@@ -1801,6 +1801,7 @@ def ewma_time(float64_t[:] vals, int minp, float64_t[:] time_weights):
 
     return output
 
+
 def ewma(float64_t[:] vals, float64_t com, bint adjust, bint ignore_na, int minp):
     """
     Compute exponentially-weighted moving average using center-of-mass.
