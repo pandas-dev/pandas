@@ -1125,7 +1125,13 @@ default 'raise'
         -------
         TimedeltaArray/Index
         """
-        # TODO: consider privatizing (discussion in GH#23113)
+        warnings.warn(
+            "to_perioddelta is deprecated and will be removed in a "
+            "future version.  "
+            "Use `dtindex - dtindex.to_period(freq).to_timestamp()` instead",
+            FutureWarning,
+            stacklevel=3,
+        )
         from pandas.core.arrays.timedeltas import TimedeltaArray
 
         i8delta = self.asi8 - self.to_period(freq).to_timestamp().asi8
