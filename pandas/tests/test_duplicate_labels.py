@@ -180,7 +180,6 @@ class TestPreserves:
             ),
         ],
     )
-    @not_implemented
     def test_concat(self, objs, kwargs):
         result = pd.concat(objs, **kwargs)
         assert result.allows_duplicate_labels is False
@@ -289,7 +288,6 @@ class TestRaises:
     @pytest.mark.parametrize(
         "func", [operator.methodcaller("append", pd.Series(0, index=["a", "b"]))]
     )
-    @not_implemented
     def test_series_raises(self, func):
         s = pd.Series([0, 1], index=["a", "b"], allows_duplicate_labels=False)
         with pytest.raises(pandas.errors.DuplicateLabelError):
@@ -342,7 +340,6 @@ class TestRaises:
             )
         ],
     )
-    @not_implemented
     def test_concat_raises(self, objs, kwargs):
         with pytest.raises(pandas.errors.DuplicateLabelError):
             pd.concat(objs, **kwargs)

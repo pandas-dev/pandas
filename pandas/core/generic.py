@@ -5235,6 +5235,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 assert isinstance(name, str)
                 object.__setattr__(self, name, getattr(other, name, None))
 
+        if method == "concat":
+            allows_duplicate_labels = all(x.allows_duplicate_labels for x in other.objs)
+            self.allows_duplicate_labels = allows_duplicate_labels
+
         return self
 
     def __getattr__(self, name: str):
