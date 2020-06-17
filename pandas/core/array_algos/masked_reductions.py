@@ -109,7 +109,9 @@ def max(values: np.ndarray, mask: np.ndarray, *, skipna: bool = True):
     return _minmax(np.max, values=values, mask=mask, skipna=skipna)
 
 
-def mean(values: np.ndarray, mask: np.ndarray, skipna: bool = True, min_count: int = 0):
-    return _sumprod(
-        np.sum, values=values, mask=mask, skipna=skipna, min_count=min_count
-    ) / np.count_nonzero(~mask)
+def mean(values: np.ndarray, mask: np.ndarray, skipna: bool = True):
+
+    _sum = _sumprod(np.sum, values=values, mask=mask, skipna=skipna)
+    count = np.count_nonzero(~mask)
+    mean_value = _sum / count
+    return mean_value
