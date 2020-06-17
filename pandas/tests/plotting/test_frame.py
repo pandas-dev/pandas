@@ -295,7 +295,7 @@ class TestDataFramePlots(TestPlotBase):
         ax = df.plot()
         lines = ax.get_lines()
         assert not isinstance(lines[0].get_xdata(), PeriodIndex)
-        self._check_ticks_props(ax, xrot=0)
+        self._check_ticks_props(ax, xrot=30)
 
         tm.close()
         pd.plotting.plot_params["x_compat"] = False
