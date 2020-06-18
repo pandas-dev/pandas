@@ -41,7 +41,7 @@ def _put_str(s: Union[str, Dtype], space: int) -> str:
     return str(s)[:space].ljust(space)
 
 
-def _sizeof_fmt(num, size_qualifier):
+def _sizeof_fmt(num: Union[int, float], size_qualifier: str) -> str:
     """
     Return size in human readable format.
 
@@ -128,7 +128,9 @@ class BaseInfo(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def _verbose_repr(self, lines, ids, dtypes, show_counts):
+    def _verbose_repr(
+        self, lines: List[str], ids: "Index", dtypes: "Series", show_counts: bool
+    ) -> None:
         """
         Append name, non-null count (optional), and dtype for each column to `lines`.
 
@@ -146,7 +148,7 @@ class BaseInfo(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def _non_verbose_repr(self, lines, ids):
+    def _non_verbose_repr(self, lines: List[str], ids: "Series") -> None:
         """
         Append short summary of columns' names to `lines`.
 
