@@ -53,11 +53,11 @@ def csv_dir_path(datapath):
 
 
 @pytest.fixture
-def csv1(csv_dir_path):
+def csv1(datapath):
     """
     The path to the data file "test1.csv" needed for parser tests.
     """
-    return os.path.join(csv_dir_path, "test1.csv")
+    return os.path.join(datapath("io", "data", "csv"), "test1.csv")
 
 
 _cParserHighMemory = CParserHighMemory()
