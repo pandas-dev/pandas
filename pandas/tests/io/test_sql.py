@@ -1900,9 +1900,9 @@ class _TestMySQLAlchemy:
 
     @classmethod
     def connect(cls):
-        url = "mysql+{driver}://root@localhost/pandas_nosetest"
         return sqlalchemy.create_engine(
-            url.format(driver=cls.driver), connect_args=cls.connect_args
+            f"mysql+{cls.driver}://root@localhost/pandas_nosetest",
+            connect_args=cls.connect_args,
         )
 
     @classmethod
@@ -1969,8 +1969,9 @@ class _TestPostgreSQLAlchemy:
 
     @classmethod
     def connect(cls):
-        url = "postgresql+{driver}://postgres@localhost/pandas_nosetest"
-        return sqlalchemy.create_engine(url.format(driver=cls.driver))
+        return sqlalchemy.create_engine(
+            f"postgresql+{cls.driver}://postgres@localhost/pandas_nosetest"
+        )
 
     @classmethod
     def setup_driver(cls):
