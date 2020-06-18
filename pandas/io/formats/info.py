@@ -148,7 +148,7 @@ class BaseInfo(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def _non_verbose_repr(self, lines: List[str], ids: "Series") -> None:
+    def _non_verbose_repr(self, lines: List[str], ids: "Index") -> None:
         """
         Append short summary of columns' names to `lines`.
 
@@ -347,5 +347,5 @@ class DataFrameInfo(BaseInfo):
                 + _put_str(dtype, space_dtype)
             )
 
-    def _non_verbose_repr(self, lines: List[str], ids: "Series") -> None:
+    def _non_verbose_repr(self, lines: List[str], ids: "Index") -> None:
         lines.append(ids._summary(name="Columns"))
