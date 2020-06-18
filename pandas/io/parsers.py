@@ -3476,13 +3476,13 @@ def _get_empty_meta(columns, index_col, index_names, dtype=None):
     # This will enable us to write `dtype[col_name]`
     # without worrying about KeyError issues later on.
     if not isinstance(dtype, dict):
-        # if dtype == None, default will be np.object.
-        default_dtype = dtype or np.object
+        # if dtype == None, default will be object.
+        default_dtype = dtype or object
         dtype = defaultdict(lambda: default_dtype)
     else:
         # Save a copy of the dictionary.
         _dtype = dtype.copy()
-        dtype = defaultdict(lambda: np.object)
+        dtype = defaultdict(lambda: object)
 
         # Convert column indexes to column names.
         for k, v in _dtype.items():
