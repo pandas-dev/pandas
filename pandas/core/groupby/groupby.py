@@ -2460,10 +2460,9 @@ class GroupBy(_GroupBy[FrameOrSeries]):
             else:
                 result_sz = len(values)
 
+            result = np.zeros(result_sz, dtype=cython_dtype)
             if needs_2d:
-                result = np.zeros((result_sz, 1), dtype=cython_dtype)
-            else:
-                result = np.zeros(result_sz, dtype=cython_dtype)
+                result = result.reshape((-1, 1))
             func = partial(base_func, result)
 
             inferences = None
