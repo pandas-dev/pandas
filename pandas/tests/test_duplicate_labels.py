@@ -4,9 +4,8 @@ import operator
 import numpy as np
 import pytest
 
-import pandas.errors
-
 import pandas as pd
+import pandas._testing as tm
 
 not_implemented = pytest.mark.xfail(reason="Not implemented.")
 
@@ -268,7 +267,7 @@ class TestRaises:
         result = cls(**axes)
         assert result.allows_duplicate_labels is True
 
-        with pytest.raises(pandas.errors.DuplicateLabelError):
+        with pytest.raises(pd.errors.DuplicateLabelError):
             cls(**axes, allows_duplicate_labels=False)
 
     @pytest.mark.parametrize(
@@ -280,7 +279,7 @@ class TestRaises:
         ],
     )
     def test_setting_allows_duplicate_labels_raises(self, data):
-        with pytest.raises(pandas.errors.DuplicateLabelError):
+        with pytest.raises(pd.errors.DuplicateLabelError):
             data.allows_duplicate_labels = False
 
         assert data.allows_duplicate_labels is True
@@ -290,7 +289,7 @@ class TestRaises:
     )
     def test_series_raises(self, func):
         s = pd.Series([0, 1], index=["a", "b"], allows_duplicate_labels=False)
-        with pytest.raises(pandas.errors.DuplicateLabelError):
+        with pytest.raises(pd.errors.DuplicateLabelError):
             func(s)
 
     @pytest.mark.parametrize(
@@ -325,7 +324,7 @@ class TestRaises:
         else:
             target = df
 
-        with pytest.raises(pandas.errors.DuplicateLabelError):
+        with pytest.raises(pd.errors.DuplicateLabelError):
             getter(target)
 
     @pytest.mark.parametrize(
@@ -341,7 +340,7 @@ class TestRaises:
         ],
     )
     def test_concat_raises(self, objs, kwargs):
-        with pytest.raises(pandas.errors.DuplicateLabelError):
+        with pytest.raises(pd.errors.DuplicateLabelError):
             pd.concat(objs, **kwargs)
 
     @not_implemented
@@ -350,5 +349,50 @@ class TestRaises:
             {"A": [0, 1, 2]}, index=["a", "b", "c"], allows_duplicate_labels=False
         )
         b = pd.DataFrame({"B": [0, 1, 2]}, index=["a", "b", "b"])
-        with pytest.raises(pandas.errors.DuplicateLabelError):
+        with pytest.raises(pd.errors.DuplicateLabelError):
             pd.merge(a, b, left_index=True, right_index=True)
+
+
+@pytest.mark.parametrize(
+    "idx",
+    [
+        pd.Index([1, 1]),
+        pd.Index(["a", "a"]),
+        pd.Index([1.1, 1.1]),
+        pd.PeriodIndex([pd.Period("2000", "D")] * 2),
+        pd.DatetimeIndex([pd.Timestamp("2000")] * 2),
+        pd.TimedeltaIndex([pd.Timedelta("1D")] * 2),
+        pd.CategoricalIndex(["a", "a"]),
+        pd.IntervalIndex([pd.Interval(0, 1)] * 2),
+        pd.MultiIndex.from_tuples([("a", 1), ("a", 1)]),
+    ],
+    ids=lambda x: type(x).__name__,
+)
+def test_raises_basic(idx):
+    with pytest.raises(pd.errors.DuplicateLabelError):
+        pd.Series(1, index=idx, allows_duplicate_labels=False)
+
+    with pytest.raises(pd.errors.DuplicateLabelError):
+        pd.DataFrame({"A": [1, 1]}, index=idx, allows_duplicate_labels=False)
+
+    with pytest.raises(pd.errors.DuplicateLabelError):
+        pd.DataFrame([[1, 2]], columns=idx, allows_duplicate_labels=False)
+
+
+def test_format_duplicate_labels_message():
+    idx = pd.Index(["a", "b", "a", "b", "c"])
+    result = idx._format_duplicate_message()
+    expected = pd.DataFrame(
+        {"positions": [[0, 2], [1, 3]]}, index=pd.Index(["a", "b"], name="label")
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_format_duplicate_labels_message_multi():
+    idx = pd.MultiIndex.from_product([["A"], ["a", "b", "a", "b", "c"]])
+    result = idx._format_duplicate_message()
+    expected = pd.DataFrame(
+        {"positions": [[0, 2], [1, 3]]},
+        index=pd.MultiIndex.from_product([["A"], ["a", "b"]]),
+    )
+    tm.assert_frame_equal(result, expected)

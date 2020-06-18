@@ -491,7 +491,9 @@ class Index(IndexOpsMixin, PandasObject):
         assert len(duplicates)
 
         out = Series(np.arange(len(self))).groupby(self).agg(list)[duplicates]
-        return out.rename_axis("label").to_frame(name="positions")
+        if self.nlevels == 1:
+            out = out.rename_axis("label")
+        return out.to_frame(name="positions")
 
     # --------------------------------------------------------------------
     # Index Internals Methods
