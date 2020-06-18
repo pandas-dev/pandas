@@ -922,15 +922,18 @@ class Window(_Window):
     * ``blackmanharris``
     * ``nuttall``
     * ``barthann``
-    * ``kaiser`` (needs beta)
-    * ``gaussian`` (needs std)
-    * ``general_gaussian`` (needs power, width)
-    * ``slepian`` (needs width)
-    * ``exponential`` (needs tau), center is set to None.
+    * ``kaiser`` (needs parameter: beta)
+    * ``gaussian`` (needs parameter: std)
+    * ``general_gaussian`` (needs parameters: power, width)
+    * ``slepian`` (needs parameter: width)
+    * ``exponential`` (needs parameter: tau), center is set to None.
 
     If ``win_type=None`` all points are evenly weighted. To learn more about
     different window types see `scipy.signal window functions
     <https://docs.scipy.org/doc/scipy/reference/signal.html#window-functions>`__.
+
+    Certain window types require additional parameters to be passed. Please see
+    the third example below on how to add the additional parameters.
 
     Examples
     --------
