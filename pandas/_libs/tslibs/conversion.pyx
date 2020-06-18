@@ -167,7 +167,8 @@ def ensure_datetime64ns(arr: ndarray, copy: bool=True):
     """
     cdef:
         Py_ssize_t i, n = arr.size
-        int64_t[:] ivalues, iresult
+        const int64_t[:] ivalues
+        int64_t[:] iresult
         NPY_DATETIMEUNIT unit
         npy_datetimestruct dts
 
