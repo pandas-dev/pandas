@@ -188,6 +188,8 @@ typedef struct __JSONObjectEncoder {
   JSINT64 (*getLongValue)(JSOBJ obj, JSONTypeContext *tc);
   JSINT32 (*getIntValue)(JSOBJ obj, JSONTypeContext *tc);
   double (*getDoubleValue)(JSOBJ obj, JSONTypeContext *tc);
+  const char *(*getBigNumStringValue)(JSOBJ obj, JSONTypeContext *tc,
+                                size_t *_outLen);
 
   /*
   Begin iteration of an iteratable object (JS_ARRAY or JS_OBJECT)

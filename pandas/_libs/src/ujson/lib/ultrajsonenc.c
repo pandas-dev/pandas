@@ -1109,22 +1109,13 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name,
         }
 
         case JT_BIGNUM: {
-            
             value = enc->getBigNumStringValue(obj, &tc, &szlen);
-
             Buffer_Reserve(enc, RESERVE_STRING(szlen));
             if (enc->errorMsg) {
                 enc->endTypeContext(obj, &tc);
                 return;
             }
-
-            if (!Buffer_EscapeStringValidated(obj, enc, value,
-                                                  value + szlen)) {
-                    enc->endTypeContext(obj, &tc);
-                    enc->level--;
-                    return;
-                }
-
+            
             break;
             
         }
