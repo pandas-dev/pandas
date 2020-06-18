@@ -50,7 +50,7 @@ def _sizeof_fmt(num: Union[int, float], size_qualifier: str) -> str:
     num : int
         Size in bytes.
     size_qualifier : str
-        Either empty, or '+' (if memory is lower bound).
+        Either empty, or '+' (if lower bound).
 
     Returns
     -------
