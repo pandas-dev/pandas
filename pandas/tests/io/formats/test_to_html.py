@@ -78,7 +78,7 @@ def test_to_html_with_col_space(col_space):
         assert str(col_space) in h
 
 
-def test_to_html_with_column_specific_col_space():
+def test_to_html_with_column_specific_col_space_raises():
     df = DataFrame(np.random.random(size=(3, 3)), columns=["a", "b", "c"])
 
     msg = (
@@ -94,6 +94,10 @@ def test_to_html_with_column_specific_col_space():
     msg = "unknown column"
     with pytest.raises(ValueError, match=msg):
         df.to_html(col_space={"a": "foo", "b": 23, "d": 34})
+
+
+def test_to_html_with_column_specific_col_space():
+    df = DataFrame(np.random.random(size=(3, 3)), columns=["a", "b", "c"])
 
     result = df.to_html(col_space={"a": "2em", "b": 23})
     hdrs = [x for x in result.split("\n") if re.search(r"<th[>\s]", x)]

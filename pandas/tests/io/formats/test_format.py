@@ -1047,7 +1047,7 @@ class TestDataFrameFormatting:
         no_header = df.to_string(col_space=20, header=False)
         assert len(with_header_row1) == len(no_header)
 
-    def test_to_string_with_column_specific_col_space(self):
+    def test_to_string_with_column_specific_col_space_raises(self):
         df = DataFrame(np.random.random(size=(3, 3)), columns=["a", "b", "c"])
 
         msg = (
@@ -1064,6 +1064,9 @@ class TestDataFrameFormatting:
         with pytest.raises(ValueError, match=msg):
             df.to_string(col_space={"a": "foo", "b": 23, "d": 34})
 
+    def test_to_string_with_column_specific_col_space(self):
+        df = DataFrame(np.random.random(size=(3, 3)), columns=["a", "b", "c"])
+        
         result = df.to_string(col_space={"a": 10, "b": 11, "c": 12})
         # 3 separating space + each col_space for (id, a, b, c)
         assert len(result.split("\n")[1]) == (3 + 1 + 10 + 11 + 12)
