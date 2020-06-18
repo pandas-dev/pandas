@@ -151,7 +151,7 @@ going forward, to ensure that your data pipeline doesn't introduce duplicates.
 
    >>> raw = pd.read_csv("...")
    >>> deduplicated = raw.groupby(level=0).first()  # remove duplicates
-   >>> dedupcliated.allows_duplicate_labels = False  # disallow going forward
+   >>> deduplicated.allows_duplicate_labels = False  # disallow going forward
 
 Performing an operation that introduces duplicate labels on a ``Series`` or
 ``DataFrame`` that disallows duplicates will raise an
@@ -163,7 +163,7 @@ Performing an operation that introduces duplicate labels on a ``Series`` or
    df.rename(str.upper)
 
 This error message contains the labels that are duplicated, and the numeric positions
-of all the duplicates (including the "original") in the ``Series`` or ``DataFrame``.
+of all the duplicates (including the "original") in the ``Series`` or ``DataFrame``
 
 Duplicate Label Propagation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
