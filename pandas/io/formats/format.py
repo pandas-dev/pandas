@@ -166,12 +166,14 @@ class CategoricalFormatter:
         length: bool = True,
         na_rep: str = "NaN",
         footer: bool = True,
+        quoting: Optional[int] = None,
     ):
         self.categorical = categorical
         self.buf = buf if buf is not None else StringIO("")
         self.na_rep = na_rep
         self.length = length
         self.footer = footer
+        self.quoting = quoting
 
     def _get_footer(self) -> str:
         footer = ""
@@ -196,6 +198,7 @@ class CategoricalFormatter:
             None,
             float_format=None,
             na_rep=self.na_rep,
+            quoting=self.quoting,
         )
 
     def to_string(self) -> str:
@@ -1086,6 +1089,7 @@ def format_array(
     justify: str = "right",
     decimal: str = ".",
     leading_space: Optional[bool] = None,
+    quoting: Optional[int] = None,
 ) -> List[str]:
     """
     Format an array for printing.
@@ -1148,6 +1152,7 @@ def format_array(
         justify=justify,
         decimal=decimal,
         leading_space=leading_space,
+        quoting=quoting,
     )
 
     return fmt_obj.get_result()
@@ -1198,7 +1203,7 @@ class GenericArrayFormatter:
             if self.formatter is not None
             else (
                 lambda x: pprint_thing(
-                    x, escape_chars=("\t", "\r", "\n"), quote_strings=True
+                    x, escape_chars=("\t", "\r", "\n"), quote_strings=self.quoting
                 )
             )
         )
