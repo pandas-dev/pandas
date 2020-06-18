@@ -252,6 +252,11 @@ Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - :class:`Styler` may now render CSS more efficiently where multiple cells have the same styling (:issue:`30876`)
+- Added :meth:`DataFrame.value_counts` (:issue:`5377`)
+- :meth:`Groupby.groups` now returns an abbreviated representation when called on large dataframes (:issue:`1135`)
+- Using a :func:`pandas.api.indexers.BaseIndexer` with ``count``, ``min``, ``max``, ``median``, ``skew``,  ``cov``, ``corr`` will now return correct results for any monotonic :func:`pandas.api.indexers.BaseIndexer` descendant (:issue:`32865`)
+- Added a :func:`pandas.api.indexers.FixedForwardWindowIndexer` class to support forward-looking windows during ``rolling`` operations.
+- Added :class:`pandas.errors.InvalidIndexError` (:issue:`34570`).
 - :meth:`Styler.highlight_null` now accepts ``subset`` argument (:issue:`31345`)
 - When writing directly to a sqlite connection :func:`to_sql` now supports the ``multi`` method (:issue:`29921`)
 - `OptionError` is now exposed in `pandas.errors` (:issue:`27553`)
@@ -302,68 +307,6 @@ Other enhancements
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-``MultiIndex.get_indexer`` interprets `method` argument differently
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-This restores the behavior of :meth:`MultiIndex.get_indexer` with ``method='backfill'`` or ``method='pad'`` to the behavior before pandas 0.23.0. In particular, MultiIndexes are treated as a list of tuples and padding or backfilling is done with respect to the ordering of these lists of tuples (:issue:`29896`).
-
-As an example of this, given:
-
-.. ipython:: python
-
-        df = pd.DataFrame({
-            'a': [0, 0, 0, 0],
-            'b': [0, 2, 3, 4],
-            'c': ['A', 'B', 'C', 'D'],
-        }).set_index(['a', 'b'])
-        mi_2 = pd.MultiIndex.from_product([[0], [-1, 0, 1, 3, 4, 5]])
-
-The differences in reindexing ``df`` with ``mi_2`` and using ``method='backfill'`` can be seen here:
-
-*pandas >= 0.23, < 1.1.0*:
-
-.. code-block:: ipython
-
-    In [1]: df.reindex(mi_2, method='backfill')
-    Out[1]:
-          c
-    0 -1  A
-       0  A
-       1  D
-       3  A
-       4  A
-       5  C
-
-*pandas <0.23, >= 1.1.0*
-
-.. ipython:: python
-
-        df.reindex(mi_2, method='backfill')
-
-And the differences in reindexing ``df`` with ``mi_2`` and using ``method='pad'`` can be seen here:
-
-*pandas >= 0.23, < 1.1.0*
-
-.. code-block:: ipython
-
-    In [1]: df.reindex(mi_2, method='pad')
-    Out[1]:
-            c
-    0 -1  NaN
-       0  NaN
-       1    D
-       3  NaN
-       4    A
-       5    C
-
-*pandas < 0.23, >= 1.1.0*
-
-.. ipython:: python
-
-        df.reindex(mi_2, method='pad')
-
--
 
 .. _whatsnew_110.api_breaking.indexing_raises_key_errors:
 
@@ -491,39 +434,6 @@ those integer keys is not present in the first level of the index (:issue:`33539
 
     left_df.merge(right_df, on=['animal', 'max_speed'], how="right")
 
-.. ---------------------------------------------------------------------------
-
-.. _whatsnew_110.api_breaking.assignment_to_multiple_columns:
-
-Assignment to multiple columns of a DataFrame when some columns do not exist
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Assignment to multiple columns of a :class:`DataFrame` when some of the columns do not exist would previously assign the values to the last column. Now, new columns would be constructed with the right values. (:issue:`13658`)
-
-.. ipython:: python
-
-   df = pd.DataFrame({'a': [0, 1, 2], 'b': [3, 4, 5]})
-   df
-
-*Previous behavior*:
-
-.. code-block:: ipython
-
-   In [3]: df[['a', 'c']] = 1
-   In [4]: df
-   Out[4]:
-      a  b
-   0  1  1
-   1  1  1
-   2  1  1
-
-*New behavior*:
-
-.. ipython:: python
-
-   df[['a', 'c']] = 1
-   df
-
 .. _whatsnew_110.api_breaking.groupby_consistency:
 
 Consistency across groupby reductions
@@ -590,44 +500,6 @@ The method :meth:`core.DataFrameGroupBy.size` would previously ignore ``as_index
 
    df.groupby("a", as_index=False).size()
 
-.. _whatsnew_110.api_breaking.apply_applymap_first_once:
-
-apply and applymap on ``DataFrame`` evaluates first row/column only once
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. ipython:: python
-
-    df = pd.DataFrame({'a': [1, 2], 'b': [3, 6]})
-
-    def func(row):
-        print(row)
-        return row
-
-*Previous behavior*:
-
-.. code-block:: ipython
-
-    In [4]: df.apply(func, axis=1)
-    a    1
-    b    3
-    Name: 0, dtype: int64
-    a    1
-    b    3
-    Name: 0, dtype: int64
-    a    2
-    b    6
-    Name: 1, dtype: int64
-    Out[4]:
-       a  b
-    0  1  3
-    1  2  6
-
-*New behavior*:
-
-.. ipython:: python
-
-    df.apply(func, axis=1)
-
 .. _whatsnew_110.api.other:
 
 Other API changes
@@ -635,12 +507,7 @@ Other API changes
 
 - :meth:`Series.describe` will now show distribution percentiles for ``datetime`` dtypes, statistics ``first`` and ``last``
   will now be ``min`` and ``max`` to match with numeric dtypes in :meth:`DataFrame.describe` (:issue:`30164`)
-- Added :meth:`DataFrame.value_counts` (:issue:`5377`)
-- :meth:`Groupby.groups` now returns an abbreviated representation when called on large dataframes (:issue:`1135`)
 - ``loc`` lookups with an object-dtype :class:`Index` and an integer key will now raise ``KeyError`` instead of ``TypeError`` when key is missing (:issue:`31905`)
-- Using a :func:`pandas.api.indexers.BaseIndexer` with ``count``, ``min``, ``max``, ``median``, ``skew``,  ``cov``, ``corr`` will now return correct results for any monotonic :func:`pandas.api.indexers.BaseIndexer` descendant (:issue:`32865`)
-- Added a :func:`pandas.api.indexers.FixedForwardWindowIndexer` class to support forward-looking windows during ``rolling`` operations.
-- Added :class:`pandas.errors.InvalidIndexError` (:issue:`34570`).
 - :meth:`DataFrame.swaplevels` now raises a  ``TypeError`` if the axis is not a :class:`MultiIndex`.
   Previously an ``AttributeError`` was raised (:issue:`31126`)
 - :meth:`DataFrame.xs` now raises a  ``TypeError`` if a ``level`` keyword is supplied and the axis is not a :class:`MultiIndex`.
@@ -649,19 +516,12 @@ Other API changes
   now raise a  ``TypeError`` if a not-accepted keyword argument is passed into it.
   Previously a ``UnsupportedFunctionCall`` was raised (``AssertionError`` if ``min_count`` passed into :meth:`~DataFrameGroupby.median`) (:issue:`31485`)
 - :meth:`DataFrame.at` and :meth:`Series.at` will raise a ``TypeError`` instead of a ``ValueError`` if an incompatible key is passed, and ``KeyError`` if a missing key is passed, matching the behavior of ``.loc[]`` (:issue:`31722`)
-- Passing an integer dtype other than ``int64`` to ``np.array(period_index, dtype=...)`` will now raise ``TypeError`` instead of incorrectly using ``int64`` (:issue:`32255`)
 - Passing an invalid ``fill_value`` to :meth:`Categorical.take` raises a ``ValueError`` instead of ``TypeError`` (:issue:`33660`)
-- Combining a ``Categorical`` with integer categories and which contains missing values
-  with a float dtype column in operations such as :func:`concat` or :meth:`~DataFrame.append`
-  will now result in a float column instead of an object dtyped column (:issue:`33607`)
 - :meth:`Series.to_timestamp` now raises a ``TypeError`` if the axis is not a :class:`PeriodIndex`. Previously an ``AttributeError`` was raised (:issue:`33327`)
 - :meth:`Series.to_period` now raises a ``TypeError`` if the axis is not a :class:`DatetimeIndex`. Previously an ``AttributeError`` was raised (:issue:`33327`)
-- :func: `pandas.api.dtypes.is_string_dtype` no longer incorrectly identifies categorical series as string.
 - :func:`read_excel` no longer takes ``**kwds`` arguments. This means that passing in keyword ``chunksize`` now raises a ``TypeError``
   (previously raised a ``NotImplementedError``), while passing in keyword ``encoding`` now raises a ``TypeError`` (:issue:`34464`)
 - :func: `merge` now checks ``suffixes`` parameter type to be ``tuple`` and raises ``TypeError``, whereas before a ``list`` or ``set`` were accepted and that the ``set`` could produce unexpected results (:issue:`33740`)
-- :class:`Period` no longer accepts tuples for the ``freq`` argument (:issue:`34658`)
-- :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` now raises ValueError if ``limit_direction`` is 'forward' or 'both' and ``method`` is 'backfill' or 'bfill' or ``limit_direction`` is 'backward' or 'both' and ``method`` is 'pad' or 'ffill' (:issue:`34746`)
 
 
 Increased minimum versions for dependencies
@@ -822,6 +682,10 @@ Categorical
 - Bug when passing categorical data to :class:`Index` constructor along with ``dtype=object`` incorrectly returning a :class:`CategoricalIndex` instead of object-dtype :class:`Index` (:issue:`32167`)
 - Bug where :class:`Categorical` comparison operator ``__ne__`` would incorrectly evaluate to ``False`` when either element was missing (:issue:`32276`)
 - :meth:`Categorical.fillna` now accepts :class:`Categorical` ``other`` argument (:issue:`32420`)
+- Combining a ``Categorical`` with integer categories and which contains missing values
+  with a float dtype column in operations such as :func:`concat` or :meth:`~DataFrame.append`
+  will now result in a float column instead of an object dtyped column (:issue:`33607`)
+- :func:`pandas.api.dtypes.is_string_dtype` no longer incorrectly identifies categorical series as string.
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -845,6 +709,8 @@ Datetimelike
 - Bug in :meth:`DatetimeIndex.intersection` and :meth:`TimedeltaIndex.intersection` with results not having the correct ``name`` attribute (:issue:`33904`)
 - Bug in :meth:`DatetimeArray.__setitem__`, :meth:`TimedeltaArray.__setitem__`, :meth:`PeriodArray.__setitem__` incorrectly allowing values with ``int64`` dtype to be silently cast (:issue:`33717`)
 - Bug in subtracting :class:`TimedeltaIndex` from :class:`Period` incorrectly raising ``TypeError`` in some cases where it should succeed and ``IncompatibleFrequency`` in some cases where it should raise ``TypeError`` (:issue:`33883`)
+- Passing an integer dtype other than ``int64`` to ``np.array(period_index, dtype=...)`` will now raise ``TypeError`` instead of incorrectly using ``int64`` (:issue:`32255`)
+- :class:`Period` no longer accepts tuples for the ``freq`` argument (:issue:`34658`)
 - Bug in constructing a Series or Index from a read-only NumPy array with non-ns
   resolution which converted to object dtype instead of coercing to ``datetime64[ns]``
   dtype when within the timestamp bounds (:issue:`34843`).
@@ -854,10 +720,10 @@ Timedelta
 ^^^^^^^^^
 
 - Bug in constructing a :class:`Timedelta` with a high precision integer that would round the :class:`Timedelta` components (:issue:`31354`)
-- Bug in dividing ``np.nan`` or ``None`` by :class:`Timedelta`` incorrectly returning ``NaT`` (:issue:`31869`)
+- Bug in dividing ``np.nan`` or ``None`` by :class:`Timedelta` incorrectly returning ``NaT`` (:issue:`31869`)
 - Timedeltas now understand ``µs`` as identifier for microsecond (:issue:`32899`)
 - :class:`Timedelta` string representation now includes nanoseconds, when nanoseconds are non-zero (:issue:`9309`)
-- Bug in comparing a :class:`Timedelta`` object against a ``np.ndarray`` with ``timedelta64`` dtype incorrectly viewing all entries as unequal (:issue:`33441`)
+- Bug in comparing a :class:`Timedelta` object against a ``np.ndarray`` with ``timedelta64`` dtype incorrectly viewing all entries as unequal (:issue:`33441`)
 - Bug in :func:`timedelta_range` that produced an extra point on a edge case (:issue:`30353`, :issue:`33498`)
 - Bug in :meth:`DataFrame.resample` that produced an extra point on a edge case (:issue:`30353`, :issue:`13022`, :issue:`33498`)
 - Bug in :meth:`DataFrame.resample` that ignored the ``loffset`` argument when dealing with timedelta (:issue:`7687`, :issue:`33498`)
@@ -902,6 +768,94 @@ Interval
 
 Indexing
 ^^^^^^^^
+
+- Assignment to multiple columns of a DataFrame when some columns do not exist
+
+Assignment to multiple columns of a :class:`DataFrame` when some of the columns do not exist would previously assign the values to the last column. Now, new columns would be constructed with the right values. (:issue:`13658`)
+
+.. ipython:: python
+
+   df = pd.DataFrame({'a': [0, 1, 2], 'b': [3, 4, 5]})
+   df
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+   In [3]: df[['a', 'c']] = 1
+   In [4]: df
+   Out[4]:
+      a  b
+   0  1  1
+   1  1  1
+   2  1  1
+
+*New behavior*:
+
+.. ipython:: python
+
+   df[['a', 'c']] = 1
+   df
+
+- ``MultiIndex.get_indexer`` interprets `method` argument differently
+
+This restores the behavior of :meth:`MultiIndex.get_indexer` with ``method='backfill'`` or ``method='pad'`` to the behavior before pandas 0.23.0. In particular, MultiIndexes are treated as a list of tuples and padding or backfilling is done with respect to the ordering of these lists of tuples (:issue:`29896`).
+
+As an example of this, given:
+
+.. ipython:: python
+
+        df = pd.DataFrame({
+            'a': [0, 0, 0, 0],
+            'b': [0, 2, 3, 4],
+            'c': ['A', 'B', 'C', 'D'],
+        }).set_index(['a', 'b'])
+        mi_2 = pd.MultiIndex.from_product([[0], [-1, 0, 1, 3, 4, 5]])
+
+The differences in reindexing ``df`` with ``mi_2`` and using ``method='backfill'`` can be seen here:
+
+*pandas >= 0.23, < 1.1.0*:
+
+.. code-block:: ipython
+
+    In [1]: df.reindex(mi_2, method='backfill')
+    Out[1]:
+          c
+    0 -1  A
+       0  A
+       1  D
+       3  A
+       4  A
+       5  C
+
+*pandas <0.23, >= 1.1.0*
+
+.. ipython:: python
+
+        df.reindex(mi_2, method='backfill')
+
+And the differences in reindexing ``df`` with ``mi_2`` and using ``method='pad'`` can be seen here:
+
+*pandas >= 0.23, < 1.1.0*
+
+.. code-block:: ipython
+
+    In [1]: df.reindex(mi_2, method='pad')
+    Out[1]:
+            c
+    0 -1  NaN
+       0  NaN
+       1    D
+       3  NaN
+       4    A
+       5    C
+
+*pandas < 0.23, >= 1.1.0*
+
+.. ipython:: python
+
+   df.reindex(mi_2, method='pad')
+
 - Bug in slicing on a :class:`DatetimeIndex` with a partial-timestamp dropping high-resolution indices near the end of a year, quarter, or month (:issue:`31064`)
 - Bug in :meth:`PeriodIndex.get_loc` treating higher-resolution strings differently from :meth:`PeriodIndex.get_value` (:issue:`31172`)
 - Bug in :meth:`Series.at` and :meth:`DataFrame.at` not matching ``.loc`` behavior when looking up an integer in a :class:`Float64Index` (:issue:`31329`)
@@ -921,8 +875,8 @@ Indexing
 - Bug in :meth:`DataFrame.copy` _item_cache not invalidated after copy causes post-copy value updates to not be reflected (:issue:`31784`)
 - Fixed regression in :meth:`DataFrame.loc` and :meth:`Series.loc` throwing an error when a ``datetime64[ns, tz]`` value is provided (:issue:`32395`)
 - Bug in `Series.__getitem__` with an integer key and a :class:`MultiIndex` with leading integer level failing to raise ``KeyError`` if the key is not present in the first level (:issue:`33355`)
-- Bug in :meth:`DataFrame.iloc` when slicing a single column-:class:`DataFrame`` with ``ExtensionDtype`` (e.g. ``df.iloc[:, :1]``) returning an invalid result (:issue:`32957`)
-- Bug in :meth:`DatetimeIndex.insert` and :meth:`TimedeltaIndex.insert` causing index ``freq`` to be lost when setting an element into an empty :class:`Series` (:issue:33573`)
+- Bug in :meth:`DataFrame.iloc` when slicing a single column-:class:`DataFrame` with ``ExtensionDtype`` (e.g. ``df.iloc[:, :1]``) returning an invalid result (:issue:`32957`)
+- Bug in :meth:`DatetimeIndex.insert` and :meth:`TimedeltaIndex.insert` causing index ``freq`` to be lost when setting an element into an empty :class:`Series` (:issue:`33573`)
 - Bug in :meth:`Series.__setitem__` with an :class:`IntervalIndex` and a list-like key of integers (:issue:`33473`)
 - Bug in :meth:`Series.__getitem__` allowing missing labels with ``np.ndarray``, :class:`Index`, :class:`Series` indexers but not ``list``, these now all raise ``KeyError`` (:issue:`33646`)
 - Bug in :meth:`DataFrame.truncate` and :meth:`Series.truncate` where index was assumed to be monotone increasing (:issue:`33756`)
@@ -1078,6 +1032,42 @@ ExtensionArray
 
 Other
 ^^^^^
+
+- :meth:`DataFrame.apply` and :meth:`DataFrame.applymap` now evaluates first row/column only once (:issue:`31620`, :issue:`30815`, :issue:`33879`).
+
+.. ipython:: python
+
+    df = pd.DataFrame({'a': [1, 2], 'b': [3, 6]})
+
+    def func(row):
+        print(row)
+        return row
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [4]: df.apply(func, axis=1)
+    a    1
+    b    3
+    Name: 0, dtype: int64
+    a    1
+    b    3
+    Name: 0, dtype: int64
+    a    2
+    b    6
+    Name: 1, dtype: int64
+    Out[4]:
+       a  b
+    0  1  3
+    1  2  6
+
+*New behavior*:
+
+.. ipython:: python
+
+    df.apply(func, axis=1)
+
 - Appending a dictionary to a :class:`DataFrame` without passing ``ignore_index=True`` will raise ``TypeError: Can only append a dict if ignore_index=True``
   instead of ``TypeError: Can only append a Series if ignore_index=True or if the Series has a name`` (:issue:`30871`)
 - Set operations on an object-dtype :class:`Index` now always return object-dtype results (:issue:`31401`)
@@ -1101,3 +1091,5 @@ Other
 
 Contributors
 ~~~~~~~~~~~~
+
+.. contributors:: v1.0.5..v1.1.0|HEAD
