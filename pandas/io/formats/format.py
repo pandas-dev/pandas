@@ -38,7 +38,7 @@ from pandas._libs.missing import NA
 from pandas._libs.tslib import format_array_from_datetime
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.nattype import NaTType
-from pandas._typing import FilePathOrBuffer
+from pandas._typing import FilePathOrBuffer, Label
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import (
@@ -77,15 +77,12 @@ FormattersType = Union[
     List[Callable], Tuple[Callable, ...], Mapping[Union[str, int], Callable]
 ]
 FloatFormatType = Union[str, Callable, "EngFormatter"]
-ColspaceType = Union[
-    Mapping[Union[str, int], Union[str, int]],
-]
+ColspaceType = Mapping[Label, Union[str, int]]
 ColspaceArgType = Union[
     str,
     int,
-    List[Union[str, int]],
-    Tuple[Union[str, int], ...],
-    Mapping[Union[str, int], Union[str, int]],
+    Sequence[Union[str, int]],
+    Mapping[Label, Union[str, int]],
 ]
 
 common_docstring = """
