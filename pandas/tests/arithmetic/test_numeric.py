@@ -66,7 +66,9 @@ class TestNumericComparisons:
         ts = pd.Timestamp.now()
         df = pd.DataFrame({"x": range(5)})
 
-        msg = "'[<>]' not supported between instances of 'Timestamp' and 'int'"
+        msg = (
+            "'[<>]' not supported between instances of 'numpy.ndarray' and 'Timestamp'"
+        )
         with pytest.raises(TypeError, match=msg):
             df > ts
         with pytest.raises(TypeError, match=msg):

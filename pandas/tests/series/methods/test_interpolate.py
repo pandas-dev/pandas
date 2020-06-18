@@ -429,6 +429,27 @@ class TestSeriesInterpolateData:
         with pytest.raises(ValueError, match=msg):
             s.interpolate(method="linear", limit_area="abc")
 
+    @pytest.mark.parametrize(
+        "method, limit_direction, expected",
+        [
+            ("pad", "backward", "forward"),
+            ("ffill", "backward", "forward"),
+            ("backfill", "forward", "backward"),
+            ("bfill", "forward", "backward"),
+            ("pad", "both", "forward"),
+            ("ffill", "both", "forward"),
+            ("backfill", "both", "backward"),
+            ("bfill", "both", "backward"),
+        ],
+    )
+    def test_interp_limit_direction_raises(self, method, limit_direction, expected):
+        # https://github.com/pandas-dev/pandas/pull/34746
+        s = Series([1, 2, 3])
+
+        msg = f"`limit_direction` must be '{expected}' for method `{method}`"
+        with pytest.raises(ValueError, match=msg):
+            s.interpolate(method=method, limit_direction=limit_direction)
+
     def test_interp_limit_direction(self):
         # These tests are for issue #9218 -- fill NaNs in both directions.
         s = Series([1, 3, np.nan, np.nan, np.nan, 11])

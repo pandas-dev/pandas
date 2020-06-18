@@ -4,10 +4,8 @@ from itertools import chain
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.generic import ABCMultiIndex
-
 import pandas as pd
-from pandas import DataFrame, Index, Series, isna
+from pandas import DataFrame, Index, MultiIndex, Series, isna
 import pandas._testing as tm
 from pandas.core.base import SpecificationError
 
@@ -44,7 +42,9 @@ class TestSeriesApply:
 
     def test_apply_same_length_inference_bug(self):
         s = Series([1, 2])
-        f = lambda x: (x, x + 1)
+
+        def f(x):
+            return (x, x + 1)
 
         result = s.apply(f)
         expected = s.map(f)
@@ -58,7 +58,9 @@ class TestSeriesApply:
     def test_apply_dont_convert_dtype(self):
         s = Series(np.random.randn(10))
 
-        f = lambda x: x if x > 0 else np.nan
+        def f(x):
+            return x if x > 0 else np.nan
+
         result = s.apply(f, convert_dtype=False)
         assert result.dtype == object
 
@@ -178,7 +180,7 @@ class TestSeriesApply:
         result = ser.apply(lambda x: "A")
         exp = pd.Series(["A"] * 7, name="XX", index=list("abcdefg"))
         tm.assert_series_equal(result, exp)
-        assert result.dtype == np.object
+        assert result.dtype == object
 
     @pytest.mark.parametrize("series", [["1-1", "1-1", np.NaN], ["1-1", "1-2", np.NaN]])
     def test_apply_categorical_with_nan_values(self, series):
@@ -461,6 +463,14 @@ class TestSeriesAggregate:
             # e.g. Series('a b'.split()).cumprod() will raise
             series.agg(func)
 
+    def test_transform_none_to_type(self):
+        # GH34377
+        df = pd.DataFrame({"a": [None]})
+
+        msg = "DataFrame constructor called with incompatible data and dtype"
+        with pytest.raises(TypeError, match=msg):
+            df.transform({"a": int})
+
 
 class TestSeriesMap:
     def test_map(self, datetime_series):
@@ -519,7 +529,7 @@ class TestSeriesMap:
         tm.assert_series_equal(a.map(c), exp)
 
     def test_map_empty(self, indices):
-        if isinstance(indices, ABCMultiIndex):
+        if isinstance(indices, MultiIndex):
             pytest.skip("Initializing a Series from a MultiIndex is not supported")
 
         s = Series(indices)
@@ -707,7 +717,7 @@ class TestSeriesMap:
         result = s.map(lambda x: "A")
         exp = pd.Series(["A"] * 7, name="XX", index=list("abcdefg"))
         tm.assert_series_equal(result, exp)
-        assert result.dtype == np.object
+        assert result.dtype == object
 
         with pytest.raises(NotImplementedError):
             s.map(lambda x: x, na_action="ignore")

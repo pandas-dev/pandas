@@ -29,6 +29,11 @@ def data_missing():
     return ArrowBoolArray.from_scalars([None, True])
 
 
+def test_basic_equals(data):
+    # https://github.com/pandas-dev/pandas/issues/34660
+    assert pd.Series(data).equals(pd.Series(data))
+
+
 class BaseArrowTests:
     pass
 
@@ -68,6 +73,10 @@ class TestConstructors(BaseArrowTests, base.BaseConstructorsTests):
     def test_series_constructor_scalar_na_with_index(self, dtype, na_value):
         # pyarrow.lib.ArrowInvalid: only handle 1-dimensional arrays
         super().test_series_constructor_scalar_na_with_index(dtype, na_value)
+
+    @pytest.mark.xfail(reason="raises AssertionError")
+    def test_construct_empty_dataframe(self, dtype):
+        super().test_construct_empty_dataframe(dtype)
 
 
 class TestReduce(base.BaseNoReduceTests):

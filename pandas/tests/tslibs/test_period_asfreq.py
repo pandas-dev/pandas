@@ -1,7 +1,13 @@
 import pytest
 
-from pandas._libs.tslibs.frequencies import get_freq
+from pandas._libs.tslibs import to_offset
 from pandas._libs.tslibs.period import period_asfreq, period_ordinal
+
+
+def get_freq_code(freqstr: str) -> int:
+    off = to_offset(freqstr)
+    code = off._period_dtype_code
+    return code
 
 
 @pytest.mark.parametrize(
@@ -31,7 +37,9 @@ from pandas._libs.tslibs.period import period_asfreq, period_ordinal
     ],
 )
 def test_intra_day_conversion_factors(freq1, freq2, expected):
-    assert period_asfreq(1, get_freq(freq1), get_freq(freq2), False) == expected
+    assert (
+        period_asfreq(1, get_freq_code(freq1), get_freq_code(freq2), False) == expected
+    )
 
 
 @pytest.mark.parametrize(
@@ -39,7 +47,7 @@ def test_intra_day_conversion_factors(freq1, freq2, expected):
 )
 def test_period_ordinal_start_values(freq, expected):
     # information for Jan. 1, 1970.
-    assert period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0, get_freq(freq)) == expected
+    assert period_ordinal(1970, 1, 1, 0, 0, 0, 0, 0, get_freq_code(freq)) == expected
 
 
 @pytest.mark.parametrize(
@@ -52,7 +60,7 @@ def test_period_ordinal_start_values(freq, expected):
     ],
 )
 def test_period_ordinal_week(dt, expected):
-    args = dt + (get_freq("W"),)
+    args = dt + (get_freq_code("W"),)
     assert period_ordinal(*args) == expected
 
 
@@ -74,5 +82,6 @@ def test_period_ordinal_week(dt, expected):
     ],
 )
 def test_period_ordinal_business_day(day, expected):
-    args = (2013, 10, day, 0, 0, 0, 0, 0, get_freq("B"))
+    # 5000 is PeriodDtypeCode for BusinessDay
+    args = (2013, 10, day, 0, 0, 0, 0, 0, 5000)
     assert period_ordinal(*args) == expected

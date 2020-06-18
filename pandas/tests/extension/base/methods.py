@@ -147,6 +147,8 @@ class BaseMethodsTests(BaseExtensionTests):
 
         tm.assert_numpy_array_equal(codes_1, codes_2)
         self.assert_extension_array_equal(uniques_1, uniques_2)
+        assert len(uniques_1) == len(pd.unique(uniques_1))
+        assert uniques_1.dtype == data_for_grouping.dtype
 
     def test_factorize_empty(self, data):
         codes, uniques = pd.factorize(data[:0])
@@ -421,3 +423,32 @@ class BaseMethodsTests(BaseExtensionTests):
                 np.repeat(data, repeats, **kwargs)
             else:
                 data.repeat(repeats, **kwargs)
+
+    @pytest.mark.parametrize("box", [pd.array, pd.Series, pd.DataFrame])
+    def test_equals(self, data, na_value, as_series, box):
+        data2 = type(data)._from_sequence([data[0]] * len(data), dtype=data.dtype)
+        data_na = type(data)._from_sequence([na_value] * len(data), dtype=data.dtype)
+
+        data = tm.box_expected(data, box, transpose=False)
+        data2 = tm.box_expected(data2, box, transpose=False)
+        data_na = tm.box_expected(data_na, box, transpose=False)
+
+        # we are asserting with `is True/False` explicitly, to test that the
+        # result is an actual Python bool, and not something "truthy"
+
+        assert data.equals(data) is True
+        assert data.equals(data.copy()) is True
+
+        # unequal other data
+        assert data.equals(data2) is False
+        assert data.equals(data_na) is False
+
+        # different length
+        assert data[:2].equals(data[:3]) is False
+
+        # emtpy are equal
+        assert data[:0].equals(data[:0]) is True
+
+        # other types
+        assert data.equals(None) is False
+        assert data[[0]].equals(data[0]) is False

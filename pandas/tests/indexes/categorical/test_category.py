@@ -136,7 +136,7 @@ class TestCategoricalIndex(Base):
         tm.assert_index_equal(result, expected, exact=True)
 
     def test_append_to_another(self):
-        # hits Index._concat_same_dtype
+        # hits Index._concat
         fst = Index(["a", "b"])
         snd = CategoricalIndex(["d", "e"])
         result = fst.append(snd)
@@ -270,9 +270,9 @@ class TestCategoricalIndex(Base):
                 [2, "a", "b"],
                 list("abc"),
                 {
-                    "first": np.zeros(shape=(3), dtype=np.bool),
-                    "last": np.zeros(shape=(3), dtype=np.bool),
-                    False: np.zeros(shape=(3), dtype=np.bool),
+                    "first": np.zeros(shape=(3), dtype=np.bool_),
+                    "last": np.zeros(shape=(3), dtype=np.bool_),
+                    False: np.zeros(shape=(3), dtype=np.bool_),
                 },
             ),
             (

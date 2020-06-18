@@ -14,7 +14,7 @@ from numpy cimport (ndarray,
                     flatiter)
 cnp.import_array()
 
-cimport pandas._libs.util as util
+from pandas._libs cimport util
 from pandas._libs.lib import maybe_convert_objects, is_scalar
 
 
@@ -107,6 +107,7 @@ cdef class Reducer:
 
         result = np.empty(self.nresults, dtype='O')
         it = <flatiter>PyArray_IterNew(result)
+        reduction_success = True
 
         try:
             for i in range(self.nresults):
@@ -134,21 +135,35 @@ cdef class Reducer:
                     res = self.f(chunk)
 
                 # TODO: reason for not squeezing here?
-                res = _extract_result(res, squeeze=False)
+                extracted_res = _extract_result(res, squeeze=False)
                 if i == 0:
                     # On the first pass, we check the output shape to see
                     #  if this looks like a reduction.
-                    _check_result_array(res, len(self.dummy))
+                    #  If it does not, return the computed value to be used by the
+                    #  pure python implementation,
+                    #  so the function won't be called twice on the same object,
+                    #  and side effects would occur twice
+                    try:
+                        _check_result_array(extracted_res, len(self.dummy))
+                    except ValueError as err:
+                        if "Function does not reduce" not in str(err):
+                            # catch only the specific exception
+                            raise
 
-                PyArray_SETITEM(result, PyArray_ITER_DATA(it), res)
+                        reduction_success = False
+                        PyArray_SETITEM(result, PyArray_ITER_DATA(it), copy(res))
+                        break
+
+                PyArray_SETITEM(result, PyArray_ITER_DATA(it), extracted_res)
                 chunk.data = chunk.data + self.increment
                 PyArray_ITER_NEXT(it)
+
         finally:
             # so we don't free the wrong memory
             chunk.data = dummy_buf
 
         result = maybe_convert_objects(result)
-        return result
+        return result, reduction_success
 
 
 cdef class _BaseGrouper:
@@ -502,7 +517,7 @@ def apply_frame_axis0(object frame, object f, object names,
             # Need to infer if low level index slider will cause segfaults
             require_slow_apply = i == 0 and piece is chunk
             try:
-                if piece.index is not chunk.index:
+                if not piece.index.equals(chunk.index):
                     mutated = True
             except AttributeError:
                 # `piece` might not have an index, could be e.g. an int
@@ -603,7 +618,7 @@ cdef class BlockSlider:
             arr.shape[1] = 0
 
 
-def compute_reduction(arr: np.ndarray, f, axis: int = 0, dummy=None, labels=None):
+def compute_reduction(arr: ndarray, f, axis: int = 0, dummy=None, labels=None):
     """
 
     Parameters
