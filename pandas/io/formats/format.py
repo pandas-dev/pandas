@@ -79,10 +79,7 @@ FormattersType = Union[
 FloatFormatType = Union[str, Callable, "EngFormatter"]
 ColspaceType = Mapping[Label, Union[str, int]]
 ColspaceArgType = Union[
-    str,
-    int,
-    Sequence[Union[str, int]],
-    Mapping[Label, Union[str, int]],
+    str, int, Sequence[Union[str, int]], Mapping[Label, Union[str, int]],
 ]
 
 common_docstring = """
@@ -728,10 +725,6 @@ class DataFrameFormatter(TableFormatter):
         """
         Render a DataFrame to a list of columns (as lists of strings).
         """
-        # this method is not used by to_html where self.col_space
-        # could be a string so safe to cast
-        col_space = {k: cast(int, v) for k, v in self.col_space.items()}
-
         frame = self.tr_frame
         # may include levels names also
 
@@ -742,7 +735,10 @@ class DataFrameFormatter(TableFormatter):
             for i, c in enumerate(frame):
                 fmt_values = self._format_col(i)
                 fmt_values = _make_fixed_width(
-                    fmt_values, self.justify, minimum=col_space.get(c, 0), adj=self.adj,
+                    fmt_values,
+                    self.justify,
+                    minimum=self.col_space.get(c, 0),
+                    adj=self.adj,
                 )
                 stringified.append(fmt_values)
         else:
@@ -766,7 +762,7 @@ class DataFrameFormatter(TableFormatter):
             for i, c in enumerate(frame):
                 cheader = str_columns[i]
                 header_colwidth = max(
-                    col_space.get(c, 0), *(self.adj.len(x) for x in cheader)
+                    self.col_space.get(c, 0), *(self.adj.len(x) for x in cheader)
                 )
                 fmt_values = self._format_col(i)
                 fmt_values = _make_fixed_width(
@@ -1048,9 +1044,6 @@ class DataFrameFormatter(TableFormatter):
         return all((self.has_column_names, self.show_index_names, self.header))
 
     def _get_formatted_index(self, frame: "DataFrame") -> List[str]:
-        # Note: this is only used by to_string() and to_latex(), not by
-        # to_html(). so safe to cast col_space here.
-        col_space = {k: cast(int, v) for k, v in self.col_space.items()}
         index = frame.index
         columns = frame.columns
         fmt = self._get_formatter("__index__")
@@ -1068,7 +1061,10 @@ class DataFrameFormatter(TableFormatter):
         fmt_index = [
             tuple(
                 _make_fixed_width(
-                    list(x), justify="left", minimum=col_space.get("", 0), adj=self.adj,
+                    list(x),
+                    justify="left",
+                    minimum=self.col_space.get("", 0),
+                    adj=self.adj,
                 )
             )
             for x in fmt_index
