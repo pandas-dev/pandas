@@ -1196,7 +1196,11 @@ class GenericArrayFormatter:
         formatter = (
             self.formatter
             if self.formatter is not None
-            else (lambda x: pprint_thing(x, escape_chars=("\t", "\r", "\n")))
+            else (
+                lambda x: pprint_thing(
+                    x, escape_chars=("\t", "\r", "\n"), quote_strings=True
+                )
+            )
         )
 
         def _format(x):
@@ -1215,7 +1219,7 @@ class GenericArrayFormatter:
                     pass
                 return self.na_rep
             elif isinstance(x, PandasObject):
-                return f"'{str(x)}'"
+                return str(x)
             else:
                 # object dtype
                 return str(formatter(x))

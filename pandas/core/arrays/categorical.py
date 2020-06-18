@@ -1,4 +1,3 @@
-import csv
 import operator
 from shutil import get_terminal_size
 from typing import Dict, Hashable, List, Type, Union, cast
@@ -1875,17 +1874,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
 
         if len(self.categories) > max_categories:
             num = max_categories // 2
-            head = fmt.format_array(
-                self.categories[:num], None, quoting=csv.QUOTE_NONNUMERIC
-            )
-            tail = fmt.format_array(
-                self.categories[-num:], None, quoting=csv.QUOTE_NONNUMERIC
-            )
+            head = fmt.format_array(self.categories[:num], None)
+            tail = fmt.format_array(self.categories[-num:], None)
             category_strs = head + ["..."] + tail
         else:
-            category_strs = fmt.format_array(
-                self.categories, None, quoting=csv.QUOTE_NONNUMERIC
-            )
+            category_strs = fmt.format_array(self.categories, None)
 
         # Strip all leading spaces, which format_array adds for columns...
         category_strs = [x.strip() for x in category_strs]
