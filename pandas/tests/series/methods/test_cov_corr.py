@@ -38,7 +38,7 @@ class TestSeriesCov:
         ts2 = datetime_series[5:].reindex(datetime_series.index)
         assert isna(ts1.cov(ts2, min_periods=12))
 
-    @pytest.mark.parametrize("test_ddof", [0, 1, 2, 3])
+    @pytest.mark.parametrize("test_ddof", [None, 0, 1, 2, 3])
     def test_cov_ddof(self, test_ddof):
         np_array1 = np.random.rand(10)
         np_array2 = np.random.rand(10)
