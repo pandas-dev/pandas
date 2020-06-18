@@ -4,6 +4,7 @@ and latex files. This module also applies to display formatting.
 """
 
 from contextlib import contextmanager
+from csv import QUOTE_NONE
 from datetime import tzinfo
 import decimal
 from functools import partial
@@ -1198,12 +1199,13 @@ class GenericArrayFormatter:
         else:
             float_format = self.float_format
 
+        quote_strings = self.quoting is not None and self.quoting != QUOTE_NONE
         formatter = (
             self.formatter
             if self.formatter is not None
             else (
                 lambda x: pprint_thing(
-                    x, escape_chars=("\t", "\r", "\n"), quote_strings=self.quoting
+                    x, escape_chars=("\t", "\r", "\n"), quote_strings=quote_strings
                 )
             )
         )
