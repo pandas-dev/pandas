@@ -527,5 +527,4 @@ Categories (20, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
     def test_categorical_str_repr(self):
         result = repr(Categorical([1, "2", 3, 4]))
         expected = "[1, '2', 3, 4]\nCategories (4, object): [1, 3, 4, '2']"
-        breakpoint()
         assert result == expected
