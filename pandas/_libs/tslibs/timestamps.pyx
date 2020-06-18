@@ -467,17 +467,17 @@ cdef class _Timestamp(ABCTimestamp):
             freqstr = None
 
         val = self._maybe_convert_value_to_local()
-        out = get_start_end_field(np.array([val], dtype=np.int64),
+        out = get_start_end_field(<int64_t[:1]>&val,
                                   field, freqstr, month_kw)
         return out[0]
 
-    cpdef _get_date_name_field(self, object field, object locale):
+    cpdef _get_date_name_field(self, str field, object locale):
         cdef:
             int64_t val
             object[:] out
 
         val = self._maybe_convert_value_to_local()
-        out = get_date_name_field(np.array([val], dtype=np.int64),
+        out = get_date_name_field(<int64_t[:1]>&val,
                                   field, locale=locale)
         return out[0]
 
@@ -1448,11 +1448,11 @@ default 'raise'
         Normalize Timestamp to midnight, preserving tz information.
         """
         cdef:
+            int64_t val = self.value
             ndarray[int64_t] normalized
             tzinfo own_tz = self.tzinfo  # could be None
 
-        normalized = normalize_i8_timestamps(
-            np.array([self.value], dtype="i8"), tz=own_tz)
+        normalized = normalize_i8_timestamps(<int64_t[:1]>&val, tz=own_tz)
         return Timestamp(normalized[0]).tz_localize(own_tz)
 
 

@@ -17,7 +17,7 @@ cdef class _Timestamp(ABCTimestamp):
         object freq
 
     cpdef bint _get_start_end_field(self, str field)
-    cpdef _get_date_name_field(self, object field, object locale)
+    cpdef _get_date_name_field(self, str field, object locale)
     cdef int64_t _maybe_convert_value_to_local(self)
     cpdef to_datetime64(self)
     cdef _assert_tzawareness_compat(_Timestamp self, datetime other)
