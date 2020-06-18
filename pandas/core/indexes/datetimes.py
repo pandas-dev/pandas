@@ -9,7 +9,8 @@ from pandas._libs import NaT, Period, Timestamp, index as libindex, lib, tslib
 from pandas._libs.tslibs import Resolution, fields, parsing, timezones, to_offset
 from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas._typing import DtypeObj, Label
-from pandas.util._decorators import cache_readonly
+from pandas.errors import InvalidIndexError
+from pandas.util._decorators import cache_readonly, doc
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
@@ -24,7 +25,7 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype
 
 from pandas.core.arrays.datetimes import DatetimeArray, tz_to_dtype
 import pandas.core.common as com
-from pandas.core.indexes.base import Index, InvalidIndexError, maybe_extract_name
+from pandas.core.indexes.base import Index, maybe_extract_name
 from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
 from pandas.core.indexes.extension import inherit_names
 from pandas.core.tools.times import to_time
@@ -63,9 +64,13 @@ def _new_DatetimeIndex(cls, d):
 
 
 @inherit_names(
-    ["to_period", "to_perioddelta", "to_julian_date", "strftime", "isocalendar"]
+    ["to_perioddelta", "to_julian_date", "strftime", "isocalendar"]
     + DatetimeArray._field_ops
-    + DatetimeArray._datetimelike_methods,
+    + [
+        method
+        for method in DatetimeArray._datetimelike_methods
+        if method not in ("tz_localize",)
+    ],
     DatetimeArray,
     wrap=True,
 )
@@ -216,6 +221,21 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     _data: DatetimeArray
     tz: Optional[tzinfo]
+
+    # --------------------------------------------------------------------
+    # methods that dispatch to array and wrap result in DatetimeIndex
+
+    @doc(DatetimeArray.tz_localize)
+    def tz_localize(
+        self, tz, ambiguous="raise", nonexistent="raise"
+    ) -> "DatetimeIndex":
+        arr = self._data.tz_localize(tz, ambiguous, nonexistent)
+        return type(self)._simple_new(arr, name=self.name)
+
+    @doc(DatetimeArray.to_period)
+    def to_period(self, freq=None) -> "DatetimeIndex":
+        arr = self._data.to_period(freq)
+        return type(self)._simple_new(arr, name=self.name)
 
     # --------------------------------------------------------------------
     # Constructors
