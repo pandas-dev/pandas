@@ -254,7 +254,6 @@ Other enhancements
 - :class:`Styler` may now render CSS more efficiently where multiple cells have the same styling (:issue:`30876`)
 - Added :meth:`DataFrame.value_counts` (:issue:`5377`)
 - :meth:`Groupby.groups` now returns an abbreviated representation when called on large dataframes (:issue:`1135`)
-- Using a :func:`pandas.api.indexers.BaseIndexer` with ``count``, ``min``, ``max``, ``median``, ``skew``,  ``cov``, ``corr`` will now return correct results for any monotonic :func:`pandas.api.indexers.BaseIndexer` descendant (:issue:`32865`)
 - Added a :func:`pandas.api.indexers.FixedForwardWindowIndexer` class to support forward-looking windows during ``rolling`` operations.
 - Added :class:`pandas.errors.InvalidIndexError` (:issue:`34570`).
 - :meth:`Styler.highlight_null` now accepts ``subset`` argument (:issue:`31345`)
@@ -636,7 +635,7 @@ Deprecations
   raise an ``IndexError`` in the future. You can manually convert to an integer key
   instead (:issue:`34191`).
 - The ``squeeze`` keyword in the ``groupby`` function is deprecated and will be removed in a future version (:issue:`32380`)
-- The ``tz`` keyword in :meth:`Period.to_timestamp` is deprecated and will be removed in a future version; use `per.to_timestamp(...).tz_localize(tz)`` instead (:issue:`34522`)
+- The ``tz`` keyword in :meth:`Period.to_timestamp` is deprecated and will be removed in a future version; use ``per.to_timestamp(...).tz_localize(tz)`` instead (:issue:`34522`)
 - :meth:`DatetimeIndex.to_perioddelta` is deprecated and will be removed in a future version.  Use ``index - index.to_period(freq).to_timestamp()`` instead (:issue:`34853`)
 
 .. ---------------------------------------------------------------------------
@@ -978,6 +977,7 @@ Groupby/resample/rolling
 - Bug in :meth:`SeriesGroupBy.agg` where any column name was accepted in the named aggregation of ``SeriesGroupBy`` previously. The behaviour now allows only ``str`` and callables else would raise ``TypeError``. (:issue:`34422`)
 - Bug in :meth:`DataFrame.groupby` lost index, when one of the ``agg`` keys referenced an empty list (:issue:`32580`)
 - Bug in :meth:`Rolling.apply` where ``center=True`` was ignored when ``engine='numba'`` was specified (:issue:`34784`)
+- Using a :func:`pandas.api.indexers.BaseIndexer` with ``count``, ``min``, ``max``, ``median``, ``skew``,  ``cov``, ``corr`` will now return correct results for any monotonic :func:`pandas.api.indexers.BaseIndexer` descendant (:issue:`32865`)
 
 Reshaping
 ^^^^^^^^^
