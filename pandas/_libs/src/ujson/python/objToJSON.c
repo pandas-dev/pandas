@@ -1639,7 +1639,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
             tc->type = JT_BIGNUM;
         }
 
-        if (err && PyErr_ExceptionMatches(PyExc_OverflowError)) {
+        if (err) {
             PRINTMARK();
             goto INVALID;
         }
