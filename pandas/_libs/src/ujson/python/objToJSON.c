@@ -1633,7 +1633,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         GET_TC(tc)->longValue = PyLong_AsLongLongAndOverflow(obj, &_overflow);
         exc = PyErr_Occurred();
 
-        if (_overflow){
+        if ((GET_TC(tc)->longValue == -1) && _overflow && !exc){
             PRINTMARK();
             tc->type = JT_BIGNUM;
         }
