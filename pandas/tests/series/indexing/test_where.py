@@ -278,7 +278,7 @@ def test_where_setitem_invalid():
     "mask", [[True, False, False, False, False], [True, False], [False]]
 )
 @pytest.mark.parametrize(
-    "item", [2.0, np.nan, np.finfo(np.float).max, np.finfo(np.float).min]
+    "item", [2.0, np.nan, np.finfo(float).max, np.finfo(float).min]
 )
 # Test numpy arrays, lists and tuples as the input to be
 # broadcast
