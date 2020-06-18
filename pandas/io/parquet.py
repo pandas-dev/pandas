@@ -98,22 +98,16 @@ class PyArrowImpl(BaseImpl):
             from_pandas_kwargs["preserve_index"] = index
 
         table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
-        # write_to_dataset does not support a file-like object when
-        # a directory path is used, so just pass the path string.
+
         if is_fsspec_url(path) and "filesystem" not in kwargs:
+            # make fsspec instance, which pyarrow will use to open paths
             import_optional_dependency("fsspec")
             import fsspec.core
 
             fs, path = fsspec.core.url_to_fs(path)
             kwargs["filesystem"] = fs
-            should_close = False
-        else:
-            file_obj_or_path, _, _, should_close = get_filepath_or_buffer(
-                path, mode="wb"
-            )
         if partition_cols is not None:
-            # user may provide filesystem= with an instance, in which case it takes
-            # priority and fsspec need not analyse the path
+            # writes to multiple files under the given path
             self.api.parquet.write_to_dataset(
                 table,
                 path,
@@ -122,9 +116,8 @@ class PyArrowImpl(BaseImpl):
                 **kwargs,
             )
         else:
+            # write to single output file
             self.api.parquet.write_table(table, path, compression=compression, **kwargs)
-        if should_close:
-            file_obj_or_path.close()
 
     def read(self, path, columns=None, **kwargs):
         if is_fsspec_url(path) and "filesystem" not in kwargs:
