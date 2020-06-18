@@ -1500,7 +1500,7 @@ class TestTSPlot(TestPlotBase):
         self._check_ticks_props(axes, xrot=30)
 
         # use timeseries index
-        df.set_index("x").plot(y="y", use_index=True, ax=axes)
+        axes = df.set_index("x").plot(y="y", use_index=True)
         self._check_ticks_props(axes, xrot=30)
 
         # separate subplots
