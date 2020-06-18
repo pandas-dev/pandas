@@ -1631,7 +1631,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         tc->type = JT_LONG;
         int _overflow = 0;
         GET_TC(tc)->longValue = PyLong_AsLongLongAndOverflow(obj, &_overflow);
-        exc = PyErr_Occurred();
+        exc = GET_TC(tc)->LongValue == -1 && PyErr_Occurred();
 
         if ((GET_TC(tc)->longValue == -1) && _overflow && !exc){
             PRINTMARK();
