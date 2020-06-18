@@ -580,16 +580,39 @@ class HDFStore:
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
 
-    def keys(self) -> List[str]:
+    def keys(self, include: str = "pandas") -> List[str]:
         """
         Return a list of keys corresponding to objects stored in HDFStore.
+
+        Parameters
+        ----------
+
+        include : str, default 'pandas'
+                When kind equals 'pandas' return pandas objects
+                When kind equals 'native' return native HDF5 Table objects
+
+                .. versionadded:: 1.1.0
 
         Returns
         -------
         list
             List of ABSOLUTE path-names (e.g. have the leading '/').
+
+        Raises
+        ------
+        raises ValueError if kind has an illegal value
         """
-        return [n._v_pathname for n in self.groups()]
+        if include == "pandas":
+            return [n._v_pathname for n in self.groups()]
+
+        elif include == "native":
+            assert self._handle is not None  # mypy
+            return [
+                n._v_pathname for n in self._handle.walk_nodes("/", classname="Table")
+            ]
+        raise ValueError(
+            f"`include` should be either 'pandas' or 'native' but is '{include}'"
+        )
 
     def __iter__(self):
         return iter(self.keys())
@@ -997,12 +1020,14 @@ class HDFStore:
         key : str
         value : {Series, DataFrame}
         format : 'fixed(f)|table(t)', default is 'fixed'
-            fixed(f) : Fixed format
-                       Fast writing/reading. Not-appendable, nor searchable.
-            table(t) : Table format
-                       Write as a PyTables Table structure which may perform
-                       worse but allow more flexible operations like searching
-                       / selecting subsets of the data.
+            Format to use when storing object in HDFStore. Value can be one of:
+
+            ``'fixed'``
+                Fixed format.  Fast writing/reading. Not-appendable, nor searchable.
+            ``'table'``
+                Table format.  Write as a PyTables Table structure which may perform
+                worse but allow more flexible operations like searching / selecting
+                subsets of the data.
         append   : bool, default False
             This will force Table format, append the input data to the
             existing.
@@ -1126,10 +1151,12 @@ class HDFStore:
         key : str
         value : {Series, DataFrame}
         format : 'table' is the default
-            table(t) : table format
-                       Write as a PyTables Table structure which may perform
-                       worse but allow more flexible operations like searching
-                       / selecting subsets of the data.
+            Format to use when storing object in HDFStore.  Value can be one of:
+
+            ``'table'``
+                Table format. Write as a PyTables Table structure which may perform
+                worse but allow more flexible operations like searching / selecting
+                subsets of the data.
         append       : bool, default True
             Append the input data to the existing.
         data_columns : list of columns, or True, default None

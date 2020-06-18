@@ -1273,7 +1273,7 @@ columns:
 
 .. ipython:: python
 
-   result = pd.merge(left, right, on='k', suffixes=['_l', '_r'])
+   result = pd.merge(left, right, on='k', suffixes=('_l', '_r'))
 
 .. ipython:: python
    :suppress:
