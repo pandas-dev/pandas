@@ -2141,9 +2141,13 @@ class DataFrame(NDFrame):
         **kwargs,
     ) -> Optional[str]:
         if "showindex" in kwargs:
-            raise ValueError(
-                "'showindex' is not a valid keyword argument, "
-                "please use 'index' to control showing the index"
+            index = kwargs["showindex"]
+            del kwargs["showindex"]
+
+            warnings.warn(
+                "'showindex' is deprecated. Only 'index' will be used "
+                "in a future version. Use 'index' to silence this warning.",
+                FutureWarning,
             )
 
         kwargs.setdefault("headers", "keys")
