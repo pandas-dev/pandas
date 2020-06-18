@@ -563,9 +563,8 @@ class TestUltraJSONTests:
     def test_dumps_ints_larger_than_maxsize(self):
         # GH34395
         big_num = sys.maxsize + 1
-        encoding = ujson.dumps(big_num)
 
-        assert str(big_num) == json.dumps(big_num)
+        assert str(big_num) == ujson.dumps(big_num)
         # ujson.loads to be fixed in the future
         # assert ujson.loads(encoding) == big_num
 
@@ -589,8 +588,7 @@ class TestUltraJSONTests:
             x = 12839128391289382193812939
 
         for _ in range(0, 100):
-            with pytest.raises(OverflowError):
-                ujson.encode(Nested())
+            ujson.encode(Nested())
 
     @pytest.mark.parametrize("val", [3590016419, 2 ** 31, 2 ** 32, (2 ** 32) - 1])
     def test_decode_number_with_32bit_sign_bit(self, val):
