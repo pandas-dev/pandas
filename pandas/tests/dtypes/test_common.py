@@ -112,7 +112,7 @@ dtypes = dict(
     period=PeriodDtype("D"),
     integer=np.dtype(np.int64),
     float=np.dtype(np.float64),
-    object=np.dtype(np.object),
+    object=np.dtype(object),
     category=com.pandas_dtype("category"),
 )
 
@@ -547,7 +547,7 @@ def test_is_bool_dtype():
     assert not com.is_bool_dtype(pd.Index(["a", "b"]))
 
     assert com.is_bool_dtype(bool)
-    assert com.is_bool_dtype(np.bool)
+    assert com.is_bool_dtype(np.bool_)
     assert com.is_bool_dtype(np.array([True, False]))
     assert com.is_bool_dtype(pd.Index([True, False]))
 
@@ -615,7 +615,8 @@ def test_is_complex_dtype():
     assert not com.is_complex_dtype(pd.Series([1, 2]))
     assert not com.is_complex_dtype(np.array(["a", "b"]))
 
-    assert com.is_complex_dtype(np.complex)
+    assert com.is_complex_dtype(np.complex_)
+    assert com.is_complex_dtype(complex)
     assert com.is_complex_dtype(np.array([1 + 1j, 5]))
 
 
