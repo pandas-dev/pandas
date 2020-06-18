@@ -2309,7 +2309,6 @@ PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
         if (ret != buffer) {
             encoder->free(ret);
         }
-
         PyErr_Format(PyExc_OverflowError, "%s", encoder->errorMsg);
         return NULL;
     }
