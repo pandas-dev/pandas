@@ -41,6 +41,37 @@ def _put_str(s: Union[str, Dtype], space: int) -> str:
     return str(s)[:space].ljust(space)
 
 
+def _sizeof_fmt(num, size_qualifier):
+    """
+    Return size in human readable format.
+
+    Parameters
+    ----------
+    num : int
+        Size in bytes.
+    size_qualifier : str
+        Either empty, or '+' (if memory is lower bound).
+
+    Returns
+    -------
+    str
+        Size in human readable format.
+
+    Examples
+    --------
+    >>> _sizeof_fmt(23028, '')
+    '22.5 KB'
+
+    >>> _sizeof_fmt(23028, '+')
+    '22.5+ KB'
+    """
+    for x in ["bytes", "KB", "MB", "GB", "TB"]:
+        if num < 1024.0:
+            return f"{num:3.1f}{size_qualifier} {x}"
+        num /= 1024.0
+    return f"{num:3.1f}{size_qualifier} PB"
+
+
 class BaseInfo(metaclass=ABCMeta):
     def __init__(
         self,
@@ -65,18 +96,67 @@ class BaseInfo(metaclass=ABCMeta):
 
     @abstractmethod
     def _get_mem_usage(self, deep: bool) -> int:
+        """
+        Get memory usage in bytes.
+
+        Parameters
+        ----------
+        deep : bool
+            If True, introspect the data deeply by interrogating object dtypes
+            for system-level memory consumption, and include it in the returned
+            values.
+
+        Returns
+        -------
+        mem_usage : int
+            Object's total memory usage in bytes.
+        """
         pass
 
     @abstractmethod
     def _get_ids_and_dtypes(self) -> Tuple["Index", "Series"]:
+        """
+        Get column names and dtypes.
+
+        Returns
+        -------
+        ids : Index
+            DataFrame's column names.
+        dtypes : Series
+            Dtype of each of the DataFrame's columns.
+        """
         pass
 
     @abstractmethod
     def _verbose_repr(self, lines, ids, dtypes, show_counts):
+        """
+        Append name, non-null count (optional), and dtype for each column to `lines`.
+
+        Parameters
+        ----------
+        lines : List[str]
+            Lines that will contain `info` representation.
+        ids : Index
+            The DataFrame's column names.
+        dtypes : Series
+            The DataFrame's columns' dtypes.
+        show_counts : bool
+            If True, count of non-NA cells for each column will be appended to `lines`.
+        """
         pass
 
     @abstractmethod
     def _non_verbose_repr(self, lines, ids):
+        """
+        Append short summary of columns' names to `lines`.
+
+        Parameters
+        ----------
+        lines : List[str]
+            Lines that will contain `info` representation.
+        ids : Index
+            The DataFrame's column names.
+        """
         pass
 
     def info(self) -> None:
@@ -157,14 +237,6 @@ class BaseInfo(metaclass=ABCMeta):
             show_counts = self.null_counts
         exceeds_info_cols = col_count > max_cols
 
-        def _sizeof_fmt(num, size_qualifier):
-            # returns size in human readable format
-            for x in ["bytes", "KB", "MB", "GB", "TB"]:
-                if num < 1024.0:
-                    return f"{num:3.1f}{size_qualifier} {x}"
-                num /= 1024.0
-            return f"{num:3.1f}{size_qualifier} PB"
-
         if self.verbose:
             self._verbose_repr(lines, ids, dtypes, show_counts)
         elif self.verbose is False:  # specifically set to False, not necessarily None
@@ -199,53 +271,14 @@ class BaseInfo(metaclass=ABCMeta):
 
 class DataFrameInfo(BaseInfo):
     def _get_mem_usage(self, deep: bool) -> int:
-        """
-        Get DataFrame's memory usage in bytes.
-
-        Parameters
-        ----------
-        deep : bool
-            If True, introspect the data deeply by interrogating object dtypes
-            for system-level memory consumption, and include it in the returned
-            values.
-
-        Returns
-        -------
-        mem_usage : int
-            Object's total memory usage in bytes.
-        """
         return self.data.memory_usage(index=True, deep=deep).sum()
 
     def _get_ids_and_dtypes(self) -> Tuple["Index", "Series"]:
-        """
-        Get DataFrame's column names and dtypes.
-
-        Returns
-        -------
-        ids : Index
-            DataFrame's column names.
-        dtypes : Series
-            Dtype of each of the DataFrame's columns.
-        """
         return self.data.columns, self.data.dtypes
 
     def _verbose_repr(
         self, lines: List[str], ids: "Index", dtypes: "Series", show_counts: bool
     ) -> None:
-        """
-        Append name, non-null count (optional), and dtype for each column to `lines`.
-
-        Parameters
-        ----------
-        lines : List[str]
-            Lines that will contain `info` representation.
-        ids : Index
-            The DataFrame's column names.
-        dtypes : Series
-            The DataFrame's columns' dtypes.
-        show_counts : bool
-            If True, count of non-NA cells for each column will be appended to `lines`.
-        """
         col_count = len(ids)
         lines.append(f"Data columns (total {col_count} columns):")
 
@@ -313,14 +346,4 @@ class DataFrameInfo(BaseInfo):
             )
 
     def _non_verbose_repr(self, lines: List[str], ids: "Series") -> None:
-        """
-        Append short summary of columns' names to `lines`.
-
-        Parameters
-        ----------
-        lines : List[str]
-            Lines that will contain `info` representation.
-        ids : Index
-            The DataFrame's column names.
-        """
         lines.append(ids._summary(name="Columns"))
