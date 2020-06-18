@@ -1218,9 +1218,6 @@ cdef class BusinessMixin(SingleConstructorOffset):
     """
     Mixin to business types to provide related functions.
     """
-    def __init__(self, n=1, normalize=False, offset=timedelta(0)):
-        BaseOffset.__init__(self, n, normalize)
-        object.__setattr__(self, "_offset", offset)
 
     cdef readonly:
         timedelta _offset
