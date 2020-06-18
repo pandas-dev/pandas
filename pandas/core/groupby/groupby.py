@@ -942,9 +942,9 @@ b  2""",
         bool
             Whether transform should attempt to cast the result of aggregation
         """
-        return (self.size().fillna(0) > 0).any() and (
-            func_nm not in base.cython_cast_blacklist
-        )
+        filled_series = self.grouper.size().fillna(0)
+        assert filled_series is not None
+        return filled_series.gt(0).any() and func_nm not in base.cython_cast_blacklist
 
     def _cython_transform(self, how: str, numeric_only: bool = True, **kwargs):
         output: Dict[base.OutputKey, np.ndarray] = {}
@@ -1267,9 +1267,9 @@ class GroupBy(_GroupBy[FrameOrSeries]):
             if is_object_dtype(vals):
                 vals = np.array([bool(x) for x in vals])
             else:
-                vals = vals.astype(np.bool)
+                vals = vals.astype(bool)
 
-            return vals.view(np.uint8), np.bool
+            return vals.view(np.uint8), bool
 
         def result_to_bool(result: np.ndarray, inference: Type) -> np.ndarray:
             return result.astype(inference, copy=False)
@@ -1507,14 +1507,15 @@ class GroupBy(_GroupBy[FrameOrSeries]):
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def size(self):
+    def size(self) -> FrameOrSeriesUnion:
         """
         Compute group sizes.
 
         Returns
         -------
-        Series
-            Number of rows in each group.
+        DataFrame or Series
+            Number of rows in each group as a Series if as_index is True
+            or a DataFrame if as_index is False.
         """
         result = self.grouper.size()
 
@@ -1523,6 +1524,10 @@ class GroupBy(_GroupBy[FrameOrSeries]):
             result = self._obj_1d_constructor(result, name=self.obj.name)
         else:
             result = self._obj_1d_constructor(result)
+
+        if not self.as_index:
+            result = result.rename("size").reset_index()
+
         return self._reindex_output(result, fill_value=0)
 
     @doc(_groupby_agg_method_template, fname="sum", no=True, mc=0)
@@ -2054,7 +2059,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
                 vals = vals.to_numpy(dtype=float, na_value=np.nan)
             elif is_datetime64_dtype(vals.dtype):
                 inference = "datetime64[ns]"
-                vals = np.asarray(vals).astype(np.float)
+                vals = np.asarray(vals).astype(float)
 
             return vals, inference
 
