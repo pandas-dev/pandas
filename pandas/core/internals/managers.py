@@ -47,6 +47,7 @@ from pandas.core.internals.blocks import (
     get_block_type,
     make_block,
 )
+from pandas.core.internals.ops import operate_blockwise
 
 # TODO: flexible with index=None and/or items=None
 
@@ -326,16 +327,16 @@ class BlockManager(PandasObject):
                 f"tot_items: {tot_items}"
             )
 
-    def reduce(self, func, *args, **kwargs):
+    def reduce(self, func):
         # If 2D, we assume that we're operating column-wise
         if self.ndim == 1:
             # we'll be returning a scalar
             blk = self.blocks[0]
-            return func(blk.values, *args, **kwargs)
+            return func(blk.values)
 
         res = {}
         for blk in self.blocks:
-            bres = func(blk.values, *args, **kwargs)
+            bres = func(blk.values)
 
             if np.ndim(bres) == 0:
                 # EA
@@ -343,7 +344,7 @@ class BlockManager(PandasObject):
                 new_res = zip(blk.mgr_locs.as_array, [bres])
             else:
                 assert bres.ndim == 1, bres.shape
-                assert blk.shape[0] == len(bres), (blk.shape, bres.shape, args, kwargs)
+                assert blk.shape[0] == len(bres), (blk.shape, bres.shape)
                 new_res = zip(blk.mgr_locs.as_array, bres)
 
             nr = dict(new_res)
@@ -351,6 +352,12 @@ class BlockManager(PandasObject):
             res.update(nr)
 
         return res
+
+    def operate_blockwise(self, other: "BlockManager", array_op) -> "BlockManager":
+        """
+        Apply array_op blockwise with another (aligned) BlockManager.
+        """
+        return operate_blockwise(self, other, array_op)
 
     def apply(self: T, f, align_keys=None, **kwargs) -> T:
         """
@@ -370,8 +377,6 @@ class BlockManager(PandasObject):
         align_keys = align_keys or []
         result_blocks: List[Block] = []
         # fillna: Series/DataFrame is responsible for making sure value is aligned
-
-        self._consolidate_inplace()
 
         aligned_args = {k: kwargs[k] for k in align_keys}
 
@@ -405,7 +410,6 @@ class BlockManager(PandasObject):
     def quantile(
         self,
         axis: int = 0,
-        consolidate: bool = True,
         transposed: bool = False,
         interpolation="linear",
         qs=None,
@@ -419,8 +423,6 @@ class BlockManager(PandasObject):
         Parameters
         ----------
         axis: reduction axis, default 0
-        consolidate: bool, default True. Join together blocks having same
-            dtype
         transposed: bool, default False
             we are holding transposed data
         interpolation : type of interpolation, default 'linear'
@@ -434,9 +436,6 @@ class BlockManager(PandasObject):
         # Series dispatches to DataFrame for quantile, which allows us to
         #  simplify some of the code here and in the blocks
         assert self.ndim >= 2
-
-        if consolidate:
-            self._consolidate_inplace()
 
         def get_axe(block, qs, axes):
             # Because Series dispatches to DataFrame, we will always have
@@ -475,7 +474,7 @@ class BlockManager(PandasObject):
                     b.mgr_locs = sb.mgr_locs
 
             else:
-                new_axes[axis] = Index(np.concatenate([ax.values for ax in axes]))
+                new_axes[axis] = Index(np.concatenate([ax._values for ax in axes]))
 
             if transposed:
                 new_axes = new_axes[::-1]
@@ -668,8 +667,6 @@ class BlockManager(PandasObject):
 
     @property
     def is_numeric_mixed_type(self) -> bool:
-        # Warning, consolidation needs to get checked upstairs
-        self._consolidate_inplace()
         return all(block.is_numeric for block in self.blocks)
 
     @property
@@ -1269,11 +1266,21 @@ class BlockManager(PandasObject):
 
         return type(self).from_blocks(new_blocks, new_axes)
 
-    def _slice_take_blocks_ax0(self, slice_or_indexer, fill_value=lib.no_default):
+    def _slice_take_blocks_ax0(
+        self, slice_or_indexer, fill_value=lib.no_default, only_slice: bool = False
+    ):
         """
         Slice/take blocks along axis=0.
 
         Overloaded for SingleBlock
+
+        Parameters
+        ----------
+        slice_or_indexer : slice, ndarray[bool], or list-like of ints
+        fill_value : scalar, default lib.no_default
+        only_slice : bool, default False
+            If True, we always return views on existing arrays, never copies.
+            This is used when called from ops.blockwise.operate_blockwise.
 
         Returns
         -------
@@ -1298,14 +1305,23 @@ class BlockManager(PandasObject):
                 if allow_fill and fill_value is None:
                     _, fill_value = maybe_promote(blk.dtype)
 
-                return [
-                    blk.take_nd(
-                        slobj,
-                        axis=0,
-                        new_mgr_locs=slice(0, sllen),
-                        fill_value=fill_value,
-                    )
-                ]
+                if not allow_fill and only_slice:
+                    # GH#33597 slice instead of take, so we get
+                    #  views instead of copies
+                    blocks = [
+                        blk.getitem_block([ml], new_mgr_locs=i)
+                        for i, ml in enumerate(slobj)
+                    ]
+                    return blocks
+                else:
+                    return [
+                        blk.take_nd(
+                            slobj,
+                            axis=0,
+                            new_mgr_locs=slice(0, sllen),
+                            fill_value=fill_value,
+                        )
+                    ]
 
         if sl_type in ("slice", "mask"):
             blknos = self.blknos[slobj]
@@ -1321,7 +1337,8 @@ class BlockManager(PandasObject):
         # When filling blknos, make sure blknos is updated before appending to
         # blocks list, that way new blkno is exactly len(blocks).
         blocks = []
-        for blkno, mgr_locs in libinternals.get_blkno_placements(blknos, group=True):
+        group = not only_slice
+        for blkno, mgr_locs in libinternals.get_blkno_placements(blknos, group=group):
             if blkno == -1:
                 # If we've got here, fill_value was not lib.no_default
 
@@ -1342,11 +1359,25 @@ class BlockManager(PandasObject):
                         blocks.append(newblk)
 
                 else:
-                    blocks.append(
-                        blk.take_nd(
-                            blklocs[mgr_locs.indexer], axis=0, new_mgr_locs=mgr_locs,
-                        )
-                    )
+                    # GH#32779 to avoid the performance penalty of copying,
+                    #  we may try to only slice
+                    taker = blklocs[mgr_locs.indexer]
+                    max_len = max(len(mgr_locs), taker.max() + 1)
+                    if only_slice:
+                        taker = lib.maybe_indices_to_slice(taker, max_len)
+
+                    if isinstance(taker, slice):
+                        nb = blk.getitem_block(taker, new_mgr_locs=mgr_locs)
+                        blocks.append(nb)
+                    elif only_slice:
+                        # GH#33597 slice instead of take, so we get
+                        #  views instead of copies
+                        for i, ml in zip(taker, mgr_locs):
+                            nb = blk.getitem_block([i], new_mgr_locs=ml)
+                            blocks.append(nb)
+                    else:
+                        nb = blk.take_nd(taker, axis=0, new_mgr_locs=mgr_locs)
+                        blocks.append(nb)
 
         return blocks
 
@@ -1920,7 +1951,7 @@ def _compare_or_regex_search(
     if isinstance(result, np.ndarray):
         # The shape of the mask can differ to that of the result
         # since we may compare only a subset of a's or b's elements
-        tmp = np.zeros(mask.shape, dtype=np.bool)
+        tmp = np.zeros(mask.shape, dtype=np.bool_)
         tmp[mask] = result
         result = tmp
 

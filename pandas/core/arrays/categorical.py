@@ -1,3 +1,4 @@
+import csv
 import operator
 from shutil import get_terminal_size
 from typing import Dict, Hashable, List, Type, Union, cast
@@ -9,6 +10,7 @@ from pandas._config import get_option
 
 from pandas._libs import NaT, algos as libalgos, hashtable as htable
 from pandas._typing import ArrayLike, Dtype, Ordered, Scalar
+from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly, deprecate_kwarg, doc
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 
@@ -58,7 +60,7 @@ from pandas.core.sorting import nargsort
 
 from pandas.io.formats import console
 
-import csv
+
 def _cat_compare_op(op):
     opname = f"__{op.__name__}__"
 
@@ -1873,11 +1875,17 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
 
         if len(self.categories) > max_categories:
             num = max_categories // 2
-            head = fmt.format_array(self.categories[:num], None, quoting=csv.QUOTE_NONNUMERIC)
-            tail = fmt.format_array(self.categories[-num:], None, quoting=csv.QUOTE_NONNUMERIC)
+            head = fmt.format_array(
+                self.categories[:num], None, quoting=csv.QUOTE_NONNUMERIC
+            )
+            tail = fmt.format_array(
+                self.categories[-num:], None, quoting=csv.QUOTE_NONNUMERIC
+            )
             category_strs = head + ["..."] + tail
         else:
-            category_strs = fmt.format_array(self.categories, None, quoting=csv.QUOTE_NONNUMERIC)
+            category_strs = fmt.format_array(
+                self.categories, None, quoting=csv.QUOTE_NONNUMERIC
+            )
 
         # Strip all leading spaces, which format_array adds for columns...
         category_strs = [x.strip() for x in category_strs]
@@ -2077,7 +2085,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         return func(**kwargs)
 
     @deprecate_kwarg(old_arg_name="numeric_only", new_arg_name="skipna")
-    def min(self, skipna=True):
+    def min(self, skipna=True, **kwargs):
         """
         The minimum value of the object.
 
@@ -2096,6 +2104,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         -------
         min : the minimum of this `Categorical`
         """
+        nv.validate_min((), kwargs)
         self.check_for_ordered("min")
 
         if not len(self._codes):
@@ -2112,7 +2121,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         return self.categories[pointer]
 
     @deprecate_kwarg(old_arg_name="numeric_only", new_arg_name="skipna")
-    def max(self, skipna=True):
+    def max(self, skipna=True, **kwargs):
         """
         The maximum value of the object.
 
@@ -2131,6 +2140,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         -------
         max : the maximum of this `Categorical`
         """
+        nv.validate_max((), kwargs)
         self.check_for_ordered("max")
 
         if not len(self._codes):

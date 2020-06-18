@@ -2,7 +2,6 @@
 High level interface to PyTables for reading and writing pandas data structures
 to disk
 """
-
 import copy
 from datetime import date, tzinfo
 import itertools
@@ -19,6 +18,7 @@ from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslibs import timezones
 from pandas._typing import ArrayLike, FrameOrSeries, Label
 from pandas.compat._optional import import_optional_dependency
+from pandas.compat.pickle_compat import patch_pickle
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
 
@@ -580,16 +580,39 @@ class HDFStore:
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
 
-    def keys(self) -> List[str]:
+    def keys(self, include: str = "pandas") -> List[str]:
         """
         Return a list of keys corresponding to objects stored in HDFStore.
+
+        Parameters
+        ----------
+
+        include : str, default 'pandas'
+                When kind equals 'pandas' return pandas objects
+                When kind equals 'native' return native HDF5 Table objects
+
+                .. versionadded:: 1.1.0
 
         Returns
         -------
         list
             List of ABSOLUTE path-names (e.g. have the leading '/').
+
+        Raises
+        ------
+        raises ValueError if kind has an illegal value
         """
-        return [n._v_pathname for n in self.groups()]
+        if include == "pandas":
+            return [n._v_pathname for n in self.groups()]
+
+        elif include == "native":
+            assert self._handle is not None  # mypy
+            return [
+                n._v_pathname for n in self._handle.walk_nodes("/", classname="Table")
+            ]
+        raise ValueError(
+            f"`include` should be either 'pandas' or 'native' but is '{include}'"
+        )
 
     def __iter__(self):
         return iter(self.keys())
@@ -729,10 +752,13 @@ class HDFStore:
         object
             Same type as object stored in file.
         """
-        group = self.get_node(key)
-        if group is None:
-            raise KeyError(f"No object named {key} in the file")
-        return self._read_group(group)
+        with patch_pickle():
+            # GH#31167 Without this patch, pickle doesn't know how to unpickle
+            #  old DateOffset objects now that they are cdef classes.
+            group = self.get_node(key)
+            if group is None:
+                raise KeyError(f"No object named {key} in the file")
+            return self._read_group(group)
 
     def select(
         self,
@@ -994,12 +1020,14 @@ class HDFStore:
         key : str
         value : {Series, DataFrame}
         format : 'fixed(f)|table(t)', default is 'fixed'
-            fixed(f) : Fixed format
-                       Fast writing/reading. Not-appendable, nor searchable.
-            table(t) : Table format
-                       Write as a PyTables Table structure which may perform
-                       worse but allow more flexible operations like searching
-                       / selecting subsets of the data.
+            Format to use when storing object in HDFStore. Value can be one of:
+
+            ``'fixed'``
+                Fixed format.  Fast writing/reading. Not-appendable, nor searchable.
+            ``'table'``
+                Table format.  Write as a PyTables Table structure which may perform
+                worse but allow more flexible operations like searching / selecting
+                subsets of the data.
         append   : bool, default False
             This will force Table format, append the input data to the
             existing.
@@ -1123,10 +1151,12 @@ class HDFStore:
         key : str
         value : {Series, DataFrame}
         format : 'table' is the default
-            table(t) : table format
-                       Write as a PyTables Table structure which may perform
-                       worse but allow more flexible operations like searching
-                       / selecting subsets of the data.
+            Format to use when storing object in HDFStore.  Value can be one of:
+
+            ``'table'``
+                Table format. Write as a PyTables Table structure which may perform
+                worse but allow more flexible operations like searching / selecting
+                subsets of the data.
         append       : bool, default True
             Append the input data to the existing.
         data_columns : list of columns, or True, default None

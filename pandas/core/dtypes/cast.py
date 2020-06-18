@@ -103,9 +103,9 @@ def is_nested_object(obj) -> bool:
     This may not be necessarily be performant.
 
     """
-    if isinstance(obj, ABCSeries) and is_object_dtype(obj):
+    if isinstance(obj, ABCSeries) and is_object_dtype(obj.dtype):
 
-        if any(isinstance(v, ABCSeries) for v in obj.values):
+        if any(isinstance(v, ABCSeries) for v in obj._values):
             return True
 
     return False
@@ -225,7 +225,7 @@ def maybe_downcast_numeric(result, dtype, do_round: bool = False):
             # if we have any nulls, then we are done
             return result
 
-        elif not isinstance(r[0], (np.integer, np.floating, np.bool, int, float, bool)):
+        elif not isinstance(r[0], (np.integer, np.floating, int, float, bool)):
             # a comparable, e.g. a Decimal may slip in here
             return result
 
@@ -315,7 +315,7 @@ def maybe_cast_result_dtype(dtype: DtypeObj, how: str) -> DtypeObj:
     from pandas.core.arrays.boolean import BooleanDtype
     from pandas.core.arrays.integer import Int64Dtype
 
-    if how in ["add", "cumsum", "sum"] and (dtype == np.dtype(np.bool)):
+    if how in ["add", "cumsum", "sum"] and (dtype == np.dtype(bool)):
         return np.dtype(np.int64)
     elif how in ["add", "cumsum", "sum"] and isinstance(dtype, BooleanDtype):
         return Int64Dtype()
@@ -337,9 +337,16 @@ def maybe_cast_to_extension_array(cls: Type["ExtensionArray"], obj, dtype=None):
     -------
     ExtensionArray or obj
     """
+    from pandas.core.arrays.string_ import StringArray
+
     assert isinstance(cls, type), f"must pass a type: {cls}"
     assertion_msg = f"must pass a subclass of ExtensionArray: {cls}"
     assert issubclass(cls, ABCExtensionArray), assertion_msg
+
+    # Everything can be be converted to StringArrays, but we may not want to convert
+    if issubclass(cls, StringArray) and lib.infer_dtype(obj) != "string":
+        return obj
+
     try:
         result = cls._from_sequence(obj, dtype=dtype)
     except Exception:
@@ -590,7 +597,7 @@ def _ensure_dtype_type(value, dtype):
     """
     Ensure that the given value is an instance of the given dtype.
 
-    e.g. if out dtype is np.complex64, we should have an instance of that
+    e.g. if out dtype is np.complex64_, we should have an instance of that
     as opposed to a python complex object.
 
     Parameters
@@ -1476,7 +1483,7 @@ def find_common_type(types: List[DtypeObj]) -> DtypeObj:
     if has_bools:
         for t in types:
             if is_integer_dtype(t) or is_float_dtype(t) or is_complex_dtype(t):
-                return np.object
+                return object
 
     return np.find_common_type(types, [])
 
@@ -1735,7 +1742,7 @@ def validate_numeric_casting(dtype: np.dtype, value):
         if is_float(value) and np.isnan(value):
             raise ValueError("Cannot assign nan to integer series")
 
-    if issubclass(dtype.type, (np.integer, np.floating, np.complex)) and not issubclass(
+    if issubclass(dtype.type, (np.integer, np.floating, complex)) and not issubclass(
         dtype.type, np.bool_
     ):
         if is_bool(value):

@@ -4,13 +4,10 @@ from typing import List
 import numpy as np
 
 from pandas._libs import lib, tslibs
-from pandas._libs.tslibs import NaT, Period, Timedelta, Timestamp, iNaT
+from pandas._libs.tslibs import NaT, Period, Timedelta, Timestamp, iNaT, to_offset
+from pandas._libs.tslibs.conversion import precision_from_unit
 from pandas._libs.tslibs.fields import get_timedelta_field
-from pandas._libs.tslibs.timedeltas import (
-    array_to_timedelta64,
-    parse_timedelta_unit,
-    precision_from_unit,
-)
+from pandas._libs.tslibs.timedeltas import array_to_timedelta64, parse_timedelta_unit
 from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.common import (
@@ -38,7 +35,6 @@ import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
-from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import Tick
 
 
@@ -880,14 +876,16 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 # Constructor Helpers
 
 
-def sequence_to_td64ns(data, copy=False, unit="ns", errors="raise"):
+def sequence_to_td64ns(data, copy=False, unit=None, errors="raise"):
     """
     Parameters
     ----------
     data : list-like
     copy : bool, default False
-    unit : str, default "ns"
-        The timedelta unit to treat integers as multiples of.
+    unit : str, optional
+        The timedelta unit to treat integers as multiples of. For numeric
+        data this defaults to ``'ns'``.
+        Must be un-specified if the data contains a str and ``errors=="raise"``.
     errors : {"raise", "coerce", "ignore"}, default "raise"
         How to handle elements that cannot be converted to timedelta64[ns].
         See ``pandas.to_timedelta`` for details.
@@ -910,7 +908,8 @@ def sequence_to_td64ns(data, copy=False, unit="ns", errors="raise"):
     higher level.
     """
     inferred_freq = None
-    unit = parse_timedelta_unit(unit)
+    if unit is not None:
+        unit = parse_timedelta_unit(unit)
 
     # Unwrap whatever we have into a np.ndarray
     if not hasattr(data, "dtype"):
@@ -940,7 +939,7 @@ def sequence_to_td64ns(data, copy=False, unit="ns", errors="raise"):
         # cast the unit, multiply base/frac separately
         # to avoid precision issues from float -> int
         mask = np.isnan(data)
-        m, p = precision_from_unit(unit)
+        m, p = precision_from_unit(unit or "ns")
         base = data.astype(np.int64)
         frac = data - base
         if p:
@@ -1006,7 +1005,7 @@ def ints_to_td64ns(data, unit="ns"):
     return data, copy_made
 
 
-def objects_to_td64ns(data, unit="ns", errors="raise"):
+def objects_to_td64ns(data, unit=None, errors="raise"):
     """
     Convert a object-dtyped or string-dtyped array into an
     timedelta64[ns]-dtyped array.
@@ -1016,6 +1015,7 @@ def objects_to_td64ns(data, unit="ns", errors="raise"):
     data : ndarray or Index
     unit : str, default "ns"
         The timedelta unit to treat integers as multiples of.
+        Must not be specified if the data contains a str.
     errors : {"raise", "coerce", "ignore"}, default "raise"
         How to handle elements that cannot be converted to timedelta64[ns].
         See ``pandas.to_timedelta`` for details.

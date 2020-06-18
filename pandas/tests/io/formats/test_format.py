@@ -2813,7 +2813,7 @@ class TestSeriesFormatting:
 class TestGenericArrayFormatter:
     def test_1d_array(self):
         # GenericArrayFormatter is used on types for which there isn't a dedicated
-        # formatter. np.bool is one of those types.
+        # formatter. np.bool_ is one of those types.
         obj = fmt.GenericArrayFormatter(np.array([True, False]))
         res = obj.get_result()
         assert len(res) == 2
