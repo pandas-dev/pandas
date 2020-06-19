@@ -292,8 +292,9 @@ Other enhancements
 - :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` now accept an ``errors`` argument (:issue:`22610`)
 - :meth:`groupby.transform` now allows ``func`` to be ``pad``, ``backfill`` and ``cumcount`` (:issue:`31269`).
 - :meth:`~pandas.io.json.read_json` now accepts `nrows` parameter. (:issue:`33916`).
-- :meth `~pandas.io.gbq.read_gbq` now allows to disable progress bar (:issue:`33360`).
+- :meth:`~pandas.io.gbq.read_gbq` now allows to disable progress bar (:issue:`33360`).
 - :meth:`~pandas.io.gbq.read_gbq` now supports the ``max_results`` kwarg from ``pandas-gbq`` (:issue:`34639`).
+- :meth:`DataFrame.to_html` and :meth:`DataFrame.to_string`'s ``col_space`` parameter now accepts a list of dict to change only some specific columns' width (:issue:`28917`).
 - :class:`pandas.core.window.EWM` now supports a ``times`` argument that allows ``mean`` to be calculated with observations spaced by the timestamps in ``times`` (:issue:`34839`)
 
 .. ---------------------------------------------------------------------------
@@ -777,6 +778,7 @@ Deprecations
   instead (:issue:`34191`).
 - The ``squeeze`` keyword in the ``groupby`` function is deprecated and will be removed in a future version (:issue:`32380`)
 - The ``tz`` keyword in :meth:`Period.to_timestamp` is deprecated and will be removed in a future version; use `per.to_timestamp(...).tz_localize(tz)`` instead (:issue:`34522`)
+- :meth:`DatetimeIndex.to_perioddelta` is deprecated and will be removed in a future version.  Use ``index - index.to_period(freq).to_timestamp()`` instead (:issue:`34853`)
 
 .. ---------------------------------------------------------------------------
 
@@ -844,6 +846,9 @@ Datetimelike
 - Bug in :meth:`DatetimeIndex.intersection` and :meth:`TimedeltaIndex.intersection` with results not having the correct ``name`` attribute (:issue:`33904`)
 - Bug in :meth:`DatetimeArray.__setitem__`, :meth:`TimedeltaArray.__setitem__`, :meth:`PeriodArray.__setitem__` incorrectly allowing values with ``int64`` dtype to be silently cast (:issue:`33717`)
 - Bug in subtracting :class:`TimedeltaIndex` from :class:`Period` incorrectly raising ``TypeError`` in some cases where it should succeed and ``IncompatibleFrequency`` in some cases where it should raise ``TypeError`` (:issue:`33883`)
+- Bug in constructing a Series or Index from a read-only NumPy array with non-ns
+  resolution which converted to object dtype instead of coercing to ``datetime64[ns]``
+  dtype when within the timestamp bounds (:issue:`34843`).
 - The ``freq`` keyword in :class:`Period`, :func:`date_range`, :func:`period_range`, :func:`pd.tseries.frequencies.to_offset` no longer allows tuples, pass as string instead (:issue:`34703`)
 
 Timedelta
