@@ -60,6 +60,7 @@ from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
     IntervalDtype,
     PeriodDtype,
+    registry
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -1505,12 +1506,15 @@ def cast_scalar_to_array(shape, value, dtype: Optional[DtypeObj] = None) -> np.n
 
     """
     if dtype is None:
-        dtype, fill_value = infer_dtype_from_scalar(value)
+        dtype, fill_value = infer_dtype_from_scalar(value, pandas_dtype=True)
     else:
         fill_value = value
-
-    values = np.empty(shape, dtype=dtype)
-    values.fill(fill_value)
+    
+    if type(dtype) in registry.dtypes:
+        values = dtype.construct_array_type()._from_sequence([value] * shape)
+    else:
+        values = np.empty(shape, dtype=dtype)
+        values.fill(fill_value)
 
     return values
 

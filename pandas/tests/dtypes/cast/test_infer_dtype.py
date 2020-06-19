@@ -9,6 +9,7 @@ from pandas.core.dtypes.cast import (
     infer_dtype_from_scalar,
 )
 from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.dtypes import PeriodDtype
 
 from pandas import (
     Categorical,
@@ -187,10 +188,9 @@ def test_infer_dtype_from_array(arr, expected, pandas_dtype):
         (1.1, np.float64),
         (Timestamp("2011-01-01"), "datetime64[ns]"),
         (Timestamp("2011-01-01", tz="US/Eastern"), object),
-        (Period("2011-01-01", freq="D"), object),
     ],
 )
-def test_cast_scalar_to_array(obj, dtype):
+def test_cast_scalar_to_numpy_array(obj, dtype):
     shape = (3, 2)
 
     exp = np.empty(shape, dtype=dtype)
@@ -198,3 +198,19 @@ def test_cast_scalar_to_array(obj, dtype):
 
     arr = cast_scalar_to_array(shape, obj, dtype=dtype)
     tm.assert_numpy_array_equal(arr, exp)
+
+
+@pytest.mark.parametrize(
+    "obj,dtype",
+    [
+        (Period("2011-01-01", freq="D"), PeriodDtype('D')),
+        (Period("2011-01", freq="M"), PeriodDtype('M')),
+    ],
+)
+def test_cast_scalar_to_extension_array(obj, dtype):
+    shape = 3
+
+    exp = dtype.construct_array_type()._from_sequence([obj] * shape)
+
+    arr = cast_scalar_to_array(shape, obj, dtype=dtype)
+    tm.assert_extension_array_equal(arr, exp)
