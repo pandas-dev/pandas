@@ -224,10 +224,9 @@ class SeriesGroupBy(GroupBy[Series]):
     def apply(self, func, *args, **kwargs):
         return super().apply(func, *args, **kwargs)
 
-    @Substitution(
-        examples=_agg_examples_doc, klass="Series",
+    @doc(
+        _agg_template, examples=_agg_examples_doc, klass="Series",
     )
-    @Appender(_agg_template)
     def aggregate(
         self, func=None, *args, engine="cython", engine_kwargs=None, **kwargs
     ):
@@ -915,10 +914,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     See :ref:`groupby.aggregate.named` for more."""
     )
 
-    @Substitution(
-        examples=_agg_examples_doc, klass="DataFrame",
+    @doc(
+        _agg_template, examples=_agg_examples_doc, klass="DataFrame",
     )
-    @Appender(_agg_template)
     def aggregate(
         self, func=None, *args, engine="cython", engine_kwargs=None, **kwargs
     ):

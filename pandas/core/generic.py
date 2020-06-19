@@ -847,7 +847,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         copy : bool, default True
             Also copy underlying data.
         inplace : bool, default False
-            Whether to return a new %(klass)s. If True then value of copy is
+            Whether to return a new {klass}. If True then value of copy is
             ignored.
         level : int or level name, default None
             In case of a MultiIndex, only rename labels in the specified
@@ -861,7 +861,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Returns
         -------
-        renamed : %(klass)s (new object)
+        renamed : {klass} (new object)
 
         Raises
         ------
@@ -1896,29 +1896,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     # ----------------------------------------------------------------------
     # I/O Methods
-
-    _shared_docs[
-        "to_markdown"
-    ] = """
-    Print %(klass)s in Markdown-friendly format.
-
-    .. versionadded:: 1.0.0
-
-    Parameters
-    ----------
-    buf : str, Path or StringIO-like, optional, default None
-        Buffer to write to. If None, the output is returned as a string.
-    mode : str, optional
-        Mode in which file is opened.
-    **kwargs
-        These parameters will be passed to `tabulate \
-            <https://pypi.org/project/tabulate>`_.
-
-    Returns
-    -------
-    str
-        %(klass)s in Markdown-friendly format.
-    """
 
     @doc(klass="object")
     def to_excel(
@@ -4236,9 +4213,15 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         raise AbstractMethodError(self)
 
+    @doc(
+        klass=_shared_doc_kwargs["klass"],
+        axes=_shared_doc_kwargs["axes"],
+        optional_labels="",
+        optional_axis="",
+    )
     def reindex(self: FrameOrSeries, *args, **kwargs) -> FrameOrSeries:
         """
-        Conform %(klass)s to new index with optional filling logic.
+        Conform {klass} to new index with optional filling logic.
 
         Places NA/NaN in locations having no value in the previous index. A new object
         is produced unless the new index is equivalent to the current one and
@@ -4246,12 +4229,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Parameters
         ----------
-        %(optional_labels)s
-        %(axes)s : array-like, optional
+        {optional_labels}
+        {axes} : array-like, optional
             New labels / index to conform to, should be specified using
             keywords. Preferably an Index object to avoid duplicating data.
-        %(optional_axis)s
-        method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}
+        {optional_axis}
+        method : {{None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}}
             Method to use for filling holes in reindexed DataFrame.
             Please note: this is only applicable to DataFrames/Series with a
             monotonically increasing/decreasing index.
@@ -4285,7 +4268,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Returns
         -------
-        %(klass)s with changed index.
+        {klass} with changed index.
 
         See Also
         --------
@@ -4298,7 +4281,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ``DataFrame.reindex`` supports two calling conventions
 
         * ``(index=index_labels, columns=column_labels, ...)``
-        * ``(labels, axis={'index', 'columns'}, ...)``
+        * ``(labels, axis={{'index', 'columns'}}, ...)``
 
         We *highly* recommend using keyword arguments to clarify your
         intent.
@@ -4306,8 +4289,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Create a dataframe with some fictional data.
 
         >>> index = ['Firefox', 'Chrome', 'Safari', 'IE10', 'Konqueror']
-        >>> df = pd.DataFrame({'http_status': [200, 200, 404, 404, 301],
-        ...                   'response_time': [0.04, 0.02, 0.07, 0.08, 1.0]},
+        >>> df = pd.DataFrame({{'http_status': [200, 200, 404, 404, 301],
+        ...                   'response_time': [0.04, 0.02, 0.07, 0.08, 1.0]}},
         ...                   index=index)
         >>> df
                    http_status  response_time
@@ -4378,7 +4361,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         of dates).
 
         >>> date_index = pd.date_range('1/1/2010', periods=6, freq='D')
-        >>> df2 = pd.DataFrame({"prices": [100, 101, np.nan, 100, 89, 88]},
+        >>> df2 = pd.DataFrame({{"prices": [100, 101, np.nan, 100, 89, 88]}},
         ...                    index=date_index)
         >>> df2
                     prices
@@ -5012,19 +4995,19 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         locs = rs.choice(axis_length, size=n, replace=replace, p=weights)
         return self.take(locs, axis=axis)
 
-    _shared_docs[
-        "pipe"
-    ] = r"""
+    @doc(klass=_shared_doc_kwargs["klass"])
+    def pipe(self, func, *args, **kwargs):
+        r"""
         Apply func(self, \*args, \*\*kwargs).
 
         Parameters
         ----------
         func : function
-            Function to apply to the %(klass)s.
+            Function to apply to the {klass}.
             ``args``, and ``kwargs`` are passed into ``func``.
             Alternatively a ``(callable, data_keyword)`` tuple where
             ``data_keyword`` is a string indicating the keyword of
-            ``callable`` that expects the %(klass)s.
+            ``callable`` that expects the {klass}.
         args : iterable, optional
             Positional arguments passed into ``func``.
         kwargs : mapping, optional
@@ -5064,121 +5047,49 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ...    .pipe((func, 'arg2'), arg1=a, arg3=c)
         ...  )  # doctest: +SKIP
     """
-
-    @Appender(_shared_docs["pipe"] % _shared_doc_kwargs)
-    def pipe(self, func, *args, **kwargs):
         return com.pipe(self, func, *args, **kwargs)
 
     _shared_docs["aggregate"] = dedent(
         """
-    Aggregate using one or more operations over the specified axis.
-    %(versionadded)s
-    Parameters
-    ----------
-    func : function, str, list or dict
-        Function to use for aggregating the data. If a function, must either
-        work when passed a %(klass)s or when passed to %(klass)s.apply.
+        Aggregate using one or more operations over the specified axis.
+        {versionadded}
+        Parameters
+        ----------
+        func : function, str, list or dict
+            Function to use for aggregating the data. If a function, must either
+            work when passed a {klass} or when passed to {klass}.apply.
 
-        Accepted combinations are:
+            Accepted combinations are:
 
-        - function
-        - string function name
-        - list of functions and/or function names, e.g. ``[np.sum, 'mean']``
-        - dict of axis labels -> functions, function names or list of such.
-    %(axis)s
-    *args
-        Positional arguments to pass to `func`.
-    **kwargs
-        Keyword arguments to pass to `func`.
+            - function
+            - string function name
+            - list of functions and/or function names, e.g. ``[np.sum, 'mean']``
+            - dict of axis labels -> functions, function names or list of such.
+        {axis}
+        *args
+            Positional arguments to pass to `func`.
+        **kwargs
+            Keyword arguments to pass to `func`.
 
-    Returns
-    -------
-    scalar, Series or DataFrame
+        Returns
+        -------
+        scalar, Series or DataFrame
 
-        The return can be:
+            The return can be:
 
-        * scalar : when Series.agg is called with single function
-        * Series : when DataFrame.agg is called with a single function
-        * DataFrame : when DataFrame.agg is called with several functions
+            * scalar : when Series.agg is called with single function
+            * Series : when DataFrame.agg is called with a single function
+            * DataFrame : when DataFrame.agg is called with several functions
 
-        Return scalar, Series or DataFrame.
-    %(see_also)s
-    Notes
-    -----
-    `agg` is an alias for `aggregate`. Use the alias.
+            Return scalar, Series or DataFrame.
+        {see_also}
+        Notes
+        -----
+        `agg` is an alias for `aggregate`. Use the alias.
 
-    A passed user-defined-function will be passed a Series for evaluation.
-    %(examples)s"""
+        A passed user-defined-function will be passed a Series for evaluation.
+        {examples}"""
     )
-
-    _shared_docs[
-        "transform"
-    ] = """
-    Call ``func`` on self producing a %(klass)s with transformed values.
-
-    Produced %(klass)s will have same axis length as self.
-
-    Parameters
-    ----------
-    func : function, str, list or dict
-        Function to use for transforming the data. If a function, must either
-        work when passed a %(klass)s or when passed to %(klass)s.apply.
-
-        Accepted combinations are:
-
-        - function
-        - string function name
-        - list of functions and/or function names, e.g. ``[np.exp. 'sqrt']``
-        - dict of axis labels -> functions, function names or list of such.
-    %(axis)s
-    *args
-        Positional arguments to pass to `func`.
-    **kwargs
-        Keyword arguments to pass to `func`.
-
-    Returns
-    -------
-    %(klass)s
-        A %(klass)s that must have the same length as self.
-
-    Raises
-    ------
-    ValueError : If the returned %(klass)s has a different length than self.
-
-    See Also
-    --------
-    %(klass)s.agg : Only perform aggregating type operations.
-    %(klass)s.apply : Invoke function on a %(klass)s.
-
-    Examples
-    --------
-    >>> df = pd.DataFrame({'A': range(3), 'B': range(1, 4)})
-    >>> df
-       A  B
-    0  0  1
-    1  1  2
-    2  2  3
-    >>> df.transform(lambda x: x + 1)
-       A  B
-    0  1  2
-    1  2  3
-    2  3  4
-
-    Even though the resulting %(klass)s must have the same length as the
-    input %(klass)s, it is possible to provide several input functions:
-
-    >>> s = pd.Series(range(3))
-    >>> s
-    0    0
-    1    1
-    2    2
-    dtype: int64
-    >>> s.transform([np.sqrt, np.exp])
-           sqrt        exp
-    0  0.000000   1.000000
-    1  1.000000   2.718282
-    2  1.414214   7.389056
-    """
 
     # ----------------------------------------------------------------------
     # Attribute access
@@ -6188,7 +6099,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Returns
         -------
-        %(klass)s or None
+        {klass} or None
             Object with missing values filled or None if ``inplace=True``.
         """
         return self.fillna(
@@ -6209,7 +6120,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Returns
         -------
-        %(klass)s or None
+        {klass} or None
             Object with missing values filled or None if ``inplace=True``.
         """
         return self.fillna(
@@ -6680,9 +6591,18 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         else:
             return result.__finalize__(self, method="replace")
 
-    _shared_docs[
-        "interpolate"
-    ] = """
+    def interpolate(
+        self: FrameOrSeries,
+        method: str = "linear",
+        axis: Axis = 0,
+        limit: Optional[int] = None,
+        inplace: bool_t = False,
+        limit_direction: Optional[str] = None,
+        limit_area: Optional[str] = None,
+        downcast: Optional[str] = None,
+        **kwargs,
+    ) -> Optional[FrameOrSeries]:
+        """
         Please note that only ``method='linear'`` is supported for
         DataFrame/Series with a MultiIndex.
 
@@ -6710,14 +6630,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
               `scipy.interpolate.BPoly.from_derivatives` which
               replaces 'piecewise_polynomial' interpolation method in
               scipy 0.18.
-        axis : {0 or 'index', 1 or 'columns', None}, default None
+        axis : {{0 or 'index', 1 or 'columns', None}}, default None
             Axis to interpolate along.
         limit : int, optional
             Maximum number of consecutive NaNs to fill. Must be greater than
             0.
         inplace : bool, default False
             Update the data in place if possible.
-        limit_direction : {'forward', 'backward', 'both'}, Optional
+        limit_direction : {{'forward', 'backward', 'both'}}, Optional
             Consecutive NaNs will be filled in this direction.
 
             If limit is specified:
@@ -6735,7 +6655,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 raises ValueError if `limit_direction` is 'backward' or 'both' and
                     method is 'pad' or 'ffill'.
 
-        limit_area : {`None`, 'inside', 'outside'}, default None
+        limit_area : {{`None`, 'inside', 'outside'}}, default None
             If limit is specified, consecutive NaNs will be filled with this
             restriction.
 
@@ -6876,22 +6796,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2     9.0
         3    16.0
         Name: d, dtype: float64
-        """
-
-    @Appender(_shared_docs["interpolate"] % _shared_doc_kwargs)
-    def interpolate(
-        self: FrameOrSeries,
-        method: str = "linear",
-        axis: Axis = 0,
-        limit: Optional[int] = None,
-        inplace: bool_t = False,
-        limit_direction: Optional[str] = None,
-        limit_area: Optional[str] = None,
-        downcast: Optional[str] = None,
-        **kwargs,
-    ) -> Optional[FrameOrSeries]:
-        """
-        Interpolate values according to different methods.
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
@@ -7148,9 +7052,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # Action Methods
 
-    _shared_docs[
-        "isna"
-    ] = """
+    @doc(klass=_shared_doc_kwargs["klass"])
+    def isna(self: FrameOrSeries) -> FrameOrSeries:
+        """
         Detect missing values.
 
         Return a boolean same-sized object indicating if the values are NA.
@@ -7162,26 +7066,26 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Returns
         -------
-        %(klass)s
-            Mask of bool values for each element in %(klass)s that
+        {klass}
+            Mask of bool values for each element in {klass} that
             indicates whether an element is not an NA value.
 
         See Also
         --------
-        %(klass)s.isnull : Alias of isna.
-        %(klass)s.notna : Boolean inverse of isna.
-        %(klass)s.dropna : Omit axes labels with missing values.
+        {klass}.isnull : Alias of isna.
+        {klass}.notna : Boolean inverse of isna.
+        {klass}.dropna : Omit axes labels with missing values.
         isna : Top-level isna.
 
         Examples
         --------
         Show which entries in a DataFrame are NA.
 
-        >>> df = pd.DataFrame({'age': [5, 6, np.NaN],
+        >>> df = pd.DataFrame({{'age': [5, 6, np.NaN],
         ...                    'born': [pd.NaT, pd.Timestamp('1939-05-27'),
         ...                             pd.Timestamp('1940-04-25')],
         ...                    'name': ['Alfred', 'Batman', ''],
-        ...                    'toy': [None, 'Batmobile', 'Joker']})
+        ...                    'toy': [None, 'Batmobile', 'Joker']}})
         >>> df
            age       born    name        toy
         0  5.0        NaT  Alfred       None
@@ -7209,18 +7113,15 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2     True
         dtype: bool
         """
-
-    @Appender(_shared_docs["isna"] % _shared_doc_kwargs)
-    def isna(self: FrameOrSeries) -> FrameOrSeries:
         return isna(self).__finalize__(self, method="isna")
 
-    @Appender(_shared_docs["isna"] % _shared_doc_kwargs)
+    @doc(isna, klass=_shared_doc_kwargs["klass"])
     def isnull(self: FrameOrSeries) -> FrameOrSeries:
         return isna(self).__finalize__(self, method="isnull")
 
-    _shared_docs[
-        "notna"
-    ] = """
+    @doc(klass=_shared_doc_kwargs["klass"])
+    def notna(self: FrameOrSeries) -> FrameOrSeries:
+        """
         Detect existing (non-missing) values.
 
         Return a boolean same-sized object indicating if the values are not NA.
@@ -7232,26 +7133,26 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Returns
         -------
-        %(klass)s
-            Mask of bool values for each element in %(klass)s that
+        {klass}
+            Mask of bool values for each element in {klass} that
             indicates whether an element is not an NA value.
 
         See Also
         --------
-        %(klass)s.notnull : Alias of notna.
-        %(klass)s.isna : Boolean inverse of notna.
-        %(klass)s.dropna : Omit axes labels with missing values.
+        {klass}.notnull : Alias of notna.
+        {klass}.isna : Boolean inverse of notna.
+        {klass}.dropna : Omit axes labels with missing values.
         notna : Top-level notna.
 
         Examples
         --------
         Show which entries in a DataFrame are not NA.
 
-        >>> df = pd.DataFrame({'age': [5, 6, np.NaN],
+        >>> df = pd.DataFrame({{'age': [5, 6, np.NaN],
         ...                    'born': [pd.NaT, pd.Timestamp('1939-05-27'),
         ...                             pd.Timestamp('1940-04-25')],
         ...                    'name': ['Alfred', 'Batman', ''],
-        ...                    'toy': [None, 'Batmobile', 'Joker']})
+        ...                    'toy': [None, 'Batmobile', 'Joker']}})
         >>> df
            age       born    name        toy
         0  5.0        NaT  Alfred       None
@@ -7279,12 +7180,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2    False
         dtype: bool
         """
-
-    @Appender(_shared_docs["notna"] % _shared_doc_kwargs)
-    def notna(self: FrameOrSeries) -> FrameOrSeries:
         return notna(self).__finalize__(self, method="notna")
 
-    @Appender(_shared_docs["notna"] % _shared_doc_kwargs)
+    @doc(notna, klass=_shared_doc_kwargs["klass"])
     def notnull(self: FrameOrSeries) -> FrameOrSeries:
         return notna(self).__finalize__(self, method="notnull")
 
@@ -8966,32 +8864,47 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             result = self._constructor(new_data)
             return result.__finalize__(self)
 
-    _shared_docs[
-        "where"
-    ] = """
-        Replace values where the condition is %(cond_rev)s.
+    @doc(
+        klass=_shared_doc_kwargs["klass"],
+        cond="True",
+        cond_rev="False",
+        name="where",
+        name_other="mask",
+    )
+    def where(
+        self,
+        cond,
+        other=np.nan,
+        inplace=False,
+        axis=None,
+        level=None,
+        errors="raise",
+        try_cast=False,
+    ):
+        """
+        Replace values where the condition is {cond_rev}.
 
         Parameters
         ----------
-        cond : bool %(klass)s, array-like, or callable
-            Where `cond` is %(cond)s, keep the original value. Where
-            %(cond_rev)s, replace with corresponding value from `other`.
-            If `cond` is callable, it is computed on the %(klass)s and
-            should return boolean %(klass)s or array. The callable must
-            not change input %(klass)s (though pandas doesn't check it).
-        other : scalar, %(klass)s, or callable
-            Entries where `cond` is %(cond_rev)s are replaced with
+        cond : bool {klass}, array-like, or callable
+            Where `cond` is {cond}, keep the original value. Where
+            {cond_rev}, replace with corresponding value from `other`.
+            If `cond` is callable, it is computed on the {klass} and
+            should return boolean {klass} or array. The callable must
+            not change input {klass} (though pandas doesn't check it).
+        other : scalar, {klass}, or callable
+            Entries where `cond` is {cond_rev} are replaced with
             corresponding value from `other`.
-            If other is callable, it is computed on the %(klass)s and
-            should return scalar or %(klass)s. The callable must not
-            change input %(klass)s (though pandas doesn't check it).
+            If other is callable, it is computed on the {klass} and
+            should return scalar or {klass}. The callable must not
+            change input {klass} (though pandas doesn't check it).
         inplace : bool, default False
             Whether to perform the operation in place on the data.
         axis : int, default None
             Alignment axis if needed.
         level : int, default None
             Alignment level if needed.
-        errors : str, {'raise', 'ignore'}, default 'raise'
+        errors : str, {{'raise', 'ignore'}}, default 'raise'
             Note that currently this parameter won't affect
             the results and will always coerce to a suitable dtype.
 
@@ -9007,13 +8920,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         See Also
         --------
-        :func:`DataFrame.%(name_other)s` : Return an object of same shape as
+        :func:`DataFrame.{name_other}` : Return an object of same shape as
             self.
 
         Notes
         -----
-        The %(name)s method is an application of the if-then idiom. For each
-        element in the calling DataFrame, if ``cond`` is ``%(cond)s`` the
+        The {name} method is an application of the if-then idiom. For each
+        element in the calling DataFrame, if ``cond`` is ``{cond}`` the
         element is used; otherwise the corresponding element from the DataFrame
         ``other`` is used.
 
@@ -9021,7 +8934,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         :func:`numpy.where`. Roughly ``df1.where(m, df2)`` is equivalent to
         ``np.where(m, df1, df2)``.
 
-        For further details and examples see the ``%(name)s`` documentation in
+        For further details and examples see the ``{name}`` documentation in
         :ref:`indexing <indexing.where_mask>`.
 
         Examples
@@ -9059,7 +8972,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2  4  5
         3  6  7
         4  8  9
-        >>> m = df %% 3 == 0
+        >>> m = df % 3 == 0
         >>> df.where(m, -df)
            A  B
         0  0 -1
@@ -9082,42 +8995,18 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         3  True  True
         4  True  True
         """
-
-    @Appender(
-        _shared_docs["where"]
-        % dict(
-            _shared_doc_kwargs,
-            cond="True",
-            cond_rev="False",
-            name="where",
-            name_other="mask",
-        )
-    )
-    def where(
-        self,
-        cond,
-        other=np.nan,
-        inplace=False,
-        axis=None,
-        level=None,
-        errors="raise",
-        try_cast=False,
-    ):
-
         other = com.apply_if_callable(other, self)
         return self._where(
             cond, other, inplace, axis, level, errors=errors, try_cast=try_cast
         )
 
-    @Appender(
-        _shared_docs["where"]
-        % dict(
-            _shared_doc_kwargs,
-            cond="False",
-            cond_rev="True",
-            name="mask",
-            name_other="where",
-        )
+    @doc(
+        where,
+        klass=_shared_doc_kwargs["klass"],
+        cond="False",
+        cond_rev="True",
+        name="mask",
+        name_other="where",
     )
     def mask(
         self,
@@ -9548,7 +9437,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Returns
         -------
-        %(klass)s
+        {klass}
             Object with time zone converted axis.
 
         Raises
@@ -10171,9 +10060,15 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         d.columns = data.columns.copy()
         return d
 
-    _shared_docs[
-        "pct_change"
-    ] = """
+    def pct_change(
+        self: FrameOrSeries,
+        periods=1,
+        fill_method="pad",
+        limit=None,
+        freq=None,
+        **kwargs,
+    ) -> FrameOrSeries:
+        """
         Percentage change between the current and a prior element.
 
         Computes the percentage change from the immediately previous row by
@@ -10287,17 +10182,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         GOOG   NaN -0.151997 -0.086016
         APPL   NaN  0.337604  0.012002
         """
-
-    @Appender(_shared_docs["pct_change"] % _shared_doc_kwargs)
-    def pct_change(
-        self: FrameOrSeries,
-        periods=1,
-        fill_method="pad",
-        limit=None,
-        freq=None,
-        **kwargs,
-    ) -> FrameOrSeries:
-        # TODO: Not sure if above is correct - need someone to confirm.
         axis = self._get_axis_number(kwargs.pop("axis", self._stat_axis_name))
         if fill_method is None:
             data = self
@@ -10357,18 +10241,35 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             empty_value=True,
         )
 
-        @Substitution(
+        @doc(
             desc="Return the mean absolute deviation of the values "
             "for the requested axis.",
             name1=name1,
             name2=name2,
             axis_descr=axis_descr,
-            min_count="",
             see_also="",
             examples="",
         )
-        @Appender(_num_doc_mad)
         def mad(self, axis=None, skipna=None, level=None):
+            """
+            {desc}
+
+            Parameters
+            ----------
+            axis : {axis_descr}
+                Axis for the function to be applied on.
+            skipna : bool, default None
+                Exclude NA/null values when computing the result.
+            level : int or level name, default None
+                If the axis is a MultiIndex (hierarchical), count along a
+                particular level, collapsing into a {name1}.
+
+            Returns
+            -------
+            {name1} or {name2} (if level specified)\
+            {see_also}\
+            {examples}
+            """
             if skipna is None:
                 skipna = True
             if axis is None:
@@ -10633,8 +10534,74 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         cls.ewm = ewm
 
-    @Appender(_shared_docs["transform"] % dict(axis="", **_shared_doc_kwargs))
+    @doc(klass=_shared_doc_kwargs["klass"], axis="")
     def transform(self, func, *args, **kwargs):
+        """
+        Call ``func`` on self producing a {klass} with transformed values.
+
+        Produced {klass} will have same axis length as self.
+
+        Parameters
+        ----------
+        func : function, str, list or dict
+            Function to use for transforming the data. If a function, must either
+            work when passed a {klass} or when passed to {klass}.apply.
+
+            Accepted combinations are:
+
+            - function
+            - string function name
+            - list of functions and/or function names, e.g. ``[np.exp. 'sqrt']``
+            - dict of axis labels -> functions, function names or list of such.
+        {axis}
+        *args
+            Positional arguments to pass to `func`.
+        **kwargs
+            Keyword arguments to pass to `func`.
+
+        Returns
+        -------
+        {klass}
+            A {klass} that must have the same length as self.
+
+        Raises
+        ------
+        ValueError : If the returned {klass} has a different length than self.
+
+        See Also
+        --------
+        {klass}.agg : Only perform aggregating type operations.
+        {klass}.apply : Invoke function on a {klass}.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({{'A': range(3), 'B': range(1, 4)}})
+        >>> df
+           A  B
+        0  0  1
+        1  1  2
+        2  2  3
+        >>> df.transform(lambda x: x + 1)
+           A  B
+        0  1  2
+        1  2  3
+        2  3  4
+
+        Even though the resulting {klass} must have the same length as the
+        input {klass}, it is possible to provide several input functions:
+
+        >>> s = pd.Series(range(3))
+        >>> s
+        0    0
+        1    1
+        2    2
+        dtype: int64
+        >>> s.transform([np.sqrt, np.exp])
+               sqrt        exp
+        0  0.000000   1.000000
+        1  1.000000   2.718282
+        2  1.414214   7.389056
+        """
         result = self.agg(func, *args, **kwargs)
         if is_scalar(result) or len(result) != len(self):
             raise ValueError("transforms cannot produce aggregated results")
@@ -10643,21 +10610,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     # ----------------------------------------------------------------------
     # Misc methods
-
-    _shared_docs[
-        "valid_index"
-    ] = """
-        Return index for %(position)s non-NA/null value.
-
-        Returns
-        -------
-        scalar : type of index
-
-        Notes
-        -----
-        If all elements are non-NA/null, returns None.
-        Also returns None for empty %(klass)s.
-        """
 
     def _find_valid_index(self, how: str):
         """
@@ -10677,15 +10629,23 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return None
         return self.index[idxpos]
 
-    @Appender(
-        _shared_docs["valid_index"] % {"position": "first", "klass": "Series/DataFrame"}
-    )
+    @doc(position="first", klass=_shared_doc_kwargs["klass"])
     def first_valid_index(self):
+        """
+        Return index for {position} non-NA/null value.
+
+        Returns
+        -------
+        scalar : type of index
+
+        Notes
+        -----
+        If all elements are non-NA/null, returns None.
+        Also returns None for empty {klass}.
+        """
         return self._find_valid_index("first")
 
-    @Appender(
-        _shared_docs["valid_index"] % {"position": "last", "klass": "Series/DataFrame"}
-    )
+    @doc(first_valid_index, position="last", klass=_shared_doc_kwargs["klass"])
     def last_valid_index(self):
         return self._find_valid_index("last")
 
@@ -10718,26 +10678,6 @@ numeric_only : bool, default None
 %(min_count)s\
 **kwargs
     Additional keyword arguments to be passed to the function.
-
-Returns
--------
-%(name1)s or %(name2)s (if level specified)\
-%(see_also)s\
-%(examples)s
-"""
-
-_num_doc_mad = """
-%(desc)s
-
-Parameters
-----------
-axis : %(axis_descr)s
-    Axis for the function to be applied on.
-skipna : bool, default None
-    Exclude NA/null values when computing the result.
-level : int or level name, default None
-    If the axis is a MultiIndex (hierarchical), count along a
-    particular level, collapsing into a %(name1)s.
 
 Returns
 -------
