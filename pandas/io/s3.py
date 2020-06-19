@@ -31,7 +31,7 @@ def get_file_and_filesystem(
     fs = get_fs()
     try:
         file = fs.open(_strip_schema(filepath_or_buffer), mode)
-    except (FileNotFoundError, NoCredentialsError):
+    except (FileNotFoundError, NoCredentialsError, PermissionError):
         # boto3 has troubles when trying to access a public file
         # when credentialed...
         # An OSError is raised if you have credentials, but they
