@@ -4520,7 +4520,6 @@ Keep all original rows and also all original values
     )
     @Substitution(klass="Series")
     def pop(self, item: Label) -> Any:
-        
         return super().pop(item=item)
 
     @doc(NDFrame.replace, klass=_shared_doc_kwargs["klass"])

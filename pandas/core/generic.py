@@ -38,7 +38,6 @@ from pandas._typing import (
     FrameOrSeries,
     JSONSerializable,
     Label,
-    FrameOrSeriesUnion,
     Level,
     Renamer,
     TimedeltaConvertibleTypes,
@@ -658,7 +657,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         result = self.set_axis(new_labels, axis=axis, inplace=False)
         return result
 
-    def pop(self: FrameOrSeriesUnion, item: Label):
+    def pop(self, item: Label) -> Union["Series", Any]:
         result = self[item]
         del self[item]
         if self.ndim == 2:

@@ -4265,7 +4265,7 @@ class DataFrame(NDFrame):
 
     @Appender(
         """
-        Return item and drops from DataFrame. Raise KeyError if not found.
+        Return item and drop from frame. Raise KeyError if not found.
 
         Parameters
         ----------
@@ -4306,7 +4306,7 @@ class DataFrame(NDFrame):
         """
     )
     @Substitution(klass="DataFrame")
-    def pop(self, item) -> Series:
+    def pop(self, item: Label) -> Series:
         return super().pop(item=item)
 
     @doc(NDFrame.replace, **_shared_doc_kwargs)
