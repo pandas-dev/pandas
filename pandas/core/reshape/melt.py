@@ -7,6 +7,7 @@ from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import is_extension_array_dtype, is_list_like
 from pandas.core.dtypes.concat import concat_compat
+from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import notna
 
 from pandas.core.arrays import Categorical
@@ -15,8 +16,6 @@ from pandas.core.frame import DataFrame, _shared_docs
 from pandas.core.indexes.api import Index, MultiIndex
 from pandas.core.reshape.concat import concat
 from pandas.core.tools.numeric import to_numeric
-
-from pandas.core.dtypes.generic import ABCSeries
 
 
 @Appender(
