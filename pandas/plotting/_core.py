@@ -415,18 +415,17 @@ _bar_or_line_doc = """
             Additional keyword arguments are documented in
             :meth:`DataFrame.plot`.
 
+        Notes
+        -----
+        Where pandas fails to infer the frequency information the automatic tick
+        resolution adjustment can be suppressed by the parameter:
+        x_compact=True  (e.g., s.plot(x_compat=True))
+
         Returns
         -------
         matplotlib.axes.Axes or np.ndarray of them
             An ndarray is returned with one :class:`matplotlib.axes.Axes`
             per column when ``subplots=True``.
-
-        Notes
-        -----
-        Where pandas fails to infer the frequency information the automatic tick
-        resolution adjustment can be suppressed by the parameter:
-
-        x_compact=True  (e.g., s.plot(x_compat=True))
 
 """
 
