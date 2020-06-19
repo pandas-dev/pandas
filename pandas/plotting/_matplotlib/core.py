@@ -284,7 +284,7 @@ class MPLPlot:
         >>> value = [[1, 3, np.nan, np.nan],
         ...          [3, 4, np.nan, np.nan], [np.nan, np.nan, 5, 6]]
         >>> data = DataFrame(value, columns=mi)
-        >>> _create_iter_data_given_by(data, by=["col1"]) # doctest: +SKIP
+        >>> _create_iter_data_given_by(data, by=["col1"])
         {'h1': DataFrame({'a': [1, 3, np.nan], 'b': [3, 4, np.nan]}),
          'h2': DataFrame({'a': [np.nan, np.nan, 5], 'b': [np.nan, np.nan, 6]})}
         """
@@ -293,8 +293,8 @@ class MPLPlot:
             iter_data = data
         else:
             # Select sub-columns based on the value of first level of MI
-            # TODO: mypy complains because Index does not have levels, only MI has.
-            cols = data.columns.levels[0]  # type: ignore
+            assert isinstance(data, MultiIndex)
+            cols = data.columns.levels[0]
             iter_data = {
                 col: data.loc[:, data.columns.get_level_values(0) == col]
                 for col in cols
