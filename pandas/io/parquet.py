@@ -8,7 +8,7 @@ from pandas.errors import AbstractMethodError
 
 from pandas import DataFrame, get_option
 
-from pandas.io.common import get_filepath_or_buffer, is_fsspec_url
+from pandas.io.common import get_filepath_or_buffer, is_fsspec_url, _expand_user
 
 
 def get_engine(engine: str) -> "BaseImpl":
@@ -106,6 +106,8 @@ class PyArrowImpl(BaseImpl):
 
             fs, path = fsspec.core.url_to_fs(path)
             kwargs["filesystem"] = fs
+        else:
+            path = _expand_user(path)
         if partition_cols is not None:
             # writes to multiple files under the given path
             self.api.parquet.write_to_dataset(
@@ -129,6 +131,7 @@ class PyArrowImpl(BaseImpl):
         else:
             fs = kwargs.pop("filesystem", None)
             should_close = False
+            path = _expand_user(path)
 
         if not fs:
             path, _, _, should_close = get_filepath_or_buffer(path)

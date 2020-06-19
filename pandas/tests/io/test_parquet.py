@@ -591,6 +591,14 @@ class TestParquetPyArrow(Base):
         df_from_buf = pd.read_parquet(buffer)
         tm.assert_frame_equal(df_compat, df_from_buf)
 
+    def test_expand_user(self, df_compat, monkeypatch):
+        monkeypatch.setenv("HOME", "TestingUser")
+        monkeypatch.setenv("USERPROFILE", "TestingUser")
+        with pytest.raises(OSError, match=r".*TestingUser.*"):
+            pd.read_parquet("~/file.parquet")
+        with pytest.raises(OSError, match=r".*TestingUser.*"):
+            df_compat.to_parquet("~/file.parquet")
+
     def test_partition_cols_supported(self, pa, df_full):
         # GH #23283
         partition_cols = ["bool", "int"]
