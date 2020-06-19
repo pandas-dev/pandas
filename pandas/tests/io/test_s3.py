@@ -2,7 +2,10 @@ from io import BytesIO
 
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import read_csv
+import pandas._testing as tm
 
 from pandas.io.common import is_s3_url
 
@@ -23,3 +26,10 @@ def test_streaming_s3_objects():
     for el in data:
         body = StreamingBody(BytesIO(el), content_length=len(el))
         read_csv(body)
+
+
+@tm.network
+@td.skip_if_no("s3fs")
+def test_read_without_creds_from_pub_bucket():
+    result = read_csv("s3://gdelt-open-data/events/1981.csv", nrows=3)
+    assert len(result) == 3
