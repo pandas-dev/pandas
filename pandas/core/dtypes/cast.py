@@ -1509,7 +1509,7 @@ def cast_scalar_to_array(shape, value, dtype: Optional[DtypeObj] = None) -> np.n
         dtype, fill_value = infer_dtype_from_scalar(value, pandas_dtype=True)
     else:
         fill_value = value
-    
+
     if type(dtype) in registry.dtypes:
         values = dtype.construct_array_type()._from_sequence([value] * shape)
     else:
