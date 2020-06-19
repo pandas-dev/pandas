@@ -1418,9 +1418,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             |  1 | pig      |
             |  2 | dog      |
             |  3 | quetzal  |
-    
+
             Output markdown with a tabulate option.
-    
+
             >>> print(s.to_markdown(tablefmt="grid"))
             +----+----------+
             |    | animal   |
