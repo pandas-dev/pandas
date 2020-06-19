@@ -69,3 +69,11 @@ def test_index_replace_bfill():
 
     result = index.replace([1, 2], method="bfill")
     tm.assert_equal(expected, result)
+
+
+# def test_multi_index_replace():
+#     levels = [[1, 2], ["one", "two"]]
+#     codes = [[0, 0, 1, 1], [0, 1, 0, 1]]
+#     names = ["foo", "bar"]
+
+#     # multi_index = MultiIndex(levels=levels, codes=codes, names=names)
