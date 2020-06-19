@@ -88,6 +88,8 @@ class EWM(_Rolling):
         observation decays to half its value. Only applicable to ``mean()``
         and halflife value will not apply to the other functions.
 
+        .. versionadded:: 1.1.0
+
     alpha : float, optional
         Specify smoothing factor :math:`\alpha` directly,
         :math:`0 < \alpha \leq 1`.
@@ -133,6 +135,9 @@ class EWM(_Rolling):
         The axis to use. The value 0 identifies the rows, and 1
         identifies the columns.
     times : str, np.ndarray, Series, default None
+
+        .. versionadded:: 1.1.0
+
         Times corresponding to the observations. Must be monotonically increasing and
         ``datetime64[ns]`` dtype.
 
