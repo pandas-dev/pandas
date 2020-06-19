@@ -1911,14 +1911,14 @@ class TestDataFrameConstructors:
     def test_constructor_series_copy(self, float_frame):
         series = float_frame._series
 
-        df = DataFrame({"A": series["A"]})  # copy by default
-        df["A"][:] = 5
-        assert not (series["A"] == 5).all()
-
-        df = DataFrame({"A": series["A"]}, copy=False)
+        df = DataFrame({"A": series["A"]}, copy=True)
         df["A"][:] = 5
 
-        assert (series["A"] == 5).all()
+        assert not all(series["A"] == 5).all()
+
+        df = DataFrame({"A": series["A"]})  # no copy by default
+        df["A"][:] = 5
+        assert all(series["A"] == 5).all()
 
     def test_constructor_with_nas(self):
         # GH 5016
@@ -2692,7 +2692,7 @@ class TestDataFrameConstructorWithDatetimeTZ:
         df.iloc[0, 0] = 0
         df.iloc[0, 1] = 0
 
-        if copy is True or copy is None:
+        if copy:
             assert a[0] == 1
             assert b[0] == 1
         else:
