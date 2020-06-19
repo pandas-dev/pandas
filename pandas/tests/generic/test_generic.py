@@ -874,12 +874,8 @@ class TestNDFrame:
 
     def test_equals_subclass(self):
         # https://github.com/pandas-dev/pandas/pull/34402
-
-        class MySeries(pd.Series):
-            pass
-
         s1 = pd.Series([1, 2, 3])
-        s2 = MySeries([1, 2, 3])
+        s2 = tm.SubclassedSeries([1, 2, 3])
 
         # allow subclass in both directions
         assert s1.equals(s2)
