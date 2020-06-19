@@ -1408,8 +1408,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     @doc(
         klass=_shared_doc_kwargs["klass"],
         examples=dedent(
-            """
-            Examples
+            """Examples
             --------
             >>> s = pd.Series(["elk", "pig", "dog", "quetzal"], name="animal")
             >>> print(s.to_markdown())
@@ -1419,6 +1418,21 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             |  1 | pig      |
             |  2 | dog      |
             |  3 | quetzal  |
+    
+            Output markdown with a tabulate option.
+    
+            >>> print(s.to_markdown(tablefmt="grid"))
+            +----+----------+
+            |    | animal   |
+            +====+==========+
+            |  0 | elk      |
+            +----+----------+
+            |  1 | pig      |
+            +----+----------+
+            |  2 | dog      |
+            +----+----------+
+            |  3 | quetzal  |
+            +----+----------+
             """
         ),
     )
@@ -1445,31 +1459,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         str
             {klass} in Markdown-friendly format.
 
-        Examples
-        --------
-        >>> s = pd.Series(["elk", "pig", "dog", "quetzal"], name="animal")
-        >>> print(s.to_markdown())
-        |    | animal   |
-        |---:|:---------|
-        |  0 | elk      |
-        |  1 | pig      |
-        |  2 | dog      |
-        |  3 | quetzal  |
-
-        Output markdown with a tabulate option.
-
-        >>> print(s.to_markdown(tablefmt="grid"))
-        +----+----------+
-        |    | animal   |
-        +====+==========+
-        |  0 | elk      |
-        +----+----------+
-        |  1 | pig      |
-        +----+----------+
-        |  2 | dog      |
-        +----+----------+
-        |  3 | quetzal  |
-        +----+----------+
+        {examples}
         """
         return self.to_frame().to_markdown(buf, mode, **kwargs)
 
