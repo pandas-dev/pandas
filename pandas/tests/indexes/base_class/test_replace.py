@@ -1,4 +1,3 @@
-import numpy as np
 import pytest
 
 import pandas as pd
@@ -52,15 +51,9 @@ def test_index_replace_regex(index, to_replace, value, regex, expected):
 def test_index_replace_dict_and_value():
     index = pd.Index([1, 2, 3])
 
-    msg = "If 'to_replace' is a dict, 'value' should be None."
-    with pytest.raises(TypeError, match=msg):
+    msg = "Series.replace cannot use dict-like to_replace and non-None value"
+    with pytest.raises(ValueError, match=msg):
         index.replace({1: "a", 3: "c"}, "x")
-
-
-def test_index_replace_scalar_only():
-    index = pd.Index([1, None, 2])
-    with pytest.raises(NotImplementedError):
-        index.replace(np.nan)
 
 
 def test_index_replace_bfill():
@@ -71,9 +64,9 @@ def test_index_replace_bfill():
     tm.assert_equal(expected, result)
 
 
-# def test_multi_index_replace():
-#     levels = [[1, 2], ["one", "two"]]
-#     codes = [[0, 0, 1, 1], [0, 1, 0, 1]]
-#     names = ["foo", "bar"]
+def test_index_name_preserved():
+    index = pd.Index(range(2), name="foo")
+    expected = pd.Index([0, 0], name="foo")
 
-#     # multi_index = MultiIndex(levels=levels, codes=codes, names=names)
+    result = index.replace(1, 0)
+    tm.assert_equal(expected, result)

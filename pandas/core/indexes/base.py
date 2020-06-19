@@ -1,14 +1,13 @@
 from copy import copy as copy_func
 from datetime import datetime
 import operator
-import re
 from textwrap import dedent
 from typing import TYPE_CHECKING, Any, Callable, FrozenSet, Hashable, Optional, Union
 import warnings
 
 import numpy as np
 
-from pandas._libs import Timedelta, algos as libalgos, index as libindex, lib
+from pandas._libs import algos as libalgos, index as libindex, lib
 import pandas._libs.join as libjoin
 from pandas._libs.lib import is_datetime_array, no_default
 from pandas._libs.tslibs import OutOfBoundsDatetime, Timestamp
@@ -33,7 +32,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
     is_datetime64_any_dtype,
-    is_dict_like,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float,
@@ -64,7 +62,6 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCTimedeltaIndex,
 )
-from pandas.core.dtypes.inference import is_re, is_re_compilable
 from pandas.core.dtypes.missing import array_equivalent, isna
 
 from pandas.core import ops
@@ -874,7 +871,7 @@ class Index(IndexOpsMixin, PandasObject):
         if self.inferred_type == "string":
             is_justify = False
         elif self.inferred_type == "categorical":
-            if is_object_dtype(self.categories):  # type: ignore
+            if is_object_dtype(self.categories):
                 is_justify = False
 
         return format_object_summary(
@@ -1355,238 +1352,14 @@ class Index(IndexOpsMixin, PandasObject):
         return self.set_names([name], inplace=inplace)
 
     def replace(
-        self,
-        to_replace=None,
-        value=None,
-        inplace=False,
-        limit=None,
-        regex=False,
-        method="pad",
+        self, to_replace=None, value=None, limit=None, regex=False, method="pad",
     ):
-        if inplace:
-            raise TypeError("Index can't be updated inplace.")
-
-        if not is_bool(regex) and to_replace is not None:
-            raise AssertionError("'to_replace' must be 'None' if 'regex' is not a bool")
-
-        if value is None:
-            if isinstance(to_replace, (tuple, list)):
-                fill_f = missing.get_fill_func(method)
-                mask = missing.mask_missing(self.values, to_replace)
-                new_index = fill_f(self.values, limit=limit, mask=mask)
-                new_index = new_index.astype(self.dtype)
-
-                return self._constructor(new_index)
-
-            if not is_dict_like(to_replace) and not is_dict_like(regex):
-                raise NotImplementedError(
-                    "This is implemented in NDFrame.replace(). However,"
-                    "not clear if we should include this in the API."
-                    "See issue 5319 and PR 5600. But also note that this"
-                    "use is not mentioned in the docs."
-                )
-
-            if not is_dict_like(to_replace):
-                if not is_dict_like(regex):
-                    raise TypeError(
-                        "If 'to_replace' and 'value' are both None "
-                        "and 'to_replace' is not a list, then "
-                        "regex must be a mapping"
-                    )
-                to_replace = regex
-                regex = True
-
-            items = list(to_replace.items())
-            keys, values = zip(*items) if items else ([], [])
-
-            to_replace, value = keys, values
-
-            return self.replace(
-                to_replace=to_replace,
-                value=value,
-                inplace=inplace,
-                limit=limit,
-                regex=regex,
-            )
-
-        else:
-            if is_dict_like(to_replace):
-                raise TypeError("If 'to_replace' is a dict, 'value' should be None.")
-            if is_list_like(to_replace):
-                if is_list_like(value):
-                    if len(to_replace) != len(value):
-                        # NOTE: Corresponding error message in core.generic.replace
-                        #       is not clear. Let's decide on one.
-                        raise ValueError(
-                            f"Length of 'to_replace=' ({len(to_replace)}) should "
-                            f"match length of 'value=' ({len(value)})."
-                        )
-
-                    new_index = self.replace_list(
-                        src_list=to_replace, dest_list=value, regex=regex,
-                    )
-
-                else:
-                    mask = missing.mask_missing(self.values, to_replace)
-                    new_index = self.putmask(mask, value)
-            elif to_replace is None:
-                if is_re_compilable(regex):
-                    to_replace = regex
-                    regex = True
-                    new_index = self.replace(
-                        to_replace=to_replace,
-                        value=value,
-                        inplace=inplace,
-                        limit=limit,
-                        regex=regex,
-                        method=method,
-                    )
-            else:
-                new_index = self._replace_single(
-                    to_replace=to_replace, value=value, regex=regex,
-                )
+        new_index = self.to_series().replace(
+            to_replace=to_replace, value=value, limit=limit, regex=regex, method=method
+        )
+        new_index = Index(new_index)
 
         return new_index
-
-    def replace_list(self, src_list, dest_list, regex=False):
-        """
-        Replace elements of the index that are found in the `src_list` with the
-        elements in `dest_list`.
-
-        Parameters
-        ----------
-        src_list : list
-            List of elements to be replaced.
-        dest_list : list
-            List of elements to be replaced.
-        regex : bool, default False
-            If true, perform regular expression substitution.
-
-        Returns
-        -------
-        Index
-            The same type as the caller.
-        """
-
-        def comp(s, regex=False):
-            """
-            Generate a bool array by perform an equality check,
-            or perform an element-wise regular expression
-            matching.
-            """
-
-            from pandas.core.internals.managers import (
-                _compare_or_regex_search,
-                maybe_convert_objects,
-            )
-
-            if isna(s):
-                return isna(self.values)
-            if isinstance(s, (Timedelta, Timestamp)) and getattr(s, "tz", None) is None:
-
-                return _compare_or_regex_search(
-                    maybe_convert_objects(self.values), s.asm8, regex
-                )
-            return _compare_or_regex_search(self.values, s, regex)
-
-        masks = [comp(s, regex) for s in src_list]
-
-        new_index = self.copy()
-        zipped = zip(src_list, dest_list)
-        for i, (_, dest) in enumerate(zipped):
-            m = masks[i]
-            if m.any():
-                new_index = new_index.putmask(mask=m, value=dest)
-
-        return new_index
-
-    def _replace_single(
-        self, to_replace, value, regex=False, convert=True, mask=None,
-    ):
-        """
-        Replace elements by the given value.
-
-        Parameters
-        ----------
-        to_replace : object or pattern
-            Scalar to replace or regular expression to match.
-        value : object
-            Replacement object.
-        regex : bool, default False
-            If true, perform regular expression substitution.
-        convert : bool, default True
-            If true, try to coerce any object types to better types.
-        mask : array-like of bool, optional
-            True indicate corresponding element is ignored.
-
-        Returns
-        -------
-        a new block, the result after replacing
-        """
-
-        # to_replace is regex compilable
-        to_rep_re = regex and is_re_compilable(to_replace)
-
-        # regex is regex compilable
-        regex_re = is_re_compilable(regex)
-
-        # only one will survive
-        if to_rep_re and regex_re:
-            raise AssertionError(
-                "only one of to_replace and regex can be regex compilable"
-            )
-
-        # if regex was passed as something that can be a regex (rather than a
-        # boolean)
-        if regex_re:
-            to_replace = regex
-
-        regex = regex_re or to_rep_re
-
-        # try to get the pattern attribute (compiled re) or it's a string
-        if is_re(to_replace):
-            pattern = to_replace.pattern
-        else:
-            pattern = to_replace
-
-        # if the pattern is not empty and to_replace is either a string or a
-        # regex
-        if regex and pattern:
-            rx = re.compile(to_replace)
-        else:
-            # if the thing to replace is not a string or compiled regex call
-            # the superclass method -> to_replace is some kind of object
-            return self.replace(to_replace=[to_replace], value=[value], regex=regex,)
-
-        new_values = self.values.copy()
-
-        # deal with replacing values with objects (strings) that match but
-        # whose replacement is not a string (numeric, nan, object)
-        if isna(value) or not isinstance(value, str):
-
-            def re_replacer(s):
-                if is_re(rx) and isinstance(s, str):
-                    return value if rx.search(s) is not None else s
-                else:
-                    return s
-
-        else:
-            # value is guaranteed to be a string here, s can be either a string
-            # or null if it's null it gets returned
-            def re_replacer(s):
-                if is_re(rx) and isinstance(s, str):
-                    return rx.sub(value, s)
-                else:
-                    return s
-
-        f = np.vectorize(re_replacer, otypes=[self.dtype])
-
-        if mask is None:
-            new_values = f(new_values)
-        else:
-            new_values[mask] = f(new_values[mask])
-
-        return self._constructor(new_values)
 
     # --------------------------------------------------------------------
     # Level-Centric Methods
