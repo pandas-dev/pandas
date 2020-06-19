@@ -93,10 +93,14 @@ class _IntegerDtype(BaseMaskedDtype):
 
     def _get_common_dtype(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
         # for now only handle other integer types
-        if not all(isinstance(t, _IntegerDtype) for t in dtypes):
+        if not all(
+            isinstance(t, _IntegerDtype)
+            or (isinstance(t, np.dtype) and np.issubdtype(t, np.integer))
+            for t in dtypes
+        ):
             return None
         np_dtype = np.find_common_type(
-            [t.numpy_dtype for t in dtypes], []  # type: ignore
+            [t.numpy_dtype if isinstance(t, BaseMaskedDtype) else t for t in dtypes], []
         )
         if np.issubdtype(np_dtype, np.integer):
             return _dtypes[str(np_dtype)]

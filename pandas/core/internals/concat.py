@@ -319,6 +319,15 @@ def _concatenate_join_units(join_units, concat_axis, copy):
                     concat_values = concat_values.copy()
             else:
                 concat_values = concat_values.copy()
+    elif any(isinstance(t, ExtensionArray) for t in to_concat):
+        # concatting with at least one EA means we are concatting a single column
+        # the non-EA values are 2D arrays with shape (1, n)
+        to_concat = [t if isinstance(t, ExtensionArray) else t[0, :] for t in to_concat]
+        concat_values = concat_compat(to_concat, axis=concat_axis)
+        if not isinstance(concat_values, ExtensionArray):
+            # if the result of concat is not an EA but an ndarray, reshape to
+            # 2D to put it a non-EA Block
+            concat_values = np.atleast_2d(concat_values)
     else:
         concat_values = concat_compat(to_concat, axis=concat_axis)
 
@@ -443,7 +452,7 @@ def _is_uniform_join_units(join_units: List[JoinUnit]) -> bool:
     #  cannot necessarily join
     return (
         # all blocks need to have the same type
-        all(isinstance(ju.block, type(join_units[0].block)) for ju in join_units)
+        all(type(ju.block) is type(join_units[0].block) for ju in join_units)
         and  # noqa
         # no blocks that would get missing values (can lead to type upcasts)
         # unless we're an extension dtype.
