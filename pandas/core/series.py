@@ -34,6 +34,7 @@ from pandas._typing import (
     ValueKeyFunc,
 )
 from pandas.compat.numpy import function as nv
+from pandas.errors import InvalidIndexError
 from pandas.util._decorators import Appender, Substitution, doc
 from pandas.util._validators import validate_bool_kwarg, validate_percentile
 
@@ -79,13 +80,7 @@ from pandas.core.construction import (
 from pandas.core.generic import NDFrame
 from pandas.core.indexers import unpack_1tuple
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
-from pandas.core.indexes.api import (
-    Float64Index,
-    Index,
-    InvalidIndexError,
-    MultiIndex,
-    ensure_index,
-)
+from pandas.core.indexes.api import Float64Index, Index, MultiIndex, ensure_index
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex
@@ -1422,6 +1417,21 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         |  1 | pig      |
         |  2 | dog      |
         |  3 | quetzal  |
+
+        Output markdown with a tabulate option.
+
+        >>> print(s.to_markdown(tablefmt="grid"))
+        +----+----------+
+        |    | animal   |
+        +====+==========+
+        |  0 | elk      |
+        +----+----------+
+        |  1 | pig      |
+        +----+----------+
+        |  2 | dog      |
+        +----+----------+
+        |  3 | quetzal  |
+        +----+----------+
         """
     )
     @Substitution(klass="Series")
@@ -2920,8 +2930,10 @@ Keep all original rows and also all original values
 
     def update(self, other) -> None:
         """
-        Modify Series in place using non-NA values from passed
-        Series. Aligns on index.
+        Modify Series in place using values from passed Series.
+
+        Uses non-NA values from passed Series to make updates. Aligns
+        on index.
 
         Parameters
         ----------
@@ -3436,6 +3448,8 @@ Keep all original rows and also all original values
 
     def argsort(self, axis=0, kind="quicksort", order=None) -> "Series":
         """
+        Return the integer indices that would sort the Series values.
+
         Override ndarray.argsort. Argsorts the value, omitting NA/null values,
         and places the result in the same locations as the non-NA values.
 
@@ -3718,8 +3732,7 @@ Keep all original rows and also all original values
 
     def explode(self) -> "Series":
         """
-        Transform each element of a list-like to a row, replicating the
-        index values.
+        Transform each element of a list-like to a row.
 
         .. versionadded:: 0.25.0
 
@@ -3777,6 +3790,7 @@ Keep all original rows and also all original values
     def unstack(self, level=-1, fill_value=None):
         """
         Unstack, also known as pivot, Series with MultiIndex to produce DataFrame.
+
         The level involved will automatically get sorted.
 
         Parameters
@@ -4513,7 +4527,7 @@ Keep all original rows and also all original values
 
     def isin(self, values) -> "Series":
         """
-        Check whether `values` are contained in Series.
+        Whether elements in Series are contained in `values`.
 
         Return a boolean Series showing whether each element in the Series
         matches an element in the passed sequence of `values` exactly.
@@ -4810,8 +4824,7 @@ Keep all original rows and also all original values
 
     def to_period(self, freq=None, copy=True) -> "Series":
         """
-        Convert Series from DatetimeIndex to PeriodIndex with desired
-        frequency (inferred from index if not passed).
+        Convert Series from DatetimeIndex to PeriodIndex.
 
         Parameters
         ----------
@@ -4831,7 +4844,7 @@ Keep all original rows and also all original values
 
         if not isinstance(self.index, DatetimeIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
-        new_index = self.index.to_period(freq=freq)  # type: ignore
+        new_index = self.index.to_period(freq=freq)
         return self._constructor(new_values, index=new_index).__finalize__(
             self, method="to_period"
         )

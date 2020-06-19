@@ -463,12 +463,6 @@ class TestPeriodIndex:
         assert (i1 == i2).all()
         assert i1.freq == i2.freq
 
-        end_intv = Period("2006-12-31", ("w", 1))
-        i2 = period_range(end=end_intv, periods=10)
-        assert len(i1) == len(i2)
-        assert (i1 == i2).all()
-        assert i1.freq == i2.freq
-
         end_intv = Period("2005-05-01", "B")
         i1 = period_range(start=start, end=end_intv)
 
@@ -489,6 +483,10 @@ class TestPeriodIndex:
         vals = np.array(vals)
         with pytest.raises(IncompatibleFrequency, match=msg):
             PeriodIndex(vals)
+
+        # tuple freq disallowed GH#34703
+        with pytest.raises(TypeError, match="pass as a string instead"):
+            Period("2006-12-31", ("w", 1))
 
     @pytest.mark.parametrize(
         "freq", ["M", "Q", "A", "D", "B", "T", "S", "L", "U", "N", "H"]

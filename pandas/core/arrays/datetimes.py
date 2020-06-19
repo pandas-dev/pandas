@@ -11,7 +11,6 @@ from pandas._libs.tslibs import (
     Timestamp,
     conversion,
     fields,
-    frequencies as libfrequencies,
     iNaT,
     resolution as libresolution,
     timezones,
@@ -1106,8 +1105,7 @@ default 'raise'
 
             #  https://github.com/pandas-dev/pandas/issues/33358
             if res is None:
-                base, stride = libfrequencies.base_and_stride(freq)
-                res = f"{stride}{base}"
+                res = freq
 
             freq = res
 
@@ -1127,7 +1125,14 @@ default 'raise'
         -------
         TimedeltaArray/Index
         """
-        # TODO: consider privatizing (discussion in GH#23113)
+        # Deprecaation GH#34853
+        warnings.warn(
+            "to_perioddelta is deprecated and will be removed in a "
+            "future version.  "
+            "Use `dtindex - dtindex.to_period(freq).to_timestamp()` instead",
+            FutureWarning,
+            stacklevel=3,
+        )
         from pandas.core.arrays.timedeltas import TimedeltaArray
 
         i8delta = self.asi8 - self.to_period(freq).to_timestamp().asi8

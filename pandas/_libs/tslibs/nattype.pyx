@@ -221,9 +221,6 @@ cdef class _NaT(datetime):
     def __neg__(self):
         return NaT
 
-    def __div__(self, other):
-        return _nat_divide_op(self, other)
-
     def __truediv__(self, other):
         return _nat_divide_op(self, other)
 
