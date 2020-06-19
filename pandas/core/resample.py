@@ -274,14 +274,14 @@ class Resampler(_GroupBy, ShallowMixin):
     """
     )
 
-    @Substitution(
+    @doc(
+        _shared_docs["aggregate"],
         see_also=_agg_see_also_doc,
         examples=_agg_examples_doc,
         versionadded="",
         klass="DataFrame",
         axis="",
     )
-    @Appender(_shared_docs["aggregate"])
     def aggregate(self, func, *args, **kwargs):
 
         self._set_binner()

@@ -2,7 +2,7 @@ from textwrap import dedent
 from typing import Dict, Optional
 
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, Substitution
+from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.window.common import WindowGroupByMixin, _doc_template, _shared_docs
 from pandas.core.window.rolling import _Rolling_and_Expanding
@@ -113,14 +113,14 @@ class Expanding(_Rolling_and_Expanding):
     """
     )
 
-    @Substitution(
+    @doc(
+        _shared_docs["aggregate"],
         see_also=_agg_see_also_doc,
         examples=_agg_examples_doc,
         versionadded="",
         klass="Series/Dataframe",
         axis="",
     )
-    @Appender(_shared_docs["aggregate"])
     def aggregate(self, func, *args, **kwargs):
         return super().aggregate(func, *args, **kwargs)
 
