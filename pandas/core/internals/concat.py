@@ -376,7 +376,6 @@ def _get_empty_dtype_and_na(join_units):
 
     upcast_classes = defaultdict(list)
     null_upcast_classes = defaultdict(list)
-
     for dtype, unit in zip(dtypes, join_units):
         if dtype is None:
             continue
@@ -386,7 +385,6 @@ def _get_empty_dtype_and_na(join_units):
         elif is_datetime64tz_dtype(dtype):
             upcast_cls = "datetimetz"
 
-        # may need to move sparse back up
         elif is_extension_array_dtype(dtype):
             upcast_cls = "extension"
 
