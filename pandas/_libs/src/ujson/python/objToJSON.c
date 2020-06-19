@@ -1644,7 +1644,6 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
             goto INVALID;
         }
         
-
         return;
     } else if (PyFloat_Check(obj)) {
         PRINTMARK();
