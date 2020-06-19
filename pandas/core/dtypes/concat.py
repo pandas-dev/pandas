@@ -107,7 +107,7 @@ def _cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
     return arr.astype(dtype, copy=False)
 
 
-def concat_compat(to_concat, axis: int = 0, ignore_2d_ea: bool = True):
+def concat_compat(to_concat, axis: int = 0):
     """
     provide concatenation of an array of arrays each of which is a single
     'normalized' dtypes (in that for example, if it's object, then it is a
@@ -147,7 +147,7 @@ def concat_compat(to_concat, axis: int = 0, ignore_2d_ea: bool = True):
     single_dtype = len({x.dtype for x in to_concat}) == 1
     any_ea = any(is_extension_array_dtype(x.dtype) for x in to_concat)
 
-    if any_ea and axis == 0:
+    if any_ea:
         if not single_dtype:
             target_dtype = find_common_type([x.dtype for x in to_concat])
             to_concat = [_cast_to_common_type(arr, target_dtype) for arr in to_concat]
@@ -160,15 +160,6 @@ def concat_compat(to_concat, axis: int = 0, ignore_2d_ea: bool = True):
 
     elif _contains_datetime or "timedelta" in typs:
         return concat_datetime(to_concat, axis=axis, typs=typs)
-
-    elif any_ea and axis == 1:
-        if single_dtype and ignore_2d_ea:
-            # TODO(EA2D): special-casing not needed with 2D EAs
-            cls = type(to_concat[0])
-            return cls._concat_same_type(to_concat)
-        else:
-            to_concat = [np.atleast_2d(x.astype("object")) for x in to_concat]
-            return np.concatenate(to_concat, axis=axis)
 
     elif all_empty:
         # we have all empties, but may need to coerce the result dtype to

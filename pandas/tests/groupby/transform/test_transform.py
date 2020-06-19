@@ -323,15 +323,22 @@ def test_transform_transformation_func(transformation_func):
         {
             "A": ["foo", "foo", "foo", "foo", "bar", "bar", "baz"],
             "B": [1, 2, np.nan, 3, 3, np.nan, 4],
-        }
+        },
+        index=pd.date_range("2020-01-01", "2020-01-07"),
     )
 
-    if transformation_func in ["pad", "backfill", "tshift", "cumcount"]:
-        # These transformation functions are not yet covered in this test
-        pytest.xfail("See GH 31269")
+    if transformation_func == "cumcount":
+        test_op = lambda x: x.transform("cumcount")
+        mock_op = lambda x: Series(range(len(x)), x.index)
     elif transformation_func == "fillna":
         test_op = lambda x: x.transform("fillna", value=0)
         mock_op = lambda x: x.fillna(value=0)
+    elif transformation_func == "tshift":
+        msg = (
+            "Current behavior of groupby.tshift is inconsistent with other "
+            "transformations. See GH34452 for more details"
+        )
+        pytest.xfail(msg)
     else:
         test_op = lambda x: x.transform(transformation_func)
         mock_op = lambda x: getattr(x, transformation_func)()
@@ -340,7 +347,10 @@ def test_transform_transformation_func(transformation_func):
     groups = [df[["B"]].iloc[:4], df[["B"]].iloc[4:6], df[["B"]].iloc[6:]]
     expected = concat([mock_op(g) for g in groups])
 
-    tm.assert_frame_equal(result, expected)
+    if transformation_func == "cumcount":
+        tm.assert_series_equal(result, expected)
+    else:
+        tm.assert_frame_equal(result, expected)
 
 
 def test_transform_select_columns(df):
@@ -1195,3 +1205,36 @@ def test_transform_lambda_indexing():
         ),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_categorical_and_not_categorical_key(observed):
+    # Checks that groupby-transform, when grouping by both a categorical
+    # and a non-categorical key, doesn't try to expand the output to include
+    # non-observed categories but instead matches the input shape.
+    # GH 32494
+    df_with_categorical = pd.DataFrame(
+        {
+            "A": pd.Categorical(["a", "b", "a"], categories=["a", "b", "c"]),
+            "B": [1, 2, 3],
+            "C": ["a", "b", "a"],
+        }
+    )
+    df_without_categorical = pd.DataFrame(
+        {"A": ["a", "b", "a"], "B": [1, 2, 3], "C": ["a", "b", "a"]}
+    )
+
+    # DataFrame case
+    result = df_with_categorical.groupby(["A", "C"], observed=observed).transform("sum")
+    expected = df_without_categorical.groupby(["A", "C"]).transform("sum")
+    tm.assert_frame_equal(result, expected)
+    expected_explicit = pd.DataFrame({"B": [4, 2, 4]})
+    tm.assert_frame_equal(result, expected_explicit)
+
+    # Series case
+    result = df_with_categorical.groupby(["A", "C"], observed=observed)["B"].transform(
+        "sum"
+    )
+    expected = df_without_categorical.groupby(["A", "C"])["B"].transform("sum")
+    tm.assert_series_equal(result, expected)
+    expected_explicit = pd.Series([4, 2, 4], name="B")
+    tm.assert_series_equal(result, expected_explicit)
