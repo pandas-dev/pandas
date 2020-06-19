@@ -275,7 +275,6 @@ def init_dict(
         keys = list(data.keys())
         columns = data_names = Index(keys)
         arrays = [com.maybe_iterable_to_list(data[k]) for k in keys]
-        # breakpoint()
         # GH#24096 need copy to be deep for datetime64tz case
         # TODO: See if we can avoid these copies
         arrays = [

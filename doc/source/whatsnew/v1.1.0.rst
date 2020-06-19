@@ -261,6 +261,7 @@ Other enhancements
 - :meth:`DataFrame.sample` will now also allow array-like and BitGenerator objects to be passed to ``random_state`` as seeds (:issue:`32503`)
 - :meth:`MultiIndex.union` will now raise `RuntimeWarning` if the object inside are unsortable, pass `sort=False` to suppress this warning (:issue:`33015`)
 - :class:`Series.dt` and :class:`DatatimeIndex` now have an `isocalendar` method that returns a :class:`DataFrame` with year, week, and day calculated according to the ISO 8601 calendar (:issue:`33206`, :issue:`34392`).
+- The :meth:`DataFrame` constructor now uses ``copy`` for dict-inputs to control whether copies of the arrays are made (:issue:`32960`)
 - The :meth:`DataFrame.to_feather` method now supports additional keyword
   arguments (e.g. to set the compression) that are added in pyarrow 0.17
   (:issue:`33422`).
