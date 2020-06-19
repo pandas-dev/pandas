@@ -292,6 +292,9 @@ Other enhancements
 - :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` now accept an ``errors`` argument (:issue:`22610`)
 - :meth:`groupby.transform` now allows ``func`` to be ``pad``, ``backfill`` and ``cumcount`` (:issue:`31269`).
 - :meth:`~pandas.io.json.read_json` now accepts `nrows` parameter. (:issue:`33916`).
+- :func:`concat` and :meth:`~DataFrame.append` now preserve extension dtypes, for example
+  combining a nullable integer column with a numpy integer column will no longer
+  result in object dtype but preserve the integer dtype (:issue:`33607`, :issue:`34339`).
 - :meth:`~pandas.io.gbq.read_gbq` now allows to disable progress bar (:issue:`33360`).
 - :meth:`~pandas.io.gbq.read_gbq` now supports the ``max_results`` kwarg from ``pandas-gbq`` (:issue:`34639`).
 - :meth:`DataFrame.to_html` and :meth:`DataFrame.to_string`'s ``col_space`` parameter now accepts a list of dict to change only some specific columns' width (:issue:`28917`).

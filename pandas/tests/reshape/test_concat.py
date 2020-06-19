@@ -2843,3 +2843,17 @@ def test_concat_preserves_subclass(obj):
 
     result = concat([obj, obj])
     assert isinstance(result, type(obj))
+
+
+def test_concat_frame_axis0_extension_dtypes():
+    # preserve extension dtype (through common_dtype mechanism)
+    df1 = pd.DataFrame({"a": pd.array([1, 2, 3], dtype="Int64")})
+    df2 = pd.DataFrame({"a": np.array([4, 5, 6])})
+
+    result = pd.concat([df1, df2], ignore_index=True)
+    expected = pd.DataFrame({"a": [1, 2, 3, 4, 5, 6]}, dtype="Int64")
+    tm.assert_frame_equal(result, expected)
+
+    result = pd.concat([df2, df1], ignore_index=True)
+    expected = pd.DataFrame({"a": [4, 5, 6, 1, 2, 3]}, dtype="Int64")
+    tm.assert_frame_equal(result, expected)
