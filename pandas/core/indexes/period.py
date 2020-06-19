@@ -5,7 +5,7 @@ import numpy as np
 
 from pandas._libs import index as libindex
 from pandas._libs.lib import no_default
-from pandas._libs.tslibs import Period, Resolution
+from pandas._libs.tslibs import BaseOffset, Period, Resolution, Tick
 from pandas._libs.tslibs.parsing import DateParseError, parse_time_string
 from pandas._typing import DtypeObj, Label
 from pandas.errors import InvalidIndexError
@@ -42,8 +42,6 @@ from pandas.core.indexes.datetimes import DatetimeIndex, Index
 from pandas.core.indexes.extension import inherit_names
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
-
-from pandas.tseries.offsets import DateOffset, Tick
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(dict(target_klass="PeriodIndex or list of Periods"))
@@ -145,7 +143,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     _is_numeric_dtype = False
 
     _data: PeriodArray
-    freq: DateOffset
+    freq: BaseOffset
 
     _engine_type = libindex.PeriodEngine
     _supports_partial_string_indexing = True
@@ -287,7 +285,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
                 # _check_timedeltalike_freq_compat will raise if incompatible
                 delta = self._data._check_timedeltalike_freq_compat(other)
                 return delta
-        elif isinstance(other, DateOffset):
+        elif isinstance(other, BaseOffset):
             if other.base == self.freq.base:
                 return other.n
 
