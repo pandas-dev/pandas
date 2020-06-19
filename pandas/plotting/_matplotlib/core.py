@@ -293,7 +293,7 @@ class MPLPlot:
             iter_data = data
         else:
             # Select sub-columns based on the value of first level of MI
-            assert isinstance(data, MultiIndex)
+            assert isinstance(data.columns, MultiIndex)
             cols = data.columns.levels[0]
             iter_data = {
                 col: data.loc[:, data.columns.get_level_values(0) == col]
@@ -457,7 +457,7 @@ class MPLPlot:
         --------
         >>> d = {'h': ['h1', 'h1', 'h2'], 'a': [1, 3, 5], 'b': [3, 4, 6]}
         >>> df = DataFrame(d)
-        >>> _reconstruct_data_with_by(df) # doctest: +SKIP
+        >>> _reconstruct_data_with_by(df)
            h1      h2
            a   b   a   b
         0  1   3   NaN NaN
