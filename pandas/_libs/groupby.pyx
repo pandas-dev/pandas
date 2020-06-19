@@ -378,8 +378,8 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_any_all(uint8_t[:] out,
-                  const int64_t[:] labels,
                   const uint8_t[:] values,
+                  const int64_t[:] labels,
                   const uint8_t[:] mask,
                   object val_test,
                   bint skipna):
@@ -560,7 +560,8 @@ def _group_var(floating[:, :] out,
                int64_t[:] counts,
                floating[:, :] values,
                const int64_t[:] labels,
-               Py_ssize_t min_count=-1):
+               Py_ssize_t min_count=-1,
+               int64_t ddof=1):
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         floating val, ct, oldmean
@@ -600,10 +601,10 @@ def _group_var(floating[:, :] out,
         for i in range(ncounts):
             for j in range(K):
                 ct = nobs[i, j]
-                if ct < 2:
+                if ct <= ddof:
                     out[i, j] = NAN
                 else:
-                    out[i, j] /= (ct - 1)
+                    out[i, j] /= (ct - ddof)
 
 
 group_var_float32 = _group_var['float']
@@ -715,8 +716,8 @@ group_ohlc_float64 = _group_ohlc['double']
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_quantile(ndarray[float64_t] out,
-                   ndarray[int64_t] labels,
                    numeric[:] values,
+                   ndarray[int64_t] labels,
                    ndarray[uint8_t] mask,
                    float64_t q,
                    object interpolation):
