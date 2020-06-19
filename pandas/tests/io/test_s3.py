@@ -31,5 +31,7 @@ def test_streaming_s3_objects():
 @tm.network
 @td.skip_if_no("s3fs")
 def test_read_without_creds_from_pub_bucket():
+    # GH 34626
+    # Use Amazon Open Data Registry - https://registry.opendata.aws/gdelt
     result = read_csv("s3://gdelt-open-data/events/1981.csv", nrows=3)
     assert len(result) == 3
