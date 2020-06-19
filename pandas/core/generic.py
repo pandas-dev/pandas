@@ -38,6 +38,7 @@ from pandas._typing import (
     FrameOrSeries,
     JSONSerializable,
     Label,
+    FrameOrSeriesUnion,
     Level,
     Renamer,
     TimedeltaConvertibleTypes,
@@ -657,55 +658,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         result = self.set_axis(new_labels, axis=axis, inplace=False)
         return result
 
-    _shared_docs[
-        "pop"
-    ] = """
-        Return item and drops from %(klass)s. Raise KeyError if not found.
-        """
-
-    @Appender(
-        """
-        Parameters
-        ----------
-        item : str
-            Label of column to be popped.
-
-        Returns
-        -------
-        Series
-
-        Examples
-        --------
-        >>> df = pd.DataFrame([('falcon', 'bird', 389.0),
-        ...                    ('parrot', 'bird', 24.0),
-        ...                    ('lion', 'mammal', 80.5),
-        ...                    ('monkey', 'mammal', np.nan)],
-        ...                   columns=('name', 'class', 'max_speed'))
-        >>> df
-             name   class  max_speed
-        0  falcon    bird      389.0
-        1  parrot    bird       24.0
-        2    lion  mammal       80.5
-        3  monkey  mammal        NaN
-
-        >>> df.pop('class')
-        0      bird
-        1      bird
-        2    mammal
-        3    mammal
-        Name: class, dtype: object
-
-        >>> df
-             name  max_speed
-        0  falcon      389.0
-        1  parrot       24.0
-        2    lion       80.5
-        3  monkey        NaN
-        """
-    )
-    @Substitution(klass="DataFrame")
-    @Appender(_shared_docs["pop"])
-    def pop(self: FrameOrSeries, item) -> FrameOrSeries:
+    def pop(self: FrameOrSeriesUnion, item: Label):
         result = self[item]
         del self[item]
         if self.ndim == 2:

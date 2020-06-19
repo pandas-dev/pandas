@@ -4448,9 +4448,11 @@ Keep all original rows and also all original values
 
     @Appender(
         """
+        Return item and drops from series. Raise KeyError if not found.
+
         Parameters
         ----------
-        item : int
+        item : label
             Index of the element that needs to be removed.
 
         Returns
@@ -4471,8 +4473,8 @@ Keep all original rows and also all original values
         """
     )
     @Substitution(klass="Series")
-    @Appender(generic._shared_docs["pop"])
-    def pop(self, item):
+    def pop(self, item: Label) -> Any:
+        
         return super().pop(item=item)
 
     @doc(NDFrame.replace, **_shared_doc_kwargs)
