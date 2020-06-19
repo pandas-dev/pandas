@@ -358,13 +358,19 @@ class DataFrame(NDFrame):
         RangeIndex (0, 1, 2, ..., n) if no column labels are provided.
     dtype : dtype, default None
         Data type to force. Only a single dtype is allowed. If None, infer.
-    copy : bool, default False
-        Copy data from inputs. This only applies for specific types of `data`.
+    copy : bool, optional
+        Copy data from inputs. This only applies for specific types of `data`
+        and the default behavior depends on `data`.
 
-        * `data` is a DataFrame or 2D NumPy array
+        * `data` is a DataFrame or 2D NumPy array: *no* copy by default.
            Specifying ``copy=True`` will copy the data.
-        * `data` is a dict with at most one column per NumPy dtype
-           Specifying ``copy=True`` will copy all of the values.
+        * `data` is a dict:
+           By default arrays in `data` with with NumPy dtypes in `data` are
+           copied, while extension types are not. Specifying ``copy=True``
+           will copy all of the values, and ``copy=False`` will attempt to
+           not copy the data. Note that if `data` has more than one value with
+           the same NumPy dtype then then data will be copied, regardless of
+           the value of `copy`.
 
         For all other cases, zero-copy construction cannot be ensured and `copy`
         has no effect.
@@ -443,7 +449,7 @@ class DataFrame(NDFrame):
         index: Optional[Axes] = None,
         columns: Optional[Axes] = None,
         dtype: Optional[Dtype] = None,
-        copy: bool = False,
+        copy: Optional[bool] = None,
     ):
         if data is None:
             data = {}
@@ -454,6 +460,7 @@ class DataFrame(NDFrame):
             data = data._mgr
 
         if isinstance(data, BlockManager):
+            copy = bool(copy)  # None -> False
             if index is None and columns is None and dtype is None and copy is False:
                 # GH#33357 fastpath
                 NDFrame.__init__(self, data)
@@ -467,6 +474,8 @@ class DataFrame(NDFrame):
             mgr = init_dict(data, index, columns, dtype=dtype, copy=copy)
         elif isinstance(data, ma.MaskedArray):
             import numpy.ma.mrecords as mrecords
+
+            copy = bool(copy)  # None -> False
 
             # masked recarray
             if isinstance(data, mrecords.MaskedRecords):
@@ -484,6 +493,7 @@ class DataFrame(NDFrame):
                 mgr = init_ndarray(data, index, columns, dtype=dtype, copy=copy)
 
         elif isinstance(data, (np.ndarray, Series, Index)):
+            copy = bool(copy)  # None -> False
             if data.dtype.names:
                 data_columns = list(data.dtype.names)
                 data = {k: data[k] for k in data_columns}
@@ -497,6 +507,7 @@ class DataFrame(NDFrame):
 
         # For data is list-like, or Iterable (will consume into list)
         elif isinstance(data, abc.Iterable) and not isinstance(data, (str, bytes)):
+            copy = bool(copy)  # None -> False
             if not isinstance(data, (abc.Sequence, ExtensionArray)):
                 data = list(data)
             if len(data) > 0:
@@ -523,6 +534,7 @@ class DataFrame(NDFrame):
             else:
                 mgr = init_dict({}, index, columns, dtype=dtype)
         else:
+            copy = bool(copy)  # None -> False
             try:
                 arr = np.array(data, dtype=dtype, copy=copy)
             except (ValueError, TypeError) as err:

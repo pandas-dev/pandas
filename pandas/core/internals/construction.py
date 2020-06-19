@@ -64,7 +64,7 @@ def arrays_to_mgr(
     columns,
     dtype: Optional[DtypeObj] = None,
     verify_integrity: bool = True,
-    copy: bool = False,
+    copy: Optional[bool] = False,
 ):
     """
     Segregate Series based on type and coerce into matrices.
@@ -236,7 +236,11 @@ def init_ndarray(values, index, columns, dtype: Optional[DtypeObj], copy: bool):
 
 
 def init_dict(
-    data: Dict, index, columns, dtype: Optional[DtypeObj] = None, copy: bool = False
+    data: Dict,
+    index,
+    columns,
+    dtype: Optional[DtypeObj] = None,
+    copy: Optional[bool] = False,
 ):
     """
     Segregate Series based on type and coerce into matrices.
@@ -329,7 +333,7 @@ def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
     return values
 
 
-def _homogenize(data, index, dtype: Optional[DtypeObj], copy: bool = False):
+def _homogenize(data, index, dtype: Optional[DtypeObj], copy: Optional[bool] = False):
     oindex = None
     homogenized = []
 

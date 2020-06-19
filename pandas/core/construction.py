@@ -390,7 +390,7 @@ def sanitize_array(
     data,
     index: Optional["Index"],
     dtype: Optional[DtypeObj] = None,
-    copy: bool = False,
+    copy: Optional[bool] = False,
     raise_cast_failure: bool = False,
 ) -> ArrayLike:
     """
@@ -412,6 +412,9 @@ def sanitize_array(
 
     # GH#846
     if isinstance(data, np.ndarray):
+        if copy is None:
+            # copy by default for DataFrame({"A": ndarray})
+            copy = True
 
         if dtype is not None and is_float_dtype(data.dtype) and is_integer_dtype(dtype):
             # possibility of nan -> garbage
@@ -428,15 +431,20 @@ def sanitize_array(
 
     elif isinstance(data, ABCExtensionArray):
         # it is already ensured above this is not a PandasArray
+        # no copy by default for DataFrame({"A": ndarray})
+        if copy is None:
+            copy = False
         subarr = data
 
         if dtype is not None:
             subarr = subarr.astype(dtype, copy=copy)
         elif copy:
+            # no copy by default from DataFrame.__init__
             subarr = subarr.copy()
         return subarr
 
     elif isinstance(data, (list, tuple)) and len(data) > 0:
+        copy = bool(copy)  # None -> False
         if dtype is not None:
             subarr = _try_cast(data, dtype, copy, raise_cast_failure)
         else:
@@ -446,16 +454,19 @@ def sanitize_array(
 
     elif isinstance(data, range):
         # GH#16804
+        copy = bool(copy)  # None -> False
         arr = np.arange(data.start, data.stop, data.step, dtype="int64")
         subarr = _try_cast(arr, dtype, copy, raise_cast_failure)
     elif isinstance(data, abc.Set):
         raise TypeError("Set type is unordered")
     elif lib.is_scalar(data) and index is not None and dtype is not None:
+        copy = bool(copy)  # None -> False
         data = maybe_cast_to_datetime(data, dtype)
         if not lib.is_scalar(data):
             data = data[0]
         subarr = construct_1d_arraylike_from_scalar(data, len(index), dtype)
     else:
+        copy = bool(copy)  # None -> False
         subarr = _try_cast(data, dtype, copy, raise_cast_failure)
 
     # scalar like, GH

@@ -1914,11 +1914,11 @@ class TestDataFrameConstructors:
         df = DataFrame({"A": series["A"]}, copy=True)
         df["A"][:] = 5
 
-        assert not all(series["A"] == 5).all()
+        assert not (series["A"] == 5).all()
 
         df = DataFrame({"A": series["A"]})  # no copy by default
         df["A"][:] = 5
-        assert all(series["A"] == 5).all()
+        assert (series["A"] == 5).all()
 
     def test_constructor_with_nas(self):
         # GH 5016
@@ -2692,7 +2692,12 @@ class TestDataFrameConstructorWithDatetimeTZ:
         df.iloc[0, 0] = 0
         df.iloc[0, 1] = 0
 
-        if copy:
+        if copy is None:
+            # copy for ndarray, no copy for EA
+            assert a[0] == 1
+            assert b[0] == 0
+
+        elif copy:
             assert a[0] == 1
             assert b[0] == 1
         else:
