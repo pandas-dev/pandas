@@ -106,6 +106,8 @@ typedef struct __TypeContext {
     double doubleValue;
     JSINT64 longValue;
 
+    char *bigNum_bytes; // JT_BIGNUM storage 
+
     char *cStr;
     NpyArrContext *npyarr;
     PdBlockContext *pdblock;
@@ -118,6 +120,7 @@ typedef struct __TypeContext {
 
 typedef struct __PyObjectEncoder {
     JSONObjectEncoder enc;
+
 
     // pass through the NpyArrContext when encoding multi-dimensional arrays
     NpyArrContext *npyCtxtPassthru;
@@ -2111,7 +2114,7 @@ void Object_endTypeContext(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
         NpyArr_freeLabels(GET_TC(tc)->columnLabels,
                           GET_TC(tc)->columnLabelsLen);
         GET_TC(tc)->columnLabels = NULL;
-
+        if (tc->type == JT_BIGNUM) free(GET_TC(tc)->bigNum_bytes);
         PyObject_Free(GET_TC(tc)->cStr);
         GET_TC(tc)->cStr = NULL;
         PyObject_Free(tc->prv);
@@ -2139,6 +2142,7 @@ const char *Object_getBigNumStringValue(JSOBJ obj, JSONTypeContext *tc,
     char* bytes = malloc(*_outLen + 1);
     memcpy(bytes, str, *_outLen + 1);
     GET_TC(tc)->cStr = bytes;
+    GET_TC(tc)->bigNum_bytes = bytes;
 
     Py_DECREF(repr);
     
