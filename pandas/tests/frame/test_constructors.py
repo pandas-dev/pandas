@@ -1909,12 +1909,16 @@ class TestDataFrameConstructors:
         assert not (df.values[6] == 6).all()
 
     def test_constructor_series_copy(self, float_frame):
-        series = float_frame._series
+        series = float_frame._series.copy()
+
+        df = DataFrame({"A": series["A"]}, copy=True)
+        df["A"][:] = 5
+        assert not (series["A"] == 5).all()
 
         df = DataFrame({"A": series["A"]})
         df["A"][:] = 5
 
-        assert not (series["A"] == 5).all()
+        assert (series["A"] == 5).all()
 
     def test_constructor_with_nas(self):
         # GH 5016
@@ -2679,3 +2683,19 @@ class TestDataFrameConstructorWithDatetimeTZ:
         msg = "Set type is unordered"
         with pytest.raises(TypeError, match=msg):
             pd.DataFrame({"a": {1, 2, 3}})
+
+
+@pytest.mark.parametrize("copy", [False, True])
+def test_dict_nocopy(copy):
+    a = np.array([1, 2])
+    b = pd.array([1, 2])
+    df = pd.DataFrame({"a": a, "b": b}, copy=copy)
+    df.iloc[0, 0] = 0
+    df.iloc[0, 1] = 0
+
+    if copy:
+        assert a[0] == 1
+        assert b[0] == 1
+    else:
+        assert a[0] == 0
+        assert b[0] == 0

@@ -64,6 +64,7 @@ def arrays_to_mgr(
     columns,
     dtype: Optional[DtypeObj] = None,
     verify_integrity: bool = True,
+    copy: bool = False,
 ):
     """
     Segregate Series based on type and coerce into matrices.
@@ -80,7 +81,7 @@ def arrays_to_mgr(
             index = ensure_index(index)
 
         # don't force copy because getting jammed in an ndarray anyway
-        arrays = _homogenize(arrays, index, dtype)
+        arrays = _homogenize(arrays, index, dtype, copy=copy)
 
         columns = ensure_index(columns)
     else:
@@ -234,7 +235,9 @@ def init_ndarray(values, index, columns, dtype: Optional[DtypeObj], copy: bool):
     return create_block_manager_from_blocks(block_values, [columns, index])
 
 
-def init_dict(data: Dict, index, columns, dtype: Optional[DtypeObj] = None):
+def init_dict(
+    data: Dict, index, columns, dtype: Optional[DtypeObj] = None, copy: bool = False
+):
     """
     Segregate Series based on type and coerce into matrices.
     Needs to handle a lot of exceptional cases.
@@ -272,6 +275,7 @@ def init_dict(data: Dict, index, columns, dtype: Optional[DtypeObj] = None):
         keys = list(data.keys())
         columns = data_names = Index(keys)
         arrays = [com.maybe_iterable_to_list(data[k]) for k in keys]
+        # breakpoint()
         # GH#24096 need copy to be deep for datetime64tz case
         # TODO: See if we can avoid these copies
         arrays = [
@@ -280,7 +284,7 @@ def init_dict(data: Dict, index, columns, dtype: Optional[DtypeObj] = None):
         arrays = [
             arr if not is_datetime64tz_dtype(arr) else arr.copy() for arr in arrays
         ]
-    return arrays_to_mgr(arrays, data_names, index, columns, dtype=dtype)
+    return arrays_to_mgr(arrays, data_names, index, columns, dtype=dtype, copy=copy)
 
 
 # ---------------------------------------------------------------------
@@ -326,14 +330,16 @@ def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
     return values
 
 
-def _homogenize(data, index, dtype: Optional[DtypeObj]):
+def _homogenize(data, index, dtype: Optional[DtypeObj], copy: bool = False):
     oindex = None
     homogenized = []
 
     for val in data:
         if isinstance(val, ABCSeries):
             if dtype is not None:
-                val = val.astype(dtype)
+                val = val.astype(dtype, copy=copy)
+            elif copy:
+                val = val.copy()
             if val.index is not index:
                 # Forces alignment. No need to copy data since we
                 # are putting it into an ndarray later
@@ -349,7 +355,7 @@ def _homogenize(data, index, dtype: Optional[DtypeObj]):
                     val = dict(val)
                 val = lib.fast_multiget(val, oindex._values, default=np.nan)
             val = sanitize_array(
-                val, index, dtype=dtype, copy=False, raise_cast_failure=False
+                val, index, dtype=dtype, copy=copy, raise_cast_failure=False
             )
 
         homogenized.append(val)

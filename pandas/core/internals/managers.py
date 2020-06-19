@@ -1817,10 +1817,13 @@ def _stack_arrays(tuples, dtype):
 
     first = arrays[0]
     shape = (len(arrays),) + _shape_compat(first)
-
-    stacked = np.empty(shape, dtype=dtype)
-    for i, arr in enumerate(arrays):
-        stacked[i] = _asarray_compat(arr)
+    if len(arrays) == 1:
+        # allow for 0-copy construction from dict
+        stacked = _asarray_compat(first).reshape(shape)
+    else:
+        stacked = np.empty(shape, dtype=dtype)
+        for i, arr in enumerate(arrays):
+            stacked[i] = _asarray_compat(arr)
 
     return stacked, placement
 

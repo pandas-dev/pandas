@@ -359,7 +359,12 @@ class DataFrame(NDFrame):
     dtype : dtype, default None
         Data type to force. Only a single dtype is allowed. If None, infer.
     copy : bool, default False
-        Copy data from inputs. Only affects DataFrame / 2d ndarray input.
+        Copy data from inputs. This only applies to specific cases.
+
+        * `data` is a DataFrame or 2D NumPy array
+        * `data` is a dict with at most one column per NumPy dtype.
+
+        Or all other cases, zero-copy construction cannot be ensured.
 
     See Also
     --------
@@ -456,7 +461,7 @@ class DataFrame(NDFrame):
             )
 
         elif isinstance(data, dict):
-            mgr = init_dict(data, index, columns, dtype=dtype)
+            mgr = init_dict(data, index, columns, dtype=dtype, copy=copy)
         elif isinstance(data, ma.MaskedArray):
             import numpy.ma.mrecords as mrecords
 
