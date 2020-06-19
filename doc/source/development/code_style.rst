@@ -166,6 +166,8 @@ Testing
 Reading from a url
 ------------------
 
+**Good:**
+
 .. code-block:: python
 
     from pandas.io.common import urlopen
@@ -175,6 +177,8 @@ Reading from a url
 
 Reading a file named file.txt that's inside of a zip file named file.zip
 ------------------------------------------------------------------------
+
+**Good:**
 
 .. code-block:: python
 
