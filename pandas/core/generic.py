@@ -105,7 +105,6 @@ from pandas.tseries.offsets import Tick
 
 if TYPE_CHECKING:
     from pandas.core.resample import Resampler
-    from pandas.core.series import Series  # noqa: F401
 
 # goal is to be able to define the docs close to function, while still being
 # able to share

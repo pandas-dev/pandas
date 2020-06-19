@@ -16,6 +16,8 @@ from pandas.core.indexes.api import Index, MultiIndex
 from pandas.core.reshape.concat import concat
 from pandas.core.tools.numeric import to_numeric
 
+from pandas.core.dtypes.generic import ABCSeries
+
 
 @Appender(
     _shared_docs["melt"]
@@ -105,6 +107,7 @@ def melt(
     mdata = {}
     for col in id_vars:
         id_data = frame.pop(col)
+        assert isinstance(id_data, ABCSeries)  # help mypy
         if is_extension_array_dtype(id_data):
             id_data = concat([id_data] * K, ignore_index=True)
         else:
