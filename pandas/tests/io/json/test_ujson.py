@@ -560,14 +560,15 @@ class TestUltraJSONTests:
         assert output == json.dumps(long_input)
         assert long_input == ujson.decode(output)
 
-    def test_dumps_ints_larger_than_maxsize(self):
+    @pytest.mark.parametrize("bigNum", [sys.maxsize + 1, -(sys.maxsize + 1)])
+    def test_dumps_ints_larger_than_maxsize(self, bigNum):
         # GH34395
-        big_num = sys.maxsize + 1
-        encoding = ujson.encode(big_num)
+        bigNum = sys.maxsize + 1
+        encoding = ujson.encode(bigNum)
 
-        assert str(big_num) == encoding
+        assert str(bigNum) == encoding
         # ujson.loads to be fixed in the future
-        # assert ujson.loads(encoding) == big_num
+        # assert ujson.loads(encoding) == bigNum
 
     @pytest.mark.parametrize(
         "int_exp", ["1337E40", "1.337E40", "1337E+9", "1.337e+40", "1.337E-4"]
