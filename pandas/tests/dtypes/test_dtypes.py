@@ -951,7 +951,7 @@ def test_registry_find(dtype, expected):
         (str, False),
         (int, False),
         (bool, True),
-        (np.bool, True),
+        (np.bool_, True),
         (np.array(["a", "b"]), False),
         (pd.Series([1, 2]), False),
         (np.array([True, False]), True),
