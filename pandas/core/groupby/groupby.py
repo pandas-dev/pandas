@@ -372,7 +372,7 @@ Parameters
 ----------
 func : function, str, list or dict
     Function to use for aggregating the data. If a function, must either
-    work when passed a %(klass)s or when passed to %(klass)s.apply.
+    work when passed a {klass} or when passed to {klass}.apply.
 
     Accepted combinations are:
 
@@ -403,7 +403,7 @@ engine_kwargs : dict, default None
     * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
       and ``parallel`` dictionary keys. The values must either be ``True`` or
       ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-      ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
+      ``{{'nopython': True, 'nogil': False, 'parallel': False}}`` and will be
       applied to the function
 
     .. versionadded:: 1.1.0
@@ -412,20 +412,20 @@ engine_kwargs : dict, default None
 
 Returns
 -------
-%(klass)s
+{klass}
 
 See Also
 --------
-%(klass)s.groupby.apply
-%(klass)s.groupby.transform
-%(klass)s.aggregate
+{klass}.groupby.apply
+{klass}.groupby.transform
+{klass}.aggregate
 
 Notes
 -----
 When using ``engine='numba'``, there will be no "fall back" behavior internally.
 The group data and group index will be passed as numpy arrays to the JITed
 user defined function, and no alternative execution attempts will be tried.
-%(examples)s
+{examples}
 """
 
 
