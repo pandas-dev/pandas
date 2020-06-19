@@ -119,7 +119,6 @@ typedef struct __TypeContext {
 typedef struct __PyObjectEncoder {
     JSONObjectEncoder enc;
 
-
     // pass through the NpyArrContext when encoding multi-dimensional arrays
     NpyArrContext *npyCtxtPassthru;
 
