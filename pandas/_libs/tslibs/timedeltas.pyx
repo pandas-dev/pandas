@@ -21,7 +21,7 @@ from pandas._libs.tslibs.util cimport (
     is_float_object, is_array
 )
 
-from pandas._libs.tslibs.base cimport ABCTimedelta, ABCTimestamp
+from pandas._libs.tslibs.base cimport ABCTimestamp
 
 from pandas._libs.tslibs.conversion cimport cast_from_unit
 
@@ -218,7 +218,7 @@ cdef convert_to_timedelta64(object ts, object unit):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def array_to_timedelta64(object[:] values, unit='ns', errors='raise'):
+def array_to_timedelta64(object[:] values, unit=None, errors='raise'):
     """
     Convert an ndarray to an array of timedeltas. If errors == 'coerce',
     coerce non-convertible objects to NaT. Otherwise, raise.
@@ -235,6 +235,13 @@ def array_to_timedelta64(object[:] values, unit='ns', errors='raise'):
     result = np.empty(n, dtype='m8[ns]')
     iresult = result.view('i8')
 
+    if unit is not None:
+        for i in range(n):
+            if isinstance(values[i], str) and errors != "coerce":
+                raise ValueError(
+                    "unit must not be specified if the input contains a str"
+                )
+
     # Usually, we have all strings. If so, we hit the fast path.
     # If this path fails, we try conversion a different way, and
     # this is where all of the error handling will take place.
@@ -247,10 +254,10 @@ def array_to_timedelta64(object[:] values, unit='ns', errors='raise'):
             else:
                 result[i] = parse_timedelta_string(values[i])
     except (TypeError, ValueError):
-        unit = parse_timedelta_unit(unit)
+        parsed_unit = parse_timedelta_unit(unit or 'ns')
         for i in range(n):
             try:
-                result[i] = convert_to_timedelta64(values[i], unit)
+                result[i] = convert_to_timedelta64(values[i], parsed_unit)
             except ValueError:
                 if errors == 'coerce':
                     result[i] = NPY_NAT
@@ -675,12 +682,12 @@ cdef _to_py_int_float(v):
 # timedeltas that we need to do object instantiation in python. This will
 # serve as a C extension type that shadows the Python class, where we do any
 # heavy lifting.
-cdef class _Timedelta(ABCTimedelta):
-    cdef readonly:
-        int64_t value      # nanoseconds
-        object freq        # frequency reference
-        bint is_populated  # are my components populated
-        int64_t _d, _h, _m, _s, _ms, _us, _ns
+cdef class _Timedelta(timedelta):
+    # cdef readonly:
+    #    int64_t value      # nanoseconds
+    #    object freq        # frequency reference
+    #    bint is_populated  # are my components populated
+    #    int64_t _d, _h, _m, _s, _ms, _us, _ns
 
     # higher than np.ndarray and np.matrix
     __array_priority__ = 100
@@ -907,19 +914,19 @@ cdef class _Timedelta(ABCTimedelta):
         Examples
         --------
         >>> td = pd.Timedelta('1 days 2 min 3 us 42 ns')
-        >>> td.resolution
+        >>> td.resolution_string
         'N'
 
         >>> td = pd.Timedelta('1 days 2 min 3 us')
-        >>> td.resolution
+        >>> td.resolution_string
         'U'
 
         >>> td = pd.Timedelta('2 min 3 s')
-        >>> td.resolution
+        >>> td.resolution_string
         'S'
 
         >>> td = pd.Timedelta(36, unit='us')
-        >>> td.resolution
+        >>> td.resolution_string
         'U'
         """
         self._ensure_components()
@@ -1093,7 +1100,7 @@ class Timedelta(_Timedelta):
 
     Parameters
     ----------
-    value : Timedelta, timedelta, np.timedelta64, string, or integer
+    value : Timedelta, timedelta, np.timedelta64, str, or int
     unit : str, default 'ns'
         Denote the unit of the input, if input is an integer.
 
@@ -1155,6 +1162,8 @@ class Timedelta(_Timedelta):
         elif isinstance(value, _Timedelta):
             value = value.value
         elif isinstance(value, str):
+            if unit is not None:
+                raise ValueError("unit must not be specified if the value is a str")
             if len(value) > 0 and value[0] == 'P':
                 value = parse_iso_format_string(value)
             else:
@@ -1205,7 +1214,7 @@ class Timedelta(_Timedelta):
         cdef:
             int64_t result, unit
 
-        from pandas.tseries.frequencies import to_offset
+        from pandas._libs.tslibs.offsets import to_offset
         unit = to_offset(freq).nanos
         result = unit * rounder(self.value / float(unit))
         return Timedelta(result, unit='ns')

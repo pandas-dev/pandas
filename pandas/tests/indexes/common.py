@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import iNaT
+from pandas.errors import InvalidIndexError
 
 from pandas.core.dtypes.common import is_datetime64tz_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -25,7 +26,6 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
-from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 
 
@@ -795,10 +795,10 @@ class Base:
 
         msg = "putmask: mask and data must be the same size"
         with pytest.raises(ValueError, match=msg):
-            index.putmask(np.ones(len(index) + 1, np.bool), 1)
+            index.putmask(np.ones(len(index) + 1, np.bool_), 1)
 
         with pytest.raises(ValueError, match=msg):
-            index.putmask(np.ones(len(index) - 1, np.bool), 1)
+            index.putmask(np.ones(len(index) - 1, np.bool_), 1)
 
         with pytest.raises(ValueError, match=msg):
             index.putmask("foo", 1)
