@@ -1243,7 +1243,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         expected = DataFrame([["foo\u201d", "bar"], ["foo", "bar"]], columns=["a", "b"])
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("bigNum", [sys.maxsize + 1, -(sys.maxsize + 1)])
+    @pytest.mark.parametrize("bigNum", [sys.maxsize + 1, -(sys.maxsize + 2)])
     def test_to_json_large_numbers(self, bigNum):
         # GH34473
         originalSeries = Series(bigNum, dtype=object, index=["articleId"])
