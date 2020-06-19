@@ -1638,8 +1638,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
             PRINTMARK();
             tc->type = JT_BIGNUM;
         }
-
-        if (err) {
+        else if (err) {
             PRINTMARK();
             goto INVALID;
         }
@@ -2114,7 +2113,6 @@ void Object_endTypeContext(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
         GET_TC(tc)->columnLabels = NULL;
 
         PyObject_Free(GET_TC(tc)->cStr);
-        free(bytes);
         GET_TC(tc)->cStr = NULL;
         PyObject_Free(tc->prv);
         tc->prv = NULL;
