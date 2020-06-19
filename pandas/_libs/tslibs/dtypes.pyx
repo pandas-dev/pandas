@@ -1,5 +1,6 @@
 # period frequency constants corresponding to scikits timeseries
 # originals
+from enum import Enum
 
 
 cdef class PeriodDtypeBase:
@@ -112,6 +113,9 @@ _period_code_map.update({
     "C": 5000,   # Custom Business Day
 })
 
+cdef set _month_names = {
+    x.split("-")[-1] for x in _period_code_map.keys() if x.startswith("A-")
+}
 
 # Map attribute-name resolutions to resolution abbreviations
 _attrname_to_abbrevs = {
@@ -127,6 +131,7 @@ _attrname_to_abbrevs = {
     "nanosecond": "N",
 }
 cdef dict attrname_to_abbrevs = _attrname_to_abbrevs
+cdef dict _abbrev_to_attrnames = {v: k for k, v in attrname_to_abbrevs.items()}
 
 
 class FreqGroup:
@@ -149,3 +154,124 @@ class FreqGroup:
     def get_freq_group(code: int) -> int:
         # See also: PeriodDtypeBase.freq_group
         return (code // 1000) * 1000
+
+
+class Resolution(Enum):
+
+    # Note: cython won't allow us to reference the cdef versions at the
+    # module level
+    RESO_NS = 0
+    RESO_US = 1
+    RESO_MS = 2
+    RESO_SEC = 3
+    RESO_MIN = 4
+    RESO_HR = 5
+    RESO_DAY = 6
+    RESO_MTH = 7
+    RESO_QTR = 8
+    RESO_YR = 9
+
+    def __lt__(self, other):
+        return self.value < other.value
+
+    def __ge__(self, other):
+        return self.value >= other.value
+
+    @property
+    def freq_group(self):
+        # TODO: annotate as returning FreqGroup once that is an enum
+        if self == Resolution.RESO_NS:
+            return FreqGroup.FR_NS
+        elif self == Resolution.RESO_US:
+            return FreqGroup.FR_US
+        elif self == Resolution.RESO_MS:
+            return FreqGroup.FR_MS
+        elif self == Resolution.RESO_SEC:
+            return FreqGroup.FR_SEC
+        elif self == Resolution.RESO_MIN:
+            return FreqGroup.FR_MIN
+        elif self == Resolution.RESO_HR:
+            return FreqGroup.FR_HR
+        elif self == Resolution.RESO_DAY:
+            return FreqGroup.FR_DAY
+        elif self == Resolution.RESO_MTH:
+            return FreqGroup.FR_MTH
+        elif self == Resolution.RESO_QTR:
+            return FreqGroup.FR_QTR
+        elif self == Resolution.RESO_YR:
+            return FreqGroup.FR_ANN
+        else:
+            raise ValueError(self)
+
+    @property
+    def attrname(self) -> str:
+        """
+        Return datetime attribute name corresponding to this Resolution.
+
+        Examples
+        --------
+        >>> Resolution.RESO_SEC.attrname
+        'second'
+        """
+        return _reso_str_map[self.value]
+
+    @classmethod
+    def from_attrname(cls, attrname: str) -> "Resolution":
+        """
+        Return resolution str against resolution code.
+
+        Examples
+        --------
+        >>> Resolution.from_attrname('second')
+        2
+
+        >>> Resolution.from_attrname('second') == Resolution.RESO_SEC
+        True
+        """
+        return cls(_str_reso_map[attrname])
+
+    @classmethod
+    def get_reso_from_freq(cls, freq: str) -> "Resolution":
+        """
+        Return resolution code against frequency str.
+
+        `freq` is given by the `offset.freqstr` for some DateOffset object.
+
+        Examples
+        --------
+        >>> Resolution.get_reso_from_freq('H')
+        4
+
+        >>> Resolution.get_reso_from_freq('H') == Resolution.RESO_HR
+        True
+        """
+        try:
+            attr_name = _abbrev_to_attrnames[freq]
+        except KeyError:
+            # For quarterly and yearly resolutions, we need to chop off
+            #  a month string.
+            split_freq = freq.split("-")
+            if len(split_freq) != 2:
+                raise
+            if split_freq[1] not in _month_names:
+                # i.e. we want e.g. "Q-DEC", not "Q-INVALID"
+                raise
+            attr_name = _abbrev_to_attrnames[split_freq[0]]
+
+        return cls.from_attrname(attr_name)
+
+
+cdef dict _reso_str_map = {
+    Resolution.RESO_NS.value: "nanosecond",
+    Resolution.RESO_US.value: "microsecond",
+    Resolution.RESO_MS.value: "millisecond",
+    Resolution.RESO_SEC.value: "second",
+    Resolution.RESO_MIN.value: "minute",
+    Resolution.RESO_HR.value: "hour",
+    Resolution.RESO_DAY.value: "day",
+    Resolution.RESO_MTH.value: "month",
+    Resolution.RESO_QTR.value: "quarter",
+    Resolution.RESO_YR.value: "year",
+}
+
+cdef dict _str_reso_map = {v: k for k, v in _reso_str_map.items()}
