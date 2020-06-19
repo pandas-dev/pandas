@@ -511,8 +511,13 @@ class TestDatetimeArray(SharedTests):
         dti = datetime_index
         arr = DatetimeArray(dti)
 
-        expected = dti.to_perioddelta(freq=freqstr)
-        result = arr.to_perioddelta(freq=freqstr)
+        with tm.assert_produces_warning(FutureWarning):
+            # Deprecation GH#34853
+            expected = dti.to_perioddelta(freq=freqstr)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # stacklevel is chosen to be "correct" for DatetimeIndex, not
+            #  DatetimeArray
+            result = arr.to_perioddelta(freq=freqstr)
         assert isinstance(result, TimedeltaArray)
 
         # placeholder until these become actual EA subclasses and we can use
