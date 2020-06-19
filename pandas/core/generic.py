@@ -4213,12 +4213,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         raise AbstractMethodError(self)
 
-    @doc(
-        klass=_shared_doc_kwargs["klass"],
-        axes=_shared_doc_kwargs["axes"],
-        optional_labels="",
-        optional_axis="",
-    )
     def reindex(self: FrameOrSeries, *args, **kwargs) -> FrameOrSeries:
         """
         Conform {klass} to new index with optional filling logic.

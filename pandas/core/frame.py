@@ -3951,8 +3951,7 @@ class DataFrame(NDFrame):
     def set_axis(self, labels, axis: Axis = 0, inplace: bool = False):
         return super().set_axis(labels, axis=axis, inplace=inplace)
 
-    @Substitution(**_shared_doc_kwargs)
-    @Appender(NDFrame.reindex.__doc__)
+    @doc(NDFrame.reindex, **_shared_doc_kwargs)
     @rewrite_axis_style_signature(
         "labels",
         [
