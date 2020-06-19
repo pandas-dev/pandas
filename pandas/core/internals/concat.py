@@ -303,7 +303,7 @@ class JoinUnit:
         return values
 
 
-def _concatenate_join_units(join_units, concat_axis, copy, ignore_2d_ea=False):
+def _concatenate_join_units(join_units, concat_axis, copy):
     """
     Concatenate values from several join units along selected axis.
     """
@@ -339,9 +339,7 @@ def _concatenate_join_units(join_units, concat_axis, copy, ignore_2d_ea=False):
             # 2D to put it a non-EA Block
             concat_values = np.atleast_2d(concat_values)
     else:
-        concat_values = concat_compat(
-            to_concat, axis=concat_axis, ignore_2d_ea=ignore_2d_ea
-        )
+        concat_values = concat_compat(to_concat, axis=concat_axis,)
 
     return concat_values
 
