@@ -27,7 +27,6 @@ from pandas.io.parsers import _validate_integer
 loads = json.loads
 dumps = json.dumps
 
-
 TABLE_SCHEMA_VERSION = "0.20.0"
 
 
