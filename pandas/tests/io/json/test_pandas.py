@@ -1248,19 +1248,16 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         bigNum = sys.maxsize + 1
 
         originalSeries = Series(bigNum, dtype=object, index=["articleId"])
-        originalSeries.to_json()
-        # json = StringIO(json)
-        # newSeries = read_json(json, typ="series")
-        # tm.assert_series_equal(originalSeries, newSeries)
+        result = originalSeries.to_json()
+        expected = '{"articleId":' + str(bigNum) + "}"
+        assert result == expected
 
         originalDataFrame = DataFrame(
             bigNum, dtype=object, index=["articleId"], columns=[0]
         )
-        originalDataFrame.to_json()
-        # json =  originalDataFrame.to_json()
-        # json = StringIO(json)
-        # newDataFrame = read_json(json)
-        # tm.assert_frame_equal(originalDataFrame, newDataFrame)
+        result = originalDataFrame.to_json()
+        expected = '{"0":{"articleId":' + str(bigNum) + "}}"
+        assert result == expected
 
     def test_read_json_large_numbers(self):
         # GH18842
