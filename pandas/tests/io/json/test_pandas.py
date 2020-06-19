@@ -4,6 +4,7 @@ from datetime import timedelta
 from io import StringIO
 import json
 import os
+import sys
 
 import numpy as np
 import pytest
@@ -1241,6 +1242,25 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         result = read_json(json, lines=True)
         expected = DataFrame([["foo\u201d", "bar"], ["foo", "bar"]], columns=["a", "b"])
         tm.assert_frame_equal(result, expected)
+
+    def test_to_json_large_numbers(self):
+        # GH34473
+        bigNum = sys.maxsize + 1
+
+        originalSeries = Series(bigNum, dtype=object, index=["articleId"])
+        originalSeries.to_json()
+        # json = StringIO(json)
+        # newSeries = read_json(json, typ="series")
+        # tm.assert_series_equal(originalSeries, newSeries)
+
+        originalDataFrame = DataFrame(
+            bigNum, dtype=object, index=["articleId"], columns=[0]
+        )
+        originalDataFrame.to_json()
+        # json =  originalDataFrame.to_json()
+        # json = StringIO(json)
+        # newDataFrame = read_json(json)
+        # tm.assert_frame_equal(originalDataFrame, newDataFrame)
 
     def test_read_json_large_numbers(self):
         # GH18842
