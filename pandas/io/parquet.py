@@ -8,7 +8,7 @@ from pandas.errors import AbstractMethodError
 
 from pandas import DataFrame, get_option
 
-from pandas.io.common import get_filepath_or_buffer, is_fsspec_url, _expand_user
+from pandas.io.common import _expand_user, get_filepath_or_buffer, is_fsspec_url
 
 
 def get_engine(engine: str) -> "BaseImpl":

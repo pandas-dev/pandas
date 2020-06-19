@@ -591,6 +591,7 @@ class TestParquetPyArrow(Base):
         df_from_buf = pd.read_parquet(buffer)
         tm.assert_frame_equal(df_compat, df_from_buf)
 
+    @td.skip_if_no("pyarrow")
     def test_expand_user(self, df_compat, monkeypatch):
         monkeypatch.setenv("HOME", "TestingUser")
         monkeypatch.setenv("USERPROFILE", "TestingUser")
