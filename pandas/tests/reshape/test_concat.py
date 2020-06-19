@@ -1869,12 +1869,13 @@ class TestConcatenate:
 
         # trying to concat a ndframe with a non-ndframe
         df1 = tm.makeCustomDataframe(10, 2)
-        msg = (
-            "cannot concatenate object of type '{}'; "
-            "only Series and DataFrame objs are valid"
-        )
         for obj in [1, dict(), [1, 2], (1, 2)]:
-            with pytest.raises(TypeError, match=msg.format(type(obj))):
+
+            msg = (
+                f"cannot concatenate object of type '{type(obj)}'; "
+                "only Series and DataFrame objs are valid"
+            )
+            with pytest.raises(TypeError, match=msg):
                 concat([df1, obj])
 
     def test_concat_invalid_first_argument(self):
@@ -2756,6 +2757,17 @@ def test_concat_sparse():
     tm.assert_frame_equal(result, expected)
 
 
+def test_concat_dense_sparse():
+    # GH 30668
+    a = pd.Series(pd.arrays.SparseArray([1, None]), dtype=float)
+    b = pd.Series([1], dtype=float)
+    expected = pd.Series(data=[1, None, 1], index=[0, 1, 0]).astype(
+        pd.SparseDtype(np.float64, None)
+    )
+    result = pd.concat([a, b], axis=0)
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("test_series", [True, False])
 def test_concat_copy_index(test_series, axis):
     # GH 29879
@@ -2816,4 +2828,32 @@ def test_duplicate_keys(keys):
         [(keys[0], "a"), (keys[0], "b"), (keys[1], "c"), (keys[2], "d")]
     )
     expected = DataFrame(expected_values, columns=expected_columns)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "obj",
+    [
+        tm.SubclassedDataFrame({"A": np.arange(0, 10)}),
+        tm.SubclassedSeries(np.arange(0, 10), name="A"),
+    ],
+)
+def test_concat_preserves_subclass(obj):
+    # GH28330 -- preserve subclass
+
+    result = concat([obj, obj])
+    assert isinstance(result, type(obj))
+
+
+def test_concat_frame_axis0_extension_dtypes():
+    # preserve extension dtype (through common_dtype mechanism)
+    df1 = pd.DataFrame({"a": pd.array([1, 2, 3], dtype="Int64")})
+    df2 = pd.DataFrame({"a": np.array([4, 5, 6])})
+
+    result = pd.concat([df1, df2], ignore_index=True)
+    expected = pd.DataFrame({"a": [1, 2, 3, 4, 5, 6]}, dtype="Int64")
+    tm.assert_frame_equal(result, expected)
+
+    result = pd.concat([df2, df1], ignore_index=True)
+    expected = pd.DataFrame({"a": [4, 5, 6, 1, 2, 3]}, dtype="Int64")
     tm.assert_frame_equal(result, expected)

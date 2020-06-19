@@ -1,9 +1,12 @@
+from datetime import datetime
+
 import numpy as np
+from numpy.random import randn
 import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Series, notna
+from pandas import DataFrame, Series, bdate_range, notna
 
 
 @pytest.fixture(params=[True, False])
@@ -226,7 +229,7 @@ def _create_consistency_data():
         ] + [DataFrame(s) for s in create_series()]
 
     def is_constant(x):
-        values = x.values.ravel()
+        values = x.values.ravel("K")
         return len(set(values[notna(values)])) == 1
 
     def no_nans(x):
@@ -241,4 +244,61 @@ def _create_consistency_data():
 @pytest.fixture(params=_create_consistency_data())
 def consistency_data(request):
     """Create consistency data"""
+    return request.param
+
+
+def _create_arr():
+    """Internal function to mock an array."""
+    arr = randn(100)
+    locs = np.arange(20, 40)
+    arr[locs] = np.NaN
+    return arr
+
+
+def _create_rng():
+    """Internal function to mock date range."""
+    rng = bdate_range(datetime(2009, 1, 1), periods=100)
+    return rng
+
+
+def _create_series():
+    """Internal function to mock Series."""
+    arr = _create_arr()
+    series = Series(arr.copy(), index=_create_rng())
+    return series
+
+
+def _create_frame():
+    """Internal function to mock DataFrame."""
+    rng = _create_rng()
+    return DataFrame(randn(100, 10), index=rng, columns=np.arange(10))
+
+
+@pytest.fixture
+def nan_locs():
+    """Make a range as loc fixture."""
+    return np.arange(20, 40)
+
+
+@pytest.fixture
+def arr():
+    """Make an array as fixture."""
+    return _create_arr()
+
+
+@pytest.fixture
+def frame():
+    """Make mocked frame as fixture."""
+    return _create_frame()
+
+
+@pytest.fixture
+def series():
+    """Make mocked series as fixture."""
+    return _create_series()
+
+
+@pytest.fixture(params=[_create_series(), _create_frame()])
+def which(request):
+    """Turn parametrized which as fixture for series and frame"""
     return request.param

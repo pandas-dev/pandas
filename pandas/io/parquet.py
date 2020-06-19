@@ -105,7 +105,7 @@ class PyArrowImpl(BaseImpl):
 
         table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
         # write_to_dataset does not support a file-like object when
-        # a dircetory path is used, so just pass the path string.
+        # a directory path is used, so just pass the path string.
         if partition_cols is not None:
             self.api.parquet.write_to_dataset(
                 table,
@@ -122,11 +122,20 @@ class PyArrowImpl(BaseImpl):
             file_obj_or_path.close()
 
     def read(self, path, columns=None, **kwargs):
-        parquet_ds = self.api.parquet.ParquetDataset(
-            path, filesystem=get_fs_for_path(path), **kwargs
-        )
-        kwargs["columns"] = columns
-        result = parquet_ds.read_pandas(**kwargs).to_pandas()
+        fs = get_fs_for_path(path)
+        should_close = None
+        # Avoid calling get_filepath_or_buffer for s3/gcs URLs since
+        # since it returns an S3File which doesn't support dir reads in arrow
+        if not fs:
+            path, _, _, should_close = get_filepath_or_buffer(path)
+
+        kwargs["use_pandas_metadata"] = True
+        result = self.api.parquet.read_table(
+            path, columns=columns, filesystem=fs, **kwargs
+        ).to_pandas()
+        if should_close:
+            path.close()
+
         return result
 
 
@@ -190,7 +199,7 @@ class FastParquetImpl(BaseImpl):
 
             # When path is s3:// an S3File is returned.
             # We need to retain the original path(str) while also
-            # pass the S3File().open function to fsatparquet impl.
+            # pass the S3File().open function to fastparquet impl.
             s3, filesystem = get_file_and_filesystem(path)
             try:
                 parquet_file = self.api.ParquetFile(path, open_with=filesystem.open)

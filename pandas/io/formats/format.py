@@ -38,7 +38,7 @@ from pandas._libs.missing import NA
 from pandas._libs.tslib import format_array_from_datetime
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.nattype import NaTType
-from pandas._typing import FilePathOrBuffer
+from pandas._typing import FilePathOrBuffer, Label
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import (
@@ -56,12 +56,6 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.generic import (
-    ABCDatetimeIndex,
-    ABCMultiIndex,
-    ABCPeriodIndex,
-    ABCTimedeltaIndex,
-)
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core.arrays.datetimes import DatetimeArray
@@ -69,7 +63,7 @@ from pandas.core.arrays.timedeltas import TimedeltaArray
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.construction import extract_array
-from pandas.core.indexes.api import Index, ensure_index
+from pandas.core.indexes.api import Index, MultiIndex, PeriodIndex, ensure_index
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
@@ -83,6 +77,10 @@ FormattersType = Union[
     List[Callable], Tuple[Callable, ...], Mapping[Union[str, int], Callable]
 ]
 FloatFormatType = Union[str, Callable, "EngFormatter"]
+ColspaceType = Mapping[Label, Union[str, int]]
+ColspaceArgType = Union[
+    str, int, Sequence[Union[str, int]], Mapping[Label, Union[str, int]],
+]
 
 common_docstring = """
         Parameters
@@ -294,7 +292,7 @@ class SeriesFormatter:
 
         if getattr(self.series.index, "freq", None) is not None:
             assert isinstance(
-                self.series.index, (ABCDatetimeIndex, ABCPeriodIndex, ABCTimedeltaIndex)
+                self.series.index, (DatetimeIndex, PeriodIndex, TimedeltaIndex)
             )
             footer += f"Freq: {self.series.index.freqstr}"
 
@@ -329,7 +327,7 @@ class SeriesFormatter:
 
     def _get_formatted_index(self) -> Tuple[List[str], bool]:
         index = self.tr_series.index
-        is_multi = isinstance(index, ABCMultiIndex)
+        is_multi = isinstance(index, MultiIndex)
 
         if is_multi:
             have_header = any(name for name in index.names)
@@ -536,11 +534,13 @@ class DataFrameFormatter(TableFormatter):
     __doc__ = __doc__ if __doc__ else ""
     __doc__ += common_docstring + return_docstring
 
+    col_space: ColspaceType
+
     def __init__(
         self,
         frame: "DataFrame",
         columns: Optional[Sequence[str]] = None,
-        col_space: Optional[Union[str, int]] = None,
+        col_space: Optional[ColspaceArgType] = None,
         header: Union[bool, Sequence[str]] = True,
         index: bool = True,
         na_rep: str = "NaN",
@@ -580,7 +580,27 @@ class DataFrameFormatter(TableFormatter):
             )
         self.na_rep = na_rep
         self.decimal = decimal
-        self.col_space = col_space
+        if col_space is None:
+            self.col_space = {}
+        elif isinstance(col_space, (int, str)):
+            self.col_space = {"": col_space}
+            self.col_space.update({column: col_space for column in self.frame.columns})
+        elif isinstance(col_space, dict):
+            for column in col_space.keys():
+                if column not in self.frame.columns and column != "":
+                    raise ValueError(
+                        f"Col_space is defined for an unknown column: {column}"
+                    )
+            self.col_space = col_space
+        else:
+            col_space = cast(Sequence, col_space)
+            if len(frame.columns) != len(col_space):
+                raise ValueError(
+                    f"Col_space length({len(col_space)}) should match "
+                    f"DataFrame number of columns({len(frame.columns)})"
+                )
+            self.col_space = dict(zip(self.frame.columns, col_space))
+
         self.header = header
         self.index = index
         self.line_width = line_width
@@ -708,7 +728,7 @@ class DataFrameFormatter(TableFormatter):
         """
         # this method is not used by to_html where self.col_space
         # could be a string so safe to cast
-        self.col_space = cast(int, self.col_space)
+        col_space = {k: cast(int, v) for k, v in self.col_space.items()}
 
         frame = self.tr_frame
         # may include levels names also
@@ -720,10 +740,7 @@ class DataFrameFormatter(TableFormatter):
             for i, c in enumerate(frame):
                 fmt_values = self._format_col(i)
                 fmt_values = _make_fixed_width(
-                    fmt_values,
-                    self.justify,
-                    minimum=(self.col_space or 0),
-                    adj=self.adj,
+                    fmt_values, self.justify, minimum=col_space.get(c, 0), adj=self.adj,
                 )
                 stringified.append(fmt_values)
         else:
@@ -747,7 +764,7 @@ class DataFrameFormatter(TableFormatter):
             for i, c in enumerate(frame):
                 cheader = str_columns[i]
                 header_colwidth = max(
-                    self.col_space or 0, *(self.adj.len(x) for x in cheader)
+                    col_space.get(c, 0), *(self.adj.len(x) for x in cheader)
                 )
                 fmt_values = self._format_col(i)
                 fmt_values = _make_fixed_width(
@@ -938,7 +955,7 @@ class DataFrameFormatter(TableFormatter):
             formatter,
             float_format=self.float_format,
             na_rep=self.na_rep,
-            space=self.col_space,
+            space=self.col_space.get(frame.columns[i]),
             decimal=self.decimal,
         )
 
@@ -976,7 +993,7 @@ class DataFrameFormatter(TableFormatter):
 
         columns = frame.columns
 
-        if isinstance(columns, ABCMultiIndex):
+        if isinstance(columns, MultiIndex):
             fmt_columns = columns.format(sparsify=False, adjoin=False)
             fmt_columns = list(zip(*fmt_columns))
             dtypes = self.frame.dtypes._values
@@ -1031,12 +1048,12 @@ class DataFrameFormatter(TableFormatter):
     def _get_formatted_index(self, frame: "DataFrame") -> List[str]:
         # Note: this is only used by to_string() and to_latex(), not by
         # to_html(). so safe to cast col_space here.
-        self.col_space = cast(int, self.col_space)
+        col_space = {k: cast(int, v) for k, v in self.col_space.items()}
         index = frame.index
         columns = frame.columns
         fmt = self._get_formatter("__index__")
 
-        if isinstance(index, ABCMultiIndex):
+        if isinstance(index, MultiIndex):
             fmt_index = index.format(
                 sparsify=self.sparsify,
                 adjoin=False,
@@ -1049,7 +1066,7 @@ class DataFrameFormatter(TableFormatter):
         fmt_index = [
             tuple(
                 _make_fixed_width(
-                    list(x), justify="left", minimum=(self.col_space or 0), adj=self.adj
+                    list(x), justify="left", minimum=col_space.get("", 0), adj=self.adj,
                 )
             )
             for x in fmt_index
@@ -1071,7 +1088,7 @@ class DataFrameFormatter(TableFormatter):
     def _get_column_name_list(self) -> List[str]:
         names: List[str] = []
         columns = self.frame.columns
-        if isinstance(columns, ABCMultiIndex):
+        if isinstance(columns, MultiIndex):
             names.extend("" if name is None else name for name in columns.names)
         else:
             names.append("" if columns.name is None else columns.name)
@@ -1122,7 +1139,7 @@ def format_array(
     fmt_klass: Type[GenericArrayFormatter]
     if is_datetime64_dtype(values.dtype):
         fmt_klass = Datetime64Formatter
-    elif is_datetime64tz_dtype(values):
+    elif is_datetime64tz_dtype(values.dtype):
         fmt_klass = Datetime64TZFormatter
     elif is_timedelta64_dtype(values.dtype):
         fmt_klass = Timedelta64Formatter
@@ -1767,7 +1784,7 @@ def _trim_zeros_float(
 
 
 def _has_names(index: Index) -> bool:
-    if isinstance(index, ABCMultiIndex):
+    if isinstance(index, MultiIndex):
         return com.any_not_none(*index.names)
     else:
         return index.name is not None

@@ -63,6 +63,29 @@ Or ``astype`` after the ``Series`` or ``DataFrame`` is created
    s
    s.astype("string")
 
+
+.. versionchanged:: 1.1.0
+
+You can also use :class:`StringDtype`/``"string"`` as the dtype on non-string data and
+it will be converted to ``string`` dtype:
+
+.. ipython:: python
+
+   s = pd.Series(['a', 2, np.nan], dtype="string")
+   s
+   type(s[1])
+
+or convert from existing pandas data:
+
+.. ipython:: python
+
+   s1 = pd.Series([1, 2, np.nan], dtype="Int64")
+   s1
+   s2 = s1.astype("string")
+   s2
+   type(s2[0])
+
+
 .. _text.differences:
 
 Behavior differences

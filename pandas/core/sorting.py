@@ -385,7 +385,7 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
     from pandas.core.indexes.api import Index
 
     if not key:
-        return values.copy()
+        return values
 
     if isinstance(values, ABCMultiIndex):
         return ensure_key_mapped_multiindex(values, key, level=levels)
@@ -406,10 +406,8 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
             result = type_of_values(result)  # try to revert to original type otherwise
     except TypeError:
         raise TypeError(
-            "User-provided `key` function returned an invalid type {} \
-            which could not be converted to {}.".format(
-                type(result), type(values)
-            )
+            f"User-provided `key` function returned an invalid type {type(result)} \
+            which could not be converted to {type(values)}."
         )
 
     return result

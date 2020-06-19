@@ -1375,8 +1375,8 @@ class TestIndex(Base):
         # is mangled
         if unique_nulls_fixture is unique_nulls_fixture2:
             return  # skip it, values are not unique
-        arr = np.array([unique_nulls_fixture, unique_nulls_fixture2], dtype=np.object)
-        index = pd.Index(arr, dtype=np.object)
+        arr = np.array([unique_nulls_fixture, unique_nulls_fixture2], dtype=object)
+        index = pd.Index(arr, dtype=object)
         result = index.get_indexer(
             [unique_nulls_fixture, unique_nulls_fixture2, "Unknown"]
         )
@@ -2422,6 +2422,16 @@ class TestMixedIntIndex(Base):
         exp2 = repr(arr)
         out2 = "Index([True, False, nan], dtype='object')"
         assert out2 == exp2
+
+    @pytest.mark.filterwarnings("ignore:elementwise comparison failed:FutureWarning")
+    def test_index_with_tuple_bool(self):
+        # GH34123
+        # TODO: remove tupleize_cols=False once correct behaviour is restored
+        # TODO: also this op right now produces FutureWarning from numpy
+        idx = Index([("a", "b"), ("b", "c"), ("c", "a")], tupleize_cols=False)
+        result = idx == ("c", "a",)
+        expected = np.array([False, False, True])
+        tm.assert_numpy_array_equal(result, expected)
 
 
 class TestIndexUtils:

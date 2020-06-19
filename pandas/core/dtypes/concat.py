@@ -1,6 +1,7 @@
 """
 Utility functions related to concat.
 """
+from typing import cast
 
 import numpy as np
 
@@ -21,6 +22,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCRangeIndex, ABCSeries
 
 from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays.sparse import SparseArray
 from pandas.core.construction import array
 
 
@@ -40,14 +42,14 @@ def get_dtype_kinds(l):
         dtype = arr.dtype
         if is_categorical_dtype(dtype):
             typ = "category"
-        elif is_sparse(arr):
+        elif is_sparse(dtype):
             typ = "sparse"
         elif isinstance(arr, ABCRangeIndex):
             typ = "range"
-        elif is_datetime64tz_dtype(arr):
+        elif is_datetime64tz_dtype(dtype):
             # if to_concat contains different tz,
             # the result must be object dtype
-            typ = str(arr.dtype)
+            typ = str(dtype)
         elif is_datetime64_dtype(dtype):
             typ = "datetime"
         elif is_timedelta64_dtype(dtype):
@@ -57,7 +59,7 @@ def get_dtype_kinds(l):
         elif is_bool_dtype(dtype):
             typ = "bool"
         elif is_extension_array_dtype(dtype):
-            typ = str(arr.dtype)
+            typ = str(dtype)
         else:
             typ = dtype.kind
         typs.add(typ)
@@ -80,6 +82,13 @@ def _cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
             return arr.astype(dtype, copy=False)
         except ValueError:
             return arr.astype(object, copy=False)
+
+    if is_sparse(arr) and not is_sparse(dtype):
+        # problem case: SparseArray.astype(dtype) doesn't follow the specified
+        # dtype exactly, but converts this to Sparse[dtype] -> first manually
+        # convert to dense array
+        arr = cast(SparseArray, arr)
+        return arr.to_dense().astype(dtype, copy=False)
 
     if (
         isinstance(arr, np.ndarray)
@@ -138,7 +147,7 @@ def concat_compat(to_concat, axis: int = 0):
     single_dtype = len({x.dtype for x in to_concat}) == 1
     any_ea = any(is_extension_array_dtype(x.dtype) for x in to_concat)
 
-    if any_ea and axis == 0:
+    if any_ea:
         if not single_dtype:
             target_dtype = find_common_type([x.dtype for x in to_concat])
             to_concat = [_cast_to_common_type(arr, target_dtype) for arr in to_concat]
@@ -151,10 +160,6 @@ def concat_compat(to_concat, axis: int = 0):
 
     elif _contains_datetime or "timedelta" in typs:
         return concat_datetime(to_concat, axis=axis, typs=typs)
-
-    elif any_ea and axis == 1:
-        to_concat = [np.atleast_2d(x.astype("object")) for x in to_concat]
-        return np.concatenate(to_concat, axis=axis)
 
     elif all_empty:
         # we have all empties, but may need to coerce the result dtype to
@@ -357,7 +362,7 @@ def _concatenate_2d(to_concat, axis: int):
 def concat_datetime(to_concat, axis=0, typs=None):
     """
     provide concatenation of an datetimelike array of arrays each of which is a
-    single M8[ns], datetimet64[ns, tz] or m8[ns] dtype
+    single M8[ns], datetime64[ns, tz] or m8[ns] dtype
 
     Parameters
     ----------

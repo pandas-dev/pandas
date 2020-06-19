@@ -34,7 +34,7 @@ cimport numpy as cnp
 from numpy cimport ndarray, uint8_t, uint64_t, int64_t, float64_t
 cnp.import_array()
 
-cimport pandas._libs.util as util
+from pandas._libs cimport util
 from pandas._libs.util cimport UINT64_MAX, INT64_MAX, INT64_MIN
 import pandas._libs.lib as lib
 
@@ -2037,7 +2037,7 @@ def _concatenate_chunks(list chunks):
         numpy_dtypes = {x for x in dtypes if not is_categorical_dtype(x)}
         if len(numpy_dtypes) > 1:
             common_type = np.find_common_type(numpy_dtypes, [])
-            if common_type == np.object:
+            if common_type == object:
                 warning_columns.append(str(name))
 
         dtype = dtypes.pop()

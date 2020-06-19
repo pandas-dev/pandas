@@ -49,7 +49,7 @@ def check_compressed_urls(salaries_table, compression, extension, mode, engine):
 @pytest.fixture
 def tips_df(datapath):
     """DataFrame with the tips dataset."""
-    return read_csv(datapath("io", "parser", "data", "tips.csv"))
+    return read_csv(datapath("io", "data", "csv", "tips.csv"))
 
 
 @pytest.mark.usefixtures("s3_resource")
@@ -172,17 +172,28 @@ class TestS3:
     def test_write_s3_csv_fails(self, tips_df):
         # GH 32486
         # Attempting to write to an invalid S3 path should raise
-        with pytest.raises(
-            FileNotFoundError, match="The specified bucket does not exist"
-        ):
+        import botocore
+
+        # GH 34087
+        # https://boto3.amazonaws.com/v1/documentation/api/latest/guide/error-handling.html
+        # Catch a ClientError since AWS Service Errors are defined dynamically
+        error = (FileNotFoundError, botocore.exceptions.ClientError)
+
+        with pytest.raises(error, match="The specified bucket does not exist"):
             tips_df.to_csv("s3://an_s3_bucket_data_doesnt_exit/not_real.csv")
 
     @td.skip_if_no("pyarrow")
     def test_write_s3_parquet_fails(self, tips_df):
         # GH 27679
-        with pytest.raises(
-            FileNotFoundError, match="The specified bucket does not exist"
-        ):
+        # Attempting to write to an invalid S3 path should raise
+        import botocore
+
+        # GH 34087
+        # https://boto3.amazonaws.com/v1/documentation/api/latest/guide/error-handling.html
+        # Catch a ClientError since AWS Service Errors are defined dynamically
+        error = (FileNotFoundError, botocore.exceptions.ClientError)
+
+        with pytest.raises(error, match="The specified bucket does not exist"):
             tips_df.to_parquet("s3://an_s3_bucket_data_doesnt_exit/not_real.parquet")
 
     def test_read_csv_handles_boto_s3_object(self, s3_resource, tips_file):

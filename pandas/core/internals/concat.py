@@ -319,6 +319,15 @@ def _concatenate_join_units(join_units, concat_axis, copy):
                     concat_values = concat_values.copy()
             else:
                 concat_values = concat_values.copy()
+    elif any(isinstance(t, ExtensionArray) for t in to_concat):
+        # concatting with at least one EA means we are concatting a single column
+        # the non-EA values are 2D arrays with shape (1, n)
+        to_concat = [t if isinstance(t, ExtensionArray) else t[0, :] for t in to_concat]
+        concat_values = concat_compat(to_concat, axis=concat_axis)
+        if not isinstance(concat_values, ExtensionArray):
+            # if the result of concat is not an EA but an ndarray, reshape to
+            # 2D to put it a non-EA Block
+            concat_values = np.atleast_2d(concat_values)
     else:
         concat_values = concat_compat(to_concat, axis=concat_axis)
 
@@ -339,7 +348,7 @@ def _get_empty_dtype_and_na(join_units):
     if len(join_units) == 1:
         blk = join_units[0].block
         if blk is None:
-            return np.float64, np.nan
+            return np.dtype(np.float64), np.nan
 
     if _is_uniform_reindex(join_units):
         # FIXME: integrate property
@@ -424,7 +433,7 @@ def _get_empty_dtype_and_na(join_units):
                 return g, g.type(np.nan)
             elif is_numeric_dtype(g):
                 if has_none_blocks:
-                    return np.float64, np.nan
+                    return np.dtype(np.float64), np.nan
                 else:
                     return g, None
 

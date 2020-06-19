@@ -117,7 +117,7 @@ class build_ext(_build_ext):
 
 DESCRIPTION = "Powerful data structures for data analysis, time series, and statistics"
 LONG_DESCRIPTION = """
-**pandas** is a Python package providing fast, flexible, and expressive data
+**pandas** is a Python package that provides fast, flexible, and expressive data
 structures designed to make working with structured (tabular, multidimensional,
 potentially heterogeneous) and time series data both easy and intuitive. It
 aims to be the fundamental high-level building block for doing practical,
@@ -307,8 +307,9 @@ class CheckSDist(sdist_class):
         "pandas/_libs/sparse.pyx",
         "pandas/_libs/ops.pyx",
         "pandas/_libs/parsers.pyx",
-        "pandas/_libs/tslibs/c_timestamp.pyx",
+        "pandas/_libs/tslibs/base.pyx",
         "pandas/_libs/tslibs/ccalendar.pyx",
+        "pandas/_libs/tslibs/dtypes.pyx",
         "pandas/_libs/tslibs/period.pyx",
         "pandas/_libs/tslibs/strptime.pyx",
         "pandas/_libs/tslibs/np_datetime.pyx",
@@ -318,7 +319,6 @@ class CheckSDist(sdist_class):
         "pandas/_libs/tslibs/conversion.pyx",
         "pandas/_libs/tslibs/fields.pyx",
         "pandas/_libs/tslibs/offsets.pyx",
-        "pandas/_libs/tslibs/frequencies.pyx",
         "pandas/_libs/tslibs/resolution.pyx",
         "pandas/_libs/tslibs/parsing.pyx",
         "pandas/_libs/tslibs/tzconversion.pyx",
@@ -602,11 +602,9 @@ ext_data = {
     "_libs.reshape": {"pyxfile": "_libs/reshape", "depends": []},
     "_libs.sparse": {"pyxfile": "_libs/sparse", "depends": _pxi_dep["sparse"]},
     "_libs.tslib": {"pyxfile": "_libs/tslib", "depends": tseries_depends},
-    "_libs.tslibs.c_timestamp": {
-        "pyxfile": "_libs/tslibs/c_timestamp",
-        "depends": tseries_depends,
-    },
+    "_libs.tslibs.base": {"pyxfile": "_libs/tslibs/base"},
     "_libs.tslibs.ccalendar": {"pyxfile": "_libs/tslibs/ccalendar"},
+    "_libs.tslibs.dtypes": {"pyxfile": "_libs/tslibs/dtypes"},
     "_libs.tslibs.conversion": {
         "pyxfile": "_libs/tslibs/conversion",
         "depends": tseries_depends,
@@ -616,7 +614,6 @@ ext_data = {
         "pyxfile": "_libs/tslibs/fields",
         "depends": tseries_depends,
     },
-    "_libs.tslibs.frequencies": {"pyxfile": "_libs/tslibs/frequencies"},
     "_libs.tslibs.nattype": {"pyxfile": "_libs/tslibs/nattype"},
     "_libs.tslibs.np_datetime": {
         "pyxfile": "_libs/tslibs/np_datetime",

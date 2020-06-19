@@ -20,7 +20,7 @@ from pandas._libs import algos as libalgos, index as libindex, lib
 from pandas._libs.hashtable import duplicated_int64
 from pandas._typing import AnyArrayLike, Scalar
 from pandas.compat.numpy import function as nv
-from pandas.errors import PerformanceWarning, UnsortedIndexError
+from pandas.errors import InvalidIndexError, PerformanceWarning, UnsortedIndexError
 from pandas.util._decorators import Appender, cache_readonly, doc
 
 from pandas.core.dtypes.cast import coerce_indexer_dtype
@@ -45,12 +45,7 @@ from pandas.core.arrays import Categorical
 from pandas.core.arrays.categorical import factorize_from_iterables
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import (
-    Index,
-    InvalidIndexError,
-    _index_shared_docs,
-    ensure_index,
-)
+from pandas.core.indexes.base import Index, _index_shared_docs, ensure_index
 from pandas.core.indexes.frozen import FrozenList
 from pandas.core.indexes.numeric import Int64Index
 import pandas.core.missing as missing
@@ -387,7 +382,7 @@ class MultiIndex(Index):
         return new_codes
 
     @classmethod
-    def from_arrays(cls, arrays, sortorder=None, names=lib.no_default):
+    def from_arrays(cls, arrays, sortorder=None, names=lib.no_default) -> "MultiIndex":
         """
         Convert arrays to MultiIndex.
 
@@ -903,8 +898,7 @@ class MultiIndex(Index):
 
     def set_codes(self, codes, level=None, inplace=False, verify_integrity=True):
         """
-        Set new codes on MultiIndex. Defaults to returning
-        new index.
+        Set new codes on MultiIndex. Defaults to returning new index.
 
         .. versionadded:: 0.24.0
 
@@ -1464,7 +1458,7 @@ class MultiIndex(Index):
 
         # reversed() because lexsort() wants the most significant key last.
         values = [
-            self._get_level_values(i).values for i in reversed(range(len(self.levels)))
+            self._get_level_values(i)._values for i in reversed(range(len(self.levels)))
         ]
         try:
             sort_order = np.lexsort(values)
@@ -1541,8 +1535,9 @@ class MultiIndex(Index):
 
     def get_level_values(self, level):
         """
-        Return vector of label values for requested level,
-        equal to the length of the index.
+        Return vector of label values for requested level.
+
+        Length of returned vector is equal to the length of the index.
 
         Parameters
         ----------
@@ -1797,12 +1792,12 @@ class MultiIndex(Index):
 
     def remove_unused_levels(self):
         """
-        Create a new MultiIndex from the current that removes
-        unused levels, meaning that they are not expressed in the labels.
+        Create new MultiIndex from current that removes unused levels.
 
-        The resulting MultiIndex will have the same outward
-        appearance, meaning the same .values and ordering. It will also
-        be .equals() to the original.
+        Unused level(s) means levels that are not expressed in the
+        labels. The resulting MultiIndex will have the same outward
+        appearance, meaning the same .values and ordering. It will
+        also be .equals() to the original.
 
         Returns
         -------
@@ -1896,7 +1891,7 @@ class MultiIndex(Index):
 
     def __getitem__(self, key):
         if is_scalar(key):
-            key = com.cast_scalar_indexer(key)
+            key = com.cast_scalar_indexer(key, warn_float=True)
 
             retval = []
             for lev, level_codes in zip(self.levels, self.codes):
@@ -2195,8 +2190,10 @@ class MultiIndex(Index):
 
     def sortlevel(self, level=0, ascending=True, sort_remaining=True):
         """
-        Sort MultiIndex at the requested level. The result will respect the
-        original ordering of the associated factor at that level.
+        Sort MultiIndex at the requested level.
+
+        The result will respect the original ordering of the associated
+        factor at that level.
 
         Parameters
         ----------
@@ -2455,7 +2452,7 @@ class MultiIndex(Index):
                     "tolerance not implemented yet for MultiIndex"
                 )
             indexer = self._engine.get_indexer(
-                values=self.values, target=target, method=method, limit=limit
+                values=self._values, target=target, method=method, limit=limit
             )
         elif method == "nearest":
             raise NotImplementedError(
@@ -2634,8 +2631,10 @@ class MultiIndex(Index):
 
     def get_loc(self, key, method=None):
         """
-        Get location for a label or a tuple of labels as an integer, slice or
-        boolean mask.
+        Get location for a label or a tuple of labels.
+
+        The location is returned as an integer/slice or boolean
+        mask.
 
         Parameters
         ----------
@@ -2743,8 +2742,7 @@ class MultiIndex(Index):
 
     def get_loc_level(self, key, level=0, drop_level: bool = True):
         """
-        Get both the location for the requested label(s) and the
-        resulting sliced index.
+        Get location and sliced index for requested label(s)/level(s).
 
         Parameters
         ----------
@@ -2784,7 +2782,7 @@ class MultiIndex(Index):
         def maybe_mi_droplevels(indexer, levels, drop_level: bool):
             if not drop_level:
                 return self[indexer]
-            # kludgearound
+            # kludge around
             orig_index = new_index = self[indexer]
             levels = [self._get_level_number(i) for i in levels]
             for i in sorted(levels, reverse=True):
@@ -3217,7 +3215,8 @@ class MultiIndex(Index):
             if not is_object_dtype(other.dtype):
                 # other cannot contain tuples, so cannot match self
                 return False
-
+            elif len(self) != len(other):
+                return False
             return array_equivalent(self._values, other._values)
 
         if self.nlevels != other.nlevels:
