@@ -1,5 +1,5 @@
 import numbers
-from typing import TYPE_CHECKING, List, Optional, Tuple, Type, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Type, Union
 import warnings
 
 import numpy as np
@@ -10,7 +10,6 @@ from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_dtype,
@@ -94,10 +93,14 @@ class _IntegerDtype(BaseMaskedDtype):
 
     def _get_common_dtype(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
         # for now only handle other integer types
-        if not all(isinstance(t, _IntegerDtype) for t in dtypes):
+        if not all(
+            isinstance(t, _IntegerDtype)
+            or (isinstance(t, np.dtype) and np.issubdtype(t, np.integer))
+            for t in dtypes
+        ):
             return None
         np_dtype = np.find_common_type(
-            [t.numpy_dtype for t in dtypes], []  # type: ignore
+            [t.numpy_dtype if isinstance(t, BaseMaskedDtype) else t for t in dtypes], []
         )
         if np.issubdtype(np_dtype, np.integer):
             return _dtypes[str(np_dtype)]
@@ -442,29 +445,31 @@ class IntegerArray(BaseMaskedArray):
             if incompatible type with an IntegerDtype, equivalent of same_kind
             casting
         """
-        from pandas.core.arrays.boolean import BooleanArray, BooleanDtype
+        from pandas.core.arrays.boolean import BooleanDtype
+        from pandas.core.arrays.string_ import StringDtype
 
         dtype = pandas_dtype(dtype)
 
         # if we are astyping to an existing IntegerDtype we can fastpath
         if isinstance(dtype, _IntegerDtype):
             result = self._data.astype(dtype.numpy_dtype, copy=False)
-            return type(self)(result, mask=self._mask, copy=False)
+            return dtype.construct_array_type()(result, mask=self._mask, copy=False)
         elif isinstance(dtype, BooleanDtype):
             result = self._data.astype("bool", copy=False)
-            return BooleanArray(result, mask=self._mask, copy=False)
+            return dtype.construct_array_type()(result, mask=self._mask, copy=False)
+        elif isinstance(dtype, StringDtype):
+            return dtype.construct_array_type()._from_sequence(self, copy=False)
 
         # coerce
         if is_float_dtype(dtype):
             # In astype, we consider dtype=float to also mean na_value=np.nan
-            kwargs = dict(na_value=np.nan)
+            na_value = np.nan
         elif is_datetime64_dtype(dtype):
-            kwargs = dict(na_value=np.datetime64("NaT"))
+            na_value = np.datetime64("NaT")
         else:
-            kwargs = {}
+            na_value = lib.no_default
 
-        data = self.to_numpy(dtype=dtype, **kwargs)
-        return astype_nansafe(data, dtype, copy=False)
+        return self.to_numpy(dtype=dtype, na_value=na_value, copy=False)
 
     def _values_for_argsort(self) -> np.ndarray:
         """
@@ -722,7 +727,7 @@ class UInt64Dtype(_IntegerDtype):
     __doc__ = _dtype_docstring.format(dtype="uint64")
 
 
-_dtypes = {
+_dtypes: Dict[str, _IntegerDtype] = {
     "int8": Int8Dtype(),
     "int16": Int16Dtype(),
     "int32": Int32Dtype(),
