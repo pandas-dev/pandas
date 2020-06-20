@@ -7288,7 +7288,7 @@ NaN 12.3   33.0
     core.resample.Resampler : Perform operations over resampled bins.
     core.window.Rolling : Perform operations over rolling window.
     core.window.Expanding : Perform operations over expanding window.
-    core.window.EWM : Perform operation over exponential weighted
+    core.window.ExponentialMovingWindow : Perform operation over exponential weighted
         window.
     """
     )
@@ -8171,7 +8171,7 @@ NaN 12.3   33.0
         See Also
         --------
         Series.cov : Compute covariance with another Series.
-        core.window.EWM.cov: Exponential weighted sample covariance.
+        core.window.ExponentialMovingWindow.cov: Exponential weighted sample covariance.
         core.window.Expanding.cov : Expanding sample covariance.
         core.window.Rolling.cov : Rolling sample covariance.
 
