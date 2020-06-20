@@ -409,6 +409,7 @@ class TestSeriesReplace:
         ser.replace("", "")  # no exception
 
     def test_replace_equal_value_different_dtype(self):
+        # https://github.com/pandas-dev/pandas/issues/34871
         ser = pd.Series([1, 2, 3], dtype=int)
         result = ser.replace(1.0, 0)
         expected = pd.Series([0, 2, 3], dtype=int)
