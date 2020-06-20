@@ -18,22 +18,13 @@ from pandas.core.dtypes.common import is_integer_dtype
 import pandas as pd
 from pandas import (
     Categorical,
-    CategoricalDtype,
     DataFrame,
     Index,
-    Int8Dtype,
-    Int16Dtype,
-    Int32Dtype,
-    Int64Dtype,
     MultiIndex,
     RangeIndex,
     Series,
     Timedelta,
     Timestamp,
-    UInt8Dtype,
-    UInt16Dtype,
-    UInt32Dtype,
-    UInt64Dtype,
     date_range,
     isna,
 )
@@ -2255,102 +2246,31 @@ class TestDataFrameConstructors:
         assert df.index.name == "id"
 
     @pytest.mark.parametrize(
-        "input_value, expected_value",
-        [
-            # Unsigned int datatype
-            ("uint8", np.dtype("uint8")),
-            ("uint16", np.dtype("uint16")),
-            ("uint32", np.dtype("uint32")),
-            ("uint64", np.dtype("uint64")),
-            (np.dtype("uint8"), np.dtype("uint8")),
-            (np.dtype("uint16"), np.dtype("uint16")),
-            (np.dtype("uint32"), np.dtype("uint32")),
-            (np.dtype("uint64"), np.dtype("uint64")),
-            # Unsigned ea int datatype
-            ("UInt8", UInt8Dtype()),
-            ("UInt16", UInt16Dtype()),
-            ("UInt32", UInt32Dtype()),
-            ("UInt64", UInt64Dtype()),
-            (UInt8Dtype(), UInt8Dtype()),
-            (UInt16Dtype(), UInt16Dtype()),
-            (UInt32Dtype(), UInt32Dtype()),
-            (UInt64Dtype(), UInt64Dtype()),
-            # Int datatype
-            (int, np.dtype("int64")),
-            ("int", np.dtype("int64")),
-            ("int8", np.dtype("int8")),
-            ("int16", np.dtype("int16")),
-            ("int32", np.dtype("int32")),
-            ("int64", np.dtype("int64")),
-            (np.dtype("int8"), np.dtype("int8")),
-            (np.dtype("int16"), np.dtype("int16")),
-            (np.dtype("int32"), np.dtype("int32")),
-            (np.dtype("int64"), np.dtype("int64")),
-            # Int ea datatype
-            ("Int8", Int8Dtype()),
-            ("Int16", Int16Dtype()),
-            ("Int32", Int32Dtype()),
-            ("Int64", Int64Dtype()),
-            (Int8Dtype(), Int8Dtype()),
-            (Int16Dtype(), Int16Dtype()),
-            (Int32Dtype(), Int32Dtype()),
-            (Int64Dtype(), Int64Dtype()),
-            # Floats
-            (float, np.dtype("float64")),
-            ("float", np.dtype("float64")),
-            ("float16", np.dtype("float16")),
-            ("float32", np.dtype("float32")),
-            ("float64", np.dtype("float64")),
-            ("Float16", np.dtype("float16")),
-            ("Float32", np.dtype("float32")),
-            ("Float64", np.dtype("float64")),
-            (np.dtype("float16"), np.dtype("float16")),
-            (np.dtype("float32"), np.dtype("float32")),
-            (np.dtype("float64"), np.dtype("float64")),
-            # Complex
-            (complex, np.dtype("complex128")),
-            ("complex", np.dtype("complex128")),
-            ("complex64", np.dtype("complex64")),
-            ("complex128", np.dtype("complex128")),
-            ("complex256", np.dtype("complex256")),
-            ("Complex64", np.dtype("complex128")),
-            ("Complex128", np.dtype("complex256")),
-            (np.dtype("complex64"), np.dtype("complex64")),
-            (np.dtype("complex128"), np.dtype("complex128")),
-            (np.dtype("complex256"), np.dtype("complex256")),
-            # Strings
-            (str, np.dtype("O")),
-            (bytes, np.dtype("O")),
-            ("str", np.dtype("O")),
-            ("bytes", np.dtype("O")),
-            ("U", np.dtype("O")),
-            ("object", np.dtype("O")),
-            ("bytes", np.dtype("O")),
-            (np.dtype("O"), np.dtype("O")),
-            # Datetime-like objects
-            ("M8[ns]", np.dtype("<M8[ns]")),
-            ("datetime64[ns]", np.dtype("<M8[ns]")),
-            (np.dtype("<M8[ns]"), np.dtype("<M8[ns]")),
-            ("m8[ns]", np.dtype("<m8[ns]")),
-            ("timedelta64[ns]", np.dtype("<m8[ns]")),
-            (np.dtype("<m8[ns]"), np.dtype("<m8[ns]")),
-            # Boolean
-            (bool, np.dtype("bool")),
-            ("bool", np.dtype("bool")),
-            (np.dtype("bool"), np.dtype("bool")),
-            # Categorical
-            ("category", CategoricalDtype(categories=[], ordered=False)),
-            (
-                CategoricalDtype(categories=[], ordered=False),
-                CategoricalDtype(categories=[], ordered=False),
-            ),
-        ],
+        "dtype",
+        tm.ALL_INT_DTYPES
+        + tm.ALL_EA_INT_DTYPES
+        + tm.FLOAT_DTYPES
+        + tm.COMPLEX_DTYPES
+        + tm.DATETIME64_DTYPES
+        + tm.TIMEDELTA64_DTYPES
+        + tm.BOOL_DTYPES,
     )
-    def test_check_dtype_empty_column(self, input_value, expected_value):
+    def test_check_dtype_empty_numeric_column(self, dtype):
         # GH24386: Ensure dtypes are set correctly for an empty DataFrame.
         # Empty DataFrame is generated via dictionary data with non-overlapping columns.
-        data = pd.DataFrame({"a": [1, 2]}, columns=["b"], dtype=input_value)
-        assert data.b.dtype == expected_value
+        data = pd.DataFrame({"a": [1, 2]}, columns=["b"], dtype=dtype)
+
+        assert data.b.dtype == dtype
+
+    @pytest.mark.parametrize(
+        "dtype", tm.STRING_DTYPES + tm.BYTES_DTYPES + tm.OBJECT_DTYPES
+    )
+    def test_check_dtype_empty_string_column(self, dtype):
+        # GH24386: Ensure dtypes are set correctly for an empty DataFrame.
+        # Empty DataFrame is generated via dictionary data with non-overlapping columns.
+        data = pd.DataFrame({"a": [1, 2]}, columns=["b"], dtype=dtype)
+
+        assert data.b.dtype.name == "object"
 
     def test_from_records_with_datetimes(self):
 
