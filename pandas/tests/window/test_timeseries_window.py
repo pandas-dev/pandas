@@ -55,9 +55,7 @@ class TestRollingTS:
         df = self.regular
 
         # not a valid freq
-        msg = (
-            "passed window foobar is not compatible with a datetimelike index"
-        )
+        msg = "passed window foobar is not compatible with a datetimelike index"
         with pytest.raises(ValueError, match=msg):
             df.rolling(window="foobar")
         # not a datetimelike index
@@ -84,10 +82,7 @@ class TestRollingTS:
                 df.rolling(window="1D", min_periods=minp)
 
         # center is not implemented
-        msg = (
-            r"center is not implemented for datetimelike and offset based "
-            r"windows"
-        )
+        msg = r"center is not implemented for datetimelike and offset based " r"windows"
         with pytest.raises(NotImplementedError, match=msg):
             df.rolling(window="1D", center=True)
 
