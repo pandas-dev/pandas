@@ -5,6 +5,7 @@ Base and utility classes for pandas objects.
 import builtins
 import textwrap
 from typing import Any, Dict, FrozenSet, List, Optional, Union
+import warnings
 
 import numpy as np
 
@@ -581,12 +582,17 @@ class ShallowMixin:
         """
         return a new object with the replacement attributes
         """
-        if isinstance(obj, self._constructor):
-            obj = obj.obj
-        for attr in self._attributes:
-            if attr not in kwargs:
-                kwargs[attr] = getattr(self, attr)
-        return self._constructor(obj, **kwargs)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                "The `center` argument on `expanding` will be removed in the future",
+            )
+            if isinstance(obj, self._constructor):
+                obj = obj.obj
+            for attr in self._attributes:
+                if attr not in kwargs:
+                    kwargs[attr] = getattr(self, attr)
+            return self._constructor(obj, **kwargs)
 
 
 class IndexOpsMixin:

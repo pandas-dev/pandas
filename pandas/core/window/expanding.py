@@ -1,5 +1,6 @@
 from textwrap import dedent
 from typing import Dict, Optional
+import warnings
 
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, doc
@@ -57,7 +58,15 @@ class Expanding(_Rolling_and_Expanding):
 
     _attributes = ["min_periods", "center", "axis"]
 
-    def __init__(self, obj, min_periods=1, center=False, axis=0, **kwargs):
+    def __init__(self, obj, min_periods=1, center=None, axis=0, **kwargs):
+        if center is not None:
+            warnings.warn(
+                "The `center` argument on `expanding` will be removed in the future",
+                FutureWarning,
+                stacklevel=3,
+            )
+        else:
+            center = False
         super().__init__(obj=obj, min_periods=min_periods, center=center, axis=axis)
 
     @property
@@ -129,7 +138,12 @@ class Expanding(_Rolling_and_Expanding):
     @Substitution(name="expanding")
     @Appender(_shared_docs["count"])
     def count(self, **kwargs):
-        return super().count(**kwargs)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                "The `center` argument on `expanding` will be removed in the future",
+            )
+            return super().count(**kwargs)
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["apply"])

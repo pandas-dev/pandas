@@ -4,6 +4,7 @@ hold the allowlist of methods that are exposed on the
 SeriesGroupBy and the DataFrameGroupBy objects.
 """
 import collections
+import warnings
 
 from pandas.core.dtypes.common import is_list_like, is_scalar
 
@@ -40,8 +41,12 @@ class GroupByMixin:
             groupby = self._groupby[key]
         except IndexError:
             groupby = self._groupby
-
-        self = type(self)(subset, groupby=groupby, parent=self, **kwargs)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                "The `center` argument on `expanding` will be removed in the future",
+            )
+            self = type(self)(subset, groupby=groupby, parent=self, **kwargs)
         self._reset_cache()
         if subset.ndim == 2:
             if is_scalar(key) and key in subset or is_list_like(key):
