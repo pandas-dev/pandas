@@ -30,7 +30,7 @@ def test_groupby(idx):
     tm.assert_dict_equal(groups, exp)
 
 
-def test_truncate():
+def test_truncate_multiindex():
     # GH 34564 for MultiIndex level names check
     major_axis = Index(list(range(4)))
     minor_axis = Index(list(range(2)))
