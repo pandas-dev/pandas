@@ -1403,3 +1403,9 @@ class TestDataFrameReplace:
         result["B"] = result["B"].replace(7, replacement)
 
         tm.assert_frame_equal(result, expected)
+
+    def test_replace_equal_value_different_dtype(self):
+        df = pd.DataFrame([1, 2, 3], dtype=int)
+        result = df.replace(1.0, 0)
+        expected = pd.DataFrame([0, 2, 3], dtype=int)
+        tm.assert_frame_equal(result, expected)

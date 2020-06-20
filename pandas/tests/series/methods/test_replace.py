@@ -407,3 +407,9 @@ class TestSeriesReplace:
         # https://github.com/pandas-dev/pandas/issues/34530
         ser = pd.Series(pd.array([1, 2, 3], dtype="Int64"))
         ser.replace("", "")  # no exception
+
+    def test_replace_equal_value_different_dtype(self):
+        ser = pd.Series([1, 2, 3], dtype=int)
+        result = ser.replace(1.0, 0)
+        expected = pd.Series([0, 2, 3], dtype=int)
+        tm.assert_series_equal(result, expected)
