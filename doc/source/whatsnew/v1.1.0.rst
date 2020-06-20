@@ -13,6 +13,19 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+.. _whatsnew_110.specify_missing_labels:
+
+KeyErrors raised by loc specify missing labels
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Previously, if labels were missing for a loc call, a Key Error was raised stating that this was no longer supported.
+
+Now the error message also includes a list of the missing labels. For example,
+
+.. ipython:: python
+
+    s = pd.Series({"a": 1, "b": 2, "c": 3})
+    s.loc[["a", "b", "missing_0", "c", "missing_1", "missing_2"]]
+
 .. _whatsnew_110.astype_string:
 
 All dtypes can now be converted to ``StringDtype``
