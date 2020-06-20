@@ -4,7 +4,7 @@ import pytest
 from pandas.errors import UnsupportedFunctionCall
 
 from pandas import DataFrame, Series
-from pandas.core.window import EWF
+from pandas.core.window import Exponential_moving as em
 
 
 def test_doc_string():
@@ -56,7 +56,7 @@ def test_constructor(which):
 @pytest.mark.parametrize("method", ["std", "mean", "var"])
 def test_numpy_compat(method):
     # see gh-12811
-    e = EWF(Series([2, 4, 6]), alpha=0.5)
+    e = em(Series([2, 4, 6]), alpha=0.5)
 
     msg = "numpy operations are not valid with window objects"
 
