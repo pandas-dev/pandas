@@ -8,12 +8,7 @@ from pandas._libs import reduction as libreduction
 from pandas._typing import Axis
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.common import (
-    is_dict_like,
-    is_extension_array_dtype,
-    is_list_like,
-    is_sequence,
-)
+from pandas.core.dtypes.common import is_dict_like, is_list_like, is_sequence
 from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.construction import create_series_with_explicit_dtype
