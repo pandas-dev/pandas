@@ -443,9 +443,8 @@ Faceting, created by ``DataFrame.boxplot`` with the ``by``
 keyword, will affect the output type as well:
 
 ================ ======= ==========================
-``return_type=`` Faceted Output type
----------------- ------- --------------------------
-
+``return_type``  Faceted Output type
+================ ======= ==========================
 ``None``         No      axes
 ``None``         Yes     2-D ndarray of axes
 ``'axes'``       No      axes
