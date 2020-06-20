@@ -1075,3 +1075,12 @@ def test_setitem_with_bool_mask_and_values_matching_n_trues_in_length():
     result = ser
     expected = pd.Series([None] * 3 + list(range(5)) + [None] * 2).astype("object")
     tm.assert_series_equal(result, expected)
+
+
+def test_missing_labels_inside_loc():
+    # GH34272
+    s = pd.Series({"a": 1, "b": 2, "c": 3})
+    with pytest.raises(KeyError) as e:
+        s.loc[["a", "b", "missing_0", "c", "missing_1", "missing_2"]]
+    missing_labels = ["missing_0", "missing_1", "missing_2"]
+    assert all(missing_label in str(e.value) for missing_label in missing_labels)
