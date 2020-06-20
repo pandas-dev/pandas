@@ -359,21 +359,25 @@ class FrameRowApply(FrameApply):
         self, results: ResType, res_index: "Index"
     ) -> "DataFrame":
         """ return the results for the rows """
+
+        if self.result_type == "reduce":
+            # e.g. test_apply_dict GH#8735
+            return self.obj._constructor_sliced(results)
+        elif self.result_type is None and all(
+            isinstance(x, dict) for x in results.values()
+        ):
+            # Our operation was a to_dict op e.g.
+            #  test_apply_dict GH#8735, test_apply_reduce_rows_to_dict GH#25196
+            return self.obj._constructor_sliced(results)
+
         try:
             result = self.obj._constructor(data=results)
         except ValueError as err:
             if "arrays must all be same length" in str(err):
                 # e.g. result = [[2, 3], [1.5], ['foo', 'bar']]
-                if isinstance(results, dict):
-                    # e.g. test_agg_listlike_result GH#29587
-                    arr = results
-                else:
-                    arr = np.empty(len(results), dtype=object)
-                    arr[:] = results
-
-                result = self.obj._constructor_sliced(data=arr)
-                if len(result) == len(res_index):
-                    result.index = res_index
+                #  see test_agg_listlike_result GH#29587
+                result = self.obj._constructor_sliced(results)
+                result.index = res_index
                 return result
             else:
                 raise
