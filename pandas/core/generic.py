@@ -10460,7 +10460,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Add the series or dataframe only operations to the cls; evaluate
         the doc strings again.
         """
-        from pandas.core.window import EWF, Expanding, Rolling, Window
+        from pandas.core.window import exponentialmoving as em
+        from pandas.core.window import Expanding, Rolling, Window
 
         @doc(Rolling)
         def rolling(
@@ -10507,7 +10508,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         cls.expanding = expanding
 
-        @doc(EWF)
+        @doc(em)
         def ewm(
             self,
             com=None,
@@ -10532,7 +10533,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 axis=axis,
             )
 
-        cls.ewm = ewm
+        cls.eem = em
 
     @doc(klass=_shared_doc_kwargs["klass"], axis="")
     def transform(self, func, *args, **kwargs):
