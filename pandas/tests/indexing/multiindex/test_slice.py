@@ -744,11 +744,3 @@ class TestMultiIndexSlicers:
         result = df.loc[tslice_]
         expected = pd.DataFrame({("b", "d"): [4, 1]})
         tm.assert_frame_equal(result, expected)
-
-    def test_truncate_multiindex_names(self):
-        # GH 34564
-
-        mi = pd.MultiIndex.from_product([[1, 2, 3, 4], ["A", "B"]], names=["L1", "L2"])
-        s1 = pd.Series(range(mi.shape[0]), index=mi)
-        s2 = s1.truncate(before=2, after=3)
-        assert s1.index.names == s2.index.names
