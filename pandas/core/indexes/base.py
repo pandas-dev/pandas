@@ -523,7 +523,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Index.identical : Works like ``Index.is_`` but also check metadata.
+        Index.identical : Works like ``Index.is_`` but also checks metadata.
         """
         # use something other than None to be clearer
         return self._id is getattr(other, "_id", Ellipsis) and self._id is not None
