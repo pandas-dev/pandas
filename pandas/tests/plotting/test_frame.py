@@ -3363,6 +3363,23 @@ class TestDataFramePlots(TestPlotBase):
         for legend, line in zip(result.get_legend().legendHandles, result.lines):
             assert legend.get_color() == line.get_color()
 
+    def test_nullable_int_plot(self):
+        # GH 32073
+        dates = ["2008", "2009", None, "2011", "2012"]
+        df = pd.DataFrame(
+            {
+                "A": [1, 2, 3, 4, 5],
+                "B": [7, 5, np.nan, 3, 2],
+                "C": pd.to_datetime(dates, format="%Y"),
+                "D": pd.to_datetime(dates, format="%Y", utc=True),
+            }
+        )
+
+        _check_plot_works(df.plot, x="A", y="B")
+        _check_plot_works(df[["A", "B"]].astype("Int64").plot, x="A", y="B")
+        _check_plot_works(df[["A", "C"]].plot, x="A", y="C")
+        _check_plot_works(df[["A", "D"]].plot, x="A", y="D")
+
 
 def _generate_4_axes_via_gridspec():
     import matplotlib.pyplot as plt
