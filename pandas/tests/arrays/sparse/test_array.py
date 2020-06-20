@@ -1295,3 +1295,14 @@ def test_map_missing():
 
     result = arr.map({0: 10, 1: 11})
     tm.assert_sp_array_equal(result, expected)
+
+
+def test_dropna_sparse_column_doesnt_drop_nonna():
+    # GH-28287
+    arr = SparseArray([np.nan, 1])
+    exp = SparseArray([1.0])
+    tm.assert_sp_array_equal(arr.dropna(), exp)
+
+    df = pd.DataFrame({"a": [0, 1], "b": arr})
+    expected_df = pd.DataFrame({"a": [1], "b": exp}, index=pd.Int64Index([1]))
+    tm.assert_equal(df.dropna(), expected_df)
