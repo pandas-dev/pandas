@@ -28,9 +28,12 @@ def test_constructor(which):
 
     # not valid
     for w in [2.0, "foo", np.array([2])]:
-        with pytest.raises(ValueError):
+        msg = "min_periods must be an integer"
+        with pytest.raises(ValueError, match=msg):
             c(min_periods=w)
-        with pytest.raises(ValueError):
+
+        msg = "center must be a boolean"
+        with pytest.raises(ValueError, match=msg):
             c(min_periods=1, center=w)
 
 
