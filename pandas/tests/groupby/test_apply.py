@@ -974,3 +974,21 @@ def test_apply_function_with_indexing_return_column():
     result = df.groupby("foo1", as_index=False).apply(lambda x: x.mean())
     expected = DataFrame({"foo1": ["one", "three", "two"], "foo2": [3.0, 4.0, 4.0]})
     tm.assert_frame_equal(result, expected)
+
+
+def test_apply_function_called_count(capsys):
+    # GH: 31111
+    # groupby-apply need to execute len(set(group_by_columns)) times
+    # `https://github.com/pandas-dev/pandas/issues/31111`
+    
+
+    function_called_count = 2 # Number of times `apply` should call a function for the current test
+    
+    df = pd.DataFrame({"group_by_column": [0, 0, 0, 0, 1, 1, 1, 1],
+                    "test_column": ["0", "2", "4", "6", "8", "10", "12", "14"]},
+                   index=["0", "2", "4",  "6", "8", "10", "12", "14"])
+
+    df.groupby('group_by_column').apply(lambda df:print("function_called"))
+
+    # If `groupby` behaves unexpectedly, this test will break
+    assert capsys.readouterr().out.count("function_called") == function_called_count
