@@ -200,7 +200,7 @@ You should see a welcome message, your installation is complete! In case of prob
 **Development inside Docker container**
 
 You can launch a remote session with Visual Studio Code, a popular free IDE, using the `.devcontainer.json` file in root directory. To do that you need to 
-Install `Visual Studio Code <https://code.visualstudio.com/insiders/>`_ and the `Remote Development extension pack <https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.vscode-remote-extensionpack>`_. Then follow these `steps <https://code.visualstudio.com/docs/remote/containers#_quick-start-try-a-dev-container>`_ to connect to remote session.
+Install `Visual Studio Code <https://code.visualstudio.com/insiders/>`_ and the `Remote Development extension pack <https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.vscode-remote-extensionpack>`_. Then follow these `steps <https://code.visualstudio.com/docs/remote/containers#_quick-start-open-an-existing-folder-in-a-container>`_ to connect to remote session.
 You can always access the container using built-in terminal in VS Code.
 
 
