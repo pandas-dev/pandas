@@ -63,7 +63,7 @@ class EWF(_Rolling):
     r"""
     Provide exponential weighted Functions(EWF).
 
-    Available Exponential Weighted functions: ``mean()``, ``var()``, ``std()``, ``corr()``, ``cov()``.
+    Available functions: ``mean()``, ``var()``, ``std()``, ``corr()``, ``cov()``.
 
     Exactly one parameter: ``com``, ``span``, ``halflife``, or ``alpha`` must be
     provided.
