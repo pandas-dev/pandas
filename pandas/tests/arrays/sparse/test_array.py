@@ -1298,7 +1298,7 @@ def test_map_missing():
 
 
 @pytest.mark.parametrize("fill_value", [np.nan, 1])
-def test_dropna_sparse_column_doesnt_drop_nonna(fill_value):
+def test_dropna(fill_value):
     # GH-28287
     arr = SparseArray([np.nan, 1], fill_value=fill_value)
     exp = SparseArray([1.0], fill_value=fill_value)
