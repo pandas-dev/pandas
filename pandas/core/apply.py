@@ -357,7 +357,7 @@ class FrameRowApply(FrameApply):
 
     def wrap_results_for_axis(
         self, results: ResType, res_index: "Index"
-    ) -> "DataFrame":
+    ) -> Union["Series", "DataFrame"]:
         """ return the results for the rows """
 
         if self.result_type == "reduce":
@@ -376,9 +376,9 @@ class FrameRowApply(FrameApply):
             if "arrays must all be same length" in str(err):
                 # e.g. result = [[2, 3], [1.5], ['foo', 'bar']]
                 #  see test_agg_listlike_result GH#29587
-                result = self.obj._constructor_sliced(results)
-                result.index = res_index
-                return result
+                res = self.obj._constructor_sliced(results)
+                res.index = res_index
+                return res
             else:
                 raise
 
