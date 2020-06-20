@@ -4,6 +4,8 @@ from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional, Tuple, Type, Un
 
 import numpy as np
 
+from pandas._config import option_context
+
 from pandas._libs import reduction as libreduction
 from pandas._typing import Axis
 from pandas.util._decorators import cache_readonly
@@ -298,7 +300,14 @@ class FrameApply(metaclass=abc.ABCMeta):
         else:
             for i, v in series_gen_enumeration:
 
-                results[i] = self.f(v)
+                with option_context("mode.chained_assignment", None):
+                    # ignore SettingWithCopy here in case the user mutates
+                    results[i] = self.f(v)
+
+                if isinstance(results[i], ABCSeries):
+                    # If we have a view on v, we need to make a copy because
+                    #  series_generator will swap out the underlying data
+                    results[i] = results[i].copy(deep=False)
 
         return results, res_index
 
@@ -309,7 +318,6 @@ class FrameApply(metaclass=abc.ABCMeta):
 
         # see if we can infer the results
         if len(results) > 0 and 0 in results and is_sequence(results[0]):
-
             return self.wrap_results_for_axis(results, res_index)
 
         # dict of scalars
@@ -351,7 +359,24 @@ class FrameRowApply(FrameApply):
         self, results: ResType, res_index: "Index"
     ) -> "DataFrame":
         """ return the results for the rows """
-        result = self.obj._constructor(data=results)
+        try:
+            result = self.obj._constructor(data=results)
+        except ValueError as err:
+            if "arrays must all be same length" in str(err):
+                # e.g. result = [[2, 3], [1.5], ['foo', 'bar']]
+                if isinstance(results, dict):
+                    # e.g. test_agg_listlike_result GH#29587
+                    arr = results
+                else:
+                    arr = np.empty(len(results), dtype=object)
+                    arr[:] = results
+
+                result = self.obj._constructor_sliced(data=arr)
+                if len(result) == len(res_index):
+                    result.index = res_index
+                return result
+            else:
+                raise
 
         if not isinstance(results[0], ABCSeries):
             if len(result.index) == len(self.res_columns):
@@ -406,9 +431,7 @@ class FrameColumnApply(FrameApply):
 
         # we have a non-series and don't want inference
         elif not isinstance(results[0], ABCSeries):
-            from pandas import Series
-
-            result = Series(results)
+            result = self.obj._constructor_sliced(results)
             result.index = res_index
 
         # we may want to infer results
