@@ -688,9 +688,13 @@ class Block(PandasObject):
         # retry
         if not self._can_hold_element(to_replace):
             if not isinstance(to_replace, list):
-                if inplace:
-                    return [self]
-                return [self.copy()]
+                return self.astype(object).replace(
+                    to_replace=to_replace,
+                    value=value,
+                    inplace=inplace,
+                    regex=regex,
+                    convert=convert,
+                )
 
             to_replace = [x for x in to_replace if self._can_hold_element(x)]
             if not len(to_replace):
