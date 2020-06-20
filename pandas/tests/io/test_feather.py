@@ -115,6 +115,7 @@ class TestFeather:
         columns = ["col1", "col3"]
         self.check_round_trip(df, expected=df[columns], columns=columns)
 
+    @td.skip_if_no("pyarrow", min_version="0.17.1")
     def read_columns_different_order(self):
         # GH 33878
         df = pd.DataFrame({"A": [1, 2], "B": ["x", "y"], "C": [True, False]})
