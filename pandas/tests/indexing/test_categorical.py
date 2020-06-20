@@ -807,12 +807,11 @@ class TestCategoricalIndex:
         expected = DataFrame({"A": ["qux", "qux2", "baz"]}, index=cat_idx)
         tm.assert_frame_equal(result, expected)
 
-    def test_align_keeps_categorical_index(self):
+    def test_align(self):
         # GH-28397
-        df_1, df_2 = self.df.copy(), self.df.copy()
+        df_1, df_2 = self.df.copy(), self.df.copy().iloc[::-1]
 
         aligned_1, aligned_2 = df_1.align(df_2)
         assert isinstance(aligned_1.index, CategoricalIndex)
         assert isinstance(aligned_2.index, CategoricalIndex)
-        tm.assert_index_equal(aligned_1.index, df_1.index)
-        tm.assert_index_equal(aligned_2.index, df_2.index)
+        tm.assert_index_equal(aligned_1.index, aligned_2.index)
