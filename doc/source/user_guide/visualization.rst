@@ -1083,7 +1083,6 @@ keywords are passed along to the corresponding matplotlib function
 :meth:`ax.scatter() <matplotlib.axes.Axes.scatter>`). These can be used
 to control additional styling, beyond what pandas provides.
 
-
 Controlling the legend
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1129,7 +1128,7 @@ it empty for ylabel.
    df.plot()
 
    @savefig plot_xlabel_ylabel.png
-   df_labels.plot(xlabel="new x", ylabel="new y")
+   df.plot(xlabel="new x", ylabel="new y")
 
 .. ipython:: python
    :suppress:
