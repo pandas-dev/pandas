@@ -1108,6 +1108,34 @@ shown by default.
 
    plt.close('all')
 
+
+Controlling the labels
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 1.1.0
+
+You may set the ``xlabel`` and ``ylabel`` arguments to give the plot custom labels
+for x and y axis. By default, Pandas will pick up index name as xlabel, while leaving
+it empty for ylabel.
+
+.. ipython:: python
+   :suppress:
+
+   plt.figure()
+
+.. ipython:: python
+
+   df = pd.DataFrame([[1, 2], [2, 5]], columns=["A", "B"])
+
+   df.plot()  # default setting
+
+   df.plot(xlabel="new A", ylabel="Y column")
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
 Scales
 ~~~~~~
 
