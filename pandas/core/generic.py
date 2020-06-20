@@ -4283,8 +4283,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Create a dataframe with some fictional data.
 
         >>> index = ['Firefox', 'Chrome', 'Safari', 'IE10', 'Konqueror']
-        >>> df = pd.DataFrame({{'http_status': [200, 200, 404, 404, 301],
-        ...                   'response_time': [0.04, 0.02, 0.07, 0.08, 1.0]}},
+        >>> df = pd.DataFrame(dict(http_status=[200, 200, 404, 404, 301],
+        ...                   response_time=[0.04, 0.02, 0.07, 0.08, 1.0]),
         ...                   index=index)
         >>> df
                    http_status  response_time
@@ -4355,7 +4355,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         of dates).
 
         >>> date_index = pd.date_range('1/1/2010', periods=6, freq='D')
-        >>> df2 = pd.DataFrame({{"prices": [100, 101, np.nan, 100, 89, 88]}},
+        >>> df2 = pd.DataFrame(dict(prices=[100, 101, np.nan, 100, 89, 88]),
         ...                    index=date_index)
         >>> df2
                     prices
