@@ -86,7 +86,7 @@ from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
 from pandas.core import missing, nanops
-from pandas.core._shared_docs import _shared_docs
+from pandas.core.shared_docs import _shared_docs
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
 import pandas.core.common as com
