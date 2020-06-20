@@ -726,6 +726,24 @@ def test_as_index_series_column_slice_raises(df):
         grouped["C"].__getitem__("D")
 
 
+def test_as_index_produces_same_min():
+    # GH26321
+    dates = ["2019-05-09", "2019-05-09", "2019-05-09"]
+    date_series = pd.Series(dates)
+    date_series_parsed = pd.to_datetime(date_series, format="%Y-%m-%d").dt.date
+
+    df = pd.DataFrame(
+        {"a": [np.nan, "1", np.nan], "b": [0, 1, 1], "c": date_series_parsed}
+    )
+
+    tm.assert_series_equal(
+        df.groupby("b")["c"].min(),
+        df.groupby("b", as_index=False)["c"].min()["c"],
+        check_index_type=False,
+        check_names=False,
+    )
+
+
 def test_groupby_as_index_cython(df):
     data = df
 
