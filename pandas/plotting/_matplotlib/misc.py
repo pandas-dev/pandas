@@ -301,6 +301,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     for axis in axes:
         plt.setp(axis.get_xticklabels(), fontsize=8)
         plt.setp(axis.get_yticklabels(), fontsize=8)
+    plt.tight_layout()
     return fig
 
 
