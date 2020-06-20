@@ -994,5 +994,6 @@ def test_is_dtype_no_warning(check):
 
 
 def test_check_dtype_empty_column():
+    # GH24386: Ensure dtypes are set correctly for empty integer columns
     data = pd.DataFrame({"a": [1, 2]}, columns=["b"], dtype=int)
     assert data.b.dtype is np.dtype("int")
