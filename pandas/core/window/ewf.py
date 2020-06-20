@@ -59,7 +59,7 @@ def get_center_of_mass(
     return float(comass)
 
 
-class EWF(_Rolling):
+class Exponential_moving(_Rolling):
     r"""
     Provide exponential weighted Functions(EWF).
 
