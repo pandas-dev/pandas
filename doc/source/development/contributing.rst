@@ -194,7 +194,7 @@ Run the following command in your terminal::
 
     docker run hello-world
 
-You should see a welcome message, your installation is complete! In case of problems refer to these pages with common issues on: `Windows <>https://docs.docker.com/docker-for-windows/troubleshoot/`_, 
+You should see a welcome message, your installation is complete! In case of problems refer to these pages with common issues on: `Windows <https://docs.docker.com/docker-for-windows/troubleshoot/>`_, 
 `MacOS <https://docs.docker.com/docker-for-mac/troubleshoot/>`_.
 
 **Development inside Docker container**
