@@ -10,7 +10,6 @@ from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_dtype,
@@ -94,10 +93,14 @@ class _IntegerDtype(BaseMaskedDtype):
 
     def _get_common_dtype(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
         # for now only handle other integer types
-        if not all(isinstance(t, _IntegerDtype) for t in dtypes):
+        if not all(
+            isinstance(t, _IntegerDtype)
+            or (isinstance(t, np.dtype) and np.issubdtype(t, np.integer))
+            for t in dtypes
+        ):
             return None
         np_dtype = np.find_common_type(
-            [t.numpy_dtype for t in dtypes], []  # type: ignore
+            [t.numpy_dtype if isinstance(t, BaseMaskedDtype) else t for t in dtypes], []
         )
         if np.issubdtype(np_dtype, np.integer):
             return _dtypes[str(np_dtype)]
@@ -460,14 +463,13 @@ class IntegerArray(BaseMaskedArray):
         # coerce
         if is_float_dtype(dtype):
             # In astype, we consider dtype=float to also mean na_value=np.nan
-            kwargs = dict(na_value=np.nan)
+            na_value = np.nan
         elif is_datetime64_dtype(dtype):
-            kwargs = dict(na_value=np.datetime64("NaT"))
+            na_value = np.datetime64("NaT")
         else:
-            kwargs = {}
+            na_value = lib.no_default
 
-        data = self.to_numpy(dtype=dtype, **kwargs)
-        return astype_nansafe(data, dtype, copy=False)
+        return self.to_numpy(dtype=dtype, na_value=na_value, copy=False)
 
     def _values_for_argsort(self) -> np.ndarray:
         """
