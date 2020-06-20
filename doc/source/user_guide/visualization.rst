@@ -1445,7 +1445,7 @@ Plotting with matplotlib table is now supported in  :meth:`DataFrame.plot` and :
 
 .. ipython:: python
 
-   fig, ax = plt.subplots(1, 1, figsize=(7,6.5))
+   fig, ax = plt.subplots(1, 1, figsize=(7, 6.5))
    df = pd.DataFrame(np.random.rand(5, 3), columns=['a', 'b', 'c'])
    ax.xaxis.tick_top() # Display x-axis ticks on top.
 
