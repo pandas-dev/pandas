@@ -178,7 +178,7 @@ cdef class StringVector:
             Py_ssize_t n
             object val
 
-        ao = np.empty(self.data.n, dtype=np.object)
+        ao = np.empty(self.data.n, dtype=object)
         for i in range(self.data.n):
             val = self.data.data[i]
             ao[i] = val
