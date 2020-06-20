@@ -2539,6 +2539,14 @@ class TestDataFrameConstructors:
         assert isinstance(s[0], Timestamp)
         assert s[0] == dates[0][0]
 
+    def test_from_datetime_subclass(self):
+        # GH21142 Verify whether Datetime subclasses are also of dtype datetime
+        class DatetimeSubclass(datetime):
+            pass
+
+        data = pd.DataFrame({"datetime": [DatetimeSubclass(2020, 1, 1, 1, 1)]})
+        assert data.datetime.dtype == "datetime64[ns]"
+
 
 class TestDataFrameConstructorWithDatetimeTZ:
     def test_from_dict(self):
