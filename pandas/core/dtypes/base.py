@@ -8,6 +8,7 @@ import numpy as np
 
 from pandas._typing import DtypeObj
 from pandas.errors import AbstractMethodError
+from pandas._libs.properties import class_property
 
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 
@@ -168,7 +169,7 @@ class ExtensionDtype:
         """
         return "O"
 
-    @property
+    @class_property
     def name(self) -> str:
         """
         A string identifying the data type.
