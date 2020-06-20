@@ -518,7 +518,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        True if both have same underlying data, False otherwise : bool
+        bool
+            True if both have same underlying data, False otherwise.
+
+        See Also
+        --------
+        Index.identical : Works like ``Index.is_`` but also checks metadata.
         """
         # use something other than None to be clearer
         return self._id is getattr(other, "_id", Ellipsis) and self._id is not None
