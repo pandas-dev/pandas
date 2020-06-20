@@ -235,6 +235,8 @@ inferred frequency upon creation:
 
     pd.DatetimeIndex(['2018-01-01', '2018-01-03', '2018-01-05'], freq='infer')
 
+.. _timeseries.converting.format:
+
 Providing a format argument
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -318,6 +320,12 @@ which can be specified. These are computed from the starting point specified by 
 
    pd.to_datetime([1349720105100, 1349720105200, 1349720105300,
                    1349720105400, 1349720105500], unit='ms')
+
+.. note::
+
+   The ``unit`` parameter does not use the same strings as the ``format`` parameter
+   that was discussed :ref:`above<timeseries.converting.format>`). The
+   available units are listed on the documentation for :func:`pandas.to_datetime`.
 
 Constructing a :class:`Timestamp` or :class:`DatetimeIndex` with an epoch timestamp
 with the ``tz`` argument specified will currently localize the epoch timestamps to UTC
