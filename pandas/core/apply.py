@@ -266,53 +266,6 @@ class FrameApply(metaclass=abc.ABCMeta):
         # partial result that may be returned from reduction
         partial_result = None
 
-        # try to reduce first (by default)
-        # this only matters if the reduction in values is of different dtype
-        # e.g. if we want to apply to a SparseFrame, then can't directly reduce
-
-        # we cannot reduce using non-numpy dtypes,
-        # as demonstrated in gh-12244
-        if (
-            self.result_type in ["reduce", None]
-            and not self.dtypes.apply(is_extension_array_dtype).any()
-            # Disallow dtypes where setting _index_data will break
-            #  ExtensionArray values, see GH#31182
-            and not self.dtypes.apply(lambda x: x.kind in ["m", "M"]).any()
-            # Disallow complex_internals since libreduction shortcut raises a TypeError
-            and not self.agg_axis._has_complex_internals
-        ):
-
-            values = self.values
-            index = self.obj._get_axis(self.axis)
-            labels = self.agg_axis
-            empty_arr = np.empty(len(index), dtype=values.dtype)
-
-            # Preserve subclass for e.g. test_subclassed_apply
-            dummy = self.obj._constructor_sliced(
-                empty_arr, index=index, dtype=values.dtype
-            )
-
-            try:
-                result, reduction_success = libreduction.compute_reduction(
-                    values, self.f, axis=self.axis, dummy=dummy, labels=labels
-                )
-            except TypeError:
-                # e.g. test_apply_ignore_failures we just ignore
-                if not self.ignore_failures:
-                    raise
-            except ZeroDivisionError:
-                # reached via numexpr; fall back to python implementation
-                pass
-            else:
-                if reduction_success:
-                    return self.obj._constructor_sliced(result, index=labels)
-
-                # no exceptions - however reduction was unsuccessful,
-                # use the computed function result for first element
-                partial_result = result[0]
-                if isinstance(partial_result, ABCSeries):
-                    partial_result = partial_result.infer_objects()
-
         # compute the result using the series generator,
         # use the result computed while trying to reduce if available.
         results, res_index = self.apply_series_generator(partial_result)
