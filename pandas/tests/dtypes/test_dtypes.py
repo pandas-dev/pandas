@@ -991,3 +991,8 @@ def test_is_dtype_no_warning(check):
 
     with tm.assert_produces_warning(None):
         check(data["A"])
+
+
+def test_check_dtype_empty_column():
+    data = pd.DataFrame({"a": [1, 2]}, columns=["b"], dtype=int)
+    assert data.b.dtype is np.dtype("int")
