@@ -169,3 +169,28 @@ class TestDataFrameDiff:
         )
 
         tm.assert_frame_equal(result, expected)
+
+    def test_diff_integer_na(self):
+        # GH#24171 IntegerNA Support for DataFrame.diff()
+        df = pd.DataFrame(
+            {
+                "a": np.repeat([0, 1, np.nan, 2], 2),
+                "b": np.tile([0, 1, np.nan, 2], 2),
+                "c": np.repeat(np.nan, 8),
+                "d": np.arange(1, 9) ** 2,
+            },
+            dtype="Int64",
+        )
+
+        result = df.diff()
+        expected = pd.DataFrame(
+            {
+                "a": [np.nan, 0, 1, 0, np.nan, np.nan, np.nan, 0],
+                "b": [np.nan, 1, np.nan, np.nan, -2, 1, np.nan, np.nan],
+                "c": np.repeat(np.nan, 8),
+                "d": [np.nan, 3, 5, 7, 9, 11, 13, 15],
+            },
+            dtype="Int64",
+        )
+
+        tm.assert_frame_equal(result, expected)
