@@ -129,7 +129,7 @@ class TestTruncate:
 
     def test_truncate_multiindex(self):
         mi = pd.MultiIndex.from_product([[1, 2, 3, 4], ["A", "B"]], names=["L1", "L2"])
-        s1 = pd.Series(range(mi.shape[0]), index=mi)
+        s1 = pd.Series(range(mi.shape[0]), index=mi, name="col")
         result = s1.truncate(before=2, after=3)
 
         df = pd.DataFrame.from_dict(
