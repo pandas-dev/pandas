@@ -106,6 +106,7 @@ class TestDataFrameTruncate:
         tm.assert_frame_equal(result, expected)
 
     def test_truncate_multiindex(self):
+        # GH 34564
         mi = pd.MultiIndex.from_product([[1, 2, 3, 4], ["A", "B"]], names=["L1", "L2"])
         s1 = pd.DataFrame(range(mi.shape[0]), index=mi, columns=["col"])
         result = s1.truncate(before=2, after=3)
