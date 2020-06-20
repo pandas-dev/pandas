@@ -182,8 +182,9 @@ class TestDataFrameDiff:
             dtype="Int64",
         )
 
-        result = df.diff()
-        expected = pd.DataFrame(
+        # Test case for default behaviour of diff
+        result_default = df.diff()
+        expected_default = pd.DataFrame(
             {
                 "a": [np.nan, 0, 1, 0, np.nan, np.nan, np.nan, 0],
                 "b": [np.nan, 1, np.nan, np.nan, -2, 1, np.nan, np.nan],
@@ -192,5 +193,17 @@ class TestDataFrameDiff:
             },
             dtype="Int64",
         )
+        tm.assert_frame_equal(result_default, expected_default)
 
-        tm.assert_frame_equal(result, expected)
+        # Test case for behaviour with arg: axis=1
+        result_axis_1 = df.diff(axis=1)
+        expected_axis_1 = pd.DataFrame(
+            {
+                "a": np.repeat(np.nan, 8),
+                "b": [0, 1, np.nan, 1, np.nan, np.nan, np.nan, 0],
+                "c": np.repeat(np.nan, 8),
+                "d": np.repeat(np.nan, 8),
+            },
+            dtype="Int64",
+        )
+        tm.assert_frame_equal(result_axis_1, expected_axis_1)
