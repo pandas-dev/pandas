@@ -294,7 +294,7 @@ class _Concatenator:
 
     def __init__(
         self,
-        objs,
+        objs: Union[Iterable[FrameOrSeries], Mapping[Label, FrameOrSeries]],
         axis=0,
         join: str = "outer",
         keys=None,
