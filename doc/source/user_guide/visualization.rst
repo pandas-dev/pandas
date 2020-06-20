@@ -1084,33 +1084,6 @@ keywords are passed along to the corresponding matplotlib function
 to control additional styling, beyond what pandas provides.
 
 
-Controlling the labels
-~~~~~~~~~~~~~~~~~~~~~~
-
-.. versionadded:: 1.1.0
-
-You may set the ``xlabel`` and ``ylabel`` arguments to give the plot custom labels
-for x and y axis. By default, Pandas will pick up index name as xlabel, while leaving
-it empty for ylabel.
-
-.. ipython:: python
-   :suppress:
-
-   plt.figure()
-
-.. ipython:: python
-
-   df_labels = pd.DataFrame([[1, 2], [2, 5]], columns=["A", "B"])
-
-   @savefig plot_xlabel_ylabel.png
-   df_labels.plot(xlabel="new A", ylabel="Y column")
-
-.. ipython:: python
-   :suppress:
-
-   plt.close('all')
-
-
 Controlling the legend
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1130,6 +1103,33 @@ shown by default.
 
    @savefig frame_plot_basic_noleg.png
    df.plot(legend=False)
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
+
+Controlling the labels
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 1.1.0
+
+You may set the ``xlabel`` and ``ylabel`` arguments to give the plot custom labels
+for x and y axis. By default, Pandas will pick up index name as xlabel, while leaving
+it empty for ylabel.
+
+.. ipython:: python
+   :suppress:
+
+   plt.figure()
+
+.. ipython:: python
+
+   df.plot()
+
+   @savefig plot_xlabel_ylabel.png
+   df_labels.plot(xlabel="new x", ylabel="new y")
 
 .. ipython:: python
    :suppress:
