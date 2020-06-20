@@ -74,6 +74,7 @@ HDFStore: PyTables (HDF5)
    :toctree: api/
 
    read_hdf
+   HDFStore
    HDFStore.put
    HDFStore.append
    HDFStore.get
