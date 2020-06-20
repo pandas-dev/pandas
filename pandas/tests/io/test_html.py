@@ -122,6 +122,7 @@ class TestReadHtml:
         tm.assert_frame_equal(res, df)
 
     @tm.network
+    @pytest.mark.xfail(reason="connection issues xref 34893")
     def test_banklist_url_positional_match(self):
         url = "http://www.fdic.gov/bank/individual/failed/banklist.html"
         # Passing match argument as positional should cause a FutureWarning.
@@ -135,6 +136,7 @@ class TestReadHtml:
         assert_framelist_equal(df1, df2)
 
     @tm.network
+    @pytest.mark.xfail(reason="connection issues xref 34893")
     def test_banklist_url(self):
         url = "http://www.fdic.gov/bank/individual/failed/banklist.html"
         df1 = self.read_html(
