@@ -157,34 +157,59 @@ Instead of manually setting up a development environment, you can use Docker to
 automatically create the environment with just several commands. Pandas provides a `DockerFile`
 in the root directory to build a Docker image with a full pandas development environment.
 
-Installing Docker
+**Installing Docker on Windows Home**
 
-**Windows Home**
-Make sure you have Windows 10, version 2004 or higher
-Enable WSL2 (https://docs.microsoft.com/en-us/windows/wsl/install-win10)
-Download and install the Linux kernel update package (https://docs.microsoft.com/pl-pl/windows/wsl/wsl2-kernel)
+First make sure that you have Windows 10 Home, version 2004 or higher. Then proceed with enabling `Windows Subsystem for Linux <https://docs.microsoft.com/en-us/windows/wsl/install-win10>`_
+and download and install the `Linux kernel update package <https://docs.microsoft.com/pl-pl/windows/wsl/wsl2-kernel>`_.
 
-Now download Docker for Windows (https://docs.microsoft.com/pl-pl/windows/wsl/wsl2-kernel)
-When prompted, ensure the Enable WSL 2 Features option is selected on the Configuration page.
+Download and install `Docker for Windows <https://docs.microsoft.com/pl-pl/windows/wsl/wsl2-kernel>`_.
+When prompted, ensure the `Enable WSL 2 Features` option is selected on the Configuration page. After installation docker will not start automatically. To start Docker Desktop, search for Docker, and select Docker Desktop in the search results.
+When the whale icon in the status bar stays steady, Docker Desktop is up-and-running, and is accessible from any terminal window.
 
+See  `official docker documentation <https://docs.docker.com/docker-for-windows/install-windows-home/>`_ for details.
+
+**Windows Pro, Enterprise, or Education**
+
+First make sure that you have Windows 10 64-bit: Pro, Enterprise, or Education (Build 15063 or later). Ensure that Hyper-V (and Containers Windows - is it necessary?) feature is `enabled <https://docs.microsoft.com/en-us/virtualization/hyper-v-on-windows/quick-start/enable-hyper-v>`_.
+
+Download and install `Docker for Windows <https://docs.microsoft.com/pl-pl/windows/wsl/wsl2-kernel>`_.
+When prompted, ensure the `Enable Hyper-V Windows Features` option is selected on the Configuration page.
+If your admin account is different to your user account, you must add the user to the docker-users group. Run Computer Management as an administrator and navigate to `Local Users and Groups > Groups > docker-users`. Right-click to add the user to the group. Log out and log back in for the changes to take effect.
 Docker Desktop does not start automatically after installation. To start Docker Desktop, search for Docker, and select Docker Desktop in the search results.
 When the whale icon in the status bar stays steady, Docker Desktop is up-and-running, and is accessible from any terminal window.
 
+See `official docker documentation <https://docs.docker.com/docker-for-windows/install/>`_ for details.
 
-See https://docs.docker.com/docker-for-windows/install-windows-home/ for details
+**Ubuntu**
 
-**Windows Home**
+See `official docker documentation <https://docs.docker.com/engine/install/ubuntu/>`_ for details.
 
-
-
-
-**Unix**
+See `list of other supported linux distributions <https://docs.docker.com/engine/install/>`_.
 
 
+**MacOS**
 
-Even easier, you can use the DockerFile to launch a remote session with Visual Studio Code,
-a popular free IDE, using the `.devcontainer.json` file.
-See https://code.visualstudio.com/docs/remote/containers for details.
+See `official docker documentation <https://docs.docker.com/docker-for-mac/install/`_ for details.
+
+**Test your Docker installation**
+
+Run `docker run hello-world` in your terminal (`see <https://hub.docker.com/_/hello-world>`_).
+If you see welcome message, your installation is complete!
+
+**Development inside Docker container**
+
+Even easier, you can launch a remote session with Visual Studio Code, a popular free IDE, using the `.devcontainer.json` file in root directory. To do that you need to 
+Install `Visual Studio Code <https://code.visualstudio.com/insiders/>`_ and the `Remote Development extension pack <https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.vscode-remote-extensionpack>`_.
+
+See official `VS Code documentation <https://code.visualstudio.com/docs/remote/containers>`_ for details.
+
+For other IDEs refer to links below:
+* PyCharm Professional: https://www.jetbrains.com/help/pycharm/using-docker-as-a-remote-interpreter.html#
+
+
+
+Known issues:
+Docker can conflict with VirtualBox on Windows 10 Hone, refer to https://www.tcg.com/blog/yes-you-can-run-docker-and-virtualbox-on-windows-10-home/
 
 .. _contributing.dev_c:
 
