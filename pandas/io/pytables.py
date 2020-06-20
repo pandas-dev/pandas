@@ -450,6 +450,7 @@ class HDFStore:
     path : str
         File path to HDF5 file.
     mode : {'a', 'w', 'r', 'r+'}, default 'a'
+
         ``'r'``
             Read-only; no data can be modified.
         ``'w'``
@@ -483,6 +484,17 @@ class HDFStore:
     >>> store['foo'] = bar   # write to HDF5
     >>> bar = store['foo']   # retrieve
     >>> store.close()
+
+    **Create or load HDF5 file in-memory**
+
+    When passing the `driver` option to the PyTables open_file method through
+    **kwargs, the HDF5 file is loaded or created in-memory and will only be
+    written when closed:
+
+    >>> bar = pd.DataFrame(np.random.randn(10, 4))
+    >>> store = pd.HDFStore('test.h5', driver='H5FD_CORE')
+    >>> store['foo'] = bar
+    >>> store.close()   # only now, data is written to disk
     """
 
     _handle: Optional["File"]
