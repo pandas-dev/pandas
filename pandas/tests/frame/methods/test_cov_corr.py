@@ -60,6 +60,7 @@ class TestDataFrameCov:
 
     @pytest.mark.parametrize("test_ddof", [None, 0, 1, 2, 3])
     def test_cov_ddof(self, test_ddof):
+        # GH#34611
         np_array1 = np.random.rand(10)
         np_array2 = np.random.rand(10)
         df = DataFrame({0: np_array1, 1: np_array2})
