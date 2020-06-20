@@ -168,9 +168,9 @@ When the whale icon in the status bar stays steady, Docker Desktop is up-and-run
 
 See  `official docker documentation <https://docs.docker.com/docker-for-windows/install-windows-home/>`_ for details.
 
-**Windows Pro, Enterprise, or Education**
+**Installing Docker on Windows Pro, Enterprise, or Education**
 
-First make sure that you have Windows 10 64-bit: Pro, Enterprise, or Education (Build 15063 or later). Ensure that Hyper-V (and Containers Windows - is it necessary?) feature is `enabled <https://docs.microsoft.com/en-us/virtualization/hyper-v-on-windows/quick-start/enable-hyper-v>`_.
+First make sure that you have Windows 10 64-bit: Pro, Enterprise, or Education (Build 15063 or later). Ensure that Hyper-V feature is `enabled <https://docs.microsoft.com/en-us/virtualization/hyper-v-on-windows/quick-start/enable-hyper-v>`_.
 
 Download and install `Docker for Windows <https://docs.microsoft.com/pl-pl/windows/wsl/wsl2-kernel>`_.
 When prompted, ensure the `Enable Hyper-V Windows Features` option is selected on the Configuration page.
@@ -180,36 +180,33 @@ When the whale icon in the status bar stays steady, Docker Desktop is up-and-run
 
 See `official docker documentation <https://docs.docker.com/docker-for-windows/install/>`_ for details.
 
-**Ubuntu**
+**Installing Docker on Unix**
 
-See `official docker documentation <https://docs.docker.com/engine/install/ubuntu/>`_ for details.
+ See official docker documentation for detailed information on `installing <https://docs.docker.com/engine/install/>`_ Docker in various Linux distributions  and `post-installation steps <https://docs.docker.com/engine/install/linux-postinstall/>`_.
 
-See `list of other supported linux distributions <https://docs.docker.com/engine/install/>`_.
+**Installing Docker on Mac OS**
 
-
-**MacOS**
-
-See `official docker documentation <https://docs.docker.com/docker-for-mac/install/`_ for details.
+See `official docker documentation <https://docs.docker.com/docker-for-mac/install/>`_ for details.
 
 **Test your Docker installation**
 
-Run `docker run hello-world` in your terminal (`see <https://hub.docker.com/_/hello-world>`_).
-If you see welcome message, your installation is complete!
+Run the following command in your terminal::
+
+    docker run hello-world
+
+You should see a welcome message, your installation is complete! In case of problems refer to these pages with common issues on: `Windows <>https://docs.docker.com/docker-for-windows/troubleshoot/`_, 
+`MacOS <https://docs.docker.com/docker-for-mac/troubleshoot/>`_.
 
 **Development inside Docker container**
 
-Even easier, you can launch a remote session with Visual Studio Code, a popular free IDE, using the `.devcontainer.json` file in root directory. To do that you need to 
-Install `Visual Studio Code <https://code.visualstudio.com/insiders/>`_ and the `Remote Development extension pack <https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.vscode-remote-extensionpack>`_.
+You can launch a remote session with Visual Studio Code, a popular free IDE, using the `.devcontainer.json` file in root directory. To do that you need to 
+Install `Visual Studio Code <https://code.visualstudio.com/insiders/>`_ and the `Remote Development extension pack <https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.vscode-remote-extensionpack>`_. Then follow these `steps <https://code.visualstudio.com/docs/remote/containers#_quick-start-try-a-dev-container>`_ to connect to remote session.
+You can always access the container using built-in terminal in VS Code.
 
-See official `VS Code documentation <https://code.visualstudio.com/docs/remote/containers>`_ for details.
 
 For other IDEs refer to links below:
-* PyCharm Professional: https://www.jetbrains.com/help/pycharm/using-docker-as-a-remote-interpreter.html#
+    * `PyCharm Professional <https://www.jetbrains.com/help/pycharm/using-docker-as-a-remote-interpreter.html#>`_
 
-
-
-Known issues:
-Docker can conflict with VirtualBox on Windows 10 Hone, refer to https://www.tcg.com/blog/yes-you-can-run-docker-and-virtualbox-on-windows-10-home/
 
 .. _contributing.dev_c:
 
