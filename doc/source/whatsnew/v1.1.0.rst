@@ -21,11 +21,12 @@ Previously, if labels were missing for a loc call, a Key Error was raised statin
 
 Now the error message also includes a list of the missing labels. For example,
 
-.. ipython:: python
+.. code-block:: ipython
 
     s = pd.Series({"a": 1, "b": 2, "c": 3})
     s.loc[["a", "b", "missing_0", "c", "missing_1", "missing_2"]]
-
+    ...
+    KeyError: "Passing list-likes to .loc or [] with any missing labels is no longer supported. The following labels were missing: ['missing_0', 'missing_1', 'missing_2']. See https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#deprecate-loc-reindex-listlike"
 .. _whatsnew_110.astype_string:
 
 All dtypes can now be converted to ``StringDtype``
