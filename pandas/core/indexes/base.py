@@ -870,8 +870,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         if self.inferred_type == "string":
             is_justify = False
-        elif self.inferred_type == "categorical":  # type: ignore
-            if is_object_dtype(self.categories):
+        elif self.inferred_type == "categorical":
+            if is_object_dtype(self.categories):  # type: ignore
                 is_justify = False
 
         return format_object_summary(
