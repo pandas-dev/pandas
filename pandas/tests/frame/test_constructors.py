@@ -2245,6 +2245,33 @@ class TestDataFrameConstructors:
         tm.assert_index_equal(df.index, Index([], name="id"))
         assert df.index.name == "id"
 
+    @pytest.mark.parametrize(
+        "dtype",
+        tm.ALL_INT_DTYPES
+        + tm.ALL_EA_INT_DTYPES
+        + tm.FLOAT_DTYPES
+        + tm.COMPLEX_DTYPES
+        + tm.DATETIME64_DTYPES
+        + tm.TIMEDELTA64_DTYPES
+        + tm.BOOL_DTYPES,
+    )
+    def test_check_dtype_empty_numeric_column(self, dtype):
+        # GH24386: Ensure dtypes are set correctly for an empty DataFrame.
+        # Empty DataFrame is generated via dictionary data with non-overlapping columns.
+        data = pd.DataFrame({"a": [1, 2]}, columns=["b"], dtype=dtype)
+
+        assert data.b.dtype == dtype
+
+    @pytest.mark.parametrize(
+        "dtype", tm.STRING_DTYPES + tm.BYTES_DTYPES + tm.OBJECT_DTYPES
+    )
+    def test_check_dtype_empty_string_column(self, dtype):
+        # GH24386: Ensure dtypes are set correctly for an empty DataFrame.
+        # Empty DataFrame is generated via dictionary data with non-overlapping columns.
+        data = pd.DataFrame({"a": [1, 2]}, columns=["b"], dtype=dtype)
+
+        assert data.b.dtype.name == "object"
+
     def test_from_records_with_datetimes(self):
 
         # this may fail on certain platforms because of a numpy issue
