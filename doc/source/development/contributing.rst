@@ -157,6 +157,31 @@ Instead of manually setting up a development environment, you can use Docker to
 automatically create the environment with just several commands. Pandas provides a `DockerFile`
 in the root directory to build a Docker image with a full pandas development environment.
 
+Installing Docker
+
+**Windows Home**
+Make sure you have Windows 10, version 2004 or higher
+Enable WSL2 (https://docs.microsoft.com/en-us/windows/wsl/install-win10)
+Download and install the Linux kernel update package (https://docs.microsoft.com/pl-pl/windows/wsl/wsl2-kernel)
+
+Now download Docker for Windows (https://docs.microsoft.com/pl-pl/windows/wsl/wsl2-kernel)
+When prompted, ensure the Enable WSL 2 Features option is selected on the Configuration page.
+
+Docker Desktop does not start automatically after installation. To start Docker Desktop, search for Docker, and select Docker Desktop in the search results.
+When the whale icon in the status bar stays steady, Docker Desktop is up-and-running, and is accessible from any terminal window.
+
+
+See https://docs.docker.com/docker-for-windows/install-windows-home/ for details
+
+**Windows Home**
+
+
+
+
+**Unix**
+
+
+
 Even easier, you can use the DockerFile to launch a remote session with Visual Studio Code,
 a popular free IDE, using the `.devcontainer.json` file.
 See https://code.visualstudio.com/docs/remote/containers for details.
