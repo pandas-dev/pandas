@@ -62,11 +62,11 @@ class BaseReshapingTests(BaseExtensionTests):
         self.assert_series_equal(result, expected)
 
         # simple test for just EA and one other
-        result = pd.concat([df1, df2])
+        result = pd.concat([df1, df2.astype(object)])
         expected = pd.concat([df1.astype("object"), df2.astype("object")])
         self.assert_frame_equal(result, expected)
 
-        result = pd.concat([df1["A"], df2["A"]])
+        result = pd.concat([df1["A"], df2["A"].astype(object)])
         expected = pd.concat([df1["A"].astype("object"), df2["A"].astype("object")])
         self.assert_series_equal(result, expected)
 
