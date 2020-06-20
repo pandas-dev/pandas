@@ -424,11 +424,19 @@ class FrameColumnApply(FrameApply):
 
     @property
     def series_generator(self):
-        constructor = self.obj._constructor_sliced
-        return (
-            constructor(arr, index=self.columns, name=name)
-            for i, (arr, name) in enumerate(zip(self.values, self.index))
-        )
+        values = self.values
+        assert len(values) > 0
+
+        # We create one Series object, and will swap out the data inside
+        #  of it.  Kids: don't do this at home.
+        ser = self.obj._ixs(0, axis=0)
+        mgr = ser._mgr
+        blk = mgr.blocks[0]
+
+        for (arr, name) in zip(values, self.index):
+            blk.values = arr
+            ser.name = name
+            yield ser
 
     @property
     def result_index(self) -> "Index":
