@@ -10460,8 +10460,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Add the series or dataframe only operations to the cls; evaluate
         the doc strings again.
         """
-        from pandas.core.window import ExponentialMovingWindow, Expanding, Rolling
-        from pandas.core.window import Window
+        from pandas.core.window import Expanding, ExponentialMovingWindow, Rolling, Window
 
         @doc(Rolling)
         def rolling(
