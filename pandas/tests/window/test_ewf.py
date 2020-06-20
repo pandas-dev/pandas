@@ -4,7 +4,7 @@ import pytest
 from pandas.errors import UnsupportedFunctionCall
 
 from pandas import DataFrame, Series
-from pandas.core.window import Exponential_moving as em
+from pandas.core.window import Exponentialmoving as em
 
 
 def test_doc_string():
