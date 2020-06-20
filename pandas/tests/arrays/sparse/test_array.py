@@ -1297,10 +1297,11 @@ def test_map_missing():
     tm.assert_sp_array_equal(result, expected)
 
 
-def test_dropna_sparse_column_doesnt_drop_nonna():
+@pytest.mark.parametrize("fill_value", [np.nan, 1])
+def test_dropna_sparse_column_doesnt_drop_nonna(fill_value):
     # GH-28287
-    arr = SparseArray([np.nan, 1])
-    exp = SparseArray([1.0])
+    arr = SparseArray([np.nan, 1], fill_value=fill_value)
+    exp = SparseArray([1.0], fill_value=fill_value)
     tm.assert_sp_array_equal(arr.dropna(), exp)
 
     df = pd.DataFrame({"a": [0, 1], "b": arr})
