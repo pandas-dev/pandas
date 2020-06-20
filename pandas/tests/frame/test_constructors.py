@@ -18,6 +18,7 @@ from pandas.core.dtypes.common import is_integer_dtype
 import pandas as pd
 from pandas import (
     Categorical,
+    CategoricalDtype,
     DataFrame,
     Index,
     MultiIndex,
@@ -2244,6 +2245,31 @@ class TestDataFrameConstructors:
         df = DataFrame.from_records(b, index="id")
         tm.assert_index_equal(df.index, Index([], name="id"))
         assert df.index.name == "id"
+
+    @pytest.mark.parametrize(
+        "input_value, expected_value",
+        [
+            ("int16", np.dtype("int16")),
+            ("int32", np.dtype("int32")),
+            ("int64", np.dtype("int64")),
+            ("float16", np.dtype("float16")),
+            ("float32", np.dtype("float32")),
+            ("float64", np.dtype("float64")),
+            ("uint16", np.dtype("uint16")),
+            ("uint32", np.dtype("uint32")),
+            ("uint64", np.dtype("uint64")),
+            ("datetime64[ns]", np.dtype("<M8[ns]")),
+            ("timedelta64[ns]", np.dtype("<m8[ns]")),
+            ("bool", np.dtype("bool")),
+            ("object", np.dtype("O")),
+            ("category", CategoricalDtype(categories=[], ordered=False)),
+        ],
+    )
+    def test_check_dtype_empty_column(self, input_value, expected_value):
+        # GH24386: Ensure dtypes are set correctly for an empty DataFrame.
+        # Empty DataFrame is generated via dictionary data with non-overlapping columns.
+        data = pd.DataFrame({"a": [1, 2]}, columns=["b"], dtype=input_value)
+        assert data.b.dtype == expected_value
 
     def test_from_records_with_datetimes(self):
 
