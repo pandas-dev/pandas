@@ -2184,9 +2184,10 @@ class DataFrame(NDFrame):
 
         to_feather(self, path, **kwargs)
 
-    @Appender(
-        """
-        Examples
+    @doc(
+        Series.to_markdown,
+        klass=_shared_doc_kwargs["klass"],
+        examples="""Examples
         --------
         >>> df = pd.DataFrame(
         ...     data={"animal_1": ["elk", "pig"], "animal_2": ["dog", "quetzal"]}
@@ -2207,10 +2208,8 @@ class DataFrame(NDFrame):
         +----+------------+------------+
         |  1 | pig        | quetzal    |
         +----+------------+------------+
-        """
+        """,
     )
-    @Substitution(klass="DataFrame")
-    @Appender(_shared_docs["to_markdown"])
     def to_markdown(
         self, buf: Optional[IO[str]] = None, mode: Optional[str] = None, **kwargs
     ) -> Optional[str]:
@@ -4759,20 +4758,20 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Reindex-based selection methods
 
-    @Appender(_shared_docs["isna"] % _shared_doc_kwargs)
+    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
     def isna(self) -> "DataFrame":
         result = self._constructor(self._data.isna(func=isna))
         return result.__finalize__(self, method="isna")
 
-    @Appender(_shared_docs["isna"] % _shared_doc_kwargs)
+    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
     def isnull(self) -> "DataFrame":
         return self.isna()
 
-    @Appender(_shared_docs["notna"] % _shared_doc_kwargs)
+    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])
     def notna(self) -> "DataFrame":
         return ~self.isna()
 
-    @Appender(_shared_docs["notna"] % _shared_doc_kwargs)
+    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])
     def notnull(self) -> "DataFrame":
         return ~self.isna()
 
@@ -7232,13 +7231,14 @@ NaN 12.3   33.0
     """
     )
 
-    @Substitution(
+    @doc(
+        _shared_docs["aggregate"],
+        klass=_shared_doc_kwargs["klass"],
+        axis=_shared_doc_kwargs["axis"],
         see_also=_agg_summary_and_see_also_doc,
         examples=_agg_examples_doc,
         versionadded="\n.. versionadded:: 0.20.0\n",
-        **_shared_doc_kwargs,
     )
-    @Appender(_shared_docs["aggregate"])
     def aggregate(self, func, axis=0, *args, **kwargs):
         axis = self._get_axis_number(axis)
 
@@ -7266,7 +7266,11 @@ NaN 12.3   33.0
 
     agg = aggregate
 
-    @Appender(_shared_docs["transform"] % _shared_doc_kwargs)
+    @doc(
+        NDFrame.transform,
+        klass=_shared_doc_kwargs["klass"],
+        axis=_shared_doc_kwargs["axis"],
+    )
     def transform(self, func, axis=0, *args, **kwargs) -> "DataFrame":
         axis = self._get_axis_number(axis)
         if axis == 1:
