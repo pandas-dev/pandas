@@ -178,7 +178,7 @@ If your admin account is different to your user account, you must add the user t
 Docker Desktop does not start automatically after installation. To start Docker Desktop, search for Docker, and select Docker Desktop in the search results.
 When the whale icon in the status bar stays steady, Docker Desktop is up-and-running, and is accessible from any terminal window.
 
-See `official docker documentation <https://docs.docker.com/docker-for-windows/install/>`_ for details.
+See `official docker documentation <https://docs.docker.com/docker-for-windows/install/>`__ for details.
 
 **Installing Docker on Unix**
 
@@ -186,7 +186,7 @@ See `official docker documentation <https://docs.docker.com/docker-for-windows/i
 
 **Installing Docker on Mac OS**
 
-See `official docker documentation <https://docs.docker.com/docker-for-mac/install/>`_ for details.
+See `official docker documentation <https://docs.docker.com/docker-for-mac/install/>`__ for details.
 
 **Test your Docker installation**
 
