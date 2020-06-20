@@ -170,7 +170,36 @@ class TestDataFrameDiff:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_diff_integer_na(self):
+    @pytest.mark.parametrize(
+        "axis,expected",
+        [
+            (
+                0,
+                pd.DataFrame(
+                    {
+                        "a": [np.nan, 0, 1, 0, np.nan, np.nan, np.nan, 0],
+                        "b": [np.nan, 1, np.nan, np.nan, -2, 1, np.nan, np.nan],
+                        "c": np.repeat(np.nan, 8),
+                        "d": [np.nan, 3, 5, 7, 9, 11, 13, 15],
+                    },
+                    dtype="Int64",
+                ),
+            ),
+            (
+                1,
+                pd.DataFrame(
+                    {
+                        "a": np.repeat(np.nan, 8),
+                        "b": [0, 1, np.nan, 1, np.nan, np.nan, np.nan, 0],
+                        "c": np.repeat(np.nan, 8),
+                        "d": np.repeat(np.nan, 8),
+                    },
+                    dtype="Int64",
+                ),
+            ),
+        ],
+    )
+    def test_diff_integer_na(self, axis, expected):
         # GH#24171 IntegerNA Support for DataFrame.diff()
         df = pd.DataFrame(
             {
@@ -183,27 +212,5 @@ class TestDataFrameDiff:
         )
 
         # Test case for default behaviour of diff
-        result_default = df.diff()
-        expected_default = pd.DataFrame(
-            {
-                "a": [np.nan, 0, 1, 0, np.nan, np.nan, np.nan, 0],
-                "b": [np.nan, 1, np.nan, np.nan, -2, 1, np.nan, np.nan],
-                "c": np.repeat(np.nan, 8),
-                "d": [np.nan, 3, 5, 7, 9, 11, 13, 15],
-            },
-            dtype="Int64",
-        )
-        tm.assert_frame_equal(result_default, expected_default)
-
-        # Test case for behaviour with arg: axis=1
-        result_axis_1 = df.diff(axis=1)
-        expected_axis_1 = pd.DataFrame(
-            {
-                "a": np.repeat(np.nan, 8),
-                "b": [0, 1, np.nan, 1, np.nan, np.nan, np.nan, 0],
-                "c": np.repeat(np.nan, 8),
-                "d": np.repeat(np.nan, 8),
-            },
-            dtype="Int64",
-        )
-        tm.assert_frame_equal(result_axis_1, expected_axis_1)
+        result = df.diff(axis=axis)
+        tm.assert_frame_equal(result, expected)
