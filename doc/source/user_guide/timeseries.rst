@@ -319,6 +319,11 @@ which can be specified. These are computed from the starting point specified by 
    pd.to_datetime([1349720105100, 1349720105200, 1349720105300,
                    1349720105400, 1349720105500], unit='ms')
 
+.. note::
+
+   The strings used to specify a ``unit`` are not the same are those by ``format``.
+   The available units are listed on the documentation for :func:`pandas.to_datetime`.
+
 Constructing a :class:`Timestamp` or :class:`DatetimeIndex` with an epoch timestamp
 with the ``tz`` argument specified will currently localize the epoch timestamps to UTC
 first then convert the result to the specified time zone. However, this behavior
