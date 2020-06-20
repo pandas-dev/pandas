@@ -956,6 +956,7 @@ MultiIndex
         df.loc[(['b', 'a'], [2, 1]), :]
 
 - Bug in :meth:`MultiIndex.intersection` was not guaranteed to preserve order when ``sort=False``. (:issue:`31325`)
+- Bug in :meth:`DataFrame.truncate` was dropping :class:`MultiIndex` names. (:issue:`34564`)
 
 .. ipython:: python
 

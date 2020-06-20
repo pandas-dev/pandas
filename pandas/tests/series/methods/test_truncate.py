@@ -126,3 +126,17 @@ class TestTruncate:
 
         expected_idx2 = pd.PeriodIndex([pd.Period("2017-09-02")])
         tm.assert_series_equal(result2, pd.Series([2], index=expected_idx2))
+
+    def test_truncate_multiindex(self):
+        # GH 34564
+        mi = pd.MultiIndex.from_product([[1, 2, 3, 4], ["A", "B"]], names=["L1", "L2"])
+        s1 = pd.Series(range(mi.shape[0]), index=mi, name="col")
+        result = s1.truncate(before=2, after=3)
+
+        df = pd.DataFrame.from_dict(
+            {"L1": [2, 2, 3, 3], "L2": ["A", "B", "A", "B"], "col": [2, 3, 4, 5]}
+        )
+        df.set_index(["L1", "L2"], inplace=True)
+        expected = df.col
+
+        tm.assert_series_equal(result, expected)
