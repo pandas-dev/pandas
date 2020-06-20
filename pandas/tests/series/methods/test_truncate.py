@@ -128,6 +128,7 @@ class TestTruncate:
         tm.assert_series_equal(result2, pd.Series([2], index=expected_idx2))
 
     def test_truncate_multiindex(self):
+        # GH 34564
         mi = pd.MultiIndex.from_product([[1, 2, 3, 4], ["A", "B"]], names=["L1", "L2"])
         s1 = pd.Series(range(mi.shape[0]), index=mi, name="col")
         result = s1.truncate(before=2, after=3)
