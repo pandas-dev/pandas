@@ -82,7 +82,7 @@ class TestRollingTS:
                 df.rolling(window="1D", min_periods=minp)
 
         # center is not implemented
-        msg = r"center is not implemented for datetimelike and offset based " r"windows"
+        msg = "center is not implemented for datetimelike and offset based windows"
         with pytest.raises(NotImplementedError, match=msg):
             df.rolling(window="1D", center=True)
 
