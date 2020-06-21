@@ -667,3 +667,17 @@ def test_setitem_tuple_with_datetimetz():
     result[(0, 1)] = np.nan
     expected.iloc[0] = np.nan
     tm.assert_series_equal(result, expected)
+
+
+"""
+BUG: indexing regression with datetime index
+"""
+
+
+def test_indexing_regression():
+    arr = date_range('1/1/2008', '1/2/2008')
+    ser = arr.to_series()['2008']
+    assert type(ser) == Series
+    assert type(ser[0]) == Timestamp
+    assert type(ser.index[0]) == Timestamp
+
