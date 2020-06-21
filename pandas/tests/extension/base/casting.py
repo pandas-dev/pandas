@@ -50,3 +50,9 @@ class BaseCastingTests(BaseExtensionTests):
 
         result = pd.Series(data).to_numpy()
         self.assert_equal(result, expected)
+
+    def test_astype_empty_dataframe(self, dtype):
+        # https://github.com/pandas-dev/pandas/issues/33113
+        df = pd.DataFrame()
+        result = df.astype(dtype)
+        self.assert_frame_equal(result, df)
