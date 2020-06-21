@@ -31,6 +31,7 @@ def test_namespace():
         "is_null_datetimelike",
         "nat_strings",
         "OutOfBoundsDatetime",
+        "OutOfBoundsTimedelta",
         "Period",
         "IncompatibleFrequency",
         "Resolution",

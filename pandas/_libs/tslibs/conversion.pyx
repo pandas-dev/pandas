@@ -52,6 +52,11 @@ DT64NS_DTYPE = np.dtype('M8[ns]')
 TD64NS_DTYPE = np.dtype('m8[ns]')
 
 
+class OutOfBoundsTimedelta(ValueError):
+    # Timedelta analogue to OutOfBoundsDatetime
+    pass
+
+
 # ----------------------------------------------------------------------
 # Unit Conversion Helpers
 
@@ -242,7 +247,7 @@ def ensure_timedelta64ns(arr: ndarray, copy: bool=True):
             bad_val = tdmax
 
         unit_str = arr.dtype.str.split("[")[-1][:-1]
-        raise OutOfBoundsDatetime(
+        raise OutOfBoundsTimedelta(
             f"Out of bounds for nanosecond timedelta {bad_val}[{unit_str}]"
         )
 
