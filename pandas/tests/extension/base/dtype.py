@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas._testing as tm
 
 from .base import BaseExtensionTests
 
@@ -69,15 +68,8 @@ class BaseDtypeTests(BaseExtensionTests):
             {"A": pd.Series(data, dtype=dtype), "B": data, "C": "foo", "D": 1}
         )
 
-        # np.dtype('int64') == 'Int64' == 'int64'
-        # so can't distinguish
-        if dtype.name == "Int64":
-            expected = pd.Series([True, True, False, True], index=list("ABCD"))
-        else:
-            expected = pd.Series([True, True, False, False], index=list("ABCD"))
-
-        # XXX: This should probably be *fixed* not ignored.
-        # See libops.scalar_compare
+        # TODO(numpy-1.20): This warnings filter and if block can be removed
+        # once we require numpy>=1.20
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", DeprecationWarning)
             result = df.dtypes == str(dtype)
@@ -131,7 +123,3 @@ class BaseDtypeTests(BaseExtensionTests):
         # still testing as good practice to have this working (and it is the
         # only case we can test in general)
         assert dtype._get_common_dtype([dtype]) == dtype
-
-    def test_astype_empty_dataframe(self, dtype):
-        empty_dataframe = pd.DataFrame()
-        tm.assert_frame_equal(empty_dataframe.astype(dtype), empty_dataframe)
