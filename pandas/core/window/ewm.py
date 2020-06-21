@@ -59,7 +59,7 @@ def get_center_of_mass(
     return float(comass)
 
 
-class EWM(_Rolling):
+class ExponentialMovingWindow(_Rolling):
     r"""
     Provide exponential weighted (EW) functions.
 
@@ -185,7 +185,7 @@ class EWM(_Rolling):
 
     @property
     def _constructor(self):
-        return EWM
+        return ExponentialMovingWindow
 
     _agg_see_also_doc = dedent(
         """
