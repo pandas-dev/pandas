@@ -1387,7 +1387,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         --------
         Series.astype : Change the data type of a Series, including to boolean.
         DataFrame.astype : Change the data type of a DataFrame, including to boolean.
-        numpy.bool : NumPy boolean data type, used by pandaas for boolean values.
+        numpy.bool_ : NumPy boolean data type, used by pandas for boolean values.
 
         Examples
         --------
