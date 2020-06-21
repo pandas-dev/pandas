@@ -1406,7 +1406,7 @@ class TestDataFrameReplace:
 
     def test_replace_equal_value_different_dtype(self):
         # https://github.com/pandas-dev/pandas/issues/34871
-        df = pd.DataFrame([1, 2, 3], dtype=int)
+        df = pd.DataFrame([1, 2, 3])
         result = df.replace(1.0, 0)
-        expected = pd.DataFrame([0, 2, 3], dtype=int)
+        expected = pd.DataFrame([0, 2, 3])
         tm.assert_frame_equal(result, expected)

@@ -410,7 +410,7 @@ class TestSeriesReplace:
 
     def test_replace_equal_value_different_dtype(self):
         # https://github.com/pandas-dev/pandas/issues/34871
-        ser = pd.Series([1, 2, 3], dtype=int)
+        ser = pd.Series([1, 2, 3])
         result = ser.replace(1.0, 0)
-        expected = pd.Series([0, 2, 3], dtype=int)
+        expected = pd.Series([0, 2, 3])
         tm.assert_series_equal(result, expected)
