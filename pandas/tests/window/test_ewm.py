@@ -3,8 +3,8 @@ import pytest
 
 from pandas.errors import UnsupportedFunctionCall
 
+from pandas import DataFrame, DatetimeIndex, Series, date_range
 import pandas._testing as tm
-from pandas import DataFrame, Series, date_range
 from pandas.core.window import ExponentialMovingWindow
 
 
@@ -100,11 +100,22 @@ def test_ewma_halflife_without_times(halflife_with_times):
         "time_col",
     ],
 )
-def test_ewma_with_times(halflife_with_times, times):
+@pytest.mark.parametrize("min_periods", [0, 2])
+def test_ewma_with_times_equal_spacing(halflife_with_times, times, min_periods):
     halflife = halflife_with_times
     data = np.arange(10)
     data[::2] = np.nan
     df = DataFrame({"A": data, "time_col": date_range("2000", freq="D", periods=10)})
+    result = df.ewm(halflife=halflife, min_periods=min_periods, times=times).mean()
+    expected = df.ewm(halflife=1.0, min_periods=min_periods).mean()
+    tm.assert_frame_equal(result, expected)
+
+
+def test_ewma_with_times_variable_spacing():
+    halflife = "23 days"
+    times = DatetimeIndex(["2020-01-01", "2020-01-10T00:04:05", "2020-03-23T05:00:23"])
+    data = np.arange(3)
+    df = DataFrame(data)
     result = df.ewm(halflife=halflife, times=times).mean()
-    expected = df.ewm(halflife=1.0).mean()
+    expected = DataFrame([0.0, 0.567416, 1.767163])
     tm.assert_frame_equal(result, expected)
