@@ -475,7 +475,7 @@ _KeysArgType = Union[
 
 class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
     _group_selection = None
-    _apply_whitelist: FrozenSet[str] = frozenset()
+    _apply_allowlist: FrozenSet[str] = frozenset()
 
     def __init__(
         self,
@@ -689,7 +689,7 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         return result
 
     def _dir_additions(self):
-        return self.obj._dir_additions() | self._apply_whitelist
+        return self.obj._dir_additions() | self._apply_allowlist
 
     def __getattr__(self, attr: str):
         if attr in self._internal_names_set:
@@ -729,7 +729,7 @@ b  2""",
     plot = property(GroupByPlot)
 
     def _make_wrapper(self, name):
-        assert name in self._apply_whitelist
+        assert name in self._apply_allowlist
 
         self._set_group_selection()
 
@@ -944,7 +944,7 @@ b  2""",
         """
         filled_series = self.grouper.size().fillna(0)
         assert filled_series is not None
-        return filled_series.gt(0).any() and func_nm not in base.cython_cast_blacklist
+        return filled_series.gt(0).any() and func_nm not in base.cython_cast_blocklist
 
     def _cython_transform(self, how: str, numeric_only: bool = True, **kwargs):
         output: Dict[base.OutputKey, np.ndarray] = {}
