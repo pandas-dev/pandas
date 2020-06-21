@@ -1303,13 +1303,16 @@ class _LocIndexer(_LocationIndexer):
             # code, so we want to avoid warning & then
             # just raising
             if not ax.is_categorical():
-                not_found = list(key[missing_mask])
-                raise KeyError(
-                    "Passing list-likes to .loc or [] with any missing labels "
-                    "is no longer supported. "
-                    f"The following labels were missing: {not_found}. "
-                    "See https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#deprecate-loc-reindex-listlike"  # noqa:E501
-                )
+                not_found = key[missing_mask]
+                from pandas import option_context
+
+                with option_context("display.max_seq_items", 10, "display.width", 80):
+                    raise KeyError(
+                        "Passing list-likes to .loc or [] with any missing labels "
+                        "is no longer supported. "
+                        f"The following labels were missing: {not_found}. "
+                        "See https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#deprecate-loc-reindex-listlike"  # noqa:E501
+                    )
 
 
 @doc(IndexingMixin.iloc)

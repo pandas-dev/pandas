@@ -19,14 +19,7 @@ KeyErrors raised by loc specify missing labels
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Previously, if labels were missing for a loc call, a Key Error was raised stating that this was no longer supported.
 
-Now the error message also includes a list of the missing labels. For example,
-.. code-block:: ipython
-
-   In [1]: s = pd.Series({"a": 1, "b": 2, "c": 3})
-   In [2]: s.loc[["a", "b", "missing_0", "c", "missing_1", "missing_2"]]
-   Passing list-likes to .loc or [] with any missing labels is no longer supported.
-   The following labels were missing: ['missing_0', 'missing_1', 'missing_2']. See
-   https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#deprecate-loc-reindex-listlike
+Now the error message also includes a list of the missing labels (max 10 items, display width 80 characters).
 
 
 .. _whatsnew_110.astype_string:
