@@ -86,7 +86,6 @@ from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
 from pandas.core import missing, nanops
-from pandas.core.shared_docs import _shared_docs
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
 import pandas.core.common as com
@@ -98,6 +97,7 @@ import pandas.core.indexing as indexing
 from pandas.core.internals import BlockManager
 from pandas.core.missing import find_valid_index
 from pandas.core.ops import _align_method_FRAME
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.formats import format as fmt
 from pandas.io.formats.format import DataFrameFormatter, format_percentiles
