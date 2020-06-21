@@ -181,6 +181,17 @@ class ExponentialMovingWindow(_Rolling):
     2  1.615385
     3  1.615385
     4  3.670213
+
+    Specifying ``times`` with a timedelta ``halflife`` when computing mean.
+
+    >>> times = ['2020-01-01', '2020-01-03', '2020-01-10', '2020-01-15', '2020-01-17']
+    >>> df.ewm(halflife='4 days', times=pd.DatetimeIndex(times)).mean()
+              B
+    0  0.000000
+    1  0.585786
+    2  1.523889
+    3  1.523889
+    4  3.233686
     """
 
     _attributes = ["com", "min_periods", "adjust", "ignore_na", "axis"]
