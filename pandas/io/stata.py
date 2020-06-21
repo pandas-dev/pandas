@@ -106,6 +106,14 @@ _iterator_params = """\
 iterator : bool, default False
     Return StataReader object."""
 
+_reader_notes = """\
+Notes
+-----
+Categorical variables read through an iterator may not have the same
+categories and dtype. This occurs when  a variable stored in a DTA
+file is associated to an incomplete set of value labels that only
+label a strict subset of the values."""
+
 _read_stata_doc = f"""
 Read Stata file into DataFrame.
 
@@ -134,6 +142,8 @@ See Also
 --------
 io.stata.StataReader : Low-level reader for Stata data files.
 DataFrame.to_stata: Export Stata data files.
+
+{_reader_notes}
 
 Examples
 --------
@@ -176,6 +186,8 @@ path_or_buf : path (string), buffer or path object
 {_statafile_processing_params1}
 {_statafile_processing_params2}
 {_chunksize_params}
+
+{_reader_notes}
 """
 
 
@@ -310,7 +322,7 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt) -> Series:
     elif fmt.startswith(("%tC", "tC")):
 
         warnings.warn("Encountered %tC format. Leaving in Stata Internal Format.")
-        conv_dates = Series(dates, dtype=np.object)
+        conv_dates = Series(dates, dtype=object)
         if has_bad_values:
             conv_dates[bad_locs] = NaT
         return conv_dates
@@ -439,7 +451,7 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
         conv_dates = 4 * (d.year - stata_epoch.year) + (d.month - 1) // 3
     elif fmt in ["%th", "th"]:
         d = parse_dates_safe(dates, year=True)
-        conv_dates = 2 * (d.year - stata_epoch.year) + (d.month > 6).astype(np.int)
+        conv_dates = 2 * (d.year - stata_epoch.year) + (d.month > 6).astype(int)
     elif fmt in ["%ty", "ty"]:
         d = parse_dates_safe(dates, year=True)
         conv_dates = d.year
@@ -497,6 +509,21 @@ alphanumerics and underscores, no Stata reserved words)
 """
 
 
+class CategoricalConversionWarning(Warning):
+    pass
+
+
+categorical_conversion_warning = """
+One or more series with value labels are not fully labeled. Reading this
+dataset with an iterator results in categorical variable with different
+categories. This occurs since it is not possible to know all possible values
+until the entire dataset has been read. To avoid this warning, you can either
+read dataset without an interator, or manually convert categorical data by
+``convert_categoricals`` to False and then accessing the variable labels
+through the value_labels method of the reader.
+"""
+
+
 def _cast_to_stata_types(data: DataFrame) -> DataFrame:
     """
     Checks the dtypes of the columns of a pandas DataFrame for
@@ -526,7 +553,7 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
     ws = ""
     #                  original, if small, if large
     conversion_data = (
-        (np.bool, np.int8, np.int8),
+        (np.bool_, np.int8, np.int8),
         (np.uint8, np.int8, np.int16),
         (np.uint16, np.int16, np.int32),
         (np.uint32, np.int32, np.int64),
@@ -1023,6 +1050,10 @@ class StataReader(StataParser, abc.Iterator):
         self._order_categoricals = order_categoricals
         self._encoding = ""
         self._chunksize = chunksize
+        if self._chunksize is not None and (
+            not isinstance(chunksize, int) or chunksize <= 0
+        ):
+            raise ValueError("chunksize must be a positive integer when set.")
 
         # State variables for the file
         self._has_string_data = False
@@ -1488,6 +1519,10 @@ the string values returned are correct."""
             self.GSO[str(v_o)] = decoded_va
 
     def __next__(self) -> DataFrame:
+        if self._chunksize is None:
+            raise ValueError(
+                "chunksize must be set to a positive integer to use as an iterator."
+            )
         return self.read(nrows=self._chunksize or 1)
 
     def get_chunk(self, size: Optional[int] = None) -> DataFrame:
@@ -1690,7 +1725,7 @@ the string values returned are correct."""
             if convert_missing:  # Replacement follows Stata notation
                 missing_loc = np.nonzero(np.asarray(missing))[0]
                 umissing, umissing_loc = np.unique(series[missing], return_inverse=True)
-                replacement = Series(series, dtype=np.object)
+                replacement = Series(series, dtype=object)
                 for j, um in enumerate(umissing):
                     missing_value = StataMissingValue(um)
 
@@ -1753,8 +1788,8 @@ the string values returned are correct."""
 
         return data[columns]
 
-    @staticmethod
     def _do_convert_categoricals(
+        self,
         data: DataFrame,
         value_label_dict: Dict[str, Dict[Union[float, int], str]],
         lbllist: Sequence[str],
@@ -1768,14 +1803,39 @@ the string values returned are correct."""
         for col, label in zip(data, lbllist):
             if label in value_labels:
                 # Explicit call with ordered=True
-                cat_data = Categorical(data[col], ordered=order_categoricals)
-                categories = []
-                for category in cat_data.categories:
-                    if category in value_label_dict[label]:
-                        categories.append(value_label_dict[label][category])
-                    else:
-                        categories.append(category)  # Partially labeled
+                vl = value_label_dict[label]
+                keys = np.array(list(vl.keys()))
+                column = data[col]
+                key_matches = column.isin(keys)
+                if self._chunksize is not None and key_matches.all():
+                    initial_categories = keys
+                    # If all categories are in the keys and we are iterating,
+                    # use the same keys for all chunks. If some are missing
+                    # value labels, then we will fall back to the categories
+                    # varying across chunks.
+                else:
+                    if self._chunksize is not None:
+                        # warn is using an iterator
+                        warnings.warn(
+                            categorical_conversion_warning, CategoricalConversionWarning
+                        )
+                    initial_categories = None
+                cat_data = Categorical(
+                    column, categories=initial_categories, ordered=order_categoricals
+                )
+                if initial_categories is None:
+                    # If None here, then we need to match the cats in the Categorical
+                    categories = []
+                    for category in cat_data.categories:
+                        if category in vl:
+                            categories.append(vl[category])
+                        else:
+                            categories.append(category)
+                else:
+                    # If all cats are matched, we can use the values
+                    categories = list(vl.values())
                 try:
+                    # Try to catch duplicate categories
                     cat_data.categories = categories
                 except ValueError as err:
                     vc = Series(categories).value_counts()

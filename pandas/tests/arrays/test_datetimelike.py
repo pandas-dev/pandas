@@ -168,7 +168,8 @@ class SharedTests:
         arr = self.array_cls(idx)
 
         result = arr._concat_same_type([arr[:-1], arr[1:], arr])
-        expected = idx._concat_same_dtype([idx[:-1], idx[1:], idx], None)
+        arr2 = arr.astype(object)
+        expected = self.index_cls(np.concatenate([arr2[:-1], arr2[1:], arr2]), None)
 
         tm.assert_index_equal(self.index_cls(result), expected)
 
@@ -510,8 +511,13 @@ class TestDatetimeArray(SharedTests):
         dti = datetime_index
         arr = DatetimeArray(dti)
 
-        expected = dti.to_perioddelta(freq=freqstr)
-        result = arr.to_perioddelta(freq=freqstr)
+        with tm.assert_produces_warning(FutureWarning):
+            # Deprecation GH#34853
+            expected = dti.to_perioddelta(freq=freqstr)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # stacklevel is chosen to be "correct" for DatetimeIndex, not
+            #  DatetimeArray
+            result = arr.to_perioddelta(freq=freqstr)
         assert isinstance(result, TimedeltaArray)
 
         # placeholder until these become actual EA subclasses and we can use
@@ -545,6 +551,9 @@ class TestDatetimeArray(SharedTests):
 
     @pytest.mark.parametrize("propname", pd.DatetimeIndex._field_ops)
     def test_int_properties(self, datetime_index, propname):
+        if propname in ["week", "weekofyear"]:
+            # GH#33595 Deprecate week and weekofyear
+            return
         dti = datetime_index
         arr = DatetimeArray(dti)
 

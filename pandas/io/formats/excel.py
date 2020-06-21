@@ -16,7 +16,7 @@ from pandas.core.dtypes import missing
 from pandas.core.dtypes.common import is_float, is_scalar
 from pandas.core.dtypes.generic import ABCIndex
 
-from pandas import Index, MultiIndex, PeriodIndex
+from pandas import DataFrame, Index, MultiIndex, PeriodIndex
 import pandas.core.common as com
 
 from pandas.io.common import stringify_path
@@ -385,7 +385,7 @@ class ExcelFormatter:
     ):
         self.rowcounter = 0
         self.na_rep = na_rep
-        if hasattr(df, "render"):
+        if not isinstance(df, DataFrame):
             self.styler = df
             df = df.data
             if style_converter is None:

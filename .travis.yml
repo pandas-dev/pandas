@@ -69,14 +69,13 @@ matrix:
       env:
         - JOB="3.7, arm64" PYTEST_WORKERS=8 ENV_FILE="ci/deps/travis-37-arm64.yaml" PATTERN="(not slow and not network and not clipboard)"
     - dist: bionic
-      python: 3.9-dev
       env:
-        - JOB="3.9-dev" PATTERN="(not slow and not network)"
+        - JOB="3.9-dev" PATTERN="(not slow and not network and not clipboard)"
+
 
 before_install:
   - echo "before_install"
-  # set non-blocking IO on travis
-  # https://github.com/travis-ci/travis-ci/issues/8920#issuecomment-352661024
+  # Use blocking IO on travis.  Ref:  https://github.com/travis-ci/travis-ci/issues/8920#issuecomment-352661024
   - python -c 'import os,sys,fcntl; flags = fcntl.fcntl(sys.stdout, fcntl.F_GETFL); fcntl.fcntl(sys.stdout, fcntl.F_SETFL, flags&~os.O_NONBLOCK);'
   - source ci/travis_process_gbq_encryption.sh
   - export PATH="$HOME/miniconda3/bin:$PATH"

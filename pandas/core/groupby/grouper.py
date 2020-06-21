@@ -8,6 +8,7 @@ import warnings
 import numpy as np
 
 from pandas._typing import FrameOrSeries
+from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -26,7 +27,6 @@ from pandas.core.frame import DataFrame
 from pandas.core.groupby import ops
 from pandas.core.groupby.categorical import recode_for_groupby, recode_from_groupby
 from pandas.core.indexes.api import CategoricalIndex, Index, MultiIndex
-from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.series import Series
 
 from pandas.io.formats.printing import pprint_thing
@@ -754,7 +754,9 @@ def get_grouper(
             return False
         try:
             return gpr is obj[gpr.name]
-        except (KeyError, IndexError):
+        except (KeyError, IndexError, ValueError):
+            # TODO: ValueError: Given date string not likely a datetime.
+            # should be KeyError?
             return False
 
     for i, (gpr, level) in enumerate(zip(keys, levels)):

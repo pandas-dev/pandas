@@ -438,7 +438,13 @@ class SelectionMixin:
                 # we have a dict of DataFrames
                 # return a MI DataFrame
 
-                return concat([result[k] for k in keys], keys=keys, axis=1), True
+                keys_to_use = [k for k in keys if not result[k].empty]
+                # Have to check, if at least one DataFrame is not empty.
+                keys_to_use = keys_to_use if keys_to_use != [] else keys
+                return (
+                    concat([result[k] for k in keys_to_use], keys=keys_to_use, axis=1),
+                    True,
+                )
 
             elif isinstance(self, ABCSeries) and is_any_series():
 
@@ -1514,7 +1520,7 @@ class IndexOpsMixin:
     def duplicated(self, keep="first"):
         if isinstance(self, ABCIndexClass):
             if self.is_unique:
-                return np.zeros(len(self), dtype=np.bool)
+                return np.zeros(len(self), dtype=bool)
             return duplicated(self, keep=keep)
         else:
             return self._constructor(

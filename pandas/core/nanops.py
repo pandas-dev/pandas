@@ -86,7 +86,7 @@ class bottleneck_switch:
         self.name = name
         self.kwargs = kwargs
 
-    def __call__(self, alt):
+    def __call__(self, alt: F) -> F:
         bn_name = self.name or alt.__name__
 
         try:
@@ -130,7 +130,7 @@ class bottleneck_switch:
 
             return result
 
-        return f
+        return cast(F, f)
 
 
 def _bn_ok_dtype(dtype: DtypeObj, name: str) -> bool:
@@ -514,7 +514,12 @@ def nansum(
 
 @disallow(PeriodDtype)
 @bottleneck_switch()
-def nanmean(values, axis=None, skipna=True, mask=None):
+def nanmean(
+    values: np.ndarray,
+    axis: Optional[int] = None,
+    skipna: bool = True,
+    mask: Optional[np.ndarray] = None,
+) -> float:
     """
     Compute the mean of the element along an axis ignoring NaNs
 
@@ -528,7 +533,7 @@ def nanmean(values, axis=None, skipna=True, mask=None):
 
     Returns
     -------
-    result : float
+    float
         Unless input is a float array, in which case use the same
         precision as the input array.
 
@@ -558,6 +563,7 @@ def nanmean(values, axis=None, skipna=True, mask=None):
     the_sum = _ensure_numeric(values.sum(axis, dtype=dtype_sum))
 
     if axis is not None and getattr(the_sum, "ndim", False):
+        count = cast(np.ndarray, count)
         with np.errstate(all="ignore"):
             # suppress division by zero warnings
             the_mean = the_sum / count
@@ -1205,17 +1211,17 @@ def _maybe_arg_null_out(
 
 
 def _get_counts(
-    values_shape: Tuple[int],
+    values_shape: Tuple[int, ...],
     mask: Optional[np.ndarray],
     axis: Optional[int],
     dtype: Dtype = float,
-) -> Union[int, np.ndarray]:
+) -> Union[int, float, np.ndarray]:
     """
     Get the count of non-null values along an axis
 
     Parameters
     ----------
-    values_shape : Tuple[int]
+    values_shape : tuple of int
         shape tuple from values ndarray, used if mask is None
     mask : Optional[ndarray[bool]]
         locations in values that should be considered missing
@@ -1283,7 +1289,7 @@ def _maybe_null_out(
 
 def check_below_min_count(
     shape: Tuple[int, ...], mask: Optional[np.ndarray], min_count: int
-):
+) -> bool:
     """
     Check for the `min_count` keyword. Returns True if below `min_count` (when
     missing value should be returned from the reduction).
