@@ -47,6 +47,7 @@ from pandas.core.internals.blocks import (
     get_block_type,
     make_block,
 )
+from pandas.core.internals.ops import operate_blockwise
 
 # TODO: flexible with index=None and/or items=None
 
@@ -326,16 +327,16 @@ class BlockManager(PandasObject):
                 f"tot_items: {tot_items}"
             )
 
-    def reduce(self, func, *args, **kwargs):
+    def reduce(self, func):
         # If 2D, we assume that we're operating column-wise
         if self.ndim == 1:
             # we'll be returning a scalar
             blk = self.blocks[0]
-            return func(blk.values, *args, **kwargs)
+            return func(blk.values)
 
         res = {}
         for blk in self.blocks:
-            bres = func(blk.values, *args, **kwargs)
+            bres = func(blk.values)
 
             if np.ndim(bres) == 0:
                 # EA
@@ -343,7 +344,7 @@ class BlockManager(PandasObject):
                 new_res = zip(blk.mgr_locs.as_array, [bres])
             else:
                 assert bres.ndim == 1, bres.shape
-                assert blk.shape[0] == len(bres), (blk.shape, bres.shape, args, kwargs)
+                assert blk.shape[0] == len(bres), (blk.shape, bres.shape)
                 new_res = zip(blk.mgr_locs.as_array, bres)
 
             nr = dict(new_res)
@@ -351,6 +352,12 @@ class BlockManager(PandasObject):
             res.update(nr)
 
         return res
+
+    def operate_blockwise(self, other: "BlockManager", array_op) -> "BlockManager":
+        """
+        Apply array_op blockwise with another (aligned) BlockManager.
+        """
+        return operate_blockwise(self, other, array_op)
 
     def apply(self: T, f, align_keys=None, **kwargs) -> T:
         """
@@ -370,8 +377,6 @@ class BlockManager(PandasObject):
         align_keys = align_keys or []
         result_blocks: List[Block] = []
         # fillna: Series/DataFrame is responsible for making sure value is aligned
-
-        self._consolidate_inplace()
 
         aligned_args = {k: kwargs[k] for k in align_keys}
 
@@ -405,7 +410,6 @@ class BlockManager(PandasObject):
     def quantile(
         self,
         axis: int = 0,
-        consolidate: bool = True,
         transposed: bool = False,
         interpolation="linear",
         qs=None,
@@ -419,8 +423,6 @@ class BlockManager(PandasObject):
         Parameters
         ----------
         axis: reduction axis, default 0
-        consolidate: bool, default True. Join together blocks having same
-            dtype
         transposed: bool, default False
             we are holding transposed data
         interpolation : type of interpolation, default 'linear'
@@ -434,9 +436,6 @@ class BlockManager(PandasObject):
         # Series dispatches to DataFrame for quantile, which allows us to
         #  simplify some of the code here and in the blocks
         assert self.ndim >= 2
-
-        if consolidate:
-            self._consolidate_inplace()
 
         def get_axe(block, qs, axes):
             # Because Series dispatches to DataFrame, we will always have
@@ -668,8 +667,6 @@ class BlockManager(PandasObject):
 
     @property
     def is_numeric_mixed_type(self) -> bool:
-        # Warning, consolidation needs to get checked upstairs
-        self._consolidate_inplace()
         return all(block.is_numeric for block in self.blocks)
 
     @property
@@ -1340,7 +1337,8 @@ class BlockManager(PandasObject):
         # When filling blknos, make sure blknos is updated before appending to
         # blocks list, that way new blkno is exactly len(blocks).
         blocks = []
-        for blkno, mgr_locs in libinternals.get_blkno_placements(blknos, group=True):
+        group = not only_slice
+        for blkno, mgr_locs in libinternals.get_blkno_placements(blknos, group=group):
             if blkno == -1:
                 # If we've got here, fill_value was not lib.no_default
 
@@ -1953,7 +1951,7 @@ def _compare_or_regex_search(
     if isinstance(result, np.ndarray):
         # The shape of the mask can differ to that of the result
         # since we may compare only a subset of a's or b's elements
-        tmp = np.zeros(mask.shape, dtype=np.bool)
+        tmp = np.zeros(mask.shape, dtype=np.bool_)
         tmp[mask] = result
         result = tmp
 
