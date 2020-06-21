@@ -205,7 +205,7 @@ class TestDataFramePlots(TestPlotBase):
     def test_hist_non_numerical_raises(self):
         # gh-10444
         df = DataFrame(np.random.rand(10, 2))
-        df_o = df.astype(np.object)
+        df_o = df.astype(object)
 
         msg = "hist method requires numerical columns, nothing to plot."
         with pytest.raises(ValueError, match=msg):
@@ -268,6 +268,30 @@ class TestDataFramePlots(TestPlotBase):
             xrot=0,
         )
         self._check_ticks_props(axes, xrot=0)
+
+    @pytest.mark.parametrize(
+        "column, expected",
+        [
+            (None, ["width", "length", "height"]),
+            (["length", "width", "height"], ["length", "width", "height"]),
+        ],
+    )
+    def test_hist_column_order_unchanged(self, column, expected):
+        # GH29235
+
+        df = DataFrame(
+            {
+                "width": [0.7, 0.2, 0.15, 0.2, 1.1],
+                "length": [1.5, 0.5, 1.2, 0.9, 3],
+                "height": [3, 0.5, 3.4, 2, 1],
+            },
+            index=["pig", "rabbit", "duck", "chicken", "horse"],
+        )
+
+        axes = _check_plot_works(df.hist, column=column, layout=(1, 3))
+        result = [axes[0, i].get_title() for i in range(3)]
+
+        assert result == expected
 
 
 @td.skip_if_no_mpl

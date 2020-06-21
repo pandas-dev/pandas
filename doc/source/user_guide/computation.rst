@@ -230,7 +230,7 @@ see the :ref:`groupby docs <groupby.transform.window_resample>`.
    The API for window statistics is quite similar to the way one works with ``GroupBy`` objects, see the documentation :ref:`here <groupby>`.
 
 We work with ``rolling``, ``expanding`` and ``exponentially weighted`` data through the corresponding
-objects, :class:`~pandas.core.window.Rolling`, :class:`~pandas.core.window.Expanding` and :class:`~pandas.core.window.EWM`.
+objects, :class:`~pandas.core.window.Rolling`, :class:`~pandas.core.window.Expanding` and :class:`~pandas.core.window.ExponentialMovingWindow`.
 
 .. ipython:: python
 
@@ -312,14 +312,36 @@ We provide a number of common statistical functions:
     :meth:`~Rolling.median`, Arithmetic median of values
     :meth:`~Rolling.min`, Minimum
     :meth:`~Rolling.max`, Maximum
-    :meth:`~Rolling.std`, Bessel-corrected sample standard deviation
-    :meth:`~Rolling.var`, Unbiased variance
+    :meth:`~Rolling.std`, Sample standard deviation
+    :meth:`~Rolling.var`, Sample variance
     :meth:`~Rolling.skew`, Sample skewness (3rd moment)
     :meth:`~Rolling.kurt`, Sample kurtosis (4th moment)
     :meth:`~Rolling.quantile`, Sample quantile (value at %)
     :meth:`~Rolling.apply`, Generic apply
-    :meth:`~Rolling.cov`, Unbiased covariance (binary)
-    :meth:`~Rolling.corr`, Correlation (binary)
+    :meth:`~Rolling.cov`, Sample covariance (binary)
+    :meth:`~Rolling.corr`, Sample correlation (binary)
+
+.. _computation.window_variance.caveats:
+
+.. note::
+
+   Please note that :meth:`~Rolling.std` and :meth:`~Rolling.var` use the sample
+   variance formula by default, i.e. the sum of squared differences is divided by
+   ``window_size - 1`` and not by ``window_size`` during averaging. In statistics,
+   we use sample when the dataset is drawn from a larger population that we
+   don't have access to. Using it implies that the data in our window is a
+   random sample from the population, and we are interested not in the variance
+   inside the specific window but in the variance of some general window that
+   our windows represent. In this situation, using the sample variance formula
+   results in an unbiased estimator and so is preferred.
+
+   Usually, we are instead interested in the variance of each window as we slide
+   it over the data, and in this case we should specify ``ddof=0`` when calling
+   these methods to use population variance instead of sample variance. Using
+   sample variance under the circumstances would result in a biased estimator
+   of the variable we are trying to determine.
+
+   The same caveats apply to using any supported statistical sample methods.
 
 .. _stats.rolling_apply:
 
@@ -360,8 +382,8 @@ and their default values are set to ``False``, ``True`` and ``False`` respective
 .. note::
 
    In terms of performance, **the first time a function is run using the Numba engine will be slow**
-   as Numba will have some function compilation overhead. However, ``rolling`` objects will cache
-   the function and subsequent calls will be fast. In general, the Numba engine is performant with
+   as Numba will have some function compilation overhead. However, the compiled functions are cached,
+   and subsequent calls will be fast. In general, the Numba engine is performant with
    a larger amount of data points (e.g. 1+ million).
 
 .. code-block:: ipython
@@ -626,6 +648,24 @@ from present information back to past information. This allows the rolling windo
 Currently, this feature is only implemented for time-based windows.
 For fixed windows, the closed parameter cannot be set and the rolling window will always have both endpoints closed.
 
+.. _stats.iter_rolling_window:
+
+Iteration over window:
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 1.1.0
+
+``Rolling`` and ``Expanding`` objects now support iteration. Be noted that ``min_periods`` is ignored in iteration.
+
+.. ipython::
+
+   In [1]: df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+
+   In [2]: for i in df.rolling(2):
+      ...:     print(i)
+      ...:
+
+
 .. _stats.moments.ts-versus-resampling:
 
 Time-aware rolling vs. resampling
@@ -737,7 +777,7 @@ columns by reshaping and indexing:
 Aggregation
 -----------
 
-Once the ``Rolling``, ``Expanding`` or ``EWM`` objects have been created, several methods are available to
+Once the ``Rolling``, ``Expanding`` or ``ExponentialMovingWindow`` objects have been created, several methods are available to
 perform multiple computations on the data. These operations are similar to the :ref:`aggregating API <basics.aggregate>`,
 :ref:`groupby API <groupby.aggregate>`, and :ref:`resample API <timeseries.aggregate>`.
 
@@ -848,14 +888,23 @@ Method summary
     :meth:`~Expanding.median`, Arithmetic median of values
     :meth:`~Expanding.min`, Minimum
     :meth:`~Expanding.max`, Maximum
-    :meth:`~Expanding.std`, Unbiased standard deviation
-    :meth:`~Expanding.var`, Unbiased variance
-    :meth:`~Expanding.skew`, Unbiased skewness (3rd moment)
-    :meth:`~Expanding.kurt`, Unbiased kurtosis (4th moment)
+    :meth:`~Expanding.std`, Sample standard deviation
+    :meth:`~Expanding.var`, Sample variance
+    :meth:`~Expanding.skew`, Sample skewness (3rd moment)
+    :meth:`~Expanding.kurt`, Sample kurtosis (4th moment)
     :meth:`~Expanding.quantile`, Sample quantile (value at %)
     :meth:`~Expanding.apply`, Generic apply
-    :meth:`~Expanding.cov`, Unbiased covariance (binary)
-    :meth:`~Expanding.corr`, Correlation (binary)
+    :meth:`~Expanding.cov`, Sample covariance (binary)
+    :meth:`~Expanding.corr`, Sample correlation (binary)
+
+.. note::
+
+   Using sample variance formulas for :meth:`~Expanding.std` and
+   :meth:`~Expanding.var` comes with the same caveats as using them with rolling
+   windows. See :ref:`this section <computation.window_variance.caveats>` for more
+   information.
+
+   The same caveats apply to using any supported statistical sample methods.
 
 .. currentmodule:: pandas
 
@@ -922,7 +971,7 @@ Exponentially weighted windows
 
 A related set of functions are exponentially weighted versions of several of
 the above statistics. A similar interface to ``.rolling`` and ``.expanding`` is accessed
-through the ``.ewm`` method to receive an :class:`~EWM` object.
+through the ``.ewm`` method to receive an :class:`~ExponentialMovingWindow` object.
 A number of expanding EW (exponentially weighted)
 methods are provided:
 
@@ -931,11 +980,11 @@ methods are provided:
     :header: "Function", "Description"
     :widths: 20, 80
 
-    :meth:`~EWM.mean`, EW moving average
-    :meth:`~EWM.var`, EW moving variance
-    :meth:`~EWM.std`, EW moving standard deviation
-    :meth:`~EWM.corr`, EW moving correlation
-    :meth:`~EWM.cov`, EW moving covariance
+    :meth:`~ExponentialMovingWindow.mean`, EW moving average
+    :meth:`~ExponentialMovingWindow.var`, EW moving variance
+    :meth:`~ExponentialMovingWindow.std`, EW moving standard deviation
+    :meth:`~ExponentialMovingWindow.corr`, EW moving correlation
+    :meth:`~ExponentialMovingWindow.cov`, EW moving covariance
 
 In general, a weighted moving average is calculated as
 
@@ -1041,12 +1090,12 @@ Here is an example for a univariate time series:
    @savefig ewma_ex.png
    s.ewm(span=20).mean().plot(style='k')
 
-EWM has a ``min_periods`` argument, which has the same
+ExponentialMovingWindow has a ``min_periods`` argument, which has the same
 meaning it does for all the ``.expanding`` and ``.rolling`` methods:
 no output values will be set until at least ``min_periods`` non-null values
 are encountered in the (expanding) window.
 
-EWM also has an ``ignore_na`` argument, which determines how
+ExponentialMovingWindow also has an ``ignore_na`` argument, which determines how
 intermediate null values affect the calculation of the weights.
 When ``ignore_na=False`` (the default), weights are calculated based on absolute
 positions, so that intermediate null values affect the result.

@@ -3,10 +3,11 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
+from pandas.errors import InvalidIndexError
+
 import pandas as pd
 from pandas import Categorical, Index, MultiIndex, date_range
 import pandas._testing as tm
-from pandas.core.indexes.base import InvalidIndexError
 
 
 class TestSliceLocs:
@@ -131,10 +132,10 @@ def test_putmask_with_wrong_mask(idx):
 
     msg = "putmask: mask and data must be the same size"
     with pytest.raises(ValueError, match=msg):
-        idx.putmask(np.ones(len(idx) + 1, np.bool), 1)
+        idx.putmask(np.ones(len(idx) + 1, np.bool_), 1)
 
     with pytest.raises(ValueError, match=msg):
-        idx.putmask(np.ones(len(idx) - 1, np.bool), 1)
+        idx.putmask(np.ones(len(idx) - 1, np.bool_), 1)
 
     with pytest.raises(ValueError, match=msg):
         idx.putmask("foo", 1)
@@ -519,13 +520,14 @@ class TestGetLoc:
         result = index.get_loc(2)
         expected = slice(0, 4)
         assert result == expected
-        # FIXME: dont leave commented-out
-        # pytest.raises(Exception, index.get_loc, 2)
 
         index = Index(["c", "a", "a", "b", "b"])
         rs = index.get_loc("c")
         xp = 0
         assert rs == xp
+
+        with pytest.raises(KeyError):
+            index.get_loc(2)
 
     def test_get_loc_level(self):
         index = MultiIndex(

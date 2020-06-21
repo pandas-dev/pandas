@@ -28,7 +28,7 @@ class TestFancy:
         # len of indexer vs length of the 1d ndarray
         df = DataFrame(index=Index(np.arange(1, 11)))
         df["foo"] = np.zeros(10, dtype=np.float64)
-        df["bar"] = np.zeros(10, dtype=np.complex)
+        df["bar"] = np.zeros(10, dtype=complex)
 
         # invalid
         with pytest.raises(ValueError):
@@ -46,7 +46,7 @@ class TestFancy:
         # dtype getting changed?
         df = DataFrame(index=Index(np.arange(1, 11)))
         df["foo"] = np.zeros(10, dtype=np.float64)
-        df["bar"] = np.zeros(10, dtype=np.complex)
+        df["bar"] = np.zeros(10, dtype=complex)
 
         with pytest.raises(ValueError):
             df[2:5] = np.arange(1, 4) * 1j
@@ -809,8 +809,7 @@ class TestMisc:
     @pytest.mark.parametrize(
         "slc",
         [
-            # FIXME: dont leave commented-out
-            # pd.IndexSlice[:, :],
+            pd.IndexSlice[:, :],
             pd.IndexSlice[:, 1],
             pd.IndexSlice[1, :],
             pd.IndexSlice[[1], [1]],
@@ -1007,12 +1006,24 @@ def test_extension_array_cross_section():
 
 
 def test_extension_array_cross_section_converts():
+    # all numeric columns -> numeric series
     df = pd.DataFrame(
-        {"A": pd.core.arrays.integer_array([1, 2]), "B": np.array([1, 2])},
+        {"A": pd.array([1, 2], dtype="Int64"), "B": np.array([1, 2])}, index=["a", "b"],
+    )
+    result = df.loc["a"]
+    expected = pd.Series([1, 1], dtype="Int64", index=["A", "B"], name="a")
+    tm.assert_series_equal(result, expected)
+
+    result = df.iloc[0]
+    tm.assert_series_equal(result, expected)
+
+    # mixed columns -> object series
+    df = pd.DataFrame(
+        {"A": pd.array([1, 2], dtype="Int64"), "B": np.array(["a", "b"])},
         index=["a", "b"],
     )
     result = df.loc["a"]
-    expected = pd.Series([1, 1], dtype=object, index=["A", "B"], name="a")
+    expected = pd.Series([1, "a"], dtype=object, index=["A", "B"], name="a")
     tm.assert_series_equal(result, expected)
 
     result = df.iloc[0]

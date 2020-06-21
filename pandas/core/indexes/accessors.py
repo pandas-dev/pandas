@@ -2,6 +2,7 @@
 datetimelike delegation
 """
 from typing import TYPE_CHECKING
+import warnings
 
 import numpy as np
 
@@ -49,7 +50,7 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         elif is_timedelta64_dtype(data.dtype):
             return TimedeltaIndex(data, copy=False, name=self.name)
 
-        elif is_period_dtype(data):
+        elif is_period_dtype(data.dtype):
             return PeriodArray(data, copy=False)
 
         raise TypeError(
@@ -250,6 +251,30 @@ class DatetimeProperties(Properties):
         """
         return self._get_values().isocalendar().set_index(self._parent.index)
 
+    @property
+    def weekofyear(self):
+        """
+        The week ordinal of the year.
+
+        .. deprecated:: 1.1.0
+
+        Series.dt.weekofyear and Series.dt.week have been deprecated.
+        Please use Series.dt.isocalendar().week instead.
+        """
+        warnings.warn(
+            "Series.dt.weekofyear and Series.dt.week have been deprecated.  "
+            "Please use Series.dt.isocalendar().week instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        week_series = self.isocalendar().week
+        week_series.name = self.name
+        if week_series.hasnans:
+            return week_series.astype("float64")
+        return week_series.astype("int64")
+
+    week = weekofyear
+
 
 @delegate_names(
     delegate=TimedeltaArray, accessors=TimedeltaArray._datetimelike_ops, typ="property"
@@ -428,16 +453,15 @@ class CombinedDatetimelikeProperties(
         # we need to choose which parent (datetime or timedelta) is
         # appropriate. Since we're checking the dtypes anyway, we'll just
         # do all the validation here.
-        from pandas import Series
 
         if not isinstance(data, ABCSeries):
             raise TypeError(
                 f"cannot convert an object of type {type(data)} to a datetimelike index"
             )
 
-        orig = data if is_categorical_dtype(data) else None
+        orig = data if is_categorical_dtype(data.dtype) else None
         if orig is not None:
-            data = Series(
+            data = data._constructor(
                 orig.array,
                 name=orig.name,
                 copy=False,
@@ -450,7 +474,7 @@ class CombinedDatetimelikeProperties(
             return DatetimeProperties(data, orig)
         elif is_timedelta64_dtype(data.dtype):
             return TimedeltaProperties(data, orig)
-        elif is_period_dtype(data):
+        elif is_period_dtype(data.dtype):
             return PeriodProperties(data, orig)
 
         raise AttributeError("Can only use .dt accessor with datetimelike values")

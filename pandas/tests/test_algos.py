@@ -31,7 +31,6 @@ from pandas import (
     compat,
 )
 import pandas._testing as tm
-from pandas.conftest import BYTES_DTYPES, STRING_DTYPES
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray
 import pandas.core.common as com
@@ -326,6 +325,78 @@ class TestFactorize:
         else:
             tm.assert_extension_array_equal(uniques, expected_uniques)
 
+    @pytest.mark.parametrize(
+        "data, dropna, expected_codes, expected_uniques",
+        [
+            (
+                ["a", None, "b", "a"],
+                True,
+                np.array([0, -1, 1, 0], dtype=np.dtype("intp")),
+                np.array(["a", "b"], dtype=object),
+            ),
+            (
+                ["a", np.nan, "b", "a"],
+                True,
+                np.array([0, -1, 1, 0], dtype=np.dtype("intp")),
+                np.array(["a", "b"], dtype=object),
+            ),
+            (
+                ["a", None, "b", "a"],
+                False,
+                np.array([0, 2, 1, 0], dtype=np.dtype("intp")),
+                np.array(["a", "b", np.nan], dtype=object),
+            ),
+            (
+                ["a", np.nan, "b", "a"],
+                False,
+                np.array([0, 2, 1, 0], dtype=np.dtype("intp")),
+                np.array(["a", "b", np.nan], dtype=object),
+            ),
+        ],
+    )
+    def test_object_factorize_dropna(
+        self, data, dropna, expected_codes, expected_uniques
+    ):
+        codes, uniques = algos.factorize(data, dropna=dropna)
+
+        tm.assert_numpy_array_equal(uniques, expected_uniques)
+        tm.assert_numpy_array_equal(codes, expected_codes)
+
+    @pytest.mark.parametrize(
+        "data, dropna, expected_codes, expected_uniques",
+        [
+            (
+                [1, None, 1, 2],
+                True,
+                np.array([0, -1, 0, 1], dtype=np.dtype("intp")),
+                np.array([1, 2], dtype="O"),
+            ),
+            (
+                [1, np.nan, 1, 2],
+                True,
+                np.array([0, -1, 0, 1], dtype=np.dtype("intp")),
+                np.array([1, 2], dtype=np.float64),
+            ),
+            (
+                [1, None, 1, 2],
+                False,
+                np.array([0, 2, 0, 1], dtype=np.dtype("intp")),
+                np.array([1, 2, np.nan], dtype="O"),
+            ),
+            (
+                [1, np.nan, 1, 2],
+                False,
+                np.array([0, 2, 0, 1], dtype=np.dtype("intp")),
+                np.array([1, 2, np.nan], dtype=np.float64),
+            ),
+        ],
+    )
+    def test_int_factorize_dropna(self, data, dropna, expected_codes, expected_uniques):
+        codes, uniques = algos.factorize(data, dropna=dropna)
+
+        tm.assert_numpy_array_equal(uniques, expected_uniques)
+        tm.assert_numpy_array_equal(codes, expected_codes)
+
 
 class TestUnique:
     def test_ints(self):
@@ -362,7 +433,7 @@ class TestUnique:
 
     def test_dtype_preservation(self, any_numpy_dtype):
         # GH 15442
-        if any_numpy_dtype in (BYTES_DTYPES + STRING_DTYPES):
+        if any_numpy_dtype in (tm.BYTES_DTYPES + tm.STRING_DTYPES):
             pytest.skip("skip string dtype")
         elif is_integer_dtype(any_numpy_dtype):
             data = [1, 2, 2]
@@ -642,7 +713,7 @@ class TestUnique:
         NAN2 = struct.unpack("d", struct.pack("=Q", bits_for_nan2))[0]
         assert NAN1 != NAN1
         assert NAN2 != NAN2
-        for el_type in [np.float64, np.object]:
+        for el_type in [np.float64, object]:
             a = np.array([NAN1, NAN2], dtype=el_type)
             result = pd.unique(a)
             assert result.size == 1
@@ -654,7 +725,7 @@ class TestUnique:
         # GH 22295
         if unique_nulls_fixture is unique_nulls_fixture2:
             return  # skip it, values not unique
-        a = np.array([unique_nulls_fixture, unique_nulls_fixture2], dtype=np.object)
+        a = np.array([unique_nulls_fixture, unique_nulls_fixture2], dtype=object)
         result = pd.unique(a)
         assert result.size == 2
         assert a[0] is unique_nulls_fixture
@@ -815,7 +886,7 @@ class TestIsin:
 
         # as object-array:
         result = algos.isin(
-            np.asarray(comps, dtype=np.object), np.asarray(values, dtype=np.object)
+            np.asarray(comps, dtype=object), np.asarray(values, dtype=object)
         )
         tm.assert_numpy_array_equal(np.array([True]), result)
 
@@ -845,8 +916,8 @@ class TestIsin:
 
     def test_different_nan_objects(self):
         # GH 22119
-        comps = np.array(["nan", np.nan * 1j, float("nan")], dtype=np.object)
-        vals = np.array([float("nan")], dtype=np.object)
+        comps = np.array(["nan", np.nan * 1j, float("nan")], dtype=object)
+        vals = np.array([float("nan")], dtype=object)
         expected = np.array([False, False, True])
         result = algos.isin(comps, vals)
         tm.assert_numpy_array_equal(expected, result)
@@ -872,6 +943,33 @@ class TestIsin:
         result = algos.isin(arr, lookup2)
         expected = np.array([True, True])
         tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.xfail(reason="problem related with issue #34125")
+    def test_isin_int_df_string_search(self):
+        """Comparing df with int`s (1,2) with a string at isin() ("1")
+        -> should not match values because int 1 is not equal str 1"""
+        df = pd.DataFrame({"values": [1, 2]})
+        result = df.isin(["1"])
+        expected_false = pd.DataFrame({"values": [False, False]})
+        tm.assert_frame_equal(result, expected_false)
+
+    @pytest.mark.xfail(reason="problem related with issue #34125")
+    def test_isin_nan_df_string_search(self):
+        """Comparing df with nan value (np.nan,2) with a string at isin() ("NaN")
+        -> should not match values because np.nan is not equal str NaN """
+        df = pd.DataFrame({"values": [np.nan, 2]})
+        result = df.isin(["NaN"])
+        expected_false = pd.DataFrame({"values": [False, False]})
+        tm.assert_frame_equal(result, expected_false)
+
+    @pytest.mark.xfail(reason="problem related with issue #34125")
+    def test_isin_float_df_string_search(self):
+        """Comparing df with floats (1.4245,2.32441) with a string at isin() ("1.4245")
+        -> should not match values because float 1.4245 is not equal str 1.4245"""
+        df = pd.DataFrame({"values": [1.4245, 2.32441]})
+        result = df.isin(["1.4245"])
+        expected_false = pd.DataFrame({"values": [False, False]})
+        tm.assert_frame_equal(result, expected_false)
 
 
 class TestValueCounts:
@@ -1059,7 +1157,7 @@ class TestValueCounts:
     def test_value_counts_normalized(self):
         # GH12558
         s = Series([1, 2, np.nan, np.nan, np.nan])
-        dtypes = (np.float64, np.object, "M8[ns]")
+        dtypes = (np.float64, object, "M8[ns]")
         for t in dtypes:
             s_typed = s.astype(t)
             result = s_typed.value_counts(normalize=True, dropna=False)
@@ -2192,10 +2290,10 @@ class TestMode:
             exp = Series(exp_multi, dtype=dt)
             tm.assert_series_equal(algos.mode(s), exp)
 
-        exp = Series([1], dtype=np.int)
+        exp = Series([1], dtype=int)
         tm.assert_series_equal(algos.mode([1]), exp)
 
-        exp = Series(["a", "b", "c"], dtype=np.object)
+        exp = Series(["a", "b", "c"], dtype=object)
         tm.assert_series_equal(algos.mode(["a", "b", "c"]), exp)
 
     def test_number_mode(self):

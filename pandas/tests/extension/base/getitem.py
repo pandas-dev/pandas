@@ -230,7 +230,8 @@ class BaseGetitemTests(BaseExtensionTests):
         with pytest.raises(ValueError, match=msg):
             data[idx]
 
-        # TODO this raises KeyError about labels not found (it tries label-based)
+        # FIXME: dont leave commented-out
+        # TODO: this raises KeyError about labels not found (it tries label-based)
         # import pandas._testing as tm
         # s = pd.Series(data, index=[tm.rands(4) for _ in range(len(data))])
         # with pytest.raises(ValueError, match=msg):
@@ -398,3 +399,31 @@ class BaseGetitemTests(BaseExtensionTests):
 
         with pytest.raises(ValueError, match=msg):
             s.item()
+
+    def test_boolean_mask_frame_fill_value(self, data):
+        # https://github.com/pandas-dev/pandas/issues/27781
+        df = pd.DataFrame({"A": data})
+
+        mask = np.random.choice([True, False], df.shape[0])
+        result = pd.isna(df.iloc[mask]["A"])
+        expected = pd.isna(df["A"].iloc[mask])
+        self.assert_series_equal(result, expected)
+
+        mask = pd.Series(mask, index=df.index)
+        result = pd.isna(df.loc[mask]["A"])
+        expected = pd.isna(df["A"].loc[mask])
+        self.assert_series_equal(result, expected)
+
+    def test_fancy_index_frame_fill_value(self, data):
+        # https://github.com/pandas-dev/pandas/issues/29563
+        df = pd.DataFrame({"A": data})
+
+        mask = np.random.choice(df.shape[0], df.shape[0])
+        result = pd.isna(df.iloc[mask]["A"])
+        expected = pd.isna(df["A"].iloc[mask])
+        self.assert_series_equal(result, expected)
+
+        mask = pd.Series(mask, index=df.index)
+        result = pd.isna(df.loc[mask]["A"])
+        expected = pd.isna(df["A"].loc[mask])
+        self.assert_series_equal(result, expected)
