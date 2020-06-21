@@ -168,7 +168,7 @@ def correct_title_capitalization(title: str) -> (str, dict):
     # Skip modification no matter what if title begins by ":" to exclude specific
     # syntax that is needed to build links.
     if title[0] == ":":
-        return title
+        return title, {}
 
     # Strip all non-word characters from the beginning of the title to the
     # first word character.
@@ -236,6 +236,8 @@ def correct_title_capitalization(title: str) -> (str, dict):
 
     # Return the correct title and the dict corresponding to tuple exceptions
     # that match a word in title.
+    print('correct_title is', correct_title)
+    print('tuple_exceptions_dict is', tuple_exceptions_dict)
     return correct_title, tuple_exceptions_dict
 
 
@@ -326,6 +328,7 @@ def main(source_paths: List[str], output_format: str) -> int:
 
     for filename in find_rst_files(source_paths):
         for title, line_number in find_titles(filename):
+            print(title)
             correct_capitalization, tuple_dict = correct_title_capitalization(title)
             if title != correct_capitalization:
                 print(
