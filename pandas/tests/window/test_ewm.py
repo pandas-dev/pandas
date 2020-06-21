@@ -102,9 +102,9 @@ def test_ewma_halflife_without_times(halflife_with_times):
 )
 def test_ewma_with_times(halflife_with_times, times):
     halflife = halflife_with_times
-    df = DataFrame(
-        {"A": range(10), "time_col": date_range("2000", freq="D", periods=10)}
-    )
+    data = np.arange(10)
+    data[::2] = np.nan
+    df = DataFrame({"A": data, "time_col": date_range("2000", freq="D", periods=10)})
     result = df.ewm(halflife=halflife, times=times).mean()
     expected = df.ewm(halflife=1.0).mean()
     tm.assert_frame_equal(result, expected)
