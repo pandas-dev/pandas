@@ -236,8 +236,8 @@ def correct_title_capitalization(title: str) -> (str, dict):
 
     # Return the correct title and the dict corresponding to tuple exceptions
     # that match a word in title.
-    print('correct_title is', correct_title)
-    print('tuple_exceptions_dict is', tuple_exceptions_dict)
+    print("correct_title is", correct_title)
+    print("tuple_exceptions_dict is", tuple_exceptions_dict)
     return correct_title, tuple_exceptions_dict
 
 
