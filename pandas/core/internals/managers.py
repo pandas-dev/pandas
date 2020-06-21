@@ -18,6 +18,7 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
+    is_bool_dtype,
     is_datetimelike_v_numeric,
     is_extension_array_dtype,
     is_list_like,
@@ -696,7 +697,9 @@ class BlockManager(PandasObject):
         copy : bool, default False
             Whether to copy the blocks
         """
-        return self._combine([b for b in self.blocks if b.is_bool], copy)
+        # Note: use is_bool_dtype instead of blk.is_bool to exclude
+        #  object-dtype blocks containing all-bool entries.
+        return self._combine([b for b in self.blocks if is_bool_dtype(b.dtype)], copy)
 
     def get_numeric_data(self, copy: bool = False) -> "BlockManager":
         """
