@@ -1407,24 +1407,13 @@ class TestDataFrameReplace:
     def test_replace_period_ignore_float(self):
         """
         Regression test for GH#34871: if df.replace(1.0, 0.0) is called on a df
-        with a Period column the old, faulty behavior is to raise TypeError
-        (reported for Pandas 1.0.4). The intended behavior is to just ignore
-        that column. This has been fixed in newer versions. This is a regression
-        test that triggers for the old, broken behavior, i.e.
-        TypeError is raised
+        with a Period column the old, faulty behavior is to raise TypeError.
         """
         df = pd.DataFrame({"Per": [pd.Period("2020-01")] * 3})
+        df_after_replace = df.replace(1.0, 0.0)
 
-        # buggy behavior is to raise:
-        # TypeError: 'value' should be a 'Period', 'NaT', or array of those.
-        # Got 'float' instead
-        # so for now we want to simply call this and no exception should be
-        # raised, improving upon 1.0.4 behavior
-        # df_after_replace = df.replace(1.0, 0.0)
-        df.replace(1.0, 0.0)
+        df_expected_result = pd.DataFrame({"Per": [pd.Period("2020-01")] * 3})
+        # currently replace() changes dtype from Period to object
+        df_expected_result["Per"] = df_expected_result["Per"].astype(object)
 
-        # 'replace()' should be ignored for these inputs,
-        # so new df should equal old df
-        # this is currently still buggy, Period column becomes Object instead
-        # so needs fix in future. added this info to GH ticket
-        # tm.assert_frame_equal(df, df_after_replace)
+        tm.assert_frame_equal(df_expected_result, df_after_replace)
