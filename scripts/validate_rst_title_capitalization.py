@@ -364,8 +364,8 @@ def main(source_paths: List[str], output_format: str) -> int:
                             print("****")
                             print(
                                 " ".join(
-                                    f"""{filename}:{line_number}:Be careful. In "{title}", "{word}" can have
-                                different writings:""".split()
+                                    f"""{filename}:{line_number}:Be careful. In "{title}", "{word}"
+                                    can have different writings:""".split()
                                 ),
                                 end=" ",
                             )
