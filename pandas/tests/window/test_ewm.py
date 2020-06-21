@@ -94,17 +94,17 @@ def test_ewma_halflife_without_times(halflife_with_times):
 @pytest.mark.parametrize(
     "times",
     [
-        np.arange(10).astype("datetime64[ns]"),
-        date_range("2000", freq="ns", periods=10),
-        date_range("2000", freq="ns", periods=10).tz_localize("UTC"),
+        np.arange(10).astype("datetime64[D]").astype("datetime64[ns]"),
+        date_range("2000", freq="D", periods=10),
+        date_range("2000", freq="D", periods=10).tz_localize("UTC"),
         "time_col",
     ],
 )
 def test_ewma_with_times(halflife_with_times, times):
     halflife = halflife_with_times
     df = DataFrame(
-        {"A": range(10), "time_col": date_range("2000", freq="ns", periods=10)}
+        {"A": range(10), "time_col": date_range("2000", freq="D", periods=10)}
     )
     result = df.ewm(halflife=halflife, times=times).mean()
-    expected = DataFrame({"A": np.arange(0, 5, step=0.5)})
+    expected = df.ewm(halflife=1.0).mean()
     tm.assert_frame_equal(result, expected)

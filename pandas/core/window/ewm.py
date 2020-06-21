@@ -216,10 +216,8 @@ class ExponentialMovingWindow(_Rolling):
                 raise ValueError(
                     "halflife must be a string or datetime.timedelta object"
                 )
-            self.time_weights = (
-                np.asarray(times - times[0]).astype(np.float64)
-                / Timedelta(halflife).value
-            )
+            self.times = np.asarray(times.astype(np.int64))
+            self.halflife = Timedelta(halflife).value
             # Halflife is no longer applicable when calculating COM
             # But allow COM to still be calculated if the user passes other decay args
             if common.count_not_none(com, span, alpha) > 0:
@@ -232,7 +230,8 @@ class ExponentialMovingWindow(_Rolling):
                     "halflife can only be a timedelta convertible argument if "
                     "times is not None."
                 )
-            self.time_weights = None
+            self.times = None
+            self.halflife = None
             self.com = get_center_of_mass(com, span, halflife, alpha)
 
     @property
@@ -329,10 +328,13 @@ class ExponentialMovingWindow(_Rolling):
             Arguments and keyword arguments to be passed into func.
         """
         nv.validate_window_func("mean", args, kwargs)
-        if self.time_weights is not None:
+        if self.times is not None:
             window_func = self._get_roll_func("ewma_time")
             window_func = partial(
-                window_func, minp=self.min_periods, time_weights=self.time_weights
+                window_func,
+                minp=self.min_periods,
+                times=self.times,
+                halflife=self.halflife,
             )
         else:
             window_func = self._get_roll_func("ewma")

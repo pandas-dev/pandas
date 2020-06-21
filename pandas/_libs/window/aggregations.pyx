@@ -8,7 +8,7 @@ from libc.stdlib cimport malloc, free
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport ndarray, int64_t, float64_t, float32_t
+from numpy cimport ndarray, int64_t, float64_t, float32_t, uint8_t
 cnp.import_array()
 
 
@@ -1758,16 +1758,17 @@ def roll_weighted_var(float64_t[:] values, float64_t[:] weights,
 # ----------------------------------------------------------------------
 # Exponentially weighted moving average
 
-def ewma_time(float64_t[:] vals, int minp, float64_t[:] time_weights):
+def ewma_time(ndarray[float64_t] vals, int minp, ndarray[int64_t] times, int64_t halflife):
     """
     Compute exponentially-weighted moving average using halflife and time
     distances.
 
     Parameters
     ----------
-    vals : ndarray (float64 type)
+    vals : ndarray[float_64]
     minp : int
-    time_weights : ndarray[float64]
+    times : ndarray[int64]
+    halflife : int64
 
     Returns
     -------
@@ -1776,28 +1777,27 @@ def ewma_time(float64_t[:] vals, int minp, float64_t[:] time_weights):
     cdef:
         Py_ssize_t i, num_not_nan = 0, N = len(vals)
         bint is_not_nan
-        float64_t numerator = 0., denominator = 0., time_weight, observation
-        ndarray[float64_t] output = np.empty(N, dtype=np.float64)
+        ndarray[uint8_t] mask = np.ones(N, dtype=np.uint8)
+        ndarray[float64_t] weights, observations, output = np.empty(N, dtype=np.float64)
 
     if N == 0:
         return output
 
-    with nogil:
-        for i in range(N):
-            observation = vals[i]
-            is_not_nan = observation == observation
-            num_not_nan += is_not_nan
-            if is_not_nan:
-                time_weight = 0.5**time_weights[i]
-                numerator += observation * time_weight
-                denominator += time_weight
-
-                if num_not_nan >= minp:
-                    output[i] = numerator / denominator
-                else:
-                    output[i] = NaN
+    for i in range(N):
+        is_not_nan = vals[i] == vals[i]
+        num_not_nan += is_not_nan
+        if is_not_nan:
+            if num_not_nan >= minp:
+                #obs_mask = mask[:i + 1].view(np.bool_)
+                weights = 0.5 ** ((times[i] - times[:i + 1]) / halflife)
+                observations = vals[:i + 1]#[obs_mask]
+                output[i] = np.sum(weights * observations) / np.sum(weights)
             else:
                 output[i] = NaN
+
+        else:
+            mask[i] = 0
+            output[i] = NaN
 
     return output
 
