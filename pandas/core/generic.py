@@ -5549,7 +5549,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return self._constructor(new_data).__finalize__(self, method="astype")
 
         if not results:
-            return type(self)()
+            return self.copy()
 
         # GH 19920: retain column metadata after concat
         result = pd.concat(results, axis=1, copy=False)
