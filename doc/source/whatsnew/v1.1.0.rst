@@ -298,7 +298,7 @@ Other enhancements
 - :meth:`~pandas.io.gbq.read_gbq` now allows to disable progress bar (:issue:`33360`).
 - :meth:`~pandas.io.gbq.read_gbq` now supports the ``max_results`` kwarg from ``pandas-gbq`` (:issue:`34639`).
 - :meth:`DataFrame.to_html` and :meth:`DataFrame.to_string`'s ``col_space`` parameter now accepts a list of dict to change only some specific columns' width (:issue:`28917`).
-- :class:`pandas.core.window.EWM` now supports a ``times`` argument that allows ``mean`` to be calculated with observations spaced by the timestamps in ``times`` (:issue:`34839`)
+- :class:`pandas.core.window.ExponentialMovingWindow` now supports a ``times`` argument that allows ``mean`` to be calculated with observations spaced by the timestamps in ``times`` (:issue:`34839`)
 
 .. ---------------------------------------------------------------------------
 
