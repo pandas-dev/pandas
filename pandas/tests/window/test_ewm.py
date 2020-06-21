@@ -3,9 +3,9 @@ import pytest
 
 from pandas.errors import UnsupportedFunctionCall
 
-from pandas import DataFrame, Series, date_range
 import pandas._testing as tm
-from pandas.core.window import EWM
+from pandas import DataFrame, Series, date_range
+from pandas.core.window import ExponentialMovingWindow
 
 
 def test_doc_string():
@@ -57,7 +57,7 @@ def test_constructor(which):
 @pytest.mark.parametrize("method", ["std", "mean", "var"])
 def test_numpy_compat(method):
     # see gh-12811
-    e = EWM(Series([2, 4, 6]), alpha=0.5)
+    e = ExponentialMovingWindow(Series([2, 4, 6]), alpha=0.5)
 
     msg = "numpy operations are not valid with window objects"
 
