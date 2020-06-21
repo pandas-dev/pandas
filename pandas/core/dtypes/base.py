@@ -374,7 +374,7 @@ def register_extension_dtype(cls: Type[ExtensionDtype]) -> Type[ExtensionDtype]:
     >>> from pandas.api.extensions import ExtensionDtype
     >>> @register_extension_dtype
     ... class MyExtensionDtype(ExtensionDtype):
-    ...     pass
+    ...     name = "myextension"
     """
     registry.register(cls)
     return cls
