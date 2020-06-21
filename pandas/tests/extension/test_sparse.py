@@ -358,10 +358,6 @@ class TestCasting(BaseSparseTests, base.BaseCastingTests):
     def test_astype_string(self, data):
         super().test_astype_string(data)
 
-    def test_astype_empty_frame(self, dtype):
-        empty_df = pd.DataFrame()
-        tm.assert_frame_equal(empty_df.astype(dtype), empty_df)
-
 
 class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
     series_scalar_exc = None
