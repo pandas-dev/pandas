@@ -2292,7 +2292,10 @@ Name: Max Speed, dtype: float64
         )
 
     def cov(
-        self, other: "Series", min_periods: Optional[int] = None, ddof: int = 1
+        self,
+        other: "Series",
+        min_periods: Optional[int] = None,
+        ddof: Optional[int] = 1,
     ) -> float:
         """
         Compute covariance with Series, excluding missing values.

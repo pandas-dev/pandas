@@ -8134,7 +8134,9 @@ NaN 12.3   33.0
 
         return self._constructor(correl, index=idx, columns=cols)
 
-    def cov(self, min_periods: Optional[int] = None, ddof: int = 1) -> "DataFrame":
+    def cov(
+        self, min_periods: Optional[int] = None, ddof: Optional[int] = 1
+    ) -> "DataFrame":
         """
         Compute pairwise covariance of columns, excluding NA/null values.
 
