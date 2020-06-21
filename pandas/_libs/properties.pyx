@@ -64,26 +64,3 @@ cdef class AxisProperty:
 
     def __set__(self, obj, value):
         obj._set_axis(self.axis, value)
-
-
-cdef class ClassProperty:
-    """
-    Property-like that can be accessed on the class and not just on an instance.
-    """
-
-    cdef readonly:
-        object func, name, __doc__
-
-    def __init__(self, func):
-        self.func = func
-        self.name = name
-        self.__doc__ = doc
-
-    def __get__(self, obj, typ):
-        return self.func(obj)
-
-    def __set__(self, obj, value):
-        raise AttributeError("Can't set attribute")
-
-
-class_property = ClassProperty
