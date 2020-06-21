@@ -71,14 +71,9 @@ from pandas._libs.tslibs.dtypes cimport (
     FR_MS,
     FR_US,
     FR_NS,
+    attrname_to_abbrevs,
 )
 
-from pandas._libs.tslibs.frequencies cimport (
-    attrname_to_abbrevs,
-    get_freq_code,
-    get_freq_str,
-    get_to_timestamp_base,
-)
 from pandas._libs.tslibs.parsing cimport get_rule_month
 from pandas._libs.tslibs.parsing import parse_time_string
 from pandas._libs.tslibs.nattype cimport (
@@ -94,6 +89,7 @@ from pandas._libs.tslibs.offsets cimport (
     is_tick_object,
     is_offset_object,
 )
+from pandas._libs.tslibs.offsets import INVALID_FREQ_ERR_MSG
 from pandas._libs.tslibs.tzconversion cimport tz_convert_utc_to_tzlocal
 
 
@@ -1481,7 +1477,30 @@ class IncompatibleFrequency(ValueError):
     pass
 
 
-cdef class _Period:
+cdef class PeriodMixin:
+    # Methods shared between Period and PeriodArray
+
+    cpdef int _get_to_timestamp_base(self):
+        """
+        Return frequency code group used for base of to_timestamp against
+        frequency code.
+
+        Return day freq code against longer freq than day.
+        Return second freq code against hour between second.
+
+        Returns
+        -------
+        int
+        """
+        base = self._dtype._dtype_code
+        if base < FR_BUS:
+            return FR_DAY
+        elif FR_HR <= base <= FR_SEC:
+            return FR_SEC
+        return base
+
+
+cdef class _Period(PeriodMixin):
 
     cdef readonly:
         int64_t ordinal
@@ -1648,8 +1667,8 @@ cdef class _Period:
         """
         freq = self._maybe_convert_freq(freq)
         how = validate_end_alias(how)
-        base1 = self._dtype.dtype_code
-        base2, _ = get_freq_code(freq)
+        base1 = self._dtype._dtype_code
+        base2 = freq_to_dtype_code(freq)
 
         # self.n can't be negative or 0
         end = how == 'E'
@@ -1737,12 +1756,12 @@ cdef class _Period:
             return endpoint - Timedelta(1, 'ns')
 
         if freq is None:
-            base = self._dtype.dtype_code
-            freq = get_to_timestamp_base(base)
+            freq = self._get_to_timestamp_base()
+            base = freq
         else:
             freq = self._maybe_convert_freq(freq)
+            base = freq._period_dtype_code
 
-        base, _ = get_freq_code(freq)
         val = self.asfreq(freq, how)
 
         dt64 = period_ordinal_to_dt64(val.ordinal, base)
@@ -1750,12 +1769,12 @@ cdef class _Period:
 
     @property
     def year(self) -> int:
-        base = self._dtype.dtype_code
+        base = self._dtype._dtype_code
         return pyear(self.ordinal, base)
 
     @property
     def month(self) -> int:
-        base = self._dtype.dtype_code
+        base = self._dtype._dtype_code
         return pmonth(self.ordinal, base)
 
     @property
@@ -1778,7 +1797,7 @@ cdef class _Period:
         >>> p.day
         11
         """
-        base = self._dtype.dtype_code
+        base = self._dtype._dtype_code
         return pday(self.ordinal, base)
 
     @property
@@ -1808,7 +1827,7 @@ cdef class _Period:
         >>> p.hour
         0
         """
-        base = self._dtype.dtype_code
+        base = self._dtype._dtype_code
         return phour(self.ordinal, base)
 
     @property
@@ -1832,7 +1851,7 @@ cdef class _Period:
         >>> p.minute
         3
         """
-        base = self._dtype.dtype_code
+        base = self._dtype._dtype_code
         return pminute(self.ordinal, base)
 
     @property
@@ -1856,12 +1875,12 @@ cdef class _Period:
         >>> p.second
         12
         """
-        base = self._dtype.dtype_code
+        base = self._dtype._dtype_code
         return psecond(self.ordinal, base)
 
     @property
     def weekofyear(self) -> int:
-        base = self._dtype.dtype_code
+        base = self._dtype._dtype_code
         return pweek(self.ordinal, base)
 
     @property
@@ -1942,7 +1961,7 @@ cdef class _Period:
         >>> per.end_time.dayofweek
         2
         """
-        base = self._dtype.dtype_code
+        base = self._dtype._dtype_code
         return pweekday(self.ordinal, base)
 
     @property
@@ -2030,12 +2049,12 @@ cdef class _Period:
         >>> period.dayofyear
         1
         """
-        base = self._dtype.dtype_code
+        base = self._dtype._dtype_code
         return pday_of_year(self.ordinal, base)
 
     @property
     def quarter(self) -> int:
-        base = self._dtype.dtype_code
+        base = self._dtype._dtype_code
         return pquarter(self.ordinal, base)
 
     @property
@@ -2079,7 +2098,7 @@ cdef class _Period:
         >>> per.year
         2017
         """
-        base = self._dtype.dtype_code
+        base = self._dtype._dtype_code
         return pqyear(self.ordinal, base)
 
     @property
@@ -2113,7 +2132,7 @@ cdef class _Period:
         >>> p.days_in_month
         29
         """
-        base = self._dtype.dtype_code
+        base = self._dtype._dtype_code
         return pdays_in_month(self.ordinal, base)
 
     @property
@@ -2151,7 +2170,7 @@ cdef class _Period:
         return self.freq.freqstr
 
     def __repr__(self) -> str:
-        base = self._dtype.dtype_code
+        base = self._dtype._dtype_code
         formatted = period_format(self.ordinal, base)
         return f"Period('{formatted}', '{self.freqstr}')"
 
@@ -2159,7 +2178,7 @@ cdef class _Period:
         """
         Return a string representation for a particular DataFrame
         """
-        base = self._dtype.dtype_code
+        base = self._dtype._dtype_code
         formatted = period_format(self.ordinal, base)
         value = str(formatted)
         return value
@@ -2311,7 +2330,7 @@ cdef class _Period:
         >>> a.strftime('%b. %d, %Y was a %A')
         'Jan. 01, 2001 was a Monday'
         """
-        base = self._dtype.dtype_code
+        base = self._dtype._dtype_code
         return period_format(self.ordinal, base, fmt)
 
 
@@ -2386,8 +2405,7 @@ class Period(_Period):
 
         elif is_period_object(value):
             other = value
-            if freq is None or get_freq_code(
-                    freq) == get_freq_code(other.freq):
+            if freq is None or freq._period_dtype_code == other.freq._period_dtype_code:
                 ordinal = other.ordinal
                 freq = other.freq
             else:
@@ -2414,6 +2432,7 @@ class Period(_Period):
                 except KeyError:
                     raise ValueError(f"Invalid frequency or could not "
                                      f"infer: {reso}")
+                freq = to_offset(freq)
 
         elif PyDateTime_Check(value):
             dt = value
@@ -2432,7 +2451,7 @@ class Period(_Period):
             raise ValueError(msg)
 
         if ordinal is None:
-            base, _ = get_freq_code(freq)
+            base = freq_to_dtype_code(freq)
             ordinal = period_ordinal(dt.year, dt.month, dt.day,
                                      dt.hour, dt.minute, dt.second,
                                      dt.microsecond, 0, base)
@@ -2444,9 +2463,17 @@ cdef bint is_period_object(object obj):
     return isinstance(obj, _Period)
 
 
+cpdef int freq_to_dtype_code(BaseOffset freq) except? -1:
+    try:
+        return freq._period_dtype_code
+    except AttributeError as err:
+        raise ValueError(INVALID_FREQ_ERR_MSG) from err
+
+
 cdef int64_t _ordinal_from_fields(int year, int month, quarter, int day,
-                                  int hour, int minute, int second, freq):
-    base, mult = get_freq_code(freq)
+                                  int hour, int minute, int second,
+                                  BaseOffset freq):
+    base = freq_to_dtype_code(freq)
     if quarter is not None:
         year, month = quarter_to_myear(year, quarter, freq)
 
