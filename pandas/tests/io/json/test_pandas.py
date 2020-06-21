@@ -159,7 +159,7 @@ class TestPandasContainer:
 
         assert_json_roundtrip_equal(result, expected, orient)
 
-    @pytest.mark.parametrize("dtype", [None, np.float64, np.int, "U3"])
+    @pytest.mark.parametrize("dtype", [None, np.float64, int, "U3"])
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
     def test_roundtrip_str_axes(self, orient, convert_axes, numpy, dtype):
@@ -673,7 +673,7 @@ class TestPandasContainer:
 
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("dtype", [np.float64, np.int])
+    @pytest.mark.parametrize("dtype", [np.float64, int])
     @pytest.mark.parametrize("numpy", [True, False])
     def test_series_roundtrip_numeric(self, orient, numpy, dtype):
         s = Series(range(6), index=["a", "b", "c", "d", "e", "f"])

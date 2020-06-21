@@ -776,15 +776,19 @@ class DatetimeLikeArrayMixin(
 
         return self._unbox(fill_value)
 
-    def _validate_scalar(self, value, msg: str, cast_str: bool = False):
+    def _validate_scalar(
+        self, value, msg: Optional[str] = None, cast_str: bool = False
+    ):
         """
         Validate that the input value can be cast to our scalar_type.
 
         Parameters
         ----------
         value : object
-        msg : str
+        msg : str, optional.
             Message to raise in TypeError on invalid input.
+            If not provided, `value` is cast to a str and used
+            as the message.
         cast_str : bool, default False
             Whether to try to parse string input to scalar_type.
 
@@ -807,6 +811,8 @@ class DatetimeLikeArrayMixin(
             value = self._scalar_type(value)  # type: ignore
 
         else:
+            if msg is None:
+                msg = str(value)
             raise TypeError(msg)
 
         return value
@@ -1122,11 +1128,6 @@ class DatetimeLikeArrayMixin(
         """
         Returns day, hour, minute, second, millisecond or microsecond
         """
-        if self._resolution_obj is None:
-            if is_period_dtype(self.dtype):
-                # somewhere in the past it was decided we default to day
-                return "day"
-            # otherwise we fall through and will raise
         return self._resolution_obj.attrname  # type: ignore
 
     @classmethod
