@@ -347,12 +347,11 @@ class TestShift:
 
     @pytest.mark.parametrize(
         "input_value, expected_value",
-        [
-            (np.empty(shape=(0,)), pd.Series([], dtype="float64")),
-            (np.ones(shape=(2,)), pd.Series([np.nan, 1.0], dtype="float64")),
-        ],
+        [(np.empty(shape=(0,)), []), (np.ones(shape=(2,)), [np.nan, 1.0])],
     )
     def test_shift_non_writable_array(self, input_value, expected_value):
         # GH21049 Verify whether non writable numpy array is shiftable
         input_value.setflags(write=False)
-        tm.assert_series_equal(pd.Series(input_value).shift(1), expected_value)
+        tm.assert_series_equal(
+            pd.Series(input_value).shift(1), pd.Series(expected_value, dtype="float64")
+        )
