@@ -372,7 +372,7 @@ Parameters
 ----------
 func : function, str, list or dict
     Function to use for aggregating the data. If a function, must either
-    work when passed a %(klass)s or when passed to %(klass)s.apply.
+    work when passed a {klass} or when passed to {klass}.apply.
 
     Accepted combinations are:
 
@@ -403,7 +403,7 @@ engine_kwargs : dict, default None
     * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
       and ``parallel`` dictionary keys. The values must either be ``True`` or
       ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-      ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
+      ``{{'nopython': True, 'nogil': False, 'parallel': False}}`` and will be
       applied to the function
 
     .. versionadded:: 1.1.0
@@ -412,20 +412,20 @@ engine_kwargs : dict, default None
 
 Returns
 -------
-%(klass)s
+{klass}
 
 See Also
 --------
-%(klass)s.groupby.apply
-%(klass)s.groupby.transform
-%(klass)s.aggregate
+{klass}.groupby.apply
+{klass}.groupby.transform
+{klass}.aggregate
 
 Notes
 -----
 When using ``engine='numba'``, there will be no "fall back" behavior internally.
 The group data and group index will be passed as numpy arrays to the JITed
 user defined function, and no alternative execution attempts will be tried.
-%(examples)s
+{examples}
 """
 
 
@@ -1267,9 +1267,9 @@ class GroupBy(_GroupBy[FrameOrSeries]):
             if is_object_dtype(vals):
                 vals = np.array([bool(x) for x in vals])
             else:
-                vals = vals.astype(np.bool)
+                vals = vals.astype(bool)
 
-            return vals.view(np.uint8), np.bool
+            return vals.view(np.uint8), bool
 
         def result_to_bool(result: np.ndarray, inference: Type) -> np.ndarray:
             return result.astype(inference, copy=False)
@@ -1277,6 +1277,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         return self._get_cythonized_result(
             "group_any_all",
             aggregate=True,
+            numeric_only=False,
             cython_dtype=np.dtype(np.uint8),
             needs_values=True,
             needs_mask=True,
@@ -1433,18 +1434,16 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         Series or DataFrame
             Standard deviation of values within each group.
         """
-        result = self.var(ddof=ddof)
-        if result.ndim == 1:
-            result = np.sqrt(result)
-        else:
-            cols = result.columns.get_indexer_for(
-                result.columns.difference(self.exclusions).unique()
-            )
-            # TODO(GH-22046) - setting with iloc broken if labels are not unique
-            # .values to remove labels
-            result.iloc[:, cols] = np.sqrt(result.iloc[:, cols]).values
-
-        return result
+        return self._get_cythonized_result(
+            "group_var_float64",
+            aggregate=True,
+            needs_counts=True,
+            needs_values=True,
+            needs_2d=True,
+            cython_dtype=np.dtype(np.float64),
+            post_processing=lambda vals, inference: np.sqrt(vals),
+            ddof=ddof,
+        )
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)
@@ -1778,6 +1777,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
 
         return self._get_cythonized_result(
             "group_fillna_indexer",
+            numeric_only=False,
             needs_mask=True,
             cython_dtype=np.dtype(np.int64),
             result_is_index=True,
@@ -2059,7 +2059,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
                 vals = vals.to_numpy(dtype=float, na_value=np.nan)
             elif is_datetime64_dtype(vals.dtype):
                 inference = "datetime64[ns]"
-                vals = np.asarray(vals).astype(np.float)
+                vals = np.asarray(vals).astype(float)
 
             return vals, inference
 
@@ -2078,6 +2078,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
             return self._get_cythonized_result(
                 "group_quantile",
                 aggregate=True,
+                numeric_only=False,
                 needs_values=True,
                 needs_mask=True,
                 cython_dtype=np.dtype(np.float64),
@@ -2367,7 +2368,11 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         how: str,
         cython_dtype: np.dtype,
         aggregate: bool = False,
+        numeric_only: bool = True,
+        needs_counts: bool = False,
         needs_values: bool = False,
+        needs_2d: bool = False,
+        min_count: Optional[int] = None,
         needs_mask: bool = False,
         needs_ngroups: bool = False,
         result_is_index: bool = False,
@@ -2386,9 +2391,18 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         aggregate : bool, default False
             Whether the result should be aggregated to match the number of
             groups
+        numeric_only : bool, default True
+            Whether only numeric datatypes should be computed
+        needs_counts : bool, default False
+            Whether the counts should be a part of the Cython call
         needs_values : bool, default False
             Whether the values should be a part of the Cython call
             signature
+        needs_2d : bool, default False
+            Whether the values and result of the Cython call signature
+            are at least 2-dimensional.
+        min_count : int, default None
+            When not None, min_count for the Cython call
         needs_mask : bool, default False
             Whether boolean mask needs to be part of the Cython call
             signature
@@ -2418,7 +2432,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         if result_is_index and aggregate:
             raise ValueError("'result_is_index' and 'aggregate' cannot both be True!")
         if post_processing:
-            if not callable(pre_processing):
+            if not callable(post_processing):
                 raise ValueError("'post_processing' must be a callable!")
         if pre_processing:
             if not callable(pre_processing):
@@ -2438,20 +2452,38 @@ class GroupBy(_GroupBy[FrameOrSeries]):
             name = obj.name
             values = obj._values
 
+            if numeric_only and not is_numeric_dtype(values):
+                continue
+
             if aggregate:
                 result_sz = ngroups
             else:
                 result_sz = len(values)
 
             result = np.zeros(result_sz, dtype=cython_dtype)
-            func = partial(base_func, result, labels)
+            if needs_2d:
+                result = result.reshape((-1, 1))
+            func = partial(base_func, result)
+
             inferences = None
+
+            if needs_counts:
+                counts = np.zeros(self.ngroups, dtype=np.int64)
+                func = partial(func, counts)
 
             if needs_values:
                 vals = values
                 if pre_processing:
                     vals, inferences = pre_processing(vals)
+                if needs_2d:
+                    vals = vals.reshape((-1, 1))
+                vals = vals.astype(cython_dtype, copy=False)
                 func = partial(func, vals)
+
+            func = partial(func, labels)
+
+            if min_count is not None:
+                func = partial(func, min_count)
 
             if needs_mask:
                 mask = isna(values).view(np.uint8)
@@ -2461,6 +2493,9 @@ class GroupBy(_GroupBy[FrameOrSeries]):
                 func = partial(func, ngroups)
 
             func(**kwargs)  # Call func to modify indexer values in place
+
+            if needs_2d:
+                result = result.reshape(-1)
 
             if result_is_index:
                 result = algorithms.take_nd(values, result)
@@ -2512,6 +2547,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
 
         return self._get_cythonized_result(
             "group_shift_indexer",
+            numeric_only=False,
             cython_dtype=np.dtype(np.int64),
             needs_ngroups=True,
             result_is_index=True,
