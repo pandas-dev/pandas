@@ -1423,7 +1423,7 @@ Here is an example of one way to easily plot group means with standard deviation
    # Plot
    fig, ax = plt.subplots()
    @savefig errorbar_example.png
-   means.plot.bar(yerr=errors, ax=ax, capsize=4)
+   means.plot.bar(yerr=errors, ax=ax, capsize=4, rot=0)
 
 .. ipython:: python
    :suppress:
@@ -1444,9 +1444,9 @@ Plotting with matplotlib table is now supported in  :meth:`DataFrame.plot` and :
 
 .. ipython:: python
 
-   fig, ax = plt.subplots(1, 1)
+   fig, ax = plt.subplots(1, 1, figsize=(7, 6.5))
    df = pd.DataFrame(np.random.rand(5, 3), columns=['a', 'b', 'c'])
-   ax.get_xaxis().set_visible(False)   # Hide Ticks
+   ax.xaxis.tick_top()  # Display x-axis ticks on top.
 
    @savefig line_plot_table_true.png
    df.plot(table=True, ax=ax)
@@ -1463,8 +1463,9 @@ as seen in the example below.
 
 .. ipython:: python
 
-   fig, ax = plt.subplots(1, 1)
-   ax.get_xaxis().set_visible(False)   # Hide Ticks
+   fig, ax = plt.subplots(1, 1, figsize=(7, 6.75))
+   ax.xaxis.tick_top()  # Display x-axis ticks on top.
+
    @savefig line_plot_table_data.png
    df.plot(table=np.round(df.T, 2), ax=ax)
 
