@@ -565,10 +565,11 @@ class TestUltraJSONTests:
         # GH34395
         bigNum = sys.maxsize + 1
         encoding = ujson.encode(bigNum)
-
         assert str(bigNum) == encoding
-        # ujson.loads to be fixed in the future
-        # assert ujson.loads(encoding) == bigNum
+
+        # GH20599
+        with pytest.raises(ValueError):
+            assert ujson.loads(encoding) == bigNum
 
     @pytest.mark.parametrize(
         "int_exp", ["1337E40", "1.337E40", "1337E+9", "1.337e+40", "1.337E-4"]
