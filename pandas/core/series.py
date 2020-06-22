@@ -3716,7 +3716,7 @@ Keep all original rows and also all original values
         result.index = result.index.reorder_levels(order)
         return result
 
-    def explode(self, ignore_index: bool) -> "Series":
+    def explode(self, ignore_index: bool = False) -> "Series":
         """
         Transform each element of a list-like to a row, replicating the
         index values.
