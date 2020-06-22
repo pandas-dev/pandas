@@ -15,75 +15,13 @@ to *pandas*.
 2 Patterns
 ----------
 
-2.1 Line Length
-~~~~~~~~~~~~~~~
-
-Line length is restricted to 80 characters to promote readability.
-
-2.2 Indentation
-~~~~~~~~~~~~~~~
-
-Indentations must be multiples of 4
-
-For example:
-
-**Good:**
-
-::       
-    
-    if i == 0
-        if x == 3
-            x = 10
-
-**Bad:**
-
-::   
-  
-  if i == 0
-    if x == 3
-     x = 10
-
-2.3 Whitespaces Around Arithmetic Operators
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-There must be whitespaces surrounding arithmetic operators
-
-**Good:**
-
-::
-
-   x = 3 + 5 / 2
-
-**Bad:**
-
-::
-
-   x=3+5/2
-
-2.4 Missing White Spaces After Commas
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-There must be a whitespace following a comma
-
-**Good:**
-
-::
-
-   myFunctionCall('a', 'b', 'c')
-
-**Bad:**
-
-::
-
-   myFunctionCall('a','b','c')
-
-2.5 Header File
+2.1 Header File
 ~~~~~~~~~~~~~~~
 
 Every header file must include a header guard to avoid name collision if
 re-included.
 
-2.6 foo._class\_
+2.2 foo._class\_
 ~~~~~~~~~~~~~~~~
 
 **pandas** uses ‘type(foo)’ instead ‘foo.__class__’ as it is making the
@@ -105,7 +43,7 @@ For example:
    foo = "bar"
    foo.__class__
 
-2.7 Bare Pytest Raises
+2.3 Bare Pytest Raises
 ~~~~~~~~~~~~~~~~~~~~~~
 
 **Good:**
