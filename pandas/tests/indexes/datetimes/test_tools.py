@@ -1528,6 +1528,9 @@ def test_normalize_date():
     assert (result == datetime(2012, 9, 7))
 
 
+the_year_1960 = Timestamp('1960-01-01')
+
+
 @pytest.fixture(params=['D', 's', 'ms', 'us', 'ns'])
 def units(request):
     return request.param
@@ -1536,7 +1539,20 @@ def units(request):
 @pytest.fixture
 def epoch_1960():
     # for origin as 1960-01-01
-    return Timestamp('1960-01-01')
+    return the_year_1960
+
+@pytest.fixture
+def epoch_1960_as_pydatetime():
+    # for origin as 1960-01-01
+    return the_year_1960.to_pydatetime()
+
+@pytest.fixture
+def epoch_1960_as_datetime64():
+    # for origin as 1960-01-01
+    return the_year_1960.to_datetime64()
+
+
+
 
 
 @pytest.fixture
@@ -1544,10 +1560,10 @@ def units_from_epochs():
     return list(range(5))
 
 
-@pytest.fixture(params=[epoch_1960(),
-                        epoch_1960().to_pydatetime(),
-                        epoch_1960().to_datetime64(),
-                        str(epoch_1960())])
+@pytest.fixture(params=[epoch_1960,
+                        epoch_1960_as_pydatetime,
+                        epoch_1960_as_datetime64,
+                        str(epoch_1960)])
 def epochs(request):
     return request.param
 

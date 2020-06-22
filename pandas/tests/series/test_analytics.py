@@ -1768,8 +1768,7 @@ class TestSeriesAnalytics(TestData):
         tm.assert_series_equal(idx.value_counts(normalize=True), exp)
 
 
-@pytest.fixture
-def s_main_dtypes():
+def s_main_dtypes_var():
     df = pd.DataFrame(
         {'datetime': pd.to_datetime(['2003', '2002',
                                      '2001', '2002',
@@ -1788,6 +1787,23 @@ def s_main_dtypes():
 
     return df
 
+
+@pytest.fixture
+def s_main_dtypes():
+    df = s_main_dtypes_var()
+    return df 
+
+def s_main_dtypes_items():
+    adf = s_main_dtypes_var()
+    # pytest.set_trace()
+    a_list = [v for k, v in adf.iteritems()]
+    return a_list
+
+
+@pytest.fixture(name="s_main_dtypes_items")
+def s_main_dtypes_iteritems():
+    a_list = s_main_dtypes_items
+    return a_list
 
 class TestMode(object):
 
@@ -1992,9 +2008,10 @@ class TestNLargestNSmallest(object):
             with tm.assert_raises_regex(TypeError, msg):
                 method(arg)
 
+    @pytest.fixture(name="s_main_dtypes_iteritems")
     @pytest.mark.parametrize(
         "s",
-        [v for k, v in s_main_dtypes().iteritems()])
+        s_main_dtypes_iteritems)
     def test_nsmallest_nlargest(self, s):
         # float, int, datetime64 (use i8), timedelts64 (same),
         # object that are numbers, object that are strings

@@ -91,6 +91,19 @@ s_whitelist = frozenset([
     'is_monotonic_decreasing',
 ])
 
+def df_letters_fn():
+    letters = np.array(list(ascii_lowercase))
+    N = 10
+    random_letters = letters.take(np.random.randint(0, 26, N))
+    df = DataFrame({'floats': N / 10 * Series(np.random.random(N)),
+                    'letters': Series(random_letters)})
+    return df
+
+df_letters_var = df_letters_fn()
+
+
+
+
 
 @pytest.fixture
 def mframe():
@@ -114,16 +127,16 @@ def df():
 
 @pytest.fixture
 def df_letters():
-    letters = np.array(list(ascii_lowercase))
-    N = 10
-    random_letters = letters.take(np.random.randint(0, 26, N))
-    df = DataFrame({'floats': N / 10 * Series(np.random.random(N)),
-                    'letters': Series(random_letters)})
-    return df
+    return df_letters_var()
+
+
+@pytest.fixture
+def df_letters_floats():
+    return df_letters_var().floats
 
 
 @pytest.mark.parametrize(
-    "obj, whitelist", zip((df_letters(), df_letters().floats),
+    "obj, whitelist", zip((df_letters, df_letters_floats),
                           (df_whitelist, s_whitelist)))
 def test_groupby_whitelist(df_letters, obj, whitelist):
     df = df_letters
