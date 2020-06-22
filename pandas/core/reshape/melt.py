@@ -19,6 +19,7 @@ from pandas.core.tools.numeric import to_numeric
 if TYPE_CHECKING:
     from pandas import Series  # noqa: F401
 
+
 @Appender(
     _shared_docs["melt"]
     % dict(caller="pd.melt(df, ", versionadded="", other="DataFrame.melt")
