@@ -6910,7 +6910,6 @@ NaN 12.3   33.0
         ignore_index : bool, default False
             If True, the resulting index will be labeled 0, 1, …, n - 1.
 
-
         Returns
         -------
         DataFrame

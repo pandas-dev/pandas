@@ -3773,7 +3773,6 @@ Keep all original rows and also all original values
         ignore_index : bool, default False
             If True, the resulting index will be labeled 0, 1, …, n - 1.
 
-
         Returns
         -------
         Series
