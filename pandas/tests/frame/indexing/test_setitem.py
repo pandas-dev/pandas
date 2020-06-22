@@ -175,7 +175,7 @@ class TestDataFrameSetItem:
             }
         )
 
-        df = DataFrame({"idx": [1, 2, 3],})
+        df = DataFrame({"idx": [1, 2, 3]})
         df["period"] = period_val
         df["interval"] = interval_val
 
