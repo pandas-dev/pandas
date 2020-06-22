@@ -1218,7 +1218,7 @@ class PlotAccessor(PandasObject):
 
             You can alternatively provide a string describing a binning
             strategy, such as 'auto', 'sturges', 'fd', 'doane', 'scott',
-            'rice' or 'sqrt'. See `numpy.histogram`.
+            'rice' or 'sqrt'. See :func:`numpy.histogram`.
         **kwargs
             Additional keyword arguments are documented in
             :meth:`DataFrame.plot`.
