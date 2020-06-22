@@ -1,7 +1,9 @@
 import importlib
+from typing import TYPE_CHECKING, Optional, Sequence, Tuple, Union
 
 from pandas._config import get_option
 
+from pandas._typing import Label
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.common import is_integer, is_list_like
@@ -9,19 +11,23 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 from pandas.core.base import PandasObject
 
+if TYPE_CHECKING:
+    from pandas import DataFrame
+
 
 def hist_series(
     self,
     by=None,
     ax=None,
-    grid=True,
-    xlabelsize=None,
-    xrot=None,
-    ylabelsize=None,
-    yrot=None,
-    figsize=None,
-    bins=10,
-    backend=None,
+    grid: bool = True,
+    xlabelsize: Optional[int] = None,
+    xrot: Optional[float] = None,
+    ylabelsize: Optional[int] = None,
+    yrot: Optional[float] = None,
+    figsize: Optional[Tuple[int, int]] = None,
+    bins: Union[int, Sequence[int]] = 10,
+    backend: Optional[str] = None,
+    legend: bool = False,
     **kwargs,
 ):
     """
@@ -58,6 +64,11 @@ def hist_series(
 
         .. versionadded:: 1.0.0
 
+    legend : bool, default False
+        Whether to show the legend.
+
+        ..versionadded:: 1.1.0
+
     **kwargs
         To be passed to the actual plotting function.
 
@@ -82,26 +93,28 @@ def hist_series(
         yrot=yrot,
         figsize=figsize,
         bins=bins,
+        legend=legend,
         **kwargs,
     )
 
 
 def hist_frame(
-    data,
-    column=None,
+    data: "DataFrame",
+    column: Union[Label, Sequence[Label]] = None,
     by=None,
-    grid=True,
-    xlabelsize=None,
-    xrot=None,
-    ylabelsize=None,
-    yrot=None,
+    grid: bool = True,
+    xlabelsize: Optional[int] = None,
+    xrot: Optional[float] = None,
+    ylabelsize: Optional[int] = None,
+    yrot: Optional[float] = None,
     ax=None,
-    sharex=False,
-    sharey=False,
-    figsize=None,
-    layout=None,
-    bins=10,
-    backend=None,
+    sharex: bool = False,
+    sharey: bool = False,
+    figsize: Optional[Tuple[int, int]] = None,
+    layout: Optional[Tuple[int, int]] = None,
+    bins: Union[int, Sequence[int]] = 10,
+    backend: Optional[str] = None,
+    legend: bool = False,
     **kwargs,
 ):
     """
@@ -154,6 +167,7 @@ def hist_frame(
         bin edges are calculated and returned. If bins is a sequence, gives
         bin edges, including left edge of first bin and right edge of last
         bin. In this case, bins is returned unmodified.
+
     backend : str, default None
         Backend to use instead of the backend specified in the option
         ``plotting.backend``. For instance, 'matplotlib'. Alternatively, to
@@ -161,6 +175,11 @@ def hist_frame(
         ``pd.options.plotting.backend``.
 
         .. versionadded:: 1.0.0
+
+    legend : bool, default False
+        Whether to show the legend.
+
+        ..versionadded:: 1.1.0
 
     **kwargs
         All other plotting keyword arguments to be passed to
@@ -203,6 +222,7 @@ def hist_frame(
         sharey=sharey,
         figsize=figsize,
         layout=layout,
+        legend=legend,
         bins=bins,
         **kwargs,
     )
