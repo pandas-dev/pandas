@@ -220,6 +220,7 @@ class BlockManager(PandasObject):
 
     @property
     def _is_single_block(self) -> bool:
+        # Assumes we are 2D; overriden by SingleBlockManager
         if self.ndim == 1:
             return True
 
@@ -663,7 +664,7 @@ class BlockManager(PandasObject):
     def is_mixed_type(self) -> bool:
         # Warning, consolidation needs to get checked upstairs
         self._consolidate_inplace()
-        return len(self.blocks) > 1
+        return self._is_single_block
 
     @property
     def is_numeric_mixed_type(self) -> bool:
@@ -1486,6 +1487,7 @@ class SingleBlockManager(BlockManager):
     _is_consolidated = True
     _known_consolidated = True
     __slots__ = ()
+    _is_single_block = True
 
     def __init__(
         self,
