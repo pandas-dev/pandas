@@ -1,9 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas import Categorical, DataFrame, Index, Series, Timestamp, date_range
+from pandas import Categorical, DataFrame, Index, Series, Timestamp, date_range, Period, Interval
 import pandas._testing as tm
 from pandas.core.arrays import SparseArray
+from pandas.core.dtypes.dtypes import PeriodDtype, IntervalDtype
 
 
 class TestDataFrameSetItem:
@@ -149,4 +150,27 @@ class TestDataFrameSetItem:
                 "b": float(b),
                 "c": float(b),
             }
+        tm.assert_frame_equal(df, expected)
+
+    def test_setitem_extension_types(self):
+        # GH: 34832
+        period_val = Period('2020-01')
+        interval_val = Interval(left=0, right=5)
+
+        expected = DataFrame(
+                    {
+                        "idx": [1, 2, 3],
+                        "period": Series([period_val]*3, dtype=PeriodDtype("M")),
+                        "interval": Series([interval_val]*3, dtype=IntervalDtype("int64")),
+                    }
+                )
+
+        df = DataFrame(
+                    {
+                        "idx": [1, 2, 3],
+                    }
+                )
+        df["period"] = period_val
+        df["interval"] = interval_val
+
         tm.assert_frame_equal(df, expected)
