@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.dtypes import IntervalDtype, PeriodDtype
+
 from pandas import (
     Categorical,
     DataFrame,
@@ -13,7 +15,6 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.arrays import SparseArray
-from pandas.core.dtypes.dtypes import IntervalDtype, PeriodDtype
 
 
 class TestDataFrameSetItem:
