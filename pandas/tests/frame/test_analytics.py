@@ -1021,7 +1021,7 @@ class TestDataFrameAnalytics:
         )
 
         result = df.all(bool_only=True)
-        expected = Series(dtype=np.bool)
+        expected = Series(dtype=np.bool_)
         tm.assert_series_equal(result, expected)
 
         df = DataFrame(

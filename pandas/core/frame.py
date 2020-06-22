@@ -776,7 +776,7 @@ class DataFrame(NDFrame):
         header="Write out the column names. If a list of strings "
         "is given, it is assumed to be aliases for the "
         "column names",
-        col_space_type="int",
+        col_space_type="int, list or dict of int",
         col_space="The minimum width of each column",
     )
     @Substitution(shared_params=fmt.common_docstring, returns=fmt.return_docstring)
@@ -2183,9 +2183,10 @@ class DataFrame(NDFrame):
 
         to_feather(self, path, **kwargs)
 
-    @Appender(
-        """
-        Examples
+    @doc(
+        Series.to_markdown,
+        klass=_shared_doc_kwargs["klass"],
+        examples="""Examples
         --------
         >>> df = pd.DataFrame(
         ...     data={"animal_1": ["elk", "pig"], "animal_2": ["dog", "quetzal"]}
@@ -2206,10 +2207,8 @@ class DataFrame(NDFrame):
         +----+------------+------------+
         |  1 | pig        | quetzal    |
         +----+------------+------------+
-        """
+        """,
     )
-    @Substitution(klass="DataFrame")
-    @Appender(_shared_docs["to_markdown"])
     def to_markdown(
         self, buf: Optional[IO[str]] = None, mode: Optional[str] = None, **kwargs
     ) -> Optional[str]:
@@ -2328,7 +2327,7 @@ class DataFrame(NDFrame):
     @Substitution(
         header_type="bool",
         header="Whether to print column labels, default True",
-        col_space_type="str or int",
+        col_space_type="str or int, list or dict of int or str",
         col_space="The minimum width of each column in CSS length "
         "units.  An int is assumed to be px units.\n\n"
         "            .. versionadded:: 0.25.0\n"
@@ -4758,20 +4757,20 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Reindex-based selection methods
 
-    @Appender(_shared_docs["isna"] % _shared_doc_kwargs)
+    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
     def isna(self) -> "DataFrame":
         result = self._constructor(self._data.isna(func=isna))
         return result.__finalize__(self, method="isna")
 
-    @Appender(_shared_docs["isna"] % _shared_doc_kwargs)
+    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
     def isnull(self) -> "DataFrame":
         return self.isna()
 
-    @Appender(_shared_docs["notna"] % _shared_doc_kwargs)
+    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])
     def notna(self) -> "DataFrame":
         return ~self.isna()
 
-    @Appender(_shared_docs["notna"] % _shared_doc_kwargs)
+    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])
     def notnull(self) -> "DataFrame":
         return ~self.isna()
 
@@ -5450,7 +5449,7 @@ class DataFrame(NDFrame):
         if subset is None:
             subset = self.columns.tolist()
 
-        counts = self.groupby(subset).size()
+        counts = self.groupby(subset).grouper.size()
 
         if sort:
             counts = counts.sort_values(ascending=ascending)
@@ -7298,7 +7297,7 @@ NaN 12.3   33.0
     core.resample.Resampler : Perform operations over resampled bins.
     core.window.Rolling : Perform operations over rolling window.
     core.window.Expanding : Perform operations over expanding window.
-    core.window.EWM : Perform operation over exponential weighted
+    core.window.ExponentialMovingWindow : Perform operation over exponential weighted
         window.
     """
     )
@@ -7339,13 +7338,14 @@ NaN 12.3   33.0
     """
     )
 
-    @Substitution(
+    @doc(
+        _shared_docs["aggregate"],
+        klass=_shared_doc_kwargs["klass"],
+        axis=_shared_doc_kwargs["axis"],
         see_also=_agg_summary_and_see_also_doc,
         examples=_agg_examples_doc,
         versionadded="\n.. versionadded:: 0.20.0\n",
-        **_shared_doc_kwargs,
     )
-    @Appender(_shared_docs["aggregate"])
     def aggregate(self, func, axis=0, *args, **kwargs):
         axis = self._get_axis_number(axis)
 
@@ -7373,7 +7373,11 @@ NaN 12.3   33.0
 
     agg = aggregate
 
-    @Appender(_shared_docs["transform"] % _shared_doc_kwargs)
+    @doc(
+        NDFrame.transform,
+        klass=_shared_doc_kwargs["klass"],
+        axis=_shared_doc_kwargs["axis"],
+    )
     def transform(self, func, axis=0, *args, **kwargs) -> "DataFrame":
         axis = self._get_axis_number(axis)
         if axis == 1:
@@ -8176,7 +8180,7 @@ NaN 12.3   33.0
         See Also
         --------
         Series.cov : Compute covariance with another Series.
-        core.window.EWM.cov: Exponential weighted sample covariance.
+        core.window.ExponentialMovingWindow.cov: Exponential weighted sample covariance.
         core.window.Expanding.cov : Expanding sample covariance.
         core.window.Rolling.cov : Rolling sample covariance.
 
