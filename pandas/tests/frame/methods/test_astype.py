@@ -561,6 +561,7 @@ class TestAstype:
     def test_astype_empty_dtype_dict(self):
         # issue mentioned further down in the following issue's thread
         # https://github.com/pandas-dev/pandas/issues/33113
-        df = pd.DataFrame()
+        df = DataFrame()
         result = df.astype(dict())
-        self.assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, df)
+        assert result is not df
