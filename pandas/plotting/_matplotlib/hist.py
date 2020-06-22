@@ -225,6 +225,7 @@ def _grouped_hist(
     xrot=None,
     ylabelsize=None,
     yrot=None,
+    legend=False,
     **kwargs,
 ):
     """
@@ -243,15 +244,26 @@ def _grouped_hist(
     sharey : bool, default False
     rot : int, default 90
     grid : bool, default True
+    legend: : bool, default False
     kwargs : dict, keyword arguments passed to matplotlib.Axes.hist
 
     Returns
     -------
     collection of Matplotlib Axes
     """
+    if legend:
+        assert "label" not in kwargs
+        if data.ndim == 1:
+            kwargs["label"] = data.name
+        elif column is None:
+            kwargs["label"] = data.columns
+        else:
+            kwargs["label"] = column
 
     def plot_group(group, ax):
         ax.hist(group.dropna().values, bins=bins, **kwargs)
+        if legend:
+            ax.legend()
 
     if xrot is None:
         xrot = rot
@@ -290,9 +302,13 @@ def hist_series(
     yrot=None,
     figsize=None,
     bins=10,
+    legend: bool = False,
     **kwds,
 ):
     import matplotlib.pyplot as plt
+
+    if legend and "label" in kwds:
+        raise ValueError("Cannot use both legend and label")
 
     if by is None:
         if kwds.get("layout", None) is not None:
@@ -308,8 +324,11 @@ def hist_series(
         elif ax.get_figure() != fig:
             raise AssertionError("passed axis not bound to passed figure")
         values = self.dropna().values
-
+        if legend:
+            kwds["label"] = self.name
         ax.hist(values, bins=bins, **kwds)
+        if legend:
+            ax.legend()
         ax.grid(grid)
         axes = np.array([ax])
 
@@ -334,6 +353,7 @@ def hist_series(
             xrot=xrot,
             ylabelsize=ylabelsize,
             yrot=yrot,
+            legend=legend,
             **kwds,
         )
 
@@ -358,8 +378,11 @@ def hist_frame(
     figsize=None,
     layout=None,
     bins=10,
+    legend: bool = False,
     **kwds,
 ):
+    if legend and "label" in kwds:
+        raise ValueError("Cannot use both legend and label")
     if by is not None:
         axes = _grouped_hist(
             data,
@@ -376,6 +399,7 @@ def hist_frame(
             xrot=xrot,
             ylabelsize=ylabelsize,
             yrot=yrot,
+            legend=legend,
             **kwds,
         )
         return axes
@@ -401,11 +425,17 @@ def hist_frame(
     )
     _axes = _flatten(axes)
 
+    can_set_label = "label" not in kwds
+
     for i, col in enumerate(data.columns):
         ax = _axes[i]
+        if legend and can_set_label:
+            kwds["label"] = col
         ax.hist(data[col].dropna().values, bins=bins, **kwds)
         ax.set_title(col)
         ax.grid(grid)
+        if legend:
+            ax.legend()
 
     _set_ticks_props(
         axes, xlabelsize=xlabelsize, xrot=xrot, ylabelsize=ylabelsize, yrot=yrot
