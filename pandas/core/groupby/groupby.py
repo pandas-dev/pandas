@@ -32,8 +32,8 @@ from typing import (
 
 import numpy as np
 
-from pandas._config.config import option_context
 from pandas._config import get_option
+from pandas._config.config import option_context
 
 from pandas._libs import Timestamp
 import pandas._libs.groupby as libgroupby
