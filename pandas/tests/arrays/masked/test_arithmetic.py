@@ -1,3 +1,5 @@
+from typing import Any, List
+
 import numpy as np
 import pytest
 
@@ -7,7 +9,7 @@ from pandas.core.arrays import ExtensionArray
 
 # integer dtypes
 arrays = [pd.array([1, 2, 3, None], dtype=dtype) for dtype in tm.ALL_EA_INT_DTYPES]
-scalars = [2] * len(arrays)
+scalars: List[Any] = [2] * len(arrays)
 # floating dtypes
 arrays += [pd.array([0.1, 0.2, 0.3, None], dtype=dtype) for dtype in tm.FLOAT_EA_DTYPES]
 scalars += [0.2, 0.2]
