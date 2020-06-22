@@ -207,7 +207,7 @@ class StringArray(PandasArray):
             na_values = scalars._mask
             result = scalars._data
         else:
-            result = np.asarray(scalars)
+            result = np.asarray(scalars, dtype=object)
             if copy and result is scalars:
                 result = result.copy()
 
