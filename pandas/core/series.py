@@ -3716,7 +3716,7 @@ Keep all original rows and also all original values
         result.index = result.index.reorder_levels(order)
         return result
 
-    def explode(self) -> "Series":
+    def explode(self, ignore_index: bool) -> "Series":
         """
         Transform each element of a list-like to a row, replicating the
         index values.
@@ -3769,9 +3769,15 @@ Keep all original rows and also all original values
 
         values, counts = reshape.explode(np.asarray(self.array))
 
-        result = self._constructor(
-            values, index=self.index.repeat(counts), name=self.name
-        )
+        if ignore_index:
+            result = self._constructor(
+                values, index=range(len(values)), name=self.name
+            )
+        else:
+            result = self._constructor(
+                values, index=self.index.repeat(counts), name=self.name
+            )
+
         return result
 
     def unstack(self, level=-1, fill_value=None):
