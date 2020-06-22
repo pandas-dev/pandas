@@ -266,7 +266,7 @@ class JoinUnit:
                     )
                     ncols, nrows = self.shape
                     assert ncols == 1, ncols
-                    empty_arr = -1 * np.ones((nrows,), dtype="int8")
+                    empty_arr = -1 * np.ones((nrows,), dtype=np.intp)
                     return missing_arr.take(
                         empty_arr, allow_fill=True, fill_value=fill_value
                     )
@@ -413,16 +413,15 @@ def _get_empty_dtype_and_na(join_units):
 
     if not upcast_classes:
         upcast_classes = null_upcast_classes
+    # TODO: de-duplicate with maybe_promote?
+    # create the result
     if "extension" in upcast_classes:
         if len(upcast_classes) == 1:
             cls = upcast_classes["extension"][0]
             return cls, cls.na_value
         else:
             return np.dtype("object"), np.nan
-
-    # TODO: de-duplicate with maybe_promote?
-    # create the result
-    if "object" in upcast_classes:
+    elif "object" in upcast_classes:
         return np.dtype(np.object_), np.nan
     elif "bool" in upcast_classes:
         if has_none_blocks:
