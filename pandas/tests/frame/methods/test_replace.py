@@ -1314,7 +1314,11 @@ class TestDataFrameReplace:
         expected = DataFrame({"a": a, "b": b})
         result = df.replace(replace_dict, 3)
         tm.assert_frame_equal(result, expected)
-        with pytest.raises(AssertionError):
+        msg = (
+            r"Attributes of DataFrame.iloc\[:, 0\] \(column name=\"a\"\) are "
+            "different"
+        )
+        with pytest.raises(AssertionError, match=msg):
             # ensure non-inplace call does not affect original
             tm.assert_frame_equal(df, expected)
         df.replace(replace_dict, 3, inplace=True)
