@@ -413,6 +413,7 @@ def _bins_to_cuts(
 
     na_mask = isna(x) | (ids == len(bins)) | (ids == 0)
     has_nas = na_mask.any()
+    labels_are_unique = None
 
     if labels is not False:
         if not (labels is None or is_list_like(labels)):
@@ -425,6 +426,7 @@ def _bins_to_cuts(
             labels = _format_labels(
                 bins, precision, right=right, include_lowest=include_lowest, dtype=dtype
             )
+            labels_are_unique = True
         elif ordered and len(set(labels)) != len(labels):
             raise ValueError(
                 "labels must be unique if ordered=True; pass ordered=False for duplicate labels"  # noqa
@@ -435,11 +437,14 @@ def _bins_to_cuts(
                     "Bin labels must be one fewer than the number of bin edges"
                 )
         if not is_categorical_dtype(labels):
-            labels = Categorical(
-                labels,
-                categories=labels if len(set(labels)) == len(labels) else None,
-                ordered=ordered,
-            )
+            if labels_are_unique:
+                categories = labels
+            elif labels_are_unique is None:
+                categories = labels if len(set(labels)) == len(labels) else None
+            else:
+                categories = None
+
+            labels = Categorical(labels, categories=categories, ordered=ordered)
         # TODO: handle mismatch between categorical label order and pandas.cut order.
         np.putmask(ids, na_mask, 0)
         result = algos.take_nd(labels, ids - 1)
