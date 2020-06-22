@@ -16,7 +16,7 @@ from pandas._libs.tslibs.timezones import tz_compare
 from pandas._typing import DtypeObj, Label
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
-from pandas.errors import InvalidIndexError
+from pandas.errors import DuplicateLabelError, InvalidIndexError
 from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
 
 from pandas.core.dtypes import concat as _concat
@@ -474,8 +474,6 @@ class Index(IndexOpsMixin, PandasObject):
         return type(self)
 
     def _maybe_check_unique(self):
-        from pandas.errors import DuplicateLabelError
-
         if not self.is_unique:
             # TODO: position, value, not too large.
             msg = """Index has duplicates."""
