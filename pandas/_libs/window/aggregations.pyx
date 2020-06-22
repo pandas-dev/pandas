@@ -1379,7 +1379,7 @@ def roll_generic_fixed(object obj,
         # remaining full-length windows
         for j, i in enumerate(range((win - offset), (N - offset)), 1):
             if counts[i] >= minp:
-                output[i] = func(arr[j : j + win], *args, **kwargs)
+                output[i] = func(arr[j:j + win], *args, **kwargs)
             else:
                 output[i] = NaN
 
