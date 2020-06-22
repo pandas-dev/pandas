@@ -10,7 +10,12 @@ internally that specifically check for dicts, and does non-scalar things
 in that case. We *want* the dictionaries to be treated as scalars, so we
 hack around pandas by using UserDicts.
 """
-import collections
+try:
+    from collections.abc import Iterable,  Mapping, Sequence
+except AttributeError:
+    from collections import Iterable,  Mapping, Sequence
+from collections import UserDict
+
 import itertools
 import numbers
 import random
@@ -24,10 +29,10 @@ from pandas.core.arrays import ExtensionArray
 
 
 class JSONDtype(ExtensionDtype):
-    type = collections.Mapping
+    type = Mapping
     name = 'json'
     try:
-        na_value = collections.UserDict()
+        na_value = UserDict()
     except AttributeError:
         # source compatibility with Py2.
         na_value = {}
@@ -64,14 +69,14 @@ class JSONArray(ExtensionArray):
 
     @classmethod
     def _from_factorized(cls, values, original):
-        return cls([collections.UserDict(x) for x in values if x != ()])
+        return cls([UserDict(x) for x in values if x != ()])
 
     def __getitem__(self, item):
         if isinstance(item, numbers.Integral):
             return self.data[item]
         elif isinstance(item, np.ndarray) and item.dtype == 'bool':
             return self._from_sequence([x for x, m in zip(self, item) if m])
-        elif isinstance(item, collections.Iterable):
+        elif isinstance(item, Iterable):
             # fancy indexing
             return type(self)([self.data[i] for i in item])
         else:
@@ -82,8 +87,7 @@ class JSONArray(ExtensionArray):
         if isinstance(key, numbers.Integral):
             self.data[key] = value
         else:
-            if not isinstance(value, (type(self),
-                                      collections.Sequence)):
+            if not isinstance(value, (type(self), Sequence)):
                 # broadcast value
                 value = itertools.cycle([value])
 
@@ -174,6 +178,6 @@ class JSONArray(ExtensionArray):
 
 def make_data():
     # TODO: Use a regular dict. See _NDFrameIndexer._setitem_with_indexer
-    return [collections.UserDict([
+    return [UserDict([
         (random.choice(string.ascii_letters), random.randint(0, 100))
         for _ in range(random.randint(0, 10))]) for _ in range(100)]
