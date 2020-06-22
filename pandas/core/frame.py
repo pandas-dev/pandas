@@ -6968,6 +6968,7 @@ NaN 12.3   33.0
         result = df[column].explode()
         if ignore_index:
             result = df.drop([column], axis=1).join(result).reset_index(drop=True)
+            result.index = ibase.default_index(len(result))
         else:
             result = df.drop([column], axis=1).join(result)
             result.index = self.index.take(result.index)
