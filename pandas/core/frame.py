@@ -6966,7 +6966,7 @@ NaN 12.3   33.0
         assert df is not None  # needed for mypy
         result = df[column].explode()
         if ignore_index:
-            result = df.drop([column], axis=1).join(result).reset_index(drop=True)
+            result = df.drop([column], axis=1).join(result)
             result.index = ibase.default_index(len(result))
         else:
             result = df.drop([column], axis=1).join(result)
