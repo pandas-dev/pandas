@@ -669,14 +669,13 @@ def test_setitem_tuple_with_datetimetz():
     tm.assert_series_equal(result, expected)
 
 
-"""
-BUG: indexing regression with datetime index
-"""
-
-
 def test_indexing_regression():
-    arr = date_range("1/1/2008", "1/2/2008")
+    # Issue 34860
+    arr = date_range("1/1/2008", "1/1/2009")
     ser = arr.to_series()["2008"]
-    assert type(ser) == Series
-    assert type(ser[0]) == Timestamp
-    assert type(ser.index[0]) == Timestamp
+
+    rng = date_range(start="2008-01-01", end="2008-12-31")
+    expected = Series(rng, index=rng)
+
+    tm.assert_series_equal(ser, expected)
+    tm.assert_index_equal(ser.index, expected.index)
