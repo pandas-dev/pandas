@@ -6964,11 +6964,10 @@ NaN 12.3   33.0
         # TODO: use overload to refine return type of reset_index
         assert df is not None  # needed for mypy
         result = df[column].explode()
+        result = df.drop([column], axis=1).join(result)
         if ignore_index:
-            result = df.drop([column], axis=1).join(result)
             result.index = ibase.default_index(len(result))
         else:
-            result = df.drop([column], axis=1).join(result)
             result.index = self.index.take(result.index)
         result = result.reindex(columns=self.columns, copy=False)
 
