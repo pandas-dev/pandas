@@ -5,15 +5,15 @@ from pandas import (
     Categorical,
     DataFrame,
     Index,
+    Interval,
+    Period,
     Series,
     Timestamp,
     date_range,
-    Period,
-    Interval
 )
 import pandas._testing as tm
 from pandas.core.arrays import SparseArray
-from pandas.core.dtypes.dtypes import PeriodDtype, IntervalDtype
+from pandas.core.dtypes.dtypes import IntervalDtype, PeriodDtype
 
 
 class TestDataFrameSetItem:

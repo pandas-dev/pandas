@@ -9,7 +9,7 @@ from pandas.core.dtypes.cast import (
     infer_dtype_from_scalar,
 )
 from pandas.core.dtypes.common import is_dtype_equal
-from pandas.core.dtypes.dtypes import PeriodDtype, IntervalDtype
+from pandas.core.dtypes.dtypes import IntervalDtype, PeriodDtype
 
 from pandas import (
     Categorical,
