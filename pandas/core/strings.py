@@ -2,7 +2,17 @@ import codecs
 from functools import wraps
 import re
 import textwrap
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Pattern, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Pattern,
+    Type,
+    Union,
+)
 import warnings
 
 import numpy as np
@@ -245,7 +255,7 @@ def _map_object(f, arr, na_mask=False, na_value=np.nan, dtype=np.dtype(object)):
 def str_format(
     arr,
     format: str,
-    name: str = None,
+    name: Optional[str] = None,
     positional_only: bool = False,
     how_na: str = "any",
 ) -> "Series":
@@ -254,16 +264,16 @@ def str_format(
 
     Parameters
     ----------
-    arr: DataFrame or Series
+    arr : DataFrame or Series
         The values to format.
     format : str
         format string.
-    name: Label, optional
+    name : Label, optional
         The name of the returned Series.
-    positional_only: bool, default False
+    positional_only : bool, default False
         If True, only allow positional parameters (i.e. allow "{}", but not "{key}").
         Setting to ``True`` will improve performance.
-    how_na: str, one of {"all", "any"}, default "any"
+    how_na : str, one of {"all", "any"}, default "any"
         If "all", return ``NA`` if all values in row are nan values.
         If "any", return ``NA`` if at least one of the values in row is a nan value.
 
@@ -294,7 +304,7 @@ def str_format(
     3    Population: 21,477,737
     dtype: string
 
-    >>>  df.format("{} ({}): {:,}")
+    >>> df.format("{} ({}): {:,}")
     1    California (CA): 39,512,223
     2         Texas (TX): 28,995,881
     3       Florida (FL): 21,477,737

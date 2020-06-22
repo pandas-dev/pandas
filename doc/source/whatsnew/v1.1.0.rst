@@ -44,12 +44,10 @@ These methods allow creating a ``string`` Series from arbitrary ``Series`` or ``
         'state_name': ['California', 'Texas', 'Florida'],
         'state_abbreviation': ['CA', 'TX', 'FL'],
         'population': [39_512_223, 28_995_881, 21_477_737],
-        }, index=[1, 2, 3])
+    }, index=[1, 2, 3])
     df
     ser = df["population"]
-
     df.format("{state_name} ({state_abbreviation}): {population:,}")
-
     ser.format("Population: {population:,}")
 
 The output Series will always have dtype :class:`StringDtype`.
@@ -59,7 +57,6 @@ Formatting using positional arguments is also possible (``positional_only=True``
 .. ipython:: python
 
     df.format("{} ({}): {:,}", positional_only=True)
-
     ser.format("Population: {:,}", positional_only=True)
 
 

@@ -3749,7 +3749,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self,
         format: str,
         name: Optional[str] = None,
-        positional_only: bool = False,
+        positional_only: bool_t = False,
         how_na: str = "any",
     ) -> "Series":
 
