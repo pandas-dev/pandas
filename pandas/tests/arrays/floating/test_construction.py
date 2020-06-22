@@ -74,6 +74,16 @@ def test_to_array_none_is_nan(a, b):
     tm.assert_extension_array_equal(result, expected)
 
 
+def test_to_array_mixed_integer_float():
+    result = pd.array([1, 2.0])
+    expected = pd.array([1.0, 2.0], dtype="Float64")
+    tm.assert_extension_array_equal(result, expected)
+
+    result = pd.array([1, None, 2.0])
+    expected = pd.array([1.0, None, 2.0], dtype="Float64")
+    tm.assert_extension_array_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "values",
     [

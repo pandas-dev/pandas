@@ -104,7 +104,7 @@ class _IntegerDtype(BaseMaskedDtype):
         )
         if np.issubdtype(np_dtype, np.integer):
             return _dtypes[str(np_dtype)]
-        if np.issubdtype(np_dtype, np.floating):
+        elif np.issubdtype(np_dtype, np.floating):
             from pandas.core.arrays.floating import _dtypes as float_dtypes
 
             return float_dtypes[str(np_dtype)]
@@ -504,11 +504,11 @@ class IntegerArray(BaseMaskedArray):
 
         @unpack_zerodim_and_defer(op.__name__)
         def cmp_method(self, other):
-            from pandas.arrays import BooleanArray, FloatingArray
+            from pandas.core.arrays import BaseMaskedArray, BooleanArray
 
             mask = None
 
-            if isinstance(other, (BooleanArray, IntegerArray, FloatingArray)):
+            if isinstance(other, BaseMaskedArray):
                 other, mask = other._data, other._mask
 
             elif is_list_like(other):

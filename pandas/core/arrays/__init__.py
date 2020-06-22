@@ -9,6 +9,7 @@ from pandas.core.arrays.datetimes import DatetimeArray
 from pandas.core.arrays.floating import FloatingArray
 from pandas.core.arrays.integer import IntegerArray, integer_array
 from pandas.core.arrays.interval import IntervalArray
+from pandas.core.arrays.masked import BaseMaskedArray
 from pandas.core.arrays.numpy_ import PandasArray, PandasDtype
 from pandas.core.arrays.period import PeriodArray, period_array
 from pandas.core.arrays.sparse import SparseArray
@@ -19,6 +20,7 @@ __all__ = [
     "ExtensionArray",
     "ExtensionOpsMixin",
     "ExtensionScalarOpsMixin",
+    "BaseMaskedArray",
     "BooleanArray",
     "Categorical",
     "DatetimeArray",

@@ -3,6 +3,7 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core.arrays import FloatingArray
 
 
 @pytest.mark.parametrize("box", [True, False], ids=["series", "array"])
@@ -77,6 +78,14 @@ def test_to_numpy_na_value(box):
 
     result = arr.to_numpy(dtype="int64", na_value=-99)
     expected = np.array([0, 1, -99], dtype="int64")
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_to_numpy_na_value_with_nan():
+    # array with both NaN and NA -> only fill NA with `na_value`
+    arr = FloatingArray(np.array([0.0, np.nan, 0.0]), np.array([False, False, True]))
+    result = arr.to_numpy(dtype="float64", na_value=-1)
+    expected = np.array([0.0, np.nan, -1.0], dtype="float64")
     tm.assert_numpy_array_equal(result, expected)
 
 

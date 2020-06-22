@@ -604,10 +604,7 @@ FloatingArray._add_comparison_ops()
 _dtype_docstring = """
 An ExtensionDtype for {dtype} data.
 
-.. versionchanged:: 1.0.0
-
-   Now uses :attr:`pandas.NA` as its missing value,
-   rather than :attr:`numpy.nan`.
+This dtype uses ``pd.NA`` as missing value indicator.
 
 Attributes
 ----------

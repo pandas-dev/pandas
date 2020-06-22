@@ -331,7 +331,7 @@ def array(
         elif inferred_dtype == "integer":
             return IntegerArray._from_sequence(data, copy=copy)
 
-        elif inferred_dtype == "floating":
+        elif inferred_dtype in ("floating", "mixed-integer-float"):
             return FloatingArray._from_sequence(data, copy=copy)
 
         elif inferred_dtype == "boolean":

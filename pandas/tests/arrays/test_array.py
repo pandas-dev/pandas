@@ -240,6 +240,9 @@ cet = pytz.timezone("CET")
         ([1.0, None], FloatingArray._from_sequence([1.0, pd.NA])),
         ([1.0, np.nan], FloatingArray._from_sequence([1.0, pd.NA])),
         ([1.0, pd.NA], FloatingArray._from_sequence([1.0, pd.NA])),
+        # mixed-integer-float
+        ([1, 2.0], FloatingArray._from_sequence([1.0, 2.0])),
+        ([1, np.nan, 2.0], FloatingArray._from_sequence([1.0, None, 2.0])),
         # string
         (["a", "b"], StringArray._from_sequence(["a", "b"])),
         (["a", None], StringArray._from_sequence(["a", None])),
