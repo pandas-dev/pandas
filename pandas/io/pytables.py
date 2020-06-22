@@ -1303,6 +1303,8 @@ class HDFStore:
                 valid_index = valid_index.intersection(index)
             value = value.loc[valid_index]
 
+        min_itemsize = kwargs.pop("min_itemsize", None)
+
         # append
         for k, v in d.items():
             dc = data_columns if k == selector else None
@@ -1310,7 +1312,15 @@ class HDFStore:
             # compute the val
             val = value.reindex(v, axis=axis)
 
-            self.append(k, val, data_columns=dc, **kwargs)
+            if min_itemsize is None:
+                self.append(k, val, data_columns=dc, **kwargs)
+            else:
+                min_itemsize = {
+                    key: value for (key, value) in min_itemsize.items() if key in v
+                }
+                self.append(
+                    k, val, data_columns=dc, min_itemsize=min_itemsize, **kwargs
+                )
 
     def create_table_index(
         self,
