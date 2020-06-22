@@ -9,7 +9,7 @@ from pandas.core.dtypes.cast import (
     infer_dtype_from_scalar,
 )
 from pandas.core.dtypes.common import is_dtype_equal
-from pandas.core.dtypes.dtypes import PeriodDtype
+from pandas.core.dtypes.dtypes import PeriodDtype, IntervalDtype
 
 from pandas import (
     Categorical,
@@ -204,10 +204,11 @@ def test_cast_scalar_to_numpy_array(obj, dtype):
     "obj,dtype",
     [
         (Period("2011-01-01", freq="D"), PeriodDtype('D')),
-        (Period("2011-01", freq="M"), PeriodDtype('M')),
+        (Interval(left=0, right=5), IntervalDtype('int64')),
     ],
 )
 def test_cast_scalar_to_extension_array(obj, dtype):
+    # GH: 34832
     shape = 3
 
     exp = dtype.construct_array_type()._from_sequence([obj] * shape)
