@@ -1758,7 +1758,8 @@ def roll_weighted_var(float64_t[:] values, float64_t[:] weights,
 # ----------------------------------------------------------------------
 # Exponentially weighted moving average
 
-def ewma_time(ndarray[float64_t] vals, int minp, ndarray[int64_t] times, int64_t halflife):
+def ewma_time(ndarray[float64_t] vals, int minp, ndarray[int64_t] times,
+              int64_t halflife):
     """
     Compute exponentially-weighted moving average using halflife and time
     distances.
