@@ -1,5 +1,5 @@
 import re
-from typing import List
+from typing import TYPE_CHECKING, List, cast
 
 import numpy as np
 
@@ -7,7 +7,6 @@ from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import is_extension_array_dtype, is_list_like
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import notna
 
 from pandas.core.arrays import Categorical
@@ -17,6 +16,8 @@ from pandas.core.indexes.api import Index, MultiIndex
 from pandas.core.reshape.concat import concat
 from pandas.core.tools.numeric import to_numeric
 
+if TYPE_CHECKING:
+    from pandas import Series  # noqa: F401
 
 @Appender(
     _shared_docs["melt"]
@@ -106,9 +107,8 @@ def melt(
     mdata = {}
     for col in id_vars:
         id_data = frame.pop(col)
-        assert isinstance(id_data, ABCSeries)  # help mypy
         if is_extension_array_dtype(id_data):
-            id_data = concat([id_data] * K, ignore_index=True)
+            id_data = cast("Series", concat([id_data] * K, ignore_index=True))
         else:
             id_data = np.tile(id_data._values, K)
         mdata[col] = id_data
