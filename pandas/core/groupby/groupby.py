@@ -33,6 +33,7 @@ from typing import (
 import numpy as np
 
 from pandas._config.config import option_context
+from pandas._config import get_option
 
 from pandas._libs import Timestamp
 import pandas._libs.groupby as libgroupby
@@ -541,6 +542,17 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
     def __repr__(self) -> str:
         # TODO: Better repr for GroupBy object
         return object.__repr__(self)
+
+    def _repr_html_(self) -> str:
+        html_text = ""
+        for idx, df_group in self:
+            if not hasattr(df_group, "to_html"):
+                df_group = df_group.to_frame()
+            html_text += f"<H3>Group Key: {idx}<H3/>"
+            html_text += df_group.to_html(
+                max_rows=get_option("display.max_rows") // self.ngroups
+            )
+        return html_text
 
     def _assure_grouper(self):
         """
