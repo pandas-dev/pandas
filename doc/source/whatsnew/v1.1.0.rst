@@ -1015,6 +1015,7 @@ MultiIndex
         df.loc[(['b', 'a'], [2, 1]), :]
 
 - Bug in :meth:`MultiIndex.intersection` was not guaranteed to preserve order when ``sort=False``. (:issue:`31325`)
+- Bug in :meth:`DataFrame.truncate` was dropping :class:`MultiIndex` names. (:issue:`34564`)
 
 .. ipython:: python
 
@@ -1117,6 +1118,7 @@ Reshaping
 - Bug in :func:`Dataframe.aggregate` and :func:`Series.aggregate` was causing recursive loop in some cases (:issue:`34224`)
 - Fixed bug in :func:`melt` where melting MultiIndex columns with ``col_level`` > 0 would raise a ``KeyError`` on ``id_vars`` (:issue:`34129`)
 - Bug in :meth:`Series.where` with an empty Series and empty ``cond`` having non-bool dtype (:issue:`34592`)
+- Fixed regression where :meth:`DataFrame.apply` would raise ``ValueError`` for elements whth ``S`` dtype (:issue:`34529`)
 
 Sparse
 ^^^^^^

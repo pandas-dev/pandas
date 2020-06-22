@@ -1608,7 +1608,7 @@ def construct_1d_ndarray_preserving_na(
     """
     subarr = np.array(values, dtype=dtype, copy=copy)
 
-    if dtype is not None and dtype.kind in ("U", "S"):
+    if dtype is not None and dtype.kind == "U":
         # GH-21083
         # We can't just return np.array(subarr, dtype='str') since
         # NumPy will convert the non-string objects into strings
