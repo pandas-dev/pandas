@@ -111,7 +111,7 @@ def _get_mgr_concatenation_plan(mgr, indexers):
         blklocs = algos.take_1d(mgr.blklocs, ax0_indexer, fill_value=-1)
     else:
 
-        if mgr._is_single_block:
+        if mgr._is_single_block and len(mgr.blocks):
             blk = mgr.blocks[0]
             return [(blk.mgr_locs, JoinUnit(blk, mgr_shape, indexers))]
 

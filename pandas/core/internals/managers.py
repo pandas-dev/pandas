@@ -1284,7 +1284,7 @@ class BlockManager(PandasObject):
             slice_or_indexer, self.shape[0], allow_fill=allow_fill
         )
 
-        if self._is_single_block:
+        if self._is_single_block and len(self.blocks):
             blk = self.blocks[0]
 
             if sl_type in ("slice", "mask"):
