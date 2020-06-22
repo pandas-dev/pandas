@@ -396,3 +396,9 @@ def test_format_duplicate_labels_message_multi():
         index=pd.MultiIndex.from_product([["A"], ["a", "b"]]),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_dataframe_insert_raises():
+    df = pd.DataFrame({"A": [1, 2]}, allows_duplicate_labels=False)
+    with pytest.raises(ValueError, match="Cannot specify"):
+        df.insert(0, "A", [3, 4], allow_duplicates=True)

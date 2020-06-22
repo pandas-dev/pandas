@@ -3585,6 +3585,11 @@ class DataFrame(NDFrame):
         value : int, Series, or array-like
         allow_duplicates : bool, optional
         """
+        if allow_duplicates and not self.allows_duplicate_labels:
+            raise ValueError(
+                "Cannot specify 'allow_duplicates=True' when "
+                "'self.allows_dpulicate_labels' is False."
+            )
         self._ensure_valid_index(value)
         value = self._sanitize_column(column, value, broadcast=False)
         self._mgr.insert(loc, column, value, allow_duplicates=allow_duplicates)
