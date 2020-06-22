@@ -292,8 +292,12 @@ Other enhancements
 - :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` now accept an ``errors`` argument (:issue:`22610`)
 - :meth:`groupby.transform` now allows ``func`` to be ``pad``, ``backfill`` and ``cumcount`` (:issue:`31269`).
 - :meth:`~pandas.io.json.read_json` now accepts `nrows` parameter. (:issue:`33916`).
+- :func:`concat` and :meth:`~DataFrame.append` now preserve extension dtypes, for example
+  combining a nullable integer column with a numpy integer column will no longer
+  result in object dtype but preserve the integer dtype (:issue:`33607`, :issue:`34339`).
 - :meth:`~pandas.io.gbq.read_gbq` now allows to disable progress bar (:issue:`33360`).
 - :meth:`~pandas.io.gbq.read_gbq` now supports the ``max_results`` kwarg from ``pandas-gbq`` (:issue:`34639`).
+- :meth:`DataFrame.to_html` and :meth:`DataFrame.to_string`'s ``col_space`` parameter now accepts a list of dict to change only some specific columns' width (:issue:`28917`).
 
 .. ---------------------------------------------------------------------------
 
@@ -776,6 +780,7 @@ Deprecations
   instead (:issue:`34191`).
 - The ``squeeze`` keyword in the ``groupby`` function is deprecated and will be removed in a future version (:issue:`32380`)
 - The ``tz`` keyword in :meth:`Period.to_timestamp` is deprecated and will be removed in a future version; use `per.to_timestamp(...).tz_localize(tz)`` instead (:issue:`34522`)
+- :meth:`DatetimeIndex.to_perioddelta` is deprecated and will be removed in a future version.  Use ``index - index.to_period(freq).to_timestamp()`` instead (:issue:`34853`)
 
 .. ---------------------------------------------------------------------------
 
@@ -951,6 +956,7 @@ MultiIndex
         df.loc[(['b', 'a'], [2, 1]), :]
 
 - Bug in :meth:`MultiIndex.intersection` was not guaranteed to preserve order when ``sort=False``. (:issue:`31325`)
+- Bug in :meth:`DataFrame.truncate` was dropping :class:`MultiIndex` names. (:issue:`34564`)
 
 .. ipython:: python
 
@@ -1054,6 +1060,7 @@ Reshaping
 - Bug in :func:`Dataframe.aggregate` and :func:`Series.aggregate` was causing recursive loop in some cases (:issue:`34224`)
 - Fixed bug in :func:`melt` where melting MultiIndex columns with ``col_level`` > 0 would raise a ``KeyError`` on ``id_vars`` (:issue:`34129`)
 - Bug in :meth:`Series.where` with an empty Series and empty ``cond`` having non-bool dtype (:issue:`34592`)
+- Fixed regression where :meth:`DataFrame.apply` would raise ``ValueError`` for elements whth ``S`` dtype (:issue:`34529`)
 
 Sparse
 ^^^^^^
