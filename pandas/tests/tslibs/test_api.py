@@ -11,7 +11,6 @@ def test_namespace():
         "conversion",
         "dtypes",
         "fields",
-        "frequencies",
         "nattype",
         "np_datetime",
         "offsets",
