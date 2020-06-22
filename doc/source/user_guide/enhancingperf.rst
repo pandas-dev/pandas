@@ -13,6 +13,14 @@ when we use Cython and Numba on a test function operating row-wise on the
 ``DataFrame``. Using :func:`pandas.eval` we will speed up a sum by an order of
 ~2.
 
+.. note::
+
+   In addition to following the steps in this tutorial, users interested in enhancing
+   performance are highly encouraged to install the
+   :ref:`recommended dependencies<install.recommended_dependencies>` for pandas.
+   These dependencies are often not installed by default, but will offer speed
+   improvements if present.
+
 .. _enhancingperf.cython:
 
 Cython (writing C extensions for pandas)
