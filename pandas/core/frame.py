@@ -365,15 +365,15 @@ class DataFrame(NDFrame):
         * `data` is a DataFrame or 2D NumPy array: *no* copy by default.
            Specifying ``copy=True`` will copy the data.
         * `data` is a dict:
-           By default arrays in `data` with with NumPy dtypes in `data` are
+           By default arrays in `data` with NumPy dtypes in `data` are
            copied, while extension types are not. Specifying ``copy=True``
            will copy all of the values, and ``copy=False`` will attempt to
            not copy the data. Note that if `data` has more than one value with
            the same NumPy dtype then then data will be copied, regardless of
            the value of `copy`.
 
-        For all other cases, zero-copy construction cannot be ensured and `copy`
-        has no effect.
+        For all other types of `data`, zero-copy construction cannot be ensured
+        and `copy` has no effect.
 
     See Also
     --------
