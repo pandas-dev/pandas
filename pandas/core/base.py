@@ -743,8 +743,8 @@ class IndexOpsMixin:
 
         >>> ser = pd.Series(pd.Categorical(['a', 'b', 'a']))
         >>> ser.array
-        [a, b, a]
-        Categories (2, object): [a, b]
+        ['a', 'b', 'a']
+        Categories (2, object): ['a', 'b']
         """
         raise AbstractMethodError(self)
 
