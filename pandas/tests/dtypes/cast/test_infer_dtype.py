@@ -203,8 +203,8 @@ def test_cast_scalar_to_numpy_array(obj, dtype):
 @pytest.mark.parametrize(
     "obj,dtype",
     [
-        (Period("2011-01-01", freq="D"), PeriodDtype('D')),
-        (Interval(left=0, right=5), IntervalDtype('int64')),
+        (Period("2011-01-01", freq="D"), PeriodDtype("D")),
+        (Interval(left=0, right=5), IntervalDtype("int64")),
     ],
 )
 def test_cast_scalar_to_extension_array(obj, dtype):

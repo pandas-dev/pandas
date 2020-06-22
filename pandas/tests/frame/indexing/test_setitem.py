@@ -164,28 +164,18 @@ class TestDataFrameSetItem:
 
     def test_setitem_extension_types(self):
         # GH: 34832
-        period_val = Period('2020-01')
+        period_val = Period("2020-01")
         interval_val = Interval(left=0, right=5)
 
         expected = DataFrame(
             {
                 "idx": [1, 2, 3],
-                "period": Series(
-                    [period_val] * 3,
-                    dtype=PeriodDtype("M")
-                ),
-                "interval": Series(
-                    [interval_val] * 3,
-                    dtype=IntervalDtype("int64")
-                ),
+                "period": Series([period_val] * 3, dtype=PeriodDtype("M")),
+                "interval": Series([interval_val] * 3, dtype=IntervalDtype("int64")),
             }
         )
 
-        df = DataFrame(
-            {
-                "idx": [1, 2, 3],
-            }
-        )
+        df = DataFrame({"idx": [1, 2, 3],})
         df["period"] = period_val
         df["interval"] = interval_val
 
