@@ -1247,9 +1247,14 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
     def test_to_json_large_numbers(self, bigNum):
         # GH34473
         series = Series(bigNum, dtype=object, index=["articleId"])
-        result = series.to_json()
+        json = series.to_json()
         expected = '{"articleId":' + str(bigNum) + "}"
-        assert result == expected
+        assert json == expected
+        # GH 20599
+        with pytest.raises(ValueError):
+            json = StringIO(json)
+            result = read_json(json)
+            tm.assert_series_equal(series, result)
 
         df = DataFrame(bigNum, dtype=object, index=["articleId"], columns=[0])
         result = df.to_json()
