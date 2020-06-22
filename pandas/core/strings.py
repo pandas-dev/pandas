@@ -318,7 +318,7 @@ def str_format(
     3    Population: 21,477,737
     dtype: string
 
-    >>>  df.format("{state_name} ({state_abbreviation}): {population:,}")
+    >>> df.format("{state_name} ({state_abbreviation}): {population:,}")
     1    California (CA): 39,512,223
     2         Texas (TX): 28,995,881
     3       Florida (FL): 21,477,737
