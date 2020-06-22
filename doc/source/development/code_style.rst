@@ -160,8 +160,8 @@ For example:
     # wrong
     from common import test_base
 
-Testing
-=======
+Miscellaneous
+=============
 
 Reading from a url
 ------------------
