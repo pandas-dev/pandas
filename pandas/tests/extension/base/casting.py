@@ -56,3 +56,10 @@ class BaseCastingTests(BaseExtensionTests):
         df = pd.DataFrame()
         result = df.astype(dtype)
         self.assert_frame_equal(result, df)
+
+    def test_astype_empty_dataframe_empty_dict(self, dtype):
+        # issue mentioned further down in the following issue's thread
+        # https://github.com/pandas-dev/pandas/issues/33113
+        df = pd.DataFrame()
+        result = df.astype(dict())
+        self.assert_frame_equal(result, df)
