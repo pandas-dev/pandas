@@ -6896,7 +6896,7 @@ NaN 12.3   33.0
         else:
             return stack(self, level, dropna=dropna)
 
-    def explode(self, column: Union[str, Tuple]) -> "DataFrame":
+    def explode(self, column: Union[str, Tuple], ignore_index=False) -> "DataFrame":
         """
         Transform each element of a list-like to a row, replicating index values.
 
@@ -6961,8 +6961,11 @@ NaN 12.3   33.0
         # TODO: use overload to refine return type of reset_index
         assert df is not None  # needed for mypy
         result = df[column].explode()
-        result = df.drop([column], axis=1).join(result)
-        result.index = self.index.take(result.index)
+        if ignore_index:
+            result = df.drop([column], axis=1).join(result).reset_index(drop=True)
+        else:
+            result = df.drop([column], axis=1).join(result)
+            result.index = self.index.take(result.index)
         result = result.reindex(columns=self.columns, copy=False)
 
         return result
