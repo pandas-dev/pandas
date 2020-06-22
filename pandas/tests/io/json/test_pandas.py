@@ -1246,15 +1246,13 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
     @pytest.mark.parametrize("bigNum", [sys.maxsize + 1, -(sys.maxsize + 2)])
     def test_to_json_large_numbers(self, bigNum):
         # GH34473
-        originalSeries = Series(bigNum, dtype=object, index=["articleId"])
-        result = originalSeries.to_json()
+        series = Series(bigNum, dtype=object, index=["articleId"])
+        result = series.to_json()
         expected = '{"articleId":' + str(bigNum) + "}"
         assert result == expected
 
-        originalDataFrame = DataFrame(
-            bigNum, dtype=object, index=["articleId"], columns=[0]
-        )
-        result = originalDataFrame.to_json()
+        df = DataFrame(bigNum, dtype=object, index=["articleId"], columns=[0])
+        result = df.to_json()
         expected = '{"0":{"articleId":' + str(bigNum) + "}}"
         assert result == expected
 
