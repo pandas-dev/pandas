@@ -1,5 +1,5 @@
 import re
-from typing import Dict, List, Optional, Union
+from typing import List, Optional
 import warnings
 
 from matplotlib.artist import Artist
@@ -125,7 +125,6 @@ class MPLPlot:
             self.columns = [col for col in data.columns if col not in self.by]
         else:
             self.columns = com.convert_to_list_like(column)
-            # self.columns = [column] if not isinstance(column, list) else column
 
         self.kind = kind
 

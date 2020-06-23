@@ -1,7 +1,5 @@
 from typing import Dict, List, Optional, Union
 
-import numpy as np
-
 from pandas._typing import Label
 
 from pandas import DataFrame, MultiIndex, Series, concat
@@ -32,6 +30,7 @@ def create_iter_data_given_by(
     --------
     If `by` is assigned:
 
+    >>> import numpy as np
     >>> tuples = [('h1', 'a'), ('h1', 'b'), ('h2', 'a'), ('h2', 'b')]
     >>> mi = MultiIndex.from_tuples(tuples)
     >>> value = [[1, 3, np.nan, np.nan],
