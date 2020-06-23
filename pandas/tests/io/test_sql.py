@@ -20,6 +20,7 @@ The SQL tests are broken down in different classes:
 import csv
 from datetime import date, datetime, time
 from io import StringIO
+import re
 import sqlite3
 import warnings
 
@@ -1825,8 +1826,12 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         try:
             res = sql.read_sql_table("foobar", self.conn)
             tm.assert_equal(df, res)
-        except ValueError("inf can not be used with MySQL"):
-            pass
+        except ValueError as err:
+            mes = "inf can not be used with MySQL"
+            if re.search(mes, err.args[0]):
+                pass
+            else:
+                raise err
 
     def test_temporary_table(self):
         test_data = "Hello, World!"
