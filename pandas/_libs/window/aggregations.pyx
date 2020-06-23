@@ -1377,17 +1377,11 @@ def roll_generic_fixed(object obj,
                 output[i] = NaN
 
         # remaining full-length windows
-        buf = <float64_t *>arr.data
-        bufarr = np.empty(win, dtype=float)
-        oldbuf = <float64_t *>bufarr.data
-        for i in range((win - offset), (N - offset)):
-            buf = buf + 1
-            bufarr.data = <char *>buf
+        for j, i in enumerate(range((win - offset), (N - offset)), 1):
             if counts[i] >= minp:
-                output[i] = func(bufarr, *args, **kwargs)
+                output[i] = func(arr[j:j + win], *args, **kwargs)
             else:
                 output[i] = NaN
-        bufarr.data = <char *>oldbuf
 
         # truncated windows at the end
         for i in range(int_max(N - offset, 0), N):
