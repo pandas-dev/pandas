@@ -745,9 +745,6 @@ class TestDataFrameApply:
             df.apply(func, axis=1)
             assert names == list(df.index)
 
-    @pytest.mark.xfail(
-        reason="The 'run once' enhancement for apply_raw not implemented yet."
-    )
     def test_apply_raw_function_runs_once(self):
         # https://github.com/pandas-dev/pandas/issues/34506
 
