@@ -1312,15 +1312,11 @@ class HDFStore:
             # compute the val
             val = value.reindex(v, axis=axis)
 
-            if min_itemsize is None:
-                self.append(k, val, data_columns=dc, **kwargs)
-            else:
+            if min_itemsize is not None:
                 min_itemsize = {
                     key: value for (key, value) in min_itemsize.items() if key in v
                 }
-                self.append(
-                    k, val, data_columns=dc, min_itemsize=min_itemsize, **kwargs
-                )
+            self.append(k, val, data_columns=dc, min_itemsize=min_itemsize, **kwargs)
 
     def create_table_index(
         self,
