@@ -344,3 +344,16 @@ class TestShift:
             index=pd.date_range("2016-1-1 02:00:00", periods=periods, freq="H"),
         )
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "input_data, output_data",
+        [(np.empty(shape=(0,)), []), (np.ones(shape=(2,)), [np.nan, 1.0])],
+    )
+    def test_shift_non_writable_array(self, input_data, output_data):
+        # GH21049 Verify whether non writable numpy array is shiftable
+        input_data.setflags(write=False)
+
+        result = pd.Series(input_data).shift(1)
+        expected = pd.Series(output_data, dtype="float64")
+
+        tm.assert_series_equal(result, expected)
