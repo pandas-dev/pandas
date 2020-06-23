@@ -110,6 +110,18 @@ class VariableWindowIndexer(BaseIndexer):
 class NonFixedVariableWindowIndexer(BaseIndexer):
     """Calculate window boundaries based on a non-fixed offset such as a BusinessDay"""
 
+    def __init__(
+        self,
+        index_array: Optional[np.ndarray] = None,
+        window_size: int = 0,
+        index=None,
+        offset=None,
+        **kwargs,
+    ):
+        super().__init__(index_array, window_size, **kwargs)
+        self.index = index
+        self.offset = offset
+
     @Appender(get_window_bounds_doc)
     def get_window_bounds(
         self,
