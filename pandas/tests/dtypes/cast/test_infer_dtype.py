@@ -214,4 +214,4 @@ def test_cast_scalar_to_extension_array(obj, dtype):
     exp = dtype.construct_array_type()._from_sequence([obj] * shape)
 
     arr = cast_scalar_to_array(shape, obj, dtype=dtype)
-    tm.assert_extension_array_equal(arr, exp)
+    tm.assert_extension_array_equal(arr[0], exp)

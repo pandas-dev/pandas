@@ -758,6 +758,10 @@ def infer_dtype_from_array(arr, pandas_dtype: bool = False) -> Tuple[DtypeObj, A
     if pandas_dtype and is_extension_array_dtype(arr):
         return arr.dtype, arr
 
+    dtype, _ = infer_dtype_from_scalar(arr[0], pandas_dtype=True)
+    if is_extension_array_dtype(dtype):
+        return dtype, arr
+
     elif isinstance(arr, ABCSeries):
         return arr.dtype, np.asarray(arr)
 
@@ -1510,7 +1514,10 @@ def cast_scalar_to_array(shape, value, dtype: Optional[DtypeObj] = None) -> np.n
         fill_value = value
 
     if is_extension_array_dtype(dtype):
-        values = dtype.construct_array_type()._from_sequence([value] * shape)
+        if isinstance(shape, int):
+            shape = (shape, 1)
+        value = [construct_1d_arraylike_from_scalar(value, shape[0], dtype)]
+        values = value * shape[1]
     else:
         values = np.empty(shape, dtype=dtype)
         values.fill(fill_value)

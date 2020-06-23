@@ -76,6 +76,7 @@ from pandas.core.dtypes.cast import (
     cast_scalar_to_array,
     coerce_to_dtypes,
     find_common_type,
+    infer_dtype_from_array,
     infer_dtype_from_scalar,
     invalidate_string_dtypes,
     maybe_cast_to_datetime,
@@ -528,9 +529,15 @@ class DataFrame(NDFrame):
                 values = cast_scalar_to_array(
                     (len(index), len(columns)), data, dtype=dtype
                 )
-                mgr = init_ndarray(
-                    values, index, columns, dtype=values.dtype, copy=False
-                )
+                if isinstance(values, list):
+                    # Case 1: values is a list of extension arrays
+                    dtype, _ = infer_dtype_from_array(values[0], pandas_dtype=True)
+                    mgr = arrays_to_mgr(values, columns, index, columns, dtype=dtype)
+                else:
+                    # Case 2: values is a numpy array
+                    mgr = init_ndarray(
+                        values, index, columns, dtype=values.dtype, copy=False
+                    )
             else:
                 raise ValueError("DataFrame constructor not properly called!")
 
@@ -3731,6 +3738,11 @@ class DataFrame(NDFrame):
 
             # upcast
             value = cast_scalar_to_array(len(self.index), value)
+
+            # if extension dtype, value will be a list of length 1
+            if isinstance(value, list):
+                value = value[0]
+
             value = maybe_cast_to_datetime(value, infer_dtype)
 
         # return internal types directly
