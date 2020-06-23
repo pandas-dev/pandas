@@ -121,15 +121,15 @@ def generate_property(name: str, klass: Type[FrameOrSeries]):
     return property(prop)
 
 
-def pin_whitelisted_properties(klass: Type[FrameOrSeries], whitelist: FrozenSet[str]):
+def pin_allowlisted_properties(klass: Type[FrameOrSeries], allowlist: FrozenSet[str]):
     """
-    Create GroupBy member defs for DataFrame/Series names in a whitelist.
+    Create GroupBy member defs for DataFrame/Series names in a allowlist.
 
     Parameters
     ----------
     klass : DataFrame or Series class
         class where members are defined.
-    whitelist : frozenset[str]
+    allowlist : frozenset[str]
         Set of names of klass methods to be constructed
 
     Returns
@@ -143,7 +143,7 @@ def pin_whitelisted_properties(klass: Type[FrameOrSeries], whitelist: FrozenSet[
     """
 
     def pinner(cls):
-        for name in whitelist:
+        for name in allowlist:
             if hasattr(cls, name):
                 # don't override anything that was explicitly defined
                 #  in the base class
@@ -157,9 +157,9 @@ def pin_whitelisted_properties(klass: Type[FrameOrSeries], whitelist: FrozenSet[
     return pinner
 
 
-@pin_whitelisted_properties(Series, base.series_apply_whitelist)
+@pin_allowlisted_properties(Series, base.series_apply_allowlist)
 class SeriesGroupBy(GroupBy[Series]):
-    _apply_whitelist = base.series_apply_whitelist
+    _apply_allowlist = base.series_apply_allowlist
 
     def _iterate_slices(self) -> Iterable[Series]:
         yield self._selected_obj
@@ -473,7 +473,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
             )
 
-        elif func not in base.transform_kernel_whitelist:
+        elif func not in base.transform_kernel_allowlist:
             msg = f"'{func}' is not a valid function name for transform(name)"
             raise ValueError(msg)
         elif func in base.cythonized_kernels:
@@ -835,10 +835,10 @@ class SeriesGroupBy(GroupBy[Series]):
         return (filled / shifted) - 1
 
 
-@pin_whitelisted_properties(DataFrame, base.dataframe_apply_whitelist)
+@pin_allowlisted_properties(DataFrame, base.dataframe_apply_allowlist)
 class DataFrameGroupBy(GroupBy[DataFrame]):
 
-    _apply_whitelist = base.dataframe_apply_whitelist
+    _apply_allowlist = base.dataframe_apply_allowlist
 
     _agg_examples_doc = dedent(
         """
@@ -1456,7 +1456,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
             )
 
-        elif func not in base.transform_kernel_whitelist:
+        elif func not in base.transform_kernel_allowlist:
             msg = f"'{func}' is not a valid function name for transform(name)"
             raise ValueError(msg)
         elif func in base.cythonized_kernels:

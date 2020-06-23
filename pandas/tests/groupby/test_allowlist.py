@@ -31,7 +31,7 @@ AGG_FUNCTIONS = [
 ]
 AGG_FUNCTIONS_WITH_SKIPNA = ["skew", "mad"]
 
-df_whitelist = [
+df_allowlist = [
     "quantile",
     "fillna",
     "mad",
@@ -50,12 +50,12 @@ df_whitelist = [
 ]
 
 
-@pytest.fixture(params=df_whitelist)
-def df_whitelist_fixture(request):
+@pytest.fixture(params=df_allowlist)
+def df_allowlist_fixture(request):
     return request.param
 
 
-s_whitelist = [
+s_allowlist = [
     "quantile",
     "fillna",
     "mad",
@@ -78,8 +78,8 @@ s_whitelist = [
 ]
 
 
-@pytest.fixture(params=s_whitelist)
-def s_whitelist_fixture(request):
+@pytest.fixture(params=s_allowlist)
+def s_allowlist_fixture(request):
     return request.param
 
 
@@ -119,10 +119,10 @@ def df_letters():
     return df
 
 
-@pytest.mark.parametrize("whitelist", [df_whitelist, s_whitelist])
-def test_groupby_whitelist(df_letters, whitelist):
+@pytest.mark.parametrize("allowlist", [df_allowlist, s_allowlist])
+def test_groupby_allowlist(df_letters, allowlist):
     df = df_letters
-    if whitelist == df_whitelist:
+    if allowlist == df_allowlist:
         # dataframe
         obj = df_letters
     else:
@@ -130,11 +130,11 @@ def test_groupby_whitelist(df_letters, whitelist):
 
     gb = obj.groupby(df.letters)
 
-    assert set(whitelist) == set(gb._apply_whitelist)
+    assert set(allowlist) == set(gb._apply_allowlist)
 
 
-def check_whitelist(obj, df, m):
-    # check the obj for a particular whitelist m
+def check_allowlist(obj, df, m):
+    # check the obj for a particular allowlist m
 
     gb = obj.groupby(df.letters)
 
@@ -155,16 +155,16 @@ def check_whitelist(obj, df, m):
     assert n.endswith(m)
 
 
-def test_groupby_series_whitelist(df_letters, s_whitelist_fixture):
-    m = s_whitelist_fixture
+def test_groupby_series_allowlist(df_letters, s_allowlist_fixture):
+    m = s_allowlist_fixture
     df = df_letters
-    check_whitelist(df.letters, df, m)
+    check_allowlist(df.letters, df, m)
 
 
-def test_groupby_frame_whitelist(df_letters, df_whitelist_fixture):
-    m = df_whitelist_fixture
+def test_groupby_frame_allowlist(df_letters, df_allowlist_fixture):
+    m = df_allowlist_fixture
     df = df_letters
-    check_whitelist(df, df, m)
+    check_allowlist(df, df, m)
 
 
 @pytest.fixture
@@ -187,10 +187,10 @@ def raw_frame():
 @pytest.mark.parametrize("axis", [0, 1])
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.parametrize("sort", [True, False])
-def test_regression_whitelist_methods(raw_frame, op, level, axis, skipna, sort):
+def test_regression_allowlist_methods(raw_frame, op, level, axis, skipna, sort):
     # GH6944
     # GH 17537
-    # explicitly test the whitelist methods
+    # explicitly test the allowlist methods
 
     if axis == 0:
         frame = raw_frame
@@ -213,11 +213,11 @@ def test_regression_whitelist_methods(raw_frame, op, level, axis, skipna, sort):
         tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_blacklist(df_letters):
+def test_groupby_blocklist(df_letters):
     df = df_letters
     s = df_letters.floats
 
-    blacklist = [
+    blocklist = [
         "eval",
         "query",
         "abs",
@@ -234,9 +234,9 @@ def test_groupby_blacklist(df_letters):
     ]
     to_methods = [method for method in dir(df) if method.startswith("to_")]
 
-    blacklist.extend(to_methods)
+    blocklist.extend(to_methods)
 
-    for bl in blacklist:
+    for bl in blocklist:
         for obj in (df, s):
             gb = obj.groupby(df.letters)
 
