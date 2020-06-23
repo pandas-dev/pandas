@@ -116,10 +116,12 @@ def test_ewma_span_com_args(series):
     A = series.ewm(com=9.5).mean()
     B = series.ewm(span=20).mean()
     tm.assert_almost_equal(A, B)
-
-    with pytest.raises(ValueError):
+    msg = "comass, span, halflife, and alpha are mutually exclusive"
+    with pytest.raises(ValueError, match=msg):
         series.ewm(com=9.5, span=20)
-    with pytest.raises(ValueError):
+
+    msg = "Must pass one of comass, span, halflife, or alpha"
+    with pytest.raises(ValueError, match=msg):
         series.ewm().mean()
 
 
@@ -127,8 +129,8 @@ def test_ewma_halflife_arg(series):
     A = series.ewm(com=13.932726172912965).mean()
     B = series.ewm(halflife=10.0).mean()
     tm.assert_almost_equal(A, B)
-
-    with pytest.raises(ValueError):
+    msg = "comass, span, halflife, and alpha are mutually exclusive"
+    with pytest.raises(ValueError, match=msg):
         series.ewm(span=20, halflife=50)
     with pytest.raises(ValueError):
         series.ewm(com=9.5, halflife=50)
@@ -153,13 +155,16 @@ def test_ewm_alpha(arr):
 def test_ewm_alpha_arg(series):
     # GH 10789
     s = series
-    with pytest.raises(ValueError):
+    msg = "Must pass one of comass, span, halflife, or alpha"
+    with pytest.raises(ValueError, match=msg):
         s.ewm()
-    with pytest.raises(ValueError):
+
+    msg = "comass, span, halflife, and alpha are mutually exclusive"
+    with pytest.raises(ValueError, match=msg):
         s.ewm(com=10.0, alpha=0.5)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=msg):
         s.ewm(span=10.0, alpha=0.5)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=msg):
         s.ewm(halflife=10.0, alpha=0.5)
 
 
