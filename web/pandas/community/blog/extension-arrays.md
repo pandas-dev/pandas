@@ -117,11 +117,11 @@ library). For example, consider `Categorical`,
 1    b
 2    a
 dtype: category
-Categories (3, object): [a, b, c]
+Categories (3, object): ['a', 'b', 'c']
 
 >>> ser.values
 [a, b, a]
-Categories (3, object): [a, b, c]
+Categories (3, object): ['a', 'b', 'c']
 ```
 
 In this case `.values` is a Categorical, not a NumPy array. For period-dtype
@@ -143,7 +143,7 @@ So with our Categorical example,
 ```python
 >>> ser.array
 [a, b, a]
-Categories (3, object): [a, b, c]
+Categories (3, object): ['a', 'b', 'c']
 
 >>> ser.to_numpy()
 array(['a', 'b', 'a'], dtype=object)

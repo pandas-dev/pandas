@@ -278,7 +278,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
 
     >>> pd.Categorical(['a', 'b', 'c', 'a', 'b', 'c'])
     [a, b, c, a, b, c]
-    Categories (3, object): [a, b, c]
+    Categories (3, object): ['a', 'b', 'c']
 
     Ordered `Categoricals` can be sorted according to the custom order
     of the categories and can have a min and max value.
@@ -1131,10 +1131,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         >>> cat = pd.Categorical(['a', 'b', 'c'])
         >>> cat
         [a, b, c]
-        Categories (3, object): [a, b, c]
+        Categories (3, object): ['a', 'b', 'c']
         >>> cat.map(lambda x: x.upper())
         [A, B, C]
-        Categories (3, object): [A, B, C]
+        Categories (3, object): ['A', 'B', 'C']
         >>> cat.map({'a': 'first', 'b': 'second', 'c': 'third'})
         [first, second, third]
         Categories (3, object): [first, second, third]
@@ -1874,15 +1874,16 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         )
         from pandas.io.formats import format as fmt
 
-        format_array = partial(fmt.format_array, quoting=QUOTE_NONNUMERIC)
-
+        format_array = partial(
+            fmt.format_array, formatter=None, quoting=QUOTE_NONNUMERIC
+        )
         if len(self.categories) > max_categories:
             num = max_categories // 2
-            head = format_array(self.categories[:num], None)
-            tail = format_array(self.categories[-num:], None)
+            head = format_array(self.categories[:num])
+            tail = format_array(self.categories[-num:])
             category_strs = head + ["..."] + tail
         else:
-            category_strs = format_array(self.categories, None)
+            category_strs = format_array(self.categories)
 
         # Strip all leading spaces, which format_array adds for columns...
         category_strs = [x.strip() for x in category_strs]
@@ -2056,7 +2057,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         >>> c = pd.Categorical(list('aabca'))
         >>> c
         [a, a, b, c, a]
-        Categories (3, object): [a, b, c]
+        Categories (3, object): ['a', 'b', 'c']
         >>> c.categories
         Index(['a', 'b', 'c'], dtype='object')
         >>> c.codes
@@ -2469,7 +2470,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     4    c
     5    c
     dtype: category
-    Categories (3, object): [a, b, c]
+    Categories (3, object): ['a', 'b', 'c']
 
     >>> s.cat.categories
     Index(['a', 'b', 'c'], dtype='object')
@@ -2523,7 +2524,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     4    c
     5    c
     dtype: category
-    Categories (3, object): [a, b, c]
+    Categories (3, object): ['a', 'b', 'c']
 
     >>> s.cat.set_categories(list("abcde"))
     0    a
@@ -2553,7 +2554,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     4    c
     5    c
     dtype: category
-    Categories (3, object): [a, b, c]
+    Categories (3, object): ['a', 'b', 'c']
     """
 
     def __init__(self, data):

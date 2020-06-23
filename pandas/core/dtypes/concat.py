@@ -237,7 +237,7 @@ def union_categoricals(
 
     >>> union_categoricals([a, b], sort_categories=True)
     [b, c, a, b]
-    Categories (3, object): [a, b, c]
+    Categories (3, object): ['a', 'b', 'c']
 
     `union_categoricals` also works with the case of combining two
     categoricals of the same categories and order information (e.g. what
@@ -267,7 +267,7 @@ def union_categoricals(
     >>> b = pd.Categorical(["c", "b", "a"], ordered=True)
     >>> union_categoricals([a, b], ignore_order=True)
     [a, b, c, c, b, a]
-    Categories (3, object): [a, b, c]
+    Categories (3, object): ['a', 'b', 'c']
 
     `union_categoricals` also works with a `CategoricalIndex`, or `Series`
     containing categorical data, but note that the resulting array will
