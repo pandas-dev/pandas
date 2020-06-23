@@ -88,7 +88,6 @@ def test_typical_usecase():
         columns=["var1", "var2"],
     )
     exploded = df.var1.str.split(",").explode()
-    exploded
     result = df[["var2"]].join(exploded)
     expected = pd.DataFrame(
         {"var2": [1, 1, 1, 2, 2, 2], "var1": list("abcdef")},
