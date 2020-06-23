@@ -1143,3 +1143,19 @@ class TestExcelFileRead:
             filename, sheet_name="Sheet1", index_col=0, header=[0, 1]
         )
         tm.assert_frame_equal(expected, result)
+
+    def test_read_datetime_multiindex(self):
+        # GH 34748
+
+        f = "test_datetime_mi.xlsx"
+        actual = pd.read_excel(f, header=[0, 1], index_col=0)
+        expected_column_index = pd.MultiIndex.from_tuples(
+            [(pd.to_datetime("02/29/2020"), pd.to_datetime("03/01/2020"))],
+            names=[
+                pd.to_datetime("02/29/2020").to_pydatetime(),
+                pd.to_datetime("03/01/2020").to_pydatetime(),
+            ],
+        )
+        # Cannot create a DataFrame with `expected_column_index` as the columns
+
+        tm.assert_index_equal(actual.columns, expected_column_index)
