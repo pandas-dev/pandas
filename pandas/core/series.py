@@ -358,17 +358,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             # Using the below way for generating keys and values
             # increasing the performance by 50%, instead of zip
             keys = tuple(data.keys())
-            values = [
-                data[key] for key in keys
-            ]  # Generating list of values- faster way
-
+            values = list(data.values())  # Generating list of values- faster way
+                
         elif index is not None:
             # fastpath for Series(data=None). Just use broadcasting a scalar
             # instead of reindexing.
             values = na_value_for_dtype(dtype)
             keys = index
         else:
-            keys, values = [], []
+            keys, values = tuple([]), []
 
         # Input is now list-like, so rely on "standard" construction:
 
