@@ -3835,8 +3835,6 @@ Keep all original rows and also all original values
         """
         Unstack, also known as pivot, Series with MultiIndex to produce DataFrame.
 
-        The level involved will automatically get sorted.
-
         Parameters
         ----------
         level : int, str, or list of these, default last level
