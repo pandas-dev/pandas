@@ -1398,7 +1398,8 @@ class SQLDatabase(PandasSQL):
             table.insert(chunksize, method=method)
         except exc.SQLAlchemyError as err:
             msg = '(1054, "Unknown column ' + "'inf' in 'field list'" + '")'
-            if re.search(msg, str(err.orig)):
+            errText = str(err.orig)
+            if re.search(msg, errText):
                 raise ValueError("inf can not be used with MySQL")
             else:
                 raise ValueError(err)
