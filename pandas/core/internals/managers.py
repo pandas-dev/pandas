@@ -221,7 +221,7 @@ class BlockManager(PandasObject):
     @property
     def _is_single_block(self) -> bool:
         # Assumes we are 2D; overriden by SingleBlockManager
-        return len(self.blocks) <= 1
+        return len(self.blocks) == 1
 
     def _rebuild_blknos_and_blklocs(self) -> None:
         """
@@ -655,7 +655,7 @@ class BlockManager(PandasObject):
     def is_mixed_type(self) -> bool:
         # Warning, consolidation needs to get checked upstairs
         self._consolidate_inplace()
-        return not self._is_single_block
+        return len(self.blocks) > 1
 
     @property
     def is_numeric_mixed_type(self) -> bool:
@@ -1284,7 +1284,7 @@ class BlockManager(PandasObject):
             slice_or_indexer, self.shape[0], allow_fill=allow_fill
         )
 
-        if self._is_single_block and len(self.blocks):
+        if self._is_single_block:
             blk = self.blocks[0]
 
             if sl_type in ("slice", "mask"):
