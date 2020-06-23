@@ -758,10 +758,6 @@ def infer_dtype_from_array(arr, pandas_dtype: bool = False) -> Tuple[DtypeObj, A
     if pandas_dtype and is_extension_array_dtype(arr):
         return arr.dtype, arr
 
-    dtype, _ = infer_dtype_from_scalar(arr[0], pandas_dtype=True)
-    if is_extension_array_dtype(dtype):
-        return dtype, arr
-
     elif isinstance(arr, ABCSeries):
         return arr.dtype, np.asarray(arr)
 
