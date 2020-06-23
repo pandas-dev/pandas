@@ -678,4 +678,3 @@ def test_indexing_regression():
     expected = Series(rng, index=rng)
 
     tm.assert_series_equal(ser, expected)
-    tm.assert_index_equal(ser.index, expected.index)
