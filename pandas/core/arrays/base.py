@@ -1090,15 +1090,13 @@ class ExtensionArray:
 
     def _accumulate(self, name, skipna=True, **kwargs) -> "ExtensionArray":
         """
-        Return an ExtensionArray performing the accumulation operation.
+        Return an ExtensionArray performing an accumulation operation.
         The underlying data type might change
-        # TODO Clarify
 
         Parameters
         ----------
         name : str
             Name of the function, supported values are:
-            # TODO Add function signatures
             - cummin
             - cummax
             - cumsum
@@ -1107,7 +1105,6 @@ class ExtensionArray:
             If True, skip NA values.
         **kwargs
             Additional keyword arguments passed to the accumulation function.
-            # TODO check if kwargs are needed
             Currently, there is no supported kwarg.
 
         Returns
