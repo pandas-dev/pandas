@@ -1458,7 +1458,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         str
             {klass} in Markdown-friendly format.
-
         {examples}
         """
         return self.to_frame().to_markdown(buf, mode, **kwargs)
