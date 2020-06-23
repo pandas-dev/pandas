@@ -700,6 +700,19 @@ class TestBlockManager:
             np.array([True, False, True]),
         )
 
+    def test_get_bool_data_consistency(self):
+        # GH#34918
+        ser = pd.Series([True, False, True], dtype=object)
+        ser2 = pd.Series(["A", "B", "C"])
+        df = ser.to_frame("A")
+
+        bd1 = df._get_bool_data()
+
+        df["B"] = ser2
+
+        bd2 = df._get_bool_data()
+        tm.assert_frame_equal(bd1, bd2)
+
     def test_unicode_repr_doesnt_raise(self):
         repr(create_mgr("b,\u05d0: object"))
 
