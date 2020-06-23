@@ -512,7 +512,7 @@ class ExtensionArray:
         kind : {'quicksort', 'mergesort', 'heapsort'}, optional
             Sorting algorithm.
         *args, **kwargs:
-            passed through to :func:`numpy.argsort`.
+            Passed through to :func:`numpy.argsort`.
 
         Returns
         -------
@@ -738,7 +738,7 @@ class ExtensionArray:
                 # boolean array with NA -> fill with False
                 equal_values = equal_values.fillna(False)
             equal_na = self.isna() & other.isna()
-            return (equal_values | equal_na).all().item()
+            return bool((equal_values | equal_na).all())
 
     def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:
         """

@@ -122,11 +122,20 @@ class PyArrowImpl(BaseImpl):
             file_obj_or_path.close()
 
     def read(self, path, columns=None, **kwargs):
-        parquet_ds = self.api.parquet.ParquetDataset(
-            path, filesystem=get_fs_for_path(path), **kwargs
-        )
-        kwargs["columns"] = columns
-        result = parquet_ds.read_pandas(**kwargs).to_pandas()
+        fs = get_fs_for_path(path)
+        should_close = None
+        # Avoid calling get_filepath_or_buffer for s3/gcs URLs since
+        # since it returns an S3File which doesn't support dir reads in arrow
+        if not fs:
+            path, _, _, should_close = get_filepath_or_buffer(path)
+
+        kwargs["use_pandas_metadata"] = True
+        result = self.api.parquet.read_table(
+            path, columns=columns, filesystem=fs, **kwargs
+        ).to_pandas()
+        if should_close:
+            path.close()
+
         return result
 
 

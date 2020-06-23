@@ -278,7 +278,7 @@ def test_where_setitem_invalid():
     "mask", [[True, False, False, False, False], [True, False], [False]]
 )
 @pytest.mark.parametrize(
-    "item", [2.0, np.nan, np.finfo(np.float).max, np.finfo(np.float).min]
+    "item", [2.0, np.nan, np.finfo(float).max, np.finfo(float).min]
 )
 # Test numpy arrays, lists and tuples as the input to be
 # broadcast
@@ -443,3 +443,10 @@ def test_where_sparse():
     result = ser.where(ser >= 2, 0)
     expected = pd.Series(pd.arrays.SparseArray([0, 2]))
     tm.assert_series_equal(result, expected)
+
+
+def test_where_empty_series_and_empty_cond_having_non_bool_dtypes():
+    # https://github.com/pandas-dev/pandas/issues/34592
+    ser = Series([], dtype=float)
+    result = ser.where([])
+    tm.assert_series_equal(result, ser)

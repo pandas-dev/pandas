@@ -232,7 +232,7 @@ def test_wrap_agg_out(three_group):
     grouped = three_group.groupby(["A", "B"])
 
     def func(ser):
-        if ser.dtype == np.object:
+        if ser.dtype == object:
             raise TypeError
         else:
             return ser.sum()
@@ -732,6 +732,27 @@ def test_agg_relabel_multiindex_duplicates():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("kwargs", [{"c": ["min"]}, {"b": [], "c": ["min"]}])
+def test_groupby_aggregate_empty_key(kwargs):
+    # GH: 32580
+    df = pd.DataFrame({"a": [1, 1, 2], "b": [1, 2, 3], "c": [1, 2, 4]})
+    result = df.groupby("a").agg(kwargs)
+    expected = pd.DataFrame(
+        [1, 4],
+        index=pd.Index([1, 2], dtype="int64", name="a"),
+        columns=pd.MultiIndex.from_tuples([["c", "min"]]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_aggregate_empty_key_empty_return():
+    # GH: 32580 Check if everything works, when return is empty
+    df = pd.DataFrame({"a": [1, 1, 2], "b": [1, 2, 3], "c": [1, 2, 4]})
+    result = df.groupby("a").agg({"b": []})
+    expected = pd.DataFrame(columns=pd.MultiIndex(levels=[["b"], []], codes=[[], []]))
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "func", [lambda s: s.mean(), lambda s: np.mean(s), lambda s: np.nanmean(s)]
 )
@@ -788,7 +809,17 @@ def test_aggregate_mixed_types():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(reason="Not implemented.")
+@pytest.mark.parametrize("func", ["min", "max"])
+def test_aggregate_categorical_lost_index(func: str):
+    # GH: 28641 groupby drops index, when grouping over categorical column with min/max
+    ds = pd.Series(["b"], dtype="category").cat.as_ordered()
+    df = pd.DataFrame({"A": [1997], "B": ds})
+    result = df.groupby("A").agg({"B": func})
+    expected = pd.DataFrame({"B": ["b"]}, index=pd.Index([1997], name="A"))
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.xfail(reason="Not implemented;see GH 31256")
 def test_aggregate_udf_na_extension_type():
     # https://github.com/pandas-dev/pandas/pull/31359
     # This is currently failing to cast back to Int64Dtype.

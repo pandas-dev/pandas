@@ -785,6 +785,17 @@ class TestDataFrameApply:
             df.applymap(func)
             assert values == df.a.to_list()
 
+    def test_apply_with_byte_string(self):
+        # GH 34529
+        df = pd.DataFrame(np.array([b"abcd", b"efgh"]), columns=["col"])
+        expected = pd.DataFrame(
+            np.array([b"abcd", b"efgh"]), columns=["col"], dtype=object
+        )
+        # After we make the aply we exect a dataframe just
+        # like the original but with the object datatype
+        result = df.apply(lambda x: x.astype("object"))
+        tm.assert_frame_equal(result, expected)
+
 
 class TestInferOutputShape:
     # the user has supplied an opaque UDF where
