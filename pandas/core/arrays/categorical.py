@@ -1,4 +1,5 @@
 from csv import QUOTE_NONNUMERIC
+from functools import partial
 import operator
 from shutil import get_terminal_size
 from typing import Dict, Hashable, List, Type, Union, cast
@@ -1873,19 +1874,15 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         )
         from pandas.io.formats import format as fmt
 
+        format_array = partial(fmt.format_array, quoting=QUOTE_NONNUMERIC)
+
         if len(self.categories) > max_categories:
             num = max_categories // 2
-            head = fmt.format_array(
-                self.categories[:num], None, quoting=QUOTE_NONNUMERIC
-            )
-            tail = fmt.format_array(
-                self.categories[-num:], None, quoting=QUOTE_NONNUMERIC
-            )
+            head = format_array(self.categories[:num], None)
+            tail = format_array(self.categories[-num:], None)
             category_strs = head + ["..."] + tail
         else:
-            category_strs = fmt.format_array(
-                self.categories, None, quoting=QUOTE_NONNUMERIC
-            )
+            category_strs = format_array(self.categories, None)
 
         # Strip all leading spaces, which format_array adds for columns...
         category_strs = [x.strip() for x in category_strs]
@@ -1928,7 +1925,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         from pandas.io.formats import format as fmt
 
         formatter = fmt.CategoricalFormatter(
-            self, length=length, na_rep=na_rep, footer=footer, quoting=QUOTE_NONNUMERIC
+            self, length=length, na_rep=na_rep, footer=footer
         )
         result = formatter.to_string()
         return str(result)

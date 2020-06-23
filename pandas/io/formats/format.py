@@ -4,7 +4,7 @@ and latex files. This module also applies to display formatting.
 """
 
 from contextlib import contextmanager
-from csv import QUOTE_NONE
+from csv import QUOTE_NONE, QUOTE_NONNUMERIC
 from datetime import tzinfo
 import decimal
 from functools import partial
@@ -171,14 +171,13 @@ class CategoricalFormatter:
         length: bool = True,
         na_rep: str = "NaN",
         footer: bool = True,
-        quoting: Optional[int] = None,
     ):
         self.categorical = categorical
         self.buf = buf if buf is not None else StringIO("")
         self.na_rep = na_rep
         self.length = length
         self.footer = footer
-        self.quoting = quoting
+        self.quoting = QUOTE_NONNUMERIC
 
     def _get_footer(self) -> str:
         footer = ""
@@ -1222,16 +1221,15 @@ class GenericArrayFormatter:
         else:
             float_format = self.float_format
 
-        quote_strings = self.quoting is not None and self.quoting != QUOTE_NONE
-        formatter = (
-            self.formatter
-            if self.formatter is not None
-            else (
-                lambda x: pprint_thing(
-                    x, escape_chars=("\t", "\r", "\n"), quote_strings=quote_strings
-                )
+        if self.formatter is not None:
+            formatter = self.formatter
+        else:
+            quote_strings = self.quoting is not None and self.quoting != QUOTE_NONE
+            formatter = partial(
+                pprint_thing,
+                escape_chars=("\t", "\r", "\n"),
+                quote_strings=quote_strings,
             )
-        )
 
         def _format(x):
             if self.na_rep is not None and is_scalar(x) and isna(x):

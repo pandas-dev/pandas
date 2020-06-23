@@ -825,6 +825,7 @@ Categorical
 - Bug when passing categorical data to :class:`Index` constructor along with ``dtype=object`` incorrectly returning a :class:`CategoricalIndex` instead of object-dtype :class:`Index` (:issue:`32167`)
 - Bug where :class:`Categorical` comparison operator ``__ne__`` would incorrectly evaluate to ``False`` when either element was missing (:issue:`32276`)
 - :meth:`Categorical.fillna` now accepts :class:`Categorical` ``other`` argument (:issue:`32420`)
+- Repr of :class:`Categorical` was not distinguishing between int and str (:issue:`33676`)
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -997,7 +998,6 @@ I/O
 - Bug in :meth:`~SQLDatabase.execute` was raising a ``ProgrammingError`` for some DB-API drivers when the SQL statement contained the `%` character and no parameters were present (:issue:`34211`)
 - Bug in :meth:`~pandas.io.stata.StataReader` which resulted in categorical variables with difference dtypes when reading data using an iterator. (:issue:`31544`)
 - :meth:`HDFStore.keys` has now an optional `include` parameter that allows the retrieval of all native HDF5 table names (:issue:`29916`)
-- Repr of :class:`Categorical` was not distinguishing between int and str (:issue:`33676`)
 
 Plotting
 ^^^^^^^^
