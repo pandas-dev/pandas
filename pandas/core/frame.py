@@ -3983,7 +3983,7 @@ class DataFrame(NDFrame):
         errors="raise",
     ):
         """
-        Drop specified labels from rows or columns.
+        Drop specified labels from rows or columns and return a new DataFrame object.
 
         Remove rows or columns by specifying label names and corresponding
         axis, or by specifying directly index or column names. When using a
@@ -4006,7 +4006,8 @@ class DataFrame(NDFrame):
         level : int or level name, optional
             For MultiIndex, level from which the labels will be removed.
         inplace : bool, default False
-            If True, do operation inplace and return None.
+            If False, return a copy. Otherwise, do operation
+            inplace and return None.
         errors : {'ignore', 'raise'}, default 'raise'
             If 'ignore', suppress error and only existing labels are
             dropped.
