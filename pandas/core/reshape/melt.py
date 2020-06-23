@@ -1,5 +1,5 @@
 import re
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, cast
 
 import numpy as np
 
@@ -17,7 +17,7 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.core.tools.numeric import to_numeric
 
 if TYPE_CHECKING:
-    from pandas import DataFrame
+    from pandas import DataFrame, Series  # noqa: F401
 
 
 @Appender(
@@ -109,7 +109,7 @@ def melt(
     for col in id_vars:
         id_data = frame.pop(col)
         if is_extension_array_dtype(id_data):
-            id_data = concat([id_data] * K, ignore_index=True)
+            id_data = cast("Series", concat([id_data] * K, ignore_index=True))
         else:
             id_data = np.tile(id_data._values, K)
         mdata[col] = id_data

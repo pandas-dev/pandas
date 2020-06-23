@@ -4007,7 +4007,8 @@ class DataFrame(NDFrame):
         level : int or level name, optional
             For MultiIndex, level from which the labels will be removed.
         inplace : bool, default False
-            If True, do operation inplace and return None.
+            If False, return a copy. Otherwise, do operation
+            inplace and return None.
         errors : {'ignore', 'raise'}, default 'raise'
             If 'ignore', suppress error and only existing labels are
             dropped.
@@ -4263,6 +4264,49 @@ class DataFrame(NDFrame):
             limit=limit,
             downcast=downcast,
         )
+
+    def pop(self, item: Label) -> Series:
+        """
+        Return item and drop from frame. Raise KeyError if not found.
+
+        Parameters
+        ----------
+        item : label
+            Label of column to be popped.
+
+        Returns
+        -------
+        Series
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([('falcon', 'bird', 389.0),
+        ...                    ('parrot', 'bird', 24.0),
+        ...                    ('lion', 'mammal', 80.5),
+        ...                    ('monkey', 'mammal', np.nan)],
+        ...                   columns=('name', 'class', 'max_speed'))
+        >>> df
+             name   class  max_speed
+        0  falcon    bird      389.0
+        1  parrot    bird       24.0
+        2    lion  mammal       80.5
+        3  monkey  mammal        NaN
+
+        >>> df.pop('class')
+        0      bird
+        1      bird
+        2    mammal
+        3    mammal
+        Name: class, dtype: object
+
+        >>> df
+             name  max_speed
+        0  falcon      389.0
+        1  parrot       24.0
+        2    lion       80.5
+        3  monkey        NaN
+        """
+        return super().pop(item=item)
 
     @doc(NDFrame.replace, **_shared_doc_kwargs)
     def replace(
@@ -6740,8 +6784,6 @@ NaN 12.3   33.0
             level(s) is (are) taken from the prescribed level(s) and
             the output is a DataFrame.
 
-        The new index levels are sorted.
-
         Parameters
         ----------
         level : int, str, list, default -1
@@ -6976,8 +7018,6 @@ NaN 12.3   33.0
 
         If the index is not a MultiIndex, the output will be a Series
         (the analogue of stack when the columns are not a MultiIndex).
-
-        The level involved will automatically get sorted.
 
         Parameters
         ----------
@@ -8040,7 +8080,9 @@ NaN 12.3   33.0
 
         return self._constructor(correl, index=idx, columns=cols)
 
-    def cov(self, min_periods=None) -> "DataFrame":
+    def cov(
+        self, min_periods: Optional[int] = None, ddof: Optional[int] = 1
+    ) -> "DataFrame":
         """
         Compute pairwise covariance of columns, excluding NA/null values.
 
@@ -8065,6 +8107,12 @@ NaN 12.3   33.0
             Minimum number of observations required per pair of columns
             to have a valid result.
 
+        ddof : int, default 1
+            Delta degrees of freedom.  The divisor used in calculations
+            is ``N - ddof``, where ``N`` represents the number of elements.
+
+            .. versionadded:: 1.1.0
+
         Returns
         -------
         DataFrame
@@ -8080,7 +8128,7 @@ NaN 12.3   33.0
         Notes
         -----
         Returns the covariance matrix of the DataFrame's time series.
-        The covariance is normalized by N-1.
+        The covariance is normalized by N-ddof.
 
         For DataFrames that have Series that are missing data (assuming that
         data is `missing at random
@@ -8143,7 +8191,7 @@ NaN 12.3   33.0
                 base_cov = np.empty((mat.shape[1], mat.shape[1]))
                 base_cov.fill(np.nan)
             else:
-                base_cov = np.cov(mat.T)
+                base_cov = np.cov(mat.T, ddof=ddof)
             base_cov = base_cov.reshape((len(cols), len(cols)))
         else:
             base_cov = libalgos.nancorr(mat, cov=True, minp=min_periods)
