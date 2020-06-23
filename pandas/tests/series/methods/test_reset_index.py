@@ -108,3 +108,13 @@ class TestResetIndex:
         s = Series(range(4), index=MultiIndex.from_product([[1, 2]] * 2))
         with pytest.raises(KeyError, match="not found"):
             s.reset_index("wrong", drop=True)
+
+
+def test_reset_index_dtypes_on_empty_series_with_multiindex():
+    # GH 19602 - Preserve dtype on empty Series with MultiIndex
+    idx = MultiIndex.from_product([[0, 1], [0.5, 1.0], ["a", "b"]])
+    result = Series(dtype=object, index=idx)[:0].reset_index().dtypes
+    expected = Series(
+        {"level_0": np.int64, "level_1": np.float64, "level_2": object, 0: object}
+    )
+    tm.assert_series_equal(result, expected)
