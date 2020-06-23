@@ -359,7 +359,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             # increasing the performance by 50%, instead of zip
             keys = tuple(data.keys())
             values = list(data.values())  # Generating list of values- faster way
-                
         elif index is not None:
             # fastpath for Series(data=None). Just use broadcasting a scalar
             # instead of reindexing.
