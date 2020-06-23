@@ -13,6 +13,7 @@ dependencies:
 
   # pandas dependencies
   - beautifulsoup4
+  - fsspec>=0.7.4
   - html5lib
   - lxml
   - matplotlib
@@ -25,7 +26,7 @@ dependencies:
   - pytables
   - python-dateutil
   - pytz
-  - s3fs
+  - s3fs>=0.4.0
   - scipy
   - sqlalchemy
   - xlrd

@@ -8,12 +8,7 @@ from pandas.errors import AbstractMethodError
 
 from pandas import DataFrame, get_option
 
-from pandas.io.common import (
-    get_filepath_or_buffer,
-    get_fs_for_path,
-    is_gcs_url,
-    is_s3_url,
-)
+from pandas.io.common import _expand_user, get_filepath_or_buffer, is_fsspec_url
 
 
 def get_engine(engine: str) -> "BaseImpl":
@@ -97,16 +92,24 @@ class PyArrowImpl(BaseImpl):
         **kwargs,
     ):
         self.validate_dataframe(df)
-        file_obj_or_path, _, _, should_close = get_filepath_or_buffer(path, mode="wb")
 
         from_pandas_kwargs: Dict[str, Any] = {"schema": kwargs.pop("schema", None)}
         if index is not None:
             from_pandas_kwargs["preserve_index"] = index
 
         table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
-        # write_to_dataset does not support a file-like object when
-        # a directory path is used, so just pass the path string.
+
+        if is_fsspec_url(path) and "filesystem" not in kwargs:
+            # make fsspec instance, which pyarrow will use to open paths
+            import_optional_dependency("fsspec")
+            import fsspec.core
+
+            fs, path = fsspec.core.url_to_fs(path)
+            kwargs["filesystem"] = fs
+        else:
+            path = _expand_user(path)
         if partition_cols is not None:
+            # writes to multiple files under the given path
             self.api.parquet.write_to_dataset(
                 table,
                 path,
@@ -115,17 +118,21 @@ class PyArrowImpl(BaseImpl):
                 **kwargs,
             )
         else:
-            self.api.parquet.write_table(
-                table, file_obj_or_path, compression=compression, **kwargs
-            )
-        if should_close:
-            file_obj_or_path.close()
+            # write to single output file
+            self.api.parquet.write_table(table, path, compression=compression, **kwargs)
 
     def read(self, path, columns=None, **kwargs):
-        fs = get_fs_for_path(path)
-        should_close = None
-        # Avoid calling get_filepath_or_buffer for s3/gcs URLs since
-        # since it returns an S3File which doesn't support dir reads in arrow
+        if is_fsspec_url(path) and "filesystem" not in kwargs:
+            import_optional_dependency("fsspec")
+            import fsspec.core
+
+            fs, path = fsspec.core.url_to_fs(path)
+            should_close = False
+        else:
+            fs = kwargs.pop("filesystem", None)
+            should_close = False
+            path = _expand_user(path)
+
         if not fs:
             path, _, _, should_close = get_filepath_or_buffer(path)
 
@@ -173,13 +180,11 @@ class FastParquetImpl(BaseImpl):
         if partition_cols is not None:
             kwargs["file_scheme"] = "hive"
 
-        if is_s3_url(path) or is_gcs_url(path):
-            # if path is s3:// or gs:// we need to open the file in 'wb' mode.
-            # TODO: Support 'ab'
+        if is_fsspec_url(path):
+            fsspec = import_optional_dependency("fsspec")
 
-            path, _, _, _ = get_filepath_or_buffer(path, mode="wb")
-            # And pass the opened file to the fastparquet internal impl.
-            kwargs["open_with"] = lambda path, _: path
+            # if filesystem is provided by fsspec, file must be opened in 'wb' mode.
+            kwargs["open_with"] = lambda path, _: fsspec.open(path, "wb").open()
         else:
             path, _, _, _ = get_filepath_or_buffer(path)
 
@@ -194,17 +199,11 @@ class FastParquetImpl(BaseImpl):
             )
 
     def read(self, path, columns=None, **kwargs):
-        if is_s3_url(path):
-            from pandas.io.s3 import get_file_and_filesystem
+        if is_fsspec_url(path):
+            fsspec = import_optional_dependency("fsspec")
 
-            # When path is s3:// an S3File is returned.
-            # We need to retain the original path(str) while also
-            # pass the S3File().open function to fastparquet impl.
-            s3, filesystem = get_file_and_filesystem(path)
-            try:
-                parquet_file = self.api.ParquetFile(path, open_with=filesystem.open)
-            finally:
-                s3.close()
+            open_with = lambda path, _: fsspec.open(path, "rb").open()
+            parquet_file = self.api.ParquetFile(path, open_with=open_with)
         else:
             path, _, _, _ = get_filepath_or_buffer(path)
             parquet_file = self.api.ParquetFile(path)

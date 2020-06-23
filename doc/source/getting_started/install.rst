@@ -267,8 +267,9 @@ SQLAlchemy                1.1.4              SQL support for databases other tha
 SciPy                     0.19.0             Miscellaneous statistical functions
 XLsxWriter                0.9.8              Excel writing
 blosc                                        Compression for HDF5
+fsspec                    0.7.4              Handling files aside from local and HTTP
 fastparquet               0.3.2              Parquet reading / writing
-gcsfs                     0.2.2              Google Cloud Storage access
+gcsfs                     0.6.0              Google Cloud Storage access
 html5lib                                     HTML parser for read_html (see :ref:`note <optional_html>`)
 lxml                      3.8.0              HTML parser for read_html (see :ref:`note <optional_html>`)
 matplotlib                2.2.2              Visualization
@@ -282,7 +283,7 @@ pyreadstat                                   SPSS files (.sav) reading
 pytables                  3.4.3              HDF5 reading / writing
 pyxlsb                    1.0.6              Reading for xlsb files
 qtpy                                         Clipboard I/O
-s3fs                      0.3.0              Amazon S3 access
+s3fs                      0.4.0              Amazon S3 access
 tabulate                  0.8.3              Printing in Markdown-friendly format (see `tabulate`_)
 xarray                    0.8.2              pandas-like API for N-dimensional data
 xclip                                        Clipboard I/O on linux

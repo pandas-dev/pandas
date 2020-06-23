@@ -31,6 +31,7 @@ import zipfile
 
 from pandas._typing import FilePathOrBuffer
 from pandas.compat import _get_lzma_file, _import_lzma
+from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import is_file_like
 
@@ -126,20 +127,6 @@ def stringify_path(
     return _expand_user(filepath_or_buffer)
 
 
-def is_s3_url(url) -> bool:
-    """Check for an s3, s3n, or s3a url"""
-    if not isinstance(url, str):
-        return False
-    return parse_url(url).scheme in ["s3", "s3n", "s3a"]
-
-
-def is_gcs_url(url) -> bool:
-    """Check for a gcs url"""
-    if not isinstance(url, str):
-        return False
-    return parse_url(url).scheme in ["gcs", "gs"]
-
-
 def urlopen(*args, **kwargs):
     """
     Lazy-import wrapper for stdlib urlopen, as that imports a big chunk of
@@ -150,31 +137,16 @@ def urlopen(*args, **kwargs):
     return urllib.request.urlopen(*args, **kwargs)
 
 
-def get_fs_for_path(filepath: str):
+def is_fsspec_url(url: FilePathOrBuffer) -> bool:
     """
-    Get appropriate filesystem given a filepath.
-    Supports s3fs, gcs and local file system.
-
-    Parameters
-    ----------
-    filepath : str
-        File path. e.g s3://bucket/object, /local/path, gcs://pandas/obj
-
-    Returns
-    -------
-    s3fs.S3FileSystem, gcsfs.GCSFileSystem, None
-        Appropriate FileSystem to use. None for local filesystem.
+    Returns true if the given URL looks like
+    something fsspec can handle
     """
-    if is_s3_url(filepath):
-        from pandas.io import s3
-
-        return s3.get_fs()
-    elif is_gcs_url(filepath):
-        from pandas.io import gcs
-
-        return gcs.get_fs()
-    else:
-        return None
+    return (
+        isinstance(url, str)
+        and "://" in url
+        and not url.startswith(("http://", "https://"))
+    )
 
 
 def get_filepath_or_buffer(
@@ -182,6 +154,7 @@ def get_filepath_or_buffer(
     encoding: Optional[str] = None,
     compression: Optional[str] = None,
     mode: Optional[str] = None,
+    storage_options: Optional[Dict[str, Any]] = None,
 ):
     """
     If the filepath_or_buffer is a url, translate and return the buffer.
@@ -194,6 +167,8 @@ def get_filepath_or_buffer(
     compression : {{'gzip', 'bz2', 'zip', 'xz', None}}, optional
     encoding : the encoding to use to decode bytes, default is 'utf-8'
     mode : str, optional
+    storage_options: dict, optional
+        passed on to fsspec, if using it; this is not yet accessed by the public API
 
     Returns
     -------
@@ -204,6 +179,7 @@ def get_filepath_or_buffer(
     filepath_or_buffer = stringify_path(filepath_or_buffer)
 
     if isinstance(filepath_or_buffer, str) and is_url(filepath_or_buffer):
+        # TODO: fsspec can also handle HTTP via requests, but leaving this unchanged
         req = urlopen(filepath_or_buffer)
         content_encoding = req.headers.get("Content-Encoding", None)
         if content_encoding == "gzip":
@@ -213,19 +189,23 @@ def get_filepath_or_buffer(
         req.close()
         return reader, encoding, compression, True
 
-    if is_s3_url(filepath_or_buffer):
-        from pandas.io import s3
+    if is_fsspec_url(filepath_or_buffer):
+        assert isinstance(
+            filepath_or_buffer, str
+        )  # just to appease mypy for this branch
+        # two special-case s3-like protocols; these have special meaning in Hadoop,
+        # but are equivalent to just "s3" from fsspec's point of view
+        # cc #11071
+        if filepath_or_buffer.startswith("s3a://"):
+            filepath_or_buffer = filepath_or_buffer.replace("s3a://", "s3://")
+        if filepath_or_buffer.startswith("s3n://"):
+            filepath_or_buffer = filepath_or_buffer.replace("s3n://", "s3://")
+        fsspec = import_optional_dependency("fsspec")
 
-        return s3.get_filepath_or_buffer(
-            filepath_or_buffer, encoding=encoding, compression=compression, mode=mode
-        )
-
-    if is_gcs_url(filepath_or_buffer):
-        from pandas.io import gcs
-
-        return gcs.get_filepath_or_buffer(
-            filepath_or_buffer, encoding=encoding, compression=compression, mode=mode
-        )
+        file_obj = fsspec.open(
+            filepath_or_buffer, mode=mode or "rb", **(storage_options or {})
+        ).open()
+        return file_obj, encoding, compression, True
 
     if isinstance(filepath_or_buffer, (str, bytes, mmap.mmap)):
         return _expand_user(filepath_or_buffer), None, compression, False

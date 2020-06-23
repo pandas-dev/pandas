@@ -537,6 +537,18 @@ class TestParquetPyArrow(Base):
             expected = df.astype(object)
             check_round_trip(df, pa, expected=expected)
 
+    def test_s3_roundtrip_explicit_fs(self, df_compat, s3_resource, pa):
+        s3fs = pytest.importorskip("s3fs")
+        s3 = s3fs.S3FileSystem()
+        kw = dict(filesystem=s3)
+        check_round_trip(
+            df_compat,
+            pa,
+            path="pandas-test/pyarrow.parquet",
+            read_kwargs=kw,
+            write_kwargs=kw,
+        )
+
     def test_s3_roundtrip(self, df_compat, s3_resource, pa):
         # GH #19134
         check_round_trip(df_compat, pa, path="s3://pandas-test/pyarrow.parquet")
@@ -544,8 +556,6 @@ class TestParquetPyArrow(Base):
     @td.skip_if_no("s3fs")
     @pytest.mark.parametrize("partition_col", [["A"], []])
     def test_s3_roundtrip_for_dir(self, df_compat, s3_resource, pa, partition_col):
-        from pandas.io.s3 import get_fs as get_s3_fs
-
         # GH #26388
         # https://github.com/apache/arrow/blob/master/python/pyarrow/tests/test_parquet.py#L2716
         # As per pyarrow partitioned columns become 'categorical' dtypes
@@ -559,11 +569,7 @@ class TestParquetPyArrow(Base):
             pa,
             expected=expected_df,
             path="s3://pandas-test/parquet_dir",
-            write_kwargs={
-                "partition_cols": partition_col,
-                "compression": None,
-                "filesystem": get_s3_fs(),
-            },
+            write_kwargs={"partition_cols": partition_col, "compression": None},
             check_like=True,
             repeat=1,
         )
@@ -584,6 +590,15 @@ class TestParquetPyArrow(Base):
         df_compat.to_parquet(buffer)
         df_from_buf = pd.read_parquet(buffer)
         tm.assert_frame_equal(df_compat, df_from_buf)
+
+    @td.skip_if_no("pyarrow")
+    def test_expand_user(self, df_compat, monkeypatch):
+        monkeypatch.setenv("HOME", "TestingUser")
+        monkeypatch.setenv("USERPROFILE", "TestingUser")
+        with pytest.raises(OSError, match=r".*TestingUser.*"):
+            pd.read_parquet("~/file.parquet")
+        with pytest.raises(OSError, match=r".*TestingUser.*"):
+            df_compat.to_parquet("~/file.parquet")
 
     def test_partition_cols_supported(self, pa, df_full):
         # GH #23283
