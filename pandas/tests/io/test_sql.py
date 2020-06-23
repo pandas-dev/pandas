@@ -1822,8 +1822,11 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
         df = pd.DataFrame(input)
         df.to_sql("foobar", self.conn, index=False)
-        res = sql.read_sql_table("foobar", self.conn)
-        tm.assert_equal(df, res)
+        try:
+            res = sql.read_sql_table("foobar", self.conn)
+            tm.assert_equal(df, res)
+        except ValueError("inf can not be used with MySQL"):
+            pass
 
     def test_temporary_table(self):
         test_data = "Hello, World!"
