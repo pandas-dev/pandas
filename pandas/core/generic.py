@@ -4809,7 +4809,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             random number generator
             If np.random.RandomState, use as numpy RandomState object.
 
-            ..versionchanged:: 1.1.0
+            .. versionchanged:: 1.1.0
 
                 array-like and BitGenerator (for NumPy>=1.17) object now passed to
                 np.random.RandomState() as seed

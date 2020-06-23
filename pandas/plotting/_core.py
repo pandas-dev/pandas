@@ -67,7 +67,7 @@ def hist_series(
     legend : bool, default False
         Whether to show the legend.
 
-        ..versionadded:: 1.1.0
+        .. versionadded:: 1.1.0
 
     **kwargs
         To be passed to the actual plotting function.
@@ -179,7 +179,7 @@ def hist_frame(
     legend : bool, default False
         Whether to show the legend.
 
-        ..versionadded:: 1.1.0
+        .. versionadded:: 1.1.0
 
     **kwargs
         All other plotting keyword arguments to be passed to
