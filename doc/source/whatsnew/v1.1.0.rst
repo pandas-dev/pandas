@@ -1028,6 +1028,7 @@ Plotting
 - Bug in :meth:`DataFrame.hist` where the order of ``column`` argument was ignored (:issue:`29235`)
 - Bug in :meth:`DataFrame.plot.scatter` that when adding multiple plots with different ``cmap``, colorbars alway use the first ``cmap`` (:issue:`33389`)
 - Bug in :meth:`DataFrame.plot.scatter` was adding a colorbar to the plot even if the argument `c` was assigned to a column containing color names (:issue:`34316`)
+- Bug in :meth:`pandas.plotting.bootstrap_plot` was causing cluttered axes and overlapping labels (:issue:`34905`)
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
