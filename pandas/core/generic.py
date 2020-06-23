@@ -2578,8 +2578,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         An `sqlalchemy.engine.Connection` can also be passed to to `con`:
         >>> with engine.connect() as connection:
-                df1 = pd.DataFrame({'name' : ['User 4', 'User 5']})
-                df1.to_sql('users', con=connection, if_exists='append')
+        ...     df1 = pd.DataFrame({'name' : ['User 4', 'User 5']})
+        ...     df1.to_sql('users', con=connection, if_exists='append')
         This is allowed to support operations that require that the same
         DBAPI connection is used to the entire operation.
 
