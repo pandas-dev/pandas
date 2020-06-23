@@ -1509,6 +1509,7 @@ def cast_scalar_to_array(shape, value, dtype: Optional[DtypeObj] = None) -> np.n
     else:
         fill_value = value
 
+    # TODO: Update this function to add support for 3rd party extension types Issue #34959
     if is_extension_array_dtype(dtype):
         if isinstance(shape, int):
             shape = (shape, 1)
