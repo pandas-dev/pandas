@@ -425,7 +425,7 @@ _bar_or_line_doc = """
         -----
         Where pandas fails to infer the frequency information the automatic tick
         resolution adjustment can be suppressed by the parameter:
-        `x_compact=True`  (e.g., `s.plot(x_compat=True)`).
+        `x_compact=True`  (e.g., `s.plot(x_compact=True)`).
 """
 
 
