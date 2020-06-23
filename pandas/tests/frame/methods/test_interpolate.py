@@ -43,7 +43,14 @@ class TestDataFrameInterpolate:
                 "D": list("abcd"),
             }
         )
-        with pytest.raises(ValueError):
+        msg = (
+            r"method must be one of \['linear', 'time', 'index', 'values', "
+            r"'nearest', 'zero', 'slinear', 'quadratic', 'cubic', "
+            r"'barycentric', 'krogh', 'spline', 'polynomial', "
+            r"'from_derivatives', 'piecewise_polynomial', 'pchip', 'akima', "
+            r"'cubicspline'\]. Got 'not_a_method' instead."
+        )
+        with pytest.raises(ValueError, match=msg):
             df.interpolate(method="not_a_method")
 
     def test_interp_combo(self):
@@ -67,7 +74,11 @@ class TestDataFrameInterpolate:
     def test_interp_nan_idx(self):
         df = DataFrame({"A": [1, 2, np.nan, 4], "B": [np.nan, 2, 3, 4]})
         df = df.set_index("A")
-        with pytest.raises(NotImplementedError):
+        msg = (
+            "Interpolation with NaNs in the index has not been implemented. "
+            "Try filling those NaNs before interpolating."
+        )
+        with pytest.raises(NotImplementedError, match=msg):
             df.interpolate(method="values")
 
     @td.skip_if_no_scipy

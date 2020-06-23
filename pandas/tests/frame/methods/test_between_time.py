@@ -68,7 +68,8 @@ class TestBetweenTime:
     def test_between_time_raises(self):
         # GH#20725
         df = DataFrame([[1, 2, 3], [4, 5, 6]])
-        with pytest.raises(TypeError):  # index is not a DatetimeIndex
+        msg = "Index must be DatetimeIndex"
+        with pytest.raises(TypeError, match=msg):  # index is not a DatetimeIndex
             df.between_time(start_time="00:00", end_time="12:00")
 
     def test_between_time_axis(self, axis):
