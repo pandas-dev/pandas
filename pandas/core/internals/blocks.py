@@ -169,10 +169,6 @@ class Block(PandasObject):
         return (self._can_consolidate, self.dtype.name)
 
     @property
-    def _is_single_block(self) -> bool:
-        return self.ndim == 1
-
-    @property
     def is_view(self) -> bool:
         """ return a boolean if I am possibly a view """
         return self.values.base is not None
@@ -259,7 +255,7 @@ class Block(PandasObject):
     def __repr__(self) -> str:
         # don't want to print out all of the items here
         name = type(self).__name__
-        if self._is_single_block:
+        if self.ndim == 1:
             result = f"{name}: {len(self)} dtype: {self.dtype}"
         else:
 
@@ -476,8 +472,7 @@ class Block(PandasObject):
 
         values = self.values
 
-        # single block handling
-        if self._is_single_block:
+        if self.ndim == 1:
 
             # try to cast all non-floats here
             if dtypes is None:
