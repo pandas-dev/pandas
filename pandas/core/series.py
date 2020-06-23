@@ -355,9 +355,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # raises KeyError), so we iterate the entire dict, and align
         if data:
             # GH:34717
-            # Using the below way to generate tuple of keys and values increasing the performance by 50%, instead of zip
+            # Using the below way to generate tuple of keys and values
+            # increasing the performance by 50%, instead of zip
             keys = tuple(data.keys())
-            values = tuple([data[key] for key in keys])
+            values = (
+                *[data[key] for key in keys],
+            )  # Generating tuple of values- faster way
 
         elif index is not None:
             # fastpath for Series(data=None). Just use broadcasting a scalar
