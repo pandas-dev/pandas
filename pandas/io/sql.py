@@ -11,6 +11,7 @@ from typing import Iterator, Optional, Union, overload
 import warnings
 
 import numpy as np
+from sqlalchemy import exc
 
 import pandas._libs.lib as lib
 
@@ -1391,7 +1392,17 @@ class SQLDatabase(PandasSQL):
             dtype=dtype,
         )
         table.create()
-        table.insert(chunksize, method=method)
+        try:
+            table.insert(chunksize, method=method)
+        except exc.SQLAlchemyError as err:
+            if (
+                str(err.orig)
+                == '(1054, "Unknown column ' + "'inf' in 'field list'" + '")'
+            ):
+                raise ValueError("ProgrammingError: inf can not be used with MySQL")
+            else:
+                raise err
+
         if not name.isdigit() and not name.islower():
             # check for potentially case sensitivity issues (GH7815)
             # Only check when name is not a number and name is not lower case
