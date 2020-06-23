@@ -11,6 +11,7 @@ from pandas.core.series import Series
 
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.core import LinePlot, MPLPlot
+from pandas.plotting._matplotlib.grouped import create_iter_data_given_by
 from pandas.plotting._matplotlib.tools import _flatten, _set_ticks_props, _subplots
 
 
@@ -33,17 +34,13 @@ class HistPlot(LinePlot):
 
             else:
                 grouped = self.data.groupby(self.by)[self.columns]
-                bins_list = []
-                for key, group in grouped:
-                    bins_list.append(self._calculate_bins(group))
-                self.bins = bins_list
+                self.bins = [self._calculate_bins(group) for key, group in grouped]
 
         if is_list_like(self.bottom):
             self.bottom = np.array(self.bottom)
 
     def _calculate_bins(self, data: DataFrame) -> np.array:
         """Calculate bins given data"""
-
         values = data._convert(datetime=True)._get_numeric_data()
         values = np.ravel(values)
         values = values[~isna(values)]
@@ -78,7 +75,7 @@ class HistPlot(LinePlot):
     def _make_plot(self):
         colors = self._get_colors()
         stacking_id = self._get_stacking_id()
-        data = self._create_iter_data_given_by(self.data, self.by)
+        data = create_iter_data_given_by(self.data, self.by)
 
         for i, (label, y) in enumerate(self._iter_data(data=data)):
             ax = self._get_ax(i)

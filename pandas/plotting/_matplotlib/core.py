@@ -27,13 +27,12 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas import DataFrame, MultiIndex, Series
 import pandas.core.common as com
-from pandas.core.reshape.concat import concat
 
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.compat import _mpl_ge_3_0_0
 from pandas.plotting._matplotlib.converter import register_pandas_matplotlib_converters
+from pandas.plotting._matplotlib.grouped import reconstruct_data_with_by
 from pandas.plotting._matplotlib.style import _get_standard_colors
 from pandas.plotting._matplotlib.tools import (
     _flatten,
@@ -125,7 +124,8 @@ class MPLPlot:
         if self.by and column is None:
             self.columns = [col for col in data.columns if col not in self.by]
         else:
-            self.columns = [column] if not isinstance(column, list) else column
+            self.columns = com.convert_to_list_like(column)
+            # self.columns = [column] if not isinstance(column, list) else column
 
         self.kind = kind
 
@@ -252,54 +252,6 @@ class MPLPlot:
                             "'color' keyword argument. Please use one or the other or "
                             "pass 'style' without a color symbol"
                         )
-
-    @staticmethod
-    def _create_iter_data_given_by(
-        data: DataFrame, by: Optional[List]
-    ) -> Union[DataFrame, Dict[str, Union[DataFrame, Series]]]:
-        """
-        Create data for iteration given `by` is assigned or not, and it is only
-        used in both hist and boxplot.
-
-        If `by` is assigned, return a dictionary of DataFrames in which the key of
-        dictionary is the values in groups.
-        If `by` is not assigned, return input as is, and this preserves current
-        status of iter_data.
-
-        Parameters
-        ----------
-        data: reformatted grouped data from `_compute_plot_data` method
-        by: list or None, value assigned to `by`.
-
-        Returns
-        -------
-        iter_data: DataFrame or Dictionary of DataFrames
-
-        Examples
-        --------
-        If `by` is assigned:
-
-        >>> tuples = [('h1', 'a'), ('h1', 'b'), ('h2', 'a'), ('h2', 'b')]
-        >>> mi = MultiIndex.from_tuples(tuples)
-        >>> value = [[1, 3, np.nan, np.nan],
-        ...          [3, 4, np.nan, np.nan], [np.nan, np.nan, 5, 6]]
-        >>> data = DataFrame(value, columns=mi)
-        >>> _create_iter_data_given_by(data, by=["col1"])
-        {'h1': DataFrame({'a': [1, 3, np.nan], 'b': [3, 4, np.nan]}),
-         'h2': DataFrame({'a': [np.nan, np.nan, 5], 'b': [np.nan, np.nan, 6]})}
-        """
-        iter_data: Union[DataFrame, Dict[str, Union[DataFrame, Series]]]
-        if not by:
-            iter_data = data
-        else:
-            # Select sub-columns based on the value of first level of MI
-            assert isinstance(data.columns, MultiIndex)
-            cols = data.columns.levels[0]
-            iter_data = {
-                col: data.loc[:, data.columns.get_level_values(0) == col]
-                for col in cols
-            }
-        return iter_data
 
     def _iter_data(self, data=None, keep_index=False, fillna=None):
         if data is None:
@@ -438,44 +390,6 @@ class MPLPlot:
             else:
                 return self.axes[0]
 
-    def _reconstruct_data_with_by(self, data: DataFrame) -> DataFrame:
-        """
-        Internal function to group data, and reassign multiindex column names onto the
-        result in order to let grouped data be used in _compute_plot_data method.
-
-        Parameters
-        ----------
-        data: Original DataFrame to plot
-
-        Returns
-        -------
-        Output is the reconstructed DataFrame with MultiIndex columns. The first level
-        of MI is unique values of groups, and second level of MI is the columns
-        selected by users.
-
-        Examples
-        --------
-        >>> d = {'h': ['h1', 'h1', 'h2'], 'a': [1, 3, 5], 'b': [3, 4, 6]}
-        >>> df = DataFrame(d)
-        >>> _reconstruct_data_with_by(df)
-           h1      h2
-           a   b   a   b
-        0  1   3   NaN NaN
-        1  3   4   NaN NaN
-        2  NaN NaN 5   6
-        """
-        grouped = data.groupby(self.by)
-
-        data_list = []
-        for key, group in grouped:
-            columns = MultiIndex.from_product([[key], self.columns])
-            sub_group = group[self.columns]
-            sub_group.columns = columns
-            data_list.append(sub_group)
-
-        data = concat(data_list, axis=1)
-        return data
-
     def _compute_plot_data(self):
         data = self.data
 
@@ -488,7 +402,7 @@ class MPLPlot:
         # GH15079 reconstruct data if by is defined
         if self.by is not None:
             self.subplots = True
-            data = self._reconstruct_data_with_by(self.data)
+            data = reconstruct_data_with_by(self.data, by=self.by, cols=self.columns)
 
         # GH16953, _convert is needed as fallback, for ``Series``
         # with ``dtype == object``
