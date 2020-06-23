@@ -4723,7 +4723,7 @@ class DataFrame(NDFrame):
                 # we can have situations where the whole mask is -1,
                 # meaning there is nothing found in labels, so make all nan's
                 if mask.all():
-                    values = np.empty(len(mask))
+                    values = np.empty(len(mask), dtype=index.dtype)
                     values.fill(np.nan)
                 else:
                     values = values.take(labels)
