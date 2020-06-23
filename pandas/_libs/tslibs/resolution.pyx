@@ -58,7 +58,7 @@ def get_resolution(const int64_t[:] stamps, tz=None):
         for i in range(n):
             if stamps[i] == NPY_NAT:
                 continue
-            local_val = tz_convert_utc_to_tzlocal(stamps[i], tz)
+            local_val = tz_convert_utc_to_tzlocal(stamps[i])
             dt64_to_dtstruct(local_val, &dts)
             curr_reso = _reso_stamp(&dts)
             if curr_reso < reso:

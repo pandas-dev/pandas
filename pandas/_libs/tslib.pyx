@@ -197,7 +197,7 @@ def ints_to_pydatetime(
                 # Python datetime objects do not support nanosecond
                 # resolution (yet, PEP 564). Need to compute new value
                 # using the i8 representation.
-                local_value = tz_convert_utc_to_tzlocal(value, tz)
+                local_value = tz_convert_utc_to_tzlocal(value)
                 dt64_to_dtstruct(local_value, &dts)
                 result[i] = func_create(value, dts, tz, freq, fold)
     else:

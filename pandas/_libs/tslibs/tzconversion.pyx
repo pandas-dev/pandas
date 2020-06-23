@@ -5,7 +5,7 @@ import cython
 from cython import Py_ssize_t
 
 from cpython.datetime cimport (
-    PyDateTime_IMPORT, PyDelta_Check, datetime, tzinfo)
+    PyDateTime_IMPORT, PyDelta_Check, datetime, timedelta, tzinfo)
 PyDateTime_IMPORT
 
 import pytz
@@ -21,7 +21,13 @@ from pandas._libs.tslibs.nattype cimport NPY_NAT
 from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, dt64_to_dtstruct)
 from pandas._libs.tslibs.timezones cimport (
-    get_dst_info, is_tzlocal, is_utc, get_timezone, get_utcoffset)
+    get_dst_info,
+    is_tzlocal,
+    is_utc,
+    get_timezone,
+    get_utcoffset,
+    tzlocal_obj,
+)
 
 
 # TODO: cdef scalar version to call from convert_str_to_tsobject
@@ -92,7 +98,7 @@ timedelta-like}
             if v == NPY_NAT:
                 result[i] = NPY_NAT
             else:
-                result[i] = _tz_convert_tzlocal_utc(v, tz, to_utc=True)
+                result[i] = _tz_convert_tzlocal_utc(v, to_utc=True)
         return result
 
     # silence false-positive compiler warning
@@ -312,12 +318,11 @@ cdef inline str _render_tstamp(int64_t val):
 # ----------------------------------------------------------------------
 # Timezone Conversion
 
-cdef int64_t tz_convert_utc_to_tzlocal(int64_t utc_val, tzinfo tz, bint* fold=NULL):
+cdef int64_t tz_convert_utc_to_tzlocal(int64_t utc_val, bint* fold=NULL):
     """
     Parameters
     ----------
     utc_val : int64_t
-    tz : tzinfo
     fold : bint*
         pointer to fold: whether datetime ends up in a fold or not
         after adjustment
@@ -326,7 +331,7 @@ cdef int64_t tz_convert_utc_to_tzlocal(int64_t utc_val, tzinfo tz, bint* fold=NU
     -------
     local_val : int64_t
     """
-    return _tz_convert_tzlocal_utc(utc_val, tz, to_utc=False, fold=fold)
+    return _tz_convert_tzlocal_utc(utc_val, to_utc=False, fold=fold)
 
 
 cpdef int64_t tz_convert_single(int64_t val, tzinfo tz1, tzinfo tz2):
@@ -357,7 +362,7 @@ cpdef int64_t tz_convert_single(int64_t val, tzinfo tz1, tzinfo tz2):
 
     # Convert to UTC
     if is_tzlocal(tz1):
-        utc_date = _tz_convert_tzlocal_utc(val, tz1, to_utc=True)
+        utc_date = _tz_convert_tzlocal_utc(val, to_utc=True)
     elif not is_utc(get_timezone(tz1)):
         arr[0] = val
         utc_date = _tz_convert_dst(arr, tz1, to_utc=True)[0]
@@ -367,7 +372,7 @@ cpdef int64_t tz_convert_single(int64_t val, tzinfo tz1, tzinfo tz2):
     if is_utc(get_timezone(tz2)):
         return utc_date
     elif is_tzlocal(tz2):
-        return _tz_convert_tzlocal_utc(utc_date, tz2, to_utc=False)
+        return _tz_convert_tzlocal_utc(utc_date, to_utc=False)
     else:
         # Convert UTC to other timezone
         arr[0] = utc_date
@@ -433,7 +438,7 @@ cdef int64_t[:] _tz_convert_one_way(int64_t[:] vals, tzinfo tz, bint to_utc):
                 if val == NPY_NAT:
                     converted[i] = NPY_NAT
                 else:
-                    converted[i] = _tz_convert_tzlocal_utc(val, tz, to_utc)
+                    converted[i] = _tz_convert_tzlocal_utc(val, to_utc)
         else:
             converted = _tz_convert_dst(vals, tz, to_utc)
     else:
@@ -442,7 +447,7 @@ cdef int64_t[:] _tz_convert_one_way(int64_t[:] vals, tzinfo tz, bint to_utc):
     return converted
 
 
-cdef inline int64_t _tzlocal_get_offset_components(int64_t val, tzinfo tz,
+cdef inline int64_t _tzlocal_get_offset_components(int64_t val,
                                                    bint to_utc,
                                                    bint *fold=NULL):
     """
@@ -452,7 +457,6 @@ cdef inline int64_t _tzlocal_get_offset_components(int64_t val, tzinfo tz,
     Parameters
     ----------
     val : int64_t
-    tz : tzinfo
     to_utc : bint
         True if converting tzlocal _to_ UTC, False if going the other direction
     fold : bint*, default NULL
@@ -471,23 +475,25 @@ cdef inline int64_t _tzlocal_get_offset_components(int64_t val, tzinfo tz,
         npy_datetimestruct dts
         datetime dt
         int64_t delta
+        timedelta td
 
     dt64_to_dtstruct(val, &dts)
     dt = datetime(dts.year, dts.month, dts.day, dts.hour,
                   dts.min, dts.sec, dts.us)
-    # get_utcoffset (tz.utcoffset under the hood) only makes sense if datetime
+    # tzlocal_obj.utcoffset only makes sense if datetime
     # is _wall time_, so if val is a UTC timestamp convert to wall time
     if not to_utc:
         dt = dt.replace(tzinfo=tzutc())
-        dt = dt.astimezone(tz)
+        dt = dt.astimezone(tzlocal_obj)
 
     if fold is not NULL:
         fold[0] = dt.fold
 
-    return int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
+    td = tzlocal_obj.utcoffset(dt)
+    return int(td.total_seconds() * 1_000_000_000)
 
 
-cdef int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz, bint to_utc=True,
+cdef int64_t _tz_convert_tzlocal_utc(int64_t val, bint to_utc=True,
                                      bint* fold=NULL):
     """
     Convert the i8 representation of a datetime from a tzlocal timezone to
@@ -498,7 +504,6 @@ cdef int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz, bint to_utc=True,
     Parameters
     ----------
     val : int64_t
-    tz : tzinfo
     to_utc : bint
         True if converting tzlocal _to_ UTC, False if going the other direction
     fold : bint*
@@ -516,7 +521,7 @@ cdef int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz, bint to_utc=True,
     cdef:
         int64_t delta
 
-    delta = _tzlocal_get_offset_components(val, tz, to_utc, fold)
+    delta = _tzlocal_get_offset_components(val, to_utc, fold)
 
     if to_utc:
         return val - delta

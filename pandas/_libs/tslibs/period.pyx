@@ -1441,7 +1441,7 @@ def dt64arr_to_periodarr(const int64_t[:] stamps, int freq, object tz):
             if stamps[i] == NPY_NAT:
                 result[i] = NPY_NAT
                 continue
-            local_val = tz_convert_utc_to_tzlocal(stamps[i], tz)
+            local_val = tz_convert_utc_to_tzlocal(stamps[i])
             dt64_to_dtstruct(local_val, &dts)
             result[i] = get_period_ordinal(&dts, freq)
     else:

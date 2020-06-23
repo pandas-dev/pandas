@@ -26,6 +26,7 @@ from pandas._libs.tslibs.util cimport is_integer_object, get_nat
 cdef int64_t NPY_NAT = get_nat()
 cdef tzinfo utc_stdlib = timezone.utc
 cdef tzinfo utc_pytz = UTC
+cdef tzinfo tzlocal_obj = _dateutil_tzlocal()
 
 # ----------------------------------------------------------------------
 

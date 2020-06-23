@@ -482,7 +482,7 @@ cdef _TSObject create_tsobject_tz_using_offset(npy_datetimestruct dts,
     if is_utc(tz):
         pass
     elif is_tzlocal(tz):
-        tz_convert_utc_to_tzlocal(obj.value, tz, &obj.fold)
+        tz_convert_utc_to_tzlocal(obj.value, &obj.fold)
     else:
         trans, deltas, typ = get_dst_info(tz)
 
@@ -644,7 +644,7 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz):
     elif obj.value == NPY_NAT:
         pass
     elif is_tzlocal(tz):
-        local_val = tz_convert_utc_to_tzlocal(obj.value, tz, &obj.fold)
+        local_val = tz_convert_utc_to_tzlocal(obj.value, &obj.fold)
         dt64_to_dtstruct(local_val, &obj.dts)
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
@@ -801,7 +801,7 @@ cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo t
             if stamps[i] == NPY_NAT:
                 result[i] = NPY_NAT
                 continue
-            local_val = tz_convert_utc_to_tzlocal(stamps[i], tz)
+            local_val = tz_convert_utc_to_tzlocal(stamps[i])
             result[i] = _normalize_i8_stamp(local_val)
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
@@ -880,7 +880,7 @@ def is_date_array_normalized(const int64_t[:] stamps, tzinfo tz=None):
 
     elif is_tzlocal(tz):
         for i in range(n):
-            local_val = tz_convert_utc_to_tzlocal(stamps[i], tz)
+            local_val = tz_convert_utc_to_tzlocal(stamps[i])
             if local_val % day_nanos != 0:
                 return False
     else:

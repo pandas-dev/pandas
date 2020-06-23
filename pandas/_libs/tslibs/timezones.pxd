@@ -1,6 +1,6 @@
 from cpython.datetime cimport tzinfo
 
-cdef tzinfo utc_pytz
+cdef tzinfo utc_pytz, tzlocal_obj
 
 cpdef bint is_utc(object tz)
 cdef bint is_tzlocal(object tz)
