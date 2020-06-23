@@ -68,7 +68,7 @@ class TestAssign:
         msg = r"assign\(\) takes 1 positional argument but 2 were given"
         with pytest.raises(TypeError, match=msg):
             df.assign(lambda x: x.A)
-        msg = r"'DataFrame' object has no attribute 'C'"
+        msg = "'DataFrame' object has no attribute 'C'"
         with pytest.raises(AttributeError, match=msg):
             df.assign(C=df.A, D=df.A + df.C)
 

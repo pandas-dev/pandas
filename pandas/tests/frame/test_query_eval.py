@@ -908,7 +908,6 @@ class TestDataFrameQueryStrings:
         df = DataFrame(np.random.randn(10, 1), columns=["b"])
         df["strings"] = Series(list("aabbccddee"))
         expect = df[df.strings.isin(["a", "b"])]
-        msg = r"'(Not)?In' nodes are not implemented"
 
         if parser != "pandas":
             col = "strings"
@@ -919,6 +918,7 @@ class TestDataFrameQueryStrings:
 
             eq, ne = "==", "!="
             ops = 2 * ([eq] + [ne])
+            msg = r"'(Not)?In' nodes are not implemented"
 
             for lhs, op, rhs in zip(lhs, ops, rhs):
                 ex = f"{lhs} {op} {rhs}"
