@@ -3719,7 +3719,7 @@ class TestHDFStore:
                 },
                 df.iloc[[0]],
                 "index",
-                min_itemsize={"Str": 10, "LongStr": 100},
+                min_itemsize={"Str": 10, "LongStr": 100, "Num": 2},
             )
             result = store.select_as_multiple(["index", "nums", "strs"])
             tm.assert_frame_equal(result, expected)
