@@ -2342,7 +2342,7 @@ Name: Max Speed, dtype: float64
             Delta degrees of freedom.  The divisor used in calculations
             is ``N - ddof``, where ``N`` represents the number of elements.
 
-            versionadded:: 1.1.0
+            .. versionadded:: 1.1.0
 
         Returns
         -------
