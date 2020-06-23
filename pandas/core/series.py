@@ -2323,7 +2323,12 @@ Name: Max Speed, dtype: float64
             f"'{method}' was supplied"
         )
 
-    def cov(self, other, min_periods=None) -> float:
+    def cov(
+        self,
+        other: "Series",
+        min_periods: Optional[int] = None,
+        ddof: Optional[int] = 1,
+    ) -> float:
         """
         Compute covariance with Series, excluding missing values.
 
@@ -2333,6 +2338,11 @@ Name: Max Speed, dtype: float64
             Series with which to compute the covariance.
         min_periods : int, optional
             Minimum number of observations needed to have a valid result.
+        ddof : int, default 1
+            Delta degrees of freedom.  The divisor used in calculations
+            is ``N - ddof``, where ``N`` represents the number of elements.
+
+            versionadded:: 1.1.0
 
         Returns
         -------
@@ -2354,7 +2364,9 @@ Name: Max Speed, dtype: float64
         this, other = self.align(other, join="inner", copy=False)
         if len(this) == 0:
             return np.nan
-        return nanops.nancov(this.values, other.values, min_periods=min_periods)
+        return nanops.nancov(
+            this.values, other.values, min_periods=min_periods, ddof=ddof
+        )
 
     @doc(
         klass="Series",
