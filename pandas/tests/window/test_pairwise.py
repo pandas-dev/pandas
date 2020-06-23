@@ -3,7 +3,7 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series, date_range
+from pandas import DataFrame, MultiIndex, Series, date_range
 import pandas._testing as tm
 from pandas.core.algorithms import safe_sort
 
@@ -189,3 +189,33 @@ class TestPairwise:
         result = s.rolling("12H").corr(s)
         expected = Series([np.nan] * 5, index=date_range("2020", periods=5))
         tm.assert_series_equal(result, expected)
+
+    def test_cov_mulittindex(self):
+        # GH 34440
+
+        # create multiindexed DataFrame
+        columns = MultiIndex.from_product([["a", "b"], ["x", "y"], [0, 1]])
+        index = range(3)
+        df = DataFrame(
+            np.random.normal(size=(len(index), len(columns))),
+            index=index,
+            columns=columns,
+        )
+
+        # flatten index then compute covariance
+        df_fi = df.copy()
+        df_fi.columns = ["".join(str(c) for c in col) for col in df_fi.columns.values]
+        cov_fi = df_fi.ewm(alpha=0.1).cov()
+        cov_fi.index = [
+            "".join(str(symbol) for symbol in row_label) for row_label in cov_fi.index
+        ]
+
+        # compute covariance matrix then flatten its multtindex
+        df_mi = df.copy()
+        cov_mi = df_mi.ewm(alpha=0.1).cov()
+        cov_mi.columns = ["".join(str(c) for c in col) for col in cov_mi.columns.values]
+        cov_mi.index = [
+            "".join(str(symbol) for symbol in row_label) for row_label in cov_mi.index
+        ]
+
+        tm.assert_frame_equal(cov_fi, cov_mi)
