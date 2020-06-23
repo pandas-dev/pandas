@@ -4492,7 +4492,7 @@ Keep all original rows and also all original values
             downcast=downcast,
         )
 
-    @Appender(
+    def pop(self, item: Label) -> Any:
         """
         Return item and drops from series. Raise KeyError if not found.
 
@@ -4517,9 +4517,6 @@ Keep all original rows and also all original values
         2    3
         dtype: int64
         """
-    )
-    @Substitution(klass="Series")
-    def pop(self, item: Label) -> Any:
         return super().pop(item=item)
 
     @doc(NDFrame.replace, klass=_shared_doc_kwargs["klass"])

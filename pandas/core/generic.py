@@ -5357,7 +5357,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         string              object
         dtype: object
         """
-        from pandas import Series  # noqa
+        from pandas import Series  # noqa: F811
 
         return Series(self._mgr.get_dtypes(), index=self._info_axis, dtype=np.object_)
 

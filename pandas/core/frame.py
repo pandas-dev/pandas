@@ -4263,13 +4263,13 @@ class DataFrame(NDFrame):
             downcast=downcast,
         )
 
-    @Appender(
+    def pop(self, item: Label) -> Series:
         """
         Return item and drop from frame. Raise KeyError if not found.
 
         Parameters
         ----------
-        item : str
+        item : label
             Label of column to be popped.
 
         Returns
@@ -4304,9 +4304,6 @@ class DataFrame(NDFrame):
         2    lion       80.5
         3  monkey        NaN
         """
-    )
-    @Substitution(klass="DataFrame")
-    def pop(self, item: Label) -> Series:
         return super().pop(item=item)
 
     @doc(NDFrame.replace, **_shared_doc_kwargs)
