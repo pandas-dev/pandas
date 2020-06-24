@@ -9,7 +9,7 @@ from pandas._config import get_option
 
 from pandas._libs import lib
 from pandas._libs.interval import Interval, IntervalMixin, IntervalTree
-from pandas._libs.tslibs import Timedelta, Timestamp, to_offset
+from pandas._libs.tslibs import BaseOffset, Timedelta, Timestamp, to_offset
 from pandas._typing import AnyArrayLike, Label
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -55,8 +55,6 @@ from pandas.core.indexes.extension import ExtensionIndex, inherit_names
 from pandas.core.indexes.multi import MultiIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 from pandas.core.ops import get_op_result_name
-
-from pandas.tseries.offsets import DateOffset
 
 _VALID_CLOSED = {"left", "right", "both", "neither"}
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -1161,8 +1159,8 @@ def _is_type_compatible(a, b) -> bool:
     """
     Helper for interval_range to check type compat of start/end/freq.
     """
-    is_ts_compat = lambda x: isinstance(x, (Timestamp, DateOffset))
-    is_td_compat = lambda x: isinstance(x, (Timedelta, DateOffset))
+    is_ts_compat = lambda x: isinstance(x, (Timestamp, BaseOffset))
+    is_td_compat = lambda x: isinstance(x, (Timedelta, BaseOffset))
     return (
         (is_number(a) and is_number(b))
         or (is_ts_compat(a) and is_ts_compat(b))

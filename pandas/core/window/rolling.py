@@ -10,7 +10,7 @@ from typing import Callable, Dict, List, Optional, Set, Tuple, Type, Union
 
 import numpy as np
 
-from pandas._libs.tslibs import to_offset
+from pandas._libs.tslibs import BaseOffset, to_offset
 import pandas._libs.window.aggregations as window_aggregations
 from pandas._typing import Axis, FrameOrSeries, Scalar
 from pandas.compat._optional import import_optional_dependency
@@ -54,8 +54,6 @@ from pandas.core.window.indexers import (
     VariableWindowIndexer,
 )
 from pandas.core.window.numba_ import generate_numba_apply_func
-
-from pandas.tseries.offsets import DateOffset
 
 
 def calculate_center_offset(window) -> int:
@@ -1935,7 +1933,7 @@ class Rolling(_Rolling_and_Expanding):
 
         # we allow rolling on a datetimelike index
         if (self.obj.empty or self.is_datetimelike) and isinstance(
-            self.window, (str, DateOffset, timedelta)
+            self.window, (str, BaseOffset, timedelta)
         ):
 
             self._validate_monotonic()
