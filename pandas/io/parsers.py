@@ -408,15 +408,13 @@ def _validate_names(names):
     Raises
     ------
     ValueError
-        If names are not unique or have inconsistent ordering (e.g. set).
+        If names are not unique or are not ordered (e.g. set).
     """
     if names is not None:
         if len(names) != len(set(names)):
             raise ValueError("Duplicate names are not allowed.")
         if not is_list_like(names, allow_sets=False):
-            raise ValueError(
-                "Names should have consistent ordering. Consider a list instead."
-            )
+            raise ValueError("Names should be an ordered collection.")
 
 
 def _read(filepath_or_buffer: FilePathOrBuffer, kwds):

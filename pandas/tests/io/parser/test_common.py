@@ -2145,7 +2145,7 @@ def test_read_csv_names_types(all_parsers):
     7,8,9
     10,11,12\n"""
     parser = all_parsers
-    msg = "Names should have consistent ordering. Consider a list instead."
+    msg = "Names should be an ordered collection."
     names = "QAZ"
     with pytest.raises(ValueError, match=msg):
         parser.read_csv(StringIO(data), names=set(names))
