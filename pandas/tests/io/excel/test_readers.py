@@ -1147,9 +1147,6 @@ class TestExcelFileRead:
     def test_read_datetime_multiindex(self, engine, read_ext):
         # GH 34748
 
-        if read_ext == ".ods":
-            pytest.xfail("ODS Sheets containing datetimes not supported")
-
         f = "test_datetime_mi" + read_ext
         with pd.ExcelFile(f) as excel:
             actual = pd.read_excel(excel, header=[0, 1], index_col=0, engine=engine)
