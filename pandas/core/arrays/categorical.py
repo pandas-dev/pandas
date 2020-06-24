@@ -2612,7 +2612,7 @@ def _get_codes_for_values(values, categories):
         categories = ensure_object(categories)
 
     if isinstance(categories, ABCIndexClass):
-        return coerce_indexer_dtype(categories.get_indexer(values), categories)
+        return coerce_indexer_dtype(categories.get_indexer_for(values), categories)
 
     # Only hit here when we've already coerced to object dtypee.
 
