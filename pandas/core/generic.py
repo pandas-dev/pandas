@@ -11524,7 +11524,10 @@ def _make_cum_function(
         def block_accum_func(blk_values):
             values = blk_values.T if hasattr(blk_values, "T") else blk_values
 
-            if is_extension_array_dtype(values.dtype):
+            if is_extension_array_dtype(values.dtype) and values.dtype.kind not in [
+                "m",
+                "M",
+            ]:
                 result = values._accumulate(name, skipna, **kwargs)
             else:
                 result = nanops.na_accum_func(values, accum_func, skipna=skipna)
