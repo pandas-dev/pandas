@@ -397,7 +397,8 @@ def _validate_integer(name, val, min_val=0):
 
 def _validate_names(names):
     """
-    Raise ValueError if the `names` parameter contains duplicates.
+    Raise ValueError if the `names` parameter contains duplicates or has an
+    invalid data type.
 
     Parameters
     ----------
@@ -407,11 +408,13 @@ def _validate_names(names):
     Raises
     ------
     ValueError
-        If names are not unique.
+        If names are not unique or are not ordered (e.g. set).
     """
     if names is not None:
         if len(names) != len(set(names)):
             raise ValueError("Duplicate names are not allowed.")
+        if not is_list_like(names, allow_sets=False):
+            raise ValueError("Names should be an ordered collection.")
 
 
 def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
