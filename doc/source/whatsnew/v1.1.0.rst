@@ -316,6 +316,7 @@ Other enhancements
 - :meth:`~pandas.io.gbq.read_gbq` now supports the ``max_results`` kwarg from ``pandas-gbq`` (:issue:`34639`).
 - :meth:`Dataframe.cov` and :meth:`Series.cov` now support a new parameter ddof to support delta degrees of freedom as in the corresponding numpy methods (:issue:`34611`).
 - :meth:`DataFrame.to_html` and :meth:`DataFrame.to_string`'s ``col_space`` parameter now accepts a list of dict to change only some specific columns' width (:issue:`28917`).
+- :meth:`DataFrame.to_excel` can now also write OpenOffice spreadsheet (.ods) files (:issue:`27222`)
 
 .. ---------------------------------------------------------------------------
 
@@ -1018,6 +1019,7 @@ I/O
 - Bug in :meth:`~SQLDatabase.execute` was raising a ``ProgrammingError`` for some DB-API drivers when the SQL statement contained the `%` character and no parameters were present (:issue:`34211`)
 - Bug in :meth:`~pandas.io.stata.StataReader` which resulted in categorical variables with difference dtypes when reading data using an iterator. (:issue:`31544`)
 - :meth:`HDFStore.keys` has now an optional `include` parameter that allows the retrieval of all native HDF5 table names (:issue:`29916`)
+- Bug in :meth:`read_excel` for ODS files removes 0.0 values (:issue:`27222`)
 
 Plotting
 ^^^^^^^^
