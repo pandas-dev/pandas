@@ -1,0 +1,36 @@
+name: pandas-dev
+channels:
+  - defaults
+dependencies:
+  - python=3.6.*
+
+  # tools
+  - pytest>=5.0.1
+  - pytest-xdist>=1.21
+  - hypothesis>=3.58.0
+  - pytest-azurepipelines
+
+  # pandas dependencies
+  - beautifulsoup4
+  - bottleneck
+  - html5lib
+  - jinja2
+  - lxml
+  - matplotlib=2.2.3
+  - nomkl
+  - numexpr
+  - numpy=1.15.4
+  - openpyxl
+  - pyarrow>=0.13.0
+  - pytables
+  - python-dateutil==2.7.3
+  - pytz
+  - xarray
+  - xlrd
+  - xlsxwriter
+  - xlwt
+  - pip
+  - pip:
+    - cython>=0.29.16
+    - pyreadstat
+    - pyxlsb

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Assertion helpers for offsets tests
 """
@@ -12,14 +11,16 @@ def assert_offset_equal(offset, base, expected):
         assert actual == expected
         assert actual_swapped == expected
         assert actual_apply == expected
-    except AssertionError:
-        raise AssertionError("\nExpected: %s\nActual: %s\nFor Offset: %s)"
-                             "\nAt Date: %s" %
-                             (expected, actual, offset, base))
+    except AssertionError as err:
+        raise AssertionError(
+            f"\nExpected: {expected}\nActual: {actual}\nFor Offset: {offset})"
+            f"\nAt Date: {base}"
+        ) from err
 
 
-def assert_onOffset(offset, date, expected):
-    actual = offset.onOffset(date)
-    assert actual == expected, ("\nExpected: %s\nActual: %s\nFor Offset: %s)"
-                                "\nAt Date: %s" %
-                                (expected, actual, offset, date))
+def assert_is_on_offset(offset, date, expected):
+    actual = offset.is_on_offset(date)
+    assert actual == expected, (
+        f"\nExpected: {expected}\nActual: {actual}\nFor Offset: {offset})"
+        f"\nAt Date: {date}"
+    )

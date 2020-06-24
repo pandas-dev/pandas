@@ -1,30 +1,26 @@
-# coding: utf-8
-
 """ Test cases for .hist method """
-
-import pytest
-
-from pandas import Series, DataFrame
-import pandas.util.testing as tm
-import pandas.util._test_decorators as td
 
 import numpy as np
 from numpy.random import randn
+import pytest
 
-from pandas.plotting._core import grouped_hist
-from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works)
+import pandas.util._test_decorators as td
+
+from pandas import DataFrame, Index, Series
+import pandas._testing as tm
+from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
 
 
 @td.skip_if_no_mpl
 class TestSeriesPlots(TestPlotBase):
-
     def setup_method(self, method):
         TestPlotBase.setup_method(self, method)
         import matplotlib as mpl
+
         mpl.rcdefaults()
 
         self.ts = tm.makeTimeSeries()
-        self.ts.name = 'ts'
+        self.ts.name = "ts"
 
     @pytest.mark.slow
     def test_hist_legacy(self):
@@ -73,47 +69,40 @@ class TestSeriesPlots(TestPlotBase):
         # so we get a warning about an axis being cleared, even
         # though we don't explicing pass one, see GH #13188
         with tm.assert_produces_warning(UserWarning):
-            axes = _check_plot_works(df.height.hist, by=df.gender,
-                                     layout=(2, 1))
+            axes = _check_plot_works(df.height.hist, by=df.gender, layout=(2, 1))
         self._check_axes_shape(axes, axes_num=2, layout=(2, 1))
 
         with tm.assert_produces_warning(UserWarning):
-            axes = _check_plot_works(df.height.hist, by=df.gender,
-                                     layout=(3, -1))
+            axes = _check_plot_works(df.height.hist, by=df.gender, layout=(3, -1))
         self._check_axes_shape(axes, axes_num=2, layout=(3, 1))
 
         with tm.assert_produces_warning(UserWarning):
-            axes = _check_plot_works(df.height.hist, by=df.category,
-                                     layout=(4, 1))
+            axes = _check_plot_works(df.height.hist, by=df.category, layout=(4, 1))
         self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
         with tm.assert_produces_warning(UserWarning):
-            axes = _check_plot_works(
-                df.height.hist, by=df.category, layout=(2, -1))
+            axes = _check_plot_works(df.height.hist, by=df.category, layout=(2, -1))
         self._check_axes_shape(axes, axes_num=4, layout=(2, 2))
 
         with tm.assert_produces_warning(UserWarning):
-            axes = _check_plot_works(
-                df.height.hist, by=df.category, layout=(3, -1))
+            axes = _check_plot_works(df.height.hist, by=df.category, layout=(3, -1))
         self._check_axes_shape(axes, axes_num=4, layout=(3, 2))
 
         with tm.assert_produces_warning(UserWarning):
-            axes = _check_plot_works(
-                df.height.hist, by=df.category, layout=(-1, 4))
+            axes = _check_plot_works(df.height.hist, by=df.category, layout=(-1, 4))
         self._check_axes_shape(axes, axes_num=4, layout=(1, 4))
 
         with tm.assert_produces_warning(UserWarning):
-            axes = _check_plot_works(
-                df.height.hist, by=df.classroom, layout=(2, 2))
+            axes = _check_plot_works(df.height.hist, by=df.classroom, layout=(2, 2))
         self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
 
         axes = df.height.hist(by=df.category, layout=(4, 2), figsize=(12, 7))
-        self._check_axes_shape(
-            axes, axes_num=4, layout=(4, 2), figsize=(12, 7))
+        self._check_axes_shape(axes, axes_num=4, layout=(4, 2), figsize=(12, 7))
 
     @pytest.mark.slow
     def test_hist_no_overlap(self):
         from matplotlib.pyplot import subplot, gcf
+
         x = Series(randn(2))
         y = Series(randn(2))
         subplot(121)
@@ -121,7 +110,7 @@ class TestSeriesPlots(TestPlotBase):
         subplot(122)
         y.hist()
         fig = gcf()
-        axes = fig.axes if self.mpl_ge_1_5_0 else fig.get_axes()
+        axes = fig.axes
         assert len(axes) == 2
 
     @pytest.mark.slow
@@ -133,19 +122,43 @@ class TestSeriesPlots(TestPlotBase):
     @pytest.mark.slow
     def test_plot_fails_when_ax_differs_from_figure(self):
         from pylab import figure
+
         fig1 = figure()
         fig2 = figure()
         ax1 = fig1.add_subplot(111)
         with pytest.raises(AssertionError):
             self.ts.hist(ax=ax1, figure=fig2)
 
+    @pytest.mark.parametrize(
+        "by, expected_axes_num, expected_layout", [(None, 1, (1, 1)), ("b", 2, (1, 2))]
+    )
+    def test_hist_with_legend(self, by, expected_axes_num, expected_layout):
+        # GH 6279 - Series histogram can have a legend
+        index = 15 * ["1"] + 15 * ["2"]
+        s = Series(np.random.randn(30), index=index, name="a")
+        s.index.name = "b"
+
+        axes = _check_plot_works(s.hist, legend=True, by=by)
+        self._check_axes_shape(axes, axes_num=expected_axes_num, layout=expected_layout)
+        self._check_legend_labels(axes, "a")
+
+    @pytest.mark.parametrize("by", [None, "b"])
+    def test_hist_with_legend_raises(self, by):
+        # GH 6279 - Series histogram with legend and label raises
+        index = 15 * ["1"] + 15 * ["2"]
+        s = Series(np.random.randn(30), index=index, name="a")
+        s.index.name = "b"
+
+        with pytest.raises(ValueError, match="Cannot use both legend and label"):
+            s.hist(legend=True, by=by, label="c")
+
 
 @td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
-
     @pytest.mark.slow
     def test_hist_df_legacy(self):
         from matplotlib.patches import Rectangle
+
         with tm.assert_produces_warning(UserWarning):
             _check_plot_works(self.hist_df.hist)
 
@@ -182,18 +195,20 @@ class TestDataFramePlots(TestPlotBase):
         xf, yf = 20, 18
         xrot, yrot = 30, 40
         axes = ser.hist(xlabelsize=xf, xrot=xrot, ylabelsize=yf, yrot=yrot)
-        self._check_ticks_props(axes, xlabelsize=xf, xrot=xrot,
-                                ylabelsize=yf, yrot=yrot)
+        self._check_ticks_props(
+            axes, xlabelsize=xf, xrot=xrot, ylabelsize=yf, yrot=yrot
+        )
 
         xf, yf = 20, 18
         xrot, yrot = 30, 40
         axes = df.hist(xlabelsize=xf, xrot=xrot, ylabelsize=yf, yrot=yrot)
-        self._check_ticks_props(axes, xlabelsize=xf, xrot=xrot,
-                                ylabelsize=yf, yrot=yrot)
+        self._check_ticks_props(
+            axes, xlabelsize=xf, xrot=xrot, ylabelsize=yf, yrot=yrot
+        )
 
         tm.close()
-        # make sure kwargs to hist are handled
-        ax = ser.hist(normed=True, cumulative=True, bins=4)
+
+        ax = ser.hist(cumulative=True, bins=4, density=True)
         # height of last bin (index 5) must be 1.0
         rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
         tm.assert_almost_equal(rects[-1].get_height(), 1.0)
@@ -201,33 +216,43 @@ class TestDataFramePlots(TestPlotBase):
         tm.close()
         ax = ser.hist(log=True)
         # scale of y must be 'log'
-        self._check_ax_scales(ax, yaxis='log')
+        self._check_ax_scales(ax, yaxis="log")
 
         tm.close()
 
         # propagate attr exception from matplotlib.Axes.hist
         with pytest.raises(AttributeError):
-            ser.hist(foo='bar')
+            ser.hist(foo="bar")
+
+    @pytest.mark.slow
+    def test_hist_non_numerical_raises(self):
+        # gh-10444
+        df = DataFrame(np.random.rand(10, 2))
+        df_o = df.astype(object)
+
+        msg = "hist method requires numerical columns, nothing to plot."
+        with pytest.raises(ValueError, match=msg):
+            df_o.hist()
 
     @pytest.mark.slow
     def test_hist_layout(self):
         df = DataFrame(randn(100, 3))
 
         layout_to_expected_size = (
-            {'layout': None, 'expected_size': (2, 2)},  # default is 2x2
-            {'layout': (2, 2), 'expected_size': (2, 2)},
-            {'layout': (4, 1), 'expected_size': (4, 1)},
-            {'layout': (1, 4), 'expected_size': (1, 4)},
-            {'layout': (3, 3), 'expected_size': (3, 3)},
-            {'layout': (-1, 4), 'expected_size': (1, 4)},
-            {'layout': (4, -1), 'expected_size': (4, 1)},
-            {'layout': (-1, 2), 'expected_size': (2, 2)},
-            {'layout': (2, -1), 'expected_size': (2, 2)}
+            {"layout": None, "expected_size": (2, 2)},  # default is 2x2
+            {"layout": (2, 2), "expected_size": (2, 2)},
+            {"layout": (4, 1), "expected_size": (4, 1)},
+            {"layout": (1, 4), "expected_size": (1, 4)},
+            {"layout": (3, 3), "expected_size": (3, 3)},
+            {"layout": (-1, 4), "expected_size": (1, 4)},
+            {"layout": (4, -1), "expected_size": (4, 1)},
+            {"layout": (-1, 2), "expected_size": (2, 2)},
+            {"layout": (2, -1), "expected_size": (2, 2)},
         )
 
         for layout_test in layout_to_expected_size:
-            axes = df.hist(layout=layout_test['layout'])
-            expected = layout_test['expected_size']
+            axes = df.hist(layout=layout_test["layout"])
+            expected = layout_test["expected_size"]
             self._check_axes_shape(axes, axes_num=3, layout=expected)
 
         # layout too small for all 4 plots
@@ -243,26 +268,97 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.slow
     # GH 9351
     def test_tight_layout(self):
-        if self.mpl_ge_2_0_1:
-            df = DataFrame(randn(100, 3))
-            _check_plot_works(df.hist)
-            self.plt.tight_layout()
+        df = DataFrame(randn(100, 3))
+        _check_plot_works(df.hist)
+        self.plt.tight_layout()
 
-            tm.close()
+        tm.close()
+
+    def test_hist_subplot_xrot(self):
+        # GH 30288
+        df = DataFrame(
+            {
+                "length": [1.5, 0.5, 1.2, 0.9, 3],
+                "animal": ["pig", "rabbit", "pig", "pig", "rabbit"],
+            }
+        )
+        axes = _check_plot_works(
+            df.hist,
+            filterwarnings="always",
+            column="length",
+            by="animal",
+            bins=5,
+            xrot=0,
+        )
+        self._check_ticks_props(axes, xrot=0)
+
+    @pytest.mark.parametrize(
+        "column, expected",
+        [
+            (None, ["width", "length", "height"]),
+            (["length", "width", "height"], ["length", "width", "height"]),
+        ],
+    )
+    def test_hist_column_order_unchanged(self, column, expected):
+        # GH29235
+
+        df = DataFrame(
+            {
+                "width": [0.7, 0.2, 0.15, 0.2, 1.1],
+                "length": [1.5, 0.5, 1.2, 0.9, 3],
+                "height": [3, 0.5, 3.4, 2, 1],
+            },
+            index=["pig", "rabbit", "duck", "chicken", "horse"],
+        )
+
+        axes = _check_plot_works(df.hist, column=column, layout=(1, 3))
+        result = [axes[0, i].get_title() for i in range(3)]
+
+        assert result == expected
+
+    @pytest.mark.parametrize("by", [None, "c"])
+    @pytest.mark.parametrize("column", [None, "b"])
+    def test_hist_with_legend(self, by, column):
+        # GH 6279 - DataFrame histogram can have a legend
+        expected_axes_num = 1 if by is None and column is not None else 2
+        expected_layout = (1, expected_axes_num)
+        expected_labels = column or ["a", "b"]
+        if by is not None:
+            expected_labels = [expected_labels] * 2
+
+        index = Index(15 * ["1"] + 15 * ["2"], name="c")
+        df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
+
+        axes = _check_plot_works(df.hist, legend=True, by=by, column=column)
+        self._check_axes_shape(axes, axes_num=expected_axes_num, layout=expected_layout)
+        if by is None and column is None:
+            axes = axes[0]
+        for expected_label, ax in zip(expected_labels, axes):
+            self._check_legend_labels(ax, expected_label)
+
+    @pytest.mark.parametrize("by", [None, "c"])
+    @pytest.mark.parametrize("column", [None, "b"])
+    def test_hist_with_legend_raises(self, by, column):
+        # GH 6279 - DataFrame histogram with legend and label raises
+        index = Index(15 * ["1"] + 15 * ["2"], name="c")
+        df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
+
+        with pytest.raises(ValueError, match="Cannot use both legend and label"):
+            df.hist(legend=True, by=by, column=column, label="d")
 
 
 @td.skip_if_no_mpl
 class TestDataFrameGroupByPlots(TestPlotBase):
-
     @pytest.mark.slow
     def test_grouped_hist_legacy(self):
         from matplotlib.patches import Rectangle
+        from pandas.plotting._matplotlib.hist import _grouped_hist
 
-        df = DataFrame(randn(500, 2), columns=['A', 'B'])
-        df['C'] = np.random.randint(0, 4, 500)
-        df['D'] = ['X'] * 500
+        df = DataFrame(randn(500, 2), columns=["A", "B"])
+        df["C"] = np.random.randint(0, 4, 500)
+        df["D"] = ["X"] * 500
 
-        axes = grouped_hist(df.A, by=df.C)
+        axes = _grouped_hist(df.A, by=df.C)
         self._check_axes_shape(axes, axes_num=4, layout=(2, 2))
 
         tm.close()
@@ -271,7 +367,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
 
         tm.close()
         # group by a key with single value
-        axes = df.hist(by='D', rot=30)
+        axes = df.hist(by="D", rot=30)
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
         self._check_ticks_props(axes, xrot=30)
 
@@ -279,29 +375,40 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         # make sure kwargs to hist are handled
         xf, yf = 20, 18
         xrot, yrot = 30, 40
-        axes = grouped_hist(df.A, by=df.C, normed=True, cumulative=True,
-                            bins=4, xlabelsize=xf, xrot=xrot,
-                            ylabelsize=yf, yrot=yrot)
+
+        axes = _grouped_hist(
+            df.A,
+            by=df.C,
+            cumulative=True,
+            bins=4,
+            xlabelsize=xf,
+            xrot=xrot,
+            ylabelsize=yf,
+            yrot=yrot,
+            density=True,
+        )
         # height of last bin (index 5) must be 1.0
         for ax in axes.ravel():
             rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
             height = rects[-1].get_height()
             tm.assert_almost_equal(height, 1.0)
-        self._check_ticks_props(axes, xlabelsize=xf, xrot=xrot,
-                                ylabelsize=yf, yrot=yrot)
+        self._check_ticks_props(
+            axes, xlabelsize=xf, xrot=xrot, ylabelsize=yf, yrot=yrot
+        )
 
         tm.close()
-        axes = grouped_hist(df.A, by=df.C, log=True)
+        axes = _grouped_hist(df.A, by=df.C, log=True)
         # scale of y must be 'log'
-        self._check_ax_scales(axes, yaxis='log')
+        self._check_ax_scales(axes, yaxis="log")
 
         tm.close()
         # propagate attr exception from matplotlib.Axes.hist
         with pytest.raises(AttributeError):
-            grouped_hist(df.A, by=df.C, foo='bar')
+            _grouped_hist(df.A, by=df.C, foo="bar")
 
-        with tm.assert_produces_warning(FutureWarning):
-            df.hist(by='C', figsize='default')
+        msg = "Specify figure size by tuple instead"
+        with pytest.raises(ValueError, match=msg):
+            df.hist(by="C", figsize="default")
 
     @pytest.mark.slow
     def test_grouped_hist_legacy2(self):
@@ -310,9 +417,8 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         height = Series(np.random.normal(60, 10, size=n))
         with tm.RNGContext(42):
             gender_int = np.random.choice([0, 1], size=n)
-        df_int = DataFrame({'height': height, 'weight': weight,
-                            'gender': gender_int})
-        gb = df_int.groupby('gender')
+        df_int = DataFrame({"height": height, "weight": weight, "gender": gender_int})
+        gb = df_int.groupby("gender")
         axes = gb.hist()
         assert len(axes) == 2
         assert len(self.plt.get_fignums()) == 2
@@ -321,50 +427,56 @@ class TestDataFrameGroupByPlots(TestPlotBase):
     @pytest.mark.slow
     def test_grouped_hist_layout(self):
         df = self.hist_df
-        pytest.raises(ValueError, df.hist, column='weight', by=df.gender,
-                      layout=(1, 1))
-        pytest.raises(ValueError, df.hist, column='height', by=df.category,
-                      layout=(1, 3))
-        pytest.raises(ValueError, df.hist, column='height', by=df.category,
-                      layout=(-1, -1))
+        msg = "Layout of 1x1 must be larger than required size 2"
+        with pytest.raises(ValueError, match=msg):
+            df.hist(column="weight", by=df.gender, layout=(1, 1))
+
+        msg = "Layout of 1x3 must be larger than required size 4"
+        with pytest.raises(ValueError, match=msg):
+            df.hist(column="height", by=df.category, layout=(1, 3))
+
+        msg = "At least one dimension of layout must be positive"
+        with pytest.raises(ValueError, match=msg):
+            df.hist(column="height", by=df.category, layout=(-1, -1))
 
         with tm.assert_produces_warning(UserWarning):
-            axes = _check_plot_works(df.hist, column='height', by=df.gender,
-                                     layout=(2, 1))
+            axes = _check_plot_works(
+                df.hist, column="height", by=df.gender, layout=(2, 1)
+            )
         self._check_axes_shape(axes, axes_num=2, layout=(2, 1))
 
         with tm.assert_produces_warning(UserWarning):
-            axes = _check_plot_works(df.hist, column='height', by=df.gender,
-                                     layout=(2, -1))
+            axes = _check_plot_works(
+                df.hist, column="height", by=df.gender, layout=(2, -1)
+            )
         self._check_axes_shape(axes, axes_num=2, layout=(2, 1))
 
-        axes = df.hist(column='height', by=df.category, layout=(4, 1))
+        axes = df.hist(column="height", by=df.category, layout=(4, 1))
         self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
-        axes = df.hist(column='height', by=df.category, layout=(-1, 1))
+        axes = df.hist(column="height", by=df.category, layout=(-1, 1))
         self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
-        axes = df.hist(column='height', by=df.category,
-                       layout=(4, 2), figsize=(12, 8))
-        self._check_axes_shape(
-            axes, axes_num=4, layout=(4, 2), figsize=(12, 8))
+        axes = df.hist(column="height", by=df.category, layout=(4, 2), figsize=(12, 8))
+        self._check_axes_shape(axes, axes_num=4, layout=(4, 2), figsize=(12, 8))
         tm.close()
 
         # GH 6769
         with tm.assert_produces_warning(UserWarning):
             axes = _check_plot_works(
-                df.hist, column='height', by='classroom', layout=(2, 2))
+                df.hist, column="height", by="classroom", layout=(2, 2)
+            )
         self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
 
         # without column
         with tm.assert_produces_warning(UserWarning):
-            axes = _check_plot_works(df.hist, by='classroom')
+            axes = _check_plot_works(df.hist, by="classroom")
         self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
 
-        axes = df.hist(by='gender', layout=(3, 5))
+        axes = df.hist(by="gender", layout=(3, 5))
         self._check_axes_shape(axes, axes_num=2, layout=(3, 5))
 
-        axes = df.hist(column=['height', 'weight', 'category'])
+        axes = df.hist(column=["height", "weight", "category"])
         self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
 
     @pytest.mark.slow
@@ -373,11 +485,11 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         df = self.hist_df
 
         fig, axes = self.plt.subplots(2, 3)
-        returned = df.hist(column=['height', 'weight', 'category'], ax=axes[0])
+        returned = df.hist(column=["height", "weight", "category"], ax=axes[0])
         self._check_axes_shape(returned, axes_num=3, layout=(1, 3))
         tm.assert_numpy_array_equal(returned, axes[0])
         assert returned[0].figure is fig
-        returned = df.hist(by='classroom', ax=axes[1])
+        returned = df.hist(by="classroom", ax=axes[1])
         self._check_axes_shape(returned, axes_num=3, layout=(1, 3))
         tm.assert_numpy_array_equal(returned, axes[1])
         assert returned[0].figure is fig
@@ -385,13 +497,13 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         with pytest.raises(ValueError):
             fig, axes = self.plt.subplots(2, 3)
             # pass different number of axes from required
-            axes = df.hist(column='height', ax=axes)
+            axes = df.hist(column="height", ax=axes)
 
     @pytest.mark.slow
     def test_axis_share_x(self):
         df = self.hist_df
         # GH4089
-        ax1, ax2 = df.hist(column='height', by=df.gender, sharex=True)
+        ax1, ax2 = df.hist(column="height", by=df.gender, sharex=True)
 
         # share x
         assert ax1._shared_x_axes.joined(ax1, ax2)
@@ -404,7 +516,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
     @pytest.mark.slow
     def test_axis_share_y(self):
         df = self.hist_df
-        ax1, ax2 = df.hist(column='height', by=df.gender, sharey=True)
+        ax1, ax2 = df.hist(column="height", by=df.gender, sharey=True)
 
         # share y
         assert ax1._shared_y_axes.joined(ax1, ax2)
@@ -417,8 +529,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
     @pytest.mark.slow
     def test_axis_share_xy(self):
         df = self.hist_df
-        ax1, ax2 = df.hist(column='height', by=df.gender, sharex=True,
-                           sharey=True)
+        ax1, ax2 = df.hist(column="height", by=df.gender, sharex=True, sharey=True)
 
         # share both x and y
         assert ax1._shared_x_axes.joined(ax1, ax2)

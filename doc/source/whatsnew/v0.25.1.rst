@@ -1,0 +1,119 @@
+.. _whatsnew_0251:
+
+What's new in 0.25.1 (August 21, 2019)
+--------------------------------------
+
+These are the changes in pandas 0.25.1. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+I/O and LZMA
+~~~~~~~~~~~~
+
+Some users may unknowingly have an incomplete Python installation lacking the `lzma` module from the standard library. In this case, `import pandas` failed due to an `ImportError` (:issue:`27575`).
+Pandas will now warn, rather than raising an `ImportError` if the `lzma` module is not present. Any subsequent attempt to use `lzma` methods will raise a `RuntimeError`.
+A possible fix for the lack of the `lzma` module is to ensure you have the necessary libraries and then re-install Python.
+For example, on MacOS installing Python with `pyenv` may lead to an incomplete Python installation due to unmet system dependencies at compilation time (like `xz`). Compilation will succeed, but Python might fail at run time. The issue can be solved by installing the necessary dependencies and then re-installing Python.
+
+.. _whatsnew_0251.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+Categorical
+^^^^^^^^^^^
+
+- Bug in :meth:`Categorical.fillna` that would replace all values, not just those that are ``NaN`` (:issue:`26215`)
+
+Datetimelike
+^^^^^^^^^^^^
+
+- Bug in :func:`to_datetime` where passing a timezone-naive :class:`DatetimeArray` or :class:`DatetimeIndex` and ``utc=True`` would incorrectly return a timezone-naive result (:issue:`27733`)
+- Bug in :meth:`Period.to_timestamp` where a :class:`Period` outside the :class:`Timestamp` implementation bounds (roughly 1677-09-21 to 2262-04-11) would return an incorrect :class:`Timestamp` instead of raising ``OutOfBoundsDatetime`` (:issue:`19643`)
+- Bug in iterating over :class:`DatetimeIndex` when the underlying data is read-only (:issue:`28055`)
+
+Timezones
+^^^^^^^^^
+
+- Bug in :class:`Index` where a numpy object array with a timezone aware :class:`Timestamp` and ``np.nan`` would not return a :class:`DatetimeIndex` (:issue:`27011`)
+
+Numeric
+^^^^^^^
+
+- Bug in :meth:`Series.interpolate` when using a timezone aware :class:`DatetimeIndex` (:issue:`27548`)
+- Bug when printing negative floating point complex numbers would raise an ``IndexError`` (:issue:`27484`)
+- Bug where :class:`DataFrame` arithmetic operators such as :meth:`DataFrame.mul` with a :class:`Series` with axis=1 would raise an ``AttributeError`` on :class:`DataFrame` larger than the minimum threshold to invoke numexpr (:issue:`27636`)
+- Bug in :class:`DataFrame` arithmetic where missing values in results were incorrectly masked with ``NaN`` instead of ``Inf`` (:issue:`27464`)
+
+Conversion
+^^^^^^^^^^
+
+- Improved the warnings for the deprecated methods :meth:`Series.real` and :meth:`Series.imag` (:issue:`27610`)
+
+Interval
+^^^^^^^^
+
+- Bug in :class:`IntervalIndex` where `dir(obj)` would raise ``ValueError`` (:issue:`27571`)
+
+Indexing
+^^^^^^^^
+
+- Bug in partial-string indexing returning a NumPy array rather than a ``Series`` when indexing with a scalar like ``.loc['2015']`` (:issue:`27516`)
+- Break reference cycle involving :class:`Index` and other index classes to allow garbage collection of index objects without running the GC. (:issue:`27585`, :issue:`27840`)
+- Fix regression in assigning values to a single column of a DataFrame with a ``MultiIndex`` columns (:issue:`27841`).
+- Fix regression in ``.ix`` fallback with an ``IntervalIndex`` (:issue:`27865`).
+
+Missing
+^^^^^^^
+
+- Bug in :func:`pandas.isnull` or :func:`pandas.isna` when the input is a type e.g. ``type(pandas.Series())`` (:issue:`27482`)
+
+I/O
+^^^
+
+- Avoid calling ``S3File.s3`` when reading parquet, as this was removed in s3fs version 0.3.0 (:issue:`27756`)
+- Better error message when a negative header is passed in :func:`pandas.read_csv` (:issue:`27779`)
+- Follow the ``min_rows`` display option (introduced in v0.25.0) correctly in the HTML repr in the notebook (:issue:`27991`).
+
+Plotting
+^^^^^^^^
+
+- Added a ``pandas_plotting_backends`` entrypoint group for registering plot backends. See :ref:`extending.plotting-backends` for more (:issue:`26747`).
+- Fixed the re-instatement of Matplotlib datetime converters after calling
+  :meth:`pandas.plotting.deregister_matplotlib_converters` (:issue:`27481`).
+- Fix compatibility issue with matplotlib when passing a pandas ``Index`` to a plot call (:issue:`27775`).
+
+Groupby/resample/rolling
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Fixed regression in :meth:`pands.core.groupby.DataFrameGroupBy.quantile` raising when multiple quantiles are given (:issue:`27526`)
+- Bug in :meth:`pandas.core.groupby.DataFrameGroupBy.transform` where applying a timezone conversion lambda function would drop timezone information (:issue:`27496`)
+- Bug in :meth:`pandas.core.groupby.GroupBy.nth` where ``observed=False`` was being ignored for Categorical groupers (:issue:`26385`)
+- Bug in windowing over read-only arrays (:issue:`27766`)
+- Fixed segfault in `pandas.core.groupby.DataFrameGroupBy.quantile` when an invalid quantile was passed (:issue:`27470`)
+
+Reshaping
+^^^^^^^^^
+
+- A ``KeyError`` is now raised if ``.unstack()`` is called on a :class:`Series` or :class:`DataFrame` with a flat :class:`Index` passing a name which is not the correct one (:issue:`18303`)
+- Bug :meth:`merge_asof` could not merge :class:`Timedelta` objects when passing `tolerance` kwarg (:issue:`27642`)
+- Bug in :meth:`DataFrame.crosstab` when ``margins`` set to ``True`` and ``normalize`` is not ``False``, an error is raised. (:issue:`27500`)
+- :meth:`DataFrame.join` now suppresses the ``FutureWarning`` when the sort parameter is specified (:issue:`21952`)
+- Bug in :meth:`DataFrame.join` raising with readonly arrays (:issue:`27943`)
+
+Sparse
+^^^^^^
+
+- Bug in reductions for :class:`Series` with Sparse dtypes (:issue:`27080`)
+
+Other
+^^^^^
+
+- Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` when replacing timezone-aware timestamps using a dict-like replacer (:issue:`27720`)
+- Bug in :meth:`Series.rename` when using a custom type indexer. Now any value that isn't callable or dict-like is treated as a scalar. (:issue:`27814`)
+
+.. _whatsnew_0.251.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v0.25.0..v0.25.1

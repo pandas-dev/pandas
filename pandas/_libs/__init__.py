@@ -1,9 +1,22 @@
-# -*- coding: utf-8 -*-
-# flake8: noqa
+__all__ = [
+    "NaT",
+    "NaTType",
+    "OutOfBoundsDatetime",
+    "Period",
+    "Timedelta",
+    "Timestamp",
+    "iNaT",
+    "Interval",
+]
 
-from .tslib import iNaT, NaT, Timestamp, Timedelta, OutOfBoundsDatetime
 
-# TODO
-# period is directly dependent on tslib and imports python
-# modules, so exposing Period as an alias is currently not possible
-# from period import Period
+from pandas._libs.interval import Interval
+from pandas._libs.tslibs import (
+    NaT,
+    NaTType,
+    OutOfBoundsDatetime,
+    Period,
+    Timedelta,
+    Timestamp,
+    iNaT,
+)

@@ -1,232 +1,209 @@
 """ parquet compat """
 
+from typing import Any, Dict, Optional
 from warnings import catch_warnings
-from distutils.version import LooseVersion
-from pandas import DataFrame, RangeIndex, Int64Index, get_option
-from pandas.compat import string_types
-import pandas.core.common as com
-from pandas.io.common import get_filepath_or_buffer, is_s3_url
+
+from pandas.compat._optional import import_optional_dependency
+from pandas.errors import AbstractMethodError
+
+from pandas import DataFrame, get_option
+
+from pandas.io.common import _expand_user, get_filepath_or_buffer, is_fsspec_url
 
 
-def get_engine(engine):
+def get_engine(engine: str) -> "BaseImpl":
     """ return our implementation """
+    if engine == "auto":
+        engine = get_option("io.parquet.engine")
 
-    if engine == 'auto':
-        engine = get_option('io.parquet.engine')
-
-    if engine == 'auto':
+    if engine == "auto":
         # try engines in this order
-        try:
-            return PyArrowImpl()
-        except ImportError:
-            pass
+        engine_classes = [PyArrowImpl, FastParquetImpl]
 
-        try:
-            return FastParquetImpl()
-        except ImportError:
-            pass
+        error_msgs = ""
+        for engine_class in engine_classes:
+            try:
+                return engine_class()
+            except ImportError as err:
+                error_msgs += "\n - " + str(err)
 
-        raise ImportError("Unable to find a usable engine; "
-                          "tried using: 'pyarrow', 'fastparquet'.\n"
-                          "pyarrow or fastparquet is required for parquet "
-                          "support")
+        raise ImportError(
+            "Unable to find a usable engine; "
+            "tried using: 'pyarrow', 'fastparquet'.\n"
+            "A suitable version of "
+            "pyarrow or fastparquet is required for parquet "
+            "support.\n"
+            "Trying to import the above resulted in these errors:"
+            f"{error_msgs}"
+        )
 
-    if engine not in ['pyarrow', 'fastparquet']:
-        raise ValueError("engine must be one of 'pyarrow', 'fastparquet'")
-
-    if engine == 'pyarrow':
+    if engine == "pyarrow":
         return PyArrowImpl()
-    elif engine == 'fastparquet':
+    elif engine == "fastparquet":
         return FastParquetImpl()
 
+    raise ValueError("engine must be one of 'pyarrow', 'fastparquet'")
 
-class BaseImpl(object):
 
-    api = None  # module
-
+class BaseImpl:
     @staticmethod
-    def validate_dataframe(df):
+    def validate_dataframe(df: DataFrame):
 
         if not isinstance(df, DataFrame):
             raise ValueError("to_parquet only supports IO with DataFrames")
 
         # must have value column names (strings only)
-        if df.columns.inferred_type not in {'string', 'unicode'}:
+        if df.columns.inferred_type not in {"string", "empty"}:
             raise ValueError("parquet must have string column names")
 
         # index level names must be strings
         valid_names = all(
-            isinstance(name, string_types)
-            for name in df.index.names
-            if name is not None
+            isinstance(name, str) for name in df.index.names if name is not None
         )
         if not valid_names:
             raise ValueError("Index level names must be strings")
 
-    def write(self, df, path, compression, **kwargs):
-        raise com.AbstractMethodError(self)
+    def write(self, df: DataFrame, path, compression, **kwargs):
+        raise AbstractMethodError(self)
 
     def read(self, path, columns=None, **kwargs):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
 
 class PyArrowImpl(BaseImpl):
-
     def __init__(self):
-        # since pandas is a dependency of pyarrow
-        # we need to import on first use
-        try:
-            import pyarrow
-            import pyarrow.parquet
-        except ImportError:
-            raise ImportError(
-                "pyarrow is required for parquet support\n\n"
-                "you can install via conda\n"
-                "conda install pyarrow -c conda-forge\n"
-                "\nor via pip\n"
-                "pip install -U pyarrow\n"
-            )
-        if LooseVersion(pyarrow.__version__) < '0.4.1':
-            raise ImportError(
-                "pyarrow >= 0.4.1 is required for parquet support\n\n"
-                "you can install via conda\n"
-                "conda install pyarrow -c conda-forge\n"
-                "\nor via pip\n"
-                "pip install -U pyarrow\n"
-            )
+        import_optional_dependency(
+            "pyarrow", extra="pyarrow is required for parquet support."
+        )
+        import pyarrow.parquet
 
-        self._pyarrow_lt_060 = (
-            LooseVersion(pyarrow.__version__) < LooseVersion('0.6.0'))
-        self._pyarrow_lt_070 = (
-            LooseVersion(pyarrow.__version__) < LooseVersion('0.7.0'))
+        # import utils to register the pyarrow extension types
+        import pandas.core.arrays._arrow_utils  # noqa
 
         self.api = pyarrow
 
-    def write(self, df, path, compression='snappy',
-              coerce_timestamps='ms', **kwargs):
+    def write(
+        self,
+        df: DataFrame,
+        path,
+        compression="snappy",
+        index: Optional[bool] = None,
+        partition_cols=None,
+        **kwargs,
+    ):
         self.validate_dataframe(df)
-        if self._pyarrow_lt_070:
-            self._validate_write_lt_070(df)
-        path, _, _, _ = get_filepath_or_buffer(path, mode='wb')
 
-        if self._pyarrow_lt_060:
-            table = self.api.Table.from_pandas(df, timestamps_to_ms=True)
-            self.api.parquet.write_table(
-                table, path, compression=compression, **kwargs)
+        from_pandas_kwargs: Dict[str, Any] = {"schema": kwargs.pop("schema", None)}
+        if index is not None:
+            from_pandas_kwargs["preserve_index"] = index
 
+        table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
+
+        if is_fsspec_url(path) and "filesystem" not in kwargs:
+            # make fsspec instance, which pyarrow will use to open paths
+            import_optional_dependency("fsspec")
+            import fsspec.core
+
+            fs, path = fsspec.core.url_to_fs(path)
+            kwargs["filesystem"] = fs
         else:
-            table = self.api.Table.from_pandas(df)
-            self.api.parquet.write_table(
-                table, path, compression=compression,
-                coerce_timestamps=coerce_timestamps, **kwargs)
+            path = _expand_user(path)
+        if partition_cols is not None:
+            # writes to multiple files under the given path
+            self.api.parquet.write_to_dataset(
+                table,
+                path,
+                compression=compression,
+                partition_cols=partition_cols,
+                **kwargs,
+            )
+        else:
+            # write to single output file
+            self.api.parquet.write_table(table, path, compression=compression, **kwargs)
 
     def read(self, path, columns=None, **kwargs):
-        path, _, _, should_close = get_filepath_or_buffer(path)
-        if self._pyarrow_lt_070:
-            result = self.api.parquet.read_pandas(path, columns=columns,
-                                                  **kwargs).to_pandas()
+        if is_fsspec_url(path) and "filesystem" not in kwargs:
+            import_optional_dependency("fsspec")
+            import fsspec.core
+
+            fs, path = fsspec.core.url_to_fs(path)
+            should_close = False
         else:
-            kwargs['use_pandas_metadata'] = True
-            result = self.api.parquet.read_table(path, columns=columns,
-                                                 **kwargs).to_pandas()
+            fs = kwargs.pop("filesystem", None)
+            should_close = False
+            path = _expand_user(path)
+
+        if not fs:
+            path, _, _, should_close = get_filepath_or_buffer(path)
+
+        kwargs["use_pandas_metadata"] = True
+        result = self.api.parquet.read_table(
+            path, columns=columns, filesystem=fs, **kwargs
+        ).to_pandas()
         if should_close:
-            try:
-                path.close()
-            except:  # noqa: flake8
-                pass
+            path.close()
 
         return result
 
-    def _validate_write_lt_070(self, df):
-        # Compatibility shim for pyarrow < 0.7.0
-        # TODO: Remove in pandas 0.23.0
-        from pandas.core.indexes.multi import MultiIndex
-        if isinstance(df.index, MultiIndex):
-            msg = (
-                "Multi-index DataFrames are only supported "
-                "with pyarrow >= 0.7.0"
-            )
-            raise ValueError(msg)
-        # Validate index
-        if not isinstance(df.index, Int64Index):
-            msg = (
-                "pyarrow < 0.7.0 does not support serializing {} for the "
-                "index; you can .reset_index() to make the index into "
-                "column(s), or install the latest version of pyarrow or "
-                "fastparquet."
-            )
-            raise ValueError(msg.format(type(df.index)))
-        if not df.index.equals(RangeIndex(len(df))):
-            raise ValueError(
-                "pyarrow < 0.7.0 does not support serializing a non-default "
-                "index; you can .reset_index() to make the index into "
-                "column(s), or install the latest version of pyarrow or "
-                "fastparquet."
-            )
-        if df.index.name is not None:
-            raise ValueError(
-                "pyarrow < 0.7.0 does not serialize indexes with a name; you "
-                "can set the index.name to None or install the latest version "
-                "of pyarrow or fastparquet."
-            )
-
 
 class FastParquetImpl(BaseImpl):
-
     def __init__(self):
         # since pandas is a dependency of fastparquet
         # we need to import on first use
-        try:
-            import fastparquet
-        except ImportError:
-            raise ImportError(
-                "fastparquet is required for parquet support\n\n"
-                "you can install via conda\n"
-                "conda install fastparquet -c conda-forge\n"
-                "\nor via pip\n"
-                "pip install -U fastparquet"
-            )
-        if LooseVersion(fastparquet.__version__) < '0.1.0':
-            raise ImportError(
-                "fastparquet >= 0.1.0 is required for parquet "
-                "support\n\n"
-                "you can install via conda\n"
-                "conda install fastparquet -c conda-forge\n"
-                "\nor via pip\n"
-                "pip install -U fastparquet"
-            )
+        fastparquet = import_optional_dependency(
+            "fastparquet", extra="fastparquet is required for parquet support."
+        )
         self.api = fastparquet
 
-    def write(self, df, path, compression='snappy', **kwargs):
+    def write(
+        self,
+        df: DataFrame,
+        path,
+        compression="snappy",
+        index=None,
+        partition_cols=None,
+        **kwargs,
+    ):
         self.validate_dataframe(df)
         # thriftpy/protocol/compact.py:339:
         # DeprecationWarning: tostring() is deprecated.
         # Use tobytes() instead.
 
-        if is_s3_url(path):
-            # path is s3:// so we need to open the s3file in 'wb' mode.
-            # TODO: Support 'ab'
+        if "partition_on" in kwargs and partition_cols is not None:
+            raise ValueError(
+                "Cannot use both partition_on and "
+                "partition_cols. Use partition_cols for partitioning data"
+            )
+        elif "partition_on" in kwargs:
+            partition_cols = kwargs.pop("partition_on")
 
-            path, _, _, _ = get_filepath_or_buffer(path, mode='wb')
-            # And pass the opened s3file to the fastparquet internal impl.
-            kwargs['open_with'] = lambda path, _: path
+        if partition_cols is not None:
+            kwargs["file_scheme"] = "hive"
+
+        if is_fsspec_url(path):
+            fsspec = import_optional_dependency("fsspec")
+
+            # if filesystem is provided by fsspec, file must be opened in 'wb' mode.
+            kwargs["open_with"] = lambda path, _: fsspec.open(path, "wb").open()
         else:
             path, _, _, _ = get_filepath_or_buffer(path)
 
         with catch_warnings(record=True):
-            self.api.write(path, df,
-                           compression=compression, **kwargs)
+            self.api.write(
+                path,
+                df,
+                compression=compression,
+                write_index=index,
+                partition_on=partition_cols,
+                **kwargs,
+            )
 
     def read(self, path, columns=None, **kwargs):
-        if is_s3_url(path):
-            # When path is s3:// an S3File is returned.
-            # We need to retain the original path(str) while also
-            # pass the S3File().open function to fsatparquet impl.
-            s3, _, _, should_close = get_filepath_or_buffer(path)
-            try:
-                parquet_file = self.api.ParquetFile(path, open_with=s3.s3.open)
-            finally:
-                s3.close()
+        if is_fsspec_url(path):
+            fsspec = import_optional_dependency("fsspec")
+
+            open_with = lambda path, _: fsspec.open(path, "rb").open()
+            parquet_file = self.api.ParquetFile(path, open_with=open_with)
         else:
             path, _, _, _ = get_filepath_or_buffer(path)
             parquet_file = self.api.ParquetFile(path)
@@ -234,15 +211,27 @@ class FastParquetImpl(BaseImpl):
         return parquet_file.to_pandas(columns=columns, **kwargs)
 
 
-def to_parquet(df, path, engine='auto', compression='snappy', **kwargs):
+def to_parquet(
+    df: DataFrame,
+    path,
+    engine: str = "auto",
+    compression="snappy",
+    index: Optional[bool] = None,
+    partition_cols=None,
+    **kwargs,
+):
     """
     Write a DataFrame to the parquet format.
 
     Parameters
     ----------
     df : DataFrame
-    path : string
-        File path
+    path : str
+        File path or Root Directory path. Will be used as Root Directory path
+        while writing a partitioned dataset.
+
+        .. versionchanged:: 0.24.0
+
     engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
         Parquet library to use. If 'auto', then the option
         ``io.parquet.engine`` is used. The default ``io.parquet.engine``
@@ -250,39 +239,74 @@ def to_parquet(df, path, engine='auto', compression='snappy', **kwargs):
         'pyarrow' is unavailable.
     compression : {'snappy', 'gzip', 'brotli', None}, default 'snappy'
         Name of the compression to use. Use ``None`` for no compression.
+    index : bool, default None
+        If ``True``, include the dataframe's index(es) in the file output. If
+        ``False``, they will not be written to the file.
+        If ``None``, similar to ``True`` the dataframe's index(es)
+        will be saved. However, instead of being saved as values,
+        the RangeIndex will be stored as a range in the metadata so it
+        doesn't require much space and is faster. Other indexes will
+        be included as columns in the file output.
+
+        .. versionadded:: 0.24.0
+
+    partition_cols : str or list, optional, default None
+        Column names by which to partition the dataset
+        Columns are partitioned in the order they are given
+
+        .. versionadded:: 0.24.0
+
     kwargs
         Additional keyword arguments passed to the engine
     """
+    if isinstance(partition_cols, str):
+        partition_cols = [partition_cols]
     impl = get_engine(engine)
-    return impl.write(df, path, compression=compression, **kwargs)
+    return impl.write(
+        df,
+        path,
+        compression=compression,
+        index=index,
+        partition_cols=partition_cols,
+        **kwargs,
+    )
 
 
-def read_parquet(path, engine='auto', columns=None, **kwargs):
+def read_parquet(path, engine: str = "auto", columns=None, **kwargs):
     """
     Load a parquet object from the file path, returning a DataFrame.
 
-    .. versionadded 0.21.0
-
     Parameters
     ----------
-    path : string
-        File path
-    columns: list, default=None
-        If not None, only these columns will be read from the file.
+    path : str, path object or file-like object
+        Any valid string path is acceptable. The string could be a URL. Valid
+        URL schemes include http, ftp, s3, and file. For file URLs, a host is
+        expected. A local file could be:
+        ``file://localhost/path/to/table.parquet``.
+        A file URL can also be a path to a directory that contains multiple
+        partitioned parquet files. Both pyarrow and fastparquet support
+        paths to directories as well as file URLs. A directory path could be:
+        ``file://localhost/path/to/tables`` or ``s3://bucket/partition_dir``
 
-        .. versionadded 0.21.1
+        If you want to pass in a path object, pandas accepts any
+        ``os.PathLike``.
+
+        By file-like object, we refer to objects with a ``read()`` method,
+        such as a file handler (e.g. via builtin ``open`` function)
+        or ``StringIO``.
     engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
         Parquet library to use. If 'auto', then the option
         ``io.parquet.engine`` is used. The default ``io.parquet.engine``
         behavior is to try 'pyarrow', falling back to 'fastparquet' if
         'pyarrow' is unavailable.
-    kwargs are passed to the engine
+    columns : list, default=None
+        If not None, only these columns will be read from the file.
+    **kwargs
+        Any additional kwargs are passed to the engine.
 
     Returns
     -------
     DataFrame
-
     """
-
     impl = get_engine(engine)
     return impl.read(path, columns=columns, **kwargs)

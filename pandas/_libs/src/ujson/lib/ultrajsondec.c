@@ -33,7 +33,7 @@ Copyright (c) 2007  Nick Galbreath -- nickg [at] modp [dot] com. All rights
 reserved.
 
 Numeric decoder derived from from TCL library
-http://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
+https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 * Copyright (c) 1988-1993 The Regents of the University of California.
 * Copyright (c) 1994 Sun Microsystems, Inc.
 */
@@ -127,9 +127,16 @@ FASTCALL_ATTR JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
 
     JSUINT64 overflowLimit = LLONG_MAX;
 
-    if (*(offset) == '-') {
+    if (*(offset) == 'I') {
+      goto DECODE_INF;
+    } else if (*(offset) == 'N') {
+      goto DECODE_NAN;
+    } else if (*(offset) == '-') {
         offset++;
         intNeg = -1;
+        if (*(offset) == 'I') {
+          goto DECODE_INF;
+        }
         overflowLimit = LLONG_MIN;
     }
 
@@ -150,7 +157,7 @@ FASTCALL_ATTR JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
             case '7':
             case '8':
             case '9': {
-                // FIXME: Check for arithemtic overflow here
+                // FIXME: Check for arithmetic overflow here
                 // PERF: Don't do 64-bit arithmetic here unless we know we have
                 // to
                 intValue = intValue * 10ULL + (JSLONG)(chr - 48);
@@ -235,7 +242,7 @@ DECODE_FRACTION:
     }
 
 BREAK_FRC_LOOP:
-    // FIXME: Check for arithemtic overflow here
+    // FIXME: Check for arithmetic overflow here
     ds->lastType = JT_DOUBLE;
     ds->start = offset;
     return ds->dec->newDouble(
@@ -281,8 +288,50 @@ DECODE_EXPONENT:
         }
     }
 
+DECODE_NAN:
+    offset++;
+    if (*(offset++) != 'a') goto SET_NAN_ERROR;
+    if (*(offset++) != 'N') goto SET_NAN_ERROR;
+
+    ds->lastType = JT_NULL;
+    ds->start = offset;
+    return ds->dec->newNull(ds->prv);
+
+SET_NAN_ERROR:
+    return SetError(ds, -1, "Unexpected character found when decoding 'NaN'");
+
+DECODE_INF:
+    offset++;
+    if (*(offset++) != 'n') goto SET_INF_ERROR;
+    if (*(offset++) != 'f') goto SET_INF_ERROR;
+    if (*(offset++) != 'i') goto SET_INF_ERROR;
+    if (*(offset++) != 'n') goto SET_INF_ERROR;
+    if (*(offset++) != 'i') goto SET_INF_ERROR;
+    if (*(offset++) != 't') goto SET_INF_ERROR;
+    if (*(offset++) != 'y') goto SET_INF_ERROR;
+
+    ds->start = offset;
+
+    if (intNeg == 1) {
+      ds->lastType = JT_POS_INF;
+      return ds->dec->newPosInf(ds->prv);
+    } else {
+      ds->lastType = JT_NEG_INF;
+      return ds->dec->newNegInf(ds->prv);
+    }
+
+SET_INF_ERROR:
+    if (intNeg == 1) {
+      const char *msg = "Unexpected character found when decoding 'Infinity'";
+      return SetError(ds, -1, msg);
+    } else {
+      const char *msg = "Unexpected character found when decoding '-Infinity'";
+      return SetError(ds, -1, msg);
+    }
+
+
 BREAK_EXP_LOOP:
-    // FIXME: Check for arithemtic overflow here
+    // FIXME: Check for arithmetic overflow here
     ds->lastType = JT_DOUBLE;
     ds->start = offset;
     return ds->dec->newDouble(
@@ -1070,6 +1119,8 @@ FASTCALL_ATTR JSOBJ FASTCALL_MSVC decode_any(struct DecoderState *ds) {
             case '7':
             case '8':
             case '9':
+            case 'I':
+            case 'N':
             case '-':
                 return decode_numeric(ds);
 

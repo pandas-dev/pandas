@@ -1,11 +1,26 @@
-# -*- coding: utf-8 -*-
-# cython: profile=False
+from cpython.datetime cimport datetime
 
 from numpy cimport int64_t
-from np_datetime cimport pandas_datetimestruct
+
+from pandas._libs.tslibs.base cimport ABCTimestamp
+from pandas._libs.tslibs.np_datetime cimport npy_datetimestruct
+
 
 cdef object create_timestamp_from_ts(int64_t value,
-                                     pandas_datetimestruct dts,
-                                     object tz, object freq)
+                                     npy_datetimestruct dts,
+                                     object tz, object freq, bint fold)
 
-cdef int64_t _NS_UPPER_BOUND, _NS_LOWER_BOUND
+
+cdef class _Timestamp(ABCTimestamp):
+    cdef readonly:
+        int64_t value, nanosecond
+        object freq
+
+    cpdef bint _get_start_end_field(self, str field)
+    cpdef _get_date_name_field(self, object field, object locale)
+    cdef int64_t _maybe_convert_value_to_local(self)
+    cpdef to_datetime64(self)
+    cdef _assert_tzawareness_compat(_Timestamp self, datetime other)
+    cpdef datetime to_pydatetime(_Timestamp self, bint warn=*)
+    cdef bint _compare_outside_nanorange(_Timestamp self, datetime other,
+                                         int op) except -1

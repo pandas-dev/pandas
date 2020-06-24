@@ -53,7 +53,7 @@ int main() {
 	  speed for simple keys. Thank Zilong Tan for the suggestion. Reference:
 
 	   - https://github.com/stefanocasazza/ULib
-	   - http://nothings.org/computer/judy/
+	   - https://nothings.org/computer/judy/
 
 	* Allow to optionally use linear probing which usually has better
 	  performance for random input. Double hashing is still the default as it
@@ -112,6 +112,7 @@ int main() {
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
+#include "../inline_helper.h"
 
 
 #if UINT_MAX == 0xffffffffu
@@ -129,18 +130,6 @@ typedef signed long long khint64_t;
 #endif
 
 typedef double khfloat64_t;
-
-#ifndef PANDAS_INLINE
-  #if defined(__GNUC__)
-    #define PANDAS_INLINE static __inline__
-  #elif defined(_MSC_VER)
-    #define PANDAS_INLINE static __inline
-  #elif defined (__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
-    #define PANDAS_INLINE static inline
-  #else
-    #define PANDAS_INLINE
-  #endif
-#endif
 
 typedef khint32_t khint_t;
 typedef khint_t khiter_t;
@@ -509,7 +498,7 @@ PANDAS_INLINE khint_t __ac_Wang_hash(khint_t key)
  */
 #define kh_n_buckets(h) ((h)->n_buckets)
 
-/* More conenient interfaces */
+/* More convenient interfaces */
 
 /*! @function
   @abstract     Instantiate a hash set containing integer keys

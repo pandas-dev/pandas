@@ -1,253 +1,330 @@
-# -*- coding: utf-8 -*-
+import subprocess
 import sys
-from warnings import catch_warnings
+from typing import List
 
 import pytest
+
 import pandas as pd
-from pandas import api
-from pandas.util import testing as tm
+from pandas import api, compat
+import pandas._testing as tm
 
 
-class Base(object):
-
+class Base:
     def check(self, namespace, expected, ignored=None):
         # see which names are in the namespace, minus optional
         # ignored ones
         # compare vs the expected
 
-        result = sorted([f for f in dir(namespace) if not f.startswith('_')])
+        result = sorted(f for f in dir(namespace) if not f.startswith("__"))
         if ignored is not None:
-            result = sorted(list(set(result) - set(ignored)))
+            result = sorted(set(result) - set(ignored))
 
         expected = sorted(expected)
         tm.assert_almost_equal(result, expected)
 
 
 class TestPDApi(Base):
-
     # these are optionally imported based on testing
     # & need to be ignored
-    ignored = ['tests', 'locale', 'conftest']
+    ignored = ["tests", "locale", "conftest"]
 
     # top-level sub-packages
-    lib = ['api', 'compat', 'core', 'errors', 'pandas',
-           'plotting', 'test', 'testing', 'tools', 'tseries',
-           'util', 'options', 'io']
+    lib = [
+        "api",
+        "arrays",
+        "compat",
+        "core",
+        "errors",
+        "pandas",
+        "plotting",
+        "test",
+        "testing",
+        "tseries",
+        "util",
+        "options",
+        "io",
+    ]
 
     # these are already deprecated; awaiting removal
-    deprecated_modules = ['datetools', 'parser', 'json', 'lib', 'tslib']
+    deprecated_modules: List[str] = ["np", "datetime"]
 
     # misc
-    misc = ['IndexSlice', 'NaT']
+    misc = ["IndexSlice", "NaT", "NA"]
 
     # top-level classes
-    classes = ['Categorical', 'CategoricalIndex', 'DataFrame', 'DateOffset',
-               'DatetimeIndex', 'ExcelFile', 'ExcelWriter', 'Float64Index',
-               'Grouper', 'HDFStore', 'Index', 'Int64Index', 'MultiIndex',
-               'Period', 'PeriodIndex', 'RangeIndex', 'UInt64Index',
-               'Series', 'SparseArray', 'SparseDataFrame',
-               'SparseSeries', 'Timedelta',
-               'TimedeltaIndex', 'Timestamp', 'Interval', 'IntervalIndex']
+    classes = [
+        "Categorical",
+        "CategoricalIndex",
+        "DataFrame",
+        "DateOffset",
+        "DatetimeIndex",
+        "ExcelFile",
+        "ExcelWriter",
+        "Float64Index",
+        "Grouper",
+        "HDFStore",
+        "Index",
+        "Int64Index",
+        "MultiIndex",
+        "Period",
+        "PeriodIndex",
+        "RangeIndex",
+        "UInt64Index",
+        "Series",
+        "SparseDtype",
+        "StringDtype",
+        "Timedelta",
+        "TimedeltaIndex",
+        "Timestamp",
+        "Interval",
+        "IntervalIndex",
+        "CategoricalDtype",
+        "PeriodDtype",
+        "IntervalDtype",
+        "DatetimeTZDtype",
+        "BooleanDtype",
+        "Int8Dtype",
+        "Int16Dtype",
+        "Int32Dtype",
+        "Int64Dtype",
+        "UInt8Dtype",
+        "UInt16Dtype",
+        "UInt32Dtype",
+        "UInt64Dtype",
+        "NamedAgg",
+    ]
 
     # these are already deprecated; awaiting removal
-    deprecated_classes = ['TimeGrouper', 'Expr', 'Term']
+    deprecated_classes: List[str] = []
 
     # these should be deprecated in the future
-    deprecated_classes_in_future = ['Panel']
+    deprecated_classes_in_future: List[str] = ["SparseArray"]
+
+    if not compat.PY37:
+        classes.extend(["Panel", "SparseSeries", "SparseDataFrame"])
+        # deprecated_modules.extend(["np", "datetime"])
+        # deprecated_classes_in_future.extend(["SparseArray"])
 
     # external modules exposed in pandas namespace
-    modules = ['np', 'datetime']
+    modules: List[str] = []
 
     # top-level functions
-    funcs = ['bdate_range', 'concat', 'crosstab', 'cut',
-             'date_range', 'interval_range', 'eval',
-             'factorize', 'get_dummies',
-             'infer_freq', 'isna', 'isnull', 'lreshape',
-             'melt', 'notna', 'notnull', 'offsets',
-             'merge', 'merge_ordered', 'merge_asof',
-             'period_range',
-             'pivot', 'pivot_table', 'qcut',
-             'show_versions', 'timedelta_range', 'unique',
-             'value_counts', 'wide_to_long']
+    funcs = [
+        "array",
+        "bdate_range",
+        "concat",
+        "crosstab",
+        "cut",
+        "date_range",
+        "interval_range",
+        "eval",
+        "factorize",
+        "get_dummies",
+        "infer_freq",
+        "isna",
+        "isnull",
+        "lreshape",
+        "melt",
+        "notna",
+        "notnull",
+        "offsets",
+        "merge",
+        "merge_ordered",
+        "merge_asof",
+        "period_range",
+        "pivot",
+        "pivot_table",
+        "qcut",
+        "show_versions",
+        "timedelta_range",
+        "unique",
+        "value_counts",
+        "wide_to_long",
+    ]
 
     # top-level option funcs
-    funcs_option = ['reset_option', 'describe_option', 'get_option',
-                    'option_context', 'set_option',
-                    'set_eng_float_format']
+    funcs_option = [
+        "reset_option",
+        "describe_option",
+        "get_option",
+        "option_context",
+        "set_option",
+        "set_eng_float_format",
+    ]
 
     # top-level read_* funcs
-    funcs_read = ['read_clipboard', 'read_csv', 'read_excel', 'read_fwf',
-                  'read_gbq', 'read_hdf', 'read_html', 'read_json',
-                  'read_msgpack', 'read_pickle', 'read_sas', 'read_sql',
-                  'read_sql_query', 'read_sql_table', 'read_stata',
-                  'read_table', 'read_feather', 'read_parquet']
+    funcs_read = [
+        "read_clipboard",
+        "read_csv",
+        "read_excel",
+        "read_fwf",
+        "read_gbq",
+        "read_hdf",
+        "read_html",
+        "read_json",
+        "read_pickle",
+        "read_sas",
+        "read_sql",
+        "read_sql_query",
+        "read_sql_table",
+        "read_stata",
+        "read_table",
+        "read_feather",
+        "read_parquet",
+        "read_orc",
+        "read_spss",
+    ]
+
+    # top-level json funcs
+    funcs_json = ["json_normalize"]
 
     # top-level to_* funcs
-    funcs_to = ['to_datetime', 'to_msgpack',
-                'to_numeric', 'to_pickle', 'to_timedelta']
+    funcs_to = ["to_datetime", "to_numeric", "to_pickle", "to_timedelta"]
 
     # top-level to deprecate in the future
-    deprecated_funcs_in_future = []
+    deprecated_funcs_in_future: List[str] = []
 
     # these are already deprecated; awaiting removal
-    deprecated_funcs = ['pnow', 'match', 'groupby', 'get_store',
-                        'plot_params', 'scatter_matrix']
+    deprecated_funcs: List[str] = []
+
+    # private modules in pandas namespace
+    private_modules = [
+        "_config",
+        "_hashtable",
+        "_lib",
+        "_libs",
+        "_np_version_under1p16",
+        "_np_version_under1p17",
+        "_np_version_under1p18",
+        "_is_numpy_dev",
+        "_testing",
+        "_tslib",
+        "_typing",
+        "_version",
+    ]
 
     def test_api(self):
 
-        self.check(pd,
-                   self.lib + self.misc +
-                   self.modules + self.deprecated_modules +
-                   self.classes + self.deprecated_classes +
-                   self.deprecated_classes_in_future +
-                   self.funcs + self.funcs_option +
-                   self.funcs_read + self.funcs_to +
-                   self.deprecated_funcs_in_future +
-                   self.deprecated_funcs,
-                   self.ignored)
+        checkthese = (
+            self.lib
+            + self.misc
+            + self.modules
+            + self.classes
+            + self.funcs
+            + self.funcs_option
+            + self.funcs_read
+            + self.funcs_json
+            + self.funcs_to
+            + self.private_modules
+        )
+        if not compat.PY37:
+            checkthese.extend(
+                self.deprecated_modules
+                + self.deprecated_classes
+                + self.deprecated_classes_in_future
+                + self.deprecated_funcs_in_future
+                + self.deprecated_funcs
+            )
+        self.check(pd, checkthese, self.ignored)
+
+    def test_depr(self):
+        deprecated_list = (
+            self.deprecated_modules
+            + self.deprecated_classes
+            + self.deprecated_classes_in_future
+            + self.deprecated_funcs
+            + self.deprecated_funcs_in_future
+        )
+        for depr in deprecated_list:
+            with tm.assert_produces_warning(FutureWarning):
+                deprecated = getattr(pd, depr)
+                if not compat.PY37:
+                    if depr == "datetime":
+                        deprecated.__getattr__(dir(pd.datetime.datetime)[-1])
+                    elif depr == "SparseArray":
+                        deprecated([])
+                    else:
+                        deprecated.__getattr__(dir(deprecated)[-1])
+
+
+def test_datetime():
+    from datetime import datetime
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", FutureWarning)
+        assert datetime(2015, 1, 2, 0, 0) == pd.datetime(2015, 1, 2, 0, 0)
+
+        assert isinstance(pd.datetime(2015, 1, 2, 0, 0), pd.datetime)
+
+
+def test_sparsearray():
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", FutureWarning)
+        assert isinstance(pd.array([1, 2, 3], dtype="Sparse"), pd.SparseArray)
+
+
+def test_np():
+    import numpy as np
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", FutureWarning)
+        assert (pd.np.arange(0, 10) == np.arange(0, 10)).all()
 
 
 class TestApi(Base):
-
-    allowed = ['types', 'extensions']
+    allowed = ["types", "extensions", "indexers"]
 
     def test_api(self):
-
         self.check(api, self.allowed)
 
 
 class TestTesting(Base):
-
-    funcs = ['assert_frame_equal', 'assert_series_equal',
-             'assert_index_equal']
+    funcs = [
+        "assert_frame_equal",
+        "assert_series_equal",
+        "assert_index_equal",
+        "assert_extension_array_equal",
+    ]
 
     def test_testing(self):
-
         from pandas import testing
+
         self.check(testing, self.funcs)
 
+    def test_util_testing_deprecated(self):
+        # avoid cache state affecting the test
+        sys.modules.pop("pandas.util.testing", None)
 
-class TestDatetoolsDeprecation(object):
+        with tm.assert_produces_warning(FutureWarning) as m:
+            import pandas.util.testing  # noqa: F401
 
-    def test_deprecation_access_func(self):
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            pd.datetools.to_datetime('2016-01-01')
+        assert "pandas.util.testing is deprecated" in str(m[0].message)
+        assert "pandas.testing instead" in str(m[0].message)
 
-    def test_deprecation_access_obj(self):
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            pd.datetools.monthEnd
+    def test_util_testing_deprecated_direct(self):
+        # avoid cache state affecting the test
+        sys.modules.pop("pandas.util.testing", None)
+        with tm.assert_produces_warning(FutureWarning) as m:
+            from pandas.util.testing import assert_series_equal  # noqa: F401
 
+        assert "pandas.util.testing is deprecated" in str(m[0].message)
+        assert "pandas.testing instead" in str(m[0].message)
 
-class TestTopLevelDeprecations(object):
+    def test_util_in_top_level(self):
+        # in a subprocess to avoid import caching issues
+        out = subprocess.check_output(
+            [
+                sys.executable,
+                "-c",
+                "import pandas; pandas.util.testing.assert_series_equal",
+            ],
+            stderr=subprocess.STDOUT,
+        ).decode()
+        assert "pandas.util.testing is deprecated" in out
 
-    # top-level API deprecations
-    # GH 13790
-
-    def test_pnow(self):
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            pd.pnow(freq='M')
-
-    def test_term(self):
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            pd.Term('index>=date')
-
-    def test_expr(self):
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            pd.Expr('2>1')
-
-    def test_match(self):
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            pd.match([1, 2, 3], [1])
-
-    def test_groupby(self):
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            pd.groupby(pd.Series([1, 2, 3]), [1, 1, 1])
-
-    def test_TimeGrouper(self):
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            pd.TimeGrouper(freq='D')
-
-    # GH 15940
-
-    def test_get_store(self):
-        pytest.importorskip('tables')
-        with tm.ensure_clean() as path:
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                s = pd.get_store(path)
-                s.close()
-
-
-class TestJson(object):
-
-    def test_deprecation_access_func(self):
-        with catch_warnings(record=True):
-            pd.json.dumps([])
-
-
-class TestParser(object):
-
-    def test_deprecation_access_func(self):
-        with catch_warnings(record=True):
-            pd.parser.na_values
-
-
-class TestLib(object):
-
-    def test_deprecation_access_func(self):
-        with catch_warnings(record=True):
-            pd.lib.infer_dtype('foo')
-
-
-class TestTSLib(object):
-
-    def test_deprecation_access_func(self):
-        with catch_warnings(record=True):
-            pd.tslib.Timestamp('20160101')
-
-
-class TestTypes(object):
-
-    def test_deprecation_access_func(self):
-        with tm.assert_produces_warning(
-                FutureWarning, check_stacklevel=False):
-            from pandas.types.concat import union_categoricals
-            c1 = pd.Categorical(list('aabc'))
-            c2 = pd.Categorical(list('abcd'))
-            union_categoricals(
-                [c1, c2],
-                sort_categories=True,
-                ignore_order=True)
-
-
-class TestCDateRange(object):
-
-    def test_deprecation_cdaterange(self):
-        # GH17596
-        from pandas.core.indexes.datetimes import cdate_range
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            cdate_range('2017-01-01', '2017-12-31')
-
-
-class TestCategoricalMove(object):
-
-    def test_categorical_move(self):
-        # May have been cached by another import, e.g. pickle tests.
-        sys.modules.pop("pandas.core.categorical", None)
-
-        with tm.assert_produces_warning(FutureWarning):
-            from pandas.core.categorical import Categorical  # noqa
-
-        sys.modules.pop("pandas.core.categorical", None)
-
-        with tm.assert_produces_warning(FutureWarning):
-            from pandas.core.categorical import CategoricalDtype  # noqa
+        with pytest.raises(AttributeError, match="foo"):
+            pd.util.foo

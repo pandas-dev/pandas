@@ -1,0 +1,123 @@
+.. _whatsnew_0232:
+
+What's new in 0.23.2 (July 5, 2018)
+-----------------------------------
+
+{{ header }}
+
+
+This is a minor bug-fix release in the 0.23.x series and includes some small regression fixes
+and bug fixes. We recommend that all users upgrade to this version.
+
+.. note::
+
+   Pandas 0.23.2 is first pandas release that's compatible with
+   Python 3.7 (:issue:`20552`)
+
+.. warning::
+
+   Starting January 1, 2019, pandas feature releases will support Python 3 only.
+   See `Dropping Python 2.7 <https://pandas.pydata.org/pandas-docs/version/0.24/install.html#install-dropping-27>`_ for more.
+
+.. contents:: What's new in v0.23.2
+    :local:
+    :backlinks: none
+
+.. _whatsnew_0232.enhancements:
+
+Logical reductions over entire DataFrame
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:meth:`DataFrame.all` and :meth:`DataFrame.any` now accept ``axis=None`` to reduce over all axes to a scalar (:issue:`19976`)
+
+.. ipython:: python
+
+   df = pd.DataFrame({"A": [1, 2], "B": [True, False]})
+   df.all(axis=None)
+
+
+This also provides compatibility with NumPy 1.15, which now dispatches to ``DataFrame.all``.
+With NumPy 1.15 and pandas 0.23.1 or earlier, :func:`numpy.all` will no longer reduce over every axis:
+
+.. code-block:: python
+
+   >>> # NumPy 1.15, pandas 0.23.1
+   >>> np.any(pd.DataFrame({"A": [False], "B": [False]}))
+   A    False
+   B    False
+   dtype: bool
+
+With pandas 0.23.2, that will correctly return False, as it did with NumPy < 1.15.
+
+.. ipython:: python
+
+   np.any(pd.DataFrame({"A": [False], "B": [False]}))
+
+
+.. _whatsnew_0232.fixed_regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+
+- Fixed regression in :meth:`to_csv` when handling file-like object incorrectly (:issue:`21471`)
+- Re-allowed duplicate level names of a ``MultiIndex``. Accessing a level that has a duplicate name by name still raises an error (:issue:`19029`).
+- Bug in both :meth:`DataFrame.first_valid_index` and :meth:`Series.first_valid_index` raised for a row index having duplicate values (:issue:`21441`)
+- Fixed printing of DataFrames with hierarchical columns with long names (:issue:`21180`)
+- Fixed regression in :meth:`~DataFrame.reindex` and :meth:`~DataFrame.groupby`
+  with a MultiIndex or multiple keys that contains categorical datetime-like values (:issue:`21390`).
+- Fixed regression in unary negative operations with object dtype (:issue:`21380`)
+- Bug in :meth:`Timestamp.ceil` and :meth:`Timestamp.floor` when timestamp is a multiple of the rounding frequency (:issue:`21262`)
+- Fixed regression in :func:`to_clipboard` that defaulted to copying dataframes with space delimited instead of tab delimited (:issue:`21104`)
+
+
+Build changes
+~~~~~~~~~~~~~
+
+- The source and binary distributions no longer include test data files, resulting in smaller download sizes. Tests relying on these data files will be skipped when using ``pandas.test()``. (:issue:`19320`)
+
+.. _whatsnew_0232.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+**Conversion**
+
+- Bug in constructing :class:`Index` with an iterator or generator (:issue:`21470`)
+- Bug in :meth:`Series.nlargest` for signed and unsigned integer dtypes when the minimum value is present (:issue:`21426`)
+
+**Indexing**
+
+- Bug in :meth:`Index.get_indexer_non_unique` with categorical key (:issue:`21448`)
+- Bug in comparison operations for :class:`MultiIndex` where error was raised on equality / inequality comparison involving a MultiIndex with ``nlevels == 1`` (:issue:`21149`)
+- Bug in :meth:`DataFrame.drop` behaviour is not consistent for unique and non-unique indexes (:issue:`21494`)
+- Bug in :func:`DataFrame.duplicated` with a large number of columns causing a 'maximum recursion depth exceeded' (:issue:`21524`).
+
+**I/O**
+
+- Bug in :func:`read_csv` that caused it to incorrectly raise an error when ``nrows=0``, ``low_memory=True``, and ``index_col`` was not ``None`` (:issue:`21141`)
+- Bug in :func:`json_normalize` when formatting the ``record_prefix`` with integer columns (:issue:`21536`)
+
+**Categorical**
+
+- Bug in rendering :class:`Series` with ``Categorical`` dtype in rare conditions under Python 2.7 (:issue:`21002`)
+
+**Timezones**
+
+- Bug in :class:`Timestamp` and :class:`DatetimeIndex` where passing a :class:`Timestamp` localized after a DST transition would return a datetime before the DST transition (:issue:`20854`)
+- Bug in comparing :class:`DataFrame` with tz-aware :class:`DatetimeIndex` columns with a DST transition that raised a ``KeyError`` (:issue:`19970`)
+- Bug in :meth:`DatetimeIndex.shift` where an ``AssertionError`` would raise when shifting across DST (:issue:`8616`)
+- Bug in :class:`Timestamp` constructor where passing an invalid timezone offset designator (``Z``) would not raise a ``ValueError`` (:issue:`8910`)
+- Bug in :meth:`Timestamp.replace` where replacing at a DST boundary would retain an incorrect offset (:issue:`7825`)
+- Bug in :meth:`DatetimeIndex.reindex` when reindexing a tz-naive and tz-aware :class:`DatetimeIndex` (:issue:`8306`)
+- Bug in :meth:`DatetimeIndex.resample` when downsampling across a DST boundary (:issue:`8531`)
+
+**Timedelta**
+
+- Bug in :class:`Timedelta` where non-zero timedeltas shorter than 1 microsecond were considered False (:issue:`21484`)
+
+.. _whatsnew_0.23.2.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v0.23.1..v0.23.2

@@ -1,0 +1,26 @@
+name: pandas-dev
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.6.*
+
+  # tools
+  ### Cython 0.29.13 and pytest 5.0.1 for 32 bits are not available with conda, installing below with pip instead
+  - pytest-xdist>=1.21
+  - hypothesis>=3.58.0
+  - pytest-azurepipelines
+
+  # pandas dependencies
+  - attrs=19.1.0
+  - gcc_linux-32
+  - gxx_linux-32
+  - numpy=1.14.*
+  - python-dateutil
+  - pytz=2017.2
+
+  # see comment above
+  - pip
+  - pip:
+    - cython>=0.29.16
+    - pytest>=5.0.1

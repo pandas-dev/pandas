@@ -1,0 +1,142 @@
+name: CI
+
+on:
+  push:
+    branches: master
+  pull_request:
+    branches: master
+
+env:
+  ENV_FILE: environment.yml
+
+jobs:
+  checks:
+    name: Checks
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Setting conda path
+      run: echo "::add-path::${HOME}/miniconda3/bin"
+
+    - name: Checkout
+      uses: actions/checkout@v1
+
+    - name: Looking for unwanted patterns
+      run: ci/code_checks.sh patterns
+      if: always()
+
+    - name: Setup environment and build pandas
+      run: ci/setup_env.sh
+      if: always()
+
+    - name: Linting
+      run: |
+        source activate pandas-dev
+        ci/code_checks.sh lint
+      if: always()
+
+    - name: Dependencies consistency
+      run: |
+        source activate pandas-dev
+        ci/code_checks.sh dependencies
+      if: always()
+
+    - name: Checks on imported code
+      run: |
+        source activate pandas-dev
+        ci/code_checks.sh code
+      if: always()
+
+    - name: Running doctests
+      run: |
+        source activate pandas-dev
+        ci/code_checks.sh doctests
+      if: always()
+
+    - name: Docstring validation
+      run: |
+        source activate pandas-dev
+        ci/code_checks.sh docstrings
+      if: always()
+
+    - name: Typing validation
+      run: |
+        source activate pandas-dev
+        ci/code_checks.sh typing
+      if: always()
+
+    - name: Testing docstring validation script
+      run: |
+        source activate pandas-dev
+        pytest --capture=no --strict scripts
+      if: always()
+
+    - name: Running benchmarks
+      run: |
+        source activate pandas-dev
+        cd asv_bench
+        asv check -E existing
+        git remote add upstream https://github.com/pandas-dev/pandas.git
+        git fetch upstream
+        if git diff upstream/master --name-only | grep -q "^asv_bench/"; then
+            asv machine --yes
+            asv dev | sed "/failed$/ s/^/##[error]/" | tee benchmarks.log
+            if grep "failed" benchmarks.log > /dev/null ; then
+                exit 1
+            fi
+        else
+            echo "Benchmarks did not run, no changes detected"
+        fi
+      if: always()
+
+    - name: Publish benchmarks artifact
+      uses: actions/upload-artifact@master
+      with:
+        name: Benchmarks log
+        path: asv_bench/benchmarks.log
+      if: failure()
+
+  web_and_docs:
+    name: Web and docs
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Setting conda path
+      run: echo "::set-env name=PATH::${HOME}/miniconda3/bin:${PATH}"
+
+    - name: Checkout
+      uses: actions/checkout@v1
+
+    - name: Setup environment and build pandas
+      run: ci/setup_env.sh
+
+    - name: Build website
+      run: |
+        source activate pandas-dev
+        python web/pandas_web.py web/pandas --target-path=web/build
+
+    - name: Build documentation
+      run: |
+        source activate pandas-dev
+        doc/make.py --warnings-are-errors | tee sphinx.log ; exit ${PIPESTATUS[0]}
+
+    # This can be removed when the ipython directive fails when there are errors,
+    # including the `tee sphinx.log` in te previous step (https://github.com/ipython/ipython/issues/11547)
+    - name: Check ipython directive errors
+      run: "! grep -B1 \"^<<<-------------------------------------------------------------------------$\" sphinx.log"
+
+    - name: Install ssh key
+      run: |
+        mkdir -m 700 -p ~/.ssh
+        echo "${{ secrets.server_ssh_key }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        echo "${{ secrets.server_ip }} ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBE1Kkopomm7FHG5enATf7SgnpICZ4W2bw+Ho+afqin+w7sMcrsa0je7sbztFAV8YchDkiBKnWTG4cRT+KZgZCaY=" > ~/.ssh/known_hosts
+      if: github.event_name == 'push'
+
+    - name: Upload web
+      run: rsync -az --delete --exclude='pandas-docs' --exclude='docs' --exclude='Pandas_Cheat_Sheet*' web/build/ docs@${{ secrets.server_ip }}:/usr/share/nginx/pandas
+      if: github.event_name == 'push'
+
+    - name: Upload dev docs
+      run: rsync -az --delete doc/build/html/ docs@${{ secrets.server_ip }}:/usr/share/nginx/pandas/pandas-docs/dev
+      if: github.event_name == 'push'

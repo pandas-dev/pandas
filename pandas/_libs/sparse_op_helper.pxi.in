@@ -4,22 +4,16 @@ Template for each `dtype` helper function for sparse ops
 WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # Sparse op
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 
-{{py:
+ctypedef fused sparse_t:
+    float64_t
+    int64_t
 
-# dtype, float_group
-dtypes = [('float64', True), ('int64', False)]
 
-}}
-
-{{for dtype, float_group in dtypes}}
-
-{{if float_group}}
-
-cdef inline {{dtype}}_t __div_{{dtype}}({{dtype}}_t a, {{dtype}}_t b):
+cdef inline float64_t __div__(sparse_t a, sparse_t b):
     if b == 0:
         if a > 0:
             return INF
@@ -30,63 +24,34 @@ cdef inline {{dtype}}_t __div_{{dtype}}({{dtype}}_t a, {{dtype}}_t b):
     else:
         return float(a) / b
 
-cdef inline {{dtype}}_t __truediv_{{dtype}}({{dtype}}_t a, {{dtype}}_t b):
-    return __div_{{dtype}}(a, b)
 
-cdef inline {{dtype}}_t __floordiv_{{dtype}}({{dtype}}_t a, {{dtype}}_t b):
+cdef inline float64_t __truediv__(sparse_t a, sparse_t b):
+    return __div__(a, b)
+
+
+cdef inline sparse_t __mod__(sparse_t a, sparse_t b):
     if b == 0:
-        # numpy >= 1.11 returns NaN
-        # for a // 0, rather than +-inf
-        if _np_version_under1p11:
-            if a > 0:
-                return INF
-            elif a < 0:
-                return -INF
-        return NaN
-    else:
-        return a // b
-
-cdef inline {{dtype}}_t __mod_{{dtype}}({{dtype}}_t a, {{dtype}}_t b):
-    if b == 0:
-        return NaN
-    else:
-        return a % b
-
-{{else}}
-
-cdef inline float64_t __div_{{dtype}}({{dtype}}_t a, {{dtype}}_t b):
-    if b == 0:
-        if a > 0:
-            return INF
-        elif a < 0:
-            return -INF
-        else:
+        if sparse_t is float64_t:
             return NaN
-    else:
-        return float(a) / b
-
-cdef inline float64_t __truediv_{{dtype}}({{dtype}}_t a, {{dtype}}_t b):
-    return __div_{{dtype}}(a, b)
-
-cdef inline {{dtype}}_t __floordiv_{{dtype}}({{dtype}}_t a, {{dtype}}_t b):
-    if b == 0:
-        return 0
-    else:
-        return a // b
-
-cdef inline {{dtype}}_t __mod_{{dtype}}({{dtype}}_t a, {{dtype}}_t b):
-    if b == 0:
-        return 0
+        else:
+            return 0
     else:
         return a % b
 
-{{endif}}
 
-{{endfor}}
+cdef inline sparse_t __floordiv__(sparse_t a, sparse_t b):
+    if b == 0:
+        if sparse_t is float64_t:
+            return NaN
+        else:
+            return 0
+    else:
+        return a // b
 
-#----------------------------------------------------------------------
+
+# ----------------------------------------------------------------------
 # sparse array op
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 
 {{py:
 
@@ -106,10 +71,10 @@ def get_op(tup):
     ops_dict = {'add': '{0} + {1}',
                 'sub': '{0} - {1}',
                 'mul': '{0} * {1}',
-                'div': '__div_{2}({0}, {1})',
-                'mod': '__mod_{2}({0}, {1})',
-                'truediv': '__truediv_{2}({0}, {1})',
-                'floordiv': '__floordiv_{2}({0}, {1})',
+                'div': '__div__({0}, {1})',
+                'mod': '__mod__({0}, {1})',
+                'truediv': '__truediv__({0}, {1})',
+                'floordiv': '__floordiv__({0}, {1})',
                 'pow': '{0} ** {1}',
                 'eq': '{0} == {1}',
                 'ne': '{0} != {1}',
@@ -119,9 +84,10 @@ def get_op(tup):
                 'ge': '{0} >= {1}',
 
                 'and': '{0} & {1}',     # logical op
-                'or': '{0} | {1}'}
+                'or': '{0} | {1}',
+                'xor': '{0} ^ {1}'}
 
-    return ops_dict[opname].format(lval, rval, dtype)
+    return ops_dict[opname].format(lval, rval)
 
 
 def get_dispatch(dtypes):
@@ -129,7 +95,7 @@ def get_dispatch(dtypes):
     ops_list = ['add', 'sub', 'mul', 'div', 'mod', 'truediv',
                 'floordiv', 'pow',
                 'eq', 'ne', 'lt', 'gt', 'le', 'ge',
-                'and', 'or']
+                'and', 'or', 'xor']
 
     for opname in ops_list:
         for dtype, arith_comp_group, logical_group in dtypes:
@@ -139,13 +105,13 @@ def get_dispatch(dtypes):
             elif opname in ('eq', 'ne', 'lt', 'gt', 'le', 'ge'):
                 # comparison op
                 rdtype = 'uint8'
-            elif opname in ('and', 'or'):
+            elif opname in ('and', 'or', 'xor'):
                 # logical op
                 rdtype = 'uint8'
             else:
                 rdtype = dtype
 
-            if opname in ('and', 'or'):
+            if opname in ('and', 'or', 'xor'):
                 if logical_group:
                     yield opname, dtype, rdtype
             else:
@@ -160,10 +126,10 @@ def get_dispatch(dtypes):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef inline tuple block_op_{{opname}}_{{dtype}}(ndarray x_,
+cdef inline tuple block_op_{{opname}}_{{dtype}}({{dtype}}_t[:] x_,
                                                 BlockIndex xindex,
                                                 {{dtype}}_t xfill,
-                                                ndarray y_,
+                                                {{dtype}}_t[:] y_,
                                                 BlockIndex yindex,
                                                 {{dtype}}_t yfill):
     '''
@@ -177,7 +143,7 @@ cdef inline tuple block_op_{{opname}}_{{dtype}}(ndarray x_,
         int32_t xloc, yloc
         Py_ssize_t xblock = 0, yblock = 0 # block numbers
 
-        ndarray[{{dtype}}_t, ndim=1] x, y
+        {{dtype}}_t[:] x, y
         ndarray[{{rdtype}}_t, ndim=1] out
 
     # to suppress Cython warning
@@ -190,7 +156,7 @@ cdef inline tuple block_op_{{opname}}_{{dtype}}(ndarray x_,
     # Wow, what a hack job. Need to do something about this
 
     # walk the two SparseVectors, adding matched locations...
-    for out_i from 0 <= out_i < out_index.npoints:
+    for out_i in range(out_index.npoints):
         if yblock == yindex.nblocks:
             # use y fill value
             out[out_i] = {{(opname, 'x[xi]', 'yfill', dtype) | get_op}}
@@ -261,16 +227,18 @@ cdef inline tuple block_op_{{opname}}_{{dtype}}(ndarray x_,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef inline tuple int_op_{{opname}}_{{dtype}}(ndarray x_, IntIndex xindex,
+cdef inline tuple int_op_{{opname}}_{{dtype}}({{dtype}}_t[:] x_,
+                                              IntIndex xindex,
                                               {{dtype}}_t xfill,
-                                              ndarray y_, IntIndex yindex,
+                                              {{dtype}}_t[:] y_,
+                                              IntIndex yindex,
                                               {{dtype}}_t yfill):
     cdef:
         IntIndex out_index
-        Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
+        Py_ssize_t xi = 0, yi = 0, out_i = 0  # fp buf indices
         int32_t xloc, yloc
-        ndarray[int32_t, ndim=1] xindices, yindices, out_indices
-        ndarray[{{dtype}}_t, ndim=1] x, y
+        int32_t[:] xindices, yindices, out_indices
+        {{dtype}}_t[:] x, y
         ndarray[{{rdtype}}_t, ndim=1] out
 
     # suppress Cython compiler warnings due to inlining
@@ -286,7 +254,7 @@ cdef inline tuple int_op_{{opname}}_{{dtype}}(ndarray x_, IntIndex xindex,
     out_indices = out_index.indices
 
     # walk the two SparseVectors, adding matched locations...
-    for out_i from 0 <= out_i < out_index.npoints:
+    for out_i in range(out_index.npoints):
         if xi == xindex.npoints:
             # use x fill value
             out[out_i] = {{(opname, 'xfill', 'y[yi]', dtype) | get_op}}
@@ -319,9 +287,9 @@ cdef inline tuple int_op_{{opname}}_{{dtype}}(ndarray x_, IntIndex xindex,
     return out, out_index, {{(opname, 'xfill', 'yfill', dtype) | get_op}}
 
 
-cpdef sparse_{{opname}}_{{dtype}}(ndarray[{{dtype}}_t, ndim=1] x,
+cpdef sparse_{{opname}}_{{dtype}}({{dtype}}_t[:] x,
                                   SparseIndex xindex, {{dtype}}_t xfill,
-                                  ndarray[{{dtype}}_t, ndim=1] y,
+                                  {{dtype}}_t[:] y,
                                   SparseIndex yindex, {{dtype}}_t yfill):
 
     if isinstance(xindex, BlockIndex):
