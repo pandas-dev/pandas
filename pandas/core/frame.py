@@ -76,7 +76,6 @@ from pandas.core.dtypes.cast import (
     cast_scalar_to_array,
     coerce_to_dtypes,
     find_common_type,
-    infer_dtype_from_array,
     infer_dtype_from_scalar,
     invalidate_string_dtypes,
     maybe_cast_to_datetime,
