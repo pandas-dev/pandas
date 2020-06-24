@@ -1,5 +1,7 @@
 from typing import List, cast
 
+import numpy as np
+
 from pandas._typing import FilePathOrBuffer, Scalar
 from pandas.compat._optional import import_optional_dependency
 
@@ -148,6 +150,9 @@ class _ODFReader(_BaseExcelReader):
     def _get_cell_value(self, cell, convert_float: bool) -> Scalar:
         from odf.namespaces import OFFICENS
 
+        if str(cell) == "#N/A":
+            return np.nan
+
         cell_type = cell.attributes.get((OFFICENS, "value-type"))
         if cell_type == "boolean":
             if str(cell) == "TRUE":
@@ -158,10 +163,6 @@ class _ODFReader(_BaseExcelReader):
         elif cell_type == "float":
             # GH5394
             cell_value = float(cell.attributes.get((OFFICENS, "value")))
-
-            if cell_value == 0.0:  # NA handling
-                return str(cell)
-
             if convert_float:
                 val = int(cell_value)
                 if val == cell_value:
