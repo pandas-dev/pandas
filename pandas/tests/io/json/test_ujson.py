@@ -1081,9 +1081,7 @@ class TestPandasJSONTests:
     @pytest.mark.parametrize("sign", [-1, 1])
     def test_decode_floating_point(self, sign, float_number):
         float_number *= sign
-        tm.assert_almost_equal(
-            float_number, ujson.loads(str(float_number)), check_less_precise=15
-        )
+        tm.assert_almost_equal(float_number, ujson.loads(str(float_number)), rtol=1e-15)
 
     def test_encode_big_set(self):
         s = set()
