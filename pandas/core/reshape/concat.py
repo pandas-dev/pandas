@@ -3,7 +3,7 @@ Concat routines.
 """
 
 from collections import abc
-from typing import Iterable, List, Mapping, Union, overload
+from typing import TYPE_CHECKING, Iterable, List, Mapping, Union, overload
 
 import numpy as np
 
@@ -12,14 +12,14 @@ from pandas._typing import FrameOrSeries, FrameOrSeriesUnion, Label
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
-from pandas import DataFrame, Index, MultiIndex, Series
 from pandas.core.arrays.categorical import (
     factorize_from_iterable,
     factorize_from_iterables,
 )
 import pandas.core.common as com
-from pandas.core.generic import NDFrame
 from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
     all_indexes_same,
     ensure_index,
     get_consensus_names,
@@ -27,6 +27,9 @@ from pandas.core.indexes.api import (
 )
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import concatenate_block_managers
+
+if TYPE_CHECKING:
+    from pandas import DataFrame
 
 # ---------------------------------------------------------------------
 # Concatenate DataFrame objects
@@ -291,7 +294,7 @@ class _Concatenator:
 
     def __init__(
         self,
-        objs,
+        objs: Union[Iterable[FrameOrSeries], Mapping[Label, FrameOrSeries]],
         axis=0,
         join: str = "outer",
         keys=None,
@@ -302,7 +305,7 @@ class _Concatenator:
         copy: bool = True,
         sort=False,
     ):
-        if isinstance(objs, (NDFrame, str)):
+        if isinstance(objs, (ABCSeries, ABCDataFrame, str)):
             raise TypeError(
                 "first argument must be an iterable of pandas "
                 f'objects, you passed an object of type "{type(objs).__name__}"'
@@ -348,7 +351,7 @@ class _Concatenator:
         # consolidate data & figure out what our result ndim is going to be
         ndims = set()
         for obj in objs:
-            if not isinstance(obj, (Series, DataFrame)):
+            if not isinstance(obj, (ABCSeries, ABCDataFrame)):
                 msg = (
                     f"cannot concatenate object of type '{type(obj)}'; "
                     "only Series and DataFrame objs are valid"
@@ -374,7 +377,7 @@ class _Concatenator:
             # filter out the empties if we have not multi-index possibilities
             # note to keep empty Series as it affect to result columns / name
             non_empties = [
-                obj for obj in objs if sum(obj.shape) > 0 or isinstance(obj, Series)
+                obj for obj in objs if sum(obj.shape) > 0 or isinstance(obj, ABCSeries)
             ]
 
             if len(non_empties) and (
@@ -388,15 +391,15 @@ class _Concatenator:
         self.objs = objs
 
         # Standardize axis parameter to int
-        if isinstance(sample, Series):
-            axis = DataFrame._get_axis_number(axis)
+        if isinstance(sample, ABCSeries):
+            axis = sample._constructor_expanddim._get_axis_number(axis)
         else:
             axis = sample._get_axis_number(axis)
 
         # Need to flip BlockManager axis in the DataFrame special case
         self._is_frame = isinstance(sample, ABCDataFrame)
         if self._is_frame:
-            axis = DataFrame._get_block_manager_axis(axis)
+            axis = sample._get_block_manager_axis(axis)
 
         self._is_series = isinstance(sample, ABCSeries)
         if not 0 <= axis <= sample.ndim:
@@ -543,7 +546,7 @@ class _Concatenator:
                 num = 0
                 has_names = False
                 for i, x in enumerate(self.objs):
-                    if not isinstance(x, Series):
+                    if not isinstance(x, ABCSeries):
                         raise TypeError(
                             f"Cannot concatenate type 'Series' with "
                             f"object of type '{type(x).__name__}'"
