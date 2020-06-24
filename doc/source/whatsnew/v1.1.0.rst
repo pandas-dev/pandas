@@ -1121,6 +1121,7 @@ Other
 - :class:`IntegerArray` now implements the ``sum`` operation (:issue:`33172`)
 - Bug in :class:`Tick` comparisons raising ``TypeError`` when comparing against timedelta-like objects (:issue:`34088`)
 - Bug in :class:`Tick` multiplication raising ``TypeError`` when multiplying by a float (:issue:`34486`)
+- Passing a `set` as `names` argument to :func:`pandas.read_csv`, :func:`pandas.read_table`, or :func:`pandas.read_fwf` will raise ``ValueError: Names should be an ordered collection.`` (:issue:`34946`)
 
 .. ---------------------------------------------------------------------------
 
