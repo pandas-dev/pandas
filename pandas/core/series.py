@@ -3822,11 +3822,11 @@ Keep all original rows and also all original values
         values, counts = reshape.explode(np.asarray(self.array))
 
         if ignore_index:
-            result = self._constructor(values, index=range(len(values)))
+            index = ibase.default_index(len(values))
         else:
-            result = self._constructor(
-                values, index=self.index.repeat(counts), name=self.name
-            )
+            index = self.index.repeat(counts)
+
+        result = self._constructor(values, index=index, name=self.name)
 
         return result
 
