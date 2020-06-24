@@ -55,12 +55,7 @@ from pandas.core.dtypes.generic import (
     ABCPandasArray,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import (
-    _isna_compat,
-    array_equivalent,
-    is_valid_nat_for_dtype,
-    isna,
-)
+from pandas.core.dtypes.missing import _isna_compat, is_valid_nat_for_dtype, isna
 
 import pandas.core.algorithms as algos
 from pandas.core.array_algos.transforms import shift
@@ -1367,11 +1362,6 @@ class Block(PandasObject):
 
         return result_blocks
 
-    def equals(self, other) -> bool:
-        if self.dtype != other.dtype or self.shape != other.shape:
-            return False
-        return array_equivalent(self.values, other.values)
-
     def _unstack(self, unstacker, fill_value, new_placement):
         """
         Return a list of unstacked blocks of self
@@ -1865,9 +1855,6 @@ class ExtensionBlock(Block):
 
         return [self.make_block_same_class(result, placement=self.mgr_locs)]
 
-    def equals(self, other) -> bool:
-        return self.values.equals(other.values)
-
     def _unstack(self, unstacker, fill_value, new_placement):
         # ExtensionArray-safe unstack.
         # We override ObjectBlock._unstack, which unstacks directly on the
@@ -1912,12 +1899,6 @@ class NumericBlock(Block):
 
 class FloatOrComplexBlock(NumericBlock):
     __slots__ = ()
-
-    def equals(self, other) -> bool:
-        if self.dtype != other.dtype or self.shape != other.shape:
-            return False
-        left, right = self.values, other.values
-        return ((left == right) | (np.isnan(left) & np.isnan(right))).all()
 
 
 class FloatBlock(FloatOrComplexBlock):
@@ -2281,12 +2262,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             obj_vals, placement=self.mgr_locs, klass=ObjectBlock, ndim=self.ndim
         )
         return newb.setitem(indexer, value)
-
-    def equals(self, other) -> bool:
-        # override for significant performance improvement
-        if self.dtype != other.dtype or self.shape != other.shape:
-            return False
-        return (self.values.view("i8") == other.values.view("i8")).all()
 
     def quantile(self, qs, interpolation="linear", axis=0):
         naive = self.values.view("M8[ns]")
