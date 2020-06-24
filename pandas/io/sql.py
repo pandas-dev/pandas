@@ -1397,6 +1397,7 @@ class SQLDatabase(PandasSQL):
         try:
             table.insert(chunksize, method=method)
         except exc.SQLAlchemyError as err:
+            # GH34431
             msg = "(1054, \"Unknown column 'inf' in 'field list'\")"
             errText = str(err.orig)
             if re.search(msg, errText):
