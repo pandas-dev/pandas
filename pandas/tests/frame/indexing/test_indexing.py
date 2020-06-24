@@ -20,7 +20,6 @@ from pandas import (
     isna,
     notna,
 )
-import pandas.util._test_decorators as td
 import pandas._testing as tm
 import pandas.core.common as com
 from pandas.core.indexing import IndexingError
