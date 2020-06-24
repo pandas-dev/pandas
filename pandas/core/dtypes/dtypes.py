@@ -230,7 +230,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     2      a
     3    NaN
     dtype: category
-    Categories (2, object): [b < a]
+    Categories (2, object): ['b' < 'a']
 
     An empty CategoricalDtype with a specific dtype can be created
     by providing an empty index. As follows,

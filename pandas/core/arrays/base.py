@@ -846,14 +846,14 @@ class ExtensionArray:
         --------
         >>> cat = pd.Categorical(['a', 'b', 'c'])
         >>> cat
-        [a, b, c]
-        Categories (3, object): [a, b, c]
+        ['a', 'b', 'c']
+        Categories (3, object): ['a', 'b', 'c']
         >>> cat.repeat(2)
-        [a, a, b, b, c, c]
-        Categories (3, object): [a, b, c]
+        ['a', 'a', 'b', 'b', 'c', 'c']
+        Categories (3, object): ['a', 'b', 'c']
         >>> cat.repeat([1, 2, 3])
-        [a, b, b, c, c, c]
-        Categories (3, object): [a, b, c]
+        ['a', 'b', 'b', 'c', 'c', 'c']
+        Categories (3, object): ['a', 'b', 'c']
         """
 
     @Substitution(klass="ExtensionArray")

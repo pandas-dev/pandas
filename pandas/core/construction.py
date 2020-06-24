@@ -217,15 +217,15 @@ def array(
     You can use the string alias for `dtype`
 
     >>> pd.array(['a', 'b', 'a'], dtype='category')
-    [a, b, a]
-    Categories (2, object): [a, b]
+    ['a', 'b', 'a']
+    Categories (2, object): ['a', 'b']
 
     Or specify the actual dtype
 
     >>> pd.array(['a', 'b', 'a'],
     ...          dtype=pd.CategoricalDtype(['a', 'b', 'c'], ordered=True))
-    [a, b, a]
-    Categories (3, object): [a < b < c]
+    ['a', 'b', 'a']
+    Categories (3, object): ['a' < 'b' < 'c']
 
     If pandas does not infer a dedicated extension type a
     :class:`arrays.PandasArray` is returned.
@@ -357,8 +357,8 @@ def extract_array(obj, extract_numpy: bool = False):
     Examples
     --------
     >>> extract_array(pd.Series(['a', 'b', 'c'], dtype='category'))
-    [a, b, c]
-    Categories (3, object): [a, b, c]
+    ['a', 'b', 'c']
+    Categories (3, object): ['a', 'b', 'c']
 
     Other objects like lists, arrays, and DataFrames are just passed through.
 
