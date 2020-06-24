@@ -2075,6 +2075,7 @@ def test_read_csv_raises_on_header_prefix(all_parsers):
 def test_read_table_same_signature_as_read_csv(all_parsers):
     # GH-34976
     from pandas import read_csv, read_table
+
     table_sign = signature(read_table)
     csv_sign = signature(read_csv)
 
