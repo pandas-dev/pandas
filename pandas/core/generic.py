@@ -105,6 +105,7 @@ from pandas.tseries.offsets import Tick
 
 if TYPE_CHECKING:
     from pandas.core.resample import Resampler
+    from pandas.core.series import Series  # noqa: F401
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
@@ -657,47 +658,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         result = self.set_axis(new_labels, axis=axis, inplace=False)
         return result
 
-    def pop(self: FrameOrSeries, item) -> FrameOrSeries:
-        """
-        Return item and drop from frame. Raise KeyError if not found.
-
-        Parameters
-        ----------
-        item : str
-            Label of column to be popped.
-
-        Returns
-        -------
-        Series
-
-        Examples
-        --------
-        >>> df = pd.DataFrame([('falcon', 'bird', 389.0),
-        ...                    ('parrot', 'bird', 24.0),
-        ...                    ('lion', 'mammal', 80.5),
-        ...                    ('monkey', 'mammal', np.nan)],
-        ...                   columns=('name', 'class', 'max_speed'))
-        >>> df
-             name   class  max_speed
-        0  falcon    bird      389.0
-        1  parrot    bird       24.0
-        2    lion  mammal       80.5
-        3  monkey  mammal        NaN
-
-        >>> df.pop('class')
-        0      bird
-        1      bird
-        2    mammal
-        3    mammal
-        Name: class, dtype: object
-
-        >>> df
-             name  max_speed
-        0  falcon      389.0
-        1  parrot       24.0
-        2    lion       80.5
-        3  monkey        NaN
-        """
+    def pop(self, item: Label) -> Union["Series", Any]:
         result = self[item]
         del self[item]
         if self.ndim == 2:
@@ -1372,16 +1333,36 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     def bool(self):
         """
-        Return the bool of a single element PandasObject.
+        Return the bool of a single element Series or DataFrame.
 
-        This must be a boolean scalar value, either True or False.  Raise a
-        ValueError if the PandasObject does not have exactly 1 element, or that
-        element is not boolean
+        This must be a boolean scalar value, either True or False. It will raise a
+        ValueError if the Series or DataFrame does not have exactly 1 element, or that
+        element is not boolean (integer values 0 and 1 will also raise an exception).
 
         Returns
         -------
         bool
-            Same single boolean value converted to bool type.
+            The value in the Series or DataFrame.
+
+        See Also
+        --------
+        Series.astype : Change the data type of a Series, including to boolean.
+        DataFrame.astype : Change the data type of a DataFrame, including to boolean.
+        numpy.bool_ : NumPy boolean data type, used by pandas for boolean values.
+
+        Examples
+        --------
+        The method will only work for single element objects with a boolean value:
+
+        >>> pd.Series([True]).bool()
+        True
+        >>> pd.Series([False]).bool()
+        False
+
+        >>> pd.DataFrame({'col': [True]}).bool()
+        True
+        >>> pd.DataFrame({'col': [False]}).bool()
+        False
         """
         v = self.squeeze()
         if isinstance(v, (bool, np.bool_)):
@@ -4828,7 +4809,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             random number generator
             If np.random.RandomState, use as numpy RandomState object.
 
-            ..versionchanged:: 1.1.0
+            .. versionchanged:: 1.1.0
 
                 array-like and BitGenerator (for NumPy>=1.17) object now passed to
                 np.random.RandomState() as seed
@@ -5376,7 +5357,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         string              object
         dtype: object
         """
-        from pandas import Series
+        from pandas import Series  # noqa: F811
 
         return Series(self._mgr.get_dtypes(), index=self._info_axis, dtype=np.object_)
 
@@ -10460,7 +10441,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Add the series or dataframe only operations to the cls; evaluate
         the doc strings again.
         """
-        from pandas.core.window import EWM, Expanding, Rolling, Window
+        from pandas.core.window import (
+            Expanding,
+            ExponentialMovingWindow,
+            Rolling,
+            Window,
+        )
 
         @doc(Rolling)
         def rolling(
@@ -10507,7 +10493,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         cls.expanding = expanding
 
-        @doc(EWM)
+        @doc(ExponentialMovingWindow)
         def ewm(
             self,
             com=None,
@@ -10520,7 +10506,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             axis=0,
         ):
             axis = self._get_axis_number(axis)
-            return EWM(
+            return ExponentialMovingWindow(
                 self,
                 com=com,
                 span=span,
