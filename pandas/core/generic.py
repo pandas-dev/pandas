@@ -2582,7 +2582,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ...     df1.to_sql('users', con=connection, if_exists='append')
 
         This is allowed to support operations that require that the same
-        DBAPI connection is used to the entire operation.
+        DBAPI connection is used for the entire operation.
 
         >>> df2 = pd.DataFrame({'name' : ['User 6', 'User 7']})
         >>> df2.to_sql('users', con=engine, if_exists='append')
