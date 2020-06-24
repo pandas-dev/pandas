@@ -17,7 +17,7 @@ def _assert_almost_equal_both(a, b, **kwargs):
         The first object to compare.
     b : object
         The second object to compare.
-    kwargs : dict
+    **kwargs
         The arguments passed to `tm.assert_almost_equal`.
     """
     tm.assert_almost_equal(a, b, **kwargs)
@@ -34,7 +34,7 @@ def _assert_not_almost_equal(a, b, **kwargs):
         The first object to compare.
     b : object
         The second object to compare.
-    kwargs : dict
+    **kwargs
         The arguments passed to `tm.assert_almost_equal`.
     """
     try:
@@ -57,11 +57,21 @@ def _assert_not_almost_equal_both(a, b, **kwargs):
         The first object to compare.
     b : object
         The second object to compare.
-    kwargs : dict
+    **kwargs
         The arguments passed to `tm.assert_almost_equal`.
     """
     _assert_not_almost_equal(a, b, **kwargs)
     _assert_not_almost_equal(b, a, **kwargs)
+
+
+@pytest.mark.parametrize(
+    "a,b,check_less_precise",
+    [(1.1, 1.1, False), (1.1, 1.100001, True), (1.1, 1.1001, 2)],
+)
+def test_assert_almost_equal_deprecated(a, b, check_less_precise):
+    # GH#30562
+    with tm.assert_produces_warning(FutureWarning):
+        _assert_almost_equal_both(a, b, check_less_precise=check_less_precise)
 
 
 @pytest.mark.parametrize(
@@ -78,12 +88,65 @@ def test_assert_almost_equal_numbers(a, b):
     _assert_almost_equal_both(a, b)
 
 
-@pytest.mark.parametrize("a,b", [(1.1, 1), (1.1, True), (1, 2), (1.0001, np.int16(1))])
+@pytest.mark.parametrize(
+    "a,b",
+    [
+        (1.1, 1),
+        (1.1, True),
+        (1, 2),
+        (1.0001, np.int16(1)),
+        # The following two examples are not "almost equal" due to tol.
+        (0.1, 0.1001),
+        (0.0011, 0.0012),
+    ],
+)
 def test_assert_not_almost_equal_numbers(a, b):
     _assert_not_almost_equal_both(a, b)
 
 
-@pytest.mark.parametrize("a,b", [(0, 0), (0, 0.0), (0, np.float64(0)), (0.000001, 0)])
+@pytest.mark.parametrize(
+    "a,b",
+    [
+        (1.1, 1.1),
+        (1.1, 1.100001),
+        (1.1, 1.1001),
+        (0.000001, 0.000005),
+        (1000.0, 1000.0005),
+        # Testing this example, as per #13357
+        (0.000011, 0.000012),
+    ],
+)
+def test_assert_almost_equal_numbers_atol(a, b):
+    # Equivalent to the deprecated check_less_precise=True
+    _assert_almost_equal_both(a, b, rtol=0.5e-3, atol=0.5e-3)
+
+
+@pytest.mark.parametrize("a,b", [(1.1, 1.11), (0.1, 0.101), (0.000011, 0.001012)])
+def test_assert_not_almost_equal_numbers_atol(a, b):
+    _assert_not_almost_equal_both(a, b, atol=1e-3)
+
+
+@pytest.mark.parametrize(
+    "a,b",
+    [
+        (1.1, 1.1),
+        (1.1, 1.100001),
+        (1.1, 1.1001),
+        (1000.0, 1000.0005),
+        (1.1, 1.11),
+        (0.1, 0.101),
+    ],
+)
+def test_assert_almost_equal_numbers_rtol(a, b):
+    _assert_almost_equal_both(a, b, rtol=0.05)
+
+
+@pytest.mark.parametrize("a,b", [(0.000011, 0.000012), (0.000001, 0.000005)])
+def test_assert_not_almost_equal_numbers_rtol(a, b):
+    _assert_not_almost_equal_both(a, b, rtol=0.05)
+
+
+@pytest.mark.parametrize("a,b", [(0, 0), (0, 0.0), (0, np.float64(0)), (0.00000001, 0)])
 def test_assert_almost_equal_numbers_with_zeros(a, b):
     _assert_almost_equal_both(a, b)
 
@@ -235,7 +298,7 @@ def test_assert_almost_equal_object():
 
 
 def test_assert_almost_equal_value_mismatch():
-    msg = "expected 2\\.00000 but got 1\\.00000, with decimal 5"
+    msg = "expected 2\\.00000 but got 1\\.00000, with rtol=1e-05, atol=1e-08"
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_almost_equal(1, 2)
