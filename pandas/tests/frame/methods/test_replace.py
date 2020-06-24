@@ -1404,16 +1404,15 @@ class TestDataFrameReplace:
 
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(
+        reason="replace() changes dtype from period to object, see GH34871", strict=True
+    )
     def test_replace_period_ignore_float(self):
         """
         Regression test for GH#34871: if df.replace(1.0, 0.0) is called on a df
         with a Period column the old, faulty behavior is to raise TypeError.
         """
         df = pd.DataFrame({"Per": [pd.Period("2020-01")] * 3})
-        df_after_replace = df.replace(1.0, 0.0)
-
-        df_expected_result = pd.DataFrame({"Per": [pd.Period("2020-01")] * 3})
-        # currently replace() changes dtype from Period to object
-        df_expected_result["Per"] = df_expected_result["Per"].astype(object)
-
-        tm.assert_frame_equal(df_expected_result, df_after_replace)
+        result = df.replace(1.0, 0.0)
+        expected = pd.DataFrame({"Per": [pd.Period("2020-01")] * 3})
+        tm.assert_frame_equal(expected, result)
