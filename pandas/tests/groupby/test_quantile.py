@@ -237,6 +237,6 @@ def test_groupby_quantile_nullable_array(values, q):
 @pytest.mark.parametrize("q", [0.5, [0.0, 0.5, 1.0]])
 def test_groupby_quantile_skips_invalid_dtype(q):
     df = pd.DataFrame({"a": [1], "b": [2.0], "c": ["x"]})
-    result = df.groupby("a").quantile(0.5)
-    expected = df.set_index("a")[["b"]]
+    result = df.groupby("a").quantile(q)
+    expected = df.groupby("a")[["b"]].quantile(q)
     tm.assert_frame_equal(result, expected)
