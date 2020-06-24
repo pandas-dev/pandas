@@ -2611,6 +2611,11 @@ def _get_codes_for_values(values, categories):
         values = ensure_object(values)
         categories = ensure_object(categories)
 
+    if isinstance(categories, ABCIndexClass):
+        return coerce_indexer_dtype(categories.get_indexer_for(values), categories)
+
+    # Only hit here when we've already coerced to object dtypee.
+
     hash_klass, vals = _get_data_algo(values)
     _, cats = _get_data_algo(categories)
     t = hash_klass(len(cats))
