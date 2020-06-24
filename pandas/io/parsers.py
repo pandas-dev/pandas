@@ -408,7 +408,7 @@ def _validate_names(names):
     Raises
     ------
     ValueError
-        If names are not unique or have incosistent ordering (e.g. set).
+        If names are not unique or have inconsistent ordering (e.g. set).
     """
     if names is not None:
         if len(names) != len(set(names)):
