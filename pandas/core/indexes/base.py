@@ -374,7 +374,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return UInt64Index(data, copy=copy, dtype=dtype, name=name)
             elif is_float_dtype(data.dtype):
                 return Float64Index(data, copy=copy, dtype=dtype, name=name)
-            elif issubclass(data.dtype.type, np.bool) or is_bool_dtype(data):
+            elif issubclass(data.dtype.type, bool) or is_bool_dtype(data):
                 subarr = data.astype("object")
             else:
                 subarr = com.asarray_tuplesafe(data, dtype=object)
@@ -518,7 +518,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        True if both have same underlying data, False otherwise : bool
+        bool
+            True if both have same underlying data, False otherwise.
+
+        See Also
+        --------
+        Index.identical : Works like ``Index.is_`` but also checks metadata.
         """
         # use something other than None to be clearer
         return self._id is getattr(other, "_id", Ellipsis) and self._id is not None

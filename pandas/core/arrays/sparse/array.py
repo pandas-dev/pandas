@@ -150,7 +150,7 @@ def _sparse_array_op(
             # to make template simple, cast here
             left_sp_values = left.sp_values.view(np.uint8)
             right_sp_values = right.sp_values.view(np.uint8)
-            result_dtype = np.bool
+            result_dtype = bool
         else:
             opname = f"sparse_{name}_{dtype}"
             left_sp_values = left.sp_values
@@ -183,7 +183,7 @@ def _wrap_result(name, data, sparse_index, fill_value, dtype=None):
         name = name[2:-2]
 
     if name in ("eq", "ne", "lt", "gt", "le", "ge"):
-        dtype = np.bool
+        dtype = bool
 
     fill_value = lib.item_from_zerodim(fill_value)
 

@@ -220,16 +220,8 @@ class BlockManager(PandasObject):
 
     @property
     def _is_single_block(self) -> bool:
-        if self.ndim == 1:
-            return True
-
-        if len(self.blocks) != 1:
-            return False
-
-        blk = self.blocks[0]
-        return blk.mgr_locs.is_slice_like and blk.mgr_locs.as_slice == slice(
-            0, len(self), 1
-        )
+        # Assumes we are 2D; overriden by SingleBlockManager
+        return len(self.blocks) == 1
 
     def _rebuild_blknos_and_blklocs(self) -> None:
         """
@@ -1486,6 +1478,7 @@ class SingleBlockManager(BlockManager):
     _is_consolidated = True
     _known_consolidated = True
     __slots__ = ()
+    _is_single_block = True
 
     def __init__(
         self,
@@ -1951,7 +1944,7 @@ def _compare_or_regex_search(
     if isinstance(result, np.ndarray):
         # The shape of the mask can differ to that of the result
         # since we may compare only a subset of a's or b's elements
-        tmp = np.zeros(mask.shape, dtype=np.bool)
+        tmp = np.zeros(mask.shape, dtype=np.bool_)
         tmp[mask] = result
         result = tmp
 

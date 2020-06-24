@@ -795,10 +795,10 @@ class Base:
 
         msg = "putmask: mask and data must be the same size"
         with pytest.raises(ValueError, match=msg):
-            index.putmask(np.ones(len(index) + 1, np.bool), 1)
+            index.putmask(np.ones(len(index) + 1, np.bool_), 1)
 
         with pytest.raises(ValueError, match=msg):
-            index.putmask(np.ones(len(index) - 1, np.bool), 1)
+            index.putmask(np.ones(len(index) - 1, np.bool_), 1)
 
         with pytest.raises(ValueError, match=msg):
             index.putmask("foo", 1)
