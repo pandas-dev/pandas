@@ -1401,7 +1401,7 @@ class SQLDatabase(PandasSQL):
             msg = "(1054, \"Unknown column 'inf' in 'field list'\")"
             errText = str(err.orig)
             if re.search(msg, errText):
-                raise ValueError("inf can not be used with MySQL") from err
+                raise ValueError("inf cannot be used with MySQL") from err
             else:
                 raise err
 
