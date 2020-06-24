@@ -5,6 +5,7 @@ import json
 import locale
 import math
 import re
+import sys
 import time
 
 import dateutil
@@ -559,6 +560,17 @@ class TestUltraJSONTests:
         assert output == json.dumps(long_input)
         assert long_input == ujson.decode(output)
 
+    @pytest.mark.parametrize("bigNum", [sys.maxsize + 1, -(sys.maxsize + 2)])
+    def test_dumps_ints_larger_than_maxsize(self, bigNum):
+        # GH34395
+        bigNum = sys.maxsize + 1
+        encoding = ujson.encode(bigNum)
+        assert str(bigNum) == encoding
+
+        # GH20599
+        with pytest.raises(ValueError):
+            assert ujson.loads(encoding) == bigNum
+
     @pytest.mark.parametrize(
         "int_exp", ["1337E40", "1.337E40", "1337E+9", "1.337e+40", "1.337E-4"]
     )
@@ -569,18 +581,6 @@ class TestUltraJSONTests:
         msg = "Expected 'str' or 'bytes'"
         with pytest.raises(TypeError, match=msg):
             ujson.loads(None)
-
-    def test_encode_numeric_overflow(self):
-        with pytest.raises(OverflowError):
-            ujson.encode(12839128391289382193812939)
-
-    def test_encode_numeric_overflow_nested(self):
-        class Nested:
-            x = 12839128391289382193812939
-
-        for _ in range(0, 100):
-            with pytest.raises(OverflowError):
-                ujson.encode(Nested())
 
     @pytest.mark.parametrize("val", [3590016419, 2 ** 31, 2 ** 32, (2 ** 32) - 1])
     def test_decode_number_with_32bit_sign_bit(self, val):
