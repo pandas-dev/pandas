@@ -19,6 +19,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     is_datetimelike_v_numeric,
+    is_dtype_equal,
     is_extension_array_dtype,
     is_list_like,
     is_numeric_v_string_like,
@@ -1432,13 +1433,11 @@ class BlockManager(PandasObject):
         for i in range(len(self.items)):
             left = self.iget_values(i)
             right = other.iget_values(i)
-            left_ea = isinstance(left, ExtensionArray)
-            right_ea = isinstance(right, ExtensionArray)
-            if left_ea and right_ea:
+            if not is_dtype_equal(left.dtype, right.dtype):
+                return False
+            elif isinstance(left, ExtensionArray):
                 if not left.equals(right):
                     return False
-            elif left_ea or right_ea:
-                return False
             else:
                 if not array_equivalent(left, right):
                     return False
