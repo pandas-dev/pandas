@@ -2137,20 +2137,11 @@ def test_no_header_two_extra_columns(all_parsers):
     tm.assert_frame_equal(df, ref)
 
 
-def test_read_csv_names_types(all_parsers):
+def test_read_csv_names_not_accepting_sets(all_parsers):
     # GH 34946
     data = """\
     1,2,3
-    4,5,6
-    7,8,9
-    10,11,12\n"""
+    4,5,6\n"""
     parser = all_parsers
-    msg = "Names should be an ordered collection."
-    names = "QAZ"
-    with pytest.raises(ValueError, match=msg):
-        parser.read_csv(StringIO(data), names=set(names))
-
-    ref = DataFrame(data={"Q": [1, 4, 7, 10], "A": [2, 5, 8, 11], "Z": [3, 6, 9, 12]})
-    for valid_type_converter in (list, tuple):
-        df = parser.read_csv(StringIO(data), names=valid_type_converter(names))
-        tm.assert_frame_equal(df, ref)
+    with pytest.raises(ValueError, match="Names should be an ordered collection."):
+        parser.read_csv(StringIO(data), names=set("QAZ"))
