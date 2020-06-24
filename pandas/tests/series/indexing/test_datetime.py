@@ -667,14 +667,3 @@ def test_setitem_tuple_with_datetimetz():
     result[(0, 1)] = np.nan
     expected.iloc[0] = np.nan
     tm.assert_series_equal(result, expected)
-
-
-def test_indexing_regression():
-    # Issue 34860
-    arr = date_range("1/1/2008", "1/1/2009")
-    ser = arr.to_series()["2008"]
-
-    rng = date_range(start="2008-01-01", end="2008-12-31")
-    expected = Series(rng, index=rng)
-
-    tm.assert_series_equal(ser, expected)
