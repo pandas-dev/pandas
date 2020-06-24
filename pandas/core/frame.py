@@ -531,8 +531,7 @@ class DataFrame(NDFrame):
                 )
                 if isinstance(values, list):
                     # Case 1: values is a list of extension arrays
-                    dtype, _ = infer_dtype_from_array(values[0], pandas_dtype=True)
-                    mgr = arrays_to_mgr(values, columns, index, columns, dtype=dtype)
+                    mgr = arrays_to_mgr(values, columns, index, columns, dtype=None)
                 else:
                     # Case 2: values is a numpy array
                     mgr = init_ndarray(

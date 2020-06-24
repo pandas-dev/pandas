@@ -14,6 +14,7 @@ from pandas.compat import PY37, is_platform_little_endian
 from pandas.compat.numpy import _is_numpy_dev
 
 from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.dtypes import PeriodDtype
 
 import pandas as pd
 from pandas import (
@@ -722,6 +723,12 @@ class TestDataFrameConstructors:
         df = DataFrame({"a": a.astype(object).tolist(), "b": b.astype(object).tolist()})
         assert df["a"].dtype == a.dtype
         assert df["b"].dtype == b.dtype
+
+        data = pd.Period("2012-01", freq="M")
+        df = DataFrame(index=[0, 1], columns=["a", "b"], data=data)
+
+        assert df["a"].dtype == PeriodDtype("M")
+        assert df["b"].dtype == PeriodDtype("M")
 
     def test_nested_dict_frame_constructor(self):
         rng = pd.period_range("1/1/2000", periods=5)
