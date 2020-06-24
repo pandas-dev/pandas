@@ -1821,6 +1821,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def test_to_sql_with_negative_npinf(self, input):
         # GH 34431
 
+        print(f"type(self.conn)={type(self.conn)}")
         df = pd.DataFrame(input)
         df.to_sql("foobar", self.conn, index=False)
         try:
