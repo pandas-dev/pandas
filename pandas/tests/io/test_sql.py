@@ -20,7 +20,6 @@ The SQL tests are broken down in different classes:
 import csv
 from datetime import date, datetime, time
 from io import StringIO
-import re
 import sqlite3
 import warnings
 
@@ -1821,18 +1820,15 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def test_to_sql_with_negative_npinf(self, input):
         # GH 34431
 
-        print(f"type(self.conn)={type(self.conn)}")
         df = pd.DataFrame(input)
-        df.to_sql("foobar", self.conn, index=False)
-        try:
+
+        if self.conn.dialect.name == "mysql":
+            with pytest.raises(ValueError("inf can not be used with MySQL")):
+                df.to_sql("foobar", self.conn, index=False)
+        else:
+            df.to_sql("foobar", self.conn, index=False)
             res = sql.read_sql_table("foobar", self.conn)
             tm.assert_equal(df, res)
-        except ValueError as err:
-            mes = "inf can not be used with MySQL"
-            if re.search(mes, err.args[0]):
-                pass
-            else:
-                raise err
 
     def test_temporary_table(self):
         test_data = "Hello, World!"
