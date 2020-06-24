@@ -6,18 +6,17 @@ import sys
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import to_offset
+from pandas._libs.tslibs import BaseOffset, to_offset
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Index, NaT, Series, isna
 import pandas._testing as tm
-from pandas.core.indexes.datetimes import bdate_range, date_range
+from pandas.core.indexes.datetimes import DatetimeIndex, bdate_range, date_range
 from pandas.core.indexes.period import Period, PeriodIndex, period_range
 from pandas.core.indexes.timedeltas import timedelta_range
-from pandas.core.resample import DatetimeIndex
 from pandas.tests.plotting.common import TestPlotBase
 
-from pandas.tseries.offsets import DateOffset, WeekOfMonth
+from pandas.tseries.offsets import WeekOfMonth
 
 
 @td.skip_if_no_mpl
@@ -1509,7 +1508,7 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
         ax = kwargs.pop("ax", plt.gca())
         if series is not None:
             dfreq = series.index.freq
-            if isinstance(dfreq, DateOffset):
+            if isinstance(dfreq, BaseOffset):
                 dfreq = dfreq.rule_code
             if orig_axfreq is None:
                 assert ax.freq == dfreq
