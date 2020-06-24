@@ -1,3 +1,5 @@
+from csv import QUOTE_NONNUMERIC
+from functools import partial
 import operator
 from shutil import get_terminal_size
 from typing import Dict, Hashable, List, Type, Union, cast
@@ -275,8 +277,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
     Categories (3, int64): [1, 2, 3]
 
     >>> pd.Categorical(['a', 'b', 'c', 'a', 'b', 'c'])
-    [a, b, c, a, b, c]
-    Categories (3, object): [a, b, c]
+    ['a', 'b', 'c', 'a', 'b', 'c']
+    Categories (3, object): ['a', 'b', 'c']
 
     Ordered `Categoricals` can be sorted according to the custom order
     of the categories and can have a min and max value.
@@ -284,8 +286,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
     >>> c = pd.Categorical(['a', 'b', 'c', 'a', 'b', 'c'], ordered=True,
     ...                    categories=['c', 'b', 'a'])
     >>> c
-    [a, b, c, a, b, c]
-    Categories (3, object): [c < b < a]
+    ['a', 'b', 'c', 'a', 'b', 'c']
+    Categories (3, object): ['c' < 'b' < 'a']
     >>> c.min()
     'c'
     """
@@ -598,8 +600,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         --------
         >>> dtype = pd.CategoricalDtype(['a', 'b'], ordered=True)
         >>> pd.Categorical.from_codes(codes=[0, 1, 0, 1], dtype=dtype)
-        [a, b, a, b]
-        Categories (2, object): [a < b]
+        ['a', 'b', 'a', 'b']
+        Categories (2, object): ['a' < 'b']
         """
         dtype = CategoricalDtype._from_values_or_dtype(
             categories=categories, ordered=ordered, dtype=dtype
@@ -659,13 +661,13 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         --------
         >>> c = pd.Categorical(['a', 'b'])
         >>> c
-        [a, b]
-        Categories (2, object): [a, b]
+        ['a', 'b']
+        Categories (2, object): ['a', 'b']
 
         >>> c._set_categories(pd.Index(['a', 'c']))
         >>> c
-        [a, c]
-        Categories (2, object): [a, c]
+        ['a', 'c']
+        Categories (2, object): ['a', 'c']
         """
         if fastpath:
             new_dtype = CategoricalDtype._from_fastpath(categories, self.ordered)
@@ -885,14 +887,14 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         categories not in the dictionary are passed through
 
         >>> c.rename_categories({'a': 'A', 'c': 'C'})
-        [A, A, b]
-        Categories (2, object): [A, b]
+        ['A', 'A', 'b']
+        Categories (2, object): ['A', 'b']
 
         You may also provide a callable to create the new categories
 
         >>> c.rename_categories(lambda x: x.upper())
-        [A, A, B]
-        Categories (2, object): [A, B]
+        ['A', 'A', 'B']
+        Categories (2, object): ['A', 'B']
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         cat = self if inplace else self.copy()
@@ -1128,22 +1130,22 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         --------
         >>> cat = pd.Categorical(['a', 'b', 'c'])
         >>> cat
-        [a, b, c]
-        Categories (3, object): [a, b, c]
+        ['a', 'b', 'c']
+        Categories (3, object): ['a', 'b', 'c']
         >>> cat.map(lambda x: x.upper())
-        [A, B, C]
-        Categories (3, object): [A, B, C]
+        ['A', 'B', 'C']
+        Categories (3, object): ['A', 'B', 'C']
         >>> cat.map({'a': 'first', 'b': 'second', 'c': 'third'})
-        [first, second, third]
-        Categories (3, object): [first, second, third]
+        ['first', 'second', 'third']
+        Categories (3, object): ['first', 'second', 'third']
 
         If the mapping is one-to-one the ordering of the categories is
         preserved:
 
         >>> cat = pd.Categorical(['a', 'b', 'c'], ordered=True)
         >>> cat
-        [a, b, c]
-        Categories (3, object): [a < b < c]
+        ['a', 'b', 'c']
+        Categories (3, object): ['a' < 'b' < 'c']
         >>> cat.map({'a': 3, 'b': 2, 'c': 1})
         [3, 2, 1]
         Categories (3, int64): [3 < 2 < 1]
@@ -1778,29 +1780,29 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         --------
         >>> cat = pd.Categorical(['a', 'a', 'b'])
         >>> cat
-        [a, a, b]
-        Categories (2, object): [a, b]
+        ['a', 'a', 'b']
+        Categories (2, object): ['a', 'b']
 
         Specify ``allow_fill==False`` to have negative indices mean indexing
         from the right.
 
         >>> cat.take([0, -1, -2], allow_fill=False)
-        [a, b, a]
-        Categories (2, object): [a, b]
+        ['a', 'b', 'a']
+        Categories (2, object): ['a', 'b']
 
         With ``allow_fill=True``, indices equal to ``-1`` mean "missing"
         values that should be filled with the `fill_value`, which is
         ``np.nan`` by default.
 
         >>> cat.take([0, -1, -1], allow_fill=True)
-        [a, NaN, NaN]
-        Categories (2, object): [a, b]
+        ['a', NaN, NaN]
+        Categories (2, object): ['a', 'b']
 
         The fill value can be specified.
 
         >>> cat.take([0, -1, -1], allow_fill=True, fill_value='a')
-        [a, a, a]
-        Categories (2, object): [a, b]
+        ['a', 'a', 'a']
+        Categories (2, object): ['a', 'b']
 
         Specifying a fill value that's not in ``self.categories``
         will raise a ``ValueError``.
@@ -1872,13 +1874,16 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         )
         from pandas.io.formats import format as fmt
 
+        format_array = partial(
+            fmt.format_array, formatter=None, quoting=QUOTE_NONNUMERIC
+        )
         if len(self.categories) > max_categories:
             num = max_categories // 2
-            head = fmt.format_array(self.categories[:num], None)
-            tail = fmt.format_array(self.categories[-num:], None)
+            head = format_array(self.categories[:num])
+            tail = format_array(self.categories[-num:])
             category_strs = head + ["..."] + tail
         else:
-            category_strs = fmt.format_array(self.categories, None)
+            category_strs = format_array(self.categories)
 
         # Strip all leading spaces, which format_array adds for columns...
         category_strs = [x.strip() for x in category_strs]
@@ -2051,8 +2056,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         --------
         >>> c = pd.Categorical(list('aabca'))
         >>> c
-        [a, a, b, c, a]
-        Categories (3, object): [a, b, c]
+        ['a', 'a', 'b', 'c', 'a']
+        Categories (3, object): ['a', 'b', 'c']
         >>> c.categories
         Index(['a', 'b', 'c'], dtype='object')
         >>> c.codes
@@ -2199,20 +2204,20 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         order of appearance.
 
         >>> pd.Categorical(list("baabc")).unique()
-        [b, a, c]
-        Categories (3, object): [b, a, c]
+        ['b', 'a', 'c']
+        Categories (3, object): ['b', 'a', 'c']
 
         >>> pd.Categorical(list("baabc"), categories=list("abc")).unique()
-        [b, a, c]
-        Categories (3, object): [b, a, c]
+        ['b', 'a', 'c']
+        Categories (3, object): ['b', 'a', 'c']
 
         An ordered Categorical preserves the category ordering.
 
         >>> pd.Categorical(
         ...     list("baabc"), categories=list("abc"), ordered=True
         ... ).unique()
-        [b, a, c]
-        Categories (3, object): [a < b < c]
+        ['b', 'a', 'c']
+        Categories (3, object): ['a' < 'b' < 'c']
         """
         # unlike np.unique, unique1d does not sort
         unique_codes = unique1d(self.codes)
@@ -2465,7 +2470,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     4    c
     5    c
     dtype: category
-    Categories (3, object): [a, b, c]
+    Categories (3, object): ['a', 'b', 'c']
 
     >>> s.cat.categories
     Index(['a', 'b', 'c'], dtype='object')
@@ -2478,7 +2483,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     4    a
     5    a
     dtype: category
-    Categories (3, object): [c, b, a]
+    Categories (3, object): ['c', 'b', 'a']
 
     >>> s.cat.reorder_categories(list("cba"))
     0    a
@@ -2488,7 +2493,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     4    c
     5    c
     dtype: category
-    Categories (3, object): [c, b, a]
+    Categories (3, object): ['c', 'b', 'a']
 
     >>> s.cat.add_categories(["d", "e"])
     0    a
@@ -2498,7 +2503,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     4    c
     5    c
     dtype: category
-    Categories (5, object): [a, b, c, d, e]
+    Categories (5, object): ['a', 'b', 'c', 'd', 'e']
 
     >>> s.cat.remove_categories(["a", "c"])
     0    NaN
@@ -2508,7 +2513,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     4    NaN
     5    NaN
     dtype: category
-    Categories (1, object): [b]
+    Categories (1, object): ['b']
 
     >>> s1 = s.cat.add_categories(["d", "e"])
     >>> s1.cat.remove_unused_categories()
@@ -2519,7 +2524,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     4    c
     5    c
     dtype: category
-    Categories (3, object): [a, b, c]
+    Categories (3, object): ['a', 'b', 'c']
 
     >>> s.cat.set_categories(list("abcde"))
     0    a
@@ -2529,7 +2534,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     4    c
     5    c
     dtype: category
-    Categories (5, object): [a, b, c, d, e]
+    Categories (5, object): ['a', 'b', 'c', 'd', 'e']
 
     >>> s.cat.as_ordered()
     0    a
@@ -2539,7 +2544,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     4    c
     5    c
     dtype: category
-    Categories (3, object): [a < b < c]
+    Categories (3, object): ['a' < 'b' < 'c']
 
     >>> s.cat.as_unordered()
     0    a
@@ -2549,7 +2554,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     4    c
     5    c
     dtype: category
-    Categories (3, object): [a, b, c]
+    Categories (3, object): ['a', 'b', 'c']
     """
 
     def __init__(self, data):
