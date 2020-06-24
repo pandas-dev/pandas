@@ -553,6 +553,7 @@ writer_engine_doc = """
 _xls_options = ["xlwt"]
 _xlsm_options = ["openpyxl"]
 _xlsx_options = ["openpyxl", "xlsxwriter"]
+_ods_options = ["odf"]
 
 
 with cf.config_prefix("io.excel.xls"):
@@ -577,6 +578,15 @@ with cf.config_prefix("io.excel.xlsx"):
         "writer",
         "auto",
         writer_engine_doc.format(ext="xlsx", others=", ".join(_xlsx_options)),
+        validator=str,
+    )
+
+
+with cf.config_prefix("io.excel.ods"):
+    cf.register_option(
+        "writer",
+        "auto",
+        writer_engine_doc.format(ext="ods", others=", ".join(_ods_options)),
         validator=str,
     )
 
