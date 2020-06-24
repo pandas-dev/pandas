@@ -1823,7 +1823,8 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         df = pd.DataFrame(input)
 
         if self.conn.dialect.name == "mysql":
-            with pytest.raises(ValueError("inf can not be used with MySQL")):
+            msg = "inf can not be used with MySQL"
+            with pytest.raises(ValueError, match=msg):
                 df.to_sql("foobar", self.conn, index=False)
         else:
             df.to_sql("foobar", self.conn, index=False)
