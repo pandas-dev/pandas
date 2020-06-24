@@ -978,6 +978,7 @@ MultiIndex
 
 - Bug in :meth:`MultiIndex.intersection` was not guaranteed to preserve order when ``sort=False``. (:issue:`31325`)
 - Bug in :meth:`DataFrame.truncate` was dropping :class:`MultiIndex` names. (:issue:`34564`)
+- Bug in :meth:`DataFrame.ewm.cov` was throwing ``AssertionError`` for :class:`MultiIndex` inputs (:issue:`34440`)
 
 .. ipython:: python
 
