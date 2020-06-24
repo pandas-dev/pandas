@@ -1144,14 +1144,15 @@ class TestExcelFileRead:
         )
         tm.assert_frame_equal(expected, result)
 
-    def test_read_datetime_multiindex(self, read_ext):
+    def test_read_datetime_multiindex(self, engine, read_ext):
         # GH 34748
 
         if read_ext == ".ods":
             pytest.xfail("ODS Sheets containing datetimes not supported")
 
         f = "test_datetime_mi" + read_ext
-        actual = pd.read_excel(f, header=[0, 1], index_col=0)
+        with pd.ExcelFile(f) as excel:
+            actual = pd.read_excel(excel, header=[0, 1], index_col=0, engine=engine)
         expected_column_index = pd.MultiIndex.from_tuples(
             [(pd.to_datetime("02/29/2020"), pd.to_datetime("03/01/2020"))],
             names=[
