@@ -1514,13 +1514,13 @@ def cast_scalar_to_array(shape, value, dtype: Optional[DtypeObj] = None) -> np.n
     if is_extension_array_dtype(dtype):
         if isinstance(shape, int):
             shape = (shape, 1)
-        values = [
+        return [
             construct_1d_arraylike_from_scalar(value, shape[0], dtype)
             for _ in range(shape[1])
         ]
-    else:
-        values = np.empty(shape, dtype=dtype)
-        values.fill(fill_value)
+
+    values = np.empty(shape, dtype=dtype)
+    values.fill(fill_value)
 
     return values
 
