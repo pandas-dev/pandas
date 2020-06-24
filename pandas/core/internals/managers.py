@@ -27,9 +27,10 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import array_equivalent, isna
 
 import pandas.core.algorithms as algos
+from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
@@ -1409,29 +1410,39 @@ class BlockManager(PandasObject):
             new_axis=new_labels, indexer=indexer, axis=axis, allow_dups=True
         )
 
-    def equals(self, other) -> bool:
+    def equals(self, other: "BlockManager") -> bool:
         self_axes, other_axes = self.axes, other.axes
         if len(self_axes) != len(other_axes):
             return False
         if not all(ax1.equals(ax2) for ax1, ax2 in zip(self_axes, other_axes)):
             return False
-        self._consolidate_inplace()
-        other._consolidate_inplace()
-        if len(self.blocks) != len(other.blocks):
-            return False
 
-        # canonicalize block order, using a tuple combining the mgr_locs
-        # then type name because there might be unconsolidated
-        # blocks (say, Categorical) which can only be distinguished by
-        # the iteration order
-        def canonicalize(block):
-            return (block.mgr_locs.as_array.tolist(), block.dtype.name)
+        if self.ndim == 1:
+            if other.ndim != 1:
+                return False
+            blk = self.blocks[0]
+            rblk = other.blocks[0]
+            if blk.is_extension and rblk.is_extension:
+                return blk.values.equals(rblk.values)
+            elif blk.is_extension or rblk.is_extension:
+                return False
+            else:
+                return array_equivalent(blk.values, rblk.values)
 
-        self_blocks = sorted(self.blocks, key=canonicalize)
-        other_blocks = sorted(other.blocks, key=canonicalize)
-        return all(
-            block.equals(oblock) for block, oblock in zip(self_blocks, other_blocks)
-        )
+        for i in range(len(self.items)):
+            left = self.iget_values(i)
+            right = other.iget_values(i)
+            left_ea = isinstance(left, ExtensionArray)
+            right_ea = isinstance(right, ExtensionArray)
+            if left_ea and right_ea:
+                if not left.equals(right):
+                    return False
+            elif left_ea or right_ea:
+                return False
+            else:
+                if not array_equivalent(left, right):
+                    return False
+        return True
 
     def unstack(self, unstacker, fill_value) -> "BlockManager":
         """
