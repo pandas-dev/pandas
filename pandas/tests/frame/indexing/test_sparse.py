@@ -25,7 +25,7 @@ class TestSparseDataFrameIndexing:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("spmatrix_t", ["coo_matrix", "csc_matrix", "csr_matrix"])
-    @pytest.mark.parametrize("dtype", [np.int64, np.float64, np.complex])
+    @pytest.mark.parametrize("dtype", [np.int64, np.float64, complex])
     @td.skip_if_no_scipy
     def test_locindexer_from_spmatrix(self, spmatrix_t, dtype):
         import scipy.sparse
