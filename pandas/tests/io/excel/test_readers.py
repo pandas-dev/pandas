@@ -1146,6 +1146,8 @@ class TestExcelFileRead:
 
     def test_read_datetime_multiindex(self, engine, read_ext):
         # GH 34748
+        if engine == "pyxlsb":
+            pytest.xfail("Sheets containing datetimes not supported by pyxlsb")
 
         f = "test_datetime_mi" + read_ext
         with pd.ExcelFile(f) as excel:
