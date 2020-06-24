@@ -802,6 +802,9 @@ Deprecations
 - The ``squeeze`` keyword in the ``groupby`` function is deprecated and will be removed in a future version (:issue:`32380`)
 - The ``tz`` keyword in :meth:`Period.to_timestamp` is deprecated and will be removed in a future version; use `per.to_timestamp(...).tz_localize(tz)`` instead (:issue:`34522`)
 - :meth:`DatetimeIndex.to_perioddelta` is deprecated and will be removed in a future version.  Use ``index - index.to_period(freq).to_timestamp()`` instead (:issue:`34853`)
+- :meth:`util.testing.assert_almost_equal` now accepts both relative and absolute
+  precision through the ``rtol``, and ``atol`` parameters, thus deprecating the
+  ``check_less_precise`` parameter. (:issue:`13357`).
 
 .. ---------------------------------------------------------------------------
 
@@ -825,6 +828,8 @@ Performance improvements
 - Performance improvement for groupby methods :meth:`~pandas.core.groupby.groupby.Groupby.first`
   and :meth:`~pandas.core.groupby.groupby.Groupby.last` (:issue:`34178`)
 - Performance improvement in :func:`factorize` for nullable (integer and boolean) dtypes (:issue:`33064`).
+- Performance improvement when constructing :class:`Categorical` objects (:issue:`33921`)
+- Fixed performance regression in :func:`pandas.qcut` and :func:`pandas.cut` (:issue:`33921`)
 - Performance improvement in reductions (sum, prod, min, max) for nullable (integer and boolean) dtypes (:issue:`30982`, :issue:`33261`, :issue:`33442`).
 - Performance improvement in arithmetic operations between two :class:`DataFrame` objects (:issue:`32779`)
 - Performance improvement in :class:`pandas.core.groupby.RollingGroupby` (:issue:`34052`)
@@ -846,6 +851,7 @@ Categorical
 - Bug when passing categorical data to :class:`Index` constructor along with ``dtype=object`` incorrectly returning a :class:`CategoricalIndex` instead of object-dtype :class:`Index` (:issue:`32167`)
 - Bug where :class:`Categorical` comparison operator ``__ne__`` would incorrectly evaluate to ``False`` when either element was missing (:issue:`32276`)
 - :meth:`Categorical.fillna` now accepts :class:`Categorical` ``other`` argument (:issue:`32420`)
+- Repr of :class:`Categorical` was not distinguishing between int and str (:issue:`33676`)
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -1020,7 +1026,9 @@ I/O
 - Bug in :meth:`~pandas.io.stata.StataReader` which resulted in categorical variables with difference dtypes when reading data using an iterator. (:issue:`31544`)
 - :meth:`HDFStore.keys` has now an optional `include` parameter that allows the retrieval of all native HDF5 table names (:issue:`29916`)
 - Bug in :meth:`read_excel` for ODS files removes 0.0 values (:issue:`27222`)
+- Bug in :meth:`ujson.encode` was raising an `OverflowError` with numbers larger than sys.maxsize (:issue: `34395`)
 - Bug in :meth:`HDFStore.append_to_multiple` was raising a ``ValueError`` when the min_itemsize parameter is set (:issue:`11238`)
+
 
 Plotting
 ^^^^^^^^

@@ -31,7 +31,7 @@ import numpy as np
 from pandas._config import config
 
 from pandas._libs import lib
-from pandas._libs.tslibs import Timestamp, to_offset
+from pandas._libs.tslibs import Tick, Timestamp, to_offset
 from pandas._typing import (
     Axis,
     FilePathOrBuffer,
@@ -97,11 +97,11 @@ import pandas.core.indexing as indexing
 from pandas.core.internals import BlockManager
 from pandas.core.missing import find_valid_index
 from pandas.core.ops import _align_method_FRAME
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.formats import format as fmt
 from pandas.io.formats.format import DataFrameFormatter, format_percentiles
 from pandas.io.formats.printing import pprint_thing
-from pandas.tseries.offsets import Tick
 
 if TYPE_CHECKING:
     from pandas.core.resample import Resampler
@@ -109,7 +109,6 @@ if TYPE_CHECKING:
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
-_shared_docs: Dict[str, str] = dict()
 _shared_doc_kwargs = dict(
     axes="keywords for axes",
     klass="Series/DataFrame",
