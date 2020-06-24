@@ -121,15 +121,15 @@ def generate_property(name: str, klass: Type[FrameOrSeries]):
     return property(prop)
 
 
-def pin_whitelisted_properties(klass: Type[FrameOrSeries], whitelist: FrozenSet[str]):
+def pin_allowlisted_properties(klass: Type[FrameOrSeries], allowlist: FrozenSet[str]):
     """
-    Create GroupBy member defs for DataFrame/Series names in a whitelist.
+    Create GroupBy member defs for DataFrame/Series names in a allowlist.
 
     Parameters
     ----------
     klass : DataFrame or Series class
         class where members are defined.
-    whitelist : frozenset[str]
+    allowlist : frozenset[str]
         Set of names of klass methods to be constructed
 
     Returns
@@ -143,7 +143,7 @@ def pin_whitelisted_properties(klass: Type[FrameOrSeries], whitelist: FrozenSet[
     """
 
     def pinner(cls):
-        for name in whitelist:
+        for name in allowlist:
             if hasattr(cls, name):
                 # don't override anything that was explicitly defined
                 #  in the base class
@@ -157,9 +157,9 @@ def pin_whitelisted_properties(klass: Type[FrameOrSeries], whitelist: FrozenSet[
     return pinner
 
 
-@pin_whitelisted_properties(Series, base.series_apply_whitelist)
+@pin_allowlisted_properties(Series, base.series_apply_allowlist)
 class SeriesGroupBy(GroupBy[Series]):
-    _apply_whitelist = base.series_apply_whitelist
+    _apply_allowlist = base.series_apply_allowlist
 
     def _iterate_slices(self) -> Iterable[Series]:
         yield self._selected_obj
@@ -224,10 +224,9 @@ class SeriesGroupBy(GroupBy[Series]):
     def apply(self, func, *args, **kwargs):
         return super().apply(func, *args, **kwargs)
 
-    @Substitution(
-        examples=_agg_examples_doc, klass="Series",
+    @doc(
+        _agg_template, examples=_agg_examples_doc, klass="Series",
     )
-    @Appender(_agg_template)
     def aggregate(
         self, func=None, *args, engine="cython", engine_kwargs=None, **kwargs
     ):
@@ -474,7 +473,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
             )
 
-        elif func not in base.transform_kernel_whitelist:
+        elif func not in base.transform_kernel_allowlist:
             msg = f"'{func}' is not a valid function name for transform(name)"
             raise ValueError(msg)
         elif func in base.cythonized_kernels:
@@ -546,6 +545,7 @@ class SeriesGroupBy(GroupBy[Series]):
         builtin/cythonizable functions
         """
         ids, _, ngroup = self.grouper.group_info
+        result = result.reindex(self.grouper.result_index, copy=False)
         cast = self._transform_should_cast(func_nm)
         out = algorithms.take_1d(result._values, ids)
         if cast:
@@ -835,10 +835,10 @@ class SeriesGroupBy(GroupBy[Series]):
         return (filled / shifted) - 1
 
 
-@pin_whitelisted_properties(DataFrame, base.dataframe_apply_whitelist)
+@pin_allowlisted_properties(DataFrame, base.dataframe_apply_allowlist)
 class DataFrameGroupBy(GroupBy[DataFrame]):
 
-    _apply_whitelist = base.dataframe_apply_whitelist
+    _apply_allowlist = base.dataframe_apply_allowlist
 
     _agg_examples_doc = dedent(
         """
@@ -914,10 +914,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     See :ref:`groupby.aggregate.named` for more."""
     )
 
-    @Substitution(
-        examples=_agg_examples_doc, klass="DataFrame",
+    @doc(
+        _agg_template, examples=_agg_examples_doc, klass="DataFrame",
     )
-    @Appender(_agg_template)
     def aggregate(
         self, func=None, *args, engine="cython", engine_kwargs=None, **kwargs
     ):
@@ -1457,7 +1456,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
             )
 
-        elif func not in base.transform_kernel_whitelist:
+        elif func not in base.transform_kernel_allowlist:
             msg = f"'{func}' is not a valid function name for transform(name)"
             raise ValueError(msg)
         elif func in base.cythonized_kernels:
@@ -1496,6 +1495,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # for each col, reshape to to size of original frame
         # by take operation
         ids, _, ngroup = self.grouper.group_info
+        result = result.reindex(self.grouper.result_index, copy=False)
         output = []
         for i, _ in enumerate(result.columns):
             res = algorithms.take_1d(result.iloc[:, i].values, ids)
@@ -1573,8 +1573,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def filter(self, func, dropna=True, *args, **kwargs):
         """
-        Return a copy of a DataFrame excluding elements from groups that
-        do not satisfy the boolean criterion specified by func.
+        Return a copy of a DataFrame excluding filtered elements.
+
+        Elements from groups are filtered if they do not satisfy the
+        boolean criterion specified by func.
 
         Parameters
         ----------
@@ -1732,7 +1734,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         DataFrame
         """
         indexed_output = {key.position: val for key, val in output.items()}
-        columns = Index(key.label for key in output)
+        name = self._obj_with_exclusions._get_axis(1 - self.axis).name
+        columns = Index([key.label for key in output], name=name)
 
         result = self.obj._constructor(indexed_output)
         result.columns = columns
@@ -1835,8 +1838,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def nunique(self, dropna: bool = True):
         """
-        Return DataFrame with number of distinct observations per group for
-        each column.
+        Return DataFrame with counts of unique elements in each position.
 
         Parameters
         ----------

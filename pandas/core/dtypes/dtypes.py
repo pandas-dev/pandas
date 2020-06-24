@@ -20,7 +20,7 @@ import numpy as np
 import pytz
 
 from pandas._libs.interval import Interval
-from pandas._libs.tslibs import NaT, Period, Timestamp, timezones, to_offset
+from pandas._libs.tslibs import NaT, Period, Timestamp, dtypes, timezones, to_offset
 from pandas._libs.tslibs.offsets import BaseOffset
 from pandas._typing import DtypeObj, Ordered
 
@@ -848,7 +848,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
 
 @register_extension_dtype
-class PeriodDtype(PandasExtensionDtype):
+class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
     """
     An ExtensionDtype for Period data.
 
@@ -896,7 +896,8 @@ class PeriodDtype(PandasExtensionDtype):
 
         elif freq is None:
             # empty constructor for pickle compat
-            u = object.__new__(cls)
+            # -10_000 corresponds to PeriodDtypeCode.UNDEFINED
+            u = dtypes.PeriodDtypeBase.__new__(cls, -10_000)
             u._freq = None
             return u
 
@@ -906,10 +907,14 @@ class PeriodDtype(PandasExtensionDtype):
         try:
             return cls._cache[freq.freqstr]
         except KeyError:
-            u = object.__new__(cls)
+            dtype_code = freq._period_dtype_code
+            u = dtypes.PeriodDtypeBase.__new__(cls, dtype_code)
             u._freq = freq
             cls._cache[freq.freqstr] = u
             return u
+
+    def __reduce__(self):
+        return type(self), (self.freq,)
 
     @property
     def freq(self):
@@ -977,7 +982,7 @@ class PeriodDtype(PandasExtensionDtype):
         return isinstance(other, PeriodDtype) and self.freq == other.freq
 
     def __setstate__(self, state):
-        # for pickle compat. __get_state__ is defined in the
+        # for pickle compat. __getstate__ is defined in the
         # PandasExtensionDtype superclass and uses the public properties to
         # pickle -> need to set the settable private ones here (see GH26067)
         self._freq = state["freq"]

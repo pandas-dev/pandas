@@ -297,3 +297,11 @@ class TestResetIndex:
             index=RangeIndex(stop=2),
         )
         tm.assert_frame_equal(result, expected)
+
+
+def test_reset_index_dtypes_on_empty_frame_with_multiindex():
+    # GH 19602 - Preserve dtype on empty DataFrame with MultiIndex
+    idx = MultiIndex.from_product([[0, 1], [0.5, 1.0], ["a", "b"]])
+    result = DataFrame(index=idx)[:0].reset_index().dtypes
+    expected = Series({"level_0": np.int64, "level_1": np.float64, "level_2": object})
+    tm.assert_series_equal(result, expected)

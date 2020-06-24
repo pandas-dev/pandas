@@ -667,10 +667,8 @@ class _MergeOperation:
 
         join_index, left_indexer, right_indexer = self._get_join_info()
 
-        lsuf, rsuf = self.suffixes
-
         llabels, rlabels = _items_overlap_with_suffix(
-            self.left._info_axis, lsuf, self.right._info_axis, rsuf
+            self.left._info_axis, self.right._info_axis, self.suffixes
         )
 
         lindexers = {1: left_indexer} if left_indexer is not None else {}
@@ -1484,10 +1482,8 @@ class _OrderedMerge(_MergeOperation):
     def get_result(self):
         join_index, left_indexer, right_indexer = self._get_join_info()
 
-        lsuf, rsuf = self.suffixes
-
         llabels, rlabels = _items_overlap_with_suffix(
-            self.left._info_axis, lsuf, self.right._info_axis, rsuf
+            self.left._info_axis, self.right._info_axis, self.suffixes
         )
 
         if self.fill_method == "ffill":
@@ -2067,16 +2063,25 @@ def _validate_operand(obj: FrameOrSeries) -> "DataFrame":
         )
 
 
-def _items_overlap_with_suffix(left: Index, lsuffix, right: Index, rsuffix):
+def _items_overlap_with_suffix(left: Index, right: Index, suffixes: Tuple[str, str]):
     """
+    Suffixes type validation.
+
     If two indices overlap, add suffixes to overlapping entries.
 
     If corresponding suffix is empty, the entry is simply converted to string.
 
     """
+    if not isinstance(suffixes, tuple):
+        raise TypeError(
+            f"suffixes should be tuple of (str, str). But got {type(suffixes).__name__}"
+        )
+
     to_rename = left.intersection(right)
     if len(to_rename) == 0:
         return left, right
+
+    lsuffix, rsuffix = suffixes
 
     if not lsuffix and not rsuffix:
         raise ValueError(f"columns overlap but no suffix specified: {to_rename}")

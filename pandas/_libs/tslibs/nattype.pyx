@@ -221,9 +221,6 @@ cdef class _NaT(datetime):
     def __neg__(self):
         return NaT
 
-    def __div__(self, other):
-        return _nat_divide_op(self, other)
-
     def __truediv__(self, other):
         return _nat_divide_op(self, other)
 
@@ -397,7 +394,7 @@ class NaTType(_NaT):
 
         Parameters
         ----------
-        locale : string, default None (English locale)
+        locale : str, default None (English locale)
             Locale determining the language in which to return the month name.
 
         Returns
@@ -414,7 +411,7 @@ class NaTType(_NaT):
 
         Parameters
         ----------
-        locale : string, default None (English locale)
+        locale : str, default None (English locale)
             Locale determining the language in which to return the day name.
 
         Returns

@@ -14,6 +14,7 @@ from pandas.core.dtypes.common import (
     is_iterator,
     is_list_like,
     is_number,
+    is_numeric_dtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -952,9 +953,6 @@ class ScatterPlot(PlanePlot):
 
         c_is_column = is_hashable(c) and c in self.data.columns
 
-        # plot a colorbar only if a colormap is provided or necessary
-        cb = self.kwds.pop("colorbar", self.colormap or c_is_column)
-
         # pandas uses colormap, matplotlib uses cmap.
         cmap = self.colormap or "Greys"
         cmap = self.plt.cm.get_cmap(cmap)
@@ -969,6 +967,12 @@ class ScatterPlot(PlanePlot):
             c_values = self.data[c].values
         else:
             c_values = c
+
+        # plot colorbar if
+        # 1. colormap is assigned, and
+        # 2.`c` is a column containing only numeric values
+        plot_colorbar = self.colormap or c_is_column
+        cb = self.kwds.pop("colorbar", is_numeric_dtype(c_values) and plot_colorbar)
 
         if self.legend and hasattr(self, "label"):
             label = self.label

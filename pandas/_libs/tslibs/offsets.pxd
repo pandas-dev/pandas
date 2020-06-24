@@ -5,7 +5,7 @@ cdef bint is_offset_object(object obj)
 cdef bint is_tick_object(object obj)
 
 cdef class BaseOffset:
-	cdef readonly:
-		int64_t n
-		bint normalize
-		dict _cache
+    cdef readonly:
+        int64_t n
+        bint normalize
+        dict _cache
