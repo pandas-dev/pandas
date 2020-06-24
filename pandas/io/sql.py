@@ -1399,8 +1399,8 @@ class SQLDatabase(PandasSQL):
         except exc.SQLAlchemyError as err:
             # GH34431
             msg = "(1054, \"Unknown column 'inf' in 'field list'\")"
-            errText = str(err.orig)
-            if re.search(msg, errText):
+            err_text = str(err.orig)
+            if re.search(msg, err_text):
                 raise ValueError("inf cannot be used with MySQL") from err
             else:
                 raise err
