@@ -611,7 +611,8 @@ class DataFrame(NDFrame):
         if self._mgr.any_extension_types:
             return len({block.dtype for block in self._mgr.blocks}) == 1
         else:
-            return not self._mgr.is_mixed_type
+            # Note: consolidates inplace
+            return not self._is_mixed_type
 
     @property
     def _can_fast_transpose(self) -> bool:
