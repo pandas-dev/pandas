@@ -1,13 +1,12 @@
 import numpy as np
-import pandas as pd
+import pytest
 
 import pandas.util._test_decorators as td
-import pandas._testing as tm
 
+import pandas as pd
+import pandas._testing as tm
 from pandas.arrays import SparseArray
 from pandas.core.arrays.sparse import SparseDtype
-
-import pytest
 
 
 class TestSparseDataFrameIndexing:
