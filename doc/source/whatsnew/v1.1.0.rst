@@ -1080,6 +1080,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.groupby` lost index, when one of the ``agg`` keys referenced an empty list (:issue:`32580`)
 - Bug in :meth:`Rolling.apply` where ``center=True`` was ignored when ``engine='numba'`` was specified (:issue:`34784`)
 - Bug in :meth:`DataFrame.ewm.cov` was throwing ``AssertionError`` for :class:`MultiIndex` inputs (:issue:`34440`)
+- Bug in :meth:`core.groupby.DataFrameGroupBy.quantile` raises ``TypeError`` for non-numeric types rather than dropping columns (:issue:`27892`)
 
 Reshaping
 ^^^^^^^^^
