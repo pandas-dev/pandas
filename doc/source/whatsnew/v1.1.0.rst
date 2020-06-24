@@ -828,6 +828,8 @@ Performance improvements
 - Performance improvement for groupby methods :meth:`~pandas.core.groupby.groupby.Groupby.first`
   and :meth:`~pandas.core.groupby.groupby.Groupby.last` (:issue:`34178`)
 - Performance improvement in :func:`factorize` for nullable (integer and boolean) dtypes (:issue:`33064`).
+- Performance improvement when constructing :class:`Categorical` objects (:issue:`33921`)
+- Fixed performance regression in :func:`pandas.qcut` and :func:`pandas.cut` (:issue:`33921`)
 - Performance improvement in reductions (sum, prod, min, max) for nullable (integer and boolean) dtypes (:issue:`30982`, :issue:`33261`, :issue:`33442`).
 - Performance improvement in arithmetic operations between two :class:`DataFrame` objects (:issue:`32779`)
 - Performance improvement in :class:`pandas.core.groupby.RollingGroupby` (:issue:`34052`)
