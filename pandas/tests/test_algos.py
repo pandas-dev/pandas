@@ -1472,7 +1472,7 @@ class GroupVarTestMixin:
         expected_counts = counts + 2
 
         self.algo(out, counts, values, labels)
-        tm.assert_almost_equal(out, expected_out, check_less_precise=6)
+        tm.assert_almost_equal(out, expected_out, rtol=0.5e-06)
         tm.assert_numpy_array_equal(counts, expected_counts)
 
     def test_group_var_constant(self):
@@ -1510,7 +1510,7 @@ class TestGroupVarFloat64(GroupVarTestMixin):
         self.algo(out, counts, values, labels)
 
         assert counts[0] == 10 ** 6
-        tm.assert_almost_equal(out[0, 0], 1.0 / 12, check_less_precise=True)
+        tm.assert_almost_equal(out[0, 0], 1.0 / 12, rtol=0.5e-3)
 
 
 class TestGroupVarFloat32(GroupVarTestMixin):
