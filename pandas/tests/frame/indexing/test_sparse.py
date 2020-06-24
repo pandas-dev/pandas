@@ -26,22 +26,27 @@ class TestSparseDataFrameIndexing:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("spmatrix_t", ["coo_matrix", "csc_matrix", "csr_matrix"])
+    @pytest.mark.parametrize("dtype", [np.int64, np.float64, np.complex])
     @td.skip_if_no_scipy
-    def test_locindexer_from_spmatrix(self, spmatrix_t):
+    def test_locindexer_from_spmatrix(self, spmatrix_t, dtype):
         import scipy.sparse
 
         spmatrix_t = getattr(scipy.sparse, spmatrix_t)
 
-        spmatrix = spmatrix_t([[1.0, 0.0], [0.0, 0.0]], dtype=np.float64)
+        # The bug is triggered by a sparse matrix with purely sparse columns.  So the
+        # recipe below generates a rectangular matrix of dimension (5, 7) where all the
+        # diagonal cells are ones, meaning the last two columns are purely sparse.
+        rows, cols = 5, 7
+        spmatrix = spmatrix_t(np.eye(rows, cols, dtype=dtype), dtype=dtype)
         df = pd.DataFrame.sparse.from_spmatrix(spmatrix)
 
         # regression test for #34526
-        itr_idx = [1]
+        itr_idx = range(2, rows)
         result = df.loc[itr_idx].values
         expected = spmatrix.toarray()[itr_idx]
         tm.assert_numpy_array_equal(result, expected)
 
         # regression test for #34540
         result = df.loc[itr_idx].dtypes.values
-        expected = np.full(2, SparseDtype(np.float64, fill_value=0))
+        expected = np.full(cols, SparseDtype(dtype, fill_value=0))
         tm.assert_numpy_array_equal(result, expected)
