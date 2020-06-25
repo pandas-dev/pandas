@@ -568,8 +568,7 @@ class TestUltraJSONTests:
         assert str(bigNum) == encoding
 
         # GH20599
-        with pytest.raises(ValueError):
-            assert ujson.loads(encoding) == bigNum
+        assert ujson.decode(encoding) == bigNum
 
     @pytest.mark.parametrize(
         "int_exp", ["1337E40", "1.337E40", "1337E+9", "1.337e+40", "1.337E-4"]
