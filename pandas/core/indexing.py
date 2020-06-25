@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING, Hashable, List, Tuple, Union
 
 import numpy as np
 
+from pandas._config.config import option_context
 from pandas._libs.indexing import _NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
 from pandas.errors import AbstractMethodError, InvalidIndexError
@@ -1304,7 +1305,6 @@ class _LocIndexer(_LocationIndexer):
             # just raising
             if not ax.is_categorical():
                 not_found = key[missing_mask]
-                from pandas import option_context
 
                 with option_context("display.max_seq_items", 10, "display.width", 80):
                     raise KeyError(
