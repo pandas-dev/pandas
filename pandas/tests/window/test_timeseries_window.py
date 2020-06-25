@@ -55,28 +55,35 @@ class TestRollingTS:
         df = self.regular
 
         # not a valid freq
-        with pytest.raises(ValueError):
+        msg = "passed window foobar is not compatible with a datetimelike index"
+        with pytest.raises(ValueError, match=msg):
             df.rolling(window="foobar")
-
         # not a datetimelike index
-        with pytest.raises(ValueError):
+        msg = "window must be an integer"
+        with pytest.raises(ValueError, match=msg):
             df.reset_index().rolling(window="foobar")
 
         # non-fixed freqs
+        msg = "\\<2 \\* MonthBegins\\> is a non-fixed frequency"
         for freq in ["2MS", offsets.MonthBegin(2)]:
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match=msg):
                 df.rolling(window=freq)
 
         for freq in ["1D", offsets.Day(2), "2ms"]:
             df.rolling(window=freq)
 
         # non-integer min_periods
+        msg = (
+            r"local variable 'minp' referenced before assignment|"
+            "min_periods must be an integer"
+        )
         for minp in [1.0, "foo", np.array([1, 2, 3])]:
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match=msg):
                 df.rolling(window="1D", min_periods=minp)
 
         # center is not implemented
-        with pytest.raises(NotImplementedError):
+        msg = "center is not implemented for datetimelike and offset based windows"
+        with pytest.raises(NotImplementedError, match=msg):
             df.rolling(window="1D", center=True)
 
     def test_on(self):
@@ -84,7 +91,11 @@ class TestRollingTS:
         df = self.regular
 
         # not a valid column
-        with pytest.raises(ValueError):
+        msg = (
+            r"invalid on specified as foobar, must be a column "
+            "\\(of DataFrame\\), an Index or None"
+        )
+        with pytest.raises(ValueError, match=msg):
             df.rolling(window="2s", on="foobar")
 
         # column is valid
@@ -93,7 +104,8 @@ class TestRollingTS:
         df.rolling(window="2d", on="C").sum()
 
         # invalid columns
-        with pytest.raises(ValueError):
+        msg = "window must be an integer"
+        with pytest.raises(ValueError, match=msg):
             df.rolling(window="2d", on="B")
 
         # ok even though on non-selected
@@ -125,11 +137,17 @@ class TestRollingTS:
 
         assert not df.index.is_monotonic
 
-        with pytest.raises(ValueError):
+        msg = "index must be monotonic"
+        with pytest.raises(ValueError, match=msg):
             df.rolling("2s").sum()
 
         df = df.reset_index()
-        with pytest.raises(ValueError):
+
+        msg = (
+            r"invalid on specified as A, must be a column "
+            "\\(of DataFrame\\), an Index or None"
+        )
+        with pytest.raises(ValueError, match=msg):
             df.rolling("2s", on="A").sum()
 
     def test_frame_on(self):
@@ -254,7 +272,8 @@ class TestRollingTS:
         )
 
         # closed must be 'right', 'left', 'both', 'neither'
-        with pytest.raises(ValueError):
+        msg = "closed must be 'right', 'left', 'both' or 'neither'"
+        with pytest.raises(ValueError, match=msg):
             self.regular.rolling(window="2s", closed="blabla")
 
         expected = df.copy()

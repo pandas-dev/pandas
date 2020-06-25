@@ -34,6 +34,7 @@ class Constructor:
         self.values_all_int8 = np.ones(N, "int8")
         self.categorical = pd.Categorical(self.values, self.categories)
         self.series = pd.Series(self.categorical)
+        self.intervals = pd.interval_range(0, 1, periods=N // 10)
 
     def time_regular(self):
         pd.Categorical(self.values, self.categories)
@@ -43,6 +44,9 @@ class Constructor:
 
     def time_datetimes(self):
         pd.Categorical(self.datetimes)
+
+    def time_interval(self):
+        pd.Categorical(self.datetimes, categories=self.datetimes)
 
     def time_datetimes_with_nat(self):
         pd.Categorical(self.datetimes_with_nat)
