@@ -193,7 +193,6 @@ class TestPairwise:
     def test_cov_mulittindex(self):
         # GH 34440
 
-        # create multiindexed DataFrame
         columns = MultiIndex.from_product([["a", "b"], ["x", "y"], [0, 1]])
         index = range(3)
         len_idx, num_cols = len(index), len(columns)
