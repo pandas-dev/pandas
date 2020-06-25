@@ -6414,6 +6414,40 @@ a
 a   13.0   13.0
 b   12.3  123.0
 NaN 12.3   33.0
+
+By default, the group keys are not prepended to the index for transforms
+passed to ``apply``.
+
+>>> df = pd.DataFrame({'Animal': ['Falcon', 'Falcon',
+...                               'Parrot', 'Parrot'],
+...                    'Max Speed': [380., 370., 24., 26.]})
+>>> df.groupby("Animal").apply(lambda x: x)
+   Animal  Max Speed
+0  Falcon      380.0
+1  Falcon      370.0
+2  Parrot       24.0
+3  Parrot       26.0
+
+But they are prepended for user-defined functions that return an object
+with different row or column labels.
+
+>>> df.groupby("Animal").apply(lambda x: x.rename(index=np.exp))
+                  Animal  Max Speed
+Animal
+Falcon 1.000000   Falcon      380.0
+       2.718282   Falcon      370.0
+Parrot 7.389056   Parrot       24.0
+       20.085537  Parrot       26.0
+
+To control this behavior, specify ``result_group_keys``
+
+>>> df.groupby("Animal", result_group_keys=True).apply(lambda x: x)
+          Animal  Max Speed
+Animal
+Falcon 0  Falcon      380.0
+       1  Falcon      370.0
+Parrot 2  Parrot       24.0
+       3  Parrot       26.0
 """
     )
     @Appender(_shared_docs["groupby"] % _shared_doc_kwargs)
@@ -6428,6 +6462,7 @@ NaN 12.3   33.0
         squeeze: bool = no_default,
         observed: bool = False,
         dropna: bool = True,
+        result_group_keys: Optional[bool] = None,
     ) -> "DataFrameGroupBy":
         from pandas.core.groupby.generic import DataFrameGroupBy
 
@@ -6458,6 +6493,7 @@ NaN 12.3   33.0
             squeeze=squeeze,
             observed=observed,
             dropna=dropna,
+            result_group_keys=result_group_keys,
         )
 
     _shared_docs[

@@ -7403,6 +7403,15 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             If False, NA values will also be treated as the key in groups
 
             .. versionadded:: 1.1.0
+        result_group_keys : bool, optional
+            Whether to prepend the group keys to the result's index when
+            using ``apply``. By default, this depends on whether the result
+            of the user-defined function passed to apply is a *transformation*
+            (which returns a like-indexed object) or not (returns an object
+            with a different index or column names). Transforms do not get
+            the group keys prepended as an index level. Other functions do.
+
+            .. versionadded:: 1.1.0
 
         Returns
         -------

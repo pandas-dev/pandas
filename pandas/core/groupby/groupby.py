@@ -493,6 +493,7 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         observed: bool = False,
         mutated: bool = False,
         dropna: bool = True,
+        result_group_keys: Optional[bool] = None,
     ):
 
         self._selection = selection
@@ -515,6 +516,7 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         self.observed = observed
         self.mutated = mutated
         self.dropna = dropna
+        self.result_group_keys = result_group_keys
 
         if grouper is None:
             from pandas.core.groupby.grouper import get_grouper
@@ -887,9 +889,15 @@ b  2""",
             data after applying f
         """
         keys, values, mutated = self.grouper.apply(f, data, self.axis)
+        if self.result_group_keys is None:
+            # infer by default
+            not_indexed_same = mutated or self.mutated
+        else:
+            # but defer to user-specified value
+            not_indexed_same = bool(self.result_group_keys)
 
         return self._wrap_applied_output(
-            keys, values, not_indexed_same=mutated or self.mutated
+            keys, values, not_indexed_same=not_indexed_same
         )
 
     def _iterate_slices(self) -> Iterable[Series]:
