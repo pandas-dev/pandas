@@ -193,14 +193,14 @@ class TestPairwise:
     def test_cov_mulittindex(self):
         # GH 34440
 
-        columns = MultiIndex.from_product([["a", "b"], ["x", "y"], ["A", "B"]])
+        columns = MultiIndex.from_product([list("ab"), list("xy"), list("AB")])
         index = range(3)
         df = DataFrame(np.arange(24).reshape(3, 8), index=index, columns=columns,)
 
         result = df.ewm(alpha=0.1).cov()
 
-        index = MultiIndex.from_product([range(3), ["a", "b"], ["x", "y"], ["A", "B"]])
-        columns = MultiIndex.from_product([["a", "b"], ["x", "y"], ["A", "B"]])
+        index = MultiIndex.from_product([range(3), list("ab"), list("xy"), list("AB")])
+        columns = MultiIndex.from_product([list("ab"), list("xy"), list("AB")])
         expected = DataFrame(
             np.vstack(
                 (
