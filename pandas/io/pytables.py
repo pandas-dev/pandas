@@ -3590,6 +3590,10 @@ class Table(Fixed):
                             "data_columns when initializing the table."
                         )
                     v.create_index(**kw)
+            elif v in self.non_index_axes[0][1]:
+                # axis exists but wasn't specified as a data_column
+                # create colindex
+                pass
 
     def _read_axes(
         self, where, start: Optional[int] = None, stop: Optional[int] = None
