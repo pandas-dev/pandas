@@ -1419,18 +1419,20 @@ class BlockManager(PandasObject):
             return False
 
         if self.ndim == 1:
+            # For SingleBlockManager (i.e.Series)
             if other.ndim != 1:
                 return False
-            blk = self.blocks[0]
-            rblk = other.blocks[0]
-            if blk.is_extension and rblk.is_extension:
-                return blk.values.equals(rblk.values)
-            elif blk.is_extension or rblk.is_extension:
+            left = self.blocks[0].values
+            right = other.blocks[0].values
+            if not is_dtype_equal(left.dtype, right.dtype):
                 return False
+            elif isinstance(left, ExtensionArray):
+                return left.equals(right)
             else:
-                return array_equivalent(blk.values, rblk.values)
+                return array_equivalent(left, right)
 
         for i in range(len(self.items)):
+            # Check column-wise, return False if any column doesnt match
             left = self.iget_values(i)
             right = other.iget_values(i)
             if not is_dtype_equal(left.dtype, right.dtype):
