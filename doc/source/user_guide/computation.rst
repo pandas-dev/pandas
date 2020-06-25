@@ -561,7 +561,7 @@ For example, if we have the following ``DataFrame``:
    df
 
 and we want to use an expanding window where ``use_expanding`` is ``True`` otherwise a window of size
-1, we can create the following ``BaseIndexer``:
+1, we can create the following ``BaseIndexer`` subclass:
 
 .. code-block:: ipython
 
@@ -592,6 +592,8 @@ and we want to use an expanding window where ``use_expanding`` is ``True`` other
    2     3.0
    3     3.0
    4    10.0
+
+You can view other examples of ``BaseIndexer`` subclasses `here <https://github.com/pandas-dev/pandas/blob/master/pandas/core/window/indexers.py>`__
 
 .. versionadded:: 1.1
 
