@@ -3596,8 +3596,6 @@ class Table(Fixed):
                     f"In order to read column {c} you must reload the dataframe \n"
                     f"into HDFStore and include {c} with the data_columns argument."
                 )
-                # more information on this error at
-                # https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns
 
     def _read_axes(
         self, where, start: Optional[int] = None, stop: Optional[int] = None
