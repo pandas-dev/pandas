@@ -16,7 +16,7 @@ from pandas import (
 
 from .pandas_vb_common import tm
 
-method_blacklist = {
+method_blocklist = {
     "object": {
         "median",
         "prod",
@@ -403,7 +403,7 @@ class GroupByMethods:
     ]
 
     def setup(self, dtype, method, application):
-        if method in method_blacklist.get(dtype, {}):
+        if method in method_blocklist.get(dtype, {}):
             raise NotImplementedError  # skip benchmark
         ngroups = 1000
         size = ngroups * 2

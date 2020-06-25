@@ -136,6 +136,7 @@ from pandas.core.internals.construction import (
     sanitize_index,
     to_arrays,
 )
+from pandas.core.reshape.melt import melt
 from pandas.core.series import Series
 from pandas.core.sorting import ensure_key_mapped
 
@@ -612,7 +613,8 @@ class DataFrame(NDFrame):
         if self._mgr.any_extension_types:
             return len({block.dtype for block in self._mgr.blocks}) == 1
         else:
-            return not self._mgr.is_mixed_type
+            # Note: consolidates inplace
+            return not self._is_mixed_type
 
     @property
     def _can_fast_transpose(self) -> bool:
@@ -4007,7 +4009,8 @@ class DataFrame(NDFrame):
         level : int or level name, optional
             For MultiIndex, level from which the labels will be removed.
         inplace : bool, default False
-            If True, do operation inplace and return None.
+            If False, return a copy. Otherwise, do operation
+            inplace and return None.
         errors : {'ignore', 'raise'}, default 'raise'
             If 'ignore', suppress error and only existing labels are
             dropped.
@@ -4723,7 +4726,7 @@ class DataFrame(NDFrame):
                 # we can have situations where the whole mask is -1,
                 # meaning there is nothing found in labels, so make all nan's
                 if mask.all():
-                    values = np.empty(len(mask))
+                    values = np.empty(len(mask), dtype=index.dtype)
                     values.fill(np.nan)
                 else:
                     values = values.take(labels)
@@ -6783,8 +6786,6 @@ NaN 12.3   33.0
             level(s) is (are) taken from the prescribed level(s) and
             the output is a DataFrame.
 
-        The new index levels are sorted.
-
         Parameters
         ----------
         level : int, str, list, default -1
@@ -7020,8 +7021,6 @@ NaN 12.3   33.0
         If the index is not a MultiIndex, the output will be a Series
         (the analogue of stack when the columns are not a MultiIndex).
 
-        The level involved will automatically get sorted.
-
         Parameters
         ----------
         level : int, str, or list of these, default -1 (last level)
@@ -7073,104 +7072,6 @@ NaN 12.3   33.0
 
         return unstack(self, level, fill_value)
 
-    _shared_docs[
-        "melt"
-    ] = """
-    Unpivot a DataFrame from wide to long format, optionally leaving identifiers set.
-
-    This function is useful to massage a DataFrame into a format where one
-    or more columns are identifier variables (`id_vars`), while all other
-    columns, considered measured variables (`value_vars`), are "unpivoted" to
-    the row axis, leaving just two non-identifier columns, 'variable' and
-    'value'.
-    %(versionadded)s
-    Parameters
-    ----------
-    id_vars : tuple, list, or ndarray, optional
-        Column(s) to use as identifier variables.
-    value_vars : tuple, list, or ndarray, optional
-        Column(s) to unpivot. If not specified, uses all columns that
-        are not set as `id_vars`.
-    var_name : scalar
-        Name to use for the 'variable' column. If None it uses
-        ``frame.columns.name`` or 'variable'.
-    value_name : scalar, default 'value'
-        Name to use for the 'value' column.
-    col_level : int or str, optional
-        If columns are a MultiIndex then use this level to melt.
-
-    Returns
-    -------
-    DataFrame
-        Unpivoted DataFrame.
-
-    See Also
-    --------
-    %(other)s : Identical method.
-    pivot_table : Create a spreadsheet-style pivot table as a DataFrame.
-    DataFrame.pivot : Return reshaped DataFrame organized
-        by given index / column values.
-    DataFrame.explode : Explode a DataFrame from list-like
-            columns to long format.
-
-    Examples
-    --------
-    >>> df = pd.DataFrame({'A': {0: 'a', 1: 'b', 2: 'c'},
-    ...                    'B': {0: 1, 1: 3, 2: 5},
-    ...                    'C': {0: 2, 1: 4, 2: 6}})
-    >>> df
-       A  B  C
-    0  a  1  2
-    1  b  3  4
-    2  c  5  6
-
-    >>> %(caller)sid_vars=['A'], value_vars=['B'])
-       A variable  value
-    0  a        B      1
-    1  b        B      3
-    2  c        B      5
-
-    >>> %(caller)sid_vars=['A'], value_vars=['B', 'C'])
-       A variable  value
-    0  a        B      1
-    1  b        B      3
-    2  c        B      5
-    3  a        C      2
-    4  b        C      4
-    5  c        C      6
-
-    The names of 'variable' and 'value' columns can be customized:
-
-    >>> %(caller)sid_vars=['A'], value_vars=['B'],
-    ...         var_name='myVarname', value_name='myValname')
-       A myVarname  myValname
-    0  a         B          1
-    1  b         B          3
-    2  c         B          5
-
-    If you have multi-index columns:
-
-    >>> df.columns = [list('ABC'), list('DEF')]
-    >>> df
-       A  B  C
-       D  E  F
-    0  a  1  2
-    1  b  3  4
-    2  c  5  6
-
-    >>> %(caller)scol_level=0, id_vars=['A'], value_vars=['B'])
-       A variable  value
-    0  a        B      1
-    1  b        B      3
-    2  c        B      5
-
-    >>> %(caller)sid_vars=[('A', 'D')], value_vars=[('B', 'E')])
-      (A, D) variable_0 variable_1  value
-    0      a          B          E      1
-    1      b          B          E      3
-    2      c          B          E      5
-    """
-
     @Appender(
         _shared_docs["melt"]
         % dict(
@@ -7187,7 +7088,6 @@ NaN 12.3   33.0
         value_name="value",
         col_level=None,
     ) -> "DataFrame":
-        from pandas.core.reshape.melt import melt
 
         return melt(
             self,
@@ -8222,7 +8122,7 @@ NaN 12.3   33.0
             Delta degrees of freedom.  The divisor used in calculations
             is ``N - ddof``, where ``N`` represents the number of elements.
 
-            versionadded:: 1.1.0
+            .. versionadded:: 1.1.0
 
         Returns
         -------

@@ -524,8 +524,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         array(['a', 'a', 'b', 'c'], dtype=object)
 
         >>> pd.Series(list('aabc')).astype('category').values
-        [a, a, b, c]
-        Categories (3, object): [a, b, c]
+        ['a', 'a', 'b', 'c']
+        Categories (3, object): ['a', 'b', 'c']
 
         Timezone aware datetime data is converted to UTC:
 
@@ -1850,15 +1850,15 @@ Name: Max Speed, dtype: float64
         appearance.
 
         >>> pd.Series(pd.Categorical(list('baabc'))).unique()
-        [b, a, c]
-        Categories (3, object): [b, a, c]
+        ['b', 'a', 'c']
+        Categories (3, object): ['b', 'a', 'c']
 
         An ordered Categorical preserves the category ordering.
 
         >>> pd.Series(pd.Categorical(list('baabc'), categories=list('abc'),
         ...                          ordered=True)).unique()
-        [b, a, c]
-        Categories (3, object): [a < b < c]
+        ['b', 'a', 'c']
+        Categories (3, object): ['a' < 'b' < 'c']
         """
         result = super().unique()
         return result
@@ -2342,7 +2342,7 @@ Name: Max Speed, dtype: float64
             Delta degrees of freedom.  The divisor used in calculations
             is ``N - ddof``, where ``N`` represents the number of elements.
 
-            versionadded:: 1.1.0
+            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -3834,8 +3834,6 @@ Keep all original rows and also all original values
     def unstack(self, level=-1, fill_value=None):
         """
         Unstack, also known as pivot, Series with MultiIndex to produce DataFrame.
-
-        The level involved will automatically get sorted.
 
         Parameters
         ----------
