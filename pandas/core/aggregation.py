@@ -28,11 +28,24 @@ from pandas.core.series import FrameOrSeriesUnion, Series
 
 
 def reconstruct_func(
-    func: Optional[Union[List, Dict]], **kwargs
+    func: Optional[
+        Union[
+            Union[Callable, str],
+            List[Union[Callable, str]],
+            Dict[Label, Union[Union[Callable, str], List[Union[Callable, str]]]],
+        ]
+    ],
+    **kwargs,
 ) -> Tuple[bool, Optional[Union[List, Dict]], Optional[List[str]], Optional[List[int]]]:
     """
     This is the internal function to reconstruct func given if there is relabeling
     or not and also normalize the keyword to get new order of columns.
+
+    If named aggregation is applied, `func` will be None, and kwargs contains the
+    column and aggregation function information to be parsed;
+    If named aggregation is not applied, `func` is either string (e.g. 'min') or
+    Callable, or list of them (e.g. ['min', np.max]), or the dictionary of column name
+    and str/Callable/list of them (e.g. {'A': 'min'}, or {'A': [np.min, lambda x: x]})
 
     If relabeling is True, will return relabeling, reconstructed func, column
     names, and the reconstructed order of columns.
@@ -40,7 +53,8 @@ def reconstruct_func(
 
     Parameters
     ----------
-    func: aggregated function
+    func: agg function (e.g. 'min' or Callable) or list of agg functions
+        (e.g. ['min', np.max]) or dictionary (e.g. {'A': ['min', np.max]}).
     **kwargs: dict, kwargs used in is_multi_agg_with_relabel and
         normalize_keyword_aggregation function for relabelling
 
