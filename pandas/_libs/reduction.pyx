@@ -205,8 +205,7 @@ cdef class _BaseGrouper:
 
     cdef inline object _apply_to_group(self,
                                        object cached_typ, object cached_ityp,
-                                       Slider islider, Slider vslider,
-                                       Py_ssize_t group_size, bint initialized):
+                                       bint initialized):
         """
         Call self.f on our new group, then update to the next group.
         """
@@ -221,9 +220,6 @@ cdef class _BaseGrouper:
             #  if this looks like a reduction.
             initialized = True
             _check_result_array(res, len(self.dummy_arr))
-
-        islider.advance(group_size)
-        vslider.advance(group_size)
 
         return res, initialized
 
@@ -269,7 +265,7 @@ cdef class SeriesBinGrouper(_BaseGrouper):
         cdef:
             ndarray arr, result
             ndarray[int64_t] counts
-            Py_ssize_t i, n, group_size
+            Py_ssize_t i, n, group_size, start, end
             object res
             bint initialized = 0
             Slider vslider, islider
@@ -293,19 +289,21 @@ cdef class SeriesBinGrouper(_BaseGrouper):
 
         result = np.empty(self.ngroups, dtype='O')
 
+        start = 0
         try:
             for i in range(self.ngroups):
                 group_size = counts[i]
+                end = start + group_size
 
-                islider.set_length(group_size)
-                vslider.set_length(group_size)
+                islider.move(start, end)
+                vslider.move(start, end)
 
                 cached_typ, cached_ityp = self._update_cached_objs(
                     cached_typ, cached_ityp, islider, vslider)
 
                 res, initialized = self._apply_to_group(cached_typ, cached_ityp,
-                                                        islider, vslider,
-                                                        group_size, initialized)
+                                                        initialized)
+                start += group_size
 
                 result[i] = res
 
@@ -361,7 +359,7 @@ cdef class SeriesGrouper(_BaseGrouper):
             # Define result to avoid UnboundLocalError
             ndarray arr, result = None
             ndarray[int64_t] labels, counts
-            Py_ssize_t i, n, group_size, lab
+            Py_ssize_t i, n, group_size, lab, start, end
             object res
             bint initialized = 0
             Slider vslider, islider
@@ -377,6 +375,7 @@ cdef class SeriesGrouper(_BaseGrouper):
 
         result = np.empty(self.ngroups, dtype='O')
 
+        start = 0
         try:
             for i in range(n):
                 group_size += 1
@@ -385,20 +384,21 @@ cdef class SeriesGrouper(_BaseGrouper):
 
                 if i == n - 1 or lab != labels[i + 1]:
                     if lab == -1:
-                        islider.advance(group_size)
-                        vslider.advance(group_size)
+                        start += group_size
                         group_size = 0
                         continue
 
-                    islider.set_length(group_size)
-                    vslider.set_length(group_size)
+                    end = start + group_size
+                    islider.move(start, end)
+                    vslider.move(start, end)
 
                     cached_typ, cached_ityp = self._update_cached_objs(
                         cached_typ, cached_ityp, islider, vslider)
 
                     res, initialized = self._apply_to_group(cached_typ, cached_ityp,
-                                                            islider, vslider,
-                                                            group_size, initialized)
+                                                            initialized)
+
+                    start += group_size
 
                     result[lab] = res
                     counts[lab] = group_size
@@ -458,18 +458,12 @@ cdef class Slider:
         self.buf.data = self.values.data
         self.buf.strides[0] = self.stride
 
-    cdef advance(self, Py_ssize_t k):
-        self.buf.data = <char*>self.buf.data + self.stride * k
-
     cdef move(self, int start, int end):
         """
         For slicing
         """
         self.buf.data = self.values.data + self.stride * start
         self.buf.shape[0] = end - start
-
-    cdef set_length(self, Py_ssize_t length):
-        self.buf.shape[0] = length
 
     cdef reset(self):
 
