@@ -2890,7 +2890,11 @@ class MultiIndex(Index):
             # if we have a provided indexer, then this need not consider
             # the entire labels set
 
-            r = np.arange(start, stop, step)
+            if is_scalar(start) and is_scalar(stop):
+                r = np.arange(start, stop, step)
+            else:
+                r = np.all(start, stop, step)
+
             if indexer is not None and len(indexer) != len(codes):
 
                 # we have an indexer which maps the locations in the labels

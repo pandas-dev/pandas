@@ -970,22 +970,20 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         tm.assert_series_equal(result, expected)
 
     def test_loc_setting_value_at_multiindex(self):
-        # issue: https://github.com/pandas-dev/pandas/issues/34870
-
+        # GH 34870
         arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
                   ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
+        array = [1, 1, 1, 1, 1, 1, 1, 1]
+        answer = [1, 1, 100, 100, 100, 100, 1, 1]
 
         tuples = list(zip(*arrays))
         index = pd.MultiIndex.from_tuples(tuples, names=['first', 'second'])
 
-        dt = pd.Series(np.random.randn(8), index=index)
-        correct = dt.copy(deep=True)
-        test = dt.copy(deep=True)
+        dt1 = pd.Series(array, index=index)
+        dt2 = pd.Series(answer, index=index)
 
-        test.loc[('baz', 'one'):('foo', 'two')] = 4
-        correct[('baz', 'one'):('foo', 'two')] = 4
-
-        assert correct.equals(test)
+        dt1.loc[('baz', 'one'):('foo', 'two')] = 100
+        tm.assert_series_equal(dt1, dt2)
 
 
 def test_series_loc_getitem_label_list_missing_values():
