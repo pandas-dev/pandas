@@ -32,7 +32,8 @@ def assert_stat_op_calc(
     has_skipna=True,
     check_dtype=True,
     check_dates=False,
-    check_less_precise=False,
+    rtol=1e-5,
+    atol=1e-8,
     skipna_alternative=None,
 ):
     """
@@ -54,9 +55,10 @@ def assert_stat_op_calc(
         "alternative(frame)" should be checked.
     check_dates : bool, default false
         Whether opname should be tested on a Datetime Series
-    check_less_precise : bool, default False
-        Whether results should only be compared approximately;
-        passed on to tm.assert_series_equal
+    rtol : float, default 1e-5
+        Relative tolerance.
+    atol : float, default 1e-8
+        Absolute tolerance.
     skipna_alternative : function, default None
         NaN-safe version of alternative
     """
@@ -87,14 +89,16 @@ def assert_stat_op_calc(
             result0,
             frame.apply(wrapper),
             check_dtype=check_dtype,
-            check_less_precise=check_less_precise,
+            rtol=rtol,
+            atol=atol,
         )
         # HACK: win32
         tm.assert_series_equal(
             result1,
             frame.apply(wrapper, axis=1),
             check_dtype=False,
-            check_less_precise=check_less_precise,
+            rtol=rtol,
+            atol=atol,
         )
     else:
         skipna_wrapper = alternative
@@ -105,13 +109,14 @@ def assert_stat_op_calc(
         result0,
         frame.apply(skipna_wrapper),
         check_dtype=check_dtype,
-        check_less_precise=check_less_precise,
+        rtol=rtol,
+        atol=atol,
     )
 
     if opname in ["sum", "prod"]:
         expected = frame.apply(skipna_wrapper, axis=1)
         tm.assert_series_equal(
-            result1, expected, check_dtype=False, check_less_precise=check_less_precise
+            result1, expected, check_dtype=False, rtol=rtol, atol=atol,
         )
 
     # check dtypes
@@ -339,7 +344,7 @@ class TestDataFrameAnalytics:
             np.sum,
             mixed_float_frame.astype("float32"),
             check_dtype=False,
-            check_less_precise=True,
+            rtol=1e-3,
         )
 
         assert_stat_op_calc(
