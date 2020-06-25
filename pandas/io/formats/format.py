@@ -588,7 +588,7 @@ class DataFrameFormatter(TableFormatter):
         elif isinstance(col_space, (int, str)):
             self.col_space = {"": col_space}
             self.col_space.update({column: col_space for column in self.frame.columns})
-        elif isinstance(col_space, dict):
+        elif isinstance(col_space, Mapping):
             for column in col_space.keys():
                 if column not in self.frame.columns and column != "":
                     raise ValueError(
@@ -596,7 +596,6 @@ class DataFrameFormatter(TableFormatter):
                     )
             self.col_space = col_space
         else:
-            col_space = cast(Sequence, col_space)
             if len(frame.columns) != len(col_space):
                 raise ValueError(
                     f"Col_space length({len(col_space)}) should match "
