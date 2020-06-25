@@ -1708,10 +1708,15 @@ class TestHDFStore:
                 df = tm.makeTimeDataFrame()
                 df["string"] = "foo"
                 df["string2"] = "bar"
+                df["string3"] = "foobar"
                 store.append("f", df, data_columns=["string", "string2"])
                 assert col("f", "index").is_indexed is True
                 assert col("f", "string").is_indexed is True
                 assert col("f", "string2").is_indexed is True
+
+                msg = "'Cols' object has no attribute 'string3'"
+                with pytest.raises(AttributeError, match=msg):
+                    col("f", "string3").is_indexed
 
                 # specify index=columns
                 store.append(
@@ -1726,6 +1731,11 @@ class TestHDFStore:
                 store.put("f2", df)
                 with pytest.raises(TypeError):
                     store.create_table_index("f2")
+
+                # try to index a col which isn't a data_column
+                # GH 28156
+                with pytest.raises(AttributeError):
+                    store.creat_table_index("f", columns=["string3"])
 
     def test_append_hierarchical(self, setup_path):
         index = MultiIndex(
