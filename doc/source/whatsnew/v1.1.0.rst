@@ -245,6 +245,22 @@ If needed you can adjust the bins with the argument ``offset`` (a Timedelta) tha
 
 For a full example, see: :ref:`timeseries.adjust-the-start-of-the-bins`.
 
+fsspec now used for filesystem handling
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For reading and writing to filesystems other than local and reading from HTTP(S),
+the optional dependency ``fsspec`` will be used to dispatch operations (:issue:`33452`).
+This will give unchanged
+functionality for S3 and GCS storage, which were already supported, but also add
+support for several other storage implementations such as `Azure Datalake and Blob`_,
+SSH, FTP, dropbox and github. For docs and capabilities, see the `fsspec docs`_.
+
+The existing capability to interface with S3 and GCS will be unaffected by this
+change, as ``fsspec`` will still bring in the same packages as before.
+
+.. _Azure Datalake and Blob: https://github.com/dask/adlfs
+
+.. _fsspec docs: https://filesystem-spec.readthedocs.io/en/latest/
 
 .. _whatsnew_110.enhancements.other:
 
@@ -298,7 +314,9 @@ Other enhancements
   result in object dtype but preserve the integer dtype (:issue:`33607`, :issue:`34339`).
 - :meth:`~pandas.io.gbq.read_gbq` now allows to disable progress bar (:issue:`33360`).
 - :meth:`~pandas.io.gbq.read_gbq` now supports the ``max_results`` kwarg from ``pandas-gbq`` (:issue:`34639`).
+- :meth:`Dataframe.cov` and :meth:`Series.cov` now support a new parameter ddof to support delta degrees of freedom as in the corresponding numpy methods (:issue:`34611`).
 - :meth:`DataFrame.to_html` and :meth:`DataFrame.to_string`'s ``col_space`` parameter now accepts a list of dict to change only some specific columns' width (:issue:`28917`).
+- :meth:`DataFrame.to_excel` can now also write OpenOffice spreadsheet (.ods) files (:issue:`27222`)
 - :class:`pandas.core.window.ExponentialMovingWindow` now supports a ``times`` argument that allows ``mean`` to be calculated with observations spaced by the timestamps in ``times`` (:issue:`34839`)
 
 .. ---------------------------------------------------------------------------
@@ -702,7 +720,9 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | fastparquet     | 0.3.2           |         |
 +-----------------+-----------------+---------+
-| gcsfs           | 0.2.2           |         |
+| fsspec          | 0.7.4           |         |
++-----------------+-----------------+---------+
+| gcsfs           | 0.6.0           |    X    |
 +-----------------+-----------------+---------+
 | lxml            | 3.8.0           |         |
 +-----------------+-----------------+---------+
@@ -718,7 +738,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | pytables        | 3.4.3           |    X    |
 +-----------------+-----------------+---------+
-| s3fs            | 0.3.0           |         |
+| s3fs            | 0.4.0           |    X    |
 +-----------------+-----------------+---------+
 | scipy           | 1.2.0           |    X    |
 +-----------------+-----------------+---------+
@@ -783,6 +803,9 @@ Deprecations
 - The ``squeeze`` keyword in the ``groupby`` function is deprecated and will be removed in a future version (:issue:`32380`)
 - The ``tz`` keyword in :meth:`Period.to_timestamp` is deprecated and will be removed in a future version; use `per.to_timestamp(...).tz_localize(tz)`` instead (:issue:`34522`)
 - :meth:`DatetimeIndex.to_perioddelta` is deprecated and will be removed in a future version.  Use ``index - index.to_period(freq).to_timestamp()`` instead (:issue:`34853`)
+- :meth:`util.testing.assert_almost_equal` now accepts both relative and absolute
+  precision through the ``rtol``, and ``atol`` parameters, thus deprecating the
+  ``check_less_precise`` parameter. (:issue:`13357`).
 
 .. ---------------------------------------------------------------------------
 
@@ -806,6 +829,8 @@ Performance improvements
 - Performance improvement for groupby methods :meth:`~pandas.core.groupby.groupby.Groupby.first`
   and :meth:`~pandas.core.groupby.groupby.Groupby.last` (:issue:`34178`)
 - Performance improvement in :func:`factorize` for nullable (integer and boolean) dtypes (:issue:`33064`).
+- Performance improvement when constructing :class:`Categorical` objects (:issue:`33921`)
+- Fixed performance regression in :func:`pandas.qcut` and :func:`pandas.cut` (:issue:`33921`)
 - Performance improvement in reductions (sum, prod, min, max) for nullable (integer and boolean) dtypes (:issue:`30982`, :issue:`33261`, :issue:`33442`).
 - Performance improvement in arithmetic operations between two :class:`DataFrame` objects (:issue:`32779`)
 - Performance improvement in :class:`pandas.core.groupby.RollingGroupby` (:issue:`34052`)
@@ -827,6 +852,7 @@ Categorical
 - Bug when passing categorical data to :class:`Index` constructor along with ``dtype=object`` incorrectly returning a :class:`CategoricalIndex` instead of object-dtype :class:`Index` (:issue:`32167`)
 - Bug where :class:`Categorical` comparison operator ``__ne__`` would incorrectly evaluate to ``False`` when either element was missing (:issue:`32276`)
 - :meth:`Categorical.fillna` now accepts :class:`Categorical` ``other`` argument (:issue:`32420`)
+- Repr of :class:`Categorical` was not distinguishing between int and str (:issue:`33676`)
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -935,6 +961,7 @@ Indexing
 - Bug in :meth:`Series.at` when used with a :class:`MultiIndex` would raise an exception on valid inputs (:issue:`26989`)
 - Bug in :meth:`DataFrame.loc` with dictionary of values changes columns with dtype of ``int`` to ``float`` (:issue:`34573`)
 - Bug in :meth:`Series.loc` when used with a :class:`MultiIndex` would raise an IndexingError when accessing a None value (:issue:`34318`)
+- Bug in :meth:`DataFrame.reset_index` and :meth:`Series.reset_index` would not preserve data types on an empty :class:`DataFrame` or :class:`Series` with a :class:`MultiIndex` (:issue:`19602`)
 
 Missing
 ^^^^^^^
@@ -999,6 +1026,8 @@ I/O
 - Bug in :meth:`~SQLDatabase.execute` was raising a ``ProgrammingError`` for some DB-API drivers when the SQL statement contained the `%` character and no parameters were present (:issue:`34211`)
 - Bug in :meth:`~pandas.io.stata.StataReader` which resulted in categorical variables with difference dtypes when reading data using an iterator. (:issue:`31544`)
 - :meth:`HDFStore.keys` has now an optional `include` parameter that allows the retrieval of all native HDF5 table names (:issue:`29916`)
+- Bug in :meth:`read_excel` for ODS files removes 0.0 values (:issue:`27222`)
+- Bug in :meth:`ujson.encode` was raising an `OverflowError` with numbers larger than sys.maxsize (:issue: `34395`)
 
 Plotting
 ^^^^^^^^
@@ -1009,6 +1038,7 @@ Plotting
 - Bug in :meth:`DataFrame.hist` where the order of ``column`` argument was ignored (:issue:`29235`)
 - Bug in :meth:`DataFrame.plot.scatter` that when adding multiple plots with different ``cmap``, colorbars alway use the first ``cmap`` (:issue:`33389`)
 - Bug in :meth:`DataFrame.plot.scatter` was adding a colorbar to the plot even if the argument `c` was assigned to a column containing color names (:issue:`34316`)
+- Bug in :meth:`pandas.plotting.bootstrap_plot` was causing cluttered axes and overlapping labels (:issue:`34905`)
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1101,6 +1131,7 @@ Other
 - :class:`IntegerArray` now implements the ``sum`` operation (:issue:`33172`)
 - Bug in :class:`Tick` comparisons raising ``TypeError`` when comparing against timedelta-like objects (:issue:`34088`)
 - Bug in :class:`Tick` multiplication raising ``TypeError`` when multiplying by a float (:issue:`34486`)
+- Passing a `set` as `names` argument to :func:`pandas.read_csv`, :func:`pandas.read_table`, or :func:`pandas.read_fwf` will raise ``ValueError: Names should be an ordered collection.`` (:issue:`34946`)
 
 .. ---------------------------------------------------------------------------
 

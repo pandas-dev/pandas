@@ -150,16 +150,16 @@ def cut(
 
     >>> pd.cut(np.array([1, 7, 5, 4, 6, 3]),
     ...        3, labels=["bad", "medium", "good"])
-    [bad, good, medium, medium, good, bad]
-    Categories (3, object): [bad < medium < good]
+    ['bad', 'good', 'medium', 'medium', 'good', 'bad']
+    Categories (3, object): ['bad' < 'medium' < 'good']
 
     ``ordered=False`` will result in unordered categories when labels are passed.
     This parameter can be used to allow non-unique labels:
 
     >>> pd.cut(np.array([1, 7, 5, 4, 6, 3]), 3,
     ...        labels=["B", "A", "B"], ordered=False)
-    [B, B, A, A, B, B]
-    Categories (2, object): [A, B]
+    ['B', 'B', 'A', 'A', 'B', 'B']
+    Categories (2, object): ['A', 'B']
 
     ``labels=False`` implies you just want the bins back.
 
