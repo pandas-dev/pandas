@@ -220,13 +220,7 @@ class FrameApply(metaclass=abc.ABCMeta):
 
     def apply_raw(self):
         """ apply to the values as a numpy array """
-        result, reduction_success = libreduction.compute_reduction(
-            self.values, self.f, axis=self.axis
-        )
-
-        # We expect np.apply_along_axis to give a two-dimensional result, or raise.
-        if not reduction_success:
-            result = np.apply_along_axis(self.f, self.axis, self.values)
+        result = np.apply_along_axis(self.f, self.axis, self.values)
 
         # TODO: mixed type case
         if result.ndim == 2:
