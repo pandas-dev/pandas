@@ -390,7 +390,7 @@ cdef class SeriesGrouper(_BaseGrouper):
 
                     end = start + group_size
                     islider.move(start, end)
-                    vslider.move(start ,end)
+                    vslider.move(start, end)
 
                     cached_typ, cached_ityp = self._update_cached_objs(
                         cached_typ, cached_ityp, islider, vslider)
