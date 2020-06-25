@@ -3697,6 +3697,33 @@ class TestHDFStore:
 
             assert not store.select("df1a").index.equals(store.select("df2a").index)
 
+    def test_append_to_multiple_min_itemsize(self, setup_path):
+        # GH 11238
+        df = pd.DataFrame(
+            {
+                "IX": np.arange(1, 21),
+                "Num": np.arange(1, 21),
+                "BigNum": np.arange(1, 21) * 88,
+                "Str": ["a" for _ in range(20)],
+                "LongStr": ["abcde" for _ in range(20)],
+            }
+        )
+        expected = df.iloc[[0]]
+
+        with ensure_clean_store(setup_path) as store:
+            store.append_to_multiple(
+                {
+                    "index": ["IX"],
+                    "nums": ["Num", "BigNum"],
+                    "strs": ["Str", "LongStr"],
+                },
+                df.iloc[[0]],
+                "index",
+                min_itemsize={"Str": 10, "LongStr": 100, "Num": 2},
+            )
+            result = store.select_as_multiple(["index", "nums", "strs"])
+            tm.assert_frame_equal(result, expected)
+
     def test_select_as_multiple(self, setup_path):
 
         df1 = tm.makeTimeDataFrame()
