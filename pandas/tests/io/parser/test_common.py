@@ -5,6 +5,7 @@ specific classification into the other test modules.
 import codecs
 import csv
 from datetime import datetime
+from inspect import signature
 from io import StringIO
 import os
 import platform
@@ -2069,6 +2070,39 @@ def test_read_csv_raises_on_header_prefix(all_parsers):
 
     with pytest.raises(ValueError, match=msg):
         parser.read_csv(s, header=0, prefix="_X")
+
+
+def test_unexpected_keyword_parameter_exception(all_parsers):
+    # GH-34976
+    parser = all_parsers
+
+    msg = "{}\\(\\) got an unexpected keyword argument 'foo'"
+    with pytest.raises(TypeError, match=msg.format("read_csv")):
+        parser.read_csv("foo.csv", foo=1)
+    with pytest.raises(TypeError, match=msg.format("read_table")):
+        parser.read_table("foo.tsv", foo=1)
+
+
+def test_read_table_same_signature_as_read_csv(all_parsers):
+    # GH-34976
+    parser = all_parsers
+
+    table_sign = signature(parser.read_table)
+    csv_sign = signature(parser.read_csv)
+
+    assert table_sign.parameters.keys() == csv_sign.parameters.keys()
+    assert table_sign.return_annotation == csv_sign.return_annotation
+
+    for key, csv_param in csv_sign.parameters.items():
+        table_param = table_sign.parameters[key]
+        if key == "sep":
+            assert csv_param.default == ","
+            assert table_param.default == "\t"
+            assert table_param.annotation == csv_param.annotation
+            assert table_param.kind == csv_param.kind
+            continue
+        else:
+            assert table_param == csv_param
 
 
 def test_read_table_equivalency_to_read_csv(all_parsers):
