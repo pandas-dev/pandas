@@ -1643,6 +1643,12 @@ class TestDataFrameConstructors:
         df = DataFrame(index=[0, 1], columns=[0, 1], dtype="U5")
         tm.assert_frame_equal(df, expected)
 
+    def test_constructor_empty_with_string_extension(self):
+        # GH 34915
+        expected = DataFrame(index=[], columns=["c1"], dtype="string")
+        df = DataFrame(columns=["c1"], dtype="string")
+        tm.assert_frame_equal(df, expected)
+
     def test_constructor_single_value(self):
         # expecting single value upcasting here
         df = DataFrame(0.0, index=[1, 2, 3], columns=["a", "b", "c"])
@@ -2245,6 +2251,33 @@ class TestDataFrameConstructors:
         tm.assert_index_equal(df.index, Index([], name="id"))
         assert df.index.name == "id"
 
+    @pytest.mark.parametrize(
+        "dtype",
+        tm.ALL_INT_DTYPES
+        + tm.ALL_EA_INT_DTYPES
+        + tm.FLOAT_DTYPES
+        + tm.COMPLEX_DTYPES
+        + tm.DATETIME64_DTYPES
+        + tm.TIMEDELTA64_DTYPES
+        + tm.BOOL_DTYPES,
+    )
+    def test_check_dtype_empty_numeric_column(self, dtype):
+        # GH24386: Ensure dtypes are set correctly for an empty DataFrame.
+        # Empty DataFrame is generated via dictionary data with non-overlapping columns.
+        data = pd.DataFrame({"a": [1, 2]}, columns=["b"], dtype=dtype)
+
+        assert data.b.dtype == dtype
+
+    @pytest.mark.parametrize(
+        "dtype", tm.STRING_DTYPES + tm.BYTES_DTYPES + tm.OBJECT_DTYPES
+    )
+    def test_check_dtype_empty_string_column(self, dtype):
+        # GH24386: Ensure dtypes are set correctly for an empty DataFrame.
+        # Empty DataFrame is generated via dictionary data with non-overlapping columns.
+        data = pd.DataFrame({"a": [1, 2]}, columns=["b"], dtype=dtype)
+
+        assert data.b.dtype.name == "object"
+
     def test_from_records_with_datetimes(self):
 
         # this may fail on certain platforms because of a numpy issue
@@ -2538,6 +2571,14 @@ class TestDataFrameConstructors:
         s = Series(arr["Date"])
         assert isinstance(s[0], Timestamp)
         assert s[0] == dates[0][0]
+
+    def test_from_datetime_subclass(self):
+        # GH21142 Verify whether Datetime subclasses are also of dtype datetime
+        class DatetimeSubclass(datetime):
+            pass
+
+        data = pd.DataFrame({"datetime": [DatetimeSubclass(2020, 1, 1, 1, 1)]})
+        assert data.datetime.dtype == "datetime64[ns]"
 
 
 class TestDataFrameConstructorWithDatetimeTZ:

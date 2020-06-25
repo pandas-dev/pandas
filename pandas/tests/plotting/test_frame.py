@@ -48,6 +48,7 @@ class TestDataFramePlots(TestPlotBase):
         for ax, exp in zip(axes, expected):
             self._check_visible(ax.get_xticklabels(), visible=exp)
 
+    @pytest.mark.xfail(reason="Waiting for PR 34334", strict=True)
     @pytest.mark.slow
     def test_plot(self):
         from pandas.plotting._matplotlib.compat import _mpl_ge_3_1_0
@@ -467,6 +468,7 @@ class TestDataFramePlots(TestPlotBase):
         expected = [False, False, True, True]
         self._assert_xtickslabels_visibility(axes, expected)
 
+    @pytest.mark.xfail(reason="Waiting for PR 34334", strict=True)
     @pytest.mark.slow
     def test_subplots_timeseries(self):
         idx = date_range(start="2014-07-01", freq="M", periods=10)
@@ -1305,6 +1307,17 @@ class TestDataFramePlots(TestPlotBase):
         # later.
         float_array = np.array([0.0, 1.0])
         df.plot.scatter(x="A", y="B", c=float_array, cmap="spring")
+
+    @pytest.mark.parametrize("cmap", [None, "Greys"])
+    def test_scatter_with_c_column_name_with_colors(self, cmap):
+        # https://github.com/pandas-dev/pandas/issues/34316
+        df = pd.DataFrame(
+            [[5.1, 3.5], [4.9, 3.0], [7.0, 3.2], [6.4, 3.2], [5.9, 3.0]],
+            columns=["length", "width"],
+        )
+        df["species"] = ["r", "r", "g", "g", "b"]
+        ax = df.plot.scatter(x=0, y=1, c="species", cmap=cmap)
+        assert ax.collections[0].colorbar is None
 
     def test_plot_scatter_with_s(self):
         # this refers to GH 32904

@@ -1,13 +1,12 @@
-from enum import Enum
 
 import numpy as np
 from numpy cimport ndarray, int64_t, int32_t
 
 from pandas._libs.tslibs.util cimport get_nat
 
+from pandas._libs.tslibs.dtypes import Resolution
 from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, dt64_to_dtstruct)
-from pandas._libs.tslibs.frequencies cimport attrname_to_abbrevs
 from pandas._libs.tslibs.timezones cimport (
     is_utc, is_tzlocal, maybe_get_tz, get_dst_info)
 from pandas._libs.tslibs.ccalendar cimport get_days_in_month
@@ -26,20 +25,10 @@ cdef:
     int RESO_MIN = 4
     int RESO_HR = 5
     int RESO_DAY = 6
+    int RESO_MTH = 7
+    int RESO_QTR = 8
+    int RESO_YR = 9
 
-_abbrev_to_attrnames = {v: k for k, v in attrname_to_abbrevs.items()}
-
-_reso_str_map = {
-    RESO_NS: "nanosecond",
-    RESO_US: "microsecond",
-    RESO_MS: "millisecond",
-    RESO_SEC: "second",
-    RESO_MIN: "minute",
-    RESO_HR: "hour",
-    RESO_DAY: "day",
-}
-
-_str_reso_map = {v: k for k, v in _reso_str_map.items()}
 
 # ----------------------------------------------------------------------
 
@@ -113,70 +102,6 @@ cdef inline int _reso_stamp(npy_datetimestruct *dts):
     elif dts.hour != 0:
         return RESO_HR
     return RESO_DAY
-
-
-class Resolution(Enum):
-
-    # Note: cython won't allow us to reference the cdef versions at the
-    # module level
-    RESO_NS = 0
-    RESO_US = 1
-    RESO_MS = 2
-    RESO_SEC = 3
-    RESO_MIN = 4
-    RESO_HR = 5
-    RESO_DAY = 6
-
-    def __lt__(self, other):
-        return self.value < other.value
-
-    def __ge__(self, other):
-        return self.value >= other.value
-
-    @property
-    def attrname(self) -> str:
-        """
-        Return datetime attribute name corresponding to this Resolution.
-
-        Examples
-        --------
-        >>> Resolution.RESO_SEC.attrname
-        'second'
-        """
-        return _reso_str_map[self.value]
-
-    @classmethod
-    def from_attrname(cls, attrname: str) -> "Resolution":
-        """
-        Return resolution str against resolution code.
-
-        Examples
-        --------
-        >>> Resolution.from_attrname('second')
-        2
-
-        >>> Resolution.from_attrname('second') == Resolution.RESO_SEC
-        True
-        """
-        return cls(_str_reso_map[attrname])
-
-    @classmethod
-    def get_reso_from_freq(cls, freq: str) -> "Resolution":
-        """
-        Return resolution code against frequency str.
-
-        `freq` is given by the `offset.freqstr` for some DateOffset object.
-
-        Examples
-        --------
-        >>> Resolution.get_reso_from_freq('H')
-        4
-
-        >>> Resolution.get_reso_from_freq('H') == Resolution.RESO_HR
-        True
-        """
-        attr_name = _abbrev_to_attrnames[freq]
-        return cls.from_attrname(attr_name)
 
 
 # ----------------------------------------------------------------------

@@ -397,7 +397,8 @@ def _validate_integer(name, val, min_val=0):
 
 def _validate_names(names):
     """
-    Raise ValueError if the `names` parameter contains duplicates.
+    Raise ValueError if the `names` parameter contains duplicates or has an
+    invalid data type.
 
     Parameters
     ----------
@@ -407,11 +408,13 @@ def _validate_names(names):
     Raises
     ------
     ValueError
-        If names are not unique.
+        If names are not unique or are not ordered (e.g. set).
     """
     if names is not None:
         if len(names) != len(set(names)):
             raise ValueError("Duplicate names are not allowed.")
+        if not is_list_like(names, allow_sets=False):
+            raise ValueError("Names should be an ordered collection.")
 
 
 def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
@@ -3476,13 +3479,13 @@ def _get_empty_meta(columns, index_col, index_names, dtype=None):
     # This will enable us to write `dtype[col_name]`
     # without worrying about KeyError issues later on.
     if not isinstance(dtype, dict):
-        # if dtype == None, default will be np.object.
-        default_dtype = dtype or np.object
+        # if dtype == None, default will be object.
+        default_dtype = dtype or object
         dtype = defaultdict(lambda: default_dtype)
     else:
         # Save a copy of the dictionary.
         _dtype = dtype.copy()
-        dtype = defaultdict(lambda: np.object)
+        dtype = defaultdict(lambda: object)
 
         # Convert column indexes to column names.
         for k, v in _dtype.items():

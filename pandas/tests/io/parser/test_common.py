@@ -1147,7 +1147,7 @@ def test_chunks_have_consistent_numerical_type(all_parsers):
         result = parser.read_csv(StringIO(data))
 
     assert type(result.a[0]) is np.float64
-    assert result.a.dtype == np.float
+    assert result.a.dtype == float
 
 
 def test_warn_if_chunks_have_mismatched_type(all_parsers):
@@ -1163,7 +1163,7 @@ def test_warn_if_chunks_have_mismatched_type(all_parsers):
 
     with tm.assert_produces_warning(warning_type):
         df = parser.read_csv(StringIO(data))
-    assert df.a.dtype == np.object
+    assert df.a.dtype == object
 
 
 @pytest.mark.parametrize("sep", [" ", r"\s+"])
@@ -2135,3 +2135,13 @@ def test_no_header_two_extra_columns(all_parsers):
     parser = all_parsers
     df = parser.read_csv(stream, header=None, names=column_names, index_col=False)
     tm.assert_frame_equal(df, ref)
+
+
+def test_read_csv_names_not_accepting_sets(all_parsers):
+    # GH 34946
+    data = """\
+    1,2,3
+    4,5,6\n"""
+    parser = all_parsers
+    with pytest.raises(ValueError, match="Names should be an ordered collection."):
+        parser.read_csv(StringIO(data), names=set("QAZ"))

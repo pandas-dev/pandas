@@ -58,17 +58,15 @@ class IsInFloat64:
 
 class IsInForObjects:
     def setup(self):
-        self.s_nans = Series(np.full(10 ** 4, np.nan)).astype(np.object)
-        self.vals_nans = np.full(10 ** 4, np.nan).astype(np.object)
-        self.s_short = Series(np.arange(2)).astype(np.object)
-        self.s_long = Series(np.arange(10 ** 5)).astype(np.object)
-        self.vals_short = np.arange(2).astype(np.object)
-        self.vals_long = np.arange(10 ** 5).astype(np.object)
+        self.s_nans = Series(np.full(10 ** 4, np.nan)).astype(object)
+        self.vals_nans = np.full(10 ** 4, np.nan).astype(object)
+        self.s_short = Series(np.arange(2)).astype(object)
+        self.s_long = Series(np.arange(10 ** 5)).astype(object)
+        self.vals_short = np.arange(2).astype(object)
+        self.vals_long = np.arange(10 ** 5).astype(object)
         # because of nans floats are special:
-        self.s_long_floats = Series(np.arange(10 ** 5, dtype=np.float)).astype(
-            np.object
-        )
-        self.vals_long_floats = np.arange(10 ** 5, dtype=np.float).astype(np.object)
+        self.s_long_floats = Series(np.arange(10 ** 5, dtype=np.float)).astype(object)
+        self.vals_long_floats = np.arange(10 ** 5, dtype=np.float).astype(object)
 
     def time_isin_nans(self):
         # if nan-objects are different objects,

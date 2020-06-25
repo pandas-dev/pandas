@@ -738,7 +738,7 @@ class ExtensionArray:
                 # boolean array with NA -> fill with False
                 equal_values = equal_values.fillna(False)
             equal_na = self.isna() & other.isna()
-            return (equal_values | equal_na).all().item()
+            return bool((equal_values | equal_na).all())
 
     def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:
         """
@@ -846,14 +846,14 @@ class ExtensionArray:
         --------
         >>> cat = pd.Categorical(['a', 'b', 'c'])
         >>> cat
-        [a, b, c]
-        Categories (3, object): [a, b, c]
+        ['a', 'b', 'c']
+        Categories (3, object): ['a', 'b', 'c']
         >>> cat.repeat(2)
-        [a, a, b, b, c, c]
-        Categories (3, object): [a, b, c]
+        ['a', 'a', 'b', 'b', 'c', 'c']
+        Categories (3, object): ['a', 'b', 'c']
         >>> cat.repeat([1, 2, 3])
-        [a, b, b, c, c, c]
-        Categories (3, object): [a, b, c]
+        ['a', 'b', 'b', 'c', 'c', 'c']
+        Categories (3, object): ['a', 'b', 'c']
         """
 
     @Substitution(klass="ExtensionArray")

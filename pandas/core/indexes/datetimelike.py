@@ -7,7 +7,7 @@ from typing import Any, List, Optional, TypeVar, Union, cast
 import numpy as np
 
 from pandas._libs import NaT, Timedelta, iNaT, join as libjoin, lib
-from pandas._libs.tslibs import Resolution, timezones
+from pandas._libs.tslibs import BaseOffset, Resolution, Tick, timezones
 from pandas._libs.tslibs.parsing import DateParseError
 from pandas._typing import Label
 from pandas.compat.numpy import function as nv
@@ -43,8 +43,6 @@ from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 from pandas.core.sorting import ensure_key_mapped
 from pandas.core.tools.timedeltas import to_timedelta
-
-from pandas.tseries.offsets import DateOffset, Tick
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
@@ -91,7 +89,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     """
 
     _data: Union[DatetimeArray, TimedeltaArray, PeriodArray]
-    freq: Optional[DateOffset]
+    freq: Optional[BaseOffset]
     freqstr: Optional[str]
     _resolution_obj: Resolution
     _bool_ops: List[str] = []
@@ -363,19 +361,23 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    def _validate_partial_date_slice(self, reso: str):
+    def _validate_partial_date_slice(self, reso: Resolution):
         raise NotImplementedError
 
-    def _parsed_string_to_bounds(self, reso: str, parsed: datetime):
+    def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
         raise NotImplementedError
 
     def _partial_date_slice(
-        self, reso: str, parsed: datetime, use_lhs: bool = True, use_rhs: bool = True
+        self,
+        reso: Resolution,
+        parsed: datetime,
+        use_lhs: bool = True,
+        use_rhs: bool = True,
     ):
         """
         Parameters
         ----------
-        reso : str
+        reso : Resolution
         parsed : datetime
         use_lhs : bool, default True
         use_rhs : bool, default True
