@@ -483,6 +483,12 @@ JSOBJ Object_newDouble(void *prv, double value) {
     return PyFloat_FromDouble(value);
 }
 
+JSOBJ Object_newBigNum(void* prv, wchar_t *start, wchar_t *end) {
+    PyObject* obj_as_unicode;
+    obj_as_unicode = PyUnicode_FromWideChar(start, (end - start));
+    return PyLong_FromUnicode(obj_as_unicode, 0);
+}
+
 static void Object_releaseObject(void *prv, JSOBJ obj, void *_decoder) {
     PyObjectDecoder *decoder = (PyObjectDecoder *)_decoder;
     if (obj != decoder->npyarr_addr) {
@@ -509,8 +515,8 @@ PyObject *JSONToObj(PyObject *self, PyObject *args, PyObject *kwargs) {
         Object_newPosInf, Object_newNegInf,     Object_newObject,
         Object_endObject,     Object_newArray,  Object_endArray,
         Object_newInteger,    Object_newLong,   Object_newDouble,
-        Object_releaseObject, PyObject_Malloc, PyObject_Free,
-        PyObject_Realloc};
+        Object_newBigNum, Object_releaseObject, PyObject_Malloc, 
+        PyObject_Free, PyObject_Realloc};
 
     dec.preciseFloat = 0;
     dec.prv = NULL;
