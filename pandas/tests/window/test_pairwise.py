@@ -196,26 +196,15 @@ class TestPairwise:
         # create multiindexed DataFrame
         columns = MultiIndex.from_product([["a", "b"], ["x", "y"], [0, 1]])
         index = range(3)
+        len_idx, num_cols = len(index), len(columns)
         df = DataFrame(
-            np.random.normal(size=(len(index), len(columns))),
+            np.arange(len_idx * num_cols).reshape(len_idx, num_cols),
             index=index,
             columns=columns,
         )
+        result = df.ewm(alpha=0.1).cov()
 
-        # flatten index then compute covariance
-        df_fi = df.copy()
-        df_fi.columns = ["".join(str(c) for c in col) for col in df_fi.columns.values]
-        cov_fi = df_fi.ewm(alpha=0.1).cov()
-        cov_fi.index = [
-            "".join(str(symbol) for symbol in row_label) for row_label in cov_fi.index
-        ]
+        # construct expected covariance df here
+        expected = ...
 
-        # compute covariance matrix then flatten its multtindex
-        df_mi = df.copy()
-        cov_mi = df_mi.ewm(alpha=0.1).cov()
-        cov_mi.columns = ["".join(str(c) for c in col) for col in cov_mi.columns.values]
-        cov_mi.index = [
-            "".join(str(symbol) for symbol in row_label) for row_label in cov_mi.index
-        ]
-
-        tm.assert_frame_equal(cov_fi, cov_mi)
+        tm.assert_frame_equal(result, expected)
