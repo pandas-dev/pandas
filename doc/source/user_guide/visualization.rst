@@ -1115,7 +1115,7 @@ Controlling the labels
 .. versionadded:: 1.1.0
 
 You may set the ``xlabel`` and ``ylabel`` arguments to give the plot custom labels
-for x and y axis. By default, Pandas will pick up index name as xlabel, while leaving
+for x and y axis. By default, pandas will pick up index name as xlabel, while leaving
 it empty for ylabel.
 
 .. ipython:: python

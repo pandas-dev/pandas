@@ -491,7 +491,7 @@ class MPLPlot:
             # GH9093, currently Pandas does not show ylabel, so if users provide
             # ylabel will set it as ylabel in the plot.
             if self.ylabel is not None:
-                ax.set_ylabel(self.ylabel)
+                ax.set_ylabel(pprint_thing(self.ylabel))
 
             ax.grid(self.grid)
 
