@@ -1028,6 +1028,7 @@ I/O
 - `TypeError` exceptions raised by :meth:`read_csv` and :meth:`read_table` were showing as ``parser_f`` when an unexpected keyword argument was passed (:issue:`25648`)
 - Bug in :meth:`read_excel` for ODS files removes 0.0 values (:issue:`27222`)
 - Bug in :meth:`ujson.encode` was raising an `OverflowError` with numbers larger than sys.maxsize (:issue: `34395`)
+- Bug in :meth:`HDFStore.append_to_multiple` was raising a ``ValueError`` when the min_itemsize parameter is set (:issue:`11238`)
 
 Plotting
 ^^^^^^^^
