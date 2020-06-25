@@ -1027,6 +1027,7 @@ I/O
 - :meth:`HDFStore.keys` has now an optional `include` parameter that allows the retrieval of all native HDF5 table names (:issue:`29916`)
 - Bug in :meth:`read_excel` for ODS files removes 0.0 values (:issue:`27222`)
 - Bug in :meth:`ujson.encode` was raising an `OverflowError` with numbers larger than sys.maxsize (:issue: `34395`)
+- Bug in :meth:`~HDFStore.create_table` now raises an error when `column` argument was not specified in `data_columns` on input (:issue:`28156`)
 
 Plotting
 ^^^^^^^^
