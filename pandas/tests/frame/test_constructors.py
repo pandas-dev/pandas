@@ -11,7 +11,7 @@ import pytest
 import pytz
 
 from pandas.compat import PY37, is_platform_little_endian
-from pandas.compat.numpy import _np_version_under1p20
+from pandas.compat.numpy import _np_version_under1p19
 
 from pandas.core.dtypes.common import is_integer_dtype
 
@@ -147,7 +147,7 @@ class TestDataFrameConstructors:
         assert df.loc[1, 0] is None
         assert df.loc[0, 1] == "2"
 
-    @pytest.mark.skipif(_np_version_under1p20, reason="NumPy change.")
+    @pytest.mark.skipif(_np_version_under1p19, reason="NumPy change.")
     def test_constructor_list_of_2d_raises(self):
         # https://github.com/pandas-dev/pandas/issues/32289
         a = pd.DataFrame()
