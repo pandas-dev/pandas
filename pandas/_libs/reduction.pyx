@@ -296,7 +296,7 @@ cdef class Slider:
     Only handles contiguous data for now
     """
     cdef:
-        ndarray values, buf
+        ndarray values, buf, orig_buf
         Py_ssize_t stride, orig_len, orig_stride
         char *orig_data
 
@@ -308,6 +308,7 @@ cdef class Slider:
             values = values.copy()
 
         self.values = values
+        self.orig_buf = buf
         self.buf = buf
         self.stride = values.strides[0]
 
@@ -315,21 +316,14 @@ cdef class Slider:
         self.orig_len = self.buf.shape[0]
         self.orig_stride = self.buf.strides[0]
 
-        self.buf.data = self.values.data
-        self.buf.strides[0] = self.stride
-
     cdef move(self, int start, int end):
         """
         For slicing
         """
-        self.buf.data = self.values.data + self.stride * start
-        self.buf.shape[0] = end - start
+        self.buf = self.values[start:end]
 
     cdef reset(self):
-
-        self.buf.shape[0] = self.orig_len
-        self.buf.data = self.orig_data
-        self.buf.strides[0] = self.orig_stride
+        self.buf = self.orig_buf
 
 
 class InvalidApply(Exception):
