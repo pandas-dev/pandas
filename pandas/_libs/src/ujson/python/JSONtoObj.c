@@ -486,7 +486,7 @@ JSOBJ Object_newDouble(void *prv, double value) {
 JSOBJ Object_newBigNum(void* prv, wchar_t *start, wchar_t *end) {
     PyObject* obj_as_unicode;
     obj_as_unicode = PyUnicode_FromWideChar(start, (end - start));
-    return PyLong_FromUnicode(obj_as_unicode, 0);
+    return PyLong_FromUnicodeObject(obj_as_unicode, 0);
 }
 
 static void Object_releaseObject(void *prv, JSOBJ obj, void *_decoder) {
