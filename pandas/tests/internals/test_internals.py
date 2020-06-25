@@ -706,12 +706,13 @@ class TestBlockManager:
         ser2 = pd.Series(["A", "B", "C"])
         df = ser.to_frame("A")
 
+        expected = pd.DataFrame(index=ser.index)
         bd1 = df._get_bool_data()
+        tm.assert_frame_equal(bd1, expected)
 
         df["B"] = ser2
-
         bd2 = df._get_bool_data()
-        tm.assert_frame_equal(bd1, bd2)
+        tm.assert_frame_equal(bd2, expected)
 
     def test_unicode_repr_doesnt_raise(self):
         repr(create_mgr("b,\u05d0: object"))
