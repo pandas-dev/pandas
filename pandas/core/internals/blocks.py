@@ -8,6 +8,7 @@ import numpy as np
 
 from pandas._libs import NaT, algos as libalgos, lib, writers
 import pandas._libs.internals as libinternals
+from pandas._libs.internals import BlockPlacement
 from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.timezones import tz_compare
 from pandas._typing import ArrayLike
@@ -111,6 +112,19 @@ class Block(PandasObject):
     _can_consolidate = True
     _verify_integrity = True
     _validate_ndim = True
+
+    @classmethod
+    def _simple_new(
+        cls, values: ArrayLike, placement: BlockPlacement, ndim: int
+    ) -> "Block":
+        """
+        Fastpath constructor, does *no* validation
+        """
+        obj = object.__new__(cls)
+        obj.ndim = ndim
+        obj.values = values
+        obj._mgr_locs = placement
+        return obj
 
     def __init__(self, values, placement, ndim=None):
         self.ndim = self._check_ndim(values, ndim)
@@ -289,13 +303,15 @@ class Block(PandasObject):
         if new_mgr_locs is None:
             axis0_slicer = slicer[0] if isinstance(slicer, tuple) else slicer
             new_mgr_locs = self.mgr_locs[axis0_slicer]
+        elif not isinstance(new_mgr_locs, BlockPlacement):
+            new_mgr_locs = BlockPlacement(new_mgr_locs)
 
         new_values = self._slice(slicer)
 
         if self._validate_ndim and new_values.ndim != self.ndim:
             raise ValueError("Only same dim slicing is allowed")
 
-        return self.make_block_same_class(new_values, new_mgr_locs)
+        return type(self)._simple_new(new_values, new_mgr_locs, self.ndim)
 
     @property
     def shape(self):
