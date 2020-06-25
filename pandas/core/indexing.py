@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Hashable, List, Tuple, Union
 import numpy as np
 
 from pandas._config.config import option_context
+
 from pandas._libs.indexing import _NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
 from pandas.errors import AbstractMethodError, InvalidIndexError
