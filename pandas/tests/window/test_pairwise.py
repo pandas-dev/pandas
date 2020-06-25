@@ -193,17 +193,24 @@ class TestPairwise:
     def test_cov_mulittindex(self):
         # GH 34440
 
-        columns = MultiIndex.from_product([["a", "b"], ["x", "y"], [0, 1]])
+        # create multiindexed DataFrame
+        columns = MultiIndex.from_product([["a", "b"], ["x", "y"], ["A", "B"]])
         index = range(3)
-        len_idx, num_cols = len(index), len(columns)
-        df = DataFrame(
-            np.arange(len_idx * num_cols).reshape(len_idx, num_cols),
+        df = DataFrame(np.arange(24).reshape(3, 8), index=index, columns=columns,)
+        result = df.ewm(alpha=0.1).cov()
+
+        index = MultiIndex.from_product([range(3), ["a", "b"], ["x", "y"], ["A", "B"]])
+        columns = MultiIndex.from_product([["a", "b"], ["x", "y"], ["A", "B"]])
+        expected = DataFrame(
+            np.vstack(
+                (
+                    np.full((8, 8), np.NaN),
+                    np.full((8, 8), 32.000000),
+                    np.full((8, 8), 63.881919),
+                )
+            ),
             index=index,
             columns=columns,
         )
-        result = df.ewm(alpha=0.1).cov()
-
-        # construct expected covariance df here
-        expected = ...
 
         tm.assert_frame_equal(result, expected)
