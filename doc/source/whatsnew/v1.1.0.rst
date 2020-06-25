@@ -1025,6 +1025,7 @@ I/O
 - Bug in :meth:`~SQLDatabase.execute` was raising a ``ProgrammingError`` for some DB-API drivers when the SQL statement contained the `%` character and no parameters were present (:issue:`34211`)
 - Bug in :meth:`~pandas.io.stata.StataReader` which resulted in categorical variables with difference dtypes when reading data using an iterator. (:issue:`31544`)
 - :meth:`HDFStore.keys` has now an optional `include` parameter that allows the retrieval of all native HDF5 table names (:issue:`29916`)
+- `TypeError` exceptions raised by :meth:`read_csv` and :meth:`read_table` were showing as ``parser_f`` when an unexpected keyword argument was passed (:issue:`25648`)
 - Bug in :meth:`read_excel` for ODS files removes 0.0 values (:issue:`27222`)
 - Bug in :meth:`ujson.encode` was raising an `OverflowError` with numbers larger than sys.maxsize (:issue: `34395`)
 
