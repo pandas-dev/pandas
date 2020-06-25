@@ -561,15 +561,19 @@ class Styler:
             Whitespace shouldn't matter and the final trailing ';' shouldn't
             matter.
         """
-        rows = [(row_label, v) for row_label, v in attrs.iterrows()]
-        row_idx = self.index.get_indexer([x[0] for x in rows])
-        for ii, row in enumerate(rows):
-            i = row_idx[ii]
-            cols = [(col_label, col) for col_label, col in row[1].items() if col]
-            col_idx = self.columns.get_indexer([x[0] for x in cols])
-            for jj, itm in enumerate(cols):
-                j = col_idx[jj]
-                for pair in itm[1].rstrip(";").split(";"):
+        coli = {k: i for i, k in enumerate(self.columns)}
+        rowi = {k: i for i, k in enumerate(self.index)}
+        for jj in range(len(attrs.columns)):
+            cn = attrs.columns[jj]
+            j = coli[cn]
+            for rn, c in attrs[[cn]].itertuples():
+                if not c:
+                    continue
+                c = c.rstrip(";")
+                if not c:
+                    continue
+                i = rowi[rn]
+                for pair in c.split(";"):
                     self.ctx[(i, j)].append(pair)
 
     def _copy(self, deepcopy: bool = False) -> "Styler":
