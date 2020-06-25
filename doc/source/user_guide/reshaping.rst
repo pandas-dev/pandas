@@ -296,7 +296,7 @@ For instance,
    cheese.melt(id_vars=['first', 'last'])
    cheese.melt(id_vars=['first', 'last'], var_name='quantity')
 
-When transforming a DataFrame using :func:`~pandas.melt`, original the index values can be kept around by setting the ``ignore_index`` parameter to ``False``. This will however duplicate the index values.
+When transforming a DataFrame using :func:`~pandas.melt`, the original index values can be kept around by setting the ``ignore_index`` parameter to ``False``. This will however duplicate the index values.
 
 .. ipython:: python
 

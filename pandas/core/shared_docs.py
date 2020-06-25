@@ -28,7 +28,7 @@ _shared_docs[
         Name to use for the 'value' column.
     col_level : int or str, optional
         If columns are a MultiIndex then use this level to melt.
-    ignore_index : bool, optional, default True
+    ignore_index : bool, default True
         If True, original index is ignored. If False, the original index is retained.
         Index labels will be repeated as necessary.
 
