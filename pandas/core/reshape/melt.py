@@ -32,7 +32,7 @@ def melt(
     value_name="value",
     col_level=None,
     ignore_index=True,
-) -> DataFrame:
+) -> "DataFrame":
     # If multiindex, gather names of columns on all level for checking presence
     # of `id_vars` and `value_vars`
     if isinstance(frame.columns, MultiIndex):
