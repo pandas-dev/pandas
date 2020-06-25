@@ -304,6 +304,7 @@ typedef struct __JSONObjectDecoder {
   JSOBJ (*newInt)(void *prv, JSINT32 value);
   JSOBJ (*newLong)(void *prv, JSINT64 value);
   JSOBJ (*newDouble)(void *prv, double value);
+  JSOBJ (*newBigNum)(void *prv, wchar_t *start, wchar_t *end);
   void (*releaseObject)(void *prv, JSOBJ obj, void *decoder);
   JSPFN_MALLOC malloc;
   JSPFN_FREE free;
