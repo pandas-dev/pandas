@@ -36,7 +36,18 @@ def reconstruct_func(
         ]
     ],
     **kwargs,
-) -> Tuple[bool, Optional[Union[List, Dict]], Optional[List[str]], Optional[List[int]]]:
+) -> Tuple[
+    bool,
+    Optional[
+        Union[
+            Union[Callable, str],
+            List[Union[Callable, str]],
+            Dict[Label, Union[Union[Callable, str], List[Union[Callable, str]]]],
+        ]
+    ],
+    Optional[List[str]],
+    Optional[List[int]],
+]:
     """
     This is the internal function to reconstruct func given if there is relabeling
     or not and also normalize the keyword to get new order of columns.
@@ -94,6 +105,7 @@ def reconstruct_func(
         func, columns, order = normalize_keyword_aggregation(kwargs)
     func = maybe_mangle_lambdas(func)
 
+    print(func)
     return relabeling, func, columns, order
 
 
