@@ -557,3 +557,11 @@ class TestAstype:
             assert (
                 "2 2013-01-03 2013-01-03 00:00:00-05:00 2013-01-03 00:00:00+01:00"
             ) in result
+
+    def test_astype_empty_dtype_dict(self):
+        # issue mentioned further down in the following issue's thread
+        # https://github.com/pandas-dev/pandas/issues/33113
+        df = DataFrame()
+        result = df.astype(dict())
+        tm.assert_frame_equal(result, df)
+        assert result is not df
