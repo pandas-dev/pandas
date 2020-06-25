@@ -31,7 +31,7 @@ def melt(
     var_name=None,
     value_name="value",
     col_level=None,
-    ignore_index=True,
+    ignore_index: bool = True,
 ) -> "DataFrame":
     # If multiindex, gather names of columns on all level for checking presence
     # of `id_vars` and `value_vars`
