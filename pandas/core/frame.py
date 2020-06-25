@@ -7049,6 +7049,7 @@ NaN 12.3   33.0
              b   4.0
         dtype: float64
 
+        >>> s.unstack(level=-1)
              a   b
         one  1.0  2.0
         two  3.0  4.0
