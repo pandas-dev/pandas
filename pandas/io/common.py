@@ -352,6 +352,7 @@ def get_handle(
     compression: Optional[Union[str, Mapping[str, Any]]] = None,
     memory_map: bool = False,
     is_text: bool = True,
+    errors=None,
 ):
     """
     Get file handle for given path/buffer and mode.
@@ -390,6 +391,12 @@ def get_handle(
     is_text : boolean, default True
         whether file/buffer is in text format (csv, json, etc.), or in binary
         mode (pickle, etc.).
+    errors : str, default 'strict'
+        Specifies how encoding and decoding errors are to be handled.
+        See the errors argument for :func:`open` for a full list
+        of options.
+
+        .. versionadded:: 1.1.0
 
     Returns
     -------
@@ -475,7 +482,7 @@ def get_handle(
     elif is_path:
         if encoding:
             # Encoding
-            f = open(path_or_buf, mode, encoding=encoding, newline="")
+            f = open(path_or_buf, mode, encoding=encoding, errors=errors, newline="")
         elif is_text:
             # No explicit encoding
             f = open(path_or_buf, mode, errors="replace", newline="")
@@ -488,7 +495,7 @@ def get_handle(
     if is_text and (compression or isinstance(f, need_text_wrapping)):
         from io import TextIOWrapper
 
-        g = TextIOWrapper(f, encoding=encoding, newline="")
+        g = TextIOWrapper(f, encoding=encoding, errors=errors, newline="")
         if not isinstance(f, (BufferedIOBase, RawIOBase)):
             handles.append(g)
         f = g

@@ -74,22 +74,22 @@ class TestSparseArray:
 
     def test_constructor_object_dtype(self):
         # GH 11856
-        arr = SparseArray(["A", "A", np.nan, "B"], dtype=np.object)
-        assert arr.dtype == SparseDtype(np.object)
+        arr = SparseArray(["A", "A", np.nan, "B"], dtype=object)
+        assert arr.dtype == SparseDtype(object)
         assert np.isnan(arr.fill_value)
 
-        arr = SparseArray(["A", "A", np.nan, "B"], dtype=np.object, fill_value="A")
-        assert arr.dtype == SparseDtype(np.object, "A")
+        arr = SparseArray(["A", "A", np.nan, "B"], dtype=object, fill_value="A")
+        assert arr.dtype == SparseDtype(object, "A")
         assert arr.fill_value == "A"
 
         # GH 17574
         data = [False, 0, 100.0, 0.0]
-        arr = SparseArray(data, dtype=np.object, fill_value=False)
-        assert arr.dtype == SparseDtype(np.object, False)
+        arr = SparseArray(data, dtype=object, fill_value=False)
+        assert arr.dtype == SparseDtype(object, False)
         assert arr.fill_value is False
-        arr_expected = np.array(data, dtype=np.object)
+        arr_expected = np.array(data, dtype=object)
         it = (type(x) == type(y) and x == y for x, y in zip(arr, arr_expected))
-        assert np.fromiter(it, dtype=np.bool).all()
+        assert np.fromiter(it, dtype=np.bool_).all()
 
     @pytest.mark.parametrize("dtype", [SparseDtype(int, 0), int])
     def test_constructor_na_dtype(self, dtype):
@@ -445,15 +445,15 @@ class TestSparseArray:
 
     def test_constructor_bool_fill_value(self):
         arr = SparseArray([True, False, True], dtype=None)
-        assert arr.dtype == SparseDtype(np.bool)
+        assert arr.dtype == SparseDtype(np.bool_)
         assert not arr.fill_value
 
-        arr = SparseArray([True, False, True], dtype=np.bool)
-        assert arr.dtype == SparseDtype(np.bool)
+        arr = SparseArray([True, False, True], dtype=np.bool_)
+        assert arr.dtype == SparseDtype(np.bool_)
         assert not arr.fill_value
 
-        arr = SparseArray([True, False, True], dtype=np.bool, fill_value=True)
-        assert arr.dtype == SparseDtype(np.bool, True)
+        arr = SparseArray([True, False, True], dtype=np.bool_, fill_value=True)
+        assert arr.dtype == SparseDtype(np.bool_, True)
         assert arr.fill_value
 
     def test_constructor_float32(self):
@@ -588,7 +588,7 @@ class TestSparseArray:
         arr.fill_value = np.nan
         assert np.isnan(arr.fill_value)
 
-        arr = SparseArray([True, False, True], fill_value=False, dtype=np.bool)
+        arr = SparseArray([True, False, True], fill_value=False, dtype=np.bool_)
         arr.fill_value = True
         assert arr.fill_value
 
@@ -605,7 +605,7 @@ class TestSparseArray:
 
     @pytest.mark.parametrize("val", [[1, 2, 3], np.array([1, 2]), (1, 2, 3)])
     def test_set_fill_invalid_non_scalar(self, val):
-        arr = SparseArray([True, False, True], fill_value=False, dtype=np.bool)
+        arr = SparseArray([True, False, True], fill_value=False, dtype=np.bool_)
         msg = "fill_value must be a scalar"
 
         with pytest.raises(ValueError, match=msg):
@@ -625,7 +625,7 @@ class TestSparseArray:
             ([0, 0, 0, 0, 0], (5,), None),
             ([], (0,), None),
             ([0], (1,), None),
-            (["A", "A", np.nan, "B"], (4,), np.object),
+            (["A", "A", np.nan, "B"], (4,), object),
         ],
     )
     def test_shape(self, data, shape, dtype):
