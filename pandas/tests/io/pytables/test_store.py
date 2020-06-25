@@ -1735,7 +1735,7 @@ class TestHDFStore:
                 # try to index a col which isn't a data_column
                 # GH 28156
                 with pytest.raises(AttributeError):
-                    store.creat_table_index("f", columns=["string3"])
+                    store.create_table_index("f", columns=["string3"])
 
     def test_append_hierarchical(self, setup_path):
         index = MultiIndex(
