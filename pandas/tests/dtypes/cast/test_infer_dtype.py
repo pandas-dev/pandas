@@ -9,7 +9,6 @@ from pandas.core.dtypes.cast import (
     infer_dtype_from_scalar,
 )
 from pandas.core.dtypes.common import is_dtype_equal
-from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype, PeriodDtype
 
 from pandas import (
     Categorical,
@@ -188,9 +187,10 @@ def test_infer_dtype_from_array(arr, expected, pandas_dtype):
         (1.1, np.float64),
         (Timestamp("2011-01-01"), "datetime64[ns]"),
         (Timestamp("2011-01-01", tz="US/Eastern"), object),
+        (Period("2011-01-01", freq="D"), object),
     ],
 )
-def test_cast_scalar_to_numpy_array(obj, dtype):
+def test_cast_scalar_to_array(obj, dtype):
     shape = (3, 2)
 
     exp = np.empty(shape, dtype=dtype)
