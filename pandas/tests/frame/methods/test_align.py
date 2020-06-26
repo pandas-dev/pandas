@@ -129,24 +129,37 @@ class TestDataFrameAlign:
         )
         tm.assert_index_equal(bf.index, Index([]))
 
-    def test_align_categorical(self):
+    @pytest.mark.parametrize(
+        "l_ordered,r_ordered,expected",
+        [
+            [True, True, pd.CategoricalIndex],
+            [True, False, pd.Index],
+            [False, True, pd.Index],
+            [False, False, pd.CategoricalIndex],
+        ],
+    )
+    def test_align_categorical(self, l_ordered, r_ordered, expected):
         # GH-28397
         df_1 = DataFrame(
             {
                 "A": np.arange(6, dtype="int64"),
-                "B": Series(list("aabbca")).astype(pd.CategoricalDtype(list("cab"))),
+                "B": Series(list("aabbca")).astype(
+                    pd.CategoricalDtype(list("cab"), ordered=l_ordered)
+                ),
             }
         ).set_index("B")
         df_2 = DataFrame(
             {
                 "A": np.arange(5, dtype="int64"),
-                "B": Series(list("babca")).astype(pd.CategoricalDtype(list("cab"))),
+                "B": Series(list("babca")).astype(
+                    pd.CategoricalDtype(list("cab"), ordered=r_ordered)
+                ),
             }
         ).set_index("B")
 
         aligned_1, aligned_2 = df_1.align(df_2)
-        assert isinstance(aligned_1.index, pd.CategoricalIndex)
-        assert isinstance(aligned_2.index, pd.CategoricalIndex)
+        assert isinstance(aligned_1.index, expected)
+        assert isinstance(aligned_2.index, expected)
         tm.assert_index_equal(aligned_1.index, aligned_2.index)
 
     def test_align_multiindex(self):
