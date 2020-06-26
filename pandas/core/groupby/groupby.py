@@ -889,7 +889,6 @@ b  2""",
             data after applying f
         """
         keys, values, mutated = self.grouper.apply(f, data, self.axis)
-        breakpoint()
         if self.group_keys is None:
             # infer by default
             not_indexed_same = mutated or self.mutated

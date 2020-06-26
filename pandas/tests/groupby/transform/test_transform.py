@@ -727,7 +727,7 @@ def test_cython_transform_frame(op, args, targop):
         ]:  # dict(by='string_missing')]:
             # dict(by=['int','string'])]:
 
-            gb = df.groupby(**gb_target)
+            gb = df.groupby(group_keys=False, **gb_target)
             # allowlisted methods set the selection before applying
             # bit a of hack to make sure the cythonized shift
             # is equivalent to pre 0.17.1 behavior
