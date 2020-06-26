@@ -1558,6 +1558,17 @@ cdef class Validator:
         else:
             return False
 
+    cdef bint any(self, ndarray values) except -1:
+        if not self.n:
+            return False
+        cdef:
+            Py_ssize_t i
+            Py_ssize_t n = self.n
+        for i in range(n):
+            if self.is_valid(values[i]):
+                return True
+        return False
+
     @cython.wraparound(False)
     @cython.boundscheck(False)
     cdef bint _validate(self, ndarray values) except -1:
@@ -1709,13 +1720,24 @@ cdef class BytesValidator(Validator):
     cdef inline bint is_array_typed(self) except -1:
         return issubclass(self.dtype.type, np.bytes_)
 
-
-cdef bint is_bytes_array(ndarray values, bint skipna=False):
+cpdef bint is_bytes_array(ndarray values, bint skipna=False,
+                          bint mixing_allowed=True) except -1:
+    """Checks if all the values are bytes or not. When mixing_allowed is false and
+    some are bytes and some are not, then throws a ValueError."""
     cdef:
         BytesValidator validator = BytesValidator(len(values), values.dtype,
                                                   skipna=skipna)
-    return validator.validate(values)
-
+    is_all_bytes = validator.validate(values)
+    if mixing_allowed:
+        return is_all_bytes
+    else:
+        if is_all_bytes:
+            return True
+        else:
+            is_any_bytes = validator.any(values)
+            if is_any_bytes:
+                raise ValueError("Cannot mix types")
+            return False
 
 cdef class TemporalValidator(Validator):
     cdef:

@@ -740,6 +740,89 @@ class TestDataFrameToCSV:
             df2 = self.read_csv(path)
             tm.assert_frame_equal(df2, df)
 
+    def test_to_csv_bytes(self):
+        # GH 9712
+        times = date_range("2013-10-27 23:00", "2013-10-28 00:00", freq="H")
+        df = DataFrame({b"foo": [b"bar", b"baz"], b"times": times}, index=[b"A", b"B"])
+        df.loc[b"C"] = np.nan
+        df.index.name = b"idx"
+
+        df_expected = DataFrame(
+            {"foo": ["bar", "baz"], "times": times}, index=["A", "B"]
+        )
+        df_expected.loc["C"] = np.nan
+        df_expected.index.name = "idx"
+
+        with tm.ensure_clean("__tmp_to_csv_bytes__.csv") as path:
+            df.to_csv(path, header=True)
+            df_output = self.read_csv(path)
+            df_output.times = to_datetime(df_output.times)
+            tm.assert_frame_equal(df_output, df_expected)
+
+        non_unicode_byte = b"\xbc\xa6"
+        non_unicode_decoded = non_unicode_byte.decode("gb18030")
+        df = DataFrame({non_unicode_byte: [non_unicode_byte, b"foo"]})
+        df.index.name = "idx"
+
+        df_expected = DataFrame({non_unicode_decoded: [non_unicode_decoded, "foo"]})
+        df_expected.index.name = "idx"
+
+        with tm.ensure_clean("__tmp_to_csv_bytes__.csv") as path:
+            df.to_csv(path, encoding="gb18030", header=True)
+            df_output = self.read_csv(path, encoding="gb18030")
+            tm.assert_frame_equal(df_output, df_expected)
+
+        # decoding error, when transcoding fails
+        with pytest.raises(UnicodeDecodeError):
+            df.to_csv(encoding="utf-8")
+
+        # mixing of bytes and non-bytes
+        df = DataFrame({"foo": [b"bar", "baz"]})
+        with pytest.raises(ValueError):
+            df.to_csv()
+        df = DataFrame({b"foo": ["a", "b"], "bar": ["c", "d"]})
+        with pytest.raises(ValueError):
+            df.to_csv()
+        df = DataFrame({"foo": ["a", "b"], "bar": ["c", "d"]}, index=["A", b"B"])
+        with pytest.raises(ValueError):
+            df.to_csv()
+
+        # multi-indexes
+        iterables = [[b"A", b"B"], ["C", "D"]]
+        index = pd.MultiIndex.from_product(iterables, names=[b"f", b"s"])
+        data = np.array([[0, 0], [0, 0], [0, 0], [0, 0]])
+        df = pd.DataFrame(data, index=index)
+
+        with tm.ensure_clean("__tmp_to_csv_bytes__.csv") as path:
+            df.to_csv(path)
+            import sys
+
+            df.to_csv(sys.stdout)
+            with open(path) as csvfile:
+                output = csvfile.readlines()
+
+        expected = [
+            "f,s,0,1\n",
+            "A,C,0,0\n",
+            "A,D,0,0\n",
+            "B,C,0,0\n",
+            "B,D,0,0\n",
+        ]
+        assert output == expected
+
+        # mixing of bytes and non-bytes in multi-indexes
+        iterables = [[b"A", "B"], ["C", "D"]]
+        index = pd.MultiIndex.from_product(iterables)
+        df = pd.DataFrame(data, index=index)
+        with pytest.raises(ValueError):
+            df.to_csv()
+
+        iterables = [["A", "B"], ["C", "D"]]
+        index = pd.MultiIndex.from_product(iterables, names=[b"f", "s"])
+        df = pd.DataFrame(data, index=index)
+        with pytest.raises(ValueError):
+            df.to_csv()
+
     def test_to_csv_mixed(self):
         def create_cols(name):
             return [f"{name}{i:03d}" for i in range(5)]

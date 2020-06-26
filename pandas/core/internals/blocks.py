@@ -83,6 +83,7 @@ from pandas.core.indexers import (
 )
 import pandas.core.missing as missing
 from pandas.core.nanops import nanpercentile
+from pandas.core.strings import str_decode
 
 if TYPE_CHECKING:
     from pandas import Index
@@ -653,12 +654,19 @@ class Block(PandasObject):
         """
         return is_dtype_equal(value.dtype, self.dtype)
 
-    def to_native_types(self, na_rep="nan", quoting=None, **kwargs):
+    def to_native_types(
+        self, na_rep="nan", bytes_encoding=None, quoting=None, **kwargs
+    ):
         """ convert to our native types format """
         values = self.values
 
         mask = isna(values)
         itemsize = writers.word_len(na_rep)
+
+        length = values.shape[0]
+        for i in range(length):
+            if lib.is_bytes_array(values[i], skipna=True, mixing_allowed=False):
+                values[i] = str_decode(values[i], bytes_encoding)
 
         if not self.is_object and not quoting and itemsize:
             values = values.astype(str)

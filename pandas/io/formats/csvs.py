@@ -11,7 +11,7 @@ from zipfile import ZipFile
 
 import numpy as np
 
-from pandas._libs import writers as libwriters
+from pandas._libs import lib, writers as libwriters
 from pandas._typing import FilePathOrBuffer
 
 from pandas.core.dtypes.generic import (
@@ -108,6 +108,7 @@ class CSVFormatter:
             if isinstance(cols, ABCIndexClass):
                 cols = cols.to_native_types(
                     na_rep=na_rep,
+                    bytes_encoding=self.encoding,
                     float_format=float_format,
                     date_format=date_format,
                     quoting=self.quoting,
@@ -122,6 +123,7 @@ class CSVFormatter:
         if isinstance(cols, ABCIndexClass):
             cols = cols.to_native_types(
                 na_rep=na_rep,
+                bytes_encoding=self.encoding,
                 float_format=float_format,
                 date_format=date_format,
                 quoting=self.quoting,
@@ -278,6 +280,8 @@ class CSVFormatter:
             else:
                 encoded_labels = []
 
+        self._bytes_to_str(encoded_labels)
+
         if not has_mi_columns or has_aliases:
             encoded_labels += list(write_cols)
             writer.writerow(encoded_labels)
@@ -300,6 +304,7 @@ class CSVFormatter:
                         col_line.extend([""] * (len(index_label) - 1))
 
                 col_line.extend(columns._get_level_values(i))
+                self._bytes_to_str(col_line)
 
                 writer.writerow(col_line)
 
@@ -340,6 +345,7 @@ class CSVFormatter:
             b = blocks[i]
             d = b.to_native_types(
                 na_rep=self.na_rep,
+                bytes_encoding=self.encoding,
                 float_format=self.float_format,
                 decimal=self.decimal,
                 date_format=self.date_format,
@@ -353,6 +359,7 @@ class CSVFormatter:
         ix = data_index.to_native_types(
             slicer=slicer,
             na_rep=self.na_rep,
+            bytes_encoding=self.encoding,
             float_format=self.float_format,
             decimal=self.decimal,
             date_format=self.date_format,
@@ -360,3 +367,11 @@ class CSVFormatter:
         )
 
         libwriters.write_csv_rows(self.data, ix, self.nlevels, self.cols, self.writer)
+
+    def _bytes_to_str(self, values):
+        """If all the values are bytes, then modify values list by decoding
+        bytes to str."""
+        np_values = np.array(values, dtype=object)
+        if lib.is_bytes_array(np_values, skipna=True, mixing_allowed=False):
+            for i, value in enumerate(values):
+                values[i] = value.decode(self.encoding)

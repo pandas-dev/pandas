@@ -77,7 +77,7 @@ import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
 from pandas.core.ops.invalid import make_invalid_op
 from pandas.core.sorting import ensure_key_mapped
-from pandas.core.strings import StringMethods
+from pandas.core.strings import StringMethods, str_decode
 
 from pandas.io.formats.printing import (
     PrettyDict,
@@ -954,6 +954,8 @@ class Index(IndexOpsMixin, PandasObject):
                 Whether or not there are quoted values in `self`
             3) date_format : str
                 The format used to represent date-like values.
+            4) bytes_encoding : str
+                The encoding scheme to use to decode the bytes.
 
         Returns
         -------
@@ -965,7 +967,9 @@ class Index(IndexOpsMixin, PandasObject):
             values = values[slicer]
         return values._format_native_types(**kwargs)
 
-    def _format_native_types(self, na_rep="", quoting=None, **kwargs):
+    def _format_native_types(
+        self, na_rep="", quoting=None, bytes_encoding=None, **kwargs
+    ):
         """
         Actually format specific types of the index.
         """
@@ -976,6 +980,8 @@ class Index(IndexOpsMixin, PandasObject):
             values = np.array(self, dtype=object, copy=True)
 
         values[mask] = na_rep
+        if lib.is_bytes_array(values, skipna=True, mixing_allowed=False):
+            values = str_decode(values, bytes_encoding)
         return values
 
     def _summary(self, name=None) -> str_t:
