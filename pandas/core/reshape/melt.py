@@ -2,6 +2,7 @@ import re
 from typing import TYPE_CHECKING, List, cast
 
 import numpy as np
+import warnings
 
 from pandas.util._decorators import Appender, deprecate_kwarg
 
@@ -39,6 +40,11 @@ def melt(
         cols = [x for c in frame.columns for x in c]
     else:
         cols = list(frame.columns)
+
+    if value_name in frame.columns:
+        warnings.warn('The value column name "%s" conflicts with an existing'
+                      ' column in the dataframe.' % (value_name),
+                      DeprecationWarning)
 
     if id_vars is not None:
         if not is_list_like(id_vars):
