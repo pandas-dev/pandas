@@ -1,17 +1,12 @@
 from copy import copy
 
 from cython import Py_ssize_t
-from cpython.ref cimport Py_INCREF
 
 from libc.stdlib cimport malloc, free
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport (ndarray,
-                    int64_t,
-                    PyArray_SETITEM,
-                    PyArray_ITER_NEXT, PyArray_ITER_DATA, PyArray_IterNew,
-                    flatiter)
+from numpy cimport ndarray, int64_t
 cnp.import_array()
 
 from pandas._libs cimport util
@@ -24,146 +19,6 @@ cdef _check_result_array(object obj, Py_ssize_t cnt):
             (isinstance(obj, list) and len(obj) == cnt) or
             getattr(obj, 'shape', None) == (cnt,)):
         raise ValueError('Function does not reduce')
-
-
-cdef class Reducer:
-    """
-    Performs generic reduction operation on a C or Fortran-contiguous ndarray
-    while avoiding ndarray construction overhead
-    """
-    cdef:
-        Py_ssize_t increment, chunksize, nresults
-        object dummy, f, labels, typ, ityp, index
-        ndarray arr
-
-    def __init__(
-        self, ndarray arr, object f, int axis=1, object dummy=None, object labels=None
-    ):
-        cdef:
-            Py_ssize_t n, k
-
-        n, k = (<object>arr).shape
-
-        if axis == 0:
-            if not arr.flags.f_contiguous:
-                arr = arr.copy('F')
-
-            self.nresults = k
-            self.chunksize = n
-            self.increment = n * arr.dtype.itemsize
-        else:
-            if not arr.flags.c_contiguous:
-                arr = arr.copy('C')
-
-            self.nresults = n
-            self.chunksize = k
-            self.increment = k * arr.dtype.itemsize
-
-        self.f = f
-        self.arr = arr
-        self.labels = labels
-        self.dummy, self.typ, self.index, self.ityp = self._check_dummy(
-            dummy=dummy)
-
-    cdef _check_dummy(self, object dummy=None):
-        cdef:
-            object index = None, typ = None, ityp = None
-
-        if dummy is None:
-            dummy = np.empty(self.chunksize, dtype=self.arr.dtype)
-
-            # our ref is stolen later since we are creating this array
-            # in cython, so increment first
-            Py_INCREF(dummy)
-
-        else:
-
-            # we passed a Series
-            typ = type(dummy)
-            index = dummy.index
-            dummy = dummy.values
-
-            if dummy.dtype != self.arr.dtype:
-                raise ValueError('Dummy array must be same dtype')
-            if len(dummy) != self.chunksize:
-                raise ValueError(f'Dummy array must be length {self.chunksize}')
-
-        return dummy, typ, index, ityp
-
-    def get_result(self):
-        cdef:
-            char* dummy_buf
-            ndarray arr, result, chunk
-            Py_ssize_t i
-            flatiter it
-            object res, name, labels
-            object cached_typ = None
-
-        arr = self.arr
-        chunk = self.dummy
-        dummy_buf = chunk.data
-        chunk.data = arr.data
-        labels = self.labels
-
-        result = np.empty(self.nresults, dtype='O')
-        it = <flatiter>PyArray_IterNew(result)
-        reduction_success = True
-
-        try:
-            for i in range(self.nresults):
-
-                # create the cached type
-                # each time just reassign the data
-                if i == 0:
-
-                    if self.typ is not None:
-                        # In this case, we also have self.index
-                        name = labels[i]
-                        cached_typ = self.typ(
-                            chunk, index=self.index, name=name, dtype=arr.dtype)
-
-                # use the cached_typ if possible
-                if cached_typ is not None:
-                    # In this case, we also have non-None labels
-                    name = labels[i]
-
-                    object.__setattr__(
-                        cached_typ._mgr._block, 'values', chunk)
-                    object.__setattr__(cached_typ, 'name', name)
-                    res = self.f(cached_typ)
-                else:
-                    res = self.f(chunk)
-
-                # TODO: reason for not squeezing here?
-                extracted_res = _extract_result(res, squeeze=False)
-                if i == 0:
-                    # On the first pass, we check the output shape to see
-                    #  if this looks like a reduction.
-                    #  If it does not, return the computed value to be used by the
-                    #  pure python implementation,
-                    #  so the function won't be called twice on the same object,
-                    #  and side effects would occur twice
-                    try:
-                        _check_result_array(extracted_res, len(self.dummy))
-                    except ValueError as err:
-                        if "Function does not reduce" not in str(err):
-                            # catch only the specific exception
-                            raise
-
-                        reduction_success = False
-                        PyArray_SETITEM(result, PyArray_ITER_DATA(it), copy(res))
-                        break
-
-                PyArray_SETITEM(result, PyArray_ITER_DATA(it), extracted_res)
-                chunk.data = chunk.data + self.increment
-                PyArray_ITER_NEXT(it)
-
-        finally:
-            # so we don't free the wrong memory
-            chunk.data = dummy_buf
-
-        result = maybe_convert_objects(result)
-        return result, reduction_success
 
 
 cdef class _BaseGrouper:
@@ -610,30 +465,3 @@ cdef class BlockSlider:
             # axis=1 is the frame's axis=0
             arr.data = self.base_ptrs[i]
             arr.shape[1] = 0
-
-
-def compute_reduction(arr: ndarray, f, axis: int = 0, dummy=None, labels=None):
-    """
-
-    Parameters
-    -----------
-    arr : np.ndarray
-    f : function
-    axis : integer axis
-    dummy : type of reduced output (series)
-    labels : Index or None
-    """
-
-    # We either have both dummy and labels, or neither of them
-    if (labels is None) ^ (dummy is None):
-        raise ValueError("Must pass either dummy and labels, or neither")
-
-    if labels is not None:
-        # Caller is responsible for ensuring we don't have MultiIndex
-        assert labels.nlevels == 1
-
-        # pass as an ndarray/ExtensionArray
-        labels = labels._values
-
-    reducer = Reducer(arr, f, axis=axis, dummy=dummy, labels=labels)
-    return reducer.get_result()
