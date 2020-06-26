@@ -2,7 +2,8 @@ import io
 import textwrap
 
 import pytest
-import validate_docstrings
+
+from scripts import validate_docstrings
 
 
 class BadDocstrings:
