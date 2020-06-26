@@ -728,7 +728,7 @@ def test_cython_transform_frame(op, args, targop):
             # dict(by=['int','string'])]:
 
             gb = df.groupby(**gb_target)
-            # whitelisted methods set the selection before applying
+            # allowlisted methods set the selection before applying
             # bit a of hack to make sure the cythonized shift
             # is equivalent to pre 0.17.1 behavior
             if op == "shift":
