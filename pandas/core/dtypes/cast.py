@@ -1747,3 +1747,32 @@ def validate_numeric_casting(dtype: np.dtype, value):
     ):
         if is_bool(value):
             raise ValueError("Cannot assign bool to float/integer series")
+
+
+def safe_convert_to_ndarray(values) -> np.ndarray:
+    """
+    Convert values to ndarray while casting nullable dtype arrays to float.
+
+    Parameters
+    ----------
+    values
+        Series or array.
+
+    Returns
+    -------
+    converted_values : np.ndarray
+        Values cast to np.ndarray.
+    """
+    if hasattr(values, "dtype") and is_extension_array_dtype(values.dtype):
+        if is_integer_dtype(values.dtype):
+            converted_values = values.to_numpy(dtype=float, na_value=np.nan)
+        elif is_bool_dtype(values.dtype):
+            converted_values = values.to_numpy(dtype=float, na_value=np.nan)
+        elif is_datetime64tz_dtype(values.dtype):
+            print(values)
+            converted_values = np.asarray(values.dt.tz_localize(tz=None))
+        else:
+            converted_values = np.asarray(values)
+    else:
+        converted_values = np.asarray(values)
+    return converted_values

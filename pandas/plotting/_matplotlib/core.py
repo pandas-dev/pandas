@@ -7,6 +7,7 @@ import numpy as np
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
+from pandas.core.dtypes.cast import safe_convert_to_ndarray
 from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_float,
@@ -413,22 +414,11 @@ class MPLPlot:
         if is_empty:
             raise TypeError("no numeric data to plot")
 
-        def convert_to_ndarray(data):
-            # GH32073: cast to float if values can contain nulled integers
-            if (
-                hasattr(data, "dtype")
-                and is_integer_dtype(data.dtype)
-                and is_extension_array_dtype(data.dtype)
-            ):
-                return data.to_numpy(dtype="float", na_value=np.nan)
-            else:
-                return np.asarray(data)
-
         # GH25587: cast ExtensionArray of pandas (IntegerArray, etc.) to
         # np.ndarray before plot.
         numeric_data = numeric_data.copy()
         for col in numeric_data:
-            numeric_data[col] = convert_to_ndarray(numeric_data[col])
+            numeric_data[col] = safe_convert_to_ndarray(numeric_data[col])
 
         self.data = numeric_data
 

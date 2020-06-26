@@ -41,7 +41,7 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
 
-from pandas.core.dtypes.cast import maybe_cast_result
+from pandas.core.dtypes.cast import maybe_cast_result, safe_convert_to_ndarray
 from pandas.core.dtypes.common import (
     ensure_float,
     is_bool_dtype,
@@ -2052,14 +2052,11 @@ class GroupBy(_GroupBy[FrameOrSeries]):
 
             inference = None
             if is_integer_dtype(vals.dtype):
-                if is_extension_array_dtype(vals.dtype):
-                    vals = vals.to_numpy(dtype=float, na_value=np.nan)
                 inference = np.int64
-            elif is_bool_dtype(vals.dtype) and is_extension_array_dtype(vals.dtype):
-                vals = vals.to_numpy(dtype=float, na_value=np.nan)
             elif is_datetime64_dtype(vals.dtype):
                 inference = "datetime64[ns]"
-                vals = np.asarray(vals).astype(float)
+
+            vals = safe_convert_to_ndarray(vals)
 
             return vals, inference
 
