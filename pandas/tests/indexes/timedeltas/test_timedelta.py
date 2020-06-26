@@ -25,7 +25,7 @@ class TestTimedeltaIndex(DatetimeLike):
     _holder = TimedeltaIndex
 
     @pytest.fixture
-    def indices(self):
+    def index(self):
         return tm.makeTimedeltaIndex(10)
 
     def create_index(self) -> TimedeltaIndex:

@@ -251,13 +251,13 @@ class Generic:
             self.check_metadata(v1 & v2)
             self.check_metadata(v1 | v2)
 
-    def test_head_tail(self, indices):
+    def test_head_tail(self, index):
         # GH5370
 
-        o = self._construct(shape=len(indices))
+        o = self._construct(shape=len(index))
 
         axis = o._get_axis_name(0)
-        setattr(o, axis, indices)
+        setattr(o, axis, index)
 
         o.head()
 
@@ -273,8 +273,8 @@ class Generic:
         self._compare(o.tail(len(o) + 1), o)
 
         # neg index
-        self._compare(o.head(-3), o.head(len(indices) - 3))
-        self._compare(o.tail(-3), o.tail(len(indices) - 3))
+        self._compare(o.head(-3), o.head(len(index) - 3))
+        self._compare(o.tail(-3), o.tail(len(index) - 3))
 
     def test_sample(self):
         # Fixes issue: 2419

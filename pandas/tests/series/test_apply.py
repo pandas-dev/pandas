@@ -528,11 +528,11 @@ class TestSeriesMap:
         exp = Series([np.nan, "B", "C", "D"])
         tm.assert_series_equal(a.map(c), exp)
 
-    def test_map_empty(self, indices):
-        if isinstance(indices, MultiIndex):
+    def test_map_empty(self, index):
+        if isinstance(index, MultiIndex):
             pytest.skip("Initializing a Series from a MultiIndex is not supported")
 
-        s = Series(indices)
+        s = Series(index)
         result = s.map({})
 
         expected = pd.Series(np.nan, index=s.index)
