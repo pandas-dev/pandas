@@ -146,8 +146,6 @@ FASTCALL_ATTR JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
 
     while (1) {
         chr = (int)(unsigned char)*(offset);
-        printf("chr=%u \n", chr);
-        printf("intValue: %lu\n", intValue);
 
         switch (chr) {
             case '0':
@@ -166,7 +164,6 @@ FASTCALL_ATTR JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
                 newDigit = (JSLONG)(chr - 48);
 
                 if (intValue*10ULL + newDigit > overflowLimit) {
-                    printf("intValue=%lu\n", intValue);
                     // TO DO: store current intValue for later processing
                     // then reset intValue
                     intValue = (newDigit==0) ? 10 : newDigit;
