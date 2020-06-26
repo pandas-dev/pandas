@@ -12,7 +12,7 @@ from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import ArrayLike
+from pandas._typing import AnyArrayLike, ArrayLike, F
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -31,6 +31,20 @@ from pandas.core.missing import backfill_1d, pad_1d
 from pandas.core.sorting import nargsort
 
 _extension_array_shared_docs: Dict[str, str] = dict()
+
+HANDLED_FUNCTIONS = {}
+
+
+def implements(numpy_function) -> Callable[[F], F]:
+    """
+    Register an __array_function__ implementation for ExtensionArray objects.
+    """
+
+    def decorator(func):
+        HANDLED_FUNCTIONS[numpy_function] = func
+        return func
+
+    return decorator
 
 
 class ExtensionArray:
@@ -164,6 +178,15 @@ class ExtensionArray:
     # '_typ' is for pandas.core.dtypes.generic.ABCExtensionArray.
     # Don't override this.
     _typ = "extension"
+
+    def __array_function__(self, func, types, args, kwargs):
+        if func not in HANDLED_FUNCTIONS:
+            return NotImplemented
+        # Note: this allows subclasses that don't override
+        # __array_function__ to handle ExtensionArray objects
+        if not all(issubclass(t, ExtensionArray) for t in types):
+            return NotImplemented
+        return HANDLED_FUNCTIONS[func](*args, **kwargs)
 
     # ------------------------------------------------------------------------
     # Constructors
@@ -863,6 +886,13 @@ class ExtensionArray:
         ind = np.arange(len(self)).repeat(repeats)
         return self.take(ind)
 
+    def _tile(self, rep: int) -> "ExtensionArray":
+        """
+        non-public method for compatibility with np.tile
+        """
+        ind = np.tile(np.arange(len(self)), rep)
+        return self.take(ind)
+
     # ------------------------------------------------------------------------
     # Indexing methods
     # ------------------------------------------------------------------------
@@ -1279,3 +1309,15 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
     @classmethod
     def _create_comparison_method(cls, op):
         return cls._create_method(op, coerce_to_dtype=False, result_dtype=bool)
+
+
+@implements(np.tile)
+def tile(array: ExtensionArray, reps: Union[int, AnyArrayLike]):
+    try:
+        tup = tuple(reps)
+    except TypeError:
+        tup = (reps,)
+    d = len(tup)
+    if d != 1:
+        raise ValueError("can only tile extension arrays along first axis")
+    return array._tile(reps)
