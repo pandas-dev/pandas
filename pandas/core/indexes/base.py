@@ -1,24 +1,29 @@
+import operator
+import warnings
 from copy import copy as copy_func
 from datetime import datetime
-import operator
 from textwrap import dedent
 from typing import TYPE_CHECKING, Any, Callable, FrozenSet, Hashable, Optional, Union
-import warnings
 
 import numpy as np
-
-from pandas._libs import algos as libalgos, index as libindex, lib
 import pandas._libs.join as libjoin
 from pandas._libs.lib import is_datetime_array, no_default
-from pandas._libs.tslibs import OutOfBoundsDatetime, Timestamp
 from pandas._libs.tslibs.period import IncompatibleFrequency
 from pandas._libs.tslibs.timezones import tz_compare
+
+import pandas.core.algorithms as algos
+import pandas.core.common as com
+import pandas.core.missing as missing
+from pandas._libs import algos as libalgos, index as libindex, lib
+from pandas._libs.tslibs import OutOfBoundsDatetime, Timestamp
 from pandas._typing import DtypeObj, Label
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
-from pandas.errors import InvalidIndexError
-from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
-
+from pandas.core import ops
+from pandas.core.accessor import CachedAccessor
+from pandas.core.arrays import Categorical, ExtensionArray
+from pandas.core.arrays.datetimes import tz_to_dtype, validate_tz_from_dtype
+from pandas.core.base import IndexOpsMixin, PandasObject
 from pandas.core.dtypes import concat as _concat
 from pandas.core.dtypes.cast import (
     maybe_cast_to_integer_array,
@@ -63,22 +68,13 @@ from pandas.core.dtypes.generic import (
     ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.missing import array_equivalent, isna
-
-from pandas.core import ops
-from pandas.core.accessor import CachedAccessor
-import pandas.core.algorithms as algos
-from pandas.core.arrays import Categorical, ExtensionArray
-from pandas.core.arrays.datetimes import tz_to_dtype, validate_tz_from_dtype
-from pandas.core.base import IndexOpsMixin, PandasObject
-import pandas.core.common as com
 from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.indexes.frozen import FrozenList
-import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
 from pandas.core.ops.invalid import make_invalid_op
 from pandas.core.sorting import ensure_key_mapped
 from pandas.core.strings import StringMethods
-
+from pandas.errors import InvalidIndexError
 from pandas.io.formats.printing import (
     PrettyDict,
     default_pprint,
@@ -86,8 +82,7 @@ from pandas.io.formats.printing import (
     format_object_summary,
     pprint_thing,
 )
-
-from fractions import Fraction
+from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
 
 if TYPE_CHECKING:
     from pandas import Series
