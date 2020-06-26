@@ -1,8 +1,8 @@
 import re
 from typing import TYPE_CHECKING, List, cast
+import warnings
 
 import numpy as np
-import warnings
 
 from pandas.util._decorators import Appender, deprecate_kwarg
 
@@ -43,8 +43,8 @@ def melt(
 
     if value_name in frame.columns:
         warnings.warn(
-            'The value column name "%s" conflicts with an existing'
-            " column in the dataframe." % (value_name),
+            'The value column name "%s" conflicts with an existing '
+            "column in the dataframe." % (value_name),
             DeprecationWarning,
         )
 
