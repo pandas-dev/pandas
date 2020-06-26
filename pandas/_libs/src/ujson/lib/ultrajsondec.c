@@ -118,6 +118,7 @@ FASTCALL_ATTR JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
     int intNeg = 1;
     int mantSize = 0;
     JSUINT64 intValue;
+    JSLONG newDigit;
     int chr;
     int decimalCount = 0;
     double frcValue = 0.0;
@@ -145,6 +146,8 @@ FASTCALL_ATTR JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
 
     while (1) {
         chr = (int)(unsigned char)*(offset);
+        printf("chr=%u \n", chr);
+        printf("intValue: %lu\n", intValue);
 
         switch (chr) {
             case '0':
@@ -160,12 +163,16 @@ FASTCALL_ATTR JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
                 // FIXME: Check for arithmetic overflow here
                 // PERF: Don't do 64-bit arithmetic here unless we know we have
                 // to
-                intValue = intValue * 10ULL + (JSLONG)(chr - 48);
+                newDigit = (JSLONG)(chr - 48);
 
-                if (intValue > overflowLimit) {
-                    return SetError(ds, -1, overflowLimit == LLONG_MAX
-                                                ? "Value is too big"
-                                                : "Value is too small");
+                if (intValue*10ULL + newDigit > overflowLimit) {
+                    printf("intValue=%lu\n", intValue);
+                    // TO DO: store current intValue for later processing
+                    // then reset intValue
+                    intValue = (newDigit==0) ? 10 : newDigit;
+                }
+                else {
+                    intValue = intValue * 10ULL + newDigit;
                 }
 
                 offset++;
@@ -201,10 +208,6 @@ BREAK_INT_LOOP:
     } else {
         return ds->dec->newInt(ds->prv, (JSINT32)(intValue * intNeg));
     }
-
-DECODE_BIGNUM:
-
-
 
 DECODE_FRACTION:
 
