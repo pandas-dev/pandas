@@ -202,6 +202,10 @@ BREAK_INT_LOOP:
         return ds->dec->newInt(ds->prv, (JSINT32)(intValue * intNeg));
     }
 
+DECODE_BIGNUM:
+
+
+
 DECODE_FRACTION:
 
     if (ds->dec->preciseFloat) {
