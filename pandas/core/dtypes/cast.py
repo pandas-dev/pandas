@@ -1494,15 +1494,14 @@ def cast_scalar_to_array(shape, value, dtype: Optional[DtypeObj] = None) -> np.n
 
     Parameters
     ----------
-    shape : tuple or int
+    shape : tuple
     value : scalar value
     dtype : np.dtype, optional
         dtype to coerce
 
     Returns
     -------
-    ndarray of shape of list of length shape[1] of Extension Arrays of length shape[0],
-        filled with value, of specified / inferred dtype
+    ndarray of shape filled with value, of specified / inferred dtype
 
     """
     if dtype is None:
