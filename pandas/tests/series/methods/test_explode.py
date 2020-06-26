@@ -118,3 +118,11 @@ def test_duplicate_index():
     result = s.explode()
     expected = pd.Series([1, 2, 3, 4], index=[0, 0, 0, 0], dtype=object)
     tm.assert_series_equal(result, expected)
+
+
+def test_ignore_index():
+    # GH 34932
+    s = pd.Series([[1, 2], [3, 4]])
+    result = s.explode(ignore_index=True)
+    expected = pd.Series([1, 2, 3, 4], index=[0, 1, 2, 3], dtype=object)
+    tm.assert_series_equal(result, expected)
