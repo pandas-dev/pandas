@@ -1024,7 +1024,7 @@ class TestWideToLong:
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
-            dfm = df.melt(id_vars="value")
+            dfm = df.melt(id_vars="value")  # noqa F841
             assert len(w) == 1
             assert issubclass(w[-1].category, DeprecationWarning)
             assert "conflicts" in str(w[-1].message)
