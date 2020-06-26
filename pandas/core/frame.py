@@ -42,9 +42,7 @@ import numpy.ma as ma
 from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, lib, properties
-from pandas._libs.interval import Interval
 from pandas._libs.lib import no_default
-from pandas._libs.tslibs import Period
 from pandas._typing import (
     ArrayLike,
     Axes,
