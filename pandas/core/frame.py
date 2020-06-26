@@ -3746,7 +3746,9 @@ class DataFrame(NDFrame):
 
             # upcast
             if is_extension_array_dtype(infer_dtype):
-                value = construct_1d_arraylike_from_scalar(len(self.index), value)
+                value = construct_1d_arraylike_from_scalar(
+                    value, len(self.index), infer_dtype
+                )
             else:
                 value = cast_scalar_to_array(len(self.index), value)
 
