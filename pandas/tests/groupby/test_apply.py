@@ -1001,24 +1001,24 @@ def test_apply_function_with_indexing_return_column():
     "udf, is_transform",
     [(lambda x: x.copy(), True), (lambda x: x.copy().rename(lambda y: y + 1), False)],
 )
-@pytest.mark.parametrize("result_group_keys", [True, False, None])
-def test_apply_result_type(result_group_keys, udf, is_transform):
+@pytest.mark.parametrize("group_keys", [True, False])
+def test_apply_result_type(group_keys, udf, is_transform):
     # https://github.com/pandas-dev/pandas/issues/34809
     # We'd like to control whether the group keys end up in the index
     # regardless of whether the UDF happens to be a transform.
     df = pd.DataFrame({"A": ["a", "b"], "B": [1, 2]})
-    df_result = df.groupby("A", result_group_keys=result_group_keys).apply(udf)
-    series_result = df.B.groupby(df.A, result_group_keys=result_group_keys).apply(udf)
+    df_result = df.groupby("A", group_keys=group_keys).apply(udf)
+    series_result = df.B.groupby(df.A, group_keys=group_keys).apply(udf)
 
-    if result_group_keys:
+    if group_keys:
         assert df_result.index.nlevels == 2
         assert series_result.index.nlevels == 2
-    elif result_group_keys is False:
+    elif group_keys is False:
         assert df_result.index.nlevels == 1
         assert series_result.index.nlevels == 1
-    elif is_transform:
-        assert df_result.index.nlevels == 1
-        assert series_result.index.nlevels == 1
-    else:
-        assert df_result.index.nlevels == 2
-        assert series_result.index.nlevels == 2
+    # elif is_transform:
+    #     assert df_result.index.nlevels == 1
+    #     assert series_result.index.nlevels == 1
+    # else:
+    #     assert df_result.index.nlevels == 2
+    #     assert series_result.index.nlevels == 2
