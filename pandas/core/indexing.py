@@ -1683,7 +1683,6 @@ class _iLocIndexer(_LocationIndexer):
                     ser = v
                 else:
                     # set the item, possibly having a dtype change
-                    ser._consolidate_inplace()
                     ser = ser.copy()
                     ser._mgr = ser._mgr.setitem(indexer=pi, value=v)
                     ser._maybe_update_cacher(clear=True)
