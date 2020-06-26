@@ -13,6 +13,15 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+.. _whatsnew_110.specify_missing_labels:
+
+KeyErrors raised by loc specify missing labels
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Previously, if labels were missing for a loc call, a KeyError was raised stating that this was no longer supported.
+
+Now the error message also includes a list of the missing labels (max 10 items, display width 80 characters). See :issue:`34272`.
+
+
 .. _whatsnew_110.astype_string:
 
 All dtypes can now be converted to ``StringDtype``
