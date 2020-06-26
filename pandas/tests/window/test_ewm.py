@@ -50,7 +50,7 @@ def test_constructor(which):
     # not valid: halflife <= 0
     msg = "halflife must satisfy: halflife > 0"
     with pytest.raises(ValueError, match=msg):
-        c(halflife=0.0)
+        c(halflife=0)
 
     # not valid: alpha <= 0 or alpha > 1
     msg = "alpha must satisfy: 0 < alpha <= 1"

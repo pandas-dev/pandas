@@ -236,7 +236,7 @@ class ExponentialMovingWindow(_Rolling):
             else:
                 self.com = None
         else:
-            if halflife is not None and not isinstance(halflife, float):
+            if halflife is not None and isinstance(halflife, (str, datetime.timedelta)):
                 raise ValueError(
                     "halflife can only be a timedelta convertible argument if "
                     "times is not None."
