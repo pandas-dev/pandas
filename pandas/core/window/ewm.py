@@ -236,6 +236,11 @@ class ExponentialMovingWindow(_Rolling):
             else:
                 self.com = None
         else:
+            if halflife is not None and not isinstance(halflife, float):
+                raise ValueError(
+                    "halflife can only be a timedelta convertible argument if "
+                    "times is not None."
+                )
             self.times = None
             self.halflife = None
             self.com = get_center_of_mass(com, span, halflife, alpha)
