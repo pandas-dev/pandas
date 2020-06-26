@@ -43,6 +43,7 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 #include <limits.h>
 #include <locale.h>
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
@@ -64,6 +65,7 @@ struct DecoderState {
     int escHeap;
     int lastType;
     JSUINT32 objDepth;
+    char *cStr; // storage for BigNum
     void *prv;
     JSONObjectDecoder *dec;
 };
@@ -163,8 +165,32 @@ FASTCALL_ATTR JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
                 // to
                 newDigit = (JSLONG)(chr - 48);
 
+                // TO DO: need to fix overflow catching
                 if (intValue*10ULL + newDigit > overflowLimit) {
                     // TO DO: store current intValue for later processing
+
+                    // convert current inValue into string
+                    int length = snprintf( NULL, 0, "%lu", intValue);
+                    char* intValue_asStr = malloc( length + 1 );
+                    snprintf(intValue_asStr, length + 1, "%lu", intValue);
+                    
+                    // copy current ds->cStr into a temporary variable
+                    char* cStr_existing = malloc(strlen(ds->cStr)+1);
+                    memcpy(cStr_existing, ds->cStr, strlen(ds->cStr)+1);
+                    
+                    // size of ds->cStr after concatenation with str
+                    size_t new_size = strlen(cStr_existing)+strlen(intValue_asStr)+1;
+                    
+                    char* new_cStr = malloc(new_size);
+                    memcpy(new_cStr, cStr_existing, strlen(cStr_existing));
+                    strcat(new_cStr, intValue_asStr);
+
+                    // copy concatenated string back to ds->cStr
+                    // TO DO: this is failing
+                    ds->cStr = realloc(ds->cStr, new_size);
+                    strcpy(ds->cStr, new_cStr);
+                    ds->cStr = realloc(ds->cStr, new_size);
+                    
                     // then reset intValue
                     intValue = (newDigit==0) ? 10 : newDigit;
                 }
@@ -200,6 +226,9 @@ BREAK_INT_LOOP:
     ds->lastType = JT_INT;
     ds->start = offset;
 
+    // check if ds->cStr has been written to
+    // if yes append str(intValue) 
+    // and return ds->dec->newBigNum
     if ((intValue >> 31)) {
         return ds->dec->newLong(ds->prv, (JSINT64)(intValue * (JSINT64)intNeg));
     } else {
@@ -1174,6 +1203,7 @@ JSOBJ JSON_DecodeObject(JSONObjectDecoder *dec, const char *buffer,
     ds.dec->errorStr = NULL;
     ds.dec->errorOffset = NULL;
     ds.objDepth = 0;
+    ds.cStr = "";  // TO DO: this isn't the right initialization (not sure why)
 
     ds.dec = dec;
 
