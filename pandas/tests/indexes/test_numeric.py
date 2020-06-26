@@ -97,7 +97,7 @@ class TestFloat64Index(Numeric):
         ],
         ids=["mixed", "float", "mixed_dec", "float_dec"],
     )
-    def indices(self, request):
+    def index(self, request):
         return Float64Index(request.param)
 
     @pytest.fixture
@@ -111,8 +111,8 @@ class TestFloat64Index(Numeric):
     def create_index(self) -> Float64Index:
         return Float64Index(np.arange(5, dtype="float64"))
 
-    def test_repr_roundtrip(self, indices):
-        tm.assert_index_equal(eval(repr(indices)), indices)
+    def test_repr_roundtrip(self, index):
+        tm.assert_index_equal(eval(repr(index)), index)
 
     def check_is_index(self, i):
         assert isinstance(i, Index)
@@ -428,7 +428,7 @@ class TestInt64Index(NumericInt):
     @pytest.fixture(
         params=[range(0, 20, 2), range(19, -1, -1)], ids=["index_inc", "index_dec"]
     )
-    def indices(self, request):
+    def index(self, request):
         return Int64Index(request.param)
 
     def create_index(self) -> Int64Index:
@@ -537,7 +537,7 @@ class TestUInt64Index(NumericInt):
         ],
         ids=["index_inc", "index_dec"],
     )
-    def indices(self, request):
+    def index(self, request):
         return UInt64Index(request.param)
 
     @pytest.fixture

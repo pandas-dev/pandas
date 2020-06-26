@@ -10,10 +10,10 @@ import pandas._testing as tm
 
 class TestDataFrameToXArray:
     @td.skip_if_no("xarray", "0.10.0")
-    def test_to_xarray_index_types(self, indices):
-        if isinstance(indices, pd.MultiIndex):
+    def test_to_xarray_index_types(self, index):
+        if isinstance(index, pd.MultiIndex):
             pytest.skip("MultiIndex is tested separately")
-        if len(indices) == 0:
+        if len(index) == 0:
             pytest.skip("Test doesn't make sense for empty index")
 
         from xarray import Dataset
@@ -31,7 +31,7 @@ class TestDataFrameToXArray:
             }
         )
 
-        df.index = indices[:3]
+        df.index = index[:3]
         df.index.name = "foo"
         df.columns.name = "bar"
         result = df.to_xarray()
@@ -93,17 +93,17 @@ class TestDataFrameToXArray:
 
 class TestSeriesToXArray:
     @td.skip_if_no("xarray", "0.10.0")
-    def test_to_xarray_index_types(self, indices):
-        if isinstance(indices, pd.MultiIndex):
+    def test_to_xarray_index_types(self, index):
+        if isinstance(index, pd.MultiIndex):
             pytest.skip("MultiIndex is tested separately")
 
         from xarray import DataArray
 
-        s = Series(range(len(indices)), index=indices, dtype="int64")
+        s = Series(range(len(index)), index=index, dtype="int64")
         s.index.name = "foo"
         result = s.to_xarray()
         repr(result)
-        assert len(result) == len(indices)
+        assert len(result) == len(index)
         assert len(result.coords) == 1
         tm.assert_almost_equal(list(result.coords.keys()), ["foo"])
         assert isinstance(result, DataArray)

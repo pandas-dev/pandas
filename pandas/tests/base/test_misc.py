@@ -173,8 +173,7 @@ def test_searchsorted(index_or_series_obj):
     assert 0 <= index <= len(obj)
 
 
-def test_access_by_position(indices):
-    index = indices
+def test_access_by_position(index):
 
     if len(index) == 0:
         pytest.skip("Test doesn't make sense on empty data")

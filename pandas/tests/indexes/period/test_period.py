@@ -32,7 +32,7 @@ class TestPeriodIndex(DatetimeLike):
         ],
         ids=["index_inc", "index_dec"],
     )
-    def indices(self, request):
+    def index(self, request):
         return request.param
 
     def create_index(self) -> PeriodIndex:
