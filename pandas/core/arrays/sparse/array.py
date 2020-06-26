@@ -1380,6 +1380,21 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         return np.abs(self)
 
     # ------------------------------------------------------------------------
+    # Numpy Array Functions
+    # ------------------------------------------------------------------------
+
+    def _tile(self, rep: int) -> "ExtensionArray":
+        """
+        non-public method for compatibility with np.tile
+        """
+        sp_values = np.tile(self.sp_values, rep)
+        index = self.sp_index.indices
+        for i in range(1, rep):
+            index = np.append(index, self.sp_index.indices + (i * len(self)))
+        sp_index = IntIndex(len(self) * rep, index)
+        return self._simple_new(sp_values, sp_index, self.dtype)
+
+    # ------------------------------------------------------------------------
     # Ops
     # ------------------------------------------------------------------------
 

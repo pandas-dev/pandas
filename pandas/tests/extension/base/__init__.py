@@ -64,3 +64,4 @@ from .reduce import (  # noqa
 )
 from .reshaping import BaseReshapingTests  # noqa
 from .setitem import BaseSetitemTests  # noqa
+from .numpy_array_functions import BaseNumpyArrayFunctionTests  # noqa

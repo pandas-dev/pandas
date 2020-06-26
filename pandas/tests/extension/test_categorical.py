@@ -267,3 +267,7 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
 
 class TestParsing(base.BaseParsingTests):
     pass
+
+
+class TestNumpyArrayFunctions(base.BaseNumpyArrayFunctionTests):
+    pass

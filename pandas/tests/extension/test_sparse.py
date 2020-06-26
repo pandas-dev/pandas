@@ -424,3 +424,7 @@ class TestParsing(BaseSparseTests, base.BaseParsingTests):
         expected_msg = r".*must implement _from_sequence_of_strings.*"
         with pytest.raises(NotImplementedError, match=expected_msg):
             super().test_EA_types(engine, data)
+
+
+class TestNumpyArrayFunctions(base.BaseNumpyArrayFunctionTests):
+    pass

@@ -502,3 +502,10 @@ class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
 @skip_nested
 class TestParsing(BaseNumPyTests, base.BaseParsingTests):
     pass
+
+
+class TestNumpyArrayFunctions(base.BaseNumpyArrayFunctionTests):
+    def test_tile(self, data, dtype):
+        # TODO: maybe rethink the validation
+        # raises ValueError: PandasArray must be 1-dimensional.
+        pass

@@ -255,3 +255,7 @@ class TestPrinting(base.BasePrintingTests):
 
 class TestParsing(base.BaseParsingTests):
     pass
+
+
+class TestNumpyArrayFunctions(base.BaseNumpyArrayFunctionTests):
+    pass

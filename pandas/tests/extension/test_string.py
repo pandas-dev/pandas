@@ -121,3 +121,7 @@ class TestPrinting(base.BasePrintingTests):
 
 class TestGroupBy(base.BaseGroupbyTests):
     pass
+
+
+class TestNumpyArrayFunctions(base.BaseNumpyArrayFunctionTests):
+    pass
