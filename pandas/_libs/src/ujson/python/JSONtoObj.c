@@ -51,6 +51,8 @@ typedef struct __PyObjectDecoder {
     void *npyarr_addr;  // Ref to npyarr ptr to track DECREF calls
     npy_intp curdim;    // Current array dimension
 
+    char *cStr; // storage for BigNum
+
     PyArray_Descr *dtype;
 } PyObjectDecoder;
 
@@ -483,10 +485,9 @@ JSOBJ Object_newDouble(void *prv, double value) {
     return PyFloat_FromDouble(value);
 }
 
-JSOBJ Object_newBigNum(void* prv, wchar_t *start, wchar_t *end) {
-    PyObject* obj_as_unicode;
-    obj_as_unicode = PyUnicode_FromWideChar(start, (end - start));
-    return PyLong_FromUnicodeObject(obj_as_unicode, 0);
+JSOBJ Object_newBigNum(void* prv, void *_decoder) {
+    PyObjectDecoder *decoder = (PyObjectDecoder *)_decoder;
+    return PyLong_FromString(decoder->cStr, NULL, 0);
 }
 
 static void Object_releaseObject(void *prv, JSOBJ obj, void *_decoder) {
@@ -525,6 +526,7 @@ PyObject *JSONToObj(PyObject *self, PyObject *args, PyObject *kwargs) {
     pyDecoder.curdim = 0;
     pyDecoder.npyarr = NULL;
     pyDecoder.npyarr_addr = NULL;
+    pyDecoder.cStr = "";
 
     decoder = (JSONObjectDecoder *)&pyDecoder;
 
