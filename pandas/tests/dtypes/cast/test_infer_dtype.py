@@ -198,27 +198,3 @@ def test_cast_scalar_to_numpy_array(obj, dtype):
 
     arr = cast_scalar_to_array(shape, obj, dtype=dtype)
     tm.assert_numpy_array_equal(arr, exp)
-
-
-@pytest.mark.parametrize(
-    "obj,dtype",
-    [
-        (Period("2011-01-01", freq="D"), PeriodDtype("D")),
-        (Interval(left=0, right=5), IntervalDtype("int64")),
-        (
-            Timestamp("2011-01-01", tz="US/Eastern"),
-            DatetimeTZDtype(unit="ns", tz="US/Eastern"),
-        ),
-    ],
-)
-def test_cast_scalar_to_extension_array(obj, dtype):
-    # GH: 34832
-    shape = 3
-
-    exp = dtype.construct_array_type()._from_sequence([obj] * shape)
-
-    arr = cast_scalar_to_array(shape, obj, dtype=dtype)
-    tm.assert_extension_array_equal(arr[0], exp)
-
-    arr = cast_scalar_to_array(shape, obj, dtype=None)
-    tm.assert_extension_array_equal(arr[0], exp)

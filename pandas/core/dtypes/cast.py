@@ -1506,19 +1506,9 @@ def cast_scalar_to_array(shape, value, dtype: Optional[DtypeObj] = None) -> np.n
 
     """
     if dtype is None:
-        dtype, fill_value = infer_dtype_from_scalar(value, pandas_dtype=True)
+        dtype, fill_value = infer_dtype_from_scalar(value)
     else:
         fill_value = value
-
-    # TODO: Update this function to add support for 3rd party extension types
-    # Issue #34959
-    if is_extension_array_dtype(dtype):
-        if isinstance(shape, int):
-            shape = (shape, 1)
-        return [
-            construct_1d_arraylike_from_scalar(value, shape[0], dtype)
-            for _ in range(shape[1])
-        ]
 
     values = np.empty(shape, dtype=dtype)
     values.fill(fill_value)
