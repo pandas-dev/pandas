@@ -42,9 +42,11 @@ def melt(
         cols = list(frame.columns)
 
     if value_name in frame.columns:
-        warnings.warn('The value column name "%s" conflicts with an existing'
-                      ' column in the dataframe.' % (value_name),
-                      DeprecationWarning)
+        warnings.warn(
+            'The value column name "%s" conflicts with an existing'
+            " column in the dataframe." % (value_name),
+            DeprecationWarning,
+        )
 
     if id_vars is not None:
         if not is_list_like(id_vars):
