@@ -414,6 +414,7 @@ class SeriesGroupBy(GroupBy[Series]):
         return result
 
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
+        # breakpoint()
         if len(keys) == 0:
             # GH #6265
             return self.obj._constructor(
@@ -1204,6 +1205,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return self.obj._constructor(result, columns=result_columns)
 
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
+        # breakpoint()
         if len(keys) == 0:
             return self.obj._constructor(index=keys)
 

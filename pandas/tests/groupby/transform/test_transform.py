@@ -64,8 +64,18 @@ def test_transform():
         index=["Joe", "Steve", "Wes", "Jim", "Travis"],
     )
     key = ["one", "two", "one", "two", "one"]
-    result = people.groupby(key).transform(demean).groupby(key).mean()
-    expected = people.groupby(key).apply(demean).groupby(key).mean()
+    result = (
+        people.groupby(key, group_keys=False)
+        .transform(demean)
+        .groupby(key, group_keys=False)
+        .mean()
+    )
+    expected = (
+        people.groupby(key, group_keys=False)
+        .apply(demean)
+        .groupby(key, group_keys=False)
+        .mean()
+    )
     tm.assert_frame_equal(result, expected)
 
     # GH 8430
@@ -175,26 +185,26 @@ def test_transform_axis(tsframe):
     )
     # monotonic
     ts = tso
-    grouped = ts.groupby(lambda x: x.weekday())
+    grouped = ts.groupby(lambda x: x.weekday(), group_keys=False)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: x - x.mean())
     tm.assert_frame_equal(result, expected)
 
     ts = ts.T
-    grouped = ts.groupby(lambda x: x.weekday(), axis=1)
+    grouped = ts.groupby(lambda x: x.weekday(), axis=1, group_keys=False)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: (x.T - x.mean(1)).T)
     tm.assert_frame_equal(result, expected)
 
     # non-monotonic
     ts = tso.iloc[[1, 0] + list(range(2, len(base)))]
-    grouped = ts.groupby(lambda x: x.weekday())
+    grouped = ts.groupby(lambda x: x.weekday(), group_keys=False)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: x - x.mean())
     tm.assert_frame_equal(result, expected)
 
     ts = ts.T
-    grouped = ts.groupby(lambda x: x.weekday(), axis=1)
+    grouped = ts.groupby(lambda x: x.weekday(), axis=1, group_keys=False)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: (x.T - x.mean(1)).T)
     tm.assert_frame_equal(result, expected)
@@ -309,7 +319,7 @@ def test_transform_multiple(ts):
 def test_dispatch_transform(tsframe):
     df = tsframe[::5].reindex(tsframe.index)
 
-    grouped = df.groupby(lambda x: x.month)
+    grouped = df.groupby(lambda x: x.month, group_keys=False)
 
     filled = grouped.fillna(method="pad")
     fillit = lambda x: x.fillna(method="pad")
@@ -343,7 +353,7 @@ def test_transform_transformation_func(transformation_func):
         test_op = lambda x: x.transform(transformation_func)
         mock_op = lambda x: getattr(x, transformation_func)()
 
-    result = test_op(df.groupby("A"))
+    result = test_op(df.groupby("A", group_keys=False))
     groups = [df[["B"]].iloc[:4], df[["B"]].iloc[4:6], df[["B"]].iloc[6:]]
     expected = concat([mock_op(g) for g in groups])
 

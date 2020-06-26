@@ -493,7 +493,6 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         observed: bool = False,
         mutated: bool = False,
         dropna: bool = True,
-        result_group_keys: Optional[bool] = None,
     ):
 
         self._selection = selection
@@ -516,7 +515,6 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         self.observed = observed
         self.mutated = mutated
         self.dropna = dropna
-        self.result_group_keys = result_group_keys
 
         if grouper is None:
             from pandas.core.groupby.grouper import get_grouper
@@ -894,13 +892,7 @@ b  2""",
         # stuff.
         # *but* we might have to treat that specially?
         # see test_apply_chunk_view.
-        # breakpoint()
-        if self.group_keys is None:
-            # infer by default
-            not_indexed_same = mutated or self.mutated
-        else:
-            # but defer to user-specified value
-            not_indexed_same = bool(self.group_keys)
+        not_indexed_same = mutated or self.mutated
 
         return self._wrap_applied_output(
             keys, values, not_indexed_same=not_indexed_same
@@ -1125,23 +1117,7 @@ b  2""",
                 ax._reset_identity()
             return values
 
-        if not not_indexed_same:
-            result = concat(values, axis=self.axis)
-            ax = self._selected_obj._get_axis(self.axis)
-
-            # this is a very unfortunate situation
-            # we can't use reindex to restore the original order
-            # when the ax has duplicates
-            # so we resort to this
-            # GH 14776, 30667
-            if ax.has_duplicates:
-                indexer, _ = result.index.get_indexer_non_unique(ax.values)
-                indexer = algorithms.unique1d(indexer)
-                result = result.take(indexer, axis=self.axis)
-            else:
-                result = result.reindex(ax, axis=self.axis)
-
-        elif self.group_keys:
+        if self.group_keys:
 
             values = reset_identity(values)
             if self.as_index:
@@ -1165,6 +1141,23 @@ b  2""",
                 # range index
                 keys = list(range(len(values)))
                 result = concat(values, axis=self.axis, keys=keys)
+
+        elif not not_indexed_same:
+            result = concat(values, axis=self.axis)
+            ax = self._selected_obj._get_axis(self.axis)
+
+            # this is a very unfortunate situation
+            # we can't use reindex to restore the original order
+            # when the ax has duplicates
+            # so we resort to this
+            # GH 14776, 30667
+            if ax.has_duplicates:
+                indexer, _ = result.index.get_indexer_non_unique(ax.values)
+                indexer = algorithms.unique1d(indexer)
+                result = result.take(indexer, axis=self.axis)
+            else:
+                result = result.reindex(ax, axis=self.axis)
+
         else:
             values = reset_identity(values)
             result = concat(values, axis=self.axis)

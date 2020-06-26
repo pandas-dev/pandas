@@ -6439,9 +6439,9 @@ Falcon 1.000000   Falcon      380.0
 Parrot 7.389056   Parrot       24.0
        20.085537  Parrot       26.0
 
-To control this behavior, specify ``result_group_keys``
+To control this behavior, specify ``group_keys``
 
->>> df.groupby("Animal", result_group_keys=True).apply(lambda x: x)
+>>> df.groupby("Animal", group_keys=True).apply(lambda x: x)
           Animal  Max Speed
 Animal
 Falcon 0  Falcon      380.0
@@ -6462,7 +6462,6 @@ Parrot 2  Parrot       24.0
         squeeze: bool = no_default,
         observed: bool = False,
         dropna: bool = True,
-        result_group_keys: Optional[bool] = None,
     ) -> "DataFrameGroupBy":
         from pandas.core.groupby.generic import DataFrameGroupBy
 
@@ -6493,7 +6492,6 @@ Parrot 2  Parrot       24.0
             squeeze=squeeze,
             observed=observed,
             dropna=dropna,
-            result_group_keys=result_group_keys,
         )
 
     _shared_docs[
