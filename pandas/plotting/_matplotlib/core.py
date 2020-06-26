@@ -11,11 +11,9 @@ from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import safe_convert_to_ndarray
 from pandas.core.dtypes.common import (
-    is_extension_array_dtype,
     is_float,
     is_hashable,
     is_integer,
-    is_integer_dtype,
     is_iterator,
     is_list_like,
     is_number,
