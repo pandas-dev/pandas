@@ -7070,6 +7070,7 @@ NaN 12.3   33.0
         else:
             result.index = self.index.take(result.index)
         result = result.reindex(columns=self.columns, copy=False)
+        result = result.infer_objects()
 
         return result
 
