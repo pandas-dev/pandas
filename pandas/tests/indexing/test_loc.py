@@ -346,24 +346,6 @@ class TestLoc2:
         result = df.loc[pd.array(mask, dtype="boolean")]
         tm.assert_frame_equal(result, expected)
 
-    def test_loc_copy_vs_view(self):
-        # GH 15631
-        x = DataFrame(zip(range(3), range(3)), columns=["a", "b"])
-
-        y = x.copy()
-        q = x.loc[:, "a"]
-        q += 2
-
-        tm.assert_frame_equal(x, y)
-
-    def test_loc_general(self):
-
-        df = DataFrame(
-            np.random.rand(4, 4),
-            columns=["A", "B", "C", "D"],
-            index=["A", "B", "C", "D"],
-        )
-
         # want this to work
         result = df.loc[:, "A":"B"].iloc[0:2, :]
         assert (result.columns == ["A", "B"]).all()
@@ -903,6 +885,16 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         original_series[:3] = [7, 8, 9]
         assert all(sliced_series[:3] == [7, 8, 9])
+
+    def test_loc_copy_vs_view(self):
+        # GH 15631
+        x = DataFrame(zip(range(3), range(3)), columns=["a", "b"])
+
+        y = x.copy()
+        q = x.loc[:, "a"]
+        q += 2
+
+        tm.assert_frame_equal(x, y)
 
     def test_loc_uint64(self):
         # GH20722
