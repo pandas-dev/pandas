@@ -594,6 +594,9 @@ and we want to use an expanding window where ``use_expanding`` is ``True`` other
    4    10.0
 
 You can view other examples of ``BaseIndexer`` subclasses `here <https://github.com/pandas-dev/pandas/blob/master/pandas/core/window/indexers.py>`__
+
+.. versionadded:: 1.1
+
 One subclass of note within those examples is the ``NonFixedVariableWindowIndexer`` that allows
 rolling operations over a non-fixed offset like a ``BusinessDay``.
 
@@ -620,8 +623,6 @@ rolling operations over a non-fixed offset like a ``BusinessDay``.
    2020-01-08   7.0
    2020-01-09   8.0
    2020-01-10   9.0
-
-.. versionadded:: 1.1
 
 For some problems knowledge of the future is available for analysis. For example, this occurs when
 each data point is a full time series read from an experiment, and the task is to extract underlying
