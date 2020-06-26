@@ -600,29 +600,14 @@ You can view other examples of ``BaseIndexer`` subclasses `here <https://github.
 One subclass of note within those examples is the ``NonFixedVariableWindowIndexer`` that allows
 rolling operations over a non-fixed offset like a ``BusinessDay``.
 
-.. code-block:: ipython
+.. ipython:: python
 
-   In [1]: from pandas.core.window.indexers import NonFixedVariableWindowIndexer
-
-   In [2]: df = pd.DataFrame(range(10), index=pd.date_range('2020', periods=10))
-
-   In [3]: offset = pd.offsets.BDay(1)
-
-   In [4]: indexer = NonFixedVariableWindowIndexer(index=df.index, offset=offset)
-
-   In [5]: df.rolling(indexer).sum()
-   Out[5]:
-                  0
-   2020-01-01   0.0
-   2020-01-02   1.0
-   2020-01-03   2.0
-   2020-01-04   3.0
-   2020-01-05   7.0
-   2020-01-06  12.0
-   2020-01-07   6.0
-   2020-01-08   7.0
-   2020-01-09   8.0
-   2020-01-10   9.0
+   from pandas.core.window.indexers import NonFixedVariableWindowIndexer
+   df = pd.DataFrame(range(10), index=pd.date_range('2020', periods=10))
+   offset = pd.offsets.BDay(1)
+   indexer = NonFixedVariableWindowIndexer(index=df.index, offset=offset)
+   df
+   df.rolling(indexer).sum()
 
 For some problems knowledge of the future is available for analysis. For example, this occurs when
 each data point is a full time series read from an experiment, and the task is to extract underlying
