@@ -889,6 +889,12 @@ b  2""",
             data after applying f
         """
         keys, values, mutated = self.grouper.apply(f, data, self.axis)
+        # current thought: make `group_keys=None` by default and
+        # warn if we get here. The default falls back to the mutated
+        # stuff.
+        # *but* we might have to treat that specially?
+        # see test_apply_chunk_view.
+        # breakpoint()
         if self.group_keys is None:
             # infer by default
             not_indexed_same = mutated or self.mutated

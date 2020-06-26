@@ -63,12 +63,7 @@ def test_apply_trivial():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(
-    reason="GH#20066; function passed into apply "
-    "returns a DataFrame with the same index "
-    "as the one to create GroupBy object."
-)
-def test_apply_trivial_fail():
+def test_apply_trivial2():
     # GH 20066
     # trivial apply fails if the constant dataframe has the same index
     # with the one used to create GroupBy object.
@@ -247,7 +242,7 @@ def test_groupby_apply_identity_maybecopy_index_identical(func):
 
     df = pd.DataFrame({"g": [1, 2, 2, 2], "a": [1, 2, 3, 4], "b": [5, 6, 7, 8]})
 
-    result = df.groupby("g").apply(func)
+    result = df.groupby("g", group_keys=False).apply(func)
     tm.assert_frame_equal(result, df)
 
 
@@ -304,7 +299,7 @@ def test_groupby_as_index_apply(df):
 
     ind = Index(list("abcde"))
     df = DataFrame([[1, 2], [2, 3], [1, 4], [1, 5], [2, 6]], index=ind)
-    res = df.groupby(0, as_index=False).apply(lambda x: x).index
+    res = df.groupby(0, as_index=False, group_keys=False).apply(lambda x: x).index
     tm.assert_index_equal(res, ind)
 
 
@@ -354,7 +349,7 @@ def test_apply_series_to_frame():
     dr = bdate_range("1/1/2000", periods=100)
     ts = Series(np.random.randn(100), index=dr)
 
-    grouped = ts.groupby(lambda x: x.month)
+    grouped = ts.groupby(lambda x: x.month, group_keys=False)
     result = grouped.apply(f)
 
     assert isinstance(result, DataFrame)
@@ -408,7 +403,7 @@ def test_apply_frame_concat_series():
 
 
 def test_apply_transform(ts):
-    grouped = ts.groupby(lambda x: x.month)
+    grouped = ts.groupby(lambda x: x.month, group_keys=False)
     result = grouped.apply(lambda x: x * 2)
     expected = grouped.transform(lambda x: x * 2)
     tm.assert_series_equal(result, expected)
@@ -462,7 +457,7 @@ def test_apply_typecast_fail():
         group["v2"] = (v - v.min()) / (v.max() - v.min())
         return group
 
-    result = df.groupby("d").apply(f)
+    result = df.groupby("d", group_keys=False).apply(f)
 
     expected = df.copy()
     expected["v2"] = np.tile([0.0, 0.5, 1], 2)
@@ -486,7 +481,7 @@ def test_apply_multiindex_fail():
         group["v2"] = (v - v.min()) / (v.max() - v.min())
         return group
 
-    result = df.groupby("d").apply(f)
+    result = df.groupby("d", group_keys=False).apply(f)
 
     expected = df.copy()
     expected["v2"] = np.tile([0.0, 0.5, 1], 2)
@@ -495,7 +490,7 @@ def test_apply_multiindex_fail():
 
 
 def test_apply_corner(tsframe):
-    result = tsframe.groupby(lambda x: x.year).apply(lambda x: x * 2)
+    result = tsframe.groupby(lambda x: x.year, group_keys=False).apply(lambda x: x * 2)
     expected = tsframe * 2
     tm.assert_frame_equal(result, expected)
 
@@ -537,14 +532,14 @@ def test_apply_with_duplicated_non_sorted_axis(test_series):
     )
     if test_series:
         ser = df.set_index("Y")["X"]
-        result = ser.groupby(level=0).apply(lambda x: x)
+        result = ser.groupby(level=0, group_keys=False).apply(lambda x: x)
 
         # not expecting the order to remain the same for duplicated axis
         result = result.sort_index()
         expected = ser.sort_index()
         tm.assert_series_equal(result, expected)
     else:
-        result = df.groupby("Y").apply(lambda x: x)
+        result = df.groupby("Y", group_keys=False).apply(lambda x: x)
 
         # not expecting the order to remain the same for duplicated axis
         result = result.sort_values("Y")
@@ -568,7 +563,7 @@ def test_apply_reindex_values():
         return x.reindex(np.arange(x.index.min(), x.index.max() + 1))
 
     # the following group by raised a ValueError
-    result = df.groupby("group").value.apply(reindex_helper)
+    result = df.groupby("group", group_keys=False).value.apply(reindex_helper)
     tm.assert_series_equal(expected, result)
 
 
@@ -781,7 +776,7 @@ def test_groupby_apply_return_empty_chunk():
 def test_apply_with_mixed_types():
     # gh-20949
     df = pd.DataFrame({"A": "a a b".split(), "B": [1, 2, 3], "C": [4, 6, 5]})
-    g = df.groupby("A")
+    g = df.groupby("A", group_keys=False)
 
     result = g.transform(lambda x: x / x.sum())
     expected = pd.DataFrame({"B": [1 / 3.0, 2 / 3.0, 1], "C": [0.4, 0.6, 1.0]})
@@ -907,7 +902,7 @@ def test_groupby_apply_datetime_result_dtypes():
 def test_apply_index_has_complex_internals(index):
     # GH 31248
     df = DataFrame({"group": [1, 1, 2], "value": [0, 1, 0]}, index=index)
-    result = df.groupby("group").apply(lambda x: x)
+    result = df.groupby("group", group_keys=False).apply(lambda x: x)
     tm.assert_frame_equal(result, df)
 
 
