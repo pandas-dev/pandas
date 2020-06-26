@@ -1,17 +1,19 @@
 import re
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, cast
 
 import numpy as np
 
+from pandas.compat.numpy import IS_NEP18_ACTIVE
 from pandas.util._decorators import Appender, deprecate_kwarg
 
-from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import is_extension_array_dtype, is_list_like
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.missing import notna
 
 from pandas.core.arrays import Categorical
 import pandas.core.common as com
 from pandas.core.indexes.api import Index, MultiIndex
+from pandas.core.reshape.concat import concat
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.tools.numeric import to_numeric
 
@@ -107,7 +109,10 @@ def melt(
     mdata = {}
     for col in id_vars:
         id_data = frame.pop(col)
-        id_data = np.tile(id_data._values, K)
+        if not IS_NEP18_ACTIVE and is_extension_array_dtype(id_data):
+            id_data = cast("Series", concat([id_data] * K, ignore_index=True))
+        else:
+            id_data = np.tile(id_data._values, K)
         mdata[col] = id_data
 
     mcolumns = id_vars + var_name + [value_name]
