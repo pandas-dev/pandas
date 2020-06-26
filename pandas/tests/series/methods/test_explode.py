@@ -7,9 +7,9 @@ import pandas._testing as tm
 
 def test_basic():
     s = pd.Series([[0, 1, 2], np.nan, [], (3, 4)], index=list("abcd"), name="foo")
-    result = s. explode()
+    result = s.explode()
     expected = pd.Series(
-        [0, 1, 2, np.nan, np.nan, 3, 4], index=list("aaabcdd"), dtype=object, name="foo"
+        [0, 1, 2, np.nan, np.nan, 3, 4], index=list("aaabcdd"), dtype=np.float64, name="foo"
     )
     tm.assert_series_equal(result, expected)
 
@@ -54,7 +54,7 @@ def test_multi_index():
         names=["foo", "bar"],
     )
     expected = pd.Series(
-        [0, 1, 2, np.nan, np.nan, 3, 4], index=index, dtype=object, name="foo"
+        [0, 1, 2, np.nan, np.nan, 3, 4], index=index, dtype=np.float64, name="foo"
     )
     tm.assert_series_equal(result, expected)
 
@@ -116,7 +116,7 @@ def test_duplicate_index():
     # GH 28005
     s = pd.Series([[1, 2], [3, 4]], index=[0, 0])
     result = s.explode()
-    expected = pd.Series([1, 2, 3, 4], index=[0, 0, 0, 0], dtype=object)
+    expected = pd.Series([1, 2, 3, 4], index=[0, 0, 0, 0], dtype=np.int64)
     tm.assert_series_equal(result, expected)
 
 
@@ -124,6 +124,6 @@ def test_ignore_index():
     # GH 34932
     s = pd.Series([[1, 2], [3, 4]])
     result = s.explode(ignore_index=True)
-    expected = pd.Series([1, 2, 3, 4], index=[0, 1, 2, 3], dtype=object)
+    expected = pd.Series([1, 2, 3, 4], index=[0, 1, 2, 3], dtype=np.int64)
     tm.assert_series_equal(result, expected)
 

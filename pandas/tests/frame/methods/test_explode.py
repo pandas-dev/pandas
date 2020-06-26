@@ -25,7 +25,7 @@ def test_basic():
     expected = pd.DataFrame(
         {
             "A": pd.Series(
-                [0, 1, 2, np.nan, np.nan, 3, 4], index=list("aaabcdd"), dtype=object
+                [0, 1, 2, np.nan, np.nan, 3, 4], index=list("aaabcdd"), dtype=np.float64
             ),
             "B": 1,
         }
@@ -55,7 +55,7 @@ def test_multi_index_rows():
                         ("b", 2),
                     ]
                 ),
-                dtype=object,
+                dtype=np.float64,
             ),
             "B": 1,
         }
@@ -74,7 +74,7 @@ def test_multi_index_columns():
             ("A", 1): pd.Series(
                 [0, 1, 2, np.nan, np.nan, 3, 4],
                 index=pd.Index([0, 0, 0, 1, 2, 3, 3]),
-                dtype=object,
+                dtype=np.float64,
             ),
             ("A", 2): 1,
         }
@@ -93,7 +93,7 @@ def test_usecase():
     expected = pd.DataFrame(
         {
             "A": [11, 11, 11, 11, 11, 22, 22, 22],
-            "B": np.array([0, 1, 2, 3, 4, 0, 1, 2], dtype=object),
+            "B": np.array([0, 1, 2, 3, 4, 0, 1, 2], dtype=np.int64),
             "C": [10, 10, 10, 10, 10, 20, 20, 20],
         },
         columns=list("ABC"),
@@ -160,7 +160,22 @@ def test_duplicate_index(input_dict, input_index, expected_dict, expected_index)
     # GH 28005
     df = pd.DataFrame(input_dict, index=input_index)
     result = df.explode("col1")
-    expected = pd.DataFrame(expected_dict, index=expected_index, dtype=object)
+    expected = pd.DataFrame(expected_dict, index=expected_index, dtype=np.int64)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_inferred_dtype():
+    # GH 34923
+    s = pd.Series([1, None, 3])
+    df = pd.DataFrame({'A': [s, s], "B": 1})
+    result = df.explode("A")
+    expected = pd.DataFrame(
+        {
+            "A": np.array([1, np.nan, 3, 1, np.nan, 3], dtype=np.float64),
+            "B": np.array([1, 1, 1, 1, 1, 1], dtype=np.int64)
+        },
+        index=[0, 0, 0, 1, 1, 1]
+    )
     tm.assert_frame_equal(result, expected)
 
 

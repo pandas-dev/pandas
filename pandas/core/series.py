@@ -3843,7 +3843,7 @@ Keep all original rows and also all original values
         else:
             index = self.index.repeat(counts)
 
-        result = self._constructor(values, index=index, name=self.name)
+        result = self._constructor(values, index=index, name=self.name).infer_objects()
 
         return result
 
