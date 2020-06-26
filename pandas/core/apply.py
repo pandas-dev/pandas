@@ -6,7 +6,6 @@ import numpy as np
 
 from pandas._config import option_context
 
-from pandas._libs import reduction as libreduction
 from pandas._typing import Axis
 from pandas.util._decorators import cache_readonly
 
