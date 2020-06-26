@@ -42,7 +42,9 @@ import numpy.ma as ma
 from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, lib, properties
+from pandas._libs.interval import Interval
 from pandas._libs.lib import no_default
+from pandas._libs.tslibs import Period
 from pandas._typing import (
     ArrayLike,
     Axes,
@@ -514,6 +516,14 @@ class DataFrame(NDFrame):
                     mgr = init_ndarray(data, index, columns, dtype=dtype, copy=copy)
             else:
                 mgr = init_dict({}, index, columns, dtype=dtype)
+        # DOESN'T WORK FOR TIMEZONE, PLEASE SUGGEST BETTER WAY TO DO THIS CHECK
+        elif isinstance(data, (Period, Interval)):
+            values = cast_scalar_to_array((len(index), len(columns)), data, dtype=dtype)
+
+            if index is not None and columns is not None:
+                mgr = arrays_to_mgr(values, columns, index, columns, dtype=None)
+            else:
+                raise ValueError("DataFrame constructor not properly called!")
         else:
             try:
                 arr = np.array(data, dtype=dtype, copy=copy)
@@ -528,14 +538,10 @@ class DataFrame(NDFrame):
                 values = cast_scalar_to_array(
                     (len(index), len(columns)), data, dtype=dtype
                 )
-                if isinstance(values, list):
-                    # Case 1: values is a list of extension arrays
-                    mgr = arrays_to_mgr(values, columns, index, columns, dtype=None)
-                else:
-                    # Case 2: values is a numpy array
-                    mgr = init_ndarray(
-                        values, index, columns, dtype=values.dtype, copy=False
-                    )
+
+                mgr = init_ndarray(
+                    values, index, columns, dtype=values.dtype, copy=False
+                )
             else:
                 raise ValueError("DataFrame constructor not properly called!")
 
