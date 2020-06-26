@@ -1159,6 +1159,6 @@ class TestExcelFileRead:
                 pd.to_datetime("03/01/2020").to_pydatetime(),
             ],
         )
-        # Cannot create a DataFrame with `expected_column_index` as the columns
+        expected = pd.DataFrame([], columns=expected_column_index)
 
-        tm.assert_index_equal(actual.columns, expected_column_index)
+        tm.assert_frame_equal(expected, actual)
