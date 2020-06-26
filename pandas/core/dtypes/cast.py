@@ -1501,7 +1501,7 @@ def cast_scalar_to_array(shape, value, dtype: Optional[DtypeObj] = None) -> np.n
 
     Returns
     -------
-    ndarray of shape filled with value, of specified / inferred dtype
+    ndarray of shape, filled with value, of specified / inferred dtype
 
     """
     if dtype is None:
