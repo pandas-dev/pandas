@@ -21,7 +21,6 @@ def test_sort(index):
 
 
 def test_hash_error(index):
-    index = index
     with pytest.raises(TypeError, match=f"unhashable type: '{type(index).__name__}'"):
         hash(index)
 
