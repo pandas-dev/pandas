@@ -809,7 +809,7 @@ class MPLPlot:
                         "Asymmetrical error bars should be provided "
                         f"with the shape (2, {len(self.data)})"
                     )
-            if isinstance(self.data, ABCDataFrame) and err.ndim == 3:
+            elif isinstance(self.data, ABCDataFrame) and err.ndim == 3:
                 if (
                     (err_shape[0] != self.nseries)
                     or (err_shape[1] != 2)
