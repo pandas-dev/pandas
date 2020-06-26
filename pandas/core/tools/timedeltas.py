@@ -94,7 +94,7 @@ def to_timedelta(arg, unit=None, errors="raise"):
 
     if unit in {"Y", "y", "M"}:
         raise ValueError(
-            "Units 'M' and 'Y' are no longer supported, as they do not "
+            "Units 'M', 'Y', and 'y' are no longer supported, as they do not "
             "represent unambiguous timedelta values durations."
         )
 
