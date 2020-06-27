@@ -180,7 +180,7 @@ FASTCALL_ATTR JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
                         char* cStr_prev = malloc(strlen(ds->cStr));
                         memcpy(cStr_prev, ds->cStr, strlen(ds->cStr));
 
-                        size_t new_size = strlen(ds->cStr) + strlen(intValue_asStr) + 1;
+                        size_t new_size = strlen(ds->cStr) + strlen(intValue_asStr);
                         ds->cStr = (char*)realloc(ds->cStr, new_size);
 
                         strcpy(ds->cStr, cStr_prev);
@@ -233,7 +233,7 @@ BREAK_INT_LOOP:
         char* cStr_prev = malloc(strlen(ds->cStr));
         memcpy(cStr_prev, ds->cStr, strlen(ds->cStr));
 
-        size_t new_size = strlen(ds->cStr) + strlen(intValue_asStr) + 1;
+        size_t new_size = strlen(ds->cStr) + strlen(intValue_asStr);
         ds->cStr = (char*)realloc(ds->cStr, new_size);
         strcpy(ds->cStr, cStr_prev);
         strcat(ds->cStr, intValue_asStr);
@@ -1244,6 +1244,8 @@ JSOBJ JSON_DecodeObject(JSONObjectDecoder *dec, const char *buffer,
         dec->releaseObject(ds.prv, ret, ds.dec);
         return SetError(&ds, -1, "Trailing data");
     }
+
+    free(ds.cStr);
 
     return ret;
 }
