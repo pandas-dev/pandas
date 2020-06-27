@@ -3,7 +3,7 @@ Routines for casting.
 """
 
 from datetime import date, datetime, timedelta
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Type
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Type, Union
 
 import numpy as np
 
@@ -76,6 +76,7 @@ from pandas.core.dtypes.missing import isna, notna
 if TYPE_CHECKING:
     from pandas import Series
     from pandas.core.arrays import ExtensionArray  # noqa: F401
+    from pandas.core.indexes.base import Index  # noqa: F401
 
 _int8_max = np.iinfo(np.int8).max
 _int16_max = np.iinfo(np.int16).max
@@ -1749,14 +1750,18 @@ def validate_numeric_casting(dtype: np.dtype, value):
             raise ValueError("Cannot assign bool to float/integer series")
 
 
-def safe_convert_to_ndarray(values) -> np.ndarray:
+def safe_convert_to_ndarray(values: Union[ArrayLike, Index]) -> np.ndarray:
     """
-    Convert values to ndarray while casting nullable dtype arrays to float.
+    Converts values to ndarray with special handling for extension arrays.
+
+    Cast to ndarray but tries to avoid returning an array of `object` dtype.
+    Nullable integer and boolean arrays will be cast to float, and datetime
+    arrays with timezone information will lose their timezone information.
 
     Parameters
     ----------
-    values
-        Series or array.
+    values : Union[ArrayLike, Index]
+        Values to be converted to ndarray.
 
     Returns
     -------
