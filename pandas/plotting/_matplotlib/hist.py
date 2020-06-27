@@ -7,11 +7,13 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass
 from pandas.core.dtypes.missing import isna, remove_na_arraylike
 
 from pandas.core.frame import DataFrame
-from pandas.core.series import Series
 
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.core import LinePlot, MPLPlot
-from pandas.plotting._matplotlib.groupby import create_iter_data_given_by
+from pandas.plotting._matplotlib.groupby import (
+    create_iter_data_given_by,
+    reformat_hist_y_given_by,
+)
 from pandas.plotting._matplotlib.tools import _flatten, _set_ticks_props, _subplots
 
 
@@ -98,7 +100,7 @@ class HistPlot(LinePlot):
                 kwds["label"] = self.columns
                 kwds.pop("color")
 
-            y = self._reformat_y(y)
+            y = reformat_hist_y_given_by(y, self.by)
 
             # We allow weights to be a multi-dimensional array, e.g. a (10, 2) array,
             # and each sub-array (10,) will be called in each iteration. If users only
@@ -114,19 +116,6 @@ class HistPlot(LinePlot):
                 ax.set_title(pprint_thing(label))
 
             self._add_legend_handle(artists[0], label, index=i)
-
-    def _reformat_y(self, y: Union[Series, np.array]) -> Union[Series, np.array]:
-        """Internal function to reformat y given `by` is applied or not.
-
-        If by is None, input y is 1-d array; and if by is not None, groupby will take
-        place and input y is multi-dimensional array.
-        """
-        if self.by is not None and len(y.shape) > 1:
-            notna = [col[~isna(col)] for col in y.T]
-            y = np.array(np.array(notna).T)
-        else:
-            y = y[~isna(y)]
-        return y
 
     def _make_plot_keywords(self, kwds, y):
         """merge BoxPlot/KdePlot properties to passed kwds"""

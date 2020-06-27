@@ -1,6 +1,10 @@
 from typing import Dict, List, Optional, Union
 
+import numpy as np
+
 from pandas._typing import Label
+
+from pandas.core.dtypes.missing import isna
 
 from pandas import DataFrame, MultiIndex, Series, concat
 
@@ -94,3 +98,19 @@ def reconstruct_data_with_by(
 
     data = concat(data_list, axis=1)
     return data
+
+
+def reformat_hist_y_given_by(
+    y: Union[Series, np.array], by: Optional[Union[Label, List[Label]]]
+) -> Union[Series, np.array]:
+    """Internal function to reformat y given `by` is applied or not for hist plot.
+
+    If by is None, input y is 1-d array; and if by is not None, groupby will take
+    place and input y is multi-dimensional array.
+    """
+    if by is not None and len(y.shape) > 1:
+        notna = [col[~isna(col)] for col in y.T]
+        y = np.array(np.array(notna).T)
+    else:
+        y = y[~isna(y)]
+    return y
