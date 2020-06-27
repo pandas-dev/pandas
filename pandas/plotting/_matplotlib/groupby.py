@@ -2,7 +2,7 @@ from typing import Dict, List, Optional, Union
 
 import numpy as np
 
-from pandas._typing import Label
+from pandas._typing import FrameOrSeriesUnion, Label
 
 from pandas.core.dtypes.missing import isna
 
@@ -11,7 +11,7 @@ from pandas import DataFrame, MultiIndex, Series, concat
 
 def create_iter_data_given_by(
     data: DataFrame, by: Optional[List]
-) -> Union[DataFrame, Dict[str, Union[DataFrame, Series]]]:
+) -> Union[DataFrame, Dict[str, FrameOrSeriesUnion]]:
     """
     Create data for iteration given `by` is assigned or not, and it is only
     used in both hist and boxplot.
@@ -44,7 +44,7 @@ def create_iter_data_given_by(
     {'h1': DataFrame({'a': [1, 3, np.nan], 'b': [3, 4, np.nan]}),
      'h2': DataFrame({'a': [np.nan, np.nan, 5], 'b': [np.nan, np.nan, 6]})}
     """
-    iter_data: Union[DataFrame, Dict[str, Union[DataFrame, Series]]]
+    iter_data: Union[DataFrame, Dict[str, FrameOrSeriesUnion]]
     if not by:
         iter_data = data
     else:
