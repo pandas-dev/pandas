@@ -10,7 +10,7 @@ from pandas import DataFrame, MultiIndex, Series, concat
 
 
 def create_iter_data_given_by(
-    data: DataFrame, by: Optional[List]
+    data: DataFrame, by: Optional[List[Label]]
 ) -> Union[DataFrame, Dict[str, FrameOrSeriesUnion]]:
     """
     Create data for iteration given `by` is assigned or not, and it is only
