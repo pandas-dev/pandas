@@ -45,7 +45,7 @@ def melt(
         warnings.warn(
             'The value column name "%s" conflicts with an existing '
             "column in the dataframe." % (value_name),
-            DeprecationWarning,
+            DeprecationWarning, stacklevel=3
         )
 
     if id_vars is not None:
