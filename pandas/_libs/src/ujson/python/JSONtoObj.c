@@ -51,8 +51,6 @@ typedef struct __PyObjectDecoder {
     void *npyarr_addr;  // Ref to npyarr ptr to track DECREF calls
     npy_intp curdim;    // Current array dimension
 
-
-
     PyArray_Descr *dtype;
 } PyObjectDecoder;
 
@@ -484,7 +482,6 @@ JSOBJ Object_newLong(void *prv, JSINT64 value) {
 JSOBJ Object_newDouble(void *prv, double value) {
     return PyFloat_FromDouble(value);
 }
-
 
 JSOBJ Object_newBigNum(void* prv, char* cStr) {
     return PyLong_FromString(cStr, NULL, 0);
