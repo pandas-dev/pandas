@@ -1166,6 +1166,25 @@ Storing Attributes to a group node
    store.close()
    os.remove('test.h5')
 
+You can create or load a HDFStore in-memory  by passing the ``driver``
+parameter to PyTables. Changes are only written to disk when the HDFStore
+is closed.
+
+.. ipython:: python
+
+   store = pd.HDFStore('test.h5', 'w', diver='H5FD_CORE')
+
+   df = pd.DataFrame(np.random.randn(8, 3))
+   store['test'] = df
+
+   # only after closing the store, data is written to disk:
+   store.close()
+
+.. ipython:: python
+   :suppress:
+
+   os.remove('test.h5')
+
 .. _cookbook.binary:
 
 Binary files
