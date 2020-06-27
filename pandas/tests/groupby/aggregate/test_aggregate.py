@@ -310,22 +310,6 @@ def test_agg_multiple_functions_same_name_with_ohlc_present():
         tm.assert_frame_equal(result, expected)
 
 
-def test_multiple_aggregations_named_tuple():
-    # GH 34380
-    name = ["abc"] * 6 + ["xyz"] * 6
-    change = [np.nan, 1, -0.4, 2.0, -0.4, 2.2] * 2
-    df = pd.DataFrame({"name": name, "change": change})
-    result = df.groupby("name")["change"].agg(
-        pos=pd.NamedAgg(column="change", aggfunc=lambda x: x.gt(0).sum()),
-        neg=pd.NamedAgg(column="change", aggfunc=lambda x: x.lt(0).sum()),
-    )
-    expected = pd.DataFrame(
-        {"pos": [3.0, 3.0], "neg": [2.0, 2.0]},
-        index=pd.Index(["abc", "xyz"], name="name"),
-    )
-    tm.assert_frame_equal(result, expected)
-
-
 def test_multiple_functions_tuples_and_non_tuples(df):
     # #1359
     funcs = [("foo", "mean"), "std"]

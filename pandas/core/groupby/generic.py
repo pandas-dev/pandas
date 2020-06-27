@@ -323,8 +323,6 @@ class SeriesGroupBy(GroupBy[Series]):
             # let higher level handle
             return results
 
-        if not results:
-            return DataFrame()
         output = self._wrap_aggregated_output(results)
         return self.obj._constructor_expanddim(output, columns=columns)
 
@@ -357,10 +355,12 @@ class SeriesGroupBy(GroupBy[Series]):
         if len(output) > 1:
             result = self.obj._constructor_expanddim(indexed_output, index=index)
             result.columns = columns
-        else:
+        elif not columns.empty:
             result = self.obj._constructor(
                 indexed_output[0], index=index, name=columns[0]
             )
+        else:
+            result = self.obj._constructor_expanddim()
 
         return result
 
