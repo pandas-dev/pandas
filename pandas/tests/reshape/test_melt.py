@@ -1023,9 +1023,5 @@ class TestWideToLong:
         # a name in the dataframe already (default name is "value")
         df = pd.DataFrame({"col": list("ABC"), "value": range(10, 16, 2)})
 
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
+        with tm.assert_produces_warning(DeprecationWarning):
             dfm = df.melt(id_vars="value")  # noqa F841
-            assert len(w) == 1
-            assert issubclass(w[-1].category, DeprecationWarning)
-            assert "conflicts" in str(w[-1].message)        
