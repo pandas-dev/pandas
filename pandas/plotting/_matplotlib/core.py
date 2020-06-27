@@ -422,7 +422,7 @@ class MPLPlot:
         # np.ndarray before plot.
         numeric_data = numeric_data.copy()
         for col in numeric_data:
-            numeric_data[col] = safe_convert_to_ndarray(numeric_data[col])
+            numeric_data[col] = safe_convert_to_ndarray(numeric_data[col].values)
 
         self.data = numeric_data
 

@@ -1769,8 +1769,7 @@ def safe_convert_to_ndarray(values) -> np.ndarray:
         elif is_bool_dtype(values.dtype):
             converted_values = values.to_numpy(dtype=float, na_value=np.nan)
         elif is_datetime64tz_dtype(values.dtype):
-            print(values)
-            converted_values = np.asarray(values.dt.tz_localize(tz=None))
+            converted_values = np.asarray(values.tz_localize(tz=None))
         else:
             converted_values = np.asarray(values)
     else:
