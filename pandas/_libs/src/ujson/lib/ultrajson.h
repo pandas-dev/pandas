@@ -304,7 +304,7 @@ typedef struct __JSONObjectDecoder {
   JSOBJ (*newInt)(void *prv, JSINT32 value);
   JSOBJ (*newLong)(void *prv, JSINT64 value);
   JSOBJ (*newDouble)(void *prv, double value);
-  JSOBJ (*newBigNum)(void *prv, void *decoder);
+  JSOBJ (*newBigNum)(void *prv, char* cStr);
   void (*releaseObject)(void *prv, JSOBJ obj, void *decoder);
   JSPFN_MALLOC malloc;
   JSPFN_FREE free;
@@ -312,6 +312,7 @@ typedef struct __JSONObjectDecoder {
   char *errorStr;
   char *errorOffset;
   int preciseFloat;
+  char  *cStr;
   void *prv;
 } JSONObjectDecoder;
 
