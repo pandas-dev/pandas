@@ -1,5 +1,3 @@
-from typing import Union
-
 import numpy as np
 
 from pandas.core.dtypes.common import is_integer, is_list_like
