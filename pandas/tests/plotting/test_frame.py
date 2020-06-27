@@ -3368,11 +3368,61 @@ class TestDataFramePlots(TestPlotBase):
         for legend, line in zip(result.get_legend().legendHandles, result.lines):
             assert legend.get_color() == line.get_color()
 
-    def test_subplots_non_date_axis(self):
-        # https://github.com/pandas-dev/pandas/issues/29460
-        df = pd.DataFrame({"b": [0, 1, 0], "a": [1, 2, 3]})
-        ax = _check_plot_works(df.plot, subplots=True)
-        self._check_ticks_props(ax, xrot=0)
+    @pytest.mark.parametrize(
+        "index_name, old_label, new_label",
+        [
+            (None, "", "new"),
+            ("old", "old", "new"),
+            (None, "", ""),
+            (None, "", 1),
+            (None, "", [1, 2]),
+        ],
+    )
+    @pytest.mark.parametrize("kind", ["line", "area", "bar"])
+    def test_xlabel_ylabel_dataframe_single_plot(
+        self, kind, index_name, old_label, new_label
+    ):
+        # GH 9093
+        df = pd.DataFrame([[1, 2], [2, 5]], columns=["Type A", "Type B"])
+        df.index.name = index_name
+
+        # default is the ylabel is not shown and xlabel is index name
+        ax = df.plot(kind=kind)
+        assert ax.get_xlabel() == old_label
+        assert ax.get_ylabel() == ""
+
+        # old xlabel will be overriden and assigned ylabel will be used as ylabel
+        ax = df.plot(kind=kind, ylabel=new_label, xlabel=new_label)
+        assert ax.get_ylabel() == str(new_label)
+        assert ax.get_xlabel() == str(new_label)
+
+    @pytest.mark.parametrize(
+        "index_name, old_label, new_label",
+        [
+            (None, "", "new"),
+            ("old", "old", "new"),
+            (None, "", ""),
+            (None, "", 1),
+            (None, "", [1, 2]),
+        ],
+    )
+    @pytest.mark.parametrize("kind", ["line", "area", "bar"])
+    def test_xlabel_ylabel_dataframe_subplots(
+        self, kind, index_name, old_label, new_label
+    ):
+        # GH 9093
+        df = pd.DataFrame([[1, 2], [2, 5]], columns=["Type A", "Type B"])
+        df.index.name = index_name
+
+        # default is the ylabel is not shown and xlabel is index name
+        axes = df.plot(kind=kind, subplots=True)
+        assert all(ax.get_ylabel() == "" for ax in axes)
+        assert all(ax.get_xlabel() == old_label for ax in axes)
+
+        # old xlabel will be overriden and assigned ylabel will be used as ylabel
+        axes = df.plot(kind=kind, ylabel=new_label, xlabel=new_label, subplots=True)
+        assert all(ax.get_ylabel() == str(new_label) for ax in axes)
+        assert all(ax.get_xlabel() == str(new_label) for ax in axes)
 
 
 def _generate_4_axes_via_gridspec():
