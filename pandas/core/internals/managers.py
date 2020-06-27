@@ -809,10 +809,8 @@ class BlockManager(PandasObject):
             blk = self.blocks[0]
             if blk.is_extension:
                 # Avoid implicit conversion of extension blocks to object
-                arr = (
-                    blk
-                    .values.to_numpy(dtype=dtype, na_value=na_value)
-                    .reshape(blk.shape)
+                arr = blk.values.to_numpy(dtype=dtype, na_value=na_value).reshape(
+                    blk.shape
                 )
             else:
                 arr = np.asarray(blk.get_values())
