@@ -13,6 +13,15 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+.. _whatsnew_110.specify_missing_labels:
+
+KeyErrors raised by loc specify missing labels
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Previously, if labels were missing for a loc call, a KeyError was raised stating that this was no longer supported.
+
+Now the error message also includes a list of the missing labels (max 10 items, display width 80 characters). See :issue:`34272`.
+
+
 .. _whatsnew_110.astype_string:
 
 All dtypes can now be converted to ``StringDtype``
@@ -318,6 +327,7 @@ Other enhancements
 - :meth:`DataFrame.cov` and :meth:`Series.cov` now support a new parameter ddof to support delta degrees of freedom as in the corresponding numpy methods (:issue:`34611`).
 - :meth:`DataFrame.to_html` and :meth:`DataFrame.to_string`'s ``col_space`` parameter now accepts a list or dict to change only some specific columns' width (:issue:`28917`).
 - :meth:`DataFrame.to_excel` can now also write OpenOffice spreadsheet (.ods) files (:issue:`27222`)
+- :meth:`~Series.explode` now accepts ``ignore_index`` to reset the index, similarly to :meth:`pd.concat` or :meth:`DataFrame.sort_values` (:issue:`34932`).
 - :class:`pandas.core.window.ExponentialMovingWindow` now supports a ``times`` argument that allows ``mean`` to be calculated with observations spaced by the timestamps in ``times`` (:issue:`34839`)
 
 .. ---------------------------------------------------------------------------

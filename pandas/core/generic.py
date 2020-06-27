@@ -5330,6 +5330,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                ['lion', 80.5, 1],
                ['monkey', nan, None]], dtype=object)
         """
+        self._consolidate_inplace()
         return self._mgr.as_array(transpose=self._AXIS_REVERSED)
 
     @property
@@ -6530,7 +6531,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                             f"Replacement lists must match in length. "
                             f"Expecting {len(to_replace)} got {len(value)} "
                         )
-
+                    self._consolidate_inplace()
                     new_data = self._mgr.replace_list(
                         src_list=to_replace,
                         dest_list=value,
