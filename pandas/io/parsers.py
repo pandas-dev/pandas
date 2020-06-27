@@ -1654,7 +1654,7 @@ class ParserBase:
 
     def _maybe_make_multi_index_columns(self, columns, col_names=None):
         # possibly create a column mi here
-        if _is_potential_multi_index(columns):
+        if _is_potential_multi_index(columns, self.index_col):
             columns = MultiIndex.from_tuples(columns, names=col_names)
         return columns
 
