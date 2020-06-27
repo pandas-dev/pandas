@@ -1311,7 +1311,7 @@ _results_for_groupbys_with_missing_categories = dict(
         ("size", 0),
         ("skew", np.NaN),
         ("std", np.NaN),
-        ("sum", np.NaN),
+        ("sum", 0),
         ("var", np.NaN),
     ]
 )
@@ -1328,6 +1328,15 @@ def test_series_groupby_on_2_categoricals_unobserved_zeroes_or_nans(
 
     if reduction_func == "corrwith":  # GH 32293
         mark = pytest.mark.xfail(reason="TODO: implemented SeriesGroupBy.corrwith")
+        request.node.add_marker(mark)
+
+    if reduction_func == "sum":  # GH 31422
+        mark = pytest.mark.xfail(
+            reason=(
+                "sum should return 0 but currently returns NaN. "
+                "This is a known bug. See GH 31422."
+            )
+        )
         request.node.add_marker(mark)
 
     df = pd.DataFrame(
@@ -1356,7 +1365,10 @@ def test_series_groupby_on_2_categoricals_unobserved_zeroes_or_nans(
 
 
 def test_dataframe_groupby_on_2_categoricals_when_observed_is_true(reduction_func: str):
-
+    # GH 23865
+    # GH 27075
+    # Ensure that df.groupby, when 'by' is two pd.Categorical variables,
+    # does not return the categories that are not in df when observed=True
     if reduction_func == "ngroup":
         pytest.skip("ngroup does not return the Categories on the index")
 
@@ -1391,15 +1403,28 @@ def _dataframe_groupby_on_2_categoricals(reduction_func: str, observed: bool):
 def test_dataframe_groupby_on_2_categoricals_when_observed_is_false(
     reduction_func: str, observed: bool, request
 ):
+    # GH 23865
+    # GH 27075
+    # Ensure that df.groupby, when 'by' is two pd.Categorical variables,
+    # returns the categories that are not in df when observed=False/None
 
     if reduction_func == "ngroup":
         pytest.skip("ngroup does not return the Categories on the index")
 
-    if reduction_func == "count":
+    if reduction_func == "count":  # GH 35028
         mark = pytest.mark.xfail(
             reason=(
                 "DataFrameGroupBy.count returns np.NaN for missing "
-                "categories, when it should return 0"
+                "categories, when it should return 0. See GH 35028"
+            )
+        )
+        request.node.add_marker(mark)
+
+    if reduction_func == "sum":  # GH 31422
+        mark = pytest.mark.xfail(
+            reason=(
+                "sum should return 0 but currently returns NaN. "
+                "This is a known bug. See GH 31422."
             )
         )
         request.node.add_marker(mark)
