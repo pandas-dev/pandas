@@ -32,7 +32,7 @@ import pandas.core.common as com
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.compat import _mpl_ge_3_0_0
 from pandas.plotting._matplotlib.converter import register_pandas_matplotlib_converters
-from pandas.plotting._matplotlib.grouped import reconstruct_data_with_by
+from pandas.plotting._matplotlib.groupby import reconstruct_data_with_by
 from pandas.plotting._matplotlib.style import _get_standard_colors
 from pandas.plotting._matplotlib.tools import (
     _flatten,

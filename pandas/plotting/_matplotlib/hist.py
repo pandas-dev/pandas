@@ -11,7 +11,7 @@ from pandas.core.series import Series
 
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.core import LinePlot, MPLPlot
-from pandas.plotting._matplotlib.grouped import create_iter_data_given_by
+from pandas.plotting._matplotlib.groupby import create_iter_data_given_by
 from pandas.plotting._matplotlib.tools import _flatten, _set_ticks_props, _subplots
 
 
