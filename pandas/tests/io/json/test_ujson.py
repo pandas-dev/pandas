@@ -1053,8 +1053,10 @@ class TestPandasJSONTests:
             ujson.decode("{}\n\t a")
 
     def test_decode_array_with_big_int(self):
-        with pytest.raises(ValueError):
-            ujson.loads("[18446098363113800555]")
+        # GH20599
+        result = ujson.loads("[18446098363113800555]")
+        expected = [18446098363113800555]
+        assert result == expected
 
     @pytest.mark.parametrize(
         "float_number",
