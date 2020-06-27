@@ -15,7 +15,7 @@ class TestBase(Base):
     _holder = IntervalIndex
 
     @pytest.fixture
-    def indices(self):
+    def index(self):
         return tm.makeIntervalIndex(10)
 
     def create_index(self, closed="right"):
