@@ -1180,7 +1180,7 @@ class IndexOpsMixin:
             Sort by frequencies.
         ascending : bool, default False
             Sort in ascending order.
-        bins : integer or iterable of numeric, optional
+        bins : int or iterable of numeric, optional
             Rather than count individual values, group them into half-open bins.
             Only works with numeric data.
             If int, interpreted as number of bins and will use `pd.cut`.
@@ -1235,11 +1235,13 @@ class IndexOpsMixin:
 
         Bins can also be an iterable of numbers.  These numbers are treated
         as endpoints for the intervals.
+
         >>> s.value_counts(bins=[0,2,4,9])
-        (2.0, 4.0]      3
+        (2.0, 4.0]       3
         (-0.001, 2.0]    2
         (4.0, 9.0]       0
         dtype: int64
+
         **dropna**
 
         With `dropna` set to `False` we can also see NaN index values.
