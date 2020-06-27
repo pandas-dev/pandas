@@ -1,5 +1,5 @@
 import re
-from typing import List
+from typing import TYPE_CHECKING, List, cast
 
 import numpy as np
 
@@ -11,10 +11,13 @@ from pandas.core.dtypes.missing import notna
 
 from pandas.core.arrays import Categorical
 import pandas.core.common as com
-from pandas.core.frame import DataFrame, _shared_docs
 from pandas.core.indexes.api import Index, MultiIndex
 from pandas.core.reshape.concat import concat
+from pandas.core.shared_docs import _shared_docs
 from pandas.core.tools.numeric import to_numeric
+
+if TYPE_CHECKING:
+    from pandas import DataFrame, Series  # noqa: F401
 
 
 @Appender(
@@ -22,13 +25,13 @@ from pandas.core.tools.numeric import to_numeric
     % dict(caller="pd.melt(df, ", versionadded="", other="DataFrame.melt")
 )
 def melt(
-    frame: DataFrame,
+    frame: "DataFrame",
     id_vars=None,
     value_vars=None,
     var_name=None,
     value_name="value",
     col_level=None,
-) -> DataFrame:
+) -> "DataFrame":
     # TODO: what about the existing index?
     # If multiindex, gather names of columns on all level for checking presence
     # of `id_vars` and `value_vars`
@@ -72,7 +75,13 @@ def melt(
                     "The following 'value_vars' are not present in "
                     f"the DataFrame: {list(missing)}"
                 )
-        frame = frame.loc[:, id_vars + value_vars]
+        if col_level is not None:
+            idx = frame.columns.get_level_values(col_level).get_indexer(
+                id_vars + value_vars
+            )
+        else:
+            idx = frame.columns.get_indexer(id_vars + value_vars)
+        frame = frame.iloc[:, idx]
     else:
         frame = frame.copy()
 
@@ -100,7 +109,7 @@ def melt(
     for col in id_vars:
         id_data = frame.pop(col)
         if is_extension_array_dtype(id_data):
-            id_data = concat([id_data] * K, ignore_index=True)
+            id_data = cast("Series", concat([id_data] * K, ignore_index=True))
         else:
             id_data = np.tile(id_data._values, K)
         mdata[col] = id_data
@@ -116,7 +125,7 @@ def melt(
 
 
 @deprecate_kwarg(old_arg_name="label", new_arg_name=None)
-def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFrame:
+def lreshape(data: "DataFrame", groups, dropna: bool = True, label=None) -> "DataFrame":
     """
     Reshape long-format data to wide. Generalized inverse of DataFrame.pivot
 
@@ -186,8 +195,8 @@ def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFr
 
 
 def wide_to_long(
-    df: DataFrame, stubnames, i, j, sep: str = "", suffix: str = r"\d+"
-) -> DataFrame:
+    df: "DataFrame", stubnames, i, j, sep: str = "", suffix: str = r"\d+"
+) -> "DataFrame":
     r"""
     Wide panel to long format. Less flexible but more user-friendly than melt.
 

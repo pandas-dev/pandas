@@ -7,6 +7,8 @@ from hypothesis import assume, example, given, settings, strategies as st
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs.offsets import delta_to_tick
+
 from pandas import Timedelta, Timestamp
 import pandas._testing as tm
 
@@ -33,11 +35,11 @@ def test_apply_ticks():
 def test_delta_to_tick():
     delta = timedelta(3)
 
-    tick = offsets.delta_to_tick(delta)
+    tick = delta_to_tick(delta)
     assert tick == offsets.Day(3)
 
     td = Timedelta(nanoseconds=5)
-    tick = offsets.delta_to_tick(td)
+    tick = delta_to_tick(td)
     assert tick == Nano(5)
 
 
@@ -234,12 +236,28 @@ def test_tick_division(cls):
         assert not isinstance(result, cls)
         assert result.delta == off.delta / 1000
 
-    if cls._inc < Timedelta(seconds=1):
+    if cls._nanos_inc < Timedelta(seconds=1).value:
         # Case where we end up with a bigger class
         result = off / 0.001
         assert isinstance(result, offsets.Tick)
         assert not isinstance(result, cls)
         assert result.delta == off.delta / 0.001
+
+
+def test_tick_mul_float():
+    off = Micro(2)
+
+    # Case where we retain type
+    result = off * 1.5
+    expected = Micro(3)
+    assert result == expected
+    assert isinstance(result, Micro)
+
+    # Case where we bump up to the next type
+    result = off * 1.25
+    expected = Nano(2500)
+    assert result == expected
+    assert isinstance(result, Nano)
 
 
 @pytest.mark.parametrize("cls", tick_classes)

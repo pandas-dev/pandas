@@ -29,7 +29,6 @@ from pandas._libs.tslibs.np_datetime cimport (
     get_timedelta64_value,
 )
 cimport pandas._libs.tslibs.util as util
-from pandas._libs.tslibs.base cimport is_period_object
 
 
 # ----------------------------------------------------------------------
@@ -146,10 +145,8 @@ cdef class _NaT(datetime):
             return c_NaT
         elif util.is_datetime64_object(other) or util.is_timedelta64_object(other):
             return c_NaT
-        elif util.is_offset_object(other):
-            return c_NaT
 
-        elif util.is_integer_object(other) or is_period_object(other):
+        elif util.is_integer_object(other):
             # For Period compat
             # TODO: the integer behavior is deprecated, remove it
             return c_NaT
@@ -163,6 +160,7 @@ cdef class _NaT(datetime):
                 return result
             raise TypeError(f"Cannot add NaT to ndarray with dtype {other.dtype}")
 
+        # Includes Period, DateOffset going through here
         return NotImplemented
 
     def __sub__(self, other):
@@ -182,10 +180,8 @@ cdef class _NaT(datetime):
             return c_NaT
         elif util.is_datetime64_object(other) or util.is_timedelta64_object(other):
             return c_NaT
-        elif util.is_offset_object(other):
-            return c_NaT
 
-        elif util.is_integer_object(other) or is_period_object(other):
+        elif util.is_integer_object(other):
             # For Period compat
             # TODO: the integer behavior is deprecated, remove it
             return c_NaT
@@ -216,6 +212,7 @@ cdef class _NaT(datetime):
                 f"Cannot subtract NaT from ndarray with dtype {other.dtype}"
             )
 
+        # Includes Period, DateOffset going through here
         return NotImplemented
 
     def __pos__(self):
@@ -223,9 +220,6 @@ cdef class _NaT(datetime):
 
     def __neg__(self):
         return NaT
-
-    def __div__(self, other):
-        return _nat_divide_op(self, other)
 
     def __truediv__(self, other):
         return _nat_divide_op(self, other)
@@ -400,7 +394,7 @@ class NaTType(_NaT):
 
         Parameters
         ----------
-        locale : string, default None (English locale)
+        locale : str, default None (English locale)
             Locale determining the language in which to return the month name.
 
         Returns
@@ -417,7 +411,7 @@ class NaTType(_NaT):
 
         Parameters
         ----------
-        locale : string, default None (English locale)
+        locale : str, default None (English locale)
             Locale determining the language in which to return the day name.
 
         Returns

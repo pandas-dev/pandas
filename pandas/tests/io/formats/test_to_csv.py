@@ -597,3 +597,13 @@ z
         result = pd.Series([1.1, 2.2]).to_csv(na_rep=".")
         expected = tm.convert_rows_list_to_csv_str([",0", "0,1.1", "1,2.2"])
         assert result == expected
+
+    @pytest.mark.parametrize("errors", ["surrogatepass", "ignore", "replace"])
+    def test_to_csv_errors(self, errors):
+        # GH 22610
+        data = ["\ud800foo"]
+        ser = pd.Series(data, index=pd.Index(data))
+        with tm.ensure_clean("test.csv") as path:
+            ser.to_csv(path, errors=errors)
+        # No use in reading back the data as it is not the same anymore
+        # due to the error handling

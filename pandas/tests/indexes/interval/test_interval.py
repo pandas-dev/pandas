@@ -4,6 +4,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import InvalidIndexError
+
 import pandas as pd
 from pandas import (
     Index,
@@ -19,7 +21,6 @@ from pandas import (
 )
 import pandas._testing as tm
 import pandas.core.common as com
-from pandas.core.indexes.base import InvalidIndexError
 
 
 @pytest.fixture(scope="class", params=[None, "foo"])

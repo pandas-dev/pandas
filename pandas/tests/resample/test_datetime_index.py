@@ -476,7 +476,7 @@ def test_upsample_with_limit():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("freq", ["Y", "10M", "5D", "10H", "5Min", "10S"])
+@pytest.mark.parametrize("freq", ["5D", "10H", "5Min", "10S"])
 @pytest.mark.parametrize("rule", ["Y", "3M", "15D", "30H", "15Min", "30S"])
 def test_nearest_upsample_with_limit(tz_aware_fixture, freq, rule):
     # GH 33939
@@ -846,6 +846,34 @@ def test_resample_origin_with_tz():
         ts.resample("5min", origin="12/31/1999 23:57:00+03:00").mean()
 
 
+def test_resample_origin_epoch_with_tz_day_vs_24h():
+    # GH 34474
+    start, end = "2000-10-01 23:30:00+0500", "2000-12-02 00:30:00+0500"
+    rng = pd.date_range(start, end, freq="7min")
+    random_values = np.random.randn(len(rng))
+    ts_1 = pd.Series(random_values, index=rng)
+
+    result_1 = ts_1.resample("D", origin="epoch").mean()
+    result_2 = ts_1.resample("24H", origin="epoch").mean()
+    tm.assert_series_equal(result_1, result_2)
+
+    # check that we have the same behavior with epoch even if we are not timezone aware
+    ts_no_tz = ts_1.tz_localize(None)
+    result_3 = ts_no_tz.resample("D", origin="epoch").mean()
+    result_4 = ts_no_tz.resample("24H", origin="epoch").mean()
+    tm.assert_series_equal(result_1, result_3.tz_localize(rng.tz), check_freq=False)
+    tm.assert_series_equal(result_1, result_4.tz_localize(rng.tz), check_freq=False)
+
+    # check that we have the similar results with two different timezones (+2H and +5H)
+    start, end = "2000-10-01 23:30:00+0200", "2000-12-02 00:30:00+0200"
+    rng = pd.date_range(start, end, freq="7min")
+    ts_2 = pd.Series(random_values, index=rng)
+    result_5 = ts_2.resample("D", origin="epoch").mean()
+    result_6 = ts_2.resample("24H", origin="epoch").mean()
+    tm.assert_series_equal(result_1.tz_localize(None), result_5.tz_localize(None))
+    tm.assert_series_equal(result_1.tz_localize(None), result_6.tz_localize(None))
+
+
 def test_resample_origin_with_day_freq_on_dst():
     # GH 31809
     tz = "America/Chicago"
@@ -1039,7 +1067,7 @@ def test_resample_anchored_intraday(simple_date_range_series):
     tm.assert_frame_equal(result, expected)
 
     result = df.resample("M", closed="left").mean()
-    exp = df.tshift(1, freq="D").resample("M", kind="period").mean()
+    exp = df.shift(1, freq="D").resample("M", kind="period").mean()
     exp = exp.to_timestamp(how="end")
 
     exp.index = exp.index + Timedelta(1, "ns") - Timedelta(1, "D")
@@ -1058,7 +1086,7 @@ def test_resample_anchored_intraday(simple_date_range_series):
     tm.assert_frame_equal(result, expected)
 
     result = df.resample("Q", closed="left").mean()
-    expected = df.tshift(1, freq="D").resample("Q", kind="period", closed="left").mean()
+    expected = df.shift(1, freq="D").resample("Q", kind="period", closed="left").mean()
     expected = expected.to_timestamp(how="end")
     expected.index += Timedelta(1, "ns") - Timedelta(1, "D")
     expected.index._data.freq = "Q"

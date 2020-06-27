@@ -13,6 +13,7 @@ from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     is_bool_dtype,
+    is_extension_array_dtype,
     is_object_dtype,
     is_scalar,
     is_string_dtype,
@@ -166,7 +167,7 @@ class SparseDtype(ExtensionDtype):
 
     @property
     def name(self):
-        return f"Sparse[{self.subtype.name}, {self.fill_value}]"
+        return f"Sparse[{self.subtype.name}, {repr(self.fill_value)}]"
 
     def __repr__(self) -> str:
         return self.name
@@ -322,6 +323,9 @@ class SparseDtype(ExtensionDtype):
         dtype = pandas_dtype(dtype)
 
         if not isinstance(dtype, cls):
+            if is_extension_array_dtype(dtype):
+                raise TypeError("sparse arrays of extension dtypes not supported")
+
             fill_value = astype_nansafe(np.array(self.fill_value), dtype).item()
             dtype = cls(dtype, fill_value=fill_value)
 
@@ -356,6 +360,13 @@ class SparseDtype(ExtensionDtype):
         return self.subtype
 
     def _get_common_dtype(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
+        # TODO for now only handle SparseDtypes and numpy dtypes => extend
+        # with other compatibtle extension dtypes
+        if any(
+            isinstance(x, ExtensionDtype) and not isinstance(x, SparseDtype)
+            for x in dtypes
+        ):
+            return None
 
         fill_values = [x.fill_value for x in dtypes if isinstance(x, SparseDtype)]
         fill_value = fill_values[0]
@@ -371,6 +382,5 @@ class SparseDtype(ExtensionDtype):
                 stacklevel=6,
             )
 
-        # TODO also handle non-numpy other dtypes
         np_dtypes = [x.subtype if isinstance(x, SparseDtype) else x for x in dtypes]
         return SparseDtype(np.find_common_type(np_dtypes, []), fill_value=fill_value)

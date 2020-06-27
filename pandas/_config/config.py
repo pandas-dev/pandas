@@ -49,7 +49,7 @@ Implementation
 """
 
 from collections import namedtuple
-from contextlib import contextmanager
+from contextlib import ContextDecorator, contextmanager
 import re
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Type, cast
 import warnings
@@ -379,7 +379,7 @@ options = DictWrapper(_global_config)
 # Functions for use by pandas developers, in addition to User - api
 
 
-class option_context:
+class option_context(ContextDecorator):
     """
     Context manager to temporarily set options in the `with` statement context.
 

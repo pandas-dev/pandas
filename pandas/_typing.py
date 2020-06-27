@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, tzinfo
 from pathlib import Path
 from typing import (
     IO,
@@ -52,6 +52,7 @@ TimestampConvertibleTypes = Union[
 TimedeltaConvertibleTypes = Union[
     "Timedelta", timedelta, np.timedelta64, int, np.int64, float, str
 ]
+Timezone = Union[str, tzinfo]
 
 # other
 

@@ -1,14 +1,15 @@
 import abc
 import datetime
-from io import BytesIO
+from io import BufferedIOBase, BytesIO, RawIOBase
 import os
 from textwrap import fill
+from typing import Union
 
 from pandas._config import config
 
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas.errors import EmptyDataError
-from pandas.util._decorators import Appender
+from pandas.util._decorators import Appender, deprecate_nonkeyword_arguments
 
 from pandas.core.dtypes.common import is_bool, is_float, is_integer, is_list_like
 
@@ -34,7 +35,7 @@ _read_excel_doc = (
     """
 Read an Excel file into a pandas DataFrame.
 
-Supports `xls`, `xlsx`, `xlsm`, `xlsb`, and `odf` file extensions
+Supports `xls`, `xlsx`, `xlsm`, `xlsb`, `odf`, `ods` and `odt` file extensions
 read from a local filesystem or URL. Supports an option to read
 a single sheet or a list of sheets.
 
@@ -103,7 +104,12 @@ dtype : Type name or dict of column -> type, default None
     of dtype conversion.
 engine : str, default None
     If io is not a buffer or path, this must be set to identify io.
-    Acceptable values are None, "xlrd", "openpyxl" or "odf".
+    Supported engines: "xlrd", "openpyxl", "odf", "pyxlsb", default "xlrd".
+    Engine compatibility :
+    - "xlrd" supports most old/new Excel file formats.
+    - "openpyxl" supports newer Excel file formats.
+    - "odf" supports OpenDocument file formats (.odf, .ods, .odt).
+    - "pyxlsb" supports Binary Excel files.
 converters : dict, default None
     Dict of functions for converting values in certain columns. Keys can
     either be integers or column labels, values are functions that take one
@@ -193,8 +199,6 @@ mangle_dupe_cols : bool, default True
     Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
     'X'...'X'. Passing in False will cause data to be overwritten if there
     are duplicate names in the columns.
-**kwds : optional
-        Optional keyword arguments can be passed to ``TextFileReader``.
 
 Returns
 -------
@@ -266,6 +270,7 @@ Comment lines in the excel input file can be skipped using the `comment` kwarg
 )
 
 
+@deprecate_nonkeyword_arguments(allowed_args=2, version="2.0")
 @Appender(_read_excel_doc)
 def read_excel(
     io,
@@ -284,6 +289,7 @@ def read_excel(
     nrows=None,
     na_values=None,
     keep_default_na=True,
+    na_filter=True,
     verbose=False,
     parse_dates=False,
     date_parser=None,
@@ -292,12 +298,7 @@ def read_excel(
     skipfooter=0,
     convert_float=True,
     mangle_dupe_cols=True,
-    **kwds,
 ):
-
-    for arg in ("sheet", "sheetname", "parse_cols"):
-        if arg in kwds:
-            raise TypeError(f"read_excel() got an unexpected keyword argument `{arg}`")
 
     if not isinstance(io, ExcelFile):
         io = ExcelFile(io, engine=engine)
@@ -322,6 +323,7 @@ def read_excel(
         nrows=nrows,
         na_values=na_values,
         keep_default_na=keep_default_na,
+        na_filter=na_filter,
         verbose=verbose,
         parse_dates=parse_dates,
         date_parser=date_parser,
@@ -330,7 +332,6 @@ def read_excel(
         skipfooter=skipfooter,
         convert_float=convert_float,
         mangle_dupe_cols=mangle_dupe_cols,
-        **kwds,
     )
 
 
@@ -533,13 +534,13 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     """
     Class for writing DataFrame objects into excel sheets.
 
-    Default is to use xlwt for xls, openpyxl for xlsx.
+    Default is to use xlwt for xls, openpyxl for xlsx, odf for ods.
     See DataFrame.to_excel for typical usage.
 
     Parameters
     ----------
     path : str
-        Path to xls or xlsx file.
+        Path to xls or xlsx or ods file.
     engine : str (optional)
         Engine to use for writing. If None, defaults to
         ``io.excel.<extension>.writer``.  NOTE: can only be passed as a keyword
@@ -692,10 +693,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         # validate that this engine can handle the extension
         if isinstance(path, str):
             ext = os.path.splitext(path)[-1]
-        else:
-            ext = "xls" if engine == "xlwt" else "xlsx"
-
-        self.check_extension(ext)
+            self.check_extension(ext)
 
         self.path = path
         self.sheets = {}
@@ -781,20 +779,55 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         return self.save()
 
 
-class ExcelFile:
+def _is_ods_stream(stream: Union[BufferedIOBase, RawIOBase]) -> bool:
     """
-    Class for parsing tabular excel sheets into DataFrame objects.
-    Uses xlrd. See read_excel for more documentation
+    Check if the stream is an OpenDocument Spreadsheet (.ods) file
+
+    It uses magic values inside the stream
 
     Parameters
     ----------
-    io : str, path object (pathlib.Path or py._path.local.LocalPath),
+    stream : Union[BufferedIOBase, RawIOBase]
+        IO stream with data which might be an ODS file
+
+    Returns
+    -------
+    is_ods : bool
+        Boolean indication that this is indeed an ODS file or not
+    """
+    stream.seek(0)
+    is_ods = False
+    if stream.read(4) == b"PK\003\004":
+        stream.seek(30)
+        is_ods = (
+            stream.read(54) == b"mimetype"
+            b"application/vnd.oasis.opendocument.spreadsheet"
+        )
+    stream.seek(0)
+    return is_ods
+
+
+class ExcelFile:
+    """
+    Class for parsing tabular excel sheets into DataFrame objects.
+
+    Uses xlrd engine by default. See read_excel for more documentation
+
+    Parameters
+    ----------
+    path_or_buffer : str, path object (pathlib.Path or py._path.local.LocalPath),
         a file-like object, xlrd workbook or openpypl workbook.
-        If a string or path object, expected to be a path to xls, xlsx or odf file.
+        If a string or path object, expected to be a path to a
+        .xls, .xlsx, .xlsb, .xlsm, .odf, .ods, or .odt file.
     engine : str, default None
         If io is not a buffer or path, this must be set to identify io.
-        Acceptable values are None, ``xlrd``, ``openpyxl``,  ``odf``, or ``pyxlsb``.
-        Note that ``odf`` reads tables out of OpenDocument formatted files.
+        Supported engines: ``xlrd``, ``openpyxl``, ``odf``, ``pyxlsb``,
+        default ``xlrd``.
+        Engine compatibility :
+        - ``xlrd`` supports most old/new Excel file formats.
+        - ``openpyxl`` supports newer Excel file formats.
+        - ``odf`` supports OpenDocument file formats (.odf, .ods, .odt).
+        - ``pyxlsb`` supports Binary Excel files.
     """
 
     from pandas.io.excel._odfreader import _ODFReader
@@ -809,17 +842,25 @@ class ExcelFile:
         "pyxlsb": _PyxlsbReader,
     }
 
-    def __init__(self, io, engine=None):
+    def __init__(self, path_or_buffer, engine=None):
         if engine is None:
             engine = "xlrd"
+            if isinstance(path_or_buffer, (BufferedIOBase, RawIOBase)):
+                if _is_ods_stream(path_or_buffer):
+                    engine = "odf"
+            else:
+                ext = os.path.splitext(str(path_or_buffer))[-1]
+                if ext == ".ods":
+                    engine = "odf"
         if engine not in self._engines:
             raise ValueError(f"Unknown engine: {engine}")
 
         self.engine = engine
-        # could be a str, ExcelFile, Book, etc.
-        self.io = io
+
+        # Could be a str, ExcelFile, Book, etc.
+        self.io = path_or_buffer
         # Always a string
-        self._io = stringify_path(io)
+        self._io = stringify_path(path_or_buffer)
 
         self._reader = self._engines[engine](self._io)
 
@@ -860,11 +901,6 @@ class ExcelFile:
         DataFrame or dict of DataFrames
             DataFrame from the passed in Excel file.
         """
-        if "chunksize" in kwds:
-            raise NotImplementedError(
-                "chunksize keyword of read_excel is not implemented"
-            )
-
         return self._reader.parse(
             sheet_name=sheet_name,
             header=header,

@@ -520,7 +520,9 @@ def na_value_for_dtype(dtype, compat: bool = True):
             return 0
         return np.nan
     elif is_bool_dtype(dtype):
-        return False
+        if compat:
+            return False
+        return np.nan
     return np.nan
 
 

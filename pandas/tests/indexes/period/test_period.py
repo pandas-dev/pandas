@@ -121,7 +121,7 @@ class TestPeriodIndex(DatetimeLike):
     def test_values(self):
         idx = PeriodIndex([], freq="M")
 
-        exp = np.array([], dtype=np.object)
+        exp = np.array([], dtype=object)
         tm.assert_numpy_array_equal(idx.values, exp)
         tm.assert_numpy_array_equal(idx.to_numpy(), exp)
 
@@ -167,12 +167,6 @@ class TestPeriodIndex(DatetimeLike):
         assert i1[-1] == end_intv
 
         end_intv = Period("2006-12-31", "1w")
-        i2 = period_range(end=end_intv, periods=10)
-        assert len(i1) == len(i2)
-        assert (i1 == i2).all()
-        assert i1.freq == i2.freq
-
-        end_intv = Period("2006-12-31", ("w", 1))
         i2 = period_range(end=end_intv, periods=10)
         assert len(i1) == len(i2)
         assert (i1 == i2).all()
