@@ -28,6 +28,18 @@ class BaseMethodsTests(BaseExtensionTests):
 
         self.assert_series_equal(result, expected)
 
+    def test_value_counts_with_normalize(self, data):
+        # GH 33172
+        data = data[:10].unique()
+        values = np.array(data[~data.isna()])
+
+        result = (
+            pd.Series(data, dtype=data.dtype).value_counts(normalize=True).sort_index()
+        )
+
+        expected = pd.Series([1 / len(values)] * len(values), index=result.index)
+        self.assert_series_equal(result, expected)
+
     def test_count(self, data_missing):
         df = pd.DataFrame({"A": data_missing})
         result = df.count(axis="columns")
@@ -76,9 +88,9 @@ class BaseMethodsTests(BaseExtensionTests):
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize("ascending", [True, False])
-    def test_sort_values(self, data_for_sorting, ascending):
+    def test_sort_values(self, data_for_sorting, ascending, sort_by_key):
         ser = pd.Series(data_for_sorting)
-        result = ser.sort_values(ascending=ascending)
+        result = ser.sort_values(ascending=ascending, key=sort_by_key)
         expected = ser.iloc[[2, 0, 1]]
         if not ascending:
             expected = expected[::-1]
@@ -86,9 +98,11 @@ class BaseMethodsTests(BaseExtensionTests):
         self.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("ascending", [True, False])
-    def test_sort_values_missing(self, data_missing_for_sorting, ascending):
+    def test_sort_values_missing(
+        self, data_missing_for_sorting, ascending, sort_by_key
+    ):
         ser = pd.Series(data_missing_for_sorting)
-        result = ser.sort_values(ascending=ascending)
+        result = ser.sort_values(ascending=ascending, key=sort_by_key)
         if ascending:
             expected = ser.iloc[[2, 0, 1]]
         else:
@@ -133,6 +147,8 @@ class BaseMethodsTests(BaseExtensionTests):
 
         tm.assert_numpy_array_equal(codes_1, codes_2)
         self.assert_extension_array_equal(uniques_1, uniques_2)
+        assert len(uniques_1) == len(pd.unique(uniques_1))
+        assert uniques_1.dtype == data_for_grouping.dtype
 
     def test_factorize_empty(self, data):
         codes, uniques = pd.factorize(data[:0])
@@ -234,6 +250,13 @@ class BaseMethodsTests(BaseExtensionTests):
             compare = self.assert_series_equal
 
         compare(result, expected)
+
+    def test_shift_0_periods(self, data):
+        # GH#33856 shifting with periods=0 should return a copy, not same obj
+        result = data.shift(0)
+        assert data[0] != data[1]  # otherwise below is invalid
+        data[0] = data[1]
+        assert result[0] != result[1]  # i.e. not the same object/view
 
     @pytest.mark.parametrize("periods", [1, -2])
     def test_diff(self, data, periods):
@@ -400,3 +423,32 @@ class BaseMethodsTests(BaseExtensionTests):
                 np.repeat(data, repeats, **kwargs)
             else:
                 data.repeat(repeats, **kwargs)
+
+    @pytest.mark.parametrize("box", [pd.array, pd.Series, pd.DataFrame])
+    def test_equals(self, data, na_value, as_series, box):
+        data2 = type(data)._from_sequence([data[0]] * len(data), dtype=data.dtype)
+        data_na = type(data)._from_sequence([na_value] * len(data), dtype=data.dtype)
+
+        data = tm.box_expected(data, box, transpose=False)
+        data2 = tm.box_expected(data2, box, transpose=False)
+        data_na = tm.box_expected(data_na, box, transpose=False)
+
+        # we are asserting with `is True/False` explicitly, to test that the
+        # result is an actual Python bool, and not something "truthy"
+
+        assert data.equals(data) is True
+        assert data.equals(data.copy()) is True
+
+        # unequal other data
+        assert data.equals(data2) is False
+        assert data.equals(data_na) is False
+
+        # different length
+        assert data[:2].equals(data[:3]) is False
+
+        # emtpy are equal
+        assert data[:0].equals(data[:0]) is True
+
+        # other types
+        assert data.equals(None) is False
+        assert data[[0]].equals(data[0]) is False

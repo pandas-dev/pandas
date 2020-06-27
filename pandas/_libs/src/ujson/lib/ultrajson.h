@@ -108,7 +108,7 @@ typedef uint32_t JSUINT32;
 
 #define FASTCALL_MSVC
 
-#if !defined __x86_64__
+#if !defined __x86_64__ && !defined __aarch64__
 #define FASTCALL_ATTR __attribute__((fastcall))
 #else
 #define FASTCALL_ATTR
@@ -150,6 +150,7 @@ enum JSTYPES {
   JT_INT,      // (JSINT32 (signed 32-bit))
   JT_LONG,     // (JSINT64 (signed 64-bit))
   JT_DOUBLE,   // (double)
+  JT_BIGNUM,   // integer larger than sys.maxsize
   JT_UTF8,     // (char 8-bit)
   JT_ARRAY,    // Array structure
   JT_OBJECT,   // Key/Value structure
@@ -187,6 +188,8 @@ typedef struct __JSONObjectEncoder {
   JSINT64 (*getLongValue)(JSOBJ obj, JSONTypeContext *tc);
   JSINT32 (*getIntValue)(JSOBJ obj, JSONTypeContext *tc);
   double (*getDoubleValue)(JSOBJ obj, JSONTypeContext *tc);
+  const char *(*getBigNumStringValue)(JSOBJ obj, JSONTypeContext *tc,
+                                size_t *_outLen);
 
   /*
   Begin iteration of an iteratable object (JS_ARRAY or JS_OBJECT)

@@ -376,9 +376,6 @@ class TestChaining:
         df["f"] = 0
         df.f.values[3] = 1
 
-        # TODO(wesm): unused?
-        # y = df.iloc[np.arange(2, len(df))]
-
         df.f.values[3] = 2
         expected = DataFrame(
             np.zeros((5, 6), dtype="int64"),

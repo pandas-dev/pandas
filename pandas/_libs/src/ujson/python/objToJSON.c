@@ -279,7 +279,7 @@ static PyObject *get_sub_attr(PyObject *obj, char *attr, char *subAttr) {
 }
 
 static int is_simple_frame(PyObject *obj) {
-    PyObject *check = get_sub_attr(obj, "_data", "is_mixed_type");
+    PyObject *check = get_sub_attr(obj, "_mgr", "is_mixed_type");
     int ret = (check == Py_False);
 
     if (!check) {
@@ -760,7 +760,7 @@ void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
         goto BLKRET;
     }
 
-    blocks = get_sub_attr(obj, "_data", "blocks");
+    blocks = get_sub_attr(obj, "_mgr", "blocks");
     if (!blocks) {
         GET_TC(tc)->iterNext = NpyArr_iterNextNone;
         goto BLKRET;
@@ -1458,9 +1458,9 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
 
         if (is_datetimelike) {
             if (nanosecVal == get_nat()) {
-                len = 5; // TODO: shouldn't require extra space for terminator
-                cLabel = PyObject_Malloc(len);
-                strncpy(cLabel, "null", len);
+                len = 4;
+                cLabel = PyObject_Malloc(len + 1);
+                strncpy(cLabel, "null", len + 1);
             } else {
                 if (enc->datetimeIso) {
                     if ((type_num == NPY_TIMEDELTA) || (PyDelta_Check(item))) {
@@ -1486,23 +1486,22 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
                 }
             }
         } else { // Fallback to string representation
-            PyObject *str = PyObject_Str(item);
-            if (str == NULL) {
-                Py_DECREF(item);
+            // Replace item with the string to keep it alive.
+            Py_SETREF(item, PyObject_Str(item));
+            if (item == NULL) {
                 NpyArr_freeLabels(ret, num);
                 ret = 0;
                 break;
             }
 
-            cLabel = (char *)PyUnicode_AsUTF8(str);
-            Py_DECREF(str);
+            cLabel = (char *)PyUnicode_AsUTF8(item);
             len = strlen(cLabel);
         }
 
-        Py_DECREF(item);
         // Add 1 to include NULL terminator
         ret[i] = PyObject_Malloc(len + 1);
         memcpy(ret[i], cLabel, len + 1);
+        Py_DECREF(item);
 
         if (is_datetimelike) {
             PyObject_Free(cLabel);
@@ -1630,15 +1629,20 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
     if (PyLong_Check(obj)) {
         PRINTMARK();
         tc->type = JT_LONG;
-        GET_TC(tc)->longValue = PyLong_AsLongLong(obj);
+        int overflow = 0;
+        GET_TC(tc)->longValue = PyLong_AsLongLongAndOverflow(obj, &overflow);
+        int err;
+        err = (GET_TC(tc)->longValue == -1) && PyErr_Occurred();
 
-        exc = PyErr_Occurred();
-
-        if (exc && PyErr_ExceptionMatches(PyExc_OverflowError)) {
+        if (overflow){
+            PRINTMARK();
+            tc->type = JT_BIGNUM;
+        }
+        else if (err) {
             PRINTMARK();
             goto INVALID;
         }
-
+        
         return;
     } else if (PyFloat_Check(obj)) {
         PRINTMARK();
@@ -2106,7 +2110,6 @@ void Object_endTypeContext(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
         NpyArr_freeLabels(GET_TC(tc)->columnLabels,
                           GET_TC(tc)->columnLabelsLen);
         GET_TC(tc)->columnLabels = NULL;
-
         PyObject_Free(GET_TC(tc)->cStr);
         GET_TC(tc)->cStr = NULL;
         PyObject_Free(tc->prv);
@@ -2125,6 +2128,19 @@ JSINT64 Object_getLongValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
 
 double Object_getDoubleValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     return GET_TC(tc)->doubleValue;
+}
+
+const char *Object_getBigNumStringValue(JSOBJ obj, JSONTypeContext *tc, 
+                                    size_t *_outLen) {
+    PyObject* repr = PyObject_Str(obj);
+    const char *str = PyUnicode_AsUTF8AndSize(repr, (Py_ssize_t *) _outLen);
+    char* bytes = PyObject_Malloc(*_outLen + 1);
+    memcpy(bytes, str, *_outLen + 1);
+    GET_TC(tc)->cStr = bytes;
+
+    Py_DECREF(repr);
+    
+    return GET_TC(tc)->cStr;
 }
 
 static void Object_releaseObject(JSOBJ _obj) { Py_DECREF((PyObject *)_obj); }
@@ -2182,6 +2198,7 @@ PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
         Object_getLongValue,
         NULL, // getIntValue is unused
         Object_getDoubleValue,
+        Object_getBigNumStringValue,
         Object_iterBegin,
         Object_iterNext,
         Object_iterEnd,
@@ -2295,7 +2312,6 @@ PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
         if (ret != buffer) {
             encoder->free(ret);
         }
-
         PyErr_Format(PyExc_OverflowError, "%s", encoder->errorMsg);
         return NULL;
     }

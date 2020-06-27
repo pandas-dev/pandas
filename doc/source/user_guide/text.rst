@@ -8,7 +8,7 @@ Working with text data
 
 .. _text.types:
 
-Text Data Types
+Text data types
 ---------------
 
 .. versionadded:: 1.0.0
@@ -63,6 +63,29 @@ Or ``astype`` after the ``Series`` or ``DataFrame`` is created
    s
    s.astype("string")
 
+
+.. versionchanged:: 1.1.0
+
+You can also use :class:`StringDtype`/``"string"`` as the dtype on non-string data and
+it will be converted to ``string`` dtype:
+
+.. ipython:: python
+
+   s = pd.Series(['a', 2, np.nan], dtype="string")
+   s
+   type(s[1])
+
+or convert from existing pandas data:
+
+.. ipython:: python
+
+   s1 = pd.Series([1, 2, np.nan], dtype="Int64")
+   s1
+   s2 = s1.astype("string")
+   s2
+   type(s2[0])
+
+
 .. _text.differences:
 
 Behavior differences
@@ -113,7 +136,7 @@ Everything else that follows in the rest of this document applies equally to
 
 .. _text.string_methods:
 
-String Methods
+String methods
 --------------
 
 Series and Index are equipped with a set of string processing methods
@@ -633,7 +656,7 @@ same result as a ``Series.str.extractall`` with a default index (starts from 0).
    pd.Series(["a1a2", "b1", "c1"], dtype="string").str.extractall(two_groups)
 
 
-Testing for Strings that match or contain a pattern
+Testing for strings that match or contain a pattern
 ---------------------------------------------------
 
 You can check whether elements contain a pattern:

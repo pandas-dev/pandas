@@ -1,7 +1,7 @@
 .. _whatsnew_0203:
 
-v0.20.3 (July 7, 2017)
------------------------
+Version 0.20.3 (July 7, 2017)
+-----------------------------
 
 {{ header }}
 
@@ -40,8 +40,8 @@ Indexing
 - Bug in ``MultiIndex.isin`` causing an error when passing an empty iterable (:issue:`16777`)
 - Fixed a bug in a slicing DataFrame/Series that have a  ``TimedeltaIndex`` (:issue:`16637`)
 
-I/O
-^^^
+IO
+^^
 
 - Bug in :func:`read_csv` in which files weren't opened as binary files by the C engine on Windows, causing EOF characters mid-field, which would fail (:issue:`16039`, :issue:`16559`, :issue:`16675`)
 - Bug in :func:`read_hdf` in which reading a ``Series`` saved to an HDF file in 'fixed' format fails when an explicit ``mode='r'`` argument is supplied (:issue:`16583`)

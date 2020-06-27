@@ -152,7 +152,7 @@ We'd like to fund improvements and maintenance of these tools to
 
 .. _roadmap.evolution:
 
-Roadmap Evolution
+Roadmap evolution
 -----------------
 
 pandas continues to evolve. The direction is primarily determined by community

@@ -56,7 +56,7 @@ class BaseInterfaceTests(BaseExtensionTests):
 
     def test_is_numeric_honored(self, data):
         result = pd.Series(data)
-        assert result._data.blocks[0].is_numeric is data.dtype._is_numeric
+        assert result._mgr.blocks[0].is_numeric is data.dtype._is_numeric
 
     def test_isna_extension_array(self, data_missing):
         # If your `isna` returns an ExtensionArray, you must also implement

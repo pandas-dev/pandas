@@ -10,15 +10,15 @@ Usage::
 
 """
 import argparse
-import sys
-import re
-import os
-from typing import Tuple, Generator, List
 import glob
-
+import os
+import re
+import sys
+from typing import Iterable, List, Tuple
 
 CAPITALIZATION_EXCEPTIONS = {
     "pandas",
+    "pd",
     "Python",
     "IPython",
     "PyTables",
@@ -35,6 +35,7 @@ CAPITALIZATION_EXCEPTIONS = {
     "Series",
     "Index",
     "DataFrame",
+    "DataFrames",
     "C",
     "Git",
     "GitHub",
@@ -46,6 +47,97 @@ CAPITALIZATION_EXCEPTIONS = {
     "NumFOCUS",
     "sklearn",
     "Docker",
+    "PeriodIndex",
+    "NA",
+    "NaN",
+    "NaT",
+    "ValueError",
+    "Boolean",
+    "BooleanArray",
+    "KeyError",
+    "API",
+    "FAQ",
+    "IO",
+    "Timedelta",
+    "TimedeltaIndex",
+    "DatetimeIndex",
+    "IntervalIndex",
+    "Categorical",
+    "CategoricalIndex",
+    "Categorical",
+    "GroupBy",
+    "SPSS",
+    "ORC",
+    "R",
+    "HDF5",
+    "HDFStore",
+    "CDay",
+    "CBMonthBegin",
+    "CBMonthEnd",
+    "BMonthBegin",
+    "BMonthEnd",
+    "BDay",
+    "FY5253Quarter",
+    "FY5253",
+    "YearBegin",
+    "YearEnd",
+    "BYearBegin",
+    "BYearEnd",
+    "YearOffset",
+    "QuarterBegin",
+    "QuarterEnd",
+    "BQuarterBegin",
+    "BQuarterEnd",
+    "QuarterOffset",
+    "LastWeekOfMonth",
+    "WeekOfMonth",
+    "SemiMonthBegin",
+    "SemiMonthEnd",
+    "SemiMonthOffset",
+    "CustomBusinessMonthBegin",
+    "CustomBusinessMonthEnd",
+    "BusinessMonthBegin",
+    "BusinessMonthEnd",
+    "MonthBegin",
+    "MonthEnd",
+    "MonthOffset",
+    "CustomBusinessHour",
+    "CustomBusinessDay",
+    "BusinessHour",
+    "BusinessDay",
+    "DateOffset",
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+    "Float64Index",
+    "FloatIndex",
+    "TZ",
+    "GIL",
+    "strftime",
+    "XPORT",
+    "Unicode",
+    "East",
+    "Asian",
+    "None",
+    "URLs",
+    "UInt64",
+    "SciPy",
+    "Matplotlib",
+    "PyPy",
+    "SparseDataFrame",
+    "Google",
+    "CategoricalDtype",
+    "UTC",
+    "Panel",
 }
 
 CAP_EXCEPTIONS_DICT = {word.lower(): word for word in CAPITALIZATION_EXCEPTIONS}
@@ -70,6 +162,11 @@ def correct_title_capitalization(title: str) -> str:
         Correctly capitalized heading.
     """
 
+    # Skip modification no matter what if title begins by ":" to exclude specific
+    # syntax that is needed to build links.
+    if title[0] == ":":
+        return title
+
     # Strip all non-word characters from the beginning of the title to the
     # first word character.
     correct_title: str = re.sub(r"^\W*", "", title).capitalize()
@@ -90,7 +187,7 @@ def correct_title_capitalization(title: str) -> str:
     return correct_title
 
 
-def find_titles(rst_file: str) -> Generator[Tuple[str, int], None, None]:
+def find_titles(rst_file: str) -> Iterable[Tuple[str, int]]:
     """
     Algorithm to identify particular text that should be considered headings in an
     RST file.
@@ -126,7 +223,7 @@ def find_titles(rst_file: str) -> Generator[Tuple[str, int], None, None]:
             previous_line = line
 
 
-def find_rst_files(source_paths: List[str]) -> Generator[str, None, None]:
+def find_rst_files(source_paths: List[str]) -> Iterable[str]:
     """
     Given the command line arguments of directory paths, this method
     yields the strings of the .rst file directories that these paths contain.
@@ -156,7 +253,7 @@ def find_rst_files(source_paths: List[str]) -> Generator[str, None, None]:
                 yield filename
 
 
-def main(source_paths: List[str], output_format: str) -> bool:
+def main(source_paths: List[str], output_format: str) -> int:
     """
     The main method to print all headings with incorrect capitalization.
 

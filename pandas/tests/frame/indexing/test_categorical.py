@@ -45,7 +45,7 @@ class TestDataFrameIndexingCategorical:
 
         result1 = df["D"]
         result2 = df["E"]
-        tm.assert_categorical_equal(result1._data._block.values, d)
+        tm.assert_categorical_equal(result1._mgr._block.values, d)
 
         # sorting
         s.name = "E"
@@ -391,11 +391,3 @@ class TestDataFrameIndexingCategorical:
 
         result = df.loc[["a"]].index.levels[0]
         tm.assert_index_equal(result, expected)
-
-    def test_wrong_length_cat_dtype_raises(self):
-        # GH29523
-        cat = pd.Categorical.from_codes([0, 1, 1, 0, 1, 2], ["a", "b", "c"])
-        df = pd.DataFrame({"bar": range(10)})
-        err = "Length of values does not match length of index"
-        with pytest.raises(ValueError, match=err):
-            df["foo"] = cat

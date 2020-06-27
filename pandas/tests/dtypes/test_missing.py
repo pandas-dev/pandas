@@ -185,6 +185,21 @@ class TestIsNA:
         exp = np.zeros(len(mask), dtype=bool)
         tm.assert_numpy_array_equal(mask, exp)
 
+    def test_isna_old_datetimelike(self):
+        # isna_old should work for dt64tz, td64, and period, not just tznaive
+        dti = pd.date_range("2016-01-01", periods=3)
+        dta = dti._data
+        dta[-1] = pd.NaT
+        expected = np.array([False, False, True], dtype=bool)
+
+        objs = [dta, dta.tz_localize("US/Eastern"), dta - dta, dta.to_period("D")]
+
+        for obj in objs:
+            with cf.option_context("mode.use_inf_as_na", True):
+                result = pd.isna(obj)
+
+            tm.assert_numpy_array_equal(result, expected)
+
     @pytest.mark.parametrize(
         "value, expected",
         [
@@ -549,7 +564,7 @@ class TestLibMissing:
         for value in never_na_vals:
             assert not libmissing.checknull(value)
 
-    def checknull_old(self):
+    def test_checknull_old(self):
         for value in na_vals:
             assert libmissing.checknull_old(value)
 

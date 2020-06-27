@@ -1063,6 +1063,32 @@ class TestDataFrameConstructors:
         result = DataFrame(data)
         tm.assert_frame_equal(result, expected)
 
+    def test_constructor_list_like_data_nested_list_column(self):
+        # GH 32173
+        arrays = [list("abcd"), list("cdef")]
+        result = pd.DataFrame([[1, 2, 3, 4], [4, 5, 6, 7]], columns=arrays)
+
+        mi = MultiIndex.from_arrays(arrays)
+        expected = pd.DataFrame([[1, 2, 3, 4], [4, 5, 6, 7]], columns=mi)
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_wrong_length_nested_list_column(self):
+        # GH 32173
+        arrays = [list("abc"), list("cde")]
+
+        msg = "3 columns passed, passed data had 4"
+        with pytest.raises(ValueError, match=msg):
+            DataFrame([[1, 2, 3, 4], [4, 5, 6, 7]], columns=arrays)
+
+    def test_constructor_unequal_length_nested_list_column(self):
+        # GH 32173
+        arrays = [list("abcd"), list("cde")]
+
+        msg = "Length of columns passed for MultiIndex columns is different"
+        with pytest.raises(ValueError, match=msg):
+            DataFrame([[1, 2, 3, 4], [4, 5, 6, 7]], columns=arrays)
+
     def test_constructor_sequence_like(self):
         # GH 3783
         # collections.Squence like
@@ -1336,6 +1362,7 @@ class TestDataFrameConstructors:
             (((), ()), [(), ()]),
             (((), ()), [[], []]),
             (([], []), [[], []]),
+            (([1], [2]), [[1], [2]]),  # GH 32776
             (([1, 2, 3], [4, 5, 6]), [[1, 2, 3], [4, 5, 6]]),
         ],
     )
@@ -1568,7 +1595,7 @@ class TestDataFrameConstructors:
         index = list(float_frame.index[:5])
         columns = list(float_frame.columns[:3])
 
-        result = DataFrame(float_frame._data, index=index, columns=columns)
+        result = DataFrame(float_frame._mgr, index=index, columns=columns)
         tm.assert_index_equal(result.index, Index(index))
         tm.assert_index_equal(result.columns, Index(columns))
 
@@ -1614,6 +1641,12 @@ class TestDataFrameConstructors:
         df = DataFrame(index=[0, 1], columns=[0, 1], dtype=np.unicode_)
         tm.assert_frame_equal(df, expected)
         df = DataFrame(index=[0, 1], columns=[0, 1], dtype="U5")
+        tm.assert_frame_equal(df, expected)
+
+    def test_constructor_empty_with_string_extension(self):
+        # GH 34915
+        expected = DataFrame(index=[], columns=["c1"], dtype="string")
+        df = DataFrame(columns=["c1"], dtype="string")
         tm.assert_frame_equal(df, expected)
 
     def test_constructor_single_value(self):
@@ -2218,6 +2251,33 @@ class TestDataFrameConstructors:
         tm.assert_index_equal(df.index, Index([], name="id"))
         assert df.index.name == "id"
 
+    @pytest.mark.parametrize(
+        "dtype",
+        tm.ALL_INT_DTYPES
+        + tm.ALL_EA_INT_DTYPES
+        + tm.FLOAT_DTYPES
+        + tm.COMPLEX_DTYPES
+        + tm.DATETIME64_DTYPES
+        + tm.TIMEDELTA64_DTYPES
+        + tm.BOOL_DTYPES,
+    )
+    def test_check_dtype_empty_numeric_column(self, dtype):
+        # GH24386: Ensure dtypes are set correctly for an empty DataFrame.
+        # Empty DataFrame is generated via dictionary data with non-overlapping columns.
+        data = pd.DataFrame({"a": [1, 2]}, columns=["b"], dtype=dtype)
+
+        assert data.b.dtype == dtype
+
+    @pytest.mark.parametrize(
+        "dtype", tm.STRING_DTYPES + tm.BYTES_DTYPES + tm.OBJECT_DTYPES
+    )
+    def test_check_dtype_empty_string_column(self, dtype):
+        # GH24386: Ensure dtypes are set correctly for an empty DataFrame.
+        # Empty DataFrame is generated via dictionary data with non-overlapping columns.
+        data = pd.DataFrame({"a": [1, 2]}, columns=["b"], dtype=dtype)
+
+        assert data.b.dtype.name == "object"
+
     def test_from_records_with_datetimes(self):
 
         # this may fail on certain platforms because of a numpy issue
@@ -2511,6 +2571,14 @@ class TestDataFrameConstructors:
         s = Series(arr["Date"])
         assert isinstance(s[0], Timestamp)
         assert s[0] == dates[0][0]
+
+    def test_from_datetime_subclass(self):
+        # GH21142 Verify whether Datetime subclasses are also of dtype datetime
+        class DatetimeSubclass(datetime):
+            pass
+
+        data = pd.DataFrame({"datetime": [DatetimeSubclass(2020, 1, 1, 1, 1)]})
+        assert data.datetime.dtype == "datetime64[ns]"
 
 
 class TestDataFrameConstructorWithDatetimeTZ:

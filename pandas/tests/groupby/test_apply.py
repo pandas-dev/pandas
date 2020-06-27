@@ -190,6 +190,67 @@ def test_group_apply_once_per_group(df, group_names):
         assert names == group_names
 
 
+def test_group_apply_once_per_group2(capsys):
+    # GH: 31111
+    # groupby-apply need to execute len(set(group_by_columns)) times
+
+    expected = 2  # Number of times `apply` should call a function for the current test
+
+    df = pd.DataFrame(
+        {
+            "group_by_column": [0, 0, 0, 0, 1, 1, 1, 1],
+            "test_column": ["0", "2", "4", "6", "8", "10", "12", "14"],
+        },
+        index=["0", "2", "4", "6", "8", "10", "12", "14"],
+    )
+
+    df.groupby("group_by_column").apply(lambda df: print("function_called"))
+
+    result = capsys.readouterr().out.count("function_called")
+    # If `groupby` behaves unexpectedly, this test will break
+    assert result == expected
+
+
+def test_apply_fast_slow_identical():
+    # GH 31613
+
+    df = DataFrame({"A": [0, 0, 1], "b": range(3)})
+
+    # For simple index structures we check for fast/slow apply using
+    # an identity check on in/output
+    def slow(group):
+        return group
+
+    def fast(group):
+        return group.copy()
+
+    fast_df = df.groupby("A").apply(fast)
+    slow_df = df.groupby("A").apply(slow)
+
+    tm.assert_frame_equal(fast_df, slow_df)
+
+
+@pytest.mark.parametrize(
+    "func",
+    [
+        lambda x: x,
+        lambda x: x[:],
+        lambda x: x.copy(deep=False),
+        lambda x: x.copy(deep=True),
+    ],
+)
+def test_groupby_apply_identity_maybecopy_index_identical(func):
+    # GH 14927
+    # Whether the function returns a copy of the input data or not should not
+    # have an impact on the index structure of the result since this is not
+    # transparent to the user
+
+    df = pd.DataFrame({"g": [1, 2, 2, 2], "a": [1, 2, 3, 4], "b": [5, 6, 7, 8]})
+
+    result = df.groupby("g").apply(func)
+    tm.assert_frame_equal(result, df)
+
+
 def test_apply_with_mixed_dtype():
     # GH3480, apply with mixed dtype on axis=1 breaks in 0.11
     df = DataFrame(
@@ -489,6 +550,26 @@ def test_apply_with_duplicated_non_sorted_axis(test_series):
         result = result.sort_values("Y")
         expected = df.sort_values("Y")
         tm.assert_frame_equal(result, expected)
+
+
+def test_apply_reindex_values():
+    # GH: 26209
+    # reindexing from a single column of a groupby object with duplicate indices caused
+    # a ValueError (cannot reindex from duplicate axis) in 0.24.2, the problem was
+    # solved in #30679
+    values = [1, 2, 3, 4]
+    indices = [1, 1, 2, 2]
+    df = pd.DataFrame(
+        {"group": ["Group1", "Group2"] * 2, "value": values}, index=indices
+    )
+    expected = pd.Series(values, index=indices, name="value")
+
+    def reindex_helper(x):
+        return x.reindex(np.arange(x.index.min(), x.index.max() + 1))
+
+    # the following group by raised a ValueError
+    result = df.groupby("group").value.apply(reindex_helper)
+    tm.assert_series_equal(expected, result)
 
 
 def test_apply_corner_cases():
@@ -808,7 +889,7 @@ def test_groupby_apply_datetime_result_dtypes():
     )
     result = data.groupby("color").apply(lambda g: g.iloc[0]).dtypes
     expected = Series(
-        [np.dtype("datetime64[ns]"), np.object, np.object, np.int64, np.object],
+        [np.dtype("datetime64[ns]"), object, object, np.int64, object],
         index=["observation", "color", "mood", "intensity", "score"],
     )
     tm.assert_series_equal(result, expected)
@@ -866,3 +947,51 @@ def test_apply_function_returns_numpy_array():
         [[1.0, 2.0], [3.0], [np.nan]], index=pd.Index(["a", "b", "none"], name="A")
     )
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "function", [lambda gr: gr.index, lambda gr: gr.index + 1 - 1],
+)
+def test_apply_function_index_return(function):
+    # GH: 22541
+    df = pd.DataFrame([1, 2, 2, 2, 1, 2, 3, 1, 3, 1], columns=["id"])
+    result = df.groupby("id").apply(function)
+    expected = pd.Series(
+        [pd.Index([0, 4, 7, 9]), pd.Index([1, 2, 3, 5]), pd.Index([6, 8])],
+        index=pd.Index([1, 2, 3], name="id"),
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_apply_function_with_indexing():
+    # GH: 33058
+    df = pd.DataFrame(
+        {"col1": ["A", "A", "A", "B", "B", "B"], "col2": [1, 2, 3, 4, 5, 6]}
+    )
+
+    def fn(x):
+        x.col2[x.index[-1]] = 0
+        return x.col2
+
+    result = df.groupby(["col1"], as_index=False).apply(fn)
+    expected = pd.Series(
+        [1, 2, 0, 4, 5, 0],
+        index=pd.MultiIndex.from_tuples(
+            [(0, 0), (0, 1), (0, 2), (1, 3), (1, 4), (1, 5)]
+        ),
+        name="col2",
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_apply_function_with_indexing_return_column():
+    # GH: 7002
+    df = DataFrame(
+        {
+            "foo1": ["one", "two", "two", "three", "one", "two"],
+            "foo2": [1, 2, 4, 4, 5, 6],
+        }
+    )
+    result = df.groupby("foo1", as_index=False).apply(lambda x: x.mean())
+    expected = DataFrame({"foo1": ["one", "three", "two"], "foo2": [3.0, 4.0, 4.0]})
+    tm.assert_frame_equal(result, expected)

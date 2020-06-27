@@ -181,3 +181,31 @@ class TestSeriesSortValues:
 
         tm.assert_series_equal(result_ser, expected)
         tm.assert_series_equal(ser, Series(original_list))
+
+
+class TestSeriesSortingKey:
+    def test_sort_values_key(self):
+        series = Series(np.array(["Hello", "goodbye"]))
+
+        result = series.sort_values(0)
+        expected = series
+        tm.assert_series_equal(result, expected)
+
+        result = series.sort_values(0, key=lambda x: x.str.lower())
+        expected = series[::-1]
+        tm.assert_series_equal(result, expected)
+
+    def test_sort_values_key_nan(self):
+        series = Series(np.array([0, 5, np.nan, 3, 2, np.nan]))
+
+        result = series.sort_values(0)
+        expected = series.iloc[[0, 4, 3, 1, 2, 5]]
+        tm.assert_series_equal(result, expected)
+
+        result = series.sort_values(0, key=lambda x: x + 5)
+        expected = series.iloc[[0, 4, 3, 1, 2, 5]]
+        tm.assert_series_equal(result, expected)
+
+        result = series.sort_values(0, key=lambda x: -x, ascending=False)
+        expected = series.iloc[[0, 4, 3, 1, 2, 5]]
+        tm.assert_series_equal(result, expected)

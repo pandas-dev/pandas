@@ -6,7 +6,7 @@ dependencies:
   - python=3.6.*
 
   # tools
-  - cython>=0.29.13
+  - cython>=0.29.16
   - pytest>=5.0.1
   - pytest-xdist>=1.21
   - pytest-asyncio
@@ -15,7 +15,6 @@ dependencies:
 
   # pandas dependencies
   - beautifulsoup4
-  - gcsfs
   - html5lib
   - ipython
   - jinja2
@@ -31,7 +30,6 @@ dependencies:
   - pytables
   - python-dateutil
   - pytz
-  - s3fs
   - scipy
   - xarray
   - xlrd

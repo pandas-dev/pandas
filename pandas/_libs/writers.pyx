@@ -112,7 +112,7 @@ def convert_json_to_lines(arr: object) -> str:
             if not in_quotes:
                 num_open_brackets_seen -= 1
 
-    return narr.tostring().decode('utf-8')
+    return narr.tobytes().decode('utf-8')
 
 
 # stata, pytables

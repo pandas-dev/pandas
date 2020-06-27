@@ -22,5 +22,5 @@ dependencies:
   # see comment above
   - pip
   - pip:
-    - cython>=0.29.13
+    - cython>=0.29.16
     - pytest>=5.0.1

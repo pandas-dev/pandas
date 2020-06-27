@@ -50,18 +50,17 @@ from pandas._libs.khash cimport (
 
 import pandas._libs.missing as missing
 
-cdef float64_t FP_ERR = 1e-13
-
-cdef float64_t NaN = <float64_t>np.NaN
-
-cdef int64_t NPY_NAT = get_nat()
+cdef:
+    float64_t FP_ERR = 1e-13
+    float64_t NaN = <float64_t>np.NaN
+    int64_t NPY_NAT = get_nat()
 
 tiebreakers = {
-    'average': TIEBREAK_AVERAGE,
-    'min': TIEBREAK_MIN,
-    'max': TIEBREAK_MAX,
-    'first': TIEBREAK_FIRST,
-    'dense': TIEBREAK_DENSE,
+    "average": TIEBREAK_AVERAGE,
+    "min": TIEBREAK_MIN,
+    "max": TIEBREAK_MAX,
+    "first": TIEBREAK_FIRST,
+    "dense": TIEBREAK_DENSE,
 }
 
 
@@ -120,6 +119,7 @@ cpdef ndarray[int64_t, ndim=1] unique_deltas(const int64_t[:] arr):
         kh_int64_t *table
         int ret = 0
         list uniques = []
+        ndarray[int64_t, ndim=1] result
 
     table = kh_init_int64()
     kh_resize_int64(table, 10)
@@ -261,7 +261,7 @@ def kth_smallest(numeric[:] a, Py_ssize_t k) -> numeric:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def nancorr(const float64_t[:, :] mat, bint cov=0, minp=None):
+def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
     cdef:
         Py_ssize_t i, j, xi, yi, N, K
         bint minpv
@@ -325,7 +325,7 @@ def nancorr(const float64_t[:, :] mat, bint cov=0, minp=None):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def nancorr_spearman(const float64_t[:, :] mat, Py_ssize_t minp=1):
+def nancorr_spearman(const float64_t[:, :] mat, Py_ssize_t minp=1) -> ndarray:
     cdef:
         Py_ssize_t i, j, xi, yi, N, K
         ndarray[float64_t, ndim=2] result
@@ -581,7 +581,7 @@ D
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def backfill(ndarray[algos_t] old, ndarray[algos_t] new, limit=None):
+def backfill(ndarray[algos_t] old, ndarray[algos_t] new, limit=None) -> ndarray:
     cdef:
         Py_ssize_t i, j, nleft, nright
         ndarray[int64_t, ndim=1] indexer
@@ -810,18 +810,14 @@ def rank_1d(
     """
     cdef:
         Py_ssize_t i, j, n, dups = 0, total_tie_count = 0, non_na_idx = 0
-
         ndarray[rank_t] sorted_data, values
-
         ndarray[float64_t] ranks
         ndarray[int64_t] argsorted
         ndarray[uint8_t, cast=True] sorted_mask
-
         rank_t val, nan_value
-
         float64_t sum_ranks = 0
         int tiebreak = 0
-        bint keep_na = 0
+        bint keep_na = False
         bint isnan, condition
         float64_t count = 0.0
 
@@ -1034,19 +1030,14 @@ def rank_2d(
     """
     cdef:
         Py_ssize_t i, j, z, k, n, dups = 0, total_tie_count = 0
-
         Py_ssize_t infs
-
         ndarray[float64_t, ndim=2] ranks
         ndarray[rank_t, ndim=2] values
-
         ndarray[int64_t, ndim=2] argsorted
-
         rank_t val, nan_value
-
         float64_t sum_ranks = 0
         int tiebreak = 0
-        bint keep_na = 0
+        bint keep_na = False
         float64_t count = 0.0
         bint condition, skip_condition
 

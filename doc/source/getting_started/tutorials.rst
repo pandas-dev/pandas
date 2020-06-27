@@ -3,12 +3,12 @@
 {{ header }}
 
 *******************
-Community Tutorials
+Community tutorials
 *******************
 
 This is a guide to many pandas tutorials by the community, geared mainly for new users.
 
-pandas Cookbook by Julia Evans
+pandas cookbook by Julia Evans
 ------------------------------
 
 The goal of this 2015 cookbook (by `Julia Evans <https://jvns.ca>`_) is to
@@ -18,7 +18,7 @@ entails.
 For the table of contents, see the `pandas-cookbook GitHub
 repository <https://github.com/jvns/pandas-cookbook>`_.
 
-Learn Pandas by Hernan Rojas
+Learn pandas by Hernan Rojas
 ----------------------------
 
 A set of lesson for new pandas users: https://bitbucket.org/hrojas/learn-pandas

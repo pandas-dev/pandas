@@ -13,7 +13,6 @@ from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly, doc
-from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (
@@ -23,7 +22,6 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_scalar,
-    needs_i8_conversion,
 )
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
@@ -439,7 +437,13 @@ class SelectionMixin:
                 # we have a dict of DataFrames
                 # return a MI DataFrame
 
-                return concat([result[k] for k in keys], keys=keys, axis=1), True
+                keys_to_use = [k for k in keys if not result[k].empty]
+                # Have to check, if at least one DataFrame is not empty.
+                keys_to_use = keys_to_use if keys_to_use != [] else keys
+                return (
+                    concat([result[k] for k in keys_to_use], keys=keys_to_use, axis=1),
+                    True,
+                )
 
             elif isinstance(self, ABCSeries) and is_any_series():
 
@@ -651,13 +655,6 @@ class IndexOpsMixin:
         ValueError
             If the data is not length-1.
         """
-        if not (
-            is_extension_array_dtype(self.dtype) or needs_i8_conversion(self.dtype)
-        ):
-            # numpy returns ints instead of datetime64/timedelta64 objects,
-            #  which we need to wrap in Timestamp/Timedelta/Period regardless.
-            return self._values.item()
-
         if len(self) == 1:
             return next(iter(self))
         raise ValueError("can only convert an array of size 1 to a Python scalar")
@@ -738,8 +735,8 @@ class IndexOpsMixin:
 
         >>> ser = pd.Series(pd.Categorical(['a', 'b', 'a']))
         >>> ser.array
-        [a, b, a]
-        Categories (2, object): [a, b]
+        ['a', 'b', 'a']
+        Categories (2, object): ['a', 'b']
         """
         raise AbstractMethodError(self)
 
@@ -754,7 +751,7 @@ class IndexOpsMixin:
         dtype : str or numpy.dtype, optional
             The dtype to pass to :meth:`numpy.asarray`.
         copy : bool, default False
-            Whether to ensure that the returned value is a not a view on
+            Whether to ensure that the returned value is not a view on
             another array. Note that ``copy=False`` does not *ensure* that
             ``to_numpy()`` is no-copy. Rather, ``copy=True`` ensure that
             a copy is made, even if not strictly necessary.
@@ -1124,7 +1121,7 @@ class IndexOpsMixin:
         if isinstance(mapper, ABCSeries):
             # Since values were input this means we came from either
             # a dict or a series and mapper should be an index
-            if is_categorical_dtype(self._values):
+            if is_categorical_dtype(self.dtype):
                 # use the built in categorical series mapper which saves
                 # time by mapping the categories instead of all values
                 return self._values.map(mapper)
@@ -1144,8 +1141,7 @@ class IndexOpsMixin:
                 raise NotImplementedError
             map_f = lambda values, f: values.map(f)
         else:
-            values = self.astype(object)
-            values = getattr(values, "values", values)
+            values = self.astype(object)._values
             if na_action == "ignore":
 
                 def map_f(values, f):
@@ -1259,8 +1255,7 @@ class IndexOpsMixin:
     def unique(self):
         values = self._values
 
-        if hasattr(values, "unique"):
-
+        if not isinstance(values, np.ndarray):
             result = values.unique()
             if self.dtype.kind in ["m", "M"] and isinstance(self, ABCSeries):
                 # GH#31182 Series._values returns EA, unpack for backward-compat
@@ -1387,7 +1382,7 @@ class IndexOpsMixin:
 
         v = self.array.nbytes
         if deep and is_object_dtype(self) and not PYPY:
-            v += lib.memory_usage_of_objects(self.array)
+            v += lib.memory_usage_of_objects(self._values)
         return v
 
     @doc(
@@ -1478,8 +1473,8 @@ class IndexOpsMixin:
         ...     ['apple', 'bread', 'bread', 'cheese', 'milk'], ordered=True
         ... )
         >>> ser
-        [apple, bread, bread, cheese, milk]
-        Categories (4, object): [apple < bread < cheese < milk]
+        ['apple', 'bread', 'bread', 'cheese', 'milk']
+        Categories (4, object): ['apple' < 'bread' < 'cheese' < 'milk']
 
         >>> ser.searchsorted('bread')
         1
@@ -1505,31 +1500,21 @@ class IndexOpsMixin:
     def searchsorted(self, value, side="left", sorter=None) -> np.ndarray:
         return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
 
-    def drop_duplicates(self, keep="first", inplace=False):
-        inplace = validate_bool_kwarg(inplace, "inplace")
+    def drop_duplicates(self, keep="first"):
         if isinstance(self, ABCIndexClass):
             if self.is_unique:
                 return self._shallow_copy()
 
         duplicated = self.duplicated(keep=keep)
         result = self[np.logical_not(duplicated)]
-        if inplace:
-            return self._update_inplace(result)
-        else:
-            return result
+        return result
 
     def duplicated(self, keep="first"):
         if isinstance(self, ABCIndexClass):
             if self.is_unique:
-                return np.zeros(len(self), dtype=np.bool)
+                return np.zeros(len(self), dtype=bool)
             return duplicated(self, keep=keep)
         else:
             return self._constructor(
                 duplicated(self, keep=keep), index=self.index
-            ).__finalize__(self)
-
-    # ----------------------------------------------------------------------
-    # abstracts
-
-    def _update_inplace(self, result, verify_is_copy=True, **kwargs):
-        raise AbstractMethodError(self)
+            ).__finalize__(self, method="duplicated")

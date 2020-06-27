@@ -301,6 +301,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     for axis in axes:
         plt.setp(axis.get_xticklabels(), fontsize=8)
         plt.setp(axis.get_yticklabels(), fontsize=8)
+    plt.tight_layout()
     return fig
 
 
@@ -385,7 +386,7 @@ def parallel_coordinates(
 
 
 def lag_plot(series, lag=1, ax=None, **kwds):
-    # workaround because `c='b'` is hardcoded in matplotlibs scatter method
+    # workaround because `c='b'` is hardcoded in matplotlib's scatter method
     import matplotlib.pyplot as plt
 
     kwds.setdefault("c", plt.rcParams["patch.facecolor"])

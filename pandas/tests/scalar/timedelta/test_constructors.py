@@ -176,10 +176,9 @@ def test_td_from_repr_roundtrip(val):
     td = Timedelta(val)
     assert Timedelta(td.value) == td
 
-    # str does not normally display nanos
-    if not td.nanoseconds:
-        assert Timedelta(str(td)) == td
+    assert Timedelta(str(td)) == td
     assert Timedelta(td._repr_base(format="all")) == td
+    assert Timedelta(td._repr_base()) == td
 
 
 def test_overflow_on_construction():
@@ -290,3 +289,17 @@ def test_timedelta_constructor_identity():
     expected = Timedelta(np.timedelta64(1, "s"))
     result = Timedelta(expected)
     assert result is expected
+
+
+@pytest.mark.parametrize(
+    "constructor, value, unit, expectation",
+    [
+        (Timedelta, "10s", "ms", (ValueError, "unit must not be specified")),
+        (to_timedelta, "10s", "ms", (ValueError, "unit must not be specified")),
+        (to_timedelta, ["1", 2, 3], "s", (ValueError, "unit must not be specified")),
+    ],
+)
+def test_string_with_unit(constructor, value, unit, expectation):
+    exp, match = expectation
+    with pytest.raises(exp, match=match):
+        _ = constructor(value, unit=unit)

@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, Series
+from pandas import DataFrame, Series
 import pandas._testing as tm
 
 
@@ -83,10 +83,3 @@ def test_multiindex_get_loc():  # GH7724, GH2646
                 mi = df.set_index(cols[:-1])
                 assert not mi.index.lexsort_depth < i
                 loop(mi, df, keys)
-
-
-@pytest.mark.slow
-def test_large_mi_dataframe_indexing():
-    # GH10645
-    result = MultiIndex.from_arrays([range(10 ** 6), range(10 ** 6)])
-    assert not (10 ** 6, 0) in result

@@ -49,6 +49,7 @@ class TestSeriesDatetimeValues:
             "ceil",
             "day_name",
             "month_name",
+            "isocalendar",
         ]
         ok_for_td = TimedeltaIndex._datetimelike_ops
         ok_for_td_methods = [
@@ -65,7 +66,7 @@ class TestSeriesDatetimeValues:
             if isinstance(result, np.ndarray):
                 if is_integer_dtype(result):
                     result = result.astype("int64")
-            elif not is_list_like(result):
+            elif not is_list_like(result) or isinstance(result, pd.DataFrame):
                 return result
             return Series(result, index=s.index, name=s.name)
 
@@ -74,6 +75,8 @@ class TestSeriesDatetimeValues:
             b = get_expected(s, prop)
             if not (is_list_like(a) and is_list_like(b)):
                 assert a == b
+            elif isinstance(a, pd.DataFrame):
+                tm.assert_frame_equal(a, b)
             else:
                 tm.assert_series_equal(a, b)
 
@@ -86,7 +89,8 @@ class TestSeriesDatetimeValues:
         for s in cases:
             for prop in ok_for_dt:
                 # we test freq below
-                if prop != "freq":
+                # we ignore week and weekofyear because they are deprecated
+                if prop not in ["freq", "week", "weekofyear"]:
                     compare(s, prop)
 
             for prop in ok_for_dt_methods:
@@ -119,7 +123,8 @@ class TestSeriesDatetimeValues:
         for prop in ok_for_dt:
 
             # we test freq below
-            if prop != "freq":
+            # we ignore week and weekofyear because they are deprecated
+            if prop not in ["freq", "week", "weekofyear"]:
                 compare(s, prop)
 
         for prop in ok_for_dt_methods:
@@ -230,6 +235,8 @@ class TestSeriesDatetimeValues:
         exp_values = pd.date_range(
             "2015-01-01", "2016-01-01", freq="T", tz="UTC"
         ).tz_convert("America/Chicago")
+        # freq not preserved by tz_localize above
+        exp_values = exp_values._with_freq(None)
         expected = Series(exp_values, name="xxx")
         tm.assert_series_equal(s, expected)
 
@@ -239,8 +246,9 @@ class TestSeriesDatetimeValues:
             s.dt.hour = 5
 
         # trying to set a copy
+        msg = "modifications to a property of a datetimelike.+not supported"
         with pd.option_context("chained_assignment", "raise"):
-            with pytest.raises(com.SettingWithCopyError):
+            with pytest.raises(com.SettingWithCopyError, match=msg):
                 s.dt.hour[0] = 5
 
     @pytest.mark.parametrize(
@@ -306,7 +314,7 @@ class TestSeriesDatetimeValues:
         tm.assert_series_equal(result, expected)
 
         # raise
-        with pytest.raises(pytz.AmbiguousTimeError):
+        with tm.external_error_raised(pytz.AmbiguousTimeError):
             getattr(df1.date.dt, method)("H", ambiguous="raise")
 
     @pytest.mark.parametrize(
@@ -665,3 +673,28 @@ class TestSeriesDatetimeValues:
             dtype=object,
         )
         tm.assert_series_equal(ser, expected)
+
+    @pytest.mark.parametrize(
+        "input_series, expected_output",
+        [
+            [["2020-01-01"], [[2020, 1, 3]]],
+            [[pd.NaT], [[np.NaN, np.NaN, np.NaN]]],
+            [["2019-12-31", "2019-12-29"], [[2020, 1, 2], [2019, 52, 7]]],
+            [["2010-01-01", pd.NaT], [[2009, 53, 5], [np.NaN, np.NaN, np.NaN]]],
+        ],
+    )
+    def test_isocalendar(self, input_series, expected_output):
+        result = pd.to_datetime(pd.Series(input_series)).dt.isocalendar()
+        expected_frame = pd.DataFrame(
+            expected_output, columns=["year", "week", "day"], dtype="UInt32"
+        )
+        tm.assert_frame_equal(result, expected_frame)
+
+
+def test_week_and_weekofyear_are_deprecated():
+    # GH#33595 Deprecate week and weekofyear
+    series = pd.to_datetime(pd.Series(["2020-01-01"]))
+    with tm.assert_produces_warning(FutureWarning):
+        series.dt.week
+    with tm.assert_produces_warning(FutureWarning):
+        series.dt.weekofyear

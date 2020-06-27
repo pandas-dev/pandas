@@ -1,5 +1,3 @@
-from datetime import datetime
-
 import numpy as np
 import pytest
 
@@ -77,6 +75,7 @@ def test_reindex_with_datetimes():
 
     result = ts.reindex(list(ts.index[5:10]))
     expected = ts[5:10]
+    expected.index = expected.index._with_freq(None)
     tm.assert_series_equal(result, expected)
 
     result = ts[list(ts.index[5:10])]
@@ -93,6 +92,7 @@ def test_reindex_corner(datetime_series):
 
     # pass non-Index
     reindexed = datetime_series.reindex(list(datetime_series.index))
+    datetime_series.index = datetime_series.index._with_freq(None)
     tm.assert_series_equal(datetime_series, reindexed)
 
     # bad fill method
@@ -149,25 +149,17 @@ def test_reindex_pad():
 def test_reindex_nearest():
     s = Series(np.arange(10, dtype="int64"))
     target = [0.1, 0.9, 1.5, 2.0]
-    actual = s.reindex(target, method="nearest")
+    result = s.reindex(target, method="nearest")
     expected = Series(np.around(target).astype("int64"), target)
-    tm.assert_series_equal(expected, actual)
+    tm.assert_series_equal(expected, result)
 
-    actual = s.reindex_like(actual, method="nearest")
-    tm.assert_series_equal(expected, actual)
-
-    actual = s.reindex_like(actual, method="nearest", tolerance=1)
-    tm.assert_series_equal(expected, actual)
-    actual = s.reindex_like(actual, method="nearest", tolerance=[1, 2, 3, 4])
-    tm.assert_series_equal(expected, actual)
-
-    actual = s.reindex(target, method="nearest", tolerance=0.2)
+    result = s.reindex(target, method="nearest", tolerance=0.2)
     expected = Series([0, 1, np.nan, 2], target)
-    tm.assert_series_equal(expected, actual)
+    tm.assert_series_equal(expected, result)
 
-    actual = s.reindex(target, method="nearest", tolerance=[0.3, 0.01, 0.4, 3])
+    result = s.reindex(target, method="nearest", tolerance=[0.3, 0.01, 0.4, 3])
     expected = Series([0, np.nan, np.nan, 2], target)
-    tm.assert_series_equal(expected, actual)
+    tm.assert_series_equal(expected, result)
 
 
 def test_reindex_backfill():
@@ -237,25 +229,6 @@ def test_reindex_categorical():
     tm.assert_series_equal(result, expected)
 
 
-def test_reindex_like(datetime_series):
-    other = datetime_series[::2]
-    tm.assert_series_equal(
-        datetime_series.reindex(other.index), datetime_series.reindex_like(other)
-    )
-
-    # GH 7179
-    day1 = datetime(2013, 3, 5)
-    day2 = datetime(2013, 5, 5)
-    day3 = datetime(2014, 3, 5)
-
-    series1 = Series([5, None, None], [day1, day2, day3])
-    series2 = Series([None, None], [day1, day3])
-
-    result = series1.reindex_like(series2, method="pad")
-    expected = Series([5, np.nan], index=[day1, day3])
-    tm.assert_series_equal(result, expected)
-
-
 def test_reindex_fill_value():
     # -----------------------------------------------------------
     # floats
@@ -312,7 +285,8 @@ def test_reindex_datetimeindexes_tz_naive_and_aware():
     idx = date_range("20131101", tz="America/Chicago", periods=7)
     newidx = date_range("20131103", periods=10, freq="H")
     s = Series(range(7), index=idx)
-    with pytest.raises(TypeError):
+    msg = "Cannot compare tz-naive and tz-aware timestamps"
+    with pytest.raises(TypeError, match=msg):
         s.reindex(newidx, method="ffill")
 
 

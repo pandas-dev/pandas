@@ -12,7 +12,6 @@ from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 import pandas as pd
 from pandas import DataFrame, Index, NaT, Series
 import pandas._testing as tm
-from pandas.core.indexers import validate_indices
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
 from pandas.tests.indexing.common import _mklbl
 
@@ -29,7 +28,7 @@ class TestFancy:
         # len of indexer vs length of the 1d ndarray
         df = DataFrame(index=Index(np.arange(1, 11)))
         df["foo"] = np.zeros(10, dtype=np.float64)
-        df["bar"] = np.zeros(10, dtype=np.complex)
+        df["bar"] = np.zeros(10, dtype=complex)
 
         # invalid
         with pytest.raises(ValueError):
@@ -47,7 +46,7 @@ class TestFancy:
         # dtype getting changed?
         df = DataFrame(index=Index(np.arange(1, 11)))
         df["foo"] = np.zeros(10, dtype=np.float64)
-        df["bar"] = np.zeros(10, dtype=np.complex)
+        df["bar"] = np.zeros(10, dtype=complex)
 
         with pytest.raises(ValueError):
             df[2:5] = np.arange(1, 4) * 1j
@@ -68,9 +67,9 @@ class TestFancy:
             (lambda x: x.iloc, "iloc"),
         ],
     )
-    def test_getitem_ndarray_3d(self, indices, obj, idxr, idxr_id):
+    def test_getitem_ndarray_3d(self, index, obj, idxr, idxr_id):
         # GH 25567
-        obj = obj(indices)
+        obj = obj(index)
         idxr = idxr(obj)
         nd3 = np.random.randint(5, size=(2, 2, 2))
 
@@ -106,17 +105,13 @@ class TestFancy:
             (lambda x: x.iloc, "iloc"),
         ],
     )
-    def test_setitem_ndarray_3d(self, indices, obj, idxr, idxr_id):
+    def test_setitem_ndarray_3d(self, index, obj, idxr, idxr_id):
         # GH 25567
-        obj = obj(indices)
+        obj = obj(index)
         idxr = idxr(obj)
         nd3 = np.random.randint(5, size=(2, 2, 2))
 
-        if (
-            (len(indices) == 0)
-            and (idxr_id == "iloc")
-            and isinstance(obj, pd.DataFrame)
-        ):
+        if (len(index) == 0) and (idxr_id == "iloc") and isinstance(obj, pd.DataFrame):
             # gh-32896
             pytest.skip("This is currently failing. There's an xfailed test below.")
 
@@ -124,7 +119,7 @@ class TestFancy:
             err = ValueError
             msg = f"Cannot set values with ndim > {obj.ndim}"
         elif (
-            isinstance(indices, pd.IntervalIndex)
+            isinstance(index, pd.IntervalIndex)
             and idxr_id == "setitem"
             and obj.ndim == 1
         ):
@@ -621,69 +616,6 @@ class TestFancy:
         expected = DataFrame({"A": [1, 2, 3, 4]})
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.parametrize(
-        "index,val",
-        [
-            (Index([0, 1, 2]), 2),
-            (Index([0, 1, "2"]), "2"),
-            (Index([0, 1, 2, np.inf, 4]), 4),
-            (Index([0, 1, 2, np.nan, 4]), 4),
-            (Index([0, 1, 2, np.inf]), np.inf),
-            (Index([0, 1, 2, np.nan]), np.nan),
-        ],
-    )
-    def test_index_contains(self, index, val):
-        assert val in index
-
-    @pytest.mark.parametrize(
-        "index,val",
-        [
-            (Index([0, 1, 2]), "2"),
-            (Index([0, 1, "2"]), 2),
-            (Index([0, 1, 2, np.inf]), 4),
-            (Index([0, 1, 2, np.nan]), 4),
-            (Index([0, 1, 2, np.inf]), np.nan),
-            (Index([0, 1, 2, np.nan]), np.inf),
-            # Checking if np.inf in Int64Index should not cause an OverflowError
-            # Related to GH 16957
-            (pd.Int64Index([0, 1, 2]), np.inf),
-            (pd.Int64Index([0, 1, 2]), np.nan),
-            (pd.UInt64Index([0, 1, 2]), np.inf),
-            (pd.UInt64Index([0, 1, 2]), np.nan),
-        ],
-    )
-    def test_index_not_contains(self, index, val):
-        assert val not in index
-
-    @pytest.mark.parametrize(
-        "index,val", [(Index([0, 1, "2"]), 0), (Index([0, 1, "2"]), "2")]
-    )
-    def test_mixed_index_contains(self, index, val):
-        # GH 19860
-        assert val in index
-
-    @pytest.mark.parametrize(
-        "index,val", [(Index([0, 1, "2"]), "1"), (Index([0, 1, "2"]), 2)]
-    )
-    def test_mixed_index_not_contains(self, index, val):
-        # GH 19860
-        assert val not in index
-
-    def test_contains_with_float_index(self):
-        # GH#22085
-        integer_index = pd.Int64Index([0, 1, 2, 3])
-        uinteger_index = pd.UInt64Index([0, 1, 2, 3])
-        float_index = pd.Float64Index([0.1, 1.1, 2.2, 3.3])
-
-        for index in (integer_index, uinteger_index):
-            assert 1.1 not in index
-            assert 1.0 in index
-            assert 1 in index
-
-        assert 1.1 in float_index
-        assert 1.0 not in float_index
-        assert 1 not in float_index
-
     def test_index_type_coercion(self):
 
         # GH 11836
@@ -873,8 +805,7 @@ class TestMisc:
     @pytest.mark.parametrize(
         "slc",
         [
-            # FIXME: dont leave commented-out
-            # pd.IndexSlice[:, :],
+            pd.IndexSlice[:, :],
             pd.IndexSlice[:, 1],
             pd.IndexSlice[1, :],
             pd.IndexSlice[[1], [1]],
@@ -1051,30 +982,6 @@ class TestDataframeNoneCoercion:
         tm.assert_frame_equal(start_dataframe, exp)
 
 
-def test_validate_indices_ok():
-    indices = np.asarray([0, 1])
-    validate_indices(indices, 2)
-    validate_indices(indices[:0], 0)
-    validate_indices(np.array([-1, -1]), 0)
-
-
-def test_validate_indices_low():
-    indices = np.asarray([0, -2])
-    with pytest.raises(ValueError, match="'indices' contains"):
-        validate_indices(indices, 2)
-
-
-def test_validate_indices_high():
-    indices = np.asarray([0, 1, 2])
-    with pytest.raises(IndexError, match="indices are out"):
-        validate_indices(indices, 2)
-
-
-def test_validate_indices_empty():
-    with pytest.raises(IndexError, match="indices are out"):
-        validate_indices(np.array([0, 1]), 0)
-
-
 def test_extension_array_cross_section():
     # A cross-section of a homogeneous EA should be an EA
     df = pd.DataFrame(
@@ -1095,12 +1002,24 @@ def test_extension_array_cross_section():
 
 
 def test_extension_array_cross_section_converts():
+    # all numeric columns -> numeric series
     df = pd.DataFrame(
-        {"A": pd.core.arrays.integer_array([1, 2]), "B": np.array([1, 2])},
+        {"A": pd.array([1, 2], dtype="Int64"), "B": np.array([1, 2])}, index=["a", "b"],
+    )
+    result = df.loc["a"]
+    expected = pd.Series([1, 1], dtype="Int64", index=["A", "B"], name="a")
+    tm.assert_series_equal(result, expected)
+
+    result = df.iloc[0]
+    tm.assert_series_equal(result, expected)
+
+    # mixed columns -> object series
+    df = pd.DataFrame(
+        {"A": pd.array([1, 2], dtype="Int64"), "B": np.array(["a", "b"])},
         index=["a", "b"],
     )
     result = df.loc["a"]
-    expected = pd.Series([1, 1], dtype=object, index=["A", "B"], name="a")
+    expected = pd.Series([1, "a"], dtype=object, index=["A", "B"], name="a")
     tm.assert_series_equal(result, expected)
 
     result = df.iloc[0]
@@ -1152,3 +1071,32 @@ def test_setitem_with_bool_mask_and_values_matching_n_trues_in_length():
     result = ser
     expected = pd.Series([None] * 3 + list(range(5)) + [None] * 2).astype("object")
     tm.assert_series_equal(result, expected)
+
+
+def test_missing_labels_inside_loc_matched_in_error_message():
+    # GH34272
+    s = pd.Series({"a": 1, "b": 2, "c": 3})
+    error_message_regex = "missing_0.*missing_1.*missing_2"
+    with pytest.raises(KeyError, match=error_message_regex):
+        s.loc[["a", "b", "missing_0", "c", "missing_1", "missing_2"]]
+
+
+def test_many_missing_labels_inside_loc_error_message_limited():
+    # GH34272
+    n = 10000
+    missing_labels = [f"missing_{label}" for label in range(n)]
+    s = pd.Series({"a": 1, "b": 2, "c": 3})
+    # regex checks labels between 4 and 9995 are replaced with ellipses
+    error_message_regex = "missing_4.*\\.\\.\\..*missing_9995"
+    with pytest.raises(KeyError, match=error_message_regex):
+        s.loc[["a", "c"] + missing_labels]
+
+
+def test_long_text_missing_labels_inside_loc_error_message_limited():
+    # GH34272
+    s = pd.Series({"a": 1, "b": 2, "c": 3})
+    missing_labels = [f"long_missing_label_text_{i}" * 5 for i in range(3)]
+    # regex checks for very long labels there are new lines between each
+    error_message_regex = "long_missing_label_text_0.*\\\\n.*long_missing_label_text_1"
+    with pytest.raises(KeyError, match=error_message_regex):
+        s.loc[["a", "c"] + missing_labels]

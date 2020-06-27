@@ -328,7 +328,7 @@ DatetimeIndex
 
    DatetimeIndex
 
-Time/Date components
+Time/date components
 ~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: api/

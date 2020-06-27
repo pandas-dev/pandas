@@ -1,20 +1,19 @@
+from functools import partial
 from textwrap import dedent
+from typing import Optional, Union
 
 import numpy as np
 
 import pandas._libs.window.aggregations as window_aggregations
+from pandas._typing import FrameOrSeries
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, Substitution
+from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.dtypes.generic import ABCDataFrame
 
 from pandas.core.base import DataError
-from pandas.core.window.common import (
-    _doc_template,
-    _get_center_of_mass,
-    _shared_docs,
-    zsqrt,
-)
+import pandas.core.common as com
+from pandas.core.window.common import _doc_template, _shared_docs, zsqrt
 from pandas.core.window.rolling import _flex_binary_moment, _Rolling
 
 _bias_template = """
@@ -27,7 +26,40 @@ _bias_template = """
 """
 
 
-class EWM(_Rolling):
+def get_center_of_mass(
+    comass: Optional[float],
+    span: Optional[float],
+    halflife: Optional[float],
+    alpha: Optional[float],
+) -> float:
+    valid_count = com.count_not_none(comass, span, halflife, alpha)
+    if valid_count > 1:
+        raise ValueError("comass, span, halflife, and alpha are mutually exclusive")
+
+    # Convert to center of mass; domain checks ensure 0 < alpha <= 1
+    if comass is not None:
+        if comass < 0:
+            raise ValueError("comass must satisfy: comass >= 0")
+    elif span is not None:
+        if span < 1:
+            raise ValueError("span must satisfy: span >= 1")
+        comass = (span - 1) / 2.0
+    elif halflife is not None:
+        if halflife <= 0:
+            raise ValueError("halflife must satisfy: halflife > 0")
+        decay = 1 - np.exp(np.log(0.5) / halflife)
+        comass = 1 / decay - 1
+    elif alpha is not None:
+        if alpha <= 0 or alpha > 1:
+            raise ValueError("alpha must satisfy: 0 < alpha <= 1")
+        comass = (1.0 - alpha) / alpha
+    else:
+        raise ValueError("Must pass one of comass, span, halflife, or alpha")
+
+    return float(comass)
+
+
+class ExponentialMovingWindow(_Rolling):
     r"""
     Provide exponential weighted (EW) functions.
 
@@ -89,7 +121,7 @@ class EWM(_Rolling):
           used in calculating the final weighted average of
           [:math:`x_0`, None, :math:`x_2`] are :math:`1-\alpha` and :math:`1` if
           ``adjust=True``, and :math:`1-\alpha` and :math:`\alpha` if ``adjust=False``.
-    axis : {0 or 'index', 1 or 'columns'}, default 0
+    axis : {0, 1}, default 0
         The axis to use. The value 0 identifies the rows, and 1
         identifies the columns.
 
@@ -134,18 +166,18 @@ class EWM(_Rolling):
     def __init__(
         self,
         obj,
-        com=None,
-        span=None,
-        halflife=None,
-        alpha=None,
-        min_periods=0,
-        adjust=True,
-        ignore_na=False,
-        axis=0,
+        com: Optional[float] = None,
+        span: Optional[float] = None,
+        halflife: Optional[float] = None,
+        alpha: Optional[float] = None,
+        min_periods: int = 0,
+        adjust: bool = True,
+        ignore_na: bool = False,
+        axis: int = 0,
     ):
         self.obj = obj
-        self.com = _get_center_of_mass(com, span, halflife, alpha)
-        self.min_periods = min_periods
+        self.com = get_center_of_mass(com, span, halflife, alpha)
+        self.min_periods = max(int(min_periods), 1)
         self.adjust = adjust
         self.ignore_na = ignore_na
         self.axis = axis
@@ -153,7 +185,7 @@ class EWM(_Rolling):
 
     @property
     def _constructor(self):
-        return EWM
+        return ExponentialMovingWindow
 
     _agg_see_also_doc = dedent(
         """
@@ -167,50 +199,35 @@ class EWM(_Rolling):
         """
     Examples
     --------
-
-    >>> df = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'])
+    >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
     >>> df
-              A         B         C
-    0 -2.385977 -0.102758  0.438822
-    1 -1.004295  0.905829 -0.954544
-    2  0.735167 -0.165272 -1.619346
-    3 -0.702657 -1.340923 -0.706334
-    4 -0.246845  0.211596 -0.901819
-    5  2.463718  3.157577 -1.380906
-    6 -1.142255  2.340594 -0.039875
-    7  1.396598 -1.647453  1.677227
-    8 -0.543425  1.761277 -0.220481
-    9 -0.640505  0.289374 -1.550670
+       A  B  C
+    0  1  4  7
+    1  2  5  8
+    2  3  6  9
 
     >>> df.ewm(alpha=0.5).mean()
               A         B         C
-    0 -2.385977 -0.102758  0.438822
-    1 -1.464856  0.569633 -0.490089
-    2 -0.207700  0.149687 -1.135379
-    3 -0.471677 -0.645305 -0.906555
-    4 -0.355635 -0.203033 -0.904111
-    5  1.076417  1.503943 -1.146293
-    6 -0.041654  1.925562 -0.588728
-    7  0.680292  0.132049  0.548693
-    8  0.067236  0.948257  0.163353
-    9 -0.286980  0.618493 -0.694496
+    0  1.000000  4.000000  7.000000
+    1  1.666667  4.666667  7.666667
+    2  2.428571  5.428571  8.428571
     """
     )
 
-    @Substitution(
+    @doc(
+        _shared_docs["aggregate"],
         see_also=_agg_see_also_doc,
         examples=_agg_examples_doc,
         versionadded="",
         klass="Series/Dataframe",
         axis="",
     )
-    @Appender(_shared_docs["aggregate"])
     def aggregate(self, func, *args, **kwargs):
         return super().aggregate(func, *args, **kwargs)
 
     agg = aggregate
 
-    def _apply(self, func, **kwargs):
+    def _apply(self, func):
         """
         Rolling statistical measure using supplied function. Designed to be
         used with passed-in Cython array-based functions.
@@ -223,7 +240,7 @@ class EWM(_Rolling):
         -------
         y : same type as input argument
         """
-        blocks, obj = self._create_blocks()
+        blocks, obj = self._create_blocks(self._selected_obj)
         block_list = list(blocks)
 
         results = []
@@ -244,28 +261,11 @@ class EWM(_Rolling):
                 results.append(values.copy())
                 continue
 
-            # if we have a string function name, wrap it
-            if isinstance(func, str):
-                cfunc = getattr(window_aggregations, func, None)
-                if cfunc is None:
-                    raise ValueError(
-                        f"we do not support this function in window_aggregations.{func}"
-                    )
-
-                def func(arg):
-                    return cfunc(
-                        arg,
-                        self.com,
-                        int(self.adjust),
-                        int(self.ignore_na),
-                        int(self.min_periods),
-                    )
-
             results.append(np.apply_along_axis(func, self.axis, values))
 
         return self._wrap_results(results, block_list, obj, exclude)
 
-    @Substitution(name="ewm")
+    @Substitution(name="ewm", func_name="mean")
     @Appender(_doc_template)
     def mean(self, *args, **kwargs):
         """
@@ -277,12 +277,20 @@ class EWM(_Rolling):
             Arguments and keyword arguments to be passed into func.
         """
         nv.validate_window_func("mean", args, kwargs)
-        return self._apply("ewma", **kwargs)
+        window_func = self._get_roll_func("ewma")
+        window_func = partial(
+            window_func,
+            com=self.com,
+            adjust=self.adjust,
+            ignore_na=self.ignore_na,
+            minp=self.min_periods,
+        )
+        return self._apply(window_func)
 
-    @Substitution(name="ewm")
+    @Substitution(name="ewm", func_name="std")
     @Appender(_doc_template)
     @Appender(_bias_template)
-    def std(self, bias=False, *args, **kwargs):
+    def std(self, bias: bool = False, *args, **kwargs):
         """
         Exponential weighted moving stddev.
         """
@@ -291,10 +299,10 @@ class EWM(_Rolling):
 
     vol = std
 
-    @Substitution(name="ewm")
+    @Substitution(name="ewm", func_name="var")
     @Appender(_doc_template)
     @Appender(_bias_template)
-    def var(self, bias=False, *args, **kwargs):
+    def var(self, bias: bool = False, *args, **kwargs):
         """
         Exponential weighted moving variance.
         """
@@ -302,20 +310,20 @@ class EWM(_Rolling):
 
         def f(arg):
             return window_aggregations.ewmcov(
-                arg,
-                arg,
-                self.com,
-                int(self.adjust),
-                int(self.ignore_na),
-                int(self.min_periods),
-                int(bias),
+                arg, arg, self.com, self.adjust, self.ignore_na, self.min_periods, bias,
             )
 
-        return self._apply(f, **kwargs)
+        return self._apply(f)
 
-    @Substitution(name="ewm")
+    @Substitution(name="ewm", func_name="cov")
     @Appender(_doc_template)
-    def cov(self, other=None, pairwise=None, bias=False, **kwargs):
+    def cov(
+        self,
+        other: Optional[Union[np.ndarray, FrameOrSeries]] = None,
+        pairwise: Optional[bool] = None,
+        bias: bool = False,
+        **kwargs,
+    ):
         """
         Exponential weighted sample covariance.
 
@@ -349,10 +357,10 @@ class EWM(_Rolling):
                 X._prep_values(),
                 Y._prep_values(),
                 self.com,
-                int(self.adjust),
-                int(self.ignore_na),
-                int(self.min_periods),
-                int(bias),
+                self.adjust,
+                self.ignore_na,
+                self.min_periods,
+                bias,
             )
             return X._wrap_result(cov)
 
@@ -360,9 +368,14 @@ class EWM(_Rolling):
             self._selected_obj, other._selected_obj, _get_cov, pairwise=bool(pairwise)
         )
 
-    @Substitution(name="ewm")
+    @Substitution(name="ewm", func_name="corr")
     @Appender(_doc_template)
-    def corr(self, other=None, pairwise=None, **kwargs):
+    def corr(
+        self,
+        other: Optional[Union[np.ndarray, FrameOrSeries]] = None,
+        pairwise: Optional[bool] = None,
+        **kwargs,
+    ):
         """
         Exponential weighted sample correlation.
 
@@ -393,13 +406,7 @@ class EWM(_Rolling):
 
             def _cov(x, y):
                 return window_aggregations.ewmcov(
-                    x,
-                    y,
-                    self.com,
-                    int(self.adjust),
-                    int(self.ignore_na),
-                    int(self.min_periods),
-                    1,
+                    x, y, self.com, self.adjust, self.ignore_na, self.min_periods, 1,
                 )
 
             x_values = X._prep_values()
