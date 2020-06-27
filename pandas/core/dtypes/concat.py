@@ -228,16 +228,16 @@ def union_categoricals(
     >>> a = pd.Categorical(["b", "c"])
     >>> b = pd.Categorical(["a", "b"])
     >>> union_categoricals([a, b])
-    [b, c, a, b]
-    Categories (3, object): [b, c, a]
+    ['b', 'c', 'a', 'b']
+    Categories (3, object): ['b', 'c', 'a']
 
     By default, the resulting categories will be ordered as they appear
     in the `categories` of the data. If you want the categories to be
     lexsorted, use `sort_categories=True` argument.
 
     >>> union_categoricals([a, b], sort_categories=True)
-    [b, c, a, b]
-    Categories (3, object): [a, b, c]
+    ['b', 'c', 'a', 'b']
+    Categories (3, object): ['a', 'b', 'c']
 
     `union_categoricals` also works with the case of combining two
     categoricals of the same categories and order information (e.g. what
@@ -246,8 +246,8 @@ def union_categoricals(
     >>> a = pd.Categorical(["a", "b"], ordered=True)
     >>> b = pd.Categorical(["a", "b", "a"], ordered=True)
     >>> union_categoricals([a, b])
-    [a, b, a, b, a]
-    Categories (2, object): [a < b]
+    ['a', 'b', 'a', 'b', 'a']
+    Categories (2, object): ['a' < 'b']
 
     Raises `TypeError` because the categories are ordered and not identical.
 
@@ -266,8 +266,8 @@ def union_categoricals(
     >>> a = pd.Categorical(["a", "b", "c"], ordered=True)
     >>> b = pd.Categorical(["c", "b", "a"], ordered=True)
     >>> union_categoricals([a, b], ignore_order=True)
-    [a, b, c, c, b, a]
-    Categories (3, object): [a, b, c]
+    ['a', 'b', 'c', 'c', 'b', 'a']
+    Categories (3, object): ['a', 'b', 'c']
 
     `union_categoricals` also works with a `CategoricalIndex`, or `Series`
     containing categorical data, but note that the resulting array will
@@ -276,8 +276,8 @@ def union_categoricals(
     >>> a = pd.Series(["b", "c"], dtype='category')
     >>> b = pd.Series(["a", "b"], dtype='category')
     >>> union_categoricals([a, b])
-    [b, c, a, b]
-    Categories (3, object): [b, c, a]
+    ['b', 'c', 'a', 'b']
+    Categories (3, object): ['b', 'c', 'a']
     """
     from pandas import Categorical
     from pandas.core.arrays.categorical import recode_for_categories
