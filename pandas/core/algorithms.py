@@ -693,12 +693,16 @@ def value_counts(
     ascending : bool, default False
         Sort in ascending order
     normalize: bool, default False
-        If True then compute a relative histogram
-    bins : integer, optional
-        Rather than count values, group them into half-open bins,
-        convenience for pd.cut, only works with numeric data
+        If True, then compute a relative histogram that outputs the
+        proportion of each value.
+    bins : integer or iterable of numeric, optional
+        Rather than count values, group them into half-open bins.
+        Only works with numeric data.
+        If int, interpreted as number of bins and will use pd.cut.
+        If interable of numeric, will use provided numbers as bin endpoints.
     dropna : bool, default True
-        Don't include counts of NaN
+        Don't include counts of NaN.
+        If False and NaNs are present, NaN will be a key in the output.
 
     Returns
     -------
@@ -717,9 +721,8 @@ def value_counts(
         except TypeError as err:
             raise TypeError("bins argument only works with numeric data.") from err
 
-        # count, remove nulls (from the index), and but the bins
+        # count, remove nulls (from the index), and use the bins
         result = ii.value_counts(dropna=dropna)
-        result = result[result.index.notna()]
         result.index = result.index.astype("interval")
         result = result.sort_index()
 
@@ -727,8 +730,8 @@ def value_counts(
         if dropna and (result._values == 0).all():
             result = result.iloc[0:0]
 
-        # normalizing is by len of all (regardless of dropna)
-        counts = np.array([len(ii)])
+        # normalizing is by len of what gets included in the bins
+        counts = result._values
 
     else:
 
