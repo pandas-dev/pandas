@@ -1750,7 +1750,7 @@ def validate_numeric_casting(dtype: np.dtype, value):
             raise ValueError("Cannot assign bool to float/integer series")
 
 
-def safe_convert_to_ndarray(values: Union[ArrayLike, Index]) -> np.ndarray:
+def safe_convert_to_ndarray(values: Union[ArrayLike, "Index"]) -> np.ndarray:
     """
     Converts values to ndarray with special handling for extension arrays.
 
