@@ -50,6 +50,7 @@ from .interface import BaseInterfaceTests  # noqa
 from .io import BaseParsingTests  # noqa
 from .methods import BaseMethodsTests  # noqa
 from .missing import BaseMissingTests  # noqa
+from .numpy_array_functions import BaseNumpyArrayFunctionTests  # noqa
 from .ops import (  # noqa
     BaseArithmeticOpsTests,
     BaseComparisonOpsTests,
@@ -64,4 +65,3 @@ from .reduce import (  # noqa
 )
 from .reshaping import BaseReshapingTests  # noqa
 from .setitem import BaseSetitemTests  # noqa
-from .numpy_array_functions import BaseNumpyArrayFunctionTests  # noqa

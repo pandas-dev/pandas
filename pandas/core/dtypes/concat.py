@@ -22,6 +22,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCRangeIndex, ABCSeries
 
 from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays.base import implements
 from pandas.core.arrays.sparse import SparseArray
 from pandas.core.construction import array
 
@@ -107,6 +108,7 @@ def _cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
     return arr.astype(dtype, copy=False)
 
 
+@implements(np.concatenate)
 def concat_compat(to_concat, axis: int = 0):
     """
     provide concatenation of an array of arrays each of which is a single
@@ -152,11 +154,15 @@ def concat_compat(to_concat, axis: int = 0):
             target_dtype = find_common_type([x.dtype for x in to_concat])
             to_concat = [_cast_to_common_type(arr, target_dtype) for arr in to_concat]
 
-        if isinstance(to_concat[0], ExtensionArray):
+        if isinstance(to_concat[0], ExtensionArray) and axis == 0:
             cls = type(to_concat[0])
             return cls._concat_same_type(to_concat)
         else:
-            return np.concatenate(to_concat)
+            to_concat = [
+                arr.to_numpy() if isinstance(arr, ExtensionArray) else arr
+                for arr in to_concat
+            ]
+            return np.concatenate(to_concat, axis=axis)
 
     elif _contains_datetime or "timedelta" in typs:
         return concat_datetime(to_concat, axis=axis, typs=typs)

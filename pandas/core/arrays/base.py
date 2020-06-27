@@ -32,7 +32,7 @@ from pandas.core.sorting import nargsort
 
 _extension_array_shared_docs: Dict[str, str] = dict()
 
-HANDLED_FUNCTIONS = {}
+_HANDLED_FUNCTIONS = {}
 
 
 def implements(numpy_function) -> Callable[[F], F]:
@@ -41,7 +41,7 @@ def implements(numpy_function) -> Callable[[F], F]:
     """
 
     def decorator(func):
-        HANDLED_FUNCTIONS[numpy_function] = func
+        _HANDLED_FUNCTIONS[numpy_function] = func
         return func
 
     return decorator
@@ -180,13 +180,25 @@ class ExtensionArray:
     _typ = "extension"
 
     def __array_function__(self, func, types, args, kwargs):
-        if func not in HANDLED_FUNCTIONS:
-            return NotImplemented
-        # Note: this allows subclasses that don't override
-        # __array_function__ to handle ExtensionArray objects
-        if not all(issubclass(t, ExtensionArray) for t in types):
-            return NotImplemented
-        return HANDLED_FUNCTIONS[func](*args, **kwargs)
+        if func not in _HANDLED_FUNCTIONS:
+            # try to find a matching method name. If that doesn't work, we may
+            # be dealing with an alias or a function that's simply not in the
+            # ExtensionArray API. Handle aliases via the _HANDLED_FUNCTIONS
+            # dict mapping.
+            if not hasattr(type(self), func.__name__):
+                # Need to convert EAs to numpy.ndarray so we can call the NumPy
+                # function again and it gets the chance to dispatch to the
+                # right implementation.
+                args = tuple(
+                    arg.to_numpy() if isinstance(arg, ExtensionArray) else arg
+                    for arg in args
+                )
+                return func(*args, **kwargs)
+
+            func = getattr(type(self), func.__name__)
+            return func(*args, **kwargs)
+
+        return _HANDLED_FUNCTIONS[func](*args, **kwargs)
 
     # ------------------------------------------------------------------------
     # Constructors
@@ -886,11 +898,7 @@ class ExtensionArray:
         ind = np.arange(len(self)).repeat(repeats)
         return self.take(ind)
 
-    # ------------------------------------------------------------------------
-    # Numpy Array Functions
-    # ------------------------------------------------------------------------
-
-    def _tile(self, rep: int) -> "ExtensionArray":
+    def _tile_1d(self, rep: int) -> "ExtensionArray":
         """
         non-public method for compatibility with np.tile
         """
@@ -1316,12 +1324,22 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
 
 
 @implements(np.tile)
-def tile(array: ExtensionArray, reps: Union[int, AnyArrayLike]):
+def tile(arr: ExtensionArray, reps: Union[int, AnyArrayLike]) -> ArrayLike:
+    """
+    Construct an array by repeating array the number of times given by reps.
+    """
     try:
         tup = tuple(reps)
     except TypeError:
         tup = (reps,)
-    d = len(tup)
-    if d != 1:
-        raise ValueError("can only tile extension arrays along first axis")
-    return array._tile(reps)
+    if len(tup) == 1:
+        return arr._tile_1d(tup[0])
+    return np.tile(arr.to_numpy(), tup)
+
+
+@implements(np.ndim)
+def ndim(array: ExtensionArray) -> int:
+    """
+    Return the number of dimensions of an array.
+    """
+    return array.ndim

@@ -2118,6 +2118,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             pointer = self._codes.min()
         return self.categories[pointer]
 
+    amin = min
+
     @deprecate_kwarg(old_arg_name="numeric_only", new_arg_name="skipna")
     def max(self, skipna=True, **kwargs):
         """
@@ -2153,6 +2155,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         else:
             pointer = self._codes.max()
         return self.categories[pointer]
+
+    amax = max
 
     def mode(self, dropna=True):
         """
