@@ -167,30 +167,26 @@ FASTCALL_ATTR JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
 
                 // TO DO: need to fix overflow catching
                 if (intValue*10ULL + newDigit > overflowLimit) {
-                    // TO DO: store current intValue for later processing
-
+                    
                     // convert current inValue into string
                     int length = snprintf( NULL, 0, "%lu", intValue);
                     char* intValue_asStr = malloc( length + 1 );
                     snprintf(intValue_asStr, length + 1, "%lu", intValue);
-                    
-                    // copy current ds->cStr into a temporary variable
-                    char* cStr_existing = malloc(strlen(ds->cStr)+1);
-                    memcpy(cStr_existing, ds->cStr, strlen(ds->cStr)+1);
-                    
-                    // size of ds->cStr after concatenation with str
-                    size_t new_size = strlen(cStr_existing)+strlen(intValue_asStr)+1;
-                    
-                    char* new_cStr = malloc(new_size);
-                    memcpy(new_cStr, cStr_existing, strlen(cStr_existing));
-                    strcat(new_cStr, intValue_asStr);
 
-                    // copy concatenated string back to ds->cStr
-                    // TO DO: this is failing
-                    ds->cStr = realloc(ds->cStr, new_size);
-                    strcpy(ds->cStr, new_cStr);
-                    ds->cStr = realloc(ds->cStr, new_size);
-                    
+                    if (strlen(ds->cStr)== 0) { // first overflow
+                        ds->cStr = (char*)realloc(ds->cStr, strlen(intValue_asStr)+1);
+                        strcpy(ds->cStr, intValue_asStr);
+                    } else { // has overflown before 
+                        char* cStr_prev = malloc(strlen(ds->cStr));
+                        memcpy(cStr_prev, ds->cStr, strlen(ds->cStr));
+
+                        size_t new_size = strlen(ds->cStr) + strlen(intValue_asStr) + 1;
+                        ds->cStr = (char*)realloc(ds->cStr, new_size);
+
+                        strcpy(ds->cStr, cStr_prev);
+                        strcat(ds->cStr, intValue_asStr);
+                    }
+
                     // then reset intValue
                     intValue = (newDigit==0) ? 10 : newDigit;
                 }
@@ -227,9 +223,24 @@ BREAK_INT_LOOP:
     ds->start = offset;
 
     // check if ds->cStr has been written to
-    // if yes append str(intValue) 
-    // and return ds->dec->newBigNum
-    if ((intValue >> 31)) {
+    if (strlen(ds->cStr)>0){
+
+        // covert intValue to cString
+        int length = snprintf( NULL, 0, "%lu", intValue);
+        char* intValue_asStr = malloc( length + 1 );
+        snprintf(intValue_asStr, length + 1, "%lu", intValue);
+
+        char* cStr_prev = malloc(strlen(ds->cStr));
+        memcpy(cStr_prev, ds->cStr, strlen(ds->cStr));
+
+        size_t new_size = strlen(ds->cStr) + strlen(intValue_asStr) + 1;
+        ds->cStr = (char*)realloc(ds->cStr, new_size);
+        strcpy(ds->cStr, cStr_prev);
+        strcat(ds->cStr, intValue_asStr);
+
+        return ds->dec->newBigNum(ds->prv, ds->cStr);
+    }
+    else if ((intValue >> 31)) {
         return ds->dec->newLong(ds->prv, (JSINT64)(intValue * (JSINT64)intNeg));
     } else {
         return ds->dec->newInt(ds->prv, (JSINT32)(intValue * intNeg));
@@ -1203,7 +1214,9 @@ JSOBJ JSON_DecodeObject(JSONObjectDecoder *dec, const char *buffer,
     ds.dec->errorStr = NULL;
     ds.dec->errorOffset = NULL;
     ds.objDepth = 0;
-    ds.cStr = "";  // TO DO: this isn't the right initialization (not sure why)
+    
+    ds.cStr = malloc(sizeof("\0"));
+    strcpy(ds.cStr, "\0");
 
     ds.dec = dec;
 
