@@ -602,7 +602,7 @@ rolling operations over a non-fixed offset like a ``BusinessDay``.
 
 .. ipython:: python
 
-   from pandas.core.window.indexers import NonFixedVariableWindowIndexer
+   from pandas.api.indexers import NonFixedVariableWindowIndexer
    df = pd.DataFrame(range(10), index=pd.date_range('2020', periods=10))
    offset = pd.offsets.BDay(1)
    indexer = NonFixedVariableWindowIndexer(index=df.index, offset=offset)
