@@ -1,5 +1,5 @@
 import numbers
-from typing import Optional, Sequence, Tuple, Type, Union
+from typing import Optional, Tuple, Type, Union
 
 import numpy as np
 from numpy.lib.mixins import NDArrayOperatorsMixin
@@ -191,7 +191,7 @@ class PandasArray(
         return cls(values)
 
     @classmethod
-    def _concat_same_type(cls, to_concat: Sequence["PandasArray"]) -> "PandasArray":
+    def _concat_same_type(cls, to_concat) -> "PandasArray":
         to_concat = [arr.to_numpy() for arr in to_concat]
         return cls(np.concatenate(to_concat))
 

@@ -27,6 +27,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
 from pandas.core.algorithms import _factorize_array, unique
+import pandas.core.common as com
 from pandas.core.missing import backfill_1d, pad_1d
 from pandas.core.sorting import nargsort
 
@@ -1328,13 +1329,10 @@ def tile(arr: ExtensionArray, reps: Union[int, AnyArrayLike]) -> ArrayLike:
     """
     Construct an array by repeating array the number of times given by reps.
     """
-    try:
-        tup = tuple(reps)
-    except TypeError:
-        tup = (reps,)
-    if len(tup) == 1:
-        return arr._tile_1d(tup[0])
-    return np.tile(arr.to_numpy(), tup)
+    reps_list = com.convert_to_list_like(reps)
+    if len(reps_list) == 1:
+        return arr._tile_1d(reps_list[0])
+    return np.tile(arr.to_numpy(), reps)
 
 
 @implements(np.ndim)
