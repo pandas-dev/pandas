@@ -1334,3 +1334,18 @@ def vstack(to_stack: Sequence[ArrayLike]) -> np.ndarray:
         arr.to_numpy() if isinstance(arr, ExtensionArray) else arr for arr in to_stack
     )
     return np.vstack(to_stack)
+
+
+@implements(np.putmask)
+def putmask(a: ArrayLike, mask: ArrayLike, values: ArrayLike) -> None:
+    """
+    Changes elements of an array based on conditional and input values.
+    """
+    # TODO: refactor Index.putmask to not rely on this behaviour for IntervalArray
+    if isinstance(a, ExtensionArray):
+        raise TypeError(
+            f"putmask() argument 1 must be numpy.ndarray, not {type(a).__name__}"
+        )
+    mask = mask.to_numpy() if isinstance(mask, ExtensionArray) else mask
+    values = values.to_numpy() if isinstance(values, ExtensionArray) else values
+    return np.putmask(a, mask, values)
