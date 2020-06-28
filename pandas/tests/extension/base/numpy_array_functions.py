@@ -39,3 +39,8 @@ class BaseNumpyArrayFunctionTests(BaseExtensionTests):
 
     def test_ndim(self, data):
         assert np.ndim(data) == 1
+
+    def test_vstack(self, data):
+        expected = np.array([data.to_numpy()] * 2)
+        result = np.vstack([data, data])
+        self.assert_numpy_array_equal(result, expected)

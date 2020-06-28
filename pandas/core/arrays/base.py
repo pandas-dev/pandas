@@ -1341,3 +1341,15 @@ def ndim(array: ExtensionArray) -> int:
     Return the number of dimensions of an array.
     """
     return array.ndim
+
+
+@implements(np.vstack)
+def vstack(to_stack: Sequence[ArrayLike]) -> np.ndarray:
+    """
+    Stack arrays in sequence vertically (row wise).
+    """
+    to_stack = tuple(
+        arr.to_numpy() if isinstance(arr, ExtensionArray) else arr
+        for arr in to_stack
+    )
+    return np.vstack(to_stack)
