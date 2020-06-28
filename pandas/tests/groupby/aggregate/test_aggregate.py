@@ -1008,6 +1008,8 @@ def test_aggregate_categorical_with_isnan():
     df = df.astype({'categorical_col': 'category'})
 
     result = df.groupby(['A', 'B']).agg(lambda df: df.isna().sum())
-    expected = pd.DataFrame(data={'numerical_col': [1.0, 0.0], 'object_col': [0, 0], 'categorical_col': [0, 0]},
-                            index=pd.MultiIndex.from_arrays([[1, 1], [1, 2]], names=('A', 'B')))
+    index=pd.MultiIndex.from_arrays([[1, 1], [1, 2]], names=('A', 'B'))
+    expected = pd.DataFrame(data={'numerical_col': [1.0, 0.0],
+                            'object_col': [0, 0], 'categorical_col': [0, 0]},
+                            index=index)
     pd.testing.assert_frame_equal(result, expected)
