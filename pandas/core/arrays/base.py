@@ -185,7 +185,9 @@ class ExtensionArray:
             # be dealing with an alias or a function that's simply not in the
             # ExtensionArray API. Handle aliases via the _HANDLED_FUNCTIONS
             # dict mapping.
-            if not hasattr(type(self), func.__name__):
+            exclude_list = {"unique"}
+            ea_func = getattr(type(self), func.__name__, None)
+            if ea_func is None or ea_func.__name__ in exclude_list:
                 # Need to convert EAs to numpy.ndarray so we can call the NumPy
                 # function again and it gets the chance to dispatch to the
                 # right implementation.
@@ -195,8 +197,7 @@ class ExtensionArray:
                 )
                 return func(*args, **kwargs)
 
-            func = getattr(type(self), func.__name__)
-            return func(*args, **kwargs)
+            return ea_func(*args, **kwargs)
 
         return _HANDLED_FUNCTIONS[func](*args, **kwargs)
 
