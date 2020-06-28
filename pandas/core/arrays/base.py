@@ -1331,7 +1331,6 @@ def vstack(to_stack: Sequence[ArrayLike]) -> np.ndarray:
     Stack arrays in sequence vertically (row wise).
     """
     to_stack = tuple(
-        arr.to_numpy() if isinstance(arr, ExtensionArray) else arr
-        for arr in to_stack
+        arr.to_numpy() if isinstance(arr, ExtensionArray) else arr for arr in to_stack
     )
     return np.vstack(to_stack)
