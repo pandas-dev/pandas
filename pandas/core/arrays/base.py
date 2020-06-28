@@ -12,7 +12,7 @@ from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import AnyArrayLike, ArrayLike, F
+from pandas._typing import ArrayLike, F
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -27,7 +27,6 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
 from pandas.core.algorithms import _factorize_array, unique
-import pandas.core.common as com
 from pandas.core.missing import backfill_1d, pad_1d
 from pandas.core.sorting import nargsort
 
@@ -1322,17 +1321,6 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
     @classmethod
     def _create_comparison_method(cls, op):
         return cls._create_method(op, coerce_to_dtype=False, result_dtype=bool)
-
-
-@implements(np.tile)
-def tile(arr: ExtensionArray, reps: Union[int, AnyArrayLike]) -> ArrayLike:
-    """
-    Construct an array by repeating array the number of times given by reps.
-    """
-    reps_list = com.convert_to_list_like(reps)
-    if len(reps_list) == 1:
-        return arr._tile_1d(reps_list[0])
-    return np.tile(arr.to_numpy(), reps)
 
 
 @implements(np.ndim)

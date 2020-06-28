@@ -10,20 +10,6 @@ from .base import BaseExtensionTests
 
 @td.skip_if_no_nep18
 class BaseNumpyArrayFunctionTests(BaseExtensionTests):
-    def test_tile(self, data):
-        expected = pd.array(list(data) * 3, dtype=data.dtype)
-
-        result = np.tile(data, 3)
-        self.assert_extension_array_equal(result, expected)
-
-        result = np.tile(data, (3,))
-        self.assert_extension_array_equal(result, expected)
-
-        expected = np.array([data.to_numpy()] * 3)
-
-        result = np.tile(data, (3, 1))
-        self.assert_numpy_array_equal(result, expected)
-
     def test_concatenate(self, data):
         expected = pd.array(list(data) * 3, dtype=data.dtype)
 

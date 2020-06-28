@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING, List, cast
 
 import numpy as np
 
-from pandas.compat.numpy import IS_NEP18_ACTIVE
 from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import is_extension_array_dtype, is_list_like
@@ -109,7 +108,7 @@ def melt(
     mdata = {}
     for col in id_vars:
         id_data = frame.pop(col)
-        if not IS_NEP18_ACTIVE and is_extension_array_dtype(id_data):
+        if is_extension_array_dtype(id_data):
             id_data = cast("Series", concat([id_data] * K, ignore_index=True))
         else:
             id_data = np.tile(id_data._values, K)
