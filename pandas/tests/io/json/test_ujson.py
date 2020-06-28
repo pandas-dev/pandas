@@ -560,7 +560,15 @@ class TestUltraJSONTests:
         assert output == json.dumps(long_input)
         assert long_input == ujson.decode(output)
 
-    @pytest.mark.parametrize("bigNum", [sys.maxsize + 1, -(sys.maxsize + 2)])
+    @pytest.mark.parametrize(
+        "bigNum",
+        [
+            sys.maxsize + 1,
+            sys.maxsize * sys.maxsize + 100,
+            -(sys.maxsize + 2),
+            -(sys.maxsize * sys.maxsize + 100),
+        ],
+    )
     def test_dumps_ints_larger_than_maxsize(self, bigNum):
         # GH34395
         bigNum = sys.maxsize + 1
