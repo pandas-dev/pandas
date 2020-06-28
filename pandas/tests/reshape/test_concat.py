@@ -1088,19 +1088,14 @@ class TestAppend:
         s = Series({"date": date, "a": 1.0, "b": 2.0})
         df = DataFrame(columns=["c", "d"])
         result = df.append(s, ignore_index=True)
-        # n.b. it's not clear to me that expected is correct here.
-        # It's possible that the `date` column should have
-        # datetime64[ns, tz] dtype for both result and expected.
-        # that would be more consistent with new columns having
-        # their own dtype (float for a and b, datetime64ns, tz for date).
         expected = DataFrame(
             [[np.nan, np.nan, 1.0, 2.0, date]],
             columns=["c", "d", "a", "b", "date"],
             dtype=object,
         )
-        # These columns get cast to object after append
         expected["a"] = expected["a"].astype(float)
         expected["b"] = expected["b"].astype(float)
+        expected["date"] = pd.to_datetime(expected["date"])
         tm.assert_frame_equal(result, expected)
 
 
