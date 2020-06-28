@@ -5075,7 +5075,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Notes
         -----
         - `agg` is an alias for `aggregate`. Use the alias.
-        - Some NumPy functions such as ``np.mean``, ``np.nanmean``, ``np.median`` etc. resolve to their corresponding internal cython function.
+        - Some NumPy functions such as ``np.mean``, ``np.nanmean``, ``np.median`` etc.
+            resolve to their corresponding internal cython function.
 
         A passed user-defined-function will be passed a Series for evaluation.
         {examples}"""
