@@ -4457,6 +4457,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             )
 
         self._consolidate_inplace()
+        print(axes,kwargs)
+        print('hello')
 
         # if all axes that are requested to reindex are equal, then only copy
         # if indicated must have index names equal here as well as values
@@ -4483,12 +4485,15 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     ) -> FrameOrSeries:
         """Perform the reindex for all the axes."""
         obj = self
+        print(self._AXIS_ORDERS)
         for a in self._AXIS_ORDERS:
             labels = axes[a]
             if labels is None:
                 continue
 
             ax = self._get_axis(a)
+            print(ax)
+            print(labels)
             new_index, indexer = ax.reindex(
                 labels, level=level, limit=limit, tolerance=tolerance, method=method
             )
@@ -5099,6 +5104,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     Notes
     -----
     `agg` is an alias for `aggregate`. Use the alias.
+    Some NumPy functions such as `np.mean`, `np.nanmean`, `np.median` etc.
+    resolve to corresponding internal cython function.
 
     A passed user-defined-function will be passed a Series for evaluation.
     %(examples)s"""
