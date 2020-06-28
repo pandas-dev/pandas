@@ -898,13 +898,6 @@ class ExtensionArray:
         ind = np.arange(len(self)).repeat(repeats)
         return self.take(ind)
 
-    def _tile_1d(self, rep: int) -> "ExtensionArray":
-        """
-        non-public method for compatibility with np.tile
-        """
-        ind = np.tile(np.arange(len(self)), rep)
-        return self.take(ind)
-
     # ------------------------------------------------------------------------
     # Indexing methods
     # ------------------------------------------------------------------------
