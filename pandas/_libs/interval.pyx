@@ -424,11 +424,6 @@ cdef class Interval(IntervalMixin):
             return Interval(y.left * self, y.right * self, closed=y.closed)
         return NotImplemented
 
-    def __div__(self, y):
-        if isinstance(y, numbers.Number):
-            return Interval(self.left / y, self.right / y, closed=self.closed)
-        return NotImplemented
-
     def __truediv__(self, y):
         if isinstance(y, numbers.Number):
             return Interval(self.left / y, self.right / y, closed=self.closed)

@@ -232,7 +232,7 @@ def test_wrap_agg_out(three_group):
     grouped = three_group.groupby(["A", "B"])
 
     def func(ser):
-        if ser.dtype == np.object:
+        if ser.dtype == object:
             raise TypeError
         else:
             return ser.sum()
@@ -732,6 +732,27 @@ def test_agg_relabel_multiindex_duplicates():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("kwargs", [{"c": ["min"]}, {"b": [], "c": ["min"]}])
+def test_groupby_aggregate_empty_key(kwargs):
+    # GH: 32580
+    df = pd.DataFrame({"a": [1, 1, 2], "b": [1, 2, 3], "c": [1, 2, 4]})
+    result = df.groupby("a").agg(kwargs)
+    expected = pd.DataFrame(
+        [1, 4],
+        index=pd.Index([1, 2], dtype="int64", name="a"),
+        columns=pd.MultiIndex.from_tuples([["c", "min"]]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_aggregate_empty_key_empty_return():
+    # GH: 32580 Check if everything works, when return is empty
+    df = pd.DataFrame({"a": [1, 1, 2], "b": [1, 2, 3], "c": [1, 2, 4]})
+    result = df.groupby("a").agg({"b": []})
+    expected = pd.DataFrame(columns=pd.MultiIndex(levels=[["b"], []], codes=[[], []]))
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "func", [lambda s: s.mean(), lambda s: np.mean(s), lambda s: np.nanmean(s)]
 )
@@ -788,7 +809,17 @@ def test_aggregate_mixed_types():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(reason="Not implemented.")
+@pytest.mark.parametrize("func", ["min", "max"])
+def test_aggregate_categorical_lost_index(func: str):
+    # GH: 28641 groupby drops index, when grouping over categorical column with min/max
+    ds = pd.Series(["b"], dtype="category").cat.as_ordered()
+    df = pd.DataFrame({"A": [1997], "B": ds})
+    result = df.groupby("A").agg({"B": func})
+    expected = pd.DataFrame({"B": ["b"]}, index=pd.Index([1997], name="A"))
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.xfail(reason="Not implemented;see GH 31256")
 def test_aggregate_udf_na_extension_type():
     # https://github.com/pandas-dev/pandas/pull/31359
     # This is currently failing to cast back to Int64Dtype.
@@ -963,3 +994,30 @@ def test_groupby_get_by_index():
     res = df.groupby("A").agg({"B": lambda x: x.get(x.index[-1])})
     expected = pd.DataFrame(dict(A=["S", "W"], B=[1.0, 2.0])).set_index("A")
     pd.testing.assert_frame_equal(res, expected)
+
+
+def test_aggregate_categorical_with_isnan():
+    # GH 29837
+    df = pd.DataFrame(
+        {
+            "A": [1, 1, 1, 1],
+            "B": [1, 2, 1, 2],
+            "numerical_col": [0.1, 0.2, np.nan, 0.3],
+            "object_col": ["foo", "bar", "foo", "fee"],
+            "categorical_col": ["foo", "bar", "foo", "fee"],
+        }
+    )
+
+    df = df.astype({"categorical_col": "category"})
+
+    result = df.groupby(["A", "B"]).agg(lambda df: df.isna().sum())
+    index = pd.MultiIndex.from_arrays([[1, 1], [1, 2]], names=("A", "B"))
+    expected = pd.DataFrame(
+        data={
+            "numerical_col": [1.0, 0.0],
+            "object_col": [0, 0],
+            "categorical_col": [0, 0],
+        },
+        index=index,
+    )
+    tm.assert_frame_equal(result, expected)

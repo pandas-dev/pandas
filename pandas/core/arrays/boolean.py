@@ -717,11 +717,22 @@ class BooleanArray(BaseMaskedArray):
             # nans propagate
             if mask is None:
                 mask = self._mask
+                if other is libmissing.NA:
+                    mask |= True
             else:
                 mask = self._mask | mask
 
-            with np.errstate(all="ignore"):
-                result = op(self._data, other)
+            if other is libmissing.NA:
+                # if other is NA, the result will be all NA and we can't run the
+                # actual op, so we need to choose the resulting dtype manually
+                if op_name in {"floordiv", "rfloordiv", "mod", "rmod", "pow", "rpow"}:
+                    dtype = "int8"
+                else:
+                    dtype = "bool"
+                result = np.zeros(len(self._data), dtype=dtype)
+            else:
+                with np.errstate(all="ignore"):
+                    result = op(self._data, other)
 
             # divmod returns a tuple
             if op_name == "divmod":

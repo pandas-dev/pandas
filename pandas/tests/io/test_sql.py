@@ -1364,7 +1364,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # Int column with NA values stays as float
         assert issubclass(df.IntColWithNull.dtype.type, np.floating)
         # Bool column with NA values becomes object
-        assert issubclass(df.BoolColWithNull.dtype.type, np.object)
+        assert issubclass(df.BoolColWithNull.dtype.type, object)
 
     def test_bigint(self):
         # int64 should be converted to BigInteger, GH7433
@@ -1900,9 +1900,9 @@ class _TestMySQLAlchemy:
 
     @classmethod
     def connect(cls):
-        url = "mysql+{driver}://root@localhost/pandas_nosetest"
         return sqlalchemy.create_engine(
-            url.format(driver=cls.driver), connect_args=cls.connect_args
+            f"mysql+{cls.driver}://root@localhost/pandas_nosetest",
+            connect_args=cls.connect_args,
         )
 
     @classmethod
@@ -1969,8 +1969,9 @@ class _TestPostgreSQLAlchemy:
 
     @classmethod
     def connect(cls):
-        url = "postgresql+{driver}://postgres@localhost/pandas_nosetest"
-        return sqlalchemy.create_engine(url.format(driver=cls.driver))
+        return sqlalchemy.create_engine(
+            f"postgresql+{cls.driver}://postgres@localhost/pandas_nosetest"
+        )
 
     @classmethod
     def setup_driver(cls):
@@ -2388,7 +2389,7 @@ class TestXSQLite(SQLiteMixIn):
 
         result = sql.read_sql("select * from test", con=self.conn)
         result.index = frame.index
-        tm.assert_frame_equal(result, frame, check_less_precise=True)
+        tm.assert_frame_equal(result, frame, rtol=1e-3)
 
     def test_execute(self):
         frame = tm.makeTimeDataFrame()
@@ -2648,7 +2649,7 @@ class TestXMySQL(MySQLMixIn):
 
         result = sql.read_sql("select * from test", con=self.conn)
         result.index = frame.index
-        tm.assert_frame_equal(result, frame, check_less_precise=True)
+        tm.assert_frame_equal(result, frame, rtol=1e-3)
         # GH#32571 result comes back rounded to 6 digits in some builds;
         #  no obvious pattern
 

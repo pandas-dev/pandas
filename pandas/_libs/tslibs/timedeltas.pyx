@@ -237,7 +237,7 @@ def array_to_timedelta64(object[:] values, unit=None, errors='raise'):
 
     if unit is not None:
         for i in range(n):
-            if isinstance(values[i], str):
+            if isinstance(values[i], str) and errors != "coerce":
                 raise ValueError(
                     "unit must not be specified if the input contains a str"
                 )
@@ -1151,7 +1151,7 @@ class Timedelta(_Timedelta):
 
         if unit in {'Y', 'y', 'M'}:
             raise ValueError(
-                "Units 'M' and 'Y' are no longer supported, as they do not "
+                "Units 'M', 'Y', and 'y' are no longer supported, as they do not "
                 "represent unambiguous timedelta values durations."
             )
 
