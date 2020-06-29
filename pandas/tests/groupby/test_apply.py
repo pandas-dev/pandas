@@ -44,7 +44,9 @@ def test_apply_issues():
         ["2011.05.16", "2011.05.17", "2011.05.18"], dtype=object, name="date"
     )
     expected = Series(["00:00", "02:00", "02:00"], index=exp_idx)
-    result = df.groupby("date").apply(lambda x: x["time"][x["value"].idxmax()])
+    result = df.groupby("date", group_keys=False).apply(
+        lambda x: x["time"][x["value"].idxmax()]
+    )
     tm.assert_series_equal(result, expected)
 
 
@@ -72,7 +74,9 @@ def test_apply_trivial2():
         columns=["key", "data"],
     )
     expected = pd.concat([df, df], axis=1, keys=["float64", "object"])
-    result = df.groupby([str(x) for x in df.dtypes], axis=1).apply(lambda x: df)
+    result = df.groupby([str(x) for x in df.dtypes], axis=1, group_keys=True).apply(
+        lambda x: df
+    )
 
     tm.assert_frame_equal(result, expected)
 
@@ -181,7 +185,7 @@ def test_group_apply_once_per_group(df, group_names):
     for func in [f_copy, f_nocopy, f_scalar, f_none, f_constant_df]:
         del names[:]
 
-        df.groupby("a").apply(func)
+        df.groupby("a", group_keys=False).apply(func)
         assert names == group_names
 
 
@@ -199,7 +203,9 @@ def test_group_apply_once_per_group2(capsys):
         index=["0", "2", "4", "6", "8", "10", "12", "14"],
     )
 
-    df.groupby("group_by_column").apply(lambda df: print("function_called"))
+    df.groupby("group_by_column", group_keys=False).apply(
+        lambda df: print("function_called")
+    )
 
     result = capsys.readouterr().out.count("function_called")
     # If `groupby` behaves unexpectedly, this test will break
@@ -219,8 +225,8 @@ def test_apply_fast_slow_identical():
     def fast(group):
         return group.copy()
 
-    fast_df = df.groupby("A").apply(fast)
-    slow_df = df.groupby("A").apply(slow)
+    fast_df = df.groupby("A", group_keys=False).apply(fast)
+    slow_df = df.groupby("A", group_keys=False).apply(slow)
 
     tm.assert_frame_equal(fast_df, slow_df)
 
