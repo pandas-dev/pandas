@@ -35,7 +35,7 @@ import numpy as np
 
 from pandas._config.config import option_context
 
-from pandas._libs import Timestamp
+from pandas._libs import Timestamp, lib
 import pandas._libs.groupby as libgroupby
 from pandas._typing import F, FrameOrSeries, FrameOrSeriesUnion, Scalar
 from pandas.compat.numpy import function as nv
@@ -889,7 +889,7 @@ b  2""",
         keys, values, mutated = self.grouper.apply(f, data, self.axis)
         not_indexed_same = mutated or self.mutated
 
-        if not not_indexed_same and self.group_keys is None:
+        if not not_indexed_same and self.group_keys is lib.no_default:
             if self.ndim == 1:
                 stacklevel = 4
             elif self._selection is None:
@@ -907,6 +907,7 @@ b  2""",
                 "\n\n\t>>> .groupby(..., group_keys=True)"
             )
             warnings.warn(msg, FutureWarning, stacklevel=stacklevel)
+            self.group_keys = False  # mutating a stateful object...
 
         return self._wrap_applied_output(
             keys, values, not_indexed_same=not_indexed_same
