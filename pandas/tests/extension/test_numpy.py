@@ -502,8 +502,3 @@ class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
 @skip_nested
 class TestParsing(BaseNumPyTests, base.BaseParsingTests):
     pass
-
-
-@skip_nested
-class TestNumpyArrayFunctions(base.BaseNumpyArrayFunctionTests):
-    pass

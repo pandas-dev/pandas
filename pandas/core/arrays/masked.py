@@ -19,7 +19,7 @@ from pandas.core.dtypes.missing import isna, notna
 from pandas.core import nanops
 from pandas.core.algorithms import _factorize_array, take
 from pandas.core.array_algos import masked_reductions
-from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
+from pandas.core.arrays import ArrayFunctionMixin, ExtensionArray, ExtensionOpsMixin
 from pandas.core.indexers import check_array_indexer
 
 if TYPE_CHECKING:
@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 BaseMaskedArrayT = TypeVar("BaseMaskedArrayT", bound="BaseMaskedArray")
 
 
-class BaseMaskedDtype(ExtensionDtype):
+class BaseMaskedDtype(ExtensionDtype, ArrayFunctionMixin):
     """
     Base class for dtypes for BasedMaskedArray subclasses.
     """
@@ -41,7 +41,7 @@ class BaseMaskedDtype(ExtensionDtype):
         raise AbstractMethodError
 
 
-class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
+class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin, ArrayFunctionMixin):
     """
     Base class for masked arrays (which use _data and _mask to store the data).
 

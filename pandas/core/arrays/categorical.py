@@ -45,6 +45,7 @@ from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algorithms
 from pandas.core.algorithms import _get_data_algo, factorize, take_1d, unique1d
 from pandas.core.array_algos.transforms import shift
+from pandas.core.arrays import ArrayFunctionMixin
 from pandas.core.arrays._mixins import _T, NDArrayBackedExtensionArray
 from pandas.core.base import (
     ExtensionArray,
@@ -201,7 +202,7 @@ def contains(cat, key, container):
         return any(loc_ in container for loc_ in loc)
 
 
-class Categorical(NDArrayBackedExtensionArray, PandasObject):
+class Categorical(NDArrayBackedExtensionArray, PandasObject, ArrayFunctionMixin):
     """
     Represent a categorical variable in classic R / S-plus fashion.
 

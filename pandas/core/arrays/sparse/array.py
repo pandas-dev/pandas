@@ -40,7 +40,7 @@ from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
+from pandas.core.arrays import ArrayFunctionMixin, ExtensionArray, ExtensionOpsMixin
 from pandas.core.arrays.sparse.dtype import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
@@ -195,7 +195,7 @@ def _wrap_result(name, data, sparse_index, fill_value, dtype=None):
     )
 
 
-class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
+class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin, ArrayFunctionMixin):
     """
     An ExtensionArray for storing sparse data.
 

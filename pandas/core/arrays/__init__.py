@@ -1,4 +1,5 @@
 from pandas.core.arrays.base import (
+    ArrayFunctionMixin,
     ExtensionArray,
     ExtensionOpsMixin,
     ExtensionScalarOpsMixin,
@@ -15,6 +16,7 @@ from pandas.core.arrays.string_ import StringArray
 from pandas.core.arrays.timedeltas import TimedeltaArray
 
 __all__ = [
+    "ArrayFunctionMixin",
     "ExtensionArray",
     "ExtensionOpsMixin",
     "ExtensionScalarOpsMixin",

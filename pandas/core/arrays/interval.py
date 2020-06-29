@@ -35,7 +35,11 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core.algorithms import take, value_counts
-from pandas.core.arrays.base import ExtensionArray, _extension_array_shared_docs
+from pandas.core.arrays.base import (
+    ArrayFunctionMixin,
+    ExtensionArray,
+    _extension_array_shared_docs,
+)
 from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
 from pandas.core.construction import array
@@ -143,7 +147,7 @@ for more.
         ),
     )
 )
-class IntervalArray(IntervalMixin, ExtensionArray):
+class IntervalArray(IntervalMixin, ExtensionArray, ArrayFunctionMixin):
     ndim = 1
     can_hold_na = True
     _na_value = _fill_value = np.nan

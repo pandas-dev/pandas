@@ -47,6 +47,30 @@ def implements(numpy_function) -> Callable[[F], F]:
     return decorator
 
 
+class ArrayFunctionMixin:
+    def __array_function__(self, func, types, args, kwargs):
+        if func not in _HANDLED_FUNCTIONS:
+            # try to find a matching method name. If that doesn't work, we may
+            # be dealing with an alias or a function that's simply not in the
+            # ExtensionArray API. Handle aliases via the _HANDLED_FUNCTIONS
+            # dict mapping.
+            exclude_list = {"unique"}
+            ea_func = getattr(type(self), func.__name__, None)
+            if ea_func is None or ea_func.__name__ in exclude_list:
+                # Need to convert EAs to numpy.ndarray so we can call the NumPy
+                # function again and it gets the chance to dispatch to the
+                # right implementation.
+                args = tuple(
+                    arg.to_numpy() if isinstance(arg, ExtensionArray) else arg
+                    for arg in args
+                )
+                return func(*args, **kwargs)
+
+            return ea_func(*args, **kwargs)
+
+        return _HANDLED_FUNCTIONS[func](*args, **kwargs)
+
+
 class ExtensionArray:
     """
     Abstract base class for custom 1-D array types.
@@ -178,28 +202,6 @@ class ExtensionArray:
     # '_typ' is for pandas.core.dtypes.generic.ABCExtensionArray.
     # Don't override this.
     _typ = "extension"
-
-    def __array_function__(self, func, types, args, kwargs):
-        if func not in _HANDLED_FUNCTIONS:
-            # try to find a matching method name. If that doesn't work, we may
-            # be dealing with an alias or a function that's simply not in the
-            # ExtensionArray API. Handle aliases via the _HANDLED_FUNCTIONS
-            # dict mapping.
-            exclude_list = {"unique"}
-            ea_func = getattr(type(self), func.__name__, None)
-            if ea_func is None or ea_func.__name__ in exclude_list:
-                # Need to convert EAs to numpy.ndarray so we can call the NumPy
-                # function again and it gets the chance to dispatch to the
-                # right implementation.
-                args = tuple(
-                    arg.to_numpy() if isinstance(arg, ExtensionArray) else arg
-                    for arg in args
-                )
-                return func(*args, **kwargs)
-
-            return ea_func(*args, **kwargs)
-
-        return _HANDLED_FUNCTIONS[func](*args, **kwargs)
 
     # ------------------------------------------------------------------------
     # Constructors
