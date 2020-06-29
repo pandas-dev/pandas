@@ -6416,31 +6416,17 @@ a   13.0   13.0
 b   12.3  123.0
 NaN 12.3   33.0
 
-By default, the group keys are not prepended to the index for transforms
-passed to ``apply``.
+To exclude or include the group keys in the index, specify ``group_keys``
 
 >>> df = pd.DataFrame({'Animal': ['Falcon', 'Falcon',
 ...                               'Parrot', 'Parrot'],
 ...                    'Max Speed': [380., 370., 24., 26.]})
->>> df.groupby("Animal").apply(lambda x: x)
+>>> df.groupby("Animal", group_keys=False).apply(lambda x: x)
    Animal  Max Speed
 0  Falcon      380.0
 1  Falcon      370.0
 2  Parrot       24.0
 3  Parrot       26.0
-
-But they are prepended for user-defined functions that return an object
-with different row or column labels.
-
->>> df.groupby("Animal").apply(lambda x: x.rename(index=np.exp))
-                  Animal  Max Speed
-Animal
-Falcon 1.000000   Falcon      380.0
-       2.718282   Falcon      370.0
-Parrot 7.389056   Parrot       24.0
-       20.085537  Parrot       26.0
-
-To control this behavior, specify ``group_keys``
 
 >>> df.groupby("Animal", group_keys=True).apply(lambda x: x)
           Animal  Max Speed
