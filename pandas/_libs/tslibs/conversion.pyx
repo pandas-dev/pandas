@@ -77,7 +77,7 @@ cdef inline int64_t cast_from_unit(object ts, str unit) except? -1:
     return <int64_t>(base * m) + <int64_t>(frac * m)
 
 
-cpdef inline object precision_from_unit(str unit):
+cpdef inline (int64_t, int) precision_from_unit(str unit):
     """
     Return a casting of the unit represented to nanoseconds + the precision
     to round the fractional part.
