@@ -527,7 +527,6 @@ _deprecated_defaults: Dict[str, Any] = {}
 _deprecated_args: Set[str] = set()
 
 
-
 def _make_parser_function(name, default_sep=","):
     def parser_f(
         filepath_or_buffer: FilePathOrBuffer,
@@ -706,8 +705,6 @@ def read_csv(
     # Alias sep -> delimiter.
     if delimiter is None:
         delimiter = sep
-
-
         kwds.update(
             delimiter=delimiter,
             engine=engine,
