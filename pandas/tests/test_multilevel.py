@@ -787,7 +787,7 @@ Thur,Lunch,Yes,51.51,17"""
         s = self.frame["A"]
         grouper = s.index.get_level_values(0)
 
-        grouped = s.groupby(grouper)
+        grouped = s.groupby(grouper, group_keys=False)
 
         applied = grouped.apply(lambda x: x * 2)
         expected = grouped.transform(lambda x: x * 2)

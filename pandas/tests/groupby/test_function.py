@@ -808,7 +808,9 @@ def test_cummax_all_nan_column():
     expected = pd.DataFrame({"B": [np.nan] * 8})
     result = base_df.groupby("A").cummax()
     tm.assert_frame_equal(expected, result)
-    result = base_df.groupby("A").B.apply(lambda x: x.cummax()).to_frame()
+    result = (
+        base_df.groupby("A", group_keys=False).B.apply(lambda x: x.cummax()).to_frame()
+    )
     tm.assert_frame_equal(expected, result)
 
 

@@ -357,7 +357,9 @@ class Resampler(_GroupBy, ShallowMixin):
 
         obj = self._selected_obj
 
-        grouped = get_groupby(obj, by=None, grouper=grouper, axis=self.axis)
+        grouped = get_groupby(
+            obj, by=None, grouper=grouper, axis=self.axis, group_keys=self.group_keys
+        )
 
         try:
             if isinstance(obj, ABCDataFrame) and callable(how):

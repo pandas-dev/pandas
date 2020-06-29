@@ -274,7 +274,9 @@ def test_apply_without_aggregation():
 
     # both resample and groupby should work w/o aggregation
     r = test_series.resample("20min")
-    g = test_series.groupby(pd.Grouper(freq="20min"))
+
+    r.group_keys = False  # XXX: Add to .resample API?
+    g = test_series.groupby(pd.Grouper(freq="20min"), group_keys=False)
 
     for t in [g, r]:
         result = t.apply(lambda x: x)

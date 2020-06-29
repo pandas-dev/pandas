@@ -825,7 +825,6 @@ b  2""",
         )
     )
     def apply(self, func, *args, **kwargs):
-
         func = self._is_builtin_func(func)
 
         # this is needed so we don't try and wrap strings. If we could
