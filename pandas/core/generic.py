@@ -2899,7 +2899,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             formatter_elems_is_str = all(isinstance(elem, str) for elem in formatters)
             formatter_elems_is_lambda = all(callable(elem) for elem in formatters)
             if formatter_elems_is_str:
-                formatters = [ lambda x: "{0:{1}}".format(x, style) for style in formatters]
+                formatters = [ (lambda style: lambda x: "{0:{1}}".format(x, style))(style) for style in formatters ]
             elif not formatter_elems_is_lambda:
                 raise ValueError("Formatters elements should be strings")
 
