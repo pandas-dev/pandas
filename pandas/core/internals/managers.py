@@ -220,16 +220,8 @@ class BlockManager(PandasObject):
 
     @property
     def _is_single_block(self) -> bool:
-        if self.ndim == 1:
-            return True
-
-        if len(self.blocks) != 1:
-            return False
-
-        blk = self.blocks[0]
-        return blk.mgr_locs.is_slice_like and blk.mgr_locs.as_slice == slice(
-            0, len(self), 1
-        )
+        # Assumes we are 2D; overriden by SingleBlockManager
+        return len(self.blocks) == 1
 
     def _rebuild_blknos_and_blklocs(self) -> None:
         """
@@ -820,7 +812,7 @@ class BlockManager(PandasObject):
                 .values.to_numpy(dtype=dtype, na_value=na_value)
                 .reshape(self.blocks[0].shape)
             )
-        elif self._is_single_block or not self.is_mixed_type:
+        elif self._is_single_block:
             arr = np.asarray(self.blocks[0].get_values())
             if dtype:
                 arr = arr.astype(dtype, copy=False)
@@ -1486,6 +1478,7 @@ class SingleBlockManager(BlockManager):
     _is_consolidated = True
     _known_consolidated = True
     __slots__ = ()
+    _is_single_block = True
 
     def __init__(
         self,
