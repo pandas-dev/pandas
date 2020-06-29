@@ -284,7 +284,6 @@ class Resampler(_GroupBy, ShallowMixin):
     )
     def aggregate(self, func, *args, **kwargs):
 
-        assert not self.group_keys
         self._set_binner()
         result, how = self._aggregate(func, *args, **kwargs)
         if result is None:
