@@ -20,6 +20,7 @@ from pandas import (
     Categorical,
     DataFrame,
     Index,
+    CategoricalIndex,
     MultiIndex,
     RangeIndex,
     Series,
@@ -2482,6 +2483,16 @@ class TestDataFrameConstructors:
         data = Series([[{"a": 1, "b": 2}], [{"a": 3, "b": 4}]])
         result = DataFrame.from_records(data)
         tm.assert_frame_equal(result, expected)
+
+    def test_from_records_series_categorical_index(self):
+        # GH 32805
+        index = CategoricalIndex(
+            [pd.Interval(-20, -10), pd.Interval(-10, 0), pd.Interval(0, 10)]
+        )
+        series_of_dicts = pd.Series([{"a": 1}, {"a": 2}, {"b": 3}], index=index)
+        frame = pd.DataFrame.from_records(series_of_dicts, index=index)
+        expected = DataFrame({"a": [1, 2, np.NaN], "b": [np.NaN, np.NaN, 3],}, index=index)
+        tm.assert_frame_equal(frame, expected)
 
     def test_frame_from_records_utc(self):
         rec = {"datum": 1.5, "begin_time": datetime(2006, 4, 27, tzinfo=pytz.utc)}
