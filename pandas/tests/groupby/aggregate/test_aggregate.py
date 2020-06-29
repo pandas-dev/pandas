@@ -458,22 +458,6 @@ def test_agg_split_object_part_datetime():
     tm.assert_frame_equal(result, expected)
 
 
-def test_agg_cython_category_not_implemented_fallback():
-    # https://github.com/pandas-dev/pandas/issues/31450
-    df = pd.DataFrame({"col_num": [1, 1, 2, 3]})
-    df["col_cat"] = df["col_num"].astype("category")
-
-    result = df.groupby("col_num").col_cat.first()
-    expected = pd.Series(
-        [1, 2, 3], index=pd.Index([1, 2, 3], name="col_num"), name="col_cat"
-    )
-    tm.assert_series_equal(result, expected)
-
-    result = df.groupby("col_num").agg({"col_cat": "first"})
-    expected = expected.to_frame()
-    tm.assert_frame_equal(result, expected)
-
-
 class TestNamedAggregationSeries:
     def test_series_named_agg(self):
         df = pd.Series([1, 2, 3, 4])
@@ -809,16 +793,6 @@ def test_aggregate_mixed_types():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("func", ["min", "max"])
-def test_aggregate_categorical_lost_index(func: str):
-    # GH: 28641 groupby drops index, when grouping over categorical column with min/max
-    ds = pd.Series(["b"], dtype="category").cat.as_ordered()
-    df = pd.DataFrame({"A": [1997], "B": ds})
-    result = df.groupby("A").agg({"B": func})
-    expected = pd.DataFrame({"B": ["b"]}, index=pd.Index([1997], name="A"))
-    tm.assert_frame_equal(result, expected)
-
-
 @pytest.mark.xfail(reason="Not implemented;see GH 31256")
 def test_aggregate_udf_na_extension_type():
     # https://github.com/pandas-dev/pandas/pull/31359
@@ -994,30 +968,3 @@ def test_groupby_get_by_index():
     res = df.groupby("A").agg({"B": lambda x: x.get(x.index[-1])})
     expected = pd.DataFrame(dict(A=["S", "W"], B=[1.0, 2.0])).set_index("A")
     pd.testing.assert_frame_equal(res, expected)
-
-
-def test_aggregate_categorical_with_isnan():
-    # GH 29837
-    df = pd.DataFrame(
-        {
-            "A": [1, 1, 1, 1],
-            "B": [1, 2, 1, 2],
-            "numerical_col": [0.1, 0.2, np.nan, 0.3],
-            "object_col": ["foo", "bar", "foo", "fee"],
-            "categorical_col": ["foo", "bar", "foo", "fee"],
-        }
-    )
-
-    df = df.astype({"categorical_col": "category"})
-
-    result = df.groupby(["A", "B"]).agg(lambda df: df.isna().sum())
-    index = pd.MultiIndex.from_arrays([[1, 1], [1, 2]], names=("A", "B"))
-    expected = pd.DataFrame(
-        data={
-            "numerical_col": [1.0, 0.0],
-            "object_col": [0, 0],
-            "categorical_col": [0, 0],
-        },
-        index=index,
-    )
-    tm.assert_frame_equal(result, expected)
