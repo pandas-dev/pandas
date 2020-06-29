@@ -7,10 +7,12 @@ import numpy as np
 
 from pandas._libs import algos, lib
 from pandas._libs.tslibs import (
+    BaseOffset,
     NaT,
     NaTType,
     Period,
     Resolution,
+    Tick,
     Timestamp,
     delta_to_nanoseconds,
     iNaT,
@@ -62,7 +64,6 @@ from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.ops.invalid import invalid_comparison, make_invalid_op
 
 from pandas.tseries import frequencies
-from pandas.tseries.offsets import DateOffset, Tick
 
 DTScalarOrNaT = Union[DatetimeLikeScalar, NaTType]
 
@@ -421,7 +422,7 @@ default 'raise'
         if freq is None:
             # Always valid
             pass
-        elif len(self) == 0 and isinstance(freq, DateOffset):
+        elif len(self) == 0 and isinstance(freq, BaseOffset):
             # Always valid.  In the TimedeltaArray case, we assume this
             #  is a Tick offset.
             pass
@@ -1398,7 +1399,7 @@ class DatetimeLikeArrayMixin(
             result = self._add_nat()
         elif isinstance(other, (Tick, timedelta, np.timedelta64)):
             result = self._add_timedeltalike_scalar(other)
-        elif isinstance(other, DateOffset):
+        elif isinstance(other, BaseOffset):
             # specifically _not_ a Tick
             result = self._add_offset(other)
         elif isinstance(other, (datetime, np.datetime64)):
@@ -1454,7 +1455,7 @@ class DatetimeLikeArrayMixin(
             result = self._sub_nat()
         elif isinstance(other, (Tick, timedelta, np.timedelta64)):
             result = self._add_timedeltalike_scalar(-other)
-        elif isinstance(other, DateOffset):
+        elif isinstance(other, BaseOffset):
             # specifically _not_ a Tick
             result = self._add_offset(-other)
         elif isinstance(other, (datetime, np.datetime64)):
@@ -1778,7 +1779,7 @@ def maybe_infer_freq(freq):
         Whether we should inherit the freq of passed data.
     """
     freq_infer = False
-    if not isinstance(freq, DateOffset):
+    if not isinstance(freq, BaseOffset):
         # if a passed freq is None, don't infer automatically
         if freq != "infer":
             freq = to_offset(freq)
