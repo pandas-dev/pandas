@@ -1692,7 +1692,7 @@ Name: Max Speed, dtype: float64
         level=None,
         as_index: bool = True,
         sort: bool = True,
-        group_keys: bool = True,
+        group_keys: Optional[bool] = None,
         squeeze: bool = no_default,
         observed: bool = False,
         dropna: bool = True,

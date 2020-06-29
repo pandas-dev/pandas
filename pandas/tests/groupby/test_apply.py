@@ -1030,3 +1030,8 @@ def test_groupby_apply_group_keys_warns():
         result = df.groupby("A")["B"].apply(lambda x: x)
 
     tm.assert_series_equal(result, df["B"])
+
+    with tm.assert_produces_warning(FutureWarning):
+        result = df["B"].groupby(df["A"]).apply(lambda x: x)
+
+    tm.assert_series_equal(result, df["B"])

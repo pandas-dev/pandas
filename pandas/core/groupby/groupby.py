@@ -890,7 +890,9 @@ b  2""",
         not_indexed_same = mutated or self.mutated
 
         if not not_indexed_same and self.group_keys is None:
-            if self._selection is None:
+            if self.ndim == 1:
+                stacklevel = 4
+            elif self._selection is None:
                 stacklevel = 3
             else:
                 stacklevel = 4
