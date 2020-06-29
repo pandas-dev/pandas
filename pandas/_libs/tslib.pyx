@@ -424,6 +424,7 @@ cpdef array_to_datetime(
         float offset_seconds, tz_offset
         set out_tzoffset_vals = set()
         bint string_to_dts_failed
+        
     # specify error conditions
     assert is_raise or is_ignore or is_coerce
 
