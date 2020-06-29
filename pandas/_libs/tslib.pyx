@@ -444,6 +444,7 @@ def array_with_unit_to_datetime(
             if ((fvalues < Timestamp.min.value).any()
                     or (fvalues > Timestamp.max.value).any()):
                 raise OutOfBoundsDatetime(f"cannot convert input with unit '{unit}'")
+            # GH20445
             if values.dtype.kind == 'i':
                 result = (iresult * m).astype('M8[ns]')
                 iresult = result.view('i8')
@@ -613,7 +614,7 @@ cpdef array_to_datetime(
         float offset_seconds, tz_offset
         set out_tzoffset_vals = set()
         bint string_to_dts_failed
-        
+
     # specify error conditions
     assert is_raise or is_ignore or is_coerce
 
