@@ -402,3 +402,28 @@ def test_dataframe_insert_raises():
     df = pd.DataFrame({"A": [1, 2]}, allows_duplicate_labels=False)
     with pytest.raises(ValueError, match="Cannot specify"):
         df.insert(0, "A", [3, 4], allow_duplicates=True)
+
+
+def test_inplace_raises():
+    df = pd.DataFrame({"A": [0, 0], "B": [1, 2]}, allows_duplicate_labels=False)
+    s = df["A"]
+    s.allows_duplicate_labels = False
+    msg = "Cannot specify"
+
+    with pytest.raises(ValueError, match=msg):
+        df.set_index("A", inplace=True)
+
+    with pytest.raises(ValueError, match=msg):
+        df.set_axis(["A", "B"], inplace=True)
+
+    with pytest.raises(ValueError, match=msg):
+        s.set_axis(["A", "B"], inplace=True)
+
+    with pytest.raises(ValueError, match=msg):
+        df.set_axis(["A", "B"], inplace=True)
+
+    with pytest.raises(ValueError, match=msg):
+        df.reset_index(inplace=True)
+
+    with pytest.raises(ValueError, match=msg):
+        df.rename(lambda x: x, inplace=True)

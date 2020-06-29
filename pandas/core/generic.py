@@ -571,6 +571,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         --------
         %(klass)s.rename_axis : Alter the name of the index%(see_also_sub)s.
         """
+        self._check_inplace_and_allows_duplicate_labels(inplace)
         if inplace:
             setattr(self, self._get_axis_name(axis), labels)
         else:
@@ -3733,6 +3734,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     # ----------------------------------------------------------------------
     # Unsorted
+
+    def _check_inplace_and_allows_duplicate_labels(self, inplace):
+        if inplace and not self.allows_duplicate_labels:
+            raise ValueError(
+                "Cannot specify 'inplace=True' when "
+                "'self.allows_duplicate_labels' is False."
+            )
 
     def get(self, key, default=None):
         """

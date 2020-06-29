@@ -3591,7 +3591,7 @@ class DataFrame(NDFrame):
         if allow_duplicates and not self.allows_duplicate_labels:
             raise ValueError(
                 "Cannot specify 'allow_duplicates=True' when "
-                "'self.allows_dpulicate_labels' is False."
+                "'self.allows_duplicate_labels' is False."
             )
         self._ensure_valid_index(value)
         value = self._sanitize_column(column, value, broadcast=False)
@@ -4487,6 +4487,7 @@ class DataFrame(NDFrame):
         4 16     10  2014    31
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
+        self._check_inplace_and_allows_duplicate_labels(inplace)
         if not isinstance(keys, list):
             keys = [keys]
 
@@ -4732,6 +4733,7 @@ class DataFrame(NDFrame):
         monkey         mammal    NaN    jump
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
+        self._check_inplace_and_allows_duplicate_labels(inplace)
         if inplace:
             new_obj = self
         else:
