@@ -227,6 +227,7 @@ def array_with_unit_to_datetime(
     m = cast_from_unit(None, unit)
 
     if is_raise:
+
         # try a quick conversion to i8
         # if we have nulls that are not type-compat
         # then need to iterate
@@ -239,17 +240,9 @@ def array_with_unit_to_datetime(
             fvalues = iresult.astype('f8') * m
             need_to_iterate = False
 
-        # GH20445
-        if values.dtype.kind == "f":
-            fresult = values.astype('f8', casting='same_kind', copy=False)
-            # fill by comparing to NPY_NAT constant
-            mask = fresult == NPY_NAT
-            fresult[mask] = 0.0
-            fvalues = fvalues.astype('f8') * m  # FIXME: this line segfaults rn
-            need_to_iterate = False
-
         # check the bounds
         if not need_to_iterate:
+
             if ((fvalues < Timestamp.min.value).any()
                     or (fvalues > Timestamp.max.value).any()):
                 raise OutOfBoundsDatetime(f"cannot convert input with unit '{unit}'")
@@ -417,6 +410,7 @@ cpdef array_to_datetime(
         float offset_seconds, tz_offset
         set out_tzoffset_vals = set()
         bint string_to_dts_failed
+
     # specify error conditions
     assert is_raise or is_ignore or is_coerce
 
