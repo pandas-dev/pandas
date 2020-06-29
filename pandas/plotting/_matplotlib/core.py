@@ -1,9 +1,11 @@
 import re
-from typing import Optional
+from typing import List, Optional
 import warnings
 
+from matplotlib.artist import Artist
 import numpy as np
 
+from pandas._typing import Label
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
@@ -97,6 +99,8 @@ class MPLPlot:
         ylim=None,
         xticks=None,
         yticks=None,
+        xlabel: Optional[Label] = None,
+        ylabel: Optional[Label] = None,
         sort_columns=False,
         fontsize=None,
         secondary_y=False,
@@ -138,6 +142,8 @@ class MPLPlot:
         self.ylim = ylim
         self.title = title
         self.use_index = use_index
+        self.xlabel = xlabel
+        self.ylabel = ylabel
 
         self.fontsize = fontsize
 
@@ -155,8 +161,8 @@ class MPLPlot:
 
         self.grid = grid
         self.legend = legend
-        self.legend_handles = []
-        self.legend_labels = []
+        self.legend_handles: List[Artist] = []
+        self.legend_labels: List[Label] = []
 
         for attr in self._pop_attributes:
             value = kwds.pop(attr, self._attr_defaults.get(attr, None))
@@ -482,6 +488,11 @@ class MPLPlot:
             if self.xlim is not None:
                 ax.set_xlim(self.xlim)
 
+            # GH9093, currently Pandas does not show ylabel, so if users provide
+            # ylabel will set it as ylabel in the plot.
+            if self.ylabel is not None:
+                ax.set_ylabel(pprint_thing(self.ylabel))
+
             ax.grid(self.grid)
 
         if self.title:
@@ -667,6 +678,10 @@ class MPLPlot:
             name = self.data.index.name
             if name is not None:
                 name = pprint_thing(name)
+
+        # GH 9093, override the default xlabel if xlabel is provided.
+        if self.xlabel is not None:
+            name = pprint_thing(self.xlabel)
 
         return name
 
