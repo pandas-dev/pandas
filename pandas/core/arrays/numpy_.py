@@ -192,6 +192,7 @@ class PandasArray(
 
     @classmethod
     def _concat_same_type(cls, to_concat) -> "PandasArray":
+        to_concat = [arr.to_numpy() for arr in to_concat]
         return cls(np.concatenate(to_concat))
 
     def _from_backing_data(self, arr: np.ndarray) -> "PandasArray":
@@ -347,12 +348,16 @@ class PandasArray(
         )
         return result
 
+    amin = min
+
     def max(self, skipna: bool = True, **kwargs) -> Scalar:
         nv.validate_max((), kwargs)
         result = masked_reductions.max(
             values=self.to_numpy(), mask=self.isna(), skipna=skipna
         )
         return result
+
+    amax = max
 
     def sum(self, axis=None, skipna=True, min_count=0, **kwargs) -> Scalar:
         nv.validate_sum((), kwargs)
