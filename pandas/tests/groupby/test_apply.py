@@ -1014,12 +1014,19 @@ def test_apply_result_type(group_keys, udf, is_transform):
     if group_keys:
         assert df_result.index.nlevels == 2
         assert series_result.index.nlevels == 2
-    elif group_keys is False:
+    else:
         assert df_result.index.nlevels == 1
         assert series_result.index.nlevels == 1
-    # elif is_transform:
-    #     assert df_result.index.nlevels == 1
-    #     assert series_result.index.nlevels == 1
-    # else:
-    #     assert df_result.index.nlevels == 2
-    #     assert series_result.index.nlevels == 2
+
+
+def test_groupby_apply_group_keys_warns():
+    df = pd.DataFrame({"A": [0, 1, 1], "B": [1, 2, 3]})
+    with tm.assert_produces_warning(FutureWarning):
+        result = df.groupby("A").apply(lambda x: x)
+
+    tm.assert_frame_equal(result, df)
+
+    with tm.assert_produces_warning(FutureWarning):
+        result = df.groupby("A")["B"].apply(lambda x: x)
+
+    tm.assert_series_equal(result, df["B"])

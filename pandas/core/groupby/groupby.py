@@ -29,6 +29,7 @@ from typing import (
     TypeVar,
     Union,
 )
+import warnings
 
 import numpy as np
 
@@ -887,6 +888,23 @@ b  2""",
         """
         keys, values, mutated = self.grouper.apply(f, data, self.axis)
         not_indexed_same = mutated or self.mutated
+
+        if not not_indexed_same and self.group_keys is None:
+            if self._selection is None:
+                stacklevel = 3
+            else:
+                stacklevel = 4
+            msg = (
+                "Not prepending group keys to the result index of "
+                "transform-like apply. In the future, the group keys "
+                "will be included in the index, regardless of whether "
+                "the applied function returns a like-indexed object.\n"
+                "To preserve the previous behavior, use\n\n\t"
+                ">>> .groupby(..., group_keys=False)\n\n"
+                "To adopt the future behavior and silence this warning, use "
+                "\n\n\t>>> .groupby(..., group_keys=True)"
+            )
+            warnings.warn(msg, FutureWarning, stacklevel=stacklevel)
 
         return self._wrap_applied_output(
             keys, values, not_indexed_same=not_indexed_same
