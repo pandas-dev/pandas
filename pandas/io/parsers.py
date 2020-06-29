@@ -173,6 +173,7 @@ engine : {{'c', 'python', 'pyarrow'}}, optional
     is currently more feature-complete. The pyarrow engine requires ``pyarrow`` >= 0.15
     as a dependency however.
 
+
     .. versionchanged:: 1.1
         The "pyarrow" engine was added.
 converters : dict, optional
