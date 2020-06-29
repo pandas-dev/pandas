@@ -13,7 +13,7 @@ from pandas.core.dtypes.inference import is_array_like
 
 from pandas import compat
 from pandas.core import ops
-from pandas.core.arrays import ArrayFunctionMixin, IntegerArray, PandasArray
+from pandas.core.arrays import IntegerArray, PandasArray
 from pandas.core.arrays.integer import _IntegerDtype
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
@@ -98,7 +98,7 @@ class StringDtype(ExtensionDtype):
         return StringArray._concat_same_type(results)
 
 
-class StringArray(PandasArray, ArrayFunctionMixin):
+class StringArray(PandasArray):
     """
     Extension array for string data.
 

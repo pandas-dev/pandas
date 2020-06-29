@@ -56,11 +56,7 @@ from pandas.core import missing, nanops, ops
 from pandas.core.algorithms import checked_add_with_arr, unique1d, value_counts
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays._mixins import _T, NDArrayBackedExtensionArray
-from pandas.core.arrays.base import (
-    ArrayFunctionMixin,
-    ExtensionArray,
-    ExtensionOpsMixin,
-)
+from pandas.core.arrays.base import ExtensionArray, ExtensionOpsMixin
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array
 from pandas.core.indexers import check_array_indexer
@@ -444,7 +440,7 @@ DatetimeLikeArrayT = TypeVar("DatetimeLikeArrayT", bound="DatetimeLikeArrayMixin
 
 
 class DatetimeLikeArrayMixin(
-    ExtensionOpsMixin, AttributesMixin, NDArrayBackedExtensionArray, ArrayFunctionMixin
+    ExtensionOpsMixin, AttributesMixin, NDArrayBackedExtensionArray
 ):
     """
     Shared Base/Mixin class for DatetimeArray, TimedeltaArray, PeriodArray

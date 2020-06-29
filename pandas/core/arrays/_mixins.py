@@ -7,12 +7,12 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.algorithms import take, unique
-from pandas.core.arrays.base import ExtensionArray
+from pandas.core.arrays.base import ArrayFunctionMixin, ExtensionArray
 
 _T = TypeVar("_T", bound="NDArrayBackedExtensionArray")
 
 
-class NDArrayBackedExtensionArray(ExtensionArray):
+class NDArrayBackedExtensionArray(ExtensionArray, ArrayFunctionMixin):
     """
     ExtensionArray that is backed by a single NumPy ndarray.
     """
