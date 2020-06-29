@@ -2776,7 +2776,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         multirow=None,
         caption=None,
         label=None,
-        multifloat_format=None,
     ):
         r"""
         Render object to a LaTeX tabular, longtable, or nested table/tabular.
@@ -2806,7 +2805,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             Write row names (index).
         na_rep : str, default 'NaN'
             Missing data representation.
-        formatters : list of functions or dict of {str: function}, optional
+        formatters : list of functions/str or dict of {str: function}, optional
             Formatter functions to apply to columns' elements by position or
             name. The result of each function must be a unicode string.
             List must be of length equal to the number of columns.
@@ -2859,10 +2858,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             The LaTeX label to be placed inside ``\label{}`` in the output.
             This is used with ``\ref{}`` in the main ``.tex`` file.
             .. versionadded:: 1.0.0
-        multifloat_format: list of str, default None, optional
-            Formatting floats by columns, similar to `float_format`.
-            The result of each function must be a unicode string.
-            This applies the changes in the original order of the columns.
 
         %(returns)s
         See Also
@@ -2900,11 +2895,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if multirow is None:
             multirow = config.get_option("display.latex.multirow")
 
-        if multifloat_format:
-            if is_list_like(multifloat_format):
-                formatters = [lambda x: style % x for style in multifloat_format]
-            else:
-                raise ValueError
+        if is_list_like(formatters) and not isinstance(formatters, dict):
+            formatter_elems_is_str = all(isinstance(elem, str) for elem in formatters)
+            formatter_elems_is_lambda = all(callable(elem) for elem in formatters)
+            if formatter_elems_is_str:
+                formatters = [ lambda x: "{0:{1}}".format(x, style) for style in formatters]
+            elif not formatter_elems_is_lambda:
+                raise ValueError("Formatters elements should be strings")
 
         formatter = DataFrameFormatter(
             self,
