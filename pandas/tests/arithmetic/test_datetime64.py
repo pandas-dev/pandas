@@ -1046,6 +1046,7 @@ class TestDatetime64Arithmetic:
                 "cannot (add|subtract)",
                 "cannot use operands with types",
                 "ufunc '?(add|subtract)'? cannot use operands with types",
+                "Concatenation operation is not implemented for NumPy arrays",
             ]
         )
         assert_invalid_addsub_type(dtarr, other, msg)

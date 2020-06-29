@@ -682,7 +682,11 @@ class TestPeriodIndexArithmetic:
         dti = pd.DatetimeIndex(["2011-01-01", "2011-01-02"], freq="D")
         pi = dti.to_period("D")
         pi = tm.box_expected(pi, box_with_array)
-        msg = r"unsupported operand type\(s\) for [+-]: .* and .*"
+        msg = (
+            r"unsupported operand type\(s\) for [+-]: .* and .*|"
+            "Concatenation operation is not implemented for NumPy arrays"
+        )
+
         with pytest.raises(TypeError, match=msg):
             op(pi, other)
 
