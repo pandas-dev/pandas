@@ -414,7 +414,6 @@ class SeriesGroupBy(GroupBy[Series]):
         return result
 
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
-        # breakpoint()
         if len(keys) == 0:
             # GH #6265
             return self.obj._constructor(
@@ -1205,7 +1204,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return self.obj._constructor(result, columns=result_columns)
 
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
-        # breakpoint()
         if len(keys) == 0:
             return self.obj._constructor(index=keys)
 
@@ -1675,7 +1673,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 as_index=self.as_index,
                 observed=self.observed,
                 group_keys=self.group_keys,
-                # TODO: dropna?
             )
         elif ndim == 1:
             if subset is None:
@@ -1685,8 +1682,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 selection=key,
                 grouper=self.grouper,
                 observed=self.observed,
-                group_keys=self.group_keys
-                # TODO: dropna, as_index?
+                group_keys=self.group_keys,
             )
 
         raise AssertionError("invalid ndim for _gotitem")

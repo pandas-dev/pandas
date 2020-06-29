@@ -77,14 +77,14 @@ class Resampler(_GroupBy, ShallowMixin):
         "offset",
     ]
 
-    def __init__(self, obj, groupby=None, axis=0, kind=None, **kwargs):
+    def __init__(self, obj, groupby=None, axis=0, kind=None, group_keys=True, **kwargs):
         self.groupby = groupby
         self.keys = None
         self.sort = True
         self.axis = axis
         self.kind = kind
         self.squeeze = False
-        self.group_keys = True
+        self.group_keys = group_keys
         self.as_index = True
         self.exclusions = set()
         self.binner = None
@@ -284,6 +284,7 @@ class Resampler(_GroupBy, ShallowMixin):
     )
     def aggregate(self, func, *args, **kwargs):
 
+        assert not self.group_keys
         self._set_binner()
         result, how = self._aggregate(func, *args, **kwargs)
         if result is None:
@@ -339,7 +340,9 @@ class Resampler(_GroupBy, ShallowMixin):
         grouper = self.grouper
         if subset is None:
             subset = self.obj
-        grouped = get_groupby(subset, by=None, grouper=grouper, axis=self.axis)
+        grouped = get_groupby(
+            subset, by=None, grouper=grouper, axis=self.axis, group_keys=self.group_keys
+        )
 
         # try the key selection
         try:
@@ -356,7 +359,6 @@ class Resampler(_GroupBy, ShallowMixin):
             grouper = self.grouper
 
         obj = self._selected_obj
-
         grouped = get_groupby(
             obj, by=None, grouper=grouper, axis=self.axis, group_keys=self.group_keys
         )
@@ -1327,6 +1329,7 @@ class TimeGrouper(Grouper):
         base: Optional[int] = None,
         origin: Union[str, TimestampConvertibleTypes] = "start_day",
         offset: Optional[TimedeltaConvertibleTypes] = None,
+        group_keys: Optional[bool] = True,
         **kwargs,
     ):
         # Check for correctness of the keyword arguments which would
@@ -1363,6 +1366,7 @@ class TimeGrouper(Grouper):
         self.how = how
         self.fill_method = fill_method
         self.limit = limit
+        self.group_keys = group_keys
 
         if origin in ("epoch", "start", "start_day"):
             self.origin = origin
@@ -1427,11 +1431,17 @@ class TimeGrouper(Grouper):
 
         ax = self.ax
         if isinstance(ax, DatetimeIndex):
-            return DatetimeIndexResampler(obj, groupby=self, kind=kind, axis=self.axis)
+            return DatetimeIndexResampler(
+                obj, groupby=self, kind=kind, axis=self.axis, group_keys=self.group_keys
+            )
         elif isinstance(ax, PeriodIndex) or kind == "period":
-            return PeriodIndexResampler(obj, groupby=self, kind=kind, axis=self.axis)
+            return PeriodIndexResampler(
+                obj, groupby=self, kind=kind, axis=self.axis, group_keys=self.group_keys
+            )
         elif isinstance(ax, TimedeltaIndex):
-            return TimedeltaIndexResampler(obj, groupby=self, axis=self.axis)
+            return TimedeltaIndexResampler(
+                obj, groupby=self, axis=self.axis, group_keys=self.group_keys
+            )
 
         raise TypeError(
             "Only valid with DatetimeIndex, "

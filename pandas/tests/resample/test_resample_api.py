@@ -273,14 +273,16 @@ def test_fillna():
 def test_apply_without_aggregation():
 
     # both resample and groupby should work w/o aggregation
-    r = test_series.resample("20min")
-
-    r.group_keys = False  # XXX: Add to .resample API?
+    r = test_series.resample("20min", group_keys=False)
     g = test_series.groupby(pd.Grouper(freq="20min"), group_keys=False)
 
     for t in [g, r]:
         result = t.apply(lambda x: x)
         tm.assert_series_equal(result, test_series)
+
+    grouped = test_series.to_frame(name="foo").resample("20min", group_keys=False)
+    result = grouped["foo"].apply(lambda x: x)
+    tm.assert_series_equal(result, test_series.rename("foo"))
 
 
 def test_agg_consistency():

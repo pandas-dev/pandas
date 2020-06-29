@@ -7692,6 +7692,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         level=None,
         origin: Union[str, TimestampConvertibleTypes] = "start_day",
         offset: Optional[TimedeltaConvertibleTypes] = None,
+        group_keys: Optional[bool_t] = True,
     ) -> "Resampler":
         """
         Resample time-series data.
@@ -7758,6 +7759,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         offset : Timedelta or str, default is None
             An offset timedelta added to the origin.
+
+            .. versionadded:: 1.1.0
+
+        group_keys : bool, default True
+            Whether to include the group keys in the result index when performing
+            a ``.groupby().apply()`` to to the resampled object.
 
             .. versionadded:: 1.1.0
 
@@ -8077,6 +8084,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             level=level,
             origin=origin,
             offset=offset,
+            group_keys=group_keys,
         )
 
     def first(self: FrameOrSeries, offset) -> FrameOrSeries:
