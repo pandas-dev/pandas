@@ -1456,3 +1456,56 @@ def test_sorted_missing_category_values():
     result = df.groupby(["bar", "foo"]).size().unstack()
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_agg_cython_category_not_implemented_fallback():
+    # https://github.com/pandas-dev/pandas/issues/31450
+    df = pd.DataFrame({"col_num": [1, 1, 2, 3]})
+    df["col_cat"] = df["col_num"].astype("category")
+
+    result = df.groupby("col_num").col_cat.first()
+    expected = pd.Series(
+        [1, 2, 3], index=pd.Index([1, 2, 3], name="col_num"), name="col_cat"
+    )
+    tm.assert_series_equal(result, expected)
+
+    result = df.groupby("col_num").agg({"col_cat": "first"})
+    expected = expected.to_frame()
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", ["min", "max"])
+def test_aggregate_categorical_lost_index(func: str):
+    # GH: 28641 groupby drops index, when grouping over categorical column with min/max
+    ds = pd.Series(["b"], dtype="category").cat.as_ordered()
+    df = pd.DataFrame({"A": [1997], "B": ds})
+    result = df.groupby("A").agg({"B": func})
+    expected = pd.DataFrame({"B": ["b"]}, index=pd.Index([1997], name="A"))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_aggregate_categorical_with_isnan():
+    # GH 29837
+    df = pd.DataFrame(
+        {
+            "A": [1, 1, 1, 1],
+            "B": [1, 2, 1, 2],
+            "numerical_col": [0.1, 0.2, np.nan, 0.3],
+            "object_col": ["foo", "bar", "foo", "fee"],
+            "categorical_col": ["foo", "bar", "foo", "fee"],
+        }
+    )
+
+    df = df.astype({"categorical_col": "category"})
+
+    result = df.groupby(["A", "B"]).agg(lambda df: df.isna().sum())
+    index = pd.MultiIndex.from_arrays([[1, 1], [1, 2]], names=("A", "B"))
+    expected = pd.DataFrame(
+        data={
+            "numerical_col": [1.0, 0.0],
+            "object_col": [0, 0],
+            "categorical_col": [0, 0],
+        },
+        index=index,
+    )
+    tm.assert_frame_equal(result, expected)
