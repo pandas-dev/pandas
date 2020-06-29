@@ -435,20 +435,25 @@ def array_with_unit_to_datetime(
             # fill by comparing to NPY_NAT constant
             mask = fresult == NPY_NAT
             fresult[mask] = 0.0
-            fvalues = fvalues.astype('f8') * m  # FIXME: this line segfaults rn
+            m_as_float = <float64_t> m
+            fvalues = fresult.astype('f8') * m_as_float
             need_to_iterate = False
 
         # check the bounds
         if not need_to_iterate:
-
             if ((fvalues < Timestamp.min.value).any()
                     or (fvalues > Timestamp.max.value).any()):
                 raise OutOfBoundsDatetime(f"cannot convert input with unit '{unit}'")
-            result = (iresult * m).astype('M8[ns]')
-            iresult = result.view('i8')
-            iresult[mask] = NPY_NAT
-            return result, tz
-
+            if values.dtype.kind == 'i':
+                result = (iresult * m).astype('M8[ns]')
+                iresult = result.view('i8')
+                iresult[mask] = NPY_NAT
+                return result, tz
+            elif values.dtype.kind == 'f':
+                result = (fresult * m_as_float).astype('M8[ns]')
+                fresult = result.view('f8')
+                fresult[mask] = NPY_NAT
+                return result, tz
     result = np.empty(n, dtype='M8[ns]')
     iresult = result.view('i8')
 
@@ -608,7 +613,6 @@ cpdef array_to_datetime(
         float offset_seconds, tz_offset
         set out_tzoffset_vals = set()
         bint string_to_dts_failed
-        
     # specify error conditions
     assert is_raise or is_ignore or is_coerce
 
