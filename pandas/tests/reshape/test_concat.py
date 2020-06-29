@@ -1089,13 +1089,11 @@ class TestAppend:
         df = DataFrame(columns=["c", "d"])
         result = df.append(s, ignore_index=True)
         expected = DataFrame(
-            [[np.nan, np.nan, 1.0, 2.0, date]],
-            columns=["c", "d", "a", "b", "date"],
-            dtype=object,
+            [[np.nan, np.nan, 1.0, 2.0, date]], columns=["c", "d", "a", "b", "date"]
         )
-        expected["a"] = expected["a"].astype(float)
-        expected["b"] = expected["b"].astype(float)
-        expected["date"] = pd.to_datetime(expected["date"])
+        # These columns get cast to object after append
+        expected["c"] = expected["c"].astype(object)
+        expected["d"] = expected["d"].astype(object)
         tm.assert_frame_equal(result, expected)
 
 
