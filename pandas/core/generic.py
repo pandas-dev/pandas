@@ -7692,7 +7692,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         level=None,
         origin: Union[str, TimestampConvertibleTypes] = "start_day",
         offset: Optional[TimedeltaConvertibleTypes] = None,
-        group_keys: Optional[bool_t] = True,
+        group_keys: Optional[bool_t] = None,
     ) -> "Resampler":
         """
         Resample time-series data.
