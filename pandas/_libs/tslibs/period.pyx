@@ -14,6 +14,7 @@ import cython
 
 from cpython.datetime cimport (
     datetime,
+    tzinfo,
     PyDate_Check,
     PyDateTime_Check,
     PyDateTime_IMPORT,
@@ -1417,7 +1418,7 @@ def extract_freq(ndarray[object] values):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def dt64arr_to_periodarr(const int64_t[:] stamps, int freq, object tz):
+def dt64arr_to_periodarr(const int64_t[:] stamps, int freq, tzinfo tz):
     cdef:
         Py_ssize_t n = len(stamps)
         int64_t[:] result = np.empty(n, dtype=np.int64)
