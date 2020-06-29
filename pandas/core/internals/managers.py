@@ -805,17 +805,17 @@ class BlockManager(PandasObject):
         # mutating the original object
         copy = copy or na_value is not lib.no_default
 
-        if self._is_single_block and self.blocks[0].is_extension:
-            # Avoid implicit conversion of extension blocks to object
-            arr = (
-                self.blocks[0]
-                .values.to_numpy(dtype=dtype, na_value=na_value)
-                .reshape(self.blocks[0].shape)
-            )
-        elif self._is_single_block:
-            arr = np.asarray(self.blocks[0].get_values())
-            if dtype:
-                arr = arr.astype(dtype, copy=False)
+        if self._is_single_block:
+            blk = self.blocks[0]
+            if blk.is_extension:
+                # Avoid implicit conversion of extension blocks to object
+                arr = blk.values.to_numpy(dtype=dtype, na_value=na_value).reshape(
+                    blk.shape
+                )
+            else:
+                arr = np.asarray(blk.get_values())
+                if dtype:
+                    arr = arr.astype(dtype, copy=False)
         else:
             arr = self._interleave(dtype=dtype, na_value=na_value)
             # The underlying data was copied within _interleave
