@@ -812,7 +812,7 @@ class BlockManager(PandasObject):
                 .values.to_numpy(dtype=dtype, na_value=na_value)
                 .reshape(self.blocks[0].shape)
             )
-        elif self._is_single_block or not self.is_mixed_type:
+        elif self._is_single_block:
             arr = np.asarray(self.blocks[0].get_values())
             if dtype:
                 arr = arr.astype(dtype, copy=False)

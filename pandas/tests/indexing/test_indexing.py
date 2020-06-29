@@ -67,9 +67,9 @@ class TestFancy:
             (lambda x: x.iloc, "iloc"),
         ],
     )
-    def test_getitem_ndarray_3d(self, indices, obj, idxr, idxr_id):
+    def test_getitem_ndarray_3d(self, index, obj, idxr, idxr_id):
         # GH 25567
-        obj = obj(indices)
+        obj = obj(index)
         idxr = idxr(obj)
         nd3 = np.random.randint(5, size=(2, 2, 2))
 
@@ -105,17 +105,13 @@ class TestFancy:
             (lambda x: x.iloc, "iloc"),
         ],
     )
-    def test_setitem_ndarray_3d(self, indices, obj, idxr, idxr_id):
+    def test_setitem_ndarray_3d(self, index, obj, idxr, idxr_id):
         # GH 25567
-        obj = obj(indices)
+        obj = obj(index)
         idxr = idxr(obj)
         nd3 = np.random.randint(5, size=(2, 2, 2))
 
-        if (
-            (len(indices) == 0)
-            and (idxr_id == "iloc")
-            and isinstance(obj, pd.DataFrame)
-        ):
+        if (len(index) == 0) and (idxr_id == "iloc") and isinstance(obj, pd.DataFrame):
             # gh-32896
             pytest.skip("This is currently failing. There's an xfailed test below.")
 
@@ -123,7 +119,7 @@ class TestFancy:
             err = ValueError
             msg = f"Cannot set values with ndim > {obj.ndim}"
         elif (
-            isinstance(indices, pd.IntervalIndex)
+            isinstance(index, pd.IntervalIndex)
             and idxr_id == "setitem"
             and obj.ndim == 1
         ):
@@ -1075,3 +1071,32 @@ def test_setitem_with_bool_mask_and_values_matching_n_trues_in_length():
     result = ser
     expected = pd.Series([None] * 3 + list(range(5)) + [None] * 2).astype("object")
     tm.assert_series_equal(result, expected)
+
+
+def test_missing_labels_inside_loc_matched_in_error_message():
+    # GH34272
+    s = pd.Series({"a": 1, "b": 2, "c": 3})
+    error_message_regex = "missing_0.*missing_1.*missing_2"
+    with pytest.raises(KeyError, match=error_message_regex):
+        s.loc[["a", "b", "missing_0", "c", "missing_1", "missing_2"]]
+
+
+def test_many_missing_labels_inside_loc_error_message_limited():
+    # GH34272
+    n = 10000
+    missing_labels = [f"missing_{label}" for label in range(n)]
+    s = pd.Series({"a": 1, "b": 2, "c": 3})
+    # regex checks labels between 4 and 9995 are replaced with ellipses
+    error_message_regex = "missing_4.*\\.\\.\\..*missing_9995"
+    with pytest.raises(KeyError, match=error_message_regex):
+        s.loc[["a", "c"] + missing_labels]
+
+
+def test_long_text_missing_labels_inside_loc_error_message_limited():
+    # GH34272
+    s = pd.Series({"a": 1, "b": 2, "c": 3})
+    missing_labels = [f"long_missing_label_text_{i}" * 5 for i in range(3)]
+    # regex checks for very long labels there are new lines between each
+    error_message_regex = "long_missing_label_text_0.*\\\\n.*long_missing_label_text_1"
+    with pytest.raises(KeyError, match=error_message_regex):
+        s.loc[["a", "c"] + missing_labels]
