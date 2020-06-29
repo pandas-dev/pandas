@@ -2491,7 +2491,9 @@ class TestDataFrameConstructors:
         )
         series_of_dicts = pd.Series([{"a": 1}, {"a": 2}, {"b": 3}], index=index)
         frame = pd.DataFrame.from_records(series_of_dicts, index=index)
-        expected = DataFrame({"a": [1, 2, np.NaN], "b": [np.NaN, np.NaN, 3],}, index=index)
+        expected = DataFrame(
+            {"a": [1, 2, np.NaN], "b": [np.NaN, np.NaN, 3],}, index=index
+        )
         tm.assert_frame_equal(frame, expected)
 
     def test_frame_from_records_utc(self):
