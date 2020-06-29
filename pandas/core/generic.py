@@ -2853,12 +2853,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             from the pandas config module.
         caption : str, optional
             The LaTeX caption to be placed inside ``\caption{}`` in the output.
+
             .. versionadded:: 1.0.0
+
         label : str, optional
             The LaTeX label to be placed inside ``\label{}`` in the output.
             This is used with ``\ref{}`` in the main ``.tex`` file.
-            .. versionadded:: 1.0.0
 
+            .. versionadded:: 1.0.0
         %(returns)s
         See Also
         --------
