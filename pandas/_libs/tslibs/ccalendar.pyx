@@ -4,6 +4,7 @@ Cython implementations of functions resembling the stdlib calendar module
 """
 
 import cython
+from cython import Py_ssize_t, bint
 
 from numpy cimport int64_t, int32_t
 
@@ -18,18 +19,29 @@ from pandas._libs.tslibs.strptime import LocaleTime
 # Slightly more performant cython lookups than a 2D table
 # The first 12 entries correspond to month lengths for non-leap years.
 # The remaining 12 entries give month lengths for leap years
-cdef int32_t* days_per_month_array = [
-    31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31,
-    31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+days_per_month_array = cython.declare(
+    cython.pointer(cython.int),
+    [
+        31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31,
+        31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31,
+    ],
+)
 
-cdef int* sakamoto_arr = [0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4]
+sakamoto_arr = cython.declare(
+    cython.pointer(cython.int),
+    [0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4],
+)
 
 # The first 13 entries give the month days elapsed as of the first of month N
 # (or the total number of days in the year for N=13) in non-leap years.
 # The remaining 13 entries give the days elapsed in leap years.
-cdef int32_t* _month_offset = [
-    0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365,
-    0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366]
+_month_offset = cython.declare(
+    cython.pointer(cython.int),
+    [
+        0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365,
+        0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366,
+    ],
+)
 
 # Canonical location for other modules to find name constants
 MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL',
@@ -40,7 +52,8 @@ MONTHS_FULL = ['', 'January', 'February', 'March', 'April', 'May', 'June',
                'July', 'August', 'September', 'October', 'November',
                'December']
 MONTH_NUMBERS = {name: num for num, name in enumerate(MONTHS)}
-cdef dict c_MONTH_NUMBERS = MONTH_NUMBERS
+c_MONTH_NUMBERS = cython.declare(dict, MONTH_NUMBERS)
+
 MONTH_ALIASES = {(num + 1): name for num, name in enumerate(MONTHS)}
 MONTH_TO_CAL_NUM = {name: num + 1 for num, name in enumerate(MONTHS)}
 
@@ -53,15 +66,19 @@ weekday_to_int = {int_to_weekday[key]: key for key in int_to_weekday}
 DAY_SECONDS = 86400
 HOUR_SECONDS = 3600
 
-cdef int64_t DAY_NANOS = DAY_SECONDS * 1_000_000_000
-cdef int64_t HOUR_NANOS = HOUR_SECONDS * 1_000_000_000
+DAY_NANOS = cython.declare(int64_t, DAY_SECONDS * 1_000_000_000)
+HOUR_NANOS = cython.declare(int64_t, HOUR_SECONDS * 1_000_000_000)
+
 
 # ----------------------------------------------------------------------
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef int32_t get_days_in_month(int year, Py_ssize_t month) nogil:
+@cython.nogil
+@cython.returns(int32_t)
+@cython.ccall
+def get_days_in_month(year: cython.int, month: Py_ssize_t):
     """
     Return the number of days in the given month of the given year.
 
@@ -85,7 +102,10 @@ cpdef int32_t get_days_in_month(int year, Py_ssize_t month) nogil:
 @cython.wraparound(False)
 @cython.boundscheck(False)
 @cython.cdivision
-cdef int dayofweek(int y, int m, int d) nogil:
+@cython.nogil
+@cython.returns(cython.int)
+@cython.cfunc
+def dayofweek(y: cython.int, m: cython.int, d: cython.int):
     """
     Find the day of week for the date described by the Y/M/D triple y, m, d
     using Sakamoto's method, from wikipedia.
@@ -113,8 +133,7 @@ cdef int dayofweek(int y, int m, int d) nogil:
     [2] https://en.wikipedia.org/wiki/\
     Determination_of_the_day_of_the_week#Sakamoto.27s_methods
     """
-    cdef:
-        int day
+    day: cython.int
 
     y -= m < 3
     day = (y + y / 4 - y / 100 + y / 400 + sakamoto_arr[m - 1] + d) % 7
@@ -122,7 +141,10 @@ cdef int dayofweek(int y, int m, int d) nogil:
     return (day + 6) % 7
 
 
-cdef bint is_leapyear(int64_t year) nogil:
+@cython.nogil
+@cython.returns(bint)
+@cython.cfunc
+def is_leapyear(year: int64_t):
     """
     Returns 1 if the given year is a leap year, 0 otherwise.
 
@@ -140,7 +162,10 @@ cdef bint is_leapyear(int64_t year) nogil:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef int32_t get_week_of_year(int year, int month, int day) nogil:
+@cython.nogil
+@cython.returns(int32_t)
+@cython.ccall
+def get_week_of_year(year: cython.int, month: cython.int, day: cython.int):
     """
     Return the ordinal week-of-year for the given day.
 
@@ -163,7 +188,10 @@ cpdef int32_t get_week_of_year(int year, int month, int day) nogil:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef iso_calendar_t get_iso_calendar(int year, int month, int day) nogil:
+@cython.nogil
+@cython.returns((int32_t, int32_t, int32_t))
+@cython.ccall
+def get_iso_calendar(year: cython.int, month: cython.int, day: cython.int):
     """
     Return the year, week, and day of year corresponding to ISO 8601
 
@@ -183,9 +211,10 @@ cpdef iso_calendar_t get_iso_calendar(int year, int month, int day) nogil:
     -----
     Assumes the inputs describe a valid date.
     """
-    cdef:
-        int32_t doy, dow
-        int32_t iso_year, iso_week
+    doy: int32_t
+    dow: int32_t
+    iso_year: int32_t
+    iso_week: int32_t
 
     doy = get_day_of_year(year, month, day)
     dow = dayofweek(year, month, day)
@@ -217,7 +246,10 @@ cpdef iso_calendar_t get_iso_calendar(int year, int month, int day) nogil:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef int32_t get_day_of_year(int year, int month, int day) nogil:
+@cython.nogil
+@cython.returns(int32_t)
+@cython.ccall
+def get_day_of_year(year: cython.int, month: cython.int, day: cython.int):
     """
     Return the ordinal day-of-year for the given day.
 
@@ -235,10 +267,9 @@ cpdef int32_t get_day_of_year(int year, int month, int day) nogil:
     -----
     Assumes the inputs describe a valid date.
     """
-    cdef:
-        bint isleap
-        int32_t mo_off
-        int day_of_year
+    isleap: bint
+    mo_off: int32_t
+    day_of_year: cython.int
 
     isleap = is_leapyear(year)
 
