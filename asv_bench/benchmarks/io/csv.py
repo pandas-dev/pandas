@@ -294,7 +294,7 @@ class ReadCSVCategorical(BaseIO):
 
 
 class ReadCSVParseDates(StringIORewind):
-    params = ["c", "pyarrow", "python"]
+    params = ["c", "python"]
     param_names = ["engine"]
 
     def setup(self, engine):

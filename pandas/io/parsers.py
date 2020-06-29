@@ -21,7 +21,7 @@ import pandas._libs.parsers as parsers
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._libs.tslibs import parsing
 from pandas._typing import FilePathOrBuffer, Union
-from pandas.compat._optional import VERSIONS, import_optional_dependency
+from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     AbstractMethodError,
     EmptyDataError,
@@ -172,6 +172,7 @@ engine : {{'c', 'python', 'pyarrow'}}, optional
     Parser engine to use. The C and pyarrow engines are faster, while the python engine
     is currently more feature-complete. The pyarrow engine requires ``pyarrow`` >= 0.15
     as a dependency however.
+
     .. versionchanged:: 1.1
         The "pyarrow" engine was added.
 converters : dict, optional
@@ -1015,7 +1016,7 @@ class TextFileReader(abc.Iterator):
             elif engine not in ("python", "python-fwf"):
                 # wait until regex engine integrated
                 fallback_reason = (
-                    "the 'c' engine does not support "
+                    f"the '{engine}' engine does not support "
                     "regex separators (separators > 1 char and "
                     r"different from '\s+' are interpreted as regex)"
                 )
@@ -2302,9 +2303,10 @@ class ArrowParserWrapper(ParserBase):
             self.src = BytesIOWrapper(self.src, encoding=encoding)
 
     def read(self):
-        VERSIONS["pyarrow"] = "0.15.0"
         pyarrow = import_optional_dependency(
-            "pyarrow.csv", extra="pyarrow is required to use the pyarrow engine"
+            "pyarrow.csv",
+            min_version="0.15.0",
+            extra="pyarrow is required to use the pyarrow engine",
         )
         kwdscopy = {k: v for k, v in self.kwds.items() if v is not None}
         # these are kwargs passed to pyarrow
@@ -2315,15 +2317,26 @@ class ArrowParserWrapper(ParserBase):
             "true_values",
             "false_values",
         }
+        # rename some arguments to pass to pyarrow
+        kwdscopy["include_columns"] = kwdscopy.get("usecols")
+        kwdscopy["null_values"] = kwdscopy.get("na_values")
+        kwdscopy["escape_char"] = kwdscopy.get("escapechar")
+        kwdscopy["ignore_empty_lines"] = kwdscopy.get("skip_blank_lines")
+
         parse_options = {k: v for k, v in kwdscopy.items() if k in parseoptions}
         convert_options = {k: v for k, v in kwdscopy.items() if k in convertoptions}
-        read_options = pyarrow.ReadOptions(autogenerate_column_names=True)
-        headerexists = True if self.header is not None and self.header >= 0 else False
+        headerexists = True if self.header is not None else False
+        read_options = dict()
+
         skiprows = self.kwds.get("skiprows")
-        if skiprows is not None:
-            read_options = pyarrow.ReadOptions(skip_rows=skiprows)
-        elif headerexists:
-            read_options = pyarrow.ReadOptions(skip_rows=self.header)
+        if headerexists:
+            read_options["skip_rows"] = self.header
+            read_options["autogenerate_column_names"] = False
+        else:
+            if skiprows is not None:
+                read_options["skip_rows"] = skiprows
+            read_options["autogenerate_column_names"] = True
+        read_options = pyarrow.ReadOptions(**read_options)
         table = pyarrow.read_csv(
             self.src,
             read_options=read_options,
@@ -2339,11 +2352,8 @@ class ArrowParserWrapper(ParserBase):
                 elif self.header is None:
                     self.names = range(num_cols)
             frame.columns = self.names
-
-        frame = self._date_conversion(
-            frame, self._date_conv, self.parse_dates, keep_date_col=self.keep_date_col
-        )
-
+        # we only need the frame not the names
+        frame.columns, frame = self._do_date_conversions(frame.columns, frame)
         if self.index_col is not None:
             for i, item in enumerate(self.index_col):
                 if is_integer(item):
@@ -2353,70 +2363,6 @@ class ArrowParserWrapper(ParserBase):
         if self.kwds.get("dtype") is not None:
             frame = frame.astype(self.kwds.get("dtype"))
         return frame
-
-    def _date_conversion(
-        self, data, converter, parse_spec, keep_date_col=False,
-    ):
-
-        orig_names = data.columns
-        columns = list(data.columns)
-
-        date_cols = set()
-
-        if parse_spec is None or isinstance(parse_spec, bool):
-            return data, columns
-
-        if isinstance(parse_spec, list):
-            # list of column lists
-            for colspec in parse_spec:
-                if is_scalar(colspec):
-                    if isinstance(colspec, int) and colspec not in data:
-                        colspec = orig_names[colspec]
-                    data[colspec] = converter(data[colspec].values)
-                else:
-                    new_name, col, old_names = self._try_convert_dates(
-                        converter, colspec, data, orig_names
-                    )
-                    if new_name in data:
-                        raise ValueError(f"New date column already in dict {new_name}")
-                    data[new_name] = col
-                    date_cols.update(old_names)
-
-        elif isinstance(parse_spec, dict):
-            # dict of new name to column list
-            for new_name, colspec in parse_spec.items():
-                if new_name in data:
-                    raise ValueError(f"Date column {new_name} already in dict")
-
-                _, col, old_names = self._try_convert_dates(
-                    converter, colspec, data, orig_names
-                )
-
-                data[new_name] = col
-                date_cols.update(old_names)
-
-        if not keep_date_col:
-            data = data.drop(date_cols, axis=1)
-
-        return data
-
-    def _try_convert_dates(self, parser, colspec, data, columns):
-        colset = set(columns)
-        colnames = []
-
-        for c in colspec:
-            if c in colset:
-                colnames.append(c)
-            elif isinstance(c, int) and c not in columns:
-                colnames.append(columns[c])
-            else:
-                colnames.append(c)
-
-        new_name = "_".join(str(x) for x in colnames)
-        to_parse = [data[c].values for c in colnames if c in data]
-
-        new_col = parser(*to_parse)
-        return new_name, new_col, colnames
 
 
 def TextParser(*args, **kwds):
@@ -3568,7 +3514,7 @@ def _process_date_conversion(
                     colspec = orig_names[colspec]
                 if _isindex(colspec):
                     continue
-                data_dict[colspec] = converter(data_dict[colspec])
+                data_dict[colspec] = converter(np.array(data_dict[colspec]))
             else:
                 new_name, col, old_names = _try_convert_dates(
                     converter, colspec, data_dict, orig_names
@@ -3617,7 +3563,7 @@ def _try_convert_dates(parser, colspec, data_dict, columns):
             colnames.append(c)
 
     new_name = "_".join(str(x) for x in colnames)
-    to_parse = [data_dict[c] for c in colnames if c in data_dict]
+    to_parse = [np.array(data_dict[c]) for c in colnames if c in data_dict]
 
     new_col = parser(*to_parse)
     return new_name, new_col, colnames

@@ -2,6 +2,7 @@ import distutils.version
 import importlib
 import sys
 import types
+from typing import Optional
 import warnings
 
 # Update install.rst when updating versions!
@@ -46,7 +47,11 @@ def _get_version(module: types.ModuleType) -> str:
 
 
 def import_optional_dependency(
-    name: str, extra: str = "", raise_on_missing: bool = True, on_version: str = "raise"
+    name: str,
+    extra: str = "",
+    raise_on_missing: bool = True,
+    on_version: str = "raise",
+    min_version: Optional[str] = None,
 ):
     """
     Import an optional dependency.
@@ -58,8 +63,7 @@ def import_optional_dependency(
     Parameters
     ----------
     name : str
-        The module name. This should be top-level only, so that the
-        version may be checked.
+        The module name.
     extra : str
         Additional text to include in the ImportError message.
     raise_on_missing : bool, default True
@@ -73,6 +77,8 @@ def import_optional_dependency(
         * ignore: Return the module, even if the version is too old.
           It's expected that users validate the version locally when
           using ``on_version="ignore"`` (see. ``io/html.py``)
+    min_version: Optional[str]
+        Specify the minimum version
 
     Returns
     -------
@@ -93,14 +99,14 @@ def import_optional_dependency(
             raise ImportError(msg) from None
         else:
             return None
-    # Grab parent module if submodule being imported
+    # Handle submodules: if we have submodule, grab parent module from sys.modules
     parent = name.split(".")[0]
     if parent != name:
         name = parent
         module_to_get = sys.modules[name]
     else:
         module_to_get = module
-    minimum_version = VERSIONS.get(name)
+    minimum_version = min_version if min_version is not None else VERSIONS.get(name)
     if minimum_version:
         version = _get_version(module_to_get)
         if distutils.version.LooseVersion(version) < minimum_version:

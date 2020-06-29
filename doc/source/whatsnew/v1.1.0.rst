@@ -245,6 +245,14 @@ If needed you can adjust the bins with the argument ``offset`` (a Timedelta) tha
 
 For a full example, see: :ref:`timeseries.adjust-the-start-of-the-bins`.
 
+.. _whatsnew_110.enhancements.read_csv_pyarrow_engine_support:
+
+read_csv() now accepts pyarrow as an engine
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`pandas.read_csv` now accepts engine="pyarrow" as an argument, allowing for faster csv parsing on multicore machines
+with pyarrow>=0.15 installed. See the :doc:`I/O docs </user_guide/io>` for more info. (:issue:`23697`)
+
 
 .. _whatsnew_110.enhancements.other:
 
@@ -293,9 +301,6 @@ Other enhancements
 - :meth:`~pandas.io.json.read_json` now accepts `nrows` parameter. (:issue:`33916`).
 - :meth `~pandas.io.gbq.read_gbq` now allows to disable progress bar (:issue:`33360`).
 - :meth:`~pandas.io.gbq.read_gbq` now supports the ``max_results`` kwarg from ``pandas-gbq`` (:issue:`34639`).
-- :func:`pandas.read_csv` now accepts engine="pyarrow" as an argument, allowing for faster csv parsing
-  if pyarrow>=0.15 is installed. However, the pyarrow engine is less feature-complete than its "c" or
-  "python" counterparts. See the :doc:`I/O docs </user_guide/io>` for more info. (:issue:`23697`)
 
 .. ---------------------------------------------------------------------------
 
