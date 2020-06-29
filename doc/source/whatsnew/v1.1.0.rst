@@ -725,7 +725,7 @@ Using :meth:`DataFrame.explode` and :meth:`Series.explode` would always return a
 
 .. ipython:: python
 
-    s = pd.Series([1,2,3])
+    s = pd.Series([1, 2, 3])
     df = pd.DataFrame({'A': [s, s, s, s], 'B': 1})
 
 *Previous behavior*:
