@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 BaseMaskedArrayT = TypeVar("BaseMaskedArrayT", bound="BaseMaskedArray")
 
 
-class BaseMaskedDtype(ExtensionDtype, ArrayFunctionMixin):
+class BaseMaskedDtype(ExtensionDtype):
     """
     Base class for dtypes for BasedMaskedArray subclasses.
     """
