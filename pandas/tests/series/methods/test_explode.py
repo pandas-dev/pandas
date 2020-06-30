@@ -127,4 +127,3 @@ def test_ignore_index():
     result = s.explode(ignore_index=True)
     expected = pd.Series([1, 2, 3, 4], index=[0, 1, 2, 3], dtype=np.int64)
     tm.assert_series_equal(result, expected)
-
