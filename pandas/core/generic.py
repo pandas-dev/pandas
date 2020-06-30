@@ -5511,8 +5511,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         By default NaN values will be casted to dtype:
         >>> pd.Series([None, 1]).astype(str)
-        0    nan
-        1    1.0
+        0     nan
+        1     1.0
         dtype: object
 
 
@@ -5520,9 +5520,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         >>> pd.Series([None, 1]).astype(str, skipna=True)
         0     NaN
-        1    42.0
+        1     42.0
         dtype: object
-
         """
         if is_dict_like(dtype):
             if self.ndim == 1:  # i.e. Series
