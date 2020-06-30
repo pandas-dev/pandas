@@ -346,6 +346,16 @@ class TestLoc2:
         result = df.loc[pd.array(mask, dtype="boolean")]
         tm.assert_frame_equal(result, expected)
 
+    def test_loc_copy_vs_view(self):
+        # GH 15631
+        x = DataFrame(zip(range(3), range(3)), columns=["a", "b"])
+
+        y = x.copy()
+        q = x.loc[:, "a"]
+        q += 2
+
+        tm.assert_frame_equal(x, y)
+
     def test_loc_general(self):
 
         df = DataFrame(
