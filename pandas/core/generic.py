@@ -5508,19 +5508,17 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2   2020-01-02 19:00:00-05:00
         dtype: datetime64[ns, US/Eastern]
 
-
         By default NaN values will be casted to dtype:
         >>> pd.Series([None, 1]).astype(str)
         0     nan
         1     1.0
         dtype: object
 
-
         Skip casting NaN values:
 
         >>> pd.Series([None, 1]).astype(str, skipna=True)
-        0     NaN
-        1     42.0
+        0    NaN
+        1    1.0
         dtype: object
         """
         if is_dict_like(dtype):
