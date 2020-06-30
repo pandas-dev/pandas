@@ -8508,7 +8508,9 @@ NaN 12.3   33.0
                 raise NotImplementedError(msg)
             return data
 
-        is_numeric = all(b.is_numeric for b in self._mgr.blocks)
+        is_numeric = all(b.is_numeric for b in self._mgr.blocks) and len(
+            self._mgr.blocks
+        )
 
         if (is_numeric or numeric_only is not None) and axis is not None:
             df = self
@@ -8532,10 +8534,6 @@ NaN 12.3   33.0
             assert isinstance(res, dict)
             if len(res):
                 assert len(res) == max(list(res.keys())) + 1, res.keys()
-            elif not out_dtype:
-                # The default dtype for empty Series will be 'object' instead of
-                #  'float64' in a future version.
-                out_dtype = "float64"
             out = df._constructor_sliced(res, index=range(len(res)), dtype=out_dtype)
             out.index = df.columns
             if axis == 0 and is_object_dtype(out.dtype):
