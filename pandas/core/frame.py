@@ -42,6 +42,7 @@ import numpy.ma as ma
 from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, lib, properties
+from pandas._libs.lib import no_default
 from pandas._typing import (
     ArrayLike,
     Axes,
@@ -134,13 +135,13 @@ from pandas.core.internals.construction import (
     sanitize_index,
     to_arrays,
 )
-from pandas.core.ops.missing import dispatch_fill_zeros
+from pandas.core.reshape.melt import melt
 from pandas.core.series import Series
 from pandas.core.sorting import ensure_key_mapped
 
 from pandas.io.common import get_filepath_or_buffer
 from pandas.io.formats import console, format as fmt
-from pandas.io.formats.info import info
+from pandas.io.formats.info import DataFrameInfo
 import pandas.plotting
 
 if TYPE_CHECKING:
@@ -233,14 +234,13 @@ suffixes : tuple of (str, str), default ('_x', '_y')
 copy : bool, default True
     If False, avoid copy if possible.
 indicator : bool or str, default False
-    If True, adds a column to output DataFrame called "_merge" with
-    information on the source of each row.
-    If string, column with information on source of each row will be added to
-    output DataFrame, and column will be named value of string.
-    Information column is Categorical-type and takes on a value of "left_only"
-    for observations whose merge key only appears in 'left' DataFrame,
-    "right_only" for observations whose merge key only appears in 'right'
-    DataFrame, and "both" if the observation's merge key is found in both.
+    If True, adds a column to the output DataFrame called "_merge" with
+    information on the source of each row. The column can be given a different
+    name by providing a string argument. The column will have a Categorical
+    type with the value of "left_only" for observations whose merge key only
+    appears in the left DataFrame, "right_only" for observations
+    whose merge key only appears in the right DataFrame, and "both"
+    if the observation's merge key is found in both DataFrames.
 
 validate : str, optional
     If specified, checks if merge is of specified type.
@@ -455,6 +455,7 @@ class DataFrame(NDFrame):
             mgr = self._init_mgr(
                 data, axes=dict(index=index, columns=columns), dtype=dtype, copy=copy
             )
+
         elif isinstance(data, dict):
             mgr = init_dict(data, index, columns, dtype=dtype)
         elif isinstance(data, ma.MaskedArray):
@@ -611,7 +612,8 @@ class DataFrame(NDFrame):
         if self._mgr.any_extension_types:
             return len({block.dtype for block in self._mgr.blocks}) == 1
         else:
-            return not self._mgr.is_mixed_type
+            # Note: consolidates inplace
+            return not self._is_mixed_type
 
     @property
     def _can_fast_transpose(self) -> bool:
@@ -776,7 +778,7 @@ class DataFrame(NDFrame):
         header="Write out the column names. If a list of strings "
         "is given, it is assumed to be aliases for the "
         "column names",
-        col_space_type="int",
+        col_space_type="int, list or dict of int",
         col_space="The minimum width of each column",
     )
     @Substitution(shared_params=fmt.common_docstring, returns=fmt.return_docstring)
@@ -1159,7 +1161,7 @@ class DataFrame(NDFrame):
             left = self.reindex(columns=common, copy=False)
             right = other.reindex(index=common, copy=False)
             lvals = left.values
-            rvals = right.values
+            rvals = right._values
         else:
             left = self
             lvals = self.values
@@ -1339,6 +1341,7 @@ class DataFrame(NDFrame):
         array([[1, 3.0, Timestamp('2000-01-01 00:00:00')],
                [2, 4.5, Timestamp('2000-01-02 00:00:00')]], dtype=object)
         """
+        self._consolidate_inplace()
         result = self._mgr.as_array(
             transpose=self._AXIS_REVERSED, dtype=dtype, copy=copy, na_value=na_value
         )
@@ -1891,7 +1894,7 @@ class DataFrame(NDFrame):
         if index:
             if isinstance(self.index, MultiIndex):
                 # array of tuples to numpy cols. copy copy copy
-                ix_vals = list(map(np.array, zip(*self.index.values)))
+                ix_vals = list(map(np.array, zip(*self.index._values)))
             else:
                 ix_vals = [self.index.values]
 
@@ -2183,9 +2186,10 @@ class DataFrame(NDFrame):
 
         to_feather(self, path, **kwargs)
 
-    @Appender(
-        """
-        Examples
+    @doc(
+        Series.to_markdown,
+        klass=_shared_doc_kwargs["klass"],
+        examples="""Examples
         --------
         >>> df = pd.DataFrame(
         ...     data={"animal_1": ["elk", "pig"], "animal_2": ["dog", "quetzal"]}
@@ -2195,10 +2199,19 @@ class DataFrame(NDFrame):
         |---:|:-----------|:-----------|
         |  0 | elk        | dog        |
         |  1 | pig        | quetzal    |
-        """
+
+        Output markdown with a tabulate option.
+
+        >>> print(df.to_markdown(tablefmt="grid"))
+        +----+------------+------------+
+        |    | animal_1   | animal_2   |
+        +====+============+============+
+        |  0 | elk        | dog        |
+        +----+------------+------------+
+        |  1 | pig        | quetzal    |
+        +----+------------+------------+
+        """,
     )
-    @Substitution(klass="DataFrame")
-    @Appender(_shared_docs["to_markdown"])
     def to_markdown(
         self, buf: Optional[IO[str]] = None, mode: Optional[str] = None, **kwargs
     ) -> Optional[str]:
@@ -2291,6 +2304,16 @@ class DataFrame(NDFrame):
            col1  col2
         0     1     3
         1     2     4
+
+        If you want to get a buffer to the parquet content you can use a io.BytesIO
+        object, as long as you don't use partition_cols, which creates multiple files.
+
+        >>> import io
+        >>> f = io.BytesIO()
+        >>> df.to_parquet(f)
+        >>> f.seek(0)
+        0
+        >>> content = f.read()
         """
         from pandas.io.parquet import to_parquet
 
@@ -2307,7 +2330,7 @@ class DataFrame(NDFrame):
     @Substitution(
         header_type="bool",
         header="Whether to print column labels, default True",
-        col_space_type="str or int",
+        col_space_type="str or int, list or dict of int or str",
         col_space="The minimum width of each column in CSS length "
         "units.  An int is assumed to be px units.\n\n"
         "            .. versionadded:: 0.25.0\n"
@@ -2439,11 +2462,11 @@ class DataFrame(NDFrame):
             <class 'pandas.core.frame.DataFrame'>
             RangeIndex: 5 entries, 0 to 4
             Data columns (total 3 columns):
-                #   Column     Non-Null Count  Dtype
+             #   Column     Non-Null Count  Dtype
             ---  ------     --------------  -----
-                0   int_col    5 non-null      int64
-                1   text_col   5 non-null      object
-                2   float_col  5 non-null      float64
+             0   int_col    5 non-null      int64
+             1   text_col   5 non-null      object
+             2   float_col  5 non-null      float64
             dtypes: float64(1), int64(1), object(1)
             memory usage: 248.0+ bytes
 
@@ -2482,11 +2505,11 @@ class DataFrame(NDFrame):
             <class 'pandas.core.frame.DataFrame'>
             RangeIndex: 1000000 entries, 0 to 999999
             Data columns (total 3 columns):
-                #   Column    Non-Null Count    Dtype
+             #   Column    Non-Null Count    Dtype
             ---  ------    --------------    -----
-                0   column_1  1000000 non-null  object
-                1   column_2  1000000 non-null  object
-                2   column_3  1000000 non-null  object
+             0   column_1  1000000 non-null  object
+             1   column_2  1000000 non-null  object
+             2   column_3  1000000 non-null  object
             dtypes: object(3)
             memory usage: 22.9+ MB
 
@@ -2494,11 +2517,11 @@ class DataFrame(NDFrame):
             <class 'pandas.core.frame.DataFrame'>
             RangeIndex: 1000000 entries, 0 to 999999
             Data columns (total 3 columns):
-                #   Column    Non-Null Count    Dtype
+             #   Column    Non-Null Count    Dtype
             ---  ------    --------------    -----
-                0   column_1  1000000 non-null  object
-                1   column_2  1000000 non-null  object
-                2   column_3  1000000 non-null  object
+             0   column_1  1000000 non-null  object
+             1   column_2  1000000 non-null  object
+             2   column_3  1000000 non-null  object
             dtypes: object(3)
             memory usage: 188.8 MB"""
         ),
@@ -2509,7 +2532,7 @@ class DataFrame(NDFrame):
             DataFrame.memory_usage: Memory usage of DataFrame columns."""
         ),
     )
-    @doc(info)
+    @doc(DataFrameInfo.info)
     def info(
         self,
         verbose: Optional[bool] = None,
@@ -2518,7 +2541,9 @@ class DataFrame(NDFrame):
         memory_usage: Optional[Union[bool, str]] = None,
         null_counts: Optional[bool] = None,
     ) -> None:
-        return info(self, verbose, buf, max_cols, memory_usage, null_counts)
+        return DataFrameInfo(
+            self, verbose, buf, max_cols, memory_usage, null_counts
+        ).info()
 
     def memory_usage(self, index=True, deep=False) -> Series:
         """
@@ -3009,7 +3034,7 @@ class DataFrame(NDFrame):
                 raise ValueError("Array conditional must be same shape as self")
             key = self._constructor(key, **self._construct_axes_dict())
 
-        if key.values.size and not is_bool_dtype(key.values):
+        if key.size and not is_bool_dtype(key.values):
             raise TypeError(
                 "Must pass DataFrame or 2-d ndarray with boolean values only"
             )
@@ -3420,6 +3445,10 @@ class DataFrame(NDFrame):
             * If ``include`` and ``exclude`` have overlapping elements
             * If any kind of string dtype is passed in.
 
+        See Also
+        --------
+        DataFrame.dtypes: Return Series with the data type of each column.
+
         Notes
         -----
         * To select all *numeric* types, use ``np.number`` or ``'number'``
@@ -3467,7 +3496,7 @@ class DataFrame(NDFrame):
         4  1.0
         5  2.0
 
-        >>> df.select_dtypes(exclude=['int'])
+        >>> df.select_dtypes(exclude=['int64'])
                b    c
         0   True  1.0
         1  False  2.0
@@ -3982,7 +4011,8 @@ class DataFrame(NDFrame):
         level : int or level name, optional
             For MultiIndex, level from which the labels will be removed.
         inplace : bool, default False
-            If True, do operation inplace and return None.
+            If False, return a copy. Otherwise, do operation
+            inplace and return None.
         errors : {'ignore', 'raise'}, default 'raise'
             If 'ignore', suppress error and only existing labels are
             dropped.
@@ -4238,6 +4268,49 @@ class DataFrame(NDFrame):
             limit=limit,
             downcast=downcast,
         )
+
+    def pop(self, item: Label) -> Series:
+        """
+        Return item and drop from frame. Raise KeyError if not found.
+
+        Parameters
+        ----------
+        item : label
+            Label of column to be popped.
+
+        Returns
+        -------
+        Series
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([('falcon', 'bird', 389.0),
+        ...                    ('parrot', 'bird', 24.0),
+        ...                    ('lion', 'mammal', 80.5),
+        ...                    ('monkey', 'mammal', np.nan)],
+        ...                   columns=('name', 'class', 'max_speed'))
+        >>> df
+             name   class  max_speed
+        0  falcon    bird      389.0
+        1  parrot    bird       24.0
+        2    lion  mammal       80.5
+        3  monkey  mammal        NaN
+
+        >>> df.pop('class')
+        0      bird
+        1      bird
+        2    mammal
+        3    mammal
+        Name: class, dtype: object
+
+        >>> df
+             name  max_speed
+        0  falcon      389.0
+        1  parrot       24.0
+        2    lion       80.5
+        3  monkey        NaN
+        """
+        return super().pop(item=item)
 
     @doc(NDFrame.replace, **_shared_doc_kwargs)
     def replace(
@@ -4655,7 +4728,7 @@ class DataFrame(NDFrame):
                 # we can have situations where the whole mask is -1,
                 # meaning there is nothing found in labels, so make all nan's
                 if mask.all():
-                    values = np.empty(len(mask))
+                    values = np.empty(len(mask), dtype=index.dtype)
                     values.fill(np.nan)
                 else:
                     values = values.take(labels)
@@ -4733,20 +4806,20 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Reindex-based selection methods
 
-    @Appender(_shared_docs["isna"] % _shared_doc_kwargs)
+    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
     def isna(self) -> "DataFrame":
         result = self._constructor(self._data.isna(func=isna))
         return result.__finalize__(self, method="isna")
 
-    @Appender(_shared_docs["isna"] % _shared_doc_kwargs)
+    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
     def isnull(self) -> "DataFrame":
         return self.isna()
 
-    @Appender(_shared_docs["notna"] % _shared_doc_kwargs)
+    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])
     def notna(self) -> "DataFrame":
         return ~self.isna()
 
-    @Appender(_shared_docs["notna"] % _shared_doc_kwargs)
+    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])
     def notnull(self) -> "DataFrame":
         return ~self.isna()
 
@@ -5425,7 +5498,7 @@ class DataFrame(NDFrame):
         if subset is None:
             subset = self.columns.tolist()
 
-        counts = self.groupby(subset).size()
+        counts = self.groupby(subset).grouper.size()
 
         if sort:
             counts = counts.sort_values(ascending=ascending)
@@ -5732,14 +5805,7 @@ class DataFrame(NDFrame):
                 left, right = ops.fill_binop(left, right, fill_value)
                 return func(left, right)
 
-        if ops.should_series_dispatch(self, other, func):
-            # iterate over columns
-            new_data = ops.dispatch_to_series(self, other, _arith_op)
-        else:
-            with np.errstate(all="ignore"):
-                res_values = _arith_op(self.values, other.values)
-            new_data = dispatch_fill_zeros(func, self.values, other.values, res_values)
-
+        new_data = ops.dispatch_to_series(self, other, _arith_op)
         return new_data
 
     def _construct_result(self, result) -> "DataFrame":
@@ -5754,11 +5820,122 @@ class DataFrame(NDFrame):
         -------
         DataFrame
         """
-        out = self._constructor(result, index=self.index, copy=False)
+        out = self._constructor(result, copy=False)
         # Pin columns instead of passing to constructor for compat with
         #  non-unique columns case
         out.columns = self.columns
+        out.index = self.index
         return out
+
+    @Appender(
+        """
+Returns
+-------
+DataFrame
+    DataFrame that shows the differences stacked side by side.
+
+    The resulting index will be a MultiIndex with 'self' and 'other'
+    stacked alternately at the inner level.
+
+See Also
+--------
+Series.compare : Compare with another Series and show differences.
+
+Notes
+-----
+Matching NaNs will not appear as a difference.
+
+Examples
+--------
+>>> df = pd.DataFrame(
+...     {
+...         "col1": ["a", "a", "b", "b", "a"],
+...         "col2": [1.0, 2.0, 3.0, np.nan, 5.0],
+...         "col3": [1.0, 2.0, 3.0, 4.0, 5.0]
+...     },
+...     columns=["col1", "col2", "col3"],
+... )
+>>> df
+  col1  col2  col3
+0    a   1.0   1.0
+1    a   2.0   2.0
+2    b   3.0   3.0
+3    b   NaN   4.0
+4    a   5.0   5.0
+
+>>> df2 = df.copy()
+>>> df2.loc[0, 'col1'] = 'c'
+>>> df2.loc[2, 'col3'] = 4.0
+>>> df2
+  col1  col2  col3
+0    c   1.0   1.0
+1    a   2.0   2.0
+2    b   3.0   4.0
+3    b   NaN   4.0
+4    a   5.0   5.0
+
+Align the differences on columns
+
+>>> df.compare(df2)
+  col1       col3
+  self other self other
+0    a     c  NaN   NaN
+2  NaN   NaN  3.0   4.0
+
+Stack the differences on rows
+
+>>> df.compare(df2, align_axis=0)
+        col1  col3
+0 self     a   NaN
+  other    c   NaN
+2 self   NaN   3.0
+  other  NaN   4.0
+
+Keep the equal values
+
+>>> df.compare(df2, keep_equal=True)
+  col1       col3
+  self other self other
+0    a     c  1.0   1.0
+2    b     b  3.0   4.0
+
+Keep all original rows and columns
+
+>>> df.compare(df2, keep_shape=True)
+  col1       col2       col3
+  self other self other self other
+0    a     c  NaN   NaN  NaN   NaN
+1  NaN   NaN  NaN   NaN  NaN   NaN
+2  NaN   NaN  NaN   NaN  3.0   4.0
+3  NaN   NaN  NaN   NaN  NaN   NaN
+4  NaN   NaN  NaN   NaN  NaN   NaN
+
+Keep all original rows and columns and also all original values
+
+>>> df.compare(df2, keep_shape=True, keep_equal=True)
+  col1       col2       col3
+  self other self other self other
+0    a     c  1.0   1.0  1.0   1.0
+1    a     a  2.0   2.0  2.0   2.0
+2    b     b  3.0   3.0  3.0   4.0
+3    b     b  NaN   NaN  4.0   4.0
+4    a     a  5.0   5.0  5.0   5.0
+"""
+    )
+    @Appender(_shared_docs["compare"] % _shared_doc_kwargs)
+    def compare(
+        self,
+        other: "DataFrame",
+        align_axis: Axis = 1,
+        keep_shape: bool = False,
+        keep_equal: bool = False,
+    ) -> "DataFrame":
+        return super().compare(
+            other=other,
+            align_axis=align_axis,
+            keep_shape=keep_shape,
+            keep_equal=keep_equal,
+        )
 
     def combine(
         self, other: "DataFrame", func, fill_value=None, overwrite=True
@@ -6251,11 +6428,23 @@ NaN 12.3   33.0
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool = True,
-        squeeze: bool = False,
+        squeeze: bool = no_default,
         observed: bool = False,
         dropna: bool = True,
     ) -> "DataFrameGroupBy":
         from pandas.core.groupby.generic import DataFrameGroupBy
+
+        if squeeze is not no_default:
+            warnings.warn(
+                (
+                    "The `squeeze` parameter is deprecated and "
+                    "will be removed in a future version."
+                ),
+                FutureWarning,
+                stacklevel=2,
+            )
+        else:
+            squeeze = False
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
@@ -6599,8 +6788,6 @@ NaN 12.3   33.0
             level(s) is (are) taken from the prescribed level(s) and
             the output is a DataFrame.
 
-        The new index levels are sorted.
-
         Parameters
         ----------
         level : int, str, list, default -1
@@ -6755,7 +6942,9 @@ NaN 12.3   33.0
         else:
             return stack(self, level, dropna=dropna)
 
-    def explode(self, column: Union[str, Tuple]) -> "DataFrame":
+    def explode(
+        self, column: Union[str, Tuple], ignore_index: bool = False
+    ) -> "DataFrame":
         """
         Transform each element of a list-like to a row, replicating index values.
 
@@ -6765,6 +6954,10 @@ NaN 12.3   33.0
         ----------
         column : str or tuple
             Column to explode.
+        ignore_index : bool, default False
+            If True, the resulting index will be labeled 0, 1, …, n - 1.
+
+            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -6821,7 +7014,10 @@ NaN 12.3   33.0
         assert df is not None  # needed for mypy
         result = df[column].explode()
         result = df.drop([column], axis=1).join(result)
-        result.index = self.index.take(result.index)
+        if ignore_index:
+            result.index = ibase.default_index(len(result))
+        else:
+            result.index = self.index.take(result.index)
         result = result.reindex(columns=self.columns, copy=False)
 
         return result
@@ -6835,8 +7031,6 @@ NaN 12.3   33.0
 
         If the index is not a MultiIndex, the output will be a Series
         (the analogue of stack when the columns are not a MultiIndex).
-
-        The level involved will automatically get sorted.
 
         Parameters
         ----------
@@ -6889,104 +7083,6 @@ NaN 12.3   33.0
 
         return unstack(self, level, fill_value)
 
-    _shared_docs[
-        "melt"
-    ] = """
-    Unpivot a DataFrame from wide to long format, optionally leaving identifiers set.
-
-    This function is useful to massage a DataFrame into a format where one
-    or more columns are identifier variables (`id_vars`), while all other
-    columns, considered measured variables (`value_vars`), are "unpivoted" to
-    the row axis, leaving just two non-identifier columns, 'variable' and
-    'value'.
-    %(versionadded)s
-    Parameters
-    ----------
-    id_vars : tuple, list, or ndarray, optional
-        Column(s) to use as identifier variables.
-    value_vars : tuple, list, or ndarray, optional
-        Column(s) to unpivot. If not specified, uses all columns that
-        are not set as `id_vars`.
-    var_name : scalar
-        Name to use for the 'variable' column. If None it uses
-        ``frame.columns.name`` or 'variable'.
-    value_name : scalar, default 'value'
-        Name to use for the 'value' column.
-    col_level : int or str, optional
-        If columns are a MultiIndex then use this level to melt.
-
-    Returns
-    -------
-    DataFrame
-        Unpivoted DataFrame.
-
-    See Also
-    --------
-    %(other)s : Identical method.
-    pivot_table : Create a spreadsheet-style pivot table as a DataFrame.
-    DataFrame.pivot : Return reshaped DataFrame organized
-        by given index / column values.
-    DataFrame.explode : Explode a DataFrame from list-like
-            columns to long format.
-
-    Examples
-    --------
-    >>> df = pd.DataFrame({'A': {0: 'a', 1: 'b', 2: 'c'},
-    ...                    'B': {0: 1, 1: 3, 2: 5},
-    ...                    'C': {0: 2, 1: 4, 2: 6}})
-    >>> df
-       A  B  C
-    0  a  1  2
-    1  b  3  4
-    2  c  5  6
-
-    >>> %(caller)sid_vars=['A'], value_vars=['B'])
-       A variable  value
-    0  a        B      1
-    1  b        B      3
-    2  c        B      5
-
-    >>> %(caller)sid_vars=['A'], value_vars=['B', 'C'])
-       A variable  value
-    0  a        B      1
-    1  b        B      3
-    2  c        B      5
-    3  a        C      2
-    4  b        C      4
-    5  c        C      6
-
-    The names of 'variable' and 'value' columns can be customized:
-
-    >>> %(caller)sid_vars=['A'], value_vars=['B'],
-    ...         var_name='myVarname', value_name='myValname')
-       A myVarname  myValname
-    0  a         B          1
-    1  b         B          3
-    2  c         B          5
-
-    If you have multi-index columns:
-
-    >>> df.columns = [list('ABC'), list('DEF')]
-    >>> df
-       A  B  C
-       D  E  F
-    0  a  1  2
-    1  b  3  4
-    2  c  5  6
-
-    >>> %(caller)scol_level=0, id_vars=['A'], value_vars=['B'])
-       A variable  value
-    0  a        B      1
-    1  b        B      3
-    2  c        B      5
-
-    >>> %(caller)sid_vars=[('A', 'D')], value_vars=[('B', 'E')])
-      (A, D) variable_0 variable_1  value
-    0      a          B          E      1
-    1      b          B          E      3
-    2      c          B          E      5
-    """
-
     @Appender(
         _shared_docs["melt"]
         % dict(
@@ -7003,7 +7099,6 @@ NaN 12.3   33.0
         value_name="value",
         col_level=None,
     ) -> "DataFrame":
-        from pandas.core.reshape.melt import melt
 
         return melt(
             self,
@@ -7017,40 +7112,14 @@ NaN 12.3   33.0
     # ----------------------------------------------------------------------
     # Time series-related
 
-    def diff(self, periods: int = 1, axis: Axis = 0) -> "DataFrame":
-        """
-        First discrete difference of element.
-
-        Calculates the difference of a DataFrame element compared with another
-        element in the DataFrame (default is the element in the same column
-        of the previous row).
-
-        Parameters
-        ----------
-        periods : int, default 1
-            Periods to shift for calculating difference, accepts negative
-            values.
-        axis : {0 or 'index', 1 or 'columns'}, default 0
-            Take difference over rows (0) or columns (1).
-
-        Returns
-        -------
-        DataFrame
-
-        See Also
-        --------
-        Series.diff: First discrete difference for a Series.
-        DataFrame.pct_change: Percent change over given number of periods.
-        DataFrame.shift: Shift index by desired number of periods with an
-            optional time freq.
-
-        Notes
-        -----
-        For boolean dtypes, this uses :meth:`operator.xor` rather than
-        :meth:`operator.sub`.
-
-        Examples
-        --------
+    @doc(
+        Series.diff,
+        klass="Dataframe",
+        extra_params="axis : {0 or 'index', 1 or 'columns'}, default 0\n    "
+        "Take difference over rows (0) or columns (1).\n",
+        other_klass="Series",
+        examples=dedent(
+            """
         Difference with previous row
 
         >>> df = pd.DataFrame({'a': [1, 2, 3, 4, 5, 6],
@@ -7106,7 +7175,18 @@ NaN 12.3   33.0
         3 -1.0 -2.0  -9.0
         4 -1.0 -3.0 -11.0
         5  NaN  NaN   NaN
-        """
+
+        Overflow in input dtype
+
+        >>> df = pd.DataFrame({'a': [1, 0]}, dtype=np.uint8)
+        >>> df.diff()
+               a
+        0    NaN
+        1  255.0"""
+        ),
+    )
+    def diff(self, periods: int = 1, axis: Axis = 0) -> "DataFrame":
+
         bm_axis = self._get_block_manager_axis(axis)
         self._consolidate_inplace()
 
@@ -7163,7 +7243,7 @@ NaN 12.3   33.0
     core.resample.Resampler : Perform operations over resampled bins.
     core.window.Rolling : Perform operations over rolling window.
     core.window.Expanding : Perform operations over expanding window.
-    core.window.EWM : Perform operation over exponential weighted
+    core.window.ExponentialMovingWindow : Perform operation over exponential weighted
         window.
     """
     )
@@ -7204,21 +7284,26 @@ NaN 12.3   33.0
     """
     )
 
-    @Substitution(
+    @doc(
+        _shared_docs["aggregate"],
+        klass=_shared_doc_kwargs["klass"],
+        axis=_shared_doc_kwargs["axis"],
         see_also=_agg_summary_and_see_also_doc,
         examples=_agg_examples_doc,
         versionadded="\n.. versionadded:: 0.20.0\n",
-        **_shared_doc_kwargs,
     )
-    @Appender(_shared_docs["aggregate"])
     def aggregate(self, func, axis=0, *args, **kwargs):
         axis = self._get_axis_number(axis)
 
         result = None
         try:
             result, how = self._aggregate(func, axis=axis, *args, **kwargs)
-        except TypeError:
-            pass
+        except TypeError as err:
+            exc = TypeError(
+                "DataFrame constructor called with "
+                f"incompatible data and dtype: {err}"
+            )
+            raise exc from err
         if result is None:
             return self.apply(func, axis=axis, args=args, **kwargs)
         return result
@@ -7234,7 +7319,11 @@ NaN 12.3   33.0
 
     agg = aggregate
 
-    @Appender(_shared_docs["transform"] % _shared_doc_kwargs)
+    @doc(
+        NDFrame.transform,
+        klass=_shared_doc_kwargs["klass"],
+        axis=_shared_doc_kwargs["axis"],
+    )
     def transform(self, func, axis=0, *args, **kwargs) -> "DataFrame":
         axis = self._get_axis_number(axis)
         if axis == 1:
@@ -7410,14 +7499,6 @@ NaN 12.3   33.0
         --------
         DataFrame.apply : Apply a function along input axis of DataFrame.
 
-        Notes
-        -----
-        In the current implementation applymap calls `func` twice on the
-        first column/row to decide whether it can take a fast or slow
-        code path. This can lead to unexpected behavior if `func` has
-        side-effects, as they will take effect twice for the first
-        column/row.
-
         Examples
         --------
         >>> df = pd.DataFrame([[1, 2.12], [3.356, 4.567]])
@@ -7450,7 +7531,7 @@ NaN 12.3   33.0
         def infer(x):
             if x.empty:
                 return lib.map_infer(x, func)
-            return lib.map_infer(x.astype(object).values, func)
+            return lib.map_infer(x.astype(object)._values, func)
 
         return self.apply(infer)
 
@@ -7973,7 +8054,7 @@ NaN 12.3   33.0
         numeric_df = self._get_numeric_data()
         cols = numeric_df.columns
         idx = cols.copy()
-        mat = numeric_df.astype(float, copy=False).to_numpy()
+        mat = numeric_df.to_numpy(dtype=float, na_value=np.nan, copy=False)
 
         if method == "pearson":
             correl = libalgos.nancorr(mat, minp=min_periods)
@@ -8012,7 +8093,9 @@ NaN 12.3   33.0
 
         return self._constructor(correl, index=idx, columns=cols)
 
-    def cov(self, min_periods=None) -> "DataFrame":
+    def cov(
+        self, min_periods: Optional[int] = None, ddof: Optional[int] = 1
+    ) -> "DataFrame":
         """
         Compute pairwise covariance of columns, excluding NA/null values.
 
@@ -8037,6 +8120,12 @@ NaN 12.3   33.0
             Minimum number of observations required per pair of columns
             to have a valid result.
 
+        ddof : int, default 1
+            Delta degrees of freedom.  The divisor used in calculations
+            is ``N - ddof``, where ``N`` represents the number of elements.
+
+            .. versionadded:: 1.1.0
+
         Returns
         -------
         DataFrame
@@ -8045,14 +8134,14 @@ NaN 12.3   33.0
         See Also
         --------
         Series.cov : Compute covariance with another Series.
-        core.window.EWM.cov: Exponential weighted sample covariance.
+        core.window.ExponentialMovingWindow.cov: Exponential weighted sample covariance.
         core.window.Expanding.cov : Expanding sample covariance.
         core.window.Rolling.cov : Rolling sample covariance.
 
         Notes
         -----
         Returns the covariance matrix of the DataFrame's time series.
-        The covariance is normalized by N-1.
+        The covariance is normalized by N-ddof.
 
         For DataFrames that have Series that are missing data (assuming that
         data is `missing at random
@@ -8108,14 +8197,14 @@ NaN 12.3   33.0
         numeric_df = self._get_numeric_data()
         cols = numeric_df.columns
         idx = cols.copy()
-        mat = numeric_df.astype(float, copy=False).to_numpy()
+        mat = numeric_df.to_numpy(dtype=float, na_value=np.nan, copy=False)
 
         if notna(mat).all():
             if min_periods is not None and min_periods > len(mat):
                 base_cov = np.empty((mat.shape[1], mat.shape[1]))
                 base_cov.fill(np.nan)
             else:
-                base_cov = np.cov(mat.T)
+                base_cov = np.cov(mat.T, ddof=ddof)
             base_cov = base_cov.reshape((len(cols), len(cols)))
         else:
             base_cov = libalgos.nancorr(mat, cov=True, minp=min_periods)

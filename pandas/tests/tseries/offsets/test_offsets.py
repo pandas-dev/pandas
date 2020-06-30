@@ -11,13 +11,9 @@ from pandas._libs.tslibs import (
     conversion,
     timezones,
 )
-from pandas._libs.tslibs.frequencies import (
-    INVALID_FREQ_ERR_MSG,
-    get_freq_code,
-    get_freq_str,
-)
 import pandas._libs.tslibs.offsets as liboffsets
-from pandas._libs.tslibs.offsets import ApplyTypeError
+from pandas._libs.tslibs.offsets import ApplyTypeError, _get_offset, _offset_map
+from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 import pandas.compat as compat
 from pandas.compat.numpy import np_datetime64_compat
 from pandas.errors import PerformanceWarning
@@ -27,7 +23,6 @@ from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.series import Series
 
 from pandas.io.pickle import read_pickle
-from pandas.tseries.frequencies import _get_offset, _offset_map
 from pandas.tseries.holiday import USFederalHolidayCalendar
 import pandas.tseries.offsets as offsets
 from pandas.tseries.offsets import (
@@ -653,7 +648,21 @@ class TestCommon(Base):
         # This code was executed once on v0.15.2 to generate the pickle:
         # with open(pickle_path, 'wb') as f: pickle.dump(offsets, f)
         #
-        tm.assert_dict_equal(offsets, read_pickle(pickle_path))
+        result = read_pickle(pickle_path)
+        tm.assert_dict_equal(offsets, result)
+
+    def test_pickle_roundtrip(self, offset_types):
+        off = self._get_offset(offset_types)
+        res = tm.round_trip_pickle(off)
+        assert off == res
+        if type(off) is not DateOffset:
+            for attr in off._attributes:
+                if attr == "calendar":
+                    # np.busdaycalendar __eq__ will return False;
+                    #  we check holidays and weekmask attrs so are OK
+                    continue
+                # Make sure nothings got lost from _params (which __eq__) is based on
+                assert getattr(off, attr) == getattr(res, attr)
 
     def test_onOffset_deprecated(self, offset_types):
         # GH#30340 use idiomatic naming
@@ -3463,6 +3472,11 @@ class TestLastWeekOfMonth(Base):
         offset = LastWeekOfMonth(weekday=weekday)
         assert offset.is_on_offset(dt) == expected
 
+    def test_repr(self):
+        assert (
+            repr(LastWeekOfMonth(n=2, weekday=1)) == "<2 * LastWeekOfMonths: weekday=1>"
+        )
+
 
 class TestSemiMonthEnd(Base):
     _offset = SemiMonthEnd
@@ -3506,7 +3520,7 @@ class TestSemiMonthEnd(Base):
         with tm.assert_produces_warning(None):
             # GH#22535 check that we don't get a FutureWarning from adding
             # an integer array to PeriodIndex
-            result = SemiMonthEnd().apply_index(s)
+            result = SemiMonthEnd() + s
 
         exp = DatetimeIndex(dates[1:])
         tm.assert_index_equal(result, exp)
@@ -3654,7 +3668,7 @@ class TestSemiMonthEnd(Base):
         with tm.assert_produces_warning(None):
             # GH#22535 check that we don't get a FutureWarning from adding
             # an integer array to PeriodIndex
-            result = offset.apply_index(s)
+            result = offset + s
 
         exp = DatetimeIndex(cases.values())
         tm.assert_index_equal(result, exp)
@@ -3765,7 +3779,7 @@ class TestSemiMonthBegin(Base):
         with tm.assert_produces_warning(None):
             # GH#22535 check that we don't get a FutureWarning from adding
             # an integer array to PeriodIndex
-            result = SemiMonthBegin().apply_index(s)
+            result = SemiMonthBegin() + s
 
         exp = DatetimeIndex(dates[1:])
         tm.assert_index_equal(result, exp)
@@ -3918,7 +3932,7 @@ class TestSemiMonthBegin(Base):
         with tm.assert_produces_warning(None):
             # GH#22535 check that we don't get a FutureWarning from adding
             # an integer array to PeriodIndex
-            result = offset.apply_index(s)
+            result = offset + s
 
         exp = DatetimeIndex(cases.values())
         tm.assert_index_equal(result, exp)
@@ -4093,13 +4107,6 @@ class TestOffsetAliases:
                 alias = "-".join([base, v])
                 assert alias == _get_offset(alias).rule_code
                 assert alias == (_get_offset(alias) * 5).rule_code
-
-        lst = ["M", "D", "B", "H", "T", "S", "L", "U"]
-        for k in lst:
-            code, stride = get_freq_code("3" + k)
-            assert isinstance(code, int)
-            assert stride == 3
-            assert k == get_freq_str(code)
 
 
 def test_dateoffset_misc():
@@ -4318,7 +4325,7 @@ def test_valid_default_arguments(offset_types):
     cls()
 
 
-@pytest.mark.parametrize("kwd", sorted(liboffsets.relativedelta_kwds))
+@pytest.mark.parametrize("kwd", sorted(liboffsets._relativedelta_kwds))
 def test_valid_month_attributes(kwd, month_classes):
     # GH#18226
     cls = month_classes
@@ -4334,14 +4341,14 @@ def test_month_offset_name(month_classes):
     assert obj2.name == obj.name
 
 
-@pytest.mark.parametrize("kwd", sorted(liboffsets.relativedelta_kwds))
+@pytest.mark.parametrize("kwd", sorted(liboffsets._relativedelta_kwds))
 def test_valid_relativedelta_kwargs(kwd):
-    # Check that all the arguments specified in liboffsets.relativedelta_kwds
+    # Check that all the arguments specified in liboffsets._relativedelta_kwds
     # are in fact valid relativedelta keyword args
     DateOffset(**{kwd: 1})
 
 
-@pytest.mark.parametrize("kwd", sorted(liboffsets.relativedelta_kwds))
+@pytest.mark.parametrize("kwd", sorted(liboffsets._relativedelta_kwds))
 def test_valid_tick_attributes(kwd, tick_classes):
     # GH#18226
     cls = tick_classes

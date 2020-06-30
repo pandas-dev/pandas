@@ -1314,7 +1314,11 @@ class TestDataFrameReplace:
         expected = DataFrame({"a": a, "b": b})
         result = df.replace(replace_dict, 3)
         tm.assert_frame_equal(result, expected)
-        with pytest.raises(AssertionError):
+        msg = (
+            r"Attributes of DataFrame.iloc\[:, 0\] \(column name=\"a\"\) are "
+            "different"
+        )
+        with pytest.raises(AssertionError, match=msg):
             # ensure non-inplace call does not affect original
             tm.assert_frame_equal(df, expected)
         df.replace(replace_dict, 3, inplace=True)
@@ -1388,3 +1392,31 @@ class TestDataFrameReplace:
         df = pd.DataFrame(np.eye(2), dtype=dtype)
         result = df.replace(to_replace=[None, -np.inf, np.inf], value=value)
         tm.assert_frame_equal(result, df)
+
+    @pytest.mark.parametrize("replacement", [np.nan, 5])
+    def test_replace_with_duplicate_columns(self, replacement):
+        # GH 24798
+        result = pd.DataFrame({"A": [1, 2, 3], "A1": [4, 5, 6], "B": [7, 8, 9]})
+        result.columns = list("AAB")
+
+        expected = pd.DataFrame(
+            {"A": [1, 2, 3], "A1": [4, 5, 6], "B": [replacement, 8, 9]}
+        )
+        expected.columns = list("AAB")
+
+        result["B"] = result["B"].replace(7, replacement)
+
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.xfail(
+        reason="replace() changes dtype from period to object, see GH34871", strict=True
+    )
+    def test_replace_period_ignore_float(self):
+        """
+        Regression test for GH#34871: if df.replace(1.0, 0.0) is called on a df
+        with a Period column the old, faulty behavior is to raise TypeError.
+        """
+        df = pd.DataFrame({"Per": [pd.Period("2020-01")] * 3})
+        result = df.replace(1.0, 0.0)
+        expected = pd.DataFrame({"Per": [pd.Period("2020-01")] * 3})
+        tm.assert_frame_equal(expected, result)

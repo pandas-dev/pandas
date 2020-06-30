@@ -719,6 +719,9 @@ class TestCategoricalSeries:
                 tm.assert_equal(res, exp)
 
             for attr in attr_names:
+                if attr in ["week", "weekofyear"]:
+                    # GH#33595 Deprecate week and weekofyear
+                    continue
                 res = getattr(c.dt, attr)
                 exp = getattr(s.dt, attr)
 
