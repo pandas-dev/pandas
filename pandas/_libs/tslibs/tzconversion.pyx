@@ -21,7 +21,7 @@ from pandas._libs.tslibs.nattype cimport NPY_NAT
 from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, dt64_to_dtstruct)
 from pandas._libs.tslibs.timezones cimport (
-    get_dst_info, is_tzlocal, is_utc, get_timezone, get_utcoffset)
+    get_dst_info, is_tzlocal, is_utc, get_timezone)
 
 
 # TODO: cdef scalar version to call from convert_str_to_tsobject
