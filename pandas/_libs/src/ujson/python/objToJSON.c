@@ -708,7 +708,7 @@ void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
     if (!blkCtxt) {
         PyErr_NoMemory();
         GET_TC(tc)->iterNext = NpyArr_iterNextNone;
-	return;
+        return;
     }
     GET_TC(tc)->pdblock = blkCtxt;
 
@@ -721,7 +721,7 @@ void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
         blkCtxt->cindices = NULL;
 
         GET_TC(tc)->iterNext = NpyArr_iterNextNone;
-	return;
+        return;
     }
 
     blkCtxt->npyCtxts =
@@ -729,20 +729,20 @@ void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
     if (!blkCtxt->npyCtxts) {
         PyErr_NoMemory();
         GET_TC(tc)->iterNext = NpyArr_iterNextNone;
-	return;
+        return;
     }
 
     blkCtxt->cindices = PyObject_Malloc(sizeof(int) * blkCtxt->ncols);
     if (!blkCtxt->cindices) {
         PyErr_NoMemory();
         GET_TC(tc)->iterNext = NpyArr_iterNextNone;
-	return;
+        return;
     }
 
     blocks = get_sub_attr(obj, "_mgr", "blocks");
     if (!blocks) {
         GET_TC(tc)->iterNext = NpyArr_iterNextNone;
-	return;
+        return;
     } else if (!PyTuple_Check(blocks)) {
       PyErr_SetString(PyExc_TypeError, "blocks must be a tuple!");
       goto BLKRET;
