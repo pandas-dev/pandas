@@ -141,7 +141,7 @@ from pandas.core.sorting import ensure_key_mapped
 
 from pandas.io.common import get_filepath_or_buffer
 from pandas.io.formats import console, format as fmt
-from pandas.io.formats.info import info
+from pandas.io.formats.info import DataFrameInfo
 import pandas.plotting
 
 if TYPE_CHECKING:
@@ -227,10 +227,13 @@ right_index : bool, default False
 sort : bool, default False
     Sort the join keys lexicographically in the result DataFrame. If False,
     the order of the join keys depends on the join type (how keyword).
-suffixes : tuple of (str, str), default ('_x', '_y')
-    Suffix to apply to overlapping column names in the left and right
-    side, respectively. To raise an exception on overlapping columns use
-    (False, False).
+suffixes : list-like, default is ("_x", "_y")
+    A length-2 sequence where each element is optionally a string
+    indicating the suffix to add to overlapping column names in
+    `left` and `right` respectively. Pass a value of `None` instead
+    of a string to indicate that the column name from `left` or
+    `right` should be left as-is, with no suffix. At least one of the
+    values must not be None.
 copy : bool, default True
     If False, avoid copy if possible.
 indicator : bool or str, default False
@@ -2462,11 +2465,11 @@ class DataFrame(NDFrame):
             <class 'pandas.core.frame.DataFrame'>
             RangeIndex: 5 entries, 0 to 4
             Data columns (total 3 columns):
-                #   Column     Non-Null Count  Dtype
+             #   Column     Non-Null Count  Dtype
             ---  ------     --------------  -----
-                0   int_col    5 non-null      int64
-                1   text_col   5 non-null      object
-                2   float_col  5 non-null      float64
+             0   int_col    5 non-null      int64
+             1   text_col   5 non-null      object
+             2   float_col  5 non-null      float64
             dtypes: float64(1), int64(1), object(1)
             memory usage: 248.0+ bytes
 
@@ -2505,11 +2508,11 @@ class DataFrame(NDFrame):
             <class 'pandas.core.frame.DataFrame'>
             RangeIndex: 1000000 entries, 0 to 999999
             Data columns (total 3 columns):
-                #   Column    Non-Null Count    Dtype
+             #   Column    Non-Null Count    Dtype
             ---  ------    --------------    -----
-                0   column_1  1000000 non-null  object
-                1   column_2  1000000 non-null  object
-                2   column_3  1000000 non-null  object
+             0   column_1  1000000 non-null  object
+             1   column_2  1000000 non-null  object
+             2   column_3  1000000 non-null  object
             dtypes: object(3)
             memory usage: 22.9+ MB
 
@@ -2517,11 +2520,11 @@ class DataFrame(NDFrame):
             <class 'pandas.core.frame.DataFrame'>
             RangeIndex: 1000000 entries, 0 to 999999
             Data columns (total 3 columns):
-                #   Column    Non-Null Count    Dtype
+             #   Column    Non-Null Count    Dtype
             ---  ------    --------------    -----
-                0   column_1  1000000 non-null  object
-                1   column_2  1000000 non-null  object
-                2   column_3  1000000 non-null  object
+             0   column_1  1000000 non-null  object
+             1   column_2  1000000 non-null  object
+             2   column_3  1000000 non-null  object
             dtypes: object(3)
             memory usage: 188.8 MB"""
         ),
@@ -2532,7 +2535,7 @@ class DataFrame(NDFrame):
             DataFrame.memory_usage: Memory usage of DataFrame columns."""
         ),
     )
-    @doc(info)
+    @doc(DataFrameInfo.info)
     def info(
         self,
         verbose: Optional[bool] = None,
@@ -2541,7 +2544,9 @@ class DataFrame(NDFrame):
         memory_usage: Optional[Union[bool, str]] = None,
         null_counts: Optional[bool] = None,
     ) -> None:
-        return info(self, verbose, buf, max_cols, memory_usage, null_counts)
+        return DataFrameInfo(
+            self, verbose, buf, max_cols, memory_usage, null_counts
+        ).info()
 
     def memory_usage(self, index=True, deep=False) -> Series:
         """
@@ -7549,7 +7554,7 @@ NaN 12.3   33.0
         other : DataFrame or Series/dict-like object, or list of these
             The data to append.
         ignore_index : bool, default False
-            If True, do not use the index labels.
+            If True, the resulting axis will be labeled 0, 1, …, n - 1.
         verify_integrity : bool, default False
             If True, raise ValueError on creating index with duplicates.
         sort : bool, default False
