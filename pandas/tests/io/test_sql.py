@@ -887,6 +887,20 @@ class _TestSQLApi(PandasSQLTest):
         constraint_sentence = 'CONSTRAINT test_pk PRIMARY KEY ("A", "B")'
         assert constraint_sentence in create_sql
 
+    def test_get_schema_with_index(self):
+        # GH 9084
+        df = pd.DataFrame({"one": [1, 2, 3], "two": [1, 2, 3]}, index=list("abc"))
+
+        schema_without_index = sql.get_schema(df, "test", con=self.conn)
+        assert "index TEXT" not in schema_without_index
+
+        schema_with_index = sql.get_schema(df, "test", index=True, con=self.conn)
+        assert '"index" TEXT' in schema_with_index
+
+        df.index.name = "new_index"
+        schema_with_index_rename = sql.get_schema(df, "test", index=True, con=self.conn)
+        assert df.index.name in schema_with_index_rename
+
     def test_chunksize_read(self):
         df = DataFrame(np.random.randn(22, 5), columns=list("abcde"))
         df.to_sql("test_chunksize", self.conn, index=False)

@@ -1441,9 +1441,9 @@ class SQLDatabase(PandasSQL):
             self.get_table(table_name, schema).drop()
             self.meta.clear()
 
-    def _create_sql_schema(self, frame, table_name, keys=None, dtype=None):
+    def _create_sql_schema(self, frame, table_name, keys=None, dtype=None, index=False):
         table = SQLTable(
-            table_name, self, frame=frame, index=False, keys=keys, dtype=dtype
+            table_name, self, frame=frame, index=index, keys=keys, dtype=dtype
         )
         return str(table.sql_schema())
 
@@ -1831,14 +1831,14 @@ class SQLiteDatabase(PandasSQL):
         drop_sql = f"DROP TABLE {_get_valid_sqlite_name(name)}"
         self.execute(drop_sql)
 
-    def _create_sql_schema(self, frame, table_name, keys=None, dtype=None):
+    def _create_sql_schema(self, frame, table_name, keys=None, dtype=None, index=False):
         table = SQLiteTable(
-            table_name, self, frame=frame, index=False, keys=keys, dtype=dtype
+            table_name, self, frame=frame, index=index, keys=keys, dtype=dtype
         )
         return str(table.sql_schema())
 
 
-def get_schema(frame, name, keys=None, con=None, dtype=None):
+def get_schema(frame, name, keys=None, con=None, dtype=None, index=False):
     """
     Get the SQL db table schema for the given frame.
 
@@ -1856,7 +1856,12 @@ def get_schema(frame, name, keys=None, con=None, dtype=None):
     dtype : dict of column name to SQL type, default None
         Optional specifying the datatype for columns. The SQL type should
         be a SQLAlchemy type, or a string for sqlite3 fallback connection.
+    index : boolean, default: False
+         Whether to include the index of the DataFrame in the sql schema
+         New in version 1.1.0.
 
     """
     pandas_sql = pandasSQL_builder(con=con)
-    return pandas_sql._create_sql_schema(frame, name, keys=keys, dtype=dtype)
+    return pandas_sql._create_sql_schema(
+        frame, name, keys=keys, dtype=dtype, index=index
+    )
