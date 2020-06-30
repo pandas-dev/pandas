@@ -2070,7 +2070,8 @@ def test_merge_suffix_error(col1, col2, suffixes):
         pd.merge(a, b, left_index=True, right_index=True, suffixes=suffixes)
 
 
-def test_merge_suffix_set():
+@pytest.mark.parametrize("suffixes", [{"left", "right"}, {"left": 0, "right": 0}])
+def test_merge_suffix_warns(suffixes):
     a = pd.DataFrame({"a": [1, 2, 3]})
     b = pd.DataFrame({"b": [3, 4, 5]})
 

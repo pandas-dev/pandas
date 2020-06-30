@@ -227,7 +227,7 @@ right_index : bool, default False
 sort : bool, default False
     Sort the join keys lexicographically in the result DataFrame. If False,
     the order of the join keys depends on the join type (how keyword).
-suffixes : Sequence, default is ("_x", "_y")
+suffixes : list-like, default is ("_x", "_y")
     A length-2 sequence where each element is optionally a string
     indicating the suffix to add to overlapping column names in
     `left` and `right` respectively. Pass a value of `None` instead
