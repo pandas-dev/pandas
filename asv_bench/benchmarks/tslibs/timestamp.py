@@ -1,8 +1,6 @@
-from datetime import datetime, timezone, timedelta
-import datetime
+from datetime import datetime, timedelta, timezone
 
 from dateutil.tz import gettz, tzlocal, tzutc
-import dateutil
 import numpy as np
 import pytz
 
