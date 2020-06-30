@@ -597,15 +597,15 @@ You can view other examples of ``BaseIndexer`` subclasses `here <https://github.
 
 .. versionadded:: 1.1
 
-One subclass of note within those examples is the ``NonFixedVariableWindowIndexer`` that allows
+One subclass of note within those examples is the ``VariableOffsetWindowIndexer`` that allows
 rolling operations over a non-fixed offset like a ``BusinessDay``.
 
 .. ipython:: python
 
-   from pandas.api.indexers import NonFixedVariableWindowIndexer
+   from pandas.api.indexers import VariableOffsetWindowIndexer
    df = pd.DataFrame(range(10), index=pd.date_range('2020', periods=10))
    offset = pd.offsets.BDay(1)
-   indexer = NonFixedVariableWindowIndexer(index=df.index, offset=offset)
+   indexer = VariableOffsetWindowIndexer(index=df.index, offset=offset)
    df
    df.rolling(indexer).sum()
 
