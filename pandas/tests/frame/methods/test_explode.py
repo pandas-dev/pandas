@@ -167,14 +167,14 @@ def test_duplicate_index(input_dict, input_index, expected_dict, expected_index)
 def test_inferred_dtype():
     # GH 34923
     s = pd.Series([1, None, 3])
-    df = pd.DataFrame({'A': [s, s], "B": 1})
+    df = pd.DataFrame({"A": [s, s], "B": 1})
     result = df.explode("A")
     expected = pd.DataFrame(
         {
             "A": np.array([1, np.nan, 3, 1, np.nan, 3], dtype=np.float64),
-            "B": np.array([1, 1, 1, 1, 1, 1], dtype=np.int64)
+            "B": np.array([1, 1, 1, 1, 1, 1], dtype=np.int64),
         },
-        index=[0, 0, 0, 1, 1, 1]
+        index=[0, 0, 0, 1, 1, 1],
     )
     tm.assert_frame_equal(result, expected)
 
