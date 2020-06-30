@@ -20,18 +20,18 @@ COMPATIBLE_INCONSISTENT_PAIRS = {
 }
 
 
-def test_union_same_types(indices):
+def test_union_same_types(index):
     # Union with a non-unique, non-monotonic index raises error
     # Only needed for bool index factory
-    idx1 = indices.sort_values()
-    idx2 = indices.sort_values()
+    idx1 = index.sort_values()
+    idx2 = index.sort_values()
     assert idx1.union(idx2).dtype == idx1.dtype
 
 
-def test_union_different_types(indices, index_fixture2):
+def test_union_different_types(index, index_fixture2):
     # This test only considers combinations of indices
     # GH 23525
-    idx1, idx2 = indices, index_fixture2
+    idx1, idx2 = index, index_fixture2
     type_pair = tuple(sorted([type(idx1), type(idx2)], key=lambda x: str(x)))
     if type_pair in COMPATIBLE_INCONSISTENT_PAIRS:
         pytest.xfail("This test only considers non compatible indexes.")
