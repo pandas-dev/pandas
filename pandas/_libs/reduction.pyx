@@ -370,7 +370,17 @@ def apply_frame_axis0(object frame, object f, object names,
                     mutated = True
             except AttributeError:
                 # `piece` might not have an index, could be e.g. an int
-                pass
+                # By definition, we are not a transform, so set mutated
+                # to True
+                mutated = True
+            if not mutated:
+                # Also check if the columns are mutated
+                try:
+                    if not piece.columns.equals(chunk.columns):
+                        mutated = True
+                except AttributeError:
+                    mutated = True
+
 
             if not is_scalar(piece):
                 # Need to copy data to avoid appending references

@@ -1417,7 +1417,7 @@ def test_set_group_name(df, grouper):
     def foo(x):
         return freduce(x)
 
-    grouped = df.groupby(grouper)
+    grouped = df.groupby(grouper, group_keys=False)
 
     # make sure all these work
     grouped.apply(f)

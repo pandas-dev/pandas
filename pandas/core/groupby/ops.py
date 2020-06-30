@@ -901,8 +901,12 @@ def _is_indexed_like(obj, axes) -> bool:
         if len(axes) > 1:
             return False
         return obj.index.equals(axes[0])
-    elif isinstance(obj, DataFrame):
-        return obj.index.equals(axes[0])
+
+    is_frame = isinstance(obj, DataFrame)
+    if is_frame and len(axes) == 1:
+        return True
+    elif is_frame:
+        return obj.index.equals(axes[0]) and obj.columns.equals(axes[1])
 
     return False
 

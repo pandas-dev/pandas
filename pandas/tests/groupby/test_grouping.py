@@ -144,10 +144,10 @@ class TestGrouping:
         ]:
 
             df.index = index(len(df))
-            df.groupby(list("abcde")).apply(lambda x: x)
+            df.groupby(list("abcde"), group_keys=False).apply(lambda x: x)
 
             df.index = list(reversed(df.index.tolist()))
-            df.groupby(list("abcde")).apply(lambda x: x)
+            df.groupby(list("abcde"), group_keys=False).apply(lambda x: x)
 
     def test_grouper_multilevel_freq(self):
 

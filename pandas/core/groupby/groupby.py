@@ -762,8 +762,11 @@ b  2""",
             if name in base.plotting_methods:
                 return self.apply(curried)
 
+            is_transform = name in {"diff", "fillna", "tshift"}
             try:
-                return self._python_apply_general(curried, self._obj_with_exclusions)
+                return self._python_apply_general(
+                    curried, self._obj_with_exclusions, is_transform=is_transform
+                )
             except TypeError as err:
                 if not re.search(
                     "reduction operation '.*' not allowed for this dtype", str(err)
@@ -869,7 +872,7 @@ b  2""",
         return result
 
     def _python_apply_general(
-        self, f: F, data: FrameOrSeriesUnion
+        self, f: F, data: FrameOrSeriesUnion, is_transform=None
     ) -> FrameOrSeriesUnion:
         """
         Apply function f in python space
@@ -880,6 +883,11 @@ b  2""",
             Function to apply
         data : Series or DataFrame
             Data to apply f to
+        is_transform : bool, optional
+            Indicator for whether the function is actually a transform
+            and should not have group keys prepended. This is used
+            in _make_wrapper which generates both transforms (e.g. diff)
+            and non-transforms (e.g. corr)
 
         Returns
         -------
@@ -906,8 +914,10 @@ b  2""",
                 "To adopt the future behavior and silence this warning, use "
                 "\n\n\t>>> .groupby(..., group_keys=True)"
             )
-            warnings.warn(msg, FutureWarning, stacklevel=stacklevel)
-            self.group_keys = False  # mutating a stateful object...
+            if not (is_transform is True):
+                warnings.warn(msg, FutureWarning, stacklevel=stacklevel)
+            # XXX: mutating a stateful object. Consider passing a var through wrap_applied_output
+            self.group_keys = False
 
         return self._wrap_applied_output(
             keys, values, not_indexed_same=not_indexed_same

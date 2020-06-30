@@ -84,7 +84,7 @@ def test_apply_trivial2():
 def test_fast_apply():
     # make sure that fast apply is correctly called
     # rather than raising any kind of error
-    # otherwise the python path will be callsed
+    # otherwise the python path will be called
     # which slows things down
     N = 1000
     labels = np.random.randint(0, 2000, size=N)
@@ -98,8 +98,11 @@ def test_fast_apply():
         }
     )
 
-    def f(g):
+    def f1(g):
         return 1
+
+    def f2(g):
+        return g
 
     g = df.groupby(["key", "key2"])
 
@@ -109,9 +112,9 @@ def test_fast_apply():
     group_keys = grouper._get_group_keys()
     sdata = splitter._get_sorted_data()
 
-    values, mutated = splitter.fast_apply(f, sdata, group_keys)
-
-    assert not mutated
+    for f, expected_mutated in [(f1, True), (f2, False)]:
+        values, mutated = splitter.fast_apply(f, sdata, group_keys)
+        assert mutated is expected_mutated
 
 
 @pytest.mark.parametrize(
