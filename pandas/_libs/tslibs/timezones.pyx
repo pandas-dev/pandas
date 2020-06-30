@@ -17,7 +17,7 @@ UTC = pytz.utc
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport int64_t
+from numpy cimport int64_t, intp_t
 cnp.import_array()
 
 # ----------------------------------------------------------------------
@@ -192,10 +192,10 @@ cdef object _get_utc_trans_times_from_dateutil_tz(tzinfo tz):
     return new_trans
 
 
-cdef int64_t[:] unbox_utcoffsets(object transinfo):
+cdef ndarray[int64_t, ndim=1] unbox_utcoffsets(object transinfo):
     cdef:
         Py_ssize_t i, sz
-        int64_t[:] arr
+        ndarray[int64_t, ndim=1] arr
 
     sz = len(transinfo)
     arr = np.empty(sz, dtype='i8')
@@ -208,6 +208,40 @@ cdef int64_t[:] unbox_utcoffsets(object transinfo):
 
 # ----------------------------------------------------------------------
 # Daylight Savings
+
+ctypedef struct TZConvertInfo:
+    bint use_utc
+    bint use_tzlocal
+    bint use_fixed
+    int64_t* utcoffsets
+    intp_t* positions
+    int64_t delta
+
+
+cdef TZConvertInfo get_tzconverter(tzinfo tz, const int64_t[:] values):
+    cdef:
+        TZConvertInfo info
+        ndarray[int64_t, ndim=1] deltas, trans, pos
+        str typ
+
+    info.use_utc = info.use_tzlocal = info.use_fixed = False
+
+    if tz is None or is_utc(tz):
+        info.use_utc = True
+    elif is_tzlocal(tz):
+        info.use_tzlocal = True
+    else:
+        trans, deltas, typ = get_dst_info(tz)
+        if typ not in ["pytz", "dateutil"]:
+            # Fixed Offset
+            info.use_fixed = True
+            info.delta = deltas[0]
+        else:
+            info.utcoffsets = <int64_t*>cnp.PyArray_DATA(deltas)
+            pos = trans.searchsorted(values, side="right") - 1
+            info.positions = <intp_t*>cnp.PyArray_DATA(pos)
+
+    return info
 
 
 cdef object get_dst_info(object tz):
