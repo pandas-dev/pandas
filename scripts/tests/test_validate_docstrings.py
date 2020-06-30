@@ -2,7 +2,6 @@ import io
 import textwrap
 
 import pytest
-
 import validate_docstrings
 
 
