@@ -8508,9 +8508,7 @@ NaN 12.3   33.0
                 raise NotImplementedError(msg)
             return data
 
-        is_numeric = all(b.is_numeric for b in self._mgr.blocks) and len(
-            self._mgr.blocks
-        )
+        is_numeric = self._mgr.blocks and all(b.is_numeric for b in self._mgr.blocks)
 
         if (is_numeric or numeric_only is not None) and axis is not None:
             df = self
