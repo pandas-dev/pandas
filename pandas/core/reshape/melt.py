@@ -43,9 +43,11 @@ def melt(
 
     if value_name in frame.columns:
         warnings.warn(
-            'The value column name "%s" conflicts with an existing '
-            "column in the dataframe." % (value_name),
-            DeprecationWarning,
+            'This dataframe has a column name that matches the value column '
+            f'name of the resultant melted dataframe (That being "{value_name})". '
+            'In the future this will raise an error, please set the value_name '
+            'parameter of DataFrame.melt to a unique name.',
+            FutureWarning,
             stacklevel=3,
         )
 

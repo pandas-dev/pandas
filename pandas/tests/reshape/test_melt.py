@@ -1021,5 +1021,5 @@ class TestWideToLong:
         # a name in the dataframe already (default name is "value")
         df = pd.DataFrame({"col": list("ABC"), "value": range(10, 16, 2)})
 
-        with tm.assert_produces_warning(DeprecationWarning):
+        with tm.assert_produces_warning(FutureWarning):
             dfm = df.melt(id_vars="value")  # noqa F841
