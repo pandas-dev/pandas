@@ -69,7 +69,7 @@ _no_input = object()
 
 cdef inline object create_timestamp_from_ts(int64_t value,
                                             npy_datetimestruct dts,
-                                            object tz, object freq, bint fold):
+                                            tzinfo tz, object freq, bint fold):
     """ convenience routine to construct a Timestamp from its parts """
     cdef _Timestamp ts_base
     ts_base = _Timestamp.__new__(Timestamp, dts.year, dts.month,
