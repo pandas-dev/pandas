@@ -11,7 +11,7 @@ import pytest
 import pytz
 
 from pandas.compat import PY37, is_platform_little_endian
-from pandas.compat.numpy import _is_numpy_dev
+from pandas.compat.numpy import _np_version_under1p19
 
 from pandas.core.dtypes.common import is_integer_dtype
 
@@ -147,14 +147,20 @@ class TestDataFrameConstructors:
         assert df.loc[1, 0] is None
         assert df.loc[0, 1] == "2"
 
-    @pytest.mark.xfail(_is_numpy_dev, reason="Interprets list of frame as 3D")
-    def test_constructor_list_frames(self):
-        # see gh-3243
-        result = DataFrame([DataFrame()])
-        assert result.shape == (1, 0)
+    @pytest.mark.skipif(_np_version_under1p19, reason="NumPy change.")
+    def test_constructor_list_of_2d_raises(self):
+        # https://github.com/pandas-dev/pandas/issues/32289
+        a = pd.DataFrame()
+        b = np.empty((0, 0))
+        with pytest.raises(ValueError, match=r"shape=\(1, 0, 0\)"):
+            pd.DataFrame([a])
 
-        result = DataFrame([DataFrame(dict(A=np.arange(5)))])
-        assert isinstance(result.iloc[0, 0], DataFrame)
+        with pytest.raises(ValueError, match=r"shape=\(1, 0, 0\)"):
+            pd.DataFrame([b])
+
+        a = pd.DataFrame({"A": [1, 2]})
+        with pytest.raises(ValueError, match=r"shape=\(2, 2, 1\)"):
+            pd.DataFrame([a, a])
 
     def test_constructor_mixed_dtypes(self):
         def _make_mixed_dtypes_df(typ, ad=None):
@@ -506,22 +512,6 @@ class TestDataFrameConstructors:
         msg = "If using all scalar values, you must pass an index"
         with pytest.raises(ValueError, match=msg):
             DataFrame({"a": False, "b": True})
-
-    @pytest.mark.xfail(_is_numpy_dev, reason="Interprets embedded frame as 3D")
-    def test_constructor_with_embedded_frames(self):
-
-        # embedded data frames
-        df1 = DataFrame({"a": [1, 2, 3], "b": [3, 4, 5]})
-        df2 = DataFrame([df1, df1 + 10])
-
-        df2.dtypes
-        str(df2)
-
-        result = df2.loc[0, 0]
-        tm.assert_frame_equal(result, df1)
-
-        result = df2.loc[1, 0]
-        tm.assert_frame_equal(result, df1 + 10)
 
     def test_constructor_subclass_dict(self, float_frame, dict_subclass):
         # Test for passing dict subclass to constructor
