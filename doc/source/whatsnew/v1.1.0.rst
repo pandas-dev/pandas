@@ -13,6 +13,15 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+.. _whatsnew_110.specify_missing_labels:
+
+KeyErrors raised by loc specify missing labels
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Previously, if labels were missing for a loc call, a KeyError was raised stating that this was no longer supported.
+
+Now the error message also includes a list of the missing labels (max 10 items, display width 80 characters). See :issue:`34272`.
+
+
 .. _whatsnew_110.astype_string:
 
 All dtypes can now be converted to ``StringDtype``
@@ -318,6 +327,7 @@ Other enhancements
 - :meth:`DataFrame.cov` and :meth:`Series.cov` now support a new parameter ddof to support delta degrees of freedom as in the corresponding numpy methods (:issue:`34611`).
 - :meth:`DataFrame.to_html` and :meth:`DataFrame.to_string`'s ``col_space`` parameter now accepts a list or dict to change only some specific columns' width (:issue:`28917`).
 - :meth:`DataFrame.to_excel` can now also write OpenOffice spreadsheet (.ods) files (:issue:`27222`)
+- :meth:`~Series.explode` now accepts ``ignore_index`` to reset the index, similarly to :meth:`pd.concat` or :meth:`DataFrame.sort_values` (:issue:`34932`).
 
 .. ---------------------------------------------------------------------------
 
@@ -663,6 +673,7 @@ Other API changes
 - ``loc`` lookups with an object-dtype :class:`Index` and an integer key will now raise ``KeyError`` instead of ``TypeError`` when key is missing (:issue:`31905`)
 - Using a :func:`pandas.api.indexers.BaseIndexer` with ``count``, ``min``, ``max``, ``median``, ``skew``,  ``cov``, ``corr`` will now return correct results for any monotonic :func:`pandas.api.indexers.BaseIndexer` descendant (:issue:`32865`)
 - Added a :func:`pandas.api.indexers.FixedForwardWindowIndexer` class to support forward-looking windows during ``rolling`` operations.
+- Added a :func:`pandas.api.indexers.VariableOffsetWindowIndexer` class to support ``rolling`` operations with non-fixed offsets (:issue:`34994`)
 - Added :class:`pandas.errors.InvalidIndexError` (:issue:`34570`).
 - :meth:`DataFrame.swaplevels` now raises a  ``TypeError`` if the axis is not a :class:`MultiIndex`.
   Previously an ``AttributeError`` was raised (:issue:`31126`)
@@ -685,6 +696,7 @@ Other API changes
 - :func: `merge` now checks ``suffixes`` parameter type to be ``tuple`` and raises ``TypeError``, whereas before a ``list`` or ``set`` were accepted and that the ``set`` could produce unexpected results (:issue:`33740`)
 - :class:`Period` no longer accepts tuples for the ``freq`` argument (:issue:`34658`)
 - :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` now raises ValueError if ``limit_direction`` is 'forward' or 'both' and ``method`` is 'backfill' or 'bfill' or ``limit_direction`` is 'backward' or 'both' and ``method`` is 'pad' or 'ffill' (:issue:`34746`)
+- The :class:`DataFrame` constructor no longer accepts a list of ``DataFrame`` objects. Because of changes to NumPy, ``DataFrame`` objects are now consistently treated as 2D objects, so a list of ``DataFrames`` is considered 3D, and no longer acceptible for the ``DataFrame`` constructor (:issue:`32289`).
 
 
 Increased minimum versions for dependencies
@@ -1030,6 +1042,8 @@ I/O
 - Bug in :meth:`read_excel` for ODS files removes 0.0 values (:issue:`27222`)
 - Bug in :meth:`ujson.encode` was raising an `OverflowError` with numbers larger than sys.maxsize (:issue: `34395`)
 - Bug in :meth:`HDFStore.append_to_multiple` was raising a ``ValueError`` when the min_itemsize parameter is set (:issue:`11238`)
+- Bug in :meth:`~HDFStore.create_table` now raises an error when `column` argument was not specified in `data_columns` on input (:issue:`28156`)
+- :meth:`read_json` now could read line-delimited json file from a file url while `lines` and `chunksize` are set.
 - Bug in :meth:`DataFrame.to_sql` when reading DataFrames with ``-np.inf`` entries with MySQL now has a more explicit ``ValueError`` (:issue:`34431`)
 
 Plotting
