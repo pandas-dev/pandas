@@ -1,3 +1,4 @@
+from cpython.datetime cimport tzinfo
 
 import numpy as np
 from numpy cimport ndarray, int64_t, int32_t
@@ -7,11 +8,7 @@ from pandas._libs.tslibs.util cimport get_nat
 from pandas._libs.tslibs.dtypes import Resolution
 from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, dt64_to_dtstruct)
-from pandas._libs.tslibs.timezones cimport (
-    maybe_get_tz,
-    get_tzconverter,
-    TZConvertInfo,
-)
+from pandas._libs.tslibs.timezones cimport get_tzconverter, TZConvertInfo
 from pandas._libs.tslibs.ccalendar cimport get_days_in_month
 from pandas._libs.tslibs.tzconversion cimport tz_convert_utc_to_tzlocal
 
@@ -36,16 +33,13 @@ cdef:
 # ----------------------------------------------------------------------
 
 
-def get_resolution(const int64_t[:] stamps, tz=None):
+def get_resolution(const int64_t[:] stamps, tzinfo tz=None):
     cdef:
         Py_ssize_t i, n = len(stamps)
         npy_datetimestruct dts
         int reso = RESO_DAY, curr_reso
         int64_t local_val
         TZConvertInfo info
-
-    if tz is not None:
-        tz = maybe_get_tz(tz)
 
     info = get_tzconverter(tz, stamps)
 
