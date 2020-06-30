@@ -286,68 +286,68 @@ class DataFrameInfo(BaseInfo):
         col_count = len(ids)
         lines.append(f"Data columns (total {col_count} columns):")
 
-        lines.append(str(type(self.data)))
-        lines.append(self.data.index._summary())
+        id_head = " # "
+        column_head = "Column"
+        col_space = 2
 
-        ids, dtypes = self._get_ids_and_dtypes()
-        col_count = len(ids)
+        max_col = max(len(pprint_thing(k)) for k in ids)
+        len_column = len(pprint_thing(column_head))
+        space = max(max_col, len_column) + col_space
 
-        if col_count == 0:
-            lines.append(f"Empty {type(self.data).__name__}")
-            fmt.buffer_put_lines(self.buf, lines)
-            return
+        max_id = len(pprint_thing(col_count))
+        len_id = len(pprint_thing(id_head))
+        space_num = max(max_id, len_id) + col_space
 
-        # hack
-        max_cols = self.max_cols
-        if max_cols is None:
-            max_cols = get_option("display.max_info_columns", col_count + 1)
-
-        max_rows = get_option("display.max_info_rows", len(self.data) + 1)
-
-        if self.null_counts is None:
-            show_counts = (col_count <= max_cols) and (len(self.data) < max_rows)
+        header = _put_str(id_head, space_num) + _put_str(column_head, space)
+        if show_counts:
+            counts = self.data.count()
+            if col_count != len(counts):  # pragma: no cover
+                raise AssertionError(
+                    f"Columns must equal counts ({col_count} != {len(counts)})"
+                )
+            count_header = "Non-Null Count"
+            len_count = len(count_header)
+            non_null = " non-null"
+            max_count = max(len(pprint_thing(k)) for k in counts) + len(non_null)
+            space_count = max(len_count, max_count) + col_space
+            count_temp = "{count}" + non_null
         else:
-            show_counts = self.null_counts
-        exceeds_info_cols = col_count > max_cols
+            count_header = ""
+            space_count = len(count_header)
+            len_count = space_count
+            count_temp = "{count}"
 
-        def _sizeof_fmt(num, size_qualifier):
-            # returns size in human readable format
-            for x in ["bytes", "KB", "MB", "GB", "TB"]:
-                if num < 1024.0:
-                    return f"{num:3.1f}{size_qualifier} {x}"
-                num /= 1024.0
-            return f"{num:3.1f}{size_qualifier} PB"
+        dtype_header = "Dtype"
+        len_dtype = len(dtype_header)
+        max_dtypes = max(len(pprint_thing(k)) for k in dtypes)
+        space_dtype = max(len_dtype, max_dtypes)
+        header += _put_str(count_header, space_count) + _put_str(
+            dtype_header, space_dtype
+        )
 
-        if self.verbose:
-            self._verbose_repr(lines, ids, dtypes, show_counts)
-        elif self.verbose is False:  # specifically set to False, not necessarily None
-            self._non_verbose_repr(lines, ids)
-        else:
-            if exceeds_info_cols:
-                self._non_verbose_repr(lines, ids)
-            else:
-                self._verbose_repr(lines, ids, dtypes, show_counts)
+        lines.append(header)
+        lines.append(
+            _put_str("-" * len_id, space_num)
+            + _put_str("-" * len_column, space)
+            + _put_str("-" * len_count, space_count)
+            + _put_str("-" * len_dtype, space_dtype)
+        )
 
-        # groupby dtype.name to collect e.g. Categorical columns
-        counts = dtypes.value_counts().groupby(lambda x: x.name).sum()
-        collected_dtypes = [f"{k[0]}({k[1]:d})" for k in sorted(counts.items())]
-        lines.append(f"dtypes: {', '.join(collected_dtypes)}")
+        for i, col in enumerate(ids):
+            dtype = dtypes[i]
+            col = pprint_thing(col)
 
-        if self.memory_usage:
-            # append memory usage of df to display
-            size_qualifier = ""
-            if self.memory_usage == "deep":
-                deep = True
-            else:
-                # size_qualifier is just a best effort; not guaranteed to catch
-                # all cases (e.g., it misses categorical data even with object
-                # categories)
-                deep = False
-                if "object" in counts or self.data.index._is_memory_usage_qualified():
-                    size_qualifier = "+"
-            mem_usage = self._get_mem_usage(deep=deep)
-            lines.append(f"memory usage: {_sizeof_fmt(mem_usage, size_qualifier)}\n")
-        fmt.buffer_put_lines(self.buf, lines)
+            line_no = _put_str(f" {i}", space_num)
+            count = ""
+            if show_counts:
+                count = counts[i]
+
+            lines.append(
+                line_no
+                + _put_str(col, space)
+                + _put_str(count_temp.format(count=count), space_count)
+                + _put_str(dtype, space_dtype)
+            )
 
     def _non_verbose_repr(self, lines: List[str], ids: "Index") -> None:
         lines.append(ids._summary(name="Columns"))
