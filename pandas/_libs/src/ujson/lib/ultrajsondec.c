@@ -128,6 +128,7 @@ FASTCALL_ATTR JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
     double expValue;
     char *offset = ds->start;
 
+
     JSUINT64 overflowLimit = LLONG_MAX;
 
     if (*(offset) == 'I') {
@@ -166,7 +167,7 @@ FASTCALL_ATTR JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
                 newDigit = (JSLONG)(chr - 48);
 
                 // TO DO: need to fix overflow catching
-                if (intValue*10ULL + newDigit > overflowLimit) {
+                if (intValue> (overflowLimit-newDigit)/10) {
                     
                     // convert current inValue into string
                     int length = snprintf( NULL, 0, "%lu", intValue);
