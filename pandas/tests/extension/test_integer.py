@@ -255,9 +255,9 @@ class TestNumericAccumulation(base.BaseNumericAccumulateTests):
         # https://github.com/pandas-dev/pandas/issues/30958
         if op_name == "cumsum":
             if s.dtype.name.startswith("U"):
-                expected_dtype = "UInt64"
+                expected_dtype = "uint64"
             else:
-                expected_dtype = "Int64"
+                expected_dtype = "int64"
             result = getattr(s, op_name)(skipna=skipna)
             expected = pd.Series(
                 integer_array(
@@ -278,9 +278,9 @@ class TestNumericAccumulation(base.BaseNumericAccumulateTests):
             tm.assert_series_equal(result, expected)
         elif op_name == "cumprod":
             if s.dtype.name.startswith("U"):
-                expected_dtype = "UInt64"
+                expected_dtype = "uint64"
             else:
-                expected_dtype = "Int64"
+                expected_dtype = "int64"
             result = getattr(s[:20], op_name)(skipna=skipna)
             expected = pd.Series(
                 integer_array(
