@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 import sys
-from typing import IO, TYPE_CHECKING, List, Optional, Tuple, Union
+from typing import IO, TYPE_CHECKING, List, Optional, Tuple, Union, cast
 
 from pandas._config import get_option
 
@@ -356,7 +356,10 @@ class SeriesInfo(BaseInfo):
         return self.data.memory_usage(index=True, deep=deep)
 
     def _get_ids_and_dtypes(self) -> Tuple["Index", "Series"]:
-        return Index([self.data.name]), self.data._constructor(self.data.dtypes)
+        return (
+            Index([self.data.name]),
+            cast("Series", self.data._constructor(self.data.dtypes)),
+        )
 
     def _verbose_repr(self, lines, ids, dtypes, show_counts) -> None:
         id_space = 2
@@ -398,5 +401,5 @@ class SeriesInfo(BaseInfo):
             + _put_str(dtypes[0], space_dtype)
         )
 
-    def _non_verbose_repr(self, lines, ids):
+    def _non_verbose_repr(self, lines: List[str], ids: "Index") -> None:
         pass

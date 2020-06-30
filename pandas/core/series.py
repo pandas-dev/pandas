@@ -92,7 +92,7 @@ from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
 
 import pandas.io.formats.format as fmt
-from pandas.io.formats.info import Info, SeriesInfo
+from pandas.io.formats.info import SeriesInfo
 import pandas.plotting
 
 if TYPE_CHECKING:
@@ -4630,7 +4630,7 @@ Keep all original rows and also all original values
             Series.memory_usage: Memory usage of Series."""
         ),
     )
-    @doc(Info)
+    @doc(SeriesInfo)
     def info(
         self,
         verbose: Optional[bool] = None,
@@ -4646,7 +4646,7 @@ Keep all original rows and also all original values
             )
         return SeriesInfo(
             self, verbose, buf, max_cols, memory_usage, null_counts
-        ).get_info()
+        ).info()
 
     @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
     def shift(self, periods=1, freq=None, axis=0, fill_value=None) -> "Series":
