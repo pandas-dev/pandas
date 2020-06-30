@@ -515,13 +515,16 @@ class DataFrame(NDFrame):
                     mgr = init_ndarray(data, index, columns, dtype=dtype, copy=copy)
             else:
                 mgr = init_dict({}, index, columns, dtype=dtype)
+        # For data is scalar
         else:
+            if index is None or columns is None:
+                raise ValueError("DataFrame constructor not properly called!")
+
             if not dtype:
                 dtype, _ = infer_dtype_from_scalar(data, pandas_dtype=True)
 
+            # For data is a scalar extension dtype
             if is_extension_array_dtype(dtype):
-                if index is None or columns is None:
-                    raise ValueError("DataFrame constructor not properly called!")
 
                 values = [
                     construct_1d_arraylike_from_scalar(data, len(index), dtype)
@@ -538,16 +541,16 @@ class DataFrame(NDFrame):
                     )
                     raise exc from err
 
-                if arr.ndim == 0 and index is not None and columns is not None:
-                    values = cast_scalar_to_array(
-                        (len(index), len(columns)), data, dtype=dtype
-                    )
-
-                    mgr = init_ndarray(
-                        values, index, columns, dtype=values.dtype, copy=False
-                    )
-                else:
+                if arr.ndim != 0:
                     raise ValueError("DataFrame constructor not properly called!")
+
+                values = cast_scalar_to_array(
+                    (len(index), len(columns)), data, dtype=dtype
+                )
+
+                mgr = init_ndarray(
+                    values, index, columns, dtype=values.dtype, copy=False
+                )
 
         NDFrame.__init__(self, mgr)
 
