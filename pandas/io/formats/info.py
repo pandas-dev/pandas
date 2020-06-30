@@ -6,8 +6,6 @@ from pandas._config import get_option
 
 from pandas._typing import Dtype, FrameOrSeries
 
-from pandas.core.dtypes.generic import ABCSeries
-
 from pandas.core.indexes.api import Index
 
 from pandas.io.formats import format as fmt
@@ -355,55 +353,13 @@ class DataFrameInfo(BaseInfo):
 
 class SeriesInfo(BaseInfo):
     def _get_mem_usage(self, deep: bool) -> int:
-        """
-        Get Series' memory usage in bytes.
-
-        Parameters
-        ----------
-        deep : bool
-            If True, introspect the data deeply by interrogating object dtypes
-            for system-level memory consumption, and include it in the returned
-            values.
-
-        Returns
-        -------
-        mem_usage : int
-            Object's total memory usage in bytes.
-        """
         return self.data.memory_usage(index=True, deep=deep)
 
     def _get_ids_and_dtypes(self) -> Tuple["Index", "Series"]:
-        """
-        Get Series' name and dtypes.
-
-        Returns
-        -------
-        ids : Index
-            Series' name.
-        dtypes : Series
-            Series' dtype.
-        """
-        assert isinstance(self.data, ABCSeries)  # help mypy
         return Index([self.data.name]), self.data._constructor(self.data.dtypes)
 
     def _verbose_repr(self, lines, ids, dtypes, show_counts) -> None:
-        """
-        Display name, non-null count (optionally), and dtype.
-
-        Parameters
-        ----------
-        lines : List[str]
-            Lines that will contain `info` representation.
-        ids : Index
-            The Series' name.
-        dtypes : Series
-            The Series' dtype.
-        show_counts : bool
-            If True, count of non-NA cells will be appended to `lines`.
-        """
-
         id_space = 2
-
         header = ""
 
         lines.append(f"Series name: {self.data.name}")
