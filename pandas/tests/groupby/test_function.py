@@ -92,18 +92,15 @@ def test_min_date_with_nans():
     ).dt.date
     df = pd.DataFrame({"a": [np.nan, "1", np.nan], "b": [0, 1, 1], "c": dates})
 
-    result = df.groupby("b")["c"].min()
+    result = df.groupby("b", as_index=False)["c"].min()["c"]
     expected = pd.to_datetime(
         pd.Series(["2019-05-09", "2019-05-09"], name="c"), format="%Y-%m-%d"
     ).dt.date
-    expected.index.name = "b"
     tm.assert_series_equal(result, expected)
 
-    result_with_as_index = df.groupby("b", as_index=False)["c"].min()["c"]
-    expected_with_as_index = pd.to_datetime(
-        pd.Series(["2019-05-09", "2019-05-09"], name="c"), format="%Y-%m-%d"
-    ).dt.date
-    tm.assert_series_equal(result_with_as_index, expected_with_as_index)
+    result = df.groupby("b")["c"].min()
+    expected.index.name = "b"
+    tm.assert_series_equal(result, expected)
 
 
 def test_intercept_builtin_sum():
