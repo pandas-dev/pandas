@@ -82,7 +82,7 @@ unique with :attr:`Index.is_unique`:
    Pandas does cache this result, so re-checking on the same index is very fast.
 
 :meth:`Index.duplicated` will return a boolean ndarray indicating whether a
-label is a repeat.
+label is repeated.
 
 .. ipython:: python
 

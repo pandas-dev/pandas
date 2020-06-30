@@ -404,26 +404,23 @@ def test_dataframe_insert_raises():
         df.insert(0, "A", [3, 4], allow_duplicates=True)
 
 
-def test_inplace_raises():
+@pytest.mark.parametrize(
+    "method, frame_only",
+    [
+        (operator.methodcaller("set_index", "A", inplace=True), True),
+        (operator.methodcaller("set_axis", ["A", "B"], inplace=True), False),
+        (operator.methodcaller("reset_index", inplace=True), True),
+        (operator.methodcaller("rename", lambda x: x, inplace=True), False),
+    ],
+)
+def test_inplace_raises(method, frame_only):
     df = pd.DataFrame({"A": [0, 0], "B": [1, 2]}, allows_duplicate_labels=False)
     s = df["A"]
     s.allows_duplicate_labels = False
     msg = "Cannot specify"
 
     with pytest.raises(ValueError, match=msg):
-        df.set_index("A", inplace=True)
-
-    with pytest.raises(ValueError, match=msg):
-        df.set_axis(["A", "B"], inplace=True)
-
-    with pytest.raises(ValueError, match=msg):
-        s.set_axis(["A", "B"], inplace=True)
-
-    with pytest.raises(ValueError, match=msg):
-        df.set_axis(["A", "B"], inplace=True)
-
-    with pytest.raises(ValueError, match=msg):
-        df.reset_index(inplace=True)
-
-    with pytest.raises(ValueError, match=msg):
-        df.rename(lambda x: x, inplace=True)
+        method(df)
+    if not frame_only:
+        with pytest.raises(ValueError, match=msg):
+            method(s)
