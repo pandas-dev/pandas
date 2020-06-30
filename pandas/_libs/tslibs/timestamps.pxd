@@ -1,4 +1,4 @@
-from cpython.datetime cimport datetime
+from cpython.datetime cimport datetime, tzinfo
 
 from numpy cimport int64_t
 
@@ -8,7 +8,7 @@ from pandas._libs.tslibs.np_datetime cimport npy_datetimestruct
 
 cdef object create_timestamp_from_ts(int64_t value,
                                      npy_datetimestruct dts,
-                                     object tz, object freq, bint fold)
+                                     tzinfo tz, object freq, bint fold)
 
 
 cdef class _Timestamp(ABCTimestamp):
