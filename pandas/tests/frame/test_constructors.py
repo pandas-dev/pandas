@@ -732,6 +732,10 @@ class TestDataFrameConstructors:
         assert df["a"].dtype == PeriodDtype("M")
         assert df["b"].dtype == PeriodDtype("M")
 
+        expected = DataFrame({"a": [data] * 2, "b": [data] * 2})
+
+        tm.assert_frame_equal(df, expected)
+
     def test_nested_dict_frame_constructor(self):
         rng = pd.period_range("1/1/2000", periods=5)
         df = DataFrame(np.random.randn(10, 5), columns=rng)
