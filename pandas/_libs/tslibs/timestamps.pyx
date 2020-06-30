@@ -47,6 +47,7 @@ from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
 from pandas._libs.tslibs.np_datetime cimport (
     check_dts_bounds, npy_datetimestruct, dt64_to_dtstruct,
     cmp_scalar,
+    pydatetime_to_dt64,
 )
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.offsets cimport to_offset, is_tick_object, is_offset_object
@@ -376,9 +377,13 @@ cdef class _Timestamp(ABCTimestamp):
         """Convert UTC i8 value to local i8 value if tz exists"""
         cdef:
             int64_t val
-        val = self.value
-        if self.tz is not None and not is_utc(self.tz):
-            val = tz_convert_single(self.value, UTC, self.tz)
+            tzinfo own_tz = self.tzinfo
+            npy_datetimestruct dts
+
+        if own_tz is not None and not is_utc(own_tz):
+            val = pydatetime_to_dt64(self, &dts) + self.nanosecond
+        else:
+            val = self.value
         return val
 
     cdef bint _get_start_end_field(self, str field):
