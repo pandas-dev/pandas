@@ -40,7 +40,7 @@ from pandas._libs.tslibs.conversion cimport (
     _TSObject,
     convert_to_tsobject,
     convert_datetime_to_tsobject,
-    normalize_i8_timestamps,
+    normalize_i8_stamp,
 )
 from pandas._libs.tslibs.fields import get_start_end_field, get_date_name_field
 from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
@@ -447,9 +447,11 @@ cdef class _Timestamp(ABCTimestamp):
         """Convert UTC i8 value to local i8 value if tz exists"""
         cdef:
             int64_t val
+            tzinfo own_tz = self.tzinfo
+
         val = self.value
-        if self.tz is not None and not is_utc(self.tz):
-            val = tz_convert_single(self.value, UTC, self.tz)
+        if own_tz is not None and not is_utc(own_tz):
+            val = tz_convert_single(self.value, UTC, own_tz)
         return val
 
     cdef bint _get_start_end_field(self, str field):
@@ -618,6 +620,20 @@ cdef class _Timestamp(ABCTimestamp):
         Return the number of days in the month.
         """
         return ccalendar.get_days_in_month(self.year, self.month)
+
+    # -----------------------------------------------------------------
+    # Transformation Methods
+
+    def normalize(self) -> "Timestamp":
+        """
+        Normalize Timestamp to midnight, preserving tz information.
+        """
+        cdef:
+            local_val = self._maybe_convert_value_to_local()
+            int64_t normalized
+
+        normalized = normalize_i8_stamp(local_val)
+        return Timestamp(normalized).tz_localize(self.tzinfo)
 
     # -----------------------------------------------------------------
     # Rendering Methods
@@ -1445,18 +1461,6 @@ default 'raise'
                  self.microsecond / 3600.0 / 1e+6 +
                  self.nanosecond / 3600.0 / 1e+9
                 ) / 24.0)
-
-    def normalize(self):
-        """
-        Normalize Timestamp to midnight, preserving tz information.
-        """
-        cdef:
-            ndarray[int64_t] normalized
-            tzinfo own_tz = self.tzinfo  # could be None
-
-        normalized = normalize_i8_timestamps(
-            np.array([self.value], dtype="i8"), tz=own_tz)
-        return Timestamp(normalized[0]).tz_localize(own_tz)
 
 
 # Aliases
