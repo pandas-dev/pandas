@@ -3569,7 +3569,6 @@ class Table(Fixed):
         for c in columns:
             v = getattr(table.cols, c, None)
             if v is not None:
-
                 # remove the index if the kind/optlevel have changed
                 if v.is_indexed:
                     index = v.index
@@ -3597,6 +3596,13 @@ class Table(Fixed):
                             "data_columns when initializing the table."
                         )
                     v.create_index(**kw)
+            elif c in self.non_index_axes[0][1]:
+                # GH 28156
+                raise AttributeError(
+                    f"column {c} is not a data_column.\n"
+                    f"In order to read column {c} you must reload the dataframe \n"
+                    f"into HDFStore and include {c} with the data_columns argument."
+                )
 
     def _read_axes(
         self, where, start: Optional[int] = None, stop: Optional[int] = None
