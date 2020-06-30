@@ -691,7 +691,6 @@ void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
     PdBlockContext *blkCtxt;
     NpyArrContext *npyarr;
     Py_ssize_t i;
-    PyArray_Descr *dtype;
     NpyIter *iter;
     NpyIter_IterNextFunc *iternext;
     npy_int64 **dataptr;
@@ -699,10 +698,6 @@ void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
     npy_intp idx;
 
     PRINTMARK();
-
-    i = 0;
-    blocks = NULL;
-    dtype = PyArray_DescrFromType(NPY_INT64);
     obj = (PyObject *)_obj;
 
     GET_TC(tc)->iterGetName = GET_TC(tc)->transpose
@@ -713,7 +708,7 @@ void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
     if (!blkCtxt) {
         PyErr_NoMemory();
         GET_TC(tc)->iterNext = NpyArr_iterNextNone;
-        goto BLKRET;
+	return;
     }
     GET_TC(tc)->pdblock = blkCtxt;
 
@@ -726,7 +721,7 @@ void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
         blkCtxt->cindices = NULL;
 
         GET_TC(tc)->iterNext = NpyArr_iterNextNone;
-        goto BLKRET;
+	return;
     }
 
     blkCtxt->npyCtxts =
@@ -734,20 +729,20 @@ void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
     if (!blkCtxt->npyCtxts) {
         PyErr_NoMemory();
         GET_TC(tc)->iterNext = NpyArr_iterNextNone;
-        goto BLKRET;
+	return;
     }
 
     blkCtxt->cindices = PyObject_Malloc(sizeof(int) * blkCtxt->ncols);
     if (!blkCtxt->cindices) {
         PyErr_NoMemory();
         GET_TC(tc)->iterNext = NpyArr_iterNextNone;
-        goto BLKRET;
+	return;
     }
 
     blocks = get_sub_attr(obj, "_mgr", "blocks");
     if (!blocks) {
         GET_TC(tc)->iterNext = NpyArr_iterNextNone;
-        goto BLKRET;
+	return;
     } else if (!PyTuple_Check(blocks)) {
       PyErr_SetString(PyExc_TypeError, "blocks must be a tuple!");
       goto BLKRET;
@@ -785,7 +780,7 @@ void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
         }
 
         iter = NpyIter_New(locs, NPY_ITER_READONLY, NPY_KEEPORDER,
-                           NPY_NO_CASTING, dtype);
+                           NPY_NO_CASTING, NULL);
         if (!iter) {
             Py_DECREF(values);
             Py_DECREF(locs);
@@ -834,8 +829,7 @@ void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
     GET_TC(tc)->npyarr = blkCtxt->npyCtxts[0];
 
 BLKRET:
-    Py_XDECREF(dtype);
-    Py_XDECREF(blocks);
+    Py_DECREF(blocks);
 }
 
 void PdBlock_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
