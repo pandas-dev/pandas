@@ -565,9 +565,9 @@ class IntegerArray(BaseMaskedArray):
         dtype_out = dtype
         if name in ["cumsum", "cumprod"]:
             if dtype.name.lower().startswith("u"):
-                dtype_out = "UInt64"
+                dtype_out = "uint64"
             else:
-                dtype_out = "Int64"
+                dtype_out = "int64"
 
         vals = cum_function(values, dtype=dtype_out)
         result = IntegerArray(vals, mask)
