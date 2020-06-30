@@ -441,6 +441,8 @@ cdef class _Timestamp(ABCTimestamp):
 
         return NotImplemented
 
+    # -----------------------------------------------------------------
+
     cdef int64_t _maybe_convert_value_to_local(self):
         """Convert UTC i8 value to local i8 value if tz exists"""
         cdef:
@@ -450,7 +452,7 @@ cdef class _Timestamp(ABCTimestamp):
             val = tz_convert_single(self.value, UTC, self.tz)
         return val
 
-    cpdef bint _get_start_end_field(self, str field):
+    cdef bint _get_start_end_field(self, str field):
         cdef:
             int64_t val
             dict kwds
@@ -471,7 +473,67 @@ cdef class _Timestamp(ABCTimestamp):
                                   field, freqstr, month_kw)
         return out[0]
 
-    cpdef _get_date_name_field(self, object field, object locale):
+    @property
+    def is_month_start(self) -> bool:
+        """
+        Return True if date is first day of month.
+        """
+        if self.freq is None:
+            # fast-path for non-business frequencies
+            return self.day == 1
+        return self._get_start_end_field("is_month_start")
+
+    @property
+    def is_month_end(self) -> bool:
+        """
+        Return True if date is last day of month.
+        """
+        if self.freq is None:
+            # fast-path for non-business frequencies
+            return self.day == self.days_in_month
+        return self._get_start_end_field("is_month_end")
+
+    @property
+    def is_quarter_start(self) -> bool:
+        """
+        Return True if date is first day of the quarter.
+        """
+        if self.freq is None:
+            # fast-path for non-business frequencies
+            return self.day == 1 and self.month % 3 == 1
+        return self._get_start_end_field("is_quarter_start")
+
+    @property
+    def is_quarter_end(self) -> bool:
+        """
+        Return True if date is last day of the quarter.
+        """
+        if self.freq is None:
+            # fast-path for non-business frequencies
+            return (self.month % 3) == 0 and self.day == self.days_in_month
+        return self._get_start_end_field("is_quarter_end")
+
+    @property
+    def is_year_start(self) -> bool:
+        """
+        Return True if date is first day of the year.
+        """
+        if self.freq is None:
+            # fast-path for non-business frequencies
+            return self.day == self.month == 1
+        return self._get_start_end_field("is_year_start")
+
+    @property
+    def is_year_end(self) -> bool:
+        """
+        Return True if date is last day of the year.
+        """
+        if self.freq is None:
+            # fast-path for non-business frequencies
+            return self.month == 12 and self.day == 31
+        return self._get_start_end_field("is_year_end")
+
+    cdef _get_date_name_field(self, str field, object locale):
         cdef:
             int64_t val
             object[:] out
@@ -480,6 +542,85 @@ cdef class _Timestamp(ABCTimestamp):
         out = get_date_name_field(np.array([val], dtype=np.int64),
                                   field, locale=locale)
         return out[0]
+
+    def day_name(self, locale=None) -> str:
+        """
+        Return the day name of the Timestamp with specified locale.
+
+        Parameters
+        ----------
+        locale : str, default None (English locale)
+            Locale determining the language in which to return the day name.
+
+        Returns
+        -------
+        day_name : string
+
+        .. versionadded:: 0.23.0
+        """
+        return self._get_date_name_field("day_name", locale)
+
+    def month_name(self, locale=None) -> str:
+        """
+        Return the month name of the Timestamp with specified locale.
+
+        Parameters
+        ----------
+        locale : str, default None (English locale)
+            Locale determining the language in which to return the month name.
+
+        Returns
+        -------
+        month_name : string
+
+        .. versionadded:: 0.23.0
+        """
+        return self._get_date_name_field("month_name", locale)
+
+    @property
+    def is_leap_year(self) -> bool:
+        """
+        Return True if year is a leap year.
+        """
+        return bool(ccalendar.is_leapyear(self.year))
+
+    @property
+    def dayofweek(self) -> int:
+        """
+        Return day of the week.
+        """
+        return self.weekday()
+
+    @property
+    def dayofyear(self) -> int:
+        """
+        Return the day of the year.
+        """
+        return ccalendar.get_day_of_year(self.year, self.month, self.day)
+
+    @property
+    def quarter(self) -> int:
+        """
+        Return the quarter of the year.
+        """
+        return ((self.month - 1) // 3) + 1
+
+    @property
+    def week(self) -> int:
+        """
+        Return the week number of the year.
+        """
+        return ccalendar.get_week_of_year(self.year, self.month, self.day)
+
+    @property
+    def days_in_month(self) -> int:
+        """
+        Return the number of days in the month.
+        """
+        return ccalendar.get_days_in_month(self.year, self.month)
+
+    # -----------------------------------------------------------------
+    # Rendering Methods
 
     @property
     def _repr_base(self) -> str:
@@ -513,6 +654,8 @@ cdef class _Timestamp(ABCTimestamp):
                 self.nanosecond == 0):
             return self._date_repr
         return self._repr_base
+
+    # -----------------------------------------------------------------
 
     @property
     def asm8(self) -> np.datetime64:
@@ -1041,151 +1184,11 @@ timedelta}, default 'raise'
         return Period(self, freq=freq)
 
     @property
-    def dayofweek(self) -> int:
-        """
-        Return day of the week.
-        """
-        return self.weekday()
-
-    def day_name(self, locale=None) -> str:
-        """
-        Return the day name of the Timestamp with specified locale.
-
-        Parameters
-        ----------
-        locale : str, default None (English locale)
-            Locale determining the language in which to return the day name.
-
-        Returns
-        -------
-        day_name : string
-
-        .. versionadded:: 0.23.0
-        """
-        return self._get_date_name_field('day_name', locale)
-
-    def month_name(self, locale=None) -> str:
-        """
-        Return the month name of the Timestamp with specified locale.
-
-        Parameters
-        ----------
-        locale : str, default None (English locale)
-            Locale determining the language in which to return the month name.
-
-        Returns
-        -------
-        month_name : string
-
-        .. versionadded:: 0.23.0
-        """
-        return self._get_date_name_field('month_name', locale)
-
-    @property
-    def dayofyear(self) -> int:
-        """
-        Return the day of the year.
-        """
-        return ccalendar.get_day_of_year(self.year, self.month, self.day)
-
-    @property
-    def week(self) -> int:
-        """
-        Return the week number of the year.
-        """
-        return ccalendar.get_week_of_year(self.year, self.month, self.day)
-
-    weekofyear = week
-
-    @property
-    def quarter(self) -> int:
-        """
-        Return the quarter of the year.
-        """
-        return ((self.month - 1) // 3) + 1
-
-    @property
-    def days_in_month(self) -> int:
-        """
-        Return the number of days in the month.
-        """
-        return ccalendar.get_days_in_month(self.year, self.month)
-
-    daysinmonth = days_in_month
-
-    @property
     def freqstr(self):
         """
         Return the total number of days in the month.
         """
         return getattr(self.freq, 'freqstr', self.freq)
-
-    @property
-    def is_month_start(self) -> bool:
-        """
-        Return True if date is first day of month.
-        """
-        if self.freq is None:
-            # fast-path for non-business frequencies
-            return self.day == 1
-        return self._get_start_end_field('is_month_start')
-
-    @property
-    def is_month_end(self) -> bool:
-        """
-        Return True if date is last day of month.
-        """
-        if self.freq is None:
-            # fast-path for non-business frequencies
-            return self.day == self.days_in_month
-        return self._get_start_end_field('is_month_end')
-
-    @property
-    def is_quarter_start(self) -> bool:
-        """
-        Return True if date is first day of the quarter.
-        """
-        if self.freq is None:
-            # fast-path for non-business frequencies
-            return self.day == 1 and self.month % 3 == 1
-        return self._get_start_end_field('is_quarter_start')
-
-    @property
-    def is_quarter_end(self) -> bool:
-        """
-        Return True if date is last day of the quarter.
-        """
-        if self.freq is None:
-            # fast-path for non-business frequencies
-            return (self.month % 3) == 0 and self.day == self.days_in_month
-        return self._get_start_end_field('is_quarter_end')
-
-    @property
-    def is_year_start(self) -> bool:
-        """
-        Return True if date is first day of the year.
-        """
-        if self.freq is None:
-            # fast-path for non-business frequencies
-            return self.day == self.month == 1
-        return self._get_start_end_field('is_year_start')
-
-    @property
-    def is_year_end(self) -> bool:
-        """
-        Return True if date is last day of the year.
-        """
-        if self.freq is None:
-            # fast-path for non-business frequencies
-            return self.month == 12 and self.day == 31
-        return self._get_start_end_field('is_year_end')
-
-    @property
-    def is_leap_year(self) -> bool:
-        """
-        Return True if year is a leap year.
-        """
-        return bool(ccalendar.is_leapyear(self.year))
 
     def tz_localize(self, tz, ambiguous='raise', nonexistent='raise'):
         """
@@ -1455,6 +1458,10 @@ default 'raise'
             np.array([self.value], dtype="i8"), tz=own_tz)
         return Timestamp(normalized[0]).tz_localize(own_tz)
 
+
+# Aliases
+Timestamp.weekofyear = Timestamp.week
+Timestamp.daysinmonth = Timestamp.days_in_month
 
 # Add the min and max fields at the class level
 cdef int64_t _NS_UPPER_BOUND = np.iinfo(np.int64).max
