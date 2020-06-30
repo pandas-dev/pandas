@@ -1238,3 +1238,51 @@ def test_categorical_and_not_categorical_key(observed):
     tm.assert_series_equal(result, expected)
     expected_explicit = pd.Series([4, 2, 4], name="B")
     tm.assert_series_equal(result, expected_explicit)
+
+
+def test_categorical_transform_aggregate():
+    # GH 29037
+    df = pd.DataFrame(
+        {
+            "package_id": [1, 1, 1, 2, 2, 3],
+            "status": [
+                "Waiting",
+                "OnTheWay",
+                "Delivered",
+                "Waiting",
+                "OnTheWay",
+                "Waiting",
+            ],
+        }
+    )
+
+    delivery_status_type = pd.CategoricalDtype(
+        categories=["Waiting", "OnTheWay", "Delivered"], ordered=True
+    )
+    df["status"] = df["status"].astype(delivery_status_type)
+    df["last_status"] = df.groupby("package_id")["status"].transform(max)
+    result = df.copy()
+
+    expected = DataFrame(
+        {
+            "package_id": [1, 1, 1, 2, 2, 3],
+            "status": [
+                "Waiting",
+                "OnTheWay",
+                "Delivered",
+                "Waiting",
+                "OnTheWay",
+                "Waiting",
+            ],
+            "last_status": [
+                "Delivered",
+                "Delivered",
+                "Delivered",
+                "OnTheWay",
+                "OnTheWay",
+                "Waiting",
+            ],
+        }
+    )
+
+    tm.assert_frame_equal(result, expected)
