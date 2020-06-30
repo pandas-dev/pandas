@@ -711,7 +711,7 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(result_timedelta, expected)
         tm.assert_frame_equal(result_Timedelta, expected)
 
-    def test_constructor_period(self):
+    def test_constructor_period_dict(self):
         # PeriodIndex
         a = pd.PeriodIndex(["2012-01", "NaT", "2012-04"], freq="M")
         b = pd.PeriodIndex(["2012-02-01", "2012-03-01", "NaT"], freq="D")
@@ -724,6 +724,8 @@ class TestDataFrameConstructors:
         assert df["a"].dtype == a.dtype
         assert df["b"].dtype == b.dtype
 
+    def test_constructor_period_data(self):
+        # GH 34832
         data = pd.Period("2012-01", freq="M")
         df = DataFrame(index=[0, 1], columns=["a", "b"], data=data)
 
