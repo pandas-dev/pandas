@@ -324,19 +324,6 @@ static npy_float64 total_seconds(PyObject *td) {
     return double_val;
 }
 
-static PyObject *get_item(PyObject *obj, Py_ssize_t i) {
-    PyObject *tmp = PyLong_FromSsize_t(i);
-    PyObject *ret;
-
-    if (tmp == 0) {
-        return 0;
-    }
-    ret = PyObject_GetItem(obj, tmp);
-    Py_DECREF(tmp);
-
-    return ret;
-}
-
 static char *PyBytesToUTF8(JSOBJ _obj, JSONTypeContext *Py_UNUSED(tc),
                            size_t *_outLen) {
     PyObject *obj = (PyObject *)_obj;
@@ -764,13 +751,16 @@ void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
     if (!blocks) {
         GET_TC(tc)->iterNext = NpyArr_iterNextNone;
         goto BLKRET;
+    } else if (!PyTuple_Check(blocks)) {
+      PyErr_SetString(PyExc_TypeError, "blocks must be a tuple!");
+      goto BLKRET;
     }
 
     // force transpose so each NpyArrContext strides down its column
     GET_TC(tc)->transpose = 1;
 
     for (i = 0; i < PyObject_Length(blocks); i++) {
-        block = get_item(blocks, i);
+        block = PyTuple_GET_ITEM(blocks, i);
         if (!block) {
             GET_TC(tc)->iterNext = NpyArr_iterNextNone;
             goto BLKRET;
@@ -779,7 +769,6 @@ void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
         tmp = PyObject_CallMethod(block, "get_block_values_for_json", NULL);
         if (!tmp) {
             ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
-            Py_DECREF(block);
             GET_TC(tc)->iterNext = NpyArr_iterNextNone;
             goto BLKRET;
         }
@@ -787,14 +776,12 @@ void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
         values = PyArray_Transpose((PyArrayObject *)tmp, NULL);
         Py_DECREF(tmp);
         if (!values) {
-            Py_DECREF(block);
             GET_TC(tc)->iterNext = NpyArr_iterNextNone;
             goto BLKRET;
         }
 
         locs = (PyArrayObject *)get_sub_attr(block, "mgr_locs", "as_array");
         if (!locs) {
-            Py_DECREF(block);
             Py_DECREF(values);
             GET_TC(tc)->iterNext = NpyArr_iterNextNone;
             goto BLKRET;
@@ -803,7 +790,6 @@ void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
         iter = NpyIter_New(locs, NPY_ITER_READONLY, NPY_KEEPORDER,
                            NPY_NO_CASTING, dtype);
         if (!iter) {
-            Py_DECREF(block);
             Py_DECREF(values);
             Py_DECREF(locs);
             GET_TC(tc)->iterNext = NpyArr_iterNextNone;
@@ -812,7 +798,6 @@ void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
         iternext = NpyIter_GetIterNext(iter, NULL);
         if (!iternext) {
             NpyIter_Deallocate(iter);
-            Py_DECREF(block);
             Py_DECREF(values);
             Py_DECREF(locs);
             GET_TC(tc)->iterNext = NpyArr_iterNextNone;
@@ -846,7 +831,6 @@ void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
         } while (iternext(iter));
 
         NpyIter_Deallocate(iter);
-        Py_DECREF(block);
         Py_DECREF(values);
         Py_DECREF(locs);
     }
