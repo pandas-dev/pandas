@@ -872,7 +872,7 @@ b  2""",
         return result
 
     def _python_apply_general(
-        self, f: F, data: FrameOrSeriesUnion, is_transform=None
+        self, f: F, data: FrameOrSeriesUnion, is_transform=False, is_empty_agg=False,
     ) -> FrameOrSeriesUnion:
         """
         Apply function f in python space
@@ -883,11 +883,15 @@ b  2""",
             Function to apply
         data : Series or DataFrame
             Data to apply f to
-        is_transform : bool, optional
+        is_transform : bool, default False
             Indicator for whether the function is actually a transform
             and should not have group keys prepended. This is used
             in _make_wrapper which generates both transforms (e.g. diff)
             and non-transforms (e.g. corr)
+        is_empty_agg : bool, default False
+            Indicator for whether the function is actually an aggregation
+            on an empty result. We don't want to warn for this case.
+            See _GroupBy._python_agg_general.
 
         Returns
         -------
@@ -914,7 +918,7 @@ b  2""",
                 "To adopt the future behavior and silence this warning, use "
                 "\n\n\t>>> .groupby(..., group_keys=True)"
             )
-            if not (is_transform is True):
+            if not (is_transform or is_empty_agg):
                 warnings.warn(msg, FutureWarning, stacklevel=stacklevel)
             # XXX: mutating a stateful object. Consider passing a var through wrap_applied_output
             self.group_keys = False
@@ -1115,7 +1119,7 @@ b  2""",
             output[key] = maybe_cast_result(result, obj, numeric_only=True)
 
         if len(output) == 0:
-            return self._python_apply_general(f, self._selected_obj)
+            return self._python_apply_general(f, self._selected_obj, is_empty_agg=True)
 
         if self.grouper._filter_empty_groups:
 

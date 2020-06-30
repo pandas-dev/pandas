@@ -598,7 +598,9 @@ def test_as_index_select_column():
     expected = pd.Series([2, 4], name="B")
     tm.assert_series_equal(result, expected)
 
-    result = df.groupby("A", as_index=False)["B"].apply(lambda x: x.cumsum())
+    result = df.groupby("A", as_index=False, group_keys=True)["B"].apply(
+        lambda x: x.cumsum()
+    )
     expected = pd.Series(
         [2, 6, 6], name="B", index=pd.MultiIndex.from_tuples([(0, 0), (0, 1), (1, 2)])
     )
