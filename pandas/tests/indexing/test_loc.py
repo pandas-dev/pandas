@@ -904,13 +904,11 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         tm.assert_frame_equal(x, y)
 
-        x = DataFrame(zip(range(3), range(3)), columns=["a", "b"])
-
-        y = x.copy()
+        z = x.copy()
         q = x.loc[x.index, "a"]
         q += 2
 
-        tm.assert_frame_equal(x, y)
+        tm.assert_frame_equal(x, z)
 
     def test_loc_uint64(self):
         # GH20722
