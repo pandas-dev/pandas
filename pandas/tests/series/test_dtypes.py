@@ -495,3 +495,14 @@ class TestSeriesDtypes:
         s1 = s.reindex(new_index).astype(temp_dtype).astype(new_dtype)
         s2 = s.astype(temp_dtype).reindex(new_index).astype(new_dtype)
         tm.assert_series_equal(s1, s2)
+
+    def test_astype_skipna_default(self):
+        arr = Series([1.0, np.nan, 3.0, 4.0])
+        result = arr.astype(str)
+        tm.assert_series_equal(result, Series(["1.0", "nan", "3.0", "4.0"]))
+
+    def test_astype_skipna_true(self):
+        # GH 31708
+        arr = Series([1.0, np.nan, 3.0, 4.0])
+        result = arr.astype(str, skipna=True)
+        tm.assert_series_equal(result, Series(["1.0", np.nan, "3.0", "4.0"]))

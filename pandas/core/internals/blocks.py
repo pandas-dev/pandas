@@ -516,7 +516,9 @@ class Block(PandasObject):
 
         return self.split_and_operate(None, f, False)
 
-    def astype(self, dtype, copy: bool = False, errors: str = "raise"):
+    def astype(
+        self, dtype, copy: bool = False, errors: str = "raise", skipna: bool = False
+    ):
         """
         Coerce to the new dtype.
 
@@ -528,6 +530,10 @@ class Block(PandasObject):
         errors : str, {'raise', 'ignore'}, default 'ignore'
             - ``raise`` : allow exceptions to be raised
             - ``ignore`` : suppress exceptions. On error return original object
+        skipna : bool, default False
+            When ``skipna=False`` (default) nan values will be casted to proper
+            dtype.
+            Skip casting nan values when ``skipna=True``.
 
         Returns
         -------
@@ -592,7 +598,7 @@ class Block(PandasObject):
             # _astype_nansafe works fine with 1-d only
             vals1d = values.ravel()
             try:
-                values = astype_nansafe(vals1d, dtype, copy=True)
+                values = astype_nansafe(vals1d, dtype, copy=True, skipna=skipna)
             except (ValueError, TypeError):
                 # e.g. astype_nansafe can fail on object-dtype of strings
                 #  trying to convert to float
@@ -2094,7 +2100,9 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         assert isinstance(values, np.ndarray), type(values)
         return values
 
-    def astype(self, dtype, copy: bool = False, errors: str = "raise"):
+    def astype(
+        self, dtype, copy: bool = False, errors: str = "raise", skipna: bool = False
+    ):
         """
         these automatically copy, so copy=True has no effect
         raise on an except if raise == True
@@ -2113,7 +2121,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
             return self.make_block(values)
 
         # delegate
-        return super().astype(dtype=dtype, copy=copy, errors=errors)
+        return super().astype(dtype=dtype, copy=copy, errors=errors, skipna=skipna)
 
     def _can_hold_element(self, element: Any) -> bool:
         tipo = maybe_infer_dtype_type(element)

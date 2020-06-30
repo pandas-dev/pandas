@@ -5383,7 +5383,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         }
 
     def astype(
-        self: FrameOrSeries, dtype, copy: bool_t = True, errors: str = "raise"
+        self: FrameOrSeries,
+        dtype,
+        copy: bool_t = True,
+        errors: str = "raise",
+        skipna: bool_t = False,
     ) -> FrameOrSeries:
         """
         Cast a pandas object to a specified dtype ``dtype``.
@@ -5404,6 +5408,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             - ``raise`` : allow exceptions to be raised
             - ``ignore`` : suppress exceptions. On error return original object.
+        skipna : bool, default False
+            When ``deep=False`` (default) nan values will be casted to proper
+            dtype.
+            Preserve nan values when ``skipna=True``.
 
         Returns
         -------
@@ -5499,6 +5507,22 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         1   2020-01-01 19:00:00-05:00
         2   2020-01-02 19:00:00-05:00
         dtype: datetime64[ns, US/Eastern]
+
+
+        By default NaN values will be casted to dtype:
+        >>> pd.Series([None, 1]).astype(str)
+        0    nan
+        1    1.0
+        dtype: object
+
+
+        Skip casting NaN values:
+
+        >>> pd.Series([None, 1]).astype(str, skipna=True)
+        0     NaN
+        1    42.0
+        dtype: object
+
         """
         if is_dict_like(dtype):
             if self.ndim == 1:  # i.e. Series
@@ -5520,7 +5544,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             for col_name, col in self.items():
                 if col_name in dtype:
                     results.append(
-                        col.astype(dtype=dtype[col_name], copy=copy, errors=errors)
+                        col.astype(
+                            dtype=dtype[col_name],
+                            copy=copy,
+                            errors=errors,
+                            skipna=skipna,
+                        )
                     )
                 else:
                     results.append(col.copy() if copy else col)
@@ -5529,13 +5558,15 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             # GH 18099/22869: columnwise conversion to extension dtype
             # GH 24704: use iloc to handle duplicate column names
             results = [
-                self.iloc[:, i].astype(dtype, copy=copy)
+                self.iloc[:, i].astype(dtype, copy=copy, skipna=skipna)
                 for i in range(len(self.columns))
             ]
 
         else:
             # else, only a single dtype is given
-            new_data = self._mgr.astype(dtype=dtype, copy=copy, errors=errors,)
+            new_data = self._mgr.astype(
+                dtype=dtype, copy=copy, errors=errors, skipna=skipna
+            )
             return self._constructor(new_data).__finalize__(self, method="astype")
 
         # GH 33113: handle empty frame or series
