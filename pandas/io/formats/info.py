@@ -356,12 +356,13 @@ class SeriesInfo(BaseInfo):
         return self.data.memory_usage(index=True, deep=deep)
 
     def _get_ids_and_dtypes(self) -> Tuple["Index", "Series"]:
-        return (
-            Index([self.data.name]),
-            cast("Series", self.data._constructor(self.data.dtypes)),
-        )
+        ids = Index([self.data.name])
+        dtypes = cast("Series", self.data._constructor(self.data.dtypes))
+        return ids, dtypes
 
-    def _verbose_repr(self, lines, ids, dtypes, show_counts) -> None:
+    def _verbose_repr(
+        self, lines: List[str], ids: "Index", dtypes: "Series", show_counts: bool
+    ) -> None:
         id_space = 2
         header = ""
 
