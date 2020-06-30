@@ -16,8 +16,15 @@ cnp.import_array()
 from cpython.object cimport (PyObject_RichCompareBool, PyObject_RichCompare,
                              Py_GT, Py_GE, Py_EQ, Py_NE, Py_LT, Py_LE)
 
-from cpython.datetime cimport (datetime, time, PyDateTime_Check, PyDelta_Check,
-                               PyTZInfo_Check, PyDateTime_IMPORT)
+from cpython.datetime cimport (
+    datetime,
+    time,
+    tzinfo,
+    PyDateTime_Check,
+    PyDelta_Check,
+    PyTZInfo_Check,
+    PyDateTime_IMPORT,
+)
 PyDateTime_IMPORT
 
 from pandas._libs.tslibs.util cimport (
@@ -25,14 +32,16 @@ from pandas._libs.tslibs.util cimport (
     is_timedelta64_object, is_array,
 )
 
-from pandas._libs.tslibs.base cimport ABCTimedelta, ABCTimestamp
+from pandas._libs.tslibs.base cimport ABCTimestamp
 
 from pandas._libs.tslibs cimport ccalendar
 
-from pandas._libs.tslibs.conversion import normalize_i8_timestamps
 from pandas._libs.tslibs.conversion cimport (
-    _TSObject, convert_to_tsobject,
-    convert_datetime_to_tsobject)
+    _TSObject,
+    convert_to_tsobject,
+    convert_datetime_to_tsobject,
+    normalize_i8_timestamps,
+)
 from pandas._libs.tslibs.fields import get_start_end_field, get_date_name_field
 from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
 from pandas._libs.tslibs.np_datetime cimport (
@@ -41,6 +50,7 @@ from pandas._libs.tslibs.np_datetime cimport (
 )
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.offsets cimport to_offset, is_tick_object, is_offset_object
+from pandas._libs.tslibs.timedeltas cimport is_any_td_scalar, delta_to_nanoseconds
 from pandas._libs.tslibs.timedeltas import Timedelta
 from pandas._libs.tslibs.timezones cimport (
     is_utc, maybe_get_tz, treat_tz_as_pytz, utc_pytz as UTC,
@@ -191,10 +201,10 @@ def integer_op_not_supported(obj):
 
     # GH#30886 using an fstring raises SystemError
     int_addsub_msg = (
-        "Addition/subtraction of integers and integer-arrays with {cls} is "
+        f"Addition/subtraction of integers and integer-arrays with {cls} is "
         "no longer supported.  Instead of adding/subtracting `n`, "
         "use `n * obj.freq`"
-    ).format(cls=cls)
+    )
     return TypeError(int_addsub_msg)
 
 
@@ -344,37 +354,15 @@ cdef class _Timestamp(ABCTimestamp):
 
     def __add__(self, other):
         cdef:
-            int64_t other_int, nanos = 0
+            int64_t nanos = 0
 
-        if is_timedelta64_object(other):
-            other_int = other.astype('timedelta64[ns]').view('i8')
-            return type(self)(self.value + other_int, tz=self.tzinfo, freq=self.freq)
+        if is_any_td_scalar(other):
+            nanos = delta_to_nanoseconds(other)
+            result = type(self)(self.value + nanos, tz=self.tzinfo, freq=self.freq)
+            return result
 
         elif is_integer_object(other):
             raise integer_op_not_supported(self)
-
-        elif PyDelta_Check(other):
-            # logic copied from delta_to_nanoseconds to prevent circular import
-            if isinstance(other, ABCTimedelta):
-                # pd.Timedelta
-                nanos = other.value
-            else:
-                nanos = (other.days * 24 * 60 * 60 * 1000000 +
-                         other.seconds * 1000000 +
-                         other.microseconds) * 1000
-
-            result = type(self)(self.value + nanos, tz=self.tzinfo, freq=self.freq)
-            return result
-
-        elif is_tick_object(other):
-            try:
-                nanos = other.nanos
-            except OverflowError as err:
-                raise OverflowError(
-                    f"the add operation between {other} and {self} will overflow"
-                ) from err
-            result = type(self)(self.value + nanos, tz=self.tzinfo, freq=self.freq)
-            return result
 
         elif is_array(other):
             if other.dtype.kind in ['i', 'u']:
@@ -395,8 +383,7 @@ cdef class _Timestamp(ABCTimestamp):
 
     def __sub__(self, other):
 
-        if (is_timedelta64_object(other) or is_integer_object(other) or
-                PyDelta_Check(other) or is_tick_object(other)):
+        if is_any_td_scalar(other) or is_integer_object(other):
             neg_other = -other
             return self + neg_other
 
@@ -434,7 +421,6 @@ cdef class _Timestamp(ABCTimestamp):
 
             # scalar Timestamp/datetime - Timestamp/datetime -> yields a
             # Timedelta
-            from pandas._libs.tslibs.timedeltas import Timedelta
             try:
                 return Timedelta(self.value - other.value)
             except (OverflowError, OutOfBoundsDatetime) as err:
@@ -455,6 +441,8 @@ cdef class _Timestamp(ABCTimestamp):
 
         return NotImplemented
 
+    # -----------------------------------------------------------------
+
     cdef int64_t _maybe_convert_value_to_local(self):
         """Convert UTC i8 value to local i8 value if tz exists"""
         cdef:
@@ -464,7 +452,7 @@ cdef class _Timestamp(ABCTimestamp):
             val = tz_convert_single(self.value, UTC, self.tz)
         return val
 
-    cpdef bint _get_start_end_field(self, str field):
+    cdef bint _get_start_end_field(self, str field):
         cdef:
             int64_t val
             dict kwds
@@ -485,7 +473,67 @@ cdef class _Timestamp(ABCTimestamp):
                                   field, freqstr, month_kw)
         return out[0]
 
-    cpdef _get_date_name_field(self, object field, object locale):
+    @property
+    def is_month_start(self) -> bool:
+        """
+        Return True if date is first day of month.
+        """
+        if self.freq is None:
+            # fast-path for non-business frequencies
+            return self.day == 1
+        return self._get_start_end_field("is_month_start")
+
+    @property
+    def is_month_end(self) -> bool:
+        """
+        Return True if date is last day of month.
+        """
+        if self.freq is None:
+            # fast-path for non-business frequencies
+            return self.day == self.days_in_month
+        return self._get_start_end_field("is_month_end")
+
+    @property
+    def is_quarter_start(self) -> bool:
+        """
+        Return True if date is first day of the quarter.
+        """
+        if self.freq is None:
+            # fast-path for non-business frequencies
+            return self.day == 1 and self.month % 3 == 1
+        return self._get_start_end_field("is_quarter_start")
+
+    @property
+    def is_quarter_end(self) -> bool:
+        """
+        Return True if date is last day of the quarter.
+        """
+        if self.freq is None:
+            # fast-path for non-business frequencies
+            return (self.month % 3) == 0 and self.day == self.days_in_month
+        return self._get_start_end_field("is_quarter_end")
+
+    @property
+    def is_year_start(self) -> bool:
+        """
+        Return True if date is first day of the year.
+        """
+        if self.freq is None:
+            # fast-path for non-business frequencies
+            return self.day == self.month == 1
+        return self._get_start_end_field("is_year_start")
+
+    @property
+    def is_year_end(self) -> bool:
+        """
+        Return True if date is last day of the year.
+        """
+        if self.freq is None:
+            # fast-path for non-business frequencies
+            return self.month == 12 and self.day == 31
+        return self._get_start_end_field("is_year_end")
+
+    cdef _get_date_name_field(self, str field, object locale):
         cdef:
             int64_t val
             object[:] out
@@ -494,6 +542,85 @@ cdef class _Timestamp(ABCTimestamp):
         out = get_date_name_field(np.array([val], dtype=np.int64),
                                   field, locale=locale)
         return out[0]
+
+    def day_name(self, locale=None) -> str:
+        """
+        Return the day name of the Timestamp with specified locale.
+
+        Parameters
+        ----------
+        locale : str, default None (English locale)
+            Locale determining the language in which to return the day name.
+
+        Returns
+        -------
+        day_name : string
+
+        .. versionadded:: 0.23.0
+        """
+        return self._get_date_name_field("day_name", locale)
+
+    def month_name(self, locale=None) -> str:
+        """
+        Return the month name of the Timestamp with specified locale.
+
+        Parameters
+        ----------
+        locale : str, default None (English locale)
+            Locale determining the language in which to return the month name.
+
+        Returns
+        -------
+        month_name : string
+
+        .. versionadded:: 0.23.0
+        """
+        return self._get_date_name_field("month_name", locale)
+
+    @property
+    def is_leap_year(self) -> bool:
+        """
+        Return True if year is a leap year.
+        """
+        return bool(ccalendar.is_leapyear(self.year))
+
+    @property
+    def dayofweek(self) -> int:
+        """
+        Return day of the week.
+        """
+        return self.weekday()
+
+    @property
+    def dayofyear(self) -> int:
+        """
+        Return the day of the year.
+        """
+        return ccalendar.get_day_of_year(self.year, self.month, self.day)
+
+    @property
+    def quarter(self) -> int:
+        """
+        Return the quarter of the year.
+        """
+        return ((self.month - 1) // 3) + 1
+
+    @property
+    def week(self) -> int:
+        """
+        Return the week number of the year.
+        """
+        return ccalendar.get_week_of_year(self.year, self.month, self.day)
+
+    @property
+    def days_in_month(self) -> int:
+        """
+        Return the number of days in the month.
+        """
+        return ccalendar.get_days_in_month(self.year, self.month)
+
+    # -----------------------------------------------------------------
+    # Rendering Methods
 
     @property
     def _repr_base(self) -> str:
@@ -527,6 +654,8 @@ cdef class _Timestamp(ABCTimestamp):
                 self.nanosecond == 0):
             return self._date_repr
         return self._repr_base
+
+    # -----------------------------------------------------------------
 
     @property
     def asm8(self) -> np.datetime64:
@@ -808,7 +937,7 @@ class Timestamp(_Timestamp):
         # check that only ts_input is passed
         # checking verbosely, because cython doesn't optimize
         # list comprehensions (as of cython 0.29.x)
-        if (isinstance(ts_input, Timestamp) and freq is None and
+        if (isinstance(ts_input, _Timestamp) and freq is None and
                 tz is None and unit is None and year is None and
                 month is None and day is None and hour is None and
                 minute is None and second is None and
@@ -1055,151 +1184,11 @@ timedelta}, default 'raise'
         return Period(self, freq=freq)
 
     @property
-    def dayofweek(self) -> int:
-        """
-        Return day of the week.
-        """
-        return self.weekday()
-
-    def day_name(self, locale=None) -> str:
-        """
-        Return the day name of the Timestamp with specified locale.
-
-        Parameters
-        ----------
-        locale : string, default None (English locale)
-            Locale determining the language in which to return the day name.
-
-        Returns
-        -------
-        day_name : string
-
-        .. versionadded:: 0.23.0
-        """
-        return self._get_date_name_field('day_name', locale)
-
-    def month_name(self, locale=None) -> str:
-        """
-        Return the month name of the Timestamp with specified locale.
-
-        Parameters
-        ----------
-        locale : string, default None (English locale)
-            Locale determining the language in which to return the month name.
-
-        Returns
-        -------
-        month_name : string
-
-        .. versionadded:: 0.23.0
-        """
-        return self._get_date_name_field('month_name', locale)
-
-    @property
-    def dayofyear(self) -> int:
-        """
-        Return the day of the year.
-        """
-        return ccalendar.get_day_of_year(self.year, self.month, self.day)
-
-    @property
-    def week(self) -> int:
-        """
-        Return the week number of the year.
-        """
-        return ccalendar.get_week_of_year(self.year, self.month, self.day)
-
-    weekofyear = week
-
-    @property
-    def quarter(self) -> int:
-        """
-        Return the quarter of the year.
-        """
-        return ((self.month - 1) // 3) + 1
-
-    @property
-    def days_in_month(self) -> int:
-        """
-        Return the number of days in the month.
-        """
-        return ccalendar.get_days_in_month(self.year, self.month)
-
-    daysinmonth = days_in_month
-
-    @property
     def freqstr(self):
         """
         Return the total number of days in the month.
         """
         return getattr(self.freq, 'freqstr', self.freq)
-
-    @property
-    def is_month_start(self) -> bool:
-        """
-        Return True if date is first day of month.
-        """
-        if self.freq is None:
-            # fast-path for non-business frequencies
-            return self.day == 1
-        return self._get_start_end_field('is_month_start')
-
-    @property
-    def is_month_end(self) -> bool:
-        """
-        Return True if date is last day of month.
-        """
-        if self.freq is None:
-            # fast-path for non-business frequencies
-            return self.day == self.days_in_month
-        return self._get_start_end_field('is_month_end')
-
-    @property
-    def is_quarter_start(self) -> bool:
-        """
-        Return True if date is first day of the quarter.
-        """
-        if self.freq is None:
-            # fast-path for non-business frequencies
-            return self.day == 1 and self.month % 3 == 1
-        return self._get_start_end_field('is_quarter_start')
-
-    @property
-    def is_quarter_end(self) -> bool:
-        """
-        Return True if date is last day of the quarter.
-        """
-        if self.freq is None:
-            # fast-path for non-business frequencies
-            return (self.month % 3) == 0 and self.day == self.days_in_month
-        return self._get_start_end_field('is_quarter_end')
-
-    @property
-    def is_year_start(self) -> bool:
-        """
-        Return True if date is first day of the year.
-        """
-        if self.freq is None:
-            # fast-path for non-business frequencies
-            return self.day == self.month == 1
-        return self._get_start_end_field('is_year_start')
-
-    @property
-    def is_year_end(self) -> bool:
-        """
-        Return True if date is last day of the year.
-        """
-        if self.freq is None:
-            # fast-path for non-business frequencies
-            return self.month == 12 and self.day == 31
-        return self._get_start_end_field('is_year_end')
-
-    @property
-    def is_leap_year(self) -> bool:
-        """
-        Return True if year is a leap year.
-        """
-        return bool(ccalendar.is_leapyear(self.year))
 
     def tz_localize(self, tz, ambiguous='raise', nonexistent='raise'):
         """
@@ -1461,14 +1450,18 @@ default 'raise'
         """
         Normalize Timestamp to midnight, preserving tz information.
         """
-        if self.tz is None or is_utc(self.tz):
-            DAY_NS = ccalendar.DAY_NANOS
-            normalized_value = self.value - (self.value % DAY_NS)
-            return Timestamp(normalized_value).tz_localize(self.tz)
-        normalized_value = normalize_i8_timestamps(
-            np.array([self.value], dtype='i8'), tz=self.tz)[0]
-        return Timestamp(normalized_value).tz_localize(self.tz)
+        cdef:
+            ndarray[int64_t] normalized
+            tzinfo own_tz = self.tzinfo  # could be None
 
+        normalized = normalize_i8_timestamps(
+            np.array([self.value], dtype="i8"), tz=own_tz)
+        return Timestamp(normalized[0]).tz_localize(own_tz)
+
+
+# Aliases
+Timestamp.weekofyear = Timestamp.week
+Timestamp.daysinmonth = Timestamp.days_in_month
 
 # Add the min and max fields at the class level
 cdef int64_t _NS_UPPER_BOUND = np.iinfo(np.int64).max

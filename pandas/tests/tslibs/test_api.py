@@ -9,8 +9,8 @@ def test_namespace():
         "base",
         "ccalendar",
         "conversion",
+        "dtypes",
         "fields",
-        "frequencies",
         "nattype",
         "np_datetime",
         "offsets",
@@ -25,6 +25,7 @@ def test_namespace():
     ]
 
     api = [
+        "BaseOffset",
         "NaT",
         "NaTType",
         "iNaT",
@@ -33,12 +34,15 @@ def test_namespace():
         "OutOfBoundsDatetime",
         "Period",
         "IncompatibleFrequency",
+        "Resolution",
+        "Tick",
         "Timedelta",
         "Timestamp",
         "delta_to_nanoseconds",
         "ints_to_pytimedelta",
         "localize_pydatetime",
         "tz_convert_single",
+        "to_offset",
     ]
 
     expected = set(submodules + api)

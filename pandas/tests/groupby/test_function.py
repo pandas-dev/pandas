@@ -280,7 +280,7 @@ def test_non_cython_api():
     result = g.mad()
     tm.assert_frame_equal(result, expected)
 
-    expected = DataFrame([[0.0, 0.0], [0, np.nan]], columns=["A", "B"], index=[0, 1])
+    expected = DataFrame([[1, 0.0], [3, np.nan]], columns=["A", "B"], index=[0, 1])
     result = gni.mad()
     tm.assert_frame_equal(result, expected)
 
@@ -573,28 +573,6 @@ def test_ops_general(op, targop):
     tm.assert_frame_equal(result, expected)
 
 
-def test_ops_not_as_index(reduction_func):
-    # GH 10355
-    # Using as_index=False should not modify grouped column
-
-    if reduction_func in ("nth", "ngroup", "size",):
-        pytest.skip("Skip until behavior is determined (GH #5755)")
-
-    if reduction_func in ("corrwith", "idxmax", "idxmin", "mad", "nunique", "skew",):
-        pytest.xfail(
-            "_GroupBy._python_apply_general incorrectly modifies grouping columns"
-        )
-
-    df = DataFrame(np.random.randint(0, 5, size=(100, 2)), columns=["a", "b"])
-    expected = getattr(df.groupby("a"), reduction_func)().reset_index()
-
-    result = getattr(df.groupby("a", as_index=False), reduction_func)()
-    tm.assert_frame_equal(result, expected)
-
-    result = getattr(df.groupby("a", as_index=False)["b"], reduction_func)()
-    tm.assert_frame_equal(result, expected)
-
-
 def test_max_nan_bug():
     raw = """,Date,app,File
 -04-23,2013-04-23 00:00:00,,log080001.log
@@ -671,7 +649,7 @@ def test_nlargest_mi_grouper():
     ]
 
     expected = Series(exp_values, index=exp_idx)
-    tm.assert_series_equal(result, expected, check_exact=False)
+    tm.assert_series_equal(result, expected, check_exact=False, rtol=1e-3)
 
 
 def test_nsmallest():
