@@ -141,7 +141,7 @@ from pandas.core.sorting import ensure_key_mapped
 
 from pandas.io.common import get_filepath_or_buffer
 from pandas.io.formats import console, format as fmt
-from pandas.io.formats.info import info
+from pandas.io.formats.info import DataFrameInfo
 import pandas.plotting
 
 if TYPE_CHECKING:
@@ -1341,6 +1341,7 @@ class DataFrame(NDFrame):
         array([[1, 3.0, Timestamp('2000-01-01 00:00:00')],
                [2, 4.5, Timestamp('2000-01-02 00:00:00')]], dtype=object)
         """
+        self._consolidate_inplace()
         result = self._mgr.as_array(
             transpose=self._AXIS_REVERSED, dtype=dtype, copy=copy, na_value=na_value
         )
@@ -2461,11 +2462,11 @@ class DataFrame(NDFrame):
             <class 'pandas.core.frame.DataFrame'>
             RangeIndex: 5 entries, 0 to 4
             Data columns (total 3 columns):
-                #   Column     Non-Null Count  Dtype
+             #   Column     Non-Null Count  Dtype
             ---  ------     --------------  -----
-                0   int_col    5 non-null      int64
-                1   text_col   5 non-null      object
-                2   float_col  5 non-null      float64
+             0   int_col    5 non-null      int64
+             1   text_col   5 non-null      object
+             2   float_col  5 non-null      float64
             dtypes: float64(1), int64(1), object(1)
             memory usage: 248.0+ bytes
 
@@ -2504,11 +2505,11 @@ class DataFrame(NDFrame):
             <class 'pandas.core.frame.DataFrame'>
             RangeIndex: 1000000 entries, 0 to 999999
             Data columns (total 3 columns):
-                #   Column    Non-Null Count    Dtype
+             #   Column    Non-Null Count    Dtype
             ---  ------    --------------    -----
-                0   column_1  1000000 non-null  object
-                1   column_2  1000000 non-null  object
-                2   column_3  1000000 non-null  object
+             0   column_1  1000000 non-null  object
+             1   column_2  1000000 non-null  object
+             2   column_3  1000000 non-null  object
             dtypes: object(3)
             memory usage: 22.9+ MB
 
@@ -2516,11 +2517,11 @@ class DataFrame(NDFrame):
             <class 'pandas.core.frame.DataFrame'>
             RangeIndex: 1000000 entries, 0 to 999999
             Data columns (total 3 columns):
-                #   Column    Non-Null Count    Dtype
+             #   Column    Non-Null Count    Dtype
             ---  ------    --------------    -----
-                0   column_1  1000000 non-null  object
-                1   column_2  1000000 non-null  object
-                2   column_3  1000000 non-null  object
+             0   column_1  1000000 non-null  object
+             1   column_2  1000000 non-null  object
+             2   column_3  1000000 non-null  object
             dtypes: object(3)
             memory usage: 188.8 MB"""
         ),
@@ -2531,7 +2532,7 @@ class DataFrame(NDFrame):
             DataFrame.memory_usage: Memory usage of DataFrame columns."""
         ),
     )
-    @doc(info)
+    @doc(DataFrameInfo.info)
     def info(
         self,
         verbose: Optional[bool] = None,
@@ -2540,7 +2541,9 @@ class DataFrame(NDFrame):
         memory_usage: Optional[Union[bool, str]] = None,
         null_counts: Optional[bool] = None,
     ) -> None:
-        return info(self, verbose, buf, max_cols, memory_usage, null_counts)
+        return DataFrameInfo(
+            self, verbose, buf, max_cols, memory_usage, null_counts
+        ).info()
 
     def memory_usage(self, index=True, deep=False) -> Series:
         """
@@ -6939,7 +6942,9 @@ NaN 12.3   33.0
         else:
             return stack(self, level, dropna=dropna)
 
-    def explode(self, column: Union[str, Tuple]) -> "DataFrame":
+    def explode(
+        self, column: Union[str, Tuple], ignore_index: bool = False
+    ) -> "DataFrame":
         """
         Transform each element of a list-like to a row, replicating index values.
 
@@ -6949,6 +6954,10 @@ NaN 12.3   33.0
         ----------
         column : str or tuple
             Column to explode.
+        ignore_index : bool, default False
+            If True, the resulting index will be labeled 0, 1, …, n - 1.
+
+            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -7005,7 +7014,10 @@ NaN 12.3   33.0
         assert df is not None  # needed for mypy
         result = df[column].explode()
         result = df.drop([column], axis=1).join(result)
-        result.index = self.index.take(result.index)
+        if ignore_index:
+            result.index = ibase.default_index(len(result))
+        else:
+            result.index = self.index.take(result.index)
         result = result.reindex(columns=self.columns, copy=False)
 
         return result
