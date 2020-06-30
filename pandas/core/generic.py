@@ -572,6 +572,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         %(klass)s.rename_axis : Alter the name of the index%(see_also_sub)s.
         """
         self._check_inplace_and_allows_duplicate_labels(inplace)
+        return self._set_axis_nocheck(labels, axis, inplace)
+
+    def _set_axis_nocheck(self, labels, axis: Axis, inplace: bool):
         if inplace:
             setattr(self, self._get_axis_name(axis), labels)
         else:
@@ -941,6 +944,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             else:
                 index = mapper
 
+        self._check_inplace_and_allows_duplicate_labels(inplace)
         result = self if inplace else self.copy(deep=copy)
 
         for axis_no, replacements in enumerate((index, columns)):
@@ -965,7 +969,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     raise KeyError(f"{missing_labels} not found in axis")
 
             new_index = ax._transform_index(f, level)
-            result.set_axis(new_index, axis=axis_no, inplace=True)
+            result._set_axis_nocheck(new_index, axis=axis_no, inplace=True)
             result._clear_item_cache()
 
         if inplace:
