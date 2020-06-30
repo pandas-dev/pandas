@@ -1263,7 +1263,7 @@ def test_categorical_transform_aggregate():
     df["last_status"] = df.groupby("package_id")["status"].transform(max)
     result = df.copy()
 
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "package_id": [1, 1, 1, 2, 2, 3],
             "status": [
@@ -1284,5 +1284,7 @@ def test_categorical_transform_aggregate():
             ],
         }
     )
+
+    expected["status"] = expected["status"].astype(delivery_status_type)
 
     tm.assert_frame_equal(result, expected)
