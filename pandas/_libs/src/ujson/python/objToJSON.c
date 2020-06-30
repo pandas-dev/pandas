@@ -736,9 +736,6 @@ void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
         GET_TC(tc)->iterNext = NpyArr_iterNextNone;
         goto BLKRET;
     }
-    for (i = 0; i < blkCtxt->ncols; i++) {
-        blkCtxt->npyCtxts[i] = NULL;
-    }
 
     blkCtxt->cindices = PyObject_Malloc(sizeof(int) * blkCtxt->ncols);
     if (!blkCtxt->cindices) {
