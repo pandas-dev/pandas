@@ -7551,7 +7551,7 @@ NaN 12.3   33.0
         other : DataFrame or Series/dict-like object, or list of these
             The data to append.
         ignore_index : bool, default False
-            If True, do not use the index labels.
+            If True, the resulting axis will be labeled 0, 1, …, n - 1.
         verify_integrity : bool, default False
             If True, raise ValueError on creating index with duplicates.
         sort : bool, default False
