@@ -629,7 +629,10 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         """
         Safe get index, translate keys for datelike to underlying repr.
         """
-        return self._get_indices([name])[0]
+        if isna(name):
+            return [i for i, v in enumerate(self.indices) if isna(v)]
+        else:
+            return self._get_indices([name])[0]
 
     @cache_readonly
     def _selected_obj(self):
@@ -901,6 +904,7 @@ b  2""",
         raise AbstractMethodError(self)
 
     def transform(self, func, *args, **kwargs):
+        print(f"name={name}, group={group}")
         raise AbstractMethodError(self)
 
     def _cumcount_array(self, ascending: bool = True):
