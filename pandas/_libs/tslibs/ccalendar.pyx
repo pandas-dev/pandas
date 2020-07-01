@@ -27,7 +27,7 @@ cdef int* sakamoto_arr = [0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4]
 # The first 13 entries give the month days elapsed as of the first of month N
 # (or the total number of days in the year for N=13) in non-leap years.
 # The remaining 13 entries give the days elapsed in leap years.
-cdef int32_t* _month_offset = [
+cdef int32_t* month_offset = [
     0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365,
     0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366]
 
@@ -242,7 +242,7 @@ cpdef int32_t get_day_of_year(int year, int month, int day) nogil:
 
     isleap = is_leapyear(year)
 
-    mo_off = _month_offset[isleap * 13 + month - 1]
+    mo_off = month_offset[isleap * 13 + month - 1]
 
     day_of_year = mo_off + day
     return day_of_year
