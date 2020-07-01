@@ -1282,14 +1282,13 @@ def roll_quantile(ndarray[float64_t, cast=True] values, ndarray[int64_t] start,
                         skiplist_remove(skiplist, val)
                         nobs -= 1
 
-            if nobs >= minp:
-                if nobs == 1:
-                    # Single value in skip list
-                    tmp = skiplist_get(skiplist, 0, &ret)
-                    for j in range(0, Nq):
+            for j in range(0, Nq):
+                if nobs >= minp:
+                    if nobs == 1:
+                        # Single value in skip list
+                        tmp = skiplist_get(skiplist, 0, &ret)
                         output[i, j] = tmp
-                else:
-                    for j in range(0, Nq):
+                    else:
                         quantile = quantiles[j]
                         idx_with_fraction = quantile * (nobs - 1)
                         idx = <int>idx_with_fraction
@@ -1324,8 +1323,7 @@ def roll_quantile(ndarray[float64_t, cast=True] values, ndarray[int64_t] start,
                             vlow = skiplist_get(skiplist, idx, &ret)
                             vhigh = skiplist_get(skiplist, idx + 1, &ret)
                             output[i, j] = <float64_t>(vlow + vhigh) / 2
-            else:
-                for j in range(0, Nq):
+                else:
                     output[i, j] = NaN
 
     skiplist_destroy(skiplist)
