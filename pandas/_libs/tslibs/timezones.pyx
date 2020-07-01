@@ -219,6 +219,7 @@ ctypedef struct TZConvertInfo:
     int64_t* utcoffsets
     intp_t* positions
     int64_t delta
+    int noffsets
 
 
 cdef TZConvertInfo get_tzconverter(tzinfo tz, const int64_t[:] values):
@@ -231,6 +232,7 @@ cdef TZConvertInfo get_tzconverter(tzinfo tz, const int64_t[:] values):
     info.delta = NPY_NAT  # placeholder
     info.utcoffsets = NULL
     info.positions = NULL
+    info.noffsets = 0
 
     if tz is None or is_utc(tz):
         info.use_utc = True
@@ -238,6 +240,7 @@ cdef TZConvertInfo get_tzconverter(tzinfo tz, const int64_t[:] values):
         info.use_tzlocal = True
     else:
         trans, deltas, typ = get_dst_info(tz)
+        info.noffsets = len(deltas)
         if typ not in ["pytz", "dateutil"]:
             # Fixed Offset
             info.use_fixed = True

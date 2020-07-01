@@ -62,6 +62,7 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None):
             local_val = stamps[i] + info.delta
         else:
             pos = info.positions[i]
+            assert info.noffsets > pos, (info.noffsets, pos)
             if pos == -1:
                 assert False
             delta = info.utcoffsets[pos]
