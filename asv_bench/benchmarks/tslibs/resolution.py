@@ -8,7 +8,7 @@ df = pd.DataFrame(np.nan, index=mi, columns=["mean", "stdev"])
 for unit in tr.params[0]:
     for size in tr.params[1]:
         for tz in tr.params[2]:
-            tr.setup_cache(unit, size, tz)
+            tr.setup(unit, size, tz)
             key = (unit, size, str(tz))
             print(key)
 
@@ -41,7 +41,7 @@ class TimeResolution:
     )
     param_names = ["unit", "size", "tz"]
 
-    def setup_cache(self, unit, size, tz):
+    def setup(self, unit, size, tz):
         arr = np.random.randint(0, 10, size=size, dtype="i8")
         arr = arr.view(f"M8[{unit}]").astype("M8[ns]").view("i8")
         self.i8data = arr
