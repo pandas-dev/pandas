@@ -116,7 +116,7 @@ def _p_tz_cache_key(tz):
 dst_cache = {}
 
 
-cdef inline object tz_cache_key(object tz):
+cdef inline object tz_cache_key(tzinfo tz):
     """
     Return the key in the cache for the timezone info object or None
     if unknown.
@@ -210,13 +210,16 @@ cdef int64_t[:] unbox_utcoffsets(object transinfo):
 # Daylight Savings
 
 
-cdef object get_dst_info(object tz):
+cdef object get_dst_info(tzinfo tz):
     """
-    return a tuple of :
-      (UTC times of DST transitions,
-       UTC offsets in microseconds corresponding to DST transitions,
-       string of type of transitions)
-
+    Returns
+    -------
+    ndarray[int64_t]
+        Nanosecond UTC times of DST transitions.
+    ndarray[int64_t]
+        Nanosecond UTC offsets corresponding to DST transitions.
+    str
+        Desscribing the type of tzinfo object.
     """
     cache_key = tz_cache_key(tz)
     if cache_key is None:
@@ -225,7 +228,7 @@ cdef object get_dst_info(object tz):
         num = int(get_utcoffset(tz, None).total_seconds()) * 1_000_000_000
         return (np.array([NPY_NAT + 1], dtype=np.int64),
                 np.array([num], dtype=np.int64),
-                None)
+                "unknown")
 
     if cache_key not in dst_cache:
         if treat_tz_as_pytz(tz):
@@ -267,14 +270,13 @@ cdef object get_dst_info(object tz):
                 # (under the just-deleted code that returned empty arrays)
                 raise AssertionError("dateutil tzinfo is not a FixedOffset "
                                      "and has an empty `_trans_list`.", tz)
-
         else:
-            # static tzinfo
-            # TODO: This case is not hit in tests (2018-07-17); is it possible?
+            # static tzinfo, we can get here with pytz.StaticTZInfo
+            #  which are not caught by treat_tz_as_pytz
             trans = np.array([NPY_NAT + 1], dtype=np.int64)
-            num = int(get_utcoffset(tz, None).total_seconds()) * 1000000000
+            num = int(get_utcoffset(tz, None).total_seconds()) * 1_000_000_000
             deltas = np.array([num], dtype=np.int64)
-            typ = 'static'
+            typ = "static"
 
         dst_cache[cache_key] = (trans, deltas, typ)
 
