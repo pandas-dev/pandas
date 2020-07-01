@@ -991,7 +991,7 @@ class Timestamp(_Timestamp):
                     "Timestamp from components."
                 )
 
-            if tz is not None and treat_tz_as_pytz(tz):
+            if tz is not None and PyTZInfo_Check(tz) and treat_tz_as_pytz(tz):
                 raise ValueError(
                     "pytz timezones do not support fold. Please use dateutil "
                     "timezones."
