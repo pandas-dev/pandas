@@ -3,6 +3,8 @@ from io import StringIO
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
+
 
 pytest.importorskip("tabulate")
 
@@ -68,8 +70,7 @@ def test_index(index, showindex):
     df = pd.DataFrame([1, 2, 3])
 
     if "showindex" in kwargs:
-        msg = "deprecated"
-        with pytest.warns(FutureWarning, match=msg):
+        with tm.assert_produces_warning(FutureWarning):
             result = df.to_markdown(**kwargs)
 
         # give showindex higher priority if specified

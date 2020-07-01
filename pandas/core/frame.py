@@ -2230,6 +2230,7 @@ class DataFrame(NDFrame):
                 "'showindex' is deprecated. Only 'index' will be used "
                 "in a future version. Use 'index' to silence this warning.",
                 FutureWarning,
+                stacklevel=2,
             )
 
         kwargs.setdefault("headers", "keys")
