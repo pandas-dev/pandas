@@ -41,6 +41,7 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None):
         int64_t local_val, delta
         TZConvertInfo info
         intp_t pos
+        ndarray[intp_t, ndim=1] pos2
 
     info = get_tzconverter(tz, stamps)
 
@@ -49,6 +50,9 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None):
     elif not info.use_utc and not info.use_tzlocal:
         assert info.utcoffsets is not NULL
         assert info.positions is not NULL
+        pos2 = <intp_t[:n]>info.positions
+        assert pos2.max() < info.noffsets, (pos2.max(), info.noffsets)
+
 
     for i in range(n):
         if stamps[i] == NPY_NAT:
