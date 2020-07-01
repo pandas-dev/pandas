@@ -345,7 +345,6 @@ cpdef int64_t tz_convert_single(int64_t val, tzinfo tz1, tzinfo tz2):
     converted: int64
     """
     cdef:
-        int64_t utc_date
         int64_t arr[1]
         bint to_utc = is_utc(tz2)
         tzinfo tz
@@ -385,7 +384,7 @@ def tz_convert(int64_t[:] vals, tzinfo tz1, tzinfo tz2):
     int64 ndarray of converted
     """
     cdef:
-        int64_t[:] utc_dates, converted
+        int64_t[:] converted
         bint to_utc = is_utc(tz2)
         tzinfo tz
 
