@@ -16,7 +16,7 @@ cpdef object maybe_get_tz(object tz)
 cdef get_utcoffset(tzinfo tz, obj)
 cdef bint is_fixed_offset(tzinfo tz)
 
-cdef object get_dst_info(object tz)
+cdef object get_dst_info(tzinfo tz)
 
 
 ctypedef struct TZConvertInfo:
