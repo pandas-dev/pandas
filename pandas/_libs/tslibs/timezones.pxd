@@ -26,5 +26,6 @@ ctypedef struct TZConvertInfo:
     int64_t* utcoffsets
     intp_t* positions
     int64_t delta
+    int noffsets
 
 cdef TZConvertInfo get_tzconverter(tzinfo tz, const int64_t[:] values)
