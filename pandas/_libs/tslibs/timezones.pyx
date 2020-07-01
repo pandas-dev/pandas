@@ -1,5 +1,6 @@
-from cpython.datetime cimport tzinfo
 from datetime import timezone
+from cpython.datetime cimport tzinfo, PyTZInfo_Check, PyDateTime_IMPORT
+PyDateTime_IMPORT
 
 # dateutil compat
 from dateutil.tz import (
@@ -29,20 +30,20 @@ cdef tzinfo utc_pytz = UTC
 
 # ----------------------------------------------------------------------
 
-cpdef inline bint is_utc(object tz):
+cpdef inline bint is_utc(tzinfo tz):
     return tz is utc_pytz or tz is utc_stdlib or isinstance(tz, _dateutil_tzutc)
 
 
-cdef inline bint is_tzlocal(object tz):
+cdef inline bint is_tzlocal(tzinfo tz):
     return isinstance(tz, _dateutil_tzlocal)
 
 
-cdef inline bint treat_tz_as_pytz(object tz):
+cdef inline bint treat_tz_as_pytz(tzinfo tz):
     return (hasattr(tz, '_utc_transition_times') and
             hasattr(tz, '_transition_info'))
 
 
-cdef inline bint treat_tz_as_dateutil(object tz):
+cdef inline bint treat_tz_as_dateutil(tzinfo tz):
     return hasattr(tz, '_trans_list') and hasattr(tz, '_trans_idx')
 
 
@@ -59,7 +60,9 @@ cpdef inline object get_timezone(object tz):
     the tz name. It needs to be a string so that we can serialize it with
     UJSON/pytables. maybe_get_tz (below) is the inverse of this process.
     """
-    if is_utc(tz):
+    if not PyTZInfo_Check(tz):
+        return tz
+    elif is_utc(tz):
         return tz
     else:
         if treat_tz_as_dateutil(tz):
@@ -327,7 +330,7 @@ cpdef bint tz_compare(object start, object end):
     return get_timezone(start) == get_timezone(end)
 
 
-def tz_standardize(tz: object):
+def tz_standardize(tz: tzinfo):
     """
     If the passed tz is a pytz timezone object, "normalize" it to the a
     consistent version
