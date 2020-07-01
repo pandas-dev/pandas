@@ -17,7 +17,9 @@ from pandas._libs.tslibs.ccalendar import (
 from pandas._libs.tslibs.ccalendar cimport (
     DAY_NANOS,
     get_days_in_month, is_leapyear, dayofweek, get_week_of_year,
-    get_day_of_year, get_iso_calendar, iso_calendar_t)
+    get_day_of_year, get_iso_calendar, iso_calendar_t,
+    month_offset,
+)
 from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, pandas_timedeltastruct, dt64_to_dtstruct,
     td64_to_tdstruct)
@@ -155,18 +157,9 @@ def get_start_end_field(const int64_t[:] dtindex, str field,
         int end_month = 12
         int start_month = 1
         ndarray[int8_t] out
-        ndarray[int32_t, ndim=2] _month_offset
         bint isleap
         npy_datetimestruct dts
         int mo_off, dom, doy, dow, ldom
-
-    _month_offset = np.array(
-        [
-            [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365],
-            [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366],
-        ],
-        dtype=np.int32,
-    )
 
     out = np.zeros(count, dtype='int8')
 
@@ -226,10 +219,10 @@ def get_start_end_field(const int64_t[:] dtindex, str field,
 
                 dt64_to_dtstruct(dtindex[i], &dts)
                 isleap = is_leapyear(dts.year)
-                mo_off = _month_offset[isleap, dts.month - 1]
+                mo_off = month_offset[isleap * 13 + dts.month - 1]
                 dom = dts.day
                 doy = mo_off + dom
-                ldom = _month_offset[isleap, dts.month]
+                ldom = month_offset[isleap * 13 + dts.month]
                 dow = dayofweek(dts.year, dts.month, dts.day)
 
                 if (ldom == doy and dow < 5) or (
@@ -244,10 +237,10 @@ def get_start_end_field(const int64_t[:] dtindex, str field,
 
                 dt64_to_dtstruct(dtindex[i], &dts)
                 isleap = is_leapyear(dts.year)
-                mo_off = _month_offset[isleap, dts.month - 1]
+                mo_off = month_offset[isleap * 13 + dts.month - 1]
                 dom = dts.day
                 doy = mo_off + dom
-                ldom = _month_offset[isleap, dts.month]
+                ldom = month_offset[isleap * 13 + dts.month]
 
                 if ldom == doy:
                     out[i] = 1
@@ -288,10 +281,10 @@ def get_start_end_field(const int64_t[:] dtindex, str field,
 
                 dt64_to_dtstruct(dtindex[i], &dts)
                 isleap = is_leapyear(dts.year)
-                mo_off = _month_offset[isleap, dts.month - 1]
+                mo_off = month_offset[isleap * 13 + dts.month - 1]
                 dom = dts.day
                 doy = mo_off + dom
-                ldom = _month_offset[isleap, dts.month]
+                ldom = month_offset[isleap * 13 + dts.month]
                 dow = dayofweek(dts.year, dts.month, dts.day)
 
                 if ((dts.month - end_month) % 3 == 0) and (
@@ -307,10 +300,10 @@ def get_start_end_field(const int64_t[:] dtindex, str field,
 
                 dt64_to_dtstruct(dtindex[i], &dts)
                 isleap = is_leapyear(dts.year)
-                mo_off = _month_offset[isleap, dts.month - 1]
+                mo_off = month_offset[isleap * 13 + dts.month - 1]
                 dom = dts.day
                 doy = mo_off + dom
-                ldom = _month_offset[isleap, dts.month]
+                ldom = month_offset[isleap * 13 + dts.month]
 
                 if ((dts.month - end_month) % 3 == 0) and (ldom == doy):
                     out[i] = 1
@@ -352,10 +345,10 @@ def get_start_end_field(const int64_t[:] dtindex, str field,
                 dt64_to_dtstruct(dtindex[i], &dts)
                 isleap = is_leapyear(dts.year)
                 dom = dts.day
-                mo_off = _month_offset[isleap, dts.month - 1]
+                mo_off = month_offset[isleap * 13 + dts.month - 1]
                 doy = mo_off + dom
                 dow = dayofweek(dts.year, dts.month, dts.day)
-                ldom = _month_offset[isleap, dts.month]
+                ldom = month_offset[isleap * 13 + dts.month]
 
                 if (dts.month == end_month) and (
                         (ldom == doy and dow < 5) or (
@@ -370,10 +363,10 @@ def get_start_end_field(const int64_t[:] dtindex, str field,
 
                 dt64_to_dtstruct(dtindex[i], &dts)
                 isleap = is_leapyear(dts.year)
-                mo_off = _month_offset[isleap, dts.month - 1]
+                mo_off = month_offset[isleap * 13 + dts.month - 1]
                 dom = dts.day
                 doy = mo_off + dom
-                ldom = _month_offset[isleap, dts.month]
+                ldom = month_offset[isleap * 13 + dts.month]
 
                 if (dts.month == end_month) and (ldom == doy):
                     out[i] = 1
