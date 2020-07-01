@@ -228,6 +228,7 @@ cdef TZConvertInfo get_tzconverter(tzinfo tz, const int64_t[:] values):
         str typ
 
     info.use_utc = info.use_tzlocal = info.use_fixed = False
+    info.delta = NPY_NAT  # placeholder
 
     if tz is None or is_utc(tz):
         info.use_utc = True
