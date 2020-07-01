@@ -1,7 +1,7 @@
 from cpython.datetime cimport tzinfo
 
 import numpy as np
-from numpy cimport ndarray, int64_t, int32_t
+from numpy cimport ndarray, int64_t, int32_t, intp_t
 
 from pandas._libs.tslibs.util cimport get_nat
 
