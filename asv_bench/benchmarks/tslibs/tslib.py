@@ -2,7 +2,9 @@
 ipython analogue:
 
 tr = TimeIntsToPydatetime()
-mi = pd.MultiIndex.from_product(tr.params[:-1] + ([str(x) for x in tr.params[-1]],))
+mi = pd.MultiIndex.from_product(
+    tr.params[:-1] + ([str(x) for x in tr.params[-1]],)
+)
 df = pd.DataFrame(np.nan, index=mi, columns=["mean", "stdev"])
 for box in tr.params[0]:
     for size in tr.params[1]:
