@@ -63,9 +63,6 @@ class TimestampProperties:
     def time_dayofweek(self, tz, freq):
         self.ts.dayofweek
 
-    def time_weekday_name(self, tz, freq):
-        self.ts.day_name
-
     def time_dayofyear(self, tz, freq):
         self.ts.dayofyear
 
@@ -107,6 +104,9 @@ class TimestampProperties:
 
     def time_month_name(self, tz, freq):
         self.ts.month_name()
+
+    def time_weekday_name(self, tz, freq):
+        self.ts.day_name()
 
 
 class TimestampOps:
