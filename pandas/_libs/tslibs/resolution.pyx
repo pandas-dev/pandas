@@ -43,6 +43,12 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None):
 
     info = get_tzconverter(tz, stamps)
 
+    if info.use_fixed:
+        assert info.delta != NPY_NAT
+    elif not info.use_utc and not info.use_tzlocal:
+        assert info.utcoffsets is not NULL
+        assert info.positions is not NULL
+
     for i in range(n):
         if stamps[i] == NPY_NAT:
             continue
