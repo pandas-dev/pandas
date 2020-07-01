@@ -562,7 +562,6 @@ class Grouping:
         # GH35014
         res = values._reverse_indexer()
         res[np.nan] = [i for i, v in enumerate(values) if pd.isna(v)]
-        print(res)
         return res
 
     @property
