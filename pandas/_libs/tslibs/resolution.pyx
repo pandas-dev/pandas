@@ -38,8 +38,9 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None):
         Py_ssize_t i, n = len(stamps)
         npy_datetimestruct dts
         int reso = RESO_DAY, curr_reso
-        int64_t local_val
+        int64_t local_val, delta
         TZConvertInfo info
+        intp_t pos
 
     info = get_tzconverter(tz, stamps)
 
@@ -61,8 +62,9 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None):
             local_val = stamps[i] + info.delta
         else:
             pos = info.positions[i]
+            delta = info.utcoffsets[pos]
             assert False
-            local_val = stamps[i] + info.utcoffsets[info.positions[i]]
+            local_val = stamps[i] + delta
 
         dt64_to_dtstruct(local_val, &dts)
         curr_reso = _reso_stamp(&dts)
