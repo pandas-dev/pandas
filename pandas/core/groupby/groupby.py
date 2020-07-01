@@ -899,7 +899,7 @@ b  2""",
         raise AbstractMethodError(self)
 
     def transform(self, func, *args, **kwargs):
-        print(f"name={name}, group={group}")
+
         raise AbstractMethodError(self)
 
     def _cumcount_array(self, ascending: bool = True):
