@@ -27,7 +27,7 @@ from pandas._libs.tslibs.util cimport (
 
 from pandas._libs.tslibs.timezones cimport (
     is_utc, is_tzlocal, is_fixed_offset, get_utcoffset, get_dst_info,
-    get_timezone, maybe_get_tz, tz_compare,
+    maybe_get_tz, tz_compare,
     utc_pytz as UTC,
 )
 from pandas._libs.tslibs.parsing import parse_datetime_string
@@ -267,7 +267,7 @@ def datetime_to_datetime64(ndarray[object] values):
                     if not tz_compare(val.tzinfo, inferred_tz):
                         raise ValueError('Array must be all same time zone')
                 else:
-                    inferred_tz = get_timezone(val.tzinfo)
+                    inferred_tz = val.tzinfo
 
                 _ts = convert_datetime_to_tsobject(val, None)
                 iresult[i] = _ts.value
