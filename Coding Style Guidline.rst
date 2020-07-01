@@ -15,13 +15,7 @@ to *pandas*.
 2 Patterns
 ----------
 
-2.1 Header File
-~~~~~~~~~~~~~~~
-
-Every header file must include a header guard to avoid name collision if
-re-included.
-
-2.2 foo._class\_
+2.1 foo._class\_
 ~~~~~~~~~~~~~~~~
 
 **pandas** uses ‘type(foo)’ instead ‘foo.__class__’ as it is making the
@@ -31,31 +25,31 @@ For example:
 
 **Good:**
 
-::
+.. code-block:: python
 
    foo = "bar"
    type(foo)
 
 **Bad:**
 
-::
+.. code-block:: python
 
    foo = "bar"
    foo.__class__
 
-2.3 Bare Pytest Raises
+2.2 Bare Pytest Raises
 ~~~~~~~~~~~~~~~~~~~~~~
 
 **Good:**
 
-::
+.. code-block:: python
 
    with pytest.raise(ValueError, match="foo"):
        # following code that raises ValueError
 
 **Bad:**
 
-::
+.. code-block:: python
 
    with pytest.raise(ValueError):
        # following code that raises ValueError
@@ -80,7 +74,7 @@ For example:
 
 **Good:**
 
-::
+.. code-block:: python
 
    foo = "old_function"
    bar = "new_function"
@@ -93,7 +87,7 @@ For example:
 
 **Bad:**
 
-::
+.. code-block:: python
 
    foo = "old_function"
    bar = "new_function"
@@ -114,7 +108,7 @@ For example:
 
 **Good:**
 
-::
+.. code-block:: python
 
    example_string = (
        "Some long concatenated string, "
@@ -124,7 +118,7 @@ For example:
 
 **Bad:**
 
-::
+.. code-block:: python
 
    example_string = (
        "Some long concatenated string,"
@@ -144,14 +138,14 @@ For example:
 
 **Good:**
 
-::
+.. code-block:: python
 
    value = str
    f"Unknown recived value, got: {repr(value)}"
 
 **Bad:**
 
-::
+.. code-block:: python
 
    value = str
    f"Unknown recived type, got: '{type(value).__name__}'"
@@ -170,7 +164,7 @@ Types imports should follow the ``from typing import ...`` convention.
 
 **Good:**
 
-::
+.. code-block:: python
 
    from typing import List, Optional, Union
 
@@ -178,7 +172,7 @@ Types imports should follow the ``from typing import ...`` convention.
 
 **Bad:**
 
-::
+.. code-block:: python
 
    import typing
 
@@ -188,36 +182,24 @@ Optional should be used where applicable
 
 **Good:**
 
-::
+.. code-block:: python
 
    maybe_primes: List[Optional[int]] = []
 
 **Bad:**
 
-::
+.. code-block:: python
 
    maybe_primes: List[Union[int, None]] = []
 
-4.1.1 Redundant Imports
-^^^^^^^^^^^^^^^^^^^^^^^
-
-Should not import numpy and pandas
-
-**Example:**
-
-::
-
-   import numpy as np
-   import pandas as pd
-
-4.1.2 Unused Imports
+4.1.1 Unused Imports
 ^^^^^^^^^^^^^^^^^^^^
 
 Unused imports must be removed prior to submission
 
 **Example:**
 
-::
+.. code-block:: python
 
    import pandas as pdf
    df = pd.DataFrame(np.ones((3, 3)), columns=('a', 'b', 'c'))
