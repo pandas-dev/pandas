@@ -920,7 +920,8 @@ b  2""",
             )
             if not (is_transform or is_empty_agg):
                 warnings.warn(msg, FutureWarning, stacklevel=stacklevel)
-            # XXX: mutating a stateful object. Consider passing a var through wrap_applied_output
+            # XXX: mutating a stateful object. Consider passing a var through
+            # wrap_applied_output
             self.group_keys = False
 
         return self._wrap_applied_output(
