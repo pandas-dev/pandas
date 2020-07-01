@@ -5,6 +5,7 @@ from typing import Any, Callable, List, Optional, Sequence, Type, Union
 import numpy as np
 
 from pandas._libs.tslibs import (
+    BaseOffset,
     NaT,
     NaTType,
     Timedelta,
@@ -47,8 +48,6 @@ from pandas.core.dtypes.missing import isna, notna
 import pandas.core.algorithms as algos
 from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
-
-from pandas.tseries.offsets import DateOffset
 
 
 def _field_accessor(name: str, docstring=None):
@@ -280,7 +279,7 @@ class PeriodArray(PeriodMixin, dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
     # error: Read-only property cannot override read-write property  [misc]
     @property  # type: ignore
-    def freq(self) -> DateOffset:
+    def freq(self) -> BaseOffset:
         """
         Return the frequency object for this PeriodArray.
         """
@@ -656,7 +655,7 @@ class PeriodArray(PeriodMixin, dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         res_values[self._isnan] = iNaT
         return type(self)(res_values, freq=self.freq)
 
-    def _add_offset(self, other: DateOffset):
+    def _add_offset(self, other: BaseOffset):
         assert not isinstance(other, Tick)
 
         if other.base != self.freq.base:
@@ -784,7 +783,7 @@ def raise_on_incompatible(left, right):
     # GH#24283 error message format depends on whether right is scalar
     if isinstance(right, (np.ndarray, ABCTimedeltaArray)) or right is None:
         other_freq = None
-    elif isinstance(right, (ABCPeriodIndex, PeriodArray, Period, DateOffset)):
+    elif isinstance(right, (ABCPeriodIndex, PeriodArray, Period, BaseOffset)):
         other_freq = right.freqstr
     else:
         other_freq = delta_to_tick(Timedelta(right)).freqstr

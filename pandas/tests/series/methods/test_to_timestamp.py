@@ -55,9 +55,8 @@ class TestToTimestamp:
         tm.assert_index_equal(result.index, exp_index)
         assert result.name == "foo"
 
-    def test_to_timestamp_raises(self, indices):
+    def test_to_timestamp_raises(self, index):
         # https://github.com/pandas-dev/pandas/issues/33327
-        index = indices
         ser = Series(index=index, dtype=object)
         if not isinstance(index, PeriodIndex):
             msg = f"unsupported Type {type(index).__name__}"

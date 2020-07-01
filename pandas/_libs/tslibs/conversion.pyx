@@ -27,7 +27,7 @@ from pandas._libs.tslibs.util cimport (
 
 from pandas._libs.tslibs.timezones cimport (
     is_utc, is_tzlocal, is_fixed_offset, get_utcoffset, get_dst_info,
-    get_timezone, maybe_get_tz, tz_compare,
+    maybe_get_tz, tz_compare,
     utc_pytz as UTC,
 )
 from pandas._libs.tslibs.parsing import parse_datetime_string
@@ -77,7 +77,7 @@ cdef inline int64_t cast_from_unit(object ts, str unit) except? -1:
     return <int64_t>(base * m) + <int64_t>(frac * m)
 
 
-cpdef inline object precision_from_unit(str unit):
+cpdef inline (int64_t, int) precision_from_unit(str unit):
     """
     Return a casting of the unit represented to nanoseconds + the precision
     to round the fractional part.
@@ -267,7 +267,7 @@ def datetime_to_datetime64(ndarray[object] values):
                     if not tz_compare(val.tzinfo, inferred_tz):
                         raise ValueError('Array must be all same time zone')
                 else:
-                    inferred_tz = get_timezone(val.tzinfo)
+                    inferred_tz = val.tzinfo
 
                 _ts = convert_datetime_to_tsobject(val, None)
                 iresult[i] = _ts.value
@@ -795,14 +795,14 @@ cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo t
                     result[i] = NPY_NAT
                     continue
                 local_val = stamps[i]
-                result[i] = _normalize_i8_stamp(local_val)
+                result[i] = normalize_i8_stamp(local_val)
     elif is_tzlocal(tz):
         for i in range(n):
             if stamps[i] == NPY_NAT:
                 result[i] = NPY_NAT
                 continue
             local_val = tz_convert_utc_to_tzlocal(stamps[i], tz)
-            result[i] = _normalize_i8_stamp(local_val)
+            result[i] = normalize_i8_stamp(local_val)
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
         trans, deltas, typ = get_dst_info(tz)
@@ -815,7 +815,7 @@ cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo t
                     result[i] = NPY_NAT
                     continue
                 local_val = stamps[i] + delta
-                result[i] = _normalize_i8_stamp(local_val)
+                result[i] = normalize_i8_stamp(local_val)
         else:
             pos = trans.searchsorted(stamps, side='right') - 1
             for i in range(n):
@@ -823,13 +823,13 @@ cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo t
                     result[i] = NPY_NAT
                     continue
                 local_val = stamps[i] + deltas[pos[i]]
-                result[i] = _normalize_i8_stamp(local_val)
+                result[i] = normalize_i8_stamp(local_val)
 
     return result.base  # `.base` to access underlying ndarray
 
 
 @cython.cdivision
-cdef inline int64_t _normalize_i8_stamp(int64_t local_val) nogil:
+cdef inline int64_t normalize_i8_stamp(int64_t local_val) nogil:
     """
     Round the localized nanosecond timestamp down to the previous midnight.
 

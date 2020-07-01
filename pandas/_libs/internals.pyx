@@ -16,6 +16,7 @@ cnp.import_array()
 from pandas._libs.algos import ensure_int64
 
 
+@cython.final
 cdef class BlockPlacement:
     # __slots__ = '_as_slice', '_as_array', '_len'
     cdef:
