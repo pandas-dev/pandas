@@ -1,4 +1,4 @@
-from cpython.datetime cimport tzinfo
+from cpython.datetime cimport datetime, tzinfo
 from datetime import timezone
 
 # dateutil compat
@@ -281,7 +281,7 @@ cdef object get_dst_info(object tz):
     return dst_cache[cache_key]
 
 
-def infer_tzinfo(start, end):
+def infer_tzinfo(datetime start, datetime end):
     if start is not None and end is not None:
         tz = start.tzinfo
         if not tz_compare(tz, end.tzinfo):
