@@ -233,21 +233,21 @@ def array_with_unit_to_datetime(
         # then need to iterate
         if values.dtype.kind == "i":
             # Note: this condition makes the casting="same_kind" redundant
-            iresult = values.astype('i8', casting='same_kind', copy=False)
+            iresult = values.astype("i8", casting="same_kind", copy=False)
             # fill by comparing to NPY_NAT constant
             mask = iresult == NPY_NAT
             iresult[mask] = 0
-            fvalues = iresult.astype('f8') * m
+            fvalues = iresult.astype("f8") * m
             need_to_iterate = False
 
         # GH20445
         if values.dtype.kind == "f":
-            fresult = values.astype('f8', casting='same_kind', copy=False)
-            # fill by comparing to NPY_NAT constant
-            mask = fresult == NPY_NAT
+            fresult = values.astype("f8", casting="same_kind", copy=False)
+            # fill by comparing to np.nan constant
+            mask = fresult == np.nan
             fresult[mask] = 0.0
-            m_as_float = <float64_t> m
-            fvalues = fresult.astype('f8') * m_as_float
+            m_as_float = <float64_t>m
+            fvalues = fresult.astype("f8") * m_as_float
             need_to_iterate = False
 
         # check the bounds
@@ -256,18 +256,18 @@ def array_with_unit_to_datetime(
                     or (fvalues > Timestamp.max.value).any()):
                 raise OutOfBoundsDatetime(f"cannot convert input with unit '{unit}'")
             # GH20445
-            if values.dtype.kind == 'i':
-                result = (iresult * m).astype('M8[ns]')
-                iresult = result.view('i8')
+            if values.dtype.kind == "i":
+                result = (iresult * m).astype("M8[ns]")
+                iresult = result.view("i8")
                 iresult[mask] = NPY_NAT
                 return result, tz
-            elif values.dtype.kind == 'f':
-                result = (fresult * m_as_float).astype('M8[ns]')
-                fresult = result.view('f8')
+            elif values.dtype.kind == "f":
+                result = (fresult * m_as_float).astype("M8[ns]")
+                fresult = result.view("f8")
                 fresult[mask] = NPY_NAT
                 return result, tz
-    result = np.empty(n, dtype='M8[ns]')
-    iresult = result.view('i8')
+    result = np.empty(n, dtype="M8[ns]")
+    iresult = result.view("i8")
 
     try:
         for i in range(n):
