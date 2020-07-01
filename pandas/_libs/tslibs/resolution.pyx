@@ -41,6 +41,7 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None):
         int64_t local_val
         TZConvertInfo info
 
+    assert False
     info = get_tzconverter(tz, stamps)
 
     if info.use_fixed:
