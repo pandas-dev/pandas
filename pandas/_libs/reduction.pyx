@@ -381,7 +381,6 @@ def apply_frame_axis0(object frame, object f, object names,
                 except AttributeError:
                     mutated = True
 
-
             if not is_scalar(piece):
                 # Need to copy data to avoid appending references
                 try:
