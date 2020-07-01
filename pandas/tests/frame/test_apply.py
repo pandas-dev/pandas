@@ -1501,3 +1501,12 @@ class TestDataFrameAggregate:
         tm.assert_series_equal(
             none_in_first_column_result, none_in_second_column_result
         )
+
+    @pytest.mark.parametrize("col", [1, 1.0, True, "a", np.nan])
+    def test_apply_dtype(self, col):
+        # GH 31466
+        df = pd.DataFrame([[1.0, col]], columns=["a", "b"])
+        result = df.apply(lambda x: x.dtype)
+        expected = df.dtypes
+
+        tm.assert_series_equal(result, expected)
