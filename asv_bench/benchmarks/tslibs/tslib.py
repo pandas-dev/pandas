@@ -23,7 +23,6 @@ import pytz
 
 from pandas._libs.tslib import ints_to_pydatetime
 
-
 _tzs = [
     None,
     timezone.utc,
@@ -32,7 +31,7 @@ _tzs = [
     gettz("Asia/Tokyo"),
     tzlocal(),
 ]
-_sizes = [0, 1, 100, 10**4, 10 ** 6]
+_sizes = [0, 1, 100, 10 ** 4, 10 ** 6]
 
 
 class TimeIntsToPydatetime:
