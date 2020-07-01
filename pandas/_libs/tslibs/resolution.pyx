@@ -49,7 +49,6 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None):
         assert info.utcoffsets is not NULL
         assert info.positions is not NULL
 
-    assert False
     for i in range(n):
         if stamps[i] == NPY_NAT:
             continue
@@ -61,6 +60,7 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None):
         elif info.use_fixed:
             local_val = stamps[i] + info.delta
         else:
+            assert False
             local_val = stamps[i] + info.utcoffsets[info.positions[i]]
 
         dt64_to_dtstruct(local_val, &dts)
