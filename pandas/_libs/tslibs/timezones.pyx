@@ -226,6 +226,7 @@ cdef TZConvertInfo get_tzconverter(tzinfo tz, const int64_t[:] values):
     cdef:
         TZConvertInfo info
         ndarray[int64_t, ndim=1] deltas, trans, pos
+        ndarray[intp_t, ndim=1] pos
         str typ
 
     info.use_utc = info.use_tzlocal = info.use_fixed = False
