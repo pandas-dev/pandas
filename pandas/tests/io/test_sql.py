@@ -1813,6 +1813,24 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         DataFrame({"test_foo_data": [0, 1, 2]}).to_sql("test_foo_data", self.conn)
         main(self.conn)
 
+    @pytest.mark.parametrize(
+        "input",
+        [{"foo": [np.inf]}, {"foo": [-np.inf]}, {"foo": [-np.inf], "infe0": ["bar"]}],
+    )
+    def test_to_sql_with_negative_npinf(self, input):
+        # GH 34431
+
+        df = pd.DataFrame(input)
+
+        if self.flavor == "mysql":
+            msg = "inf cannot be used with MySQL"
+            with pytest.raises(ValueError, match=msg):
+                df.to_sql("foobar", self.conn, index=False)
+        else:
+            df.to_sql("foobar", self.conn, index=False)
+            res = sql.read_sql_table("foobar", self.conn)
+            tm.assert_equal(df, res)
+
     def test_temporary_table(self):
         test_data = "Hello, World!"
         expected = DataFrame({"spam": [test_data]})
