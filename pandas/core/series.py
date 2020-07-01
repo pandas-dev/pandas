@@ -4573,9 +4573,9 @@ Keep all original rows and also all original values
             <class 'pandas.core.series.Series'>
             Int64Index: 5 entries, 1 to 5
             Series name: None
-             #   Non-Null Count  Dtype
-            ---  --------------  -----
-             0   5 non-null      object
+            Non-Null Count  Dtype
+            --------------  -----
+            5 non-null      object
             dtypes: object(1)
             memory usage: 80.0+ bytes
 
@@ -4608,9 +4608,9 @@ Keep all original rows and also all original values
             <class 'pandas.core.series.Series'>
             RangeIndex: 1000000 entries, 0 to 999999
             Series name: None
-             #   Non-Null Count    Dtype
-            ---  --------------    -----
-             0   1000000 non-null  object
+            Non-Null Count    Dtype
+            --------------    -----
+            1000000 non-null  object
             dtypes: object(1)
             memory usage: 7.6+ MB
 
@@ -4618,9 +4618,9 @@ Keep all original rows and also all original values
             <class 'pandas.core.series.Series'>
             RangeIndex: 1000000 entries, 0 to 999999
             Series name: None
-             #   Non-Null Count    Dtype
-            ---  --------------    -----
-             0   1000000 non-null  object
+            Non-Null Count    Dtype
+            --------------    -----
+            1000000 non-null  object
             dtypes: object(1)
             memory usage: 62.9 MB"""
         ),

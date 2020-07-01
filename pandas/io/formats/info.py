@@ -363,17 +363,16 @@ class SeriesInfo(BaseInfo):
     def _verbose_repr(
         self, lines: List[str], ids: "Index", dtypes: "Series", show_counts: bool
     ) -> None:
-        id_space = 2
-        header = ""
-
         lines.append(f"Series name: {self.data.name}")
+
+        id_space = 2
 
         if show_counts:
             count = self.data.count()
             count_header = "Non-Null Count"
             len_count = len(count_header)
             non_null = " non-null"
-            max_count = len(pprint_thing(self.data.count())) + len(non_null)
+            max_count = len(pprint_thing(count)) + len(non_null)
             space_count = max(len_count, max_count) + id_space
             count_temp = "{count}" + non_null
         else:
@@ -387,7 +386,7 @@ class SeriesInfo(BaseInfo):
         len_dtype = len(dtype_header)
         max_dtypes = max(len(pprint_thing(k)) for k in dtypes)
         space_dtype = max(len_dtype, max_dtypes)
-        header += _put_str(count_header, space_count) + _put_str(
+        header = _put_str(count_header, space_count) + _put_str(
             dtype_header, space_dtype
         )
 
