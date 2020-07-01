@@ -1021,8 +1021,8 @@ class TestWideToLong:
         # a name in the dataframe already (default name is "value")
         df = pd.DataFrame({"col": list("ABC"), "value": range(10, 16, 2)})
         expected = pd.DataFrame(
-            [['A','col','A'],['B','col','B'],['C','col','C']], 
-            columns = ['value', 'variable', 'value']
+            [["A", "col", "A"], ["B", "col", "B"], ["C", "col", "C"]],
+            columns=["value", "variable", "value"]
         )
 
         with tm.assert_produces_warning(FutureWarning):
