@@ -40,13 +40,14 @@ from pandas._libs.tslibs.conversion cimport (
     _TSObject,
     convert_to_tsobject,
     convert_datetime_to_tsobject,
-    normalize_i8_timestamps,
+    normalize_i8_stamp,
 )
 from pandas._libs.tslibs.fields import get_start_end_field, get_date_name_field
 from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
 from pandas._libs.tslibs.np_datetime cimport (
     check_dts_bounds, npy_datetimestruct, dt64_to_dtstruct,
     cmp_scalar,
+    pydatetime_to_dt64,
 )
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.offsets cimport to_offset, is_tick_object, is_offset_object
@@ -69,7 +70,7 @@ _no_input = object()
 
 cdef inline object create_timestamp_from_ts(int64_t value,
                                             npy_datetimestruct dts,
-                                            object tz, object freq, bint fold):
+                                            tzinfo tz, object freq, bint fold):
     """ convenience routine to construct a Timestamp from its parts """
     cdef _Timestamp ts_base
     ts_base = _Timestamp.__new__(Timestamp, dts.year, dts.month,
@@ -265,37 +266,6 @@ cdef class _Timestamp(ABCTimestamp):
         self._assert_tzawareness_compat(ots)
         return cmp_scalar(self.value, ots.value, op)
 
-    def __reduce_ex__(self, protocol):
-        # python 3.6 compat
-        # https://bugs.python.org/issue28730
-        # now __reduce_ex__ is defined and higher priority than __reduce__
-        return self.__reduce__()
-
-    def __repr__(self) -> str:
-        stamp = self._repr_base
-        zone = None
-
-        try:
-            stamp += self.strftime('%z')
-            if self.tzinfo:
-                zone = get_timezone(self.tzinfo)
-        except ValueError:
-            year2000 = self.replace(year=2000)
-            stamp += year2000.strftime('%z')
-            if self.tzinfo:
-                zone = get_timezone(self.tzinfo)
-
-        try:
-            stamp += zone.strftime(' %%Z')
-        except AttributeError:
-            # e.g. tzlocal has no `strftime`
-            pass
-
-        tz = f", tz='{zone}'" if zone is not None else ""
-        freq = "" if self.freq is None else f", freq='{self.freqstr}'"
-
-        return f"Timestamp('{stamp}'{tz}{freq})"
-
     cdef bint _compare_outside_nanorange(_Timestamp self, datetime other,
                                          int op) except -1:
         cdef:
@@ -311,46 +281,6 @@ cdef class _Timestamp(ABCTimestamp):
                                 'timestamps')
         elif other.tzinfo is None:
             raise TypeError('Cannot compare tz-naive and tz-aware timestamps')
-
-    cpdef datetime to_pydatetime(_Timestamp self, bint warn=True):
-        """
-        Convert a Timestamp object to a native Python datetime object.
-
-        If warn=True, issue a warning if nanoseconds is nonzero.
-        """
-        if self.nanosecond != 0 and warn:
-            warnings.warn("Discarding nonzero nanoseconds in conversion",
-                          UserWarning, stacklevel=2)
-
-        return datetime(self.year, self.month, self.day,
-                        self.hour, self.minute, self.second,
-                        self.microsecond, self.tzinfo)
-
-    cpdef to_datetime64(self):
-        """
-        Return a numpy.datetime64 object with 'ns' precision.
-        """
-        return np.datetime64(self.value, 'ns')
-
-    def to_numpy(self, dtype=None, copy=False) -> np.datetime64:
-        """
-        Convert the Timestamp to a NumPy datetime64.
-
-        .. versionadded:: 0.25.0
-
-        This is an alias method for `Timestamp.to_datetime64()`. The dtype and
-        copy parameters are available here only for compatibility. Their values
-        will not affect the return value.
-
-        Returns
-        -------
-        numpy.datetime64
-
-        See Also
-        --------
-        DatetimeIndex.to_numpy : Similar method for DatetimeIndex.
-        """
-        return self.to_datetime64()
 
     def __add__(self, other):
         cdef:
@@ -441,16 +371,22 @@ cdef class _Timestamp(ABCTimestamp):
 
         return NotImplemented
 
+    # -----------------------------------------------------------------
+
     cdef int64_t _maybe_convert_value_to_local(self):
         """Convert UTC i8 value to local i8 value if tz exists"""
         cdef:
             int64_t val
-        val = self.value
-        if self.tz is not None and not is_utc(self.tz):
-            val = tz_convert_single(self.value, UTC, self.tz)
+            tzinfo own_tz = self.tzinfo
+            npy_datetimestruct dts
+
+        if own_tz is not None and not is_utc(own_tz):
+            val = pydatetime_to_dt64(self, &dts) + self.nanosecond
+        else:
+            val = self.value
         return val
 
-    cpdef bint _get_start_end_field(self, str field):
+    cdef bint _get_start_end_field(self, str field):
         cdef:
             int64_t val
             dict kwds
@@ -471,7 +407,67 @@ cdef class _Timestamp(ABCTimestamp):
                                   field, freqstr, month_kw)
         return out[0]
 
-    cpdef _get_date_name_field(self, object field, object locale):
+    @property
+    def is_month_start(self) -> bool:
+        """
+        Return True if date is first day of month.
+        """
+        if self.freq is None:
+            # fast-path for non-business frequencies
+            return self.day == 1
+        return self._get_start_end_field("is_month_start")
+
+    @property
+    def is_month_end(self) -> bool:
+        """
+        Return True if date is last day of month.
+        """
+        if self.freq is None:
+            # fast-path for non-business frequencies
+            return self.day == self.days_in_month
+        return self._get_start_end_field("is_month_end")
+
+    @property
+    def is_quarter_start(self) -> bool:
+        """
+        Return True if date is first day of the quarter.
+        """
+        if self.freq is None:
+            # fast-path for non-business frequencies
+            return self.day == 1 and self.month % 3 == 1
+        return self._get_start_end_field("is_quarter_start")
+
+    @property
+    def is_quarter_end(self) -> bool:
+        """
+        Return True if date is last day of the quarter.
+        """
+        if self.freq is None:
+            # fast-path for non-business frequencies
+            return (self.month % 3) == 0 and self.day == self.days_in_month
+        return self._get_start_end_field("is_quarter_end")
+
+    @property
+    def is_year_start(self) -> bool:
+        """
+        Return True if date is first day of the year.
+        """
+        if self.freq is None:
+            # fast-path for non-business frequencies
+            return self.day == self.month == 1
+        return self._get_start_end_field("is_year_start")
+
+    @property
+    def is_year_end(self) -> bool:
+        """
+        Return True if date is last day of the year.
+        """
+        if self.freq is None:
+            # fast-path for non-business frequencies
+            return self.month == 12 and self.day == 31
+        return self._get_start_end_field("is_year_end")
+
+    cdef _get_date_name_field(self, str field, object locale):
         cdef:
             int64_t val
             object[:] out
@@ -480,6 +476,159 @@ cdef class _Timestamp(ABCTimestamp):
         out = get_date_name_field(np.array([val], dtype=np.int64),
                                   field, locale=locale)
         return out[0]
+
+    def day_name(self, locale=None) -> str:
+        """
+        Return the day name of the Timestamp with specified locale.
+
+        Parameters
+        ----------
+        locale : str, default None (English locale)
+            Locale determining the language in which to return the day name.
+
+        Returns
+        -------
+        day_name : string
+
+        .. versionadded:: 0.23.0
+        """
+        return self._get_date_name_field("day_name", locale)
+
+    def month_name(self, locale=None) -> str:
+        """
+        Return the month name of the Timestamp with specified locale.
+
+        Parameters
+        ----------
+        locale : str, default None (English locale)
+            Locale determining the language in which to return the month name.
+
+        Returns
+        -------
+        month_name : string
+
+        .. versionadded:: 0.23.0
+        """
+        return self._get_date_name_field("month_name", locale)
+
+    @property
+    def is_leap_year(self) -> bool:
+        """
+        Return True if year is a leap year.
+        """
+        return bool(ccalendar.is_leapyear(self.year))
+
+    @property
+    def dayofweek(self) -> int:
+        """
+        Return day of the week.
+        """
+        return self.weekday()
+
+    @property
+    def dayofyear(self) -> int:
+        """
+        Return the day of the year.
+        """
+        return ccalendar.get_day_of_year(self.year, self.month, self.day)
+
+    @property
+    def quarter(self) -> int:
+        """
+        Return the quarter of the year.
+        """
+        return ((self.month - 1) // 3) + 1
+
+    @property
+    def week(self) -> int:
+        """
+        Return the week number of the year.
+        """
+        return ccalendar.get_week_of_year(self.year, self.month, self.day)
+
+    @property
+    def days_in_month(self) -> int:
+        """
+        Return the number of days in the month.
+        """
+        return ccalendar.get_days_in_month(self.year, self.month)
+
+    # -----------------------------------------------------------------
+    # Transformation Methods
+
+    def normalize(self) -> "Timestamp":
+        """
+        Normalize Timestamp to midnight, preserving tz information.
+        """
+        cdef:
+            local_val = self._maybe_convert_value_to_local()
+            int64_t normalized
+
+        normalized = normalize_i8_stamp(local_val)
+        return Timestamp(normalized).tz_localize(self.tzinfo)
+
+    # -----------------------------------------------------------------
+    # Pickle Methods
+
+    def __reduce_ex__(self, protocol):
+        # python 3.6 compat
+        # https://bugs.python.org/issue28730
+        # now __reduce_ex__ is defined and higher priority than __reduce__
+        return self.__reduce__()
+
+    def __setstate__(self, state):
+        self.value = state[0]
+        self.freq = state[1]
+        self.tzinfo = state[2]
+
+    def __reduce__(self):
+        object_state = self.value, self.freq, self.tzinfo
+        return (Timestamp, object_state)
+
+    # -----------------------------------------------------------------
+    # Rendering Methods
+
+    def isoformat(self, sep: str = "T") -> str:
+        base = super(_Timestamp, self).isoformat(sep=sep)
+        if self.nanosecond == 0:
+            return base
+
+        if self.tzinfo is not None:
+            base1, base2 = base[:-6], base[-6:]
+        else:
+            base1, base2 = base, ""
+
+        if self.microsecond != 0:
+            base1 += f"{self.nanosecond:03d}"
+        else:
+            base1 += f".{self.nanosecond:09d}"
+
+        return base1 + base2
+
+    def __repr__(self) -> str:
+        stamp = self._repr_base
+        zone = None
+
+        try:
+            stamp += self.strftime('%z')
+            if self.tzinfo:
+                zone = get_timezone(self.tzinfo)
+        except ValueError:
+            year2000 = self.replace(year=2000)
+            stamp += year2000.strftime('%z')
+            if self.tzinfo:
+                zone = get_timezone(self.tzinfo)
+
+        try:
+            stamp += zone.strftime(' %%Z')
+        except AttributeError:
+            # e.g. tzlocal has no `strftime`
+            pass
+
+        tz = f", tz='{zone}'" if zone is not None else ""
+        freq = "" if self.freq is None else f", freq='{self.freqstr}'"
+
+        return f"Timestamp('{stamp}'{tz}{freq})"
 
     @property
     def _repr_base(self) -> str:
@@ -514,6 +663,9 @@ cdef class _Timestamp(ABCTimestamp):
             return self._date_repr
         return self._repr_base
 
+    # -----------------------------------------------------------------
+    # Conversion Methods
+
     @property
     def asm8(self) -> np.datetime64:
         """
@@ -526,6 +678,64 @@ cdef class _Timestamp(ABCTimestamp):
         # GH 17329
         # Note: Naive timestamps will not match datetime.stdlib
         return round(self.value / 1e9, 6)
+
+    cpdef datetime to_pydatetime(_Timestamp self, bint warn=True):
+        """
+        Convert a Timestamp object to a native Python datetime object.
+
+        If warn=True, issue a warning if nanoseconds is nonzero.
+        """
+        if self.nanosecond != 0 and warn:
+            warnings.warn("Discarding nonzero nanoseconds in conversion",
+                          UserWarning, stacklevel=2)
+
+        return datetime(self.year, self.month, self.day,
+                        self.hour, self.minute, self.second,
+                        self.microsecond, self.tzinfo)
+
+    cpdef to_datetime64(self):
+        """
+        Return a numpy.datetime64 object with 'ns' precision.
+        """
+        return np.datetime64(self.value, "ns")
+
+    def to_numpy(self, dtype=None, copy=False) -> np.datetime64:
+        """
+        Convert the Timestamp to a NumPy datetime64.
+
+        .. versionadded:: 0.25.0
+
+        This is an alias method for `Timestamp.to_datetime64()`. The dtype and
+        copy parameters are available here only for compatibility. Their values
+        will not affect the return value.
+
+        Returns
+        -------
+        numpy.datetime64
+
+        See Also
+        --------
+        DatetimeIndex.to_numpy : Similar method for DatetimeIndex.
+        """
+        return self.to_datetime64()
+
+    def to_period(self, freq=None):
+        """
+        Return an period of which this timestamp is an observation.
+        """
+        from pandas import Period
+
+        if self.tz is not None:
+            # GH#21333
+            warnings.warn(
+                "Converting to Period representation will drop timezone information.",
+                UserWarning,
+            )
+
+        if freq is None:
+            freq = self.freq
+
+        return Period(self, freq=freq)
 
 
 # ----------------------------------------------------------------------
@@ -1013,179 +1223,12 @@ timedelta}, default 'raise'
             "Use tz_localize() or tz_convert() as appropriate"
         )
 
-    def __setstate__(self, state):
-        self.value = state[0]
-        self.freq = state[1]
-        self.tzinfo = state[2]
-
-    def __reduce__(self):
-        object_state = self.value, self.freq, self.tzinfo
-        return (Timestamp, object_state)
-
-    def to_period(self, freq=None):
-        """
-        Return an period of which this timestamp is an observation.
-        """
-        from pandas import Period
-
-        if self.tz is not None:
-            # GH#21333
-            warnings.warn(
-                "Converting to Period representation will drop timezone information.",
-                UserWarning,
-            )
-
-        if freq is None:
-            freq = self.freq
-
-        return Period(self, freq=freq)
-
-    @property
-    def dayofweek(self) -> int:
-        """
-        Return day of the week.
-        """
-        return self.weekday()
-
-    def day_name(self, locale=None) -> str:
-        """
-        Return the day name of the Timestamp with specified locale.
-
-        Parameters
-        ----------
-        locale : str, default None (English locale)
-            Locale determining the language in which to return the day name.
-
-        Returns
-        -------
-        day_name : string
-
-        .. versionadded:: 0.23.0
-        """
-        return self._get_date_name_field('day_name', locale)
-
-    def month_name(self, locale=None) -> str:
-        """
-        Return the month name of the Timestamp with specified locale.
-
-        Parameters
-        ----------
-        locale : str, default None (English locale)
-            Locale determining the language in which to return the month name.
-
-        Returns
-        -------
-        month_name : string
-
-        .. versionadded:: 0.23.0
-        """
-        return self._get_date_name_field('month_name', locale)
-
-    @property
-    def dayofyear(self) -> int:
-        """
-        Return the day of the year.
-        """
-        return ccalendar.get_day_of_year(self.year, self.month, self.day)
-
-    @property
-    def week(self) -> int:
-        """
-        Return the week number of the year.
-        """
-        return ccalendar.get_week_of_year(self.year, self.month, self.day)
-
-    weekofyear = week
-
-    @property
-    def quarter(self) -> int:
-        """
-        Return the quarter of the year.
-        """
-        return ((self.month - 1) // 3) + 1
-
-    @property
-    def days_in_month(self) -> int:
-        """
-        Return the number of days in the month.
-        """
-        return ccalendar.get_days_in_month(self.year, self.month)
-
-    daysinmonth = days_in_month
-
     @property
     def freqstr(self):
         """
         Return the total number of days in the month.
         """
         return getattr(self.freq, 'freqstr', self.freq)
-
-    @property
-    def is_month_start(self) -> bool:
-        """
-        Return True if date is first day of month.
-        """
-        if self.freq is None:
-            # fast-path for non-business frequencies
-            return self.day == 1
-        return self._get_start_end_field('is_month_start')
-
-    @property
-    def is_month_end(self) -> bool:
-        """
-        Return True if date is last day of month.
-        """
-        if self.freq is None:
-            # fast-path for non-business frequencies
-            return self.day == self.days_in_month
-        return self._get_start_end_field('is_month_end')
-
-    @property
-    def is_quarter_start(self) -> bool:
-        """
-        Return True if date is first day of the quarter.
-        """
-        if self.freq is None:
-            # fast-path for non-business frequencies
-            return self.day == 1 and self.month % 3 == 1
-        return self._get_start_end_field('is_quarter_start')
-
-    @property
-    def is_quarter_end(self) -> bool:
-        """
-        Return True if date is last day of the quarter.
-        """
-        if self.freq is None:
-            # fast-path for non-business frequencies
-            return (self.month % 3) == 0 and self.day == self.days_in_month
-        return self._get_start_end_field('is_quarter_end')
-
-    @property
-    def is_year_start(self) -> bool:
-        """
-        Return True if date is first day of the year.
-        """
-        if self.freq is None:
-            # fast-path for non-business frequencies
-            return self.day == self.month == 1
-        return self._get_start_end_field('is_year_start')
-
-    @property
-    def is_year_end(self) -> bool:
-        """
-        Return True if date is last day of the year.
-        """
-        if self.freq is None:
-            # fast-path for non-business frequencies
-            return self.month == 12 and self.day == 31
-        return self._get_start_end_field('is_year_end')
-
-    @property
-    def is_leap_year(self) -> bool:
-        """
-        Return True if year is a leap year.
-        """
-        return bool(ccalendar.is_leapyear(self.year))
 
     def tz_localize(self, tz, ambiguous='raise', nonexistent='raise'):
         """
@@ -1401,23 +1444,6 @@ default 'raise'
 
         return create_timestamp_from_ts(value, dts, _tzinfo, self.freq, fold)
 
-    def isoformat(self, sep='T'):
-        base = super(_Timestamp, self).isoformat(sep=sep)
-        if self.nanosecond == 0:
-            return base
-
-        if self.tzinfo is not None:
-            base1, base2 = base[:-6], base[-6:]
-        else:
-            base1, base2 = base, ""
-
-        if self.microsecond != 0:
-            base1 += f"{self.nanosecond:03d}"
-        else:
-            base1 += f".{self.nanosecond:09d}"
-
-        return base1 + base2
-
     def to_julian_date(self) -> np.float64:
         """
         Convert TimeStamp to a Julian Date.
@@ -1443,18 +1469,10 @@ default 'raise'
                  self.nanosecond / 3600.0 / 1e+9
                 ) / 24.0)
 
-    def normalize(self):
-        """
-        Normalize Timestamp to midnight, preserving tz information.
-        """
-        cdef:
-            ndarray[int64_t] normalized
-            tzinfo own_tz = self.tzinfo  # could be None
 
-        normalized = normalize_i8_timestamps(
-            np.array([self.value], dtype="i8"), tz=own_tz)
-        return Timestamp(normalized[0]).tz_localize(own_tz)
-
+# Aliases
+Timestamp.weekofyear = Timestamp.week
+Timestamp.daysinmonth = Timestamp.days_in_month
 
 # Add the min and max fields at the class level
 cdef int64_t _NS_UPPER_BOUND = np.iinfo(np.int64).max
