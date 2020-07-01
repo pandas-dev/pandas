@@ -60,6 +60,7 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None):
         elif info.use_fixed:
             local_val = stamps[i] + info.delta
         else:
+            pos = info.positions[i]
             assert False
             local_val = stamps[i] + info.utcoffsets[info.positions[i]]
 
