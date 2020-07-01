@@ -20,8 +20,7 @@ from pandas._libs.tslibs.ccalendar cimport DAY_NANOS, HOUR_NANOS
 from pandas._libs.tslibs.nattype cimport NPY_NAT
 from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, dt64_to_dtstruct)
-from pandas._libs.tslibs.timezones cimport (
-    get_dst_info, is_tzlocal, is_utc, get_timezone)
+from pandas._libs.tslibs.timezones cimport get_dst_info, is_tzlocal, is_utc
 
 
 # TODO: cdef scalar version to call from convert_str_to_tsobject
@@ -358,13 +357,13 @@ cpdef int64_t tz_convert_single(int64_t val, tzinfo tz1, tzinfo tz2):
     # Convert to UTC
     if is_tzlocal(tz1):
         utc_date = _tz_convert_tzlocal_utc(val, tz1, to_utc=True)
-    elif not is_utc(get_timezone(tz1)):
+    elif not is_utc(tz1):
         arr[0] = val
         utc_date = _tz_convert_dst(arr, tz1, to_utc=True)[0]
     else:
         utc_date = val
 
-    if is_utc(get_timezone(tz2)):
+    if is_utc(tz2):
         return utc_date
     elif is_tzlocal(tz2):
         return _tz_convert_tzlocal_utc(utc_date, tz2, to_utc=False)
