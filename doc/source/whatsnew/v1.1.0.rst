@@ -779,6 +779,45 @@ Development Changes
 Deprecations
 ~~~~~~~~~~~~
 
+:meth:`~DataFrame.groupby` no longer ignores ``group_keys`` for ``apply``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`~DataFrame.groupby` no longer ignores the ``group_keys`` argument for functions passed to ``apply`` that return like-indexed outputs (:issue:`34809`)
+Previous versions of pandas would add the group keys only when the result from the applied function had a different index to the input.
+
+.. code-block:: python
+
+   >>> # pandas 1.0.4
+   >>> df = pd.DataFrame({"A": [1, 2, 2], "B": [1, 2, 3]})
+   >>> df
+      A  B
+   0  1  1
+   1  2  2
+   2  2  3
+   >>> df.groupby("A").apply(lambda x: x.rename(np.exp))
+               A  B
+   A
+   1 1.000000  1  1
+   2 2.718282  2  2
+     7.389056  2  3
+
+   >>> df.groupby("A").apply(lambda x: x)
+      A  B
+   0  1  1
+   1  2  2
+   2  2  3
+
+In this future this behavior will change
+
+.. ipython:: python
+   :okwarning:
+
+   df = pd.DataFrame({"A": [1, 2, 2], "B": [1, 2, 3]})
+   df.groupby("A").apply(lambda x: x)
+
+Other Deprecations
+^^^^^^^^^^^^^^^^^^
+
 - Lookups on a :class:`Series` with a single-item list containing a slice (e.g. ``ser[[slice(0, 4)]]``) are deprecated, will raise in a future version.  Either convert the list to tuple, or pass the slice directly instead (:issue:`31333`)
 
 - :meth:`DataFrame.mean` and :meth:`DataFrame.median` with ``numeric_only=None`` will include datetime64 and datetime64tz columns in a future version (:issue:`29941`)
@@ -786,7 +825,6 @@ Deprecations
 - :meth:`DataFrame.to_dict` has deprecated accepting short names for ``orient`` in future versions (:issue:`32515`)
 - :meth:`Categorical.to_dense` is deprecated and will be removed in a future version, use ``np.asarray(cat)`` instead (:issue:`32639`)
 - The ``fastpath`` keyword in the ``SingleBlockManager`` constructor is deprecated and will be removed in a future version (:issue:`33092`)
-- :meth:`~DataFrame.groupby` no longer ignores the ``group_keys`` argument for functions passed to ``apply`` that return like-indexed outputs (:issue:`34809`).
 - Providing ``suffixes`` as a ``set`` in :func:`pandas.merge` is deprecated. Provide a tuple instead (:issue:`33740`, :issue:`34741`).
 - :meth:`Index.is_mixed` is deprecated and will be removed in a future version, check ``index.inferred_type`` directly instead (:issue:`32922`)
 
