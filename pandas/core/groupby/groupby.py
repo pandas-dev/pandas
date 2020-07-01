@@ -899,7 +899,6 @@ b  2""",
         raise AbstractMethodError(self)
 
     def transform(self, func, *args, **kwargs):
-
         raise AbstractMethodError(self)
 
     def _cumcount_array(self, ascending: bool = True):
