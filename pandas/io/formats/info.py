@@ -72,6 +72,28 @@ def _sizeof_fmt(num: Union[int, float], size_qualifier: str) -> str:
     return f"{num:3.1f}{size_qualifier} PB"
 
 
+def _get_count_configs(
+    counts: "Series", col_count: int, col_space: int, show_counts: bool
+) -> Tuple[str, int, int, str]:
+    if show_counts:
+        if col_count != len(counts):  # pragma: no cover
+            raise AssertionError(
+                f"Columns must equal counts ({col_count} != {len(counts)})"
+            )
+        count_header = "Non-Null Count"
+        len_count = len(count_header)
+        non_null = " non-null"
+        max_count = max(len(pprint_thing(k)) for k in counts) + len(non_null)
+        space_count = max(len_count, max_count) + col_space
+        count_temp = "{count}" + non_null
+    else:
+        count_header = ""
+        space_count = len(count_header)
+        len_count = space_count
+        count_temp = "{count}"
+    return count_header, space_count, len_count, count_temp
+
+
 class BaseInfo(metaclass=ABCMeta):
     def __init__(
         self,
@@ -297,23 +319,10 @@ class DataFrameInfo(BaseInfo):
         space_num = max(max_id, len_id) + col_space
 
         header = _put_str(id_head, space_num) + _put_str(column_head, space)
-        if show_counts:
-            counts = self.data.count()
-            if col_count != len(counts):  # pragma: no cover
-                raise AssertionError(
-                    f"Columns must equal counts ({col_count} != {len(counts)})"
-                )
-            count_header = "Non-Null Count"
-            len_count = len(count_header)
-            non_null = " non-null"
-            max_count = max(len(pprint_thing(k)) for k in counts) + len(non_null)
-            space_count = max(len_count, max_count) + col_space
-            count_temp = "{count}" + non_null
-        else:
-            count_header = ""
-            space_count = len(count_header)
-            len_count = space_count
-            count_temp = "{count}"
+        counts = self.data.count()
+        count_header, space_count, len_count, count_temp = _get_count_configs(
+            counts, col_count, col_space, show_counts
+        )
 
         dtype_header = "Dtype"
         len_dtype = len(dtype_header)
