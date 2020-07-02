@@ -2266,7 +2266,9 @@ def validate_tz_from_dtype(dtype, tz: Optional[tzinfo]) -> Optional[tzinfo]:
     return tz
 
 
-def _infer_tz_from_endpoints(start, end, tz):
+def _infer_tz_from_endpoints(
+    start: Timestamp, end: Timestamp, tz: Optional[tzinfo]
+) -> Optional[tzinfo]:
     """
     If a timezone is not explicitly given via `tz`, see if one can
     be inferred from the `start` and `end` endpoints.  If more than one

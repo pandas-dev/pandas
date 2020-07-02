@@ -73,7 +73,7 @@ from pandas._libs.tslibs.nattype cimport (
 )
 from pandas._libs.tslibs.conversion cimport convert_to_tsobject
 from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
-from pandas._libs.tslibs.timezones cimport get_timezone, tz_compare
+from pandas._libs.tslibs.timezones cimport tz_compare
 from pandas._libs.tslibs.period cimport is_period_object
 from pandas._libs.tslibs.offsets cimport is_offset_object
 
@@ -1789,7 +1789,7 @@ def is_datetime_with_singletz_array(values: ndarray) -> bool:
     for i in range(n):
         base_val = values[i]
         if base_val is not NaT:
-            base_tz = get_timezone(getattr(base_val, 'tzinfo', None))
+            base_tz = getattr(base_val, 'tzinfo', None)
             break
 
     for j in range(i, n):
