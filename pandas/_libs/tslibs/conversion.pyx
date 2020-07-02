@@ -246,11 +246,12 @@ def datetime_to_datetime64(ndarray[object] values):
     """
     cdef:
         Py_ssize_t i, n = len(values)
-        object val, inferred_tz = None
+        object val
         int64_t[:] iresult
         npy_datetimestruct dts
         _TSObject _ts
         bint found_naive = False
+        tzinfo inferred_tz = None
 
     result = np.empty(n, dtype='M8[ns]')
     iresult = result.view('i8')

@@ -1,4 +1,4 @@
-from datetime import datetime, time, timedelta
+from datetime import datetime, time, timedelta, tzinfo
 from typing import Optional, Union
 import warnings
 
@@ -1908,6 +1908,7 @@ def sequence_to_dt64ns(
     inferred_freq = None
 
     dtype = _validate_dt64_dtype(dtype)
+    tz = timezones.maybe_get_tz(tz)
 
     if not hasattr(data, "dtype"):
         # e.g. list, tuple
@@ -1950,14 +1951,14 @@ def sequence_to_dt64ns(
             data, inferred_tz = objects_to_datetime64ns(
                 data, dayfirst=dayfirst, yearfirst=yearfirst
             )
-            tz = maybe_infer_tz(tz, inferred_tz)
+            tz = _maybe_infer_tz(tz, inferred_tz)
         data_dtype = data.dtype
 
     # `data` may have originally been a Categorical[datetime64[ns, tz]],
     # so we need to handle these types.
     if is_datetime64tz_dtype(data_dtype):
         # DatetimeArray -> ndarray
-        tz = maybe_infer_tz(tz, data.tz)
+        tz = _maybe_infer_tz(tz, data.tz)
         result = data._data
 
     elif is_datetime64_dtype(data_dtype):
@@ -2144,7 +2145,9 @@ def maybe_convert_dtype(data, copy):
 # Validation and Inference
 
 
-def maybe_infer_tz(tz, inferred_tz):
+def _maybe_infer_tz(
+    tz: Optional[tzinfo], inferred_tz: Optional[tzinfo]
+) -> Optional[tzinfo]:
     """
     If a timezone is inferred from data, check that it is compatible with
     the user-provided timezone, if any.
@@ -2216,7 +2219,7 @@ def _validate_dt64_dtype(dtype):
     return dtype
 
 
-def validate_tz_from_dtype(dtype, tz):
+def validate_tz_from_dtype(dtype, tz: Optional[tzinfo]) -> Optional[tzinfo]:
     """
     If the given dtype is a DatetimeTZDtype, extract the implied
     tzinfo object from it and check that it does not conflict with the given
