@@ -262,6 +262,7 @@ def _sanitize_and_check(indexes):
         else:
             return indexes, "list"
 
+    # GH 35092. Check for Index subclass to avoid setting special type by error
     if len(kinds) > 1 or all([not isinstance(index, Index) for index in indexes]):
         return indexes, "special"
     else:
