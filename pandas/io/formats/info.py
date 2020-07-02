@@ -97,7 +97,7 @@ def _get_count_configs(
 
 def _display_counts_and_dtypes(
     lines: List[str],
-    ids: "Series",
+    ids: "Index",
     dtypes: "Series",
     show_counts: bool,
     counts: "Series",
@@ -122,6 +122,17 @@ def _display_counts_and_dtypes(
             + _put_str(count_temp.format(count=count), space_count)
             + _put_str(dtype, space_dtype)
         )
+
+
+def _get_header_and_spaces(
+    dtypes: "Series", space_count: int, count_header: str, header: str = ""
+) -> Tuple[int, str, int]:
+    dtype_header = "Dtype"
+    len_dtype = len(dtype_header)
+    max_dtypes = max(len(pprint_thing(k)) for k in dtypes)
+    space_dtype = max(len_dtype, max_dtypes)
+    header += _put_str(count_header, space_count) + _put_str(dtype_header, space_dtype)
+    return space_dtype, header, len_dtype
 
 
 class BaseInfo(metaclass=ABCMeta):
@@ -354,12 +365,8 @@ class DataFrameInfo(BaseInfo):
             counts, col_space, show_counts, col_count
         )
 
-        dtype_header = "Dtype"
-        len_dtype = len(dtype_header)
-        max_dtypes = max(len(pprint_thing(k)) for k in dtypes)
-        space_dtype = max(len_dtype, max_dtypes)
-        header += _put_str(count_header, space_count) + _put_str(
-            dtype_header, space_dtype
+        space_dtype, header, len_dtype = _get_header_and_spaces(
+            dtypes, space_count, count_header, header
         )
 
         lines.append(header)
@@ -408,12 +415,8 @@ class SeriesInfo(BaseInfo):
             counts, id_space, show_counts
         )
 
-        dtype_header = "Dtype"
-        len_dtype = len(dtype_header)
-        max_dtypes = max(len(pprint_thing(k)) for k in dtypes)
-        space_dtype = max(len_dtype, max_dtypes)
-        header = _put_str(count_header, space_count) + _put_str(
-            dtype_header, space_dtype
+        space_dtype, header, len_dtype = _get_header_and_spaces(
+            dtypes, space_count, count_header
         )
 
         lines.append(header)
