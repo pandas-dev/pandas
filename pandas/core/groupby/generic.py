@@ -413,7 +413,13 @@ class SeriesGroupBy(GroupBy[Series]):
         assert isinstance(result, Series)
         return result
 
-    def _wrap_applied_output(self, keys, values, not_indexed_same=False):
+    def _wrap_applied_output(
+        self,
+        keys,
+        values,
+        not_indexed_same: bool = False,
+        override_group_keys: bool = False,
+    ):
         if len(keys) == 0:
             # GH #6265
             return self.obj._constructor(
@@ -440,10 +446,20 @@ class SeriesGroupBy(GroupBy[Series]):
             return result
 
         if isinstance(values[0], Series):
-            return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
+            return self._concat_objects(
+                keys,
+                values,
+                not_indexed_same=not_indexed_same,
+                override_group_keys=override_group_keys,
+            )
         elif isinstance(values[0], DataFrame):
             # possible that Series -> DataFrame by applied function
-            return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
+            return self._concat_objects(
+                keys,
+                values,
+                not_indexed_same=not_indexed_same,
+                override_group_keys=override_group_keys,
+            )
         else:
             # GH #6265 #24880
             result = self.obj._constructor(
@@ -1203,7 +1219,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         return self.obj._constructor(result, columns=result_columns)
 
-    def _wrap_applied_output(self, keys, values, not_indexed_same=False):
+    def _wrap_applied_output(
+        self,
+        keys,
+        values,
+        not_indexed_same: bool = False,
+        override_group_keys: bool = False,
+    ):
         if len(keys) == 0:
             return self.obj._constructor(index=keys)
 
@@ -1217,7 +1239,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             # We'd prefer it return an empty dataframe.
             return self.obj._constructor()
         elif isinstance(first_not_none, DataFrame):
-            return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
+            return self._concat_objects(
+                keys,
+                values,
+                not_indexed_same=not_indexed_same,
+                override_group_keys=override_group_keys,
+            )
         else:
             if len(self.grouper.groupings) > 1:
                 key_index = self.grouper.result_index
@@ -1284,7 +1311,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                             # OR we don't have a multi-index and we have only a
                             # single values
                             return self._concat_objects(
-                                keys, values, not_indexed_same=not_indexed_same
+                                keys,
+                                values,
+                                not_indexed_same=not_indexed_same,
+                                override_group_keys=override_group_keys,
                             )
 
                         # still a series
@@ -1296,7 +1326,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
                     if not all_indexed_same:
                         # GH 8467
-                        return self._concat_objects(keys, values, not_indexed_same=True)
+                        return self._concat_objects(
+                            keys,
+                            values,
+                            not_indexed_same=True,
+                            override_group_keys=override_group_keys,
+                        )
 
                 if self.axis == 0 and isinstance(v, ABCSeries):
                     # GH6124 if the list of Series have a consistent name,

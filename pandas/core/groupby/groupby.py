@@ -900,6 +900,7 @@ b  2""",
         """
         keys, values, mutated = self.grouper.apply(f, data, self.axis)
         not_indexed_same = mutated or self.mutated
+        override_group_keys = False
 
         if not not_indexed_same and self.group_keys is lib.no_default:
             if self.ndim == 1:
@@ -920,12 +921,13 @@ b  2""",
             )
             if not (is_transform or is_empty_agg):
                 warnings.warn(msg, FutureWarning, stacklevel=stacklevel)
-            # XXX: mutating a stateful object. Consider passing a var through
-            # wrap_applied_output
-            self.group_keys = False
+            override_group_keys = True
 
         return self._wrap_applied_output(
-            keys, values, not_indexed_same=not_indexed_same
+            keys,
+            values,
+            not_indexed_same=not_indexed_same,
+            override_group_keys=override_group_keys,
         )
 
     def _iterate_slices(self) -> Iterable[Series]:
@@ -1012,7 +1014,13 @@ b  2""",
     def _wrap_transformed_output(self, output: Mapping[base.OutputKey, np.ndarray]):
         raise AbstractMethodError(self)
 
-    def _wrap_applied_output(self, keys, values, not_indexed_same: bool = False):
+    def _wrap_applied_output(
+        self,
+        keys,
+        values,
+        not_indexed_same: bool = False,
+        override_group_keys: bool = False,
+    ):
         raise AbstractMethodError(self)
 
     def _agg_general(
@@ -1136,7 +1144,13 @@ b  2""",
 
         return self._wrap_aggregated_output(output)
 
-    def _concat_objects(self, keys, values, not_indexed_same: bool = False):
+    def _concat_objects(
+        self,
+        keys,
+        values,
+        not_indexed_same: bool = False,
+        override_group_keys: bool = False,
+    ):
         from pandas.core.reshape.concat import concat
 
         def reset_identity(values):
@@ -1147,7 +1161,7 @@ b  2""",
                 ax._reset_identity()
             return values
 
-        if self.group_keys:
+        if self.group_keys and not override_group_keys:
 
             values = reset_identity(values)
             if self.as_index:
