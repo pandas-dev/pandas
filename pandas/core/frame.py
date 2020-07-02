@@ -2219,7 +2219,7 @@ class DataFrame(NDFrame):
         self,
         buf: Optional[IO[str]] = None,
         mode: Optional[str] = None,
-        index: Optional[bool] = True,
+        index: bool = True,
         **kwargs,
     ) -> Optional[str]:
         if "showindex" in kwargs:
@@ -2235,7 +2235,7 @@ class DataFrame(NDFrame):
 
         kwargs.setdefault("headers", "keys")
         kwargs.setdefault("tablefmt", "pipe")
-        kwargs.setdefault("showindex", True if index is None else index)
+        kwargs.setdefault("showindex", index)
         tabulate = import_optional_dependency("tabulate")
         result = tabulate.tabulate(self, **kwargs)
         if buf is None:

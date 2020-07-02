@@ -67,6 +67,10 @@ def test_index(index, showindex):
         kwargs["showindex"] = showindex
 
     df = pd.DataFrame([1, 2, 3])
+    yes_index_result = (
+        "|    |   0 |\n|---:|----:|\n" "|  0 |   1 |\n|  1 |   2 |\n|  2 |   3 |"
+    )
+    no_index_result = "|   0 |\n|----:|\n|   1 |\n|   2 |\n|   3 |"
 
     if "showindex" in kwargs:
         with tm.assert_produces_warning(FutureWarning):
@@ -74,18 +78,12 @@ def test_index(index, showindex):
 
         # give showindex higher priority if specified
         if showindex:
-            assert result == (
-                "|    |   0 |\n|---:|----:|\n"
-                "|  0 |   1 |\n|  1 |   2 |\n|  2 |   3 |"
-            )
+            assert result == yes_index_result
         else:
-            assert result == "|   0 |\n|----:|\n|   1 |\n|   2 |\n|   3 |"
+            assert result == no_index_result
     else:
         result = df.to_markdown(**kwargs)
         if index in [True, None]:
-            assert result == (
-                "|    |   0 |\n|---:|----:|\n"
-                "|  0 |   1 |\n|  1 |   2 |\n|  2 |   3 |"
-            )
+            assert result == yes_index_result
         else:
-            assert result == "|   0 |\n|----:|\n|   1 |\n|   2 |\n|   3 |"
+            assert result == no_index_result

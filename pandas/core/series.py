@@ -1426,7 +1426,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         self,
         buf: Optional[IO[str]] = None,
         mode: Optional[str] = None,
-        index: Optional[bool] = True,
+        index: bool = True,
         **kwargs,
     ) -> Optional[str]:
         """
