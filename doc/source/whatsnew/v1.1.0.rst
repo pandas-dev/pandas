@@ -819,6 +819,7 @@ Deprecations
 - :meth:`util.testing.assert_almost_equal` now accepts both relative and absolute
   precision through the ``rtol``, and ``atol`` parameters, thus deprecating the
   ``check_less_precise`` parameter. (:issue:`13357`).
+- :func:`DataFrame.melt` accepting a value_name that already exists is deprecated, and will be removed in a future version (:issue:`34731`)
 
 .. ---------------------------------------------------------------------------
 
