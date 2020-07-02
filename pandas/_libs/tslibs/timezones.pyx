@@ -254,6 +254,9 @@ cdef TZConvertInfo get_tzconverter(tzinfo tz, const int64_t[:] values):
 
             assert (pos < len(deltas)).all(), (max(pos), len(deltas))
             info.positions = <intp_t*>cnp.PyArray_DATA(pos)
+            
+            pos2 = np.array(<intp_t[:n]>info.positions, dtype=np.intp)
+            assert pos2.max() < info.noffsets, (pos2.max(), info.noffsets)
 
             for i in range(len(values)):
                 p = info.positions[i]
