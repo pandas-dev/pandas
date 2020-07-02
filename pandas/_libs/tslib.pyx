@@ -363,8 +363,8 @@ def format_array_from_datetime(
 
 def array_with_unit_to_datetime(
     ndarray values,
-    object unit,
-    str errors='coerce'
+    str unit,
+    str errors="coerce"
 ):
     """
     Convert the ndarray to datetime according to the time unit.
@@ -384,7 +384,7 @@ def array_with_unit_to_datetime(
     ----------
     values : ndarray of object
          Date-like objects to convert.
-    unit : object
+    unit : str
          Time unit to use during conversion.
     errors : str, default 'raise'
          Error behavior when parsing.
