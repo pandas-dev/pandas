@@ -1022,7 +1022,7 @@ class TestWideToLong:
         df = pd.DataFrame({"col": list("ABC"), "value": range(10, 16, 2)})
         expected = pd.DataFrame(
             [["A", "col", "A"], ["B", "col", "B"], ["C", "col", "C"]],
-            columns=["value", "variable", "value"]
+            columns=["value", "variable", "value"],
         )
 
         with tm.assert_produces_warning(FutureWarning):
