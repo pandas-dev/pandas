@@ -7,7 +7,7 @@ cdef bint is_tzlocal(tzinfo tz)
 
 cdef bint treat_tz_as_pytz(tzinfo tz)
 
-cpdef bint tz_compare(object start, object end)
+cpdef bint tz_compare(tzinfo start, tzinfo end)
 cpdef object get_timezone(object tz)
 cpdef object maybe_get_tz(object tz)
 
