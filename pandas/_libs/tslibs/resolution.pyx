@@ -56,7 +56,7 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None):
             v1 = info.positions[i]
             v2 = pos2[i]
             assert v1 == v2, (v1, v2)
-            assert v1 < info.noffsets, (v1, info.noffsets, i, values[i])
+            assert v1 < info.noffsets, (v1, info.noffsets, i, stamps[i])
         #assert pos2.max() < info.noffsets, (pos2.max(), info.noffsets)
 
     for i in range(n):
