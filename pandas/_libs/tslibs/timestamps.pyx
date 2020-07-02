@@ -20,6 +20,7 @@ from cpython.datetime cimport (
     datetime,
     time,
     tzinfo,
+    tzinfo as tzinfo_type,  # alias bc `tzinfo` is a kwarg below
     PyDateTime_Check,
     PyDelta_Check,
     PyTZInfo_Check,
@@ -932,7 +933,7 @@ class Timestamp(_Timestamp):
         second=None,
         microsecond=None,
         nanosecond=None,
-        tzinfo=None,
+        tzinfo_type tzinfo=None,
         *,
         fold=None
     ):
@@ -957,18 +958,17 @@ class Timestamp(_Timestamp):
         #
         # Mixing pydatetime positional and keyword arguments is forbidden!
 
-        cdef _TSObject ts
+        cdef:
+            _TSObject ts
+            tzinfo_type tzobj
 
         _date_attributes = [year, month, day, hour, minute, second,
                             microsecond, nanosecond]
 
         if tzinfo is not None:
-            if not PyTZInfo_Check(tzinfo):
-                # tzinfo must be a datetime.tzinfo object, GH#17690
-                raise TypeError(
-                    f"tzinfo must be a datetime.tzinfo object, not {type(tzinfo)}"
-                )
-            elif tz is not None:
+            # GH#17690 tzinfo must be a datetime.tzinfo object, ensured
+            #  by the cython annotation.
+            if tz is not None:
                 raise ValueError('Can provide at most one of tz, tzinfo')
 
             # User passed tzinfo instead of tz; avoid silently ignoring
@@ -1055,7 +1055,8 @@ class Timestamp(_Timestamp):
             raise ValueError("Cannot pass a datetime or Timestamp with tzinfo with "
                              "the tz parameter. Use tz_convert instead.")
 
-        ts = convert_to_tsobject(ts_input, tz, unit, 0, 0, nanosecond or 0)
+        tzobj = maybe_get_tz(tz)
+        ts = convert_to_tsobject(ts_input, tzobj, unit, 0, 0, nanosecond or 0)
 
         if ts.value == NPY_NAT:
             return NaT
@@ -1378,15 +1379,16 @@ default 'raise'
 
         cdef:
             npy_datetimestruct dts
-            int64_t value, value_tz, offset
-            object _tzinfo, result, k, v
+            int64_t value, value_tz
+            object k, v
             datetime ts_input
+            tzinfo_type tzobj
 
         # set to naive if needed
-        _tzinfo = self.tzinfo
+        tzobj = self.tzinfo
         value = self.value
-        if _tzinfo is not None:
-            value_tz = tz_convert_single(value, _tzinfo, UTC)
+        if tzobj is not None:
+            value_tz = tz_convert_single(value, tzobj, UTC)
             value += value - value_tz
 
         # setup components
@@ -1419,30 +1421,30 @@ default 'raise'
         if nanosecond is not None:
             dts.ps = validate('nanosecond', nanosecond) * 1000
         if tzinfo is not object:
-            _tzinfo = tzinfo
+            tzobj = tzinfo
 
         # reconstruct & check bounds
-        if _tzinfo is not None and treat_tz_as_pytz(_tzinfo):
+        if tzobj is not None and treat_tz_as_pytz(tzobj):
             # replacing across a DST boundary may induce a new tzinfo object
             # see GH#18319
-            ts_input = _tzinfo.localize(datetime(dts.year, dts.month, dts.day,
-                                                 dts.hour, dts.min, dts.sec,
-                                                 dts.us),
-                                        is_dst=not bool(fold))
-            _tzinfo = ts_input.tzinfo
+            ts_input = tzobj.localize(datetime(dts.year, dts.month, dts.day,
+                                               dts.hour, dts.min, dts.sec,
+                                               dts.us),
+                                      is_dst=not bool(fold))
+            tzobj = ts_input.tzinfo
         else:
             kwargs = {'year': dts.year, 'month': dts.month, 'day': dts.day,
                       'hour': dts.hour, 'minute': dts.min, 'second': dts.sec,
-                      'microsecond': dts.us, 'tzinfo': _tzinfo,
+                      'microsecond': dts.us, 'tzinfo': tzobj,
                       'fold': fold}
             ts_input = datetime(**kwargs)
 
-        ts = convert_datetime_to_tsobject(ts_input, _tzinfo)
+        ts = convert_datetime_to_tsobject(ts_input, tzobj)
         value = ts.value + (dts.ps // 1000)
         if value != NPY_NAT:
             check_dts_bounds(&dts)
 
-        return create_timestamp_from_ts(value, dts, _tzinfo, self.freq, fold)
+        return create_timestamp_from_ts(value, dts, tzobj, self.freq, fold)
 
     def to_julian_date(self) -> np.float64:
         """
