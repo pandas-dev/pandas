@@ -286,9 +286,9 @@ class BooleanArray(BaseMaskedArray):
         def map_string(s):
             if isna(s):
                 return s
-            elif s in ["True", "TRUE", "true"]:
+            elif s in ["True", "TRUE", "true", "1", "1.0"]:
                 return True
-            elif s in ["False", "FALSE", "false"]:
+            elif s in ["False", "FALSE", "false", "0", "0.0"]:
                 return False
             else:
                 raise ValueError(f"{s} cannot be cast to bool")

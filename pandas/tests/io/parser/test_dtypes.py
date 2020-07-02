@@ -561,9 +561,13 @@ def test_boolean_dtype(all_parsers):
             "True",
             "TRUE",
             "true",
+            "1",
+            "1.0",
             "False",
             "FALSE",
             "false",
+            "0",
+            "0.0",
             "NaN",
             "nan",
             "NA",
@@ -576,7 +580,23 @@ def test_boolean_dtype(all_parsers):
     expected = pd.DataFrame(
         {
             "a": pd.array(
-                [True, True, True, False, False, False, None, None, None, None, None],
+                [
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    False,
+                    False,
+                    False,
+                    False,
+                    False,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                ],
                 dtype="boolean",
             )
         }
