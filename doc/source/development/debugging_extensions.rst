@@ -3,7 +3,7 @@
 {{ header }}
 
 **********************
-Debugging C Extensions
+Debugging C extensions
 **********************
 
 Pandas uses select C extensions for high performance IO operations. In case you need to debug segfaults or general issues with those extensions, the following steps may be helpful. These steps are geared towards using lldb as a debugger, though the steps for gdb will be similar.
