@@ -376,7 +376,7 @@ class SeriesInfo(BaseInfo):
 
         id_space = 2
 
-        counts = self.data._constructor(self.data.count())
+        counts = cast("Series", self.data._constructor(self.data.count()))
         count_header, space_count, len_count, count_temp = _get_count_configs(
             counts, id_space, show_counts
         )
