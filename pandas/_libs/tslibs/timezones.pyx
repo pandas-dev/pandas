@@ -253,13 +253,14 @@ cdef TZConvertInfo get_tzconverter(tzinfo tz, const int64_t[:] values):
             assert pos.flags["F_CONTIGUOUS"]
             assert pos.flags["C_CONTIGUOUS"]
 
-            assert (pos < len(deltas)).all(), (max(pos), len(deltas))
+            assert (pos.max() < info.noffsets), (pos.max(), info.noffsets)
+            assert (pos < info.noffsets).all(), (max(pos), info.noffsets)
             info.positions = <intp_t*>cnp.PyArray_DATA(pos)
 
             pos2 = np.array(<intp_t[:n]>info.positions, dtype=np.intp)
             assert pos2.max() < info.noffsets, (pos2.max(), info.noffsets)
 
-            for i in range(len(values)):
+            for i in range(n):
                 p = info.positions[i]
                 assert p < info.noffsets, (p, info.noffsets)
 
