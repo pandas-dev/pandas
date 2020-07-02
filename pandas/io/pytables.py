@@ -4714,7 +4714,7 @@ def _set_tz(
     if tz is not None:
         name = getattr(values, "name", None)
         values = values.ravel()
-        tz = timezones.get_timezone(_ensure_decoded(tz))
+        tz = _ensure_decoded(tz)
         values = DatetimeIndex(values, name=name)
         values = values.tz_localize("UTC").tz_convert(tz)
     elif coerce:
