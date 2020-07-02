@@ -278,6 +278,10 @@ class StringArray(PandasArray):
         return super().fillna(value, method, limit)
 
     def astype(self, dtype, copy=True):
+        if dtype == self.dtype and copy:
+            return self.copy()
+        elif dtype == self.dtype and not copy:
+            return self
         dtype = pandas_dtype(dtype)
         if isinstance(dtype, StringDtype):
             if copy:
