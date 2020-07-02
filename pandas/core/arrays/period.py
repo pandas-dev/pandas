@@ -575,7 +575,11 @@ class PeriodArray(PeriodMixin, dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         # We handle Period[T] -> Period[U]
         # Our parent handles everything else.
         dtype = pandas_dtype(dtype)
-
+        if dtype == self._dtype:
+            if not copy:
+                return self
+            elif copy:
+                return self.copy()
         if is_period_dtype(dtype):
             return self.asfreq(dtype.freq)
         return super().astype(dtype, copy=copy)

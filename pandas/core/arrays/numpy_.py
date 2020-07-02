@@ -278,10 +278,11 @@ class PandasArray(
         self._ndarray[key] = value
 
     def astype(self, dtype, copy: bool = True) -> ArrayLike:
-        if not copy and dtype == self._dtype:
-            return self
-        elif copy and dtype == self._dtype:
-            return self.copy()
+        if dtype == self.dtype:
+            if not copy:
+                return self
+            elif copy:
+                return self.copy()
         else:
             return super().astype(dtype, copy)
 
