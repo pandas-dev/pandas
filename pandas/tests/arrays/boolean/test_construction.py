@@ -247,10 +247,11 @@ def test_coerce_to_numpy_array():
 
 def test_to_boolean_array_from_strings():
     result = BooleanArray._from_sequence_of_strings(
-        np.array(["True", "False", np.nan], dtype=object)
+        np.array(["True", "False", "1", "1.0", "0", "0.0", np.nan], dtype=object)
     )
     expected = BooleanArray(
-        np.array([True, False, False]), np.array([False, False, True])
+        np.array([True, False, True, True, False, False, False]),
+        np.array([False, False, False, False, False, False, True]),
     )
 
     tm.assert_extension_array_equal(result, expected)
