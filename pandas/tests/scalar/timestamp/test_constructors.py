@@ -174,7 +174,10 @@ class TestTimestampConstructors:
 
     def test_constructor_invalid_tz(self):
         # GH#17690
-        msg = "must be a datetime.tzinfo"
+        msg = (
+            "Argument 'tzinfo' has incorrect type "
+            r"\(expected datetime.tzinfo, got str\)"
+        )
         with pytest.raises(TypeError, match=msg):
             Timestamp("2017-10-22", tzinfo="US/Eastern")
 
