@@ -69,7 +69,6 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None):
             if pos == -1:
                 assert False
             delta = info.utcoffsets[pos]
-            assert False
             local_val = stamps[i] + delta
 
         dt64_to_dtstruct(local_val, &dts)
