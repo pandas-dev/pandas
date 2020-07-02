@@ -902,7 +902,9 @@ b  2""",
         not_indexed_same = mutated or self.mutated
         override_group_keys = False
 
-        if not not_indexed_same and self.group_keys is lib.no_default:
+        if (not not_indexed_same and self.group_keys is lib.no_default) and not (
+            is_transform or is_empty_agg
+        ):
             if self.ndim == 1:
                 stacklevel = 4
             elif self._selection is None:
@@ -919,8 +921,12 @@ b  2""",
                 "To adopt the future behavior and silence this warning, use "
                 "\n\n\t>>> .groupby(..., group_keys=True)"
             )
-            if not (is_transform or is_empty_agg):
-                warnings.warn(msg, FutureWarning, stacklevel=stacklevel)
+            warnings.warn(msg, FutureWarning, stacklevel=stacklevel)
+            # We want to behave as if `self.group_keys=False` when reconstructing
+            # the object. However, we don't want to mutate the stateful GroupBy
+            # object, so we just override it.
+            # When this deprecation is enforced then override_group_keys
+            # may be removed.
             override_group_keys = True
 
         return self._wrap_applied_output(
