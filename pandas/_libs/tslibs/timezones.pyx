@@ -228,6 +228,7 @@ cdef TZConvertInfo get_tzconverter(tzinfo tz, const int64_t[:] values):
         ndarray[int64_t, ndim=1] deltas, trans
         ndarray[intp_t, ndim=1] pos
         str typ
+        Py_ssize_t n = len(values)
 
     info.use_utc = info.use_tzlocal = info.use_fixed = False
     info.delta = NPY_NAT  # placeholder
