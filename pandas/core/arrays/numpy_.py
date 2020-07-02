@@ -5,7 +5,7 @@ import numpy as np
 from numpy.lib.mixins import NDArrayOperatorsMixin
 
 from pandas._libs import lib
-from pandas._typing import Scalar
+from pandas._typing import Scalar, ArrayLike
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
@@ -276,6 +276,14 @@ class PandasArray(
             value = np.asarray(value, dtype=self._ndarray.dtype)
 
         self._ndarray[key] = value
+
+    def astype(self, dtype, copy: bool = True) -> ArrayLike:
+        if not copy and dtype == self._dtype:
+            return self
+        elif dtype == self._dtype:
+            return self.copy()
+        else:
+            return super().astype(dtype, copy)
 
     def isna(self) -> np.ndarray:
         return isna(self._ndarray)
