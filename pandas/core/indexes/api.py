@@ -262,7 +262,7 @@ def _sanitize_and_check(indexes):
         else:
             return indexes, "list"
 
-    if len(kinds) > 1 or Index not in kinds:
+    if len(kinds) > 1 or all([not isinstance(index, Index) for index in indexes]):
         return indexes, "special"
     else:
         return indexes, "array"
