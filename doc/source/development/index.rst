@@ -16,6 +16,7 @@ Development
     code_style
     maintaining
     internals
+    debugging_extensions
     extending
     developer
     policies

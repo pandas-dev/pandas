@@ -414,17 +414,15 @@ else:
 
 # ----------------------------------------------------------------------
 # Preparation of compiler arguments
-
-debugging_symbols_requested = "--with-debugging-symbols" in sys.argv
-if debugging_symbols_requested:
-    sys.argv.remove("--with-debugging-symbols")
-
-
 if sys.byteorder == "big":
     endian_macro = [("__BIG_ENDIAN__", "1")]
 else:
     endian_macro = [("__LITTLE_ENDIAN__", "1")]
 
+
+debugging_symbols_requested = "--with-debugging-symbols" in sys.argv
+if debugging_symbols_requested:
+    sys.argv.remove("--with-debugging-symbols")
 
 if is_platform_windows():
     extra_compile_args = []
@@ -435,8 +433,14 @@ if is_platform_windows():
 else:
     extra_compile_args = ["-Werror"]
     extra_link_args = []
-    if debugging_symbols_requested:
-        extra_compile_args.append("-g")
+    if not debugging_symbols_requested:
+        # Strip debugging symbols (included by default)
+        extra_compile_args.append("-g0")
+    else:
+        # TODO: these should override the defaults provided by Python
+        # by being appended to end, but would ideally replace altogether
+        extra_compile_args.append("-UNDEBUG")
+        extra_compile_args.append("-O0")
 
 # Build for at least macOS 10.9 when compiling on a 10.9 system or above,
 # overriding CPython distuitls behaviour which is to target the version that
