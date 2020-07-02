@@ -452,6 +452,8 @@ class IntegerArray(BaseMaskedArray):
 
         # if we are astyping to an existing IntegerDtype we can fastpath
         if isinstance(dtype, _IntegerDtype):
+            if dtype is self.dtype and not copy:
+                return self
             result = self._data.astype(dtype.numpy_dtype, copy=False)
             return dtype.construct_array_type()(result, mask=self._mask, copy=False)
         elif isinstance(dtype, BooleanDtype):
