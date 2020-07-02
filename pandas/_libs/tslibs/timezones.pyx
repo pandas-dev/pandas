@@ -216,8 +216,8 @@ ctypedef struct TZConvertInfo:
     bint use_utc
     bint use_tzlocal
     bint use_fixed
-    int64_t* utcoffsets
-    intp_t* positions
+    ndarray[int64_t, ndim=1]* utcoffsets
+    ndarray[intp_t, ndim=1]* positions
     int64_t delta
     int noffsets
 
@@ -248,17 +248,19 @@ cdef TZConvertInfo get_tzconverter(tzinfo tz, const int64_t[:] values):
             info.use_fixed = True
             info.delta = deltas[0]
         else:
-            info.utcoffsets = <int64_t*>cnp.PyArray_DATA(deltas)
+            info.utcoffsets = deltas
+            #info.utcoffsets = <int64_t*>cnp.PyArray_DATA(deltas)
             pos = trans.searchsorted(values, side="right") - 1
             assert pos.flags["F_CONTIGUOUS"]
             assert pos.flags["C_CONTIGUOUS"]
 
             assert (pos.max() < info.noffsets), (pos.max(), info.noffsets)
             assert (pos < info.noffsets).all(), (max(pos), info.noffsets)
-            info.positions = <intp_t*>cnp.PyArray_DATA(pos)
+            #info.positions = <intp_t*>cnp.PyArray_DATA(pos)
+            info.positions = pos
 
-            pos2 = np.array(<intp_t[:n]>info.positions, dtype=np.intp)
-            assert pos2.max() < info.noffsets, (pos2.max(), info.noffsets)
+            #pos2 = np.array(<intp_t[:n]>info.positions, dtype=np.intp)
+            #assert pos2.max() < info.noffsets, (pos2.max(), info.noffsets)
 
             for i in range(n):
                 p = info.positions[i]

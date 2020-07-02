@@ -23,8 +23,8 @@ ctypedef struct TZConvertInfo:
     bint use_utc
     bint use_tzlocal
     bint use_fixed
-    int64_t* utcoffsets
-    intp_t* positions
+    ndarray[int64_t, ndim=1]* utcoffsets
+    ndarray[intp_t, ndim=1]* positions
     int64_t delta
     int noffsets
 
