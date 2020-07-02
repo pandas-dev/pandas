@@ -1218,7 +1218,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             return self.obj._constructor()
         elif isinstance(first_not_none, DataFrame):
             return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
-        elif self.grouper.groupings is not None:
+        else:
             if len(self.grouper.groupings) > 1:
                 key_index = self.grouper.result_index
 
@@ -1372,10 +1372,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # result should not take the name of original selection
                 # of columns
                 return self.obj._constructor_sliced(values, index=key_index)
-
-        else:
-            # Handle cases like BinGrouper
-            return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
 
     def _transform_general(
         self, func, *args, engine="cython", engine_kwargs=None, **kwargs
