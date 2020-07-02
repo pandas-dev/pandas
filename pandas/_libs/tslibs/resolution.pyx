@@ -50,7 +50,7 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None):
     elif not info.use_utc and not info.use_tzlocal:
         assert info.utcoffsets is not NULL
         assert info.positions is not NULL
-        pos2 = np.array(<intp_t[::n]>info.positions)
+        pos2 = np.array(<intp_t[:n]>info.positions, dtype=np.intp)
         assert pos2.max() < info.noffsets, (pos2.max(), info.noffsets)
 
     for i in range(n):
