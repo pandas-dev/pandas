@@ -68,7 +68,7 @@ def test_index(index, showindex):
 
     df = pd.DataFrame([1, 2, 3])
     yes_index_result = (
-        "|    |   0 |\n|---:|----:|\n" "|  0 |   1 |\n|  1 |   2 |\n|  2 |   3 |"
+        "|    |   0 |\n|---:|----:|\n|  0 |   1 |\n|  1 |   2 |\n|  2 |   3 |"
     )
     no_index_result = "|   0 |\n|----:|\n|   1 |\n|   2 |\n|   3 |"
 
