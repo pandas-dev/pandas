@@ -38,9 +38,8 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None):
         Py_ssize_t i, n = len(stamps)
         npy_datetimestruct dts
         int reso = RESO_DAY, curr_reso
-        int64_t local_val, delta
+        int64_t local_val
         TZConvertInfo info
-        intp_t pos
         ndarray[intp_t, ndim=1] pos2
 
     info = get_tzconverter(tz, stamps)
@@ -51,13 +50,12 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None):
         assert info.utcoffsets is not NULL
         assert info.positions is not NULL
         pos2 = np.array(<intp_t[:n]>info.positions, dtype=np.intp)
-
         for i in range(n):
             v1 = info.positions[i]
             v2 = pos2[i]
             assert v1 == v2, (v1, v2)
             assert v1 < info.noffsets, (v1, info.noffsets, i, stamps[i])
-        #assert pos2.max() < info.noffsets, (pos2.max(), info.noffsets)
+        assert pos2.max() < info.noffsets, (pos2.max(), info.noffsets)
 
     for i in range(n):
         if stamps[i] == NPY_NAT:
@@ -70,12 +68,7 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None):
         elif info.use_fixed:
             local_val = stamps[i] + info.delta
         else:
-            pos = info.positions[i]
-            assert info.noffsets > pos, (info.noffsets, pos)
-            if pos == -1:
-                assert False
-            delta = info.utcoffsets[pos]
-            local_val = stamps[i] + delta
+            local_val = stamps[i] + info.utcoffsets[info.positions[i]]
 
         dt64_to_dtstruct(local_val, &dts)
         curr_reso = _reso_stamp(&dts)
