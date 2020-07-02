@@ -249,6 +249,8 @@ cdef TZConvertInfo get_tzconverter(tzinfo tz, const int64_t[:] values):
         else:
             info.utcoffsets = <int64_t*>cnp.PyArray_DATA(deltas)
             pos = trans.searchsorted(values, side="right") - 1
+            assert pos.flags["F_CONTIGUOUS"]
+            assert pos.flags["C_CONTIGUOUS"]
 
             assert (pos < len(deltas)).all(), (max(pos), len(deltas))
             info.positions = <intp_t*>cnp.PyArray_DATA(pos)
