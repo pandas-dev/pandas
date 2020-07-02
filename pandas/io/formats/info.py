@@ -75,6 +75,7 @@ def _sizeof_fmt(num: Union[int, float], size_qualifier: str) -> str:
 def _get_count_configs(
     counts: "Series", col_space: int, show_counts: bool, col_count: Optional[int] = None
 ) -> Tuple[str, int, int, str]:
+    # TODO: 1 add docstring, 2 check if we really need pragma: no cover
     if show_counts:
         if col_count is not None and col_count != len(counts):  # pragma: no cover
             raise AssertionError(
@@ -92,6 +93,35 @@ def _get_count_configs(
         len_count = space_count
         count_temp = "{count}"
     return count_header, space_count, len_count, count_temp
+
+
+def _display_counts_and_dtypes(
+    lines: List[str],
+    ids: "Series",
+    dtypes: "Series",
+    show_counts: bool,
+    counts: "Series",
+    count_temp: str,
+    space_count: int,
+    space_dtype: int,
+    space: int = 0,
+    space_num: int = 0,
+) -> None:
+    for i, col in enumerate(ids):
+        dtype = dtypes[i]
+        col = pprint_thing(col)
+
+        line_no = _put_str(f" {i}", space_num)
+        count = ""
+        if show_counts:
+            count = counts[i]
+
+        lines.append(
+            line_no
+            + _put_str(col, space)
+            + _put_str(count_temp.format(count=count), space_count)
+            + _put_str(dtype, space_dtype)
+        )
 
 
 class BaseInfo(metaclass=ABCMeta):
@@ -340,21 +370,18 @@ class DataFrameInfo(BaseInfo):
             + _put_str("-" * len_dtype, space_dtype)
         )
 
-        for i, col in enumerate(ids):
-            dtype = dtypes[i]
-            col = pprint_thing(col)
-
-            line_no = _put_str(f" {i}", space_num)
-            count = ""
-            if show_counts:
-                count = counts[i]
-
-            lines.append(
-                line_no
-                + _put_str(col, space)
-                + _put_str(count_temp.format(count=count), space_count)
-                + _put_str(dtype, space_dtype)
-            )
+        _display_counts_and_dtypes(
+            lines,
+            ids,
+            dtypes,
+            show_counts,
+            counts,
+            count_temp,
+            space_count,
+            space_dtype,
+            space,
+            space_num,
+        )
 
     def _non_verbose_repr(self, lines: List[str], ids: "Index") -> None:
         lines.append(ids._summary(name="Columns"))
@@ -394,12 +421,17 @@ class SeriesInfo(BaseInfo):
             _put_str("-" * len_count, space_count)
             + _put_str("-" * len_dtype, space_dtype)
         )
-        for count in counts:
-            # TODO factor this out too
-            lines.append(
-                _put_str(count_temp.format(count=count), space_count)
-                + _put_str(dtypes[0], space_dtype)
-            )
+
+        _display_counts_and_dtypes(
+            lines,
+            ids,
+            dtypes,
+            show_counts,
+            counts,
+            count_temp,
+            space_count,
+            space_dtype,
+        )
 
     def _non_verbose_repr(self, lines: List[str], ids: "Index") -> None:
         pass
