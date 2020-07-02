@@ -1,6 +1,5 @@
 from datetime import timezone
-from cpython.datetime cimport datetime, tzinfo, PyTZInfo_Check, PyDateTime_IMPORT
-PyDateTime_IMPORT
+from cpython.datetime cimport datetime, tzinfo
 
 # dateutil compat
 from dateutil.tz import (
@@ -47,7 +46,7 @@ cdef inline bint treat_tz_as_dateutil(tzinfo tz):
     return hasattr(tz, '_trans_list') and hasattr(tz, '_trans_idx')
 
 
-cpdef inline object get_timezone(object tz):
+cpdef inline object get_timezone(tzinfo tz):
     """
     We need to do several things here:
     1) Distinguish between pytz and dateutil timezones
@@ -60,9 +59,7 @@ cpdef inline object get_timezone(object tz):
     the tz name. It needs to be a string so that we can serialize it with
     UJSON/pytables. maybe_get_tz (below) is the inverse of this process.
     """
-    if not PyTZInfo_Check(tz):
-        return tz
-    elif is_utc(tz):
+    if is_utc(tz):
         return tz
     else:
         if treat_tz_as_dateutil(tz):

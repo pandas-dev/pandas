@@ -523,13 +523,6 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         return self.tz
 
     @property  # NB: override with cache_readonly in immutable subclasses
-    def _timezone(self):
-        """
-        Comparable timezone both for pytz / dateutil
-        """
-        return timezones.get_timezone(self.tzinfo)
-
-    @property  # NB: override with cache_readonly in immutable subclasses
     def is_normalized(self):
         """
         Returns True if all of the dates are at midnight ("no time")
@@ -617,15 +610,17 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
     # -----------------------------------------------------------------
     # Comparison Methods
 
-    def _has_same_tz(self, other):
-        zzone = self._timezone
+    def _has_same_tz(self, other) -> bool:
 
         # vzone shouldn't be None if value is non-datetime like
         if isinstance(other, np.datetime64):
             # convert to Timestamp as np.datetime64 doesn't have tz attr
             other = Timestamp(other)
-        vzone = timezones.get_timezone(getattr(other, "tzinfo", "__no_tz__"))
-        return zzone == vzone
+
+        if not hasattr(other, "tzinfo"):
+            return False
+        other_tz = other.tzinfo
+        return timezones.tz_compare(self.tzinfo, other_tz)
 
     def _assert_tzawareness_compat(self, other):
         # adapted from _Timestamp._assert_tzawareness_compat
