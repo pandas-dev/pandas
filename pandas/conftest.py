@@ -257,7 +257,7 @@ def nselect_method(request):
 # Missing values & co.
 # ----------------------------------------------------------------
 @pytest.fixture(
-    params=[None, np.nan, pd.NaT, float("nan"), np.float64("nan"), pd.NA], ids=str
+    params=[None, np.nan, pd.NaT, float("nan"), pd.NA], ids=str
 )
 def nulls_fixture(request):
     """
