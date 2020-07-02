@@ -131,6 +131,11 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
         return type(self)(self._data.copy())
 
     def astype(self, dtype, copy=True):
+        if dtype == self._dtype:
+            if not copy:
+                return self
+            elif copy:
+                return self.copy()
         dtype = pandas_dtype(dtype)
         if isinstance(dtype, type(self.dtype)):
             return type(self)(self._data, context=dtype.context)
