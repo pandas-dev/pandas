@@ -301,7 +301,7 @@ def infer_tzinfo(datetime start, datetime end):
     return tz
 
 
-cpdef bint tz_compare(object start, object end):
+cpdef bint tz_compare(tzinfo start, tzinfo end):
     """
     Compare string representations of timezones
 
@@ -324,7 +324,6 @@ cpdef bint tz_compare(object start, object end):
     Returns:
     -------
     bool
-
     """
     # GH 18523
     return get_timezone(start) == get_timezone(end)
