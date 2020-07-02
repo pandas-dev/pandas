@@ -552,29 +552,48 @@ cdef int64_t[:] _tz_convert_dst(
         int64_t[:] result = np.empty(n, dtype=np.int64)
         ndarray[int64_t] trans
         int64_t[:] deltas
-        int64_t v
+        int64_t v, delta
+        str typ
 
     # tz is assumed _not_ to be tzlocal; that should go
     #  through _tz_convert_tzlocal_utc
 
-    trans, deltas, _ = get_dst_info(tz)
-    if not to_utc:
-        # We add `offset` below instead of subtracting it
-        deltas = -1 * np.array(deltas, dtype='i8')
+    trans, deltas, typ = get_dst_info(tz)
 
-    # Previously, this search was done pointwise to try and benefit
-    # from getting to skip searches for iNaTs. However, it seems call
-    # overhead dominates the search time so doing it once in bulk
-    # is substantially faster (GH#24603)
-    pos = trans.searchsorted(values, side='right') - 1
+    if typ not in ["pytz", "dateutil"]:
+        # FixedOffset, we know len(deltas) == 1
+        delta = deltas[0]
 
-    for i in range(n):
-        v = values[i]
-        if v == NPY_NAT:
-            result[i] = v
-        else:
-            if pos[i] < 0:
-                raise ValueError('First time before start of DST info')
-            result[i] = v - deltas[pos[i]]
+        for i in range(n):
+            v = values[i]
+            if v == NPY_NAT:
+                result[i] = v
+            else:
+                if to_utc:
+                    result[i] = v - delta
+                else:
+                    result[i] = v + delta
+
+    else:
+        # Previously, this search was done pointwise to try and benefit
+        # from getting to skip searches for iNaTs. However, it seems call
+        # overhead dominates the search time so doing it once in bulk
+        # is substantially faster (GH#24603)
+        pos = trans.searchsorted(values, side="right") - 1
+
+        for i in range(n):
+            v = values[i]
+            if v == NPY_NAT:
+                result[i] = v
+            else:
+                if pos[i] < 0:
+                    # TODO: How is this reached?  Should we be checking for
+                    #  it elsewhere?
+                    raise ValueError("First time before start of DST info")
+
+                if to_utc:
+                    result[i] = v - deltas[pos[i]]
+                else:
+                    result[i] = v + deltas[pos[i]]
 
     return result
