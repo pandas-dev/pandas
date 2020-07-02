@@ -25,7 +25,6 @@ ctypedef struct TZConvertInfo:
     bint use_fixed
     int64_t* utcoffsets
     intp_t* positions
-    ndarray[intp_t] positions2
     int64_t delta
     int noffsets
 

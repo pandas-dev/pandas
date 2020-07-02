@@ -218,7 +218,6 @@ ctypedef struct TZConvertInfo:
     bint use_fixed
     int64_t* utcoffsets
     intp_t* positions
-    ndarray[intp_t] positions2
     int64_t delta
     int noffsets
 
@@ -256,14 +255,12 @@ cdef TZConvertInfo get_tzconverter(tzinfo tz, const int64_t[:] values):
 
             assert (pos < len(deltas)).all(), (max(pos), len(deltas))
             info.positions = <intp_t*>cnp.PyArray_DATA(pos)
-            info.positions2 = pos
 
             pos2 = np.array(<intp_t[:n]>info.positions, dtype=np.intp)
             assert pos2.max() < info.noffsets, (pos2.max(), info.noffsets)
 
             for i in range(len(values)):
                 p = info.positions[i]
-                assert p == info.positions2[i]
                 assert p < info.noffsets, (p, info.noffsets)
 
     return info
