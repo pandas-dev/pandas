@@ -561,7 +561,7 @@ For example, if we have the following ``DataFrame``:
    df
 
 and we want to use an expanding window where ``use_expanding`` is ``True`` otherwise a window of size
-1, we can create the following ``BaseIndexer``:
+1, we can create the following ``BaseIndexer`` subclass:
 
 .. code-block:: ipython
 
@@ -593,7 +593,21 @@ and we want to use an expanding window where ``use_expanding`` is ``True`` other
    3     3.0
    4    10.0
 
+You can view other examples of ``BaseIndexer`` subclasses `here <https://github.com/pandas-dev/pandas/blob/master/pandas/core/window/indexers.py>`__
+
 .. versionadded:: 1.1
+
+One subclass of note within those examples is the ``VariableOffsetWindowIndexer`` that allows
+rolling operations over a non-fixed offset like a ``BusinessDay``.
+
+.. ipython:: python
+
+   from pandas.api.indexers import VariableOffsetWindowIndexer
+   df = pd.DataFrame(range(10), index=pd.date_range('2020', periods=10))
+   offset = pd.offsets.BDay(1)
+   indexer = VariableOffsetWindowIndexer(index=df.index, offset=offset)
+   df
+   df.rolling(indexer).sum()
 
 For some problems knowledge of the future is available for analysis. For example, this occurs when
 each data point is a full time series read from an experiment, and the task is to extract underlying

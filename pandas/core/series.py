@@ -2609,7 +2609,7 @@ Name: Max Speed, dtype: float64
         to_append : Series or list/tuple of Series
             Series to append with self.
         ignore_index : bool, default False
-            If True, do not use the index labels.
+            If True, the resulting axis will be labeled 0, 1, …, n - 1.
         verify_integrity : bool, default False
             If True, raise Exception on creating index with duplicates.
 
@@ -3774,11 +3774,18 @@ Keep all original rows and also all original values
         result.index = result.index.reorder_levels(order)
         return result
 
-    def explode(self) -> "Series":
+    def explode(self, ignore_index: bool = False) -> "Series":
         """
         Transform each element of a list-like to a row.
 
         .. versionadded:: 0.25.0
+
+        Parameters
+        ----------
+        ignore_index : bool, default False
+            If True, the resulting index will be labeled 0, 1, …, n - 1.
+
+            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -3826,9 +3833,13 @@ Keep all original rows and also all original values
 
         values, counts = reshape.explode(np.asarray(self.array))
 
-        result = self._constructor(
-            values, index=self.index.repeat(counts), name=self.name
-        )
+        if ignore_index:
+            index = ibase.default_index(len(values))
+        else:
+            index = self.index.repeat(counts)
+
+        result = self._constructor(values, index=index, name=self.name)
+
         return result
 
     def unstack(self, level=-1, fill_value=None):

@@ -5,7 +5,7 @@ import cython
 from cython import Py_ssize_t
 
 from cpython.datetime cimport (
-    PyDateTime_IMPORT, PyDelta_Check, datetime, tzinfo)
+    PyDateTime_IMPORT, PyDelta_Check, datetime, timedelta, tzinfo)
 PyDateTime_IMPORT
 
 import pytz
@@ -20,8 +20,7 @@ from pandas._libs.tslibs.ccalendar cimport DAY_NANOS, HOUR_NANOS
 from pandas._libs.tslibs.nattype cimport NPY_NAT
 from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, dt64_to_dtstruct)
-from pandas._libs.tslibs.timezones cimport (
-    get_dst_info, is_tzlocal, is_utc, get_timezone, get_utcoffset)
+from pandas._libs.tslibs.timezones cimport get_dst_info, is_tzlocal, is_utc
 
 
 # TODO: cdef scalar version to call from convert_str_to_tsobject
@@ -346,36 +345,28 @@ cpdef int64_t tz_convert_single(int64_t val, tzinfo tz1, tzinfo tz2):
     converted: int64
     """
     cdef:
-        int64_t utc_date
         int64_t arr[1]
+        bint to_utc = is_utc(tz2)
+        tzinfo tz
 
     # See GH#17734 We should always be converting either from UTC or to UTC
-    assert is_utc(tz1) or is_utc(tz2)
+    assert is_utc(tz1) or to_utc
 
     if val == NPY_NAT:
         return val
 
-    # Convert to UTC
-    if is_tzlocal(tz1):
-        utc_date = _tz_convert_tzlocal_utc(val, tz1, to_utc=True)
-    elif not is_utc(get_timezone(tz1)):
-        arr[0] = val
-        utc_date = _tz_convert_dst(arr, tz1, to_utc=True)[0]
+    if to_utc:
+        tz = tz1
     else:
-        utc_date = val
+        tz = tz2
 
-    if is_utc(get_timezone(tz2)):
-        return utc_date
-    elif is_tzlocal(tz2):
-        return _tz_convert_tzlocal_utc(utc_date, tz2, to_utc=False)
+    if is_utc(tz):
+        return val
+    elif is_tzlocal(tz):
+        return _tz_convert_tzlocal_utc(val, tz, to_utc=to_utc)
     else:
-        # Convert UTC to other timezone
-        arr[0] = utc_date
-        # Note: at least with cython 0.28.3, doing a lookup `[0]` in the next
-        # line is sensitive to the declared return type of _tz_convert_dst;
-        # if it is declared as returning ndarray[int64_t], a compile-time error
-        # is raised.
-        return _tz_convert_dst(arr, tz2, to_utc=False)[0]
+        arr[0] = val
+        return _tz_convert_dst(arr, tz, to_utc=to_utc)[0]
 
 
 def tz_convert(int64_t[:] vals, tzinfo tz1, tzinfo tz2):
@@ -393,14 +384,22 @@ def tz_convert(int64_t[:] vals, tzinfo tz1, tzinfo tz2):
     int64 ndarray of converted
     """
     cdef:
-        int64_t[:] utc_dates, converted
+        int64_t[:] converted
+        bint to_utc = is_utc(tz2)
+        tzinfo tz
+
+    # See GH#17734 We should always be converting either from UTC or to UTC
+    assert is_utc(tz1) or to_utc
 
     if len(vals) == 0:
         return np.array([], dtype=np.int64)
 
-    # Convert to UTC
-    utc_dates = _tz_convert_one_way(vals, tz1, to_utc=True)
-    converted = _tz_convert_one_way(utc_dates, tz2, to_utc=False)
+    if to_utc:
+        tz = tz1
+    else:
+        tz = tz2
+
+    converted = _tz_convert_one_way(vals, tz, to_utc=to_utc)
     return np.array(converted, dtype=np.int64)
 
 
@@ -421,23 +420,22 @@ cdef int64_t[:] _tz_convert_one_way(int64_t[:] vals, tzinfo tz, bint to_utc):
     converted : ndarray[int64_t]
     """
     cdef:
-        int64_t[:] converted, result
+        int64_t[:] converted
         Py_ssize_t i, n = len(vals)
         int64_t val
 
-    if not is_utc(tz):
-        converted = np.empty(n, dtype=np.int64)
-        if is_tzlocal(tz):
-            for i in range(n):
-                val = vals[i]
-                if val == NPY_NAT:
-                    converted[i] = NPY_NAT
-                else:
-                    converted[i] = _tz_convert_tzlocal_utc(val, tz, to_utc)
-        else:
-            converted = _tz_convert_dst(vals, tz, to_utc)
-    else:
+    if is_utc(tz):
         converted = vals
+    elif is_tzlocal(tz):
+        converted = np.empty(n, dtype=np.int64)
+        for i in range(n):
+            val = vals[i]
+            if val == NPY_NAT:
+                converted[i] = NPY_NAT
+            else:
+                converted[i] = _tz_convert_tzlocal_utc(val, tz, to_utc)
+    else:
+        converted = _tz_convert_dst(vals, tz, to_utc)
 
     return converted
 
@@ -471,11 +469,12 @@ cdef inline int64_t _tzlocal_get_offset_components(int64_t val, tzinfo tz,
         npy_datetimestruct dts
         datetime dt
         int64_t delta
+        timedelta td
 
     dt64_to_dtstruct(val, &dts)
     dt = datetime(dts.year, dts.month, dts.day, dts.hour,
                   dts.min, dts.sec, dts.us)
-    # get_utcoffset (tz.utcoffset under the hood) only makes sense if datetime
+    # tz.utcoffset only makes sense if datetime
     # is _wall time_, so if val is a UTC timestamp convert to wall time
     if not to_utc:
         dt = dt.replace(tzinfo=tzutc())
@@ -484,7 +483,8 @@ cdef inline int64_t _tzlocal_get_offset_components(int64_t val, tzinfo tz,
     if fold is not NULL:
         fold[0] = dt.fold
 
-    return int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
+    td = tz.utcoffset(dt)
+    return int(td.total_seconds() * 1_000_000_000)
 
 
 cdef int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz, bint to_utc=True,
