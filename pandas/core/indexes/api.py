@@ -275,7 +275,8 @@ def _sanitize_and_check(indexes):
     # exclude MultiIndex, RangeIndex as sorting for them doesn't make much sense
     # exclude DatetimeIndex as it's explicitly processed through union_many
     if len(kinds) > 1 or not any(
-        issubclass(kind, Index) and kind not in [MultiIndex, RangeIndex, DatetimeIndex]
+        issubclass(kind, Index)
+        and kind not in [MultiIndex, RangeIndex, DatetimeIndex, CategoricalIndex]
         for kind in kinds
     ):
         return indexes, "special"
