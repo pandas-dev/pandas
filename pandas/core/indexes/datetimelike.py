@@ -338,8 +338,8 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     # --------------------------------------------------------------------
     # Rendering Methods
 
-    def _format_with_header(self, header, na_rep="NaT", **kwargs):
-        return header + list(self._format_native_types(na_rep, **kwargs))
+    def _format_with_header(self, header, na_rep="NaT") -> List[str]:
+        return header + list(self._format_native_types(na_rep=na_rep))
 
     @property
     def _formatter_func(self):
