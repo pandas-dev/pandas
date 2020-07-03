@@ -372,12 +372,8 @@ class TestDataFrameMissingData:
         cat = Categorical([np.nan, 2, np.nan])
         val = Categorical([np.nan, np.nan, np.nan])
         df = DataFrame({"cats": cat, "vals": val})
-
-        # GH#32950 df.median() is poorly behaved because there is no
-        #  Categorical.median
-        median = Series({"cats": 2.0, "vals": np.nan})
-
-        res = df.fillna(median)
+        with tm.assert_produces_warning(RuntimeWarning):
+            res = df.fillna(df.median())
         v_exp = [np.nan, np.nan, np.nan]
         df_exp = DataFrame({"cats": [2, 2, 2], "vals": v_exp}, dtype="category")
         tm.assert_frame_equal(res, df_exp)
