@@ -874,12 +874,17 @@ class TestNDFrame:
 
     def test_equals_subclass(self):
         # https://github.com/pandas-dev/pandas/pull/34402
+        # allow subclass in both directions
+
         s1 = pd.Series([1, 2, 3])
         s2 = tm.SubclassedSeries([1, 2, 3])
-
-        # allow subclass in both directions
         assert s1.equals(s2)
         assert s2.equals(s1)
+
+        df1 = pd.DataFrame({"a": [1, 2, 3]})
+        df2 = tm.SubclassedDataFrame({"a": [1, 2, 3]})
+        assert df1.equals(df2)
+        assert df2.equals(df1)
 
     def test_pipe(self):
         df = DataFrame({"A": [1, 2, 3]})
