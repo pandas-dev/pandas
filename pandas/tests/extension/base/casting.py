@@ -58,7 +58,7 @@ class BaseCastingTests(BaseExtensionTests):
         result = df.astype(dtype)
         self.assert_frame_equal(result, df)
 
-    @pytest.mark.parametrize('copy', [True, False])
+    @pytest.mark.parametrize("copy", [True, False])
     def test_astype_own_type(self, data, copy):
         result = data.astype(data.dtype, copy=copy)
         assert (result is data) is (not copy)
