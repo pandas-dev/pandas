@@ -9,7 +9,7 @@ from .tslib import _sizes, _tzs
 class TimeTZConvert:
     params = (
         _sizes,
-        _tzs,
+        [x for x in _tzs if x is not None],
     )
     param_names = ["size", "tz"]
 
