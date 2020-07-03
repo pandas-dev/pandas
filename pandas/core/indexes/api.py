@@ -211,6 +211,7 @@ def union_indexes(indexes, sort=True) -> Index:
         else:
             ind_class = Index
 
+        print(inds)
         return ind_class(
             lib.fast_unique_multiple_list([conv(i) for i in inds], sort=sort)
         )
@@ -274,7 +275,8 @@ def _sanitize_and_check(indexes):
     # GH 35092. Check for Index subclass to avoid setting special type by error
     # exclude MultiIndex
     if len(kinds) > 1 or not any(
-        issubclass(kind, Index) and kind != MultiIndex for kind in kinds
+        issubclass(kind, Index) and kind != MultiIndex and kind != RangeIndex
+        for kind in kinds
     ):
         return indexes, "special"
     else:
