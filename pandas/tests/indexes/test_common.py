@@ -11,11 +11,11 @@ import pytest
 from pandas._libs.tslibs import iNaT
 
 from pandas.core.dtypes.common import is_period_dtype, needs_i8_conversion
-from pandas.core.indexes.api import union_indexes
 
 import pandas as pd
 from pandas import CategoricalIndex, Index, MultiIndex, RangeIndex
 import pandas._testing as tm
+from pandas.core.indexes.api import union_indexes
 
 
 class TestCommon:
