@@ -9580,8 +9580,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         dtype: int64
 
         If the DST transition causes nonexistent times, you can shift these
-        dates forward or backwards with a timedelta object or `'shift_forward'`
-        or `'shift_backwards'`.
+        dates forward or backward with a timedelta object or `'shift_forward'`
+        or `'shift_backward'`.
+
         >>> s = pd.Series(range(2),
         ...               index=pd.DatetimeIndex(['2015-03-29 02:30:00',
         ...                                       '2015-03-29 03:30:00']))
