@@ -204,7 +204,16 @@ def union_indexes(indexes, sort=True) -> Index:
                 i = i.tolist()
             return i
 
-        return Index(lib.fast_unique_multiple_list([conv(i) for i in inds], sort=sort))
+        # GH 35092. Preserve argument type. This function gets called only when
+        # there is just one type
+        if type(inds[0]) != list:
+            ind_class = type(inds[0])
+        else:
+            ind_class = Index
+
+        return ind_class(
+            lib.fast_unique_multiple_list([conv(i) for i in inds], sort=sort)
+        )
 
     if kind == "special":
         result = indexes[0]
@@ -263,7 +272,10 @@ def _sanitize_and_check(indexes):
             return indexes, "list"
 
     # GH 35092. Check for Index subclass to avoid setting special type by error
-    if len(kinds) > 1 or not any(issubclass(kind, Index) for kind in kinds):
+    # exclude MultiIndex
+    if len(kinds) > 1 or not any(
+        issubclass(kind, Index) and kind != MultiIndex for kind in kinds
+    ):
         return indexes, "special"
     else:
         return indexes, "array"
