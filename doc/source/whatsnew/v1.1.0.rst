@@ -1134,6 +1134,7 @@ ExtensionArray
 - Fixed bug where :meth:`StringArray.memory_usage` was not implemented (:issue:`33963`)
 - Fixed bug where :meth:`DataFrameGroupBy` would ignore the ``min_count`` argument for aggregations on nullable boolean dtypes (:issue:`34051`)
 - Fixed bug that `DataFrame(columns=.., dtype='string')` would fail (:issue:`27953`, :issue:`33623`)
+- Fixed bug where `ExtensionArray.astype(dtype=?????, copy=False)` would return a new object (:issue:`284881)
 
 Other
 ^^^^^
