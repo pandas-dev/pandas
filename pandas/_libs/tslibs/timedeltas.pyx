@@ -547,7 +547,9 @@ def _binary_op_method_timedeltalike(op, name):
 
         try:
             other = Timedelta(other)
-        except ValueError:
+        except (ValueError, SystemError):
+            # catch SystemError to workaround NumPy issue
+            # https://github.com/numpy/numpy/issues/15502
             # failed to parse as timedelta
             return NotImplemented
 
