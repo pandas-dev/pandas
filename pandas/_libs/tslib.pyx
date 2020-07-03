@@ -161,7 +161,7 @@ def ints_to_pydatetime(
         npy_datetimestruct dts
         object dt, new_tz
         str typ
-        int64_t value, delta, local_value
+        int64_t value, local_value, delta = NPY_NAT  # dummy for delta
         ndarray[object] result = np.empty(n, dtype=object)
         object (*func_create)(int64_t, npy_datetimestruct, tzinfo, object, bint)
         bint use_utc = False, use_tzlocal = False, use_fixed = False
