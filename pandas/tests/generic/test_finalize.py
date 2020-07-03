@@ -786,5 +786,5 @@ def test_categorical_accessor(method):
 @not_implemented_mark
 def test_groupby(obj, method):
     obj.attrs = {"a": 1}
-    result = method(obj.groupby([0, 0]))
+    result = method(obj.groupby([0, 0], group_keys=False))
     assert result.attrs == {"a": 1}

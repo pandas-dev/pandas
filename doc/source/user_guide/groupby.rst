@@ -1019,7 +1019,7 @@ The dimension of the returned result can also change:
 
 .. ipython::
 
-    In [8]: grouped = df.groupby('A')['C']
+    In [8]: grouped = df.groupby('A', group_keys=False)['C']
 
     In [10]: def f(group):
        ....:     return pd.DataFrame({'original': group,
