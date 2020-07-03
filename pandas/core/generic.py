@@ -31,7 +31,7 @@ import numpy as np
 from pandas._config import config
 
 from pandas._libs import lib
-from pandas._libs.tslibs import Timestamp, to_offset
+from pandas._libs.tslibs import Tick, Timestamp, to_offset
 from pandas._typing import (
     Axis,
     FilePathOrBuffer,
@@ -97,18 +97,18 @@ import pandas.core.indexing as indexing
 from pandas.core.internals import BlockManager
 from pandas.core.missing import find_valid_index
 from pandas.core.ops import _align_method_FRAME
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.formats import format as fmt
 from pandas.io.formats.format import DataFrameFormatter, format_percentiles
 from pandas.io.formats.printing import pprint_thing
-from pandas.tseries.offsets import Tick
 
 if TYPE_CHECKING:
     from pandas.core.resample import Resampler
+    from pandas.core.series import Series  # noqa: F401
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
-_shared_docs: Dict[str, str] = dict()
 _shared_doc_kwargs = dict(
     axes="keywords for axes",
     klass="Series/DataFrame",
@@ -657,47 +657,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         result = self.set_axis(new_labels, axis=axis, inplace=False)
         return result
 
-    def pop(self: FrameOrSeries, item) -> FrameOrSeries:
-        """
-        Return item and drop from frame. Raise KeyError if not found.
-
-        Parameters
-        ----------
-        item : str
-            Label of column to be popped.
-
-        Returns
-        -------
-        Series
-
-        Examples
-        --------
-        >>> df = pd.DataFrame([('falcon', 'bird', 389.0),
-        ...                    ('parrot', 'bird', 24.0),
-        ...                    ('lion', 'mammal', 80.5),
-        ...                    ('monkey', 'mammal', np.nan)],
-        ...                   columns=('name', 'class', 'max_speed'))
-        >>> df
-             name   class  max_speed
-        0  falcon    bird      389.0
-        1  parrot    bird       24.0
-        2    lion  mammal       80.5
-        3  monkey  mammal        NaN
-
-        >>> df.pop('class')
-        0      bird
-        1      bird
-        2    mammal
-        3    mammal
-        Name: class, dtype: object
-
-        >>> df
-             name  max_speed
-        0  falcon      389.0
-        1  parrot       24.0
-        2    lion       80.5
-        3  monkey        NaN
-        """
+    def pop(self, item: Label) -> Union["Series", Any]:
         result = self[item]
         del self[item]
         if self.ndim == 2:
@@ -2508,7 +2468,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ----------
         name : str
             Name of SQL table.
-        con : sqlalchemy.engine.Engine or sqlite3.Connection
+        con : sqlalchemy.engine.(Engine or Connection) or sqlite3.Connection
             Using SQLAlchemy makes it possible to use any DB supported by that
             library. Legacy support is provided for sqlite3.Connection objects. The user
             is responsible for engine disposal and connection closure for the SQLAlchemy
@@ -2596,18 +2556,27 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         >>> engine.execute("SELECT * FROM users").fetchall()
         [(0, 'User 1'), (1, 'User 2'), (2, 'User 3')]
 
-        >>> df1 = pd.DataFrame({'name' : ['User 4', 'User 5']})
-        >>> df1.to_sql('users', con=engine, if_exists='append')
+        An `sqlalchemy.engine.Connection` can also be passed to to `con`:
+        >>> with engine.begin() as connection:
+        ...     df1 = pd.DataFrame({'name' : ['User 4', 'User 5']})
+        ...     df1.to_sql('users', con=connection, if_exists='append')
+
+        This is allowed to support operations that require that the same
+        DBAPI connection is used for the entire operation.
+
+        >>> df2 = pd.DataFrame({'name' : ['User 6', 'User 7']})
+        >>> df2.to_sql('users', con=engine, if_exists='append')
         >>> engine.execute("SELECT * FROM users").fetchall()
         [(0, 'User 1'), (1, 'User 2'), (2, 'User 3'),
-         (0, 'User 4'), (1, 'User 5')]
+         (0, 'User 4'), (1, 'User 5'), (0, 'User 6'),
+         (1, 'User 7')]
 
-        Overwrite the table with just ``df1``.
+        Overwrite the table with just ``df2``.
 
-        >>> df1.to_sql('users', con=engine, if_exists='replace',
+        >>> df2.to_sql('users', con=engine, if_exists='replace',
         ...            index_label='id')
         >>> engine.execute("SELECT * FROM users").fetchall()
-        [(0, 'User 4'), (1, 'User 5')]
+        [(0, 'User 6'), (1, 'User 7')]
 
         Specify the dtype (especially useful for integers with missing values).
         Notice that while pandas is forced to store the data as floating point,
@@ -4848,7 +4817,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             random number generator
             If np.random.RandomState, use as numpy RandomState object.
 
-            ..versionchanged:: 1.1.0
+            .. versionchanged:: 1.1.0
 
                 array-like and BitGenerator (for NumPy>=1.17) object now passed to
                 np.random.RandomState() as seed
@@ -5361,6 +5330,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                ['lion', 80.5, 1],
                ['monkey', nan, None]], dtype=object)
         """
+        self._consolidate_inplace()
         return self._mgr.as_array(transpose=self._AXIS_REVERSED)
 
     @property
@@ -5396,7 +5366,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         string              object
         dtype: object
         """
-        from pandas import Series
+        from pandas import Series  # noqa: F811
 
         return Series(self._mgr.get_dtypes(), index=self._info_axis, dtype=np.object_)
 
@@ -5567,6 +5537,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             # else, only a single dtype is given
             new_data = self._mgr.astype(dtype=dtype, copy=copy, errors=errors,)
             return self._constructor(new_data).__finalize__(self, method="astype")
+
+        # GH 33113: handle empty frame or series
+        if not results:
+            return self.copy()
 
         # GH 19920: retain column metadata after concat
         result = pd.concat(results, axis=1, copy=False)
@@ -6557,7 +6531,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                             f"Replacement lists must match in length. "
                             f"Expecting {len(to_replace)} got {len(value)} "
                         )
-
+                    self._consolidate_inplace()
                     new_data = self._mgr.replace_list(
                         src_list=to_replace,
                         dest_list=value,
@@ -9606,8 +9580,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         dtype: int64
 
         If the DST transition causes nonexistent times, you can shift these
-        dates forward or backwards with a timedelta object or `'shift_forward'`
-        or `'shift_backwards'`.
+        dates forward or backward with a timedelta object or `'shift_forward'`
+        or `'shift_backward'`.
+
         >>> s = pd.Series(range(2),
         ...               index=pd.DatetimeIndex(['2015-03-29 02:30:00',
         ...                                       '2015-03-29 03:30:00']))
