@@ -472,6 +472,7 @@ class TestGetLoc:
             idx.get_loc(time(12, 30), method="pad")
 
     def test_get_loc_time_nat(self):
+        # GH#35114
         # Case where key's total microseconds happens to match iNaT % 1e6 // 1000
         tic = time(minute=12, second=43, microsecond=145224)
         dti = pd.DatetimeIndex([pd.NaT])
