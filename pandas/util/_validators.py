@@ -373,7 +373,7 @@ def validate_percentile(q: Union[float, Iterable[float]]) -> np.ndarray:
     q_arr = np.asarray(q)
     # Don't change this to an f-string. The string formatting
     # is too expensive for cases where we don't need it.
-    msg = "percentiles should all be in the interval [0, 1]." "Try {} instead."
+    msg = "percentiles should all be in the interval [0, 1]. Try {} instead."
     if q_arr.ndim == 0:
         if not 0 <= q_arr <= 1:
             raise ValueError(msg.format(q_arr / 100.0))
