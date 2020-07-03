@@ -3569,7 +3569,6 @@ class Table(Fixed):
         for c in columns:
             v = getattr(table.cols, c, None)
             if v is not None:
-
                 # remove the index if the kind/optlevel have changed
                 if v.is_indexed:
                     index = v.index
@@ -3597,6 +3596,13 @@ class Table(Fixed):
                             "data_columns when initializing the table."
                         )
                     v.create_index(**kw)
+            elif c in self.non_index_axes[0][1]:
+                # GH 28156
+                raise AttributeError(
+                    f"column {c} is not a data_column.\n"
+                    f"In order to read column {c} you must reload the dataframe \n"
+                    f"into HDFStore and include {c} with the data_columns argument."
+                )
 
     def _read_axes(
         self, where, start: Optional[int] = None, stop: Optional[int] = None
@@ -4708,7 +4714,7 @@ def _set_tz(
     if tz is not None:
         name = getattr(values, "name", None)
         values = values.ravel()
-        tz = timezones.get_timezone(_ensure_decoded(tz))
+        tz = _ensure_decoded(tz)
         values = DatetimeIndex(values, name=name)
         values = values.tz_localize("UTC").tz_convert(tz)
     elif coerce:
