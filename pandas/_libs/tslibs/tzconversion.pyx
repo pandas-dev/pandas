@@ -32,6 +32,7 @@ from pandas._libs.tslibs.timezones cimport (
 cdef int64_t tz_localize_to_utc_single(
     int64_t val, tzinfo tz, object ambiguous=None, object nonexistent=None,
 ) except? -1:
+    """See tz_localize_to_utc.__doc__"""
     cdef:
         int64_t delta
         int64_t[:] deltas
@@ -47,7 +48,7 @@ cdef int64_t tz_localize_to_utc_single(
 
     elif is_fixed_offset(tz):
         # TODO: in this case we should be able to use get_utcoffset,
-        #  that returns None for  'dateutil//usr/share/zoneinfo/Etc/GMT-9'
+        #  that returns None for e.g. 'dateutil//usr/share/zoneinfo/Etc/GMT-9'
         _, deltas, _ = get_dst_info(tz)
         delta = deltas[0]
         return val - delta
