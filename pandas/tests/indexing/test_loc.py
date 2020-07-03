@@ -1123,16 +1123,18 @@ def test_loc_with_period_index_indexer():
 
 def test_loc_setting_value_at_multiindex():
     # GH 34870
-    arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
-              ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
+    arrays = [
+        ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
+        ["one", "two", "one", "two", "one", "two", "one", "two"],
+    ]
     array = [1, 1, 1, 1, 1, 1, 1, 1]
     answer = [1, 1, 100, 100, 100, 100, 1, 1]
 
     tuples = list(zip(*arrays))
-    index = pd.MultiIndex.from_tuples(tuples, names=['first', 'second'])
+    index = pd.MultiIndex.from_tuples(tuples, names=["first", "second"])
 
     dt1 = pd.Series(array, index=index)
     dt2 = pd.Series(answer, index=index)
 
-    dt1.loc[('baz', 'one'):('foo', 'two')] = 100
+    dt1.loc[("baz", "one"):("foo", "two")] = 100
     tm.assert_series_equal(dt1, dt2)

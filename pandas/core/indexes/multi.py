@@ -2890,11 +2890,7 @@ class MultiIndex(Index):
             # if we have a provided indexer, then this need not consider
             # the entire labels set
 
-            if is_scalar(start) and is_scalar(stop):
-                r = np.arange(start, stop, step)
-            else:
-                r = np.all(start, stop, step)
-
+            r = np.arange(start, stop, step)
             if indexer is not None and len(indexer) != len(codes):
 
                 # we have an indexer which maps the locations in the labels
@@ -2933,12 +2929,17 @@ class MultiIndex(Index):
                 step = key.step
             except KeyError:
 
-                # we have a partial slice (like looking up a partial date
-                # string)
-                start = stop = level_index.slice_indexer(
-                    key.start, key.stop, key.step, kind="loc"
-                )
-                step = start.step
+                if isinstance(key.start, tuple) or isinstance(key.stop, tuple):
+                    return convert_indexer(key.start, key.stop, key.step)
+
+                else:
+                    # we have a partial slice (like looking up a partial date
+                    # string)
+
+                    start = stop = level_index.slice_indexer(
+                        key.start, key.stop, key.step, kind="loc"
+                    )
+                    step = start.step
 
             if isinstance(start, slice) or isinstance(stop, slice):
                 # we have a slice for start and/or stop

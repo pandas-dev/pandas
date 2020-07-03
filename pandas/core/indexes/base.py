@@ -4946,6 +4946,13 @@ class Index(IndexOpsMixin, PandasObject):
         """
         start_slice, end_slice = self.slice_locs(start, end, step=step, kind=kind)
 
+        # return a slice
+
+        if not is_scalar(start_slice):
+            raise AssertionError("Start slice bound is non-scalar")
+        if not is_scalar(end_slice):
+            raise AssertionError("End slice bound is non-scalar")
+
         return slice(start_slice, end_slice, step)
 
     def _maybe_cast_indexer(self, key):
