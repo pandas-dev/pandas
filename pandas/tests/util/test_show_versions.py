@@ -5,6 +5,7 @@ import pytest
 import pandas as pd
 
 
+@pytest.mark.filterwarnings("ignore:Setuptools is replacing distutils:UserWarning")
 @pytest.mark.filterwarnings(
     # openpyxl
     "ignore:defusedxml.lxml is no longer supported:DeprecationWarning"
