@@ -664,7 +664,16 @@ class SeriesGroupBy(GroupBy[Series]):
     def value_counts(
         self, normalize=False, sort=True, ascending=False, bins=None, dropna=True
     ):
+        return self.apply(
+            Series.value_counts,
+            normalize=normalize,
+            sort=sort,
+            ascending=ascending,
+            bins=bins,
+            dropna=dropna,
+        )
 
+    """
         from pandas.core.reshape.tile import cut
         from pandas.core.reshape.merge import _get_join_indexers
 
@@ -786,6 +795,7 @@ class SeriesGroupBy(GroupBy[Series]):
         if is_integer_dtype(out):
             out = ensure_int64(out)
         return self.obj._constructor(out, index=mi, name=self._selection_name)
+    """
 
     def count(self) -> Series:
         """
