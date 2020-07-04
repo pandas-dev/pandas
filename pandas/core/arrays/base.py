@@ -56,9 +56,11 @@ class ArrayFunctionMixin:
             # dict mapping.
             exclude_list = {"unique"}
             ea_func = getattr(type(self), func.__name__, None)
-            if not callable(ea_func):
-                ea_func = None
-            if ea_func is None or ea_func.__name__ in exclude_list:
+            if (
+                ea_func is None
+                or not callable(ea_func)
+                or ea_func.__name__ in exclude_list
+            ):
                 return func.__wrapped__(*args, **kwargs)
 
             return ea_func(*args, **kwargs)
