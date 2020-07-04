@@ -133,7 +133,33 @@ def _display_counts_and_dtypes(
     space_num: int = 0,
 ) -> None:
     """
-    Display count and dtype of Series (or of each column of Frame).
+    Append count and dtype of Series (or of each column of Frame) to `lines`.
+
+    Parameters
+    ----------
+    lines : List[str]
+        At this stage, this contains the main header and the info table headers.
+    ids : Index
+        Series name (or names of DataFrame columns).
+    dtypes : Series
+        Series dtype (or dtypes of DataFrame columns).
+    show_counts : bool
+        Whether to show non-null counts.
+    counts : Series
+        Non-null counts of Series (or of each of DataFrame's columns).
+    count_temp : str
+        String that can be formatted to include non-null count.
+    space_count : int
+        Number of spaces that count_header should occupy
+        (including space before `dtypes` column).
+    space_dtype : int
+        Number of spaces that `dtypes` column should occupy.
+    space : int = 0
+        Number of spaces that `Column` header should occupy
+        (including space before `non-null count` column).
+    space_num : int = 0
+        Number of spaces that ` # ` header should occupy (including space
+        before `Column` column), only applicable for `DataFrame.info`.
     """
     for i, col in enumerate(ids):
         dtype = dtypes[i]
@@ -157,12 +183,35 @@ def _get_header_and_spaces(
 ) -> Tuple[int, str, int]:
     """
     Append extra columns (count and type) to header, if applicable.
+
+    Parameters
+    ----------
+    dtypes : Series
+        Series dtype (or dtypes of DataFrame columns).
+    space_count : int
+        Number of spaces that count_header should occupy
+        (including space before `dtypes` column).
+    count_header : str
+        Header that will be printed out above non-null counts in output.
+    header : str
+        Current header.
+
+    Returns
+    -------
+    space_dtype : int
+        Number of spaces that `dtypes` column should occupy.
+    header : str
+        Header with extra columns (count and type) appended.
+    len_dtype : int
+        Length of dtype header.
     """
+    breakpoint()
     dtype_header = "Dtype"
     len_dtype = len(dtype_header)
     max_dtypes = max(len(pprint_thing(k)) for k in dtypes)
     space_dtype = max(len_dtype, max_dtypes)
     header += _put_str(count_header, space_count) + _put_str(dtype_header, space_dtype)
+    breakpoint()
     return space_dtype, header, len_dtype
 
 
