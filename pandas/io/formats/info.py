@@ -205,13 +205,11 @@ def _get_header_and_spaces(
     len_dtype : int
         Length of dtype header.
     """
-    breakpoint()
     dtype_header = "Dtype"
     len_dtype = len(dtype_header)
     max_dtypes = max(len(pprint_thing(k)) for k in dtypes)
     space_dtype = max(len_dtype, max_dtypes)
     header += _put_str(count_header, space_count) + _put_str(dtype_header, space_dtype)
-    breakpoint()
     return space_dtype, header, len_dtype
 
 
