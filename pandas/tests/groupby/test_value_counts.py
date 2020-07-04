@@ -53,10 +53,10 @@ for seed_nans in [True, False]:
 @pytest.mark.slow
 @pytest.mark.parametrize("df, keys, bins, n, m", binned, ids=ids)
 @pytest.mark.parametrize("isort", [True, False])
-@pytest.mark.parametrize("normalize", [False])
+@pytest.mark.parametrize("normalize", [True, False])
 @pytest.mark.parametrize("sort", [True, False])
 @pytest.mark.parametrize("ascending", [True, False])
-@pytest.mark.parametrize("dropna", [True])
+@pytest.mark.parametrize("dropna", [True, False])
 def test_series_groupby_value_counts(
     df, keys, bins, n, m, isort, normalize, sort, ascending, dropna
 ):
@@ -71,7 +71,6 @@ def test_series_groupby_value_counts(
 
     gr = df.groupby(keys, sort=isort)
     left = gr["3rd"].value_counts(**kwargs)
-    # left.index.names = left.index.names[:-1] + ["3rd"]
 
     gr = df.groupby(keys, sort=isort)
     right = gr["3rd"].apply(Series.value_counts, **kwargs)
