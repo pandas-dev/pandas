@@ -321,7 +321,7 @@ def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
     if values.ndim == 1:
         values = values.reshape((values.shape[0], 1))
     elif values.ndim != 2:
-        raise ValueError("Must pass 2-d input")
+        raise ValueError(f"Must pass 2-d input. shape={values.shape}")
 
     return values
 

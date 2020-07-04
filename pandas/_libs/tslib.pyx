@@ -8,6 +8,7 @@ from cpython.datetime cimport (
     datetime,
     time,
     timedelta,
+    tzinfo,
 )
 # import datetime C API
 PyDateTime_IMPORT
@@ -77,9 +78,9 @@ from pandas._libs.missing cimport checknull_with_nat_and_na
 cdef inline object create_datetime_from_ts(
     int64_t value,
     npy_datetimestruct dts,
-    object tz,
+    tzinfo tz,
     object freq,
-    bint fold
+    bint fold,
 ):
     """
     Convenience routine to construct a datetime.datetime from its parts.
@@ -92,7 +93,7 @@ cdef inline object create_datetime_from_ts(
 cdef inline object create_date_from_ts(
     int64_t value,
     npy_datetimestruct dts,
-    object tz,
+    tzinfo tz,
     object freq,
     bint fold
 ):
@@ -106,7 +107,7 @@ cdef inline object create_date_from_ts(
 cdef inline object create_time_from_ts(
     int64_t value,
     npy_datetimestruct dts,
-    object tz,
+    tzinfo tz,
     object freq,
     bint fold
 ):
@@ -120,7 +121,7 @@ cdef inline object create_time_from_ts(
 @cython.boundscheck(False)
 def ints_to_pydatetime(
     const int64_t[:] arr,
-    object tz=None,
+    tzinfo tz=None,
     object freq=None,
     bint fold=False,
     str box="datetime"
@@ -162,7 +163,7 @@ def ints_to_pydatetime(
         str typ
         int64_t value, delta, local_value
         ndarray[object] result = np.empty(n, dtype=object)
-        object (*func_create)(int64_t, npy_datetimestruct, object, object, bint)
+        object (*func_create)(int64_t, npy_datetimestruct, tzinfo, object, bint)
 
     if box == "date":
         assert (tz is None), "tz should be None when converting to date"
@@ -178,7 +179,9 @@ def ints_to_pydatetime(
     elif box == "datetime":
         func_create = create_datetime_from_ts
     else:
-        raise ValueError("box must be one of 'datetime', 'date', 'time' or 'timestamp'")
+        raise ValueError(
+            "box must be one of 'datetime', 'date', 'time' or 'timestamp'"
+        )
 
     if is_utc(tz) or tz is None:
         for i in range(n):
