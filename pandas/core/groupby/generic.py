@@ -448,7 +448,7 @@ class SeriesGroupBy(GroupBy[Series]):
         if isinstance(values[0], dict):
             # GH #823 #24880
             index = _get_index()
-            result = self._reindex_output(
+            result: FrameOrSeriesUnion = self._reindex_output(
                 self.obj._constructor_expanddim(values, index=index)
             )
             # if self.observed is False,
