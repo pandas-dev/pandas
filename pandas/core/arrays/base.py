@@ -56,15 +56,10 @@ class ArrayFunctionMixin:
             # dict mapping.
             exclude_list = {"unique"}
             ea_func = getattr(type(self), func.__name__, None)
+            if not callable(ea_func):
+                ea_func = None
             if ea_func is None or ea_func.__name__ in exclude_list:
-                # Need to convert EAs to numpy.ndarray so we can call the NumPy
-                # function again and it gets the chance to dispatch to the
-                # right implementation.
-                args = tuple(
-                    arg.to_numpy() if isinstance(arg, ExtensionArray) else arg
-                    for arg in args
-                )
-                return func(*args, **kwargs)
+                return func.__wrapped__(*args, **kwargs)
 
             return ea_func(*args, **kwargs)
 
@@ -1317,37 +1312,3 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
     @classmethod
     def _create_comparison_method(cls, op):
         return cls._create_method(op, coerce_to_dtype=False, result_dtype=bool)
-
-
-@implements(np.ndim)
-def ndim(array: ExtensionArray) -> int:
-    """
-    Return the number of dimensions of an array.
-    """
-    return array.ndim
-
-
-@implements(np.vstack)
-def vstack(to_stack: Sequence[ArrayLike]) -> np.ndarray:
-    """
-    Stack arrays in sequence vertically (row wise).
-    """
-    to_stack = tuple(
-        arr.to_numpy() if isinstance(arr, ExtensionArray) else arr for arr in to_stack
-    )
-    return np.vstack(to_stack)
-
-
-@implements(np.putmask)
-def putmask(a: ArrayLike, mask: ArrayLike, values: ArrayLike) -> None:
-    """
-    Changes elements of an array based on conditional and input values.
-    """
-    # TODO: refactor Index.putmask to not rely on this behaviour for IntervalArray
-    if isinstance(a, ExtensionArray):
-        raise TypeError(
-            f"putmask() argument 1 must be numpy.ndarray, not {type(a).__name__}"
-        )
-    mask = mask.to_numpy() if isinstance(mask, ExtensionArray) else mask
-    values = values.to_numpy() if isinstance(values, ExtensionArray) else values
-    return np.putmask(a, mask, values)
