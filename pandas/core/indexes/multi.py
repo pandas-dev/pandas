@@ -1237,7 +1237,7 @@ class MultiIndex(Index):
         names=False,
         na_rep=None,
         formatter=None,
-    ):
+    ) -> list:
         if len(self) == 0:
             return []
 

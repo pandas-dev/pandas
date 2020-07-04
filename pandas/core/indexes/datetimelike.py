@@ -338,6 +338,22 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     # --------------------------------------------------------------------
     # Rendering Methods
 
+    def format(
+        self, name: bool = False, formatter=None, date_format=None, na_rep="NaT"
+    ) -> List[str]:
+        """
+        Render a string representation of the Index.
+        """
+        header = []
+        if name:
+            fmt_name = ibase.pprint_thing(self.name, escape_chars=("\t", "\r", "\n"))
+            header.append(fmt_name)
+
+        if formatter is not None:
+            return header + list(self.map(formatter))
+
+        return self._format_with_header(header, date_format=date_format, na_rep=na_rep)
+
     def _format_with_header(self, header, na_rep="NaT", date_format=None) -> List[str]:
         return header + list(
             self._format_native_types(na_rep=na_rep, date_format=date_format)
