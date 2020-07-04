@@ -378,7 +378,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     # --------------------------------------------------------------------
 
-    def _get_time_micros(self) -> np.ndarray:
+    def _get_time_micros(self):
         """
         Return the number of microseconds since midnight.
 
@@ -745,7 +745,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         # sure we can't have ambiguous indexing
         return "datetime64"
 
-    def indexer_at_time(self, time, asof: bool = False) -> np.ndarray:
+    def indexer_at_time(self, time, asof=False):
         """
         Return index locations of values at particular time of day
         (e.g. 9:30AM).
