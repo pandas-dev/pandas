@@ -30,7 +30,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import FrameOrSeries
+from pandas._typing import FrameOrSeries, FrameOrSeriesUnion
 from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.dtypes.cast import (
@@ -413,7 +413,25 @@ class SeriesGroupBy(GroupBy[Series]):
         assert isinstance(result, Series)
         return result
 
-    def _wrap_applied_output(self, keys, values, not_indexed_same=False):
+    def _wrap_applied_output(
+        self, keys: Index, values: List[Any], not_indexed_same: bool = False
+    ) -> FrameOrSeriesUnion:
+        """
+        Wrap the output of SeriesGroupBy.apply into the expected result.
+
+        Parameters
+        ----------
+        keys : Index
+            Keys of groups that Series was grouped by.
+        values : List[Any]
+            Applied output for each group.
+        not_indexed_same : bool, default False
+            Whether the applied outputs are not indexed the same as the group axes.
+
+        Returns
+        -------
+        DataFrame or Series
+        """
         if len(keys) == 0:
             # GH #6265
             return self.obj._constructor(
@@ -438,17 +456,14 @@ class SeriesGroupBy(GroupBy[Series]):
             result = result.stack(dropna=self.observed)
             result.name = self._selection_name
             return result
-
-        if isinstance(values[0], Series):
-            return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
-        elif isinstance(values[0], DataFrame):
-            # possible that Series -> DataFrame by applied function
+        elif isinstance(values[0], (Series, DataFrame)):
             return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
         else:
             # GH #6265 #24880
             result = self.obj._constructor(
                 data=values, index=_get_index(), name=self._selection_name
             )
+
             return self._reindex_output(result)
 
     def _aggregate_named(self, func, *args, **kwargs):
