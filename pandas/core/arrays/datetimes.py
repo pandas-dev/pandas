@@ -1,4 +1,4 @@
-from datetime import datetime, time, timedelta
+from datetime import datetime, time, timedelta, tzinfo
 from typing import Optional, Union
 import warnings
 
@@ -12,7 +12,6 @@ from pandas._libs.tslibs import (
     conversion,
     fields,
     iNaT,
-    offsets as liboffsets,
     resolution as libresolution,
     timezones,
     to_offset,
@@ -524,13 +523,6 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         return self.tz
 
     @property  # NB: override with cache_readonly in immutable subclasses
-    def _timezone(self):
-        """
-        Comparable timezone both for pytz / dateutil
-        """
-        return timezones.get_timezone(self.tzinfo)
-
-    @property  # NB: override with cache_readonly in immutable subclasses
     def is_normalized(self):
         """
         Returns True if all of the dates are at midnight ("no time")
@@ -618,15 +610,17 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
     # -----------------------------------------------------------------
     # Comparison Methods
 
-    def _has_same_tz(self, other):
-        zzone = self._timezone
+    def _has_same_tz(self, other) -> bool:
 
         # vzone shouldn't be None if value is non-datetime like
         if isinstance(other, np.datetime64):
             # convert to Timestamp as np.datetime64 doesn't have tz attr
             other = Timestamp(other)
-        vzone = timezones.get_timezone(getattr(other, "tzinfo", "__no_tz__"))
-        return zzone == vzone
+
+        if not hasattr(other, "tzinfo"):
+            return False
+        other_tz = other.tzinfo
+        return timezones.tz_compare(self.tzinfo, other_tz)
 
     def _assert_tzawareness_compat(self, other):
         # adapted from _Timestamp._assert_tzawareness_compat
@@ -1106,8 +1100,7 @@ default 'raise'
 
             #  https://github.com/pandas-dev/pandas/issues/33358
             if res is None:
-                base, stride = liboffsets.base_and_stride(freq)
-                res = f"{stride}{base}"
+                res = freq
 
             freq = res
 
@@ -1127,7 +1120,14 @@ default 'raise'
         -------
         TimedeltaArray/Index
         """
-        # TODO: consider privatizing (discussion in GH#23113)
+        # Deprecaation GH#34853
+        warnings.warn(
+            "to_perioddelta is deprecated and will be removed in a "
+            "future version.  "
+            "Use `dtindex - dtindex.to_period(freq).to_timestamp()` instead",
+            FutureWarning,
+            stacklevel=3,
+        )
         from pandas.core.arrays.timedeltas import TimedeltaArray
 
         i8delta = self.asi8 - self.to_period(freq).to_timestamp().asi8
@@ -1903,6 +1903,7 @@ def sequence_to_dt64ns(
     inferred_freq = None
 
     dtype = _validate_dt64_dtype(dtype)
+    tz = timezones.maybe_get_tz(tz)
 
     if not hasattr(data, "dtype"):
         # e.g. list, tuple
@@ -1945,14 +1946,14 @@ def sequence_to_dt64ns(
             data, inferred_tz = objects_to_datetime64ns(
                 data, dayfirst=dayfirst, yearfirst=yearfirst
             )
-            tz = maybe_infer_tz(tz, inferred_tz)
+            tz = _maybe_infer_tz(tz, inferred_tz)
         data_dtype = data.dtype
 
     # `data` may have originally been a Categorical[datetime64[ns, tz]],
     # so we need to handle these types.
     if is_datetime64tz_dtype(data_dtype):
         # DatetimeArray -> ndarray
-        tz = maybe_infer_tz(tz, data.tz)
+        tz = _maybe_infer_tz(tz, data.tz)
         result = data._data
 
     elif is_datetime64_dtype(data_dtype):
@@ -2139,7 +2140,9 @@ def maybe_convert_dtype(data, copy):
 # Validation and Inference
 
 
-def maybe_infer_tz(tz, inferred_tz):
+def _maybe_infer_tz(
+    tz: Optional[tzinfo], inferred_tz: Optional[tzinfo]
+) -> Optional[tzinfo]:
     """
     If a timezone is inferred from data, check that it is compatible with
     the user-provided timezone, if any.
@@ -2211,7 +2214,7 @@ def _validate_dt64_dtype(dtype):
     return dtype
 
 
-def validate_tz_from_dtype(dtype, tz):
+def validate_tz_from_dtype(dtype, tz: Optional[tzinfo]) -> Optional[tzinfo]:
     """
     If the given dtype is a DatetimeTZDtype, extract the implied
     tzinfo object from it and check that it does not conflict with the given
@@ -2258,7 +2261,9 @@ def validate_tz_from_dtype(dtype, tz):
     return tz
 
 
-def _infer_tz_from_endpoints(start, end, tz):
+def _infer_tz_from_endpoints(
+    start: Timestamp, end: Timestamp, tz: Optional[tzinfo]
+) -> Optional[tzinfo]:
     """
     If a timezone is not explicitly given via `tz`, see if one can
     be inferred from the `start` and `end` endpoints.  If more than one

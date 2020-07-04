@@ -5,21 +5,23 @@ from typing import Any, Callable, List, Optional, Sequence, Type, Union
 import numpy as np
 
 from pandas._libs.tslibs import (
+    BaseOffset,
     NaT,
     NaTType,
     Timedelta,
     delta_to_nanoseconds,
-    frequencies as libfrequencies,
     iNaT,
     period as libperiod,
     to_offset,
 )
+from pandas._libs.tslibs.dtypes import FreqGroup
 from pandas._libs.tslibs.fields import isleapyear_arr
 from pandas._libs.tslibs.offsets import Tick, delta_to_tick
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ,
     IncompatibleFrequency,
     Period,
+    PeriodMixin,
     get_period_field_arr,
     period_asfreq_arr,
 )
@@ -47,8 +49,6 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
 
-from pandas.tseries.offsets import DateOffset
-
 
 def _field_accessor(name: str, docstring=None):
     def f(self):
@@ -61,7 +61,7 @@ def _field_accessor(name: str, docstring=None):
     return property(f)
 
 
-class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
+class PeriodArray(PeriodMixin, dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     """
     Pandas ExtensionArray for storing Period data.
 
@@ -279,7 +279,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
     # error: Read-only property cannot override read-write property  [misc]
     @property  # type: ignore
-    def freq(self) -> DateOffset:
+    def freq(self) -> BaseOffset:
         """
         Return the frequency object for this PeriodArray.
         """
@@ -440,8 +440,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
                 return (self + self.freq).to_timestamp(how="start") - adjust
 
         if freq is None:
-            base = self.freq._period_dtype_code
-            freq = libfrequencies.get_to_timestamp_base(base)
+            freq = self._get_to_timestamp_base()
             base = freq
         else:
             freq = Period._maybe_convert_freq(freq)
@@ -656,7 +655,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         res_values[self._isnan] = iNaT
         return type(self)(res_values, freq=self.freq)
 
-    def _add_offset(self, other: DateOffset):
+    def _add_offset(self, other: BaseOffset):
         assert not isinstance(other, Tick)
 
         if other.base != self.freq.base:
@@ -784,7 +783,7 @@ def raise_on_incompatible(left, right):
     # GH#24283 error message format depends on whether right is scalar
     if isinstance(right, (np.ndarray, ABCTimedeltaArray)) or right is None:
         other_freq = None
-    elif isinstance(right, (ABCPeriodIndex, PeriodArray, Period, DateOffset)):
+    elif isinstance(right, (ABCPeriodIndex, PeriodArray, Period, BaseOffset)):
         other_freq = right.freqstr
     else:
         other_freq = delta_to_tick(Timedelta(right)).freqstr
@@ -1027,11 +1026,11 @@ def _range_from_fields(
     if quarter is not None:
         if freq is None:
             freq = to_offset("Q")
-            base = libfrequencies.FreqGroup.FR_QTR
+            base = FreqGroup.FR_QTR
         else:
             freq = to_offset(freq)
             base = libperiod.freq_to_dtype_code(freq)
-            if base != libfrequencies.FreqGroup.FR_QTR:
+            if base != FreqGroup.FR_QTR:
                 raise AssertionError("base must equal FR_QTR")
 
         year, quarter = _make_field_arrays(year, quarter)

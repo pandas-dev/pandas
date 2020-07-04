@@ -8,6 +8,7 @@ import numpy as np
 
 from pandas._libs import NaT, algos as libalgos, lib, writers
 import pandas._libs.internals as libinternals
+from pandas._libs.internals import BlockPlacement
 from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.timezones import tz_compare
 from pandas._typing import ArrayLike
@@ -112,6 +113,19 @@ class Block(PandasObject):
     _verify_integrity = True
     _validate_ndim = True
 
+    @classmethod
+    def _simple_new(
+        cls, values: ArrayLike, placement: BlockPlacement, ndim: int
+    ) -> "Block":
+        """
+        Fastpath constructor, does *no* validation
+        """
+        obj = object.__new__(cls)
+        obj.ndim = ndim
+        obj.values = values
+        obj._mgr_locs = placement
+        return obj
+
     def __init__(self, values, placement, ndim=None):
         self.ndim = self._check_ndim(values, ndim)
         self.mgr_locs = placement
@@ -167,10 +181,6 @@ class Block(PandasObject):
     @property
     def _consolidate_key(self):
         return (self._can_consolidate, self.dtype.name)
-
-    @property
-    def _is_single_block(self) -> bool:
-        return self.ndim == 1
 
     @property
     def is_view(self) -> bool:
@@ -259,7 +269,7 @@ class Block(PandasObject):
     def __repr__(self) -> str:
         # don't want to print out all of the items here
         name = type(self).__name__
-        if self._is_single_block:
+        if self.ndim == 1:
             result = f"{name}: {len(self)} dtype: {self.dtype}"
         else:
 
@@ -293,13 +303,15 @@ class Block(PandasObject):
         if new_mgr_locs is None:
             axis0_slicer = slicer[0] if isinstance(slicer, tuple) else slicer
             new_mgr_locs = self.mgr_locs[axis0_slicer]
+        elif not isinstance(new_mgr_locs, BlockPlacement):
+            new_mgr_locs = BlockPlacement(new_mgr_locs)
 
         new_values = self._slice(slicer)
 
         if self._validate_ndim and new_values.ndim != self.ndim:
             raise ValueError("Only same dim slicing is allowed")
 
-        return self.make_block_same_class(new_values, new_mgr_locs)
+        return type(self)._simple_new(new_values, new_mgr_locs, self.ndim)
 
     @property
     def shape(self):
@@ -476,8 +488,7 @@ class Block(PandasObject):
 
         values = self.values
 
-        # single block handling
-        if self._is_single_block:
+        if self.ndim == 1:
 
             # try to cast all non-floats here
             if dtypes is None:
@@ -745,7 +756,11 @@ class Block(PandasObject):
             if is_object_dtype(self):
                 raise
 
-            assert not self._can_hold_element(value), value
+            if not self.is_extension:
+                # TODO: https://github.com/pandas-dev/pandas/issues/32586
+                # Need an ExtensionArray._can_hold_element to indicate whether
+                # a scalar value can be placed in the array.
+                assert not self._can_hold_element(value), value
 
             # try again with a compatible block
             block = self.astype(object)
@@ -906,8 +921,7 @@ class Block(PandasObject):
         mask = _extract_bool_array(mask)
         assert not isinstance(new, (ABCIndexClass, ABCSeries, ABCDataFrame))
 
-        new_values = self.values if inplace else self.values.copy()
-
+        new_values = self.values  # delay copy if possible.
         # if we are passed a scalar None, convert it here
         if not is_list_like(new) and isna(new) and not self.is_object:
             # FIXME: make sure we have compatible NA
@@ -917,7 +931,7 @@ class Block(PandasObject):
             # We only get here for non-Extension Blocks, so _try_coerce_args
             #  is only relevant for DatetimeBlock and TimedeltaBlock
             if lib.is_scalar(new):
-                new = convert_scalar_for_putitemlike(new, new_values.dtype)
+                new = convert_scalar_for_putitemlike(new, self.values.dtype)
 
             if transpose:
                 new_values = new_values.T
@@ -929,6 +943,8 @@ class Block(PandasObject):
                     new = np.repeat(new, new_values.shape[-1]).reshape(self.shape)
                 new = new.astype(new_values.dtype)
 
+            if new_values is self.values and not inplace:
+                new_values = new_values.copy()
             # we require exact matches between the len of the
             # values we are setting (or is compat). np.putmask
             # doesn't check this and will simply truncate / pad
@@ -1000,6 +1016,8 @@ class Block(PandasObject):
             return [self]
 
         if transpose:
+            if new_values is None:
+                new_values = self.values if inplace else self.values.copy()
             new_values = new_values.T
 
         return [self.make_block(new_values)]

@@ -116,6 +116,7 @@ application to columns of a specific data type.
    DataFrameGroupBy.quantile
    DataFrameGroupBy.rank
    DataFrameGroupBy.resample
+   DataFrameGroupBy.sample
    DataFrameGroupBy.shift
    DataFrameGroupBy.size
    DataFrameGroupBy.skew
