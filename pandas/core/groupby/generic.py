@@ -664,7 +664,16 @@ class SeriesGroupBy(GroupBy[Series]):
     def value_counts(
         self, normalize=False, sort=True, ascending=False, bins=None, dropna=True
     ):
+        return self.apply(
+            Series.value_counts,
+            normalize=normalize,
+            sort=sort,
+            ascending=ascending,
+            bins=bins,
+            dropna=dropna,
+        )
 
+    """
         from pandas.core.reshape.tile import cut
         from pandas.core.reshape.merge import _get_join_indexers
 
@@ -786,6 +795,7 @@ class SeriesGroupBy(GroupBy[Series]):
         if is_integer_dtype(out):
             out = ensure_int64(out)
         return self.obj._constructor(out, index=mi, name=self._selection_name)
+    """
 
     def count(self) -> Series:
         """
@@ -1218,7 +1228,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             return self.obj._constructor()
         elif isinstance(first_not_none, DataFrame):
             return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
-        elif self.grouper.groupings is not None:
+        else:
             if len(self.grouper.groupings) > 1:
                 key_index = self.grouper.result_index
 
@@ -1372,10 +1382,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # result should not take the name of original selection
                 # of columns
                 return self.obj._constructor_sliced(values, index=key_index)
-
-        else:
-            # Handle cases like BinGrouper
-            return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
 
     def _transform_general(
         self, func, *args, engine="cython", engine_kwargs=None, **kwargs
