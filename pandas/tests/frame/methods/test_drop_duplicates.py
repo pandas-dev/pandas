@@ -426,7 +426,8 @@ def test_drop_duplicates_null_in_object_column(nulls_fixture):
     result = df.drop_duplicates()
     tm.assert_frame_equal(result, df)
 
-def test_drop_duplicates_inplace():
-    df = DataFrame({"a": [1,2,3], "b": [1,2,4], "c": [1,6,5]})
+
+def test_drop_duplicates_inplace_result():
+    df = DataFrame({"a": [1, 2, 3], "b": [1, 2, 4], "c": [1, 6, 5]})
     result = df.drop_duplicates(inplace=True)
     assert result is None
