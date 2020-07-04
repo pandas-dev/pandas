@@ -75,7 +75,32 @@ def _sizeof_fmt(num: Union[int, float], size_qualifier: str) -> str:
 def _get_count_configs(
     counts: "Series", col_space: int, show_counts: bool, col_count: Optional[int] = None
 ) -> Tuple[str, int, int, str]:
-    # TODO: 1 add docstring, 2 check if we really need pragma: no cover
+    """
+    Get configs for displaying counts, depending on the value of `show_counts`.
+
+    Parameters
+    ----------
+    counts : Series
+        Non-null count of Series (or of each column of DataFrame).
+    col_space : int
+        How many space to leave between non-null count and dtype columns.
+    show_counts : bool
+        Whether to display non-null counts.
+    col_count : int, optional
+        Number of columns in DataFrame.
+
+    Returns
+    -------
+    count_header : str
+        Header that will be printed out above non-null counts in output.
+    space_count : int
+        Number of spaces that count_header should occupy
+        (including space before `dtypes` column).
+    len_count : int
+        Length of count header.
+    count_temp : str
+        String that can be formatted to include non-null count.
+    """
     if show_counts:
         if col_count is not None and col_count != len(counts):  # pragma: no cover
             raise AssertionError(
@@ -107,6 +132,9 @@ def _display_counts_and_dtypes(
     space: int = 0,
     space_num: int = 0,
 ) -> None:
+    """
+    Display count and dtype of Series (or of each column of Frame).
+    """
     for i, col in enumerate(ids):
         dtype = dtypes[i]
         col = pprint_thing(col)
@@ -127,6 +155,9 @@ def _display_counts_and_dtypes(
 def _get_header_and_spaces(
     dtypes: "Series", space_count: int, count_header: str, header: str = ""
 ) -> Tuple[int, str, int]:
+    """
+    Append extra columns (count and type) to header, if applicable.
+    """
     dtype_header = "Dtype"
     len_dtype = len(dtype_header)
     max_dtypes = max(len(pprint_thing(k)) for k in dtypes)
