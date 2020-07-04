@@ -1,5 +1,6 @@
 import re
 from typing import TYPE_CHECKING, List, cast
+import warnings
 
 import numpy as np
 
@@ -39,6 +40,16 @@ def melt(
         cols = [x for c in frame.columns for x in c]
     else:
         cols = list(frame.columns)
+
+    if value_name in frame.columns:
+        warnings.warn(
+            "This dataframe has a column name that matches the 'value_name' column "
+            "name of the resultiing Dataframe. "
+            "In the future this will raise an error, please set the 'value_name' "
+            "parameter of DataFrame.melt to a unique name.",
+            FutureWarning,
+            stacklevel=3,
+        )
 
     if id_vars is not None:
         if not is_list_like(id_vars):
