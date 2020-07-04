@@ -1212,7 +1212,7 @@ class Block(PandasObject):
                 )
         # process 1-d slices in the axis direction
 
-        func = missing.interpolate_1d(
+        func = missing.Interpolator1d(
             xvalues=index,
             method=method,
             limit=limit,
@@ -1221,7 +1221,7 @@ class Block(PandasObject):
             fill_value=fill_value,
             bounds_error=False,
             **kwargs,
-        )
+        ).interpolate
 
         # interp each column independently
         interp_values = np.apply_along_axis(func, axis, data)

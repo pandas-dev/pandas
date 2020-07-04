@@ -2,7 +2,7 @@
 Routines for filling missing data.
 """
 
-from typing import Any, Callable, List, Optional, Set, Union
+from typing import Any, List, Optional, Set, Union
 
 import numpy as np
 
@@ -168,17 +168,7 @@ def find_valid_index(values, how: str):
     return idxpos
 
 
-def interpolate_1d(
-    xvalues: np.ndarray,
-    method: Optional[str] = "linear",
-    limit: Optional[int] = None,
-    limit_direction: str = "forward",
-    limit_area: Optional[str] = None,
-    fill_value: Optional[Any] = None,
-    bounds_error: bool = False,
-    order: Optional[int] = None,
-    **kwargs,
-) -> Callable[[np.ndarray], np.ndarray]:
+class Interpolator1d:
     """
     Logic for the 1-d interpolation.  The result should be 1-d, inputs
     xvalues and yvalues will each be 1-d arrays of the same length.
@@ -186,60 +176,81 @@ def interpolate_1d(
     Bounds_error is currently hardcoded to False since non-scipy ones don't
     take it as an argument.
     """
-    if method == "time":
-        if not getattr(xvalues, "is_all_dates", None):
-            # if not issubclass(xvalues.dtype.type, np.datetime64):
+
+    def __init__(
+        self,
+        xvalues: np.ndarray,
+        method: Optional[str] = "linear",
+        limit: Optional[int] = None,
+        limit_direction: str = "forward",
+        limit_area: Optional[str] = None,
+        fill_value: Optional[Any] = None,
+        bounds_error: bool = False,
+        order: Optional[int] = None,
+        **kwargs,
+    ):
+        if method == "time":
+            if not getattr(xvalues, "is_all_dates", None):
+                # if not issubclass(xvalues.dtype.type, np.datetime64):
+                raise ValueError(
+                    "time-weighted interpolation only works "
+                    "on Series or DataFrames with a "
+                    "DatetimeIndex"
+                )
+            method = "values"
+        self.method = method
+
+        valid_limit_directions = ["forward", "backward", "both"]
+        limit_direction = limit_direction.lower()
+        if limit_direction not in valid_limit_directions:
             raise ValueError(
-                "time-weighted interpolation only works "
-                "on Series or DataFrames with a "
-                "DatetimeIndex"
+                "Invalid limit_direction: expecting one of "
+                f"{valid_limit_directions}, got '{limit_direction}'."
             )
-        method = "values"
+        self.limit_direction = limit_direction
 
-    valid_limit_directions = ["forward", "backward", "both"]
-    limit_direction = limit_direction.lower()
-    if limit_direction not in valid_limit_directions:
-        raise ValueError(
-            "Invalid limit_direction: expecting one of "
-            f"{valid_limit_directions}, got '{limit_direction}'."
-        )
+        if limit_area is not None:
+            valid_limit_areas = ["inside", "outside"]
+            limit_area = limit_area.lower()
+            if limit_area not in valid_limit_areas:
+                raise ValueError(
+                    f"Invalid limit_area: expecting one of {valid_limit_areas}, got "
+                    f"{limit_area}."
+                )
+        self.limit_area = limit_area
 
-    if limit_area is not None:
-        valid_limit_areas = ["inside", "outside"]
-        limit_area = limit_area.lower()
-        if limit_area not in valid_limit_areas:
-            raise ValueError(
-                f"Invalid limit_area: expecting one of {valid_limit_areas}, got "
-                f"{limit_area}."
-            )
+        # default limit is unlimited GH #16282
+        self.limit = algos._validate_limit(nobs=None, limit=limit)
 
-    # default limit is unlimited GH #16282
-    limit = algos._validate_limit(nobs=None, limit=limit)
+        # xvalues to pass to NumPy/SciPy
 
-    # xvalues to pass to NumPy/SciPy
+        xvalues = getattr(xvalues, "values", xvalues)
+        if method == "linear":
+            inds = xvalues
+        else:
+            inds = np.asarray(xvalues)
 
-    xvalues = getattr(xvalues, "values", xvalues)
-    if method == "linear":
-        inds = xvalues
-    else:
-        inds = np.asarray(xvalues)
+            # hack for DatetimeIndex, #1646
+            if needs_i8_conversion(inds.dtype):
+                inds = inds.view(np.int64)
 
-        # hack for DatetimeIndex, #1646
-        if needs_i8_conversion(inds.dtype):
-            inds = inds.view(np.int64)
+            if method in ("values", "index"):
+                if inds.dtype == np.object_:
+                    inds = lib.maybe_convert_objects(inds)
+        self.xvalues = inds
+        self.fill_value = fill_value
+        self.bounds_error = bounds_error
+        self.order = order
+        self.kwargs = kwargs
 
-        if method in ("values", "index"):
-            if inds.dtype == np.object_:
-                inds = lib.maybe_convert_objects(inds)
-
-    def func(yvalues: np.ndarray) -> np.ndarray:
+    def interpolate(self, yvalues: np.ndarray) -> np.ndarray:
         invalid = isna(yvalues)
         valid = ~invalid
 
         if not valid.any():
             # have to call np.asarray(xvalues) since xvalues could be an Index
             # which can't be mutated
-            result = np.empty_like(np.asarray(xvalues), dtype=np.float64)
+            result = np.empty_like(np.asarray(self.xvalues), dtype=np.float64)
             result.fill(np.nan)
             return result
 
@@ -262,20 +273,20 @@ def interpolate_1d(
 
         # set preserve_nans based on direction using _interp_limit
         preserve_nans: Union[List, Set]
-        if limit_direction == "forward":
-            preserve_nans = start_nans | set(_interp_limit(invalid, limit, 0))
-        elif limit_direction == "backward":
-            preserve_nans = end_nans | set(_interp_limit(invalid, 0, limit))
+        if self.limit_direction == "forward":
+            preserve_nans = start_nans | set(_interp_limit(invalid, self.limit, 0))
+        elif self.limit_direction == "backward":
+            preserve_nans = end_nans | set(_interp_limit(invalid, 0, self.limit))
         else:
             # both directions... just use _interp_limit
-            preserve_nans = set(_interp_limit(invalid, limit, limit))
+            preserve_nans = set(_interp_limit(invalid, self.limit, self.limit))
 
         # if limit_area is set, add either mid or outside indices
         # to preserve_nans GH #16284
-        if limit_area == "inside":
+        if self.limit_area == "inside":
             # preserve NaNs on the outside
             preserve_nans |= start_nans | end_nans
-        elif limit_area == "outside":
+        elif self.limit_area == "outside":
             # preserve NaNs on the inside
             preserve_nans |= mid_nans
 
@@ -285,28 +296,28 @@ def interpolate_1d(
         yvalues = getattr(yvalues, "values", yvalues)
         result = yvalues.copy()
 
-        if method in NP_METHODS:
+        if self.method in NP_METHODS:
             # np.interp requires sorted X values, #21037
-            indexer = np.argsort(inds[valid])
+            indexer = np.argsort(self.xvalues[valid])
             result[invalid] = np.interp(
-                inds[invalid], inds[valid][indexer], yvalues[valid][indexer]
+                self.xvalues[invalid],
+                self.xvalues[valid][indexer],
+                yvalues[valid][indexer],
             )
         else:
             result[invalid] = _interpolate_scipy_wrapper(
-                inds[valid],
+                self.xvalues[valid],
                 yvalues[valid],
-                inds[invalid],
-                method=method,
-                fill_value=fill_value,
-                bounds_error=bounds_error,
-                order=order,
-                **kwargs,
+                self.xvalues[invalid],
+                method=self.method,
+                fill_value=self.fill_value,
+                bounds_error=self.bounds_error,
+                order=self.order,
+                **self.kwargs,
             )
 
         result[preserve_nans] = np.nan
         return result
-
-    return func
 
 
 def _interpolate_scipy_wrapper(
