@@ -463,7 +463,6 @@ class SeriesGroupBy(GroupBy[Series]):
             result = self.obj._constructor(
                 data=values, index=_get_index(), name=self._selection_name
             )
-
             return self._reindex_output(result)
 
     def _aggregate_named(self, func, *args, **kwargs):
