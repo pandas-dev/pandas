@@ -4630,7 +4630,7 @@ Keep all original rows and also all original values
             Series.memory_usage: Memory usage of Series."""
         ),
     )
-    @doc(SeriesInfo)
+    @doc(SeriesInfo.info)
     def info(
         self,
         verbose: Optional[bool] = None,
