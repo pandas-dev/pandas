@@ -1231,13 +1231,17 @@ class MultiIndex(Index):
 
     def format(
         self,
+        name=None,
+        formatter=None,
+        na_rep=None,
+        names=False,
         space=2,
         sparsify=None,
         adjoin=True,
-        names=False,
-        na_rep=None,
-        formatter=None,
     ) -> list:
+        if name is not None:
+            names = name
+
         if len(self) == 0:
             return []
 
@@ -1265,13 +1269,13 @@ class MultiIndex(Index):
             stringified_levels.append(formatted)
 
         result_levels = []
-        for lev, name in zip(stringified_levels, self.names):
+        for lev, lev_name in zip(stringified_levels, self.names):
             level = []
 
             if names:
                 level.append(
-                    pprint_thing(name, escape_chars=("\t", "\r", "\n"))
-                    if name is not None
+                    pprint_thing(lev_name, escape_chars=("\t", "\r", "\n"))
+                    if lev_name is not None
                     else ""
                 )
 

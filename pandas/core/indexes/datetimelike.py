@@ -339,7 +339,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     # Rendering Methods
 
     def format(
-        self, name: bool = False, formatter=None, date_format=None, na_rep="NaT"
+        self, name: bool = False, formatter=None, na_rep="NaT", date_format=None
     ) -> List[str]:
         """
         Render a string representation of the Index.
