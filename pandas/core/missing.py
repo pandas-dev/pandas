@@ -243,20 +243,7 @@ class Interpolator1d:
         self.order = order
         self.kwargs = kwargs
 
-    def interpolate(self, yvalues: np.ndarray) -> np.ndarray:
-        invalid = isna(yvalues)
-        valid = ~invalid
-
-        if not valid.any():
-            # have to call np.asarray(xvalues) since xvalues could be an Index
-            # which can't be mutated
-            result = np.empty_like(np.asarray(self.xvalues), dtype=np.float64)
-            result.fill(np.nan)
-            return result
-
-        if valid.all():
-            return yvalues
-
+    def _update_invalid_to_preserve_nans(self, yvalues, valid, invalid) -> None:
         # These are sets of index pointers to invalid values... i.e. {0, 1, etc...
         all_nans = set(np.flatnonzero(invalid))
         start_nans = set(range(find_valid_index(yvalues, "first")))
@@ -292,9 +279,26 @@ class Interpolator1d:
 
         # sort preserve_nans and covert to list
         preserve_nans = sorted(preserve_nans)
+        invalid[preserve_nans] = False
+
+    def interpolate(self, yvalues: np.ndarray) -> np.ndarray:
+        invalid = isna(yvalues)
+        valid = ~invalid
+
+        if not valid.any():
+            # have to call np.asarray(xvalues) since xvalues could be an Index
+            # which can't be mutated
+            result = np.empty_like(np.asarray(self.xvalues), dtype=np.float64)
+            result.fill(np.nan)
+            return result
+
+        if valid.all():
+            return yvalues
 
         yvalues = getattr(yvalues, "values", yvalues)
         result = yvalues.copy()
+
+        self._update_invalid_to_preserve_nans(yvalues, valid, invalid)
 
         if self.method in NP_METHODS:
             # np.interp requires sorted X values, #21037
@@ -316,7 +320,6 @@ class Interpolator1d:
                 **self.kwargs,
             )
 
-        result[preserve_nans] = np.nan
         return result
 
 
