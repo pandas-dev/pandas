@@ -227,9 +227,12 @@ def union_indexes(indexes, sort=True) -> Index:
             for other in indexes[1:]:
                 # GH 35092. Pass sort to Index.union
                 # Index.union expects sort=None instead of sort=True
-                if sort:
-                    sort = None
-                result = result.union(other, sort=sort)
+                if not ignore_sort:
+                    if sort:
+                        sort = None
+                    result = result.union(other, sort=sort)
+                else:
+                    result = result.union(other)
             return result
     elif kind == "array":
         index = indexes[0]
