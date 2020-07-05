@@ -208,7 +208,7 @@ def union_indexes(indexes, sort=True) -> Index:
 
     # GH 35092. Detect if we have an Index type for which the sort
     # setting doesn't make sense
-    ind_types = list({type(index) for index in indexes})
+    ind_types = [type(index) for index in indexes]
     if any(
         ind_type in [MultiIndex, RangeIndex, DatetimeIndex, CategoricalIndex]
         for ind_type in ind_types
