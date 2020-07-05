@@ -190,8 +190,7 @@ class Interpolator1d:
         **kwargs,
     ):
         method = self._validate_method(method, xvalues)
-
-        self.xvalues = self._convert_xvalues(xvalues, method)
+        xvalues = self._convert_xvalues(xvalues, method)
 
         # default limit is unlimited GH #16282
         self.limit = algos._validate_limit(nobs=None, limit=limit)
@@ -200,18 +199,18 @@ class Interpolator1d:
 
         def _np_func(yvalues, valid, invalid):
             # np.interp requires sorted X values, #21037
-            indexer = np.argsort(self.xvalues[valid])
+            indexer = np.argsort(xvalues[valid])
             return np.interp(
-                self.xvalues[invalid],
-                self.xvalues[valid][indexer],
+                xvalues[invalid],
+                xvalues[valid][indexer],
                 yvalues[valid][indexer],
             )
 
         def _sp_func(yvalues, valid, invalid):
             return _interpolate_scipy_wrapper(
-                self.xvalues[valid],
+                xvalues[valid],
                 yvalues[valid],
-                self.xvalues[invalid],
+                xvalues[invalid],
                 method=method,
                 fill_value=fill_value,
                 bounds_error=bounds_error,
@@ -220,9 +219,9 @@ class Interpolator1d:
             )
 
         if method in NP_METHODS:
-            self.func = _np_func
+            self.interpolator = _np_func
         else:
-            self.func = _sp_func
+            self.interpolator = _sp_func
 
     def _convert_xvalues(self, xvalues, method):
         """
@@ -317,12 +316,7 @@ class Interpolator1d:
         invalid = isna(yvalues)
         valid = ~invalid
 
-        if not valid.any():
-            result = np.empty_like(self.xvalues, dtype=np.float64)
-            result.fill(np.nan)
-            return result
-
-        if valid.all():
+        if not valid.any() or valid.all():
             return yvalues
 
         yvalues = getattr(yvalues, "values", yvalues)
@@ -330,7 +324,7 @@ class Interpolator1d:
 
         self._update_invalid_to_preserve_nans(yvalues, valid, invalid)
 
-        result[invalid] = self.func(yvalues, valid, invalid)
+        result[invalid] = self.interpolator(yvalues, valid, invalid)
         return result
 
 
