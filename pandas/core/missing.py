@@ -189,41 +189,23 @@ class Interpolator1d:
         order: Optional[int] = None,
         **kwargs,
     ):
-        if method == "time":
-            if not getattr(xvalues, "is_all_dates", None):
-                # if not issubclass(xvalues.dtype.type, np.datetime64):
-                raise ValueError(
-                    "time-weighted interpolation only works "
-                    "on Series or DataFrames with a "
-                    "DatetimeIndex"
-                )
-            method = "values"
-        self.method = method
-
-        valid_limit_directions = ["forward", "backward", "both"]
-        limit_direction = limit_direction.lower()
-        if limit_direction not in valid_limit_directions:
-            raise ValueError(
-                "Invalid limit_direction: expecting one of "
-                f"{valid_limit_directions}, got '{limit_direction}'."
-            )
-        self.limit_direction = limit_direction
-
-        if limit_area is not None:
-            valid_limit_areas = ["inside", "outside"]
-            limit_area = limit_area.lower()
-            if limit_area not in valid_limit_areas:
-                raise ValueError(
-                    f"Invalid limit_area: expecting one of {valid_limit_areas}, got "
-                    f"{limit_area}."
-                )
-        self.limit_area = limit_area
+        self.method = self._validate_method(method, xvalues)
+        self.xvalues = self._convert_xvalues(xvalues, self.method)
 
         # default limit is unlimited GH #16282
         self.limit = algos._validate_limit(nobs=None, limit=limit)
+        self.limit_direction = self._validate_limit_direction(limit_direction)
+        self.limit_area = self._validate_limit_area(limit_area)
 
-        # xvalues to pass to NumPy/SciPy
+        self.fill_value = fill_value
+        self.bounds_error = bounds_error
+        self.order = order
+        self.kwargs = kwargs
 
+    def _convert_xvalues(self, xvalues, method):
+        """
+        Convert xvalues to pass to NumPy/SciPy.
+        """
         xvalues = getattr(xvalues, "values", xvalues)
         if method == "linear":
             inds = xvalues
@@ -237,11 +219,40 @@ class Interpolator1d:
             if method in ("values", "index"):
                 if inds.dtype == np.object_:
                     inds = lib.maybe_convert_objects(inds)
-        self.xvalues = inds
-        self.fill_value = fill_value
-        self.bounds_error = bounds_error
-        self.order = order
-        self.kwargs = kwargs
+        return inds
+
+    def _validate_method(self, method, xvalues):
+        if method == "time":
+            if not getattr(xvalues, "is_all_dates", None):
+                # if not issubclass(xvalues.dtype.type, np.datetime64):
+                raise ValueError(
+                    "time-weighted interpolation only works "
+                    "on Series or DataFrames with a "
+                    "DatetimeIndex"
+                )
+            method = "values"
+        return method
+
+    def _validate_limit_direction(self, limit_direction):
+        valid_limit_directions = ["forward", "backward", "both"]
+        limit_direction = limit_direction.lower()
+        if limit_direction not in valid_limit_directions:
+            raise ValueError(
+                "Invalid limit_direction: expecting one of "
+                f"{valid_limit_directions}, got '{limit_direction}'."
+            )
+        return limit_direction
+
+    def _validate_limit_area(self, limit_area):
+        if limit_area is not None:
+            valid_limit_areas = ["inside", "outside"]
+            limit_area = limit_area.lower()
+            if limit_area not in valid_limit_areas:
+                raise ValueError(
+                    f"Invalid limit_area: expecting one of {valid_limit_areas}, got "
+                    f"{limit_area}."
+                )
+        return limit_area
 
     def _update_invalid_to_preserve_nans(self, yvalues, valid, invalid) -> None:
         # These are sets of index pointers to invalid values... i.e. {0, 1, etc...
