@@ -319,6 +319,9 @@ def maybe_cast_result_dtype(dtype: DtypeObj, how: str) -> DtypeObj:
         return np.dtype(np.int64)
     elif how in ["add", "cumsum", "sum"] and isinstance(dtype, BooleanDtype):
         return Int64Dtype()
+    elif how == "nunique":
+        return np.dtype(np.int64)
+
     return dtype
 
 
