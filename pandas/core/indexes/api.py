@@ -210,7 +210,7 @@ def union_indexes(indexes, sort=True) -> Index:
     # setting doesn't make sense
     ind_types = [type(index) for index in indexes]
     if any(
-        ind_type in [MultiIndex, RangeIndex]
+        ind_type in [CategoricalIndex]
         for ind_type in ind_types
     ):
         ignore_sort = True
