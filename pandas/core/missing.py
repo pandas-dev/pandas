@@ -323,14 +323,15 @@ class NumPyInterpolator:
     # np.interp requires sorted X values, #21037
     def __init__(self, xvalues: np.ndarray):
         self.xvalues = xvalues
+        self.indexer = np.argsort(xvalues)
+        self.xvalues_sorted = xvalues[self.indexer]
 
     def interpolate(self, yvalues, valid, invalid):
-        indexer = np.argsort(self.xvalues[valid])
-        return np.interp(
-            self.xvalues[invalid],
-            self.xvalues[valid][indexer],
-            yvalues[valid][indexer],
-        )
+        valid_sorted = valid[self.indexer]
+        x = self.xvalues[invalid]
+        xp = self.xvalues_sorted[valid_sorted]
+        yp = yvalues[self.indexer][valid_sorted]
+        return np.interp(x, xp, yp)
 
 
 def _interpolate_scipy_wrapper(
