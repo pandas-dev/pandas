@@ -32,7 +32,7 @@ def reconstruct_func(
         Union[
             Union[Callable, str],
             List[Union[Callable, str]],
-            Dict[Label, Union[Union[Callable, str], List[Union[Callable, str]]]],
+            Dict[Label, Union[Callable, str, List[Union[Callable, str]]]],
         ]
     ],
     **kwargs,
@@ -42,7 +42,7 @@ def reconstruct_func(
         Union[
             Union[Callable, str],
             List[Union[Callable, str]],
-            Dict[Label, Union[Union[Callable, str], List[Union[Callable, str]]]],
+            Dict[Label, Union[Callable, str, List[Union[Callable, str]]]],
         ]
     ],
     Optional[List[str]],
