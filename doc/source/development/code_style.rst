@@ -173,15 +173,3 @@ Reading from a url
     from pandas.io.common import urlopen
     with urlopen('http://www.google.com') as url:
         raw_text = url.read()
-
-
-Reading a file named file.txt that's inside of a zip file named file.zip
-------------------------------------------------------------------------
-
-**Good:**
-
-.. code-block:: python
-
-    from pandas.io.common import ZipFile
-    with ZipFile('file.zip') as zf:
-        raw_text = zf.read('file.txt')
