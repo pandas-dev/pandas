@@ -189,18 +189,14 @@ class Interpolator1d:
         order: Optional[int] = None,
         **kwargs,
     ):
-        self.method = self._validate_method(method, xvalues)
-        self.xvalues = self._convert_xvalues(xvalues, self.method)
+        method = self._validate_method(method, xvalues)
+
+        self.xvalues = self._convert_xvalues(xvalues, method)
 
         # default limit is unlimited GH #16282
         self.limit = algos._validate_limit(nobs=None, limit=limit)
         self.limit_direction = self._validate_limit_direction(limit_direction)
         self.limit_area = self._validate_limit_area(limit_area)
-
-        self.fill_value = fill_value
-        self.bounds_error = bounds_error
-        self.order = order
-        self.kwargs = kwargs
 
         def _np_func(yvalues, valid, invalid):
             # np.interp requires sorted X values, #21037
@@ -216,14 +212,14 @@ class Interpolator1d:
                 self.xvalues[valid],
                 yvalues[valid],
                 self.xvalues[invalid],
-                method=self.method,
-                fill_value=self.fill_value,
-                bounds_error=self.bounds_error,
-                order=self.order,
-                **self.kwargs,
+                method=method,
+                fill_value=fill_value,
+                bounds_error=bounds_error,
+                order=order,
+                **kwargs,
             )
 
-        if self.method in NP_METHODS:
+        if method in NP_METHODS:
             self.func = _np_func
         else:
             self.func = _sp_func
