@@ -202,6 +202,32 @@ class Interpolator1d:
         self.order = order
         self.kwargs = kwargs
 
+        def _np_func(yvalues, valid, invalid):
+            # np.interp requires sorted X values, #21037
+            indexer = np.argsort(self.xvalues[valid])
+            return np.interp(
+                self.xvalues[invalid],
+                self.xvalues[valid][indexer],
+                yvalues[valid][indexer],
+            )
+
+        def _sp_func(yvalues, valid, invalid):
+            return _interpolate_scipy_wrapper(
+                self.xvalues[valid],
+                yvalues[valid],
+                self.xvalues[invalid],
+                method=self.method,
+                fill_value=self.fill_value,
+                bounds_error=self.bounds_error,
+                order=self.order,
+                **self.kwargs,
+            )
+
+        if self.method in NP_METHODS:
+            self.func = _np_func
+        else:
+            self.func = _sp_func
+
     def _convert_xvalues(self, xvalues, method):
         """
         Convert xvalues to pass to NumPy/SciPy.
@@ -224,7 +250,6 @@ class Interpolator1d:
     def _validate_method(self, method, xvalues):
         if method == "time":
             if not getattr(xvalues, "is_all_dates", None):
-                # if not issubclass(xvalues.dtype.type, np.datetime64):
                 raise ValueError(
                     "time-weighted interpolation only works "
                     "on Series or DataFrames with a "
@@ -297,9 +322,7 @@ class Interpolator1d:
         valid = ~invalid
 
         if not valid.any():
-            # have to call np.asarray(xvalues) since xvalues could be an Index
-            # which can't be mutated
-            result = np.empty_like(np.asarray(self.xvalues), dtype=np.float64)
+            result = np.empty_like(self.xvalues, dtype=np.float64)
             result.fill(np.nan)
             return result
 
@@ -311,26 +334,7 @@ class Interpolator1d:
 
         self._update_invalid_to_preserve_nans(yvalues, valid, invalid)
 
-        if self.method in NP_METHODS:
-            # np.interp requires sorted X values, #21037
-            indexer = np.argsort(self.xvalues[valid])
-            result[invalid] = np.interp(
-                self.xvalues[invalid],
-                self.xvalues[valid][indexer],
-                yvalues[valid][indexer],
-            )
-        else:
-            result[invalid] = _interpolate_scipy_wrapper(
-                self.xvalues[valid],
-                yvalues[valid],
-                self.xvalues[invalid],
-                method=self.method,
-                fill_value=self.fill_value,
-                bounds_error=self.bounds_error,
-                order=self.order,
-                **self.kwargs,
-            )
-
+        result[invalid] = self.func(yvalues, valid, invalid)
         return result
 
 
