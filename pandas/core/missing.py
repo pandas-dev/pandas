@@ -197,15 +197,6 @@ class Interpolator1d:
         self.limit_direction = self._validate_limit_direction(limit_direction)
         self.limit_area = self._validate_limit_area(limit_area)
 
-        def _np_func(yvalues, valid, invalid):
-            # np.interp requires sorted X values, #21037
-            indexer = np.argsort(xvalues[valid])
-            return np.interp(
-                xvalues[invalid],
-                xvalues[valid][indexer],
-                yvalues[valid][indexer],
-            )
-
         def _sp_func(yvalues, valid, invalid):
             return _interpolate_scipy_wrapper(
                 xvalues[valid],
@@ -219,7 +210,7 @@ class Interpolator1d:
             )
 
         if method in NP_METHODS:
-            self.interpolator = _np_func
+            self.interpolator = NumPyInterpolator(xvalues).interpolate
         else:
             self.interpolator = _sp_func
 
@@ -326,6 +317,20 @@ class Interpolator1d:
 
         result[invalid] = self.interpolator(yvalues, valid, invalid)
         return result
+
+
+class NumPyInterpolator:
+    # np.interp requires sorted X values, #21037
+    def __init__(self, xvalues: np.ndarray):
+        self.xvalues = xvalues
+
+    def interpolate(self, yvalues, valid, invalid):
+        indexer = np.argsort(self.xvalues[valid])
+        return np.interp(
+            self.xvalues[invalid],
+            self.xvalues[valid][indexer],
+            yvalues[valid][indexer],
+        )
 
 
 def _interpolate_scipy_wrapper(
