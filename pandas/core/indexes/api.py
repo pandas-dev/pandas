@@ -206,7 +206,7 @@ def union_indexes(indexes, sort=True) -> Index:
 
         return Index(lib.fast_unique_multiple_list([conv(i) for i in inds], sort=sort))
 
-    # GH 35092. Detect if we have an Index type, for which the sort
+    # GH 35092. Detect if we have an Index type for which the sort
     # setting doesn't make sense
     ind_types = list({type(index) for index in indexes})
     if any(
