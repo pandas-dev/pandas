@@ -204,16 +204,7 @@ def union_indexes(indexes, sort=True) -> Index:
                 i = i.tolist()
             return i
 
-        # GH 35092. Preserve argument type. This function gets called only when
-        # there is just one type
-        if type(inds[0]) != list:
-            ind_class = type(inds[0])
-        else:
-            ind_class = Index
-
-        return ind_class(
-            lib.fast_unique_multiple_list([conv(i) for i in inds], sort=sort)
-        )
+        return Index(lib.fast_unique_multiple_list([conv(i) for i in inds], sort=sort))
 
     if kind == "special":
         result = indexes[0]
@@ -223,7 +214,11 @@ def union_indexes(indexes, sort=True) -> Index:
             return result.union_many(indexes[1:])
         else:
             for other in indexes[1:]:
-                result = result.union(other)
+                # GH 35092. Pass sort to Index.union
+                # Index.union expects sort=None instead of sort=True
+                if sort:
+                    sort = None
+                result = result.union(other, sort=sort)
             return result
     elif kind == "array":
         index = indexes[0]
@@ -271,14 +266,7 @@ def _sanitize_and_check(indexes):
         else:
             return indexes, "list"
 
-    # GH 35092. Check for Index subclass to avoid setting special type by error
-    # exclude MultiIndex, RangeIndex as sorting for them doesn't make much sense
-    # exclude DatetimeIndex as it's explicitly processed through union_many
-    if len(kinds) > 1 or not any(
-        issubclass(kind, Index)
-        and kind not in [MultiIndex, RangeIndex, DatetimeIndex, CategoricalIndex]
-        for kind in kinds
-    ):
+    if len(kinds) > 1 or Index not in kinds:
         return indexes, "special"
     else:
         return indexes, "array"
