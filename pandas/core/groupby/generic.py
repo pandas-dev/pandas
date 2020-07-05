@@ -485,8 +485,13 @@ class SeriesGroupBy(GroupBy[Series]):
         # If func is a reduction, we need to broadcast the
         # result to the whole group. Compute func result
         # and deal with possible broadcasting below.
+        # Temporarily set observed for dealing with
+        # categoricals so we don't have to convert dtypes.
+        observed = self.observed
+        self.observed = True
         result = getattr(self, func)(*args, **kwargs)
-        return self._transform_fast(result, func)
+        self.observed = observed
+        return self._transform_fast(result)
 
     def _transform_general(
         self, func, *args, engine="cython", engine_kwargs=None, **kwargs
@@ -539,17 +544,14 @@ class SeriesGroupBy(GroupBy[Series]):
         result.index = self._selected_obj.index
         return result
 
-    def _transform_fast(self, result, func_nm: str) -> Series:
+    def _transform_fast(self, result) -> Series:
         """
         fast version of transform, only applicable to
         builtin/cythonizable functions
         """
         ids, _, ngroup = self.grouper.group_info
         result = result.reindex(self.grouper.result_index, copy=False)
-        cast = self._transform_should_cast(func_nm)
         out = algorithms.take_1d(result._values, ids)
-        if cast:
-            out = maybe_cast_result(out, self.obj, how=func_nm)
         return self.obj._constructor(out, index=self.obj.index, name=self.obj.name)
 
     def filter(self, func, dropna=True, *args, **kwargs):
@@ -1467,25 +1469,26 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             # If func is a reduction, we need to broadcast the
             # result to the whole group. Compute func result
             # and deal with possible broadcasting below.
+            # Temporarily set observed for dealing with
+            # categoricals so we don't have to convert dtypes.
+            observed = self.observed
+            self.observed = True
             result = getattr(self, func)(*args, **kwargs)
+            self.observed = observed
 
             if isinstance(result, DataFrame) and result.columns.equals(
                 self._obj_with_exclusions.columns
             ):
-                return self._transform_fast(result, func)
+                return self._transform_fast(result)
 
         return self._transform_general(
             func, engine=engine, engine_kwargs=engine_kwargs, *args, **kwargs
         )
 
-    def _transform_fast(self, result: DataFrame, func_nm: str) -> DataFrame:
+    def _transform_fast(self, result: DataFrame) -> DataFrame:
         """
         Fast transform path for aggregations
         """
-        # if there were groups with no observations (Categorical only?)
-        # try casting data to original dtype
-        cast = self._transform_should_cast(func_nm)
-
         obj = self._obj_with_exclusions
 
         # for each col, reshape to to size of original frame
@@ -1494,12 +1497,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         result = result.reindex(self.grouper.result_index, copy=False)
         output = []
         for i, _ in enumerate(result.columns):
-            res = algorithms.take_1d(result.iloc[:, i].values, ids)
-            # TODO: we have no test cases that get here with EA dtypes;
-            #  maybe_cast_result may not be needed if EAs never get here
-            if cast:
-                res = maybe_cast_result(res, obj.iloc[:, i], how=func_nm)
-            output.append(res)
+            output.append(algorithms.take_1d(result.iloc[:, i].values, ids))
 
         return self.obj._constructor._from_arrays(
             output, columns=result.columns, index=obj.index
