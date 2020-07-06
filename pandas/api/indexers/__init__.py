@@ -6,12 +6,12 @@ from pandas.core.indexers import check_array_indexer
 from pandas.core.window.indexers import (
     BaseIndexer,
     FixedForwardWindowIndexer,
-    NonFixedVariableWindowIndexer,
+    VariableOffsetWindowIndexer,
 )
 
 __all__ = [
     "check_array_indexer",
     "BaseIndexer",
     "FixedForwardWindowIndexer",
-    "NonFixedVariableWindowIndexer",
+    "VariableOffsetWindowIndexer",
 ]

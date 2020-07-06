@@ -328,6 +328,7 @@ Other enhancements
 - :meth:`DataFrame.to_html` and :meth:`DataFrame.to_string`'s ``col_space`` parameter now accepts a list or dict to change only some specific columns' width (:issue:`28917`).
 - :meth:`DataFrame.to_excel` can now also write OpenOffice spreadsheet (.ods) files (:issue:`27222`)
 - :meth:`~Series.explode` now accepts ``ignore_index`` to reset the index, similarly to :meth:`pd.concat` or :meth:`DataFrame.sort_values` (:issue:`34932`).
+- :meth:`read_csv` now accepts string values like "0", "0.0", "1", "1.0" as convertible to the nullable boolean dtype (:issue:`34859`)
 
 .. ---------------------------------------------------------------------------
 
@@ -673,7 +674,7 @@ Other API changes
 - ``loc`` lookups with an object-dtype :class:`Index` and an integer key will now raise ``KeyError`` instead of ``TypeError`` when key is missing (:issue:`31905`)
 - Using a :func:`pandas.api.indexers.BaseIndexer` with ``count``, ``min``, ``max``, ``median``, ``skew``,  ``cov``, ``corr`` will now return correct results for any monotonic :func:`pandas.api.indexers.BaseIndexer` descendant (:issue:`32865`)
 - Added a :func:`pandas.api.indexers.FixedForwardWindowIndexer` class to support forward-looking windows during ``rolling`` operations.
-- Added a :func:`pandas.api.indexers.NonFixedVariableWindowIndexer` class to support ``rolling`` operations with non-fixed offsets (:issue:`34994`)
+- Added a :func:`pandas.api.indexers.VariableOffsetWindowIndexer` class to support ``rolling`` operations with non-fixed offsets (:issue:`34994`)
 - Added :class:`pandas.errors.InvalidIndexError` (:issue:`34570`).
 - :meth:`DataFrame.swaplevels` now raises a  ``TypeError`` if the axis is not a :class:`MultiIndex`.
   Previously an ``AttributeError`` was raised (:issue:`31126`)
@@ -693,7 +694,6 @@ Other API changes
 - :func: `pandas.api.dtypes.is_string_dtype` no longer incorrectly identifies categorical series as string.
 - :func:`read_excel` no longer takes ``**kwds`` arguments. This means that passing in keyword ``chunksize`` now raises a ``TypeError``
   (previously raised a ``NotImplementedError``), while passing in keyword ``encoding`` now raises a ``TypeError`` (:issue:`34464`)
-- :func: `merge` now checks ``suffixes`` parameter type to be ``tuple`` and raises ``TypeError``, whereas before a ``list`` or ``set`` were accepted and that the ``set`` could produce unexpected results (:issue:`33740`)
 - :class:`Period` no longer accepts tuples for the ``freq`` argument (:issue:`34658`)
 - :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` now raises ValueError if ``limit_direction`` is 'forward' or 'both' and ``method`` is 'backfill' or 'bfill' or ``limit_direction`` is 'backward' or 'both' and ``method`` is 'pad' or 'ffill' (:issue:`34746`)
 - The :class:`DataFrame` constructor no longer accepts a list of ``DataFrame`` objects. Because of changes to NumPy, ``DataFrame`` objects are now consistently treated as 2D objects, so a list of ``DataFrames`` is considered 3D, and no longer acceptible for the ``DataFrame`` constructor (:issue:`32289`).
@@ -787,6 +787,7 @@ Deprecations
 - :meth:`DataFrame.to_dict` has deprecated accepting short names for ``orient`` in future versions (:issue:`32515`)
 - :meth:`Categorical.to_dense` is deprecated and will be removed in a future version, use ``np.asarray(cat)`` instead (:issue:`32639`)
 - The ``fastpath`` keyword in the ``SingleBlockManager`` constructor is deprecated and will be removed in a future version (:issue:`33092`)
+- Providing ``suffixes`` as a ``set`` in :func:`pandas.merge` is deprecated. Provide a tuple instead (:issue:`33740`, :issue:`34741`).
 - :meth:`Index.is_mixed` is deprecated and will be removed in a future version, check ``index.inferred_type`` directly instead (:issue:`32922`)
 
 - Passing any arguments but the first one to  :func:`read_html` as
@@ -818,6 +819,7 @@ Deprecations
 - :meth:`util.testing.assert_almost_equal` now accepts both relative and absolute
   precision through the ``rtol``, and ``atol`` parameters, thus deprecating the
   ``check_less_precise`` parameter. (:issue:`13357`).
+- :func:`DataFrame.melt` accepting a value_name that already exists is deprecated, and will be removed in a future version (:issue:`34731`)
 
 .. ---------------------------------------------------------------------------
 
@@ -1042,7 +1044,9 @@ I/O
 - Bug in :meth:`read_excel` for ODS files removes 0.0 values (:issue:`27222`)
 - Bug in :meth:`ujson.encode` was raising an `OverflowError` with numbers larger than sys.maxsize (:issue: `34395`)
 - Bug in :meth:`HDFStore.append_to_multiple` was raising a ``ValueError`` when the min_itemsize parameter is set (:issue:`11238`)
+- Bug in :meth:`~HDFStore.create_table` now raises an error when `column` argument was not specified in `data_columns` on input (:issue:`28156`)
 - :meth:`read_json` now could read line-delimited json file from a file url while `lines` and `chunksize` are set.
+- Bug in :meth:`DataFrame.to_sql` when reading DataFrames with ``-np.inf`` entries with MySQL now has a more explicit ``ValueError`` (:issue:`34431`)
 
 Plotting
 ^^^^^^^^
@@ -1122,6 +1126,7 @@ ExtensionArray
 ^^^^^^^^^^^^^^
 
 - Fixed bug where :meth:`Series.value_counts` would raise on empty input of ``Int64`` dtype (:issue:`33317`)
+- Fixed bug in :func:`concat` when concatenating DataFrames with non-overlaping columns resulting in object-dtype columns rather than preserving the extension dtype (:issue:`27692`, :issue:`33027`)
 - Fixed bug where :meth:`StringArray.isna` would return ``False`` for NA values when ``pandas.options.mode.use_inf_as_na`` was set to ``True`` (:issue:`33655`)
 - Fixed bug in :class:`Series` construction with EA dtype and index but no data or scalar data fails (:issue:`26469`)
 - Fixed bug that caused :meth:`Series.__repr__()` to crash for extension types whose elements are multidimensional arrays (:issue:`33770`).
