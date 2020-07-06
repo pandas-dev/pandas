@@ -1165,6 +1165,9 @@ class _LocIndexer(_LocationIndexer):
                     if len(key) == labels.nlevels:
                         return {"key": key}
                     raise
+            except InvalidIndexError:
+                if not isinstance(labels, ABCMultiIndex):
+                    raise
             except TypeError:
                 pass
             except ValueError:
