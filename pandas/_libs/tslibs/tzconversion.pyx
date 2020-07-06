@@ -345,36 +345,28 @@ cpdef int64_t tz_convert_single(int64_t val, tzinfo tz1, tzinfo tz2):
     converted: int64
     """
     cdef:
-        int64_t utc_date
         int64_t arr[1]
+        bint to_utc = is_utc(tz2)
+        tzinfo tz
 
     # See GH#17734 We should always be converting either from UTC or to UTC
-    assert is_utc(tz1) or is_utc(tz2)
+    assert is_utc(tz1) or to_utc
 
     if val == NPY_NAT:
         return val
 
-    # Convert to UTC
-    if is_tzlocal(tz1):
-        utc_date = _tz_convert_tzlocal_utc(val, tz1, to_utc=True)
-    elif not is_utc(tz1):
-        arr[0] = val
-        utc_date = _tz_convert_dst(arr, tz1, to_utc=True)[0]
+    if to_utc:
+        tz = tz1
     else:
-        utc_date = val
+        tz = tz2
 
-    if is_utc(tz2):
-        return utc_date
-    elif is_tzlocal(tz2):
-        return _tz_convert_tzlocal_utc(utc_date, tz2, to_utc=False)
+    if is_utc(tz):
+        return val
+    elif is_tzlocal(tz):
+        return _tz_convert_tzlocal_utc(val, tz, to_utc=to_utc)
     else:
-        # Convert UTC to other timezone
-        arr[0] = utc_date
-        # Note: at least with cython 0.28.3, doing a lookup `[0]` in the next
-        # line is sensitive to the declared return type of _tz_convert_dst;
-        # if it is declared as returning ndarray[int64_t], a compile-time error
-        # is raised.
-        return _tz_convert_dst(arr, tz2, to_utc=False)[0]
+        arr[0] = val
+        return _tz_convert_dst(arr, tz, to_utc=to_utc)[0]
 
 
 def tz_convert(int64_t[:] vals, tzinfo tz1, tzinfo tz2):
@@ -392,14 +384,22 @@ def tz_convert(int64_t[:] vals, tzinfo tz1, tzinfo tz2):
     int64 ndarray of converted
     """
     cdef:
-        int64_t[:] utc_dates, converted
+        int64_t[:] converted
+        bint to_utc = is_utc(tz2)
+        tzinfo tz
+
+    # See GH#17734 We should always be converting either from UTC or to UTC
+    assert is_utc(tz1) or to_utc
 
     if len(vals) == 0:
         return np.array([], dtype=np.int64)
 
-    # Convert to UTC
-    utc_dates = _tz_convert_one_way(vals, tz1, to_utc=True)
-    converted = _tz_convert_one_way(utc_dates, tz2, to_utc=False)
+    if to_utc:
+        tz = tz1
+    else:
+        tz = tz2
+
+    converted = _tz_convert_one_way(vals, tz, to_utc=to_utc)
     return np.array(converted, dtype=np.int64)
 
 
