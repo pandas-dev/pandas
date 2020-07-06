@@ -780,10 +780,10 @@ Development Changes
 Deprecations
 ~~~~~~~~~~~~
 
-:meth:`~DataFrame.groupby` no longer ignores ``group_keys`` for ``apply``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+:meth:`~DataFrame.groupby` no longer ignores ``group_keys`` for transform-like ``apply``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:meth:`~DataFrame.groupby` no longer ignores the ``group_keys`` argument for functions passed to ``apply`` that return like-indexed outputs (:issue:`34809`)
+:meth:`~DataFrame.groupby` will no longer ignore the ``group_keys`` argument for functions passed to ``apply`` that return like-indexed outputs (:issue:`34809`).
 Previous versions of pandas would add the group keys only when the result from the applied function had a different index to the input.
 
 .. code-block:: python
@@ -795,20 +795,20 @@ Previous versions of pandas would add the group keys only when the result from t
    0  1  1
    1  2  2
    2  2  3
-   >>> df.groupby("A").apply(lambda x: x.rename(np.exp))
+   >>> df.groupby("A").apply(lambda x: x.rename(np.exp))  # Different index
                A  B
    A
    1 1.000000  1  1
    2 2.718282  2  2
      7.389056  2  3
 
-   >>> df.groupby("A").apply(lambda x: x)
+   >>> df.groupby("A").apply(lambda x: x)  # Same index
       A  B
    0  1  1
    1  2  2
    2  2  3
 
-In this future this behavior will change
+In this future this behavior will change to always respect ``as_index``, which defaults to True.
 
 .. ipython:: python
    :okwarning:

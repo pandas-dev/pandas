@@ -7764,7 +7764,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         group_keys : bool, default True
             Whether to include the group keys in the result index when performing
-            a ``.groupby().apply()`` to to the resampled object.
+            a ``.groupby().apply()`` to the resampled object.
 
             .. versionadded:: 1.1.0
 
