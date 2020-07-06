@@ -35,3 +35,17 @@ Finally go ahead and execute your script:
    run <the_script>.py
 
 Code execution will halt at the breakpoint defined or at the occurance of any segfault. LLDB's `GDB to LLDB command map <https://lldb.llvm.org/use/map.html>`_ provides a listing of debugger command that you can execute using either debugger.
+
+Another option to execute the entire test suite under the debugger would be to run the following:
+
+.. code-block:: sh
+
+   lldb -- python -m pytest
+
+Or for gdb
+
+.. code-block:: sh
+
+   gdb --args python -m pytest
+
+Once the process launches, simply type ``run`` and the test suite will begin, stopping at any segmentation fault that may occur.
