@@ -75,6 +75,7 @@ from pandas.util._validators import (
 from pandas.core.dtypes.cast import (
     cast_scalar_to_array,
     coerce_to_dtypes,
+    construct_1d_arraylike_from_scalar,
     find_common_type,
     infer_dtype_from_scalar,
     invalidate_string_dtypes,
@@ -109,7 +110,7 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     pandas_dtype,
 )
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 from pandas.core import algorithms, common as com, nanops, ops
 from pandas.core.accessor import CachedAccessor
@@ -4731,8 +4732,11 @@ class DataFrame(NDFrame):
                 # we can have situations where the whole mask is -1,
                 # meaning there is nothing found in labels, so make all nan's
                 if mask.all():
-                    values = np.empty(len(mask), dtype=index.dtype)
-                    values.fill(np.nan)
+                    dtype = index.dtype
+                    fill_value = na_value_for_dtype(dtype)
+                    values = construct_1d_arraylike_from_scalar(
+                        fill_value, len(mask), dtype
+                    )
                 else:
                     values = values.take(labels)
 
