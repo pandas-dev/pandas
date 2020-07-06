@@ -256,9 +256,7 @@ def nselect_method(request):
 # ----------------------------------------------------------------
 # Missing values & co.
 # ----------------------------------------------------------------
-@pytest.fixture(
-    params=[None, np.nan, pd.NaT, float("nan"), np.float("NaN"), pd.NA], ids=str
-)
+@pytest.fixture(params=[None, np.nan, pd.NaT, float("nan"), pd.NA], ids=str)
 def nulls_fixture(request):
     """
     Fixture for each null type in pandas.
@@ -408,7 +406,7 @@ indices_dict = {
 
 
 @pytest.fixture(params=indices_dict.keys())
-def indices(request):
+def index(request):
     """
     Fixture for many "simple" kinds of indices.
 
@@ -423,7 +421,7 @@ def indices(request):
 
 
 # Needed to generate cartesian product of indices
-index_fixture2 = indices
+index_fixture2 = index
 
 
 # ----------------------------------------------------------------
@@ -478,11 +476,11 @@ _series = {
 
 
 @pytest.fixture
-def series_with_simple_index(indices):
+def series_with_simple_index(index):
     """
     Fixture for tests on series with changing types of indices.
     """
-    return _create_series(indices)
+    return _create_series(index)
 
 
 _narrow_dtypes = [

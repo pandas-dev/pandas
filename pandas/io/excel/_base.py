@@ -1,8 +1,9 @@
 import abc
 import datetime
-from io import BytesIO
+from io import BufferedIOBase, BytesIO, RawIOBase
 import os
 from textwrap import fill
+from typing import Union
 
 from pandas._config import config
 
@@ -533,13 +534,13 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     """
     Class for writing DataFrame objects into excel sheets.
 
-    Default is to use xlwt for xls, openpyxl for xlsx.
+    Default is to use xlwt for xls, openpyxl for xlsx, odf for ods.
     See DataFrame.to_excel for typical usage.
 
     Parameters
     ----------
     path : str
-        Path to xls or xlsx file.
+        Path to xls or xlsx or ods file.
     engine : str (optional)
         Engine to use for writing. If None, defaults to
         ``io.excel.<extension>.writer``.  NOTE: can only be passed as a keyword
@@ -692,10 +693,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         # validate that this engine can handle the extension
         if isinstance(path, str):
             ext = os.path.splitext(path)[-1]
-        else:
-            ext = "xls" if engine == "xlwt" else "xlsx"
-
-        self.check_extension(ext)
+            self.check_extension(ext)
 
         self.path = path
         self.sheets = {}
@@ -781,6 +779,34 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         return self.save()
 
 
+def _is_ods_stream(stream: Union[BufferedIOBase, RawIOBase]) -> bool:
+    """
+    Check if the stream is an OpenDocument Spreadsheet (.ods) file
+
+    It uses magic values inside the stream
+
+    Parameters
+    ----------
+    stream : Union[BufferedIOBase, RawIOBase]
+        IO stream with data which might be an ODS file
+
+    Returns
+    -------
+    is_ods : bool
+        Boolean indication that this is indeed an ODS file or not
+    """
+    stream.seek(0)
+    is_ods = False
+    if stream.read(4) == b"PK\003\004":
+        stream.seek(30)
+        is_ods = (
+            stream.read(54) == b"mimetype"
+            b"application/vnd.oasis.opendocument.spreadsheet"
+        )
+    stream.seek(0)
+    return is_ods
+
+
 class ExcelFile:
     """
     Class for parsing tabular excel sheets into DataFrame objects.
@@ -789,8 +815,8 @@ class ExcelFile:
 
     Parameters
     ----------
-    io : str, path object (pathlib.Path or py._path.local.LocalPath),
-         a file-like object, xlrd workbook or openpypl workbook.
+    path_or_buffer : str, path object (pathlib.Path or py._path.local.LocalPath),
+        a file-like object, xlrd workbook or openpypl workbook.
         If a string or path object, expected to be a path to a
         .xls, .xlsx, .xlsb, .xlsm, .odf, .ods, or .odt file.
     engine : str, default None
@@ -816,18 +842,25 @@ class ExcelFile:
         "pyxlsb": _PyxlsbReader,
     }
 
-    def __init__(self, io, engine=None):
+    def __init__(self, path_or_buffer, engine=None):
         if engine is None:
             engine = "xlrd"
+            if isinstance(path_or_buffer, (BufferedIOBase, RawIOBase)):
+                if _is_ods_stream(path_or_buffer):
+                    engine = "odf"
+            else:
+                ext = os.path.splitext(str(path_or_buffer))[-1]
+                if ext == ".ods":
+                    engine = "odf"
         if engine not in self._engines:
             raise ValueError(f"Unknown engine: {engine}")
 
         self.engine = engine
 
         # Could be a str, ExcelFile, Book, etc.
-        self.io = io
+        self.io = path_or_buffer
         # Always a string
-        self._io = stringify_path(io)
+        self._io = stringify_path(path_or_buffer)
 
         self._reader = self._engines[engine](self._io)
 
