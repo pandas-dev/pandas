@@ -307,7 +307,7 @@ def deprecate_ndim_indexing(result, stacklevel=3):
     if np.ndim(result) > 1:
         warnings.warn(
             "Support for multi-dimensional indexing (e.g. `obj[:, None]`) "
-            "on is deprecated and will be removed in a future "
+            "is deprecated and will be removed in a future "
             "version.  Convert to a numpy array before indexing instead.",
             FutureWarning,
             stacklevel=stacklevel,
