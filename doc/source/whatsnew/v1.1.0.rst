@@ -329,7 +329,6 @@ Other enhancements
 - :meth:`DataFrame.to_excel` can now also write OpenOffice spreadsheet (.ods) files (:issue:`27222`)
 - :meth:`~Series.explode` now accepts ``ignore_index`` to reset the index, similarly to :meth:`pd.concat` or :meth:`DataFrame.sort_values` (:issue:`34932`).
 - :meth:`read_csv` now accepts string values like "0", "0.0", "1", "1.0" as convertible to the nullable boolean dtype (:issue:`34859`)
-- :meth:`~pandas.io.sql.get_schema` now accepts `index` parameter to include index of the DataFrame in the schema (:issue:`9084`).
 
 .. ---------------------------------------------------------------------------
 

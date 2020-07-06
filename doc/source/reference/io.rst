@@ -127,6 +127,13 @@ SQL
    read_sql_query
    read_sql
 
+.. currentmodule:: pandas.io.sql
+
+.. autosummary::
+   :toctree: api/
+
+    get_schema
+
 Google BigQuery
 ~~~~~~~~~~~~~~~
 .. autosummary::
