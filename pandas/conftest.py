@@ -256,9 +256,7 @@ def nselect_method(request):
 # ----------------------------------------------------------------
 # Missing values & co.
 # ----------------------------------------------------------------
-@pytest.fixture(
-    params=[None, np.nan, pd.NaT, float("nan"), np.float("NaN"), pd.NA], ids=str
-)
+@pytest.fixture(params=[None, np.nan, pd.NaT, float("nan"), pd.NA], ids=str)
 def nulls_fixture(request):
     """
     Fixture for each null type in pandas.
