@@ -30,7 +30,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import FrameOrSeries
+from pandas._typing import FrameOrSeries, FrameOrSeriesUnion
 from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.dtypes.cast import (
@@ -419,7 +419,8 @@ class SeriesGroupBy(GroupBy[Series]):
         values,
         not_indexed_same: bool = False,
         override_group_keys: bool = False,
-    ):
+    ) -> FrameOrSeriesUnion:
+        result: FrameOrSeriesUnion
         if len(keys) == 0:
             # GH #6265
             return self.obj._constructor(
@@ -462,9 +463,7 @@ class SeriesGroupBy(GroupBy[Series]):
             )
         else:
             # GH #6265 #24880
-            # ignore Incompatible types in assignment (expression has type
-            #   "Series", variable has type "DataFrame")
-            result = self.obj._constructor(  # type: ignore
+            result = self.obj._constructor(
                 data=values, index=_get_index(), name=self._selection_name
             )
             return self._reindex_output(result)
@@ -1227,7 +1226,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         values,
         not_indexed_same: bool = False,
         override_group_keys: bool = False,
-    ):
+    ) -> FrameOrSeriesUnion:
         if len(keys) == 0:
             return self.obj._constructor(index=keys)
 
@@ -1276,11 +1275,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             # make Nones an empty object
             if first_not_none is None:
                 return self.obj._constructor()
-            elif isinstance(first_not_none, NDFrame):
+            elif isinstance(first_not_none, (Series, DataFrame)):
 
                 # this is to silence a DeprecationWarning
                 # TODO: Remove when default dtype of empty Series is object
                 kwargs = first_not_none._construct_axes_dict()
+                backup: FrameOrSeriesUnion
                 if isinstance(first_not_none, Series):
                     # ignoring "create_series_with_explicit_dtype" gets
                     # multiple values for keyword argument "dtype_if_empty"
@@ -1288,10 +1288,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                         **kwargs, dtype_if_empty=object
                     )
                 else:
-                    # ignore error: Incompatible types in assignment (
-                    #  expression has type "NDFrame", variable has type
-                    #  "Series")
-                    backup = first_not_none._constructor(**kwargs)  # type: ignore
+                    backup = first_not_none._constructor(**kwargs)
 
                 values = [x if (x is not None) else backup for x in values]
 

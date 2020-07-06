@@ -762,7 +762,7 @@ b  2""",
             if name in base.plotting_methods:
                 return self.apply(curried)
 
-            is_transform = name in {"diff", "fillna", "tshift"}
+            is_transform = name in base.transformation_kernels
             try:
                 return self._python_apply_general(
                     curried, self._obj_with_exclusions, is_transform=is_transform
