@@ -53,6 +53,10 @@ TD64NS_DTYPE = np.dtype('m8[ns]')
 
 
 class OutOfBoundsTimedelta(ValueError):
+    """
+    Raised when encountering a timedelta value that cannot be represented
+    as a timedelta64[ns].
+    """
     # Timedelta analogue to OutOfBoundsDatetime
     pass
 
