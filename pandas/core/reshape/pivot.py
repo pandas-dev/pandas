@@ -673,7 +673,7 @@ def _normalize(table, normalize, margins: bool, margins_name="All"):
 
         # check if margin name is in (for MI cases) or equal to last
         # index/column and save the column and index margin
-        if (margins_name not in table.iloc[-1, :].name) | (
+        if (margins_name not in table.iloc[-1, :].name) & (
             margins_name != table.iloc[:, -1].name
         ):
             raise ValueError(f"{margins_name} not in pivoted DataFrame")
