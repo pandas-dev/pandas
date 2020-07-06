@@ -377,7 +377,7 @@ class TestBlockManager:
         for blk, cp_blk in zip(mgr.blocks, cp.blocks):
 
             # view assertion
-            assert cp_blk.equals(blk)
+            tm.assert_equal(cp_blk.values, blk.values)
             if isinstance(blk.values, np.ndarray):
                 assert cp_blk.values.base is blk.values.base
             else:
@@ -389,7 +389,7 @@ class TestBlockManager:
 
             # copy assertion we either have a None for a base or in case of
             # some blocks it is an array (e.g. datetimetz), but was copied
-            assert cp_blk.equals(blk)
+            tm.assert_equal(cp_blk.values, blk.values)
             if not isinstance(cp_blk.values, np.ndarray):
                 assert cp_blk.values._data.base is not blk.values._data.base
             else:

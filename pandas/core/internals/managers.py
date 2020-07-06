@@ -19,6 +19,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     is_datetimelike_v_numeric,
+    is_dtype_equal,
     is_extension_array_dtype,
     is_list_like,
     is_numeric_v_string_like,
@@ -27,9 +28,10 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import array_equivalent, isna
 
 import pandas.core.algorithms as algos
+from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
@@ -1409,29 +1411,39 @@ class BlockManager(PandasObject):
             new_axis=new_labels, indexer=indexer, axis=axis, allow_dups=True
         )
 
-    def equals(self, other) -> bool:
+    def equals(self, other: "BlockManager") -> bool:
         self_axes, other_axes = self.axes, other.axes
         if len(self_axes) != len(other_axes):
             return False
         if not all(ax1.equals(ax2) for ax1, ax2 in zip(self_axes, other_axes)):
             return False
-        self._consolidate_inplace()
-        other._consolidate_inplace()
-        if len(self.blocks) != len(other.blocks):
-            return False
 
-        # canonicalize block order, using a tuple combining the mgr_locs
-        # then type name because there might be unconsolidated
-        # blocks (say, Categorical) which can only be distinguished by
-        # the iteration order
-        def canonicalize(block):
-            return (block.mgr_locs.as_array.tolist(), block.dtype.name)
+        if self.ndim == 1:
+            # For SingleBlockManager (i.e.Series)
+            if other.ndim != 1:
+                return False
+            left = self.blocks[0].values
+            right = other.blocks[0].values
+            if not is_dtype_equal(left.dtype, right.dtype):
+                return False
+            elif isinstance(left, ExtensionArray):
+                return left.equals(right)
+            else:
+                return array_equivalent(left, right)
 
-        self_blocks = sorted(self.blocks, key=canonicalize)
-        other_blocks = sorted(other.blocks, key=canonicalize)
-        return all(
-            block.equals(oblock) for block, oblock in zip(self_blocks, other_blocks)
-        )
+        for i in range(len(self.items)):
+            # Check column-wise, return False if any column doesnt match
+            left = self.iget_values(i)
+            right = other.iget_values(i)
+            if not is_dtype_equal(left.dtype, right.dtype):
+                return False
+            elif isinstance(left, ExtensionArray):
+                if not left.equals(right):
+                    return False
+            else:
+                if not array_equivalent(left, right):
+                    return False
+        return True
 
     def unstack(self, unstacker, fill_value) -> "BlockManager":
         """
