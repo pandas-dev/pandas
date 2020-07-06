@@ -1050,6 +1050,7 @@ class Timestamp(_Timestamp):
             nanosecond = hour
             tz = minute
             freq = None
+            unit = None
 
         if getattr(ts_input, 'tzinfo', None) is not None and tz is not None:
             raise ValueError("Cannot pass a datetime or Timestamp with tzinfo with "

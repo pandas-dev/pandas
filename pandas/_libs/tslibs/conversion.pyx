@@ -56,8 +56,19 @@ TD64NS_DTYPE = np.dtype('m8[ns]')
 # Unit Conversion Helpers
 
 cdef inline int64_t cast_from_unit(object ts, str unit) except? -1:
-    """ return a casting of the unit represented to nanoseconds
-        round the fractional part of a float to our precision, p """
+    """
+    Return a casting of the unit represented to nanoseconds
+    round the fractional part of a float to our precision, p.
+
+    Parameters
+    ----------
+    ts : int, float, or None
+    unit : str
+
+    Returns
+    -------
+    int64_t
+    """
     cdef:
         int64_t m
         int p
@@ -307,7 +318,7 @@ cdef class _TSObject:
         return self.value
 
 
-cdef convert_to_tsobject(object ts, tzinfo tz, object unit,
+cdef convert_to_tsobject(object ts, tzinfo tz, str unit,
                          bint dayfirst, bint yearfirst, int32_t nanos=0):
     """
     Extract datetime and int64 from any of:
@@ -497,7 +508,7 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
     return obj
 
 
-cdef _TSObject _convert_str_to_tsobject(object ts, tzinfo tz, object unit,
+cdef _TSObject _convert_str_to_tsobject(object ts, tzinfo tz, str unit,
                                         bint dayfirst=False,
                                         bint yearfirst=False):
     """
@@ -513,6 +524,7 @@ cdef _TSObject _convert_str_to_tsobject(object ts, tzinfo tz, object unit,
         Value to be converted to _TSObject
     tz : tzinfo or None
         timezone for the timezone-aware output
+    unit : str or None
     dayfirst : bool, default False
         When parsing an ambiguous date string, interpret e.g. "3/4/1975" as
         April 3, as opposed to the standard US interpretation March 4.
