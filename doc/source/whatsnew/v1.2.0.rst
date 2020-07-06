@@ -13,6 +13,23 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+.. _whatsnew_120.binary_handle_to_csv:
+
+Support for binary file handles in ``to_csv``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`to_csv` supports file handles in binary mode (:issue:`19827` and :issue:`35058`)
+and honors their requested ``encoding`` (:issue:`13068` and :issue:`23854`).
+``mode`` has to contain a ``b`` for binary handles to be supported.
+
+For example:
+
+.. ipython:: python
+   import io
+   data = pd.DataFrame([0, 1, 2])
+   buffer = io.BytesIO()
+   data.to_csv(buffer, mode="w+b", encoding="utf-8")
+
 .. _whatsnew_120.enhancements.other:
 
 Other enhancements
