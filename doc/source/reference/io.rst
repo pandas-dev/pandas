@@ -126,7 +126,7 @@ SQL
    read_sql_table
    read_sql_query
    read_sql
-   sql.get_schema
+   io.sql.get_schema
 
 Google BigQuery
 ~~~~~~~~~~~~~~~
