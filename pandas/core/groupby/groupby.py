@@ -575,7 +575,6 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         Safe get multiple indices, translate keys for
         datelike to underlying repr.
         """
-        print(f"names={names}")
 
         def get_converter(s):
             # possibly convert to the actual key types
