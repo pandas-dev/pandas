@@ -1048,7 +1048,7 @@ cdef inline bint c_is_list_like(object obj, bint allow_sets) except -1:
         # we do not count strings/unicode/bytes as list-like
         and not isinstance(obj, (str, bytes))
         # exclude zero-dimensional duck arrays, effectively scalars
-        and getattr(obj, "ndim", 0) != 0
+        and not (hasattr(obj, "ndim") and obj.ndim == 0)
         # exclude sets if allow_sets is False
         and not (allow_sets is False and isinstance(obj, abc.Set))
     )
