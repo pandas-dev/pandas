@@ -580,6 +580,7 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         Safe get multiple indices, translate keys for
         datelike to underlying repr.
         """
+        print(f"names={names}")
 
         def get_converter(s):
             # possibly convert to the actual key types
@@ -623,16 +624,20 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
             converter = get_converter(index_sample)
             names = (converter(name) for name in names)
 
-        return [self.indices.get(name, []) for name in names]
+        res = []
+        for name in names:
+            if isna(name):
+                res += [v for k, v in self.indices.items() if isna(k)]
+            else:
+                res += [self.indices.get(name, [])]
+
+        return res
 
     def _get_index(self, name):
         """
         Safe get index, translate keys for datelike to underlying repr.
         """
-        if isna(name):
-            return [i for i, v in enumerate(self.indices) if isna(v)]
-        else:
-            return self._get_indices([name])[0]
+        return self._get_indices([name])[0]
 
     @cache_readonly
     def _selected_obj(self):
