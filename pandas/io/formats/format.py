@@ -4,6 +4,7 @@ and latex files. This module also applies to display formatting.
 """
 
 from contextlib import contextmanager
+from csv import QUOTE_NONE, QUOTE_NONNUMERIC
 from datetime import tzinfo
 import decimal
 from functools import partial
@@ -176,6 +177,7 @@ class CategoricalFormatter:
         self.na_rep = na_rep
         self.length = length
         self.footer = footer
+        self.quoting = QUOTE_NONNUMERIC
 
     def _get_footer(self) -> str:
         footer = ""
@@ -200,6 +202,7 @@ class CategoricalFormatter:
             None,
             float_format=None,
             na_rep=self.na_rep,
+            quoting=self.quoting,
         )
 
     def to_string(self) -> str:
@@ -585,7 +588,7 @@ class DataFrameFormatter(TableFormatter):
         elif isinstance(col_space, (int, str)):
             self.col_space = {"": col_space}
             self.col_space.update({column: col_space for column in self.frame.columns})
-        elif isinstance(col_space, dict):
+        elif isinstance(col_space, Mapping):
             for column in col_space.keys():
                 if column not in self.frame.columns and column != "":
                     raise ValueError(
@@ -593,7 +596,6 @@ class DataFrameFormatter(TableFormatter):
                     )
             self.col_space = col_space
         else:
-            col_space = cast(Sequence, col_space)
             if len(frame.columns) != len(col_space):
                 raise ValueError(
                     f"Col_space length({len(col_space)}) should match "
@@ -1109,6 +1111,7 @@ def format_array(
     justify: str = "right",
     decimal: str = ".",
     leading_space: Optional[bool] = None,
+    quoting: Optional[int] = None,
 ) -> List[str]:
     """
     Format an array for printing.
@@ -1171,6 +1174,7 @@ def format_array(
         justify=justify,
         decimal=decimal,
         leading_space=leading_space,
+        quoting=quoting,
     )
 
     return fmt_obj.get_result()
@@ -1216,11 +1220,15 @@ class GenericArrayFormatter:
         else:
             float_format = self.float_format
 
-        formatter = (
-            self.formatter
-            if self.formatter is not None
-            else (lambda x: pprint_thing(x, escape_chars=("\t", "\r", "\n")))
-        )
+        if self.formatter is not None:
+            formatter = self.formatter
+        else:
+            quote_strings = self.quoting is not None and self.quoting != QUOTE_NONE
+            formatter = partial(
+                pprint_thing,
+                escape_chars=("\t", "\r", "\n"),
+                quote_strings=quote_strings,
+            )
 
         def _format(x):
             if self.na_rep is not None and is_scalar(x) and isna(x):

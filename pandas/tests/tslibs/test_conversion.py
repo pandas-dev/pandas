@@ -57,9 +57,10 @@ def test_tz_convert_single_matches_tz_convert(tz_aware_fixture, freq):
     ],
 )
 def test_tz_convert_corner(arr):
-    result = tzconversion.tz_convert(
-        arr, timezones.maybe_get_tz("US/Eastern"), timezones.maybe_get_tz("Asia/Tokyo")
-    )
+    result = tzconversion.tz_convert(arr, timezones.maybe_get_tz("US/Eastern"), UTC)
+    tm.assert_numpy_array_equal(result, arr)
+
+    result = tzconversion.tz_convert(arr, UTC, timezones.maybe_get_tz("Asia/Tokyo"))
     tm.assert_numpy_array_equal(result, arr)
 
 
