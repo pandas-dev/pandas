@@ -18,7 +18,7 @@ Next you can create a script that hits the extension module you are looking to d
 
 .. code-block:: sh
 
-   lldb run python
+   lldb python
 
 If desired, set breakpoints at various file locations using the below syntax:
 
