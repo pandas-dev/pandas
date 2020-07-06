@@ -462,7 +462,9 @@ class SeriesGroupBy(GroupBy[Series]):
             )
         else:
             # GH #6265 #24880
-            result = self.obj._constructor(
+            # ignore Incompatible types in assignment (expression has type
+            #   "Series", variable has type "DataFrame")
+            result = self.obj._constructor(  # type: ignore
                 data=values, index=_get_index(), name=self._selection_name
             )
             return self._reindex_output(result)
@@ -1280,11 +1282,16 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # TODO: Remove when default dtype of empty Series is object
                 kwargs = first_not_none._construct_axes_dict()
                 if isinstance(first_not_none, Series):
-                    backup = create_series_with_explicit_dtype(
+                    # ignoring "create_series_with_explicit_dtype" gets
+                    # multiple values for keyword argument "dtype_if_empty"
+                    backup = create_series_with_explicit_dtype(  # type: ignore
                         **kwargs, dtype_if_empty=object
                     )
                 else:
-                    backup = first_not_none._constructor(**kwargs)
+                    # ignore error: Incompatible types in assignment (
+                    #  expression has type "NDFrame", variable has type
+                    #  "Series")
+                    backup = first_not_none._constructor(**kwargs)  # type: ignore
 
                 values = [x if (x is not None) else backup for x in values]
 
