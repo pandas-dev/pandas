@@ -1871,7 +1871,8 @@ def get_schema(frame, name, keys=None, con=None, dtype=None, index=False):
         be a SQLAlchemy type, or a string for sqlite3 fallback connection.
     index : boolean, default: False
          Whether to include the index of the DataFrame in the sql schema
-         New in version 1.1.0.
+
+         .. versionadded:: 1.1.0
 
     """
     pandas_sql = pandasSQL_builder(con=con)
