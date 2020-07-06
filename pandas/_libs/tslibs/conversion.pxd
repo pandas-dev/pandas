@@ -13,7 +13,7 @@ cdef class _TSObject:
         bint fold
 
 
-cdef convert_to_tsobject(object ts, tzinfo tz, object unit,
+cdef convert_to_tsobject(object ts, tzinfo tz, str unit,
                          bint dayfirst, bint yearfirst,
                          int32_t nanos=*)
 
