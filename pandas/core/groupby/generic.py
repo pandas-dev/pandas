@@ -1282,10 +1282,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 kwargs = first_not_none._construct_axes_dict()
                 backup: FrameOrSeriesUnion
                 if isinstance(first_not_none, Series):
-                    # ignoring "create_series_with_explicit_dtype" gets
-                    # multiple values for keyword argument "dtype_if_empty"
-                    backup = create_series_with_explicit_dtype(  # type: ignore
-                        **kwargs, dtype_if_empty=object
+                    kwargs["dtype_if_empty"] = object
+                    backup = create_series_with_explicit_dtype(
+                        **kwargs,
                     )
                 else:
                     backup = first_not_none._constructor(**kwargs)
