@@ -1,5 +1,5 @@
 from datetime import timezone
-from cpython.datetime cimport datetime, tzinfo
+from cpython.datetime cimport datetime, timedelta, tzinfo
 
 # dateutil compat
 from dateutil.tz import (
@@ -153,7 +153,7 @@ cdef inline object tz_cache_key(tzinfo tz):
 # UTC Offsets
 
 
-cdef get_utcoffset(tzinfo tz, obj):
+cdef timedelta get_utcoffset(tzinfo tz, datetime obj):
     try:
         return tz._utcoffset
     except AttributeError:
