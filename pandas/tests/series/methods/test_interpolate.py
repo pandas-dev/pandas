@@ -477,26 +477,26 @@ class TestSeriesInterpolateData:
         result = s.interpolate(method="bfill", limit_area="outside", limit=1)
         tm.assert_series_equal(result, expected)
 
-    def test_interp_raise_limit_direction_and_pad_or_bfill(self):
+    @pytest.mark.parametrize(
+        "method, limit_direction, expected",
+        [
+            ("pad", "backward", "forward"),
+            ("ffill", "backward", "forward"),
+            ("backfill", "forward", "backward"),
+            ("bfill", "forward", "backward"),
+            ("pad", "both", "forward"),
+            ("ffill", "both", "forward"),
+            ("backfill", "both", "backward"),
+            ("bfill", "both", "backward"),
+        ],
+    )
+    def test_interp_limit_direction_raises(self, method, limit_direction, expected):
+        # https://github.com/pandas-dev/pandas/pull/34746
         s = Series([1, 2, 3])
-        forbidden_combinations = [
-            ("pad", "backward"),
-            ("ffill", "backward"),
-            ("backfill", "forward"),
-            ("bfill", "forward"),
-            ("pad", "both"),
-            ("ffill", "both"),
-            ("backfill", "both"),
-            ("bfill", "both"),
-        ]
 
-        for method, limit_direction in forbidden_combinations:
-            msg = (
-                f"`limit_direction` must not be `{limit_direction}` "
-                f"for method `{method}`"
-            )
-            with pytest.raises(ValueError, match=msg):
-                s.interpolate(method=method, limit_direction=limit_direction)
+        msg = f"`limit_direction` must be '{expected}' for method `{method}`"
+        with pytest.raises(ValueError, match=msg):
+            s.interpolate(method=method, limit_direction=limit_direction)
 
     def test_interp_limit_direction(self):
         # These tests are for issue #9218 -- fill NaNs in both directions.

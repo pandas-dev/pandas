@@ -220,7 +220,8 @@ class DatetimeLike(Dtype):
             tm.assert_almost_equal(result, exp)
 
         else:
-            with pytest.raises(DataError):
+            msg = "No numeric types to aggregate"
+            with pytest.raises(DataError, match=msg):
                 f(roll)
 
 

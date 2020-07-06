@@ -1999,6 +1999,7 @@ def test_merge_series(on, left_on, right_on, left_index, right_index, nm):
         (0, 0, dict(suffixes=("", "_dup")), ["0", "0_dup"]),
         (0, 0, dict(suffixes=(None, "_dup")), [0, "0_dup"]),
         (0, 0, dict(suffixes=("_x", "_y")), ["0_x", "0_y"]),
+        (0, 0, dict(suffixes=["_x", "_y"]), ["0_x", "0_y"]),
         ("a", 0, dict(suffixes=(None, "_y")), ["a", 0]),
         (0.0, 0.0, dict(suffixes=("_x", None)), ["0.0_x", 0.0]),
         ("b", "b", dict(suffixes=(None, "_y")), ["b", "b_y"]),
@@ -2069,18 +2070,13 @@ def test_merge_suffix_error(col1, col2, suffixes):
         pd.merge(a, b, left_index=True, right_index=True, suffixes=suffixes)
 
 
-@pytest.mark.parametrize(
-    "col1, col2, suffixes", [("a", "a", {"a", "b"}), ("a", "a", None), (0, 0, None)],
-)
-def test_merge_suffix_type_error(col1, col2, suffixes):
-    a = pd.DataFrame({col1: [1, 2, 3]})
-    b = pd.DataFrame({col2: [3, 4, 5]})
+@pytest.mark.parametrize("suffixes", [{"left", "right"}, {"left": 0, "right": 0}])
+def test_merge_suffix_warns(suffixes):
+    a = pd.DataFrame({"a": [1, 2, 3]})
+    b = pd.DataFrame({"b": [3, 4, 5]})
 
-    msg = (
-        f"suffixes should be tuple of \\(str, str\\). But got {type(suffixes).__name__}"
-    )
-    with pytest.raises(TypeError, match=msg):
-        pd.merge(a, b, left_index=True, right_index=True, suffixes=suffixes)
+    with tm.assert_produces_warning(FutureWarning):
+        pd.merge(a, b, left_index=True, right_index=True, suffixes={"left", "right"})
 
 
 @pytest.mark.parametrize(
