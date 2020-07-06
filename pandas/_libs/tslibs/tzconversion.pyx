@@ -384,27 +384,23 @@ cpdef int64_t tz_convert_single(int64_t val, tzinfo tz1, tzinfo tz2):
     """
     cdef:
         int64_t arr[1]
-        bint to_utc = is_utc(tz2)
         tzinfo tz
 
     # See GH#17734 We should always be converting either from UTC or to UTC
-    assert is_utc(tz1) or to_utc
+    assert is_utc(tz1)
 
     if val == NPY_NAT:
         return val
 
-    if to_utc:
-        tz = tz1
-    else:
-        tz = tz2
+    tz = tz2
 
     if is_utc(tz):
         return val
     elif is_tzlocal(tz):
-        return _tz_convert_tzlocal_utc(val, tz, to_utc=to_utc)
+        return _tz_convert_tzlocal_utc(val, tz, to_utc=False)
     else:
         arr[0] = val
-        return _tz_convert_dst(arr, tz, to_utc=to_utc)[0]
+        return _tz_convert_dst(arr, tz)[0]
 
 
 def tz_convert(int64_t[:] vals, tzinfo tz1, tzinfo tz2):
@@ -423,7 +419,6 @@ def tz_convert(int64_t[:] vals, tzinfo tz1, tzinfo tz2):
     """
     cdef:
         int64_t[:] converted
-        bint to_utc = is_utc(tz2)
         tzinfo tz
 
     # See GH#17734 We should always be converting from UTC; otherwise
@@ -433,18 +428,14 @@ def tz_convert(int64_t[:] vals, tzinfo tz1, tzinfo tz2):
     if len(vals) == 0:
         return np.array([], dtype=np.int64)
 
-    if to_utc:
-        tz = tz1
-    else:
-        tz = tz2
-
-    converted = _tz_convert_one_way(vals, tz, to_utc=to_utc)
+    tz = tz2
+    converted = _tz_convert_one_way(vals, tz)
     return np.array(converted, dtype=np.int64)
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int64_t[:] _tz_convert_one_way(int64_t[:] vals, tzinfo tz, bint to_utc):
+cdef int64_t[:] _tz_convert_one_way(int64_t[:] vals, tzinfo tz):
     """
     Convert the given values (in i8) either to UTC or from UTC.
 
@@ -452,7 +443,6 @@ cdef int64_t[:] _tz_convert_one_way(int64_t[:] vals, tzinfo tz, bint to_utc):
     ----------
     vals : int64 ndarray
     tz1 : tzinfo
-    to_utc : bool
 
     Returns
     -------
@@ -472,9 +462,9 @@ cdef int64_t[:] _tz_convert_one_way(int64_t[:] vals, tzinfo tz, bint to_utc):
             if val == NPY_NAT:
                 converted[i] = NPY_NAT
             else:
-                converted[i] = _tz_convert_tzlocal_utc(val, tz, to_utc)
+                converted[i] = _tz_convert_tzlocal_utc(val, tz, to_utc=False)
     else:
-        converted = _tz_convert_dst(vals, tz, to_utc)
+        converted = _tz_convert_dst(vals, tz)
 
     return converted
 
@@ -565,9 +555,7 @@ cdef int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz, bint to_utc=True,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int64_t[:] _tz_convert_dst(
-    const int64_t[:] values, tzinfo tz, bint to_utc=True,
-):
+cdef int64_t[:] _tz_convert_dst(const int64_t[:] values, tzinfo tz):
     """
     tz_convert for non-UTC non-tzlocal cases where we have to check
     DST transitions pointwise.
@@ -576,8 +564,6 @@ cdef int64_t[:] _tz_convert_dst(
     ----------
     values : ndarray[int64_t]
     tz : tzinfo
-    to_utc : bool
-        True if converting _to_ UTC, False if converting _from_ utc
 
     Returns
     -------
@@ -607,10 +593,7 @@ cdef int64_t[:] _tz_convert_dst(
             if v == NPY_NAT:
                 result[i] = v
             else:
-                if to_utc:
-                    result[i] = v - delta
-                else:
-                    result[i] = v + delta
+                result[i] = v + delta
 
     else:
         # Previously, this search was done pointwise to try and benefit
@@ -629,9 +612,6 @@ cdef int64_t[:] _tz_convert_dst(
                     #  it elsewhere?
                     raise ValueError("First time before start of DST info")
 
-                if to_utc:
-                    result[i] = v - deltas[pos[i]]
-                else:
-                    result[i] = v + deltas[pos[i]]
+                result[i] = v + deltas[pos[i]]
 
     return result
