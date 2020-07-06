@@ -1250,7 +1250,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         the same location are considered equal.
         
         The row/column index do not need to have the same type, as long
-        as the values are still considered equal.
+        as the values are considered equal.
 
         The elements within the columns must be the same dtype.
 
