@@ -1862,7 +1862,7 @@ def get_schema(frame, name, keys=None, con=None, dtype=None, index=False):
         name of SQL table
     keys : string or sequence, default: None
         columns to use a primary key
-    con: an open SQL database connection object or a SQLAlchemy connectable
+    con : an open SQL database connection object or a SQLAlchemy connectable
         Using SQLAlchemy makes it possible to use any DB supported by that
         library, default: None
         If a DBAPI2 object, only sqlite3 is supported.
@@ -1870,10 +1870,14 @@ def get_schema(frame, name, keys=None, con=None, dtype=None, index=False):
         Optional specifying the datatype for columns. The SQL type should
         be a SQLAlchemy type, or a string for sqlite3 fallback connection.
     index : boolean, default: False
-         Whether to include the index of the DataFrame in the sql schema
+         Whether to include the index of the DataFrame in the sql schema.
 
          .. versionadded:: 1.1.0
 
+    Returns
+    -------
+    string
+        the SQL schema for the given frame
     """
     pandas_sql = pandasSQL_builder(con=con)
     return pandas_sql._create_sql_schema(
