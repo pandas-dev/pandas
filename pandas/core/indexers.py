@@ -295,7 +295,7 @@ def length_of_indexer(indexer, target=None) -> int:
     raise AssertionError("cannot find the length of the indexer")
 
 
-def deprecate_ndim_indexing(result):
+def deprecate_ndim_indexing(result, stacklevel=3):
     """
     Helper function to raise the deprecation warning for multi-dimensional
     indexing on 1D Series/Index.
@@ -306,11 +306,11 @@ def deprecate_ndim_indexing(result):
     """
     if np.ndim(result) > 1:
         warnings.warn(
-            "Support for multi-dimensional indexing (e.g. `index[:, None]`) "
-            "on an Index is deprecated and will be removed in a future "
+            "Support for multi-dimensional indexing (e.g. `obj[:, None]`) "
+            "is deprecated and will be removed in a future "
             "version.  Convert to a numpy array before indexing instead.",
-            DeprecationWarning,
-            stacklevel=3,
+            FutureWarning,
+            stacklevel=stacklevel,
         )
 
 
