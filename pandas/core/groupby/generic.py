@@ -1283,9 +1283,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 backup: FrameOrSeriesUnion
                 if isinstance(first_not_none, Series):
                     kwargs["dtype_if_empty"] = object
-                    backup = create_series_with_explicit_dtype(
-                        **kwargs,
-                    )
+                    backup = create_series_with_explicit_dtype(**kwargs)
                 else:
                     backup = first_not_none._constructor(**kwargs)
 
