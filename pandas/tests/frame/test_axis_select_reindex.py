@@ -281,7 +281,7 @@ class TestDataFrameSelectReindex:
         tm.assert_frame_equal(result, expected)
 
         # reindex fails
-        msg = "cannot reindex from a duplicate axis"
+        msg = "cannot reindex from a duplicate axis (this usually occurs when trying tp join / assign to a column when the index contains duplicate values)."
         with pytest.raises(ValueError, match=msg):
             df.reindex(index=list(range(len(df))))
 
