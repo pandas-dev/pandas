@@ -8,7 +8,7 @@ from libc.stdlib cimport malloc, free
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport ndarray, int64_t, float64_t, float32_t
+from numpy cimport ndarray, int64_t, float64_t, float32_t, uint8_t
 cnp.import_array()
 
 
@@ -1752,6 +1752,51 @@ def roll_weighted_var(float64_t[:] values, float64_t[:] weights,
 # ----------------------------------------------------------------------
 # Exponentially weighted moving average
 
+def ewma_time(ndarray[float64_t] vals, int minp, ndarray[int64_t] times,
+              int64_t halflife):
+    """
+    Compute exponentially-weighted moving average using halflife and time
+    distances.
+
+    Parameters
+    ----------
+    vals : ndarray[float_64]
+    minp : int
+    times : ndarray[int64]
+    halflife : int64
+
+    Returns
+    -------
+    ndarray
+    """
+    cdef:
+        Py_ssize_t i, num_not_nan = 0, N = len(vals)
+        bint is_not_nan
+        float64_t last_result
+        ndarray[uint8_t] mask = np.zeros(N, dtype=np.uint8)
+        ndarray[float64_t] weights, observations, output = np.empty(N, dtype=np.float64)
+
+    if N == 0:
+        return output
+
+    last_result = vals[0]
+
+    for i in range(N):
+        is_not_nan = vals[i] == vals[i]
+        num_not_nan += is_not_nan
+        if is_not_nan:
+            mask[i] = 1
+            weights = 0.5 ** ((times[i] - times[mask.view(np.bool_)]) / halflife)
+            observations = vals[mask.view(np.bool_)]
+            last_result = np.sum(weights * observations) / np.sum(weights)
+
+        if num_not_nan >= minp:
+            output[i] = last_result
+        else:
+            output[i] = NaN
+
+    return output
+
 
 def ewma(float64_t[:] vals, float64_t com, bint adjust, bint ignore_na, int minp):
     """
@@ -1761,9 +1806,9 @@ def ewma(float64_t[:] vals, float64_t com, bint adjust, bint ignore_na, int minp
     ----------
     vals : ndarray (float64 type)
     com : float64
-    adjust: int
-    ignore_na: bool
-    minp: int
+    adjust : int
+    ignore_na : bool
+    minp : int
 
     Returns
     -------
@@ -1831,10 +1876,10 @@ def ewmcov(float64_t[:] input_x, float64_t[:] input_y,
     input_x : ndarray (float64 type)
     input_y : ndarray (float64 type)
     com : float64
-    adjust: int
-    ignore_na: bool
-    minp: int
-    bias: int
+    adjust : int
+    ignore_na : bool
+    minp : int
+    bias : int
 
     Returns
     -------
