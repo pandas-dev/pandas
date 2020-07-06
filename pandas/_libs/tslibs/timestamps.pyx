@@ -14,7 +14,7 @@ from numpy cimport int64_t, int8_t, uint8_t, ndarray
 cnp.import_array()
 
 from cpython.object cimport (PyObject_RichCompareBool, PyObject_RichCompare,
-                             Py_GT, Py_GE, Py_EQ, Py_NE, Py_LT, Py_LE)
+                             Py_EQ, Py_NE)
 
 from cpython.datetime cimport (
     datetime,
@@ -51,7 +51,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     pydatetime_to_dt64,
 )
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
-from pandas._libs.tslibs.offsets cimport to_offset, is_tick_object, is_offset_object
+from pandas._libs.tslibs.offsets cimport to_offset, is_offset_object
 from pandas._libs.tslibs.timedeltas cimport is_any_td_scalar, delta_to_nanoseconds
 from pandas._libs.tslibs.timedeltas import Timedelta
 from pandas._libs.tslibs.timezones cimport (
