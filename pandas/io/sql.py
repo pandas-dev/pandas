@@ -1877,7 +1877,7 @@ def get_schema(frame, name, keys=None, con=None, dtype=None, index=False):
     Returns
     -------
     string
-        the SQL schema for the given frame
+        The SQL schema for the given frame.
     """
     pandas_sql = pandasSQL_builder(con=con)
     return pandas_sql._create_sql_schema(
