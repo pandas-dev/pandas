@@ -74,9 +74,7 @@ def _new_DatetimeIndex(cls, d):
     DatetimeArray,
     wrap=True,
 )
-@inherit_names(
-    ["_timezone", "is_normalized", "_resolution_obj"], DatetimeArray, cache=True
-)
+@inherit_names(["is_normalized", "_resolution_obj"], DatetimeArray, cache=True)
 @inherit_names(
     [
         "_bool_ops",
