@@ -94,7 +94,7 @@ typedef __int64 JSLONG;
 #define EXPORTFUNCTION __declspec(dllexport)
 
 #define FASTCALL_MSVC __fastcall
-#define FASTCALL_ATTR
+
 #define INLINE_PREFIX static __inline
 
 #else
@@ -107,8 +107,6 @@ typedef int32_t JSINT32;
 typedef uint32_t JSUINT32;
 
 #define FASTCALL_MSVC
-
-#define FASTCALL_ATTR
 
 #define INLINE_PREFIX static inline
 
