@@ -12,6 +12,7 @@ from pandas import (
     period_range,
     to_datetime,
 )
+import pandas._testing as tm
 
 
 def test_multiindex_period_datetime():
@@ -39,6 +40,12 @@ def test_multiindex_datetime_columns():
     )
 
     df = DataFrame([], columns=mi)
-    assert list(df.columns.names) == ["a", "b"]
 
-    assert all(isinstance(mi.get_level_values(i), DatetimeIndex) for i in range(2))
+    expected_df = DataFrame(
+        [],
+        columns=MultiIndex.from_arrays(
+            [[to_datetime("02/29/2020")], [to_datetime("03/01/2020")]], names=["a", "b"]
+        ),
+    )
+
+    tm.assert_frame_equal(df, expected_df)

@@ -1166,6 +1166,7 @@ class _LocIndexer(_LocationIndexer):
                         return {"key": key}
                     raise
             except InvalidIndexError:
+                # GH35015, using datetime as column indices raises exception
                 if not isinstance(labels, ABCMultiIndex):
                     raise
             except TypeError:
