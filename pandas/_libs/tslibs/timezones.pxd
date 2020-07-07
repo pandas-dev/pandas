@@ -17,16 +17,3 @@ cdef timedelta get_utcoffset(tzinfo tz, datetime obj)
 cdef bint is_fixed_offset(tzinfo tz)
 
 cdef object get_dst_info(tzinfo tz)
-
-
-cdef class TZ:
-    cdef:
-        bint use_utc, use_tzlocal, use_fixed, use_pytz
-        int noffsets
-        int64_t* utcoffsets
-        intp_t* positions
-        ndarray positions_arr  # needed to avoid segfault
-        int64_t delta
-        tzinfo tz
-
-    cdef inline int64_t get_local_timestamp(self, int64_t utc_value, Py_ssize_t i)

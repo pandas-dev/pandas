@@ -209,61 +209,6 @@ cdef ndarray[int64_t, ndim=1] unbox_utcoffsets(object transinfo):
 # ----------------------------------------------------------------------
 # Daylight Savings
 
-cdef class TZ:
-    cdef:
-        bint use_utc, use_tzlocal, use_fixed, use_pytz
-        int noffsets
-        int64_t* utcoffsets
-        intp_t* positions
-        ndarray positions_arr  # needed to avoid segfault
-        int64_t delta
-        tzinfo tz
-
-    def __cinit__(self, tzinfo tz, int64_t[:] values):
-        cdef:
-            ndarray[intp_t, ndim=1] pos
-            ndarray[int64_t, ndim=1] deltas
-
-        self.use_utc = self.use_tzlocal = self.use_fixed = self.use_pytz = False
-        self.delta = NPY_NAT  # placeholder
-        self.utcoffsets = NULL
-        self.positions = NULL
-        self.noffsets = 0
-        self.tz = tz
-
-        if tz is None or is_utc(tz):
-            self.use_utc = True
-        elif is_tzlocal(tz):
-            self.use_tzlocal = True
-        else:
-            trans, deltas, typ = get_dst_info(tz)
-            self.noffsets = len(deltas)
-            if typ not in ["pytz", "dateutil"]:
-                # Fixed Offset
-                self.use_fixed = True
-                self.delta = deltas[0]
-            else:
-                self.utcoffsets = <int64_t*>deltas.data
-                pos = trans.searchsorted(values, side="right") - 1
-                self.positions_arr = pos
-                self.positions = <intp_t*>pos.data
-                self.use_pytz = typ == "pytz"
-
-    cdef inline int64_t get_local_timestamp(self, int64_t utc_value, Py_ssize_t i):
-        cdef:
-            int64_t local_val
-
-        if self.use_utc:
-            local_val = utc_value
-        elif self.use_tzlocal:
-            local_val = tz_convert_utc_to_tzlocal(utc_value, self.tz)
-        elif self.use_fixed:
-            local_val = utc_value + self.delta
-        else:
-            local_val = utc_value + self.utcoffsets[self.positions[i]]
-        return local_val
-
-
 cdef object get_dst_info(tzinfo tz):
     """
     Returns

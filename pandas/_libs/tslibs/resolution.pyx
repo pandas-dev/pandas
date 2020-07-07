@@ -8,9 +8,8 @@ from pandas._libs.tslibs.util cimport get_nat
 from pandas._libs.tslibs.dtypes import Resolution
 from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, dt64_to_dtstruct)
-from pandas._libs.tslibs.timezones cimport TZ
 from pandas._libs.tslibs.ccalendar cimport get_days_in_month
-from pandas._libs.tslibs.tzconversion cimport tz_convert_utc_to_tzlocal
+from pandas._libs.tslibs.tzconversion cimport Localizer
 
 # ----------------------------------------------------------------------
 # Constants
@@ -39,7 +38,7 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None):
         npy_datetimestruct dts
         int reso = RESO_DAY, curr_reso
         int64_t local_val
-        TZ localizer = TZ(tz, stamps)
+        Localizer localizer = Localizer(tz, stamps)
 
     for i in range(n):
         if stamps[i] == NPY_NAT:
