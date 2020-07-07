@@ -938,10 +938,10 @@ class TestWideToLong:
         )
         expected = pd.DataFrame(
             {
-                "A": ["X1", "X1", "X2", "X2"],
-                "colname": ["placebo", "test", "placebo", "test"],
-                "result": [5.0, np.nan, 6.0, np.nan],
-                "treatment": [1.0, 3.0, 2.0, 4.0],
+                "A": ["X1", "X2", "X1", "X2"],
+                "colname": ["placebo", "placebo", "test", "test"],
+                "result": [5.0, 6.0, np.nan, np.nan],
+                "treatment": [1.0, 2.0, 3.0, 4.0],
             }
         )
         expected = expected.set_index(["A", "colname"])
@@ -985,10 +985,10 @@ class TestWideToLong:
         )
         expected = pd.DataFrame(
             {
-                "A": ["X1", "X1", "X1", "X1", "X2", "X2", "X2", "X2"],
-                "colname": [1, 1.1, 1.2, 2.1, 1, 1.1, 1.2, 2.1],
-                "result": [0.0, np.nan, 5.0, np.nan, 9.0, np.nan, 6.0, np.nan],
-                "treatment": [np.nan, 1.0, np.nan, 3.0, np.nan, 2.0, np.nan, 4.0],
+                "A": ['X1', 'X2', 'X1', 'X2', 'X1', 'X2', 'X1', 'X2'],
+                "colname": [1.2, 1.2, 1.0, 1.0, 1.1, 1.1, 2.1, 2.1],
+                "result": [5.0, 6.0, 0.0, 9.0, np.nan, np.nan, np.nan, np.nan],
+                "treatment": [np.nan, np.nan, np.nan, np.nan, 1.0, 2.0, 3.0, 4.0],
             }
         )
         expected = expected.set_index(["A", "colname"])
