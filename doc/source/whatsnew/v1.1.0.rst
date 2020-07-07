@@ -978,6 +978,7 @@ Indexing
 - Bug in :meth:`DataFrame.loc` with dictionary of values changes columns with dtype of ``int`` to ``float`` (:issue:`34573`)
 - Bug in :meth:`Series.loc` when used with a :class:`MultiIndex` would raise an IndexingError when accessing a None value (:issue:`34318`)
 - Bug in :meth:`DataFrame.reset_index` and :meth:`Series.reset_index` would not preserve data types on an empty :class:`DataFrame` or :class:`Series` with a :class:`MultiIndex` (:issue:`19602`)
+- Bug in :class:`Series` and :class:`DataFrame` indexing with a ``time`` key on a :class:`DatetimeIndex` with ``NaT`` entries (:issue:`35114`)
 
 Missing
 ^^^^^^^

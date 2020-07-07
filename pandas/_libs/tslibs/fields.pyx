@@ -16,7 +16,6 @@ from pandas._config.localization import set_locale
 
 from pandas._libs.tslibs.ccalendar import MONTHS_FULL, DAYS_FULL
 from pandas._libs.tslibs.ccalendar cimport (
-    DAY_NANOS,
     get_days_in_month, is_leapyear, dayofweek, get_week_of_year,
     get_day_of_year, get_iso_calendar, iso_calendar_t,
     month_offset,
@@ -26,27 +25,6 @@ from pandas._libs.tslibs.np_datetime cimport (
     td64_to_tdstruct)
 from pandas._libs.tslibs.nattype cimport NPY_NAT
 from pandas._libs.tslibs.strptime import LocaleTime
-
-
-def get_time_micros(const int64_t[:] dtindex):
-    """
-    Return the number of microseconds in the time component of a
-    nanosecond timestamp.
-
-    Parameters
-    ----------
-    dtindex : ndarray[int64_t]
-
-    Returns
-    -------
-    micros : ndarray[int64_t]
-    """
-    cdef:
-        ndarray[int64_t] micros
-
-    micros = np.mod(dtindex, DAY_NANOS, dtype=np.int64)
-    micros //= 1000
-    return micros
 
 
 @cython.wraparound(False)
