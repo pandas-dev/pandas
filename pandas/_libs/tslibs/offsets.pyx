@@ -594,7 +594,7 @@ cdef class BaseOffset:
         )
 
     @apply_array_wraps
-    def _apply_array(self, dtindex):
+    def _apply_array(self, dtarr):
         raise NotImplementedError(
             f"DateOffset subclass {type(self).__name__} "
             "does not have a vectorized implementation"
@@ -1067,8 +1067,8 @@ cdef class RelativeDeltaOffset(BaseOffset):
         return self._apply_array(dtindex)
 
     @apply_array_wraps
-    def _apply_array(self, dtindex):
-        dt64other = np.asarray(dtindex)
+    def _apply_array(self, dtarr):
+        dt64other = np.asarray(dtarr)
         kwds = self.kwds
         relativedelta_fast = {
             "years",
@@ -1400,8 +1400,8 @@ cdef class BusinessDay(BusinessMixin):
         return self._apply_array(dtindex)
 
     @apply_array_wraps
-    def _apply_array(self, dtindex):
-        i8other = dtindex.view("i8")
+    def _apply_array(self, dtarr):
+        i8other = dtarr.view("i8")
         return shift_bdays(i8other, self.n)
 
     def is_on_offset(self, dt: datetime) -> bool:
@@ -1887,9 +1887,9 @@ cdef class YearOffset(SingleConstructorOffset):
         return self._apply_array(dtindex)
 
     @apply_array_wraps
-    def _apply_array(self, dtindex):
+    def _apply_array(self, dtarr):
         shifted = shift_quarters(
-            dtindex.view("i8"), self.n, self.month, self._day_opt, modby=12
+            dtarr.view("i8"), self.n, self.month, self._day_opt, modby=12
         )
         return shifted
 
@@ -2044,9 +2044,9 @@ cdef class QuarterOffset(SingleConstructorOffset):
         return self._apply_array(dtindex)
 
     @apply_array_wraps
-    def _apply_array(self, dtindex):
+    def _apply_array(self, dtarr):
         shifted = shift_quarters(
-            dtindex.view("i8"), self.n, self.startingMonth, self._day_opt
+            dtarr.view("i8"), self.n, self.startingMonth, self._day_opt
         )
         return shifted
 
@@ -2163,8 +2163,8 @@ cdef class MonthOffset(SingleConstructorOffset):
         return self._apply_array(dtindex)
 
     @apply_array_wraps
-    def _apply_array(self, dtindex):
-        shifted = shift_months(dtindex.view("i8"), self.n, self._day_opt)
+    def _apply_array(self, dtarr):
+        shifted = shift_months(dtarr.view("i8"), self.n, self._day_opt)
         return shifted
 
     cpdef __setstate__(self, state):
@@ -2306,9 +2306,9 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
     @apply_array_wraps
     @cython.wraparound(False)
     @cython.boundscheck(False)
-    def _apply_array(self, dtindex):
+    def _apply_array(self, dtarr):
         cdef:
-            int64_t[:] i8other = dtindex.view("i8")
+            int64_t[:] i8other = dtarr.view("i8")
             Py_ssize_t i, count = len(i8other)
             int64_t val
             int64_t[:] out = np.empty(count, dtype="i8")
@@ -2469,13 +2469,13 @@ cdef class Week(SingleConstructorOffset):
         return self._apply_array(dtindex)
 
     @apply_array_wraps
-    def _apply_array(self, dtindex):
+    def _apply_array(self, dtarr):
         if self.weekday is None:
             td = timedelta(days=7 * self.n)
             td64 = np.timedelta64(td, "ns")
-            return dtindex + td64
+            return dtarr + td64
         else:
-            i8other = dtindex.view("i8")
+            i8other = dtarr.view("i8")
             return self._end_apply_index(i8other)
 
     @cython.wraparound(False)
@@ -3248,7 +3248,7 @@ cdef class CustomBusinessDay(BusinessDay):
     def apply_index(self, dtindex):
         raise NotImplementedError
 
-    def _apply_array(self, dtindex):
+    def _apply_array(self, dtarr):
         raise NotImplementedError
 
     def is_on_offset(self, dt: datetime) -> bool:
