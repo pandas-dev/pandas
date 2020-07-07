@@ -6,11 +6,11 @@ import warnings
 import numpy as np
 
 from pandas._libs import NaT, Period, Timestamp, index as libindex, lib, tslib
-from pandas._libs.tslibs import Resolution, fields, parsing, timezones, to_offset
-from pandas._libs.tslibs.frequencies import get_freq_group
+from pandas._libs.tslibs import Resolution, parsing, timezones, to_offset
 from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas._typing import DtypeObj, Label
-from pandas.util._decorators import cache_readonly
+from pandas.errors import InvalidIndexError
+from pandas.util._decorators import cache_readonly, doc
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
@@ -25,7 +25,7 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype
 
 from pandas.core.arrays.datetimes import DatetimeArray, tz_to_dtype
 import pandas.core.common as com
-from pandas.core.indexes.base import Index, InvalidIndexError, maybe_extract_name
+from pandas.core.indexes.base import Index, maybe_extract_name
 from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
 from pandas.core.indexes.extension import inherit_names
 from pandas.core.tools.times import to_time
@@ -64,15 +64,17 @@ def _new_DatetimeIndex(cls, d):
 
 
 @inherit_names(
-    ["to_period", "to_perioddelta", "to_julian_date", "strftime", "isocalendar"]
+    ["to_perioddelta", "to_julian_date", "strftime", "isocalendar"]
     + DatetimeArray._field_ops
-    + DatetimeArray._datetimelike_methods,
+    + [
+        method
+        for method in DatetimeArray._datetimelike_methods
+        if method not in ("tz_localize",)
+    ],
     DatetimeArray,
     wrap=True,
 )
-@inherit_names(
-    ["_timezone", "is_normalized", "_resolution_obj"], DatetimeArray, cache=True
-)
+@inherit_names(["is_normalized", "_resolution_obj"], DatetimeArray, cache=True)
 @inherit_names(
     [
         "_bool_ops",
@@ -84,7 +86,6 @@ def _new_DatetimeIndex(cls, d):
         "tzinfo",
         "dtype",
         "to_pydatetime",
-        "_local_timestamps",
         "_has_same_tz",
         "_format_native_types",
         "date",
@@ -217,6 +218,21 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     _data: DatetimeArray
     tz: Optional[tzinfo]
+
+    # --------------------------------------------------------------------
+    # methods that dispatch to array and wrap result in DatetimeIndex
+
+    @doc(DatetimeArray.tz_localize)
+    def tz_localize(
+        self, tz, ambiguous="raise", nonexistent="raise"
+    ) -> "DatetimeIndex":
+        arr = self._data.tz_localize(tz, ambiguous, nonexistent)
+        return type(self)._simple_new(arr, name=self.name)
+
+    @doc(DatetimeArray.to_period)
+    def to_period(self, freq=None) -> "DatetimeIndex":
+        arr = self._data.to_period(freq)
+        return type(self)._simple_new(arr, name=self.name)
 
     # --------------------------------------------------------------------
     # Constructors
@@ -363,10 +379,22 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     # --------------------------------------------------------------------
 
     def _get_time_micros(self):
+        """
+        Return the number of microseconds since midnight.
+
+        Returns
+        -------
+        ndarray[int64_t]
+        """
         values = self.asi8
         if self.tz is not None and not timezones.is_utc(self.tz):
             values = self._data._local_timestamps()
-        return fields.get_time_micros(values)
+
+        nanos = values % (24 * 3600 * 1_000_000_000)
+        micros = nanos // 1000
+
+        micros[self._isnan] = -1
+        return micros
 
     def to_series(self, keep_tz=lib.no_default, index=None, name=None):
         """
@@ -470,7 +498,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         dta = DatetimeArray(snapped, dtype=self.dtype)
         return DatetimeIndex._simple_new(dta, name=self.name)
 
-    def _parsed_string_to_bounds(self, reso: str, parsed: datetime):
+    def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
         """
         Calculate datetime bounds for parsed time string and its resolution.
 
@@ -485,6 +513,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -------
         lower, upper: pd.Timestamp
         """
+        assert isinstance(reso, Resolution), (type(reso), reso)
         valid_resos = {
             "year",
             "month",
@@ -497,10 +526,10 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             "second",
             "microsecond",
         }
-        if reso not in valid_resos:
+        if reso.attrname not in valid_resos:
             raise KeyError
 
-        grp = get_freq_group(reso)
+        grp = reso.freq_group
         per = Period(parsed, freq=grp)
         start, end = per.start_time, per.end_time
 
@@ -521,11 +550,12 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             end = end.tz_localize(self.tz)
         return start, end
 
-    def _validate_partial_date_slice(self, reso: str):
+    def _validate_partial_date_slice(self, reso: Resolution):
+        assert isinstance(reso, Resolution), (type(reso), reso)
         if (
             self.is_monotonic
-            and reso in ["day", "hour", "minute", "second"]
-            and self._resolution_obj >= Resolution.from_attrname(reso)
+            and reso.attrname in ["day", "hour", "minute", "second"]
+            and self._resolution_obj >= reso
         ):
             # These resolution/monotonicity validations came from GH3931,
             # GH3452 and GH2369.
@@ -625,6 +655,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if isinstance(label, str):
             freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
             parsed, reso = parsing.parse_time_string(label, freq)
+            reso = Resolution.from_attrname(reso)
             lower, upper = self._parsed_string_to_bounds(reso, parsed)
             # lower, upper form the half-open interval:
             #   [parsed, parsed + 1 freq)
@@ -641,6 +672,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     def _get_string_slice(self, key: str, use_lhs: bool = True, use_rhs: bool = True):
         freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
         parsed, reso = parsing.parse_time_string(key, freq)
+        reso = Resolution.from_attrname(reso)
         loc = self._partial_date_slice(reso, parsed, use_lhs=use_lhs, use_rhs=use_rhs)
         return loc
 
@@ -1073,6 +1105,6 @@ def bdate_range(
     )
 
 
-def _time_to_micros(time):
-    seconds = time.hour * 60 * 60 + 60 * time.minute + time.second
-    return 1000000 * seconds + time.microsecond
+def _time_to_micros(time_obj: time) -> int:
+    seconds = time_obj.hour * 60 * 60 + 60 * time_obj.minute + time_obj.second
+    return 1_000_000 * seconds + time_obj.microsecond

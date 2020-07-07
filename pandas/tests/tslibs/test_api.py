@@ -11,7 +11,6 @@ def test_namespace():
         "conversion",
         "dtypes",
         "fields",
-        "frequencies",
         "nattype",
         "np_datetime",
         "offsets",
@@ -26,6 +25,7 @@ def test_namespace():
     ]
 
     api = [
+        "BaseOffset",
         "NaT",
         "NaTType",
         "iNaT",
@@ -35,6 +35,7 @@ def test_namespace():
         "Period",
         "IncompatibleFrequency",
         "Resolution",
+        "Tick",
         "Timedelta",
         "Timestamp",
         "delta_to_nanoseconds",

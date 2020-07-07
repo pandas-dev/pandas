@@ -13,7 +13,7 @@ from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 class TestApply:
     @pytest.mark.parametrize("jit", [True, False])
-    def test_numba_vs_cython(self, jit, nogil, parallel, nopython):
+    def test_numba_vs_cython(self, jit, nogil, parallel, nopython, center):
         def f(x, *args):
             arg_sum = 0
             for arg in args:
@@ -29,10 +29,12 @@ class TestApply:
         args = (2,)
 
         s = Series(range(10))
-        result = s.rolling(2).apply(
+        result = s.rolling(2, center=center).apply(
             f, args=args, engine="numba", engine_kwargs=engine_kwargs, raw=True
         )
-        expected = s.rolling(2).apply(f, engine="cython", args=args, raw=True)
+        expected = s.rolling(2, center=center).apply(
+            f, engine="cython", args=args, raw=True
+        )
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("jit", [True, False])
