@@ -930,7 +930,7 @@ def read_html(
     io: FilePathOrBuffer,
     match: Union[str, Pattern] = ".+",
     flavor: Optional[str] = None,
-    header: Union[int, Sequence[int], None] = None,
+    header: Optional[Union[int, Sequence[int]]] = None,
     index_col: Union[int, Sequence[int], None] = None,
     skiprows: Union[int, Sequence[int], slice, None] = None,
     attrs: Optional[Dict[str, str]] = None,
