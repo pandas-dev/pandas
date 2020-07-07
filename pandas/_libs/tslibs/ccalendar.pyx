@@ -7,11 +7,6 @@ import cython
 
 from numpy cimport int64_t, int32_t
 
-from locale import LC_TIME
-
-from pandas._config.localization import set_locale
-from pandas._libs.tslibs.strptime import LocaleTime
-
 # ----------------------------------------------------------------------
 # Constants
 
@@ -246,21 +241,3 @@ cpdef int32_t get_day_of_year(int year, int month, int day) nogil:
 
     day_of_year = mo_off + day
     return day_of_year
-
-
-def get_locale_names(name_type: str, locale: object = None):
-    """
-    Returns an array of localized day or month names.
-
-    Parameters
-    ----------
-    name_type : string, attribute of LocaleTime() in which to return localized
-        names
-    locale : string
-
-    Returns
-    -------
-    list of locale names
-    """
-    with set_locale(locale, LC_TIME):
-        return getattr(LocaleTime(), name_type)
