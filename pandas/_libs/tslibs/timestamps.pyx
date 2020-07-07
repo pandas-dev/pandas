@@ -1380,7 +1380,7 @@ default 'raise'
 
         cdef:
             npy_datetimestruct dts
-            int64_t value, value_tz
+            int64_t value
             object k, v
             datetime ts_input
             tzinfo_type tzobj
@@ -1389,8 +1389,7 @@ default 'raise'
         tzobj = self.tzinfo
         value = self.value
         if tzobj is not None:
-            value_tz = tz_convert_single(value, tzobj, UTC)
-            value += value - value_tz
+            value = tz_convert_single(value, UTC, tzobj)
 
         # setup components
         dt64_to_dtstruct(value, &dts)
