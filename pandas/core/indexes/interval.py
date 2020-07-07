@@ -1,7 +1,7 @@
 """ define the IntervalIndex """
 from operator import le, lt
 import textwrap
-from typing import Any, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -948,8 +948,8 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     # Rendering Methods
     # __repr__ associated methods are based on MultiIndex
 
-    def _format_with_header(self, header, **kwargs):
-        return header + list(self._format_native_types(**kwargs))
+    def _format_with_header(self, header, na_rep="NaN") -> List[str]:
+        return header + list(self._format_native_types(na_rep=na_rep))
 
     def _format_native_types(self, na_rep="NaN", quoting=None, **kwargs):
         # GH 28210: use base method but with different default na_rep
