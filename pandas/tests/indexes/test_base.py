@@ -56,7 +56,7 @@ class TestIndex(Base):
 
     @pytest.mark.parametrize("index", ["datetime"], indirect=True)
     def test_new_axis(self, index):
-        with tm.assert_produces_warning(DeprecationWarning):
+        with tm.assert_produces_warning(FutureWarning):
             # GH#30588 multi-dimensional indexing deprecated
             new_index = index[None, :]
         assert new_index.ndim == 2
@@ -2531,7 +2531,7 @@ def test_shape_of_invalid_index():
     # that the returned shape is consistent with this underlying array for
     # compat with matplotlib (see https://github.com/pandas-dev/pandas/issues/27775)
     idx = pd.Index([0, 1, 2, 3])
-    with tm.assert_produces_warning(DeprecationWarning):
+    with tm.assert_produces_warning(FutureWarning):
         # GH#30588 multi-dimensional indexing deprecated
         assert idx[:, None].shape == (4, 1)
 

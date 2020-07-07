@@ -51,7 +51,6 @@ from pandas._libs.tslibs.timezones cimport utc_pytz as UTC
 from pandas._libs.tslibs.tzconversion cimport tz_convert_single
 
 from .dtypes cimport PeriodDtypeCode
-from .fields import get_start_end_field
 from .timedeltas cimport delta_to_nanoseconds
 from .timedeltas import Timedelta
 from .timestamps cimport _Timestamp
@@ -99,12 +98,6 @@ def apply_index_wraps(func):
     # do @functools.wraps(func) manually since it doesn't work on cdef funcs
     wrapper.__name__ = func.__name__
     wrapper.__doc__ = func.__doc__
-    try:
-        wrapper.__module__ = func.__module__
-    except AttributeError:
-        # AttributeError: 'method_descriptor' object has no
-        # attribute '__module__'
-        pass
     return wrapper
 
 
@@ -159,12 +152,6 @@ def apply_wraps(func):
     # do @functools.wraps(func) manually since it doesn't work on cdef funcs
     wrapper.__name__ = func.__name__
     wrapper.__doc__ = func.__doc__
-    try:
-        wrapper.__module__ = func.__module__
-    except AttributeError:
-        # AttributeError: 'method_descriptor' object has no
-        # attribute '__module__'
-        pass
     return wrapper
 
 
@@ -355,8 +342,7 @@ class ApplyTypeError(TypeError):
 
 cdef class BaseOffset:
     """
-    Base class for DateOffset methods that are not overridden by subclasses
-    and will (after pickle errors are resolved) go into a cdef class.
+    Base class for DateOffset methods that are not overridden by subclasses.
     """
     _day_opt = None
     _attributes = tuple(["n", "normalize"])
