@@ -1099,12 +1099,9 @@ def is_list_like(obj: object, allow_sets: bool = True) -> bool:
 
 cdef inline bint c_is_list_like(object obj, bint allow_sets) except -1:
     return (
-        # equiv: `isinstance(obj, abc.Iterable)`
-        getattr(obj, "__iter__", None) is not None and not isinstance(obj, type)
+        np.iterable(obj)
         # we do not count strings/unicode/bytes as list-like
         and not isinstance(obj, (str, bytes))
-        # assume not a 0d array unless there's evidence otherwise
-        and getattr(obj, "ndim", 1) != 0
         # exclude sets if allow_sets is False
         and not (allow_sets is False and isinstance(obj, abc.Set))
     )
