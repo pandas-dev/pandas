@@ -976,7 +976,6 @@ Indexing
 - Bug in :meth:`DataFrame.loc` with dictionary of values changes columns with dtype of ``int`` to ``float`` (:issue:`34573`)
 - Bug in :meth:`Series.loc` when used with a :class:`MultiIndex` would raise an IndexingError when accessing a None value (:issue:`34318`)
 - Bug in :meth:`DataFrame.reset_index` and :meth:`Series.reset_index` would not preserve data types on an empty :class:`DataFrame` or :class:`Series` with a :class:`MultiIndex` (:issue:`19602`)
-- Bug in :func:`pandas.core.indexes.api.union_indexes` would lead to :meth:`DataFrame.append` sorting columns even when ``sort=False`` is specified (:issue:`35092`)
 
 Missing
 ^^^^^^^
@@ -1113,6 +1112,7 @@ Reshaping
 - Fixed bug in :func:`melt` where melting MultiIndex columns with ``col_level`` > 0 would raise a ``KeyError`` on ``id_vars`` (:issue:`34129`)
 - Bug in :meth:`Series.where` with an empty Series and empty ``cond`` having non-bool dtype (:issue:`34592`)
 - Fixed regression where :meth:`DataFrame.apply` would raise ``ValueError`` for elements whth ``S`` dtype (:issue:`34529`)
+- Bug in :meth:`DataFrame.append` leading to sorting columns even when ``sort=False`` is specified (:issue:`35092`)
 
 Sparse
 ^^^^^^
