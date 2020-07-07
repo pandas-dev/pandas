@@ -3,6 +3,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas import (
     DataFrame,
     Index,
@@ -297,3 +298,21 @@ class TestResetIndex:
             index=RangeIndex(stop=2),
         )
         tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "array, dtype",
+    [
+        (["a", "b"], object),
+        (
+            pd.period_range("12-1-2000", periods=2, freq="Q-DEC"),
+            pd.PeriodDtype(freq="Q-DEC"),
+        ),
+    ],
+)
+def test_reset_index_dtypes_on_empty_frame_with_multiindex(array, dtype):
+    # GH 19602 - Preserve dtype on empty DataFrame with MultiIndex
+    idx = MultiIndex.from_product([[0, 1], [0.5, 1.0], array])
+    result = DataFrame(index=idx)[:0].reset_index().dtypes
+    expected = Series({"level_0": np.int64, "level_1": np.float64, "level_2": dtype})
+    tm.assert_series_equal(result, expected)
