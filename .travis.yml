@@ -58,12 +58,6 @@ matrix:
       services:
         - mysql
         - postgresql
-
-    - env:
-        - JOB="3.6, slow" ENV_FILE="ci/deps/travis-36-slow.yaml" PATTERN="slow" SQL="1"
-      services:
-        - mysql
-        - postgresql
   allow_failures:
     - arch: arm64
       env:

@@ -166,5 +166,4 @@ if [[ -n ${SQL:0} ]]; then
 else
    echo "not using dbs on non-linux Travis builds or Azure Pipelines"
 fi
-
 echo "done"
