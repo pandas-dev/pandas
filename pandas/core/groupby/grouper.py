@@ -562,10 +562,8 @@ class Grouping:
 
         # GH35014
         res = values._reverse_indexer()
-        if self.dropna is False:
-            nan_locs = [i for i, v in enumerate(values) if pd.isna(v)]
-            if nan_locs:
-                res[np.nan] = nan_locs
+        if self.dropna is False and any(pd.isna(v) for v in values):
+            res[np.nan] = [i for i, v in enumerate(values) if pd.isna(v)]
         return res
 
     @property
