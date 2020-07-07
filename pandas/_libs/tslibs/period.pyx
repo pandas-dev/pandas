@@ -56,6 +56,7 @@ from pandas._libs.tslibs.ccalendar cimport (
     get_days_in_month,
 )
 from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
+from pandas._libs.tslibs.conversion import ensure_datetime64ns
 
 from pandas._libs.tslibs.dtypes cimport (
     PeriodDtypeBase,
@@ -937,7 +938,7 @@ cdef inline int month_to_quarter(int month) nogil:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def periodarr_to_dt64arr(const int64_t[:] periodarr, int freq):
+def periodarr_to_dt64arr(periodarr: ndarray, freq: int) -> ndarray:
     """
     Convert array to datetime64 values from a set of ordinals corresponding to
     periods per period convention.
@@ -945,13 +946,32 @@ def periodarr_to_dt64arr(const int64_t[:] periodarr, int freq):
     cdef:
         int64_t[:] out
         Py_ssize_t i, l
+        npy_datetimestruct dts
 
     l = len(periodarr)
 
-    out = np.empty(l, dtype='i8')
+    if FR_NS >= freq >= FR_DAY:
+        if freq == FR_NS:
+            return periodarr
+
+        if freq == FR_US:
+            dta = periodarr.view("M8[us]")
+        elif freq == FR_MS:
+            dta = periodarr.view("M8[ms]")
+        elif freq == FR_SEC:
+            dta = periodarr.view("M8[s]")
+        elif freq == FR_MIN:
+            dta = periodarr.view("M8[m]")
+        elif freq == FR_HR:
+            dta = periodarr.view("M8[h]")
+        elif freq == FR_DAY:
+            dta = periodarr.view("M8[D]")
+        return ensure_datetime64ns(dta)
+
+    out = np.empty(l, dtype="i8")
 
     for i in range(l):
-        out[i] = period_ordinal_to_dt64(periodarr[i], freq)
+        out[i] = period_ordinal_to_dt64(periodarr[i], freq, &dts)
 
     return out.base  # .base to access underlying np.ndarray
 
@@ -1104,17 +1124,15 @@ cpdef int64_t period_ordinal(int y, int m, int d, int h, int min,
     return get_period_ordinal(&dts, freq)
 
 
-cdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq) except? -1:
-    cdef:
-        npy_datetimestruct dts
-
+cdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq,
+                                    npy_datetimestruct* dts) except? -1:
     if ordinal == NPY_NAT:
         return NPY_NAT
 
-    get_date_info(ordinal, freq, &dts)
+    get_date_info(ordinal, freq, dts)
 
-    check_dts_bounds(&dts)
-    return dtstruct_to_dt64(&dts)
+    check_dts_bounds(dts)
+    return dtstruct_to_dt64(dts)
 
 
 cdef str period_format(int64_t value, int freq, object fmt=None):
@@ -1735,6 +1753,9 @@ cdef class _Period(PeriodMixin):
         -------
         Timestamp
         """
+        cdef:
+            npy_datetimestruct dts
+
         if tz is not None:
             # GH#34522
             warnings.warn(
@@ -1765,7 +1786,7 @@ cdef class _Period(PeriodMixin):
 
         val = self.asfreq(freq, how)
 
-        dt64 = period_ordinal_to_dt64(val.ordinal, base)
+        dt64 = period_ordinal_to_dt64(val.ordinal, base, &dts)
         return Timestamp(dt64, tz=tz)
 
     @property
