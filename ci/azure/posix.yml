@@ -30,6 +30,11 @@ jobs:
           LC_ALL: "zh_CN.utf8"
           EXTRA_APT: "language-pack-zh-hans"
 
+        py36_slow:
+          ENV_FILE: ci/deps/azure-36-slow.yaml
+          CONDA_PY: "36"
+          PATTERN: "slow"
+
         py36_locale:
           ENV_FILE: ci/deps/azure-36-locale.yaml
           CONDA_PY: "36"
