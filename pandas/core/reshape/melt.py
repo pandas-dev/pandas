@@ -13,6 +13,7 @@ from pandas.core.arrays import Categorical
 import pandas.core.common as com
 from pandas.core.indexes.api import Index, MultiIndex
 from pandas.core.reshape.concat import concat
+from pandas.core.reshape.util import _tile_compat
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.tools.numeric import to_numeric
 
@@ -123,15 +124,8 @@ def melt(
 
     result = frame._constructor(mdata, columns=mcolumns)
 
-    if not ignore_index:
-        new_index = np.tile(frame.index, K)
-
-        if isinstance(frame.index, MultiIndex):
-            new_index = MultiIndex.from_tuples(new_index, names=frame.index.names)
-        else:
-            new_index = Index(new_index, dtype=frame.index.dtype, name=frame.index.name)
-
-        result.index = new_index
+    if not ignore_index: 
+        result.index = _tile_compat(frame.index, K)
 
     return result
 
