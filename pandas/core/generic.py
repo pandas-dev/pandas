@@ -5366,9 +5366,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         string              object
         dtype: object
         """
-        from pandas import Series  # noqa: F811
-
-        return Series(self._mgr.get_dtypes(), index=self._info_axis, dtype=np.object_)
+        data = self._mgr.get_dtypes()
+        return self._constructor_sliced(data, index=self._info_axis, dtype=np.object_)
 
     def _to_dict_of_blocks(self, copy: bool_t = True):
         """
