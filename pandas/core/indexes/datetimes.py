@@ -5,8 +5,15 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, Period, Timestamp, index as libindex, lib, tslib
-from pandas._libs.tslibs import Resolution, fields, parsing, timezones, to_offset
+from pandas._libs import NaT, Period, Timestamp, index as libindex, lib
+from pandas._libs.tslibs import (
+    Resolution,
+    fields,
+    ints_to_pydatetime,
+    parsing,
+    timezones,
+    to_offset,
+)
 from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas._typing import DtypeObj, Label
 from pandas.errors import InvalidIndexError
@@ -340,7 +347,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
-        return tslib.ints_to_pydatetime(self.asi8, self.tz)
+        return ints_to_pydatetime(self.asi8, self.tz)
 
     @property
     def _formatter_func(self):
