@@ -191,16 +191,16 @@ class TestDataFrameIsIn:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "category",
+        "values",
         [
             pd.DataFrame({"a": [1, 2, 3]}, dtype="category"),
-            pd.Series([1, 2, 3]).astype("category"),
+            pd.Series([1, 2, 3], dtype="category"),
         ],
     )
-    def test_isin_category_frame(self, category):
+    def test_isin_category_frame(self, values):
         # GH#34256
-        df = pd.DataFrame.from_dict({"a": [1, 2, 3], "b": [4, 5, 6]})
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
         expected = DataFrame({"a": [True, True, True], "b": [False, False, False]})
 
-        result = df.isin(category)
+        result = df.isin(values)
         tm.assert_frame_equal(result, expected)
