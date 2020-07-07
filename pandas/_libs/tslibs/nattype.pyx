@@ -452,7 +452,25 @@ class NaTType(_NaT):
         Function is not implemented. Use pd.to_datetime().
         """,
     )
+    strftime = _make_error_func(
+        "strftime",
+        """
+        Constructs datetime style `format` string from Timestamp.
 
+        See `datetime <https://docs.python.org/3/library/datetime\
+.html#strftime-and-strptime-format-codes>`_ module for all available directives.
+
+        Parameters
+        ----------
+        format : str
+            String of formatting directives
+
+        Returns
+        -------
+        str
+            String representation of Timestamp
+        """,
+    )
     utcfromtimestamp = _make_error_func(
         "utcfromtimestamp",
         """
