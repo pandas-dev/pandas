@@ -20,10 +20,48 @@ from pandas._libs.tslibs.ccalendar cimport DAY_NANOS, HOUR_NANOS
 from pandas._libs.tslibs.nattype cimport NPY_NAT
 from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, dt64_to_dtstruct)
-from pandas._libs.tslibs.timezones cimport get_dst_info, is_tzlocal, is_utc
+from pandas._libs.tslibs.timezones cimport (
+    get_dst_info,
+    get_utcoffset,
+    is_fixed_offset,
+    is_tzlocal,
+    is_utc,
+)
 
 
-# TODO: cdef scalar version to call from convert_str_to_tsobject
+cdef int64_t tz_localize_to_utc_single(
+    int64_t val, tzinfo tz, object ambiguous=None, object nonexistent=None,
+) except? -1:
+    """See tz_localize_to_utc.__doc__"""
+    cdef:
+        int64_t delta
+        int64_t[:] deltas
+
+    if val == NPY_NAT:
+        return val
+
+    elif is_utc(tz) or tz is None:
+        return val
+
+    elif is_tzlocal(tz):
+        return _tz_convert_tzlocal_utc(val, tz, to_utc=True)
+
+    elif is_fixed_offset(tz):
+        # TODO: in this case we should be able to use get_utcoffset,
+        #  that returns None for e.g. 'dateutil//usr/share/zoneinfo/Etc/GMT-9'
+        _, deltas, _ = get_dst_info(tz)
+        delta = deltas[0]
+        return val - delta
+
+    else:
+        return tz_localize_to_utc(
+            np.array([val], dtype="i8"),
+            tz,
+            ambiguous=ambiguous,
+            nonexistent=nonexistent,
+        )[0]
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def tz_localize_to_utc(ndarray[int64_t] vals, tzinfo tz, object ambiguous=None,
