@@ -206,17 +206,6 @@ def union_indexes(indexes, sort=True) -> Index:
 
         return Index(lib.fast_unique_multiple_list([conv(i) for i in inds], sort=sort))
 
-    # GH 35092. Detect if we have an Index type for which the sort
-    # setting doesn't make sense
-    ind_types = [type(index) for index in indexes]
-    if any(
-        ind_type in [MultiIndex, RangeIndex, DatetimeIndex, CategoricalIndex]
-        for ind_type in ind_types
-    ):
-        ignore_sort = True
-    else:
-        ignore_sort = False
-
     if kind == "special":
         result = indexes[0]
 
@@ -227,12 +216,9 @@ def union_indexes(indexes, sort=True) -> Index:
             for other in indexes[1:]:
                 # GH 35092. Pass sort to Index.union
                 # Index.union expects sort=None instead of sort=True
-                if not ignore_sort:
-                    if sort:
-                        sort = None
-                    result = result.union(other, sort=sort)
-                else:
-                    result = result.union(other)
+                if sort:
+                    sort = None
+                result = result.union(other, sort=sort)
             return result
     elif kind == "array":
         index = indexes[0]
