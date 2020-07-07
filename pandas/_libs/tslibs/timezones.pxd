@@ -19,13 +19,14 @@ cdef bint is_fixed_offset(tzinfo tz)
 cdef object get_dst_info(tzinfo tz)
 
 
-ctypedef struct TZConvertInfo:
-    bint use_utc
-    bint use_tzlocal
-    bint use_fixed
-    ndarray[int64_t, ndim=1]* utcoffsets
-    ndarray[intp_t, ndim=1]* positions
-    int64_t delta
-    int noffsets
+cdef class TZ:
+    cdef:
+        bint use_utc, use_tzlocal, use_fixed, use_pytz
+        int noffsets
+        int64_t* utcoffsets
+        intp_t* positions
+        ndarray positions_arr  # needed to avoid segfault
+        int64_t delta
+        tzinfo tz
 
-cdef TZConvertInfo get_tzconverter(tzinfo tz, const int64_t[:] values)
+    cdef inline int64_t get_local_timestamp(self, int64_t utc_value, Py_ssize_t i)

@@ -17,7 +17,7 @@ UTC = pytz.utc
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport int64_t, intp_t
+from numpy cimport int64_t, intp_t, ndarray
 cnp.import_array()
 
 # ----------------------------------------------------------------------
@@ -209,61 +209,59 @@ cdef ndarray[int64_t, ndim=1] unbox_utcoffsets(object transinfo):
 # ----------------------------------------------------------------------
 # Daylight Savings
 
-ctypedef struct TZConvertInfo:
-    bint use_utc
-    bint use_tzlocal
-    bint use_fixed
-    ndarray[int64_t, ndim=1]* utcoffsets
-    ndarray[intp_t, ndim=1]* positions
-    int64_t delta
-    int noffsets
-
-
-cdef TZConvertInfo get_tzconverter(tzinfo tz, const int64_t[:] values):
+cdef class TZ:
     cdef:
-        TZConvertInfo info
-        ndarray[int64_t, ndim=1] deltas, trans
-        ndarray[intp_t, ndim=1] pos
-        str typ
-        Py_ssize_t n = len(values)
+        bint use_utc, use_tzlocal, use_fixed, use_pytz
+        int noffsets
+        int64_t* utcoffsets
+        intp_t* positions
+        ndarray positions_arr  # needed to avoid segfault
+        int64_t delta
+        tzinfo tz
 
-    info.use_utc = info.use_tzlocal = info.use_fixed = False
-    info.delta = NPY_NAT  # placeholder
-    info.utcoffsets = NULL
-    info.positions = NULL
-    info.noffsets = 0
+    def __cinit__(self, tzinfo tz, int64_t[:] values):
+        cdef:
+            ndarray[intp_t, ndim=1] pos
+            ndarray[int64_t, ndim=1] deltas
 
-    if tz is None or is_utc(tz):
-        info.use_utc = True
-    elif is_tzlocal(tz):
-        info.use_tzlocal = True
-    else:
-        trans, deltas, typ = get_dst_info(tz)
-        info.noffsets = len(deltas)
-        if typ not in ["pytz", "dateutil"]:
-            # Fixed Offset
-            info.use_fixed = True
-            info.delta = deltas[0]
+        self.use_utc = self.use_tzlocal = self.use_fixed = self.use_pytz = False
+        self.delta = NPY_NAT  # placeholder
+        self.utcoffsets = NULL
+        self.positions = NULL
+        self.noffsets = 0
+        self.tz = tz
+
+        if tz is None or is_utc(tz):
+            self.use_utc = True
+        elif is_tzlocal(tz):
+            self.use_tzlocal = True
         else:
-            info.utcoffsets = deltas
-            #info.utcoffsets = <int64_t*>cnp.PyArray_DATA(deltas)
-            pos = trans.searchsorted(values, side="right") - 1
-            assert pos.flags["F_CONTIGUOUS"]
-            assert pos.flags["C_CONTIGUOUS"]
+            trans, deltas, typ = get_dst_info(tz)
+            self.noffsets = len(deltas)
+            if typ not in ["pytz", "dateutil"]:
+                # Fixed Offset
+                self.use_fixed = True
+                self.delta = deltas[0]
+            else:
+                self.utcoffsets = <int64_t*>deltas.data
+                pos = trans.searchsorted(values, side="right") - 1
+                self.positions_arr = pos
+                self.positions = <intp_t*>pos.data
+                self.use_pytz = typ == "pytz"
 
-            assert (pos.max() < info.noffsets), (pos.max(), info.noffsets)
-            assert (pos < info.noffsets).all(), (max(pos), info.noffsets)
-            #info.positions = <intp_t*>cnp.PyArray_DATA(pos)
-            info.positions = pos
+    cdef inline int64_t get_local_timestamp(self, int64_t utc_value, Py_ssize_t i):
+        cdef:
+            int64_t local_val
 
-            #pos2 = np.array(<intp_t[:n]>info.positions, dtype=np.intp)
-            #assert pos2.max() < info.noffsets, (pos2.max(), info.noffsets)
-
-            for i in range(n):
-                p = info.positions[i]
-                assert p < info.noffsets, (p, info.noffsets)
-
-    return info
+        if self.use_utc:
+            local_val = utc_value
+        elif self.use_tzlocal:
+            local_val = tz_convert_utc_to_tzlocal(utc_value, self.tz)
+        elif self.use_fixed:
+            local_val = utc_value + self.delta
+        else:
+            local_val = utc_value + self.utcoffsets[self.positions[i]]
+        return local_val
 
 
 cdef object get_dst_info(tzinfo tz):

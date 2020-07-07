@@ -8,7 +8,7 @@ from pandas._libs.tslibs.util cimport get_nat
 from pandas._libs.tslibs.dtypes import Resolution
 from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, dt64_to_dtstruct)
-from pandas._libs.tslibs.timezones cimport get_tzconverter, TZConvertInfo
+from pandas._libs.tslibs.timezones cimport TZ
 from pandas._libs.tslibs.ccalendar cimport get_days_in_month
 from pandas._libs.tslibs.tzconversion cimport tz_convert_utc_to_tzlocal
 
@@ -39,36 +39,13 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None):
         npy_datetimestruct dts
         int reso = RESO_DAY, curr_reso
         int64_t local_val
-        TZConvertInfo info
-        #ndarray[intp_t, ndim=1] pos2
-
-    info = get_tzconverter(tz, stamps)
-
-    if info.use_fixed:
-        assert info.delta != NPY_NAT
-    elif not info.use_utc and not info.use_tzlocal:
-        assert info.utcoffsets is not NULL
-        assert info.positions is not NULL
-        #pos2 = np.array(<intp_t[:n]>info.positions, dtype=np.intp)
-        for i in range(n):
-            v1 = info.positions[i]
-            #v2 = pos2[i]
-            #assert v1 == v2, (v1, v2)
-            assert v1 < info.noffsets, (v1, info.noffsets, i, stamps[i])
-        #assert pos2.max() < info.noffsets, (pos2.max(), info.noffsets)
+        TZ localizer = TZ(tz, stamps)
 
     for i in range(n):
         if stamps[i] == NPY_NAT:
             continue
 
-        if info.use_utc:
-            local_val = stamps[i]
-        elif info.use_tzlocal:
-            local_val = tz_convert_utc_to_tzlocal(stamps[i], tz)
-        elif info.use_fixed:
-            local_val = stamps[i] + info.delta
-        else:
-            local_val = stamps[i] + info.utcoffsets[info.positions[i]]
+        local_val = localizer.get_local_timestamp(stamps[i], i)
 
         dt64_to_dtstruct(local_val, &dts)
         curr_reso = _reso_stamp(&dts)
