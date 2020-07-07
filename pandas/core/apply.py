@@ -291,9 +291,8 @@ class FrameApply(metaclass=abc.ABCMeta):
                 res_index = res_index.take(successes)
 
         else:
-            for i, v in series_gen_enumeration:
-
-                with option_context("mode.chained_assignment", None):
+            with option_context("mode.chained_assignment", None):
+                for i, v in series_gen_enumeration:
                     # ignore SettingWithCopy here in case the user mutates
                     results[i] = self.f(v)
 
