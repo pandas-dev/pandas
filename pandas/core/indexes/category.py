@@ -347,6 +347,15 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
             attrs.append(("length", len(self)))
         return attrs
 
+    def _format_with_header(self, header, na_rep="NaN") -> List[str]:
+        from pandas.io.formats.format import format_array
+
+        formatted_values = format_array(
+            self._values, formatter=None, na_rep=na_rep, justify="left"
+        )
+        result = ibase.trim_front(formatted_values)
+        return header + result
+
     # --------------------------------------------------------------------
 
     @property
