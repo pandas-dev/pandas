@@ -35,6 +35,7 @@ jobs:
           CONDA_PY: "36"
           PATTERN: "slow"
           SQL: "1"
+          SQL_SETUP: "1"
 
         py36_locale:
           ENV_FILE: ci/deps/azure-36-locale.yaml
