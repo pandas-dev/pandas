@@ -82,17 +82,45 @@ cdef bint _is_normalized(datetime dt):
     return True
 
 
+def apply_wrapper_core(func, self, other):
+    result = func(self, other)
+    result = np.asarray(result)
+
+    if self.normalize:
+        result = normalize_i8_timestamps(result.view("i8"), None)
+
+    return result
+
+
 def apply_index_wraps(func):
+    # Note: normally we would use `@functools.wraps(func)`, but this does
+    # not play nicely with cython class methods
+    def wrapper(self, other):
+        # other is a DatetimeArray
+        result = apply_wrapper_core(func, self, other)
+        result = type(other)(result)
+        warnings.warn("'Offset.apply_index(other)' is deprecated. "
+                      "Use 'offset + other' instead.", FutureWarning)
+        return result
+
+    # do @functools.wraps(func) manually since it doesn't work on cdef funcs
+    wrapper.__name__ = func.__name__
+    wrapper.__doc__ = func.__doc__
+    try:
+        wrapper.__module__ = func.__module__
+    except AttributeError:
+        # AttributeError: 'method_descriptor' object has no
+        # attribute '__module__'
+        pass
+    return wrapper
+
+
+def apply_array_wraps(func):
     # Note: normally we would use `@functools.wraps(func)`, but this does
     # not play nicely with cython class methods
     def wrapper(self, other) -> np.ndarray:
         # other is a DatetimeArray
-
-        result = func(self, other)
-        result = np.asarray(result)
-
-        if self.normalize:
-            result = normalize_i8_timestamps(result.view("i8"), None)
+        result = apply_wrapper_core(func, self, other)
         return result
 
     # do @functools.wraps(func) manually since it doesn't work on cdef funcs
@@ -554,6 +582,10 @@ cdef class BaseOffset:
         raises NotImplementedError for offsets without a
         vectorized implementation.
 
+        .. deprecated:: 1.1.0
+
+           Use ``offset + dtindex`` instead.
+
         Parameters
         ----------
         index : DatetimeIndex
@@ -562,6 +594,13 @@ cdef class BaseOffset:
         -------
         DatetimeIndex
         """
+        raise NotImplementedError(
+            f"DateOffset subclass {type(self).__name__} "
+            "does not have a vectorized implementation"
+        )
+
+    @apply_array_wraps
+    def _apply_array(self, dtindex):
         raise NotImplementedError(
             f"DateOffset subclass {type(self).__name__} "
             "does not have a vectorized implementation"
@@ -1031,6 +1070,10 @@ cdef class RelativeDeltaOffset(BaseOffset):
         -------
         ndarray[datetime64[ns]]
         """
+        return self._apply_array(dtindex)
+
+    @apply_array_wraps
+    def _apply_array(self, dtindex):
         dt64other = np.asarray(dtindex)
         kwds = self.kwds
         relativedelta_fast = {
@@ -1360,6 +1403,10 @@ cdef class BusinessDay(BusinessMixin):
 
     @apply_index_wraps
     def apply_index(self, dtindex):
+        return self._apply_array(dtindex)
+
+    @apply_array_wraps
+    def _apply_array(self, dtindex):
         i8other = dtindex.view("i8")
         return shift_bdays(i8other, self.n)
 
@@ -1843,6 +1890,10 @@ cdef class YearOffset(SingleConstructorOffset):
 
     @apply_index_wraps
     def apply_index(self, dtindex):
+        return self._apply_array(dtindex)
+
+    @apply_array_wraps
+    def _apply_array(self, dtindex):
         shifted = shift_quarters(
             dtindex.view("i8"), self.n, self.month, self._day_opt, modby=12
         )
@@ -1996,6 +2047,10 @@ cdef class QuarterOffset(SingleConstructorOffset):
 
     @apply_index_wraps
     def apply_index(self, dtindex):
+        return self._apply_array(dtindex)
+
+    @apply_array_wraps
+    def _apply_array(self, dtindex):
         shifted = shift_quarters(
             dtindex.view("i8"), self.n, self.startingMonth, self._day_opt
         )
@@ -2111,6 +2166,10 @@ cdef class MonthOffset(SingleConstructorOffset):
 
     @apply_index_wraps
     def apply_index(self, dtindex):
+        return self._apply_array(dtindex)
+
+    @apply_array_wraps
+    def _apply_array(self, dtindex):
         shifted = shift_months(dtindex.view("i8"), self.n, self._day_opt)
         return shifted
 
@@ -2248,6 +2307,12 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
     @cython.wraparound(False)
     @cython.boundscheck(False)
     def apply_index(self, dtindex):
+        return self._apply_array(dtindex)
+
+    @apply_array_wraps
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
+    def _apply_array(self, dtindex):
         cdef:
             int64_t[:] i8other = dtindex.view("i8")
             Py_ssize_t i, count = len(i8other)
@@ -2407,6 +2472,10 @@ cdef class Week(SingleConstructorOffset):
 
     @apply_index_wraps
     def apply_index(self, dtindex):
+        return self._apply_array(dtindex)
+
+    @apply_array_wraps
+    def _apply_array(self, dtindex):
         if self.weekday is None:
             td = timedelta(days=7 * self.n)
             td64 = np.timedelta64(td, "ns")
@@ -3183,6 +3252,9 @@ cdef class CustomBusinessDay(BusinessDay):
             )
 
     def apply_index(self, dtindex):
+        raise NotImplementedError
+
+    def _apply_array(self, dtindex):
         raise NotImplementedError
 
     def is_on_offset(self, dt: datetime) -> bool:
