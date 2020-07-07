@@ -2,6 +2,7 @@ from sys import getsizeof
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Hashable,
     Iterable,
     List,
@@ -1231,13 +1232,13 @@ class MultiIndex(Index):
 
     def format(
         self,
-        name=None,
-        formatter=None,
-        na_rep=None,
-        names=False,
-        space=2,
-        sparsify=None,
-        adjoin=True,
+        name: Optional[bool] = None,
+        formatter: Optional[Callable] = None,
+        na_rep: Optional[str] = None,
+        names: bool = False,
+        space: int = 2,
+        sparsify: Optional[bool] = None,
+        adjoin: bool = True,
     ) -> list:
         if name is not None:
             names = name
