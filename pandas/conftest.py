@@ -44,6 +44,19 @@ from pandas.core.indexes.api import Index, MultiIndex
 # Configuration / Settings
 # ----------------------------------------------------------------
 # pytest
+def pytest_configure(config):
+    # Register marks to avoid warnings in pandas.test()
+    # sync with setup.cfg
+    config.addinivalue_line("markers", "single: mark a test as single cpu only")
+    config.addinivalue_line("markers", "slow: mark a test as slow")
+    config.addinivalue_line("markers", "network: mark a test as network")
+    config.addinivalue_line(
+        "markers", "db: tests requiring a database (mysql or postgres)"
+    )
+    config.addinivalue_line("markers", "high_memory: mark a test as a high-memory only")
+    config.addinivalue_line("markers", "clipboard: mark a pd.read_clipboard test")
+
+
 def pytest_addoption(parser):
     parser.addoption("--skip-slow", action="store_true", help="skip slow tests")
     parser.addoption("--skip-network", action="store_true", help="skip network tests")
@@ -256,9 +269,7 @@ def nselect_method(request):
 # ----------------------------------------------------------------
 # Missing values & co.
 # ----------------------------------------------------------------
-@pytest.fixture(
-    params=[None, np.nan, pd.NaT, float("nan"), np.float("NaN"), pd.NA], ids=str
-)
+@pytest.fixture(params=[None, np.nan, pd.NaT, float("nan"), pd.NA], ids=str)
 def nulls_fixture(request):
     """
     Fixture for each null type in pandas.

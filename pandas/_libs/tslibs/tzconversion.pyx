@@ -20,10 +20,48 @@ from pandas._libs.tslibs.ccalendar cimport DAY_NANOS, HOUR_NANOS
 from pandas._libs.tslibs.nattype cimport NPY_NAT
 from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, dt64_to_dtstruct)
-from pandas._libs.tslibs.timezones cimport get_dst_info, is_tzlocal, is_utc
+from pandas._libs.tslibs.timezones cimport (
+    get_dst_info,
+    get_utcoffset,
+    is_fixed_offset,
+    is_tzlocal,
+    is_utc,
+)
 
 
-# TODO: cdef scalar version to call from convert_str_to_tsobject
+cdef int64_t tz_localize_to_utc_single(
+    int64_t val, tzinfo tz, object ambiguous=None, object nonexistent=None,
+) except? -1:
+    """See tz_localize_to_utc.__doc__"""
+    cdef:
+        int64_t delta
+        int64_t[:] deltas
+
+    if val == NPY_NAT:
+        return val
+
+    elif is_utc(tz) or tz is None:
+        return val
+
+    elif is_tzlocal(tz):
+        return _tz_convert_tzlocal_utc(val, tz, to_utc=True)
+
+    elif is_fixed_offset(tz):
+        # TODO: in this case we should be able to use get_utcoffset,
+        #  that returns None for e.g. 'dateutil//usr/share/zoneinfo/Etc/GMT-9'
+        _, deltas, _ = get_dst_info(tz)
+        delta = deltas[0]
+        return val - delta
+
+    else:
+        return tz_localize_to_utc(
+            np.array([val], dtype="i8"),
+            tz,
+            ambiguous=ambiguous,
+            nonexistent=nonexistent,
+        )[0]
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def tz_localize_to_utc(ndarray[int64_t] vals, tzinfo tz, object ambiguous=None,
@@ -345,36 +383,28 @@ cpdef int64_t tz_convert_single(int64_t val, tzinfo tz1, tzinfo tz2):
     converted: int64
     """
     cdef:
-        int64_t utc_date
         int64_t arr[1]
+        bint to_utc = is_utc(tz2)
+        tzinfo tz
 
     # See GH#17734 We should always be converting either from UTC or to UTC
-    assert is_utc(tz1) or is_utc(tz2)
+    assert is_utc(tz1) or to_utc
 
     if val == NPY_NAT:
         return val
 
-    # Convert to UTC
-    if is_tzlocal(tz1):
-        utc_date = _tz_convert_tzlocal_utc(val, tz1, to_utc=True)
-    elif not is_utc(tz1):
-        arr[0] = val
-        utc_date = _tz_convert_dst(arr, tz1, to_utc=True)[0]
+    if to_utc:
+        tz = tz1
     else:
-        utc_date = val
+        tz = tz2
 
-    if is_utc(tz2):
-        return utc_date
-    elif is_tzlocal(tz2):
-        return _tz_convert_tzlocal_utc(utc_date, tz2, to_utc=False)
+    if is_utc(tz):
+        return val
+    elif is_tzlocal(tz):
+        return _tz_convert_tzlocal_utc(val, tz, to_utc=to_utc)
     else:
-        # Convert UTC to other timezone
-        arr[0] = utc_date
-        # Note: at least with cython 0.28.3, doing a lookup `[0]` in the next
-        # line is sensitive to the declared return type of _tz_convert_dst;
-        # if it is declared as returning ndarray[int64_t], a compile-time error
-        # is raised.
-        return _tz_convert_dst(arr, tz2, to_utc=False)[0]
+        arr[0] = val
+        return _tz_convert_dst(arr, tz, to_utc=to_utc)[0]
 
 
 def tz_convert(int64_t[:] vals, tzinfo tz1, tzinfo tz2):
@@ -392,14 +422,23 @@ def tz_convert(int64_t[:] vals, tzinfo tz1, tzinfo tz2):
     int64 ndarray of converted
     """
     cdef:
-        int64_t[:] utc_dates, converted
+        int64_t[:] converted
+        bint to_utc = is_utc(tz2)
+        tzinfo tz
+
+    # See GH#17734 We should always be converting from UTC; otherwise
+    #  should use tz_localize_to_utc.
+    assert is_utc(tz1)
 
     if len(vals) == 0:
         return np.array([], dtype=np.int64)
 
-    # Convert to UTC
-    utc_dates = _tz_convert_one_way(vals, tz1, to_utc=True)
-    converted = _tz_convert_one_way(utc_dates, tz2, to_utc=False)
+    if to_utc:
+        tz = tz1
+    else:
+        tz = tz2
+
+    converted = _tz_convert_one_way(vals, tz, to_utc=to_utc)
     return np.array(converted, dtype=np.int64)
 
 
@@ -551,29 +590,48 @@ cdef int64_t[:] _tz_convert_dst(
         int64_t[:] result = np.empty(n, dtype=np.int64)
         ndarray[int64_t] trans
         int64_t[:] deltas
-        int64_t v
+        int64_t v, delta
+        str typ
 
     # tz is assumed _not_ to be tzlocal; that should go
     #  through _tz_convert_tzlocal_utc
 
-    trans, deltas, _ = get_dst_info(tz)
-    if not to_utc:
-        # We add `offset` below instead of subtracting it
-        deltas = -1 * np.array(deltas, dtype='i8')
+    trans, deltas, typ = get_dst_info(tz)
 
-    # Previously, this search was done pointwise to try and benefit
-    # from getting to skip searches for iNaTs. However, it seems call
-    # overhead dominates the search time so doing it once in bulk
-    # is substantially faster (GH#24603)
-    pos = trans.searchsorted(values, side='right') - 1
+    if typ not in ["pytz", "dateutil"]:
+        # FixedOffset, we know len(deltas) == 1
+        delta = deltas[0]
 
-    for i in range(n):
-        v = values[i]
-        if v == NPY_NAT:
-            result[i] = v
-        else:
-            if pos[i] < 0:
-                raise ValueError('First time before start of DST info')
-            result[i] = v - deltas[pos[i]]
+        for i in range(n):
+            v = values[i]
+            if v == NPY_NAT:
+                result[i] = v
+            else:
+                if to_utc:
+                    result[i] = v - delta
+                else:
+                    result[i] = v + delta
+
+    else:
+        # Previously, this search was done pointwise to try and benefit
+        # from getting to skip searches for iNaTs. However, it seems call
+        # overhead dominates the search time so doing it once in bulk
+        # is substantially faster (GH#24603)
+        pos = trans.searchsorted(values, side="right") - 1
+
+        for i in range(n):
+            v = values[i]
+            if v == NPY_NAT:
+                result[i] = v
+            else:
+                if pos[i] < 0:
+                    # TODO: How is this reached?  Should we be checking for
+                    #  it elsewhere?
+                    raise ValueError("First time before start of DST info")
+
+                if to_utc:
+                    result[i] = v - deltas[pos[i]]
+                else:
+                    result[i] = v + deltas[pos[i]]
 
     return result

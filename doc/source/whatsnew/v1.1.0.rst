@@ -329,6 +329,8 @@ Other enhancements
 - :meth:`DataFrame.to_excel` can now also write OpenOffice spreadsheet (.ods) files (:issue:`27222`)
 - :meth:`~Series.explode` now accepts ``ignore_index`` to reset the index, similarly to :meth:`pd.concat` or :meth:`DataFrame.sort_values` (:issue:`34932`).
 - :meth:`DataFrame.to_markdown` and :meth:`Series.to_markdown` now accept ``index`` argument as an alias for tabulate's ``showindex`` (:issue:`32667`)
+- :meth:`read_csv` now accepts string values like "0", "0.0", "1", "1.0" as convertible to the nullable boolean dtype (:issue:`34859`)
+- :class:`pandas.core.window.ExponentialMovingWindow` now supports a ``times`` argument that allows ``mean`` to be calculated with observations spaced by the timestamps in ``times`` (:issue:`34839`)
 
 .. ---------------------------------------------------------------------------
 
@@ -788,6 +790,7 @@ Deprecations
 - :meth:`Categorical.to_dense` is deprecated and will be removed in a future version, use ``np.asarray(cat)`` instead (:issue:`32639`)
 - The ``fastpath`` keyword in the ``SingleBlockManager`` constructor is deprecated and will be removed in a future version (:issue:`33092`)
 - Providing ``suffixes`` as a ``set`` in :func:`pandas.merge` is deprecated. Provide a tuple instead (:issue:`33740`, :issue:`34741`).
+- Indexing a series with a multi-dimensional indexer like ``[:, None]`` to return an ndarray now raises a ``FutureWarning``. Convert to a NumPy array before indexing instead (:issue:`27837`)
 - :meth:`Index.is_mixed` is deprecated and will be removed in a future version, check ``index.inferred_type`` directly instead (:issue:`32922`)
 
 - Passing any arguments but the first one to  :func:`read_html` as
@@ -819,6 +822,7 @@ Deprecations
 - :meth:`util.testing.assert_almost_equal` now accepts both relative and absolute
   precision through the ``rtol``, and ``atol`` parameters, thus deprecating the
   ``check_less_precise`` parameter. (:issue:`13357`).
+- :func:`DataFrame.melt` accepting a value_name that already exists is deprecated, and will be removed in a future version (:issue:`34731`)
 
 .. ---------------------------------------------------------------------------
 
@@ -1045,6 +1049,7 @@ I/O
 - Bug in :meth:`HDFStore.append_to_multiple` was raising a ``ValueError`` when the min_itemsize parameter is set (:issue:`11238`)
 - Bug in :meth:`~HDFStore.create_table` now raises an error when `column` argument was not specified in `data_columns` on input (:issue:`28156`)
 - :meth:`read_json` now could read line-delimited json file from a file url while `lines` and `chunksize` are set.
+- Bug in :meth:`DataFrame.to_sql` when reading DataFrames with ``-np.inf`` entries with MySQL now has a more explicit ``ValueError`` (:issue:`34431`)
 
 Plotting
 ^^^^^^^^
