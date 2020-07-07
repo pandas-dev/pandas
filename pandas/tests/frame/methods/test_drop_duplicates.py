@@ -337,14 +337,14 @@ def test_drop_duplicates_inplace():
     expected = orig[:2]
     result = df
     tm.assert_frame_equal(result, expected)
-    assert(return_value is None)
+    assert return_value is None
 
     df = orig.copy()
     return_value = df.drop_duplicates("A", keep="last", inplace=True)
     expected = orig.loc[[6, 7]]
     result = df
     tm.assert_frame_equal(result, expected)
-    assert (return_value is None)
+    assert return_value is None
 
     df = orig.copy()
     return_value = df.drop_duplicates("A", keep=False, inplace=True)
@@ -352,7 +352,7 @@ def test_drop_duplicates_inplace():
     result = df
     tm.assert_frame_equal(result, expected)
     assert len(df) == 0
-    assert (return_value is None)
+    assert return_value is None
 
     # multi column
     df = orig.copy()
@@ -360,21 +360,21 @@ def test_drop_duplicates_inplace():
     expected = orig.loc[[0, 1, 2, 3]]
     result = df
     tm.assert_frame_equal(result, expected)
-    assert (return_value is None)
+    assert return_value is None
 
     df = orig.copy()
     return_value = df.drop_duplicates(["A", "B"], keep="last", inplace=True)
     expected = orig.loc[[0, 5, 6, 7]]
     result = df
     tm.assert_frame_equal(result, expected)
-    assert (return_value is None)
+    assert return_value is None
 
     df = orig.copy()
     return_value = df.drop_duplicates(["A", "B"], keep=False, inplace=True)
     expected = orig.loc[[0]]
     result = df
     tm.assert_frame_equal(result, expected)
-    assert (return_value is None)
+    assert return_value is None
 
     # consider everything
     orig2 = orig.loc[:, ["A", "B", "C"]].copy()
@@ -385,21 +385,21 @@ def test_drop_duplicates_inplace():
     expected = orig2.drop_duplicates(["A", "B"])
     result = df2
     tm.assert_frame_equal(result, expected)
-    assert (return_value is None)
+    assert return_value is None
 
     df2 = orig2.copy()
     return_value = df2.drop_duplicates(keep="last", inplace=True)
     expected = orig2.drop_duplicates(["A", "B"], keep="last")
     result = df2
     tm.assert_frame_equal(result, expected)
-    assert (return_value is None)
+    assert return_value is None
 
     df2 = orig2.copy()
     return_value = df2.drop_duplicates(keep=False, inplace=True)
     expected = orig2.drop_duplicates(["A", "B"], keep=False)
     result = df2
     tm.assert_frame_equal(result, expected)
-    assert (return_value is None)
+    assert return_value is None
 
 
 @pytest.mark.parametrize("inplace", [True, False])
