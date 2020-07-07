@@ -163,8 +163,8 @@ if [[ -n ${SQL:0} ]]; then
 
   if [[ -n ${SQL_SETUP:0} ]]; then
     echo "setting up SQL dbs on Azure Pipelines"
-    sudo apt install -y mysql-server
-    sudo apt install -y postgres
+    sudo apt-get install -y mysql-server
+    sudo apt-get install -y postgres
   else
     echo  ""
   fi
