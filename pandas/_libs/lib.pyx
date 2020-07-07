@@ -1044,7 +1044,9 @@ def is_list_like(obj: object, allow_sets: bool = True) -> bool:
 
 cdef inline bint c_is_list_like(object obj, bint allow_sets) except -1:
     return (
-        np.iterable(obj)
+        isinstance(obj, abc.Iterable)
+        # avoid numpy-style scalars
+        and not (hasattr(obj, "ndim") and obj.ndim == 0)
         # we do not count strings/unicode/bytes as list-like
         and not isinstance(obj, (str, bytes))
         # exclude sets if allow_sets is False
