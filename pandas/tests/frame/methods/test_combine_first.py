@@ -223,7 +223,7 @@ class TestDataFrameCombineFirst:
         )
         assert res["UTCdatetime"].dtype == "datetime64[ns, UTC]"
         assert res["abc"].dtype == "datetime64[ns, UTC]"
-        # GH Issue 7509
+        # Need to cast all to "obejct" because combine_first does not retain dtypes: GH Issue 7509
         res = res.astype("object")
         tm.assert_frame_equal(res, exp)
 
