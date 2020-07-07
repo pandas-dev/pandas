@@ -967,14 +967,14 @@ def read_html(
         default of ``None`` tries to use ``lxml`` to parse and if that fails it
         falls back on ``bs4`` + ``html5lib``.
 
-    header : int or sequence of ints, optional
+    header : int or list-like or None, optional
         The row (or list of rows for a :class:`~pandas.MultiIndex`) to use to
         make the columns headers.
 
-    index_col : int or sequence of ints, optional
+    index_col : int or list-like or None, optional
         The column (or list of columns) to use to create the index.
 
-    skiprows : int, sequence of ints or slice, optional
+    skiprows : int or list-like or None, optional
         Number of rows to skip after parsing the column integer. 0-based. If a
         sequence of integers or a slice is given, will skip the rows indexed by
         that sequence.  Note that a single element sequence means 'skip the nth
