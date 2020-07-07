@@ -1237,7 +1237,7 @@ class MultiIndex(Index):
         na_rep: Optional[str] = None,
         names: bool = False,
         space: int = 2,
-        sparsify = None,
+        sparsify=None,
         adjoin: bool = True,
     ) -> list:
         if name is not None:
