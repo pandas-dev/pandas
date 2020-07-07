@@ -691,11 +691,11 @@ class TestWideToLong:
         )
         df["id"] = df.index
         exp_data = {
-            "X": ["X1", "X1", "X2", "X2"],
-            "A": [1.0, 3.0, 2.0, 4.0],
-            "B": [5.0, np.nan, 6.0, np.nan],
-            "id": [0, 0, 1, 1],
-            "year": [2010, 2011, 2010, 2011],
+            "X": ["X1", "X2", "X1", "X2"],
+            "A": [1.0, 2.0, 3.0, 4.0],
+            "B": [5.0, 6.0, np.nan, np.nan],
+            "id": [0, 1, 0, 1],
+            "year": [2010, 2010, 2011, 2011],
         }
         expected = pd.DataFrame(exp_data)
         expected = expected.set_index(["id", "year"])[["X", "A", "B"]]
