@@ -39,7 +39,6 @@ from pandas.core.dtypes.cast import (
     maybe_cast_result_dtype,
     maybe_convert_objects,
     maybe_downcast_numeric,
-    maybe_downcast_to_dtype,
 )
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -47,7 +46,6 @@ from pandas.core.dtypes.common import (
     is_bool,
     is_integer_dtype,
     is_interval_dtype,
-    is_numeric_dtype,
     is_object_dtype,
     is_scalar,
     needs_i8_conversion,
@@ -546,13 +544,6 @@ class SeriesGroupBy(GroupBy[Series]):
             result = concat(results).sort_index()
         else:
             result = self.obj._constructor(dtype=np.float64)
-
-        # we will only try to coerce the result type if
-        # we have a numeric dtype, as these are *always* user-defined funcs
-        # the cython take a different path (and casting)
-        dtype = self._selected_obj.dtype
-        if is_numeric_dtype(dtype):
-            result = maybe_downcast_to_dtype(result, dtype)
 
         result.name = self._selected_obj.name
         result.index = self._selected_obj.index
