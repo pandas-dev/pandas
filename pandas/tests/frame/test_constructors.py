@@ -732,7 +732,7 @@ class TestDataFrameConstructors:
         assert df["a"].dtype == PeriodDtype("M")
         assert df["b"].dtype == PeriodDtype("M")
 
-        arr = pd.array([data] * 2, dtype=PeriodDtype("M")
+        arr = pd.array([data] * 2, dtype=PeriodDtype("M"))
         expected = DataFrame({"a": arr, "b": arr})
 
         tm.assert_frame_equal(df, expected)
