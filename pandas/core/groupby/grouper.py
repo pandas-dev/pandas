@@ -561,10 +561,12 @@ class Grouping:
         values = Categorical(self.grouper)
 
         # GH35014
-        res = values._reverse_indexer()
-        if self.dropna is False and any(pd.isna(v) for v in values):
-            res[np.nan] = [i for i, v in enumerate(values) if pd.isna(v)]
-        return res
+        reverse_indexer = values._reverse_indexer()
+        return (
+            {**reverse_indexer, pd.NaT: [i for i, v in enumerate(values) if pd.isna(v)]}
+            if not self.dropna and any(pd.isna(v) for v in values)
+            else reverse_indexer
+        )
 
     @property
     def codes(self) -> np.ndarray:
