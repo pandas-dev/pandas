@@ -270,6 +270,14 @@ class TestDataFrameDescribe:
         result = df.describe(include="all", datetime_is_numeric=True)
         tm.assert_frame_equal(result, expected)
 
+    def test_describe_tz_values2(self):
+        tz = "CET"
+        s1 = Series(range(5))
+        start = Timestamp(2018, 1, 1)
+        end = Timestamp(2018, 1, 5)
+        s2 = Series(date_range(start, end, tz=tz))
+        df = pd.DataFrame({"s1": s1, "s2": s2})
+
         s1_ = s1.describe()
         s2_ = pd.Series(
             [

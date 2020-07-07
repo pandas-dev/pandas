@@ -99,8 +99,15 @@ class TestSeriesDescribe:
         )
         tm.assert_series_equal(result, expected)
 
+    def test_describe_with_tz_warns(self):
+        name = tz = "CET"
+        start = Timestamp(2018, 1, 1)
+        end = Timestamp(2018, 1, 5)
+        s = Series(date_range(start, end, tz=tz), name=name)
+
         with tm.assert_produces_warning(FutureWarning):
             result = s.describe()
+
         expected = Series(
             [
                 5,
