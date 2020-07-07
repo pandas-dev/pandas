@@ -631,7 +631,6 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
             for name in names
         ]
 
-        print(f"groupby.py res={res}")
         return res
 
     def _get_index(self, name):
