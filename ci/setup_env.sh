@@ -163,7 +163,7 @@ if [[ -n ${SQL:0} ]]; then
 
   if [[ -n ${SQL_SETUP:0} ]]; then
     echo "starting up SQL dbs"
-    sudo services mysql start
+    sudo service mysql start
     sudo service postgresql start
   else
     echo  "SQL dbs not installed"
