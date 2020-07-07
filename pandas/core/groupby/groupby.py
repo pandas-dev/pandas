@@ -632,8 +632,7 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         """
         Safe get index, translate keys for datelike to underlying repr.
         """
-        res = self._get_indices([name])
-        return res[0] if res else []
+        return next(iter(self._get_indices([name])), [])
 
     @cache_readonly
     def _selected_obj(self):
