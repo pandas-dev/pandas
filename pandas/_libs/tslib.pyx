@@ -46,7 +46,6 @@ from pandas._libs.tslibs.timezones cimport (
     get_dst_info,
     is_utc,
     is_tzlocal,
-    utc_pytz as UTC,
 )
 from pandas._libs.tslibs.conversion cimport (
     _TSObject,
@@ -67,8 +66,8 @@ from pandas._libs.tslibs.timestamps cimport create_timestamp_from_ts, _Timestamp
 from pandas._libs.tslibs.timestamps import Timestamp
 
 from pandas._libs.tslibs.tzconversion cimport (
-    tz_convert_single,
     tz_convert_utc_to_tzlocal,
+    tz_localize_to_utc_single,
 )
 
 # Note: this is the only non-tslibs intra-pandas dependency here
@@ -250,7 +249,7 @@ def _test_parse_iso8601(ts: str):
     check_dts_bounds(&obj.dts)
     if out_local == 1:
         obj.tzinfo = pytz.FixedOffset(out_tzoffset)
-        obj.value = tz_convert_single(obj.value, obj.tzinfo, UTC)
+        obj.value = tz_localize_to_utc_single(obj.value, obj.tzinfo)
         return Timestamp(obj.value, tz=obj.tzinfo)
     else:
         return Timestamp(obj.value)
@@ -708,7 +707,7 @@ cpdef array_to_datetime(
                             # dateutil.tz.tzoffset objects
                             out_tzoffset_vals.add(out_tzoffset * 60.)
                             tz = pytz.FixedOffset(out_tzoffset)
-                            value = tz_convert_single(value, tz, UTC)
+                            value = tz_localize_to_utc_single(value, tz)
                             out_local = 0
                             out_tzoffset = 0
                         else:

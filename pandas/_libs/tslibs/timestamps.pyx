@@ -58,8 +58,10 @@ from pandas._libs.tslibs.timezones cimport (
     is_utc, maybe_get_tz, treat_tz_as_pytz, utc_pytz as UTC,
     get_timezone, tz_compare,
 )
-from pandas._libs.tslibs.tzconversion cimport tz_convert_single
-from pandas._libs.tslibs.tzconversion import tz_localize_to_utc
+from pandas._libs.tslibs.tzconversion cimport (
+    tz_convert_single,
+    tz_localize_to_utc_single,
+)
 
 # ----------------------------------------------------------------------
 # Constants
@@ -1300,9 +1302,9 @@ default 'raise'
             tz = maybe_get_tz(tz)
             if not isinstance(ambiguous, str):
                 ambiguous = [ambiguous]
-            value = tz_localize_to_utc(np.array([self.value], dtype='i8'), tz,
-                                       ambiguous=ambiguous,
-                                       nonexistent=nonexistent)[0]
+            value = tz_localize_to_utc_single(self.value, tz,
+                                              ambiguous=ambiguous,
+                                              nonexistent=nonexistent)
             return Timestamp(value, tz=tz, freq=self.freq)
         else:
             if tz is None:
