@@ -488,9 +488,11 @@ class SeriesGroupBy(GroupBy[Series]):
         # Temporarily set observed for dealing with
         # categoricals so we don't have to convert dtypes.
         observed = self.observed
-        self.observed = True
-        result = getattr(self, func)(*args, **kwargs)
-        self.observed = observed
+        try:
+            self.observed = True
+            result = getattr(self, func)(*args, **kwargs)
+        finally:
+            self.observed = observed
         return self._transform_fast(result)
 
     def _transform_general(
@@ -1472,9 +1474,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             # Temporarily set observed for dealing with
             # categoricals so we don't have to convert dtypes.
             observed = self.observed
-            self.observed = True
-            result = getattr(self, func)(*args, **kwargs)
-            self.observed = observed
+            try:
+                self.observed = True
+                result = getattr(self, func)(*args, **kwargs)
+            finally:
+                self.observed = observed
 
             if isinstance(result, DataFrame) and result.columns.equals(
                 self._obj_with_exclusions.columns
