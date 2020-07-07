@@ -902,7 +902,12 @@ class Index(IndexOpsMixin, PandasObject):
         # how to represent ourselves to matplotlib
         return self.values
 
-    def format(self, name: bool = False, formatter=None, na_rep="NaN") -> List[str_t]:
+    def format(
+        self,
+        name: bool = False,
+        formatter: Optional[Callable] = None,
+        na_rep: str_t = "NaN",
+    ) -> List[str_t]:
         """
         Render a string representation of the Index.
         """

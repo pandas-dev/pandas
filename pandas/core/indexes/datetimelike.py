@@ -9,7 +9,7 @@ import numpy as np
 from pandas._libs import NaT, Timedelta, iNaT, join as libjoin, lib
 from pandas._libs.tslibs import BaseOffset, Resolution, Tick, timezones
 from pandas._libs.tslibs.parsing import DateParseError
-from pandas._typing import Label
+from pandas._typing import Callable, Label
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly, doc
@@ -339,7 +339,11 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     # Rendering Methods
 
     def format(
-        self, name: bool = False, formatter=None, na_rep="NaT", date_format=None
+        self,
+        name: bool = False,
+        formatter: Optional[Callable] = None,
+        na_rep: str = "NaT",
+        date_format: Optional[str] = None,
     ) -> List[str]:
         """
         Render a string representation of the Index.
@@ -352,7 +356,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         if formatter is not None:
             return header + list(self.map(formatter))
 
-        return self._format_with_header(header, date_format=date_format, na_rep=na_rep)
+        return self._format_with_header(header, na_rep=na_rep, date_format=date_format)
 
     def _format_with_header(self, header, na_rep="NaT", date_format=None) -> List[str]:
         return header + list(
