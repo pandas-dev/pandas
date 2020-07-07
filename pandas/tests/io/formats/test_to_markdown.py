@@ -72,17 +72,17 @@ def test_index(index, showindex):
     )
     no_index_result = "|   0 |\n|----:|\n|   1 |\n|   2 |\n|   3 |"
 
-    if "showindex" in kwargs:
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.to_markdown(**kwargs)
+    warning = FutureWarning if "showindex" in kwargs else None
+    with tm.assert_produces_warning(warning):
+        result = df.to_markdown(**kwargs)
 
+    if "showindex" in kwargs:
         # give showindex higher priority if specified
         if showindex:
             assert result == yes_index_result
         else:
             assert result == no_index_result
     else:
-        result = df.to_markdown(**kwargs)
         if index in [True, None]:
             assert result == yes_index_result
         else:
