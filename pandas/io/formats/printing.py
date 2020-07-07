@@ -276,9 +276,13 @@ def _enable_data_resource_formatter(enable: bool) -> None:
             formatters[mimetype].enabled = False
 
 
-default_pprint = lambda x, max_seq_items=None: pprint_thing(
-    x, escape_chars=("\t", "\r", "\n"), quote_strings=True, max_seq_items=max_seq_items
-)
+def default_pprint(thing: Any, max_seq_items: Optional[int] = None) -> str:
+    return pprint_thing(
+        thing,
+        escape_chars=("\t", "\r", "\n"),
+        quote_strings=True,
+        max_seq_items=max_seq_items,
+    )
 
 
 def format_object_summary(
