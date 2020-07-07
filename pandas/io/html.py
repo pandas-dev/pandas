@@ -935,7 +935,7 @@ def read_html(
     skiprows: Union[int, Sequence[int], slice, None] = None,
     attrs: Optional[Dict[str, str]] = None,
     parse_dates: bool = False,
-    thousands: str = ",",
+    thousands: Optional[str] = ",",
     encoding: Optional[str] = None,
     decimal: str = ".",
     converters: Optional[dict] = None,
@@ -961,26 +961,26 @@ def read_html(
         This value is converted to a regular expression so that there is
         consistent behavior between Beautiful Soup and lxml.
 
-    flavor : str or None
+    flavor : str, optional
         The parsing engine to use. 'bs4' and 'html5lib' are synonymous with
         each other, they are both there for backwards compatibility. The
         default of ``None`` tries to use ``lxml`` to parse and if that fails it
         falls back on ``bs4`` + ``html5lib``.
 
-    header : int or list-like or None, optional
+    header : int or list-like, optional
         The row (or list of rows for a :class:`~pandas.MultiIndex`) to use to
         make the columns headers.
 
-    index_col : int or list-like or None, optional
+    index_col : int or list-like, optional
         The column (or list of columns) to use to create the index.
 
-    skiprows : int or list-like or None, optional
+    skiprows : int, list-like or slice, optional
         Number of rows to skip after parsing the column integer. 0-based. If a
         sequence of integers or a slice is given, will skip the rows indexed by
         that sequence.  Note that a single element sequence means 'skip the nth
         row' whereas an integer means 'skip n rows'.
 
-    attrs : dict or None, optional
+    attrs : dict, optional
         This is a dictionary of attributes that you can pass to use to identify
         the table in the HTML. These are not checked for validity before being
         passed to lxml or Beautiful Soup. However, these attributes must be
@@ -1008,7 +1008,7 @@ def read_html(
     thousands : str, optional
         Separator to use to parse thousands. Defaults to ``','``.
 
-    encoding : str or None, optional
+    encoding : str, optional
         The encoding used to decode the web page. Defaults to ``None``.``None``
         preserves the previous encoding behavior, which depends on the
         underlying parser library (e.g., the parser library will try to use
