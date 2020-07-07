@@ -1,4 +1,4 @@
-from cpython.datetime cimport tzinfo
+from cpython.datetime cimport datetime, timedelta, tzinfo
 
 from numpy cimport int64_t, intp_t, ndarray
 
@@ -9,11 +9,11 @@ cdef bint is_tzlocal(tzinfo tz)
 
 cdef bint treat_tz_as_pytz(tzinfo tz)
 
-cpdef bint tz_compare(object start, object end)
-cpdef object get_timezone(object tz)
+cpdef bint tz_compare(tzinfo start, tzinfo end)
+cpdef object get_timezone(tzinfo tz)
 cpdef object maybe_get_tz(object tz)
 
-cdef get_utcoffset(tzinfo tz, obj)
+cdef timedelta get_utcoffset(tzinfo tz, datetime obj)
 cdef bint is_fixed_offset(tzinfo tz)
 
 cdef object get_dst_info(tzinfo tz)

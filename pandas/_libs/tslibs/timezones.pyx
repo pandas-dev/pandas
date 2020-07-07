@@ -1,6 +1,5 @@
 from datetime import timezone
-from cpython.datetime cimport tzinfo, PyTZInfo_Check, PyDateTime_IMPORT
-PyDateTime_IMPORT
+from cpython.datetime cimport datetime, timedelta, tzinfo
 
 # dateutil compat
 from dateutil.tz import (
@@ -47,7 +46,7 @@ cdef inline bint treat_tz_as_dateutil(tzinfo tz):
     return hasattr(tz, '_trans_list') and hasattr(tz, '_trans_idx')
 
 
-cpdef inline object get_timezone(object tz):
+cpdef inline object get_timezone(tzinfo tz):
     """
     We need to do several things here:
     1) Distinguish between pytz and dateutil timezones
@@ -60,9 +59,7 @@ cpdef inline object get_timezone(object tz):
     the tz name. It needs to be a string so that we can serialize it with
     UJSON/pytables. maybe_get_tz (below) is the inverse of this process.
     """
-    if not PyTZInfo_Check(tz):
-        return tz
-    elif is_utc(tz):
+    if is_utc(tz):
         return tz
     else:
         if treat_tz_as_dateutil(tz):
@@ -156,7 +153,7 @@ cdef inline object tz_cache_key(tzinfo tz):
 # UTC Offsets
 
 
-cdef get_utcoffset(tzinfo tz, obj):
+cdef timedelta get_utcoffset(tzinfo tz, datetime obj):
     try:
         return tz._utcoffset
     except AttributeError:
@@ -342,7 +339,7 @@ cdef object get_dst_info(tzinfo tz):
     return dst_cache[cache_key]
 
 
-def infer_tzinfo(start, end):
+def infer_tzinfo(datetime start, datetime end):
     if start is not None and end is not None:
         tz = start.tzinfo
         if not tz_compare(tz, end.tzinfo):
@@ -357,7 +354,7 @@ def infer_tzinfo(start, end):
     return tz
 
 
-cpdef bint tz_compare(object start, object end):
+cpdef bint tz_compare(tzinfo start, tzinfo end):
     """
     Compare string representations of timezones
 
@@ -380,7 +377,6 @@ cpdef bint tz_compare(object start, object end):
     Returns:
     -------
     bool
-
     """
     # GH 18523
     return get_timezone(start) == get_timezone(end)
