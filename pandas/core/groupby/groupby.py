@@ -622,10 +622,11 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         res = [
             [v for k, v in self.indices.items() if isna(k)]
             if isna(name)
-            else self.indices.get(name, [])
+            else [self.indices.get(name, [])]
             for name in names
         ]
 
+        print(f"groupby.py res={res}")
         return res
 
     def _get_index(self, name):
@@ -811,7 +812,7 @@ b  2""",
         if obj is None:
             obj = self._selected_obj
 
-        inds = self._get_index(np.nan) if pd.isna(name) else self._get_index(name)
+        inds = self._get_index(pd.NaT) if pd.isna(name) else self._get_index(name)
         if not len(inds):
             raise KeyError(name)
 
