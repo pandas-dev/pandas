@@ -1237,7 +1237,7 @@ class MultiIndex(Index):
         na_rep: Optional[str] = None,
         names: bool = False,
         space: int = 2,
-        sparsify: Optional[bool] = None,
+        sparsify = None,
         adjoin: bool = True,
     ) -> list:
         if name is not None:
@@ -1288,10 +1288,9 @@ class MultiIndex(Index):
 
         if sparsify:
             sentinel = ""
-            # GH3547
-            # use value of sparsify as sentinel,  unless it's an obvious
-            # "Truthy" value
-            if sparsify not in [True, 1]:
+            # GH3547 use value of sparsify as sentinel if it's "Falsey"
+            assert isinstance(sparsify, bool) or sparsify is lib.no_default
+            if sparsify in [False, lib.no_default]:
                 sentinel = sparsify
             # little bit of a kludge job for #1217
             result_levels = _sparsify(
