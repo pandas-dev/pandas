@@ -10508,7 +10508,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     "The `center` argument on `expanding` "
                     "will be removed in the future",
                     FutureWarning,
-                    stacklevel=3,
+                    stacklevel=2,
                 )
             else:
                 center = False
