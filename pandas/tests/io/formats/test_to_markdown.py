@@ -79,11 +79,12 @@ def test_index(index, showindex):
     if "showindex" in kwargs:
         # give showindex higher priority if specified
         if showindex:
-            assert result == yes_index_result
+            expected = yes_index_result
         else:
-            assert result == no_index_result
+            expected = no_index_result
     else:
         if index in [True, None]:
-            assert result == yes_index_result
+            expected = yes_index_result
         else:
-            assert result == no_index_result
+            expected = no_index_result
+    assert result == expected
