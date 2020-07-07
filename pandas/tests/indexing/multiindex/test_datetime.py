@@ -4,7 +4,6 @@ import numpy as np
 
 from pandas import (
     DataFrame,
-    DatetimeIndex,
     Index,
     MultiIndex,
     Period,
