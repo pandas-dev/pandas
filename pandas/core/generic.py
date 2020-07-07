@@ -5366,9 +5366,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         string              object
         dtype: object
         """
-        from pandas import Series  # noqa: F811
-
-        return Series(self._mgr.get_dtypes(), index=self._info_axis, dtype=np.object_)
+        data = self._mgr.get_dtypes()
+        return self._constructor_sliced(data, index=self._info_axis, dtype=np.object_)
 
     def _to_dict_of_blocks(self, copy: bool_t = True):
         """
@@ -9580,8 +9579,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         dtype: int64
 
         If the DST transition causes nonexistent times, you can shift these
-        dates forward or backwards with a timedelta object or `'shift_forward'`
-        or `'shift_backwards'`.
+        dates forward or backward with a timedelta object or `'shift_forward'`
+        or `'shift_backward'`.
+
         >>> s = pd.Series(range(2),
         ...               index=pd.DatetimeIndex(['2015-03-29 02:30:00',
         ...                                       '2015-03-29 03:30:00']))
@@ -10517,6 +10517,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             adjust=True,
             ignore_na=False,
             axis=0,
+            times=None,
         ):
             axis = self._get_axis_number(axis)
             return ExponentialMovingWindow(
@@ -10529,6 +10530,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 adjust=adjust,
                 ignore_na=ignore_na,
                 axis=axis,
+                times=times,
             )
 
         cls.ewm = ewm

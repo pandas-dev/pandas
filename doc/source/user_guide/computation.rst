@@ -597,6 +597,18 @@ You can view other examples of ``BaseIndexer`` subclasses `here <https://github.
 
 .. versionadded:: 1.1
 
+One subclass of note within those examples is the ``VariableOffsetWindowIndexer`` that allows
+rolling operations over a non-fixed offset like a ``BusinessDay``.
+
+.. ipython:: python
+
+   from pandas.api.indexers import VariableOffsetWindowIndexer
+   df = pd.DataFrame(range(10), index=pd.date_range('2020', periods=10))
+   offset = pd.offsets.BDay(1)
+   indexer = VariableOffsetWindowIndexer(index=df.index, offset=offset)
+   df
+   df.rolling(indexer).sum()
+
 For some problems knowledge of the future is available for analysis. For example, this occurs when
 each data point is a full time series read from an experiment, and the task is to extract underlying
 conditions. In these cases it can be useful to perform forward-looking rolling window computations.
@@ -1082,6 +1094,25 @@ and **alpha** to the EW functions:
 * **Half-life** is the period of time for the exponential weight to reduce to
   one half.
 * **Alpha** specifies the smoothing factor directly.
+
+.. versionadded:: 1.1.0
+
+You can also specify ``halflife`` in terms of a timedelta convertible unit to specify the amount of
+time it takes for an observation to decay to half its value when also specifying a sequence
+of ``times``.
+
+.. ipython:: python
+
+    df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
+    df
+    times = ['2020-01-01', '2020-01-03', '2020-01-10', '2020-01-15', '2020-01-17']
+    df.ewm(halflife='4 days', times=pd.DatetimeIndex(times)).mean()
+
+The following formula is used to compute exponentially weighted mean with an input vector of times:
+
+.. math::
+
+    y_t = \frac{\sum_{i=0}^t 0.5^\frac{t_{t} - t_{i}}{\lambda} x_{t-i}}{0.5^\frac{t_{t} - t_{i}}{\lambda}},
 
 Here is an example for a univariate time series:
 

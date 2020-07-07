@@ -78,7 +78,7 @@ from pandas.core.construction import (
     sanitize_array,
 )
 from pandas.core.generic import NDFrame
-from pandas.core.indexers import unpack_1tuple
+from pandas.core.indexers import deprecate_ndim_indexing, unpack_1tuple
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import Float64Index, Index, MultiIndex, ensure_index
 import pandas.core.indexes.base as ibase
@@ -950,13 +950,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _get_values_tuple(self, key):
         # mpl hackaround
         if com.any_none(*key):
-            # suppress warning from slicing the index with a 2d indexer.
-            # eventually we'll want Series itself to warn.
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore", "Support for multi-dim", DeprecationWarning
-                )
-                return self._get_values(key)
+            result = self._get_values(key)
+            deprecate_ndim_indexing(result, stacklevel=5)
+            return result
 
         if not isinstance(self.index, MultiIndex):
             raise ValueError("Can only tuple-index with a MultiIndex")
@@ -2609,7 +2605,7 @@ Name: Max Speed, dtype: float64
         to_append : Series or list/tuple of Series
             Series to append with self.
         ignore_index : bool, default False
-            If True, do not use the index labels.
+            If True, the resulting axis will be labeled 0, 1, …, n - 1.
         verify_integrity : bool, default False
             If True, raise Exception on creating index with duplicates.
 
