@@ -770,7 +770,7 @@ class TestPeriodProperties:
             assert isinstance(p1, Period)
             assert isinstance(p2, Period)
 
-    def period_constructor(bound, offset):
+    def _period_constructor(bound, offset):
         return Period(
             year=bound.year,
             month=bound.month,
@@ -782,27 +782,22 @@ class TestPeriodProperties:
         )
 
     @pytest.mark.parametrize("bound, offset", [(Timestamp.min, -1), (Timestamp.max, 1)])
-    def test_start_time_and_end_time_bounds(self, bound, offset):
+    @pytest.mark.parametrize("period_property", ["start_time", "end_time"])
+    def test_outter_bounds_start_and_end_time(self, bound, offset, period_property):
         # GH #13346
-        period = TestPeriodProperties.period_constructor(bound, -offset)
-        assert period.start_time.round(freq="S") == period.to_timestamp().round(
-            freq="S"
-        )
-        assert period.end_time.round(freq="S") == period.to_timestamp().round(freq="S")
-
-        result = period.start_time.floor("S")
-        expected = (bound - offset * Timedelta(1, unit="S")).floor("S")
-        assert result == expected
-
-        result = period.end_time.floor("S")
-        expected = (bound - offset * Timedelta(1, unit="S")).floor("S")
-        assert result == expected
-
-        period = TestPeriodProperties.period_constructor(bound, offset)
+        period = TestPeriodProperties._period_constructor(bound, offset)
         with pytest.raises(OutOfBoundsDatetime, match="Out of bounds nanosecond"):
-            period.start_time
-        with pytest.raises(OutOfBoundsDatetime, match="Out of bounds nanosecond"):
-            period.end_time
+            getattr(period, period_property)
+
+    @pytest.mark.parametrize("bound, offset", [(Timestamp.min, -1), (Timestamp.max, 1)])
+    @pytest.mark.parametrize("period_property", ["start_time", "end_time"])
+    def test_inner_bounds_start_and_end_time(self, bound, offset, period_property):
+        # GH #13346
+        period = TestPeriodProperties._period_constructor(bound, -offset)
+        expected = period.to_timestamp().round(freq="S")
+        assert getattr(period, period_property).round(freq="S") == expected
+        expected = (bound - offset * Timedelta(1, unit="S")).floor("S")
+        assert getattr(period, period_property).floor("S") == expected
 
     def test_start_time(self):
         freq_lst = ["A", "Q", "M", "D", "H", "T", "S"]
