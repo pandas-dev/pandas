@@ -811,10 +811,7 @@ b  2""",
         if obj is None:
             obj = self._selected_obj
 
-        if pd.isna(name):
-            inds = self._get_index(np.nan)
-        else:
-            inds = self._get_index(name)
+        inds = self._get_index(np.nan) if pd.isna(name) else self._get_index(name)
         if not len(inds):
             raise KeyError(name)
 
