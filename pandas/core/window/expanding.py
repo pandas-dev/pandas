@@ -1,6 +1,5 @@
 from textwrap import dedent
 from typing import Dict, Optional
-import warnings
 
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, doc
@@ -130,12 +129,7 @@ class Expanding(_Rolling_and_Expanding):
     @Substitution(name="expanding")
     @Appender(_shared_docs["count"])
     def count(self, **kwargs):
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore",
-                "The `center` argument on `expanding` will be removed in the future",
-            )
-            return super().count(**kwargs)
+        return super().count(**kwargs)
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["apply"])

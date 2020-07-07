@@ -16,18 +16,28 @@ def test_doc_string():
     df.expanding(2).sum()
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The `center` argument on `expanding` will be removed in the future"
+)
 def test_constructor(which):
     # GH 12669
+
     c = which.expanding
 
     # valid
     c(min_periods=1)
+    c(min_periods=1, center=True)
+    c(min_periods=1, center=False)
 
     # not valid
     for w in [2.0, "foo", np.array([2])]:
         msg = "min_periods must be an integer"
         with pytest.raises(ValueError, match=msg):
             c(min_periods=w)
+
+        msg = "center must be a boolean"
+        with pytest.raises(ValueError, match=msg):
+            c(min_periods=1, center=w)
 
 
 @pytest.mark.parametrize("method", ["std", "mean", "sum", "max", "min", "var"])
