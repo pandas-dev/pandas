@@ -124,7 +124,7 @@ def melt(
 
     result = frame._constructor(mdata, columns=mcolumns)
 
-    if not ignore_index: 
+    if not ignore_index:
         result.index = _tile_compat(frame.index, K)
 
     return result
