@@ -180,8 +180,6 @@ def test_slice_groupby_then_transform():
     gb_slice = gb["B"]
     res = gb["B"].transform(len)
     expected = pd.Series(data=[2, 2, 1, 1], name="B")
-    print(f"res={res}")
-    print(f"expected={expected}")
     tm.assert_series_equal(res, expected)
 
 
