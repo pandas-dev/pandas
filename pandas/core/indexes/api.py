@@ -214,10 +214,6 @@ def union_indexes(indexes, sort=True) -> Index:
             return result.union_many(indexes[1:])
         else:
             for other in indexes[1:]:
-                # GH 35092. Pass sort to Index.union
-                # Index.union expects sort=None instead of sort=True
-                if sort:
-                    sort = None
                 result = result.union(other, sort=sort)
             return result
     elif kind == "array":
