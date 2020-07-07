@@ -366,17 +366,16 @@ cdef int64_t tz_convert_utc_to_tzlocal(int64_t utc_val, tzinfo tz, bint* fold=NU
     return _tz_convert_tzlocal_utc(utc_val, tz, to_utc=False, fold=fold)
 
 
-cpdef int64_t tz_convert_single(int64_t val, tzinfo tz1, tzinfo tz2):
+cpdef int64_t tz_convert_single(int64_t val, tzinfo tz):
     """
-    Convert the val (in i8) from timezone1 to timezone2
+    Convert the val (in i8) from UTC to tz
 
     This is a single timezone version of tz_convert
 
     Parameters
     ----------
     val : int64
-    tz1 : tzinfo
-    tz2 : tzinfo
+    tz : tzinfo
 
     Returns
     -------
@@ -384,15 +383,9 @@ cpdef int64_t tz_convert_single(int64_t val, tzinfo tz1, tzinfo tz2):
     """
     cdef:
         int64_t arr[1]
-        tzinfo tz
-
-    # See GH#17734 We should always be converting either from UTC or to UTC
-    assert is_utc(tz1)
 
     if val == NPY_NAT:
         return val
-
-    tz = tz2
 
     if is_utc(tz):
         return val
@@ -403,15 +396,14 @@ cpdef int64_t tz_convert_single(int64_t val, tzinfo tz1, tzinfo tz2):
         return _tz_convert_dst(arr, tz)[0]
 
 
-def tz_convert(int64_t[:] vals, tzinfo tz1, tzinfo tz2):
+def tz_convert(int64_t[:] vals, tzinfo tz):
     """
-    Convert the values (in i8) from timezone1 to timezone2
+    Convert the values (in i8) from UTC to tz
 
     Parameters
     ----------
     vals : int64 ndarray
-    tz1 : tzinfo
-    tz2 : tzinfo
+    tz : tzinfo
 
     Returns
     -------
@@ -419,16 +411,10 @@ def tz_convert(int64_t[:] vals, tzinfo tz1, tzinfo tz2):
     """
     cdef:
         int64_t[:] converted
-        tzinfo tz
-
-    # See GH#17734 We should always be converting from UTC; otherwise
-    #  should use tz_localize_to_utc.
-    assert is_utc(tz1)
 
     if len(vals) == 0:
         return np.array([], dtype=np.int64)
 
-    tz = tz2
     converted = _tz_convert_one_way(vals, tz)
     return np.array(converted, dtype=np.int64)
 
@@ -442,7 +428,7 @@ cdef int64_t[:] _tz_convert_one_way(int64_t[:] vals, tzinfo tz):
     Parameters
     ----------
     vals : int64 ndarray
-    tz1 : tzinfo
+    tz : tzinfo
 
     Returns
     -------
