@@ -471,6 +471,16 @@ class TestGetLoc:
         with pytest.raises(NotImplementedError, match=msg):
             idx.get_loc(time(12, 30), method="pad")
 
+    def test_get_loc_time_nat(self):
+        # GH#35114
+        # Case where key's total microseconds happens to match iNaT % 1e6 // 1000
+        tic = time(minute=12, second=43, microsecond=145224)
+        dti = pd.DatetimeIndex([pd.NaT])
+
+        loc = dti.get_loc(tic)
+        expected = np.array([], dtype=np.intp)
+        tm.assert_numpy_array_equal(loc, expected)
+
     def test_get_loc_tz_aware(self):
         # https://github.com/pandas-dev/pandas/issues/32140
         dti = pd.date_range(

@@ -6,7 +6,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import NaT, Period, Timestamp, index as libindex, lib, tslib
-from pandas._libs.tslibs import Resolution, fields, parsing, timezones, to_offset
+from pandas._libs.tslibs import Resolution, parsing, timezones, to_offset
 from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas._typing import DtypeObj, Label
 from pandas.errors import InvalidIndexError
@@ -86,7 +86,6 @@ def _new_DatetimeIndex(cls, d):
         "tzinfo",
         "dtype",
         "to_pydatetime",
-        "_local_timestamps",
         "_has_same_tz",
         "_format_native_types",
         "date",
@@ -380,10 +379,22 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     # --------------------------------------------------------------------
 
     def _get_time_micros(self):
+        """
+        Return the number of microseconds since midnight.
+
+        Returns
+        -------
+        ndarray[int64_t]
+        """
         values = self.asi8
         if self.tz is not None and not timezones.is_utc(self.tz):
             values = self._data._local_timestamps()
-        return fields.get_time_micros(values)
+
+        nanos = values % (24 * 3600 * 1_000_000_000)
+        micros = nanos // 1000
+
+        micros[self._isnan] = -1
+        return micros
 
     def to_series(self, keep_tz=lib.no_default, index=None, name=None):
         """
@@ -1094,6 +1105,6 @@ def bdate_range(
     )
 
 
-def _time_to_micros(time):
-    seconds = time.hour * 60 * 60 + 60 * time.minute + time.second
-    return 1000000 * seconds + time.microsecond
+def _time_to_micros(time_obj: time) -> int:
+    seconds = time_obj.hour * 60 * 60 + 60 * time_obj.minute + time_obj.second
+    return 1_000_000 * seconds + time_obj.microsecond
