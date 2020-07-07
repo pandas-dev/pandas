@@ -59,14 +59,6 @@ class Expanding(_Rolling_and_Expanding):
     _attributes = ["min_periods", "center", "axis"]
 
     def __init__(self, obj, min_periods=1, center=None, axis=0, **kwargs):
-        if center is not None:
-            warnings.warn(
-                "The `center` argument on `expanding` will be removed in the future",
-                FutureWarning,
-                stacklevel=3,
-            )
-        else:
-            center = False
         super().__init__(obj=obj, min_periods=min_periods, center=center, axis=axis)
 
     @property
