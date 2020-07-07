@@ -160,20 +160,10 @@ conda list
 # Install DB for Linux
 
 if [[ -n ${SQL:0} ]]; then
-
-  if [[ -n ${SQL_SETUP:0} ]]; then
-    echo "starting up SQL dbs"
-    sudo service mysql start
-    sudo service postgresql start
-  else
-    echo  "SQL dbs not installed"
-  fi
-
   echo "installing dbs"
   mysql -e 'create database pandas_nosetest;'
   psql -c 'create database pandas_nosetest;' -U postgres
 else
    echo "not using dbs on non-linux Travis builds or Azure Pipelines"
 fi
-
 echo "done"
