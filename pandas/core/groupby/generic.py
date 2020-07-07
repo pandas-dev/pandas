@@ -19,6 +19,7 @@ from typing import (
     Iterable,
     List,
     Mapping,
+    Optional,
     Sequence,
     Tuple,
     Type,
@@ -414,7 +415,7 @@ class SeriesGroupBy(GroupBy[Series]):
         return result
 
     def _wrap_applied_output(
-        self, keys: Index, values: List[Any], not_indexed_same: bool = False
+        self, keys: Index, values: Optional[List[Any]], not_indexed_same: bool = False
     ) -> FrameOrSeriesUnion:
         """
         Wrap the output of SeriesGroupBy.apply into the expected result.
@@ -423,7 +424,7 @@ class SeriesGroupBy(GroupBy[Series]):
         ----------
         keys : Index
             Keys of groups that Series was grouped by.
-        values : List[Any]
+        values : Optional[List[Any]]
             Applied output for each group.
         not_indexed_same : bool, default False
             Whether the applied outputs are not indexed the same as the group axes.
@@ -437,6 +438,7 @@ class SeriesGroupBy(GroupBy[Series]):
             return self.obj._constructor(
                 [], name=self._selection_name, index=keys, dtype=np.float64
             )
+        assert values is not None
 
         def _get_index() -> Index:
             if self.grouper.nkeys > 1:
