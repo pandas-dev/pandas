@@ -2224,9 +2224,6 @@ class DataFrame(NDFrame):
         **kwargs,
     ) -> Optional[str]:
         if "showindex" in kwargs:
-            index = kwargs["showindex"]
-            del kwargs["showindex"]
-
             warnings.warn(
                 "'showindex' is deprecated. Only 'index' will be used "
                 "in a future version. Use 'index' to silence this warning.",
