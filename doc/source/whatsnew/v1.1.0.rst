@@ -329,9 +329,8 @@ Other enhancements
 - :meth:`DataFrame.to_excel` can now also write OpenOffice spreadsheet (.ods) files (:issue:`27222`)
 - :meth:`~Series.explode` now accepts ``ignore_index`` to reset the index, similarly to :meth:`pd.concat` or :meth:`DataFrame.sort_values` (:issue:`34932`).
 - :meth:`read_csv` now accepts string values like "0", "0.0", "1", "1.0" as convertible to the nullable boolean dtype (:issue:`34859`)
+- :class:`pandas.core.window.ExponentialMovingWindow` now supports a ``times`` argument that allows ``mean`` to be calculated with observations spaced by the timestamps in ``times`` (:issue:`34839`)
 - :meth:`~pandas.io.sql.get_schema` now accepts `index` parameter to include index of the DataFrame in the schema (:issue:`9084`).
-
-.. ---------------------------------------------------------------------------
 
 .. _whatsnew_110.api:
 
@@ -789,6 +788,7 @@ Deprecations
 - :meth:`Categorical.to_dense` is deprecated and will be removed in a future version, use ``np.asarray(cat)`` instead (:issue:`32639`)
 - The ``fastpath`` keyword in the ``SingleBlockManager`` constructor is deprecated and will be removed in a future version (:issue:`33092`)
 - Providing ``suffixes`` as a ``set`` in :func:`pandas.merge` is deprecated. Provide a tuple instead (:issue:`33740`, :issue:`34741`).
+- Indexing a series with a multi-dimensional indexer like ``[:, None]`` to return an ndarray now raises a ``FutureWarning``. Convert to a NumPy array before indexing instead (:issue:`27837`)
 - :meth:`Index.is_mixed` is deprecated and will be removed in a future version, check ``index.inferred_type`` directly instead (:issue:`32922`)
 
 - Passing any arguments but the first one to  :func:`read_html` as
