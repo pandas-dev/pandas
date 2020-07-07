@@ -2862,8 +2862,8 @@ def test_concat_frame_axis0_extension_dtypes():
 @pytest.mark.parametrize("sort", [True, False])
 def test_append_sort(sort):
     # GH 35092. Check that DataFrame.append respects the sort argument.
-    df1 = pd.DataFrame(data={0: [1,2], 1: [3,4]})
-    df2 = pd.DataFrame(data={3: [1,2], 2: [3,4]})
+    df1 = pd.DataFrame(data={0: [1, 2], 1: [3, 4]})
+    df2 = pd.DataFrame(data={3: [1, 2], 2: [3, 4]})
     cols = list(df1.columns) + list(df2.columns)
     if sort:
         cols.sort()
