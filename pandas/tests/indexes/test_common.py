@@ -398,13 +398,16 @@ class TestCommon:
             assert result.name == index.name
 
 
-@pytest.mark.parametrize("exp_arr, sort", [([0, 1, 4, 3], False), ([0, 1, 3, 4], True)])
+@pytest.mark.parametrize("arr", [[0, 1, 4, 3]])
 @pytest.mark.parametrize("dtype", ["int8", "int16", "int32", "int64"])
-def test_union_index_no_sort(exp_arr, sort, dtype):
+def test_union_index_no_sort(arr, sort, dtype):
     # GH 35092. Check that we don't sort with sort=False
-    ind1 = Index([0, 1], dtype=dtype)
-    ind2 = Index([4, 3], dtype=dtype)
+    ind1 = Index(arr[:2], dtype=dtype)
+    ind2 = Index(arr[2:], dtype=dtype)
 
-    expected = Index(exp_arr, dtype=dtype)
+    # sort is None indicates that we sort the combined index
+    if sort is None:
+        arr.sort()
+    expected = Index(arr, dtype=dtype)
     result = union_indexes([ind1, ind2], sort=sort)
     tm.assert_index_equal(result, expected)
