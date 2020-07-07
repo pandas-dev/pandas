@@ -619,12 +619,12 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
             converter = get_converter(index_sample)
             names = (converter(name) for name in names)
 
-        res = []
-        for name in names:
-            if isna(name):
-                res += [v for k, v in self.indices.items() if isna(k)]
-            else:
-                res += [self.indices.get(name, [])]
+        res = [
+            [v for k, v in self.indices.items() if isna(k)]
+            if isna(name)
+            else self.indices.get(name, [])
+            for name in names
+        ]
 
         return res
 
