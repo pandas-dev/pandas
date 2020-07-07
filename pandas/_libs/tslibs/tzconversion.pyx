@@ -388,8 +388,9 @@ def tz_convert(int64_t[:] vals, tzinfo tz1, tzinfo tz2):
         bint to_utc = is_utc(tz2)
         tzinfo tz
 
-    # See GH#17734 We should always be converting either from UTC or to UTC
-    assert is_utc(tz1) or to_utc
+    # See GH#17734 We should always be converting from UTC; otherwise
+    #  should use tz_localize_to_utc.
+    assert is_utc(tz1)
 
     if len(vals) == 0:
         return np.array([], dtype=np.int64)
