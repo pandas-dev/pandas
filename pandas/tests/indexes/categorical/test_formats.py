@@ -1,7 +1,7 @@
 """
 Tests for CategoricalIndex.__repr__ and related methods.
 """
-import pandas._config.config as cf
+from pandas._config import config as cf
 
 import pandas as pd
 

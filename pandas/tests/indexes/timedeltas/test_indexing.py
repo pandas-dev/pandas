@@ -5,8 +5,14 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Index, Timedelta, TimedeltaIndex, notna, timedelta_range
-import pandas._testing as tm
+from pandas import (
+    Index,
+    Timedelta,
+    TimedeltaIndex,
+    _testing as tm,
+    notna,
+    timedelta_range,
+)
 
 
 class TestGetItem:

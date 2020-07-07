@@ -1,5 +1,4 @@
 """ test to_datetime """
-
 import calendar
 from collections import deque
 from datetime import datetime, timedelta
@@ -14,7 +13,6 @@ import pytz
 from pandas._libs import tslib
 from pandas._libs.tslibs import iNaT, parsing
 from pandas.errors import OutOfBoundsDatetime
-import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
 
@@ -26,13 +24,14 @@ from pandas import (
     NaT,
     Series,
     Timestamp,
+    _testing as tm,
     date_range,
     isna,
     to_datetime,
 )
-import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray
 from pandas.core.tools import datetimes as tools
+from pandas.util import _test_decorators as td
 
 
 class TestTimeConversionFormats:

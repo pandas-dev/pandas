@@ -5,7 +5,7 @@ from datetime import datetime
 
 import pytest
 
-import pandas._libs.tslibs.offsets as liboffsets
+from pandas._libs.tslibs import offsets as liboffsets
 from pandas._libs.tslibs.offsets import roll_qtrday
 
 from pandas import Timestamp

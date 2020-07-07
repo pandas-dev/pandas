@@ -5,8 +5,7 @@ from numpy.random import randint
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, get_option, read_clipboard
-import pandas._testing as tm
+from pandas import DataFrame, _testing as tm, get_option, read_clipboard
 
 from pandas.io.clipboard import clipboard_get, clipboard_set
 

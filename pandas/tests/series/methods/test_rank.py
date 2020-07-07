@@ -5,11 +5,10 @@ import pytest
 
 from pandas._libs import iNaT
 from pandas._libs.algos import Infinity, NegInfinity
-import pandas.util._test_decorators as td
 
-from pandas import NaT, Series, Timestamp, date_range
-import pandas._testing as tm
+from pandas import NaT, Series, Timestamp, _testing as tm, date_range
 from pandas.api.types import CategoricalDtype
+from pandas.util import _test_decorators as td
 
 
 class TestSeriesRank:

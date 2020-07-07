@@ -1,7 +1,6 @@
 import pytest
 
-from pandas import DataFrame, Index, Series
-import pandas._testing as tm
+from pandas import DataFrame, Index, Series, _testing as tm
 
 
 @pytest.mark.parametrize("n, frac", [(2, None), (None, 0.2)])

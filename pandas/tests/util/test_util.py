@@ -2,9 +2,7 @@ import os
 
 import pytest
 
-import pandas.compat as compat
-
-import pandas._testing as tm
+from pandas import _testing as tm, compat as compat
 
 
 def test_rands():

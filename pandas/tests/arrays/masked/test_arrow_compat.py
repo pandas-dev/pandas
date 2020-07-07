@@ -1,9 +1,8 @@
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
-import pandas._testing as tm
+from pandas import _testing as tm
+from pandas.util import _test_decorators as td
 
 arrays = [pd.array([1, 2, 3, None], dtype=dtype) for dtype in tm.ALL_EA_INT_DTYPES]
 arrays += [pd.array([True, False, True, None], dtype="boolean")]

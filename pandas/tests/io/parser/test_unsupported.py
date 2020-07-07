@@ -12,9 +12,9 @@ import pytest
 
 from pandas.errors import ParserError
 
-import pandas._testing as tm
+from pandas import _testing as tm
 
-import pandas.io.parsers as parsers
+from pandas.io import parsers as parsers
 from pandas.io.parsers import read_csv
 
 

@@ -2,8 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Series, Timestamp
-import pandas._testing as tm
+from pandas import Series, Timestamp, _testing as tm
 
 
 @pytest.mark.parametrize("val,expected", [(2 ** 63 - 1, 3), (2 ** 63, 4)])

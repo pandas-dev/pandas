@@ -9,8 +9,7 @@ from pandas._libs.tslib import Timestamp
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
 import pandas as pd
-from pandas import Index, MultiIndex, Series, date_range
-import pandas._testing as tm
+from pandas import Index, MultiIndex, Series, _testing as tm, date_range
 
 
 def test_constructor_single_level():

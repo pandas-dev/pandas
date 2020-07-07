@@ -10,12 +10,12 @@ from pandas import (
     Index,
     MultiIndex,
     Series,
+    _testing as tm,
     date_range,
     option_context,
     period_range,
     timedelta_range,
 )
-import pandas._testing as tm
 
 
 class TestSeriesRepr:

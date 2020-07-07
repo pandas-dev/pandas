@@ -21,8 +21,15 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas as pd
-from pandas import DatetimeIndex, Float64Index, NaT, Series, TimedeltaIndex, date_range
-import pandas._testing as tm
+from pandas import (
+    DatetimeIndex,
+    Float64Index,
+    NaT,
+    Series,
+    TimedeltaIndex,
+    _testing as tm,
+    date_range,
+)
 
 now = pd.Timestamp.now()
 utcnow = pd.Timestamp.now("UTC")

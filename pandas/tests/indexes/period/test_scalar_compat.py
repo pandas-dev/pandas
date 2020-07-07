@@ -1,7 +1,5 @@
 """Tests for PeriodIndex behaving like a vectorized Period scalar"""
-
-from pandas import Timedelta, date_range, period_range
-import pandas._testing as tm
+from pandas import Timedelta, _testing as tm, date_range, period_range
 
 
 class TestPeriodIndexOps:

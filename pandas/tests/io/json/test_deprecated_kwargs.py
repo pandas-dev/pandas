@@ -1,9 +1,8 @@
 """
 Tests for the deprecated keyword arguments for `read_json`.
 """
-
 import pandas as pd
-import pandas._testing as tm
+from pandas import _testing as tm
 
 from pandas.io.json import read_json
 

@@ -5,8 +5,8 @@ import itertools
 import re
 
 import numpy as np
-import numpy.ma as ma
-import numpy.ma.mrecords as mrecords
+from numpy import ma as ma
+from numpy.ma import mrecords as mrecords
 import pytest
 import pytz
 
@@ -25,10 +25,10 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
+    _testing as tm,
     date_range,
     isna,
 )
-import pandas._testing as tm
 from pandas.arrays import IntervalArray, PeriodArray, SparseArray
 from pandas.core.construction import create_series_with_explicit_dtype
 

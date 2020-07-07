@@ -1,4 +1,4 @@
-import pandas._testing as tm
+from pandas import _testing as tm
 from pandas.api import types
 
 from .test_api import Base

@@ -38,11 +38,11 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna
 
+from pandas.core import common as com
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays.interval import IntervalArray, _interval_shared_docs
-import pandas.core.common as com
 from pandas.core.indexers import is_valid_positional_slice
-import pandas.core.indexes.base as ibase
+from pandas.core.indexes import base as ibase
 from pandas.core.indexes.base import (
     Index,
     _index_shared_docs,

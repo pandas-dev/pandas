@@ -305,7 +305,7 @@ def hist_series(
     legend: bool = False,
     **kwds,
 ):
-    import matplotlib.pyplot as plt
+    from matplotlib import pyplot as plt
 
     if legend and "label" in kwds:
         raise ValueError("Cannot use both legend and label")

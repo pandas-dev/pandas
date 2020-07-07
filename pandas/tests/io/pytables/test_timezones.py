@@ -3,16 +3,21 @@ import datetime
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
-from pandas import DataFrame, DatetimeIndex, Series, Timestamp, date_range
-import pandas._testing as tm
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Series,
+    Timestamp,
+    _testing as tm,
+    date_range,
+)
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
     ensure_clean_path,
     ensure_clean_store,
 )
+from pandas.util import _test_decorators as td
 
 
 def _compare_with_tz(a, b):

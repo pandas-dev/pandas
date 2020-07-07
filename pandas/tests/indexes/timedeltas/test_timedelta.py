@@ -11,10 +11,10 @@ from pandas import (
     Series,
     Timedelta,
     TimedeltaIndex,
+    _testing as tm,
     date_range,
     timedelta_range,
 )
-import pandas._testing as tm
 
 from ..datetimelike import DatetimeLike
 

@@ -24,8 +24,8 @@ from pandas.errors import EmptyDataError, OutOfBoundsDatetime
 import pandas as pd
 
 from pandas.io.common import get_filepath_or_buffer
+from pandas.io.sas import sas_constants as const
 from pandas.io.sas._sas import Parser
-import pandas.io.sas.sas_constants as const
 from pandas.io.sas.sasreader import ReaderBase
 
 

@@ -45,9 +45,8 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
-import pandas.core.algorithms as algos
+from pandas.core import algorithms as algos, common as com
 from pandas.core.arrays import datetimelike as dtl
-import pandas.core.common as com
 
 
 def _field_accessor(name: str, docstring=None):
@@ -299,6 +298,7 @@ class PeriodArray(PeriodMixin, dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         Convert myself into a pyarrow Array.
         """
         import pyarrow
+
         from pandas.core.arrays._arrow_utils import ArrowPeriodType
 
         if type is not None:

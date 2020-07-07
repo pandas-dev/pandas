@@ -6,8 +6,14 @@ import pytest
 from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
-from pandas import Categorical, CategoricalIndex, DataFrame, Series, get_dummies
-import pandas._testing as tm
+from pandas import (
+    Categorical,
+    CategoricalIndex,
+    DataFrame,
+    Series,
+    _testing as tm,
+    get_dummies,
+)
 from pandas.core.arrays.sparse import SparseArray, SparseDtype
 
 

@@ -17,7 +17,6 @@ import pytest
 import pytz
 
 from pandas._libs import lib, missing as libmissing
-import pandas.util._test_decorators as td
 
 from pandas.core.dtypes import inference
 from pandas.core.dtypes.common import (
@@ -49,9 +48,10 @@ from pandas import (
     Timedelta,
     TimedeltaIndex,
     Timestamp,
+    _testing as tm,
 )
-import pandas._testing as tm
 from pandas.core.arrays import IntegerArray
+from pandas.util import _test_decorators as td
 
 
 @pytest.fixture(params=[True, False], ids=str)

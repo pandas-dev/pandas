@@ -9,12 +9,12 @@ from pathlib import Path
 import pytest
 
 from pandas.compat import is_platform_windows
-import pandas.util._test_decorators as td
 
 import pandas as pd
-import pandas._testing as tm
+from pandas import _testing as tm
+from pandas.util import _test_decorators as td
 
-import pandas.io.common as icom
+from pandas.io import common as icom
 
 
 class CustomFSPath:

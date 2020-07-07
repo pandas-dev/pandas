@@ -1,7 +1,6 @@
 import numpy as np
 
-from pandas import DataFrame, Index, PeriodIndex, period_range
-import pandas._testing as tm
+from pandas import DataFrame, Index, PeriodIndex, _testing as tm, period_range
 
 
 class TestPeriodIndex:

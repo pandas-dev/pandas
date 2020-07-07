@@ -4,7 +4,6 @@ as a CParser-specific issue, the goal is to eventually move as many of
 these tests out of this module as soon as the Python parser can accept
 further arguments when parsing.
 """
-
 from io import BytesIO, StringIO, TextIOWrapper
 import mmap
 import os
@@ -14,10 +13,9 @@ import numpy as np
 import pytest
 
 from pandas.errors import ParserError
-import pandas.util._test_decorators as td
 
-from pandas import DataFrame, concat
-import pandas._testing as tm
+from pandas import DataFrame, _testing as tm, concat
+from pandas.util import _test_decorators as td
 
 
 @pytest.mark.parametrize(

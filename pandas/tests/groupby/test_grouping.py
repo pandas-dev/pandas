@@ -1,5 +1,4 @@
 """ test where we are determining what we are grouping, or getting groups """
-
 import numpy as np
 import pytest
 
@@ -11,9 +10,9 @@ from pandas import (
     MultiIndex,
     Series,
     Timestamp,
+    _testing as tm,
     date_range,
 )
-import pandas._testing as tm
 from pandas.core.groupby.grouper import Grouping
 
 # selection

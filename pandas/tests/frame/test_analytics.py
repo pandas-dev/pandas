@@ -5,8 +5,6 @@ import operator
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -14,15 +12,15 @@ from pandas import (
     MultiIndex,
     Series,
     Timestamp,
+    _testing as tm,
     date_range,
     isna,
     notna,
     to_datetime,
     to_timedelta,
 )
-import pandas._testing as tm
-import pandas.core.algorithms as algorithms
-import pandas.core.nanops as nanops
+from pandas.core import algorithms as algorithms, nanops as nanops
+from pandas.util import _test_decorators as td
 
 
 def assert_stat_op_calc(
@@ -287,7 +285,7 @@ class TestDataFrameAnalytics:
         assert_stat_op_api("median", float_frame, float_string_frame)
 
         try:
-            from scipy.stats import skew, kurtosis  # noqa:F401
+            from scipy.stats import kurtosis, skew  # noqa:F401
 
             assert_stat_op_api("skew", float_frame, float_string_frame)
             assert_stat_op_api("kurt", float_frame, float_string_frame)
@@ -370,7 +368,7 @@ class TestDataFrameAnalytics:
         )
 
         try:
-            from scipy import skew, kurtosis  # noqa:F401
+            from scipy import kurtosis, skew  # noqa:F401
 
             assert_stat_op_calc("skew", skewness, float_frame_with_na)
             assert_stat_op_calc("kurt", kurt, float_frame_with_na)

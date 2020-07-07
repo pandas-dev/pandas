@@ -4,8 +4,13 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Timedelta, TimedeltaIndex, timedelta_range, to_timedelta
-import pandas._testing as tm
+from pandas import (
+    Timedelta,
+    TimedeltaIndex,
+    _testing as tm,
+    timedelta_range,
+    to_timedelta,
+)
 from pandas.core.arrays import TimedeltaArray
 
 

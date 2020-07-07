@@ -5,14 +5,12 @@ import numpy as np
 from numpy import random
 
 from pandas.util._decorators import cache_readonly
-import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.api import is_list_like
 
 import pandas as pd
-from pandas import DataFrame, Series
-import pandas._testing as tm
-
+from pandas import DataFrame, Series, _testing as tm
+from pandas.util import _test_decorators as td
 
 """
 This is a common base class used for various plotting tests
@@ -24,6 +22,7 @@ class TestPlotBase:
     def setup_method(self, method):
 
         import matplotlib as mpl
+
         from pandas.plotting._matplotlib import compat
 
         mpl.rcdefaults()
@@ -67,13 +66,13 @@ class TestPlotBase:
 
     @cache_readonly
     def plt(self):
-        import matplotlib.pyplot as plt
+        from matplotlib import pyplot as plt
 
         return plt
 
     @cache_readonly
     def colorconverter(self):
-        import matplotlib.colors as colors
+        from matplotlib import colors as colors
 
         return colors.colorConverter
 
@@ -187,8 +186,8 @@ class TestPlotBase:
             Series used for color grouping key
             used for andrew_curves, parallel_coordinates, radviz test
         """
+        from matplotlib.collections import Collection, LineCollection, PolyCollection
         from matplotlib.lines import Line2D
-        from matplotlib.collections import Collection, PolyCollection, LineCollection
 
         conv = self.colorconverter
         if linecolors is not None:
@@ -519,7 +518,7 @@ class TestPlotBase:
 
 
 def _check_plot_works(f, filterwarnings="always", **kwargs):
-    import matplotlib.pyplot as plt
+    from matplotlib import pyplot as plt
 
     ret = None
     with warnings.catch_warnings():

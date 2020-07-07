@@ -2,8 +2,8 @@
 from math import ceil
 import warnings
 
+from matplotlib import ticker as ticker
 import matplotlib.table
-import matplotlib.ticker as ticker
 import numpy as np
 
 from pandas.core.dtypes.common import is_list_like
@@ -176,7 +176,7 @@ def _subplots(
     # Four polar axes
     plt.subplots(2, 2, subplot_kw=dict(polar=True))
     """
-    import matplotlib.pyplot as plt
+    from matplotlib import pyplot as plt
 
     if subplot_kw is None:
         subplot_kw = {}
@@ -343,7 +343,7 @@ def _flatten(axes):
 
 
 def _set_ticks_props(axes, xlabelsize=None, xrot=None, ylabelsize=None, yrot=None):
-    import matplotlib.pyplot as plt
+    from matplotlib import pyplot as plt
 
     for ax in _flatten(axes):
         if xlabelsize is not None:

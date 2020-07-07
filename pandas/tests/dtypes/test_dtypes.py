@@ -32,9 +32,9 @@ from pandas import (
     DatetimeIndex,
     IntervalIndex,
     Series,
+    _testing as tm,
     date_range,
 )
-import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray, SparseDtype
 
 

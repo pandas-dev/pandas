@@ -8,8 +8,7 @@ import pytest
 from pandas.core.dtypes.common import is_dtype_equal
 
 import pandas as pd
-from pandas import Float64Index, Int64Index, RangeIndex, UInt64Index
-import pandas._testing as tm
+from pandas import Float64Index, Int64Index, RangeIndex, UInt64Index, _testing as tm
 from pandas.api.types import pandas_dtype
 
 COMPATIBLE_INCONSISTENT_PAIRS = {

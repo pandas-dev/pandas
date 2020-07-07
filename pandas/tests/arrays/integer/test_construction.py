@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas._testing as tm
+from pandas import _testing as tm
 from pandas.api.types import is_integer
 from pandas.core.arrays import IntegerArray, integer_array
 from pandas.core.arrays.integer import Int8Dtype, Int32Dtype, Int64Dtype

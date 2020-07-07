@@ -4,10 +4,8 @@ from typing import List
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
+from pandas.core.dtypes import common as com
 from pandas.core.dtypes.cast import astype_nansafe
-import pandas.core.dtypes.common as com
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     CategoricalDtypeType,
@@ -18,8 +16,9 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core.dtypes.missing import isna
 
 import pandas as pd
-import pandas._testing as tm
+from pandas import _testing as tm
 from pandas.arrays import SparseArray
+from pandas.util import _test_decorators as td
 
 
 # EA & Actual Dtypes

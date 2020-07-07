@@ -16,10 +16,10 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
+    _testing as tm,
     date_range,
     isna,
 )
-import pandas._testing as tm
 
 
 class TestSeriesMissingData:

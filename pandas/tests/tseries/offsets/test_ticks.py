@@ -9,8 +9,7 @@ import pytest
 
 from pandas._libs.tslibs.offsets import delta_to_tick
 
-from pandas import Timedelta, Timestamp
-import pandas._testing as tm
+from pandas import Timedelta, Timestamp, _testing as tm
 
 from pandas.tseries import offsets
 from pandas.tseries.offsets import Hour, Micro, Milli, Minute, Nano, Second

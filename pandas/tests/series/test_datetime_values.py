@@ -19,13 +19,13 @@ from pandas import (
     PeriodIndex,
     Series,
     TimedeltaIndex,
+    _testing as tm,
     date_range,
     period_range,
     timedelta_range,
 )
-import pandas._testing as tm
+from pandas.core import common as com
 from pandas.core.arrays import PeriodArray
-import pandas.core.common as com
 
 
 class TestSeriesDatetimeValues:

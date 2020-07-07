@@ -8,7 +8,7 @@ import re
 import numpy as np
 import pytest
 
-import pandas._config.config as cf
+from pandas._config import config as cf
 
 from pandas._libs.tslib import Timestamp
 from pandas.compat.numpy import np_datetime64_compat
@@ -28,11 +28,11 @@ from pandas import (
     Series,
     TimedeltaIndex,
     UInt64Index,
+    _testing as tm,
     date_range,
     isna,
     period_range,
 )
-import pandas._testing as tm
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,

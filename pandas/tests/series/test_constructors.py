@@ -2,7 +2,7 @@ from collections import OrderedDict
 from datetime import datetime, timedelta
 
 import numpy as np
-import numpy.ma as ma
+from numpy import ma as ma
 import pytest
 
 from pandas._libs import iNaT, lib
@@ -20,12 +20,12 @@ from pandas import (
     NaT,
     Series,
     Timestamp,
+    _testing as tm,
     date_range,
     isna,
     period_range,
     timedelta_range,
 )
-import pandas._testing as tm
 from pandas.core.arrays import IntervalArray, period_array
 
 

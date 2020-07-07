@@ -6,8 +6,14 @@ import pytest
 from pandas.errors import PerformanceWarning, UnsortedIndexError
 
 import pandas as pd
-from pandas import CategoricalIndex, DataFrame, Index, MultiIndex, RangeIndex
-import pandas._testing as tm
+from pandas import (
+    CategoricalIndex,
+    DataFrame,
+    Index,
+    MultiIndex,
+    RangeIndex,
+    _testing as tm,
+)
 
 
 def test_sortlevel(idx):

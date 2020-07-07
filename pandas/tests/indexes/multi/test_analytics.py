@@ -4,8 +4,7 @@ import pytest
 from pandas.compat.numpy import _np_version_under1p17
 
 import pandas as pd
-from pandas import Index, MultiIndex, date_range, period_range
-import pandas._testing as tm
+from pandas import Index, MultiIndex, _testing as tm, date_range, period_range
 
 
 def test_shift(idx):

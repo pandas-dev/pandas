@@ -7,12 +7,12 @@ from pandas import (
     MultiIndex,
     Series,
     Timestamp,
+    _testing as tm,
     date_range,
     to_datetime,
 )
-import pandas._testing as tm
 
-import pandas.tseries.offsets as offsets
+from pandas.tseries import offsets as offsets
 
 
 class TestRollingTS:

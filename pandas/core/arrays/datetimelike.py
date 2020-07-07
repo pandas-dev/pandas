@@ -52,12 +52,11 @@ from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
-from pandas.core import missing, nanops, ops
+from pandas.core import common as com, missing, nanops, ops
 from pandas.core.algorithms import checked_add_with_arr, unique1d, value_counts
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays._mixins import _T, NDArrayBackedExtensionArray
 from pandas.core.arrays.base import ExtensionArray, ExtensionOpsMixin
-import pandas.core.common as com
 from pandas.core.construction import array, extract_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.ops.common import unpack_zerodim_and_defer
@@ -959,7 +958,7 @@ class DatetimeLikeArrayMixin(
         -------
         Series
         """
-        from pandas import Series, Index
+        from pandas import Index, Series
 
         if dropna:
             values = self[~self.isna()]._data

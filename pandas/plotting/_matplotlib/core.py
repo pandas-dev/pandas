@@ -27,7 +27,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
-import pandas.core.common as com
+from pandas.core import common as com
 
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.compat import _mpl_ge_3_0_0
@@ -111,7 +111,7 @@ class MPLPlot:
         **kwds,
     ):
 
-        import matplotlib.pyplot as plt
+        from matplotlib import pyplot as plt
 
         self.data = data
         self.by = by
@@ -607,7 +607,7 @@ class MPLPlot:
 
     @cache_readonly
     def plt(self):
-        import matplotlib.pyplot as plt
+        from matplotlib import pyplot as plt
 
         return plt
 
@@ -708,7 +708,7 @@ class MPLPlot:
 
     @classmethod
     def get_default_ax(cls, ax):
-        import matplotlib.pyplot as plt
+        from matplotlib import pyplot as plt
 
         if ax is None and len(plt.get_fignums()) > 0:
             with plt.rc_context():
@@ -1135,8 +1135,8 @@ class LinePlot(MPLPlot):
     @classmethod
     def _ts_plot(cls, ax, x, data, style=None, **kwds):
         from pandas.plotting._matplotlib.timeseries import (
-            _maybe_resample,
             _decorate_axes,
+            _maybe_resample,
             format_dateaxis,
         )
 

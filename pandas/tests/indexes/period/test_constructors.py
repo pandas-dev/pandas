@@ -12,11 +12,11 @@ from pandas import (
     Period,
     PeriodIndex,
     Series,
+    _testing as tm,
     date_range,
     offsets,
     period_range,
 )
-import pandas._testing as tm
 from pandas.core.arrays import PeriodArray
 
 

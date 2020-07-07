@@ -10,8 +10,15 @@ from pandas.compat import PY37
 from pandas.util._test_decorators import async_mark, skip_if_no
 
 import pandas as pd
-from pandas import Categorical, DataFrame, Series, compat, date_range, timedelta_range
-import pandas._testing as tm
+from pandas import (
+    Categorical,
+    DataFrame,
+    Series,
+    _testing as tm,
+    compat,
+    date_range,
+    timedelta_range,
+)
 
 
 class TestDataFrameMisc:

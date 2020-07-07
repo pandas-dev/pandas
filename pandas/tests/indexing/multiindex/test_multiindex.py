@@ -1,11 +1,10 @@
 import numpy as np
 
-import pandas._libs.index as _index
+from pandas._libs import index as _index
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series
-import pandas._testing as tm
+from pandas import DataFrame, Index, MultiIndex, Series, _testing as tm
 
 
 class TestMultiIndexBasic:

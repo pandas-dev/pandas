@@ -13,14 +13,14 @@ from pandas import (
     IntervalIndex,
     Timedelta,
     Timestamp,
+    _testing as tm,
     date_range,
     interval_range,
     isna,
     notna,
     timedelta_range,
 )
-import pandas._testing as tm
-import pandas.core.common as com
+from pandas.core import common as com
 
 
 @pytest.fixture(scope="class", params=[None, "foo"])

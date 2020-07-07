@@ -23,11 +23,10 @@ import zipfile
 import pytest
 
 from pandas.compat import _get_lzma_file, _import_lzma, is_platform_little_endian
-import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import Index
-import pandas._testing as tm
+from pandas import Index, _testing as tm
+from pandas.util import _test_decorators as td
 
 from pandas.tseries.offsets import Day, MonthEnd
 

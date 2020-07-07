@@ -2,8 +2,15 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import CategoricalDtype, DataFrame, Index, IntervalIndex, MultiIndex, Series
-import pandas._testing as tm
+from pandas import (
+    CategoricalDtype,
+    DataFrame,
+    Index,
+    IntervalIndex,
+    MultiIndex,
+    Series,
+    _testing as tm,
+)
 
 
 class TestDataFrameSortIndex:

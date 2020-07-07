@@ -10,8 +10,8 @@ from pandas.core.dtypes.common import is_extension_array_dtype, is_list_like
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.missing import notna
 
+from pandas.core import common as com
 from pandas.core.arrays import Categorical
-import pandas.core.common as com
 from pandas.core.indexes.api import Index, MultiIndex
 from pandas.core.reshape.concat import concat
 from pandas.core.shared_docs import _shared_docs

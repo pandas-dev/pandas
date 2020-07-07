@@ -4,8 +4,7 @@ import pytest
 from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
-from pandas import DataFrame, Series
-import pandas._testing as tm
+from pandas import DataFrame, Series, _testing as tm
 from pandas.core.window import Expanding
 
 

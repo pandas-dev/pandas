@@ -3,8 +3,7 @@ import pytest
 
 from pandas._libs import join as _join
 
-from pandas import Categorical, DataFrame, Index, merge
-import pandas._testing as tm
+from pandas import Categorical, DataFrame, Index, _testing as tm, merge
 
 
 class TestIndexer:

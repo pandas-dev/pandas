@@ -2,14 +2,13 @@
 Tests compressed data parsing functionality for all
 of the parsers defined in parsers.py
 """
-
 import os
 import zipfile
 
 import pytest
 
 import pandas as pd
-import pandas._testing as tm
+from pandas import _testing as tm
 
 
 @pytest.fixture(params=[True, False])

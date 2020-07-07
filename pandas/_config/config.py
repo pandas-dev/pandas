@@ -47,7 +47,6 @@ Implementation
   which can save developers some typing, see the docstring.
 
 """
-
 from collections import namedtuple
 from contextlib import ContextDecorator, contextmanager
 import re
@@ -442,8 +441,8 @@ def register_option(
     ValueError if `validator` is specified and `defval` is not a valid value.
 
     """
-    import tokenize
     import keyword
+    import tokenize
 
     key = key.lower()
 
@@ -660,8 +659,8 @@ def _build_option_description(k: str) -> str:
 
 def pp_options_list(keys: Iterable[str], width=80, _print: bool = False):
     """ Builds a concise listing of available options, grouped by prefix """
-    from textwrap import wrap
     from itertools import groupby
+    from textwrap import wrap
 
     def pp(name: str, ks: Iterable[str]) -> List[str]:
         pfx = "- " + name + ".[" if name else ""

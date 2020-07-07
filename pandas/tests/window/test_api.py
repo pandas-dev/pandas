@@ -3,12 +3,10 @@ from collections import OrderedDict
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
-from pandas import DataFrame, Index, Series, Timestamp, concat
-import pandas._testing as tm
+from pandas import DataFrame, Index, Series, Timestamp, _testing as tm, concat
 from pandas.core.base import SpecificationError
+from pandas.util import _test_decorators as td
 
 
 def test_getitem(frame):

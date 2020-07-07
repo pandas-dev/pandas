@@ -17,11 +17,11 @@ from pandas import (
     Timedelta,
     TimedeltaIndex,
     Timestamp,
+    _testing as tm,
     isna,
     timedelta_range,
     to_timedelta,
 )
-import pandas._testing as tm
 from pandas.core import nanops
 
 

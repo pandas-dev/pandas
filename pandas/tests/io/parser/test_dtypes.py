@@ -13,8 +13,16 @@ from pandas.errors import ParserWarning
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
-from pandas import Categorical, DataFrame, Index, MultiIndex, Series, Timestamp, concat
-import pandas._testing as tm
+from pandas import (
+    Categorical,
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    Timestamp,
+    _testing as tm,
+    concat,
+)
 
 
 @pytest.mark.parametrize("dtype", [str, object])

@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import MultiIndex
-import pandas._testing as tm
+from pandas import MultiIndex, _testing as tm
 
 
 def test_numeric_compat(idx):

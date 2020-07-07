@@ -2,8 +2,15 @@ from datetime import timedelta
 
 import pytest
 
-from pandas import PeriodIndex, Series, Timedelta, date_range, period_range, to_datetime
-import pandas._testing as tm
+from pandas import (
+    PeriodIndex,
+    Series,
+    Timedelta,
+    _testing as tm,
+    date_range,
+    period_range,
+    to_datetime,
+)
 
 
 class TestToTimestamp:

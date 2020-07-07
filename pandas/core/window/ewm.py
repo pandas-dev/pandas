@@ -6,7 +6,7 @@ from typing import Optional, Union
 import numpy as np
 
 from pandas._libs.tslibs import Timedelta
-import pandas._libs.window.aggregations as window_aggregations
+from pandas._libs.window import aggregations as window_aggregations
 from pandas._typing import FrameOrSeries, TimedeltaConvertibleTypes
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, doc
@@ -14,8 +14,8 @@ from pandas.util._decorators import Appender, Substitution, doc
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
 from pandas.core.dtypes.generic import ABCDataFrame
 
+from pandas.core import common as common
 from pandas.core.base import DataError
-import pandas.core.common as common
 from pandas.core.window.common import _doc_template, _shared_docs, zsqrt
 from pandas.core.window.rolling import _flex_binary_moment, _Rolling
 

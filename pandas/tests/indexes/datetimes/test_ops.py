@@ -10,10 +10,10 @@ from pandas import (
     Index,
     Series,
     Timestamp,
+    _testing as tm,
     bdate_range,
     date_range,
 )
-import pandas._testing as tm
 
 from pandas.tseries.offsets import BDay, Day, Hour
 

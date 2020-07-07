@@ -1,10 +1,9 @@
 import numpy as np
 
 import pandas as pd
-from pandas import DataFrame
-import pandas._testing as tm
+from pandas import DataFrame, _testing as tm
 
-import pandas.io.formats.format as fmt
+from pandas.io.formats import format as fmt
 
 
 class TestEngFormatter:

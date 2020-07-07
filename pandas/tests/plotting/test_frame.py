@@ -1,5 +1,4 @@
 """ Test cases for DataFrame.plot """
-
 from datetime import date, datetime
 import itertools
 import string
@@ -9,18 +8,24 @@ import numpy as np
 from numpy.random import rand, randn
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas.core.dtypes.api import is_list_like
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, PeriodIndex, Series, bdate_range, date_range
-import pandas._testing as tm
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    PeriodIndex,
+    Series,
+    _testing as tm,
+    bdate_range,
+    date_range,
+    plotting as plotting,
+)
 from pandas.core.arrays import integer_array
 from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
+from pandas.util import _test_decorators as td
 
 from pandas.io.formats.printing import pprint_thing
-import pandas.plotting as plotting
 
 
 @td.skip_if_no_mpl
@@ -916,7 +921,7 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_bar_colors(self):
-        import matplotlib.pyplot as plt
+        from matplotlib import pyplot as plt
 
         default_colors = self._unpack_cycler(plt.rcParams)
 
@@ -1230,7 +1235,7 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_if_scatterplot_colorbars_are_next_to_parent_axes(self):
-        import matplotlib.pyplot as plt
+        from matplotlib import pyplot as plt
 
         random_array = np.random.random((1000, 3))
         df = pd.DataFrame(random_array, columns=["A label", "B label", "C label"])
@@ -1347,7 +1352,7 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_scatter_colorbar_different_cmap(self):
         # GH 33389
-        import matplotlib.pyplot as plt
+        from matplotlib import pyplot as plt
 
         df = pd.DataFrame({"x": [1, 2, 3], "y": [1, 3, 2], "c": [1, 2, 3]})
         df["x2"] = df["x"] + 1
@@ -2016,7 +2021,7 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_style_by_column(self):
-        import matplotlib.pyplot as plt
+        from matplotlib import pyplot as plt
 
         fig = plt.gcf()
 
@@ -2407,8 +2412,8 @@ class TestDataFramePlots(TestPlotBase):
         assert result[expected][0].get_color() == "C1"
 
     def test_default_color_cycle(self):
-        import matplotlib.pyplot as plt
         import cycler
+        from matplotlib import pyplot as plt
 
         colors = list("rgbk")
         plt.rcParams["axes.prop_cycle"] = cycler.cycler("color", colors)
@@ -2845,7 +2850,7 @@ class TestDataFramePlots(TestPlotBase):
         # https://github.com/pandas-dev/pandas/issues/9737 using gridspec,
         # the axis in fig.get_axis() are sorted differently than pandas
         # expected them, so make sure that only the right ones are removed
-        import matplotlib.pyplot as plt
+        from matplotlib import pyplot as plt
 
         plt.close("all")
         gs, axes = _generate_4_axes_via_gridspec()
@@ -2900,7 +2905,7 @@ class TestDataFramePlots(TestPlotBase):
         # https://github.com/pandas-dev/pandas/issues/9737 using gridspec,
         # the axis in fig.get_axis() are sorted differently than pandas
         # expected them, so make sure that only the right ones are removed
-        import matplotlib.pyplot as plt
+        from matplotlib import pyplot as plt
 
         gs, axes = _generate_4_axes_via_gridspec()
 
@@ -2952,8 +2957,8 @@ class TestDataFramePlots(TestPlotBase):
     @td.skip_if_no_scipy
     def test_memory_leak(self):
         """ Check that every plot type gets properly collected. """
-        import weakref
         import gc
+        import weakref
 
         results = {}
         for kind in plotting.PlotAccessor._all_kinds:
@@ -2984,7 +2989,7 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.slow
     def test_df_subplots_patterns_minorticks(self):
         # GH 10657
-        import matplotlib.pyplot as plt
+        from matplotlib import pyplot as plt
 
         df = DataFrame(
             np.random.randn(10, 2),
@@ -3031,8 +3036,7 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.slow
     def test_df_gridspec_patterns(self):
         # GH 10819
-        import matplotlib.pyplot as plt
-        import matplotlib.gridspec as gridspec
+        from matplotlib import gridspec as gridspec, pyplot as plt
 
         ts = Series(np.random.randn(10), index=date_range("1/1/2000", periods=10))
 
@@ -3421,8 +3425,8 @@ class TestDataFramePlots(TestPlotBase):
 
 
 def _generate_4_axes_via_gridspec():
-    import matplotlib.pyplot as plt
     import matplotlib as mpl
+    from matplotlib import pyplot as plt
     import matplotlib.gridspec  # noqa
 
     gs = mpl.gridspec.GridSpec(2, 2)

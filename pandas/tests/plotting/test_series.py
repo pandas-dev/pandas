@@ -1,6 +1,4 @@
 """ Test cases for Series.plot """
-
-
 from datetime import datetime
 from itertools import chain
 
@@ -8,14 +6,10 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
-from pandas import DataFrame, Series, date_range
-import pandas._testing as tm
+from pandas import DataFrame, Series, _testing as tm, date_range, plotting as plotting
 from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
-
-import pandas.plotting as plotting
+from pandas.util import _test_decorators as td
 
 
 @td.skip_if_no_mpl
@@ -450,7 +444,7 @@ class TestSeriesPlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_hist_no_overlap(self):
-        from matplotlib.pyplot import subplot, gcf
+        from matplotlib.pyplot import gcf, subplot
 
         x = Series(randn(2))
         y = Series(randn(2))
@@ -802,7 +796,8 @@ class TestSeriesPlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_standard_colors_all(self):
-        import matplotlib.colors as colors
+        from matplotlib import colors as colors
+
         from pandas.plotting._matplotlib.style import _get_standard_colors
 
         # multiple colors like mediumaquamarine

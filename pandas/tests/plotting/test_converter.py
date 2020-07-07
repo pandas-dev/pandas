@@ -5,13 +5,12 @@ import sys
 import numpy as np
 import pytest
 
-import pandas._config.config as cf
+from pandas._config import config as cf
 
 from pandas.compat.numpy import np_datetime64_compat
-import pandas.util._test_decorators as td
 
-from pandas import Index, Period, Series, Timestamp, date_range
-import pandas._testing as tm
+from pandas import Index, Period, Series, Timestamp, _testing as tm, date_range
+from pandas.util import _test_decorators as td
 
 from pandas.plotting import (
     deregister_matplotlib_converters,

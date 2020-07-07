@@ -1,12 +1,11 @@
 import numpy as np
 import pytest
 
-import pandas._config.config as cf
+from pandas._config import config as cf
 
 import pandas as pd
 
-import pandas.io.formats.format as fmt
-import pandas.io.formats.printing as printing
+from pandas.io.formats import format as fmt, printing as printing
 
 
 def test_adjoin():

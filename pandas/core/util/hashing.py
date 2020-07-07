@@ -6,7 +6,7 @@ from typing import Optional
 
 import numpy as np
 
-import pandas._libs.hashing as hashing
+from pandas._libs import hashing as hashing
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -275,7 +275,7 @@ def hash_array(
         # then hash and rename categories. We allow skipping the categorization
         # when the values are known/likely to be unique.
         if categorize:
-            from pandas import factorize, Categorical, Index
+            from pandas import Categorical, Index, factorize
 
             codes, categories = factorize(vals, sort=False)
             cat = Categorical(codes, Index(categories), ordered=False, fastpath=True)

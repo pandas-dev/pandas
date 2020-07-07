@@ -4,8 +4,7 @@ from pathlib import Path
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, read_json
-import pandas._testing as tm
+from pandas import DataFrame, _testing as tm, read_json
 
 from pandas.io.json._json import JsonReader
 

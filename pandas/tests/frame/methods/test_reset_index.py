@@ -12,9 +12,9 @@ from pandas import (
     RangeIndex,
     Series,
     Timestamp,
+    _testing as tm,
     date_range,
 )
-import pandas._testing as tm
 
 
 class TestResetIndex:

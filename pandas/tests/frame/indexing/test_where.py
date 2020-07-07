@@ -6,8 +6,15 @@ import pytest
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
-from pandas import DataFrame, DatetimeIndex, Series, Timestamp, date_range, isna
-import pandas._testing as tm
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Series,
+    Timestamp,
+    _testing as tm,
+    date_range,
+    isna,
+)
 
 
 @pytest.fixture(params=["default", "float_string", "mixed_float", "mixed_int"])

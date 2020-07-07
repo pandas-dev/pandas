@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import Timedelta, timedelta_range, to_timedelta
-import pandas._testing as tm
+from pandas import Timedelta, _testing as tm, timedelta_range, to_timedelta
 
 from pandas.tseries.offsets import Day, Second
 

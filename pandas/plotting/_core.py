@@ -1775,7 +1775,7 @@ def _get_plot_backend(backend=None):
         # Because matplotlib is an optional dependency and first-party backend,
         # we need to attempt an import here to raise an ImportError if needed.
         try:
-            import pandas.plotting._matplotlib as module
+            from pandas.plotting import _matplotlib as module
         except ImportError:
             raise ImportError(
                 "matplotlib is required for plotting when the "

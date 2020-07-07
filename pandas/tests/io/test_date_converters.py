@@ -2,9 +2,9 @@ from datetime import datetime
 
 import numpy as np
 
-import pandas._testing as tm
+from pandas import _testing as tm
 
-import pandas.io.date_converters as conv
+from pandas.io import date_converters as conv
 
 
 def test_parse_date_time():

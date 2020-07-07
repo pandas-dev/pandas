@@ -4,8 +4,7 @@ import operator
 import numpy as np
 import pytest
 
-from pandas import Timestamp
-import pandas._testing as tm
+from pandas import Timestamp, _testing as tm
 
 
 class TestTimestampComparison:

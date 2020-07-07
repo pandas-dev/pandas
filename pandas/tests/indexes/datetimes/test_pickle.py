@@ -1,7 +1,6 @@
 import pytest
 
-from pandas import NaT, date_range, to_datetime
-import pandas._testing as tm
+from pandas import NaT, _testing as tm, date_range, to_datetime
 
 
 class TestPickle:

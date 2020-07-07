@@ -7,9 +7,9 @@ from pytz import utc
 
 from pandas._libs.tslibs import NaT, Timestamp, conversion, to_offset
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
-import pandas.util._test_decorators as td
 
-import pandas._testing as tm
+from pandas import _testing as tm
+from pandas.util import _test_decorators as td
 
 
 class TestTimestampUnaryOps:

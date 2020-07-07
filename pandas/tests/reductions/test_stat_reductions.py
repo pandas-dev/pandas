@@ -6,12 +6,10 @@ import inspect
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
-from pandas import DataFrame, Series
-import pandas._testing as tm
+from pandas import DataFrame, Series, _testing as tm
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
+from pandas.util import _test_decorators as td
 
 
 class TestDatetimeLikeStatReductions:

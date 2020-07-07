@@ -13,7 +13,6 @@ import numpy as np
 import pytest
 
 from pandas.compat import is_platform_little_endian, is_platform_windows
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -27,13 +26,13 @@ from pandas import (
     RangeIndex,
     Series,
     Timestamp,
+    _testing as tm,
     bdate_range,
     concat,
     date_range,
     isna,
     timedelta_range,
 )
-import pandas._testing as tm
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
     create_tempfile,
@@ -43,6 +42,7 @@ from pandas.tests.io.pytables.common import (
     safe_remove,
     tables,
 )
+from pandas.util import _test_decorators as td
 
 from pandas.io.pytables import (
     ClosedFileError,

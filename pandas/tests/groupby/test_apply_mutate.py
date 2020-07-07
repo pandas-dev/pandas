@@ -1,7 +1,7 @@
 import numpy as np
 
 import pandas as pd
-import pandas._testing as tm
+from pandas import _testing as tm
 
 
 def test_mutate_groups():

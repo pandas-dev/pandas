@@ -6,8 +6,7 @@ from pandas.errors import PerformanceWarning
 from pandas.core.dtypes.common import is_object_dtype
 
 import pandas as pd
-from pandas import SparseDtype
-import pandas._testing as tm
+from pandas import SparseDtype, _testing as tm
 from pandas.arrays import SparseArray
 from pandas.tests.extension import base
 

@@ -1,5 +1,4 @@
 """ test get/set & misc """
-
 from datetime import timedelta
 
 import numpy as np
@@ -16,11 +15,11 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
+    _testing as tm,
     date_range,
     period_range,
     timedelta_range,
 )
-import pandas._testing as tm
 
 from pandas.tseries.offsets import BDay
 

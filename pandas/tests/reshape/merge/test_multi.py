@@ -3,8 +3,7 @@ from numpy.random import randn
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series
-import pandas._testing as tm
+from pandas import DataFrame, Index, MultiIndex, Series, _testing as tm
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import merge
 

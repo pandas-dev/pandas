@@ -12,8 +12,7 @@ from pandas._libs.tslibs.timezones import dateutil_gettz, maybe_get_tz
 from pandas.compat.numpy import np_datetime64_compat
 
 import pandas as pd
-from pandas import NaT, Period, Timedelta, Timestamp, offsets
-import pandas._testing as tm
+from pandas import NaT, Period, Timedelta, Timestamp, _testing as tm, offsets
 
 
 class TestPeriodConstruction:

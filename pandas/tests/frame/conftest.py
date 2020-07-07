@@ -3,8 +3,7 @@ from itertools import product
 import numpy as np
 import pytest
 
-from pandas import DataFrame, NaT, date_range
-import pandas._testing as tm
+from pandas import DataFrame, NaT, _testing as tm, date_range
 
 
 @pytest.fixture(params=product([True, False], [True, False]))

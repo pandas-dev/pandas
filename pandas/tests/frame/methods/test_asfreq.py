@@ -2,8 +2,7 @@ from datetime import datetime
 
 import numpy as np
 
-from pandas import DataFrame, DatetimeIndex, Series, date_range
-import pandas._testing as tm
+from pandas import DataFrame, DatetimeIndex, Series, _testing as tm, date_range
 
 from pandas.tseries import offsets
 

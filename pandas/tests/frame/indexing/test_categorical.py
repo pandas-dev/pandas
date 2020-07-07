@@ -4,8 +4,7 @@ import pytest
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
-from pandas import Categorical, DataFrame, Index, Series
-import pandas._testing as tm
+from pandas import Categorical, DataFrame, Index, Series, _testing as tm
 
 
 class TestDataFrameIndexingCategorical:

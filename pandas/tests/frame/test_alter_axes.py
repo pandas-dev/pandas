@@ -18,11 +18,11 @@ from pandas import (
     IntervalIndex,
     Series,
     Timestamp,
+    _testing as tm,
     cut,
     date_range,
     to_datetime,
 )
-import pandas._testing as tm
 
 
 class TestDataFrameAlterAxes:

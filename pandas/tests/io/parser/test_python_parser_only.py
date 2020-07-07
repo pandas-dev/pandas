@@ -4,7 +4,6 @@ stated as a Python-specific issue, the goal is to eventually move as many of
 these tests out of this module as soon as the C parser can accept further
 arguments when parsing.
 """
-
 import csv
 from io import BytesIO, StringIO
 
@@ -12,8 +11,7 @@ import pytest
 
 from pandas.errors import ParserError
 
-from pandas import DataFrame, Index, MultiIndex
-import pandas._testing as tm
+from pandas import DataFrame, Index, MultiIndex, _testing as tm
 
 
 def test_default_separator(python_parser_only):

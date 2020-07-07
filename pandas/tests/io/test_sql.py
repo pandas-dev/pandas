@@ -16,7 +16,6 @@ The SQL tests are broken down in different classes:
     - Tests for the fallback mode (`TestSQLiteFallback`)
 
 """
-
 import csv
 from datetime import date, datetime, time
 from io import StringIO
@@ -35,23 +34,23 @@ from pandas import (
     MultiIndex,
     Series,
     Timestamp,
+    _testing as tm,
     concat,
     date_range,
     isna,
     to_datetime,
     to_timedelta,
 )
-import pandas._testing as tm
 
-import pandas.io.sql as sql
+from pandas.io import sql as sql
 from pandas.io.sql import read_sql_query, read_sql_table
 
 try:
     import sqlalchemy
-    import sqlalchemy.schema
-    import sqlalchemy.sql.sqltypes as sqltypes
     from sqlalchemy.ext import declarative
     from sqlalchemy.orm import session as sa_session
+    import sqlalchemy.schema
+    from sqlalchemy.sql import sqltypes as sqltypes
 
     SQLALCHEMY_INSTALLED = True
 except ImportError:

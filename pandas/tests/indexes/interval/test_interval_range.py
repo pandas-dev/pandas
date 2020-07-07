@@ -11,11 +11,11 @@ from pandas import (
     IntervalIndex,
     Timedelta,
     Timestamp,
+    _testing as tm,
     date_range,
     interval_range,
     timedelta_range,
 )
-import pandas._testing as tm
 
 from pandas.tseries.offsets import Day
 

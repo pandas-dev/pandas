@@ -14,11 +14,11 @@ from pandas import (
     Timedelta,
     Timestamp,
     UInt64Index,
+    _testing as tm,
     concat,
     date_range,
     option_context,
 )
-import pandas._testing as tm
 from pandas.core.arrays import integer_array
 
 

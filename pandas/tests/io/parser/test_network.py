@@ -8,10 +8,8 @@ import logging
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
-from pandas import DataFrame
-import pandas._testing as tm
+from pandas import DataFrame, _testing as tm
+from pandas.util import _test_decorators as td
 
 from pandas.io.feather_format import read_feather
 from pandas.io.parsers import read_csv

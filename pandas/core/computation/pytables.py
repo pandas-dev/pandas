@@ -1,5 +1,4 @@
 """ manage PyTables query interface via Expressions """
-
 import ast
 from functools import partial
 from typing import Any, Dict, Optional, Tuple
@@ -12,7 +11,7 @@ from pandas.compat.chainmap import DeepChainMap
 from pandas.core.dtypes.common import is_list_like
 
 import pandas as pd
-import pandas.core.common as com
+from pandas.core import common as com
 from pandas.core.computation import expr, ops, scope as _scope
 from pandas.core.computation.common import _ensure_decoded
 from pandas.core.computation.expr import BaseExprVisitor

@@ -7,7 +7,7 @@ from pandas._libs import OutOfBoundsDatetime
 from pandas.compat.numpy import _np_version_under1p18
 
 import pandas as pd
-import pandas._testing as tm
+from pandas import _testing as tm
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import Period, PeriodIndex

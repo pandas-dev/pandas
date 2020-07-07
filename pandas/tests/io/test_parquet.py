@@ -8,10 +8,9 @@ from warnings import catch_warnings
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
-import pandas._testing as tm
+from pandas import _testing as tm
+from pandas.util import _test_decorators as td
 
 from pandas.io.parquet import (
     FastParquetImpl,
@@ -606,7 +605,7 @@ class TestParquetPyArrow(Base):
         df = df_full
         with tm.ensure_clean_dir() as path:
             df.to_parquet(path, partition_cols=partition_cols, compression=None)
-            import pyarrow.parquet as pq
+            from pyarrow import parquet as pq
 
             dataset = pq.ParquetDataset(path, validate_schema=False)
             assert len(dataset.partitions.partition_names) == 2
@@ -619,7 +618,7 @@ class TestParquetPyArrow(Base):
         df = df_full
         with tm.ensure_clean_dir() as path:
             df.to_parquet(path, partition_cols=partition_cols, compression=None)
-            import pyarrow.parquet as pq
+            from pyarrow import parquet as pq
 
             dataset = pq.ParquetDataset(path, validate_schema=False)
             assert len(dataset.partitions.partition_names) == 1

@@ -6,7 +6,7 @@ from collections import abc
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
-import numpy.ma as ma
+from numpy import ma as ma
 
 from pandas._libs import lib
 from pandas._typing import Axis, DtypeObj, Scalar

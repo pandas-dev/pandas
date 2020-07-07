@@ -2,7 +2,6 @@
 Tests date parsing functionality for all of the
 parsers defined in parsers.py
 """
-
 from datetime import date, datetime
 from io import StringIO
 
@@ -19,11 +18,10 @@ from pandas.compat import is_platform_windows
 from pandas.compat.numpy import np_array_datetime64_compat
 
 import pandas as pd
-from pandas import DataFrame, DatetimeIndex, Index, MultiIndex, Series
-import pandas._testing as tm
+from pandas import DataFrame, DatetimeIndex, Index, MultiIndex, Series, _testing as tm
 from pandas.core.indexes.datetimes import date_range
 
-import pandas.io.date_converters as conv
+from pandas.io import date_converters as conv
 
 # constant
 _DEFAULT_DATETIME = datetime(1, 1, 1)

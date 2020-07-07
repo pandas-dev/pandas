@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import CategoricalIndex
-import pandas._testing as tm
+from pandas import CategoricalIndex, _testing as tm
 
 
 class TestFillNA:

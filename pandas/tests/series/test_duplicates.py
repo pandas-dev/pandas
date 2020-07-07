@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import Categorical, Series
-import pandas._testing as tm
+from pandas import Categorical, Series, _testing as tm
 from pandas.core.construction import create_series_with_explicit_dtype
 
 

@@ -5,8 +5,7 @@ from numpy import iinfo
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, Series, to_numeric
-import pandas._testing as tm
+from pandas import DataFrame, Index, Series, _testing as tm, to_numeric
 
 
 @pytest.fixture(params=[None, "ignore", "raise", "coerce"])

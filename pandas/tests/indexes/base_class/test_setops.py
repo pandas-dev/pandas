@@ -2,8 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Index, Series
-import pandas._testing as tm
+from pandas import Index, Series, _testing as tm
 from pandas.core.algorithms import safe_sort
 
 

@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas._testing as tm
+from pandas import _testing as tm
 from pandas.core.arrays import ExtensionArray
 
 arrays = [pd.array([1, 2, 3, None], dtype=dtype) for dtype in tm.ALL_EA_INT_DTYPES]

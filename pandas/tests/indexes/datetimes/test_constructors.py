@@ -10,8 +10,15 @@ import pytz
 from pandas._libs.tslibs import OutOfBoundsDatetime, conversion
 
 import pandas as pd
-from pandas import DatetimeIndex, Index, Timestamp, date_range, offsets, to_datetime
-import pandas._testing as tm
+from pandas import (
+    DatetimeIndex,
+    Index,
+    Timestamp,
+    _testing as tm,
+    date_range,
+    offsets,
+    to_datetime,
+)
 from pandas.core.arrays import DatetimeArray, period_array
 
 

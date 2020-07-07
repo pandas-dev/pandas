@@ -241,7 +241,7 @@ def boxplot(
     **kwds,
 ):
 
-    import matplotlib.pyplot as plt
+    from matplotlib import pyplot as plt
 
     # validate return_type:
     if return_type not in BoxPlot._valid_return_types:
@@ -370,7 +370,7 @@ def boxplot_frame(
     return_type=None,
     **kwds,
 ):
-    import matplotlib.pyplot as plt
+    from matplotlib import pyplot as plt
 
     ax = boxplot(
         self,

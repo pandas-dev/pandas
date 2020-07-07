@@ -14,14 +14,14 @@ from pandas import (
     Int64Index,
     Interval,
     IntervalIndex,
+    _testing as tm,
     date_range,
     notna,
     period_range,
     timedelta_range,
 )
-import pandas._testing as tm
+from pandas.core import common as com
 from pandas.core.arrays import IntervalArray
-import pandas.core.common as com
 
 
 @pytest.fixture(params=[None, "foo"])

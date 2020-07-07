@@ -14,12 +14,12 @@ from pandas import (
     DataFrame,
     MultiIndex,
     Series,
+    _testing as tm,
     date_range,
     option_context,
     reset_option,
     set_option,
 )
-import pandas._testing as tm
 
 
 @pytest.fixture

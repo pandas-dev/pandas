@@ -3,8 +3,7 @@ import pytest
 import pytz
 
 import pandas as pd
-from pandas import Series, date_range, period_range
-import pandas._testing as tm
+from pandas import Series, _testing as tm, date_range, period_range
 
 
 @pytest.mark.parametrize(

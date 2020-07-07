@@ -1,14 +1,10 @@
 """ Test cases for GroupBy.plot """
-
-
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
-from pandas import DataFrame, Index, Series
-import pandas._testing as tm
+from pandas import DataFrame, Index, Series, _testing as tm
 from pandas.tests.plotting.common import TestPlotBase
+from pandas.util import _test_decorators as td
 
 
 @td.skip_if_no_mpl

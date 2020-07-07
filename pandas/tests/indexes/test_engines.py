@@ -6,7 +6,7 @@ import pytest
 from pandas._libs import algos as libalgos, index as libindex
 
 import pandas as pd
-import pandas._testing as tm
+from pandas import _testing as tm
 
 
 @pytest.fixture(

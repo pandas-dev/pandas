@@ -12,6 +12,7 @@ from pandas import (
     Series,
     TimedeltaIndex,
     Timestamp,
+    _testing as tm,
     cut,
     date_range,
     isna,
@@ -19,9 +20,8 @@ from pandas import (
     timedelta_range,
     to_datetime,
 )
-import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
-import pandas.core.reshape.tile as tmod
+from pandas.core.reshape import tile as tmod
 
 
 def test_simple():

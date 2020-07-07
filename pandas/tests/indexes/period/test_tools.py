@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import Period, PeriodIndex, period_range
-import pandas._testing as tm
+from pandas import Period, PeriodIndex, _testing as tm, period_range
 
 
 class TestPeriodRepresentation:

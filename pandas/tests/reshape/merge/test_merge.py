@@ -24,8 +24,8 @@ from pandas import (
     Series,
     TimedeltaIndex,
     UInt64Index,
+    _testing as tm,
 )
-import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import MergeError, merge

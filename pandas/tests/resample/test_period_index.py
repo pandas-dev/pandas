@@ -10,13 +10,12 @@ from pandas._libs.tslibs.period import IncompatibleFrequency
 from pandas.errors import InvalidIndexError
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp
-import pandas._testing as tm
+from pandas import DataFrame, Series, Timestamp, _testing as tm
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import Period, PeriodIndex, period_range
 from pandas.core.resample import _get_period_range_edges
 
-import pandas.tseries.offsets as offsets
+from pandas.tseries import offsets as offsets
 
 
 @pytest.fixture()

@@ -2,9 +2,15 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Categorical, CategoricalIndex, Index, PeriodIndex, Series
-import pandas._testing as tm
-import pandas.core.common as com
+from pandas import (
+    Categorical,
+    CategoricalIndex,
+    Index,
+    PeriodIndex,
+    Series,
+    _testing as tm,
+)
+from pandas.core import common as com
 from pandas.tests.arrays.categorical.common import TestCategorical
 
 

@@ -6,8 +6,7 @@ import pytest
 from pandas.util._test_decorators import async_mark
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp
-import pandas._testing as tm
+from pandas import DataFrame, Series, Timestamp, _testing as tm
 from pandas.core.indexes.datetimes import date_range
 
 test_frame = DataFrame(

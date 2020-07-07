@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, date_range, read_csv, read_parquet
-import pandas._testing as tm
+from pandas import DataFrame, _testing as tm, date_range, read_csv, read_parquet
 from pandas.util import _test_decorators as td
 
 df1 = DataFrame(
@@ -37,8 +36,8 @@ def test_read_csv(cleared_fs):
 
 
 def test_reasonable_error(monkeypatch, cleared_fs):
-    from fsspec.registry import known_implementations
     from fsspec import registry
+    from fsspec.registry import known_implementations
 
     registry.target.clear()
     with pytest.raises(ValueError) as e:

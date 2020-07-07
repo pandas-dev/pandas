@@ -6,8 +6,7 @@ __setitem__.
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index
-import pandas._testing as tm
+from pandas import DataFrame, Index, _testing as tm
 
 
 class TestDataFrameInsert:

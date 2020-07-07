@@ -1,5 +1,4 @@
-from pandas import Index, NaT, Period, PeriodIndex
-import pandas._testing as tm
+from pandas import Index, NaT, Period, PeriodIndex, _testing as tm
 
 
 class TestFillNA:

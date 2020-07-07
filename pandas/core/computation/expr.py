@@ -1,7 +1,6 @@
 """
 :func:`~pandas.eval` parsers.
 """
-
 import ast
 from functools import partial, reduce
 from keyword import iskeyword
@@ -10,7 +9,7 @@ from typing import Callable, Optional, Set, Tuple, Type, TypeVar
 
 import numpy as np
 
-import pandas.core.common as com
+from pandas.core import common as com
 from pandas.core.computation.ops import (
     _LOCAL_TAG,
     BinOp,
@@ -32,7 +31,7 @@ from pandas.core.computation.ops import (
 from pandas.core.computation.parsing import clean_backtick_quoted_toks, tokenize_string
 from pandas.core.computation.scope import Scope
 
-import pandas.io.formats.printing as printing
+from pandas.io.formats import printing as printing
 
 
 def _rewrite_assign(tok: Tuple[int, str]) -> Tuple[int, str]:

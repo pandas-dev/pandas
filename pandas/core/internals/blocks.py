@@ -6,8 +6,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, algos as libalgos, lib, writers
-import pandas._libs.internals as libinternals
+from pandas._libs import NaT, algos as libalgos, internals as libinternals, lib, writers
 from pandas._libs.internals import BlockPlacement
 from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.timezones import tz_compare
@@ -58,7 +57,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import _isna_compat, is_valid_nat_for_dtype, isna
 
-import pandas.core.algorithms as algos
+from pandas.core import algorithms as algos, common as com, missing as missing
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays import (
     Categorical,
@@ -69,14 +68,12 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.base import PandasObject
-import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.indexers import (
     check_setitem_lengths,
     is_empty_indexer,
     is_scalar_indexer,
 )
-import pandas.core.missing as missing
 from pandas.core.nanops import nanpercentile
 
 if TYPE_CHECKING:
@@ -1296,7 +1293,7 @@ class Block(PandasObject):
         -------
         List[Block]
         """
-        import pandas.core.computation.expressions as expressions
+        from pandas.core.computation import expressions as expressions
 
         cond = _extract_bool_array(cond)
         assert not isinstance(other, (ABCIndexClass, ABCSeries, ABCDataFrame))

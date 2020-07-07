@@ -2,7 +2,6 @@
 Though Index.fillna and Series.fillna has separate impl,
 test here to confirm these works as the same
 """
-
 import numpy as np
 import pytest
 
@@ -11,8 +10,7 @@ from pandas._libs import iNaT
 from pandas.core.dtypes.common import needs_i8_conversion
 from pandas.core.dtypes.generic import ABCMultiIndex
 
-from pandas import Index
-import pandas._testing as tm
+from pandas import Index, _testing as tm
 from pandas.tests.base.common import allow_na_ops
 
 

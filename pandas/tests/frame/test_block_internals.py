@@ -11,11 +11,11 @@ from pandas import (
     DataFrame,
     Series,
     Timestamp,
+    _testing as tm,
     compat,
     date_range,
     option_context,
 )
-import pandas._testing as tm
 from pandas.core.arrays import IntervalArray, integer_array
 from pandas.core.internals import ObjectBlock
 from pandas.core.internals.blocks import IntBlock

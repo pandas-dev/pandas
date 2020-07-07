@@ -15,11 +15,11 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
+    _testing as tm,
     date_range,
     period_range,
     timedelta_range,
 )
-import pandas._testing as tm
 from pandas.core.arrays import IntervalArray
 
 

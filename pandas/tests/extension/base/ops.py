@@ -3,7 +3,7 @@ from typing import Optional, Type
 import pytest
 
 import pandas as pd
-import pandas._testing as tm
+from pandas import _testing as tm
 from pandas.core import ops
 
 from .base import BaseExtensionTests

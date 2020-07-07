@@ -8,11 +8,10 @@ import os
 import numpy as np
 import pytest
 
-import pandas._libs.parsers as parser
+from pandas._libs import parsers as parser
 from pandas._libs.parsers import TextReader
 
-from pandas import DataFrame
-import pandas._testing as tm
+from pandas import DataFrame, _testing as tm
 
 from pandas.io.parsers import TextFileReader, read_csv
 

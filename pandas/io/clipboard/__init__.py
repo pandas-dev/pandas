@@ -41,7 +41,6 @@ Pyperclip into running them with whatever permissions the Python process has.
 
 """
 __version__ = "1.7.0"
-
 import contextlib
 import ctypes
 from ctypes import c_size_t, c_wchar, c_wchar_p, get_errno, sizeof
@@ -311,17 +310,17 @@ def init_windows_clipboard():
     global HGLOBAL, LPVOID, DWORD, LPCSTR, INT
     global HWND, HINSTANCE, HMENU, BOOL, UINT, HANDLE
     from ctypes.wintypes import (
-        HGLOBAL,
-        LPVOID,
+        BOOL,
         DWORD,
-        LPCSTR,
-        INT,
-        HWND,
+        HANDLE,
+        HGLOBAL,
         HINSTANCE,
         HMENU,
-        BOOL,
+        HWND,
+        INT,
+        LPCSTR,
+        LPVOID,
         UINT,
-        HANDLE,
     )
 
     windll = ctypes.windll
@@ -528,8 +527,8 @@ def determine_clipboard():
     # Setup for the MAC OS X platform:
     if os.name == "mac" or platform.system() == "Darwin":
         try:
-            import Foundation  # check if pyobjc is installed
             import AppKit
+            import Foundation  # check if pyobjc is installed
         except ImportError:
             return init_osx_pbcopy_clipboard()
         else:

@@ -1,7 +1,6 @@
 import pytest
 
-from pandas import DataFrame
-import pandas._testing as tm
+from pandas import DataFrame, _testing as tm
 
 
 class TestAssign:

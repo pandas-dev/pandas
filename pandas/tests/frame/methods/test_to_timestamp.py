@@ -7,11 +7,11 @@ from pandas import (
     DataFrame,
     DatetimeIndex,
     Timedelta,
+    _testing as tm,
     date_range,
     period_range,
     to_datetime,
 )
-import pandas._testing as tm
 
 
 class TestToTimestamp:

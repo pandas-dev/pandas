@@ -5,8 +5,7 @@ import pytest
 
 from pandas._libs.tslibs import timezones
 
-from pandas import DataFrame, Series, date_range
-import pandas._testing as tm
+from pandas import DataFrame, Series, _testing as tm, date_range
 
 
 class TestAtTime:

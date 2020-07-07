@@ -3,8 +3,15 @@ import itertools
 
 import numpy as np
 
-from pandas import DataFrame, Float64Index, MultiIndex, Series, UInt64Index, date_range
-import pandas._testing as tm
+from pandas import (
+    DataFrame,
+    Float64Index,
+    MultiIndex,
+    Series,
+    UInt64Index,
+    _testing as tm,
+    date_range,
+)
 
 
 def _mklbl(prefix, n):

@@ -1,5 +1,4 @@
-from pandas import DataFrame, Series
-import pandas._testing as tm
+from pandas import DataFrame, Series, _testing as tm
 
 
 class TestDataFramePop:

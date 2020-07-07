@@ -7,8 +7,14 @@ import pytest
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp, date_range, option_context
-import pandas._testing as tm
+from pandas import (
+    DataFrame,
+    Series,
+    Timestamp,
+    _testing as tm,
+    date_range,
+    option_context,
+)
 
 
 def _check_cast(df, v):

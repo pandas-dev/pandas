@@ -1,5 +1,4 @@
 """ test fancy indexing & misc """
-
 from datetime import datetime
 import re
 import weakref
@@ -10,8 +9,7 @@ import pytest
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 import pandas as pd
-from pandas import DataFrame, Index, NaT, Series
-import pandas._testing as tm
+from pandas import DataFrame, Index, NaT, Series, _testing as tm
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
 from pandas.tests.indexing.common import _mklbl
 

@@ -7,8 +7,7 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import lib
-import pandas._libs.missing as libmissing
+from pandas._libs import lib, missing as libmissing
 from pandas._libs.tslibs import NaT, iNaT
 from pandas._typing import DtypeObj
 

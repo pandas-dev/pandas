@@ -1,8 +1,14 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, IntervalIndex, Series, Timedelta, Timestamp
-import pandas._testing as tm
+from pandas import (
+    DataFrame,
+    IntervalIndex,
+    Series,
+    Timedelta,
+    Timestamp,
+    _testing as tm,
+)
 
 
 class TestIntervalIndexRendering:

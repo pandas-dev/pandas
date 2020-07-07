@@ -2,7 +2,6 @@
 Tests that skipped rows are properly handled during
 parsing for all of the parsers defined in parsers.py
 """
-
 from datetime import datetime
 from io import StringIO
 
@@ -11,8 +10,7 @@ import pytest
 
 from pandas.errors import EmptyDataError
 
-from pandas import DataFrame, Index
-import pandas._testing as tm
+from pandas import DataFrame, Index, _testing as tm
 
 
 @pytest.mark.parametrize("skiprows", [list(range(6)), 6])

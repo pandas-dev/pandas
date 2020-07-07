@@ -7,8 +7,7 @@ from io import StringIO
 
 import pytest
 
-from pandas import DataFrame
-import pandas._testing as tm
+from pandas import DataFrame, _testing as tm
 
 
 @pytest.mark.parametrize("kwargs", [dict(), dict(mangle_dupe_cols=True)])

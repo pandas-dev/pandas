@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import Index, Int64Index, UInt64Index
-import pandas._testing as tm
+from pandas import Index, Int64Index, UInt64Index, _testing as tm
 
 
 class TestJoinInt64Index:

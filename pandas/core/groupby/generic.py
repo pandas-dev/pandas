@@ -53,15 +53,14 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas.core import algorithms as algorithms, common as com
 from pandas.core.aggregation import (
     is_multi_agg_with_relabel,
     maybe_mangle_lambdas,
     normalize_keyword_aggregation,
     validate_func_kwargs,
 )
-import pandas.core.algorithms as algorithms
 from pandas.core.base import DataError, SpecificationError
-import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
 from pandas.core.generic import ABCDataFrame, ABCSeries, NDFrame
@@ -73,8 +72,8 @@ from pandas.core.groupby.groupby import (
     _transform_template,
     get_groupby,
 )
+from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import Index, MultiIndex, all_indexes_same
-import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
 from pandas.core.util.numba_ import (
@@ -665,8 +664,8 @@ class SeriesGroupBy(GroupBy[Series]):
         self, normalize=False, sort=True, ascending=False, bins=None, dropna=True
     ):
 
-        from pandas.core.reshape.tile import cut
         from pandas.core.reshape.merge import _get_join_indexers
+        from pandas.core.reshape.tile import cut
 
         if bins is not None and not np.iterable(bins):
             # scalar bins cannot be done at top level

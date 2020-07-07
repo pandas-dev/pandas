@@ -7,8 +7,7 @@ import pytest
 from pandas._libs.tslibs import NaT, iNaT
 
 import pandas as pd
-from pandas import Timedelta, TimedeltaIndex, offsets, to_timedelta
-import pandas._testing as tm
+from pandas import Timedelta, TimedeltaIndex, _testing as tm, offsets, to_timedelta
 
 
 class TestTimedeltaUnaryOps:

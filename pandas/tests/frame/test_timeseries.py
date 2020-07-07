@@ -1,8 +1,7 @@
 import numpy as np
 
 import pandas as pd
-from pandas import DataFrame, date_range, to_datetime
-import pandas._testing as tm
+from pandas import DataFrame, _testing as tm, date_range, to_datetime
 
 
 class TestDataFrameTimeSeriesMethods:

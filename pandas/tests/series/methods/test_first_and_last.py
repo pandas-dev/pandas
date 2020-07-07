@@ -1,12 +1,10 @@
 """
 Note: includes tests for `last`
 """
-
 import numpy as np
 import pytest
 
-from pandas import Series, date_range
-import pandas._testing as tm
+from pandas import Series, _testing as tm, date_range
 
 
 class TestFirst:

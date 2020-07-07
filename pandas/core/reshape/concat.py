@@ -1,7 +1,6 @@
 """
 Concat routines.
 """
-
 from collections import abc
 from typing import TYPE_CHECKING, Iterable, List, Mapping, Union, overload
 
@@ -12,11 +11,12 @@ from pandas._typing import FrameOrSeries, FrameOrSeriesUnion, Label
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
+from pandas.core import common as com
 from pandas.core.arrays.categorical import (
     factorize_from_iterable,
     factorize_from_iterables,
 )
-import pandas.core.common as com
+from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
@@ -25,7 +25,6 @@ from pandas.core.indexes.api import (
     get_consensus_names,
     get_objs_combined_axis,
 )
-import pandas.core.indexes.base as ibase
 from pandas.core.internals import concatenate_block_managers
 
 if TYPE_CHECKING:

@@ -12,10 +12,17 @@ import pytest
 
 from pandas.compat import is_platform_windows
 from pandas.errors import ParserError
-import pandas.util._test_decorators as td
 
-from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range, read_csv
-import pandas._testing as tm
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    Series,
+    Timestamp,
+    _testing as tm,
+    date_range,
+    read_csv,
+)
+from pandas.util import _test_decorators as td
 
 from pandas.io.common import file_path_to_url
 import pandas.io.html

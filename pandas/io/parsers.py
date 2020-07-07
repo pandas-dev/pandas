@@ -1,7 +1,6 @@
 """
 Module contains tools for processing files into DataFrames or other objects
 """
-
 from collections import abc, defaultdict
 import csv
 import datetime
@@ -15,9 +14,7 @@ import warnings
 
 import numpy as np
 
-import pandas._libs.lib as lib
-import pandas._libs.ops as libops
-import pandas._libs.parsers as parsers
+from pandas._libs import lib as lib, ops as libops, parsers as parsers
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._libs.tslibs import parsing
 from pandas._typing import FilePathOrBuffer, Union

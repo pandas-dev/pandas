@@ -3,7 +3,7 @@ from datetime import datetime
 import pytest
 from pytz import utc
 
-import pandas._testing as tm
+from pandas import _testing as tm
 
 from pandas.tseries.holiday import (
     MO,

@@ -7,14 +7,13 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import BaseOffset, to_offset
-import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Index, NaT, Series, isna
-import pandas._testing as tm
+from pandas import DataFrame, Index, NaT, Series, _testing as tm, isna
 from pandas.core.indexes.datetimes import DatetimeIndex, bdate_range, date_range
 from pandas.core.indexes.period import Period, PeriodIndex, period_range
 from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.tests.plotting.common import TestPlotBase
+from pandas.util import _test_decorators as td
 
 from pandas.tseries.offsets import WeekOfMonth
 
@@ -258,7 +257,7 @@ class TestTSPlot(TestPlotBase):
 
     @pytest.mark.slow
     def test_uhf(self):
-        import pandas.plotting._matplotlib.converter as conv
+        from pandas.plotting._matplotlib import converter as conv
 
         idx = date_range("2012-6-22 21:59:51.960928", freq="L", periods=500)
         df = DataFrame(np.random.randn(len(idx), 2), index=idx)
@@ -395,7 +394,7 @@ class TestTSPlot(TestPlotBase):
             _test(ax)
 
     def test_get_finder(self):
-        import pandas.plotting._matplotlib.converter as conv
+        from pandas.plotting._matplotlib import converter as conv
 
         assert conv.get_finder(to_offset("B")) == conv._daily_finder
         assert conv.get_finder(to_offset("D")) == conv._daily_finder
@@ -1492,7 +1491,7 @@ class TestTSPlot(TestPlotBase):
 
 
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
-    import matplotlib.pyplot as plt
+    from matplotlib import pyplot as plt
 
     fig = plt.gcf()
 

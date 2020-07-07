@@ -5,8 +5,8 @@ import pytest
 from pandas.compat._optional import VERSIONS
 
 import pandas as pd
+from pandas.core.computation import expr as expr
 from pandas.core.computation.engines import _engines
-import pandas.core.computation.expr as expr
 
 
 def test_compat():

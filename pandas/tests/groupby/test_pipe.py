@@ -1,8 +1,7 @@
 import numpy as np
 
 import pandas as pd
-from pandas import DataFrame, Index
-import pandas._testing as tm
+from pandas import DataFrame, Index, _testing as tm
 
 
 def test_pipe():

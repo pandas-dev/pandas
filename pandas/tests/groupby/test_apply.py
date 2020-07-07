@@ -5,8 +5,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, bdate_range
-import pandas._testing as tm
+from pandas import DataFrame, Index, MultiIndex, Series, _testing as tm, bdate_range
 
 
 def test_apply_issues():

@@ -3,8 +3,7 @@ import pytest
 
 from pandas.errors import PerformanceWarning
 
-from pandas import DataFrame, MultiIndex
-import pandas._testing as tm
+from pandas import DataFrame, MultiIndex, _testing as tm
 
 
 class TestMultiIndex:

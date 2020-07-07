@@ -6,9 +6,9 @@ import textwrap
 import pytest
 
 import pandas as pd
-import pandas._testing as tm
+from pandas import _testing as tm
 
-import pandas.io.common as icom
+from pandas.io import common as icom
 
 
 @pytest.mark.parametrize(

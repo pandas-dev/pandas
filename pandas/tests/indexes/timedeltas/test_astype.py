@@ -11,9 +11,9 @@ from pandas import (
     NaT,
     Timedelta,
     TimedeltaIndex,
+    _testing as tm,
     timedelta_range,
 )
-import pandas._testing as tm
 
 
 class TestTimedeltaIndex:

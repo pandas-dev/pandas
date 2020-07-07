@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, Series
-import pandas._testing as tm
+from pandas import DataFrame, Index, Series, _testing as tm
 
 
 def test_slice_float64():

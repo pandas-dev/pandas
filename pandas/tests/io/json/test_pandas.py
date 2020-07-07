@@ -10,11 +10,17 @@ import numpy as np
 import pytest
 
 from pandas.compat import is_platform_32bit, is_platform_windows
-import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, DatetimeIndex, Series, Timestamp, read_json
-import pandas._testing as tm
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Series,
+    Timestamp,
+    _testing as tm,
+    read_json,
+)
+from pandas.util import _test_decorators as td
 
 _seriesd = tm.getSeriesData()
 

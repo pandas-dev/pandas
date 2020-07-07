@@ -136,7 +136,7 @@ def na_arithmetic_op(left, right, op, is_cmp: bool = False):
     ------
     TypeError : invalid operation
     """
-    import pandas.core.computation.expressions as expressions
+    from pandas.core.computation import expressions as expressions
 
     try:
         result = expressions.evaluate(op, left, right)

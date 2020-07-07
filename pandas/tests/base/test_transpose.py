@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-import pandas._testing as tm
+from pandas import _testing as tm
 
 
 def test_transpose(index_or_series_obj):

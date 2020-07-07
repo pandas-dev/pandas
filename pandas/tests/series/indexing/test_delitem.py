@@ -1,7 +1,6 @@
 import pytest
 
-from pandas import Index, Series
-import pandas._testing as tm
+from pandas import Index, Series, _testing as tm
 
 
 class TestSeriesDelItem:

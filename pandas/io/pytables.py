@@ -48,8 +48,8 @@ from pandas import (
     concat,
     isna,
 )
+from pandas.core import common as com
 from pandas.core.arrays import Categorical, DatetimeArray, PeriodArray
-import pandas.core.common as com
 from pandas.core.computation.pytables import PyTablesExpr, maybe_expression
 from pandas.core.indexes.api import ensure_index
 
@@ -57,7 +57,7 @@ from pandas.io.common import stringify_path
 from pandas.io.formats.printing import adjoin, pprint_thing
 
 if TYPE_CHECKING:
-    from tables import File, Node, Col  # noqa:F401
+    from tables import Col, File, Node  # noqa:F401
 
 
 # versioning attribute

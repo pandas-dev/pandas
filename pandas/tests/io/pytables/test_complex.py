@@ -3,12 +3,10 @@ from warnings import catch_warnings
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
-from pandas import DataFrame, Series
-import pandas._testing as tm
+from pandas import DataFrame, Series, _testing as tm
 from pandas.tests.io.pytables.common import ensure_clean_path, ensure_clean_store
+from pandas.util import _test_decorators as td
 
 from pandas.io.pytables import read_hdf
 

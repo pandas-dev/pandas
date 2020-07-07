@@ -9,10 +9,10 @@ from pandas import (
     PeriodIndex,
     Timedelta,
     Timestamp,
+    _testing as tm,
     date_range,
     period_range,
 )
-import pandas._testing as tm
 
 
 class TestToTimestamp:

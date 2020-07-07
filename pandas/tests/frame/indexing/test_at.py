@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 import pandas as pd
-import pandas._testing as tm
+from pandas import _testing as tm
 
 
 def test_at_timezone():

@@ -2,8 +2,7 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
-from pandas import DataFrame, MultiIndex, Series
-import pandas._testing as tm
+from pandas import DataFrame, MultiIndex, Series, _testing as tm
 
 
 class TestMultiIndexSorted:

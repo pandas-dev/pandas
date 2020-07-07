@@ -3,12 +3,11 @@ import operator
 import numpy as np
 import pytest
 
-import pandas._libs.sparse as splib
-import pandas.util._test_decorators as td
+from pandas._libs import sparse as splib
 
-from pandas import Series
-import pandas._testing as tm
+from pandas import Series, _testing as tm
 from pandas.core.arrays.sparse import BlockIndex, IntIndex, _make_index
+from pandas.util import _test_decorators as td
 
 TEST_LENGTH = 20
 

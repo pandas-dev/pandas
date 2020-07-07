@@ -3,8 +3,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
-from pandas import Index, Int64Index, RangeIndex
-import pandas._testing as tm
+from pandas import Index, Int64Index, RangeIndex, _testing as tm
 
 
 class TestRangeIndexSetOps:

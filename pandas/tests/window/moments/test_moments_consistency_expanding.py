@@ -4,8 +4,7 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
-from pandas import DataFrame, Index, MultiIndex, Series, isna, notna
-import pandas._testing as tm
+from pandas import DataFrame, Index, MultiIndex, Series, _testing as tm, isna, notna
 from pandas.tests.window.common import (
     moments_consistency_cov_data,
     moments_consistency_is_constant,

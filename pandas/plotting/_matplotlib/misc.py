@@ -1,7 +1,6 @@
 import random
 
-import matplotlib.lines as mlines
-import matplotlib.patches as patches
+from matplotlib import lines as mlines, patches as patches
 import numpy as np
 
 from pandas.core.dtypes.missing import notna
@@ -115,7 +114,7 @@ def _get_marker_compat(marker):
 
 
 def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
-    import matplotlib.pyplot as plt
+    from matplotlib import pyplot as plt
 
     def normalize(series):
         a = min(series)
@@ -199,7 +198,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
 def andrews_curves(
     frame, class_column, ax=None, samples=200, color=None, colormap=None, **kwds
 ):
-    import matplotlib.pyplot as plt
+    from matplotlib import pyplot as plt
 
     def function(amplitudes):
         def f(t):
@@ -258,7 +257,7 @@ def andrews_curves(
 
 def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
 
-    import matplotlib.pyplot as plt
+    from matplotlib import pyplot as plt
 
     # TODO: is the failure mentioned below still relevant?
     # random.sample(ndarray, int) fails on python 3.3, sigh
@@ -319,7 +318,7 @@ def parallel_coordinates(
     sort_labels=False,
     **kwds,
 ):
-    import matplotlib.pyplot as plt
+    from matplotlib import pyplot as plt
 
     if axvlines_kwds is None:
         axvlines_kwds = {"linewidth": 1, "color": "black"}
@@ -387,7 +386,7 @@ def parallel_coordinates(
 
 def lag_plot(series, lag=1, ax=None, **kwds):
     # workaround because `c='b'` is hardcoded in matplotlib's scatter method
-    import matplotlib.pyplot as plt
+    from matplotlib import pyplot as plt
 
     kwds.setdefault("c", plt.rcParams["patch.facecolor"])
 
@@ -403,7 +402,7 @@ def lag_plot(series, lag=1, ax=None, **kwds):
 
 
 def autocorrelation_plot(series, ax=None, **kwds):
-    import matplotlib.pyplot as plt
+    from matplotlib import pyplot as plt
 
     n = len(series)
     data = np.asarray(series)

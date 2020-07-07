@@ -1,5 +1,4 @@
-from pandas import Series
-import pandas._testing as tm
+from pandas import Series, _testing as tm
 
 
 class TestCombine:

@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import Categorical, Index, MultiIndex, NaT
-import pandas._testing as tm
+from pandas import Categorical, Index, MultiIndex, NaT, _testing as tm
 
 
 def test_index_equal_levels_mismatch():

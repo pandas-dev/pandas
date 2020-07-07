@@ -1,9 +1,16 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, MultiIndex, Series, concat, date_range
-import pandas._testing as tm
-import pandas.core.common as com
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    _testing as tm,
+    concat,
+    date_range,
+)
+from pandas.core import common as com
 
 
 @pytest.fixture

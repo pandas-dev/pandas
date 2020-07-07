@@ -2,11 +2,11 @@ import numpy as np
 import pytest
 
 from pandas.errors import UnsupportedFunctionCall
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import Series
 from pandas.core.window import Window
+from pandas.util import _test_decorators as td
 
 
 @td.skip_if_no_scipy

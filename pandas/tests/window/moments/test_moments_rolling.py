@@ -5,13 +5,11 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
-from pandas import DataFrame, Series, isna, notna
-import pandas._testing as tm
+from pandas import DataFrame, Series, _testing as tm, isna, notna
+from pandas.util import _test_decorators as td
 
-import pandas.tseries.offsets as offsets
+from pandas.tseries import offsets as offsets
 
 
 def _check_moment_func(

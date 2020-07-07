@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import CategoricalDtype, DataFrame, NaT, Series, Timestamp
-import pandas._testing as tm
+from pandas import CategoricalDtype, DataFrame, NaT, Series, Timestamp, _testing as tm
 
 
 class TestUpdate:

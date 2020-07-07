@@ -8,8 +8,15 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import NaT, Timedelta, Timestamp, _is_numpy_dev, compat, offsets
-import pandas._testing as tm
+from pandas import (
+    NaT,
+    Timedelta,
+    Timestamp,
+    _is_numpy_dev,
+    _testing as tm,
+    compat,
+    offsets,
+)
 from pandas.core import ops
 
 

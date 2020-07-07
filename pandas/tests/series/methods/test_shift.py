@@ -10,10 +10,10 @@ from pandas import (
     NaT,
     Series,
     TimedeltaIndex,
+    _testing as tm,
     date_range,
     offsets,
 )
-import pandas._testing as tm
 
 from pandas.tseries.offsets import BDay
 

@@ -1,8 +1,7 @@
 import pytest
 
-import pandas.util._test_decorators as td
-
-import pandas._testing as tm
+from pandas import _testing as tm
+from pandas.util import _test_decorators as td
 
 from pandas.io.parsers import read_csv
 

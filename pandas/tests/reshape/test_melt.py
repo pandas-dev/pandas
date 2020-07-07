@@ -2,8 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, lreshape, melt, wide_to_long
-import pandas._testing as tm
+from pandas import DataFrame, _testing as tm, lreshape, melt, wide_to_long
 
 
 class TestMelt:

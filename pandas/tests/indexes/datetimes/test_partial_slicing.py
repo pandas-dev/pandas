@@ -1,5 +1,4 @@
 """ test partial slicing on Series/Frame """
-
 from datetime import datetime
 import operator
 
@@ -13,9 +12,9 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
+    _testing as tm,
     date_range,
 )
-import pandas._testing as tm
 from pandas.core.indexing import IndexingError
 
 

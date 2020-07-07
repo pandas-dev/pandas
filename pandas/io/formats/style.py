@@ -1,7 +1,6 @@
 """
 Module for applying conditional formatting to DataFrames and Series.
 """
-
 from collections import defaultdict
 from contextlib import contextmanager
 import copy
@@ -33,7 +32,7 @@ from pandas.core.dtypes.common import is_float
 
 import pandas as pd
 from pandas.api.types import is_dict_like, is_list_like
-import pandas.core.common as com
+from pandas.core import common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
@@ -42,8 +41,7 @@ jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires ji
 
 
 try:
-    import matplotlib.pyplot as plt
-    from matplotlib import colors
+    from matplotlib import colors, pyplot as plt
 
     has_mpl = True
 except ImportError:

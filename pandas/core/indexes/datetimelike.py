@@ -26,13 +26,12 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 
-from pandas.core import algorithms
+from pandas.core import algorithms, common as com
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 from pandas.core.base import IndexOpsMixin
-import pandas.core.common as com
 from pandas.core.construction import array as pd_array, extract_array
-import pandas.core.indexes.base as ibase
+from pandas.core.indexes import base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.extension import (
     ExtensionIndex,

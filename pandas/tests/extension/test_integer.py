@@ -19,7 +19,7 @@ import pytest
 from pandas.core.dtypes.common import is_extension_array_dtype
 
 import pandas as pd
-import pandas._testing as tm
+from pandas import _testing as tm
 from pandas.core.arrays import integer_array
 from pandas.core.arrays.integer import (
     Int8Dtype,

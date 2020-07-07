@@ -10,17 +10,14 @@ from numpy.random import rand, randint, randn
 import pytest
 
 from pandas.errors import PerformanceWarning
-import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_bool, is_list_like, is_scalar
 
 import pandas as pd
-from pandas import DataFrame, Series, compat, date_range
-import pandas._testing as tm
-from pandas.core.computation import pytables
+from pandas import DataFrame, Series, _testing as tm, compat, date_range
+from pandas.core.computation import expr as expr, pytables
 from pandas.core.computation.check import _NUMEXPR_VERSION
 from pandas.core.computation.engines import NumExprClobberingError, _engines
-import pandas.core.computation.expr as expr
 from pandas.core.computation.expr import (
     BaseExprVisitor,
     PandasExprVisitor,
@@ -34,6 +31,7 @@ from pandas.core.computation.ops import (
     _special_case_arith_ops_syms,
     _unary_math_ops,
 )
+from pandas.util import _test_decorators as td
 
 
 @pytest.fixture(

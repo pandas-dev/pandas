@@ -3,8 +3,7 @@ import pytz
 
 from pandas._libs.tslibs import timezones
 
-from pandas import DatetimeIndex, NaT, Series, Timestamp, date_range
-import pandas._testing as tm
+from pandas import DatetimeIndex, NaT, Series, Timestamp, _testing as tm, date_range
 
 
 class TestTZLocalize:

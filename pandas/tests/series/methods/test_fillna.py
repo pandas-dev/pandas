@@ -3,8 +3,16 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-from pandas import Categorical, DataFrame, NaT, Period, Series, Timedelta, Timestamp
-import pandas._testing as tm
+from pandas import (
+    Categorical,
+    DataFrame,
+    NaT,
+    Period,
+    Series,
+    Timedelta,
+    Timestamp,
+    _testing as tm,
+)
 
 
 class TestSeriesFillNA:

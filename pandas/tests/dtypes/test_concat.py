@@ -1,10 +1,16 @@
 import pytest
 
-import pandas.core.dtypes.concat as _concat
+from pandas.core.dtypes import concat as _concat
 
 import pandas as pd
-from pandas import DatetimeIndex, Period, PeriodIndex, Series, TimedeltaIndex
-import pandas._testing as tm
+from pandas import (
+    DatetimeIndex,
+    Period,
+    PeriodIndex,
+    Series,
+    TimedeltaIndex,
+    _testing as tm,
+)
 
 
 @pytest.mark.parametrize(

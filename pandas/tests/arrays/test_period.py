@@ -3,13 +3,13 @@ import pytest
 
 from pandas._libs.tslibs import iNaT
 from pandas._libs.tslibs.period import IncompatibleFrequency
-import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.dtypes import PeriodDtype, registry
 
 import pandas as pd
-import pandas._testing as tm
+from pandas import _testing as tm
 from pandas.core.arrays import PeriodArray, period_array
+from pandas.util import _test_decorators as td
 
 # ----------------------------------------------------------------------------
 # Dtype
@@ -358,6 +358,7 @@ def test_arrow_extension_type():
 )
 def test_arrow_array(data, freq):
     import pyarrow as pa
+
     from pandas.core.arrays._arrow_utils import ArrowPeriodType
 
     periods = period_array(data, freq=freq)
@@ -383,6 +384,7 @@ def test_arrow_array(data, freq):
 @pyarrow_skip
 def test_arrow_array_missing():
     import pyarrow as pa
+
     from pandas.core.arrays._arrow_utils import ArrowPeriodType
 
     arr = PeriodArray([1, 2, 3], freq="D")
@@ -398,6 +400,7 @@ def test_arrow_array_missing():
 @pyarrow_skip
 def test_arrow_table_roundtrip():
     import pyarrow as pa
+
     from pandas.core.arrays._arrow_utils import ArrowPeriodType
 
     arr = PeriodArray([1, 2, 3], freq="D")

@@ -6,8 +6,7 @@ import pytest
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, Timestamp
-import pandas._testing as tm
+from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, _testing as tm
 
 
 @pytest.mark.parametrize(

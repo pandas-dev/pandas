@@ -5,10 +5,9 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import timezones
-import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Series, date_range
-import pandas._testing as tm
+from pandas import DataFrame, Series, _testing as tm, date_range
+from pandas.util import _test_decorators as td
 
 
 class TestBetweenTime:

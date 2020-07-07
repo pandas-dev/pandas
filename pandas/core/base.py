@@ -1,14 +1,13 @@
 """
 Base and utility classes for pandas objects.
 """
-
 import builtins
 import textwrap
 from typing import Any, Dict, FrozenSet, List, Optional, Union
 
 import numpy as np
 
-import pandas._libs.lib as lib
+from pandas._libs import lib as lib
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -26,12 +25,11 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import algorithms, common as com
+from pandas.core import algorithms, common as com, nanops as nanops
 from pandas.core.accessor import DirNamesMixin
 from pandas.core.algorithms import duplicated, unique1d, value_counts
 from pandas.core.arrays import ExtensionArray
 from pandas.core.construction import create_series_with_explicit_dtype
-import pandas.core.nanops as nanops
 
 _shared_docs: Dict[str, str] = dict()
 _indexops_doc_kwargs = dict(

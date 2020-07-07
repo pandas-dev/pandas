@@ -5,8 +5,16 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Period, Series, Timedelta, date_range
-import pandas._testing as tm
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Period,
+    Series,
+    Timedelta,
+    _testing as tm,
+    date_range,
+)
 
 
 class TestDataFrameReshape:

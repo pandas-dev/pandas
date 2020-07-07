@@ -4,9 +4,8 @@ import types
 import pkg_resources
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas
+from pandas.util import _test_decorators as td
 
 dummy_backend = types.ModuleType("pandas_dummy_backend")
 setattr(dummy_backend, "plot", lambda *args, **kwargs: "used_dummy")

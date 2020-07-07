@@ -2,8 +2,7 @@ from datetime import datetime
 
 import numpy as np
 
-from pandas import Series
-import pandas._testing as tm
+from pandas import Series, _testing as tm
 
 
 def test_reindex_like(datetime_series):

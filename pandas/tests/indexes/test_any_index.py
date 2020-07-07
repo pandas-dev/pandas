@@ -5,7 +5,7 @@ TODO: consider using hypothesis for these.
 """
 import pytest
 
-import pandas._testing as tm
+from pandas import _testing as tm
 
 
 def test_boolean_context_compat(index):

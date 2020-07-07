@@ -7,12 +7,18 @@ from pandas._libs.tslibs.ccalendar import DAYS, MONTHS
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 from pandas.compat import is_platform_windows
 
-from pandas import DatetimeIndex, Index, Series, Timestamp, date_range, period_range
-import pandas._testing as tm
+from pandas import (
+    DatetimeIndex,
+    Index,
+    Series,
+    Timestamp,
+    _testing as tm,
+    date_range,
+    period_range,
+)
 from pandas.core.tools.datetimes import to_datetime
 
-import pandas.tseries.frequencies as frequencies
-import pandas.tseries.offsets as offsets
+from pandas.tseries import frequencies as frequencies, offsets as offsets
 
 
 def _check_generated_range(start, periods, freq):

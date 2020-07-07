@@ -4,15 +4,13 @@ import os
 import numpy as np
 import pytest
 
-from pandas import DataFrame, date_range, read_csv
-import pandas._testing as tm
+from pandas import DataFrame, _testing as tm, date_range, read_csv
 from pandas.util import _test_decorators as td
 
 
 @td.skip_if_no("gcsfs")
 def test_read_csv_gcs(monkeypatch):
-    from fsspec import AbstractFileSystem
-    from fsspec import registry
+    from fsspec import AbstractFileSystem, registry
 
     registry.target.clear()  # noqa  # remove state
 
@@ -37,8 +35,7 @@ def test_read_csv_gcs(monkeypatch):
 
 @td.skip_if_no("gcsfs")
 def test_to_csv_gcs(monkeypatch):
-    from fsspec import AbstractFileSystem
-    from fsspec import registry
+    from fsspec import AbstractFileSystem, registry
 
     registry.target.clear()  # noqa  # remove state
     df1 = DataFrame(
@@ -76,8 +73,7 @@ def test_to_csv_gcs(monkeypatch):
 @td.skip_if_no("gcsfs")
 def test_to_parquet_gcs_new_file(monkeypatch, tmpdir):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
-    from fsspec import AbstractFileSystem
-    from fsspec import registry
+    from fsspec import AbstractFileSystem, registry
 
     registry.target.clear()  # noqa  # remove state
     df1 = DataFrame(

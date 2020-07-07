@@ -15,7 +15,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCMultiIndex
 from pandas.core.dtypes.missing import isna
 
-import pandas.core.algorithms as algorithms
+from pandas.core import algorithms as algorithms
 from pandas.core.construction import extract_array
 
 _INT64_MAX = np.iinfo(np.int64).max

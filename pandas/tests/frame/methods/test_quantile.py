@@ -2,8 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp
-import pandas._testing as tm
+from pandas import DataFrame, Series, Timestamp, _testing as tm
 
 
 class TestDataFrameQuantile:

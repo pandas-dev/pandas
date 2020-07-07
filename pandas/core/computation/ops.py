@@ -1,7 +1,6 @@
 """
 Operator classes for eval.
 """
-
 from datetime import datetime
 from distutils.version import LooseVersion
 from functools import partial
@@ -14,7 +13,7 @@ from pandas._libs.tslibs import Timestamp
 
 from pandas.core.dtypes.common import is_list_like, is_scalar
 
-import pandas.core.common as com
+from pandas.core import common as com
 from pandas.core.computation.common import _ensure_decoded, result_type_many
 from pandas.core.computation.scope import _DEFAULT_GLOBALS
 

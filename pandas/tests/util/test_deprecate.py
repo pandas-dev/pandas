@@ -4,7 +4,7 @@ import pytest
 
 from pandas.util._decorators import deprecate
 
-import pandas._testing as tm
+from pandas import _testing as tm
 
 
 def new_func():

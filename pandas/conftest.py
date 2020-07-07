@@ -17,7 +17,6 @@ Instead of splitting it was decided to define sections here:
 - Dtypes
 - Misc
 """
-
 from collections import abc
 from datetime import date, time, timedelta, timezone
 from decimal import Decimal
@@ -31,13 +30,11 @@ import numpy as np
 import pytest
 from pytz import FixedOffset, utc
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
-from pandas import DataFrame
-import pandas._testing as tm
+from pandas import DataFrame, _testing as tm
 from pandas.core import ops
 from pandas.core.indexes.api import Index, MultiIndex
+from pandas.util import _test_decorators as td
 
 
 # ----------------------------------------------------------------

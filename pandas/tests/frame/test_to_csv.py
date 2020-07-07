@@ -14,12 +14,12 @@ from pandas import (
     MultiIndex,
     Series,
     Timestamp,
+    _testing as tm,
     date_range,
     read_csv,
     to_datetime,
 )
-import pandas._testing as tm
-import pandas.core.common as com
+from pandas.core import common as com
 
 from pandas.io.common import get_handle
 

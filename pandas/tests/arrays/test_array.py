@@ -8,7 +8,7 @@ import pytz
 from pandas.core.dtypes.dtypes import registry
 
 import pandas as pd
-import pandas._testing as tm
+from pandas import _testing as tm
 from pandas.api.extensions import register_extension_dtype
 from pandas.api.types import is_scalar
 from pandas.arrays import (

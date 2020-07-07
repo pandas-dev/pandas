@@ -1,7 +1,6 @@
 import pytest
 
-from pandas import MultiIndex, Series
-import pandas._testing as tm
+from pandas import MultiIndex, Series, _testing as tm
 
 
 class TestDropLevel:

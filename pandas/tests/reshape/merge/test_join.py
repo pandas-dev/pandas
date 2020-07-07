@@ -5,8 +5,7 @@ import pytest
 from pandas._libs import join as libjoin
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, concat, merge
-import pandas._testing as tm
+from pandas import DataFrame, Index, MultiIndex, Series, _testing as tm, concat, merge
 from pandas.tests.reshape.merge.test_merge import NGROUPS, N, get_test_data
 
 a_ = np.array

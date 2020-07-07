@@ -24,14 +24,14 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import PeriodDtype
 
+from pandas.core import common as com
 from pandas.core.arrays.period import (
     PeriodArray,
     period_array,
     raise_on_incompatible,
     validate_dtype_freq,
 )
-import pandas.core.common as com
-import pandas.core.indexes.base as ibase
+from pandas.core.indexes import base as ibase
 from pandas.core.indexes.base import (
     _index_shared_docs,
     ensure_index,

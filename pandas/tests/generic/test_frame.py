@@ -5,8 +5,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, Series, date_range
-import pandas._testing as tm
+from pandas import DataFrame, MultiIndex, Series, _testing as tm, date_range
 
 from .test_generic import Generic
 

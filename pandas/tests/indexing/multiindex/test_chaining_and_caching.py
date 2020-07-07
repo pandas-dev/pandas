@@ -1,9 +1,8 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, MultiIndex, Series
-import pandas._testing as tm
-import pandas.core.common as com
+from pandas import DataFrame, MultiIndex, Series, _testing as tm
+from pandas.core import common as com
 
 
 def test_detect_chained_assignment():

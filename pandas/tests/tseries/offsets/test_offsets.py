@@ -9,22 +9,21 @@ from pandas._libs.tslibs import (
     OutOfBoundsDatetime,
     Timestamp,
     conversion,
+    offsets as liboffsets,
     timezones,
 )
-import pandas._libs.tslibs.offsets as liboffsets
 from pandas._libs.tslibs.offsets import ApplyTypeError, _get_offset, _offset_map
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
-import pandas.compat as compat
 from pandas.compat.numpy import np_datetime64_compat
 from pandas.errors import PerformanceWarning
 
-import pandas._testing as tm
+from pandas import _testing as tm, compat as compat
 from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.series import Series
 
 from pandas.io.pickle import read_pickle
+from pandas.tseries import offsets as offsets
 from pandas.tseries.holiday import USFederalHolidayCalendar
-import pandas.tseries.offsets as offsets
 from pandas.tseries.offsets import (
     FY5253,
     BaseOffset,

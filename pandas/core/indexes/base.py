@@ -16,8 +16,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import algos as libalgos, index as libindex, lib
-import pandas._libs.join as libjoin
+from pandas._libs import algos as libalgos, index as libindex, join as libjoin, lib
 from pandas._libs.lib import is_datetime_array, no_default
 from pandas._libs.tslibs import OutOfBoundsDatetime, Timestamp
 from pandas._libs.tslibs.period import IncompatibleFrequency
@@ -73,16 +72,13 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import array_equivalent, isna
 
-from pandas.core import ops
+from pandas.core import algorithms as algos, common as com, missing as missing, ops
 from pandas.core.accessor import CachedAccessor
-import pandas.core.algorithms as algos
 from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimes import tz_to_dtype, validate_tz_from_dtype
 from pandas.core.base import IndexOpsMixin, PandasObject
-import pandas.core.common as com
 from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.indexes.frozen import FrozenList
-import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
 from pandas.core.ops.invalid import make_invalid_op
 from pandas.core.sorting import ensure_key_mapped
@@ -5723,9 +5719,9 @@ def _maybe_cast_data_without_dtype(subarr):
     """
     # Runtime import needed bc IntervalArray imports Index
     from pandas.core.arrays import (
+        DatetimeArray,
         IntervalArray,
         PeriodArray,
-        DatetimeArray,
         TimedeltaArray,
     )
 

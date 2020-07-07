@@ -10,8 +10,15 @@ import pytest
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range, notna
-import pandas._testing as tm
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    Series,
+    Timestamp,
+    _testing as tm,
+    date_range,
+    notna,
+)
 from pandas.core.apply import frame_apply
 from pandas.core.base import SpecificationError
 

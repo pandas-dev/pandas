@@ -15,11 +15,11 @@ from pandas import (
     PeriodIndex,
     Series,
     Timedelta,
+    _testing as tm,
     date_range,
     notna,
     period_range,
 )
-import pandas._testing as tm
 
 
 class TestGetItem:

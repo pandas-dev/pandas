@@ -30,8 +30,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import algorithms
-import pandas.core.common as com
+from pandas.core import algorithms, common as com
 from pandas.core.indexes.base import Index, maybe_extract_name
 from pandas.core.ops import get_op_result_name
 

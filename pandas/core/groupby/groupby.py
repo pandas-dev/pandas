@@ -6,7 +6,6 @@ The SeriesGroupBy and DataFrameGroupBy sub-class
 (defined in pandas.core.groupby.generic)
 expose these user-facing objects to provide specific functionality.
 """
-
 from contextlib import contextmanager
 import datetime
 from functools import partial, wraps
@@ -34,8 +33,7 @@ import numpy as np
 
 from pandas._config.config import option_context
 
-from pandas._libs import Timestamp
-import pandas._libs.groupby as libgroupby
+from pandas._libs import Timestamp, groupby as libgroupby
 from pandas._typing import F, FrameOrSeries, FrameOrSeriesUnion, Scalar
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -54,11 +52,9 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas.core import nanops
-import pandas.core.algorithms as algorithms
+from pandas.core import algorithms as algorithms, common as com, nanops
 from pandas.core.arrays import Categorical, DatetimeArray
 from pandas.core.base import DataError, PandasObject, SelectionMixin
-import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.groupby import base, ops

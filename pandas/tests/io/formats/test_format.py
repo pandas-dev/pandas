@@ -1,7 +1,6 @@
 """
 Test output formatting for Series/DataFrame, including to_string & reprs
 """
-
 from datetime import datetime
 from io import StringIO
 import itertools
@@ -28,6 +27,7 @@ from pandas import (
     NaT,
     Series,
     Timestamp,
+    _testing as tm,
     date_range,
     get_option,
     option_context,
@@ -35,10 +35,8 @@ from pandas import (
     reset_option,
     set_option,
 )
-import pandas._testing as tm
 
-import pandas.io.formats.format as fmt
-import pandas.io.formats.printing as printing
+from pandas.io.formats import format as fmt, printing as printing
 
 use_32bit_repr = is_platform_windows() or is_platform_32bit()
 

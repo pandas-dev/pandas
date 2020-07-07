@@ -20,9 +20,8 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import ABCSeries
 
-import pandas.core.algorithms as algorithms
+from pandas.core import algorithms as algorithms, common as com
 from pandas.core.arrays import Categorical, ExtensionArray
-import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import ops
 from pandas.core.groupby.categorical import recode_for_groupby, recode_from_groupby

@@ -16,9 +16,9 @@ from pandas import (
     Timedelta,
     TimedeltaIndex,
     Timestamp,
+    _testing as tm,
     timedelta_range,
 )
-import pandas._testing as tm
 from pandas.tests.arithmetic.common import (
     assert_invalid_addsub_type,
     assert_invalid_comparison,

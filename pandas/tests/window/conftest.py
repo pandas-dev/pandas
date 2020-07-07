@@ -4,9 +4,8 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import DataFrame, Series, bdate_range, notna
+from pandas.util import _test_decorators as td
 
 
 @pytest.fixture(params=[True, False])

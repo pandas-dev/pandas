@@ -9,8 +9,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame
-import pandas._testing as tm
+from pandas import DataFrame, _testing as tm
 
 
 def _construct_dataframe(num_rows):

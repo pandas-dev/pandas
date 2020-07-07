@@ -19,9 +19,9 @@ from pandas import (
     TimedeltaIndex,
     Timestamp,
     UInt64Index,
+    _testing as tm,
     period_range,
 )
-import pandas._testing as tm
 
 
 class TestIndexConstructorInference:

@@ -3,8 +3,7 @@ from collections import ChainMap
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, MultiIndex
-import pandas._testing as tm
+from pandas import DataFrame, Index, MultiIndex, _testing as tm
 
 
 class TestRename:

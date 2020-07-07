@@ -4,7 +4,7 @@ import pytest
 from pandas.compat import PY37
 
 import pandas as pd
-import pandas._testing as tm
+from pandas import _testing as tm
 from pandas.tests.extension import base
 
 pytest.importorskip("pyarrow", minversion="0.13.0")

@@ -14,9 +14,9 @@ from pandas import (
     MultiIndex,
     Series,
     _np_version_under1p17,
+    _testing as tm,
     qcut,
 )
-import pandas._testing as tm
 
 
 def cartesian_product_for_groupers(result, args, names):

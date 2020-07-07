@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import Float64Index, Int64Index, Series, UInt64Index
-import pandas._testing as tm
+from pandas import Float64Index, Int64Index, Series, UInt64Index, _testing as tm
 
 
 @pytest.fixture

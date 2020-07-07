@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import Interval, Period, Timedelta, Timestamp
-import pandas.core.common as com
+from pandas.core import common as com
 
 
 @pytest.fixture

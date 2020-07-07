@@ -1,11 +1,9 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
-from pandas import Index, MultiIndex, Series, date_range, isna
-import pandas._testing as tm
+from pandas import Index, MultiIndex, Series, _testing as tm, date_range, isna
+from pandas.util import _test_decorators as td
 
 
 @pytest.fixture(

@@ -4,8 +4,7 @@ import pytest
 from pandas.core.dtypes.common import is_integer
 
 import pandas as pd
-from pandas import Series, Timestamp, date_range, isna
-import pandas._testing as tm
+from pandas import Series, Timestamp, _testing as tm, date_range, isna
 
 
 def test_where_unsafe_int(sint_dtype):

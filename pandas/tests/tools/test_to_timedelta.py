@@ -4,8 +4,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Series, TimedeltaIndex, isna, to_timedelta
-import pandas._testing as tm
+from pandas import Series, TimedeltaIndex, _testing as tm, isna, to_timedelta
 
 
 class TestTimedeltas:

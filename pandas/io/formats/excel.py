@@ -1,7 +1,6 @@
 """
 Utilities for conversion to writer-agnostic Excel representation.
 """
-
 from functools import reduce
 import itertools
 import re
@@ -17,7 +16,7 @@ from pandas.core.dtypes.common import is_float, is_scalar
 from pandas.core.dtypes.generic import ABCIndex
 
 from pandas import DataFrame, Index, MultiIndex, PeriodIndex
-import pandas.core.common as com
+from pandas.core import common as com
 
 from pandas.io.common import stringify_path
 from pandas.io.formats.css import CSSResolver, CSSWarning

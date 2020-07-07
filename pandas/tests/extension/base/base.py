@@ -1,4 +1,4 @@
-import pandas._testing as tm
+from pandas import _testing as tm
 
 
 class BaseExtensionTests:

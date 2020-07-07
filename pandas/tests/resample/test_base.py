@@ -4,8 +4,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series
-import pandas._testing as tm
+from pandas import DataFrame, Series, _testing as tm
 from pandas.core.groupby.groupby import DataError
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.indexes.datetimes import date_range

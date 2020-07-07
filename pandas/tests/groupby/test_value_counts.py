@@ -3,14 +3,20 @@ these are systematically testing all of the args to value_counts
 with different size combinations. This is to ensure stability of the sorting
 and proper parameter handling
 """
-
 from itertools import product
 
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Grouper, MultiIndex, Series, date_range, to_datetime
-import pandas._testing as tm
+from pandas import (
+    DataFrame,
+    Grouper,
+    MultiIndex,
+    Series,
+    _testing as tm,
+    date_range,
+    to_datetime,
+)
 
 
 # our starting frame

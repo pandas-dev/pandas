@@ -2,7 +2,7 @@ import numpy as np
 
 from pandas._libs.tslibs import fields
 
-import pandas._testing as tm
+from pandas import _testing as tm
 
 
 def test_fields_readonly():

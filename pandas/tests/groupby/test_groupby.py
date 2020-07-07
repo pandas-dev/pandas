@@ -8,10 +8,18 @@ import pytest
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, read_csv
-import pandas._testing as tm
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    Timestamp,
+    _testing as tm,
+    date_range,
+    read_csv,
+)
+from pandas.core import common as com
 from pandas.core.base import SpecificationError
-import pandas.core.common as com
 
 
 def test_repr():

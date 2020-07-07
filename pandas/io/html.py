@@ -3,7 +3,6 @@
 HTML IO.
 
 """
-
 from collections import abc
 import numbers
 import os
@@ -704,8 +703,8 @@ class _LxmlFrameParser(_HtmlFrameParser):
         --------
         pandas.io.html._HtmlFrameParser._build_doc
         """
-        from lxml.html import parse, fromstring, HTMLParser
         from lxml.etree import XMLSyntaxError
+        from lxml.html import HTMLParser, fromstring, parse
 
         parser = HTMLParser(recover=True, encoding=self.encoding)
 

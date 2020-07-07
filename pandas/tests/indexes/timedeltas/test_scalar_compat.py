@@ -1,15 +1,20 @@
 """
 Tests for TimedeltaIndex methods behaving like their Timedelta counterparts
 """
-
 import numpy as np
 import pytest
 
 from pandas._libs.tslibs.offsets import INVALID_FREQ_ERR_MSG
 
 import pandas as pd
-from pandas import Index, Series, Timedelta, TimedeltaIndex, timedelta_range
-import pandas._testing as tm
+from pandas import (
+    Index,
+    Series,
+    Timedelta,
+    TimedeltaIndex,
+    _testing as tm,
+    timedelta_range,
+)
 
 
 class TestVectorizedTimedelta:

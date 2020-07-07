@@ -10,10 +10,10 @@ from pandas import (
     Interval,
     IntervalIndex,
     Timedelta,
+    _testing as tm,
     date_range,
     timedelta_range,
 )
-import pandas._testing as tm
 
 
 class TestGetLoc:

@@ -8,10 +8,8 @@ import sys
 import numpy as np  # noqa
 import pytest
 
-import pandas.util._test_decorators as td
-
-from pandas import DataFrame
-import pandas._testing as tm
+from pandas import DataFrame, _testing as tm
+from pandas.util import _test_decorators as td
 
 
 def import_module(name):
@@ -34,7 +32,7 @@ def test_dask(df):
     toolz = import_module("toolz")  # noqa
     dask = import_module("dask")  # noqa
 
-    import dask.dataframe as dd
+    from dask import dataframe as dd
 
     ddf = dd.from_pandas(df, npartitions=3)
     assert ddf.A is not None
@@ -78,8 +76,8 @@ def test_oo_optimizable():
 def test_statsmodels():
 
     statsmodels = import_module("statsmodels")  # noqa
-    import statsmodels.api as sm
-    import statsmodels.formula.api as smf
+    from statsmodels import api as sm
+    from statsmodels.formula import api as smf
 
     df = sm.datasets.get_rdataset("Guerry", "HistData").data
     smf.ols("Lottery ~ Literacy + np.log(Pop1831)", data=df).fit()
@@ -90,7 +88,7 @@ def test_statsmodels():
 def test_scikit_learn(df):
 
     sklearn = import_module("sklearn")  # noqa
-    from sklearn import svm, datasets
+    from sklearn import datasets, svm
 
     digits = datasets.load_digits()
     clf = svm.SVC(gamma=0.001, C=100.0)

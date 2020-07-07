@@ -3,8 +3,7 @@ import pytest
 from pandas.errors import NullFrequencyError
 
 import pandas as pd
-from pandas import TimedeltaIndex
-import pandas._testing as tm
+from pandas import TimedeltaIndex, _testing as tm
 
 
 class TestTimedeltaIndexShift:

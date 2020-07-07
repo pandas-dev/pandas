@@ -751,7 +751,7 @@ Imports are alphabetically sorted within these sections.
 
 As part of :ref:`Continuous Integration <contributing.ci>` checks we run::
 
-    isort --recursive --check-only pandas
+    isort --check-only pandas
 
 to check that imports are correctly formatted as per the `setup.cfg`.
 

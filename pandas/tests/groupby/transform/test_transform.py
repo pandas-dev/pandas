@@ -15,10 +15,10 @@ from pandas import (
     MultiIndex,
     Series,
     Timestamp,
+    _testing as tm,
     concat,
     date_range,
 )
-import pandas._testing as tm
 from pandas.core.groupby.groupby import DataError
 
 

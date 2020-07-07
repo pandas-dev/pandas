@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import Series, timedelta_range
-import pandas._testing as tm
+from pandas import Series, _testing as tm, timedelta_range
 
 
 class TestSlicing:

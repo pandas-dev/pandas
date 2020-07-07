@@ -5,8 +5,7 @@ from typing import List
 import pytest
 
 import pandas as pd
-from pandas import api, compat
-import pandas._testing as tm
+from pandas import _testing as tm, api, compat
 
 
 class Base:
@@ -267,8 +266,9 @@ def test_sparsearray():
 
 
 def test_np():
-    import numpy as np
     import warnings
+
+    import numpy as np
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", FutureWarning)

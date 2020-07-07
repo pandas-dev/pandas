@@ -49,7 +49,7 @@ def plot(data, kind, **kwargs):
     # Importing pyplot at the top of the file (before the converters are
     # registered) causes problems in matplotlib 2 (converters seem to not
     # work)
-    import matplotlib.pyplot as plt
+    from matplotlib import pyplot as plt
 
     if kwargs.pop("reuse_plot", False):
         ax = kwargs.get("ax")

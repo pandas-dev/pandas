@@ -10,8 +10,7 @@ from pandas.compat.numpy import _np_version_under1p17
 
 import pandas as pd
 from pandas import Series, Timestamp
-from pandas.core import ops
-import pandas.core.common as com
+from pandas.core import common as com, ops
 
 
 def test_get_callable_name():
@@ -48,7 +47,7 @@ def test_all_not_none():
 
 
 def test_random_state():
-    import numpy.random as npr
+    from numpy import random as npr
 
     # Check with seed
     state = com.random_state(5)

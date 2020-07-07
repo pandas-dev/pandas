@@ -3,8 +3,14 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas import DataFrame, DatetimeIndex, Series, date_range, period_range
-import pandas._testing as tm
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Series,
+    _testing as tm,
+    date_range,
+    period_range,
+)
 
 from pandas.tseries.offsets import BDay, BMonthEnd
 

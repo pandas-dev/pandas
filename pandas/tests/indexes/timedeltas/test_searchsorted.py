@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import Series, TimedeltaIndex, Timestamp, array
-import pandas._testing as tm
+from pandas import Series, TimedeltaIndex, Timestamp, _testing as tm, array
 
 
 class TestSearchSorted:

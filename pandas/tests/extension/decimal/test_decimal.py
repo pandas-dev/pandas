@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas._testing as tm
+from pandas import _testing as tm
 from pandas.tests.extension import base
 
 from .array import DecimalArray, DecimalDtype, make_data, to_decimal

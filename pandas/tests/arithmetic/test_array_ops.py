@@ -3,7 +3,7 @@ import operator
 import numpy as np
 import pytest
 
-import pandas._testing as tm
+from pandas import _testing as tm
 from pandas.core.ops.array_ops import comparison_op, na_logical_op
 
 

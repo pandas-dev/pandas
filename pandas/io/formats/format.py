@@ -2,7 +2,6 @@
 Internal module for formatting output data in csv, html,
 and latex files. This module also applies to display formatting.
 """
-
 from contextlib import contextmanager
 from csv import QUOTE_NONE, QUOTE_NONNUMERIC
 from datetime import tzinfo
@@ -59,10 +58,10 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas.core import common as com
 from pandas.core.arrays.datetimes import DatetimeArray
 from pandas.core.arrays.timedeltas import TimedeltaArray
 from pandas.core.base import PandasObject
-import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.indexes.api import Index, MultiIndex, PeriodIndex, ensure_index
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -72,7 +71,7 @@ from pandas.io.common import stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
 
 if TYPE_CHECKING:
-    from pandas import Series, DataFrame, Categorical
+    from pandas import Categorical, DataFrame, Series
 
 FormattersType = Union[
     List[Callable], Tuple[Callable, ...], Mapping[Union[str, int], Callable]

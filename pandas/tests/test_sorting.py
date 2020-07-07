@@ -5,10 +5,9 @@ from itertools import product
 import numpy as np
 import pytest
 
-from pandas import DataFrame, MultiIndex, Series, array, concat, merge
-import pandas._testing as tm
+from pandas import DataFrame, MultiIndex, Series, _testing as tm, array, concat, merge
+from pandas.core import common as com
 from pandas.core.algorithms import safe_sort
-import pandas.core.common as com
 from pandas.core.sorting import (
     decons_group_index,
     get_group_index,

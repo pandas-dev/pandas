@@ -16,8 +16,7 @@ contain tests for the corresponding methods specific to those Index subclasses.
 import numpy as np
 import pytest
 
-from pandas import Float64Index, Index, Int64Index, UInt64Index
-import pandas._testing as tm
+from pandas import Float64Index, Index, Int64Index, UInt64Index, _testing as tm
 
 
 class TestContains:

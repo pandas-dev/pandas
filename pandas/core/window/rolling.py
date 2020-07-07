@@ -11,7 +11,7 @@ from typing import Callable, Dict, List, Optional, Set, Tuple, Type, Union
 import numpy as np
 
 from pandas._libs.tslibs import BaseOffset, to_offset
-import pandas._libs.window.aggregations as window_aggregations
+from pandas._libs.window import aggregations as window_aggregations
 from pandas._typing import Axis, FrameOrSeries, Scalar
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -35,8 +35,8 @@ from pandas.core.dtypes.generic import (
     ABCTimedeltaIndex,
 )
 
+from pandas.core import common as com
 from pandas.core.base import DataError, PandasObject, SelectionMixin, ShallowMixin
-import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.indexes.api import Index, MultiIndex, ensure_index
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
@@ -1044,7 +1044,7 @@ class Window(_Window):
             import_optional_dependency(
                 "scipy", extra="Scipy is required to generate window weight."
             )
-            import scipy.signal as sig
+            from scipy import signal as sig
 
             if not isinstance(self.win_type, str):
                 raise ValueError(f"Invalid win_type {self.win_type}")
@@ -1119,7 +1119,7 @@ class Window(_Window):
         if isinstance(window, (list, tuple, np.ndarray)):
             return com.asarray_tuplesafe(window).astype(float)
         elif is_integer(window):
-            import scipy.signal as sig
+            from scipy import signal as sig
 
             # GH #15662. `False` makes symmetric window, rather than periodic.
             return sig.get_window(win_type, window, False).astype(float)

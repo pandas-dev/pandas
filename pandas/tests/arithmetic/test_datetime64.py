@@ -24,9 +24,9 @@ from pandas import (
     Timedelta,
     TimedeltaIndex,
     Timestamp,
+    _testing as tm,
     date_range,
 )
-import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray, TimedeltaArray
 from pandas.core.ops import roperator
 from pandas.tests.arithmetic.common import (

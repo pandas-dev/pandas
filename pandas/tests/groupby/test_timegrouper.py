@@ -1,5 +1,4 @@
 """ test with the TimeGrouper / grouping with datetimes """
-
 from datetime import datetime
 from io import StringIO
 
@@ -15,10 +14,10 @@ from pandas import (
     MultiIndex,
     Series,
     Timestamp,
+    _testing as tm,
     date_range,
     offsets,
 )
-import pandas._testing as tm
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.ops import BinGrouper
 

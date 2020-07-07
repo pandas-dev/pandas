@@ -1,7 +1,6 @@
 import numpy as np
 
-from pandas import Categorical, CategoricalIndex, Index
-import pandas._testing as tm
+from pandas import Categorical, CategoricalIndex, Index, _testing as tm
 
 
 class TestReindex:

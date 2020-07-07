@@ -11,9 +11,9 @@ from pytz.exceptions import AmbiguousTimeError, NonExistentTimeError
 
 from pandas._libs.tslibs import timezones
 from pandas.errors import OutOfBoundsDatetime
-import pandas.util._test_decorators as td
 
 from pandas import NaT, Timestamp
+from pandas.util import _test_decorators as td
 
 
 class TestTimestampTZOperations:

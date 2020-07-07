@@ -1,7 +1,6 @@
 import numpy as np
 
-from pandas import Index, Int64Index, RangeIndex
-import pandas._testing as tm
+from pandas import Index, Int64Index, RangeIndex, _testing as tm
 
 
 class TestJoin:

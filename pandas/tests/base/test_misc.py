@@ -13,8 +13,7 @@ from pandas.core.dtypes.common import (
 )
 
 import pandas as pd
-from pandas import DataFrame, Index, IntervalIndex, Series
-import pandas._testing as tm
+from pandas import DataFrame, Index, IntervalIndex, Series, _testing as tm
 
 
 @pytest.mark.parametrize(

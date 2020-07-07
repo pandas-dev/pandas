@@ -13,9 +13,9 @@ from pandas import (
     NaT,
     PeriodIndex,
     Timestamp,
+    _testing as tm,
     date_range,
 )
-import pandas._testing as tm
 
 
 class TestDatetimeIndex:

@@ -9,13 +9,13 @@ from pandas import (
     Categorical,
     DataFrame,
     Series,
+    _testing as tm,
     date_range,
     option_context,
     period_range,
 )
-import pandas._testing as tm
 
-import pandas.io.formats.format as fmt
+from pandas.io.formats import format as fmt
 
 
 class TestDataFrameReprInfoEtc:

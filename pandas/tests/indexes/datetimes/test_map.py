@@ -1,7 +1,6 @@
 import pytest
 
-from pandas import DatetimeIndex, Index, MultiIndex, Period, date_range
-import pandas._testing as tm
+from pandas import DatetimeIndex, Index, MultiIndex, Period, _testing as tm, date_range
 
 
 class TestMap:

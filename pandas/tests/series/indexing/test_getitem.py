@@ -9,8 +9,7 @@ import pytest
 from pandas._libs.tslibs import conversion, timezones
 
 import pandas as pd
-from pandas import Series, Timestamp, date_range, period_range
-import pandas._testing as tm
+from pandas import Series, Timestamp, _testing as tm, date_range, period_range
 
 
 class TestSeriesGetitemScalars:

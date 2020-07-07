@@ -20,11 +20,11 @@ from pandas import (
     NaT,
     Series,
     Timestamp,
+    _testing as tm,
     date_range,
     period_range,
     timedelta_range,
 )
-import pandas._testing as tm
 
 
 class TestCategoricalConstructors:

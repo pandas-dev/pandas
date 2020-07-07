@@ -21,7 +21,7 @@ from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
-import pandas.core.algorithms as algos
+from pandas.core import algorithms as algos
 from pandas.core.base import DataError, ShallowMixin
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.groupby.base import GroupByMixin

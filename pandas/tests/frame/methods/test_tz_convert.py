@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, MultiIndex, date_range
-import pandas._testing as tm
+from pandas import DataFrame, Index, MultiIndex, _testing as tm, date_range
 
 
 class TestTZConvert:

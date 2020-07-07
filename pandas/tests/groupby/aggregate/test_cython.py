@@ -1,13 +1,20 @@
 """
 test cython .agg behavior
 """
-
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, NaT, Series, Timedelta, Timestamp, bdate_range
-import pandas._testing as tm
+from pandas import (
+    DataFrame,
+    Index,
+    NaT,
+    Series,
+    Timedelta,
+    Timestamp,
+    _testing as tm,
+    bdate_range,
+)
 from pandas.core.groupby.groupby import DataError
 
 

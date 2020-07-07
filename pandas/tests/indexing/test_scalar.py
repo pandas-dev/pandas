@@ -4,8 +4,15 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series, Timedelta, Timestamp, date_range, period_range
-import pandas._testing as tm
+from pandas import (
+    DataFrame,
+    Series,
+    Timedelta,
+    Timestamp,
+    _testing as tm,
+    date_range,
+    period_range,
+)
 from pandas.tests.indexing.common import Base
 
 

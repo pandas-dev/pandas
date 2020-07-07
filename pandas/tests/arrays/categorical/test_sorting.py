@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import Categorical, Index
-import pandas._testing as tm
+from pandas import Categorical, Index, _testing as tm
 
 
 class TestCategoricalSort:

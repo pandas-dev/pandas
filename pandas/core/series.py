@@ -65,12 +65,11 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas as pd
-from pandas.core import algorithms, base, generic, nanops, ops
+from pandas.core import algorithms, base, common as com, generic, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
-import pandas.core.common as com
 from pandas.core.construction import (
     create_series_with_explicit_dtype,
     extract_array,
@@ -79,9 +78,9 @@ from pandas.core.construction import (
 )
 from pandas.core.generic import NDFrame
 from pandas.core.indexers import deprecate_ndim_indexing, unpack_1tuple
+from pandas.core.indexes import base as ibase
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import Float64Index, Index, MultiIndex, ensure_index
-import pandas.core.indexes.base as ibase
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
@@ -91,7 +90,7 @@ from pandas.core.sorting import ensure_key_mapped
 from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
 
-import pandas.io.formats.format as fmt
+from pandas.io.formats import format as fmt
 import pandas.plotting
 
 if TYPE_CHECKING:

@@ -1,7 +1,6 @@
 from numpy.random import randn
 
-from pandas import DataFrame, MultiIndex, Series
-import pandas._testing as tm
+from pandas import DataFrame, MultiIndex, Series, _testing as tm
 
 
 class TestMultiIndexInsertion:

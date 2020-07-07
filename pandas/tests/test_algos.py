@@ -8,7 +8,6 @@ import pytest
 
 from pandas._libs import algos as libalgos, groupby as libgroupby, hashtable as ht
 from pandas.compat.numpy import np_array_datetime64_compat
-import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -28,12 +27,12 @@ from pandas import (
     IntervalIndex,
     Series,
     Timestamp,
+    _testing as tm,
     compat,
 )
-import pandas._testing as tm
-import pandas.core.algorithms as algos
+from pandas.core import algorithms as algos, common as com
 from pandas.core.arrays import DatetimeArray
-import pandas.core.common as com
+from pandas.util import _test_decorators as td
 
 
 class TestFactorize:

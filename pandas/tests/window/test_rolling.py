@@ -4,12 +4,11 @@ import numpy as np
 import pytest
 
 from pandas.errors import UnsupportedFunctionCall
-import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, Series, date_range
-import pandas._testing as tm
+from pandas import DataFrame, Series, _testing as tm, date_range
 from pandas.core.window import Rolling
+from pandas.util import _test_decorators as td
 
 
 def test_doc_string():

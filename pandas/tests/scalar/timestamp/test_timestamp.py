@@ -1,5 +1,4 @@
 """ test the scalar Timestamp """
-
 import calendar
 from datetime import datetime, timedelta
 import locale
@@ -13,10 +12,9 @@ from pytz import timezone, utc
 
 from pandas._libs.tslibs.timezones import dateutil_gettz as gettz, get_timezone
 from pandas.compat.numpy import np_datetime64_compat
-import pandas.util._test_decorators as td
 
-from pandas import NaT, Timedelta, Timestamp
-import pandas._testing as tm
+from pandas import NaT, Timedelta, Timestamp, _testing as tm
+from pandas.util import _test_decorators as td
 
 from pandas.tseries import offsets
 

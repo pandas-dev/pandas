@@ -40,9 +40,8 @@ from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, notna
 
-from pandas.core import ops
+from pandas.core import algorithms as algorithms, common as com, ops
 from pandas.core.accessor import PandasDelegate, delegate_names
-import pandas.core.algorithms as algorithms
 from pandas.core.algorithms import _get_data_algo, factorize, take_1d, unique1d
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays._mixins import _T, NDArrayBackedExtensionArray
@@ -52,7 +51,6 @@ from pandas.core.base import (
     PandasObject,
     _shared_docs,
 )
-import pandas.core.common as com
 from pandas.core.construction import array, extract_array, sanitize_array
 from pandas.core.indexers import check_array_indexer, deprecate_ndim_indexing
 from pandas.core.missing import interpolate_2d
@@ -520,7 +518,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         -------
         Categorical
         """
-        from pandas import Index, to_numeric, to_datetime, to_timedelta
+        from pandas import Index, to_datetime, to_numeric, to_timedelta
 
         cats = Index(inferred_categories)
         known_categories = (
@@ -1403,7 +1401,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         --------
         Series.value_counts
         """
-        from pandas import Series, CategoricalIndex
+        from pandas import CategoricalIndex, Series
 
         code, cat = self._codes, self.categories
         ncat, mask = len(cat), 0 <= code

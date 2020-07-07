@@ -19,8 +19,8 @@ from pandas import (
     Series,
     Timedelta,
     TimedeltaIndex,
+    _testing as tm,
 )
-import pandas._testing as tm
 from pandas.tests.base.common import allow_na_ops
 
 

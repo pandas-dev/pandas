@@ -11,7 +11,7 @@ module is imported, register them here rather than in the module.
 """
 import warnings
 
-import pandas._config.config as cf
+from pandas._config import config as cf
 from pandas._config.config import (
     is_bool,
     is_callable,
@@ -645,8 +645,10 @@ register_converter_doc = """
 
 
 def register_converter_cb(key):
-    from pandas.plotting import register_matplotlib_converters
-    from pandas.plotting import deregister_matplotlib_converters
+    from pandas.plotting import (
+        deregister_matplotlib_converters,
+        register_matplotlib_converters,
+    )
 
     if cf.get_option(key):
         register_matplotlib_converters()

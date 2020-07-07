@@ -1,7 +1,6 @@
 import numpy as np
 
-from pandas import PeriodIndex
-import pandas._testing as tm
+from pandas import PeriodIndex, _testing as tm
 
 
 class TestFactorize:

@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     Index,
@@ -10,11 +8,12 @@ from pandas import (
     IntervalIndex,
     Timedelta,
     Timestamp,
+    _testing as tm,
     date_range,
     timedelta_range,
 )
-import pandas._testing as tm
 from pandas.core.arrays import IntervalArray
+from pandas.util import _test_decorators as td
 
 
 @pytest.fixture(
@@ -142,6 +141,7 @@ pyarrow_skip = td.skip_if_no("pyarrow", min_version="0.15.1.dev")
 @pyarrow_skip
 def test_arrow_extension_type():
     import pyarrow as pa
+
     from pandas.core.arrays._arrow_utils import ArrowIntervalType
 
     p1 = ArrowIntervalType(pa.int64(), "left")
@@ -158,6 +158,7 @@ def test_arrow_extension_type():
 @pyarrow_skip
 def test_arrow_array():
     import pyarrow as pa
+
     from pandas.core.arrays._arrow_utils import ArrowIntervalType
 
     intervals = pd.interval_range(1, 5, freq=1).array
@@ -187,6 +188,7 @@ def test_arrow_array():
 @pyarrow_skip
 def test_arrow_array_missing():
     import pyarrow as pa
+
     from pandas.core.arrays._arrow_utils import ArrowIntervalType
 
     arr = IntervalArray.from_breaks([0.0, 1.0, 2.0, 3.0])
@@ -221,6 +223,7 @@ def test_arrow_array_missing():
 )
 def test_arrow_table_roundtrip(breaks):
     import pyarrow as pa
+
     from pandas.core.arrays._arrow_utils import ArrowIntervalType
 
     arr = IntervalArray.from_breaks(breaks)

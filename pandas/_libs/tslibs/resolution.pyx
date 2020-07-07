@@ -1,16 +1,16 @@
 from cpython.datetime cimport tzinfo
 
 import numpy as np
-from numpy cimport ndarray, int64_t, int32_t
+
+from numpy cimport int32_t, int64_t, ndarray
 
 from pandas._libs.tslibs.util cimport get_nat
 
 from pandas._libs.tslibs.dtypes import Resolution
-from pandas._libs.tslibs.np_datetime cimport (
-    npy_datetimestruct, dt64_to_dtstruct)
-from pandas._libs.tslibs.timezones cimport (
-    is_utc, is_tzlocal, get_dst_info)
+
 from pandas._libs.tslibs.ccalendar cimport get_days_in_month
+from pandas._libs.tslibs.np_datetime cimport dt64_to_dtstruct, npy_datetimestruct
+from pandas._libs.tslibs.timezones cimport get_dst_info, is_tzlocal, is_utc
 from pandas._libs.tslibs.tzconversion cimport tz_convert_utc_to_tzlocal
 
 # ----------------------------------------------------------------------

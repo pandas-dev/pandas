@@ -6,8 +6,7 @@ from pandas._libs import groupby, lib, reduction as libreduction
 from pandas.core.dtypes.common import ensure_int64
 
 import pandas as pd
-from pandas import Series, isna
-import pandas._testing as tm
+from pandas import Series, _testing as tm, isna
 
 
 def test_series_grouper():

@@ -2,8 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, merge_ordered
-import pandas._testing as tm
+from pandas import DataFrame, _testing as tm, merge_ordered
 
 
 class TestMergeOrdered:

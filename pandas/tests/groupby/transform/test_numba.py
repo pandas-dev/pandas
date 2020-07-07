@@ -1,11 +1,10 @@
 import pytest
 
 from pandas.errors import NumbaUtilError
-import pandas.util._test_decorators as td
 
-from pandas import DataFrame
-import pandas._testing as tm
+from pandas import DataFrame, _testing as tm
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
+from pandas.util import _test_decorators as td
 
 
 @td.skip_if_no("numba", "0.46.0")

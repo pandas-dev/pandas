@@ -3,8 +3,7 @@ from numpy.random import randn
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series
-import pandas._testing as tm
+from pandas import DataFrame, Series, _testing as tm
 
 
 def check_ew(name=None, preserve_nan=False, series=None, frame=None, nan_locs=None):

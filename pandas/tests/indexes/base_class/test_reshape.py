@@ -4,8 +4,7 @@ Tests for ndarray-like method on the base Index class
 import pytest
 
 import pandas as pd
-from pandas import Index
-import pandas._testing as tm
+from pandas import Index, _testing as tm
 
 
 class TestReshape:

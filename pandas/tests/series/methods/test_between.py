@@ -1,7 +1,6 @@
 import numpy as np
 
-from pandas import Series, bdate_range, date_range, period_range
-import pandas._testing as tm
+from pandas import Series, _testing as tm, bdate_range, date_range, period_range
 
 
 class TestBetween:

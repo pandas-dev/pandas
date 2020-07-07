@@ -2,14 +2,13 @@
 aggregation.py contains utility functions to handle multiple named and lambda
 kwarg aggregations in groupby and DataFrame/Series aggregation
 """
-
 from collections import defaultdict
 from functools import partial
 from typing import Any, Callable, DefaultDict, List, Sequence, Tuple, Union
 
 from pandas.core.dtypes.common import is_dict_like, is_list_like
 
-import pandas.core.common as com
+from pandas.core import common as com
 from pandas.core.indexes.api import Index
 
 

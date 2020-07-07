@@ -3,8 +3,7 @@ from typing import List, Optional, Union
 
 import numpy as np
 
-import pandas._libs.algos as libalgos
-import pandas._libs.reshape as libreshape
+from pandas._libs import algos as libalgos, reshape as libreshape
 from pandas._libs.sparse import IntIndex
 from pandas.util._decorators import cache_readonly
 
@@ -21,7 +20,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import notna
 
-import pandas.core.algorithms as algos
+from pandas.core import algorithms as algos
 from pandas.core.arrays import SparseArray
 from pandas.core.arrays.categorical import factorize_from_iterable
 from pandas.core.frame import DataFrame

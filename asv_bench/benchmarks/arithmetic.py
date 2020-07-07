@@ -4,16 +4,22 @@ import warnings
 import numpy as np
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp, date_range, to_timedelta
-import pandas._testing as tm
+from pandas import (
+    DataFrame,
+    Series,
+    Timestamp,
+    _testing as tm,
+    date_range,
+    to_timedelta,
+)
 from pandas.core.algorithms import checked_add_with_arr
 
 from .pandas_vb_common import numeric_dtypes
 
 try:
-    import pandas.core.computation.expressions as expr
+    from pandas.core.computation import expressions as expr
 except ImportError:
-    import pandas.computation.expressions as expr
+    from pandas.computation import expressions as expr
 try:
     import pandas.tseries.holiday
 except ImportError:

@@ -1,8 +1,14 @@
 import numpy as np
 
 import pandas as pd
-from pandas import CategoricalIndex, Index, MultiIndex, Timestamp, date_range
-import pandas._testing as tm
+from pandas import (
+    CategoricalIndex,
+    Index,
+    MultiIndex,
+    Timestamp,
+    _testing as tm,
+    date_range,
+)
 
 
 class TestGetLevelValues:

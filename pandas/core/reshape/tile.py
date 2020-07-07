@@ -25,8 +25,7 @@ from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas import Categorical, Index, IntervalIndex, to_datetime, to_timedelta
-import pandas.core.algorithms as algos
-import pandas.core.nanops as nanops
+from pandas.core import algorithms as algos, nanops as nanops
 
 
 def cut(

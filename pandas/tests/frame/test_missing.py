@@ -5,8 +5,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Categorical, DataFrame, Series, Timestamp, date_range
-import pandas._testing as tm
+from pandas import Categorical, DataFrame, Series, Timestamp, _testing as tm, date_range
 from pandas.tests.frame.common import _check_mixed_float
 
 

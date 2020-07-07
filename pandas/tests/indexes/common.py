@@ -23,9 +23,9 @@ from pandas import (
     Series,
     TimedeltaIndex,
     UInt64Index,
+    _testing as tm,
     isna,
 )
-import pandas._testing as tm
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 
 

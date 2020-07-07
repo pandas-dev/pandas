@@ -2,8 +2,7 @@
 import numpy as np
 import pytest
 
-from pandas import Interval, IntervalIndex, Timedelta, Timestamp
-import pandas._testing as tm
+from pandas import Interval, IntervalIndex, Timedelta, Timestamp, _testing as tm
 from pandas.core.arrays import IntervalArray
 
 

@@ -14,8 +14,8 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
+    _testing as tm,
 )
-import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 
 

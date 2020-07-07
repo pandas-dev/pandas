@@ -2,8 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import CategoricalIndex, Index
-import pandas._testing as tm
+from pandas import CategoricalIndex, Index, _testing as tm
 
 
 class TestMap:

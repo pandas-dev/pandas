@@ -1,7 +1,6 @@
 import pytest
 
-from pandas import Categorical
-import pandas._testing as tm
+from pandas import Categorical, _testing as tm
 
 
 @pytest.mark.parametrize(

@@ -17,14 +17,14 @@ from pandas import (
     Timedelta,
     TimedeltaIndex,
     Timestamp,
+    _testing as tm,
     date_range,
     period_range,
     timedelta_range,
 )
-import pandas._testing as tm
 from pandas.core.arrays import PeriodArray
 
-import pandas.io.formats.printing as printing
+from pandas.io.formats import printing as printing
 
 
 class TestSeriesMisc:

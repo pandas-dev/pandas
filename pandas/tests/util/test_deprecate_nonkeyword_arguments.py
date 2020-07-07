@@ -1,12 +1,11 @@
 """
 Tests for the `deprecate_nonkeyword_arguments` decorator
 """
-
 import warnings
 
 from pandas.util._decorators import deprecate_nonkeyword_arguments
 
-import pandas._testing as tm
+from pandas import _testing as tm
 
 
 @deprecate_nonkeyword_arguments(version="1.1", allowed_args=["a", "b"])

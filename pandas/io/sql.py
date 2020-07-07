@@ -2,7 +2,6 @@
 Collection of query wrappers / abstractions to both facilitate data
 retrieval and to reduce dependency on DB-specific API.
 """
-
 from contextlib import contextmanager
 from datetime import date, datetime, time
 from functools import partial
@@ -12,7 +11,7 @@ import warnings
 
 import numpy as np
 
-import pandas._libs.lib as lib
+from pandas._libs import lib as lib
 
 from pandas.core.dtypes.common import is_datetime64tz_dtype, is_dict_like, is_list_like
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -937,7 +936,7 @@ class SQLTable(PandasObject):
         return column_names_and_types
 
     def _create_table_setup(self):
-        from sqlalchemy import Table, Column, PrimaryKeyConstraint
+        from sqlalchemy import Column, PrimaryKeyConstraint, Table
 
         column_names_and_types = self._get_column_names_and_types(self._sqlalchemy_type)
 
@@ -1026,15 +1025,15 @@ class SQLTable(PandasObject):
         col_type = lib.infer_dtype(col, skipna=True)
 
         from sqlalchemy.types import (
-            BigInteger,
-            Integer,
-            Float,
-            Text,
-            Boolean,
-            DateTime,
-            Date,
-            Time,
             TIMESTAMP,
+            BigInteger,
+            Boolean,
+            Date,
+            DateTime,
+            Float,
+            Integer,
+            Text,
+            Time,
         )
 
         if col_type == "datetime64" or col_type == "datetime":
@@ -1079,7 +1078,7 @@ class SQLTable(PandasObject):
         return Text
 
     def _get_dtype(self, sqltype):
-        from sqlalchemy.types import Integer, Float, Boolean, DateTime, Date, TIMESTAMP
+        from sqlalchemy.types import TIMESTAMP, Boolean, Date, DateTime, Float, Integer
 
         if isinstance(sqltype, Float):
             return float
@@ -1374,7 +1373,7 @@ class SQLDatabase(PandasSQL):
             dtype = {col_name: dtype for col_name in frame}
 
         if dtype is not None:
-            from sqlalchemy.types import to_instance, TypeEngine
+            from sqlalchemy.types import TypeEngine, to_instance
 
             for col, my_type in dtype.items():
                 if not isinstance(to_instance(my_type), TypeEngine):

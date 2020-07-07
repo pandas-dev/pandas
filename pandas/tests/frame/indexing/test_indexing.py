@@ -16,13 +16,13 @@ from pandas import (
     MultiIndex,
     Series,
     Timestamp,
+    _testing as tm,
     date_range,
     isna,
     notna,
 )
-import pandas._testing as tm
 from pandas.arrays import SparseArray
-import pandas.core.common as com
+from pandas.core import common as com
 from pandas.core.indexing import IndexingError
 
 from pandas.tseries.offsets import BDay

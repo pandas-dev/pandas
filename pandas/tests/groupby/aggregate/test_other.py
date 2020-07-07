@@ -1,7 +1,6 @@
 """
 test all other .agg behavior
 """
-
 import datetime as dt
 from functools import partial
 
@@ -15,10 +14,10 @@ from pandas import (
     MultiIndex,
     PeriodIndex,
     Series,
+    _testing as tm,
     date_range,
     period_range,
 )
-import pandas._testing as tm
 from pandas.core.base import SpecificationError
 
 from pandas.io.formats.printing import pprint_thing

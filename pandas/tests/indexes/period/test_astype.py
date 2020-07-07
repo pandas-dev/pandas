@@ -11,9 +11,9 @@ from pandas import (
     PeriodIndex,
     Timedelta,
     UInt64Index,
+    _testing as tm,
     period_range,
 )
-import pandas._testing as tm
 
 
 class TestPeriodIndexAsType:

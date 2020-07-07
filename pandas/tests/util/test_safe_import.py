@@ -3,7 +3,7 @@ import types
 
 import pytest
 
-import pandas.util._test_decorators as td
+from pandas.util import _test_decorators as td
 
 
 @pytest.mark.parametrize("name", ["foo", "hello123"])

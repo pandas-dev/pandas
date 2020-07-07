@@ -8,9 +8,8 @@ import pytest
 import pytz
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, Series
-import pandas._testing as tm
-import pandas.core.common as com
+from pandas import DataFrame, MultiIndex, Series, _testing as tm
+from pandas.core import common as com
 from pandas.core.computation.expressions import _MIN_ELEMENTS, _NUMEXPR_INSTALLED
 from pandas.tests.frame.common import _check_mixed_float, _check_mixed_int
 

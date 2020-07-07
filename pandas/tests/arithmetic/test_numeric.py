@@ -11,8 +11,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Index, Series, Timedelta, TimedeltaIndex
-import pandas._testing as tm
+from pandas import Index, Series, Timedelta, TimedeltaIndex, _testing as tm
 from pandas.core import ops
 
 

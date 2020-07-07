@@ -1,5 +1,4 @@
-from pandas import TimedeltaIndex, timedelta_range
-import pandas._testing as tm
+from pandas import TimedeltaIndex, _testing as tm, timedelta_range
 
 
 class TestTimedeltaIndexDelete:

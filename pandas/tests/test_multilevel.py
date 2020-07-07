@@ -10,8 +10,7 @@ import pytest
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, Timestamp
-import pandas._testing as tm
+from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, _testing as tm
 
 AGG_FUNCTIONS = [
     "sum",

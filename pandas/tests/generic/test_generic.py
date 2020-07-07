@@ -8,9 +8,8 @@ from pandas.compat.numpy import _np_version_under1p17
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, Series, date_range
-import pandas._testing as tm
-import pandas.core.common as com
+from pandas import DataFrame, MultiIndex, Series, _testing as tm, date_range
+from pandas.core import common as com
 
 # ----------------------------------------------------------------------
 # Generic types test cases

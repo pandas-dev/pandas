@@ -1,6 +1,6 @@
 import pytest
 
-import pandas._testing as tm
+from pandas import _testing as tm
 
 from pandas.io.excel import ExcelWriter
 

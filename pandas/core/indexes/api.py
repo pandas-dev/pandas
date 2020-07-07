@@ -4,7 +4,7 @@ from typing import List, Set
 from pandas._libs import NaT, lib
 from pandas.errors import InvalidIndexError
 
-import pandas.core.common as com
+from pandas.core import common as com
 from pandas.core.indexes.base import (
     Index,
     _new_Index,

@@ -6,8 +6,7 @@ import pytest
 
 from pandas.compat import PYPY
 
-from pandas import Categorical, Index, NaT, Series, date_range
-import pandas._testing as tm
+from pandas import Categorical, Index, NaT, Series, _testing as tm, date_range
 from pandas.api.types import is_scalar
 
 

@@ -2,7 +2,6 @@
 Tests encoding functionality during parsing
 for all of the parsers defined in parsers.py
 """
-
 from io import BytesIO
 import os
 import tempfile
@@ -10,8 +9,7 @@ import tempfile
 import numpy as np
 import pytest
 
-from pandas import DataFrame
-import pandas._testing as tm
+from pandas import DataFrame, _testing as tm
 
 
 def test_bytes_io_input(all_parsers):

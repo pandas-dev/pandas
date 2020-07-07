@@ -1,5 +1,4 @@
 """ test positional based indexing with iloc """
-
 from datetime import datetime
 from warnings import catch_warnings, simplefilter
 
@@ -7,8 +6,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series, concat, date_range, isna
-import pandas._testing as tm
+from pandas import DataFrame, Series, _testing as tm, concat, date_range, isna
 from pandas.api.types import is_scalar
 from pandas.core.indexing import IndexingError
 from pandas.tests.indexing.common import Base

@@ -1,7 +1,6 @@
 import numpy as np
 
-from pandas import Series, Timestamp, date_range
-import pandas._testing as tm
+from pandas import Series, Timestamp, _testing as tm, date_range
 from pandas.api.types import is_scalar
 
 

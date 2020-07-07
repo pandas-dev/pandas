@@ -9,12 +9,10 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import lib
-import pandas._libs.sparse as splib
+from pandas._libs import lib, sparse as splib
 from pandas._libs.sparse import BlockIndex, IntIndex, SparseIndex
 from pandas._libs.tslibs import NaT
 from pandas._typing import Scalar
-import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning
 
@@ -39,19 +37,18 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
-import pandas.core.algorithms as algos
+from pandas import compat as compat
+from pandas.core import algorithms as algos, common as com, ops as ops
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 from pandas.core.arrays.sparse.dtype import SparseDtype
 from pandas.core.base import PandasObject
-import pandas.core.common as com
 from pandas.core.construction import extract_array, sanitize_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import interpolate_2d
 from pandas.core.nanops import check_below_min_count
-import pandas.core.ops as ops
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
-import pandas.io.formats.printing as printing
+from pandas.io.formats import printing as printing
 
 # ----------------------------------------------------------------------------
 # Array

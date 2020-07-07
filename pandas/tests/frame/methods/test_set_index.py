@@ -3,8 +3,15 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
-from pandas import DataFrame, DatetimeIndex, Index, MultiIndex, Series, date_range
-import pandas._testing as tm
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Index,
+    MultiIndex,
+    Series,
+    _testing as tm,
+    date_range,
+)
 
 
 class TestSetIndex:

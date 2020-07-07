@@ -40,15 +40,13 @@ from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCDatetimeIndex, ABCTimedeltaIndex
 from pandas.core.dtypes.missing import array_equivalent, isna
 
-import pandas.core.algorithms as algos
+from pandas.core import algorithms as algos, common as com, missing as missing
 from pandas.core.arrays import Categorical
 from pandas.core.arrays.categorical import factorize_from_iterables
-import pandas.core.common as com
-import pandas.core.indexes.base as ibase
+from pandas.core.indexes import base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs, ensure_index
 from pandas.core.indexes.frozen import FrozenList
 from pandas.core.indexes.numeric import Int64Index
-import pandas.core.missing as missing
 from pandas.core.sorting import (
     get_group_index,
     indexer_from_factorized,

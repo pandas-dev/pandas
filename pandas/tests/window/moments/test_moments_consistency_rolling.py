@@ -5,11 +5,8 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
-from pandas import DataFrame, DatetimeIndex, Index, Series
-import pandas._testing as tm
+from pandas import DataFrame, DatetimeIndex, Index, Series, _testing as tm
 from pandas.core.window.common import _flex_binary_moment
 from pandas.tests.window.common import (
     check_pairwise_moment,
@@ -21,6 +18,7 @@ from pandas.tests.window.common import (
     moments_consistency_var_data,
     moments_consistency_var_debiasing_factors,
 )
+from pandas.util import _test_decorators as td
 
 
 def _rolling_consistency_cases():

@@ -3,8 +3,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas import DataFrame
-import pandas._testing as tm
+from pandas import DataFrame, _testing as tm
 
 
 @pytest.mark.parametrize("subset", ["a", ["a"], ["a", "B"]])

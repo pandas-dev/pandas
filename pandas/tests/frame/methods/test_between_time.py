@@ -3,8 +3,7 @@ from datetime import time
 import numpy as np
 import pytest
 
-from pandas import DataFrame, date_range
-import pandas._testing as tm
+from pandas import DataFrame, _testing as tm, date_range
 
 
 class TestBetweenTime:

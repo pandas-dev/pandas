@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.testing as tm
+from pandas import testing as tm
 
 
 @pytest.mark.parametrize(

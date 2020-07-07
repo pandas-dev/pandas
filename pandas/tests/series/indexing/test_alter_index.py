@@ -2,8 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Categorical, Series, date_range, isna
-import pandas._testing as tm
+from pandas import Categorical, Series, _testing as tm, date_range, isna
 
 
 def test_reindex(datetime_series, string_series):

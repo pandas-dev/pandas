@@ -3,8 +3,7 @@ import pytest
 
 from pandas._libs.tslibs import IncompatibleFrequency
 
-from pandas import NaT, Period, PeriodIndex, Series, array
-import pandas._testing as tm
+from pandas import NaT, Period, PeriodIndex, Series, _testing as tm, array
 
 
 class TestSearchsorted:

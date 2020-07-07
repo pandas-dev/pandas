@@ -2,9 +2,15 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp, date_range, option_context
-import pandas._testing as tm
-import pandas.core.common as com
+from pandas import (
+    DataFrame,
+    Series,
+    Timestamp,
+    _testing as tm,
+    date_range,
+    option_context,
+)
+from pandas.core import common as com
 
 
 class TestCaching:

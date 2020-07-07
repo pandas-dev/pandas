@@ -10,8 +10,7 @@ from pandas._libs.tslibs import OutOfBoundsDatetime, to_offset
 from pandas._libs.tslibs.offsets import INVALID_FREQ_ERR_MSG
 
 import pandas as pd
-from pandas import DatetimeIndex, Timestamp, date_range
-import pandas._testing as tm
+from pandas import DatetimeIndex, Timestamp, _testing as tm, date_range
 
 
 class TestDatetimeIndexOps:

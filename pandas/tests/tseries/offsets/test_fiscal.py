@@ -8,8 +8,7 @@ import pytest
 
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 
-from pandas import Timestamp
-import pandas._testing as tm
+from pandas import Timestamp, _testing as tm
 
 from pandas.tseries.frequencies import get_offset
 from pandas.tseries.offsets import FY5253, FY5253Quarter

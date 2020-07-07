@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Float64Index, Int64Index, MultiIndex
-import pandas._testing as tm
+from pandas import DataFrame, Float64Index, Int64Index, MultiIndex, _testing as tm
 
 
 class TestMultiIndexPartial:

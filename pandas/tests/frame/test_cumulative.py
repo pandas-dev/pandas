@@ -5,11 +5,9 @@ See also
 --------
 tests.series.test_cumulative
 """
-
 import numpy as np
 
-from pandas import DataFrame, Series
-import pandas._testing as tm
+from pandas import DataFrame, Series, _testing as tm
 
 
 class TestDataFrameCumulativeOps:

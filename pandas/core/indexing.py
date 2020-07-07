@@ -24,7 +24,7 @@ from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCDataFrame, ABCMultiIndex, ABCSeries
 from pandas.core.dtypes.missing import _infer_fill_value, isna
 
-import pandas.core.common as com
+from pandas.core import common as com
 from pandas.core.construction import array as pd_array
 from pandas.core.indexers import (
     check_array_indexer,

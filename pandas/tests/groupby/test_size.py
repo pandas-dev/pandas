@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, PeriodIndex, Series
-import pandas._testing as tm
+from pandas import DataFrame, Index, PeriodIndex, Series, _testing as tm
 
 
 @pytest.mark.parametrize("by", ["A", "B", ["A", "B"]])

@@ -1,7 +1,6 @@
 """
 Core eval alignment algorithms.
 """
-
 from functools import partial, wraps
 from typing import Dict, Optional, Sequence, Tuple, Type, Union
 import warnings
@@ -13,8 +12,8 @@ from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
+from pandas.core import common as com
 from pandas.core.base import PandasObject
-import pandas.core.common as com
 from pandas.core.computation.common import result_type_many
 
 

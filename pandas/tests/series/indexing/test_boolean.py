@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import Index, Series
-import pandas._testing as tm
+from pandas import Index, Series, _testing as tm
 from pandas.core.indexing import IndexingError
 
 from pandas.tseries.offsets import BDay

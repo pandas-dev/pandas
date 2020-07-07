@@ -1,7 +1,6 @@
 import pytest
 
-from pandas import DatetimeIndex, Series, date_range
-import pandas._testing as tm
+from pandas import DatetimeIndex, Series, _testing as tm, date_range
 
 
 class TestDelete:

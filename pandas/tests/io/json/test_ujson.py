@@ -13,12 +13,20 @@ import numpy as np
 import pytest
 import pytz
 
-import pandas._libs.json as ujson
+from pandas._libs import json as ujson
 from pandas._libs.tslib import Timestamp
-import pandas.compat as compat
 
-from pandas import DataFrame, DatetimeIndex, Index, NaT, Series, Timedelta, date_range
-import pandas._testing as tm
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Index,
+    NaT,
+    Series,
+    Timedelta,
+    _testing as tm,
+    compat as compat,
+    date_range,
+)
 
 
 def _clean_dict(d):

@@ -1,7 +1,6 @@
 import numpy as np
 
-from pandas import DataFrame
-import pandas._testing as tm
+from pandas import DataFrame, _testing as tm
 
 
 def test_head_tail(float_frame):

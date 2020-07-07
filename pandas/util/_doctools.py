@@ -53,8 +53,7 @@ class TablePlotter:
         vertical : bool, default True
             If True, use vertical layout. If False, use horizontal layout.
         """
-        import matplotlib.pyplot as plt
-        import matplotlib.gridspec as gridspec
+        from matplotlib import gridspec as gridspec, pyplot as plt
 
         if not isinstance(left, list):
             left = [left]
@@ -139,7 +138,7 @@ class TablePlotter:
             ax.set_visible(False)
             return
 
-        import pandas.plotting as plotting
+        from pandas import plotting as plotting
 
         idx_nlevels = df.index.nlevels
         col_nlevels = df.columns.nlevels
@@ -166,7 +165,7 @@ class TablePlotter:
 
 
 if __name__ == "__main__":
-    import matplotlib.pyplot as plt
+    from matplotlib import pyplot as plt
 
     p = TablePlotter()
 

@@ -3,7 +3,7 @@ from datetime import datetime
 import numpy as np
 
 import pandas as pd
-import pandas._testing as tm
+from pandas import _testing as tm
 
 
 def test_drop_duplicates_series_vs_dataframe():

@@ -4,8 +4,7 @@ import pytest
 from pandas._libs.tslibs import IncompatibleFrequency
 
 import pandas as pd
-from pandas import PeriodIndex, date_range, period_range
-import pandas._testing as tm
+from pandas import PeriodIndex, _testing as tm, date_range, period_range
 
 
 def _permute(obj):

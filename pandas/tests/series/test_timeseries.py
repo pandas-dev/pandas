@@ -2,8 +2,14 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, DatetimeIndex, Series, date_range, timedelta_range
-import pandas._testing as tm
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Series,
+    _testing as tm,
+    date_range,
+    timedelta_range,
+)
 
 
 class TestTimeSeries:

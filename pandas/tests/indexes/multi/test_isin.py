@@ -3,8 +3,7 @@ import pytest
 
 from pandas.compat import PYPY
 
-from pandas import MultiIndex
-import pandas._testing as tm
+from pandas import MultiIndex, _testing as tm
 
 
 @pytest.mark.skipif(not PYPY, reason="tuples cmp recursively on PyPy")

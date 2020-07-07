@@ -12,10 +12,10 @@ from pandas import (
     Index,
     MultiIndex,
     Series,
+    _testing as tm,
     concat,
     date_range,
 )
-import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.reshape.pivot import pivot_table
 

@@ -1,8 +1,15 @@
 import numpy as np
 import pytest
 
-from pandas import CategoricalIndex, DataFrame, Index, MultiIndex, Series, crosstab
-import pandas._testing as tm
+from pandas import (
+    CategoricalIndex,
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    _testing as tm,
+    crosstab,
+)
 
 
 class TestCrosstab:

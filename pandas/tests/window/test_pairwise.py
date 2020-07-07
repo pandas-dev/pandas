@@ -3,8 +3,7 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas import DataFrame, MultiIndex, Series, date_range
-import pandas._testing as tm
+from pandas import DataFrame, MultiIndex, Series, _testing as tm, date_range
 from pandas.core.algorithms import safe_sort
 
 

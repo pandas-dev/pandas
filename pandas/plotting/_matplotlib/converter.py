@@ -4,10 +4,9 @@ from datetime import datetime, timedelta
 import functools
 
 from dateutil.relativedelta import relativedelta
-import matplotlib.dates as dates
+from matplotlib import dates as dates, units as units
 from matplotlib.ticker import AutoLocator, Formatter, Locator
 from matplotlib.transforms import nonsingular
-import matplotlib.units as units
 import numpy as np
 
 from pandas._libs import lib
@@ -25,10 +24,10 @@ from pandas.core.dtypes.common import (
 )
 
 from pandas import Index, Series, get_option
-import pandas.core.common as com
+from pandas.core import common as com
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import Period, PeriodIndex, period_range
-import pandas.core.tools.datetimes as tools
+from pandas.core.tools import datetimes as tools
 
 # constants
 HOURS_PER_DAY = 24.0

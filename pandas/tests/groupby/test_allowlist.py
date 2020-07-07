@@ -2,14 +2,12 @@
 test methods relating to generic function evaluation
 the so-called white/black lists
 """
-
 from string import ascii_lowercase
 
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, MultiIndex, Series, date_range
-import pandas._testing as tm
+from pandas import DataFrame, Index, MultiIndex, Series, _testing as tm, date_range
 from pandas.core.groupby.base import (
     groupby_other_methods,
     reduction_kernels,

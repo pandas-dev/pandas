@@ -7,8 +7,7 @@ from dateutil.tz import tzoffset
 import numpy as np
 import pytest
 
-from pandas import Series
-import pandas._testing as tm
+from pandas import Series, _testing as tm
 from pandas.core.indexes.datetimes import date_range
 
 

@@ -9,7 +9,6 @@ import numpy as np
 from pandas._libs import index as libindex
 from pandas._libs.lib import no_default
 from pandas._typing import Label
-import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, cache_readonly, doc
 
@@ -25,10 +24,10 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import ABCTimedeltaIndex
 
-from pandas.core import ops
-import pandas.core.common as com
+from pandas import compat as compat
+from pandas.core import common as com, ops
 from pandas.core.construction import extract_array
-import pandas.core.indexes.base as ibase
+from pandas.core.indexes import base as ibase
 from pandas.core.indexes.base import _index_shared_docs, maybe_extract_name
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops.common import unpack_zerodim_and_defer

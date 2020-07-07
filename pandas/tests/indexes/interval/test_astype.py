@@ -10,9 +10,9 @@ from pandas import (
     NaT,
     Timedelta,
     Timestamp,
+    _testing as tm,
     interval_range,
 )
-import pandas._testing as tm
 
 
 class Base:

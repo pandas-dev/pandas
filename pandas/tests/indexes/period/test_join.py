@@ -3,8 +3,7 @@ import pytest
 
 from pandas._libs.tslibs import IncompatibleFrequency
 
-from pandas import Index, PeriodIndex, period_range
-import pandas._testing as tm
+from pandas import Index, PeriodIndex, _testing as tm, period_range
 
 
 class TestJoin:

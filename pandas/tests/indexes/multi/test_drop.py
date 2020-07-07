@@ -4,8 +4,7 @@ import pytest
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import Index, MultiIndex
-import pandas._testing as tm
+from pandas import Index, MultiIndex, _testing as tm
 
 
 def test_drop(idx):

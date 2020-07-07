@@ -8,8 +8,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Series
-import pandas._testing as tm
+from pandas import Series, _testing as tm
 
 main_dtypes = [
     "datetime",

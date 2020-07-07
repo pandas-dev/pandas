@@ -2,8 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Index, MultiIndex, Series
-import pandas._testing as tm
+from pandas import Index, MultiIndex, Series, _testing as tm
 
 
 def test_equals(idx):

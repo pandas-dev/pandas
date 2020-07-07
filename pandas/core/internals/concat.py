@@ -22,7 +22,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.missing import isna
 
-import pandas.core.algorithms as algos
+from pandas.core import algorithms as algos
 from pandas.core.arrays import ExtensionArray
 from pandas.core.internals.blocks import make_block
 from pandas.core.internals.managers import BlockManager

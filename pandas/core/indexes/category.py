@@ -22,15 +22,13 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
-from pandas.core import accessor
+from pandas.core import accessor, common as com, missing as missing
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays.categorical import Categorical, contains, recode_for_categories
-import pandas.core.common as com
 from pandas.core.construction import extract_array
-import pandas.core.indexes.base as ibase
+from pandas.core.indexes import base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
 from pandas.core.indexes.extension import ExtensionIndex, inherit_names
-import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)

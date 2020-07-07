@@ -3,11 +3,9 @@ import math
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
-from pandas import Series, isna
-import pandas._testing as tm
+from pandas import Series, _testing as tm, isna
+from pandas.util import _test_decorators as td
 
 
 class TestSeriesCov:
@@ -55,7 +53,7 @@ class TestSeriesCov:
 class TestSeriesCorr:
     @td.skip_if_no_scipy
     def test_corr(self, datetime_series):
-        import scipy.stats as stats
+        from scipy import stats as stats
 
         # full overlap
         tm.assert_almost_equal(datetime_series.corr(datetime_series), 1)
@@ -85,7 +83,7 @@ class TestSeriesCorr:
 
     @td.skip_if_no_scipy
     def test_corr_rank(self):
-        import scipy.stats as stats
+        from scipy import stats as stats
 
         # kendall and spearman
         A = tm.makeTimeSeries()

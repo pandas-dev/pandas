@@ -22,8 +22,8 @@ from pandas._config.localization import (  # noqa:F401
     set_locale,
 )
 
+from pandas._libs import testing as _testing
 from pandas._libs.lib import no_default
-import pandas._libs.testing as _testing
 from pandas._typing import Dtype, FilePathOrBuffer, FrameOrSeries
 from pandas.compat import _get_lzma_file, _import_lzma
 
@@ -535,7 +535,7 @@ def rands(nchars):
 
 
 def close(fignum=None):
-    from matplotlib.pyplot import get_fignums, close as _close
+    from matplotlib.pyplot import close as _close, get_fignums
 
     if fignum is None:
         for fignum in get_fignums():
@@ -887,7 +887,7 @@ def assert_attr_equal(attr: str, left, right, obj: str = "Attributes"):
 
 
 def assert_is_valid_plot_return_object(objs):
-    import matplotlib.pyplot as plt
+    from matplotlib import pyplot as plt
 
     if isinstance(objs, (pd.Series, np.ndarray)):
         for el in objs.ravel():

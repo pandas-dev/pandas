@@ -5,15 +5,13 @@ import warnings
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
-from pandas import Series, isna
-import pandas._testing as tm
+from pandas import Series, _testing as tm, isna
+from pandas.core import nanops as nanops
 from pandas.core.arrays import DatetimeArray
-import pandas.core.nanops as nanops
+from pandas.util import _test_decorators as td
 
 use_bn = nanops._USE_BOTTLENECK
 has_c16 = hasattr(np, "complex128")

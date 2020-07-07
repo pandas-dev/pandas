@@ -6,7 +6,7 @@ import pytest
 from pandas.core.dtypes.common import is_bool_dtype
 
 import pandas as pd
-import pandas._testing as tm
+from pandas import _testing as tm
 from pandas.core.sorting import nargsort
 
 from .base import BaseExtensionTests

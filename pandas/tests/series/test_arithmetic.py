@@ -8,8 +8,15 @@ import pytz
 from pandas._libs.tslibs import IncompatibleFrequency
 
 import pandas as pd
-from pandas import Categorical, Index, Series, bdate_range, date_range, isna
-import pandas._testing as tm
+from pandas import (
+    Categorical,
+    Index,
+    Series,
+    _testing as tm,
+    bdate_range,
+    date_range,
+    isna,
+)
 from pandas.core import nanops, ops
 
 
@@ -195,8 +202,8 @@ class TestSeriesArithmetic:
         tm.assert_series_equal(result, expected)
 
     def test_add_na_handling(self):
-        from decimal import Decimal
         from datetime import date
+        from decimal import Decimal
 
         s = Series(
             [Decimal("1.3"), Decimal("2.3")], index=[date(2012, 1, 1), date(2012, 1, 2)]

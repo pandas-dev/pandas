@@ -8,8 +8,7 @@ import pytz
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
-from pandas import DataFrame, Series
-import pandas._testing as tm
+from pandas import DataFrame, Series, _testing as tm
 from pandas.core.indexes.datetimes import date_range
 
 

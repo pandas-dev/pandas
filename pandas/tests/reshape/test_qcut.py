@@ -13,13 +13,13 @@ from pandas import (
     Series,
     TimedeltaIndex,
     Timestamp,
+    _testing as tm,
     cut,
     date_range,
     isna,
     qcut,
     timedelta_range,
 )
-import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.algorithms import quantile
 

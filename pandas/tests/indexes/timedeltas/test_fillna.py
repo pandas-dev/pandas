@@ -1,5 +1,4 @@
-from pandas import Index, NaT, Timedelta, TimedeltaIndex
-import pandas._testing as tm
+from pandas import Index, NaT, Timedelta, TimedeltaIndex, _testing as tm
 
 
 class TestFillNA:

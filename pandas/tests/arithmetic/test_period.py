@@ -10,8 +10,7 @@ from pandas._libs.tslibs import IncompatibleFrequency, Period, Timestamp, to_off
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import PeriodIndex, Series, TimedeltaIndex, period_range
-import pandas._testing as tm
+from pandas import PeriodIndex, Series, TimedeltaIndex, _testing as tm, period_range
 from pandas.core import ops
 from pandas.core.arrays import TimedeltaArray
 

@@ -34,10 +34,10 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas.core import common as com
 from pandas.core.algorithms import take, value_counts
 from pandas.core.arrays.base import ExtensionArray, _extension_array_shared_docs
 from pandas.core.arrays.categorical import Categorical
-import pandas.core.common as com
 from pandas.core.construction import array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.indexes.base import ensure_index
@@ -1105,6 +1105,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Convert myself into a pyarrow Array.
         """
         import pyarrow
+
         from pandas.core.arrays._arrow_utils import ArrowIntervalType
 
         try:
