@@ -7,11 +7,6 @@ import cython
 
 from numpy cimport int64_t, int32_t
 
-from locale import LC_TIME
-
-from pandas._config.localization import set_locale
-from pandas._libs.tslibs.strptime import LocaleTime
-
 # ----------------------------------------------------------------------
 # Constants
 
@@ -27,7 +22,7 @@ cdef int* sakamoto_arr = [0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4]
 # The first 13 entries give the month days elapsed as of the first of month N
 # (or the total number of days in the year for N=13) in non-leap years.
 # The remaining 13 entries give the days elapsed in leap years.
-cdef int32_t* _month_offset = [
+cdef int32_t* month_offset = [
     0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365,
     0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366]
 
@@ -242,25 +237,7 @@ cpdef int32_t get_day_of_year(int year, int month, int day) nogil:
 
     isleap = is_leapyear(year)
 
-    mo_off = _month_offset[isleap * 13 + month - 1]
+    mo_off = month_offset[isleap * 13 + month - 1]
 
     day_of_year = mo_off + day
     return day_of_year
-
-
-def get_locale_names(name_type: str, locale: object = None):
-    """
-    Returns an array of localized day or month names.
-
-    Parameters
-    ----------
-    name_type : string, attribute of LocaleTime() in which to return localized
-        names
-    locale : string
-
-    Returns
-    -------
-    list of locale names
-    """
-    with set_locale(locale, LC_TIME):
-        return getattr(LocaleTime(), name_type)

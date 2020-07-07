@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING, Optional
 
 import numpy as np
 
-from pandas._libs.tslibs import Period, to_offset
-from pandas._libs.tslibs.frequencies import FreqGroup
+from pandas._libs.tslibs import BaseOffset, Period, to_offset
+from pandas._libs.tslibs.dtypes import FreqGroup
 from pandas._typing import FrameOrSeriesUnion
 
 from pandas.core.dtypes.generic import (
@@ -22,7 +22,6 @@ from pandas.plotting._matplotlib.converter import (
     TimeSeries_TimedeltaFormatter,
 )
 from pandas.tseries.frequencies import get_period_alias, is_subperiod, is_superperiod
-from pandas.tseries.offsets import DateOffset
 
 if TYPE_CHECKING:
     from pandas import Series, Index  # noqa:F401
@@ -218,7 +217,7 @@ def _use_dynamic_x(ax, data: "FrameOrSeriesUnion") -> bool:
     return True
 
 
-def _get_index_freq(index: "Index") -> Optional[DateOffset]:
+def _get_index_freq(index: "Index") -> Optional[BaseOffset]:
     freq = getattr(index, "freq", None)
     if freq is None:
         freq = getattr(index, "inferred_freq", None)

@@ -136,7 +136,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
 
         if unit in {"Y", "y", "M"}:
             raise ValueError(
-                "Units 'M' and 'Y' are no longer supported, as they do not "
+                "Units 'M', 'Y', and 'y' are no longer supported, as they do not "
                 "represent unambiguous timedelta values durations."
             )
 
@@ -213,9 +213,8 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         if not is_scalar(key):
             raise InvalidIndexError(key)
 
-        msg = str(key)
         try:
-            key = self._data._validate_scalar(key, msg, cast_str=True)
+            key = self._data._validate_scalar(key, cast_str=True)
         except TypeError as err:
             raise KeyError(key) from err
 
