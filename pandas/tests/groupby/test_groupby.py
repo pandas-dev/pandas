@@ -1270,7 +1270,6 @@ def test_groupby_nat_exclude():
 
     for key in ["nan", "nat"]:
         grouped = nan_df.groupby(key)
-        print(f"grouped.__dict__={grouped.__dict__}")
         assert grouped.groups == {}
         assert grouped.ngroups == 0
         assert grouped.indices == {}
