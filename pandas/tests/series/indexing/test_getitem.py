@@ -51,11 +51,7 @@ class TestSeriesGetitemSlices:
     def test_getitem_slice_2d(self, datetime_series):
         # GH#30588 multi-dimensional indexing deprecated
 
-        # This is currently failing because the test was relying on
-        # the DeprecationWarning coming through Index.__getitem__.
-        # We want to implement a warning specifically for Series.__getitem__
-        # at which point this will become a Deprecation/FutureWarning
-        with tm.assert_produces_warning(None):
+        with tm.assert_produces_warning(FutureWarning):
             # GH#30867 Don't want to support this long-term, but
             # for now ensure that the warning from Index
             # doesn't comes through via Series.__getitem__.
@@ -135,3 +131,9 @@ def test_getitem_generator(string_series):
     expected = string_series[string_series > 0]
     tm.assert_series_equal(result, expected)
     tm.assert_series_equal(result2, expected)
+
+
+def test_getitem_ndim_deprecated():
+    s = pd.Series([0, 1])
+    with tm.assert_produces_warning(FutureWarning):
+        s[:, None]
