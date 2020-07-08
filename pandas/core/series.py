@@ -1436,6 +1436,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Buffer to write to. If None, the output is returned as a string.
         mode : str, optional
             Mode in which file is opened.
+        index : bool, optional, default True
+            Add index (row) labels
         **kwargs
             These parameters will be passed to `tabulate \
                 <https://pypi.org/project/tabulate>`_.
