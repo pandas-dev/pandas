@@ -159,3 +159,18 @@ For example:
 
     # wrong
     from common import test_base
+
+
+Miscellaneous
+=============
+
+Reading from a url
+------------------
+
+**Good:**
+
+.. code-block:: python
+
+    from pandas.io.common import urlopen
+    with urlopen('http://www.google.com') as url:
+        raw_text = url.read()
