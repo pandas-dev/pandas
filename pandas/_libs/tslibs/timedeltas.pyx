@@ -160,7 +160,7 @@ cpdef int64_t delta_to_nanoseconds(delta) except? -1:
     raise TypeError(type(delta))
 
 
-cdef convert_to_timedelta64(object ts, object unit):
+cdef convert_to_timedelta64(object ts, str unit):
     """
     Convert an incoming object to a timedelta64 if possible.
     Before calling, unit must be standardized to avoid repeated unit conversion
@@ -218,7 +218,7 @@ cdef convert_to_timedelta64(object ts, object unit):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def array_to_timedelta64(object[:] values, unit=None, errors='raise'):
+def array_to_timedelta64(object[:] values, str unit=None, str errors="raise"):
     """
     Convert an ndarray to an array of timedeltas. If errors == 'coerce',
     coerce non-convertible objects to NaT. Otherwise, raise.
@@ -470,7 +470,7 @@ cdef inline timedelta_from_spec(object number, object frac, object unit):
     return cast_from_unit(float(n), unit)
 
 
-cpdef inline str parse_timedelta_unit(object unit):
+cpdef inline str parse_timedelta_unit(str unit):
     """
     Parameters
     ----------
@@ -1151,7 +1151,7 @@ class Timedelta(_Timedelta):
 
         if unit in {'Y', 'y', 'M'}:
             raise ValueError(
-                "Units 'M' and 'Y' are no longer supported, as they do not "
+                "Units 'M', 'Y', and 'y' are no longer supported, as they do not "
                 "represent unambiguous timedelta values durations."
             )
 

@@ -745,9 +745,6 @@ class TestDataFrameApply:
             df.apply(func, axis=1)
             assert names == list(df.index)
 
-    @pytest.mark.xfail(
-        reason="The 'run once' enhancement for apply_raw not implemented yet."
-    )
     def test_apply_raw_function_runs_once(self):
         # https://github.com/pandas-dev/pandas/issues/34506
 
@@ -795,6 +792,18 @@ class TestDataFrameApply:
         # like the original but with the object datatype
         result = df.apply(lambda x: x.astype("object"))
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("val", ["asd", 12, None, np.NaN])
+    def test_apply_category_equalness(self, val):
+        # Check if categorical comparisons on apply, GH 21239
+        df_values = ["asd", None, 12, "asd", "cde", np.NaN]
+        df = pd.DataFrame({"a": df_values}, dtype="category")
+
+        result = df.a.apply(lambda x: x == val)
+        expected = pd.Series(
+            [np.NaN if pd.isnull(x) else x == val for x in df_values], name="a"
+        )
+        tm.assert_series_equal(result, expected)
 
 
 class TestInferOutputShape:
@@ -1504,3 +1513,12 @@ class TestDataFrameAggregate:
         tm.assert_series_equal(
             none_in_first_column_result, none_in_second_column_result
         )
+
+    @pytest.mark.parametrize("col", [1, 1.0, True, "a", np.nan])
+    def test_apply_dtype(self, col):
+        # GH 31466
+        df = pd.DataFrame([[1.0, col]], columns=["a", "b"])
+        result = df.apply(lambda x: x.dtype)
+        expected = df.dtypes
+
+        tm.assert_series_equal(result, expected)
