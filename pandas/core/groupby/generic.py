@@ -363,7 +363,9 @@ class SeriesGroupBy(GroupBy[Series]):
         return result
 
     def _wrap_aggregated_output(
-        self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]]
+        self,
+        output: Mapping[base.OutputKey, Union[Series, np.ndarray]],
+        fill_value: Scalar = np.NaN,
     ) -> Union[Series, DataFrame]:
         """
         Wraps the output of a SeriesGroupBy aggregation into the expected result.
@@ -385,7 +387,7 @@ class SeriesGroupBy(GroupBy[Series]):
         result = self._wrap_series_output(
             output=output, index=self.grouper.result_index
         )
-        return self._reindex_output(result)
+        return self._reindex_output(result, fill_value)
 
     def _wrap_transformed_output(
         self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]]
@@ -415,7 +417,11 @@ class SeriesGroupBy(GroupBy[Series]):
         return result
 
     def _wrap_applied_output(
-        self, keys: Index, values: Optional[List[Any]], not_indexed_same: bool = False
+        self,
+        keys: Index,
+        values: Optional[List[Any]],
+        not_indexed_same: bool = False,
+        fill_value: Scalar = np.NaN,
     ) -> FrameOrSeriesUnion:
         """
         Wrap the output of SeriesGroupBy.apply into the expected result.
@@ -465,7 +471,7 @@ class SeriesGroupBy(GroupBy[Series]):
             result = self.obj._constructor(
                 data=values, index=_get_index(), name=self._selection_name
             )
-            return self._reindex_output(result)
+            return self._reindex_output(result, fill_value)
 
     def _aggregate_named(self, func, *args, **kwargs):
         result = {}
@@ -1029,7 +1035,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         agg_blocks, agg_items = self._cython_agg_blocks(
             how, alt=alt, numeric_only=numeric_only, min_count=min_count
         )
-        return self._wrap_agged_blocks(agg_blocks, items=agg_items)
+        fill_value = self._cython_func_fill_values.get(alt, np.NaN)
+        return self._wrap_agged_blocks(
+            agg_blocks, items=agg_items, fill_value=fill_value
+        )
 
     def _cython_agg_blocks(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
@@ -1219,7 +1228,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         return self.obj._constructor(result, columns=result_columns)
 
-    def _wrap_applied_output(self, keys, values, not_indexed_same=False):
+    def _wrap_applied_output(
+        self, keys, values, not_indexed_same=False, fill_value: Scalar = np.NaN
+    ):
         if len(keys) == 0:
             return self.obj._constructor(index=keys)
 
@@ -1380,7 +1391,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 if not self.as_index:
                     self._insert_inaxis_grouper_inplace(result)
 
-                return self._reindex_output(result)
+                return self._reindex_output(result, fill_value)
 
             # values are not series or array-like but scalars
             else:

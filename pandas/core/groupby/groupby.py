@@ -888,8 +888,12 @@ b  2""",
         """
         keys, values, mutated = self.grouper.apply(f, data, self.axis)
 
+        fill_value = self._cython_func_fill_values.get(f, np.NaN)
         return self._wrap_applied_output(
-            keys, values, not_indexed_same=mutated or self.mutated
+            keys,
+            values,
+            not_indexed_same=mutated or self.mutated,
+            fill_value=fill_value,
         )
 
     def _iterate_slices(self) -> Iterable[Series]:
@@ -1010,6 +1014,8 @@ b  2""",
         result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
         return result
 
+    _cython_func_fill_values = {np.sum: 0}
+
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
     ):
@@ -1045,7 +1051,9 @@ b  2""",
         if len(output) == 0:
             raise DataError("No numeric types to aggregate")
 
-        return self._wrap_aggregated_output(output)
+        fill_value = self._cython_func_fill_values.get(alt, np.NaN)
+
+        return self._wrap_aggregated_output(output, fill_value)
 
     def _python_agg_general(
         self, func, *args, engine="cython", engine_kwargs=None, **kwargs
