@@ -1434,16 +1434,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         Series or DataFrame
             Standard deviation of values within each group.
         """
-        return self._get_cythonized_result(
-            "group_var_float64",
-            aggregate=True,
-            needs_counts=True,
-            needs_values=True,
-            needs_2d=True,
-            cython_dtype=np.dtype(np.float64),
-            post_processing=lambda vals, inference: np.sqrt(vals),
-            ddof=ddof,
-        )
+        return self.var(ddof=ddof).apply(np.sqrt)
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)
