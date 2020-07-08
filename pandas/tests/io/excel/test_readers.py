@@ -1143,3 +1143,22 @@ class TestExcelFileRead:
             filename, sheet_name="Sheet1", index_col=0, header=[0, 1]
         )
         tm.assert_frame_equal(expected, result)
+
+    def test_read_datetime_multiindex(self, engine, read_ext):
+        # GH 34748
+        if engine == "pyxlsb":
+            pytest.xfail("Sheets containing datetimes not supported by pyxlsb")
+
+        f = "test_datetime_mi" + read_ext
+        with pd.ExcelFile(f) as excel:
+            actual = pd.read_excel(excel, header=[0, 1], index_col=0, engine=engine)
+        expected_column_index = pd.MultiIndex.from_tuples(
+            [(pd.to_datetime("02/29/2020"), pd.to_datetime("03/01/2020"))],
+            names=[
+                pd.to_datetime("02/29/2020").to_pydatetime(),
+                pd.to_datetime("03/01/2020").to_pydatetime(),
+            ],
+        )
+        expected = pd.DataFrame([], columns=expected_column_index)
+
+        tm.assert_frame_equal(expected, actual)
