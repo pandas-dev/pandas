@@ -2,6 +2,7 @@
 Functions for accessing attributes of Timestamp/datetime64/datetime-like
 objects and arrays
 """
+from locale import LC_TIME
 
 import cython
 from cython import Py_ssize_t
@@ -11,11 +12,10 @@ cimport numpy as cnp
 from numpy cimport ndarray, int64_t, int32_t, int8_t, uint32_t
 cnp.import_array()
 
-from pandas._libs.tslibs.ccalendar import (
-    get_locale_names, MONTHS_FULL, DAYS_FULL,
-)
+from pandas._config.localization import set_locale
+
+from pandas._libs.tslibs.ccalendar import MONTHS_FULL, DAYS_FULL
 from pandas._libs.tslibs.ccalendar cimport (
-    DAY_NANOS,
     get_days_in_month, is_leapyear, dayofweek, get_week_of_year,
     get_day_of_year, get_iso_calendar, iso_calendar_t,
     month_offset,
@@ -24,27 +24,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, pandas_timedeltastruct, dt64_to_dtstruct,
     td64_to_tdstruct)
 from pandas._libs.tslibs.nattype cimport NPY_NAT
-
-
-def get_time_micros(const int64_t[:] dtindex):
-    """
-    Return the number of microseconds in the time component of a
-    nanosecond timestamp.
-
-    Parameters
-    ----------
-    dtindex : ndarray[int64_t]
-
-    Returns
-    -------
-    micros : ndarray[int64_t]
-    """
-    cdef:
-        ndarray[int64_t] micros
-
-    micros = np.mod(dtindex, DAY_NANOS, dtype=np.int64)
-    micros //= 1000
-    return micros
+from pandas._libs.tslibs.strptime import LocaleTime
 
 
 @cython.wraparound(False)
@@ -704,3 +684,21 @@ def build_isocalendar_sarray(const int64_t[:] dtindex):
             iso_weeks[i] = ret_val[1]
             days[i] = ret_val[2]
     return out
+
+
+def get_locale_names(name_type: str, locale: object = None):
+    """
+    Returns an array of localized day or month names.
+
+    Parameters
+    ----------
+    name_type : string, attribute of LocaleTime() in which to return localized
+        names
+    locale : string
+
+    Returns
+    -------
+    list of locale names
+    """
+    with set_locale(locale, LC_TIME):
+        return getattr(LocaleTime(), name_type)

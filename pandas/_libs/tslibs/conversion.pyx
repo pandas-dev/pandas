@@ -39,10 +39,9 @@ from pandas._libs.tslibs.nattype cimport (
     c_nat_strings as nat_strings,
 )
 
-from pandas._libs.tslibs.tzconversion import tz_localize_to_utc
 from pandas._libs.tslibs.tzconversion cimport (
     tz_convert_utc_to_tzlocal,
-    tz_convert_single,
+    tz_localize_to_utc_single,
 )
 
 # ----------------------------------------------------------------------
@@ -481,7 +480,7 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
     value = dtstruct_to_dt64(&dts)
     obj.dts = dts
     obj.tzinfo = pytz.FixedOffset(tzoffset)
-    obj.value = tz_convert_single(value, obj.tzinfo, UTC)
+    obj.value = tz_localize_to_utc_single(value, obj.tzinfo)
     if tz is None:
         check_overflows(obj)
         return obj
@@ -567,8 +566,8 @@ cdef _TSObject _convert_str_to_tsobject(object ts, tzinfo tz, str unit,
                     ts = dtstruct_to_dt64(&dts)
                     if tz is not None:
                         # shift for _localize_tso
-                        ts = tz_localize_to_utc(np.array([ts], dtype='i8'), tz,
-                                                ambiguous='raise')[0]
+                        ts = tz_localize_to_utc_single(ts, tz,
+                                                       ambiguous="raise")
 
         except OutOfBoundsDatetime:
             # GH#19382 for just-barely-OutOfBounds falling back to dateutil

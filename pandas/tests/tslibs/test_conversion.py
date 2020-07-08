@@ -20,33 +20,47 @@ def _compare_utc_to_local(tz_didx):
     tm.assert_numpy_array_equal(result, expected)
 
 
-def _compare_local_to_utc(tz_didx, utc_didx):
+def _compare_local_to_utc(tz_didx, naive_didx):
+    # Check that tz_localize behaves the same vectorized and pointwise.
     def f(x):
         return tzconversion.tz_convert_single(x, tz_didx.tz, UTC)
 
-    result = tzconversion.tz_convert(utc_didx.asi8, tz_didx.tz, UTC)
-    expected = np.vectorize(f)(utc_didx.asi8)
+    err1 = err2 = None
+    try:
+        result = tzconversion.tz_localize_to_utc(naive_didx.asi8, tz_didx.tz)
+        err1 = None
+    except Exception as err:
+        err1 = err
 
-    tm.assert_numpy_array_equal(result, expected)
+    try:
+        expected = naive_didx.map(lambda x: x.tz_localize(tz_didx.tz)).asi8
+    except Exception as err:
+        err2 = err
+
+    if err1 is not None:
+        assert type(err1) == type(err2)
+    else:
+        assert err2 is None
+        tm.assert_numpy_array_equal(result, expected)
 
 
 def test_tz_convert_single_matches_tz_convert_hourly(tz_aware_fixture):
     tz = tz_aware_fixture
     tz_didx = date_range("2014-03-01", "2015-01-10", freq="H", tz=tz)
-    utc_didx = date_range("2014-03-01", "2015-01-10", freq="H")
+    naive_didx = date_range("2014-03-01", "2015-01-10", freq="H")
 
     _compare_utc_to_local(tz_didx)
-    _compare_local_to_utc(tz_didx, utc_didx)
+    _compare_local_to_utc(tz_didx, naive_didx)
 
 
 @pytest.mark.parametrize("freq", ["D", "A"])
 def test_tz_convert_single_matches_tz_convert(tz_aware_fixture, freq):
     tz = tz_aware_fixture
     tz_didx = date_range("2000-01-01", "2020-01-01", freq=freq, tz=tz)
-    utc_didx = date_range("2000-01-01", "2020-01-01", freq=freq)
+    naive_didx = date_range("2000-01-01", "2020-01-01", freq=freq)
 
     _compare_utc_to_local(tz_didx)
-    _compare_local_to_utc(tz_didx, utc_didx)
+    _compare_local_to_utc(tz_didx, naive_didx)
 
 
 @pytest.mark.parametrize(
@@ -57,9 +71,6 @@ def test_tz_convert_single_matches_tz_convert(tz_aware_fixture, freq):
     ],
 )
 def test_tz_convert_corner(arr):
-    result = tzconversion.tz_convert(arr, timezones.maybe_get_tz("US/Eastern"), UTC)
-    tm.assert_numpy_array_equal(result, arr)
-
     result = tzconversion.tz_convert(arr, UTC, timezones.maybe_get_tz("Asia/Tokyo"))
     tm.assert_numpy_array_equal(result, arr)
 
