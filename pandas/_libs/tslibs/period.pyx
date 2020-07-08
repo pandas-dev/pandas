@@ -966,14 +966,15 @@ def periodarr_to_dt64arr(ndarray periodarr, int freq):
             dta = periodarr.view("M8[D]")
         return ensure_datetime64ns(dta)
 
-    l = len(periodarr)
-    out = np.empty(l, dtype="i8")
+    else;
+        l = len(periodarr)
+        out = np.empty(l, dtype="i8")
 
-    # We get here with freqs that do not correspond to a datetime64 unit
-    for i in range(l):
-        out[i] = period_ordinal_to_dt64(periodarr[i], freq)
+        # We get here with freqs that do not correspond to a datetime64 unit
+        for i in range(l):
+            out[i] = period_ordinal_to_dt64(periodarr[i], freq)
 
-    return out.base  # .base to access underlying np.ndarray
+        return out.base  # .base to access underlying np.ndarray
 
 
 cpdef int64_t period_asfreq(int64_t ordinal, int freq1, int freq2, bint end):
