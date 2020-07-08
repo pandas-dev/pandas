@@ -1,7 +1,6 @@
 import io
 
 import pytest
-
 import validate_unwanted_patterns
 
 
