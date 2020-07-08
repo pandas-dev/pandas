@@ -1,7 +1,7 @@
 import numpy as np
 from pytz import UTC
 
-from pandas._libs.tslibs.tzconversion import tz_convert, tz_localize_to_utc
+from pandas._libs.tslibs.tzconversion import tz_convert_from_utc, tz_localize_to_utc
 
 from .tslib import _sizes, _tzs
 
@@ -21,7 +21,7 @@ class TimeTZConvert:
         # effectively:
         #  dti = DatetimeIndex(self.i8data, tz=tz)
         #  dti.tz_localize(None)
-        tz_convert(self.i8data, UTC, tz)
+        tz_convert_from_utc(self.i8data, UTC, tz)
 
     def time_tz_localize_to_utc(self, size, tz):
         # effectively:
