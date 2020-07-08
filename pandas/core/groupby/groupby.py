@@ -1434,7 +1434,18 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         Series or DataFrame
             Standard deviation of values within each group.
         """
-        return self.var(ddof=ddof).apply(np.sqrt)
+        result = self.var(ddof=ddof)
+        if result.ndim == 1:
+            result = np.sqrt(result)
+        else:
+            cols = result.columns.get_indexer_for(
+                result.columns.difference(self.exclusions).unique()
+            )
+            # TODO(GH-22046) - setting with iloc broken if labels are not unique
+            # .values to remove labels
+            result.iloc[:, cols] = np.sqrt(result.iloc[:, cols]).values
+
+        return result
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)
