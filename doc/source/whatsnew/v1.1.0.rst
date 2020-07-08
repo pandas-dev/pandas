@@ -322,7 +322,7 @@ Other enhancements
 - :meth:`DataFrame.hist`, :meth:`Series.hist`, :meth:`core.groupby.DataFrameGroupBy.hist`, and :meth:`core.groupby.SeriesGroupBy.hist` have gained the ``legend`` argument. Set to True to show a legend in the histogram. (:issue:`6279`)
 - :func:`concat` and :meth:`~DataFrame.append` now preserve extension dtypes, for example
   combining a nullable integer column with a numpy integer column will no longer
-  result in object dtype but preserve the integer dtype (:issue:`33607`, :issue:`34339`).
+  result in object dtype but preserve the integer dtype (:issue:`33607`, :issue:`34339`, :issue:`34095`).
 - :meth:`~pandas.io.gbq.read_gbq` now allows to disable progress bar (:issue:`33360`).
 - :meth:`~pandas.io.gbq.read_gbq` now supports the ``max_results`` kwarg from ``pandas-gbq`` (:issue:`34639`).
 - :meth:`DataFrame.cov` and :meth:`Series.cov` now support a new parameter ddof to support delta degrees of freedom as in the corresponding numpy methods (:issue:`34611`).
