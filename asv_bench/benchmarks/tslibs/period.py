@@ -99,7 +99,7 @@ class TimePeriodArrToDT64Arr:
     param_names = ["size", "freq"]
 
     def setup(self, size, freq):
-        arr = np.arange(size, dtype="i8")
+        arr = np.arange(10, dtype="i8").repeat(size // 10)
         self.i8values = arr
 
     def time_periodarray_to_dt64arr(self, size, freq):
