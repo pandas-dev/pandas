@@ -160,9 +160,9 @@ dtype : Type name or dict of column -> type, default ``None``
   (unsupported with ``engine='python'``). Use `str` or `object` together
   with suitable ``na_values`` settings to preserve and
   not interpret dtype.
-engine : {``'c'``, ``'pyarrow'``,``'python'``}
+engine : {``'c'``, ``'pyarrow'``, ``'python'``}
   Parser engine to use. In terms of performance, the pyarrow engine,
-  which requires pyarrow>=0.15.0, is faster than the C engine, which
+  which requires ``pyarrow`` >= 0.15.0, is faster than the C engine, which
   is faster than the python engine. However, the pyarrow and C engines
   are currently less feature complete than their Python counterpart.
 converters : dict, default ``None``
@@ -1621,11 +1621,18 @@ Specifying ``iterator=True`` will also return the ``TextFileReader`` object:
 Specifying the parser engine
 ''''''''''''''''''''''''''''
 
-Under the hood pandas uses a fast and efficient parser implemented in C as well
-as a Python implementation which is currently more feature-complete. Where
-possible pandas uses the C parser (specified as ``engine='c'``), but may fall
-back to Python if C-unsupported options are specified. Currently, C-unsupported
-options include:
+Currently, pandas supports using three engines, the C engine, the python engine,
+and an optional pyarrow engine(requires ``pyarrow`` >= 0.15). In terms of performance
+the pyarrow engine is fastest, followed by the C and Python engines. However,
+the pyarrow engine is much less robust than the C engine, which in turn lacks a
+couple of features present in the Python parser.
+
+Where possible pandas uses the C parser (specified as ``engine='c'``), but may fall
+back to Python if C-unsupported options are specified. If pyarrow unsupported options are
+specified while using ``engine='pyarrow'``, the parser will error out
+(a full list of unsupported options is available at ``pandas.io.parsers._pyarrow_unsupported``).
+
+Currently, C-unsupported options include:
 
 * ``sep`` other than a single character (e.g. regex separators)
 * ``skipfooter``
