@@ -947,7 +947,8 @@ def periodarr_to_dt64arr(periodarr: ndarray, freq: int) -> ndarray:
         int64_t[:] out
         Py_ssize_t i, l
 
-    if freq >= FR_DAY:
+    if freq >= <int>FR_DAY:
+        # Short-circuit for performance
         if freq == FR_NS:
             return periodarr
 
@@ -968,6 +969,7 @@ def periodarr_to_dt64arr(periodarr: ndarray, freq: int) -> ndarray:
     l = len(periodarr)
     out = np.empty(l, dtype="i8")
 
+    # We get here with freqs that do not correspond to a datetime64 unit
     for i in range(l):
         out[i] = period_ordinal_to_dt64(periodarr[i], freq)
 
