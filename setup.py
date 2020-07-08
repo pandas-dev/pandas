@@ -441,6 +441,7 @@ else:
         # by being appended to end, but would ideally replace altogether
         extra_compile_args.append("-UNDEBUG")
         extra_compile_args.append("-O0")
+        extra_compile_args.append("-fno-omit-frame-pointer")
 
 # Build for at least macOS 10.9 when compiling on a 10.9 system or above,
 # overriding CPython distuitls behaviour which is to target the version that
