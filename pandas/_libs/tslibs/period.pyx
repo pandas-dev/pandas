@@ -948,9 +948,7 @@ def periodarr_to_dt64arr(periodarr: ndarray, freq: int) -> ndarray:
         Py_ssize_t i, l
         npy_datetimestruct dts
 
-    l = len(periodarr)
-
-    if FR_NS >= freq >= FR_DAY:
+    if freq >= FR_DAY:
         if freq == FR_NS:
             return periodarr
 
@@ -968,6 +966,7 @@ def periodarr_to_dt64arr(periodarr: ndarray, freq: int) -> ndarray:
             dta = periodarr.view("M8[D]")
         return ensure_datetime64ns(dta)
 
+    l = len(periodarr)
     out = np.empty(l, dtype="i8")
 
     for i in range(l):
