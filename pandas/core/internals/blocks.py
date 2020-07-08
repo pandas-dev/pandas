@@ -8,6 +8,7 @@ import numpy as np
 
 from pandas._libs import NaT, algos as libalgos, lib, writers
 import pandas._libs.internals as libinternals
+from pandas._libs.internals import BlockPlacement
 from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.timezones import tz_compare
 from pandas._typing import ArrayLike
@@ -55,12 +56,7 @@ from pandas.core.dtypes.generic import (
     ABCPandasArray,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import (
-    _isna_compat,
-    array_equivalent,
-    is_valid_nat_for_dtype,
-    isna,
-)
+from pandas.core.dtypes.missing import _isna_compat, is_valid_nat_for_dtype, isna
 
 import pandas.core.algorithms as algos
 from pandas.core.array_algos.transforms import shift
@@ -111,6 +107,19 @@ class Block(PandasObject):
     _can_consolidate = True
     _verify_integrity = True
     _validate_ndim = True
+
+    @classmethod
+    def _simple_new(
+        cls, values: ArrayLike, placement: BlockPlacement, ndim: int
+    ) -> "Block":
+        """
+        Fastpath constructor, does *no* validation
+        """
+        obj = object.__new__(cls)
+        obj.ndim = ndim
+        obj.values = values
+        obj._mgr_locs = placement
+        return obj
 
     def __init__(self, values, placement, ndim=None):
         self.ndim = self._check_ndim(values, ndim)
@@ -289,13 +298,15 @@ class Block(PandasObject):
         if new_mgr_locs is None:
             axis0_slicer = slicer[0] if isinstance(slicer, tuple) else slicer
             new_mgr_locs = self.mgr_locs[axis0_slicer]
+        elif not isinstance(new_mgr_locs, BlockPlacement):
+            new_mgr_locs = BlockPlacement(new_mgr_locs)
 
         new_values = self._slice(slicer)
 
         if self._validate_ndim and new_values.ndim != self.ndim:
             raise ValueError("Only same dim slicing is allowed")
 
-        return self.make_block_same_class(new_values, new_mgr_locs)
+        return type(self)._simple_new(new_values, new_mgr_locs, self.ndim)
 
     @property
     def shape(self):
@@ -1367,11 +1378,6 @@ class Block(PandasObject):
 
         return result_blocks
 
-    def equals(self, other) -> bool:
-        if self.dtype != other.dtype or self.shape != other.shape:
-            return False
-        return array_equivalent(self.values, other.values)
-
     def _unstack(self, unstacker, fill_value, new_placement):
         """
         Return a list of unstacked blocks of self
@@ -1865,9 +1871,6 @@ class ExtensionBlock(Block):
 
         return [self.make_block_same_class(result, placement=self.mgr_locs)]
 
-    def equals(self, other) -> bool:
-        return self.values.equals(other.values)
-
     def _unstack(self, unstacker, fill_value, new_placement):
         # ExtensionArray-safe unstack.
         # We override ObjectBlock._unstack, which unstacks directly on the
@@ -1912,12 +1915,6 @@ class NumericBlock(Block):
 
 class FloatOrComplexBlock(NumericBlock):
     __slots__ = ()
-
-    def equals(self, other) -> bool:
-        if self.dtype != other.dtype or self.shape != other.shape:
-            return False
-        left, right = self.values, other.values
-        return ((left == right) | (np.isnan(left) & np.isnan(right))).all()
 
 
 class FloatBlock(FloatOrComplexBlock):
@@ -2281,12 +2278,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             obj_vals, placement=self.mgr_locs, klass=ObjectBlock, ndim=self.ndim
         )
         return newb.setitem(indexer, value)
-
-    def equals(self, other) -> bool:
-        # override for significant performance improvement
-        if self.dtype != other.dtype or self.shape != other.shape:
-            return False
-        return (self.values.view("i8") == other.values.view("i8")).all()
 
     def quantile(self, qs, interpolation="linear", axis=0):
         naive = self.values.view("M8[ns]")

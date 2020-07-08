@@ -5330,6 +5330,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                ['lion', 80.5, 1],
                ['monkey', nan, None]], dtype=object)
         """
+        self._consolidate_inplace()
         return self._mgr.as_array(transpose=self._AXIS_REVERSED)
 
     @property
@@ -5365,9 +5366,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         string              object
         dtype: object
         """
-        from pandas import Series  # noqa: F811
-
-        return Series(self._mgr.get_dtypes(), index=self._info_axis, dtype=np.object_)
+        data = self._mgr.get_dtypes()
+        return self._constructor_sliced(data, index=self._info_axis, dtype=np.object_)
 
     def _to_dict_of_blocks(self, copy: bool_t = True):
         """
@@ -5536,6 +5536,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             # else, only a single dtype is given
             new_data = self._mgr.astype(dtype=dtype, copy=copy, errors=errors,)
             return self._constructor(new_data).__finalize__(self, method="astype")
+
+        # GH 33113: handle empty frame or series
+        if not results:
+            return self.copy()
 
         # GH 19920: retain column metadata after concat
         result = pd.concat(results, axis=1, copy=False)
@@ -6526,7 +6530,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                             f"Replacement lists must match in length. "
                             f"Expecting {len(to_replace)} got {len(value)} "
                         )
-
+                    self._consolidate_inplace()
                     new_data = self._mgr.replace_list(
                         src_list=to_replace,
                         dest_list=value,
@@ -9575,8 +9579,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         dtype: int64
 
         If the DST transition causes nonexistent times, you can shift these
-        dates forward or backwards with a timedelta object or `'shift_forward'`
-        or `'shift_backwards'`.
+        dates forward or backward with a timedelta object or `'shift_forward'`
+        or `'shift_backward'`.
+
         >>> s = pd.Series(range(2),
         ...               index=pd.DatetimeIndex(['2015-03-29 02:30:00',
         ...                                       '2015-03-29 03:30:00']))
@@ -10512,6 +10517,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             adjust=True,
             ignore_na=False,
             axis=0,
+            times=None,
         ):
             axis = self._get_axis_number(axis)
             return ExponentialMovingWindow(
@@ -10524,6 +10530,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 adjust=adjust,
                 ignore_na=ignore_na,
                 axis=axis,
+                times=times,
             )
 
         cls.ewm = ewm
