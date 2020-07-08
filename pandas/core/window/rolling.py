@@ -1298,10 +1298,11 @@ class _Rolling_and_Expanding(_Rolling):
           objects instead.
           If you are just applying a NumPy reduction function this will
           achieve much better performance.
-    engine : str, default 'cython'
+    engine : str, default None
         * ``'cython'`` : Runs rolling apply through C-extensions from cython.
         * ``'numba'`` : Runs rolling apply through JIT compiled code from numba.
           Only available when ``raw`` is set to ``True``.
+        * ``None`` : Defaults to ``'cython'`` or global numba configuration.
 
           .. versionadded:: 1.0.0
 
@@ -2056,7 +2057,7 @@ class Rolling(_Rolling_and_Expanding):
         self,
         func,
         raw=False,
-        engine="cython",
+        engine=None,
         engine_kwargs=None,
         args=None,
         kwargs=None,

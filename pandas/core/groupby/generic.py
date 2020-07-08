@@ -229,7 +229,7 @@ class SeriesGroupBy(GroupBy[Series]):
         _agg_template, examples=_agg_examples_doc, klass="Series",
     )
     def aggregate(
-        self, func=None, *args, engine="cython", engine_kwargs=None, **kwargs
+        self, func=None, *args, engine=None, engine_kwargs=None, **kwargs
     ):
 
         relabeling = func is None
@@ -481,7 +481,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
     @Substitution(klass="Series")
     @Appender(_transform_template)
-    def transform(self, func, *args, engine="cython", engine_kwargs=None, **kwargs):
+    def transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
         func = self._get_cython_func(func) or func
 
         if not isinstance(func, str):
@@ -934,7 +934,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         _agg_template, examples=_agg_examples_doc, klass="DataFrame",
     )
     def aggregate(
-        self, func=None, *args, engine="cython", engine_kwargs=None, **kwargs
+        self, func=None, *args, engine=None, engine_kwargs=None, **kwargs
     ):
 
         relabeling = func is None and is_multi_agg_with_relabel(**kwargs)
@@ -1458,7 +1458,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     @Substitution(klass="DataFrame")
     @Appender(_transform_template)
-    def transform(self, func, *args, engine="cython", engine_kwargs=None, **kwargs):
+    def transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
 
         # optimized transforms
         func = self._get_cython_func(func) or func
