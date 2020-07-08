@@ -450,6 +450,10 @@ class IntegerArray(BaseMaskedArray):
 
         dtype = pandas_dtype(dtype)
 
+        # if the dtype is exactly the same, we can fastpath
+        if self.dtype == dtype:
+            # return the same object for copy=False
+            return self.copy() if copy else self
         # if we are astyping to another nullable masked dtype, we can fastpath
         if isinstance(dtype, BaseMaskedDtype):
             data = self._data.astype(dtype.numpy_dtype, copy=copy)

@@ -150,6 +150,7 @@ def test_astype_copy():
 
     # copy=True -> ensure both data and mask are actual copies
     result = arr.astype("Int64", copy=True)
+    assert result is not arr
     assert not np.shares_memory(result._data, arr._data)
     assert not np.shares_memory(result._mask, arr._mask)
     result[0] = 10
@@ -159,6 +160,7 @@ def test_astype_copy():
 
     # copy=False
     result = arr.astype("Int64", copy=False)
+    assert result is arr
     assert np.shares_memory(result._data, arr._data)
     assert np.shares_memory(result._mask, arr._mask)
     result[0] = 10
