@@ -213,7 +213,7 @@ class TestDataFrameMissingData:
         padded = datetime_frame.fillna(method="pad")
         assert np.isnan(padded.loc[padded.index[:5], "A"]).all()
         assert (
-                padded.loc[padded.index[-5:], "A"] == padded.loc[padded.index[-5], "A"]
+            padded.loc[padded.index[-5:], "A"] == padded.loc[padded.index[-5], "A"]
         ).all()
 
         msg = "Must specify a fill 'value' or 'method'"
