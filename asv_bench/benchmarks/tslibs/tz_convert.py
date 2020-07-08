@@ -1,9 +1,14 @@
 import numpy as np
 from pytz import UTC
 
-from pandas._libs.tslibs.tzconversion import tz_convert_from_utc, tz_localize_to_utc
+from pandas._libs.tslibs.tzconversion import tz_localize_to_utc
 
 from .tslib import _sizes, _tzs
+
+try:
+    from pandas._libs.tslibs.tzconversion import tz_convert_from_utc
+except ImportError:
+    from pandas._libs.tslibs.tzconversion import tz_convert as tz_convert_from_utc
 
 
 class TimeTZConvert:
