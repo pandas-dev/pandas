@@ -1165,6 +1165,10 @@ class _LocIndexer(_LocationIndexer):
                     if len(key) == labels.nlevels:
                         return {"key": key}
                     raise
+            except InvalidIndexError:
+                # GH35015, using datetime as column indices raises exception
+                if not isinstance(labels, ABCMultiIndex):
+                    raise
             except TypeError:
                 pass
             except ValueError:
@@ -1683,7 +1687,6 @@ class _iLocIndexer(_LocationIndexer):
                     ser = v
                 else:
                     # set the item, possibly having a dtype change
-                    ser._consolidate_inplace()
                     ser = ser.copy()
                     ser._mgr = ser._mgr.setitem(indexer=pi, value=v)
                     ser._maybe_update_cacher(clear=True)
