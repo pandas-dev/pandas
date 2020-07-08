@@ -428,13 +428,13 @@ def array_with_unit_to_datetime(
                     or (fvalues > Timestamp.max.value).any()):
                 raise OutOfBoundsDatetime(f"cannot convert input with unit '{unit}'")
             # GH20445
-            result = fvalues.astype('M8[ns]')   
-            iresult = result.view('i8')
+            result = fvalues.astype("M8[ns]")   
+            iresult = result.view("i8")
             iresult[mask] = NPY_NAT
             return result, tz
 
-    result = np.empty(n, dtype='M8[ns]')
-    iresult = result.view('i8')
+    result = np.empty(n, dtype="M8[ns]")
+    iresult = result.view("i8")
 
     try:
         for i in range(n):
