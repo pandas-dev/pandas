@@ -404,11 +404,21 @@ def array_with_unit_to_datetime(
         # then need to iterate
         if values.dtype.kind == "i":
             # Note: this condition makes the casting="same_kind" redundant
-            iresult = values.astype('i8', casting='same_kind', copy=False)
+            iresult = values.astype("i8", casting="same_kind", copy=False)
             # fill by comparing to NPY_NAT constant
             mask = iresult == NPY_NAT
             iresult[mask] = 0
-            fvalues = iresult.astype('f8') * m
+            fvalues = iresult.astype("f8") * m
+            need_to_iterate = False
+
+        # GH20445
+        elif values.dtype.kind == "f":
+            # Note: this condition makes the casting="same_kind" redundant
+            fresult = values.astype("f8", casting="same_kind", copy=False)
+            # fill by comparing to NPY_NAT constant
+            mask = fresult == NPY_NAT
+            fresult[mask] = 0
+            fvalues = fresult * (<float64_t>m)
             need_to_iterate = False
 
         # check the bounds
@@ -417,7 +427,8 @@ def array_with_unit_to_datetime(
             if ((fvalues < Timestamp.min.value).any()
                     or (fvalues > Timestamp.max.value).any()):
                 raise OutOfBoundsDatetime(f"cannot convert input with unit '{unit}'")
-            result = (iresult * m).astype('M8[ns]')
+            # GH20445
+            result = fvalues.astype('M8[ns]')   
             iresult = result.view('i8')
             iresult[mask] = NPY_NAT
             return result, tz
