@@ -175,7 +175,7 @@ class TestDataFrameSetItem:
     )
     def test_setitem_extension_types(self, obj, dtype):
         # GH: 34832
-        expected = DataFrame({"idx": [1, 2, 3], "obj": Series([obj] * 3, dtype=dtype),})
+        expected = DataFrame({"idx": [1, 2, 3], "obj": Series([obj] * 3, dtype=dtype)})
 
         df = DataFrame({"idx": [1, 2, 3]})
         df["obj"] = obj
