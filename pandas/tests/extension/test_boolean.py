@@ -235,6 +235,23 @@ class TestMethods(base.BaseMethodsTests):
     def test_value_counts(self, all_data, dropna):
         return super().test_value_counts(all_data, dropna)
 
+    def test_argmin_argmax(self, data_for_sorting, data_missing_for_sorting):
+        # override because there are only 2 unique values
+
+        # data_for_sorting -> [B, C, A] with A < B < C -> here True, True, False
+        assert data_for_sorting.argmax() == 0
+        assert data_for_sorting.argmin() == 2
+
+        # with repeated values -> first occurence
+        data = data_for_sorting.take([2, 0, 0, 1, 1, 2])
+        assert data.argmax() == 1
+        assert data.argmin() == 0
+
+        # with missing values
+        # data_missing_for_sorting -> [B, NA, A] with A < B and NA missing.
+        assert data_missing_for_sorting.argmax() == 0
+        assert data_missing_for_sorting.argmin() == 2
+
 
 class TestCasting(base.BaseCastingTests):
     pass
