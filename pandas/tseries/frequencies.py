@@ -197,7 +197,9 @@ class _FrequencyInferer:
         # the timezone so they are in local time
         if hasattr(index, "tz"):
             if index.tz is not None:
-                self.i8values = tzconversion.tz_convert(self.i8values, index.tz)
+                self.i8values = tzconversion.tz_convert_from_utc(
+                    self.i8values, index.tz
+                )
 
         self.warn = warn
 

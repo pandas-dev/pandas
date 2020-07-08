@@ -366,7 +366,7 @@ cdef int64_t tz_convert_utc_to_tzlocal(int64_t utc_val, tzinfo tz, bint* fold=NU
     return _tz_convert_tzlocal_utc(utc_val, tz, to_utc=False, fold=fold)
 
 
-cpdef int64_t tz_convert_single(int64_t val, tzinfo tz):
+cpdef int64_t tz_convert_single_from_utc(int64_t val, tzinfo tz):
     """
     Convert the val (in i8) from UTC to tz
 
@@ -396,7 +396,7 @@ cpdef int64_t tz_convert_single(int64_t val, tzinfo tz):
         return _tz_convert_dst(arr, tz)[0]
 
 
-def tz_convert(int64_t[:] vals, tzinfo tz):
+def tz_convert_from_utc(int64_t[:] vals, tzinfo tz):
     """
     Convert the values (in i8) from UTC to tz
 
@@ -415,13 +415,13 @@ def tz_convert(int64_t[:] vals, tzinfo tz):
     if len(vals) == 0:
         return np.array([], dtype=np.int64)
 
-    converted = _tz_convert_one_way(vals, tz)
+    converted = _tz_convert_from_utc(vals, tz)
     return np.array(converted, dtype=np.int64)
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int64_t[:] _tz_convert_one_way(int64_t[:] vals, tzinfo tz):
+cdef int64_t[:] _tz_convert_from_utc(int64_t[:] vals, tzinfo tz):
     """
     Convert the given values (in i8) either to UTC or from UTC.
 
