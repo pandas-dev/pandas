@@ -947,7 +947,17 @@ def periodarr_to_dt64arr(ndarray periodarr, int freq):
         int64_t[:] out
         Py_ssize_t i, l
 
-    if freq >= 6000:  # i.e. FR_DAY, hard-code to avoid need to cast
+    if freq < 6000:  # i.e. FR_DAY, hard-code to avoid need to cast
+        l = len(periodarr)
+        out = np.empty(l, dtype="i8")
+
+        # We get here with freqs that do not correspond to a datetime64 unit
+        for i in range(l):
+            out[i] = period_ordinal_to_dt64(periodarr[i], freq)
+
+        return out.base  # .base to access underlying np.ndarray
+
+    else:
         # Short-circuit for performance
         if freq == FR_NS:
             return periodarr
@@ -965,16 +975,6 @@ def periodarr_to_dt64arr(ndarray periodarr, int freq):
         elif freq == FR_DAY:
             dta = periodarr.view("M8[D]")
         return ensure_datetime64ns(dta)
-
-    else:
-        l = len(periodarr)
-        out = np.empty(l, dtype="i8")
-
-        # We get here with freqs that do not correspond to a datetime64 unit
-        for i in range(l):
-            out[i] = period_ordinal_to_dt64(periodarr[i], freq)
-
-        return out.base  # .base to access underlying np.ndarray
 
 
 cpdef int64_t period_asfreq(int64_t ordinal, int freq1, int freq2, bint end):
