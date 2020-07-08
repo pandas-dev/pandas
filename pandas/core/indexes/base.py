@@ -2,7 +2,16 @@ from copy import copy as copy_func
 from datetime import datetime
 import operator
 from textwrap import dedent
-from typing import TYPE_CHECKING, Any, Callable, FrozenSet, Hashable, Optional, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    FrozenSet,
+    Hashable,
+    List,
+    Optional,
+    Union,
+)
 import warnings
 
 import numpy as np
@@ -910,15 +919,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._format_with_header(header, **kwargs)
 
-    def _format_with_header(self, header, na_rep="NaN", **kwargs):
-        values = self._values
-
+    def _format_with_header(self, header, na_rep="NaN") -> List[str_t]:
         from pandas.io.formats.format import format_array
 
-        if is_categorical_dtype(values.dtype):
-            values = np.array(values)
+        values = self._values
 
-        elif is_object_dtype(values.dtype):
+        if is_object_dtype(values.dtype):
             values = lib.maybe_convert_objects(values, safe=1)
 
         if is_object_dtype(values.dtype):
@@ -929,10 +935,9 @@ class Index(IndexOpsMixin, PandasObject):
             if mask.any():
                 result = np.array(result)
                 result[mask] = na_rep
-                result = result.tolist()
-
+                result = result.tolist()  # type: ignore
         else:
-            result = _trim_front(format_array(values, None, justify="left"))
+            result = trim_front(format_array(values, None, justify="left"))
         return header + result
 
     def to_native_types(self, slicer=None, **kwargs):
@@ -5611,7 +5616,7 @@ def ensure_has_len(seq):
         return seq
 
 
-def _trim_front(strings):
+def trim_front(strings: List[str]) -> List[str]:
     """
     Trims zeros and decimal points.
     """

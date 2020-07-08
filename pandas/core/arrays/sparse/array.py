@@ -866,11 +866,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         if self.sp_index.npoints == 0:
             # Avoid taking from the empty self.sp_values
-            taken = np.full(
-                sp_indexer.shape,
-                fill_value=fill_value,
-                dtype=np.result_type(type(fill_value)),
-            )
+            _dtype = np.result_type(self.dtype.subtype, type(fill_value))
+            taken = np.full(sp_indexer.shape, fill_value=fill_value, dtype=_dtype)
         else:
             taken = self.sp_values.take(sp_indexer)
 
