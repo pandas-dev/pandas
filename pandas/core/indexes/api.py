@@ -217,7 +217,7 @@ def union_indexes(indexes, sort=True) -> Index:
                 # GH 35092. Pass sort to Index.union
                 # Index.union expects sort=None instead of sort=True
                 # to signify that sometimes it might not sort (see GH 24959)
-                # to mirror legacy behavior. In this case, it does.
+                # to mirror legacy behavior.
                 if sort:
                     sort = None
                 result = result.union(other, sort=sort)
