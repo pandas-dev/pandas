@@ -966,7 +966,7 @@ def periodarr_to_dt64arr(ndarray periodarr, int freq):
             dta = periodarr.view("M8[D]")
         return ensure_datetime64ns(dta)
 
-    else;
+    else:
         l = len(periodarr)
         out = np.empty(l, dtype="i8")
 
