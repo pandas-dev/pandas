@@ -947,7 +947,7 @@ def periodarr_to_dt64arr(periodarr: ndarray, freq: int) -> ndarray:
         int64_t[:] out
         Py_ssize_t i, l
 
-    if freq >= <int>FR_DAY:
+    if freq >= 6000:  # i.e. FR_DAY, hard-code to avoid need to cast
         # Short-circuit for performance
         if freq == FR_NS:
             return periodarr
