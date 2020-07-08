@@ -1124,6 +1124,7 @@ Sparse
 - Bug where :class:`DataFrame` containing :class:`SparseArray` filled with ``NaN`` when indexed by a list-like (:issue:`27781`, :issue:`29563`)
 - The repr of :class:`SparseDtype` now includes the repr of its ``fill_value`` attribute. Previously it used ``fill_value``'s  string representation (:issue:`34352`)
 - Bug where empty :class:`DataFrame` could not be cast to :class:`SparseDtype` (:issue:`33113`)
+- Bug in :meth:`arrays.SparseArray` was returning the incorrect type when indexing a sparse dataframe with an iterable (:issue:`34526`, :issue:`34540`)
 
 ExtensionArray
 ^^^^^^^^^^^^^^
