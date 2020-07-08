@@ -946,7 +946,6 @@ def periodarr_to_dt64arr(periodarr: ndarray, freq: int) -> ndarray:
     cdef:
         int64_t[:] out
         Py_ssize_t i, l
-        npy_datetimestruct dts
 
     if freq >= FR_DAY:
         if freq == FR_NS:
@@ -970,7 +969,7 @@ def periodarr_to_dt64arr(periodarr: ndarray, freq: int) -> ndarray:
     out = np.empty(l, dtype="i8")
 
     for i in range(l):
-        out[i] = period_ordinal_to_dt64(periodarr[i], freq, &dts)
+        out[i] = period_ordinal_to_dt64(periodarr[i], freq)
 
     return out.base  # .base to access underlying np.ndarray
 
@@ -1123,15 +1122,17 @@ cpdef int64_t period_ordinal(int y, int m, int d, int h, int min,
     return get_period_ordinal(&dts, freq)
 
 
-cdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq,
-                                    npy_datetimestruct* dts) except? -1:
+cdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq) except? -1:
+    cdef:
+        npy_datetimestruct dts
+
     if ordinal == NPY_NAT:
         return NPY_NAT
 
-    get_date_info(ordinal, freq, dts)
+    get_date_info(ordinal, freq, &dts)
 
-    check_dts_bounds(dts)
-    return dtstruct_to_dt64(dts)
+    check_dts_bounds(&dts)
+    return dtstruct_to_dt64(&dts)
 
 
 cdef str period_format(int64_t value, int freq, object fmt=None):
@@ -1752,9 +1753,6 @@ cdef class _Period(PeriodMixin):
         -------
         Timestamp
         """
-        cdef:
-            npy_datetimestruct dts
-
         if tz is not None:
             # GH#34522
             warnings.warn(
@@ -1785,7 +1783,7 @@ cdef class _Period(PeriodMixin):
 
         val = self.asfreq(freq, how)
 
-        dt64 = period_ordinal_to_dt64(val.ordinal, base, &dts)
+        dt64 = period_ordinal_to_dt64(val.ordinal, base)
         return Timestamp(dt64, tz=tz)
 
     @property
