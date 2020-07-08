@@ -938,7 +938,7 @@ cdef inline int month_to_quarter(int month) nogil:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def periodarr_to_dt64arr(periodarr: ndarray, freq: int) -> ndarray:
+def periodarr_to_dt64arr(ndarray periodarr, int freq):
     """
     Convert array to datetime64 values from a set of ordinals corresponding to
     periods per period convention.
