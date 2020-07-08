@@ -14,7 +14,6 @@ import cython
 
 from cpython.datetime cimport (
     datetime,
-    tzinfo,
     PyDate_Check,
     PyDateTime_Check,
     PyDateTime_IMPORT,
@@ -41,7 +40,6 @@ cdef extern from "src/datetime/np_datetime.h":
 cimport pandas._libs.tslibs.util as util
 
 from pandas._libs.tslibs.timestamps import Timestamp
-from pandas._libs.tslibs.timezones cimport is_utc, is_tzlocal, get_dst_info
 from pandas._libs.tslibs.timedeltas import Timedelta
 from pandas._libs.tslibs.timedeltas cimport (
     delta_to_nanoseconds,
@@ -91,7 +89,6 @@ from pandas._libs.tslibs.offsets cimport (
     is_offset_object,
 )
 from pandas._libs.tslibs.offsets import INVALID_FREQ_ERR_MSG
-from pandas._libs.tslibs.tzconversion cimport tz_convert_utc_to_tzlocal
 
 
 cdef:
@@ -1414,60 +1411,6 @@ def extract_freq(ndarray[object] values):
 
 # -----------------------------------------------------------------------
 # period helpers
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def dt64arr_to_periodarr(const int64_t[:] stamps, int freq, tzinfo tz):
-    cdef:
-        Py_ssize_t n = len(stamps)
-        int64_t[:] result = np.empty(n, dtype=np.int64)
-        ndarray[int64_t] trans
-        int64_t[:] deltas
-        Py_ssize_t[:] pos
-        npy_datetimestruct dts
-        int64_t local_val
-
-    if is_utc(tz) or tz is None:
-        with nogil:
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    result[i] = NPY_NAT
-                    continue
-                dt64_to_dtstruct(stamps[i], &dts)
-                result[i] = get_period_ordinal(&dts, freq)
-
-    elif is_tzlocal(tz):
-        for i in range(n):
-            if stamps[i] == NPY_NAT:
-                result[i] = NPY_NAT
-                continue
-            local_val = tz_convert_utc_to_tzlocal(stamps[i], tz)
-            dt64_to_dtstruct(local_val, &dts)
-            result[i] = get_period_ordinal(&dts, freq)
-    else:
-        # Adjust datetime64 timestamp, recompute datetimestruct
-        trans, deltas, typ = get_dst_info(tz)
-
-        if typ not in ['pytz', 'dateutil']:
-            # static/fixed; in this case we know that len(delta) == 1
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    result[i] = NPY_NAT
-                    continue
-                dt64_to_dtstruct(stamps[i] + deltas[0], &dts)
-                result[i] = get_period_ordinal(&dts, freq)
-        else:
-            pos = trans.searchsorted(stamps, side='right') - 1
-
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    result[i] = NPY_NAT
-                    continue
-                dt64_to_dtstruct(stamps[i] + deltas[pos[i]], &dts)
-                result[i] = get_period_ordinal(&dts, freq)
-
-    return result.base  # .base to get underlying ndarray
 
 
 DIFFERENT_FREQ = ("Input has different freq={other_freq} "
