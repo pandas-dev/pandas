@@ -968,7 +968,7 @@ class TestReaders:
 
         pd.read_excel("test1" + read_ext)
 
-    def test_no_header_with_list_index_col(self, engine, read_ext):
+    def test_no_header_with_list_index_col(self, read_ext):
         # GH 31783
         file_name = "testmultiindex" + read_ext
         data = [("B", "B"), ("key", "val"), (3, 4), (3, 4)]
