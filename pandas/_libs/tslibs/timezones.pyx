@@ -84,7 +84,7 @@ cpdef inline object get_timezone(tzinfo tz):
                 return tz
 
 
-cpdef inline object maybe_get_tz(object tz):
+cpdef inline tzinfo maybe_get_tz(object tz):
     """
     (Maybe) Construct a timezone object from a string. If tz is a string, use
     it to construct a timezone object. Otherwise, just return tz.
@@ -102,6 +102,12 @@ cpdef inline object maybe_get_tz(object tz):
             tz = pytz.timezone(tz)
     elif is_integer_object(tz):
         tz = pytz.FixedOffset(tz / 60)
+    elif isinstance(tz, tzinfo):
+        pass
+    elif tz is None:
+        pass
+    else:
+        raise TypeError(type(tz))
     return tz
 
 
