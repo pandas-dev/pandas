@@ -10,6 +10,7 @@ from pandas._libs.tslibs import (
     NaTType,
     Timedelta,
     delta_to_nanoseconds,
+    dt64arr_to_periodarr as c_dt64arr_to_periodarr,
     iNaT,
     period as libperiod,
     to_offset,
@@ -951,7 +952,7 @@ def dt64arr_to_periodarr(data, freq, tz=None):
         data = data._values
 
     base = freq._period_dtype_code
-    return libperiod.dt64arr_to_periodarr(data.view("i8"), base, tz), freq
+    return c_dt64arr_to_periodarr(data.view("i8"), base, tz), freq
 
 
 def _get_ordinal_range(start, end, periods, freq, mult=1):

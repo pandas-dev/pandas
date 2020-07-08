@@ -38,7 +38,6 @@ from pandas._libs.tslibs.ccalendar cimport DAY_NANOS, get_days_in_month, dayofwe
 from pandas._libs.tslibs.conversion cimport (
     convert_datetime_to_tsobject,
     localize_pydatetime,
-    normalize_i8_timestamps,
 )
 from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
 from pandas._libs.tslibs.np_datetime cimport (
@@ -92,6 +91,8 @@ def apply_index_wraps(func):
         result = np.asarray(result)
 
         if self.normalize:
+            # TODO: Avoid circular/runtime import
+            from .vectorized import normalize_i8_timestamps
             result = normalize_i8_timestamps(result.view("i8"), None)
         return result
 

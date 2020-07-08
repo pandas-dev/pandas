@@ -15,6 +15,7 @@ from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
     iNaT,
+    ints_to_pydatetime,
 )
 from pandas._libs.tslibs.timezones import tz_compare
 from pandas._typing import ArrayLike, Dtype, DtypeObj
@@ -919,7 +920,7 @@ def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
 
     elif is_datetime64_dtype(arr):
         if is_object_dtype(dtype):
-            return tslib.ints_to_pydatetime(arr.view(np.int64))
+            return ints_to_pydatetime(arr.view(np.int64))
         elif dtype == np.int64:
             if isna(arr).any():
                 raise ValueError("Cannot convert NaT values to integer")
@@ -1399,7 +1400,7 @@ def maybe_cast_to_datetime(value, dtype, errors: str = "raise"):
                 if value.dtype != DT64NS_DTYPE:
                     value = value.astype(DT64NS_DTYPE)
                 ints = np.asarray(value).view("i8")
-                return tslib.ints_to_pydatetime(ints)
+                return ints_to_pydatetime(ints)
 
             # we have a non-castable dtype that was passed
             raise TypeError(f"Cannot cast datetime64 to {dtype}")
