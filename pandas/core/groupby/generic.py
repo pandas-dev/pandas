@@ -31,7 +31,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import FrameOrSeries, FrameOrSeriesUnion
+from pandas._typing import FrameOrSeries, FrameOrSeriesUnion, Scalar
 from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.dtypes.cast import (
@@ -1788,7 +1788,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         return result
 
-    def _wrap_agged_blocks(self, blocks: "Sequence[Block]", items: Index) -> DataFrame:
+    def _wrap_agged_blocks(
+        self, blocks: "Sequence[Block]", items: Index, fill_value: Scalar = np.NaN
+    ) -> DataFrame:
         if not self.as_index:
             index = np.arange(blocks[0].values.shape[-1])
             mgr = BlockManager(blocks, axes=[items, index])
@@ -1804,7 +1806,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if self.axis == 1:
             result = result.T
 
-        return self._reindex_output(result)._convert(datetime=True)
+        return self._reindex_output(result, fill_value)._convert(datetime=True)
 
     def _iterate_column_groupbys(self):
         for i, colname in enumerate(self._selected_obj.columns):
@@ -1846,7 +1848,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
         blocks = [make_block(val, placement=loc) for val, loc in zip(counted, locs)]
 
-        return self._wrap_agged_blocks(blocks, items=data.items)
+        return self._wrap_agged_blocks(blocks, items=data.items, fill_value=0)
 
     def nunique(self, dropna: bool = True):
         """

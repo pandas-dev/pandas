@@ -1412,15 +1412,6 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_false(
     if reduction_func == "ngroup":
         pytest.skip("ngroup does not return the Categories on the index")
 
-    if reduction_func == "count":  # GH 35028
-        mark = pytest.mark.xfail(
-            reason=(
-                "DataFrameGroupBy.count returns np.NaN for missing "
-                "categories, when it should return 0. See GH 35028"
-            )
-        )
-        request.node.add_marker(mark)
-
     if reduction_func == "sum":  # GH 31422
         mark = pytest.mark.xfail(
             reason=(
