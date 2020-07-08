@@ -321,6 +321,14 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         data._sparse_values[0] = data._sparse_values[1]
         assert result._sparse_values[0] != result._sparse_values[1]
 
+    @pytest.mark.parametrize(
+        "method", ["argmax", "argmin"],
+    )
+    def test_argmin_argmax_all_na(self, method, data, na_value):
+        # overriding because Sparse[int64, 0] cannot handle na_value
+        self._check_unsupported(data)
+        super().test_argmin_argmax_all_na(method, data, na_value)
+
     @pytest.mark.parametrize("box", [pd.array, pd.Series, pd.DataFrame])
     def test_equals(self, data, na_value, as_series, box):
         self._check_unsupported(data)
