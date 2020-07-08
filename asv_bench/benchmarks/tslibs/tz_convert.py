@@ -12,10 +12,10 @@ except ImportError:
 
 
 class TimeTZConvert:
-    params = (
+    params = [
         _sizes,
         [x for x in _tzs if x is not None],
-    )
+    ]
     param_names = ["size", "tz"]
 
     def setup(self, size, tz):
