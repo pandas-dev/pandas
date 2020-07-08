@@ -217,7 +217,8 @@ static TypeContext *createTypeContext(void) {
 static PyObject *get_values(PyObject *obj) {
     PyObject *values = NULL;
 
-    if (PyObject_TypeCheck(obj, cls_index) || PyObject_TypeCheck(obj, cls_series)) {
+    if (PyObject_TypeCheck(obj, cls_index) ||
+        PyObject_TypeCheck(obj, cls_series)) {
         // The special cases to worry about are dt64tz and category[dt64tz].
         //  In both cases we want the UTC-localized datetime64 ndarray,
         //  without going through and object array of Timestamps.
@@ -452,8 +453,7 @@ void NpyArr_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
 }
 
 void NpyArrPassThru_iterBegin(JSOBJ Py_UNUSED(obj),
-                              JSONTypeContext *Py_UNUSED(tc)) {
-}
+                              JSONTypeContext *Py_UNUSED(tc)) {}
 
 void NpyArrPassThru_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
     NpyArrContext *npyarr = GET_TC(tc)->npyarr;
@@ -715,8 +715,8 @@ void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
         GET_TC(tc)->iterNext = NpyArr_iterNextNone;
         return;
     } else if (!PyTuple_Check(blocks)) {
-      PyErr_SetString(PyExc_TypeError, "blocks must be a tuple!");
-      goto BLKRET;
+        PyErr_SetString(PyExc_TypeError, "blocks must be a tuple!");
+        goto BLKRET;
     }
 
     // force transpose so each NpyArrContext strides down its column
@@ -918,7 +918,7 @@ JSOBJ Set_iterGetValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
 }
 
 char *Set_iterGetName(JSOBJ Py_UNUSED(obj), JSONTypeContext *Py_UNUSED(tc),
-                       size_t *Py_UNUSED(outLen)) {
+                      size_t *Py_UNUSED(outLen)) {
     return NULL;
 }
 
@@ -1089,8 +1089,7 @@ int Index_iterNext(JSOBJ obj, JSONTypeContext *tc) {
     return 1;
 }
 
-void Index_iterEnd(JSOBJ Py_UNUSED(obj), JSONTypeContext *Py_UNUSED(tc)) {
-}
+void Index_iterEnd(JSOBJ Py_UNUSED(obj), JSONTypeContext *Py_UNUSED(tc)) {}
 
 JSOBJ Index_iterGetValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     return GET_TC(tc)->itemValue;
@@ -1368,8 +1367,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
                                  1000000000LL; // nanoseconds per second
                 } else {
                     // datetime.* objects don't follow above rules
-                    nanosecVal =
-                        PyDateTimeToEpoch(item, NPY_FR_ns);
+                    nanosecVal = PyDateTimeToEpoch(item, NPY_FR_ns);
                 }
             }
         }
@@ -1542,13 +1540,12 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         int err;
         err = (GET_TC(tc)->longValue == -1) && PyErr_Occurred();
 
-        if (overflow){
+        if (overflow) {
             tc->type = JT_BIGNUM;
-        }
-        else if (err) {
+        } else if (err) {
             goto INVALID;
         }
-        
+
         return;
     } else if (PyFloat_Check(obj)) {
         val = PyFloat_AS_DOUBLE(obj);
@@ -1583,8 +1580,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         } else {
             NPY_DATETIMEUNIT base =
                 ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
-            GET_TC(tc)->longValue =
-                PyDateTimeToEpoch(obj, base);
+            GET_TC(tc)->longValue = PyDateTimeToEpoch(obj, base);
             tc->type = JT_LONG;
         }
         return;
@@ -1604,8 +1600,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         } else {
             NPY_DATETIMEUNIT base =
                 ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
-            GET_TC(tc)->longValue =
-                PyDateTimeToEpoch(obj, base);
+            GET_TC(tc)->longValue = PyDateTimeToEpoch(obj, base);
             tc->type = JT_LONG;
         }
         return;
@@ -1991,16 +1986,16 @@ double Object_getDoubleValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     return GET_TC(tc)->doubleValue;
 }
 
-const char *Object_getBigNumStringValue(JSOBJ obj, JSONTypeContext *tc, 
-                                    size_t *_outLen) {
-    PyObject* repr = PyObject_Str(obj);
-    const char *str = PyUnicode_AsUTF8AndSize(repr, (Py_ssize_t *) _outLen);
-    char* bytes = PyObject_Malloc(*_outLen + 1);
+const char *Object_getBigNumStringValue(JSOBJ obj, JSONTypeContext *tc,
+                                        size_t *_outLen) {
+    PyObject *repr = PyObject_Str(obj);
+    const char *str = PyUnicode_AsUTF8AndSize(repr, (Py_ssize_t *)_outLen);
+    char *bytes = PyObject_Malloc(*_outLen + 1);
     memcpy(bytes, str, *_outLen + 1);
     GET_TC(tc)->cStr = bytes;
 
     Py_DECREF(repr);
-    
+
     return GET_TC(tc)->cStr;
 }
 
@@ -2085,7 +2080,6 @@ PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
     pyEncoder.datetimeUnit = NPY_FR_ms;
     pyEncoder.outputFormat = COLUMNS;
     pyEncoder.defaultHandler = 0;
-
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|OiOssOOi", kwlist,
                                      &oinput, &oensureAscii, &idoublePrecision,
@@ -2177,7 +2171,6 @@ PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
     if (ret != buffer) {
         encoder->free(ret);
     }
-
 
     return newobj;
 }
