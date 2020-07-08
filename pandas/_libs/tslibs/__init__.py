@@ -14,7 +14,7 @@ __all__ = [
     "delta_to_nanoseconds",
     "ints_to_pytimedelta",
     "Timestamp",
-    "tz_convert_single_from_utc",
+    "tz_convert_from_utc_single",
     "to_offset",
     "Tick",
     "BaseOffset",
@@ -29,4 +29,4 @@ from .period import IncompatibleFrequency, Period
 from .resolution import Resolution
 from .timedeltas import Timedelta, delta_to_nanoseconds, ints_to_pytimedelta
 from .timestamps import Timestamp
-from .tzconversion import tz_convert_single_from_utc
+from .tzconversion import tz_convert_from_utc_single

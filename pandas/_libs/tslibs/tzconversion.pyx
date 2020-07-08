@@ -366,7 +366,7 @@ cdef int64_t tz_convert_utc_to_tzlocal(int64_t utc_val, tzinfo tz, bint* fold=NU
     return _tz_convert_tzlocal_utc(utc_val, tz, to_utc=False, fold=fold)
 
 
-cpdef int64_t tz_convert_single_from_utc(int64_t val, tzinfo tz):
+cpdef int64_t tz_convert_from_utc_single(int64_t val, tzinfo tz):
     """
     Convert the val (in i8) from UTC to tz
 
