@@ -55,7 +55,7 @@ class TimeGetDateField:
 
 
 class TimeGetStartEndField:
-    _params = [
+    params = [
         _sizes,
         ["start", "end"],
         ["month", "quarter", "year"],
