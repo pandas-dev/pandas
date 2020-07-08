@@ -9,7 +9,7 @@ cdef bint treat_tz_as_pytz(tzinfo tz)
 
 cpdef bint tz_compare(tzinfo start, tzinfo end)
 cpdef object get_timezone(tzinfo tz)
-cpdef object maybe_get_tz(object tz)
+cpdef tzinfo maybe_get_tz(object tz)
 
 cdef timedelta get_utcoffset(tzinfo tz, datetime obj)
 cdef bint is_fixed_offset(tzinfo tz)

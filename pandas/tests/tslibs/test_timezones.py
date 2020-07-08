@@ -106,3 +106,15 @@ def test_infer_tz_mismatch(infer_setup, ordered):
 
     with pytest.raises(AssertionError, match=msg):
         timezones.infer_tzinfo(*args)
+
+
+def test_maybe_get_tz_invalid_types():
+    with pytest.raises(TypeError, match="<class 'float'>"):
+        timezones.maybe_get_tz(44.0)
+
+    with pytest.raises(TypeError, match="<class 'module'>"):
+        timezones.maybe_get_tz(pytz)
+
+    msg = "<class 'pandas._libs.tslibs.timestamps.Timestamp'>"
+    with pytest.raises(TypeError, match=msg):
+        timezones.maybe_get_tz(Timestamp.now("UTC"))
