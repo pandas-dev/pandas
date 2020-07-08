@@ -938,7 +938,7 @@ cdef inline int month_to_quarter(int month) nogil:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def periodarr_to_dt64arr(ndarray periodarr, int freq):
+def periodarr_to_dt64arr(const int64_t[:] periodarr, int freq):
     """
     Convert array to datetime64 values from a set of ordinals corresponding to
     periods per period convention.
@@ -960,20 +960,20 @@ def periodarr_to_dt64arr(ndarray periodarr, int freq):
     else:
         # Short-circuit for performance
         if freq == FR_NS:
-            return periodarr
+            return periodarr.base
 
         if freq == FR_US:
-            dta = periodarr.view("M8[us]")
+            dta = periodarr.base.view("M8[us]")
         elif freq == FR_MS:
-            dta = periodarr.view("M8[ms]")
+            dta = periodarr.base.view("M8[ms]")
         elif freq == FR_SEC:
-            dta = periodarr.view("M8[s]")
+            dta = periodarr.base.view("M8[s]")
         elif freq == FR_MIN:
-            dta = periodarr.view("M8[m]")
+            dta = periodarr.base.view("M8[m]")
         elif freq == FR_HR:
-            dta = periodarr.view("M8[h]")
+            dta = periodarr.base.view("M8[h]")
         elif freq == FR_DAY:
-            dta = periodarr.view("M8[D]")
+            dta = periodarr.base.view("M8[D]")
         return ensure_datetime64ns(dta)
 
 
