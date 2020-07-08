@@ -36,6 +36,41 @@ def cartesian_product_for_groupers(result, args, names):
     return result.reindex(index).sort_index()
 
 
+_results_for_groupbys_with_missing_categories = dict(
+    # This maps the builtin groupby functions to their expected outputs for
+    # missing categories when they are called on a categorical grouper with
+    # observed=False. Some functions are expected to return NaN, some zero.
+    # These expected values can be used across several tests (i.e. they are
+    # the same for SeriesGroupBy and DataFrameGroupBy) but they should only be
+    # hardcoded in one place.
+    [
+        ("all", np.NaN),
+        ("any", np.NaN),
+        ("count", 0),
+        ("corrwith", np.NaN),
+        ("first", np.NaN),
+        ("idxmax", np.NaN),
+        ("idxmin", np.NaN),
+        ("last", np.NaN),
+        ("mad", np.NaN),
+        ("max", np.NaN),
+        ("mean", np.NaN),
+        ("median", np.NaN),
+        ("min", np.NaN),
+        ("nth", np.NaN),
+        ("nunique", 0),
+        ("prod", np.NaN),
+        ("quantile", np.NaN),
+        ("sem", np.NaN),
+        ("size", 0),
+        ("skew", np.NaN),
+        ("std", np.NaN),
+        ("sum", 0),
+        ("var", np.NaN),
+    ]
+)
+
+
 def test_apply_use_categorical_name(df):
     cats = qcut(df.C, 4)
 
@@ -1263,12 +1298,13 @@ def test_series_groupby_on_2_categoricals_unobserved(
     reduction_func: str, observed: bool, request
 ):
     # GH 17605
-
     if reduction_func == "ngroup":
         pytest.skip("ngroup is not truly a reduction")
 
     if reduction_func == "corrwith":  # GH 32293
-        mark = pytest.mark.xfail(reason="TODO: implemented SeriesGroupBy.corrwith")
+        mark = pytest.mark.xfail(
+            reason="TODO: implemented SeriesGroupBy.corrwith. See GH 32293"
+        )
         request.node.add_marker(mark)
 
     df = pd.DataFrame(
@@ -1289,36 +1325,30 @@ def test_series_groupby_on_2_categoricals_unobserved(
     assert len(result) == expected_length
 
 
-@pytest.mark.parametrize(
-    "func, zero_or_nan",
-    [
-        ("all", np.NaN),
-        ("any", np.NaN),
-        ("count", 0),
-        ("first", np.NaN),
-        ("idxmax", np.NaN),
-        ("idxmin", np.NaN),
-        ("last", np.NaN),
-        ("mad", np.NaN),
-        ("max", np.NaN),
-        ("mean", np.NaN),
-        ("median", np.NaN),
-        ("min", np.NaN),
-        ("nth", np.NaN),
-        ("nunique", 0),
-        ("prod", np.NaN),
-        ("quantile", np.NaN),
-        ("sem", np.NaN),
-        ("size", 0),
-        ("skew", np.NaN),
-        ("std", np.NaN),
-        ("sum", np.NaN),
-        ("var", np.NaN),
-    ],
-)
-def test_series_groupby_on_2_categoricals_unobserved_zeroes_or_nans(func, zero_or_nan):
+def test_series_groupby_on_2_categoricals_unobserved_zeroes_or_nans(
+    reduction_func: str, request
+):
     # GH 17605
     # Tests whether the unobserved categories in the result contain 0 or NaN
+
+    if reduction_func == "ngroup":
+        pytest.skip("ngroup is not truly a reduction")
+
+    if reduction_func == "corrwith":  # GH 32293
+        mark = pytest.mark.xfail(
+            reason="TODO: implemented SeriesGroupBy.corrwith. See GH 32293"
+        )
+        request.node.add_marker(mark)
+
+    if reduction_func == "sum":  # GH 31422
+        mark = pytest.mark.xfail(
+            reason=(
+                "sum should return 0 but currently returns NaN. "
+                "This is a known bug. See GH 31422."
+            )
+        )
+        request.node.add_marker(mark)
+
     df = pd.DataFrame(
         {
             "cat_1": pd.Categorical(list("AABB"), categories=list("ABC")),
@@ -1327,11 +1357,13 @@ def test_series_groupby_on_2_categoricals_unobserved_zeroes_or_nans(func, zero_o
         }
     )
     unobserved = [tuple("AC"), tuple("BC"), tuple("CA"), tuple("CB"), tuple("CC")]
-    args = {"nth": [0]}.get(func, [])
+    args = {"nth": [0]}.get(reduction_func, [])
 
     series_groupby = df.groupby(["cat_1", "cat_2"], observed=False)["value"]
-    agg = getattr(series_groupby, func)
+    agg = getattr(series_groupby, reduction_func)
     result = agg(*args)
+
+    zero_or_nan = _results_for_groupbys_with_missing_categories[reduction_func]
 
     for idx in unobserved:
         val = result.loc[idx]
@@ -1340,6 +1372,84 @@ def test_series_groupby_on_2_categoricals_unobserved_zeroes_or_nans(func, zero_o
     # If we expect unobserved values to be zero, we also expect the dtype to be int
     if zero_or_nan == 0:
         assert np.issubdtype(result.dtype, np.integer)
+
+
+def test_dataframe_groupby_on_2_categoricals_when_observed_is_true(reduction_func: str):
+    # GH 23865
+    # GH 27075
+    # Ensure that df.groupby, when 'by' is two pd.Categorical variables,
+    # does not return the categories that are not in df when observed=True
+    if reduction_func == "ngroup":
+        pytest.skip("ngroup does not return the Categories on the index")
+
+    df = pd.DataFrame(
+        {
+            "cat_1": pd.Categorical(list("AABB"), categories=list("ABC")),
+            "cat_2": pd.Categorical(list("1111"), categories=list("12")),
+            "value": [0.1, 0.1, 0.1, 0.1],
+        }
+    )
+    unobserved_cats = [("A", "2"), ("B", "2"), ("C", "1"), ("C", "2")]
+
+    df_grp = df.groupby(["cat_1", "cat_2"], observed=True)
+
+    args = {"nth": [0], "corrwith": [df]}.get(reduction_func, [])
+    res = getattr(df_grp, reduction_func)(*args)
+
+    for cat in unobserved_cats:
+        assert cat not in res.index
+
+
+@pytest.mark.parametrize("observed", [False, None])
+def test_dataframe_groupby_on_2_categoricals_when_observed_is_false(
+    reduction_func: str, observed: bool, request
+):
+    # GH 23865
+    # GH 27075
+    # Ensure that df.groupby, when 'by' is two pd.Categorical variables,
+    # returns the categories that are not in df when observed=False/None
+
+    if reduction_func == "ngroup":
+        pytest.skip("ngroup does not return the Categories on the index")
+
+    if reduction_func == "count":  # GH 35028
+        mark = pytest.mark.xfail(
+            reason=(
+                "DataFrameGroupBy.count returns np.NaN for missing "
+                "categories, when it should return 0. See GH 35028"
+            )
+        )
+        request.node.add_marker(mark)
+
+    if reduction_func == "sum":  # GH 31422
+        mark = pytest.mark.xfail(
+            reason=(
+                "sum should return 0 but currently returns NaN. "
+                "This is a known bug. See GH 31422."
+            )
+        )
+        request.node.add_marker(mark)
+
+    df = pd.DataFrame(
+        {
+            "cat_1": pd.Categorical(list("AABB"), categories=list("ABC")),
+            "cat_2": pd.Categorical(list("1111"), categories=list("12")),
+            "value": [0.1, 0.1, 0.1, 0.1],
+        }
+    )
+    unobserved_cats = [("A", "2"), ("B", "2"), ("C", "1"), ("C", "2")]
+
+    df_grp = df.groupby(["cat_1", "cat_2"], observed=observed)
+
+    args = {"nth": [0], "corrwith": [df]}.get(reduction_func, [])
+    res = getattr(df_grp, reduction_func)(*args)
+
+    expected = _results_for_groupbys_with_missing_categories[reduction_func]
+
+    if expected is np.nan:
+        assert res.loc[unobserved_cats].isnull().all().all()
+    else:
+        assert (res.loc[unobserved_cats] == expected).all().all()
 
 
 def test_series_groupby_categorical_aggregation_getitem():
