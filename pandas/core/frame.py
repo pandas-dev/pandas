@@ -532,6 +532,7 @@ class DataFrame(NDFrame):
                 ]
                 mgr = arrays_to_mgr(values, columns, index, columns, dtype=None)
             else:
+                # Attempt to coerce to a numpy array
                 try:
                     arr = np.array(data, dtype=dtype, copy=copy)
                 except (ValueError, TypeError) as err:

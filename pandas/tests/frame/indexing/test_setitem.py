@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.dtypes import IntervalDtype, PeriodDtype
+from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype, PeriodDtype
 
 from pandas import (
     Categorical,
@@ -162,21 +162,22 @@ class TestDataFrameSetItem:
             }
         tm.assert_frame_equal(df, expected)
 
-    def test_setitem_extension_types(self):
+    @pytest.mark.parametrize(
+        "obj,dtype",
+        [
+            (Period("2020-01"), PeriodDtype("M")),
+            (Interval(left=0, right=5), IntervalDtype("int64")),
+            (
+                Timestamp("2011-01-01", tz="US/Eastern"),
+                DatetimeTZDtype(tz="US/Eastern"),
+            ),
+        ],
+    )
+    def test_setitem_extension_types(self, obj, dtype):
         # GH: 34832
-        period_val = Period("2020-01")
-        interval_val = Interval(left=0, right=5)
-
-        expected = DataFrame(
-            {
-                "idx": [1, 2, 3],
-                "period": Series([period_val] * 3, dtype=PeriodDtype("M")),
-                "interval": Series([interval_val] * 3, dtype=IntervalDtype("int64")),
-            }
-        )
+        expected = DataFrame({"idx": [1, 2, 3], "obj": Series([obj] * 3, dtype=dtype),})
 
         df = DataFrame({"idx": [1, 2, 3]})
-        df["period"] = period_val
-        df["interval"] = interval_val
+        df["obj"] = obj
 
         tm.assert_frame_equal(df, expected)
