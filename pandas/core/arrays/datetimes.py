@@ -3,7 +3,6 @@ from typing import Optional, Union
 import warnings
 
 import numpy as np
-from pytz import utc
 
 from pandas._libs import lib, tslib
 from pandas._libs.tslibs import (
@@ -725,7 +724,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         This is used to calculate time-of-day information as if the timestamps
         were timezone-naive.
         """
-        return tzconversion.tz_convert(self.asi8, utc, self.tz)
+        return tzconversion.tz_convert(self.asi8, timezones.UTC, self.tz)
 
     def tz_convert(self, tz):
         """
