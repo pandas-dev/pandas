@@ -219,8 +219,8 @@ There are 2 explicit slicing methods, with a third general case
    df.loc['bar':'kar']  # Label
 
    # Generic
-   df.iloc[0:3]
-   df.loc['bar':'kar']
+   df[0:3]
+   df['bar':'kar']
 
 Ambiguity arises when an index consists of integers with a non-zero start or non-unit increment.
 
