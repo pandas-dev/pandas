@@ -334,7 +334,7 @@ class TestTimestampTZOperations:
     def test_timestamp_constructor_near_dst_boundary(self):
         # GH#11481 & GH#15777
         # Naive string timestamps were being localized incorrectly
-        # with tz_convert_single instead of tz_localize_to_utc
+        # with tz_convert_from_utc_single instead of tz_localize_to_utc
 
         for tz in ["Europe/Brussels", "Europe/Prague"]:
             result = Timestamp("2015-10-25 01:00", tz=tz)
