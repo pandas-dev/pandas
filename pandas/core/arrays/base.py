@@ -28,7 +28,7 @@ from pandas.core.dtypes.missing import isna
 from pandas.core import ops
 from pandas.core.algorithms import _factorize_array, unique
 from pandas.core.missing import backfill_1d, pad_1d
-from pandas.core.sorting import nargsort
+from pandas.core.sorting import nargminmax, nargsort
 
 _extension_array_shared_docs: Dict[str, str] = dict()
 
@@ -532,6 +532,40 @@ class ExtensionArray:
 
         result = nargsort(self, kind=kind, ascending=ascending, na_position="last")
         return result
+
+    def argmin(self):
+        """
+        Return the index of minimum value.
+
+        In case of multiple occurrences of the minimum value, the index
+        corresponding to the first occurrence is returned.
+
+        Returns
+        -------
+        int
+
+        See Also
+        --------
+        ExtensionArray.argmax
+        """
+        return nargminmax(self, "argmin")
+
+    def argmax(self):
+        """
+        Return the index of maximum value.
+
+        In case of multiple occurrences of the maximum value, the index
+        corresponding to the first occurrence is returned.
+
+        Returns
+        -------
+        int
+
+        See Also
+        --------
+        ExtensionArray.argmin
+        """
+        return nargminmax(self, "argmax")
 
     def fillna(self, value=None, method=None, limit=None):
         """
