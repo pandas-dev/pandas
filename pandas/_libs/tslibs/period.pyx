@@ -54,6 +54,7 @@ from pandas._libs.tslibs.ccalendar cimport (
     get_days_in_month,
 )
 from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
+from pandas._libs.tslibs.conversion import ensure_datetime64ns
 
 from pandas._libs.tslibs.dtypes cimport (
     PeriodDtypeBase,
@@ -943,14 +944,34 @@ def periodarr_to_dt64arr(const int64_t[:] periodarr, int freq):
         int64_t[:] out
         Py_ssize_t i, l
 
-    l = len(periodarr)
+    if freq < 6000:  # i.e. FR_DAY, hard-code to avoid need to cast
+        l = len(periodarr)
+        out = np.empty(l, dtype="i8")
 
-    out = np.empty(l, dtype='i8')
+        # We get here with freqs that do not correspond to a datetime64 unit
+        for i in range(l):
+            out[i] = period_ordinal_to_dt64(periodarr[i], freq)
 
-    for i in range(l):
-        out[i] = period_ordinal_to_dt64(periodarr[i], freq)
+        return out.base  # .base to access underlying np.ndarray
 
-    return out.base  # .base to access underlying np.ndarray
+    else:
+        # Short-circuit for performance
+        if freq == FR_NS:
+            return periodarr.base
+
+        if freq == FR_US:
+            dta = periodarr.base.view("M8[us]")
+        elif freq == FR_MS:
+            dta = periodarr.base.view("M8[ms]")
+        elif freq == FR_SEC:
+            dta = periodarr.base.view("M8[s]")
+        elif freq == FR_MIN:
+            dta = periodarr.base.view("M8[m]")
+        elif freq == FR_HR:
+            dta = periodarr.base.view("M8[h]")
+        elif freq == FR_DAY:
+            dta = periodarr.base.view("M8[D]")
+        return ensure_datetime64ns(dta)
 
 
 cpdef int64_t period_asfreq(int64_t ordinal, int freq1, int freq2, bint end):
