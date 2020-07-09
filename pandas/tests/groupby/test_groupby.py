@@ -1252,15 +1252,14 @@ def test_groupby_nat_exclude():
     }
 
     for k in grouped.indices:
-        if pd.isna(k):
-            continue  # GH 35014
         tm.assert_numpy_array_equal(grouped.indices[k], expected[k])
 
     tm.assert_frame_equal(grouped.get_group(Timestamp("2013-01-01")), df.iloc[[1, 7]])
     tm.assert_frame_equal(grouped.get_group(Timestamp("2013-02-01")), df.iloc[[3, 5]])
 
     # GH35014
-    grouped.get_group(pd.NaT)
+    with pytest.raises(KeyError):
+        grouped.get_group(pd.NaT)
 
     nan_df = DataFrame(
         {"nan": [np.nan, np.nan, np.nan], "nat": [pd.NaT, pd.NaT, pd.NaT]}

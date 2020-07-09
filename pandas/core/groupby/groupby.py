@@ -619,21 +619,16 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
             converter = get_converter(index_sample)
             names = (converter(name) for name in names)
 
-        res = [
-            [v for k, v in self.indices.items() if isna(k)]
-            if isna(name)
-            else [self.indices.get(name, [])]
-            for name in names
-        ]
-
-        return res
+        return [self.indices.get(name, []) for name in names]
 
     def _get_index(self, name):
         """
         Safe get index, translate keys for datelike to underlying repr.
         """
-        return next(iter(self._get_indices([name])), [])
-
+        if isna(name):
+            return self._get_indices([pd.NaT])[0]
+        else:
+            return self._get_indices([name])[0]
     @cache_readonly
     def _selected_obj(self):
         # Note: _selected_obj is always just `self.obj` for SeriesGroupBy
