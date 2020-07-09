@@ -1168,6 +1168,11 @@ class TestDataFrameConstructors:
             OrderedDict([["b", 3], ["c", 4], ["d", 6]]),
         ]
 
+        result = DataFrame([data[0]])
+        expected = DataFrame.from_dict(
+            dict(zip([0], [data[0]])), orient="index")
+        tm.assert_frame_equal(result, expected.reindex(result.index))
+
         result = DataFrame(data)
         expected = DataFrame.from_dict(
             dict(zip(range(len(data)), data)), orient="index"
@@ -1493,16 +1498,17 @@ class TestDataFrameConstructors:
             )
 
     @pytest.mark.parametrize(
-        "data_dict, keys",
+        "data_dict, keys, orient",
         [
-            ([{("a",): 1}, {("a",): 2}], [("a",)]),
-            ([OrderedDict([(("a",), 1), (("b",), 2)])], [("a",), ("b",)]),
-            ([{("a", "b"): 1}], [("a", "b")]),
+            ({}, [], "index"),
+            ([{("a",): 1}, {("a",): 2}], [("a",)], "columns"),
+            ([OrderedDict([(("a",), 1), (("b",), 2)])], [("a",), ("b",)], "columns"),
+            ([{("a", "b"): 1}], [("a", "b")], "columns"),
         ],
     )
-    def test_constructor_from_dict_tuples(self, data_dict, keys):
+    def test_constructor_from_dict_tuples(self, data_dict, keys, orient):
         # GH 16769
-        df = DataFrame.from_dict(data_dict)
+        df = DataFrame.from_dict(data_dict, orient)
 
         result = df.columns
         expected = Index(keys, dtype="object", tupleize_cols=False)
