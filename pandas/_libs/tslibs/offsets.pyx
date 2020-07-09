@@ -34,7 +34,13 @@ from pandas._libs.tslibs.util cimport (
 from pandas._libs.tslibs.ccalendar import (
     MONTH_ALIASES, MONTH_TO_CAL_NUM, weekday_to_int, int_to_weekday,
 )
-from pandas._libs.tslibs.ccalendar cimport DAY_NANOS, get_days_in_month, dayofweek
+from pandas._libs.tslibs.ccalendar cimport (
+    DAY_NANOS,
+    dayofweek,
+    get_days_in_month,
+    get_firstbday,
+    get_lastbday,
+)
 from pandas._libs.tslibs.conversion cimport (
     convert_datetime_to_tsobject,
     localize_pydatetime,
@@ -176,51 +182,6 @@ cdef _wrap_timedelta_result(result):
 
 # ---------------------------------------------------------------------
 # Business Helpers
-
-cpdef int get_lastbday(int year, int month) nogil:
-    """
-    Find the last day of the month that is a business day.
-
-    Parameters
-    ----------
-    year : int
-    month : int
-
-    Returns
-    -------
-    last_bday : int
-    """
-    cdef:
-        int wkday, days_in_month
-
-    wkday = dayofweek(year, month, 1)
-    days_in_month = get_days_in_month(year, month)
-    return days_in_month - max(((wkday + days_in_month - 1) % 7) - 4, 0)
-
-
-cpdef int get_firstbday(int year, int month) nogil:
-    """
-    Find the first day of the month that is a business day.
-
-    Parameters
-    ----------
-    year : int
-    month : int
-
-    Returns
-    -------
-    first_bday : int
-    """
-    cdef:
-        int first, wkday
-
-    wkday = dayofweek(year, month, 1)
-    first = 1
-    if wkday == 5:  # on Saturday
-        first = 3
-    elif wkday == 6:  # on Sunday
-        first = 2
-    return first
 
 
 cdef _get_calendar(weekmask, holidays, calendar):
