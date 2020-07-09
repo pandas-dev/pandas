@@ -68,7 +68,7 @@ struct DecoderState {
     JSONObjectDecoder *dec;
 };
 
-JSOBJ FASTCALL_MSVC decode_any(struct DecoderState *ds) FASTCALL_ATTR;
+JSOBJ FASTCALL_MSVC decode_any(struct DecoderState *ds);
 typedef JSOBJ (*PFN_DECODER)(struct DecoderState *ds);
 
 static JSOBJ SetError(struct DecoderState *ds, int offset,
@@ -99,7 +99,7 @@ double createDouble(double intNeg, double intValue, double frcValue,
     return (intValue + (frcValue * g_pow10[frcDecimalCount])) * intNeg;
 }
 
-FASTCALL_ATTR JSOBJ FASTCALL_MSVC decodePreciseFloat(struct DecoderState *ds) {
+JSOBJ FASTCALL_MSVC decodePreciseFloat(struct DecoderState *ds) {
     char *end;
     double value;
     errno = 0;
@@ -114,7 +114,7 @@ FASTCALL_ATTR JSOBJ FASTCALL_MSVC decodePreciseFloat(struct DecoderState *ds) {
     return ds->dec->newDouble(ds->prv, value);
 }
 
-FASTCALL_ATTR JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
+JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
     int intNeg = 1;
     int mantSize = 0;
     JSUINT64 intValue;
@@ -340,7 +340,7 @@ BREAK_EXP_LOOP:
             pow(10.0, expValue * expNeg));
 }
 
-FASTCALL_ATTR JSOBJ FASTCALL_MSVC decode_true(struct DecoderState *ds) {
+JSOBJ FASTCALL_MSVC decode_true(struct DecoderState *ds) {
     char *offset = ds->start;
     offset++;
 
@@ -356,7 +356,7 @@ SETERROR:
     return SetError(ds, -1, "Unexpected character found when decoding 'true'");
 }
 
-FASTCALL_ATTR JSOBJ FASTCALL_MSVC decode_false(struct DecoderState *ds) {
+JSOBJ FASTCALL_MSVC decode_false(struct DecoderState *ds) {
     char *offset = ds->start;
     offset++;
 
@@ -373,7 +373,7 @@ SETERROR:
     return SetError(ds, -1, "Unexpected character found when decoding 'false'");
 }
 
-FASTCALL_ATTR JSOBJ FASTCALL_MSVC decode_null(struct DecoderState *ds) {
+JSOBJ FASTCALL_MSVC decode_null(struct DecoderState *ds) {
     char *offset = ds->start;
     offset++;
 
@@ -389,7 +389,7 @@ SETERROR:
     return SetError(ds, -1, "Unexpected character found when decoding 'null'");
 }
 
-FASTCALL_ATTR void FASTCALL_MSVC SkipWhitespace(struct DecoderState *ds) {
+void FASTCALL_MSVC SkipWhitespace(struct DecoderState *ds) {
     char *offset;
 
     for (offset = ds->start; (ds->end - offset) > 0; offset++) {
@@ -677,7 +677,7 @@ static const JSUINT8 g_decoderLookup[256] = {
     DS_UTFLENERROR,
 };
 
-FASTCALL_ATTR JSOBJ FASTCALL_MSVC decode_string(struct DecoderState *ds) {
+JSOBJ FASTCALL_MSVC decode_string(struct DecoderState *ds) {
     JSUTF16 sur[2] = {0};
     int iSur = 0;
     int index;
@@ -957,7 +957,7 @@ FASTCALL_ATTR JSOBJ FASTCALL_MSVC decode_string(struct DecoderState *ds) {
     }
 }
 
-FASTCALL_ATTR JSOBJ FASTCALL_MSVC decode_array(struct DecoderState *ds) {
+JSOBJ FASTCALL_MSVC decode_array(struct DecoderState *ds) {
     JSOBJ itemValue;
     JSOBJ newObj;
     int len;
@@ -1021,7 +1021,7 @@ FASTCALL_ATTR JSOBJ FASTCALL_MSVC decode_array(struct DecoderState *ds) {
     }
 }
 
-FASTCALL_ATTR JSOBJ FASTCALL_MSVC decode_object(struct DecoderState *ds) {
+JSOBJ FASTCALL_MSVC decode_object(struct DecoderState *ds) {
     JSOBJ itemName;
     JSOBJ itemValue;
     JSOBJ newObj;
@@ -1104,7 +1104,7 @@ FASTCALL_ATTR JSOBJ FASTCALL_MSVC decode_object(struct DecoderState *ds) {
     }
 }
 
-FASTCALL_ATTR JSOBJ FASTCALL_MSVC decode_any(struct DecoderState *ds) {
+JSOBJ FASTCALL_MSVC decode_any(struct DecoderState *ds) {
     for (;;) {
         switch (*ds->start) {
             case '\"':
