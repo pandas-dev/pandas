@@ -322,6 +322,7 @@ class CheckSDist(sdist_class):
         "pandas/_libs/tslibs/resolution.pyx",
         "pandas/_libs/tslibs/parsing.pyx",
         "pandas/_libs/tslibs/tzconversion.pyx",
+        "pandas/_libs/tslibs/vectorized.pyx",
         "pandas/_libs/window/indexers.pyx",
         "pandas/_libs/writers.pyx",
         "pandas/io/sas/sas.pyx",
@@ -659,6 +660,7 @@ ext_data = {
         "pyxfile": "_libs/tslibs/tzconversion",
         "depends": tseries_depends,
     },
+    "_libs.tslibs.vectorized": {"pyxfile": "_libs/tslibs/vectorized"},
     "_libs.testing": {"pyxfile": "_libs/testing"},
     "_libs.window.aggregations": {
         "pyxfile": "_libs/window/aggregations",
