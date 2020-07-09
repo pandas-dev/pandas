@@ -54,6 +54,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
+import pandas as pd
 from pandas.core import nanops
 import pandas.core.algorithms as algorithms
 from pandas.core.arrays import Categorical, DatetimeArray
@@ -618,13 +619,20 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
             converter = get_converter(index_sample)
             names = (converter(name) for name in names)
 
-        return [self.indices.get(name, []) for name in names]
+        res = [
+            [v for k, v in self.indices.items() if isna(k)]
+            if isna(name)
+            else [self.indices.get(name, [])]
+            for name in names
+        ]
+
+        return res
 
     def _get_index(self, name):
         """
         Safe get index, translate keys for datelike to underlying repr.
         """
-        return self._get_indices([name])[0]
+        return next(iter(self._get_indices([name])), [])
 
     @cache_readonly
     def _selected_obj(self):
@@ -802,7 +810,7 @@ b  2""",
         if obj is None:
             obj = self._selected_obj
 
-        inds = self._get_index(name)
+        inds = self._get_index(pd.NaT) if pd.isna(name) else self._get_index(name)
         if not len(inds):
             raise KeyError(name)
 

@@ -20,6 +20,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import ABCSeries
 
+import pandas as pd
 import pandas.core.algorithms as algorithms
 from pandas.core.arrays import Categorical, ExtensionArray
 import pandas.core.common as com
@@ -558,7 +559,14 @@ class Grouping:
             return self.grouper.indices
 
         values = Categorical(self.grouper)
-        return values._reverse_indexer()
+
+        # GH35014
+        reverse_indexer = values._reverse_indexer()
+        return (
+            {**reverse_indexer, pd.NaT: [i for i, v in enumerate(values) if pd.isna(v)]}
+            if not self.dropna and any(pd.isna(v) for v in values)
+            else reverse_indexer
+        )
 
     @property
     def codes(self) -> np.ndarray:
