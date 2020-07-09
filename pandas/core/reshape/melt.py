@@ -14,6 +14,7 @@ from pandas.core.arrays import Categorical
 import pandas.core.common as com
 from pandas.core.indexes.api import Index, MultiIndex
 from pandas.core.reshape.concat import concat
+from pandas.core.reshape.util import _tile_compat
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.tools.numeric import to_numeric
 
@@ -32,8 +33,8 @@ def melt(
     var_name=None,
     value_name="value",
     col_level=None,
+    ignore_index: bool = True,
 ) -> "DataFrame":
-    # TODO: what about the existing index?
     # If multiindex, gather names of columns on all level for checking presence
     # of `id_vars` and `value_vars`
     if isinstance(frame.columns, MultiIndex):
@@ -132,7 +133,12 @@ def melt(
         # asanyarray will keep the columns as an Index
         mdata[col] = np.asanyarray(frame.columns._get_level_values(i)).repeat(N)
 
-    return frame._constructor(mdata, columns=mcolumns)
+    result = frame._constructor(mdata, columns=mcolumns)
+
+    if not ignore_index:
+        result.index = _tile_compat(frame.index, K)
+
+    return result
 
 
 @deprecate_kwarg(old_arg_name="label", new_arg_name=None)

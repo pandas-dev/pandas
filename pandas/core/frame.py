@@ -2145,7 +2145,7 @@ class DataFrame(NDFrame):
             from pandas.io.stata import StataWriter117 as statawriter  # type: ignore
         else:  # versions 118 and 119
             # mypy: Name 'statawriter' already defined (possibly by an import)
-            from pandas.io.stata import StataWriterUTF8 as statawriter  # type:ignore
+            from pandas.io.stata import StataWriterUTF8 as statawriter  # type: ignore
 
         kwargs: Dict[str, Any] = {}
         if version is None or version >= 117:
@@ -7105,6 +7105,7 @@ NaN 12.3   33.0
         var_name=None,
         value_name="value",
         col_level=None,
+        ignore_index=True,
     ) -> "DataFrame":
 
         return melt(
@@ -7114,6 +7115,7 @@ NaN 12.3   33.0
             var_name=var_name,
             value_name=value_name,
             col_level=col_level,
+            ignore_index=ignore_index,
         )
 
     # ----------------------------------------------------------------------
