@@ -563,11 +563,11 @@ class Grouping:
         reverse_indexer = values._reverse_indexer()
         if not self.dropna and any(pd.isna(v) for v in values):
             return {
-                **reverse_indexer, 
-                pd.NaT: np.array([i for i, v in enumerate(values) if pd.isna(v)])
-            } 
+                **reverse_indexer,
+                pd.NaT: np.array([i for i, v in enumerate(values) if pd.isna(v)]),
+            }
         else:
-            return  reverse_indexer
+            return reverse_indexer
 
     @property
     def codes(self) -> np.ndarray:
