@@ -28,6 +28,11 @@ _shared_docs[
         Name to use for the 'value' column.
     col_level : int or str, optional
         If columns are a MultiIndex then use this level to melt.
+    ignore_index : bool, default True
+        If True, original index is ignored. If False, the original index is retained.
+        Index labels will be repeated as necessary.
+
+        .. versionadded:: 1.1.0
 
     Returns
     -------
@@ -77,6 +82,17 @@ _shared_docs[
     0  a         B          1
     1  b         B          3
     2  c         B          5
+
+    Original index values can be kept around:
+
+    >>> %(caller)sid_vars=['A'], value_vars=['B', 'C'], ignore_index=False)
+       A variable  value
+    0  a        B      1
+    1  b        B      3
+    2  c        B      5
+    0  a        C      2
+    1  b        C      4
+    2  c        C      6
 
     If you have multi-index columns:
 
