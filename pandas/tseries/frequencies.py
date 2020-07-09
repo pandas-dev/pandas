@@ -21,7 +21,6 @@ from pandas._libs.tslibs.offsets import (  # noqa:F401
 )
 from pandas._libs.tslibs.parsing import get_rule_month
 from pandas._libs.tslibs.resolution import month_position_check
-from pandas._libs.tslibs.timezones import UTC
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -198,7 +197,9 @@ class _FrequencyInferer:
         # the timezone so they are in local time
         if hasattr(index, "tz"):
             if index.tz is not None:
-                self.i8values = tzconversion.tz_convert(self.i8values, UTC, index.tz)
+                self.i8values = tzconversion.tz_convert_from_utc(
+                    self.i8values, index.tz
+                )
 
         self.warn = warn
 
