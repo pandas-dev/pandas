@@ -46,8 +46,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     dt64_to_dtstruct,
     pydate_to_dtstruct,
 )
-from pandas._libs.tslibs.timezones cimport utc_pytz as UTC
-from pandas._libs.tslibs.tzconversion cimport tz_convert_single
+from pandas._libs.tslibs.tzconversion cimport tz_convert_from_utc_single
 
 from .dtypes cimport PeriodDtypeCode
 from .timedeltas cimport delta_to_nanoseconds
@@ -264,7 +263,7 @@ cdef _to_dt64D(dt):
         #  equiv `Timestamp(dt).value` or `dt.timestamp() * 10**9`
         nanos = getattr(dt, "nanosecond", 0)
         i8 = convert_datetime_to_tsobject(dt, tz=None, nanos=nanos).value
-        dt = tz_convert_single(i8, UTC, dt.tzinfo)
+        dt = tz_convert_from_utc_single(i8, dt.tzinfo)
         dt = np.int64(dt).astype('datetime64[ns]')
     else:
         dt = np.datetime64(dt)
