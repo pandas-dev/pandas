@@ -1085,6 +1085,8 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.groupby` lost index, when one of the ``agg`` keys referenced an empty list (:issue:`32580`)
 - Bug in :meth:`Rolling.apply` where ``center=True`` was ignored when ``engine='numba'`` was specified (:issue:`34784`)
 - Bug in :meth:`DataFrame.ewm.cov` was throwing ``AssertionError`` for :class:`MultiIndex` inputs (:issue:`34440`)
+- Bug in :meth:`DataFrameGroupBy.count` was returning ``NaN`` for missing categories when grouped on multiple ``Categoricals``. Now returning ``0`` (:issue:`35028`)
+- Bug in :meth:`DataFrameGroupBy.sum` and :meth:`SeriesGroupBy.sum` was reutrning ``NaN`` for missing categories when grouped on multiple ``Categorials``. Now returning ``0`` (:issue:`31422`)
 
 Reshaping
 ^^^^^^^^^
