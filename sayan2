@@ -1,0 +1,15 @@
+def row_replace(array,x,y):
+    for i in range(len(array)):
+        if array[i] == x:
+            array[i] = y
+    return array
+    
+def rows(DataFrame,row, x ='0', y='0'):
+    df = []
+    for i in DataFrame:
+        df.append(DataFrame[i][row])
+        row_replace(df,x,y)
+    return df
+    
+    
+    
