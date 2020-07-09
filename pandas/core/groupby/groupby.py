@@ -634,6 +634,7 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
             return self._get_indices([pd.NaT])[0]
         else:
             return self._get_indices([name])[0]
+
     @cache_readonly
     def _selected_obj(self):
         # Note: _selected_obj is always just `self.obj` for SeriesGroupBy
