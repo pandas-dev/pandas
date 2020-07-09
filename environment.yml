@@ -20,14 +20,14 @@ dependencies:
   - flake8<3.8.0  # temporary pin, GH#34150
   - flake8-comprehensions>=3.1.0  # used by flake8, linting of unnecessary comprehensions
   - flake8-rst>=0.6.0,<=0.7.0  # linting of code blocks in rst files
-  - isort  # check that imports are in the right order
+  - isort=4.3.21  # check that imports are in the right order
   - mypy=0.730
   - pycodestyle  # used by flake8
 
   # documentation
   - gitpython  # obtain contributors from git for whatsnew
   - gitdb2=2.0.6  # GH-32060
-  - sphinx
+  - sphinx<=3.1.1
 
   # documentation (jupyter notebooks)
   - nbconvert>=5.4.1
@@ -37,7 +37,6 @@ dependencies:
   # Dask and its dependencies (that dont install with dask)
   - dask-core
   - toolz>=0.7.3
-  - fsspec>=0.5.1
   - partd>=0.3.10
   - cloudpickle>=0.2.1
 

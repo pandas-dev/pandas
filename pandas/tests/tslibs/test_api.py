@@ -18,6 +18,7 @@ def test_namespace():
         "period",
         "resolution",
         "strptime",
+        "vectorized",
         "timedeltas",
         "timestamps",
         "timezones",
@@ -25,6 +26,7 @@ def test_namespace():
     ]
 
     api = [
+        "BaseOffset",
         "NaT",
         "NaTType",
         "iNaT",
@@ -34,8 +36,14 @@ def test_namespace():
         "Period",
         "IncompatibleFrequency",
         "Resolution",
+        "Tick",
         "Timedelta",
+        "dt64arr_to_periodarr",
         "Timestamp",
+        "is_date_array_normalized",
+        "ints_to_pydatetime",
+        "normalize_i8_timestamps",
+        "get_resolution",
         "delta_to_nanoseconds",
         "ints_to_pytimedelta",
         "localize_pydatetime",

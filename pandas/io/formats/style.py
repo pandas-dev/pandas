@@ -1524,7 +1524,10 @@ def _get_level_lengths(index, hidden_elements=None):
 
     Result is a dictionary of (level, initial_position): span
     """
-    levels = index.format(sparsify=lib.no_default, adjoin=False, names=False)
+    if isinstance(index, pd.MultiIndex):
+        levels = index.format(sparsify=lib.no_default, adjoin=False)
+    else:
+        levels = index.format()
 
     if hidden_elements is None:
         hidden_elements = []

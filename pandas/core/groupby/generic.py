@@ -19,6 +19,7 @@ from typing import (
     Iterable,
     List,
     Mapping,
+    Optional,
     Sequence,
     Tuple,
     Type,
@@ -30,7 +31,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import FrameOrSeries
+from pandas._typing import FrameOrSeries, FrameOrSeriesUnion
 from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.dtypes.cast import (
@@ -121,15 +122,15 @@ def generate_property(name: str, klass: Type[FrameOrSeries]):
     return property(prop)
 
 
-def pin_whitelisted_properties(klass: Type[FrameOrSeries], whitelist: FrozenSet[str]):
+def pin_allowlisted_properties(klass: Type[FrameOrSeries], allowlist: FrozenSet[str]):
     """
-    Create GroupBy member defs for DataFrame/Series names in a whitelist.
+    Create GroupBy member defs for DataFrame/Series names in a allowlist.
 
     Parameters
     ----------
     klass : DataFrame or Series class
         class where members are defined.
-    whitelist : frozenset[str]
+    allowlist : frozenset[str]
         Set of names of klass methods to be constructed
 
     Returns
@@ -143,7 +144,7 @@ def pin_whitelisted_properties(klass: Type[FrameOrSeries], whitelist: FrozenSet[
     """
 
     def pinner(cls):
-        for name in whitelist:
+        for name in allowlist:
             if hasattr(cls, name):
                 # don't override anything that was explicitly defined
                 #  in the base class
@@ -157,9 +158,9 @@ def pin_whitelisted_properties(klass: Type[FrameOrSeries], whitelist: FrozenSet[
     return pinner
 
 
-@pin_whitelisted_properties(Series, base.series_apply_whitelist)
+@pin_allowlisted_properties(Series, base.series_apply_allowlist)
 class SeriesGroupBy(GroupBy[Series]):
-    _apply_whitelist = base.series_apply_whitelist
+    _apply_allowlist = base.series_apply_allowlist
 
     def _iterate_slices(self) -> Iterable[Series]:
         yield self._selected_obj
@@ -413,12 +414,31 @@ class SeriesGroupBy(GroupBy[Series]):
         assert isinstance(result, Series)
         return result
 
-    def _wrap_applied_output(self, keys, values, not_indexed_same=False):
+    def _wrap_applied_output(
+        self, keys: Index, values: Optional[List[Any]], not_indexed_same: bool = False
+    ) -> FrameOrSeriesUnion:
+        """
+        Wrap the output of SeriesGroupBy.apply into the expected result.
+
+        Parameters
+        ----------
+        keys : Index
+            Keys of groups that Series was grouped by.
+        values : Optional[List[Any]]
+            Applied output for each group.
+        not_indexed_same : bool, default False
+            Whether the applied outputs are not indexed the same as the group axes.
+
+        Returns
+        -------
+        DataFrame or Series
+        """
         if len(keys) == 0:
             # GH #6265
             return self.obj._constructor(
                 [], name=self._selection_name, index=keys, dtype=np.float64
             )
+        assert values is not None
 
         def _get_index() -> Index:
             if self.grouper.nkeys > 1:
@@ -430,7 +450,7 @@ class SeriesGroupBy(GroupBy[Series]):
         if isinstance(values[0], dict):
             # GH #823 #24880
             index = _get_index()
-            result = self._reindex_output(
+            result: FrameOrSeriesUnion = self._reindex_output(
                 self.obj._constructor_expanddim(values, index=index)
             )
             # if self.observed is False,
@@ -438,11 +458,7 @@ class SeriesGroupBy(GroupBy[Series]):
             result = result.stack(dropna=self.observed)
             result.name = self._selection_name
             return result
-
-        if isinstance(values[0], Series):
-            return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
-        elif isinstance(values[0], DataFrame):
-            # possible that Series -> DataFrame by applied function
+        elif isinstance(values[0], (Series, DataFrame)):
             return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
         else:
             # GH #6265 #24880
@@ -473,7 +489,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
             )
 
-        elif func not in base.transform_kernel_whitelist:
+        elif func not in base.transform_kernel_allowlist:
             msg = f"'{func}' is not a valid function name for transform(name)"
             raise ValueError(msg)
         elif func in base.cythonized_kernels:
@@ -835,10 +851,10 @@ class SeriesGroupBy(GroupBy[Series]):
         return (filled / shifted) - 1
 
 
-@pin_whitelisted_properties(DataFrame, base.dataframe_apply_whitelist)
+@pin_allowlisted_properties(DataFrame, base.dataframe_apply_allowlist)
 class DataFrameGroupBy(GroupBy[DataFrame]):
 
-    _apply_whitelist = base.dataframe_apply_whitelist
+    _apply_allowlist = base.dataframe_apply_allowlist
 
     _agg_examples_doc = dedent(
         """
@@ -1218,7 +1234,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             return self.obj._constructor()
         elif isinstance(first_not_none, DataFrame):
             return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
-        elif self.grouper.groupings is not None:
+        else:
             if len(self.grouper.groupings) > 1:
                 key_index = self.grouper.result_index
 
@@ -1373,10 +1389,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # of columns
                 return self.obj._constructor_sliced(values, index=key_index)
 
-        else:
-            # Handle cases like BinGrouper
-            return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
-
     def _transform_general(
         self, func, *args, engine="cython", engine_kwargs=None, **kwargs
     ):
@@ -1456,7 +1468,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
             )
 
-        elif func not in base.transform_kernel_whitelist:
+        elif func not in base.transform_kernel_allowlist:
             msg = f"'{func}' is not a valid function name for transform(name)"
             raise ValueError(msg)
         elif func in base.cythonized_kernels:

@@ -604,8 +604,8 @@ def factorize(
     >>> codes
     array([0, 0, 1]...)
     >>> uniques
-    [a, c]
-    Categories (3, object): [a, b, c]
+    ['a', 'c']
+    Categories (3, object): ['a', 'b', 'c']
 
     Notice that ``'b'`` is in ``uniques.categories``, despite not being
     present in ``cat.values``.
