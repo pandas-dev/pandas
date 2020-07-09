@@ -10,7 +10,11 @@ from pandas._libs.tslibs import (
     Timestamp,
     conversion,
     fields,
+    get_resolution,
     iNaT,
+    ints_to_pydatetime,
+    is_date_array_normalized,
+    normalize_i8_timestamps,
     resolution as libresolution,
     timezones,
     to_offset,
@@ -526,11 +530,11 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         """
         Returns True if all of the dates are at midnight ("no time")
         """
-        return conversion.is_date_array_normalized(self.asi8, self.tz)
+        return is_date_array_normalized(self.asi8, self.tz)
 
     @property  # NB: override with cache_readonly in immutable subclasses
     def _resolution_obj(self) -> libresolution.Resolution:
-        return libresolution.get_resolution(self.asi8, self.tz)
+        return get_resolution(self.asi8, self.tz)
 
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
@@ -559,7 +563,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         for i in range(chunks):
             start_i = i * chunksize
             end_i = min((i + 1) * chunksize, length)
-            converted = tslib.ints_to_pydatetime(
+            converted = ints_to_pydatetime(
                 data[start_i:end_i], tz=self.tz, freq=self.freq, box="timestamp"
             )
             for v in converted:
@@ -724,7 +728,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         This is used to calculate time-of-day information as if the timestamps
         were timezone-naive.
         """
-        return tzconversion.tz_convert(self.asi8, timezones.UTC, self.tz)
+        return tzconversion.tz_convert_from_utc(self.asi8, self.tz)
 
     def tz_convert(self, tz):
         """
@@ -956,7 +960,7 @@ default 'raise'
 
         if self.tz is not None:
             if tz is None:
-                new_dates = tzconversion.tz_convert(self.asi8, timezones.UTC, self.tz)
+                new_dates = tzconversion.tz_convert_from_utc(self.asi8, self.tz)
             else:
                 raise TypeError("Already tz-aware, use tz_convert to convert.")
         else:
@@ -991,7 +995,7 @@ default 'raise'
         -------
         datetimes : ndarray
         """
-        return tslib.ints_to_pydatetime(self.asi8, tz=self.tz)
+        return ints_to_pydatetime(self.asi8, tz=self.tz)
 
     def normalize(self):
         """
@@ -1031,7 +1035,7 @@ default 'raise'
                        '2014-08-01 00:00:00+05:30'],
                        dtype='datetime64[ns, Asia/Calcutta]', freq=None)
         """
-        new_values = conversion.normalize_i8_timestamps(self.asi8, self.tz)
+        new_values = normalize_i8_timestamps(self.asi8, self.tz)
         return type(self)(new_values)._with_freq("infer").tz_localize(self.tz)
 
     def to_period(self, freq=None):
@@ -1219,7 +1223,7 @@ default 'raise'
         else:
             timestamps = self.asi8
 
-        return tslib.ints_to_pydatetime(timestamps, box="time")
+        return ints_to_pydatetime(timestamps, box="time")
 
     @property
     def timetz(self):
@@ -1227,7 +1231,7 @@ default 'raise'
         Returns numpy array of datetime.time also containing timezone
         information. The time part of the Timestamps.
         """
-        return tslib.ints_to_pydatetime(self.asi8, self.tz, box="time")
+        return ints_to_pydatetime(self.asi8, self.tz, box="time")
 
     @property
     def date(self):
@@ -1243,7 +1247,7 @@ default 'raise'
         else:
             timestamps = self.asi8
 
-        return tslib.ints_to_pydatetime(timestamps, box="date")
+        return ints_to_pydatetime(timestamps, box="date")
 
     def isocalendar(self):
         """
