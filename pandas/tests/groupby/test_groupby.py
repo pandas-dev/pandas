@@ -1257,8 +1257,7 @@ def test_groupby_nat_exclude():
     tm.assert_frame_equal(grouped.get_group(Timestamp("2013-01-01")), df.iloc[[1, 7]])
     tm.assert_frame_equal(grouped.get_group(Timestamp("2013-02-01")), df.iloc[[3, 5]])
 
-    # GH35014
-    with pytest.raises(KeyError):
+    with pytest.raises(KeyError, match=r"^NaT$"):
         grouped.get_group(pd.NaT)
 
     nan_df = DataFrame(
