@@ -370,7 +370,7 @@ cpdef int64_t tz_convert_from_utc_single(int64_t val, tzinfo tz):
     """
     Convert the val (in i8) from UTC to tz
 
-    This is a single value version of tz_convert.
+    This is a single value version of tz_convert_from_utc.
 
     Parameters
     ----------
