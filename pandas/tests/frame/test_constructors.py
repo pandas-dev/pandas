@@ -2542,11 +2542,13 @@ class TestDataFrameConstructors:
             index=pd.CategoricalIndex(["f", "female", "m", "male", "unknown"]),
         )
         result = DataFrame([s1, s2])
+        # GH 35092. Extra s2 columns are now appended to s1 columns
+        # in original order
         expected = DataFrame(
             np.array(
-                [[np.nan, 39.0, np.nan, 6.0, 4.0], [2.0, 152.0, 2.0, 242.0, 150.0]]
+                [[39.0, 6.0, 4.0, np.nan, np.nan], [152.0, 242.0, 150.0, 2.0, 2.0]]
             ),
-            columns=["f", "female", "m", "male", "unknown"],
+            columns=["female", "male", "unknown", "f", "m"],
         )
         tm.assert_frame_equal(result, expected)
 
