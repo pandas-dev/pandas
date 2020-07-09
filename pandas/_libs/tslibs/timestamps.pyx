@@ -25,6 +25,13 @@ from cpython.datetime cimport (
     PyDelta_Check,
     PyTZInfo_Check,
     PyDateTime_IMPORT,
+    PyDateTime_DATE_GET_HOUR,
+    PyDateTime_DATE_GET_MICROSECOND,
+    PyDateTime_DATE_GET_MINUTE,
+    PyDateTime_DATE_GET_SECOND,
+    PyDateTime_GET_DAY,
+    PyDateTime_GET_MONTH,
+    PyDateTime_GET_YEAR,
 )
 PyDateTime_IMPORT
 
@@ -417,7 +424,7 @@ cdef class _Timestamp(ABCTimestamp):
         """
         if self.freq is None:
             # fast-path for non-business frequencies
-            return self.day == 1
+            return PyDateTime_GET_DAY(self) == 1
         return self._get_start_end_field("is_month_start")
 
     @property
@@ -427,7 +434,7 @@ cdef class _Timestamp(ABCTimestamp):
         """
         if self.freq is None:
             # fast-path for non-business frequencies
-            return self.day == self.days_in_month
+            return PyDateTime_GET_DAY(self) == self.days_in_month
         return self._get_start_end_field("is_month_end")
 
     @property
@@ -437,7 +444,8 @@ cdef class _Timestamp(ABCTimestamp):
         """
         if self.freq is None:
             # fast-path for non-business frequencies
-            return self.day == 1 and self.month % 3 == 1
+            return (PyDateTime_GET_DAY(self) == 1
+                    and PyDateTime_GET_MONTH(self) % 3 == 1)
         return self._get_start_end_field("is_quarter_start")
 
     @property
@@ -447,7 +455,8 @@ cdef class _Timestamp(ABCTimestamp):
         """
         if self.freq is None:
             # fast-path for non-business frequencies
-            return (self.month % 3) == 0 and self.day == self.days_in_month
+            return ((PyDateTime_GET_MONTH(self) % 3) == 0
+                    and PyDateTime_GET_DAY(self) == self.days_in_month)
         return self._get_start_end_field("is_quarter_end")
 
     @property
@@ -457,7 +466,7 @@ cdef class _Timestamp(ABCTimestamp):
         """
         if self.freq is None:
             # fast-path for non-business frequencies
-            return self.day == self.month == 1
+            return PyDateTime_GET_DAY(self) == PyDateTime_GET_MONTH(self) == 1
         return self._get_start_end_field("is_year_start")
 
     @property
@@ -467,7 +476,8 @@ cdef class _Timestamp(ABCTimestamp):
         """
         if self.freq is None:
             # fast-path for non-business frequencies
-            return self.month == 12 and self.day == 31
+            return (PyDateTime_GET_MONTH(self) == 12
+                    and PyDateTime_GET_DAY(self) == 31)
         return self._get_start_end_field("is_year_end")
 
     cdef _get_date_name_field(self, str field, object locale):
@@ -519,7 +529,7 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return True if year is a leap year.
         """
-        return bool(ccalendar.is_leapyear(self.year))
+        return bool(ccalendar.is_leapyear(PyDateTime_GET_YEAR(self)))
 
     @property
     def dayofweek(self) -> int:
@@ -533,28 +543,38 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return the day of the year.
         """
-        return ccalendar.get_day_of_year(self.year, self.month, self.day)
+        return ccalendar.get_day_of_year(
+            PyDateTime_GET_YEAR(self),
+            PyDateTime_GET_MONTH(self),
+            PyDateTime_GET_DAY(self),
+        )
 
     @property
     def quarter(self) -> int:
         """
         Return the quarter of the year.
         """
-        return ((self.month - 1) // 3) + 1
+        return ((PyDateTime_GET_MONTH(self) - 1) // 3) + 1
 
     @property
     def week(self) -> int:
         """
         Return the week number of the year.
         """
-        return ccalendar.get_week_of_year(self.year, self.month, self.day)
+        return ccalendar.get_week_of_year(
+            PyDateTime_GET_YEAR(self),
+            PyDateTime_GET_MONTH(self),
+            PyDateTime_GET_DAY(self),
+        )
 
     @property
     def days_in_month(self) -> int:
         """
         Return the number of days in the month.
         """
-        return ccalendar.get_days_in_month(self.year, self.month)
+        return ccalendar.get_days_in_month(
+            PyDateTime_GET_YEAR(self), PyDateTime_GET_MONTH(self),
+        )
 
     # -----------------------------------------------------------------
     # Transformation Methods
@@ -658,10 +678,10 @@ cdef class _Timestamp(ABCTimestamp):
     def _short_repr(self) -> str:
         # format a Timestamp with only _date_repr if possible
         # otherwise _repr_base
-        if (self.hour == 0 and
-                self.minute == 0 and
-                self.second == 0 and
-                self.microsecond == 0 and
+        if (PyDateTime_DATE_GET_HOUR(self) == 0 and
+                PyDateTime_DATE_GET_MINUTE(self) == 0 and
+                PyDateTime_DATE_GET_SECOND(self) == 0 and
+                PyDateTime_DATE_GET_MICROSECOND(self) == 0 and
                 self.nanosecond == 0):
             return self._date_repr
         return self._repr_base
@@ -692,9 +712,16 @@ cdef class _Timestamp(ABCTimestamp):
             warnings.warn("Discarding nonzero nanoseconds in conversion",
                           UserWarning, stacklevel=2)
 
-        return datetime(self.year, self.month, self.day,
-                        self.hour, self.minute, self.second,
-                        self.microsecond, self.tzinfo)
+        return datetime(
+            PyDateTime_GET_YEAR(self),
+            PyDateTime_GET_MONTH(self),
+            PyDateTime_GET_DAY(self),
+            PyDateTime_DATE_GET_HOUR(self),
+            PyDateTime_DATE_GET_MINUTE(self),
+            PyDateTime_DATE_GET_SECOND(self),
+            PyDateTime_DATE_GET_MICROSECOND(self),
+            self.tzinfo,
+        )
 
     cpdef to_datetime64(self):
         """
@@ -1453,9 +1480,9 @@ default 'raise'
         Convert TimeStamp to a Julian Date.
         0 Julian date is noon January 1, 4713 BC.
         """
-        year = self.year
-        month = self.month
-        day = self.day
+        year = PyDateTime_GET_YEAR(self)
+        month = PyDateTime_GET_MONTH(self)
+        day = PyDateTime_GET_DAY(self)
         if month <= 2:
             year -= 1
             month += 12
