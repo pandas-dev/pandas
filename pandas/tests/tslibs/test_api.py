@@ -16,7 +16,6 @@ def test_namespace():
         "offsets",
         "parsing",
         "period",
-        "resolution",
         "strptime",
         "vectorized",
         "timedeltas",
