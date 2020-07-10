@@ -114,6 +114,7 @@ from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 from pandas.core import algorithms, common as com, nanops, ops
 from pandas.core.accessor import CachedAccessor
+from pandas.core.aggregation import reconstruct_func, relabel_result
 from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin as DatetimeLikeArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
@@ -7301,8 +7302,10 @@ NaN 12.3   33.0
         examples=_agg_examples_doc,
         versionadded="\n.. versionadded:: 0.20.0\n",
     )
-    def aggregate(self, func, axis=0, *args, **kwargs):
+    def aggregate(self, func=None, axis=0, *args, **kwargs):
         axis = self._get_axis_number(axis)
+
+        relabeling, func, columns, order = reconstruct_func(func, **kwargs)
 
         result = None
         try:
@@ -7315,6 +7318,13 @@ NaN 12.3   33.0
             raise exc from err
         if result is None:
             return self.apply(func, axis=axis, args=args, **kwargs)
+
+        if relabeling:
+            # This is to keep the order to columns occurrence unchanged, and also
+            # keep the order of new columns occurrence unchanged
+            result_in_dict = relabel_result(result, func, columns, order)
+            result = DataFrame(result_in_dict, index=columns)
+
         return result
 
     def _aggregate(self, arg, axis=0, *args, **kwargs):
