@@ -485,14 +485,9 @@ class SeriesGroupBy(GroupBy[Series]):
         # If func is a reduction, we need to broadcast the
         # result to the whole group. Compute func result
         # and deal with possible broadcasting below.
-        # Temporarily set observed for dealing with
-        # categoricals so we don't have to convert dtypes.
-        observed = self.observed
-        try:
-            self.observed = True
+        # Temporarily set observed for dealing with categoricals.
+        with com.temp_setattr(self, "observed", True):
             result = getattr(self, func)(*args, **kwargs)
-        finally:
-            self.observed = observed
         return self._transform_fast(result)
 
     def _transform_general(
@@ -1471,14 +1466,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             # If func is a reduction, we need to broadcast the
             # result to the whole group. Compute func result
             # and deal with possible broadcasting below.
-            # Temporarily set observed for dealing with
-            # categoricals so we don't have to convert dtypes.
-            observed = self.observed
-            try:
-                self.observed = True
+            # Temporarily set observed for dealing with categoricals.
+            with com.temp_setattr(self, "observed", True):
                 result = getattr(self, func)(*args, **kwargs)
-            finally:
-                self.observed = observed
 
             if isinstance(result, DataFrame) and result.columns.equals(
                 self._obj_with_exclusions.columns
