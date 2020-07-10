@@ -1018,6 +1018,7 @@ MultiIndex
 
 I/O
 ^^^
+- Bug in print-out when ``display.precision`` is zero. (:issue:`20359`)
 - Bug in :meth:`read_json` where integer overflow was occurring when json contains big number strings. (:issue:`30320`)
 - `read_csv` will now raise a ``ValueError`` when the arguments `header` and `prefix` both are not `None`. (:issue:`27394`)
 - Bug in :meth:`DataFrame.to_json` was raising ``NotFoundError`` when ``path_or_buf`` was an S3 URI (:issue:`28375`)
@@ -1053,6 +1054,7 @@ I/O
 - Bug in :meth:`~HDFStore.create_table` now raises an error when `column` argument was not specified in `data_columns` on input (:issue:`28156`)
 - :meth:`read_json` now could read line-delimited json file from a file url while `lines` and `chunksize` are set.
 - Bug in :meth:`DataFrame.to_sql` when reading DataFrames with ``-np.inf`` entries with MySQL now has a more explicit ``ValueError`` (:issue:`34431`)
+- Bug in :meth:`read_excel` that was raising a ``TypeError`` when ``header=None`` and ``index_col`` given as list (:issue:`31783`)
 - Bug in "meth"`read_excel` where datetime values are used in the header in a `MultiIndex` (:issue:`34748`)
 
 Plotting
@@ -1143,6 +1145,7 @@ ExtensionArray
 - Fixed bug where :meth:`StringArray.memory_usage` was not implemented (:issue:`33963`)
 - Fixed bug where :meth:`DataFrameGroupBy` would ignore the ``min_count`` argument for aggregations on nullable boolean dtypes (:issue:`34051`)
 - Fixed bug that `DataFrame(columns=.., dtype='string')` would fail (:issue:`27953`, :issue:`33623`)
+- Fixed bug in ``IntegerArray.astype`` to correctly copy the mask as well (:issue:`34931`).
 
 Other
 ^^^^^
