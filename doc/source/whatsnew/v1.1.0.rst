@@ -332,6 +332,7 @@ Other enhancements
 - :meth:`read_csv` now accepts string values like "0", "0.0", "1", "1.0" as convertible to the nullable boolean dtype (:issue:`34859`)
 - :class:`pandas.core.window.ExponentialMovingWindow` now supports a ``times`` argument that allows ``mean`` to be calculated with observations spaced by the timestamps in ``times`` (:issue:`34839`)
 - :meth:`~pandas.io.sql.get_schema` now accepts `index` parameter to include index of the DataFrame in the schema (:issue:`9084`).
+
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_110.api:
