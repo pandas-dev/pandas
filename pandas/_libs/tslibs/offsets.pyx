@@ -34,11 +34,16 @@ from pandas._libs.tslibs.util cimport (
 from pandas._libs.tslibs.ccalendar import (
     MONTH_ALIASES, MONTH_TO_CAL_NUM, weekday_to_int, int_to_weekday,
 )
-from pandas._libs.tslibs.ccalendar cimport DAY_NANOS, get_days_in_month, dayofweek
+from pandas._libs.tslibs.ccalendar cimport (
+    DAY_NANOS,
+    dayofweek,
+    get_days_in_month,
+    get_firstbday,
+    get_lastbday,
+)
 from pandas._libs.tslibs.conversion cimport (
     convert_datetime_to_tsobject,
     localize_pydatetime,
-    normalize_i8_timestamps,
 )
 from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
 from pandas._libs.tslibs.np_datetime cimport (
@@ -47,11 +52,9 @@ from pandas._libs.tslibs.np_datetime cimport (
     dt64_to_dtstruct,
     pydate_to_dtstruct,
 )
-from pandas._libs.tslibs.timezones cimport utc_pytz as UTC
-from pandas._libs.tslibs.tzconversion cimport tz_convert_single
+from pandas._libs.tslibs.tzconversion cimport tz_convert_from_utc_single
 
 from .dtypes cimport PeriodDtypeCode
-from .fields import get_start_end_field
 from .timedeltas cimport delta_to_nanoseconds
 from .timedeltas import Timedelta
 from .timestamps cimport _Timestamp
@@ -93,18 +96,14 @@ def apply_index_wraps(func):
         result = np.asarray(result)
 
         if self.normalize:
+            # TODO: Avoid circular/runtime import
+            from .vectorized import normalize_i8_timestamps
             result = normalize_i8_timestamps(result.view("i8"), None)
         return result
 
     # do @functools.wraps(func) manually since it doesn't work on cdef funcs
     wrapper.__name__ = func.__name__
     wrapper.__doc__ = func.__doc__
-    try:
-        wrapper.__module__ = func.__module__
-    except AttributeError:
-        # AttributeError: 'method_descriptor' object has no
-        # attribute '__module__'
-        pass
     return wrapper
 
 
@@ -159,12 +158,6 @@ def apply_wraps(func):
     # do @functools.wraps(func) manually since it doesn't work on cdef funcs
     wrapper.__name__ = func.__name__
     wrapper.__doc__ = func.__doc__
-    try:
-        wrapper.__module__ = func.__module__
-    except AttributeError:
-        # AttributeError: 'method_descriptor' object has no
-        # attribute '__module__'
-        pass
     return wrapper
 
 
@@ -189,51 +182,6 @@ cdef _wrap_timedelta_result(result):
 
 # ---------------------------------------------------------------------
 # Business Helpers
-
-cpdef int get_lastbday(int year, int month) nogil:
-    """
-    Find the last day of the month that is a business day.
-
-    Parameters
-    ----------
-    year : int
-    month : int
-
-    Returns
-    -------
-    last_bday : int
-    """
-    cdef:
-        int wkday, days_in_month
-
-    wkday = dayofweek(year, month, 1)
-    days_in_month = get_days_in_month(year, month)
-    return days_in_month - max(((wkday + days_in_month - 1) % 7) - 4, 0)
-
-
-cpdef int get_firstbday(int year, int month) nogil:
-    """
-    Find the first day of the month that is a business day.
-
-    Parameters
-    ----------
-    year : int
-    month : int
-
-    Returns
-    -------
-    first_bday : int
-    """
-    cdef:
-        int first, wkday
-
-    wkday = dayofweek(year, month, 1)
-    first = 1
-    if wkday == 5:  # on Saturday
-        first = 3
-    elif wkday == 6:  # on Sunday
-        first = 2
-    return first
 
 
 cdef _get_calendar(weekmask, holidays, calendar):
@@ -276,7 +224,7 @@ cdef _to_dt64D(dt):
         #  equiv `Timestamp(dt).value` or `dt.timestamp() * 10**9`
         nanos = getattr(dt, "nanosecond", 0)
         i8 = convert_datetime_to_tsobject(dt, tz=None, nanos=nanos).value
-        dt = tz_convert_single(i8, UTC, dt.tzinfo)
+        dt = tz_convert_from_utc_single(i8, dt.tzinfo)
         dt = np.int64(dt).astype('datetime64[ns]')
     else:
         dt = np.datetime64(dt)
@@ -355,8 +303,7 @@ class ApplyTypeError(TypeError):
 
 cdef class BaseOffset:
     """
-    Base class for DateOffset methods that are not overridden by subclasses
-    and will (after pickle errors are resolved) go into a cdef class.
+    Base class for DateOffset methods that are not overridden by subclasses.
     """
     _day_opt = None
     _attributes = tuple(["n", "normalize"])
