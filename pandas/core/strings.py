@@ -2217,21 +2217,20 @@ class StringMethods(NoNewAttributesMixin):
             # infer from ndim if expand is not specified
             expand = result.ndim != 1
 
-        elif (
-            expand is True
-            and not isinstance(self._orig, ABCIndexClass)
-            and pad_sequences
-        ):
-            # required when expand=True is explicitly specified
-            # not needed when inferred
-
-            result = [x if is_list_like(x) else [x] for x in result]
-            if result:
-                # propagate nan values to match longest sequence (GH 18450)
-                max_len = max(len(x) for x in result)
-                result = [
-                    x * max_len if len(x) == 0 or x[0] is np.nan else x for x in result
-                ]
+        elif expand is True and not isinstance(self._orig, ABCIndexClass):
+            if pad_sequences:
+                # required when expand=True is explicitly specified
+                # not needed when inferred
+                result = [x if is_list_like(x) else [x] for x in result]
+                if result:
+                    # propagate nan values to match longest sequence (GH 18450)
+                    max_len = max(len(x) for x in result)
+                    result = [
+                        x * max_len if len(x) == 0 or x[0] is np.nan else x
+                        for x in result
+                    ]
+            else:
+                result = result.tolist()
 
         if not isinstance(expand, bool):
             raise ValueError("expand must be True or False")
