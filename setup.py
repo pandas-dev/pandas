@@ -33,7 +33,7 @@ def is_platform_mac():
     return sys.platform == "darwin"
 
 
-min_numpy_ver = "1.15.4"
+min_numpy_ver = "1.16.0"
 min_cython_ver = "0.29.16"  # note: sync with pyproject.toml
 
 try:
@@ -197,7 +197,6 @@ CLASSIFIERS = [
     "Intended Audience :: Science/Research",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.6",
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Cython",
@@ -771,7 +770,7 @@ def setup_package():
         long_description=LONG_DESCRIPTION,
         classifiers=CLASSIFIERS,
         platforms="any",
-        python_requires=">=3.6.1",
+        python_requires=">=3.7.1",
         extras_require={
             "test": [
                 # sync with setup.cfg minversion & install.rst

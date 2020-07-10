@@ -3,7 +3,7 @@ channels:
   - defaults
   - conda-forge
 dependencies:
-  - python=3.6.*
+  - python=3.7.*
 
   # tools
   - cython>=0.29.16
@@ -26,7 +26,7 @@ dependencies:
   - moto
   - nomkl
   - numexpr
-  - numpy=1.15.*
+  - numpy=1.16.*
   - odfpy
   - openpyxl
   - pandas-gbq
