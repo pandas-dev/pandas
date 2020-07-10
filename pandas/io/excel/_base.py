@@ -468,7 +468,9 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
 
             if is_list_like(index_col):
                 # Forward fill values for MultiIndex index.
-                if not is_list_like(header):
+                if header is None:
+                    offset = 0
+                elif not is_list_like(header):
                     offset = 1 + header
                 else:
                     offset = 1 + max(header)
