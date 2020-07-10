@@ -736,14 +736,16 @@ def test_append_timedelta_does_not_cast(td):
 def test_underlying_data_conversion():
     # GH 4080
     df = DataFrame({c: [1, 2, 3] for c in ["a", "b", "c"]})
-    df.set_index(["a", "b", "c"], inplace=True)
+    return_value = df.set_index(["a", "b", "c"], inplace=True)
+    assert return_value is None
     s = Series([1], index=[(2, 2, 2)])
     df["val"] = 0
     df
     df["val"].update(s)
 
     expected = DataFrame(dict(a=[1, 2, 3], b=[1, 2, 3], c=[1, 2, 3], val=[0, 1, 0]))
-    expected.set_index(["a", "b", "c"], inplace=True)
+    return_value = expected.set_index(["a", "b", "c"], inplace=True)
+    assert return_value is None
     tm.assert_frame_equal(df, expected)
 
     # GH 3970

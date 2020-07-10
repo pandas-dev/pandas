@@ -453,7 +453,8 @@ class TestSeriesMissingData:
 
     def test_fillna_int(self):
         s = Series(np.random.randint(-100, 100, 50))
-        s.fillna(method="ffill", inplace=True)
+        return_value = s.fillna(method="ffill", inplace=True)
+        assert return_value is None
         tm.assert_series_equal(s.fillna(method="ffill", inplace=False), s)
 
     def test_categorical_nan_equality(self):
@@ -680,7 +681,8 @@ class TestSeriesMissingData:
         s = Series([], dtype=object)
 
         assert len(s.dropna()) == 0
-        s.dropna(inplace=True)
+        return_value = s.dropna(inplace=True)
+        assert return_value is None
         assert len(s) == 0
 
         # invalid axis
@@ -729,7 +731,8 @@ class TestSeriesMissingData:
             assert result is not s
 
             s2 = s.copy()
-            s2.dropna(inplace=True)
+            return_value = s2.dropna(inplace=True)
+            assert return_value is None
             tm.assert_series_equal(s2, s)
 
     def test_dropna_intervals(self):
@@ -775,7 +778,8 @@ class TestSeriesMissingData:
             [np.nan, 1.0, np.nan, 3.0, np.nan], ["z", "a", "b", "c", "d"], dtype=float
         )
 
-        x.fillna(method="pad", inplace=True)
+        return_value = x.fillna(method="pad", inplace=True)
+        assert return_value is None
 
         expected = Series(
             [np.nan, 1.0, 1.0, 3.0, 3.0], ["z", "a", "b", "c", "d"], dtype=float
@@ -799,7 +803,8 @@ class TestSeriesMissingData:
         assert result.name == datetime_series.name
         name = datetime_series.name
         ts = datetime_series.copy()
-        ts.dropna(inplace=True)
+        return_value = ts.dropna(inplace=True)
+        assert return_value is None
         assert ts.name == name
 
     def test_series_fillna_limit(self):
