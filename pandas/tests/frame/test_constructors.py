@@ -727,7 +727,7 @@ class TestDataFrameConstructors:
             ),
         ],
     )
-    def test_constructor_period_data(self, data, dtype):
+    def test_constructor_extension_scalar_data(self, data, dtype):
         # GH 34832
         df = DataFrame(index=[0, 1], columns=["a", "b"], data=data)
 
