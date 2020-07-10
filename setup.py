@@ -765,7 +765,7 @@ def setup_package():
         long_description=LONG_DESCRIPTION,
         classifiers=CLASSIFIERS,
         platforms="any",
-        python_requires=">=3.7.1",
+        python_requires=">=3.7.0",
         extras_require={
             "test": [
                 # sync with setup.cfg minversion & install.rst
