@@ -1,4 +1,4 @@
-name: pandas-test
+name: pandas-dev
 channels:
   - conda-forge
 dependencies:
