@@ -86,7 +86,9 @@ class Generic:
     def test_get_numeric_data(self):
 
         n = 4
-        kwargs = {self._typ._AXIS_NAMES[i]: list(range(n)) for i in range(self._ndim)}
+        kwargs = {
+            self._typ._get_axis_name(i): list(range(n)) for i in range(self._ndim)
+        }
 
         # get the numeric data
         o = self._construct(n, **kwargs)
@@ -249,13 +251,13 @@ class Generic:
             self.check_metadata(v1 & v2)
             self.check_metadata(v1 | v2)
 
-    def test_head_tail(self, indices):
+    def test_head_tail(self, index):
         # GH5370
 
-        o = self._construct(shape=len(indices))
+        o = self._construct(shape=len(index))
 
         axis = o._get_axis_name(0)
-        setattr(o, axis, indices)
+        setattr(o, axis, index)
 
         o.head()
 
@@ -271,8 +273,8 @@ class Generic:
         self._compare(o.tail(len(o) + 1), o)
 
         # neg index
-        self._compare(o.head(-3), o.head(len(indices) - 3))
-        self._compare(o.tail(-3), o.tail(len(indices) - 3))
+        self._compare(o.head(-3), o.head(len(index) - 3))
+        self._compare(o.tail(-3), o.tail(len(index) - 3))
 
     def test_sample(self):
         # Fixes issue: 2419
@@ -901,12 +903,22 @@ class TestNDFrame:
     @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
     def test_axis_classmethods(self, box):
         obj = box(dtype=object)
-        values = (
-            list(box._AXIS_NAMES.keys())
-            + list(box._AXIS_NUMBERS.keys())
-            + list(box._AXIS_ALIASES.keys())
-        )
+        values = box._AXIS_TO_AXIS_NUMBER.keys()
         for v in values:
             assert obj._get_axis_number(v) == box._get_axis_number(v)
             assert obj._get_axis_name(v) == box._get_axis_name(v)
             assert obj._get_block_manager_axis(v) == box._get_block_manager_axis(v)
+
+    @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
+    def test_axis_names_deprecated(self, box):
+        # GH33637
+        obj = box(dtype=object)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            obj._AXIS_NAMES
+
+    @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
+    def test_axis_numbers_deprecated(self, box):
+        # GH33637
+        obj = box(dtype=object)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            obj._AXIS_NUMBERS

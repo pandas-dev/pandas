@@ -1,7 +1,7 @@
 from datetime import timedelta
 import operator
 from sys import getsizeof
-from typing import Any, Optional
+from typing import Any, List, Optional
 import warnings
 
 import numpy as np
@@ -197,7 +197,7 @@ class RangeIndex(Int64Index):
         # we are formatting thru the attributes
         return None
 
-    def _format_with_header(self, header, na_rep="NaN", **kwargs):
+    def _format_with_header(self, header, na_rep="NaN") -> List[str]:
         return header + list(map(pprint_thing, self._range))
 
     # --------------------------------------------------------------------
@@ -627,14 +627,18 @@ class RangeIndex(Int64Index):
 
         return super().join(other, how, level, return_indexers, sort)
 
-    def _concat_same_dtype(self, indexes, name):
+    def _concat(self, indexes, name):
         """
-        Concatenates multiple RangeIndex instances. All members of "indexes" must
-        be of type RangeIndex; result will be RangeIndex if possible, Int64Index
-        otherwise. E.g.:
+        Overriding parent method for the case of all RangeIndex instances.
+
+        When all members of "indexes" are of type RangeIndex: result will be
+        RangeIndex if possible, Int64Index otherwise. E.g.:
         indexes = [RangeIndex(3), RangeIndex(3, 6)] -> RangeIndex(6)
         indexes = [RangeIndex(3), RangeIndex(4, 6)] -> Int64Index([0,1,2,4,5])
         """
+        if not all(isinstance(x, RangeIndex) for x in indexes):
+            return super()._concat(indexes, name)
+
         start = step = next_ = None
 
         # Filter the empty indexes
@@ -741,7 +745,7 @@ class RangeIndex(Int64Index):
             """
             Parameters
             ----------
-            op : callable that accepts 2 parms
+            op : callable that accepts 2 params
                 perform the binary op
             step : callable, optional, default to False
                 op to apply to the step parm if not None

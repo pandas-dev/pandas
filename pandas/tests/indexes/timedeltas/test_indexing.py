@@ -18,6 +18,11 @@ class TestGetItem:
         assert result.equals(idx)
         assert result is not idx
 
+    def test_getitem_slice_keeps_name(self):
+        # GH#4226
+        tdi = timedelta_range("1d", "5d", freq="H", name="timebucket")
+        assert tdi[1:].name == tdi.name
+
     def test_getitem(self):
         idx1 = timedelta_range("1 day", "31 day", freq="D", name="idx")
 
@@ -143,7 +148,6 @@ class TestWhere:
     def test_where_invalid_dtypes(self):
         tdi = timedelta_range("1 day", periods=3, freq="D", name="idx")
 
-        i2 = tdi.copy()
         i2 = Index([pd.NaT, pd.NaT] + tdi[2:].tolist())
 
         with pytest.raises(TypeError, match="Where requires matching dtype"):
@@ -154,6 +158,19 @@ class TestWhere:
 
         with pytest.raises(TypeError, match="Where requires matching dtype"):
             tdi.where(notna(i2), (i2 + pd.Timestamp.now()).to_period("D"))
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            # non-matching scalar
+            tdi.where(notna(i2), pd.Timestamp.now())
+
+    def test_where_mismatched_nat(self):
+        tdi = timedelta_range("1 day", periods=3, freq="D", name="idx")
+        cond = np.array([True, False, False])
+
+        msg = "Where requires matching dtype"
+        with pytest.raises(TypeError, match=msg):
+            # wrong-dtyped NaT
+            tdi.where(cond, np.datetime64("NaT", "ns"))
 
 
 class TestTake:

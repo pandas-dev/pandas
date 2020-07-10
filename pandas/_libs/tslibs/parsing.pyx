@@ -32,10 +32,16 @@ from dateutil.parser import parse as du_parse
 
 from pandas._config import get_option
 
-from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
-from pandas._libs.tslibs.nattype import nat_strings, NaT
-from pandas._libs.tslibs.util cimport is_array, get_c_string_buf_and_size
-from pandas._libs.tslibs.frequencies cimport get_rule_month
+from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
+from pandas._libs.tslibs.nattype cimport (
+    c_nat_strings as nat_strings,
+    c_NaT as NaT,
+)
+from pandas._libs.tslibs.util cimport (
+    is_array,
+    get_c_string_buf_and_size,
+)
+from pandas._libs.tslibs.offsets cimport is_offset_object
 
 cdef extern from "../src/headers/portable.h":
     int getdigit_ascii(char c, int default) nogil
@@ -262,7 +268,7 @@ def parse_time_string(arg: str, freq=None, dayfirst=None, yearfirst=None):
     if not isinstance(arg, str):
         raise TypeError("parse_time_string argument must be str")
 
-    if getattr(freq, "_typ", None) == "dateoffset":
+    if is_offset_object(freq):
         freq = freq.rule_code
 
     if dayfirst is None or yearfirst is None:
@@ -278,7 +284,7 @@ def parse_time_string(arg: str, freq=None, dayfirst=None, yearfirst=None):
 
 
 cdef parse_datetime_string_with_reso(
-    str date_string, object freq=None, bint dayfirst=False, bint yearfirst=False,
+    str date_string, str freq=None, bint dayfirst=False, bint yearfirst=False,
 ):
     """
     Parse datetime string and try to identify its resolution.
@@ -370,7 +376,7 @@ cpdef bint _does_string_look_like_datetime(str py_string):
     return True
 
 
-cdef inline object _parse_dateabbr_string(object date_string, object default,
+cdef inline object _parse_dateabbr_string(object date_string, datetime default,
                                           object freq):
     cdef:
         object ret
@@ -431,9 +437,10 @@ cdef inline object _parse_dateabbr_string(object date_string, object default,
                                      f'between 1 and 4: {date_string}')
 
             if freq is not None:
-                # hack attack, #1228
+                # TODO: hack attack, #1228
+                freq = getattr(freq, "freqstr", freq)
                 try:
-                    mnum = MONTH_NUMBERS[get_rule_month(freq)] + 1
+                    mnum = c_MONTH_NUMBERS[get_rule_month(freq)] + 1
                 except (KeyError, ValueError):
                     raise DateParseError(f'Unable to retrieve month '
                                          f'information from given '
@@ -938,7 +945,7 @@ cdef inline object convert_to_unicode(object item, bint keep_trivial_numbers):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def _concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True):
+def concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True):
     """
     Concatenates elements from numpy arrays in `date_cols` into strings.
 
@@ -957,7 +964,7 @@ def _concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True):
     --------
     >>> dates=np.array(['3/31/2019', '4/31/2019'], dtype=object)
     >>> times=np.array(['11:20', '10:45'], dtype=object)
-    >>> result = _concat_date_cols((dates, times))
+    >>> result = concat_date_cols((dates, times))
     >>> result
     array(['3/31/2019 11:20', '4/31/2019 10:45'], dtype=object)
     """
@@ -1012,3 +1019,31 @@ def _concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True):
             result_view[row_idx] = " ".join(list_to_join)
 
     return result
+
+
+cpdef str get_rule_month(str source):
+    """
+    Return starting month of given freq, default is December.
+
+    Parameters
+    ----------
+    source : str
+        Derived from `freq.rule_code` or `freq.freqstr`.
+
+    Returns
+    -------
+    rule_month: str
+
+    Examples
+    --------
+    >>> get_rule_month('D')
+    'DEC'
+
+    >>> get_rule_month('A-JAN')
+    'JAN'
+    """
+    source = source.upper()
+    if "-" not in source:
+        return "DEC"
+    else:
+        return source.split("-")[1]

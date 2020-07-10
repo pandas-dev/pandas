@@ -1,7 +1,7 @@
 .. _whatsnew_0703:
 
-v.0.7.3 (April 12, 2012)
-------------------------
+Version 0.7.3 (April 12, 2012)
+------------------------------
 
 {{ header }}
 
@@ -44,7 +44,7 @@ New features
 - Add ``kurt`` methods to Series and DataFrame for computing kurtosis
 
 
-NA Boolean comparison API change
+NA boolean comparison API change
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Reverted some changes to how NA values (represented typically as ``NaN`` or
