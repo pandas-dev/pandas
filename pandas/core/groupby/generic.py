@@ -1742,7 +1742,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 result.insert(0, name, lev)
 
     def _wrap_aggregated_output(
-        self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]]
+        self,
+        output: Mapping[base.OutputKey, Union[Series, np.ndarray]],
+        fill_value: Scalar = np.NaN,
     ) -> DataFrame:
         """
         Wraps the output of DataFrameGroupBy aggregations into the expected result.
@@ -1773,7 +1775,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if self.axis == 1:
             result = result.T
 
-        return self._reindex_output(result)
+        return self._reindex_output(result, fill_value)
 
     def _wrap_transformed_output(
         self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]]
