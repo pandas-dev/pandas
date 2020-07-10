@@ -82,8 +82,7 @@ class TestSeriesSortValues:
             "you must create a copy"
         )
         with pytest.raises(ValueError, match=msg):
-            return_value = s.sort_values(inplace=True)
-            assert return_value is None
+            s.sort_values(inplace=True)
 
     def test_sort_values_categorical(self):
 
