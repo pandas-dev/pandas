@@ -24,7 +24,7 @@ from pandas._libs.tslibs import NaT, Period, Timestamp, dtypes, timezones, to_of
 from pandas._libs.tslibs.offsets import BaseOffset
 from pandas._typing import DtypeObj, Ordered
 
-from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.base import ExtensionDtype, register_extension_dtype
 from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCIndexClass
 from pandas.core.dtypes.inference import is_bool, is_list_like
 
@@ -38,95 +38,6 @@ if TYPE_CHECKING:
     from pandas import Categorical  # noqa: F401
 
 str_type = str
-
-
-def register_extension_dtype(cls: Type[ExtensionDtype]) -> Type[ExtensionDtype]:
-    """
-    Register an ExtensionType with pandas as class decorator.
-
-    .. versionadded:: 0.24.0
-
-    This enables operations like ``.astype(name)`` for the name
-    of the ExtensionDtype.
-
-    Returns
-    -------
-    callable
-        A class decorator.
-
-    Examples
-    --------
-    >>> from pandas.api.extensions import register_extension_dtype
-    >>> from pandas.api.extensions import ExtensionDtype
-    >>> @register_extension_dtype
-    ... class MyExtensionDtype(ExtensionDtype):
-    ...     pass
-    """
-    registry.register(cls)
-    return cls
-
-
-class Registry:
-    """
-    Registry for dtype inference.
-
-    The registry allows one to map a string repr of a extension
-    dtype to an extension dtype. The string alias can be used in several
-    places, including
-
-    * Series and Index constructors
-    * :meth:`pandas.array`
-    * :meth:`pandas.Series.astype`
-
-    Multiple extension types can be registered.
-    These are tried in order.
-    """
-
-    def __init__(self):
-        self.dtypes: List[Type[ExtensionDtype]] = []
-
-    def register(self, dtype: Type[ExtensionDtype]) -> None:
-        """
-        Parameters
-        ----------
-        dtype : ExtensionDtype class
-        """
-        if not issubclass(dtype, ExtensionDtype):
-            raise ValueError("can only register pandas extension dtypes")
-
-        self.dtypes.append(dtype)
-
-    def find(
-        self, dtype: Union[Type[ExtensionDtype], str]
-    ) -> Optional[Type[ExtensionDtype]]:
-        """
-        Parameters
-        ----------
-        dtype : Type[ExtensionDtype] or str
-
-        Returns
-        -------
-        return the first matching dtype, otherwise return None
-        """
-        if not isinstance(dtype, str):
-            dtype_type = dtype
-            if not isinstance(dtype, type):
-                dtype_type = type(dtype)
-            if issubclass(dtype_type, ExtensionDtype):
-                return dtype
-
-            return None
-
-        for dtype_type in self.dtypes:
-            try:
-                return dtype_type.construct_from_string(dtype)
-            except TypeError:
-                pass
-
-        return None
-
-
-registry = Registry()
 
 
 class PandasExtensionDtype(ExtensionDtype):

@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 import pytz
 
+from pandas.core.dtypes.base import registry
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical,
@@ -22,7 +23,6 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     IntervalDtype,
     PeriodDtype,
-    registry,
 )
 
 import pandas as pd

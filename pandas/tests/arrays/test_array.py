@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas.core.dtypes.dtypes import registry
+from pandas.core.dtypes.base import registry
 
 import pandas as pd
 import pandas._testing as tm
