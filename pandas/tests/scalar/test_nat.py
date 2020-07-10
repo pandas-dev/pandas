@@ -308,10 +308,6 @@ def test_overlap_public_nat_methods(klass, expected):
     # In case when Timestamp, Timedelta, and NaT are overlap, the overlap
     # is considered to be with Timestamp and NaT, not Timedelta.
 
-    # "fromisoformat" was introduced in 3.7
-    if klass is Timestamp and not compat.PY37:
-        expected.remove("fromisoformat")
-
     # "fromisocalendar" was introduced in 3.8
     if klass is Timestamp and not compat.PY38:
         expected.remove("fromisocalendar")
