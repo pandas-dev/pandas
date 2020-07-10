@@ -2217,7 +2217,8 @@ class DataFrame(NDFrame):
         """,
     )
     def to_markdown(
-        self, buf: Optional[IO[str]] = None, mode: Optional[str] = None, **kwargs
+        self, buf: Optional[IO[str]] = None, mode: Optional[str] = None,
+            storage_options: Optional[Dict[str, Any]] = None, **kwargs
     ) -> Optional[str]:
         kwargs.setdefault("headers", "keys")
         kwargs.setdefault("tablefmt", "pipe")
@@ -2225,7 +2226,8 @@ class DataFrame(NDFrame):
         result = tabulate.tabulate(self, **kwargs)
         if buf is None:
             return result
-        buf, _, _, _ = get_filepath_or_buffer(buf, mode=mode)
+        buf, _, _, _ = get_filepath_or_buffer(buf, mode=mode,
+                                              storage_options=storage_options)
         assert buf is not None  # Help mypy.
         buf.writelines(result)
         return None
@@ -2238,6 +2240,7 @@ class DataFrame(NDFrame):
         compression="snappy",
         index=None,
         partition_cols=None,
+        storage_options: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> None:
         """
@@ -2328,6 +2331,7 @@ class DataFrame(NDFrame):
             compression=compression,
             index=index,
             partition_cols=partition_cols,
+            storage_options=storage_options,
             **kwargs,
         )
 

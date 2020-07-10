@@ -89,6 +89,7 @@ class PyArrowImpl(BaseImpl):
         compression="snappy",
         index: Optional[bool] = None,
         partition_cols=None,
+        storage_options=None,
         **kwargs,
     ):
         self.validate_dataframe(df)
@@ -104,9 +105,11 @@ class PyArrowImpl(BaseImpl):
             import_optional_dependency("fsspec")
             import fsspec.core
 
-            fs, path = fsspec.core.url_to_fs(path)
+            fs, path = fsspec.core.url_to_fs(path, **(storage_options or {}))
             kwargs["filesystem"] = fs
         else:
+            if storage_options:
+                raise ValueError("storage_options passed with non-fsspec URL")
             path = _expand_user(path)
         if partition_cols is not None:
             # writes to multiple files under the given path
@@ -218,6 +221,7 @@ def to_parquet(
     compression="snappy",
     index: Optional[bool] = None,
     partition_cols=None,
+    storage_options: Optional[Dict[str, Any]] = None,
     **kwargs,
 ):
     """
@@ -268,6 +272,7 @@ def to_parquet(
         compression=compression,
         index=index,
         partition_cols=partition_cols,
+        storage_options=storage_options,
         **kwargs,
     )
 

@@ -1035,6 +1035,7 @@ class StataReader(StataParser, abc.Iterator):
         columns: Optional[Sequence[str]] = None,
         order_categoricals: bool = True,
         chunksize: Optional[int] = None,
+        storage_options: Optional[Dict[str, Any]] = None,
     ):
         super().__init__()
         self.col_sizes: List[int] = []
@@ -1068,11 +1069,12 @@ class StataReader(StataParser, abc.Iterator):
         self._native_byteorder = _set_endianness(sys.byteorder)
         path_or_buf = stringify_path(path_or_buf)
         if isinstance(path_or_buf, str):
-            path_or_buf, encoding, _, should_close = get_filepath_or_buffer(path_or_buf)
+            path_or_buf, encoding, _, should_close = get_filepath_or_buffer(path_or_buf,
+                                                                            storage_options=storage_options)
 
         if isinstance(path_or_buf, (str, bytes)):
             self.path_or_buf = open(path_or_buf, "rb")
-        elif isinstance(path_or_buf, IOBase):
+        elif hasattr(path_or_buf, "read"):
             # Copy to BytesIO, and ensure no encoding
             contents = path_or_buf.read()
             self.path_or_buf = BytesIO(contents)

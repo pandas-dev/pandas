@@ -420,6 +420,7 @@ def _validate_names(names):
 def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     """Generic reader of line files."""
     encoding = kwds.get("encoding", None)
+    storage_options = kwds.get('storage_options', None)
     if encoding is not None:
         encoding = re.sub("_", "-", encoding).lower()
         kwds["encoding"] = encoding
@@ -432,7 +433,7 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     # though mypy handling of conditional imports is difficult.
     # See https://github.com/python/mypy/issues/1297
     fp_or_buf, _, compression, should_close = get_filepath_or_buffer(
-        filepath_or_buffer, encoding, compression
+        filepath_or_buffer, encoding, compression, storage_options=storage_options
     )
     kwds["compression"] = compression
 

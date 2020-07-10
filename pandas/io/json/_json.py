@@ -3,7 +3,7 @@ import functools
 from io import BytesIO, StringIO
 from itertools import islice
 import os
-from typing import Any, Callable, Optional, Type
+from typing import Any, Callable, Optional, Type, Dict
 
 import numpy as np
 
@@ -44,6 +44,7 @@ def to_json(
     compression: Optional[str] = "infer",
     index: bool = True,
     indent: int = 0,
+    storage_options: Optional[Dict[str, Any]] = None
 ):
 
     if not index and orient not in ["split", "table"]:
@@ -53,7 +54,7 @@ def to_json(
 
     if path_or_buf is not None:
         path_or_buf, _, _, _ = get_filepath_or_buffer(
-            path_or_buf, compression=compression, mode="w"
+            path_or_buf, compression=compression, mode="w", storage_options=storage_options
         )
 
     if lines and orient != "records":
@@ -364,6 +365,7 @@ def read_json(
     chunksize: Optional[int] = None,
     compression="infer",
     nrows: Optional[int] = None,
+    storage_options: Optional[Dict[str, Any]] = None
 ):
     """
     Convert a JSON string to pandas object.
@@ -591,7 +593,7 @@ def read_json(
 
     compression = infer_compression(path_or_buf, compression)
     filepath_or_buffer, _, compression, should_close = get_filepath_or_buffer(
-        path_or_buf, encoding=encoding, compression=compression
+        path_or_buf, encoding=encoding, compression=compression, storage_options=storage_options
     )
 
     json_reader = JsonReader(

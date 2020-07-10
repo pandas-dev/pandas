@@ -180,6 +180,8 @@ def get_filepath_or_buffer(
 
     if isinstance(filepath_or_buffer, str) and is_url(filepath_or_buffer):
         # TODO: fsspec can also handle HTTP via requests, but leaving this unchanged
+        if storage_options:
+            raise ValueError("storage_options passed with non-fsspec URL")
         req = urlopen(filepath_or_buffer)
         content_encoding = req.headers.get("Content-Encoding", None)
         if content_encoding == "gzip":
@@ -206,6 +208,8 @@ def get_filepath_or_buffer(
             filepath_or_buffer, mode=mode or "rb", **(storage_options or {})
         ).open()
         return file_obj, encoding, compression, True
+    elif storage_options:
+        raise ValueError("storage_options passed with non-fsspec URL")
 
     if isinstance(filepath_or_buffer, (str, bytes, mmap.mmap)):
         return _expand_user(filepath_or_buffer), None, compression, False

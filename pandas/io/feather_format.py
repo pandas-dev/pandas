@@ -64,7 +64,8 @@ def to_feather(df: DataFrame, path, **kwargs):
     feather.write_feather(df, path, **kwargs)
 
 
-def read_feather(path, columns=None, use_threads: bool = True):
+def read_feather(path, columns=None, use_threads: bool = True,
+                 storage_options=None):
     """
     Load a feather-format object from the file path.
 
@@ -98,7 +99,7 @@ def read_feather(path, columns=None, use_threads: bool = True):
     import_optional_dependency("pyarrow")
     from pyarrow import feather
 
-    path, _, _, should_close = get_filepath_or_buffer(path)
+    path, _, _, should_close = get_filepath_or_buffer(path, storage_options=storage_options)
 
     df = feather.read_feather(path, columns=columns, use_threads=bool(use_threads))
 
