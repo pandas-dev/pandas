@@ -91,10 +91,17 @@ class EWMMethods:
     def setup(self, constructor, window, dtype, method):
         N = 10 ** 5
         arr = (100 * np.random.random(N)).astype(dtype)
+        times = pd.date_range("1900", periods=N, freq="23s")
         self.ewm = getattr(pd, constructor)(arr).ewm(halflife=window)
+        self.ewm_times = getattr(pd, constructor)(arr).ewm(
+            halflife="1 Day", times=times
+        )
 
     def time_ewm(self, constructor, window, dtype, method):
         getattr(self.ewm, method)()
+
+    def time_ewm_times(self, constructor, window, dtype, method):
+        self.ewm.mean()
 
 
 class VariableWindowMethods(Methods):
