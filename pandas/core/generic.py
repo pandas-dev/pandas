@@ -5178,11 +5178,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         unique_entries = self._info_axis.unique(level=0)
         if len(unique_entries) > 1000:
             unique_entries = unique_entries[:1000]
-            warnings.warn("Completion only considers the first 1000 entries,"
-                          " for performance reasons", UserWarning)
+            warnings.warn(
+                "Completion only considers the first 1000 entries,"
+                " for performance reasons",
+                UserWarning,
+            )
         additions = {
-            c for c in unique_entries
-            if isinstance(c, str) and c.isidentifier()
+            c for c in unique_entries if isinstance(c, str) and c.isidentifier()
         }
         return super()._dir_additions().union(additions)
 
