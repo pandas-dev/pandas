@@ -2568,6 +2568,13 @@ class StringMethods(NoNewAttributesMixin):
 
         * If ``True``, return DataFrame/MultiIndex expanding dimensionality.
         * If ``False``, return Series/Index, containing lists of strings.
+    pad_sequences : bool, default True
+        When expand is ``True``, pad the ending of resulting sequences with
+        ``nan`` to the length of the longest sequence, ensuring each row in the
+        resulting DataFrame has the same number of columns.
+        If ``False``, you must be sure pre-hoc that the split strings will have
+        uniform lengths.
+        Has no effect when expand is ``False``.
 
     Returns
     -------
@@ -2715,13 +2722,6 @@ class StringMethods(NoNewAttributesMixin):
     expand : bool, default True
         If True, return DataFrame/MultiIndex expanding dimensionality.
         If False, return Series/Index.
-    pad_sequences : bool, default True
-        If True and expand is True, pad the resulting sequences with nan to
-        match the length of the longest sequence (so each row has the same
-        number of columns).
-        If False, the result of each split must result in sequences of equal
-        length.
-        Has no effect when expand is False.
 
     Returns
     -------
