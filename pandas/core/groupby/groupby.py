@@ -974,13 +974,17 @@ b  2""",
 
         return self._wrap_transformed_output(output)
 
-    def _wrap_aggregated_output(self, output: Mapping[base.OutputKey, np.ndarray]):
+    def _wrap_aggregated_output(
+        self, output: Mapping[base.OutputKey, np.ndarray], fill_value: Scalar = np.NaN
+    ):
         raise AbstractMethodError(self)
 
     def _wrap_transformed_output(self, output: Mapping[base.OutputKey, np.ndarray]):
         raise AbstractMethodError(self)
 
-    def _wrap_applied_output(self, keys, values, not_indexed_same: bool = False):
+    def _wrap_applied_output(
+        self, keys, values, not_indexed_same: bool = False, fill_value: Scalar = np.NaN
+    ):
         raise AbstractMethodError(self)
 
     def _agg_general(

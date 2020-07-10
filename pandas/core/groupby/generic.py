@@ -1229,7 +1229,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return self.obj._constructor(result, columns=result_columns)
 
     def _wrap_applied_output(
-        self, keys, values, not_indexed_same=False, fill_value: Scalar = np.NaN
+        self, keys, values, not_indexed_same=False, fill_value=np.NaN
     ):
         if len(keys) == 0:
             return self.obj._constructor(index=keys)
