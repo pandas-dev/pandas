@@ -55,9 +55,8 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core.aggregation import (
-    is_multi_agg_with_relabel,
     maybe_mangle_lambdas,
-    normalize_keyword_aggregation,
+    reconstruct_func,
     validate_func_kwargs,
 )
 import pandas.core.algorithms as algorithms
@@ -937,24 +936,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         self, func=None, *args, engine="cython", engine_kwargs=None, **kwargs
     ):
 
-        relabeling = func is None and is_multi_agg_with_relabel(**kwargs)
-        if relabeling:
-            func, columns, order = normalize_keyword_aggregation(kwargs)
-
-            kwargs = {}
-        elif isinstance(func, list) and len(func) > len(set(func)):
-
-            # GH 28426 will raise error if duplicated function names are used and
-            # there is no reassigned name
-            raise SpecificationError(
-                "Function names must be unique if there is no new column "
-                "names assigned"
-            )
-        elif func is None:
-            # nicer error message
-            raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
-
-        func = maybe_mangle_lambdas(func)
+        relabeling, func, columns, order = reconstruct_func(func, **kwargs)
 
         if engine == "numba":
             return self._python_agg_general(
