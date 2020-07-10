@@ -7,6 +7,7 @@ import numpy as np
 from pandas._libs import lib, tslib
 from pandas._libs.tslibs import (
     NaT,
+    Resolution,
     Timestamp,
     conversion,
     fields,
@@ -15,7 +16,6 @@ from pandas._libs.tslibs import (
     ints_to_pydatetime,
     is_date_array_normalized,
     normalize_i8_timestamps,
-    resolution as libresolution,
     timezones,
     to_offset,
     tzconversion,
@@ -533,7 +533,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         return is_date_array_normalized(self.asi8, self.tz)
 
     @property  # NB: override with cache_readonly in immutable subclasses
-    def _resolution_obj(self) -> libresolution.Resolution:
+    def _resolution_obj(self) -> Resolution:
         return get_resolution(self.asi8, self.tz)
 
     # ----------------------------------------------------------------
