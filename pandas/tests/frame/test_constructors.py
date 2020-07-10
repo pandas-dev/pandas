@@ -14,14 +14,16 @@ from pandas.compat import PY37, is_platform_little_endian
 from pandas.compat.numpy import _np_version_under1p19
 
 from pandas.core.dtypes.common import is_integer_dtype
-from pandas.core.dtypes.dtypes import PeriodDtype
+from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype, PeriodDtype
 
 import pandas as pd
 from pandas import (
     Categorical,
     DataFrame,
     Index,
+    Interval,
     MultiIndex,
+    Period,
     RangeIndex,
     Series,
     Timedelta,
@@ -714,15 +716,25 @@ class TestDataFrameConstructors:
         assert df["a"].dtype == a.dtype
         assert df["b"].dtype == b.dtype
 
-    def test_constructor_period_data(self):
+    @pytest.mark.parametrize(
+        "data,dtype",
+        [
+            (Period("2020-01"), PeriodDtype("M")),
+            (Interval(left=0, right=5), IntervalDtype("int64")),
+            (
+                Timestamp("2011-01-01", tz="US/Eastern"),
+                DatetimeTZDtype(tz="US/Eastern"),
+            ),
+        ],
+    )
+    def test_constructor_period_data(self, data, dtype):
         # GH 34832
-        data = pd.Period("2012-01", freq="M")
         df = DataFrame(index=[0, 1], columns=["a", "b"], data=data)
 
-        assert df["a"].dtype == PeriodDtype("M")
-        assert df["b"].dtype == PeriodDtype("M")
+        assert df["a"].dtype == dtype
+        assert df["b"].dtype == dtype
 
-        arr = pd.array([data] * 2, dtype=PeriodDtype("M"))
+        arr = pd.array([data] * 2, dtype=dtype)
         expected = DataFrame({"a": arr, "b": arr})
 
         tm.assert_frame_equal(df, expected)
