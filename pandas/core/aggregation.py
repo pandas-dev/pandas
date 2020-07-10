@@ -17,7 +17,7 @@ from typing import (
     Union,
 )
 
-from pandas._typing import Label
+from pandas._typing import Label, AggFuncType
 
 from pandas.core.dtypes.common import is_dict_like, is_list_like
 
@@ -28,25 +28,9 @@ from pandas.core.series import FrameOrSeriesUnion, Series
 
 
 def reconstruct_func(
-    func: Optional[
-        Union[
-            Union[Callable, str],
-            List[Union[Callable, str]],
-            Dict[Label, Union[Callable, str, List[Union[Callable, str]]]],
-        ]
-    ],
-    **kwargs,
+    func: Optional[AggFuncType], **kwargs,
 ) -> Tuple[
-    bool,
-    Optional[
-        Union[
-            Union[Callable, str],
-            List[Union[Callable, str]],
-            Dict[Label, Union[Callable, str, List[Union[Callable, str]]]],
-        ]
-    ],
-    Optional[List[str]],
-    Optional[List[int]],
+    bool, Optional[AggFuncType], Optional[List[str]], Optional[List[int]],
 ]:
     """
     This is the internal function to reconstruct func given if there is relabeling
