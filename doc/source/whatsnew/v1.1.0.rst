@@ -280,6 +280,7 @@ Other enhancements
 - :meth:`Styler.highlight_null` now accepts ``subset`` argument (:issue:`31345`)
 - When writing directly to a sqlite connection :func:`to_sql` now supports the ``multi`` method (:issue:`29921`)
 - `OptionError` is now exposed in `pandas.errors` (:issue:`27553`)
+- Add :meth:`ExtensionArray.argmax` and :meth:`ExtensionArray.argmin` (:issue:`24382`)
 - :func:`timedelta_range` will now infer a frequency when passed ``start``, ``stop``, and ``periods`` (:issue:`32377`)
 - Positional slicing on a :class:`IntervalIndex` now supports slices with ``step > 1`` (:issue:`31658`)
 - :class:`Series.str` now has a `fullmatch` method that matches a regular expression against the entire string in each row of the series, similar to `re.fullmatch` (:issue:`32806`).
@@ -296,6 +297,7 @@ Other enhancements
   This can be used to set a custom compression level, e.g.,
   ``df.to_csv(path, compression={'method': 'gzip', 'compresslevel': 1}``
   (:issue:`33196`)
+- :meth:`melt` has gained an ``ignore_index`` (default ``True``) argument that, if set to ``False``, prevents the method from dropping the index (:issue:`17440`).
 - :meth:`Series.update` now accepts objects that can be coerced to a :class:`Series`,
   such as ``dict`` and ``list``, mirroring the behavior of :meth:`DataFrame.update` (:issue:`33215`)
 - :meth:`~pandas.core.groupby.GroupBy.transform` and :meth:`~pandas.core.groupby.GroupBy.aggregate` has gained ``engine`` and ``engine_kwargs`` arguments that supports executing functions with ``Numba`` (:issue:`32854`, :issue:`33388`)
@@ -321,7 +323,7 @@ Other enhancements
 - :meth:`DataFrame.hist`, :meth:`Series.hist`, :meth:`core.groupby.DataFrameGroupBy.hist`, and :meth:`core.groupby.SeriesGroupBy.hist` have gained the ``legend`` argument. Set to True to show a legend in the histogram. (:issue:`6279`)
 - :func:`concat` and :meth:`~DataFrame.append` now preserve extension dtypes, for example
   combining a nullable integer column with a numpy integer column will no longer
-  result in object dtype but preserve the integer dtype (:issue:`33607`, :issue:`34339`).
+  result in object dtype but preserve the integer dtype (:issue:`33607`, :issue:`34339`, :issue:`34095`).
 - :meth:`~pandas.io.gbq.read_gbq` now allows to disable progress bar (:issue:`33360`).
 - :meth:`~pandas.io.gbq.read_gbq` now supports the ``max_results`` kwarg from ``pandas-gbq`` (:issue:`34639`).
 - :meth:`DataFrame.cov` and :meth:`Series.cov` now support a new parameter ddof to support delta degrees of freedom as in the corresponding numpy methods (:issue:`34611`).
@@ -329,6 +331,7 @@ Other enhancements
 - :meth:`DataFrame.to_excel` can now also write OpenOffice spreadsheet (.ods) files (:issue:`27222`)
 - :meth:`~Series.explode` now accepts ``ignore_index`` to reset the index, similarly to :meth:`pd.concat` or :meth:`DataFrame.sort_values` (:issue:`34932`).
 - :meth:`read_csv` now accepts string values like "0", "0.0", "1", "1.0" as convertible to the nullable boolean dtype (:issue:`34859`)
+- :class:`pandas.core.window.ExponentialMovingWindow` now supports a ``times`` argument that allows ``mean`` to be calculated with observations spaced by the timestamps in ``times`` (:issue:`34839`)
 
 .. ---------------------------------------------------------------------------
 
@@ -788,6 +791,7 @@ Deprecations
 - :meth:`Categorical.to_dense` is deprecated and will be removed in a future version, use ``np.asarray(cat)`` instead (:issue:`32639`)
 - The ``fastpath`` keyword in the ``SingleBlockManager`` constructor is deprecated and will be removed in a future version (:issue:`33092`)
 - Providing ``suffixes`` as a ``set`` in :func:`pandas.merge` is deprecated. Provide a tuple instead (:issue:`33740`, :issue:`34741`).
+- Indexing a series with a multi-dimensional indexer like ``[:, None]`` to return an ndarray now raises a ``FutureWarning``. Convert to a NumPy array before indexing instead (:issue:`27837`)
 - :meth:`Index.is_mixed` is deprecated and will be removed in a future version, check ``index.inferred_type`` directly instead (:issue:`32922`)
 
 - Passing any arguments but the first one to  :func:`read_html` as
@@ -850,6 +854,7 @@ Performance improvements
 - Performance improvement in :class:`pandas.core.groupby.RollingGroupby` (:issue:`34052`)
 - Performance improvement in arithmetic operations (sub, add, mul, div) for MultiIndex (:issue:`34297`)
 - Performance improvement in `DataFrame[bool_indexer]` when `bool_indexer` is a list (:issue:`33924`)
+- Significant performance improvement of :meth:`io.formats.style.Styler.render` with styles added with various ways such as :meth:`io.formats.style.Styler.apply`, :meth:`io.formats.style.Styler.applymap` or :meth:`io.formats.style.Styler.bar` (:issue:`19917`)
 
 .. ---------------------------------------------------------------------------
 
@@ -976,6 +981,7 @@ Indexing
 - Bug in :meth:`DataFrame.loc` with dictionary of values changes columns with dtype of ``int`` to ``float`` (:issue:`34573`)
 - Bug in :meth:`Series.loc` when used with a :class:`MultiIndex` would raise an IndexingError when accessing a None value (:issue:`34318`)
 - Bug in :meth:`DataFrame.reset_index` and :meth:`Series.reset_index` would not preserve data types on an empty :class:`DataFrame` or :class:`Series` with a :class:`MultiIndex` (:issue:`19602`)
+- Bug in :class:`Series` and :class:`DataFrame` indexing with a ``time`` key on a :class:`DatetimeIndex` with ``NaT`` entries (:issue:`35114`)
 
 Missing
 ^^^^^^^
@@ -1012,6 +1018,7 @@ MultiIndex
 
 I/O
 ^^^
+- Bug in print-out when ``display.precision`` is zero. (:issue:`20359`)
 - Bug in :meth:`read_json` where integer overflow was occurring when json contains big number strings. (:issue:`30320`)
 - `read_csv` will now raise a ``ValueError`` when the arguments `header` and `prefix` both are not `None`. (:issue:`27394`)
 - Bug in :meth:`DataFrame.to_json` was raising ``NotFoundError`` when ``path_or_buf`` was an S3 URI (:issue:`28375`)
@@ -1047,6 +1054,8 @@ I/O
 - Bug in :meth:`~HDFStore.create_table` now raises an error when `column` argument was not specified in `data_columns` on input (:issue:`28156`)
 - :meth:`read_json` now could read line-delimited json file from a file url while `lines` and `chunksize` are set.
 - Bug in :meth:`DataFrame.to_sql` when reading DataFrames with ``-np.inf`` entries with MySQL now has a more explicit ``ValueError`` (:issue:`34431`)
+- Bug in :meth:`read_excel` that was raising a ``TypeError`` when ``header=None`` and ``index_col`` given as list (:issue:`31783`)
+- Bug in "meth"`read_excel` where datetime values are used in the header in a `MultiIndex` (:issue:`34748`)
 
 Plotting
 ^^^^^^^^
@@ -1112,6 +1121,7 @@ Reshaping
 - Fixed bug in :func:`melt` where melting MultiIndex columns with ``col_level`` > 0 would raise a ``KeyError`` on ``id_vars`` (:issue:`34129`)
 - Bug in :meth:`Series.where` with an empty Series and empty ``cond`` having non-bool dtype (:issue:`34592`)
 - Fixed regression where :meth:`DataFrame.apply` would raise ``ValueError`` for elements whth ``S`` dtype (:issue:`34529`)
+- Bug in :meth:`DataFrame.append` leading to sorting columns even when ``sort=False`` is specified (:issue:`35092`)
 
 Sparse
 ^^^^^^
@@ -1121,6 +1131,7 @@ Sparse
 - Bug where :class:`DataFrame` containing :class:`SparseArray` filled with ``NaN`` when indexed by a list-like (:issue:`27781`, :issue:`29563`)
 - The repr of :class:`SparseDtype` now includes the repr of its ``fill_value`` attribute. Previously it used ``fill_value``'s  string representation (:issue:`34352`)
 - Bug where empty :class:`DataFrame` could not be cast to :class:`SparseDtype` (:issue:`33113`)
+- Bug in :meth:`arrays.SparseArray` was returning the incorrect type when indexing a sparse dataframe with an iterable (:issue:`34526`, :issue:`34540`)
 
 ExtensionArray
 ^^^^^^^^^^^^^^
@@ -1134,6 +1145,7 @@ ExtensionArray
 - Fixed bug where :meth:`StringArray.memory_usage` was not implemented (:issue:`33963`)
 - Fixed bug where :meth:`DataFrameGroupBy` would ignore the ``min_count`` argument for aggregations on nullable boolean dtypes (:issue:`34051`)
 - Fixed bug that `DataFrame(columns=.., dtype='string')` would fail (:issue:`27953`, :issue:`33623`)
+- Fixed bug in ``IntegerArray.astype`` to correctly copy the mask as well (:issue:`34931`).
 
 Other
 ^^^^^
@@ -1161,3 +1173,4 @@ Other
 
 Contributors
 ~~~~~~~~~~~~
+
