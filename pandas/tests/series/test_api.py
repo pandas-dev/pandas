@@ -248,7 +248,7 @@ class TestSeriesMisc:
             tm.makeIntIndex(10),
             tm.makeFloatIndex(10),
             Index([True, False]),
-            Index([f"a{i}" for i in range(101)]),
+            Index([f"a{i}" for i in range(1001)]),
             pd.MultiIndex.from_tuples(zip("ABCD", "EFGH")),
             pd.MultiIndex.from_tuples(zip([0, 1, 2, 3], "EFGH")),
         ],
@@ -256,9 +256,14 @@ class TestSeriesMisc:
     def test_index_tab_completion(self, index):
         # dir contains string-like values of the Index.
         s = pd.Series(index=index, dtype=object)
-        dir_s = dir(s)
+        if len(s) < 1000:
+            dir_s = dir(s)
+        else:
+            with tm.assert_produces_warning(UserWarning):
+                dir_s = dir(s)
+
         for i, x in enumerate(s.index.unique(level=0)):
-            if i < 100:
+            if i < 1000:
                 assert not isinstance(x, str) or not x.isidentifier() or x in dir_s
             else:
                 assert x not in dir_s
