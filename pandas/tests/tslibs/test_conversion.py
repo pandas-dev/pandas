@@ -4,7 +4,13 @@ import numpy as np
 import pytest
 from pytz import UTC
 
-from pandas._libs.tslibs import conversion, iNaT, timezones, tzconversion
+from pandas._libs.tslibs import (
+    OutOfBoundsTimedelta,
+    conversion,
+    iNaT,
+    timezones,
+    tzconversion,
+)
 
 from pandas import Timestamp, date_range
 import pandas._testing as tm
@@ -87,6 +93,13 @@ def test_ensure_datetime64ns_bigendian():
 
     expected = np.array([np.datetime64(1, "ms")], dtype="M8[ns]")
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_ensure_timedelta64ns_overflows():
+    arr = np.arange(10).astype("m8[Y]") * 100
+    msg = r"Out of bounds for nanosecond timedelta64\[Y\] 900"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        conversion.ensure_timedelta64ns(arr)
 
 
 class SubDatetime(datetime):
