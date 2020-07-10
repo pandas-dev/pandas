@@ -53,6 +53,32 @@ need to implement certain operations expected by pandas users (for example
 the algorithm used in, ``Series.str.upper``). That work may be done outside of
 pandas.
 
+Consistent missing value handling
+---------------------------------
+
+Currently, pandas has varying missing data interfaces depending on the data
+type: pandas uses ``np.nan`` as missing value indicator in floating point data,
+``np.nan`` or ``None`` in object dtype data (eg strings, or booleans with
+missing values are cast to object), ``pd.NaT`` in datetimelike data. For
+categorical or interval data, they return ``np.nan`` on access even when the
+categories or intervals are datetime-like. Integer data cannot store missing
+data or are cast to float.
+
+Long term, we want to introduce consistent missing value handling accross the
+different data types: all data types should support missing values and with the
+same behaviour.
+
+To this end, a new experimental ``pd.NA`` scalar to be used as missing value
+indicator has already been added in pandas 1.0 (and used in the experimental
+nullable dtypes). Further work is needed to integrate this with other data
+types, and to provide a path forward to make this the default in a future
+version of pandas.
+
+This has been discussed at
+`github #28095 <https://github.com/pandas-dev/pandas/issues/28095>`__ (and
+linked issues), and described in more detail in this
+`design doc <https://hackmd.io/@jorisvandenbossche/Sk0wMeAmB>`__.
+
 Apache Arrow interoperability
 -----------------------------
 
