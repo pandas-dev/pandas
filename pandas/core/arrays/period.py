@@ -1034,9 +1034,10 @@ def _range_from_fields(
             if base != FreqGroup.FR_QTR:
                 raise AssertionError("base must equal FR_QTR")
 
+        freqstr = freq.freqstr
         year, quarter = _make_field_arrays(year, quarter)
         for y, q in zip(year, quarter):
-            y, m = libperiod.quarter_to_myear(y, q, freq)
+            y, m = libperiod.quarter_to_myear(y, q, freqstr)
             val = libperiod.period_ordinal(y, m, 1, 1, 1, 1, 0, 0, base)
             ordinals.append(val)
     else:

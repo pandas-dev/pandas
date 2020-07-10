@@ -284,7 +284,7 @@ def parse_time_string(arg: str, freq=None, dayfirst=None, yearfirst=None):
 
 
 cdef parse_datetime_string_with_reso(
-    str date_string, object freq=None, bint dayfirst=False, bint yearfirst=False,
+    str date_string, str freq=None, bint dayfirst=False, bint yearfirst=False,
 ):
     """
     Parse datetime string and try to identify its resolution.
@@ -438,6 +438,7 @@ cdef inline object _parse_dateabbr_string(object date_string, datetime default,
 
             if freq is not None:
                 # TODO: hack attack, #1228
+                freq = getattr(freq, "freqstr", freq)
                 try:
                     mnum = c_MONTH_NUMBERS[get_rule_month(freq)] + 1
                 except (KeyError, ValueError):
@@ -1020,15 +1021,14 @@ def concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True):
     return result
 
 
-# TODO: `default` never used?
-cpdef str get_rule_month(object source, str default="DEC"):
+cpdef str get_rule_month(str source):
     """
     Return starting month of given freq, default is December.
 
     Parameters
     ----------
-    source : object
-    default : str, default "DEC"
+    source : str
+        Derived from `freq.rule_code` or `freq.freqstr`.
 
     Returns
     -------
@@ -1042,10 +1042,8 @@ cpdef str get_rule_month(object source, str default="DEC"):
     >>> get_rule_month('A-JAN')
     'JAN'
     """
-    if is_offset_object(source):
-        source = source.freqstr
     source = source.upper()
     if "-" not in source:
-        return default
+        return "DEC"
     else:
         return source.split("-")[1]
