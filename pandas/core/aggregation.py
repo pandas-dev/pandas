@@ -293,7 +293,7 @@ def maybe_mangle_lambdas(agg_spec: Any) -> Any:
     return mangled_aggspec
 
 
-def _relabel_result(
+def relabel_result(
     result: FrameOrSeriesUnion,
     func: Dict[str, List[Union[Callable, str]]],
     columns: Tuple,
