@@ -151,7 +151,7 @@ named *passengers* instead of the default *Sheet1*. By setting
         </li>
     </ul>
 
-The equivalent read function :meth:`~DataFrame.to_excel` will reload the data to a
+The equivalent read function :meth:`~DataFrame.read_excel` will reload the data to a
 ``DataFrame``:
 
 .. ipython:: python
