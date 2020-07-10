@@ -421,6 +421,14 @@ found in NumPy or pandas, which work well with pandas' data containers.
 Cyberpandas provides an extension type for storing arrays of IP Addresses. These
 arrays can be stored inside pandas' Series and DataFrame.
 
+`Pint-Pandas`_
+~~~~~~~~~~~~~~
+
+`Pint-Pandas <https://github.com/hgrecco/pint-pandas>` provides an extension type for
+storing numeric arrays with units. These arrays can be stored inside pandas'
+Series and DataFrame. Operations between Series and DataFrame columns which
+use pint's extension array are then units aware.
+
 .. _ecosystem.accessors:
 
 Accessors
@@ -436,6 +444,7 @@ Library         Accessor   Classes                   Description
 `cyberpandas`_  ``ip``     ``Series``                Provides common operations for working with IP addresses.
 `pdvega`_       ``vgplot`` ``Series``, ``DataFrame`` Provides plotting functions from the Altair_ library.
 `pandas_path`_  ``path``   ``Index``, ``Series``     Provides `pathlib.Path`_ functions for Series.
+`pint-pandas`_  ``pint``   ``Series``, ``DataFrame`` Provides units support for numeric Series and DataFrames.
 =============== ========== ========================= ===============================================================
 
 .. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest
@@ -443,3 +452,4 @@ Library         Accessor   Classes                   Description
 .. _Altair: https://altair-viz.github.io/
 .. _pandas_path: https://github.com/drivendataorg/pandas-path/
 .. _pathlib.Path: https://docs.python.org/3/library/pathlib.html
+.. _pint-pandas: https://github.com/hgrecco/pint-pandas
