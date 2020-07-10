@@ -1168,6 +1168,7 @@ class TestDataFrameConstructors:
             OrderedDict([["b", 3], ["c", 4], ["d", 6]]),
         ]
 
+        # single row dataframe
         result = DataFrame([data[0]])
         expected = DataFrame.from_dict(
             dict(zip([0], [data[0]])), orient="index")
