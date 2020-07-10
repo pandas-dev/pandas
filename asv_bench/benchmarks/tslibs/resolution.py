@@ -23,7 +23,10 @@ from dateutil.tz import gettz, tzlocal
 import numpy as np
 import pytz
 
-from pandas._libs.tslibs.resolution import get_resolution
+try:
+    from pandas._libs.tslibs import get_resolution
+except ImportError:
+    from pandas._libs.tslibs.resolution import get_resolution
 
 
 class TimeResolution:
