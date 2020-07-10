@@ -558,7 +558,7 @@ cdef class BaseOffset:
 
     def _get_offset_day(self, other: datetime) -> int:
         # subclass must implement `_day_opt`; calling from the base class
-        # will raise NotImplementedError.
+        # will implicitly assume day_opt = "business_end", see get_day_of_month.
         cdef:
             npy_datetimestruct dts
         pydate_to_dtstruct(other, &dts)
@@ -3611,7 +3611,6 @@ def shift_months(const int64_t[:] dtindex, int months, object day_opt=None):
                 out[i] = dtstruct_to_dt64(&dts)
     elif day_opt in ["start", "end", "business_start", "business_end"]:
         _shift_months(dtindex, out, count, months, day_opt)
-
     else:
         raise ValueError("day must be None, 'start', 'end', "
                          "'business_start', or 'business_end'")
@@ -3801,7 +3800,7 @@ def shift_month(stamp: datetime, months: int, day_opt: object=None) -> datetime:
     return stamp.replace(year=year, month=month, day=day)
 
 
-cdef inline int get_day_of_month(npy_datetimestruct* dts, day_opt) nogil except? -1:
+cdef inline int get_day_of_month(npy_datetimestruct* dts, str day_opt) nogil:
     """
     Find the day in `other`'s month that satisfies a DateOffset's is_on_offset
     policy, as described by the `day_opt` argument.
@@ -3827,27 +3826,23 @@ cdef inline int get_day_of_month(npy_datetimestruct* dts, day_opt) nogil except?
     >>> get_day_of_month(other, 'end')
     30
 
+    Notes
+    -----
+    Caller is responsible for ensuring one of the four accepted day_opt values
+    is passed.
     """
-    cdef:
-        int days_in_month
 
     if day_opt == "start":
         return 1
     elif day_opt == "end":
-        days_in_month = get_days_in_month(dts.year, dts.month)
-        return days_in_month
+        return get_days_in_month(dts.year, dts.month)
     elif day_opt == "business_start":
         # first business day of month
         return get_firstbday(dts.year, dts.month)
-    elif day_opt == "business_end":
+    else:
+        # i.e. day_opt == "business_end":
         # last business day of month
         return get_lastbday(dts.year, dts.month)
-    elif day_opt is not None:
-        raise ValueError(day_opt)
-    elif day_opt is None:
-        # Note: unlike `shift_month`, get_day_of_month does not
-        # allow day_opt = None
-        raise NotImplementedError
 
 
 cpdef int roll_convention(int other, int n, int compare) nogil:
@@ -3901,6 +3896,10 @@ def roll_qtrday(other: datetime, n: int, month: int,
     cdef:
         int months_since
         npy_datetimestruct dts
+
+    if day_opt not in ["start", "end", "business_start", "business_end"]:
+        raise ValueError(day_opt)
+
     pydate_to_dtstruct(other, &dts)
 
     if modby == 12:
