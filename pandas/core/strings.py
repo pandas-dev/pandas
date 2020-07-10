@@ -2220,13 +2220,7 @@ class StringMethods(NoNewAttributesMixin):
             # required when expand=True is explicitly specified
             # not needed when inferred
 
-            def cons_row(x):
-                if is_list_like(x):
-                    return x
-                else:
-                    return [x]
-
-            result = [cons_row(x) for x in result]
+            result = [x if is_list_like(x) else [x] for x in result]
             if result:
                 # propagate nan values to match longest sequence (GH 18450)
                 max_len = max(len(x) for x in result)
