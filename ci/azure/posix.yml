@@ -16,7 +16,7 @@ jobs:
 
       ${{ if eq(parameters.name, 'Linux') }}:
         py36_minimum_versions:
-          ENV_FILE: ci/deps/azure-37minimum_versions.yaml
+          ENV_FILE: ci/deps/azure-37-minimum_versions.yaml
           CONDA_PY: "37"
           PATTERN: "not slow and not network and not clipboard"
 
