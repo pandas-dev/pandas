@@ -22,7 +22,8 @@ class TestResetIndex:
         # check inplace
         s = ser.reset_index(drop=True)
         s2 = ser
-        s2.reset_index(drop=True, inplace=True)
+        return_value = s2.reset_index(drop=True, inplace=True)
+        assert return_value is None
         tm.assert_series_equal(s, s2)
 
         # level

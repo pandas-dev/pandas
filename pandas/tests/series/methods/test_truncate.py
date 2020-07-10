@@ -136,7 +136,8 @@ class TestTruncate:
         df = pd.DataFrame.from_dict(
             {"L1": [2, 2, 3, 3], "L2": ["A", "B", "A", "B"], "col": [2, 3, 4, 5]}
         )
-        df.set_index(["L1", "L2"], inplace=True)
+        return_value = df.set_index(["L1", "L2"], inplace=True)
+        assert return_value is None
         expected = df.col
 
         tm.assert_series_equal(result, expected)

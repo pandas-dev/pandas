@@ -65,7 +65,8 @@ class TestSeriesSortValues:
 
         # inplace=True
         ts = datetime_series.copy()
-        ts.sort_values(ascending=False, inplace=True)
+        return_value = ts.sort_values(ascending=False, inplace=True)
+        assert return_value is None
         tm.assert_series_equal(ts, datetime_series.sort_values(ascending=False))
         tm.assert_index_equal(
             ts.index, datetime_series.sort_values(ascending=False).index
