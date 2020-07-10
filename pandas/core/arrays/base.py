@@ -457,9 +457,13 @@ class ExtensionArray:
             NumPy ndarray with 'dtype' for its dtype.
         """
         from pandas.core.arrays.string_ import StringDtype
+        from pandas.core.arrays.string_arrow import ArrowStringDtype
 
         dtype = pandas_dtype(dtype)
-        if isinstance(dtype, StringDtype):  # allow conversion to StringArrays
+        # FIXME: Really hard-code here?
+        if isinstance(
+            dtype, (ArrowStringDtype, StringDtype)
+        ):  # allow conversion to StringArrays
             return dtype.construct_array_type()._from_sequence(self, copy=False)
 
         return np.array(self, dtype=dtype, copy=copy)
