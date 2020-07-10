@@ -5179,8 +5179,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if len(unique_entries) > 1000:
             unique_entries = unique_entries[:1000]
             warnings.warn(
-                "Completion only considers the first 1000 entries,"
-                " for performance reasons",
+                "Completion only considers the first 1000 entries "
+                "for performance reasons",
                 UserWarning,
             )
         additions = {
