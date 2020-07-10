@@ -2184,6 +2184,7 @@ class StringMethods(NoNewAttributesMixin):
         expand=None,
         fill_value=np.nan,
         returns_string=True,
+        pad_sequences=True,
     ):
 
         from pandas import Index, Series, MultiIndex
@@ -2216,7 +2217,7 @@ class StringMethods(NoNewAttributesMixin):
             # infer from ndim if expand is not specified
             expand = result.ndim != 1
 
-        elif expand is True and not isinstance(self._orig, ABCIndexClass):
+        elif expand is True and not isinstance(self._orig, ABCIndexClass) and pad_sequences:
             # required when expand=True is explicitly specified
             # not needed when inferred
 
@@ -2679,15 +2680,15 @@ class StringMethods(NoNewAttributesMixin):
 
     @Appender(_shared_docs["str_split"] % {"side": "beginning", "method": "split"})
     @forbid_nonstring_types(["bytes"])
-    def split(self, pat=None, n=-1, expand=False):
+    def split(self, pat=None, n=-1, expand=False, pad_sequences=True):
         result = str_split(self._parent, pat, n=n)
-        return self._wrap_result(result, expand=expand, returns_string=expand)
+        return self._wrap_result(result, expand=expand, returns_string=expand, pad_sequences=pad_sequences)
 
     @Appender(_shared_docs["str_split"] % {"side": "end", "method": "rsplit"})
     @forbid_nonstring_types(["bytes"])
-    def rsplit(self, pat=None, n=-1, expand=False):
+    def rsplit(self, pat=None, n=-1, expand=False, pad_sequences=True):
         result = str_rsplit(self._parent, pat, n=n)
-        return self._wrap_result(result, expand=expand, returns_string=expand)
+        return self._wrap_result(result, expand=expand, returns_string=expand, pad_sequences=pad_sequences)
 
     _shared_docs[
         "str_partition"
@@ -2706,6 +2707,13 @@ class StringMethods(NoNewAttributesMixin):
     expand : bool, default True
         If True, return DataFrame/MultiIndex expanding dimensionality.
         If False, return Series/Index.
+    pad_sequences : bool, default True
+        If True and expand is True, pad the resulting sequences with nan to
+        match the length of the longest sequence (so each row has the same
+        number of columns).
+        If False, the result of each split must result in sequences of equal
+        length.
+        Has no effect when expand is False.
 
     Returns
     -------
