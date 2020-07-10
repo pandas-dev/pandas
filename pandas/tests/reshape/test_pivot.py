@@ -1851,7 +1851,7 @@ class TestPivotTable:
             values="Sales",
             index="Month",
             columns="Year",
-            dropna=observed,
+            observed=observed,
             aggfunc="sum",
         )
         expected_columns = pd.Int64Index([2013, 2014], name="Year")
@@ -1862,6 +1862,8 @@ class TestPivotTable:
         expected = pd.DataFrame(
             expected_data, index=expected_index, columns=expected_columns
         )
+        if observed:
+            expected = expected.loc[["January"]]
 
         tm.assert_frame_equal(result, expected)
 
