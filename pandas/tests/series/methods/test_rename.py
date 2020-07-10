@@ -48,7 +48,8 @@ class TestRename:
     def test_rename_set_name_inplace(self):
         s = Series(range(3), index=list("abc"))
         for name in ["foo", 123, 123.0, datetime(2001, 11, 11), ("foo",)]:
-            s.rename(name, inplace=True)
+            return_value = s.rename(name, inplace=True)
+            assert return_value is None
             assert s.name == name
 
             exp = np.array(["a", "b", "c"], dtype=np.object_)
@@ -68,7 +69,8 @@ class TestRename:
         renamer = lambda x: x.strftime("%Y%m%d")
         expected = renamer(datetime_series.index[0])
 
-        datetime_series.rename(renamer, inplace=True)
+        return_value = datetime_series.rename(renamer, inplace=True)
+        assert return_value is None
         assert datetime_series.index[0] == expected
 
     def test_rename_with_custom_indexer(self):
@@ -87,7 +89,8 @@ class TestRename:
 
         ix = MyIndexer()
         s = Series([1, 2, 3])
-        s.rename(ix, inplace=True)
+        return_value = s.rename(ix, inplace=True)
+        assert return_value is None
         assert s.name is ix
 
     def test_rename_callable(self):

@@ -65,7 +65,8 @@ class TestSeriesSortValues:
 
         # inplace=True
         ts = datetime_series.copy()
-        ts.sort_values(ascending=False, inplace=True)
+        return_value = ts.sort_values(ascending=False, inplace=True)
+        assert return_value is None
         tm.assert_series_equal(ts, datetime_series.sort_values(ascending=False))
         tm.assert_index_equal(
             ts.index, datetime_series.sort_values(ascending=False).index
@@ -81,7 +82,8 @@ class TestSeriesSortValues:
             "you must create a copy"
         )
         with pytest.raises(ValueError, match=msg):
-            s.sort_values(inplace=True)
+            return_value = s.sort_values(inplace=True)
+            assert return_value is None
 
     def test_sort_values_categorical(self):
 
