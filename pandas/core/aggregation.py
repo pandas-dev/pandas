@@ -17,7 +17,7 @@ from typing import (
     Union,
 )
 
-from pandas._typing import Label, AggFuncType
+from pandas._typing import AggFuncType, Label
 
 from pandas.core.dtypes.common import is_dict_like, is_list_like
 
