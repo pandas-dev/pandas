@@ -92,10 +92,13 @@ class _IntegerDtype(BaseMaskedDtype):
         return IntegerArray
 
     def _get_common_dtype(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
-        # for now only handle other integer types
+        # we only handle nullable EA dtypes and numeric numpy dtypes
         if not all(
-            isinstance(t, _IntegerDtype)
-            or (isinstance(t, np.dtype) and np.issubdtype(t, np.integer))
+            isinstance(t, BaseMaskedDtype)
+            or (
+                isinstance(t, np.dtype)
+                and (np.issubdtype(t, np.number) or np.issubdtype(t, np.bool_))
+            )
             for t in dtypes
         ):
             return None
