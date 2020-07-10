@@ -2217,7 +2217,11 @@ class StringMethods(NoNewAttributesMixin):
             # infer from ndim if expand is not specified
             expand = result.ndim != 1
 
-        elif expand is True and not isinstance(self._orig, ABCIndexClass) and pad_sequences:
+        elif (
+            expand is True
+            and not isinstance(self._orig, ABCIndexClass)
+            and pad_sequences
+        ):
             # required when expand=True is explicitly specified
             # not needed when inferred
 
@@ -2682,13 +2686,17 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def split(self, pat=None, n=-1, expand=False, pad_sequences=True):
         result = str_split(self._parent, pat, n=n)
-        return self._wrap_result(result, expand=expand, returns_string=expand, pad_sequences=pad_sequences)
+        return self._wrap_result(
+            result, expand=expand, returns_string=expand, pad_sequences=pad_sequences
+        )
 
     @Appender(_shared_docs["str_split"] % {"side": "end", "method": "rsplit"})
     @forbid_nonstring_types(["bytes"])
     def rsplit(self, pat=None, n=-1, expand=False, pad_sequences=True):
         result = str_rsplit(self._parent, pat, n=n)
-        return self._wrap_result(result, expand=expand, returns_string=expand, pad_sequences=pad_sequences)
+        return self._wrap_result(
+            result, expand=expand, returns_string=expand, pad_sequences=pad_sequences
+        )
 
     _shared_docs[
         "str_partition"
