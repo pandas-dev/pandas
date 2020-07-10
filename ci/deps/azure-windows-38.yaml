@@ -19,7 +19,7 @@ dependencies:
   - matplotlib=3.0.2
   - numba
   - numexpr
-  - numpy=1.16.*
+  - numpy=1.18.*
   - openpyxl
   - jinja2
   - pyarrow>=0.13.0
