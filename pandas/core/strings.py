@@ -2686,6 +2686,21 @@ class StringMethods(NoNewAttributesMixin):
     >>> s.str.split(r"\+|=", expand=True)
          0    1    2
     0    1    1    2
+
+    When using ``expand=True``, if you have already verified that the
+    particular split will result in sequences of uniform length, you may opt
+    out of the (sometimes expensive) length normalzation process with
+    ``pad_sequences=False``.
+
+    >>> s = pd.Series(["foo bar", "baz qaz"])
+    >>> s
+    0    foo bar
+    1    baz qaz
+    dtype: object
+    >>> s.str.split(expand=True, pad_sequences=False)
+         0    1
+    0  foo  bar
+    1  baz  qaz
     """
 
     @Appender(_shared_docs["str_split"] % {"side": "beginning", "method": "split"})
