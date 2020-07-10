@@ -728,7 +728,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         This is used to calculate time-of-day information as if the timestamps
         were timezone-naive.
         """
-        return tzconversion.tz_convert(self.asi8, timezones.UTC, self.tz)
+        return tzconversion.tz_convert_from_utc(self.asi8, self.tz)
 
     def tz_convert(self, tz):
         """
@@ -960,7 +960,7 @@ default 'raise'
 
         if self.tz is not None:
             if tz is None:
-                new_dates = tzconversion.tz_convert(self.asi8, timezones.UTC, self.tz)
+                new_dates = tzconversion.tz_convert_from_utc(self.asi8, self.tz)
             else:
                 raise TypeError("Already tz-aware, use tz_convert to convert.")
         else:
