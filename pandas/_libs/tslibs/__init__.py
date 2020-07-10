@@ -19,7 +19,7 @@ __all__ = [
     "ints_to_pytimedelta",
     "get_resolution",
     "Timestamp",
-    "tz_convert_single",
+    "tz_convert_from_utc_single",
     "to_offset",
     "Tick",
     "BaseOffset",
@@ -27,14 +27,14 @@ __all__ = [
 
 from . import dtypes
 from .conversion import localize_pydatetime
+from .dtypes import Resolution
 from .nattype import NaT, NaTType, iNaT, is_null_datetimelike, nat_strings
 from .np_datetime import OutOfBoundsDatetime
 from .offsets import BaseOffset, Tick, to_offset
 from .period import IncompatibleFrequency, Period
-from .resolution import Resolution
 from .timedeltas import Timedelta, delta_to_nanoseconds, ints_to_pytimedelta
 from .timestamps import Timestamp
-from .tzconversion import tz_convert_single
+from .tzconversion import tz_convert_from_utc_single
 from .vectorized import (
     dt64arr_to_periodarr,
     get_resolution,

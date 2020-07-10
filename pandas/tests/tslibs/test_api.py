@@ -16,7 +16,6 @@ def test_namespace():
         "offsets",
         "parsing",
         "period",
-        "resolution",
         "strptime",
         "vectorized",
         "timedeltas",
@@ -47,7 +46,7 @@ def test_namespace():
         "delta_to_nanoseconds",
         "ints_to_pytimedelta",
         "localize_pydatetime",
-        "tz_convert_single",
+        "tz_convert_from_utc_single",
         "to_offset",
     ]
 
