@@ -260,9 +260,8 @@ def ensure_timedelta64ns(arr: ndarray, copy: bool=True):
         else:
             bad_val = tdmax
 
-        unit_str = arr.dtype.str.split("[")[-1][:-1]
         raise OutOfBoundsTimedelta(
-            f"Out of bounds for nanosecond timedelta {bad_val}[{unit_str}]"
+            f"Out of bounds for nanosecond {arr.dtype.name} {bad_val}"
         )
 
     return dt64_result.view(TD64NS_DTYPE)
