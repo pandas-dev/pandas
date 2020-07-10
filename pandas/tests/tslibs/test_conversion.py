@@ -12,9 +12,9 @@ import pandas._testing as tm
 
 def _compare_utc_to_local(tz_didx):
     def f(x):
-        return tzconversion.tz_convert_single(x, UTC, tz_didx.tz)
+        return tzconversion.tz_convert_from_utc_single(x, tz_didx.tz)
 
-    result = tzconversion.tz_convert(tz_didx.asi8, UTC, tz_didx.tz)
+    result = tzconversion.tz_convert_from_utc(tz_didx.asi8, tz_didx.tz)
     expected = np.vectorize(f)(tz_didx.asi8)
 
     tm.assert_numpy_array_equal(result, expected)
@@ -22,9 +22,6 @@ def _compare_utc_to_local(tz_didx):
 
 def _compare_local_to_utc(tz_didx, naive_didx):
     # Check that tz_localize behaves the same vectorized and pointwise.
-    def f(x):
-        return tzconversion.tz_convert_single(x, tz_didx.tz, UTC)
-
     err1 = err2 = None
     try:
         result = tzconversion.tz_localize_to_utc(naive_didx.asi8, tz_didx.tz)
@@ -71,7 +68,7 @@ def test_tz_convert_single_matches_tz_convert(tz_aware_fixture, freq):
     ],
 )
 def test_tz_convert_corner(arr):
-    result = tzconversion.tz_convert(arr, UTC, timezones.maybe_get_tz("Asia/Tokyo"))
+    result = tzconversion.tz_convert_from_utc(arr, timezones.maybe_get_tz("Asia/Tokyo"))
     tm.assert_numpy_array_equal(result, arr)
 
 
