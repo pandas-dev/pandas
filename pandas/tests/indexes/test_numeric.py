@@ -635,3 +635,27 @@ def test_uint_index_does_not_convert_to_float64():
     tm.assert_index_equal(result.index, expected)
 
     tm.assert_equal(result, series[:3])
+
+
+def test_float64_index_equals():
+    # https://github.com/pandas-dev/pandas/issues/35217
+    float_index = pd.Index([1.0, 2, 3])
+    string_index = pd.Index(["1", "2", "3"])
+
+    result = float_index.equals(string_index)
+    assert result is False
+
+    result = string_index.equals(float_index)
+    assert result is False
+
+
+def test_float64_index_difference():
+    # https://github.com/pandas-dev/pandas/issues/35217
+    float_index = pd.Index([1.0, 2, 3])
+    string_index = pd.Index(["1", "2", "3"])
+
+    result = float_index.difference(string_index)
+    tm.assert_index_equal(result, float_index)
+
+    result = string_index.difference(float_index)
+    tm.assert_index_equal(result, string_index)
