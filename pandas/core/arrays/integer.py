@@ -10,6 +10,7 @@ from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
 
+from pandas.core.dtypes.base import register_extension_dtype
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_dtype,
@@ -21,7 +22,6 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
@@ -92,10 +92,13 @@ class _IntegerDtype(BaseMaskedDtype):
         return IntegerArray
 
     def _get_common_dtype(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
-        # for now only handle other integer types
+        # we only handle nullable EA dtypes and numeric numpy dtypes
         if not all(
-            isinstance(t, _IntegerDtype)
-            or (isinstance(t, np.dtype) and np.issubdtype(t, np.integer))
+            isinstance(t, BaseMaskedDtype)
+            or (
+                isinstance(t, np.dtype)
+                and (np.issubdtype(t, np.number) or np.issubdtype(t, np.bool_))
+            )
             for t in dtypes
         ):
             return None
@@ -445,18 +448,22 @@ class IntegerArray(BaseMaskedArray):
             if incompatible type with an IntegerDtype, equivalent of same_kind
             casting
         """
-        from pandas.core.arrays.boolean import BooleanDtype
+        from pandas.core.arrays.masked import BaseMaskedDtype
         from pandas.core.arrays.string_ import StringDtype
 
         dtype = pandas_dtype(dtype)
 
-        # if we are astyping to an existing IntegerDtype we can fastpath
-        if isinstance(dtype, _IntegerDtype):
-            result = self._data.astype(dtype.numpy_dtype, copy=False)
-            return dtype.construct_array_type()(result, mask=self._mask, copy=False)
-        elif isinstance(dtype, BooleanDtype):
-            result = self._data.astype("bool", copy=False)
-            return dtype.construct_array_type()(result, mask=self._mask, copy=False)
+        # if the dtype is exactly the same, we can fastpath
+        if self.dtype == dtype:
+            # return the same object for copy=False
+            return self.copy() if copy else self
+        # if we are astyping to another nullable masked dtype, we can fastpath
+        if isinstance(dtype, BaseMaskedDtype):
+            data = self._data.astype(dtype.numpy_dtype, copy=copy)
+            # mask is copied depending on whether the data was copied, and
+            # not directly depending on the `copy` keyword
+            mask = self._mask if data is self._data else self._mask.copy()
+            return dtype.construct_array_type()(data, mask, copy=False)
         elif isinstance(dtype, StringDtype):
             return dtype.construct_array_type()._from_sequence(self, copy=False)
 
