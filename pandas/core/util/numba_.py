@@ -14,6 +14,11 @@ GLOBAL_USE_NUMBA: bool = False
 NUMBA_FUNC_CACHE: Dict[Tuple[Callable, str], Callable] = dict()
 
 
+def maybe_use_numba(engine: Optional[str]) -> bool:
+    """Signal whether to use numba routines."""
+    return engine == "numba" or (engine is None and GLOBAL_USE_NUMBA)
+
+
 def set_use_numba(enable: bool = False) -> None:
     global GLOBAL_USE_NUMBA
     if enable:

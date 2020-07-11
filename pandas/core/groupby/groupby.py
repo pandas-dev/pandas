@@ -65,6 +65,7 @@ from pandas.core.groupby import base, ops
 from pandas.core.indexes.api import CategoricalIndex, Index, MultiIndex
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
+from pandas.core.util.numba_ import maybe_use_numba
 
 _common_see_also = """
         See Also
@@ -1065,7 +1066,7 @@ b  2""",
                 # agg_series below assumes ngroups > 0
                 continue
 
-            if engine == "numba":
+            if maybe_use_numba(engine):
                 result, counts = self.grouper.agg_series(
                     obj,
                     func,

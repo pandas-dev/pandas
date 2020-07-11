@@ -80,6 +80,7 @@ from pandas.core.series import Series
 from pandas.core.util.numba_ import (
     NUMBA_FUNC_CACHE,
     generate_numba_func,
+    maybe_use_numba,
     split_for_numba,
 )
 
@@ -227,9 +228,7 @@ class SeriesGroupBy(GroupBy[Series]):
     @doc(
         _agg_template, examples=_agg_examples_doc, klass="Series",
     )
-    def aggregate(
-        self, func=None, *args, engine=None, engine_kwargs=None, **kwargs
-    ):
+    def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
 
         relabeling = func is None
         columns = None
@@ -512,7 +511,7 @@ class SeriesGroupBy(GroupBy[Series]):
         Transform with a non-str `func`.
         """
 
-        if engine == "numba":
+        if maybe_use_numba(engine):
             numba_func, cache_key = generate_numba_func(
                 func, engine_kwargs, kwargs, "groupby_transform"
             )
@@ -522,7 +521,7 @@ class SeriesGroupBy(GroupBy[Series]):
         results = []
         for name, group in self:
             object.__setattr__(group, "name", name)
-            if engine == "numba":
+            if maybe_use_numba(engine):
                 values, index = split_for_numba(group)
                 res = numba_func(values, index, *args)
                 if cache_key not in NUMBA_FUNC_CACHE:
@@ -931,13 +930,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     @doc(
         _agg_template, examples=_agg_examples_doc, klass="DataFrame",
     )
-    def aggregate(
-        self, func=None, *args, engine=None, engine_kwargs=None, **kwargs
-    ):
+    def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
 
         relabeling, func, columns, order = reconstruct_func(func, **kwargs)
 
-        if engine == "numba":
+        if maybe_use_numba(engine):
             return self._python_agg_general(
                 func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
             )
@@ -1378,7 +1375,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         applied = []
         obj = self._obj_with_exclusions
         gen = self.grouper.get_iterator(obj, axis=self.axis)
-        if engine == "numba":
+        if maybe_use_numba(engine):
             numba_func, cache_key = generate_numba_func(
                 func, engine_kwargs, kwargs, "groupby_transform"
             )
@@ -1388,7 +1385,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         for name, group in gen:
             object.__setattr__(group, "name", name)
 
-            if engine == "numba":
+            if maybe_use_numba(engine):
                 values, index = split_for_numba(group)
                 res = numba_func(values, index, *args)
                 if cache_key not in NUMBA_FUNC_CACHE:
