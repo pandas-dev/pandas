@@ -1532,9 +1532,9 @@ class GroupBy(_GroupBy[FrameOrSeries]):
     @doc(_groupby_agg_method_template, fname="sum", no=True, mc=0)
     def sum(self, numeric_only: bool = True, min_count: int = 0):
 
-        # GH 31422: We want .sum() to return 0 for missing categories 
-        # rather than NaN. So we set self.observed=True to turn off the 
-        # reindexing within self._agg_general, then reindex below with 
+        # GH 31422: We want .sum() to return 0 for missing categories
+        # rather than NaN. So we set self.observed=True to turn off the
+        # reindexing within self._agg_general, then reindex below with
         # fill_value=0
         observed_orig = self.observed
         self.observed = True

@@ -1820,9 +1820,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
         blocks = [make_block(val, placement=loc) for val, loc in zip(counted, locs)]
 
-        # GH 35028: We want .count() to return 0 for missing categories 
-        # rather than NaN. So we set self.observed=True to turn off the 
-        # reindexing within self._wrap_agged_blocks, then reindex below with 
+        # GH 35028: We want .count() to return 0 for missing categories
+        # rather than NaN. So we set self.observed=True to turn off the
+        # reindexing within self._wrap_agged_blocks, then reindex below with
         # fill_value=0
         observed_orig = self.observed
         self.observed = True
