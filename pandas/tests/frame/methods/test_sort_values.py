@@ -45,7 +45,8 @@ class TestDataFrameSortValues:
 
         msg = "No axis named 2 for object type DataFrame"
         with pytest.raises(ValueError, match=msg):
-            frame.sort_values(by=["A", "B"], axis=2, inplace=True)
+            return_value = frame.sort_values(by=["A", "B"], axis=2, inplace=True)
+            assert return_value is None
 
         # by row (axis=1): GH#10806
         sorted_df = frame.sort_values(by=3, axis=1)
@@ -77,22 +78,28 @@ class TestDataFrameSortValues:
         )
 
         sorted_df = frame.copy()
-        sorted_df.sort_values(by="A", inplace=True)
+        return_value = sorted_df.sort_values(by="A", inplace=True)
+        assert return_value is None
         expected = frame.sort_values(by="A")
         tm.assert_frame_equal(sorted_df, expected)
 
         sorted_df = frame.copy()
-        sorted_df.sort_values(by=1, axis=1, inplace=True)
+        return_value = sorted_df.sort_values(by=1, axis=1, inplace=True)
+        assert return_value is None
         expected = frame.sort_values(by=1, axis=1)
         tm.assert_frame_equal(sorted_df, expected)
 
         sorted_df = frame.copy()
-        sorted_df.sort_values(by="A", ascending=False, inplace=True)
+        return_value = sorted_df.sort_values(by="A", ascending=False, inplace=True)
+        assert return_value is None
         expected = frame.sort_values(by="A", ascending=False)
         tm.assert_frame_equal(sorted_df, expected)
 
         sorted_df = frame.copy()
-        sorted_df.sort_values(by=["A", "B"], ascending=False, inplace=True)
+        return_value = sorted_df.sort_values(
+            by=["A", "B"], ascending=False, inplace=True
+        )
+        assert return_value is None
         expected = frame.sort_values(by=["A", "B"], ascending=False)
         tm.assert_frame_equal(sorted_df, expected)
 
@@ -281,7 +288,8 @@ class TestDataFrameSortValues:
     def test_sort_values_frame_column_inplace_sort_exception(self, float_frame):
         s = float_frame["A"]
         with pytest.raises(ValueError, match="This Series is a view"):
-            s.sort_values(inplace=True)
+            return_value = s.sort_values(inplace=True)
+            assert return_value is None
 
         cp = s.copy()
         cp.sort_values()  # it works!
@@ -544,17 +552,24 @@ class TestDataFrameSortKey:  # test key sorting (issue 27237)
         )
 
         sorted_df = frame.copy()
-        sorted_df.sort_values(by="A", inplace=True, key=sort_by_key)
+        return_value = sorted_df.sort_values(by="A", inplace=True, key=sort_by_key)
+        assert return_value is None
         expected = frame.sort_values(by="A", key=sort_by_key)
         tm.assert_frame_equal(sorted_df, expected)
 
         sorted_df = frame.copy()
-        sorted_df.sort_values(by=1, axis=1, inplace=True, key=sort_by_key)
+        return_value = sorted_df.sort_values(
+            by=1, axis=1, inplace=True, key=sort_by_key
+        )
+        assert return_value is None
         expected = frame.sort_values(by=1, axis=1, key=sort_by_key)
         tm.assert_frame_equal(sorted_df, expected)
 
         sorted_df = frame.copy()
-        sorted_df.sort_values(by="A", ascending=False, inplace=True, key=sort_by_key)
+        return_value = sorted_df.sort_values(
+            by="A", ascending=False, inplace=True, key=sort_by_key
+        )
+        assert return_value is None
         expected = frame.sort_values(by="A", ascending=False, key=sort_by_key)
         tm.assert_frame_equal(sorted_df, expected)
 
