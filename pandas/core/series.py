@@ -78,7 +78,7 @@ from pandas.core.construction import (
     sanitize_array,
 )
 from pandas.core.generic import NDFrame
-from pandas.core.indexers import unpack_1tuple
+from pandas.core.indexers import deprecate_ndim_indexing, unpack_1tuple
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import Float64Index, Index, MultiIndex, ensure_index
 import pandas.core.indexes.base as ibase
@@ -950,13 +950,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _get_values_tuple(self, key):
         # mpl hackaround
         if com.any_none(*key):
-            # suppress warning from slicing the index with a 2d indexer.
-            # eventually we'll want Series itself to warn.
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore", "Support for multi-dim", DeprecationWarning
-                )
-                return self._get_values(key)
+            result = self._get_values(key)
+            deprecate_ndim_indexing(result, stacklevel=5)
+            return result
 
         if not isinstance(self.index, MultiIndex):
             raise ValueError("Can only tuple-index with a MultiIndex")
@@ -4020,9 +4016,14 @@ Keep all original rows and also all original values
         examples=_agg_examples_doc,
         versionadded="\n.. versionadded:: 0.20.0\n",
     )
-    def aggregate(self, func, axis=0, *args, **kwargs):
+    def aggregate(self, func=None, axis=0, *args, **kwargs):
         # Validate the axis parameter
         self._get_axis_number(axis)
+
+        # if func is None, will switch to user-provided "named aggregation" kwargs
+        if func is None:
+            func = dict(kwargs.items())
+
         result, how = self._aggregate(func, *args, **kwargs)
         if result is None:
 

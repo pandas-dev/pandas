@@ -75,6 +75,7 @@ from pandas.util._validators import (
 from pandas.core.dtypes.cast import (
     cast_scalar_to_array,
     coerce_to_dtypes,
+    construct_1d_arraylike_from_scalar,
     find_common_type,
     infer_dtype_from_scalar,
     invalidate_string_dtypes,
@@ -109,10 +110,11 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     pandas_dtype,
 )
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 from pandas.core import algorithms, common as com, nanops, ops
 from pandas.core.accessor import CachedAccessor
+from pandas.core.aggregation import reconstruct_func, relabel_result
 from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin as DatetimeLikeArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
@@ -518,25 +520,43 @@ class DataFrame(NDFrame):
                     mgr = init_ndarray(data, index, columns, dtype=dtype, copy=copy)
             else:
                 mgr = init_dict({}, index, columns, dtype=dtype)
+        # For data is scalar
         else:
-            try:
-                arr = np.array(data, dtype=dtype, copy=copy)
-            except (ValueError, TypeError) as err:
-                exc = TypeError(
-                    "DataFrame constructor called with "
-                    f"incompatible data and dtype: {err}"
-                )
-                raise exc from err
+            if index is None or columns is None:
+                raise ValueError("DataFrame constructor not properly called!")
 
-            if arr.ndim == 0 and index is not None and columns is not None:
+            if not dtype:
+                dtype, _ = infer_dtype_from_scalar(data, pandas_dtype=True)
+
+            # For data is a scalar extension dtype
+            if is_extension_array_dtype(dtype):
+
+                values = [
+                    construct_1d_arraylike_from_scalar(data, len(index), dtype)
+                    for _ in range(len(columns))
+                ]
+                mgr = arrays_to_mgr(values, columns, index, columns, dtype=None)
+            else:
+                # Attempt to coerce to a numpy array
+                try:
+                    arr = np.array(data, dtype=dtype, copy=copy)
+                except (ValueError, TypeError) as err:
+                    exc = TypeError(
+                        "DataFrame constructor called with "
+                        f"incompatible data and dtype: {err}"
+                    )
+                    raise exc from err
+
+                if arr.ndim != 0:
+                    raise ValueError("DataFrame constructor not properly called!")
+
                 values = cast_scalar_to_array(
                     (len(index), len(columns)), data, dtype=dtype
                 )
+
                 mgr = init_ndarray(
                     values, index, columns, dtype=values.dtype, copy=False
                 )
-            else:
-                raise ValueError("DataFrame constructor not properly called!")
 
         NDFrame.__init__(self, mgr)
 
@@ -2144,7 +2164,7 @@ class DataFrame(NDFrame):
             from pandas.io.stata import StataWriter117 as statawriter  # type: ignore
         else:  # versions 118 and 119
             # mypy: Name 'statawriter' already defined (possibly by an import)
-            from pandas.io.stata import StataWriterUTF8 as statawriter  # type:ignore
+            from pandas.io.stata import StataWriterUTF8 as statawriter  # type: ignore
 
         kwargs: Dict[str, Any] = {}
         if version is None or version >= 117:
@@ -3738,7 +3758,13 @@ class DataFrame(NDFrame):
             infer_dtype, _ = infer_dtype_from_scalar(value, pandas_dtype=True)
 
             # upcast
-            value = cast_scalar_to_array(len(self.index), value)
+            if is_extension_array_dtype(infer_dtype):
+                value = construct_1d_arraylike_from_scalar(
+                    value, len(self.index), infer_dtype
+                )
+            else:
+                value = cast_scalar_to_array(len(self.index), value)
+
             value = maybe_cast_to_datetime(value, infer_dtype)
 
         # return internal types directly
@@ -4731,8 +4757,11 @@ class DataFrame(NDFrame):
                 # we can have situations where the whole mask is -1,
                 # meaning there is nothing found in labels, so make all nan's
                 if mask.all():
-                    values = np.empty(len(mask), dtype=index.dtype)
-                    values.fill(np.nan)
+                    dtype = index.dtype
+                    fill_value = na_value_for_dtype(dtype)
+                    values = construct_1d_arraylike_from_scalar(
+                        fill_value, len(mask), dtype
+                    )
                 else:
                     values = values.take(labels)
 
@@ -7101,6 +7130,7 @@ NaN 12.3   33.0
         var_name=None,
         value_name="value",
         col_level=None,
+        ignore_index=True,
     ) -> "DataFrame":
 
         return melt(
@@ -7110,6 +7140,7 @@ NaN 12.3   33.0
             var_name=var_name,
             value_name=value_name,
             col_level=col_level,
+            ignore_index=ignore_index,
         )
 
     # ----------------------------------------------------------------------
@@ -7295,8 +7326,10 @@ NaN 12.3   33.0
         examples=_agg_examples_doc,
         versionadded="\n.. versionadded:: 0.20.0\n",
     )
-    def aggregate(self, func, axis=0, *args, **kwargs):
+    def aggregate(self, func=None, axis=0, *args, **kwargs):
         axis = self._get_axis_number(axis)
+
+        relabeling, func, columns, order = reconstruct_func(func, **kwargs)
 
         result = None
         try:
@@ -7309,6 +7342,13 @@ NaN 12.3   33.0
             raise exc from err
         if result is None:
             return self.apply(func, axis=axis, args=args, **kwargs)
+
+        if relabeling:
+            # This is to keep the order to columns occurrence unchanged, and also
+            # keep the order of new columns occurrence unchanged
+            result_in_dict = relabel_result(result, func, columns, order)
+            result = DataFrame(result_in_dict, index=columns)
+
         return result
 
     def _aggregate(self, arg, axis=0, *args, **kwargs):
