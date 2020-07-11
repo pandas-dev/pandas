@@ -1820,13 +1820,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
         blocks = [make_block(val, placement=loc) for val, loc in zip(counted, locs)]
 
-        # If self.observed=False then self._reindex_output will fill the missing
-        # categories (if the grouper was grouped on pd.Categorical variables) with
-        # np.NaN. For .count() we want these values filled in with zero. So we set
-        # self.observed=True for the call to self._agg_general, and then set
-        # it back to its orignal value. We then call self._reindex_output with
-        # fill_value=0. If the original self.observed is False, then we will get
-        # our result with 0 for the missing categories.
+        # GH 35028: We want .count() to return 0 for missing categories 
+        # rather than NaN. So we set self.observed=True to turn off the 
+        # reindexing within self._wrap_agged_blocks, then reindex below with 
+        # fill_value=0
         observed_orig = self.observed
         self.observed = True
         try:

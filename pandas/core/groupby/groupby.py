@@ -1532,13 +1532,10 @@ class GroupBy(_GroupBy[FrameOrSeries]):
     @doc(_groupby_agg_method_template, fname="sum", no=True, mc=0)
     def sum(self, numeric_only: bool = True, min_count: int = 0):
 
-        # If self.observed=False then self._reindex_output will fill the missing
-        # categories (if the grouper was grouped on pd.Categorical variables) with
-        # np.NaN. For .sum() we want these values filled in with zero. So we set
-        # self.observed=True for the call to self._agg_general, and then set
-        # it back to its orignal value. We then call self._reindex_output with
-        # fill_value=0. If the original self.observed is False, then we will get
-        # our result with 0 for the missing categories.
+        # GH 31422: We want .sum() to return 0 for missing categories 
+        # rather than NaN. So we set self.observed=True to turn off the 
+        # reindexing within self._agg_general, then reindex below with 
+        # fill_value=0
         observed_orig = self.observed
         self.observed = True
         try:

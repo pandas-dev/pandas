@@ -1435,6 +1435,14 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_false(
 
 @pytest.mark.parametrize("func", ["sum", "count"])
 def test_sum_and_count_exception_handling(func: str, observed: bool, monkeypatch):
+    # GH 31422
+    # GH 35028
+    # In order to return 0 instead of NaN for missing categories in 
+    # GroupBy.count() and GroupBy.sum(), both methods overwrite the value of 
+    # self.observed and then use a try-except-finally block. This test ensures 
+    # that:
+    # a) An exception from a internal method is still raised 
+    # b) self.observed is set back to its original value
     df = pd.DataFrame(
         {
             "cat_1": pd.Categorical(list("AABB"), categories=list("ABC")),
