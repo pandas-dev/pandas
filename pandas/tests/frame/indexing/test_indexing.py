@@ -2233,8 +2233,8 @@ def test_object_casting_indexing_wraps_datetimelike():
 
 def test_lookup_deprecated():
     # GH18262
-    df = pd.DataFrame({'col': ["A", "A", "B", "B"],
-                       'A': [80, 23, np.nan, 22],
-                       'B': [80, 55, 76, 67]})
+    df = pd.DataFrame(
+        {"col": ["A", "A", "B", "B"], "A": [80, 23, np.nan, 22], "B": [80, 55, 76, 67]}
+    )
     with tm.assert_produces_warning(FutureWarning):
-        df.lookup(df.index, df['col'])
+        df.lookup(df.index, df["col"])
