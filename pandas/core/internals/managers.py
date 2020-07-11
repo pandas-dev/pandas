@@ -1914,7 +1914,7 @@ def _compare_or_regex_search(
     a : array_like
     b : scalar
     regex : bool, default False
-    mask : array_like
+    mask : array_like or None (default)
 
     Returns
     -------
