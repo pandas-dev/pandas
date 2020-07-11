@@ -1,6 +1,6 @@
-import pandas as pd
 import pytest
 
+import pandas as pd
 import pandas._testing as tm
 
 
