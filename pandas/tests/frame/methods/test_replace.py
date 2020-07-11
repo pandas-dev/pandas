@@ -1493,7 +1493,7 @@ class TestDataFrameReplace:
         tm.assert_frame_equal(input_df, expected_category_df)
 
     @pytest.mark.xfail(
-        reason="currently, category dtype gets changed to object type after replace, see #23305",
+        reason="category dtype gets changed to object type after replace, see #23305",
         strict=True,
     )
     def test_replace_dict_category_type(self, input_category_df, expected_category_df):
