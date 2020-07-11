@@ -1365,7 +1365,10 @@ def test_series_groupby_on_2_categoricals_unobserved_zeroes_or_nans(
         val = result.loc[idx]
         assert (pd.isna(zero_or_nan) and pd.isna(val)) or (val == zero_or_nan)
 
-    # If we expect unobserved values to be zero, we also expect the dtype to be int
+    # If we expect unobserved values to be zero, we also expect the dtype to be int.
+    # Except for .sum(). If the observed categories sum to dtype=float (i.e. their
+    # sums have decimals), then the zeros for the missing categories should also be
+    # floats.
     if zero_or_nan == 0 and reduction_func != "sum":
         assert np.issubdtype(result.dtype, np.integer)
 
@@ -1428,6 +1431,29 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_false(
         assert res.loc[unobserved_cats].isnull().all().all()
     else:
         assert (res.loc[unobserved_cats] == expected).all().all()
+
+
+@pytest.mark.parametrize('func', ['sum', 'count'])
+def test_sum_and_count_exception_handling(func: str, observed: bool, monkeypatch):
+    df = pd.DataFrame(
+        {
+            "cat_1": pd.Categorical(list("AABB"), categories=list("ABC")),
+            "cat_2": pd.Categorical(list("1111"), categories=list("12")),
+            "value": [0.1, 0.1, 0.1, 0.1],
+        }
+    )
+    df_grp = df.groupby(["cat_1", "cat_2"], observed=observed)
+    
+    def _mock_method(*args, **kwargs):
+        raise ZeroDivisionError
+    
+    to_patch = {'count' : '_wrap_agged_blocks', 'sum' : '_agg_general'}
+    monkeypatch.setattr(df_grp, to_patch[func], _mock_method)
+    
+    with pytest.raises(ZeroDivisionError):
+        getattr(df_grp, func)()
+
+    assert df_grp.observed is observed    
 
 
 def test_series_groupby_categorical_aggregation_getitem():
