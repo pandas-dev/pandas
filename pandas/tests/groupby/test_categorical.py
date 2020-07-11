@@ -3,8 +3,6 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_windows
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -13,7 +11,6 @@ from pandas import (
     Index,
     MultiIndex,
     Series,
-    _np_version_under1p17,
     qcut,
 )
 import pandas._testing as tm
