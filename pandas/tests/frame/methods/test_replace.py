@@ -1481,7 +1481,7 @@ class TestDataFrameReplace:
 
     def test_replace_value_category_type(self, input_category_df, expected_category_df):
         """
-        Test to ensure category dtypes are maintained 
+        Test to ensure category dtypes are maintained
         after replace with direct values
         """
 
@@ -1493,11 +1493,12 @@ class TestDataFrameReplace:
         tm.assert_frame_equal(input_df, expected_category_df)
 
     @pytest.mark.xfail(
-        reason="currently, category dtype gets changed to object type after replace, see #23305", strict=True
+        reason="currently, category dtype gets changed to object type after replace, see #23305",
+        strict=True,
     )
     def test_replace_dict_category_type(self, input_category_df, expected_category_df):
         """
-        Test to ensure category dtypes are maintained 
+        Test to ensure category dtypes are maintained
         after replace with dict values
         """
 
