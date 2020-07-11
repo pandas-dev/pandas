@@ -14,7 +14,6 @@ from pandas._libs.tslibs import (
 import pandas._libs.tslibs.offsets as liboffsets
 from pandas._libs.tslibs.offsets import ApplyTypeError, _get_offset, _offset_map
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
-import pandas.compat as compat
 from pandas.compat.numpy import np_datetime64_compat
 from pandas.errors import PerformanceWarning
 

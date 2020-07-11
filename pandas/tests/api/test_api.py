@@ -5,7 +5,7 @@ from typing import List
 import pytest
 
 import pandas as pd
-from pandas import api, compat
+from pandas import api
 import pandas._testing as tm
 
 

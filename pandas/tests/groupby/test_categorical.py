@@ -247,8 +247,7 @@ def test_level_get_group(observed):
 # GH#21636 flaky on py37; may be related to older numpy, see discussion
 #  https://github.com/MacPython/pandas-wheels/pull/64
 @pytest.mark.xfail(
-    _np_version_under1p17 and not is_platform_windows(),
-    reason="Flaky, GH-27902",
+    _np_version_under1p17 and not is_platform_windows(), reason="Flaky, GH-27902",
 )
 @pytest.mark.parametrize("ordered", [True, False])
 def test_apply(ordered):
