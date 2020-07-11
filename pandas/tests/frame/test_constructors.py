@@ -11,7 +11,7 @@ import pytest
 import pytz
 
 from pandas.compat import PY37, is_platform_little_endian
-from pandas.compat.numpy import _is_numpy_dev
+from pandas.compat.numpy import _np_version_under1p19
 
 from pandas.core.dtypes.common import is_integer_dtype
 
@@ -147,14 +147,20 @@ class TestDataFrameConstructors:
         assert df.loc[1, 0] is None
         assert df.loc[0, 1] == "2"
 
-    @pytest.mark.xfail(_is_numpy_dev, reason="Interprets list of frame as 3D")
-    def test_constructor_list_frames(self):
-        # see gh-3243
-        result = DataFrame([DataFrame()])
-        assert result.shape == (1, 0)
+    @pytest.mark.skipif(_np_version_under1p19, reason="NumPy change.")
+    def test_constructor_list_of_2d_raises(self):
+        # https://github.com/pandas-dev/pandas/issues/32289
+        a = pd.DataFrame()
+        b = np.empty((0, 0))
+        with pytest.raises(ValueError, match=r"shape=\(1, 0, 0\)"):
+            pd.DataFrame([a])
 
-        result = DataFrame([DataFrame(dict(A=np.arange(5)))])
-        assert isinstance(result.iloc[0, 0], DataFrame)
+        with pytest.raises(ValueError, match=r"shape=\(1, 0, 0\)"):
+            pd.DataFrame([b])
+
+        a = pd.DataFrame({"A": [1, 2]})
+        with pytest.raises(ValueError, match=r"shape=\(2, 2, 1\)"):
+            pd.DataFrame([a, a])
 
     def test_constructor_mixed_dtypes(self):
         def _make_mixed_dtypes_df(typ, ad=None):
@@ -506,22 +512,6 @@ class TestDataFrameConstructors:
         msg = "If using all scalar values, you must pass an index"
         with pytest.raises(ValueError, match=msg):
             DataFrame({"a": False, "b": True})
-
-    @pytest.mark.xfail(_is_numpy_dev, reason="Interprets embedded frame as 3D")
-    def test_constructor_with_embedded_frames(self):
-
-        # embedded data frames
-        df1 = DataFrame({"a": [1, 2, 3], "b": [3, 4, 5]})
-        df2 = DataFrame([df1, df1 + 10])
-
-        df2.dtypes
-        str(df2)
-
-        result = df2.loc[0, 0]
-        tm.assert_frame_equal(result, df1)
-
-        result = df2.loc[1, 0]
-        tm.assert_frame_equal(result, df1 + 10)
 
     def test_constructor_subclass_dict(self, float_frame, dict_subclass):
         # Test for passing dict subclass to constructor
@@ -1643,6 +1633,12 @@ class TestDataFrameConstructors:
         df = DataFrame(index=[0, 1], columns=[0, 1], dtype="U5")
         tm.assert_frame_equal(df, expected)
 
+    def test_constructor_empty_with_string_extension(self):
+        # GH 34915
+        expected = DataFrame(index=[], columns=["c1"], dtype="string")
+        df = DataFrame(columns=["c1"], dtype="string")
+        tm.assert_frame_equal(df, expected)
+
     def test_constructor_single_value(self):
         # expecting single value upcasting here
         df = DataFrame(0.0, index=[1, 2, 3], columns=["a", "b", "c"])
@@ -2245,6 +2241,33 @@ class TestDataFrameConstructors:
         tm.assert_index_equal(df.index, Index([], name="id"))
         assert df.index.name == "id"
 
+    @pytest.mark.parametrize(
+        "dtype",
+        tm.ALL_INT_DTYPES
+        + tm.ALL_EA_INT_DTYPES
+        + tm.FLOAT_DTYPES
+        + tm.COMPLEX_DTYPES
+        + tm.DATETIME64_DTYPES
+        + tm.TIMEDELTA64_DTYPES
+        + tm.BOOL_DTYPES,
+    )
+    def test_check_dtype_empty_numeric_column(self, dtype):
+        # GH24386: Ensure dtypes are set correctly for an empty DataFrame.
+        # Empty DataFrame is generated via dictionary data with non-overlapping columns.
+        data = pd.DataFrame({"a": [1, 2]}, columns=["b"], dtype=dtype)
+
+        assert data.b.dtype == dtype
+
+    @pytest.mark.parametrize(
+        "dtype", tm.STRING_DTYPES + tm.BYTES_DTYPES + tm.OBJECT_DTYPES
+    )
+    def test_check_dtype_empty_string_column(self, dtype):
+        # GH24386: Ensure dtypes are set correctly for an empty DataFrame.
+        # Empty DataFrame is generated via dictionary data with non-overlapping columns.
+        data = pd.DataFrame({"a": [1, 2]}, columns=["b"], dtype=dtype)
+
+        assert data.b.dtype.name == "object"
+
     def test_from_records_with_datetimes(self):
 
         # this may fail on certain platforms because of a numpy issue
@@ -2519,11 +2542,13 @@ class TestDataFrameConstructors:
             index=pd.CategoricalIndex(["f", "female", "m", "male", "unknown"]),
         )
         result = DataFrame([s1, s2])
+        # GH 35092. Extra s2 columns are now appended to s1 columns
+        # in original order
         expected = DataFrame(
             np.array(
-                [[np.nan, 39.0, np.nan, 6.0, 4.0], [2.0, 152.0, 2.0, 242.0, 150.0]]
+                [[39.0, 6.0, 4.0, np.nan, np.nan], [152.0, 242.0, 150.0, 2.0, 2.0]]
             ),
-            columns=["f", "female", "m", "male", "unknown"],
+            columns=["female", "male", "unknown", "f", "m"],
         )
         tm.assert_frame_equal(result, expected)
 
@@ -2538,6 +2563,14 @@ class TestDataFrameConstructors:
         s = Series(arr["Date"])
         assert isinstance(s[0], Timestamp)
         assert s[0] == dates[0][0]
+
+    def test_from_datetime_subclass(self):
+        # GH21142 Verify whether Datetime subclasses are also of dtype datetime
+        class DatetimeSubclass(datetime):
+            pass
+
+        data = pd.DataFrame({"datetime": [DatetimeSubclass(2020, 1, 1, 1, 1)]})
+        assert data.datetime.dtype == "datetime64[ns]"
 
 
 class TestDataFrameConstructorWithDatetimeTZ:

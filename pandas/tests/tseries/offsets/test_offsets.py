@@ -4310,12 +4310,6 @@ class TestDST:
 
 
 # ---------------------------------------------------------------------
-def test_get_offset_day_error():
-    # subclass of _BaseOffset must override _day_opt attribute, or we should
-    # get a NotImplementedError
-
-    with pytest.raises(NotImplementedError):
-        DateOffset()._get_offset_day(datetime.now())
 
 
 def test_valid_default_arguments(offset_types):
