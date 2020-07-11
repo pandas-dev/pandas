@@ -1820,7 +1820,23 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
         blocks = [make_block(val, placement=loc) for val, loc in zip(counted, locs)]
 
-        return self._wrap_agged_blocks(blocks, items=data.items)
+        # If self.observed=False then self._reindex_output will fill the missing
+        # categories (if the grouper was grouped on pd.Categorical variables) with
+        # np.NaN. For .count() we want these values filled in with zero. So we set
+        # self.observed=True for the call to self._agg_general, and then set
+        # it back to its orignal value. We then call self._reindex_output with
+        # fill_value=0. If the original self.observed is False, then we will get
+        # our result with 0 for the missing categories.
+        observed_orig = self.observed
+        self.observed = True
+        try:
+            result = self._wrap_agged_blocks(blocks, items=data.items)
+        except Exception as e:
+            raise e
+        finally:
+            self.observed = observed_orig
+
+        return self._reindex_output(result, fill_value=0)
 
     def nunique(self, dropna: bool = True):
         """
