@@ -967,7 +967,7 @@ class IndexOpsMixin:
         else:
             return nanops.nanargmax(self._values, skipna=skipna)
 
-    def min(self, axis=None, skipna=True, keep="first", *args, **kwargs):
+    def min(self, axis=None, skipna=True, *args, **kwargs):
         """
         Return the minimum value of the Index.
 
