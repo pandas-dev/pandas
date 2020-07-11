@@ -1489,7 +1489,7 @@ rows with ``DataFrame.query``.  For instance:
                        'B': [80, 55, 76, 67]})
     df
     melt = df.melt('col')
-    df['lookup'] = values.query('col == variable')['value'].to_numpy()
+    df['lookup'] = melt.query('col == variable')['value'].to_numpy()
     df
 
 .. _indexing.class:
