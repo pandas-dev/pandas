@@ -1484,11 +1484,11 @@ rows with ``DataFrame.query``.  For instance:
 
 .. ipython:: python
 
-    df = pd.DataFrame({'col':["A", "A", "B","B"],
-                       'A':[80, 23, np.nan,22],
+    df = pd.DataFrame({'col': ["A", "A", "B", "B"],
+                       'A': [80, 23, np.nan, 22],
                        'B': [80, 55, 76, 67]})
     df
-    melt = dflookup.melt('col')
+    melt = df.melt('col')
     df['lookup'] = values.query('col == variable')['value'].to_numpy()
     df
 
