@@ -20,7 +20,7 @@ dependencies:
   - numexpr=2.6.8
   - numpy=1.16.0
   - openpyxl=2.5.7
-  - pytables=3.5.0
+  - pytables=3.5.1
   - python-dateutil=2.7.4
   - pytz=2018.3
   - scipy=1.2
