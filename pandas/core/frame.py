@@ -3800,6 +3800,7 @@ class DataFrame(NDFrame):
 
         DataFrame.lookup is deprecated,
         use DataFrame.melt and DataFrame.loc instead.
+        See "Indexing and selecting data" in the user guide for an example.
 
         Parameters
         ----------
