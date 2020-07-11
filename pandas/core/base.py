@@ -900,7 +900,7 @@ class IndexOpsMixin:
         return nanops.nanmax(self._values, skipna=skipna)
 
     @doc(op="max", oppose="min", value="largest")
-    def argmax(self, axis=None, skipna=True, *args, **kwargs):
+    def argmax(self, axis=None, skipna=True, keep="first", *args, **kwargs):
         """
         Return int position of the {value} value in the Series.
 
@@ -967,7 +967,7 @@ class IndexOpsMixin:
         else:
             return nanops.nanargmax(self._values, skipna=skipna)
 
-    def min(self, axis=None, skipna=True, *args, **kwargs):
+    def min(self, axis=None, skipna=True, keep="first", *args, **kwargs):
         """
         Return the minimum value of the Index.
 
@@ -1012,7 +1012,7 @@ class IndexOpsMixin:
         return nanops.nanmin(self._values, skipna=skipna)
 
     @doc(argmax, op="min", oppose="max", value="smallest")
-    def argmin(self, axis=None, skipna=True, *args, **kwargs):
+    def argmin(self, axis=None, skipna=True, keep="first", *args, **kwargs):
         nv.validate_minmax_axis(axis)
         nv.validate_argmax_with_skipna(skipna, args, kwargs)
         if keep == "last":
