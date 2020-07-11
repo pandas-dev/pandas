@@ -1170,8 +1170,7 @@ class TestDataFrameConstructors:
 
         # single row dataframe
         result = DataFrame([data[0]])
-        expected = DataFrame.from_dict(
-            dict(zip([0], [data[0]])), orient="index")
+        expected = DataFrame.from_dict(dict(zip([0], [data[0]])), orient="index")
         tm.assert_frame_equal(result, expected.reindex(result.index))
 
         result = DataFrame(data)
