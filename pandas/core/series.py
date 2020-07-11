@@ -2019,8 +2019,7 @@ Name: Max Speed, dtype: float64
         dtype: bool
         """
         return super().duplicated(keep=keep)
-
-    def idxmin(self, axis=0, skipna=True, *args, **kwargs):
+    def idxmin(self, axis=0, skipna=True, keep="first", *args, **kwargs):
         """
         Return the row label of the minimum value.
 
@@ -2035,6 +2034,12 @@ Name: Max Speed, dtype: float64
         skipna : bool, default True
             Exclude NA/null values. If the entire Series is NA, the result
             will be NA.
+        keep : {'first', 'last', 'all'}, default 'first'
+            Where there are duplicate values:
+
+            - `first` : prioritize the first occurrence
+            - `last` : prioritize the last occurrence
+            - ``all`` : do not drop any duplicates
         *args, **kwargs
             Additional arguments and keywords have no effect but might be
             accepted for compatibility with NumPy.
@@ -2085,12 +2090,19 @@ Name: Max Speed, dtype: float64
         nan
         """
         skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
-        i = nanops.nanargmin(self._values, skipna=skipna)
+        if keep == "last":
+            i = nanops.nanargmin(self._values[::-1], skipna=skipna)
+            if i != -1:
+                i = (self.size - 1) - i
+        else:
+            i = nanops.nanargmin(self._values, skipna=skipna)
         if i == -1:
             return np.nan
+        if keep == "all":
+            return self[self == self[i]].index
         return self.index[i]
 
-    def idxmax(self, axis=0, skipna=True, *args, **kwargs):
+    def idxmax(self, axis=0, skipna=True, keep="first", *args, **kwargs):
         """
         Return the row label of the maximum value.
 
@@ -2105,6 +2117,12 @@ Name: Max Speed, dtype: float64
         skipna : bool, default True
             Exclude NA/null values. If the entire Series is NA, the result
             will be NA.
+        keep : {'first', 'last', 'all'}, default 'first'
+            Where there are duplicate values:
+
+            - `first` : prioritize the first occurrence
+            - `last` : prioritize the last occurrence
+            - ``all`` : do not drop any duplicates
         *args, **kwargs
             Additional arguments and keywords have no effect but might be
             accepted for compatibility with NumPy.
@@ -2156,10 +2174,18 @@ Name: Max Speed, dtype: float64
         nan
         """
         skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
-        i = nanops.nanargmax(self._values, skipna=skipna)
+        if keep == "last":
+            i = nanops.nanargmax(self._values[::-1], skipna=skipna)
+            if i != -1:
+                i = (self.size - 1) - i
+        else:
+            i = nanops.nanargmax(self._values, skipna=skipna)
         if i == -1:
             return np.nan
+        if keep == "all":
+            return self[self == self[i]].index
         return self.index[i]
+
 
     def round(self, decimals=0, *args, **kwargs) -> "Series":
         """
