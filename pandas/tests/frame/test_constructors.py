@@ -14,13 +14,16 @@ from pandas.compat import PY37, is_platform_little_endian
 from pandas.compat.numpy import _np_version_under1p19
 
 from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype, PeriodDtype
 
 import pandas as pd
 from pandas import (
     Categorical,
     DataFrame,
     Index,
+    Interval,
     MultiIndex,
+    Period,
     RangeIndex,
     Series,
     Timedelta,
@@ -700,7 +703,7 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(result_timedelta, expected)
         tm.assert_frame_equal(result_Timedelta, expected)
 
-    def test_constructor_period(self):
+    def test_constructor_period_dict(self):
         # PeriodIndex
         a = pd.PeriodIndex(["2012-01", "NaT", "2012-04"], freq="M")
         b = pd.PeriodIndex(["2012-02-01", "2012-03-01", "NaT"], freq="D")
@@ -712,6 +715,29 @@ class TestDataFrameConstructors:
         df = DataFrame({"a": a.astype(object).tolist(), "b": b.astype(object).tolist()})
         assert df["a"].dtype == a.dtype
         assert df["b"].dtype == b.dtype
+
+    @pytest.mark.parametrize(
+        "data,dtype",
+        [
+            (Period("2020-01"), PeriodDtype("M")),
+            (Interval(left=0, right=5), IntervalDtype("int64")),
+            (
+                Timestamp("2011-01-01", tz="US/Eastern"),
+                DatetimeTZDtype(tz="US/Eastern"),
+            ),
+        ],
+    )
+    def test_constructor_extension_scalar_data(self, data, dtype):
+        # GH 34832
+        df = DataFrame(index=[0, 1], columns=["a", "b"], data=data)
+
+        assert df["a"].dtype == dtype
+        assert df["b"].dtype == dtype
+
+        arr = pd.array([data] * 2, dtype=dtype)
+        expected = DataFrame({"a": arr, "b": arr})
+
+        tm.assert_frame_equal(df, expected)
 
     def test_nested_dict_frame_constructor(self):
         rng = pd.period_range("1/1/2000", periods=5)

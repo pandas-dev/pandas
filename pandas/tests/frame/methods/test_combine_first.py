@@ -199,12 +199,14 @@ class TestDataFrameCombineFirst:
             columns=["UTCdatetime", "abc"],
             data=data1,
             index=pd.date_range("20140627", periods=1),
+            dtype="object",
         )
         data2 = pd.to_datetime("20121212 12:12").tz_localize("UTC")
         df2 = pd.DataFrame(
             columns=["UTCdatetime", "xyz"],
             data=data2,
             index=pd.date_range("20140628", periods=1),
+            dtype="object",
         )
         res = df2[["UTCdatetime"]].combine_first(df1)
         exp = pd.DataFrame(
@@ -217,10 +219,14 @@ class TestDataFrameCombineFirst:
             },
             columns=["UTCdatetime", "abc"],
             index=pd.date_range("20140627", periods=2, freq="D"),
+            dtype="object",
         )
-        tm.assert_frame_equal(res, exp)
         assert res["UTCdatetime"].dtype == "datetime64[ns, UTC]"
         assert res["abc"].dtype == "datetime64[ns, UTC]"
+        # Need to cast all to "obejct" because combine_first does not retain dtypes:
+        # GH Issue 7509
+        res = res.astype("object")
+        tm.assert_frame_equal(res, exp)
 
         # see gh-10567
         dts1 = pd.date_range("2015-01-01", "2015-01-05", tz="UTC")
