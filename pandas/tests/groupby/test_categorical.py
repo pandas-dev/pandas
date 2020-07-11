@@ -1433,7 +1433,7 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_false(
         assert (res.loc[unobserved_cats] == expected).all().all()
 
 
-@pytest.mark.parametrize('func', ['sum', 'count'])
+@pytest.mark.parametrize("func", ["sum", "count"])
 def test_sum_and_count_exception_handling(func: str, observed: bool, monkeypatch):
     df = pd.DataFrame(
         {
@@ -1443,17 +1443,17 @@ def test_sum_and_count_exception_handling(func: str, observed: bool, monkeypatch
         }
     )
     df_grp = df.groupby(["cat_1", "cat_2"], observed=observed)
-    
+
     def _mock_method(*args, **kwargs):
         raise ZeroDivisionError
-    
-    to_patch = {'count' : '_wrap_agged_blocks', 'sum' : '_agg_general'}
+
+    to_patch = {"count": "_wrap_agged_blocks", "sum": "_agg_general"}
     monkeypatch.setattr(df_grp, to_patch[func], _mock_method)
-    
+
     with pytest.raises(ZeroDivisionError):
         getattr(df_grp, func)()
 
-    assert df_grp.observed is observed    
+    assert df_grp.observed is observed
 
 
 def test_series_groupby_categorical_aggregation_getitem():
