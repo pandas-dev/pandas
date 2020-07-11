@@ -3789,8 +3789,10 @@ class DataFrame(NDFrame):
         numpy.ndarray
             The found values.
         """
-        msg = ("The 'lookup' method is deprecated and will be"
-               "removed in a future version.")
+        msg = (
+            "The 'lookup' method is deprecated and will be"
+            "removed in a future version."
+        )
         warnings.warn(msg, FutureWarning, stacklevel=2)
 
         n = len(row_labels)
