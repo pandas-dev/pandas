@@ -2229,3 +2229,12 @@ def test_object_casting_indexing_wraps_datetimelike():
     assert blk.dtype == "m8[ns]"  # we got the right block
     val = blk.iget((0, 0))
     assert isinstance(val, pd.Timedelta)
+
+
+def test_lookup_deprecated():
+    # GH18262
+    df = pd.DataFrame({'col': ["A", "A", "B", "B"],
+                       'A': [80, 23, np.nan, 22],
+                       'B': [80, 55, 76, 67]})
+    with tm.assert_produces_warning(FutureWarning):
+        df.lookup(df.index, df['col'])
