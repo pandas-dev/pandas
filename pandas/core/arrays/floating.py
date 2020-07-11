@@ -382,25 +382,22 @@ class FloatingArray(BaseMaskedArray):
             if incompatible type with an FloatingDtype, equivalent of same_kind
             casting
         """
-        from pandas.core.arrays.boolean import BooleanArray, BooleanDtype
-        from pandas.core.arrays.integer import _IntegerDtype, IntegerArray
         from pandas.core.arrays.string_ import StringDtype, StringArray
 
         dtype = pandas_dtype(dtype)
 
-        # if we are astyping to an existing FloatingDtype we can fastpath
-        if isinstance(dtype, FloatingDtype):
-            result = self._data.astype(dtype.numpy_dtype, copy=False)
-            return type(self)(result, mask=self._mask, copy=False)
-        # astyping to other known masked dtypes
-        elif isinstance(dtype, _IntegerDtype):
+        # if the dtype is exactly the same, we can fastpath
+        if self.dtype == dtype:
+            # return the same object for copy=False
+            return self.copy() if copy else self
+        # if we are astyping to another nullable masked dtype, we can fastpath
+        if isinstance(dtype, BaseMaskedDtype):
             # TODO deal with NaNs
-            result = self._data.astype(dtype.numpy_dtype, copy=False)
-            # TODO should mask be copied here?
-            return IntegerArray(result, mask=self._mask, copy=False)
-        elif isinstance(dtype, BooleanDtype):
-            result = self._data.astype("bool", copy=False)
-            return BooleanArray(result, mask=self._mask, copy=False)
+            data = self._data.astype(dtype.numpy_dtype, copy=copy)
+            # mask is copied depending on whether the data was copied, and
+            # not directly depending on the `copy` keyword
+            mask = self._mask if data is self._data else self._mask.copy()
+            return dtype.construct_array_type()(data, mask, copy=False)
         elif isinstance(dtype, StringDtype):
             return StringArray._from_sequence(self, copy=False)
 
