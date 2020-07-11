@@ -3772,6 +3772,11 @@ class DataFrame(NDFrame):
         Given equal-length arrays of row and column labels, return an
         array of the values corresponding to each (row, col) pair.
 
+        .. deprecated:: 1.1.0
+
+        DataFrame.lookup is deprecated,
+        use DataFrame.melt and DataFrame.loc instead.
+
         Parameters
         ----------
         row_labels : sequence
@@ -3784,6 +3789,10 @@ class DataFrame(NDFrame):
         numpy.ndarray
             The found values.
         """
+        msg = ("The 'lookup' method is deprecated and will be"
+               "removed in a future version.")
+        warnings.warn(msg, FutureWarning, stacklevel=2)
+
         n = len(row_labels)
         if n != len(col_labels):
             raise ValueError("Row labels must have same size as column labels")
