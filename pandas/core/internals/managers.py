@@ -1901,7 +1901,7 @@ def _merge_blocks(
 
 
 def _compare_or_regex_search(
-    a: ArrayLike, b: Scalar, regex: bool = False, mask: ArrayLike = None
+    a: ArrayLike, b: Scalar, regex: bool = False, mask: Union[ArrayLike, None] = None
 ) -> Union[ArrayLike, bool]:
     """
     Compare two array_like inputs of the same shape or two scalar values
@@ -1960,7 +1960,7 @@ def _compare_or_regex_search(
 
     result = op(a)
 
-    if isinstance(result, np.ndarray):
+    if isinstance(result, np.ndarray) and mask is not None:
         # The shape of the mask can differ to that of the result
         # since we may compare only a subset of a's or b's elements
         tmp = np.zeros(mask.shape, dtype=np.bool_)
