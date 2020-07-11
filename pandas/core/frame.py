@@ -3802,7 +3802,6 @@ class DataFrame(NDFrame):
         Given equal-length arrays of row and column labels, return an
         array of the values corresponding to each (row, col) pair.
 
-
         Parameters
         ----------
         row_labels : sequence
