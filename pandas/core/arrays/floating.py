@@ -37,12 +37,12 @@ if TYPE_CHECKING:
     import pyarrow  # noqa: F401
 
 
-class _FloatingDtype(BaseMaskedDtype):
+class FloatingDtype(BaseMaskedDtype):
     """
     An ExtensionDtype to hold a single size of floating dtype.
 
     These specific implementations are subclasses of the non-public
-    _FloatingDtype. For example we have Float32Dtype to represent float32.
+    FloatingDtype. For example we have Float32Dtype to represent float32.
 
     The attributes name & type are set when these subclasses are created.
     """
@@ -85,7 +85,7 @@ class _FloatingDtype(BaseMaskedDtype):
 
     def _get_common_dtype(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
         # for now only handle other floating types
-        if not all(isinstance(t, _FloatingDtype) for t in dtypes):
+        if not all(isinstance(t, FloatingDtype) for t in dtypes):
             return None
         np_dtype = np.find_common_type(
             [t.numpy_dtype for t in dtypes], []  # type: ignore
@@ -151,7 +151,7 @@ def coerce_to_array(
             # https://github.com/numpy/numpy/pull/7476
             dtype = dtype.lower()
 
-        if not issubclass(type(dtype), _FloatingDtype):
+        if not issubclass(type(dtype), FloatingDtype):
             try:
                 dtype = _dtypes[str(np.dtype(dtype))]
             except KeyError as err:
@@ -283,7 +283,7 @@ class FloatingArray(BaseMaskedArray):
     _internal_fill_value = 0.0
 
     @cache_readonly
-    def dtype(self) -> _FloatingDtype:
+    def dtype(self) -> FloatingDtype:
         return _dtypes[str(self._data.dtype)]
 
     def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
@@ -389,7 +389,7 @@ class FloatingArray(BaseMaskedArray):
         dtype = pandas_dtype(dtype)
 
         # if we are astyping to an existing FloatingDtype we can fastpath
-        if isinstance(dtype, _FloatingDtype):
+        if isinstance(dtype, FloatingDtype):
             result = self._data.astype(dtype.numpy_dtype, copy=False)
             return type(self)(result, mask=self._mask, copy=False)
         # astyping to other known masked dtypes
@@ -619,14 +619,14 @@ None
 
 
 @register_extension_dtype
-class Float32Dtype(_FloatingDtype):
+class Float32Dtype(FloatingDtype):
     type = np.float32
     name = "Float32"
     __doc__ = _dtype_docstring.format(dtype="float32")
 
 
 @register_extension_dtype
-class Float64Dtype(_FloatingDtype):
+class Float64Dtype(FloatingDtype):
     type = np.float64
     name = "Float64"
     __doc__ = _dtype_docstring.format(dtype="float64")
