@@ -913,6 +913,12 @@ class IndexOpsMixin:
             Dummy argument for consistency with Series.
         skipna : bool, default True
             Exclude NA/null values when showing the result.
+        keep : ('first', 'last', 'all'), default 'first'
+            Where there are duplicate values:
+
+            - `first` : prioritize the first occurrence
+            - `last` : prioritize the last occurrence
+            - ``all`` : do not drop any duplicates
         *args, **kwargs
             Additional arguments and keywords for compatibility with NumPy.
 
@@ -953,7 +959,13 @@ class IndexOpsMixin:
         """
         nv.validate_minmax_axis(axis)
         nv.validate_argmax_with_skipna(skipna, args, kwargs)
-        return nanops.nanargmax(self._values, skipna=skipna)
+        if keep == "last":
+            return (self.size - 1) - nanops.nanargmax(self._values[::-1], skipna=skipna)
+        elif keep == "all":
+            temp = self.reset_index(drop=True)
+            return temp[temp == temp[nanops.nanargmax(temp._values, skipna=skipna)]].index
+        else:
+            return nanops.nanargmax(self._values, skipna=skipna)
 
     def min(self, axis=None, skipna=True, *args, **kwargs):
         """
@@ -1003,7 +1015,13 @@ class IndexOpsMixin:
     def argmin(self, axis=None, skipna=True, *args, **kwargs):
         nv.validate_minmax_axis(axis)
         nv.validate_argmax_with_skipna(skipna, args, kwargs)
-        return nanops.nanargmin(self._values, skipna=skipna)
+        if keep == "last":
+            return (self.size - 1) - nanops.nanargmin(self._values[::-1], skipna=skipna)
+        elif keep == "all":
+            temp = self.reset_index(drop=True)
+            return temp[temp == temp[nanops.nanargmin(temp._values, skipna=skipna)]].index
+        else:
+            return nanops.nanargmin(self._values, skipna=skipna)
 
     def tolist(self):
         """
