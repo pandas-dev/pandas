@@ -29,7 +29,7 @@ win_type : str, default None
 
 Returns
 -------
-A tuple of ndarray[int64]s, indicating the boundaries of each
+A tuple of ndarray[intp]s, indicating the boundaries of each
 window
 """
 
@@ -76,15 +76,15 @@ class FixedWindowIndexer(BaseIndexer):
         closed: Optional[str] = None,
     ) -> Tuple[np.ndarray, np.ndarray]:
 
-        start_s = np.zeros(self.window_size, dtype="int64")
+        start_s = np.zeros(self.window_size, dtype=np.intp)
         start_e = (
-            np.arange(self.window_size, num_values, dtype="int64")
+            np.arange(self.window_size, num_values, dtype=np.intp)
             - self.window_size
             + 1
         )
         start = np.concatenate([start_s, start_e])[:num_values]
 
-        end_s = np.arange(self.window_size, dtype="int64") + 1
+        end_s = np.arange(self.window_size, dtype=np.intp) + 1
         end_e = start_e + self.window_size
         end = np.concatenate([end_s, end_e])[:num_values]
         return start, end
@@ -143,9 +143,9 @@ class VariableOffsetWindowIndexer(BaseIndexer):
         else:
             index_growth_sign = 1
 
-        start = np.empty(num_values, dtype="int64")
+        start = np.empty(num_values, dtype=np.intp)
         start.fill(-1)
-        end = np.empty(num_values, dtype="int64")
+        end = np.empty(num_values, dtype=np.intp)
         end.fill(-1)
 
         start[0] = 0
@@ -202,8 +202,8 @@ class ExpandingIndexer(BaseIndexer):
     ) -> Tuple[np.ndarray, np.ndarray]:
 
         return (
-            np.zeros(num_values, dtype=np.int64),
-            np.arange(1, num_values + 1, dtype=np.int64),
+            np.zeros(num_values, dtype=np.intp),
+            np.arange(1, num_values + 1, dtype=np.intp),
         )
 
 
@@ -249,9 +249,9 @@ class FixedForwardWindowIndexer(BaseIndexer):
                 "Forward-looking windows don't support setting the closed argument"
             )
 
-        start = np.arange(num_values, dtype="int64")
+        start = np.arange(num_values, dtype=np.intp)
         end_s = start[: -self.window_size] + self.window_size
-        end_e = np.full(self.window_size, num_values, dtype="int64")
+        end_e = np.full(self.window_size, num_values, dtype=np.intp)
         end = np.concatenate([end_s, end_e])
 
         return start, end
@@ -303,8 +303,6 @@ class GroupbyRollingIndexer(BaseIndexer):
             start, end = indexer.get_window_bounds(
                 len(indicies), min_periods, center, closed
             )
-            start = start.astype(np.int64)
-            end = end.astype(np.int64)
             # Cannot use groupby_indicies as they might not be monotonic with the object
             # we're rolling over
             window_indicies = np.arange(
@@ -312,9 +310,7 @@ class GroupbyRollingIndexer(BaseIndexer):
             )
             window_indicies_start += len(indicies)
             # Extend as we'll be slicing window like [start, end)
-            window_indicies = np.append(
-                window_indicies, [window_indicies[-1] + 1]
-            ).astype(np.int64)
+            window_indicies = np.append(window_indicies, [window_indicies[-1] + 1])
             start_arrays.append(window_indicies.take(start))
             end_arrays.append(window_indicies.take(end))
         start = np.concatenate(start_arrays)

@@ -39,7 +39,7 @@ def calculate_variable_window_bounds(
 
     Returns
     -------
-    (ndarray[int64], ndarray[int64])
+    (ndarray[intp], ndarray[intp])
     """
     cdef:
         bint left_closed = False
@@ -62,9 +62,9 @@ def calculate_variable_window_bounds(
     if index[num_values - 1] < index[0]:
         index_growth_sign = -1
 
-    start = np.empty(num_values, dtype='int64')
+    start = np.empty(num_values, dtype=np.intp)
     start.fill(-1)
-    end = np.empty(num_values, dtype='int64')
+    end = np.empty(num_values, dtype=np.intp)
     end.fill(-1)
 
     start[0] = 0
