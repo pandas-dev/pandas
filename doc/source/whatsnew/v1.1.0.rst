@@ -332,6 +332,7 @@ Other enhancements
 - :meth:`~Series.explode` now accepts ``ignore_index`` to reset the index, similarly to :meth:`pd.concat` or :meth:`DataFrame.sort_values` (:issue:`34932`).
 - :meth:`read_csv` now accepts string values like "0", "0.0", "1", "1.0" as convertible to the nullable boolean dtype (:issue:`34859`)
 - :class:`pandas.core.window.ExponentialMovingWindow` now supports a ``times`` argument that allows ``mean`` to be calculated with observations spaced by the timestamps in ``times`` (:issue:`34839`)
+- :meth:`DataFrame.agg` and :meth:`Series.agg` now accept named aggregation for renaming the output columns/indexes. (:issue:`26513`)
 
 .. ---------------------------------------------------------------------------
 

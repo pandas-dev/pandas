@@ -17,7 +17,7 @@ from typing import (
     Union,
 )
 
-from pandas._typing import Label
+from pandas._typing import AggFuncType, Label
 
 from pandas.core.dtypes.common import is_dict_like, is_list_like
 
@@ -25,14 +25,6 @@ from pandas.core.base import SpecificationError
 import pandas.core.common as com
 from pandas.core.indexes.api import Index
 from pandas.core.series import FrameOrSeriesUnion, Series
-
-# types of `func` kwarg for DataFrame.aggregate and Series.aggregate
-AggFuncTypeBase = Union[Callable, str]
-AggFuncType = Union[
-    AggFuncTypeBase,
-    List[AggFuncTypeBase],
-    Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]],
-]
 
 
 def reconstruct_func(
