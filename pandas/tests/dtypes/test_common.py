@@ -746,3 +746,15 @@ def test_astype_object_preserves_datetime_na(from_type):
     result = astype_nansafe(arr, dtype="object")
 
     assert isna(result)[0]
+
+
+def test_categorical_filtering():
+    # GH22609 Verify filtering operations on DataFrames with categorical Series
+    df = pd.DataFrame(data=[[0, 0], [1, 1]], columns=["a", "b"])
+    df["b"] = df.b.astype("category")
+
+    result = df.where(df.a > 0)
+    expected = df.copy()
+    expected.loc[0, :] = np.nan
+
+    tm.assert_equal(result, expected)
