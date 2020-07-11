@@ -1256,6 +1256,24 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         expected = '{"0":{"articleId":' + str(bigNum) + "}}"
         assert json == expected
 
+    @pytest.mark.parametrize("bigNum", [2**64 + 1, -(2**64 + 2)])
+    def test_read_json_large_numbers(self, bigNum):
+        # GH20599
+
+        series = Series(bigNum, dtype=object, index=["articleId"])
+        json = '{"articleId":' + str(bigNum) + "}"
+        with pytest.raises(ValueError):	
+            json = StringIO(json)	
+            result = read_json(json)	
+            tm.assert_series_equal(series, result)
+
+        df = DataFrame(bigNum, dtype=object, index=["articleId"], columns=[0])
+        json = '{"0":{"articleId":' + str(bigNum) + "}}"
+        with pytest.raises(ValueError):	
+            json = StringIO(json)	
+            result = read_json(json)	
+            tm.assert_frame_equal(df, result)
+
     def test_read_json_large_numbers(self):
         # GH18842
         json = '{"articleId": "1404366058080022500245"}'
