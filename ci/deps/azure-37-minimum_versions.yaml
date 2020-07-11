@@ -6,7 +6,7 @@ dependencies:
 
   # tools
   - cython=0.29.16
-  - pytest=5.1.1
+  - pytest=5.0.1
   - pytest-xdist>=1.21
   - hypothesis>=3.58.0
   - pytest-azurepipelines
@@ -20,9 +20,9 @@ dependencies:
   - numexpr=2.6.8
   - numpy=1.16.0
   - openpyxl=2.5.7
-  - pytables=3.5.1
-  - python-dateutil=2.7.4
-  - pytz=2018.3
+  - pytables=3.4.4
+  - python-dateutil=2.7.3
+  - pytz=2017.3
   - scipy=1.2
   - xlrd=1.1.0
   - xlsxwriter=1.0.2
