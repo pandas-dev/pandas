@@ -179,13 +179,11 @@ class JSONArray(ExtensionArray):
     def unique(self):
         # Parent method doesn't work since np.array will try to infer
         # a 2-dim object.
-        return type(self)(
-            [dict(x) for x in list({tuple(d.items()) for d in self.data})]
-        )
+        return type(self)([dict(x) for x in {tuple(d.items()) for d in self.data}])
 
     @classmethod
     def _concat_same_type(cls, to_concat):
-        data = list(itertools.chain.from_iterable([x.data for x in to_concat]))
+        data = list(itertools.chain.from_iterable(x.data for x in to_concat))
         return cls(data)
 
     def _values_for_factorize(self):

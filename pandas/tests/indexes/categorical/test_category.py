@@ -15,7 +15,7 @@ class TestCategoricalIndex(Base):
     _holder = CategoricalIndex
 
     @pytest.fixture
-    def indices(self, request):
+    def index(self, request):
         return tm.makeCategoricalIndex(100)
 
     def create_index(self, categories=None, ordered=False):
@@ -354,7 +354,7 @@ class TestCategoricalIndex(Base):
         assert ci1.identical(ci1.copy())
         assert not ci1.identical(ci2)
 
-    def test_ensure_copied_data(self, indices):
+    def test_ensure_copied_data(self, index):
         # gh-12309: Check the "copy" argument of each
         # Index.__new__ is honored.
         #
@@ -364,12 +364,12 @@ class TestCategoricalIndex(Base):
         # FIXME: is this test still meaningful?
         _base = lambda ar: ar if getattr(ar, "base", None) is None else ar.base
 
-        result = CategoricalIndex(indices.values, copy=True)
-        tm.assert_index_equal(indices, result)
-        assert _base(indices.values) is not _base(result.values)
+        result = CategoricalIndex(index.values, copy=True)
+        tm.assert_index_equal(index, result)
+        assert _base(index.values) is not _base(result.values)
 
-        result = CategoricalIndex(indices.values, copy=False)
-        assert _base(indices.values) is _base(result.values)
+        result = CategoricalIndex(index.values, copy=False)
+        assert _base(index.values) is _base(result.values)
 
     def test_equals_categorical(self):
         ci1 = CategoricalIndex(["a", "b"], categories=["a", "b"], ordered=True)

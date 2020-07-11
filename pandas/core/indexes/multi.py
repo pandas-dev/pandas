@@ -3193,7 +3193,12 @@ class MultiIndex(Index):
         new_codes = [level_codes[left:right] for level_codes in self.codes]
         new_codes[0] = new_codes[0] - i
 
-        return MultiIndex(levels=new_levels, codes=new_codes, verify_integrity=False)
+        return MultiIndex(
+            levels=new_levels,
+            codes=new_codes,
+            names=self._names,
+            verify_integrity=False,
+        )
 
     def equals(self, other) -> bool:
         """
