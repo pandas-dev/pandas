@@ -45,8 +45,7 @@ class TestDataFrameSortValues:
 
         msg = "No axis named 2 for object type DataFrame"
         with pytest.raises(ValueError, match=msg):
-            return_value = frame.sort_values(by=["A", "B"], axis=2, inplace=True)
-            assert return_value is None
+            frame.sort_values(by=["A", "B"], axis=2, inplace=True)
 
         # by row (axis=1): GH#10806
         sorted_df = frame.sort_values(by=3, axis=1)
@@ -288,8 +287,7 @@ class TestDataFrameSortValues:
     def test_sort_values_frame_column_inplace_sort_exception(self, float_frame):
         s = float_frame["A"]
         with pytest.raises(ValueError, match="This Series is a view"):
-            return_value = s.sort_values(inplace=True)
-            assert return_value is None
+            s.sort_values(inplace=True)
 
         cp = s.copy()
         cp.sort_values()  # it works!

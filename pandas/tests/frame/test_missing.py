@@ -24,17 +24,13 @@ class TestDataFrameMissingData:
         smaller_frame = frame.dropna(how="all")
         # check that original was preserved
         tm.assert_series_equal(frame["foo"], original)
-        return_value = return_value = inplace_frame1.dropna(how="all", inplace=True)
-        assert return_value is None
+        return_value = inplace_frame1.dropna(how="all", inplace=True)
         tm.assert_series_equal(smaller_frame["foo"], expected)
         tm.assert_series_equal(inplace_frame1["foo"], expected)
         assert return_value is None
 
         smaller_frame = frame.dropna(how="all", subset=["foo"])
-        return_value = return_value = inplace_frame2.dropna(
-            how="all", subset=["foo"], inplace=True
-        )
-        assert return_value is None
+        return_value = inplace_frame2.dropna(how="all", subset=["foo"], inplace=True)
         tm.assert_series_equal(smaller_frame["foo"], expected)
         tm.assert_series_equal(inplace_frame2["foo"], expected)
         assert return_value is None
@@ -51,8 +47,7 @@ class TestDataFrameMissingData:
 
         smaller_frame = frame.dropna()
         tm.assert_series_equal(frame["foo"], original)
-        return_value = return_value = inp_frame1.dropna(inplace=True)
-        assert return_value is None
+        return_value = inp_frame1.dropna(inplace=True)
 
         exp = Series(mat[5:], index=float_frame.index[5:], name="foo")
         tm.assert_series_equal(smaller_frame["foo"], exp)
@@ -62,8 +57,7 @@ class TestDataFrameMissingData:
         samesize_frame = frame.dropna(subset=["bar"])
         tm.assert_series_equal(frame["foo"], original)
         assert (frame["bar"] == 5).all()
-        return_value = return_value = inp_frame2.dropna(subset=["bar"], inplace=True)
-        assert return_value is None
+        return_value = inp_frame2.dropna(subset=["bar"], inplace=True)
         tm.assert_index_equal(samesize_frame.index, float_frame.index)
         tm.assert_index_equal(inp_frame2.index, float_frame.index)
         assert return_value is None
@@ -75,8 +69,7 @@ class TestDataFrameMissingData:
         dropped = df.dropna(axis=1)
         expected = df.loc[:, [0, 1, 3]]
         inp = df.copy()
-        return_value = return_value = inp.dropna(axis=1, inplace=True)
-        assert return_value is None
+        return_value = inp.dropna(axis=1, inplace=True)
         tm.assert_frame_equal(dropped, expected)
         tm.assert_frame_equal(inp, expected)
         assert return_value is None
@@ -84,8 +77,7 @@ class TestDataFrameMissingData:
         dropped = df.dropna(axis=0)
         expected = df.loc[list(range(2, 6))]
         inp = df.copy()
-        return_value = return_value = inp.dropna(axis=0, inplace=True)
-        assert return_value is None
+        return_value = inp.dropna(axis=0, inplace=True)
         tm.assert_frame_equal(dropped, expected)
         tm.assert_frame_equal(inp, expected)
         assert return_value is None
@@ -94,8 +86,7 @@ class TestDataFrameMissingData:
         dropped = df.dropna(axis=1, thresh=5)
         expected = df.loc[:, [0, 1, 3]]
         inp = df.copy()
-        return_value = return_value = inp.dropna(axis=1, thresh=5, inplace=True)
-        assert return_value is None
+        return_value = inp.dropna(axis=1, thresh=5, inplace=True)
         tm.assert_frame_equal(dropped, expected)
         tm.assert_frame_equal(inp, expected)
         assert return_value is None
@@ -103,8 +94,7 @@ class TestDataFrameMissingData:
         dropped = df.dropna(axis=0, thresh=4)
         expected = df.loc[range(2, 6)]
         inp = df.copy()
-        return_value = return_value = inp.dropna(axis=0, thresh=4, inplace=True)
-        assert return_value is None
+        return_value = inp.dropna(axis=0, thresh=4, inplace=True)
         tm.assert_frame_equal(dropped, expected)
         tm.assert_frame_equal(inp, expected)
         assert return_value is None
@@ -118,8 +108,7 @@ class TestDataFrameMissingData:
         # subset
         dropped = df.dropna(axis=0, subset=[0, 1, 3])
         inp = df.copy()
-        return_value = return_value = inp.dropna(axis=0, subset=[0, 1, 3], inplace=True)
-        assert return_value is None
+        return_value = inp.dropna(axis=0, subset=[0, 1, 3], inplace=True)
         tm.assert_frame_equal(dropped, df)
         tm.assert_frame_equal(inp, df)
         assert return_value is None
@@ -146,14 +135,12 @@ class TestDataFrameMissingData:
         df2 = df.copy()
         df["A"].dropna()
         tm.assert_series_equal(df["A"], original)
-        return_value = return_value = df["A"].dropna(inplace=True)
-        assert return_value is None
+        return_value = df["A"].dropna(inplace=True)
         tm.assert_series_equal(df["A"], expected)
         assert return_value is None
         df2["A"].drop([1])
         tm.assert_series_equal(df2["A"], original)
-        return_value = return_value = df2["A"].drop([1], inplace=True)
-        assert return_value is None
+        return_value = df2["A"].drop([1], inplace=True)
         tm.assert_series_equal(df2["A"], original.drop([1]))
         assert return_value is None
 
@@ -187,8 +174,7 @@ class TestDataFrameMissingData:
 
         inp = df.copy()
         with pytest.raises(TypeError, match="supplying multiple axes"):
-            return_value = inp.dropna(how="all", axis=(0, 1), inplace=True)
-            assert return_value is None
+            inp.dropna(how="all", axis=(0, 1), inplace=True)
 
     def test_dropna_tz_aware_datetime(self):
         # GH13407
@@ -261,8 +247,7 @@ class TestDataFrameMissingData:
         # empty frame (GH #2778)
         df = DataFrame(columns=["x"])
         for m in ["pad", "backfill"]:
-            return_value = df.x.fillna(method=m, inplace=True)
-            assert return_value is None
+            df.x.fillna(method=m, inplace=True)
             df.x.fillna(method=m)
 
     def test_fillna_different_dtype(self):
@@ -277,8 +262,7 @@ class TestDataFrameMissingData:
         )
         tm.assert_frame_equal(result, expected)
 
-        return_value = return_value = df.fillna({2: "foo"}, inplace=True)
-        assert return_value is None
+        return_value = df.fillna({2: "foo"}, inplace=True)
         tm.assert_frame_equal(df, expected)
         assert return_value is None
 
@@ -596,12 +580,10 @@ class TestDataFrameMissingData:
         expected = df.fillna(value=0)
         assert expected is not df
 
-        return_value = df.fillna(value=0, inplace=True)
-        assert return_value is None
+        df.fillna(value=0, inplace=True)
         tm.assert_frame_equal(df, expected)
 
-        return_value = expected = df.fillna(value={0: 0}, inplace=True)
-        assert return_value is None
+        expected = df.fillna(value={0: 0}, inplace=True)
         assert expected is None
 
         df[1][:4] = np.nan
@@ -609,8 +591,7 @@ class TestDataFrameMissingData:
         expected = df.fillna(method="ffill")
         assert expected is not df
 
-        return_value = df.fillna(method="ffill", inplace=True)
-        assert return_value is None
+        df.fillna(method="ffill", inplace=True)
         tm.assert_frame_equal(df, expected)
 
     def test_fillna_dict_series(self):

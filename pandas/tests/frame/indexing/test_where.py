@@ -395,8 +395,7 @@ class TestDataFrameIndexingWhere:
         msg = "boolean setting on mixed-type"
 
         with pytest.raises(TypeError, match=msg):
-            return_value = df.where(~isna(df), None, inplace=True)
-            assert return_value is None
+            df.where(~isna(df), None, inplace=True)
 
     def test_where_empty_df_and_empty_cond_having_non_bool_dtypes(self):
         # see gh-21947
