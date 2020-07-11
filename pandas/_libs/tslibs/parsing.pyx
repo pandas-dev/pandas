@@ -197,7 +197,6 @@ cdef inline bint does_string_look_like_time(str parse_string):
 
 def parse_datetime_string(
     str date_string,
-    object freq=None,
     bint dayfirst=False,
     bint yearfirst=False,
     **kwargs,
@@ -228,7 +227,7 @@ def parse_datetime_string(
         return dt
 
     try:
-        dt, _ = _parse_dateabbr_string(date_string, _DEFAULT_DATETIME, freq)
+        dt, _ = _parse_dateabbr_string(date_string, _DEFAULT_DATETIME, freq=None)
         return dt
     except DateParseError:
         raise
@@ -265,9 +264,6 @@ def parse_time_string(arg: str, freq=None, dayfirst=None, yearfirst=None):
     -------
     datetime, datetime/dateutil.parser._result, str
     """
-    if not isinstance(arg, str):
-        raise TypeError("parse_time_string argument must be str")
-
     if is_offset_object(freq):
         freq = freq.rule_code
 

@@ -2302,7 +2302,8 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
 
     def __init__(self, values, placement, ndim=None):
         if values.dtype != TD64NS_DTYPE:
-            values = conversion.ensure_timedelta64ns(values)
+            # e.g. non-nano or int64
+            values = TimedeltaArray._from_sequence(values)._data
         if isinstance(values, TimedeltaArray):
             values = values._data
         assert isinstance(values, np.ndarray), type(values)
