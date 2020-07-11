@@ -25,8 +25,7 @@ def test_detect_chained_assignment():
 
     msg = "A value is trying to be set on a copy of a slice from a DataFrame"
     with pytest.raises(com.SettingWithCopyError, match=msg):
-        return_value = zed["eyes"]["right"].fillna(value=555, inplace=True)
-        assert return_value is None
+        zed["eyes"]["right"].fillna(value=555, inplace=True)
 
 
 def test_cache_updating():
