@@ -66,4 +66,3 @@ def test_replace_values_scalar(input_dataframe, expected_dataframe):
     input_df = input_df.replace("cat2", "catX")
 
     tm.assert_frame_equal(input_df, expected_dataframe)
-
