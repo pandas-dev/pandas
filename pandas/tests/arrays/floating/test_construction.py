@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import FloatingArray
@@ -167,55 +165,3 @@ def test_series_from_float(data):
     expected = pd.Series(data)
     result = pd.Series(np.array(data).tolist(), dtype=str(dtype))
     tm.assert_series_equal(result, expected)
-
-
-# TODO belongs in different file
-
-# def test_conversions(data_missing):
-
-#     # astype to object series
-#     df = pd.DataFrame({"A": data_missing})
-#     result = df["A"].astype("object")
-#     expected = pd.Series(np.array([np.nan, 1], dtype=object), name="A")
-#     tm.assert_series_equal(result, expected)
-
-#     # convert to object ndarray
-#     # we assert that we are exactly equal
-#     # including type conversions of scalars
-#     result = df["A"].astype("object").values
-#     expected = np.array([pd.NA, 1], dtype=object)
-#     tm.assert_numpy_array_equal(result, expected)
-
-#     for r, e in zip(result, expected):
-#         if pd.isnull(r):
-#             assert pd.isnull(e)
-#         elif is_integer(r):
-#             assert r == e
-#             assert is_integer(e)
-#         else:
-#             assert r == e
-#             assert type(r) == type(e)
-
-
-@td.skip_if_no("pyarrow", min_version="0.15.0")
-def test_arrow_array(data):
-    # protocol added in 0.15.0
-    import pyarrow as pa
-
-    arr = pa.array(data)
-    expected = np.array(data, dtype=object)
-    expected[data.isna()] = None
-    expected = pa.array(expected, type=data.dtype.name.lower(), from_pandas=True)
-    assert arr.equals(expected)
-
-
-@td.skip_if_no("pyarrow", min_version="0.16.0")
-def test_arrow_roundtrip(data):
-    # roundtrip possible from arrow 0.16.0
-    import pyarrow as pa
-
-    df = pd.DataFrame({"a": data})
-    table = pa.table(df)
-    assert table.field("a").type == str(data.dtype.numpy_dtype)
-    result = table.to_pandas()
-    tm.assert_frame_equal(result, df)
