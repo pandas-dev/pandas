@@ -1168,11 +1168,6 @@ class TestDataFrameConstructors:
             OrderedDict([["b", 3], ["c", 4], ["d", 6]]),
         ]
 
-        # single row dataframe
-        result = DataFrame([data[0]])
-        expected = DataFrame.from_dict(dict(zip([0], [data[0]])), orient="index")
-        tm.assert_frame_equal(result, expected.reindex(result.index))
-
         result = DataFrame(data)
         expected = DataFrame.from_dict(
             dict(zip(range(len(data)), data)), orient="index"
@@ -1182,6 +1177,13 @@ class TestDataFrameConstructors:
         result = DataFrame([{}])
         expected = DataFrame(index=[0])
         tm.assert_frame_equal(result, expected)
+
+    def test_constructor_single_row(self):
+        data = [OrderedDict([["a", 1.5], ["b", 3], ["c", 4], ["d", 6]])]
+
+        result = DataFrame(data)
+        expected = DataFrame.from_dict(dict(zip([0], data)), orient="index")
+        tm.assert_frame_equal(result, expected.reindex(result.index))
 
     def test_constructor_ordered_dict_preserve_order(self):
         # see gh-13304
