@@ -2757,6 +2757,17 @@ def test_concat_sparse():
     tm.assert_frame_equal(result, expected)
 
 
+def test_concat_dense_sparse():
+    # GH 30668
+    a = pd.Series(pd.arrays.SparseArray([1, None]), dtype=float)
+    b = pd.Series([1], dtype=float)
+    expected = pd.Series(data=[1, None, 1], index=[0, 1, 0]).astype(
+        pd.SparseDtype(np.float64, None)
+    )
+    result = pd.concat([a, b], axis=0)
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("test_series", [True, False])
 def test_concat_copy_index(test_series, axis):
     # GH 29879
@@ -2832,3 +2843,31 @@ def test_concat_preserves_subclass(obj):
 
     result = concat([obj, obj])
     assert isinstance(result, type(obj))
+
+
+def test_concat_frame_axis0_extension_dtypes():
+    # preserve extension dtype (through common_dtype mechanism)
+    df1 = pd.DataFrame({"a": pd.array([1, 2, 3], dtype="Int64")})
+    df2 = pd.DataFrame({"a": np.array([4, 5, 6])})
+
+    result = pd.concat([df1, df2], ignore_index=True)
+    expected = pd.DataFrame({"a": [1, 2, 3, 4, 5, 6]}, dtype="Int64")
+    tm.assert_frame_equal(result, expected)
+
+    result = pd.concat([df2, df1], ignore_index=True)
+    expected = pd.DataFrame({"a": [4, 5, 6, 1, 2, 3]}, dtype="Int64")
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("sort", [True, False])
+def test_append_sort(sort):
+    # GH 35092. Check that DataFrame.append respects the sort argument.
+    df1 = pd.DataFrame(data={0: [1, 2], 1: [3, 4]})
+    df2 = pd.DataFrame(data={3: [1, 2], 2: [3, 4]})
+    cols = list(df1.columns) + list(df2.columns)
+    if sort:
+        cols.sort()
+
+    result = df1.append(df2, sort=sort).columns
+    expected = type(result)(cols)
+    tm.assert_index_equal(result, expected)

@@ -2,7 +2,16 @@ from collections import abc
 from datetime import datetime
 from functools import partial
 from itertools import islice
-from typing import TYPE_CHECKING, Optional, TypeVar, Union
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    List,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+    overload,
+)
 import warnings
 
 import numpy as np
@@ -15,7 +24,7 @@ from pandas._libs.tslibs.parsing import (  # noqa
     _guess_datetime_format,
 )
 from pandas._libs.tslibs.strptime import array_strptime
-from pandas._typing import ArrayLike
+from pandas._typing import ArrayLike, Label, Timezone
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -45,16 +54,15 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 
 if TYPE_CHECKING:
     from pandas import Series  # noqa:F401
+    from pandas._libs.tslibs.nattype import NaTType  # noqa:F401
 
 # ---------------------------------------------------------------------
 # types used in annotations
 
-ArrayConvertible = Union[list, tuple, ArrayLike, "Series"]
+ArrayConvertible = Union[List, Tuple, ArrayLike, "Series"]
 Scalar = Union[int, float, str]
 DatetimeScalar = TypeVar("DatetimeScalar", Scalar, datetime)
-DatetimeScalarOrArrayConvertible = Union[
-    DatetimeScalar, list, tuple, ArrayLike, "Series"
-]
+DatetimeScalarOrArrayConvertible = Union[DatetimeScalar, ArrayConvertible]
 
 
 # ---------------------------------------------------------------------
@@ -123,7 +131,12 @@ def should_cache(
     return do_caching
 
 
-def _maybe_cache(arg, format, cache, convert_listlike):
+def _maybe_cache(
+    arg: ArrayConvertible,
+    format: Optional[str],
+    cache: bool,
+    convert_listlike: Callable,
+) -> "Series":
     """
     Create a cache of unique dates from an array of dates
 
@@ -159,7 +172,7 @@ def _maybe_cache(arg, format, cache, convert_listlike):
 
 
 def _box_as_indexlike(
-    dt_array: ArrayLike, utc: Optional[bool] = None, name: Optional[str] = None
+    dt_array: ArrayLike, utc: Optional[bool] = None, name: Label = None
 ) -> Index:
     """
     Properly boxes the ndarray of datetimes to DatetimeIndex
@@ -244,15 +257,15 @@ def _return_parsed_timezone_results(result, timezones, tz, name):
 
 def _convert_listlike_datetimes(
     arg,
-    format,
-    name=None,
-    tz=None,
-    unit=None,
-    errors=None,
-    infer_datetime_format=None,
-    dayfirst=None,
-    yearfirst=None,
-    exact=None,
+    format: Optional[str],
+    name: Label = None,
+    tz: Optional[Timezone] = None,
+    unit: Optional[str] = None,
+    errors: Optional[str] = None,
+    infer_datetime_format: Optional[bool] = None,
+    dayfirst: Optional[bool] = None,
+    yearfirst: Optional[bool] = None,
+    exact: Optional[bool] = None,
 ):
     """
     Helper function for to_datetime. Performs the conversions of 1D listlike
@@ -306,9 +319,7 @@ def _convert_listlike_datetimes(
                 pass
         elif tz:
             # DatetimeArray, DatetimeIndex
-            # error: Item "DatetimeIndex" of "Union[DatetimeArray, DatetimeIndex]" has
-            # no attribute "tz_localize"
-            return arg.tz_localize(tz)  # type: ignore
+            return arg.tz_localize(tz)
 
         return arg
 
@@ -539,19 +550,70 @@ def _adjust_to_origin(arg, origin, unit):
     return arg
 
 
+@overload
 def to_datetime(
-    arg,
-    errors="raise",
-    dayfirst=False,
-    yearfirst=False,
-    utc=None,
-    format=None,
-    exact=True,
-    unit=None,
-    infer_datetime_format=False,
+    arg: DatetimeScalar,
+    errors: str = ...,
+    dayfirst: bool = ...,
+    yearfirst: bool = ...,
+    utc: Optional[bool] = ...,
+    format: Optional[str] = ...,
+    exact: bool = ...,
+    unit: Optional[str] = ...,
+    infer_datetime_format: bool = ...,
+    origin=...,
+    cache: bool = ...,
+) -> Union[DatetimeScalar, "NaTType"]:
+    ...
+
+
+@overload
+def to_datetime(
+    arg: "Series",
+    errors: str = ...,
+    dayfirst: bool = ...,
+    yearfirst: bool = ...,
+    utc: Optional[bool] = ...,
+    format: Optional[str] = ...,
+    exact: bool = ...,
+    unit: Optional[str] = ...,
+    infer_datetime_format: bool = ...,
+    origin=...,
+    cache: bool = ...,
+) -> "Series":
+    ...
+
+
+@overload
+def to_datetime(
+    arg: Union[List, Tuple],
+    errors: str = ...,
+    dayfirst: bool = ...,
+    yearfirst: bool = ...,
+    utc: Optional[bool] = ...,
+    format: Optional[str] = ...,
+    exact: bool = ...,
+    unit: Optional[str] = ...,
+    infer_datetime_format: bool = ...,
+    origin=...,
+    cache: bool = ...,
+) -> DatetimeIndex:
+    ...
+
+
+def to_datetime(
+    arg: DatetimeScalarOrArrayConvertible,
+    errors: str = "raise",
+    dayfirst: bool = False,
+    yearfirst: bool = False,
+    utc: Optional[bool] = None,
+    format: Optional[str] = None,
+    exact: bool = True,
+    unit: Optional[str] = None,
+    infer_datetime_format: bool = False,
     origin="unix",
-    cache=True,
-):
+    cache: bool = True,
+) -> Union[DatetimeIndex, "Series", DatetimeScalar, "NaTType"]:
     """
     Convert argument to datetime.
 
@@ -746,8 +808,7 @@ dtype='datetime64[ns]', freq=None)
         if not cache_array.empty:
             result = _convert_and_box_cache(arg, cache_array, name=arg.name)
         else:
-            convert_listlike = partial(convert_listlike, name=arg.name)
-            result = convert_listlike(arg, format)
+            result = convert_listlike(arg, format, name=arg.name)
     elif is_list_like(arg):
         try:
             cache_array = _maybe_cache(arg, format, cache, convert_listlike)

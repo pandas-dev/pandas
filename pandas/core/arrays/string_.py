@@ -5,9 +5,8 @@ import numpy as np
 
 from pandas._libs import lib, missing as libmissing
 
-from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.base import ExtensionDtype, register_extension_dtype
 from pandas.core.dtypes.common import pandas_dtype
-from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import is_array_like
 
@@ -152,15 +151,21 @@ class StringArray(PandasArray):
     ['This is', 'some text', <NA>, 'data.']
     Length: 4, dtype: string
 
-    Unlike ``object`` dtype arrays, ``StringArray`` doesn't allow non-string
-    values.
+    Unlike arrays instantiated with ``dtype="object"``, ``StringArray``
+    will convert the values to strings.
 
+    >>> pd.array(['1', 1], dtype="object")
+    <PandasArray>
+    ['1', 1]
+    Length: 2, dtype: object
     >>> pd.array(['1', 1], dtype="string")
-    Traceback (most recent call last):
-    ...
-    ValueError: StringArray requires an object-dtype ndarray of strings.
+    <StringArray>
+    ['1', '1']
+    Length: 2, dtype: string
 
-    For comparison methods, this returns a :class:`pandas.BooleanArray`
+    However, instantiating StringArrays directly with non-strings will raise an error.
+
+    For comparison methods, `StringArray` returns a :class:`pandas.BooleanArray`:
 
     >>> pd.array(["a", None, "c"], dtype="string") == "a"
     <BooleanArray>
@@ -203,10 +208,15 @@ class StringArray(PandasArray):
         # TODO: it would be nice to do this in _validate / lib.is_string_array
         # We are already doing a scan over the values there.
         na_values = isna(result)
-        if na_values.any():
-            if result is scalars:
-                # force a copy now, if we haven't already
-                result = result.copy()
+        has_nans = na_values.any()
+        if has_nans and result is scalars:
+            # force a copy now, if we haven't already
+            result = result.copy()
+
+        # convert to str, then to object to avoid dtype like '<U3', then insert na_value
+        result = np.asarray(result, dtype=str)
+        result = np.asarray(result, dtype="object")
+        if has_nans:
             result[na_values] = StringDtype.na_value
 
         return cls(result)

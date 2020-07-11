@@ -153,6 +153,23 @@ A good implementation for Python users is `has2k1/plotnine <https://github.com/h
 Spun off from the main pandas library, the `qtpandas <https://github.com/draperjames/qtpandas>`__
 library enables DataFrame visualization and manipulation in PyQt4 and PySide applications.
 
+`D-Tale <https://github.com/man-group/dtale>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+D-Tale is a lightweight web client for visualizing pandas data structures. It
+provides a rich spreadsheet-style grid which acts as a wrapper for a lot of
+pandas functionality (query, sort, describe, corr...) so users can quickly
+manipulate their data. There is also an interactive chart-builder using Plotly
+Dash allowing users to build nice portable visualizations. D-Tale can be
+invoked with the following command
+
+.. code:: python
+
+    import dtale; dtale.show(df)
+
+D-Tale integrates seamlessly with jupyter notebooks, python terminals, kaggle
+& Google Colab. Here are some demos of the `grid <http://alphatechadmin.pythonanywhere.com/>`__
+and `chart-builder <http://alphatechadmin.pythonanywhere.com/charts/4?chart_type=surface&query=&x=date&z=Col0&agg=raw&cpg=false&y=%5B%22security_id%22%5D>`__.
 
 .. _ecosystem.ide:
 
@@ -303,6 +320,20 @@ provide a pandas-like and pandas-compatible toolkit for analytics on multi-
 dimensional arrays, rather than the tabular data for which pandas excels.
 
 
+.. _ecosystem.io:
+
+IO
+--
+
+`BCPandas <https://github.com/yehoshuadimarsky/bcpandas>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+BCPandas provides high performance writes from pandas to Microsoft SQL Server,
+far exceeding the performance of the native ``df.to_sql`` method. Internally, it uses
+Microsoft's BCP utility, but the complexity is fully abstracted away from the end user.
+Rigorously tested, it is a complete replacement for ``df.to_sql``.
+
+
 .. _ecosystem.out-of-core:
 
 Out-of-core
@@ -390,6 +421,14 @@ found in NumPy or pandas, which work well with pandas' data containers.
 Cyberpandas provides an extension type for storing arrays of IP Addresses. These
 arrays can be stored inside pandas' Series and DataFrame.
 
+`Pint-Pandas`_
+~~~~~~~~~~~~~~
+
+`Pint-Pandas <https://github.com/hgrecco/pint-pandas>` provides an extension type for
+storing numeric arrays with units. These arrays can be stored inside pandas'
+Series and DataFrame. Operations between Series and DataFrame columns which
+use pint's extension array are then units aware.
+
 .. _ecosystem.accessors:
 
 Accessors
@@ -405,6 +444,7 @@ Library         Accessor   Classes                   Description
 `cyberpandas`_  ``ip``     ``Series``                Provides common operations for working with IP addresses.
 `pdvega`_       ``vgplot`` ``Series``, ``DataFrame`` Provides plotting functions from the Altair_ library.
 `pandas_path`_  ``path``   ``Index``, ``Series``     Provides `pathlib.Path`_ functions for Series.
+`pint-pandas`_  ``pint``   ``Series``, ``DataFrame`` Provides units support for numeric Series and DataFrames.
 =============== ========== ========================= ===============================================================
 
 .. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest
@@ -412,3 +452,4 @@ Library         Accessor   Classes                   Description
 .. _Altair: https://altair-viz.github.io/
 .. _pandas_path: https://github.com/drivendataorg/pandas-path/
 .. _pathlib.Path: https://docs.python.org/3/library/pathlib.html
+.. _pint-pandas: https://github.com/hgrecco/pint-pandas

@@ -39,10 +39,9 @@ from pandas._libs.tslibs.nattype cimport (
 )
 from pandas._libs.tslibs.util cimport (
     is_array,
-    is_offset_object,
     get_c_string_buf_and_size,
 )
-from pandas._libs.tslibs.frequencies cimport get_rule_month
+from pandas._libs.tslibs.offsets cimport is_offset_object
 
 cdef extern from "../src/headers/portable.h":
     int getdigit_ascii(char c, int default) nogil
@@ -198,7 +197,6 @@ cdef inline bint does_string_look_like_time(str parse_string):
 
 def parse_datetime_string(
     str date_string,
-    object freq=None,
     bint dayfirst=False,
     bint yearfirst=False,
     **kwargs,
@@ -229,7 +227,7 @@ def parse_datetime_string(
         return dt
 
     try:
-        dt, _ = _parse_dateabbr_string(date_string, _DEFAULT_DATETIME, freq)
+        dt, _ = _parse_dateabbr_string(date_string, _DEFAULT_DATETIME, freq=None)
         return dt
     except DateParseError:
         raise
@@ -266,9 +264,6 @@ def parse_time_string(arg: str, freq=None, dayfirst=None, yearfirst=None):
     -------
     datetime, datetime/dateutil.parser._result, str
     """
-    if not isinstance(arg, str):
-        raise TypeError("parse_time_string argument must be str")
-
     if is_offset_object(freq):
         freq = freq.rule_code
 
@@ -285,7 +280,7 @@ def parse_time_string(arg: str, freq=None, dayfirst=None, yearfirst=None):
 
 
 cdef parse_datetime_string_with_reso(
-    str date_string, object freq=None, bint dayfirst=False, bint yearfirst=False,
+    str date_string, str freq=None, bint dayfirst=False, bint yearfirst=False,
 ):
     """
     Parse datetime string and try to identify its resolution.
@@ -377,7 +372,7 @@ cpdef bint _does_string_look_like_datetime(str py_string):
     return True
 
 
-cdef inline object _parse_dateabbr_string(object date_string, object default,
+cdef inline object _parse_dateabbr_string(object date_string, datetime default,
                                           object freq):
     cdef:
         object ret
@@ -439,6 +434,7 @@ cdef inline object _parse_dateabbr_string(object date_string, object default,
 
             if freq is not None:
                 # TODO: hack attack, #1228
+                freq = getattr(freq, "freqstr", freq)
                 try:
                     mnum = c_MONTH_NUMBERS[get_rule_month(freq)] + 1
                 except (KeyError, ValueError):
@@ -1019,3 +1015,31 @@ def concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True):
             result_view[row_idx] = " ".join(list_to_join)
 
     return result
+
+
+cpdef str get_rule_month(str source):
+    """
+    Return starting month of given freq, default is December.
+
+    Parameters
+    ----------
+    source : str
+        Derived from `freq.rule_code` or `freq.freqstr`.
+
+    Returns
+    -------
+    rule_month: str
+
+    Examples
+    --------
+    >>> get_rule_month('D')
+    'DEC'
+
+    >>> get_rule_month('A-JAN')
+    'JAN'
+    """
+    source = source.upper()
+    if "-" not in source:
+        return "DEC"
+    else:
+        return source.split("-")[1]

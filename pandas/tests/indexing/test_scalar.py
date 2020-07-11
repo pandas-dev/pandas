@@ -351,3 +351,65 @@ def test_iat_series_with_period_index():
     expected = ser[index[0]]
     result = ser.iat[0]
     assert expected == result
+
+
+def test_at_with_tuple_index_get():
+    # GH 26989
+    # DataFrame.at getter works with Index of tuples
+    df = DataFrame({"a": [1, 2]}, index=[(1, 2), (3, 4)])
+    assert df.index.nlevels == 1
+    assert df.at[(1, 2), "a"] == 1
+
+    # Series.at getter works with Index of tuples
+    series = df["a"]
+    assert series.index.nlevels == 1
+    assert series.at[(1, 2)] == 1
+
+
+def test_at_with_tuple_index_set():
+    # GH 26989
+    # DataFrame.at setter works with Index of tuples
+    df = DataFrame({"a": [1, 2]}, index=[(1, 2), (3, 4)])
+    assert df.index.nlevels == 1
+    df.at[(1, 2), "a"] = 2
+    assert df.at[(1, 2), "a"] == 2
+
+    # Series.at setter works with Index of tuples
+    series = df["a"]
+    assert series.index.nlevels == 1
+    series.at[1, 2] = 3
+    assert series.at[1, 2] == 3
+
+
+def test_multiindex_at_get():
+    # GH 26989
+    # DataFrame.at and DataFrame.loc getter works with MultiIndex
+    df = DataFrame({"a": [1, 2]}, index=[[1, 2], [3, 4]])
+    assert df.index.nlevels == 2
+    assert df.at[(1, 3), "a"] == 1
+    assert df.loc[(1, 3), "a"] == 1
+
+    # Series.at and Series.loc getter works with MultiIndex
+    series = df["a"]
+    assert series.index.nlevels == 2
+    assert series.at[1, 3] == 1
+    assert series.loc[1, 3] == 1
+
+
+def test_multiindex_at_set():
+    # GH 26989
+    # DataFrame.at and DataFrame.loc setter works with MultiIndex
+    df = DataFrame({"a": [1, 2]}, index=[[1, 2], [3, 4]])
+    assert df.index.nlevels == 2
+    df.at[(1, 3), "a"] = 3
+    assert df.at[(1, 3), "a"] == 3
+    df.loc[(1, 3), "a"] = 4
+    assert df.loc[(1, 3), "a"] == 4
+
+    # Series.at and Series.loc setter works with MultiIndex
+    series = df["a"]
+    assert series.index.nlevels == 2
+    series.at[1, 3] = 5
+    assert series.at[1, 3] == 5
+    series.loc[1, 3] = 6
+    assert series.loc[1, 3] == 6

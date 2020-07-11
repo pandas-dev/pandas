@@ -25,7 +25,10 @@ def test_series_groupby_nunique(n, m, sort, dropna):
         if not as_index:
             right = right.reset_index(drop=True)
 
-        tm.assert_series_equal(left, right, check_names=False)
+        if as_index:
+            tm.assert_series_equal(left, right, check_names=False)
+        else:
+            tm.assert_frame_equal(left, right, check_names=False)
         tm.assert_frame_equal(df, original_df)
 
     days = date_range("2015-08-23", periods=10)
@@ -56,13 +59,14 @@ def test_series_groupby_nunique(n, m, sort, dropna):
 def test_nunique():
     df = DataFrame({"A": list("abbacc"), "B": list("abxacc"), "C": list("abbacx")})
 
-    expected = DataFrame({"A": [1] * 3, "B": [1, 2, 1], "C": [1, 1, 2]})
+    expected = DataFrame({"A": list("abc"), "B": [1, 2, 1], "C": [1, 1, 2]})
     result = df.groupby("A", as_index=False).nunique()
     tm.assert_frame_equal(result, expected)
 
     # as_index
     expected.index = list("abc")
     expected.index.name = "A"
+    expected = expected.drop(columns="A")
     result = df.groupby("A").nunique()
     tm.assert_frame_equal(result, expected)
 
@@ -71,7 +75,7 @@ def test_nunique():
     tm.assert_frame_equal(result, expected)
 
     # dropna
-    expected = DataFrame({"A": [1] * 3, "B": [1] * 3, "C": [1] * 3}, index=list("abc"))
+    expected = DataFrame({"B": [1] * 3, "C": [1] * 3}, index=list("abc"))
     expected.index.name = "A"
     result = df.replace({"x": None}).groupby("A").nunique()
     tm.assert_frame_equal(result, expected)
@@ -163,3 +167,11 @@ def test_nunique_preserves_column_level_names():
     result = test.groupby([0, 0, 0]).nunique()
     expected = pd.DataFrame([2], columns=test.columns)
     tm.assert_frame_equal(result, expected)
+
+
+def test_nunique_transform_with_datetime():
+    # GH 35109 - transform with nunique on datetimes results in integers
+    df = pd.DataFrame(date_range("2008-12-31", "2009-01-02"), columns=["date"])
+    result = df.groupby([0, 0, 1])["date"].transform("nunique")
+    expected = pd.Series([2, 2, 1], name="date")
+    tm.assert_series_equal(result, expected)

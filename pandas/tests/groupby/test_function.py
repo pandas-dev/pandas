@@ -280,7 +280,7 @@ def test_non_cython_api():
     result = g.mad()
     tm.assert_frame_equal(result, expected)
 
-    expected = DataFrame([[0.0, 0.0], [0, np.nan]], columns=["A", "B"], index=[0, 1])
+    expected = DataFrame([[1, 0.0], [3, np.nan]], columns=["A", "B"], index=[0, 1])
     result = gni.mad()
     tm.assert_frame_equal(result, expected)
 
@@ -649,7 +649,7 @@ def test_nlargest_mi_grouper():
     ]
 
     expected = Series(exp_values, index=exp_idx)
-    tm.assert_series_equal(result, expected, check_exact=False)
+    tm.assert_series_equal(result, expected, check_exact=False, rtol=1e-3)
 
 
 def test_nsmallest():

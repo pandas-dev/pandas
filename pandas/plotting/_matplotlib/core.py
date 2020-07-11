@@ -1,17 +1,21 @@
-from typing import Optional
+from typing import List, Optional
 import warnings
 
+from matplotlib.artist import Artist
 import numpy as np
 
+from pandas._typing import Label
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
+    is_float,
     is_hashable,
     is_integer,
     is_iterator,
     is_list_like,
     is_number,
+    is_numeric_dtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -103,6 +107,8 @@ class MPLPlot:
         ylim=None,
         xticks=None,
         yticks=None,
+        xlabel: Optional[Label] = None,
+        ylabel: Optional[Label] = None,
         sort_columns=False,
         fontsize=None,
         secondary_y=False,
@@ -144,6 +150,8 @@ class MPLPlot:
         self.ylim = ylim
         self.title = title
         self.use_index = use_index
+        self.xlabel = xlabel
+        self.ylabel = ylabel
 
         self.fontsize = fontsize
 
@@ -161,8 +169,8 @@ class MPLPlot:
 
         self.grid = grid
         self.legend = legend
-        self.legend_handles = []
-        self.legend_labels = []
+        self.legend_handles: List[Artist] = []
+        self.legend_labels: List[Label] = []
 
         for attr in self._pop_attributes:
             value = kwds.pop(attr, self._attr_defaults.get(attr, None))
@@ -253,7 +261,7 @@ class MPLPlot:
                 yield col, values.values
 
     @property
-    def nseries(self):
+    def nseries(self) -> int:
         if self.data.ndim == 1:
             return 1
         else:
@@ -486,6 +494,11 @@ class MPLPlot:
             if self.xlim is not None:
                 ax.set_xlim(self.xlim)
 
+            # GH9093, currently Pandas does not show ylabel, so if users provide
+            # ylabel will set it as ylabel in the plot.
+            if self.ylabel is not None:
+                ax.set_ylabel(pprint_thing(self.ylabel))
+
             ax.grid(self.grid)
 
         if self.title:
@@ -671,6 +684,10 @@ class MPLPlot:
             name = self.data.index.name
             if name is not None:
                 name = pprint_thing(name)
+
+        # GH 9093, override the default xlabel if xlabel is provided.
+        if self.xlabel is not None:
+            name = pprint_thing(self.xlabel)
 
         return name
 
@@ -957,9 +974,6 @@ class ScatterPlot(PlanePlot):
 
         c_is_column = is_hashable(c) and c in self.data.columns
 
-        # plot a colorbar only if a colormap is provided or necessary
-        cb = self.kwds.pop("colorbar", self.colormap or c_is_column)
-
         # pandas uses colormap, matplotlib uses cmap.
         cmap = self.colormap or "Greys"
         cmap = self.plt.cm.get_cmap(cmap)
@@ -974,6 +988,12 @@ class ScatterPlot(PlanePlot):
             c_values = self.data[c].values
         else:
             c_values = c
+
+        # plot colorbar if
+        # 1. colormap is assigned, and
+        # 2.`c` is a column containing only numeric values
+        plot_colorbar = self.colormap or c_is_column
+        cb = self.kwds.pop("colorbar", is_numeric_dtype(c_values) and plot_colorbar)
 
         if self.legend and hasattr(self, "label"):
             label = self.label
@@ -1194,6 +1214,8 @@ class LinePlot(MPLPlot):
         from matplotlib.ticker import FixedLocator
 
         def get_label(i):
+            if is_float(i) and i.is_integer():
+                i = int(i)
             try:
                 return pprint_thing(data.index[i])
             except Exception:

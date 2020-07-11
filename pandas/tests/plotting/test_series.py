@@ -617,7 +617,7 @@ class TestSeriesPlots(TestPlotBase):
         sample_points = np.linspace(-100, 100, 20)
         _check_plot_works(self.ts.plot.kde, bw_method="scott", ind=20)
         _check_plot_works(self.ts.plot.kde, bw_method=None, ind=20)
-        _check_plot_works(self.ts.plot.kde, bw_method=None, ind=np.int(20))
+        _check_plot_works(self.ts.plot.kde, bw_method=None, ind=np.int_(20))
         _check_plot_works(self.ts.plot.kde, bw_method=0.5, ind=sample_points)
         _check_plot_works(self.ts.plot.density, bw_method=0.5, ind=sample_points)
         _, ax = self.plt.subplots()
@@ -933,4 +933,24 @@ class TestSeriesPlots(TestPlotBase):
     def test_style_single_ok(self):
         s = pd.Series([1, 2])
         ax = s.plot(style="s", color="C3")
-        assert ax.lines[0].get_color() == "C3"
+        assert ax.lines[0].get_color() == ["C3"]
+
+    @pytest.mark.parametrize(
+        "index_name, old_label, new_label",
+        [(None, "", "new"), ("old", "old", "new"), (None, "", "")],
+    )
+    @pytest.mark.parametrize("kind", ["line", "area", "bar"])
+    def test_xlabel_ylabel_series(self, kind, index_name, old_label, new_label):
+        # GH 9093
+        ser = pd.Series([1, 2, 3, 4])
+        ser.index.name = index_name
+
+        # default is the ylabel is not shown and xlabel is index name
+        ax = ser.plot(kind=kind)
+        assert ax.get_ylabel() == ""
+        assert ax.get_xlabel() == old_label
+
+        # old xlabel will be overriden and assigned ylabel will be used as ylabel
+        ax = ser.plot(kind=kind, ylabel=new_label, xlabel=new_label)
+        assert ax.get_ylabel() == new_label
+        assert ax.get_xlabel() == new_label
