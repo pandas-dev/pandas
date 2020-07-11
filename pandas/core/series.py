@@ -2019,6 +2019,7 @@ Name: Max Speed, dtype: float64
         dtype: bool
         """
         return super().duplicated(keep=keep)
+
     def idxmin(self, axis=0, skipna=True, keep="first", *args, **kwargs):
         """
         Return the row label of the minimum value.
@@ -2185,7 +2186,6 @@ Name: Max Speed, dtype: float64
         if keep == "all":
             return self[self == self[i]].index
         return self.index[i]
-
 
     def round(self, decimals=0, *args, **kwargs) -> "Series":
         """
