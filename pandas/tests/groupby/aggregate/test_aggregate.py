@@ -232,7 +232,7 @@ def test_wrap_agg_out(three_group):
     grouped = three_group.groupby(["A", "B"])
 
     def func(ser):
-        if ser.dtype == np.object:
+        if ser.dtype == object:
             raise TypeError
         else:
             return ser.sum()
@@ -455,22 +455,6 @@ def test_agg_split_object_part_datetime():
             "F": [1],
         }
     )
-    tm.assert_frame_equal(result, expected)
-
-
-def test_agg_cython_category_not_implemented_fallback():
-    # https://github.com/pandas-dev/pandas/issues/31450
-    df = pd.DataFrame({"col_num": [1, 1, 2, 3]})
-    df["col_cat"] = df["col_num"].astype("category")
-
-    result = df.groupby("col_num").col_cat.first()
-    expected = pd.Series(
-        [1, 2, 3], index=pd.Index([1, 2, 3], name="col_num"), name="col_cat"
-    )
-    tm.assert_series_equal(result, expected)
-
-    result = df.groupby("col_num").agg({"col_cat": "first"})
-    expected = expected.to_frame()
     tm.assert_frame_equal(result, expected)
 
 
@@ -809,7 +793,7 @@ def test_aggregate_mixed_types():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(reason="Not implemented.")
+@pytest.mark.xfail(reason="Not implemented;see GH 31256")
 def test_aggregate_udf_na_extension_type():
     # https://github.com/pandas-dev/pandas/pull/31359
     # This is currently failing to cast back to Int64Dtype.

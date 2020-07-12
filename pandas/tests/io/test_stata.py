@@ -689,7 +689,7 @@ class TestStata:
     @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     @pytest.mark.parametrize("byteorder", [">", "<"])
     def test_bool_uint(self, byteorder, version):
-        s0 = Series([0, 1, True], dtype=np.bool)
+        s0 = Series([0, 1, True], dtype=np.bool_)
         s1 = Series([0, 1, 100], dtype=np.uint8)
         s2 = Series([0, 1, 255], dtype=np.uint8)
         s3 = Series([0, 1, 2 ** 15 - 100], dtype=np.uint16)
@@ -855,7 +855,7 @@ class TestStata:
         expected[5][2] = expected[5][3] = expected[5][4] = datetime(1677, 10, 1)
         expected[5][5] = expected[5][6] = datetime(1678, 1, 1)
 
-        expected = DataFrame(expected, columns=columns, dtype=np.object)
+        expected = DataFrame(expected, columns=columns, dtype=object)
         parsed_115 = read_stata(self.dta18_115)
         parsed_117 = read_stata(self.dta18_117)
         tm.assert_frame_equal(expected, parsed_115, check_datetimelike_compat=True)

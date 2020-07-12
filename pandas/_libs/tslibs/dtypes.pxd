@@ -73,4 +73,4 @@ cdef enum PeriodDtypeCode:
 
 cdef class PeriodDtypeBase:
     cdef readonly:
-        PeriodDtypeCode dtype_code
+        PeriodDtypeCode _dtype_code

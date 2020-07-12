@@ -53,8 +53,11 @@ class HTMLFormatter(TableFormatter):
         self.border = border
         self.table_id = self.fmt.table_id
         self.render_links = self.fmt.render_links
-        if isinstance(self.fmt.col_space, int):
-            self.fmt.col_space = f"{self.fmt.col_space}px"
+
+        self.col_space = {
+            column: f"{value}px" if isinstance(value, int) else value
+            for column, value in self.fmt.col_space.items()
+        }
 
     @property
     def show_row_idx_names(self) -> bool:
@@ -120,9 +123,11 @@ class HTMLFormatter(TableFormatter):
         -------
         A written <th> cell.
         """
-        if header and self.fmt.col_space is not None:
+        col_space = self.col_space.get(s, None)
+
+        if header and col_space is not None:
             tags = tags or ""
-            tags += f'style="min-width: {self.fmt.col_space};"'
+            tags += f'style="min-width: {col_space};"'
 
         self._write_cell(s, kind="th", indent=indent, tags=tags)
 
