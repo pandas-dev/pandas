@@ -3792,10 +3792,8 @@ class DataFrame(NDFrame):
     def lookup(self, row_labels, col_labels) -> np.ndarray:
         """
         .. deprecated:: 1.1.0
-
-        DataFrame.lookup is deprecated,
-        use DataFrame.melt and DataFrame.loc instead.
-        See "Indexing and selecting data" in the user guide for an example.
+        DataFrame.lookup is deprecated, use DataFrame.melt and DataFrame.loc instead,
+        see "Indexing and selecting data" in the user guide for an example.
 
         Label-based "fancy indexing" function for DataFrame.
 
