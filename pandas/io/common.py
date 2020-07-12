@@ -201,14 +201,23 @@ def get_filepath_or_buffer(
         if filepath_or_buffer.startswith("s3n://"):
             filepath_or_buffer = filepath_or_buffer.replace("s3n://", "s3://")
         fsspec = import_optional_dependency("fsspec")
-        from botocore.exceptions import NoCredentialsError
+
+        # If botocore is installed we fallback to reading with anon=True
+        # to allow reads from public buckets
+        try:
+            import_optional_dependency("botocore")
+            from botocore.exceptions import ClientError, NoCredentialsError
+
+            err_types_to_retry_with_anon = (ClientError, NoCredentialsError)
+        except ImportError:
+            err_types_to_retry_with_anon = ()
 
         try:
             file_obj = fsspec.open(
                 filepath_or_buffer, mode=mode or "rb", **(storage_options or {})
             ).open()
         # GH 34626 Reads from Public Buckets without Credentials needs anon=True
-        except NoCredentialsError:
+        except err_types_to_retry_with_anon:
             if storage_options is None:
                 storage_options = {"anon": True}
             else:
