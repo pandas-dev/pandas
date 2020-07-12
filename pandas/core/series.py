@@ -4016,9 +4016,14 @@ Keep all original rows and also all original values
         examples=_agg_examples_doc,
         versionadded="\n.. versionadded:: 0.20.0\n",
     )
-    def aggregate(self, func, axis=0, *args, **kwargs):
+    def aggregate(self, func=None, axis=0, *args, **kwargs):
         # Validate the axis parameter
         self._get_axis_number(axis)
+
+        # if func is None, will switch to user-provided "named aggregation" kwargs
+        if func is None:
+            func = dict(kwargs.items())
+
         result, how = self._aggregate(func, *args, **kwargs)
         if result is None:
 
