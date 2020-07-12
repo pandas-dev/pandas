@@ -8766,7 +8766,9 @@ NaN 12.3   33.0
             if axis == 0:
                 indices = nanops.nanargmin(self.values[::-1], axis=axis, skipna=skipna)
             else:
-                indices = nanops.nanargmin(self[self.columns[::-1]].values, axis=axis, skipna=skipna)
+                indices = nanops.nanargmin(
+                    self[self.columns[::-1]].values, axis=axis, skipna=skipna
+                )
             indices = (self.shape[axis] - 1) - indices
         else:
             indices = nanops.nanargmin(self.values, axis=axis, skipna=skipna)
@@ -8780,11 +8782,14 @@ NaN 12.3   33.0
         result = []
         if keep == "all":
             if axis == 0:
-                for i in range(0,self.shape[1]):
-                    result.append(self[self.iloc[:,i]==self.values[indices[i], i]].index.values)
+                for i in range(0, self.shape[1]):
+                    result.append(
+                        self[self.iloc[:, i] == self.values[indices[i], i]].index.values
+                    )
             else:
-                for i in range(0,self.shape[0]):
-                    result.append((self.iloc[i,:]==self.values[i, indices[i]])[self.iloc[i,:]==self.values[i, indices[i]]].index.values)
+                for i in range(0, self.shape[0]):
+                    temp = self.iloc[i, :] == self.values[i, indices[i]]
+                    result.append(temp[temp].index.values)
         else:
             result = [index[i] if i >= 0 else np.nan for i in indices]
         return self._constructor_sliced(result, index=self._get_agg_axis(axis))
@@ -8861,7 +8866,9 @@ NaN 12.3   33.0
             if axis == 0:
                 indices = nanops.nanargmax(self.values[::-1], axis=axis, skipna=skipna)
             else:
-                indices = nanops.nanargmax(self[self.columns[::-1]].values, axis=axis, skipna=skipna)
+                indices = nanops.nanargmax(
+                    self[self.columns[::-1]].values, axis=axis, skipna=skipna
+                )
             indices = (self.shape[axis] - 1) - indices
         else:
             indices = nanops.nanargmax(self.values, axis=axis, skipna=skipna)
@@ -8875,11 +8882,14 @@ NaN 12.3   33.0
         result = []
         if keep == "all":
             if axis == 0:
-                for i in range(0,self.shape[1]):
-                    result.append(self[self.iloc[:,i]==self.values[indices[i], i]].index.values)
+                for i in range(0, self.shape[1]):
+                    result.append(
+                        self[self.iloc[:, i] == self.values[indices[i], i]].index.values
+                    )
             else:
-                for i in range(0,self.shape[0]):
-                    result.append((self.iloc[i,:]==self.values[i, indices[i]])[self.iloc[i,:]==self.values[i, indices[i]]].index.values)
+                for i in range(0, self.shape[0]):
+                    temp = self.iloc[i, :] == self.values[i, indices[i]]
+                    result.append(temp[temp].index.values)
         else:
             result = [index[i] if i >= 0 else np.nan for i in indices]
         return self._constructor_sliced(result, index=self._get_agg_axis(axis))
