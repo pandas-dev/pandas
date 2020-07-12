@@ -904,8 +904,10 @@ def _is_indexed_like(obj, axes) -> bool:
 
     is_frame = isinstance(obj, DataFrame)
     if is_frame and len(axes) == 1:
+        # The UDF was DataFrame -> Series
         return True
     elif is_frame:
+        # The UDF was DataFrame -> DataFrame
         return obj.index.equals(axes[0]) and obj.columns.equals(axes[1])
 
     return False
