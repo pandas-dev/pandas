@@ -963,7 +963,9 @@ class IndexOpsMixin:
             return (self.size - 1) - nanops.nanargmax(self._values[::-1], skipna=skipna)
         elif keep == "all":
             temp = self.reset_index(drop=True)
-            return temp[temp == temp[nanops.nanargmax(temp._values, skipna=skipna)]].index
+            return temp[
+                temp == temp[nanops.nanargmax(temp._values, skipna=skipna)]
+            ].index
         else:
             return nanops.nanargmax(self._values, skipna=skipna)
 
@@ -1019,7 +1021,9 @@ class IndexOpsMixin:
             return (self.size - 1) - nanops.nanargmin(self._values[::-1], skipna=skipna)
         elif keep == "all":
             temp = self.reset_index(drop=True)
-            return temp[temp == temp[nanops.nanargmin(temp._values, skipna=skipna)]].index
+            return temp[
+                temp == temp[nanops.nanargmin(temp._values, skipna=skipna)]
+            ].index
         else:
             return nanops.nanargmin(self._values, skipna=skipna)
 
