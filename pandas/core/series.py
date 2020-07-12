@@ -2100,7 +2100,7 @@ Name: Max Speed, dtype: float64
         if i == -1:
             return np.nan
         if keep == "all":
-            return self[self == self[i]].index
+            return self[self == self[i]].index.values
         return self.index[i]
 
     def idxmax(self, axis=0, skipna=True, keep="first", *args, **kwargs):
@@ -2184,7 +2184,7 @@ Name: Max Speed, dtype: float64
         if i == -1:
             return np.nan
         if keep == "all":
-            return self[self == self[i]].index
+            return self[self == self[i]].index.values
         return self.index[i]
 
     def round(self, decimals=0, *args, **kwargs) -> "Series":
