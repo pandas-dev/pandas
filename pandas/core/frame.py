@@ -8618,35 +8618,27 @@ NaN 12.3   33.0
                     dtype = "bool" if filter_type == "bool" else "float64"
                     return df._constructor_sliced(result, index=index, dtype=dtype)
 
-            def _reduce_columns(df, op):
-                result = [op(arr) for arr in df._iter_column_arrays()]
-                return _constructor(df, result)
-
             df = self
             if numeric_only is True:
                 df = _get_data(axis_matters=True)
 
             if numeric_only is not None:
-                return _reduce_columns(df, array_func)
+                result = [op(arr) for arr in df._iter_column_arrays()]
+                return _constructor(df, result)
             else:
-                # need to catch and ignore exceptions when numeric_only=None
-                try:
-                    return _reduce_columns(df, array_func)
-                except TypeError:
-                    # if column-wise fails and numeric_only was None, we try
-                    # again but removing those columns for which it fails
-                    result = []
-                    indices = []
-                    for i, arr in enumerate(df._iter_column_arrays()):
-                        try:
-                            res = array_func(arr)
-                        except Exception:
-                            pass
-                        else:
-                            result.append(res)
-                            indices.append(i)
+                # with numeric_only=None, need to ignore exceptions per column
+                result = []
+                indices = []
+                for i, arr in enumerate(df._iter_column_arrays()):
+                    try:
+                        res = array_func(arr)
+                    except Exception:
+                        pass
+                    else:
+                        result.append(res)
+                        indices.append(i)
 
-                    return _constructor(df, result, index=df.columns[indices])
+                return _constructor(df, result, index=df.columns[indices])
 
         if not self._is_homogeneous_type:
             # try to avoid self.values call
