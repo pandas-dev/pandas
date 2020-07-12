@@ -5,6 +5,7 @@ from cpython.datetime cimport (
     PyDateTime_Check,
     PyDateTime_IMPORT,
     datetime,
+    tzinfo,
 )
 # import datetime C API
 PyDateTime_IMPORT
