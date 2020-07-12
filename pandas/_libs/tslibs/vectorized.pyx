@@ -208,7 +208,7 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None):
         int reso = RESO_DAY, curr_reso
         ndarray[int64_t] trans
         int64_t[:] deltas
-        Py_ssize_t[:] pos
+        intp_t[:] pos
         int64_t local_val, delta
         bint use_utc = False, use_tzlocal = False, use_fixed = False
 
