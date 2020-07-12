@@ -2440,13 +2440,13 @@ cdef int64_t _ordinal_from_fields(int year, int month, quarter, int day,
                                   BaseOffset freq):
     base = freq_to_dtype_code(freq)
     if quarter is not None:
-        year, month = quarter_to_myear(year, quarter, freq)
+        year, month = quarter_to_myear(year, quarter, freq.freqstr)
 
     return period_ordinal(year, month, day, hour,
                           minute, second, 0, 0, base)
 
 
-def quarter_to_myear(year: int, quarter: int, freq):
+def quarter_to_myear(year: int, quarter: int, freqstr: str):
     """
     A quarterly frequency defines a "year" which may not coincide with
     the calendar-year.  Find the calendar-year and calendar-month associated
@@ -2456,7 +2456,8 @@ def quarter_to_myear(year: int, quarter: int, freq):
     ----------
     year : int
     quarter : int
-    freq : DateOffset
+    freqstr : str
+        Equivalent to freq.freqstr
 
     Returns
     -------
@@ -2470,7 +2471,7 @@ def quarter_to_myear(year: int, quarter: int, freq):
     if quarter <= 0 or quarter > 4:
         raise ValueError('Quarter must be 1 <= q <= 4')
 
-    mnum = c_MONTH_NUMBERS[get_rule_month(freq)] + 1
+    mnum = c_MONTH_NUMBERS[get_rule_month(freqstr)] + 1
     month = (mnum + (quarter - 1) * 3) % 12 + 1
     if month > mnum:
         year -= 1
