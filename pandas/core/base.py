@@ -965,7 +965,7 @@ class IndexOpsMixin:
             temp = self.reset_index(drop=True)
             return temp[
                 temp == temp[nanops.nanargmax(temp._values, skipna=skipna)]
-            ].index
+            ].index.values
         else:
             return nanops.nanargmax(self._values, skipna=skipna)
 
@@ -1023,7 +1023,7 @@ class IndexOpsMixin:
             temp = self.reset_index(drop=True)
             return temp[
                 temp == temp[nanops.nanargmin(temp._values, skipna=skipna)]
-            ].index
+            ].index.values
         else:
             return nanops.nanargmin(self._values, skipna=skipna)
 
