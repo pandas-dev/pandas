@@ -1058,7 +1058,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     #  reductions; see GH#28949
                     obj = obj.iloc[:, 0]
 
-                s = get_groupby(obj, self.grouper)
+                s = get_groupby(obj, self.grouper, observed=True)
                 try:
                     result = s.aggregate(lambda x: alt(x, axis=self.axis))
                 except TypeError:
