@@ -204,20 +204,25 @@ def get_filepath_or_buffer(
 
         # If botocore is installed we fallback to reading with anon=True
         # to allow reads from public buckets
+        err_types_to_retry_with_anon: List[Any] = []
         try:
             import_optional_dependency("botocore")
             from botocore.exceptions import ClientError, NoCredentialsError
 
-            err_types_to_retry_with_anon = (ClientError, NoCredentialsError)
+            err_types_to_retry_with_anon = [
+                ClientError,
+                NoCredentialsError,
+                PermissionError,
+            ]
         except ImportError:
-            err_types_to_retry_with_anon = ()
+            pass
 
         try:
             file_obj = fsspec.open(
                 filepath_or_buffer, mode=mode or "rb", **(storage_options or {})
             ).open()
         # GH 34626 Reads from Public Buckets without Credentials needs anon=True
-        except err_types_to_retry_with_anon:
+        except tuple(err_types_to_retry_with_anon):
             if storage_options is None:
                 storage_options = {"anon": True}
             else:
