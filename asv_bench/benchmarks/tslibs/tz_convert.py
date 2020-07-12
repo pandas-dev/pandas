@@ -1,16 +1,23 @@
 import numpy as np
 from pytz import UTC
 
-from pandas._libs.tslibs.tzconversion import tz_convert, tz_localize_to_utc
+from pandas._libs.tslibs.tzconversion import tz_localize_to_utc
 
 from .tslib import _sizes, _tzs
 
+try:
+    old_sig = False
+    from pandas._libs.tslibs.tzconversion import tz_convert_from_utc
+except ImportError:
+    old_sig = True
+    from pandas._libs.tslibs.tzconversion import tz_convert as tz_convert_from_utc
+
 
 class TimeTZConvert:
-    params = (
+    params = [
         _sizes,
         [x for x in _tzs if x is not None],
-    )
+    ]
     param_names = ["size", "tz"]
 
     def setup(self, size, tz):
@@ -21,7 +28,13 @@ class TimeTZConvert:
         # effectively:
         #  dti = DatetimeIndex(self.i8data, tz=tz)
         #  dti.tz_localize(None)
-        tz_convert(self.i8data, UTC, tz)
+        if size >= 10 ** 6 and str(tz) == "tzlocal()":
+            # asv fill will because each call takes 8+seconds
+            return
+        if old_sig:
+            tz_convert_from_utc(self.i8data, UTC, tz)
+        else:
+            tz_convert_from_utc(self.i8data, tz)
 
     def time_tz_localize_to_utc(self, size, tz):
         # effectively:
