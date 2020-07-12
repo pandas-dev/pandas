@@ -8640,33 +8640,7 @@ NaN 12.3   33.0
 
                 return _constructor(df, result, index=df.columns[indices])
 
-        if not self._is_homogeneous_type:
-            # try to avoid self.values call
-
-            if filter_type is None and axis == 0 and len(self) > 0:
-                # operate column-wise
-
-                # numeric_only must be None here, as other cases caught above
-                # require len(self) > 0 bc frame_apply messes up empty prod/sum
-
-                # this can end up with a non-reduction
-                # but not always. if the types are mixed
-                # with datelike then need to make sure a series
-
-                # we only end up here if we have not specified
-                # numeric_only and yet we have tried a
-                # column-by-column reduction, where we have mixed type.
-                # So let's just do what we can
-                from pandas.core.apply import frame_apply
-
-                opa = frame_apply(
-                    self, func=f, result_type="expand", ignore_failures=True
-                )
-                result = opa.get_result()
-                if result.ndim == self.ndim:
-                    result = result.iloc[0].rename(None)
-                return result
-
+        # remaining cases for axis=1 or axis=None
         if numeric_only is None:
             data = self
             values = data.values
