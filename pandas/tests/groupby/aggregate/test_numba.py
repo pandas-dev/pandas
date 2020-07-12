@@ -4,7 +4,7 @@ import pytest
 from pandas.errors import NumbaUtilError
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame
+from pandas import DataFrame, option_context
 import pandas._testing as tm
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 
@@ -113,3 +113,18 @@ def test_cache(jit, pandas_obj, nogil, parallel, nopython):
     result = grouped.agg(func_1, engine="numba", engine_kwargs=engine_kwargs)
     expected = grouped.agg(lambda x: np.mean(x) - 3.4, engine="cython")
     tm.assert_equal(result, expected)
+
+
+@td.skip_if_no("numba", "0.46.0")
+def test_use_global_config():
+    def func_1(values, index):
+        return np.mean(values) - 3.4
+
+    data = DataFrame(
+        {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1],
+    )
+    grouped = data.groupby(0)
+    expected = grouped.agg(func_1, engine="numba")
+    with option_context("compute.use_numba", True):
+        result = grouped.agg(func_1, engine=None)
+    tm.assert_frame_equal(expected, result)
