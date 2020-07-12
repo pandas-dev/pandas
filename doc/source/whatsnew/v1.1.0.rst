@@ -1149,6 +1149,7 @@ ExtensionArray
 - Fixed bug that `DataFrame(columns=.., dtype='string')` would fail (:issue:`27953`, :issue:`33623`)
 - Bug where :class:`DataFrame` column set to scalar extension type was considered an object type rather than the extension type (:issue:`34832`)
 - Fixed bug in ``IntegerArray.astype`` to correctly copy the mask as well (:issue:`34931`).
+- Fixed bug where DataFrame reductions with Int64 columns casts to float64 (:issue:`32651`)
 
 Other
 ^^^^^

@@ -8568,11 +8568,7 @@ NaN 12.3   33.0
             return data
 
         # special case for block-wise
-        if (
-            not self._mgr.any_extension_types
-            and numeric_only is not None
-            and axis in [0, 1]
-        ):
+        if numeric_only is not None and axis in [0, 1]:
             df = self
             if numeric_only is True:
                 df = _get_data(axis_matters=True)
