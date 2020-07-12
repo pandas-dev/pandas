@@ -528,12 +528,11 @@ def test_multi_index_unnamed(all_parsers, index_col, columns):
             parser.read_csv(StringIO(data), header=header, index_col=index_col)
     else:
         result = parser.read_csv(StringIO(data), header=header, index_col=index_col)
-        template = "Unnamed: {i}_level_0"
         exp_columns = []
 
         for i, col in enumerate(columns):
             if not col:  # Unnamed.
-                col = template.format(i=i if index_col is None else i + 1)
+                col = f"Unnamed: {i if index_col is None else i + 1}_level_0"
 
             exp_columns.append(col)
 

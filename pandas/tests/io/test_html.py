@@ -321,7 +321,7 @@ class TestReadHtml:
         url = self.banklist_data
         with pytest.raises(ValueError, match="No tables found"):
             self.read_html(
-                url, "First Federal Bank of Florida", attrs={"id": "tasdfable"}
+                url, match="First Federal Bank of Florida", attrs={"id": "tasdfable"}
             )
 
     def _bank_data(self, *args, **kwargs):
@@ -573,7 +573,9 @@ class TestReadHtml:
             except AttributeError:
                 return x
 
-        df = self.read_html(self.banklist_data, "Metcalf", attrs={"id": "table"})[0]
+        df = self.read_html(self.banklist_data, match="Metcalf", attrs={"id": "table"})[
+            0
+        ]
         ground_truth = read_csv(
             datapath("io", "data", "csv", "banklist.csv"),
             converters={"Updated Date": Timestamp, "Closing Date": Timestamp},
@@ -883,7 +885,7 @@ class TestReadHtml:
 
     def test_wikipedia_states_multiindex(self, datapath):
         data = datapath("io", "data", "html", "wikipedia_states.html")
-        result = self.read_html(data, "Arizona", index_col=0)[0]
+        result = self.read_html(data, match="Arizona", index_col=0)[0]
         assert result.shape == (60, 11)
         assert "Unnamed" in result.columns[-1][1]
         assert result.columns.nlevels == 2

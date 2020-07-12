@@ -140,6 +140,17 @@ class TestDataFrameReshape:
         expected = expected[["a", "b"]]
         tm.assert_frame_equal(result, expected)
 
+    def test_unstack_not_consolidated(self):
+        # Gh#34708
+        df = pd.DataFrame({"x": [1, 2, np.NaN], "y": [3.0, 4, np.NaN]})
+        df2 = df[["x"]]
+        df2["y"] = df["y"]
+        assert len(df2._mgr.blocks) == 2
+
+        res = df2.unstack()
+        expected = df.unstack()
+        tm.assert_series_equal(res, expected)
+
     def test_unstack_fill(self):
 
         # GH #9746: fill_value keyword argument for Series
@@ -160,7 +171,7 @@ class TestDataFrameReshape:
         # From a series with incorrect data type for fill_value
         result = data.unstack(fill_value=0.5)
         expected = DataFrame(
-            {"a": [1, 0.5, 5], "b": [2, 4, 0.5]}, index=["x", "y", "z"], dtype=np.float
+            {"a": [1, 0.5, 5], "b": [2, 4, 0.5]}, index=["x", "y", "z"], dtype=float
         )
         tm.assert_frame_equal(result, expected)
 
@@ -218,7 +229,7 @@ class TestDataFrameReshape:
         result = df.unstack(fill_value=0.5)
 
         rows = [[1, 3, 2, 4], [0.5, 5, 0.5, 6], [7, 0.5, 8, 0.5]]
-        expected = DataFrame(rows, index=list("xyz"), dtype=np.float)
+        expected = DataFrame(rows, index=list("xyz"), dtype=float)
         expected.columns = MultiIndex.from_tuples(
             [("A", "a"), ("A", "b"), ("B", "a"), ("B", "b")]
         )
@@ -320,9 +331,9 @@ class TestDataFrameReshape:
         )
         tm.assert_frame_equal(result, expected)
 
-        # Fill with non-category results in a TypeError
-        msg = r"'fill_value' \('d'\) is not in"
-        with pytest.raises(TypeError, match=msg):
+        # Fill with non-category results in a ValueError
+        msg = r"'fill_value=d' is not present in"
+        with pytest.raises(ValueError, match=msg):
             data.unstack(fill_value="d")
 
         # Fill with category value replaces missing values as expected

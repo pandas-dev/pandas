@@ -147,10 +147,6 @@ class NumericIndex(Index):
         """
         pass
 
-    def _concat_same_dtype(self, indexes, name):
-        result = type(indexes[0])(np.concatenate([x._values for x in indexes]))
-        return result.rename(name)
-
     @property
     def is_all_dates(self) -> bool:
         """
@@ -376,7 +372,7 @@ class Float64Index(NumericIndex):
     # Indexing Methods
 
     @doc(Index._should_fallback_to_positional)
-    def _should_fallback_to_positional(self):
+    def _should_fallback_to_positional(self) -> bool:
         return False
 
     @doc(Index._convert_slice_indexer)

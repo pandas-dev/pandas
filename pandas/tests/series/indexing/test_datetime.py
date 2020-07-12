@@ -51,7 +51,7 @@ def test_fancy_setitem():
 
 
 def test_dti_reset_index_round_trip():
-    dti = date_range(start="1/1/2001", end="6/1/2001", freq="D")
+    dti = date_range(start="1/1/2001", end="6/1/2001", freq="D")._with_freq(None)
     d1 = DataFrame({"v": np.random.rand(len(dti))}, index=dti)
     d2 = d1.reset_index()
     assert d2.dtypes[0] == np.dtype("M8[ns]")
@@ -556,8 +556,6 @@ def test_indexing_unordered():
     ts2 = pd.concat([ts[0:4], ts[-4:], ts[4:-4]])
 
     for t in ts.index:
-        # TODO: unused?
-        s = str(t)  # noqa
 
         expected = ts[t]
         result = ts2[t]
@@ -568,6 +566,7 @@ def test_indexing_unordered():
         result = ts2[slobj].copy()
         result = result.sort_index()
         expected = ts[slobj]
+        expected.index = expected.index._with_freq(None)
         tm.assert_series_equal(result, expected)
 
     compare(slice("2011-01-01", "2011-01-15"))
@@ -582,6 +581,7 @@ def test_indexing_unordered():
     # single values
     result = ts2["2011"].sort_index()
     expected = ts["2011"]
+    expected.index = expected.index._with_freq(None)
     tm.assert_series_equal(result, expected)
 
     # diff freq

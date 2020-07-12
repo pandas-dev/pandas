@@ -356,8 +356,7 @@ with cf.config_prefix("display"):
             )
 
     cf.register_option(
-        # FIXME: change `validator=is_nonnegative_int`
-        # in version 1.2
+        # TODO(2.0): change `validator=is_nonnegative_int` see GH#31569
         "max_colwidth",
         50,
         max_colwidth_doc,
@@ -554,6 +553,7 @@ writer_engine_doc = """
 _xls_options = ["xlwt"]
 _xlsm_options = ["openpyxl"]
 _xlsx_options = ["openpyxl", "xlsxwriter"]
+_ods_options = ["odf"]
 
 
 with cf.config_prefix("io.excel.xls"):
@@ -582,6 +582,15 @@ with cf.config_prefix("io.excel.xlsx"):
     )
 
 
+with cf.config_prefix("io.excel.ods"):
+    cf.register_option(
+        "writer",
+        "auto",
+        writer_engine_doc.format(ext="ods", others=", ".join(_ods_options)),
+        validator=str,
+    )
+
+
 # Set up the io.parquet specific configuration.
 parquet_engine_doc = """
 : string
@@ -605,7 +614,7 @@ plotting_backend_doc = """
 : str
     The plotting backend to use. The default value is "matplotlib", the
     backend provided with pandas. Other backends can be specified by
-    prodiving the name of the module that implements the backend.
+    providing the name of the module that implements the backend.
 """
 
 

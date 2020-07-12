@@ -27,7 +27,7 @@ class TestRangeIndex(Numeric):
         ],
         ids=["index_inc", "index_dec"],
     )
-    def indices(self, request):
+    def index(self, request):
         return request.param
 
     def create_index(self) -> RangeIndex:
@@ -117,7 +117,8 @@ class TestRangeIndex(Numeric):
         tm.assert_index_equal(result, expected)
         assert result.name == expected.name
 
-        with pytest.raises((IndexError, ValueError)):
+        msg = "index 5 is out of bounds for axis 0 with size 5"
+        with pytest.raises((IndexError, ValueError), match=msg):
             # either depending on numpy version
             result = idx.delete(len(idx))
 
@@ -323,9 +324,9 @@ class TestRangeIndex(Numeric):
         result = a - fidx
         tm.assert_index_equal(result, expected)
 
-    def test_has_duplicates(self, indices):
-        assert indices.is_unique
-        assert not indices.has_duplicates
+    def test_has_duplicates(self, index):
+        assert index.is_unique
+        assert not index.has_duplicates
 
     def test_extended_gcd(self):
         index = self.create_index()

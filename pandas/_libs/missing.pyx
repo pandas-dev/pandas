@@ -8,7 +8,7 @@ cimport numpy as cnp
 from numpy cimport ndarray, int64_t, uint8_t, float64_t
 cnp.import_array()
 
-cimport pandas._libs.util as util
+from pandas._libs cimport util
 
 
 from pandas._libs.tslibs.np_datetime cimport get_datetime64_value, get_timedelta64_value
@@ -40,6 +40,7 @@ cpdef bint checknull(object val):
      - NaT
      - np.datetime64 representation of NaT
      - np.timedelta64 representation of NaT
+     - NA
 
     Parameters
     ----------
@@ -89,11 +90,6 @@ cpdef bint checknull_old(object val):
     return False
 
 
-cdef inline bint _check_none_nan_inf_neginf(object val):
-    return val is None or (isinstance(val, float) and
-                           (val != val or val == INF or val == NEGINF))
-
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef ndarray[uint8_t] isnaobj(ndarray arr):
@@ -140,6 +136,7 @@ def isnaobj_old(arr: ndarray) -> ndarray:
      - INF
      - NEGINF
      - NaT
+     - NA
 
     Parameters
     ----------
@@ -160,7 +157,7 @@ def isnaobj_old(arr: ndarray) -> ndarray:
     result = np.zeros(n, dtype=np.uint8)
     for i in range(n):
         val = arr[i]
-        result[i] = val is NaT or _check_none_nan_inf_neginf(val)
+        result[i] = checknull(val) or val == INF or val == NEGINF
     return result.view(np.bool_)
 
 
@@ -278,10 +275,9 @@ cdef inline bint is_null_timedelta64(v):
     return False
 
 
-cdef inline bint is_null_period(v):
-    # determine if we have a null for a Period (or integer versions),
-    # excluding np.datetime64('nat') and np.timedelta64('nat')
-    return checknull_with_nat(v)
+cdef bint checknull_with_nat_and_na(object obj):
+    # See GH#32214
+    return checknull_with_nat(obj) or obj is C_NA
 
 
 # -----------------------------------------------------------------------------
@@ -352,6 +348,12 @@ class NAType(C_NAType):
 
     def __repr__(self) -> str:
         return "<NA>"
+
+    def __format__(self, format_spec) -> str:
+        try:
+            return self.__repr__().__format__(format_spec)
+        except ValueError:
+            return self.__repr__()
 
     def __bool__(self):
         raise TypeError("boolean value of NA is ambiguous")

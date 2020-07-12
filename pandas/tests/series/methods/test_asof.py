@@ -148,14 +148,14 @@ class TestSeriesAsof:
 
         # non-monotonic
         assert not s.index.is_monotonic
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="requires a sorted index"):
             s.asof(s.index[0])
 
         # subset with Series
         N = 10
         rng = date_range("1/1/1990", periods=N, freq="53s")
         s = Series(np.random.randn(N), index=rng)
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="not valid for Series"):
             s.asof(s.index[0], subset="foo")
 
     def test_all_nans(self):

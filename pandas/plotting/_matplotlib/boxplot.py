@@ -5,7 +5,6 @@ from matplotlib.artist import setp
 import numpy as np
 
 from pandas.core.dtypes.common import is_dict_like
-from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import remove_na_arraylike
 
 import pandas as pd
@@ -248,7 +247,7 @@ def boxplot(
     if return_type not in BoxPlot._valid_return_types:
         raise ValueError("return_type must be {'axes', 'dict', 'both'}")
 
-    if isinstance(data, ABCSeries):
+    if isinstance(data, pd.Series):
         data = data.to_frame("x")
         column = "x"
 

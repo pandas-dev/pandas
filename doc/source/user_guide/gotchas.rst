@@ -321,7 +321,7 @@ Byte-ordering issues
 --------------------
 Occasionally you may have to deal with data that were created on a machine with
 a different byte order than the one on which you are running Python. A common
-symptom of this issue is an error like:::
+symptom of this issue is an error like::
 
     Traceback
         ...
@@ -339,5 +339,5 @@ constructors using something similar to the following:
    s = pd.Series(newx)
 
 See `the NumPy documentation on byte order
-<https://docs.scipy.org/doc/numpy/user/basics.byteswapping.html>`__ for more
+<https://numpy.org/doc/stable/user/basics.byteswapping.html>`__ for more
 details.

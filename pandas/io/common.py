@@ -20,8 +20,7 @@ from typing import (
     Type,
     Union,
 )
-from urllib.parse import (  # noqa
-    urlencode,
+from urllib.parse import (
     urljoin,
     urlparse as parse_url,
     uses_netloc,
@@ -32,13 +31,7 @@ import zipfile
 
 from pandas._typing import FilePathOrBuffer
 from pandas.compat import _get_lzma_file, _import_lzma
-from pandas.errors import (  # noqa
-    AbstractMethodError,
-    DtypeWarning,
-    EmptyDataError,
-    ParserError,
-    ParserWarning,
-)
+from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import is_file_like
 
@@ -134,20 +127,6 @@ def stringify_path(
     return _expand_user(filepath_or_buffer)
 
 
-def is_s3_url(url) -> bool:
-    """Check for an s3, s3n, or s3a url"""
-    if not isinstance(url, str):
-        return False
-    return parse_url(url).scheme in ["s3", "s3n", "s3a"]
-
-
-def is_gcs_url(url) -> bool:
-    """Check for a gcs url"""
-    if not isinstance(url, str):
-        return False
-    return parse_url(url).scheme in ["gcs", "gs"]
-
-
 def urlopen(*args, **kwargs):
     """
     Lazy-import wrapper for stdlib urlopen, as that imports a big chunk of
@@ -158,11 +137,24 @@ def urlopen(*args, **kwargs):
     return urllib.request.urlopen(*args, **kwargs)
 
 
+def is_fsspec_url(url: FilePathOrBuffer) -> bool:
+    """
+    Returns true if the given URL looks like
+    something fsspec can handle
+    """
+    return (
+        isinstance(url, str)
+        and "://" in url
+        and not url.startswith(("http://", "https://"))
+    )
+
+
 def get_filepath_or_buffer(
     filepath_or_buffer: FilePathOrBuffer,
     encoding: Optional[str] = None,
     compression: Optional[str] = None,
     mode: Optional[str] = None,
+    storage_options: Optional[Dict[str, Any]] = None,
 ):
     """
     If the filepath_or_buffer is a url, translate and return the buffer.
@@ -175,6 +167,8 @@ def get_filepath_or_buffer(
     compression : {{'gzip', 'bz2', 'zip', 'xz', None}}, optional
     encoding : the encoding to use to decode bytes, default is 'utf-8'
     mode : str, optional
+    storage_options: dict, optional
+        passed on to fsspec, if using it; this is not yet accessed by the public API
 
     Returns
     -------
@@ -185,6 +179,7 @@ def get_filepath_or_buffer(
     filepath_or_buffer = stringify_path(filepath_or_buffer)
 
     if isinstance(filepath_or_buffer, str) and is_url(filepath_or_buffer):
+        # TODO: fsspec can also handle HTTP via requests, but leaving this unchanged
         req = urlopen(filepath_or_buffer)
         content_encoding = req.headers.get("Content-Encoding", None)
         if content_encoding == "gzip":
@@ -194,19 +189,23 @@ def get_filepath_or_buffer(
         req.close()
         return reader, encoding, compression, True
 
-    if is_s3_url(filepath_or_buffer):
-        from pandas.io import s3
+    if is_fsspec_url(filepath_or_buffer):
+        assert isinstance(
+            filepath_or_buffer, str
+        )  # just to appease mypy for this branch
+        # two special-case s3-like protocols; these have special meaning in Hadoop,
+        # but are equivalent to just "s3" from fsspec's point of view
+        # cc #11071
+        if filepath_or_buffer.startswith("s3a://"):
+            filepath_or_buffer = filepath_or_buffer.replace("s3a://", "s3://")
+        if filepath_or_buffer.startswith("s3n://"):
+            filepath_or_buffer = filepath_or_buffer.replace("s3n://", "s3://")
+        fsspec = import_optional_dependency("fsspec")
 
-        return s3.get_filepath_or_buffer(
-            filepath_or_buffer, encoding=encoding, compression=compression, mode=mode
-        )
-
-    if is_gcs_url(filepath_or_buffer):
-        from pandas.io import gcs
-
-        return gcs.get_filepath_or_buffer(
-            filepath_or_buffer, encoding=encoding, compression=compression, mode=mode
-        )
+        file_obj = fsspec.open(
+            filepath_or_buffer, mode=mode or "rb", **(storage_options or {})
+        ).open()
+        return file_obj, encoding, compression, True
 
     if isinstance(filepath_or_buffer, (str, bytes, mmap.mmap)):
         return _expand_user(filepath_or_buffer), None, compression, False
@@ -333,6 +332,7 @@ def get_handle(
     compression: Optional[Union[str, Mapping[str, Any]]] = None,
     memory_map: bool = False,
     is_text: bool = True,
+    errors=None,
 ):
     """
     Get file handle for given path/buffer and mode.
@@ -351,8 +351,9 @@ def get_handle(
         'gzip', 'bz2', 'zip', 'xz', None}. If compression mode is 'infer'
         and `filepath_or_buffer` is path-like, then detect compression from
         the following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise
-        no compression). If dict and compression mode is 'zip' or inferred as
-        'zip', other entries passed as additional compression options.
+        no compression). If dict and compression mode is one of
+        {'zip', 'gzip', 'bz2'}, or inferred as one of the above,
+        other entries passed as additional compression options.
 
         .. versionchanged:: 1.0.0
 
@@ -360,11 +361,22 @@ def get_handle(
            and other keys as compression options if compression
            mode is 'zip'.
 
+        .. versionchanged:: 1.1.0
+
+           Passing compression options as keys in dict is now
+           supported for compression modes 'gzip' and 'bz2' as well as 'zip'.
+
     memory_map : boolean, default False
         See parsers._parser_params for more information.
     is_text : boolean, default True
         whether file/buffer is in text format (csv, json, etc.), or in binary
         mode (pickle, etc.).
+    errors : str, default 'strict'
+        Specifies how encoding and decoding errors are to be handled.
+        See the errors argument for :func:`open` for a full list
+        of options.
+
+        .. versionadded:: 1.1.0
 
     Returns
     -------
@@ -394,19 +406,28 @@ def get_handle(
 
     if compression:
 
+        # GH33398 the type ignores here seem related to mypy issue #5382;
+        # it may be possible to remove them once that is resolved.
+
         # GZ Compression
         if compression == "gzip":
             if is_path:
-                f = gzip.open(path_or_buf, mode)
+                f = gzip.open(
+                    path_or_buf, mode, **compression_args  # type: ignore
+                )
             else:
-                f = gzip.GzipFile(fileobj=path_or_buf)
+                f = gzip.GzipFile(
+                    fileobj=path_or_buf, **compression_args  # type: ignore
+                )
 
         # BZ Compression
         elif compression == "bz2":
             if is_path:
-                f = bz2.BZ2File(path_or_buf, mode)
+                f = bz2.BZ2File(
+                    path_or_buf, mode, **compression_args  # type: ignore
+                )
             else:
-                f = bz2.BZ2File(path_or_buf)
+                f = bz2.BZ2File(path_or_buf, **compression_args)  # type: ignore
 
         # ZIP Compression
         elif compression == "zip":
@@ -441,7 +462,7 @@ def get_handle(
     elif is_path:
         if encoding:
             # Encoding
-            f = open(path_or_buf, mode, encoding=encoding, newline="")
+            f = open(path_or_buf, mode, encoding=encoding, errors=errors, newline="")
         elif is_text:
             # No explicit encoding
             f = open(path_or_buf, mode, errors="replace", newline="")
@@ -454,7 +475,7 @@ def get_handle(
     if is_text and (compression or isinstance(f, need_text_wrapping)):
         from io import TextIOWrapper
 
-        g = TextIOWrapper(f, encoding=encoding, newline="")
+        g = TextIOWrapper(f, encoding=encoding, errors=errors, newline="")
         if not isinstance(f, (BufferedIOBase, RawIOBase)):
             handles.append(g)
         f = g

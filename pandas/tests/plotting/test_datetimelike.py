@@ -6,17 +6,17 @@ import sys
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs import BaseOffset, to_offset
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Index, NaT, Series, isna
 import pandas._testing as tm
-from pandas.core.indexes.datetimes import bdate_range, date_range
+from pandas.core.indexes.datetimes import DatetimeIndex, bdate_range, date_range
 from pandas.core.indexes.period import Period, PeriodIndex, period_range
 from pandas.core.indexes.timedeltas import timedelta_range
-from pandas.core.resample import DatetimeIndex
 from pandas.tests.plotting.common import TestPlotBase
 
-from pandas.tseries.offsets import DateOffset
+from pandas.tseries.offsets import WeekOfMonth
 
 
 @td.skip_if_no_mpl
@@ -325,6 +325,18 @@ class TestTSPlot(TestPlotBase):
         idx = ax.get_lines()[0].get_xdata()
         assert PeriodIndex(data=idx).freqstr == "M"
 
+    def test_freq_with_no_period_alias(self):
+        # GH34487
+        freq = WeekOfMonth()
+        bts = tm.makeTimeSeries(5).asfreq(freq)
+        _, ax = self.plt.subplots()
+        bts.plot(ax=ax)
+        assert ax.get_lines()[0].get_xydata()[0, 0] == bts.index[0].toordinal()
+        idx = ax.get_lines()[0].get_xdata()
+        msg = "freq not specified and cannot be inferred"
+        with pytest.raises(ValueError, match=msg):
+            PeriodIndex(data=idx)
+
     def test_nonzero_base(self):
         # GH2571
         idx = date_range("2012-12-20", periods=24, freq="H") + timedelta(minutes=30)
@@ -385,12 +397,12 @@ class TestTSPlot(TestPlotBase):
     def test_get_finder(self):
         import pandas.plotting._matplotlib.converter as conv
 
-        assert conv.get_finder("B") == conv._daily_finder
-        assert conv.get_finder("D") == conv._daily_finder
-        assert conv.get_finder("M") == conv._monthly_finder
-        assert conv.get_finder("Q") == conv._quarterly_finder
-        assert conv.get_finder("A") == conv._annual_finder
-        assert conv.get_finder("W") == conv._daily_finder
+        assert conv.get_finder(to_offset("B")) == conv._daily_finder
+        assert conv.get_finder(to_offset("D")) == conv._daily_finder
+        assert conv.get_finder(to_offset("M")) == conv._monthly_finder
+        assert conv.get_finder(to_offset("Q")) == conv._quarterly_finder
+        assert conv.get_finder(to_offset("A")) == conv._annual_finder
+        assert conv.get_finder(to_offset("W")) == conv._daily_finder
 
     @pytest.mark.slow
     def test_finder_daily(self):
@@ -1456,7 +1468,9 @@ class TestTSPlot(TestPlotBase):
         # ax.xaxis.converter with a DatetimeConverter
         s = Series(np.random.randn(10), index=date_range("1970-01-02", periods=10))
         ax = s.plot()
-        ax.plot(s.index, s.values, color="g")
+        with tm.assert_produces_warning(DeprecationWarning):
+            # multi-dimensional indexing
+            ax.plot(s.index, s.values, color="g")
         l1, l2 = ax.lines
         tm.assert_numpy_array_equal(l1.get_xydata(), l2.get_xydata())
 
@@ -1494,7 +1508,7 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
         ax = kwargs.pop("ax", plt.gca())
         if series is not None:
             dfreq = series.index.freq
-            if isinstance(dfreq, DateOffset):
+            if isinstance(dfreq, BaseOffset):
                 dfreq = dfreq.rule_code
             if orig_axfreq is None:
                 assert ax.freq == dfreq
