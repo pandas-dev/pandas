@@ -24,13 +24,6 @@ Now the error message also includes a list of the missing labels (max 10 items, 
 
 .. _whatsnew_110.astype_string:
 
-idxmax(Series and DataFrame), idxmin(Series and DataFrame), argmax, and argmin have new keep parameter
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-keep allows the user to look at the 'first' or 'last' occurrence of a duplicate, it also allows the user to return 'all' duplicate entries in case of a tie.
-
-The functionality of this parameter is similar to the keep parameter found in the nlargest function.
-
 All dtypes can now be converted to ``StringDtype``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -340,6 +333,7 @@ Other enhancements
 - :meth:`read_csv` now accepts string values like "0", "0.0", "1", "1.0" as convertible to the nullable boolean dtype (:issue:`34859`)
 - :class:`pandas.core.window.ExponentialMovingWindow` now supports a ``times`` argument that allows ``mean`` to be calculated with observations spaced by the timestamps in ``times`` (:issue:`34839`)
 - :meth:`DataFrame.agg` and :meth:`Series.agg` now accept named aggregation for renaming the output columns/indexes. (:issue:`26513`)
+- :meth:`DataFrame.idxmax`, :meth:`DataFrame.idxmin`, :meth:`Series.idxmax`, :meth:`Series.idxmax`, :meth:`Core.argmax`, and :meth:`Core.argmin` all now have new keep parameter. The functionality of this parameter is similar to the keep parameter found in the nlargest function. First prioritizes returns first occurrence of value in case of ties, last similarly returns the last, and all returns all occurrences of the value.
 
 .. ---------------------------------------------------------------------------
 
