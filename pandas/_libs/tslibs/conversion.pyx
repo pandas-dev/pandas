@@ -51,6 +51,15 @@ DT64NS_DTYPE = np.dtype('M8[ns]')
 TD64NS_DTYPE = np.dtype('m8[ns]')
 
 
+class OutOfBoundsTimedelta(ValueError):
+    """
+    Raised when encountering a timedelta value that cannot be represented
+    as a timedelta64[ns].
+    """
+    # Timedelta analogue to OutOfBoundsDatetime
+    pass
+
+
 # ----------------------------------------------------------------------
 # Unit Conversion Helpers
 
@@ -228,11 +237,34 @@ def ensure_timedelta64ns(arr: ndarray, copy: bool=True):
 
     Returns
     -------
-    result : ndarray with dtype timedelta64[ns]
-
+    ndarray[timedelta64[ns]]
     """
-    return arr.astype(TD64NS_DTYPE, copy=copy)
-    # TODO: check for overflows when going from a lower-resolution to nanos
+    assert arr.dtype.kind == "m", arr.dtype
+
+    if arr.dtype == TD64NS_DTYPE:
+        return arr.copy() if copy else arr
+
+    # Re-use the datetime64 machinery to do an overflow-safe `astype`
+    dtype = arr.dtype.str.replace("m8", "M8")
+    dummy = arr.view(dtype)
+    try:
+        dt64_result = ensure_datetime64ns(dummy, copy)
+    except OutOfBoundsDatetime as err:
+        # Re-write the exception in terms of timedelta64 instead of dt64
+
+        # Find the value that we are going to report as causing an overflow
+        tdmin = arr.min()
+        tdmax = arr.max()
+        if np.abs(tdmin) >= np.abs(tdmax):
+            bad_val = tdmin
+        else:
+            bad_val = tdmax
+
+        raise OutOfBoundsTimedelta(
+            f"Out of bounds for nanosecond {arr.dtype.name} {bad_val}"
+        )
+
+    return dt64_result.view(TD64NS_DTYPE)
 
 
 # ----------------------------------------------------------------------
