@@ -299,35 +299,21 @@ cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo t
         else:
             pos = trans.searchsorted(stamps, side="right") - 1
 
-    if use_utc:
-        with nogil:
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    result[i] = NPY_NAT
-                    continue
-                local_val = stamps[i]
-                result[i] = normalize_i8_stamp(local_val)
-    elif use_tzlocal:
-        for i in range(n):
-            if stamps[i] == NPY_NAT:
-                result[i] = NPY_NAT
-                continue
+    for i in range(n):
+        if stamps[i] == NPY_NAT:
+            result[i] = NPY_NAT
+            continue
+
+        if use_utc:
+            local_val = stamps[i]
+        elif use_tzlocal:
             local_val = tz_convert_utc_to_tzlocal(stamps[i], tz)
-            result[i] = normalize_i8_stamp(local_val)
-    elif use_fixed:
-        for i in range(n):
-            if stamps[i] == NPY_NAT:
-                result[i] = NPY_NAT
-                continue
+        elif use_fixed:
             local_val = stamps[i] + delta
-            result[i] = normalize_i8_stamp(local_val)
-    else:
-        for i in range(n):
-            if stamps[i] == NPY_NAT:
-                result[i] = NPY_NAT
-                continue
+        else:
             local_val = stamps[i] + deltas[pos[i]]
-            result[i] = normalize_i8_stamp(local_val)
+
+        result[i] = normalize_i8_stamp(local_val)
 
     return result.base  # `.base` to access underlying ndarray
 
@@ -372,31 +358,18 @@ def is_date_array_normalized(const int64_t[:] stamps, tzinfo tz=None):
         else:
             pos = trans.searchsorted(stamps, side="right") - 1
 
-    if use_utc:
-        for i in range(n):
+    for i in range(n):
+        if use_utc:
             local_val = stamps[i]
-            if local_val % day_nanos != 0:
-                return False
-
-    elif use_tzlocal:
-        for i in range(n):
+        elif use_tzlocal:
             local_val = tz_convert_utc_to_tzlocal(stamps[i], tz)
-            if local_val % day_nanos != 0:
-                return False
-
-    elif use_fixed:
-        for i in range(n):
-            # Adjust datetime64 timestamp, recompute datetimestruct
+        elif use_fixed:
             local_val = stamps[i] + delta
-            if local_val % day_nanos != 0:
-                return False
-
-    else:
-        for i in range(n):
-            # Adjust datetime64 timestamp, recompute datetimestruct
+        else:
             local_val = stamps[i] + deltas[pos[i]]
-            if local_val % day_nanos != 0:
-                return False
+
+        if local_val % day_nanos != 0:
+            return False
 
     return True
 
