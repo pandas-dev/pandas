@@ -1685,7 +1685,6 @@ def test_groupby_first_on_categorical_col_grouped_on_2_categoricals(func: str):
         "first": pd.Series([0, np.NaN, np.NaN, 1], idx, name="c"),
         "last": pd.Series([1, np.NaN, np.NaN, 0], idx, name="c"),
     }
-    import pdb; pdb.set_trace()
 
     df_grp = df.groupby(["a", "b"])
     df_res = getattr(df_grp, func)()
