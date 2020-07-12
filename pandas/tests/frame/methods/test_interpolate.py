@@ -246,11 +246,13 @@ class TestDataFrameInterpolate:
         df = DataFrame({"a": [1.0, 2.0, np.nan, 4.0]})
         expected = DataFrame({"a": [1.0, 2.0, 3.0, 4.0]})
         result = df.copy()
-        result["a"].interpolate(inplace=True)
+        return_value = result["a"].interpolate(inplace=True)
+        assert return_value is None
         tm.assert_frame_equal(result, expected)
 
         result = df.copy()
-        result["a"].interpolate(inplace=True, downcast="infer")
+        return_value = result["a"].interpolate(inplace=True, downcast="infer")
+        assert return_value is None
         tm.assert_frame_equal(result, expected.astype("int64"))
 
     def test_interp_inplace_row(self):
@@ -259,7 +261,8 @@ class TestDataFrameInterpolate:
             {"a": [1.0, 2.0, 3.0, 4.0], "b": [np.nan, 2.0, 3.0, 4.0], "c": [3, 2, 2, 2]}
         )
         expected = result.interpolate(method="linear", axis=1, inplace=False)
-        result.interpolate(method="linear", axis=1, inplace=True)
+        return_value = result.interpolate(method="linear", axis=1, inplace=True)
+        assert return_value is None
         tm.assert_frame_equal(result, expected)
 
     def test_interp_ignore_all_good(self):
@@ -297,7 +300,8 @@ class TestDataFrameInterpolate:
         expected = DataFrame(index=idx, columns=idx, data=data)
 
         result = expected.interpolate(axis=0, method="time")
-        expected.interpolate(axis=0, method="time", inplace=True)
+        return_value = expected.interpolate(axis=0, method="time", inplace=True)
+        assert return_value is None
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("axis_name, axis_number", [("index", 0), ("columns", 1)])
