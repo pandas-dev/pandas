@@ -119,7 +119,8 @@ class TestResetIndex:
         # test resetting in place
         df = float_frame.copy()
         resetted = float_frame.reset_index()
-        df.reset_index(inplace=True)
+        return_value = df.reset_index(inplace=True)
+        assert return_value is None
         tm.assert_frame_equal(df, resetted, check_names=False)
 
         df = float_frame.reset_index().set_index(["index", "A", "B"])
@@ -137,7 +138,8 @@ class TestResetIndex:
         )
         assert df.reset_index().index.name is None
         assert df.reset_index(drop=True).index.name is None
-        df.reset_index(inplace=True)
+        return_value = df.reset_index(inplace=True)
+        assert return_value is None
         assert df.index.name is None
 
     def test_reset_index_level(self):
