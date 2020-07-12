@@ -956,6 +956,20 @@ class IndexOpsMixin:
         The maximum cereal calories is the third element and
         the minimum cereal calories is the first element,
         since series is zero-indexed.
+
+        >>> s2 = pd.Series({{'A': 100.0, 'B': 110.0,
+        ...                'C': 120.0, 'D': 110.0,
+        ...                'E': 120.0, 'F': 100.0}})
+
+        >>> s2.argmax(keep='all')
+        array([2, 4], dtype=int64)
+        >>> s2.argmin(keep='all')
+        array([0, 5], dtype=int64)
+
+        >>> s2.argmax(keep='last')
+        4
+        >>> s2.argmin(keep='last')
+        5
         """
         nv.validate_minmax_axis(axis)
         nv.validate_argmax_with_skipna(skipna, args, kwargs)

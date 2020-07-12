@@ -2089,6 +2089,12 @@ Name: Max Speed, dtype: float64
 
         >>> s.idxmin(skipna=False)
         nan
+
+        >>> s.idxmin(keep='all')
+        array(['A', 'D'], dtype=object)
+
+        >>> s.idxmin(keep='last')
+        'D'
         """
         skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
         if keep == "last":
@@ -2173,6 +2179,12 @@ Name: Max Speed, dtype: float64
 
         >>> s.idxmax(skipna=False)
         nan
+
+        >>> s.idxmax(keep='all')
+        array(['C', 'E'], dtype=object)
+
+        >>> s.idxmax(keep='last')
+        'E'
         """
         skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
         if keep == "last":

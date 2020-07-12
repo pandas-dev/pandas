@@ -8760,6 +8760,23 @@ NaN 12.3   33.0
         Wheat Products    co2_emissions
         Beef                consumption
         dtype: object
+
+        >>> df2 = pd.DataFrame({'a' : [2,4,4,2],
+        ...                    'b' : [4,2,2,4],
+        ...                    'c' : [4,2,2,4]},
+        ...                    index=['A', 'B', 'C', 'D'])
+
+        >>> df2.idxmin(keep='all')
+        a    [A, D]
+        b    [B, C]
+        c    [B, C]
+        dtype: object
+
+        >>> df2.idxmin(keep='last')
+        a    D
+        b    C
+        c    C
+        dtype: object
         """
         axis = self._get_axis_number(axis)
         if keep == "last":
@@ -8859,6 +8876,23 @@ NaN 12.3   33.0
         Pork              co2_emissions
         Wheat Products     consumption
         Beef              co2_emissions
+        dtype: object
+
+        >>> df2 = pd.DataFrame({'a' : [2,4,4,2],
+        ...                    'b' : [4,2,2,4],
+        ...                    'c' : [4,2,2,4]},
+        ...                    index=['A', 'B', 'C', 'D'])
+
+        >>> df2.idxmax(keep='all')
+        a    [B, C]
+        b    [A, D]
+        c    [A, D]
+        dtype: object
+
+        >>> df2.idxmax(keep='last')
+        a    C
+        b    D
+        c    D
         dtype: object
         """
         axis = self._get_axis_number(axis)
