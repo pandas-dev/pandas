@@ -385,7 +385,15 @@ def array_equivalent(left, right, strict_nan: bool = False) -> bool:
     ...     np.array([1, 2, np.nan]))
     False
     """
+    # TODO: pass strict_nane to the .equals methods?
+    if isinstance(left, ABCExtensionArray):
+        return left.equals(right)
+    elif isinstance(right, ABCExtensionArray):
+        return right.equals(left)
+
     left, right = np.asarray(left), np.asarray(right)
+    ldtype = left.dtype
+    rdtype = right.dtype
 
     # shape compat
     if left.shape != right.shape:
@@ -393,7 +401,7 @@ def array_equivalent(left, right, strict_nan: bool = False) -> bool:
 
     # Object arrays can contain None, NaN and NaT.
     # string dtypes must be come to this path for NumPy 1.7.1 compat
-    if is_string_dtype(left.dtype) or is_string_dtype(right.dtype):
+    if is_string_dtype(ldtype) or is_string_dtype(rdtype):
 
         if not strict_nan:
             # isna considers NaN and None to be equivalent.
@@ -425,28 +433,29 @@ def array_equivalent(left, right, strict_nan: bool = False) -> bool:
         return True
 
     # NaNs can occur in float and complex arrays.
-    if is_float_dtype(left.dtype) or is_complex_dtype(left.dtype):
+    if is_float_dtype(ldtype) or is_complex_dtype(ldtype):
+        if ldtype == rdtype and ldtype.itemsize != 16:
+            ileft = left.view(f"i{ldtype.itemsize}")
+            iright = right.view(f"i{rdtype.itemsize}")
+            return (ileft == iright).all()
 
-        # empty
-        if not (np.prod(left.shape) and np.prod(right.shape)):
-            return True
         return ((left == right) | (isna(left) & isna(right))).all()
 
     elif is_datetimelike_v_numeric(left, right):
         # GH#29553 avoid numpy deprecation warning
         return False
 
-    elif needs_i8_conversion(left.dtype) or needs_i8_conversion(right.dtype):
+    elif needs_i8_conversion(ldtype) or needs_i8_conversion(rdtype):
         # datetime64, timedelta64, Period
-        if not is_dtype_equal(left.dtype, right.dtype):
+        if not is_dtype_equal(ldtype, rdtype):
             return False
 
         left = left.view("i8")
         right = right.view("i8")
 
     # if we have structured dtypes, compare first
-    if left.dtype.type is np.void or right.dtype.type is np.void:
-        if left.dtype != right.dtype:
+    if ldtype.type is np.void or rdtype.type is np.void:
+        if ldtype != rdtype:
             return False
 
     return np.array_equal(left, right)
