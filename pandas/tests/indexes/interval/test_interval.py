@@ -4,6 +4,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import InvalidIndexError
+
 import pandas as pd
 from pandas import (
     Index,
@@ -19,7 +21,6 @@ from pandas import (
 )
 import pandas._testing as tm
 import pandas.core.common as com
-from pandas.core.indexes.base import InvalidIndexError
 
 
 @pytest.fixture(scope="class", params=[None, "foo"])
@@ -568,14 +569,18 @@ class TestIntervalIndex:
         actual = self.index == self.index.left
         tm.assert_numpy_array_equal(actual, np.array([False, False]))
 
-        with pytest.raises(TypeError, match="unorderable types"):
+        msg = (
+            "not supported between instances of 'int' and "
+            "'pandas._libs.interval.Interval'"
+        )
+        with pytest.raises(TypeError, match=msg):
             self.index > 0
-        with pytest.raises(TypeError, match="unorderable types"):
+        with pytest.raises(TypeError, match=msg):
             self.index <= 0
-        msg = r"unorderable types: Interval\(\) > int\(\)"
         with pytest.raises(TypeError, match=msg):
             self.index > np.arange(2)
-        msg = "Lengths must match"
+
+        msg = "Lengths must match to compare"
         with pytest.raises(ValueError, match=msg):
             self.index > np.arange(3)
 
@@ -894,6 +899,6 @@ def test_searchsorted_different_argument_classes(klass):
 )
 def test_searchsorted_invalid_argument(arg):
     values = IntervalIndex([Interval(0, 1), Interval(1, 2)])
-    msg = "unorderable types"
+    msg = "'<' not supported between instances of 'pandas._libs.interval.Interval' and "
     with pytest.raises(TypeError, match=msg):
         values.searchsorted(arg)

@@ -1,43 +1,19 @@
-from datetime import datetime
-
 import numpy as np
-from numpy.random import randn
 
-from pandas import DataFrame, Series, bdate_range
+from pandas import Series
 import pandas._testing as tm
 
-N, K = 100, 10
 
+def check_pairwise_moment(frame, dispatch, name, **kwargs):
+    def get_result(obj, obj2=None):
+        return getattr(getattr(obj, dispatch)(**kwargs), name)(obj2)
 
-class Base:
-
-    _nan_locs = np.arange(20, 40)
-    _inf_locs = np.array([])
-
-    def _create_data(self):
-        arr = randn(N)
-        arr[self._nan_locs] = np.NaN
-
-        self.arr = arr
-        self.rng = bdate_range(datetime(2009, 1, 1), periods=N)
-        self.series = Series(arr.copy(), index=self.rng)
-        self.frame = DataFrame(randn(N, K), index=self.rng, columns=np.arange(K))
-
-
-class ConsistencyBase(Base):
-    def _create_data(self):
-        super()._create_data()
-
-    def _check_pairwise_moment(self, dispatch, name, **kwargs):
-        def get_result(obj, obj2=None):
-            return getattr(getattr(obj, dispatch)(**kwargs), name)(obj2)
-
-        result = get_result(self.frame)
-        result = result.loc[(slice(None), 1), 5]
-        result.index = result.index.droplevel(1)
-        expected = get_result(self.frame[1], self.frame[5])
-        expected.index = expected.index._with_freq(None)
-        tm.assert_series_equal(result, expected, check_names=False)
+    result = get_result(frame)
+    result = result.loc[(slice(None), 1), 5]
+    result.index = result.index.droplevel(1)
+    expected = get_result(frame[1], frame[5])
+    expected.index = expected.index._with_freq(None)
+    tm.assert_series_equal(result, expected, check_names=False)
 
 
 def ew_func(A, B, com, name, **kwargs):

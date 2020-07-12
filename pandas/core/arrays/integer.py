@@ -1,5 +1,5 @@
 import numbers
-from typing import TYPE_CHECKING, List, Optional, Tuple, Type, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Type, Union
 import warnings
 
 import numpy as np
@@ -10,7 +10,7 @@ from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.cast import astype_nansafe
+from pandas.core.dtypes.base import register_extension_dtype
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_dtype,
@@ -20,15 +20,12 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
-    is_scalar,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import nanops, ops
+from pandas.core import ops
 from pandas.core.array_algos import masked_reductions
-from pandas.core.indexers import check_array_indexer
 from pandas.core.ops import invalid_comparison
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.tools.numeric import to_numeric
@@ -95,11 +92,18 @@ class _IntegerDtype(BaseMaskedDtype):
         return IntegerArray
 
     def _get_common_dtype(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
-        # for now only handle other integer types
-        if not all(isinstance(t, _IntegerDtype) for t in dtypes):
+        # we only handle nullable EA dtypes and numeric numpy dtypes
+        if not all(
+            isinstance(t, BaseMaskedDtype)
+            or (
+                isinstance(t, np.dtype)
+                and (np.issubdtype(t, np.number) or np.issubdtype(t, np.bool_))
+            )
+            for t in dtypes
+        ):
             return None
         np_dtype = np.find_common_type(
-            [t.numpy_dtype for t in dtypes], []  # type: ignore
+            [t.numpy_dtype if isinstance(t, BaseMaskedDtype) else t for t in dtypes], []
         )
         if np.issubdtype(np_dtype, np.integer):
             return _dtypes[str(np_dtype)]
@@ -417,19 +421,8 @@ class IntegerArray(BaseMaskedArray):
         else:
             return reconstruct(result)
 
-    def __setitem__(self, key, value) -> None:
-        _is_scalar = is_scalar(value)
-        if _is_scalar:
-            value = [value]
-        value, mask = coerce_to_array(value, dtype=self.dtype)
-
-        if _is_scalar:
-            value = value[0]
-            mask = mask[0]
-
-        key = check_array_indexer(self, key)
-        self._data[key] = value
-        self._mask[key] = mask
+    def _coerce_to_array(self, value) -> Tuple[np.ndarray, np.ndarray]:
+        return coerce_to_array(value, dtype=self.dtype)
 
     def astype(self, dtype, copy: bool = True) -> ArrayLike:
         """
@@ -455,29 +448,35 @@ class IntegerArray(BaseMaskedArray):
             if incompatible type with an IntegerDtype, equivalent of same_kind
             casting
         """
-        from pandas.core.arrays.boolean import BooleanArray, BooleanDtype
+        from pandas.core.arrays.masked import BaseMaskedDtype
+        from pandas.core.arrays.string_ import StringDtype
 
         dtype = pandas_dtype(dtype)
 
-        # if we are astyping to an existing IntegerDtype we can fastpath
-        if isinstance(dtype, _IntegerDtype):
-            result = self._data.astype(dtype.numpy_dtype, copy=False)
-            return type(self)(result, mask=self._mask, copy=False)
-        elif isinstance(dtype, BooleanDtype):
-            result = self._data.astype("bool", copy=False)
-            return BooleanArray(result, mask=self._mask, copy=False)
+        # if the dtype is exactly the same, we can fastpath
+        if self.dtype == dtype:
+            # return the same object for copy=False
+            return self.copy() if copy else self
+        # if we are astyping to another nullable masked dtype, we can fastpath
+        if isinstance(dtype, BaseMaskedDtype):
+            data = self._data.astype(dtype.numpy_dtype, copy=copy)
+            # mask is copied depending on whether the data was copied, and
+            # not directly depending on the `copy` keyword
+            mask = self._mask if data is self._data else self._mask.copy()
+            return dtype.construct_array_type()(data, mask, copy=False)
+        elif isinstance(dtype, StringDtype):
+            return dtype.construct_array_type()._from_sequence(self, copy=False)
 
         # coerce
         if is_float_dtype(dtype):
             # In astype, we consider dtype=float to also mean na_value=np.nan
-            kwargs = dict(na_value=np.nan)
+            na_value = np.nan
         elif is_datetime64_dtype(dtype):
-            kwargs = dict(na_value=np.datetime64("NaT"))
+            na_value = np.datetime64("NaT")
         else:
-            kwargs = {}
+            na_value = lib.no_default
 
-        data = self.to_numpy(dtype=dtype, **kwargs)
-        return astype_nansafe(data, dtype, copy=False)
+        return self.to_numpy(dtype=dtype, na_value=na_value, copy=False)
 
     def _values_for_argsort(self) -> np.ndarray:
         """
@@ -517,6 +516,8 @@ class IntegerArray(BaseMaskedArray):
                     raise NotImplementedError(
                         "can only perform ops with 1-d structures"
                     )
+                if len(self) != len(other):
+                    raise ValueError("Lengths must match to compare")
 
             if other is libmissing.NA:
                 # numpy does not handle pd.NA well as "other" scalar (it returns
@@ -550,27 +551,6 @@ class IntegerArray(BaseMaskedArray):
 
         name = f"__{op.__name__}__"
         return set_function_name(cmp_method, name, cls)
-
-    def _reduce(self, name: str, skipna: bool = True, **kwargs):
-        data = self._data
-        mask = self._mask
-
-        if name in {"sum", "prod", "min", "max"}:
-            op = getattr(masked_reductions, name)
-            return op(data, mask, skipna=skipna, **kwargs)
-
-        # coerce to a nan-aware float if needed
-        # (we explicitly use NaN within reductions)
-        if self._hasna:
-            data = self.to_numpy("float64", na_value=np.nan)
-
-        op = getattr(nanops, "nan" + name)
-        result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
-
-        if np.isnan(result):
-            return libmissing.NA
-
-        return result
 
     def sum(self, skipna=True, min_count=0, **kwargs):
         nv.validate_sum((), kwargs)
@@ -620,6 +600,8 @@ class IntegerArray(BaseMaskedArray):
                     raise NotImplementedError(
                         "can only perform ops with 1-d structures"
                     )
+                if len(self) != len(other):
+                    raise ValueError("Lengths must match")
                 if not (is_float_dtype(other) or is_integer_dtype(other)):
                     raise TypeError("can only perform ops with numeric values")
 
@@ -752,7 +734,7 @@ class UInt64Dtype(_IntegerDtype):
     __doc__ = _dtype_docstring.format(dtype="uint64")
 
 
-_dtypes = {
+_dtypes: Dict[str, _IntegerDtype] = {
     "int8": Int8Dtype(),
     "int16": Int16Dtype(),
     "int32": Int32Dtype(),

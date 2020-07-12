@@ -2,7 +2,6 @@
 High level interface to PyTables for reading and writing pandas data structures
 to disk
 """
-
 import copy
 from datetime import date, tzinfo
 import itertools
@@ -19,6 +18,7 @@ from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslibs import timezones
 from pandas._typing import ArrayLike, FrameOrSeries, Label
 from pandas.compat._optional import import_optional_dependency
+from pandas.compat.pickle_compat import patch_pickle
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
 
@@ -447,8 +447,8 @@ class HDFStore:
 
     Parameters
     ----------
-    path : string
-        File path to HDF5 file
+    path : str
+        File path to HDF5 file.
     mode : {'a', 'w', 'r', 'r+'}, default 'a'
 
         ``'r'``
@@ -462,18 +462,20 @@ class HDFStore:
         ``'r+'``
             It is similar to ``'a'``, but the file must already exist.
     complevel : int, 0-9, default None
-            Specifies a compression level for data.
-            A value of 0 or None disables compression.
+        Specifies a compression level for data.
+        A value of 0 or None disables compression.
     complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default 'zlib'
-            Specifies the compression library to be used.
-            As of v0.20.2 these additional compressors for Blosc are supported
-            (default if no compressor specified: 'blosc:blosclz'):
-            {'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy',
-             'blosc:zlib', 'blosc:zstd'}.
-            Specifying a compression library which is not available issues
-            a ValueError.
+        Specifies the compression library to be used.
+        As of v0.20.2 these additional compressors for Blosc are supported
+        (default if no compressor specified: 'blosc:blosclz'):
+        {'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy',
+         'blosc:zlib', 'blosc:zstd'}.
+        Specifying a compression library which is not available issues
+        a ValueError.
     fletcher32 : bool, default False
-            If applying compression use the fletcher32 checksum
+        If applying compression use the fletcher32 checksum.
+    **kwargs
+        These parameters will be passed to the PyTables open_file method.
 
     Examples
     --------
@@ -482,6 +484,17 @@ class HDFStore:
     >>> store['foo'] = bar   # write to HDF5
     >>> bar = store['foo']   # retrieve
     >>> store.close()
+
+    **Create or load HDF5 file in-memory**
+
+    When passing the `driver` option to the PyTables open_file method through
+    **kwargs, the HDF5 file is loaded or created in-memory and will only be
+    written when closed:
+
+    >>> bar = pd.DataFrame(np.random.randn(10, 4))
+    >>> store = pd.HDFStore('test.h5', driver='H5FD_CORE')
+    >>> store['foo'] = bar
+    >>> store.close()   # only now, data is written to disk
     """
 
     _handle: Optional["File"]
@@ -580,16 +593,39 @@ class HDFStore:
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
 
-    def keys(self) -> List[str]:
+    def keys(self, include: str = "pandas") -> List[str]:
         """
         Return a list of keys corresponding to objects stored in HDFStore.
+
+        Parameters
+        ----------
+
+        include : str, default 'pandas'
+                When kind equals 'pandas' return pandas objects
+                When kind equals 'native' return native HDF5 Table objects
+
+                .. versionadded:: 1.1.0
 
         Returns
         -------
         list
             List of ABSOLUTE path-names (e.g. have the leading '/').
+
+        Raises
+        ------
+        raises ValueError if kind has an illegal value
         """
-        return [n._v_pathname for n in self.groups()]
+        if include == "pandas":
+            return [n._v_pathname for n in self.groups()]
+
+        elif include == "native":
+            assert self._handle is not None  # mypy
+            return [
+                n._v_pathname for n in self._handle.walk_nodes("/", classname="Table")
+            ]
+        raise ValueError(
+            f"`include` should be either 'pandas' or 'native' but is '{include}'"
+        )
 
     def __iter__(self):
         return iter(self.keys())
@@ -611,6 +647,8 @@ class HDFStore:
         ----------
         mode : {'a', 'w', 'r', 'r+'}, default 'a'
             See HDFStore docstring or tables.open_file for info about modes
+        **kwargs
+            These parameters will be passed to the PyTables open_file method.
         """
         tables = _tables()
 
@@ -729,10 +767,13 @@ class HDFStore:
         object
             Same type as object stored in file.
         """
-        group = self.get_node(key)
-        if group is None:
-            raise KeyError(f"No object named {key} in the file")
-        return self._read_group(group)
+        with patch_pickle():
+            # GH#31167 Without this patch, pickle doesn't know how to unpickle
+            #  old DateOffset objects now that they are cdef classes.
+            group = self.get_node(key)
+            if group is None:
+                raise KeyError(f"No object named {key} in the file")
+            return self._read_group(group)
 
     def select(
         self,
@@ -984,6 +1025,7 @@ class HDFStore:
         data_columns: Optional[List[str]] = None,
         encoding=None,
         errors: str = "strict",
+        track_times: bool = True,
     ):
         """
         Store object in HDFStore.
@@ -993,12 +1035,14 @@ class HDFStore:
         key : str
         value : {Series, DataFrame}
         format : 'fixed(f)|table(t)', default is 'fixed'
-            fixed(f) : Fixed format
-                       Fast writing/reading. Not-appendable, nor searchable.
-            table(t) : Table format
-                       Write as a PyTables Table structure which may perform
-                       worse but allow more flexible operations like searching
-                       / selecting subsets of the data.
+            Format to use when storing object in HDFStore. Value can be one of:
+
+            ``'fixed'``
+                Fixed format.  Fast writing/reading. Not-appendable, nor searchable.
+            ``'table'``
+                Table format.  Write as a PyTables Table structure which may perform
+                worse but allow more flexible operations like searching / selecting
+                subsets of the data.
         append   : bool, default False
             This will force Table format, append the input data to the
             existing.
@@ -1010,6 +1054,12 @@ class HDFStore:
             Provide an encoding for strings.
         dropna   : bool, default False, do not write an ALL nan row to
             The store settable by the option 'io.hdf.dropna_table'.
+        track_times : bool, default True
+            Parameter is propagated to 'create_table' method of 'PyTables'.
+            If set to False it enables to have the same h5 files (same hashes)
+            independent on creation time.
+
+            .. versionadded:: 1.1.0
         """
         if format is None:
             format = get_option("io.hdf.default_format") or "fixed"
@@ -1027,6 +1077,7 @@ class HDFStore:
             data_columns=data_columns,
             encoding=encoding,
             errors=errors,
+            track_times=track_times,
         )
 
     def remove(self, key: str, where=None, start=None, stop=None):
@@ -1115,10 +1166,12 @@ class HDFStore:
         key : str
         value : {Series, DataFrame}
         format : 'table' is the default
-            table(t) : table format
-                       Write as a PyTables Table structure which may perform
-                       worse but allow more flexible operations like searching
-                       / selecting subsets of the data.
+            Format to use when storing object in HDFStore.  Value can be one of:
+
+            ``'table'``
+                Table format. Write as a PyTables Table structure which may perform
+                worse but allow more flexible operations like searching / selecting
+                subsets of the data.
         append       : bool, default True
             Append the input data to the existing.
         data_columns : list of columns, or True, default None
@@ -1250,6 +1303,8 @@ class HDFStore:
                 valid_index = valid_index.intersection(index)
             value = value.loc[valid_index]
 
+        min_itemsize = kwargs.pop("min_itemsize", None)
+
         # append
         for k, v in d.items():
             dc = data_columns if k == selector else None
@@ -1257,7 +1312,12 @@ class HDFStore:
             # compute the val
             val = value.reindex(v, axis=axis)
 
-            self.append(k, val, data_columns=dc, **kwargs)
+            filtered = (
+                {key: value for (key, value) in min_itemsize.items() if key in v}
+                if min_itemsize is not None
+                else None
+            )
+            self.append(k, val, data_columns=dc, min_itemsize=filtered, **kwargs)
 
     def create_table_index(
         self,
@@ -1626,6 +1686,7 @@ class HDFStore:
         data_columns=None,
         encoding=None,
         errors: str = "strict",
+        track_times: bool = True,
     ):
         group = self.get_node(key)
 
@@ -1688,6 +1749,7 @@ class HDFStore:
             dropna=dropna,
             nan_rep=nan_rep,
             data_columns=data_columns,
+            track_times=track_times,
         )
 
         if isinstance(s, Table) and index:
@@ -2925,7 +2987,7 @@ class GenericFixed(Fixed):
 
             # infer the type, warn if we have a non-string type here (for
             # performance)
-            inferred_type = lib.infer_dtype(value.ravel(), skipna=False)
+            inferred_type = lib.infer_dtype(value, skipna=False)
             if empty_array:
                 pass
             elif inferred_type == "string":
@@ -3507,7 +3569,6 @@ class Table(Fixed):
         for c in columns:
             v = getattr(table.cols, c, None)
             if v is not None:
-
                 # remove the index if the kind/optlevel have changed
                 if v.is_indexed:
                     index = v.index
@@ -3535,6 +3596,13 @@ class Table(Fixed):
                             "data_columns when initializing the table."
                         )
                     v.create_index(**kw)
+            elif c in self.non_index_axes[0][1]:
+                # GH 28156
+                raise AttributeError(
+                    f"column {c} is not a data_column.\n"
+                    f"In order to read column {c} you must reload the dataframe \n"
+                    f"into HDFStore and include {c} with the data_columns argument."
+                )
 
     def _read_axes(
         self, where, start: Optional[int] = None, stop: Optional[int] = None
@@ -4106,8 +4174,8 @@ class AppendableTable(Table):
         dropna=False,
         nan_rep=None,
         data_columns=None,
+        track_times=True,
     ):
-
         if not append and self.is_exists:
             self._handle.remove_node(self.group, "table")
 
@@ -4136,6 +4204,8 @@ class AppendableTable(Table):
 
             # set the table attributes
             table.set_attrs()
+
+            options["track_times"] = track_times
 
             # create the table
             table._handle.create_table(table.group, **options)
@@ -4644,7 +4714,7 @@ def _set_tz(
     if tz is not None:
         name = getattr(values, "name", None)
         values = values.ravel()
-        tz = timezones.get_timezone(_ensure_decoded(tz))
+        tz = _ensure_decoded(tz)
         values = DatetimeIndex(values, name=name)
         values = values.tz_localize("UTC").tz_convert(tz)
     elif coerce:
@@ -4769,7 +4839,7 @@ def _maybe_convert_for_string_atom(
     data = block.values
 
     # see if we have a valid string type
-    inferred_type = lib.infer_dtype(data.ravel(), skipna=False)
+    inferred_type = lib.infer_dtype(data, skipna=False)
     if inferred_type != "string":
 
         # we cannot serialize this data, so report an exception on a column
@@ -4777,7 +4847,7 @@ def _maybe_convert_for_string_atom(
         for i in range(len(block.shape[0])):
 
             col = block.iget(i)
-            inferred_type = lib.infer_dtype(col.ravel(), skipna=False)
+            inferred_type = lib.infer_dtype(col, skipna=False)
             if inferred_type != "string":
                 iloc = block.mgr_locs.indexer[i]
                 raise TypeError(

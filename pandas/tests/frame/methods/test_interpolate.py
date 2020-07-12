@@ -43,7 +43,14 @@ class TestDataFrameInterpolate:
                 "D": list("abcd"),
             }
         )
-        with pytest.raises(ValueError):
+        msg = (
+            r"method must be one of \['linear', 'time', 'index', 'values', "
+            r"'nearest', 'zero', 'slinear', 'quadratic', 'cubic', "
+            r"'barycentric', 'krogh', 'spline', 'polynomial', "
+            r"'from_derivatives', 'piecewise_polynomial', 'pchip', 'akima', "
+            r"'cubicspline'\]. Got 'not_a_method' instead."
+        )
+        with pytest.raises(ValueError, match=msg):
             df.interpolate(method="not_a_method")
 
     def test_interp_combo(self):
@@ -67,7 +74,11 @@ class TestDataFrameInterpolate:
     def test_interp_nan_idx(self):
         df = DataFrame({"A": [1, 2, np.nan, 4], "B": [np.nan, 2, 3, 4]})
         df = df.set_index("A")
-        with pytest.raises(NotImplementedError):
+        msg = (
+            "Interpolation with NaNs in the index has not been implemented. "
+            "Try filling those NaNs before interpolating."
+        )
+        with pytest.raises(NotImplementedError, match=msg):
             df.interpolate(method="values")
 
     @td.skip_if_no_scipy
@@ -202,7 +213,7 @@ class TestDataFrameInterpolate:
             result = df.interpolate(method="polynomial", order=1)
             tm.assert_frame_equal(result, expected)
 
-    def test_interp_raise_on_only_mixed(self):
+    def test_interp_raise_on_only_mixed(self, axis):
         df = DataFrame(
             {
                 "A": [1, 2, np.nan, 4],
@@ -212,8 +223,13 @@ class TestDataFrameInterpolate:
                 "E": [1, 2, 3, 4],
             }
         )
-        with pytest.raises(TypeError):
-            df.interpolate(axis=1)
+        msg = (
+            "Cannot interpolate with all object-dtype columns "
+            "in the DataFrame. Try setting at least one "
+            "column to a numeric dtype."
+        )
+        with pytest.raises(TypeError, match=msg):
+            df.astype("object").interpolate(axis=axis)
 
     def test_interp_raise_on_all_object_dtype(self):
         # GH 22985
@@ -272,7 +288,6 @@ class TestDataFrameInterpolate:
         result = df[["B", "D"]].interpolate(downcast=None)
         tm.assert_frame_equal(result, df[["B", "D"]])
 
-    @pytest.mark.parametrize("axis", [0, 1])
     def test_interp_time_inplace_axis(self, axis):
         # GH 9687
         periods = 5
@@ -283,4 +298,30 @@ class TestDataFrameInterpolate:
 
         result = expected.interpolate(axis=0, method="time")
         expected.interpolate(axis=0, method="time", inplace=True)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("axis_name, axis_number", [("index", 0), ("columns", 1)])
+    def test_interp_string_axis(self, axis_name, axis_number):
+        # https://github.com/pandas-dev/pandas/issues/25190
+        x = np.linspace(0, 100, 1000)
+        y = np.sin(x)
+        df = DataFrame(
+            data=np.tile(y, (10, 1)), index=np.arange(10), columns=x
+        ).reindex(columns=x * 1.005)
+        result = df.interpolate(method="linear", axis=axis_name)
+        expected = df.interpolate(method="linear", axis=axis_number)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("method", ["ffill", "bfill", "pad"])
+    def test_interp_fillna_methods(self, axis, method):
+        # GH 12918
+        df = DataFrame(
+            {
+                "A": [1.0, 2.0, 3.0, 4.0, np.nan, 5.0],
+                "B": [2.0, 4.0, 6.0, np.nan, 8.0, 10.0],
+                "C": [3.0, 6.0, 9.0, np.nan, np.nan, 30.0],
+            }
+        )
+        expected = df.fillna(axis=axis, method=method)
+        result = df.interpolate(method=method, axis=axis)
         tm.assert_frame_equal(result, expected)

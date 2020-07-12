@@ -451,7 +451,7 @@ class TestTimedelta64ArithmeticUnsorted:
         tm.assert_index_equal(result, expected)
 
         # unequal length
-        msg = "Lengths must match"
+        msg = "cannot add indices of unequal length"
         with pytest.raises(ValueError, match=msg):
             tdi + dti[0:1]
         with pytest.raises(ValueError, match=msg):
@@ -552,7 +552,9 @@ class TestTimedelta64ArithmeticUnsorted:
         obj = tm.box_expected(tdi, box)
         other = tm.box_expected(dti, box)
 
-        warn = PerformanceWarning if box is not pd.DataFrame else None
+        warn = None
+        if box is not pd.DataFrame or tz_naive_fixture is None:
+            warn = PerformanceWarning
         with tm.assert_produces_warning(warn):
             result = obj + other.astype(object)
         tm.assert_equal(result, other)
@@ -1081,16 +1083,9 @@ class TestTimedeltaArraylikeAddSubOps:
         with pytest.raises(TypeError, match=msg):
             tdi - pi
 
-        # FIXME: don't leave commented-out
-        # FIXME: this raises with period scalar but not with PeriodIndex?
-        # with pytest.raises(TypeError):
-        #    pi - tdi
-
         # GH#13078 subtraction of Period scalar not supported
         with pytest.raises(TypeError, match=msg):
             tdi - pi[0]
-        with pytest.raises(TypeError, match=msg):
-            pi[0] - tdi
 
     @pytest.mark.parametrize(
         "other",
@@ -1475,8 +1470,6 @@ class TestTimedeltaArraylikeAddSubOps:
             [pd.Timedelta(days=2), pd.Timedelta(days=4), pd.Timestamp("2000-01-07")]
         )
         expected = tm.box_expected(expected, box_with_array)
-        if box_with_array is pd.DataFrame:
-            expected = expected.astype(object)
         tm.assert_equal(result, expected)
 
         msg = "unsupported operand type|cannot subtract a datelike"
@@ -1491,8 +1484,6 @@ class TestTimedeltaArraylikeAddSubOps:
             [pd.Timedelta(0), pd.Timedelta(0), pd.Timestamp("2000-01-01")]
         )
         expected = tm.box_expected(expected, box_with_array)
-        if box_with_array is pd.DataFrame:
-            expected = expected.astype(object)
         tm.assert_equal(result, expected)
 
 
@@ -1730,7 +1721,7 @@ class TestTimedeltaArraylikeMulDivOps:
         mismatched = [1, 2, 3, 4]
 
         rng = tm.box_expected(rng, box_with_array)
-        msg = "Lengths must match|Unable to coerce to Series"
+        msg = "Cannot divide vectors|Unable to coerce to Series"
         for obj in [mismatched, mismatched[:2]]:
             # one shorter, one longer
             for other in [obj, np.array(obj), pd.Index(obj)]:
@@ -1912,14 +1903,12 @@ class TestTimedeltaArraylikeMulDivOps:
     def test_td64arr_mul_too_short_raises(self, box_with_array):
         idx = TimedeltaIndex(np.arange(5, dtype="int64"))
         idx = tm.box_expected(idx, box_with_array)
-        msg = "|".join(
-            [
-                "Lengths must match",  # <- EA, Index, Series
-                "cannot use operands with types dtype",  # <- DataFrame
-                "Unable to coerce to Series",  # <- Series
-            ]
+        msg = (
+            "cannot use operands with types dtype|"
+            "Cannot multiply with unequal lengths|"
+            "Unable to coerce to Series"
         )
-        with pytest.raises((ValueError, TypeError), match=msg):
+        with pytest.raises(TypeError, match=msg):
             # length check before dtype check
             idx * idx[:3]
         with pytest.raises(ValueError, match=msg):
@@ -2019,7 +2008,7 @@ class TestTimedeltaArraylikeMulDivOps:
         tm.assert_equal(result, expected)
 
         pattern = (
-            "true_divide cannot use operands|"
+            "true_divide'? cannot use operands|"
             "cannot perform __div__|"
             "cannot perform __truediv__|"
             "unsupported operand|"

@@ -461,12 +461,12 @@ class BaseGrouper:
         # are not setup for dim transforming
         if is_categorical_dtype(values.dtype) or is_sparse(values.dtype):
             raise NotImplementedError(f"{values.dtype} dtype not supported")
-        elif is_datetime64_any_dtype(values):
+        elif is_datetime64_any_dtype(values.dtype):
             if how in ["add", "prod", "cumsum", "cumprod"]:
                 raise NotImplementedError(
                     f"datetime64 type does not support {how} operations"
                 )
-        elif is_timedelta64_dtype(values):
+        elif is_timedelta64_dtype(values.dtype):
             if how in ["prod", "cumprod"]:
                 raise NotImplementedError(
                     f"timedelta64 type does not support {how} operations"
@@ -485,7 +485,7 @@ class BaseGrouper:
             values = values.view("int64")
             is_numeric = True
         elif is_bool_dtype(values.dtype):
-            values = ensure_float64(values)
+            values = ensure_int_or_float(values)
         elif is_integer_dtype(values):
             # we use iNaT for the missing value on ints
             # so pre-convert to guard this condition
@@ -952,7 +952,9 @@ class DataSplitter:
 
 class SeriesSplitter(DataSplitter):
     def _chop(self, sdata: Series, slice_obj: slice) -> Series:
-        return sdata.iloc[slice_obj]
+        # fastpath equivalent to `sdata.iloc[slice_obj]`
+        mgr = sdata._mgr.get_slice(slice_obj)
+        return type(sdata)(mgr, name=sdata.name, fastpath=True)
 
 
 class FrameSplitter(DataSplitter):
@@ -962,10 +964,13 @@ class FrameSplitter(DataSplitter):
         return libreduction.apply_frame_axis0(sdata, f, names, starts, ends)
 
     def _chop(self, sdata: DataFrame, slice_obj: slice) -> DataFrame:
-        if self.axis == 0:
-            return sdata.iloc[slice_obj]
-        else:
-            return sdata.iloc[:, slice_obj]
+        # Fastpath equivalent to:
+        # if self.axis == 0:
+        #     return sdata.iloc[slice_obj]
+        # else:
+        #     return sdata.iloc[:, slice_obj]
+        mgr = sdata._mgr.get_slice(slice_obj, axis=1 - self.axis)
+        return type(sdata)(mgr)
 
 
 def get_splitter(

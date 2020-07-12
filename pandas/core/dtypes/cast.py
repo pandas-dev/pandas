@@ -15,6 +15,7 @@ from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
     iNaT,
+    ints_to_pydatetime,
 )
 from pandas._libs.tslibs.timezones import tz_compare
 from pandas._typing import ArrayLike, Dtype, DtypeObj
@@ -103,9 +104,9 @@ def is_nested_object(obj) -> bool:
     This may not be necessarily be performant.
 
     """
-    if isinstance(obj, ABCSeries) and is_object_dtype(obj):
+    if isinstance(obj, ABCSeries) and is_object_dtype(obj.dtype):
 
-        if any(isinstance(v, ABCSeries) for v in obj.values):
+        if any(isinstance(v, ABCSeries) for v in obj._values):
             return True
 
     return False
@@ -126,7 +127,7 @@ def maybe_downcast_to_dtype(result, dtype):
 
     if isinstance(dtype, str):
         if dtype == "infer":
-            inferred_type = lib.infer_dtype(ensure_object(result.ravel()), skipna=False)
+            inferred_type = lib.infer_dtype(ensure_object(result), skipna=False)
             if inferred_type == "boolean":
                 dtype = "bool"
             elif inferred_type == "integer":
@@ -225,7 +226,7 @@ def maybe_downcast_numeric(result, dtype, do_round: bool = False):
             # if we have any nulls, then we are done
             return result
 
-        elif not isinstance(r[0], (np.integer, np.floating, np.bool, int, float, bool)):
+        elif not isinstance(r[0], (np.integer, np.floating, int, float, bool)):
             # a comparable, e.g. a Decimal may slip in here
             return result
 
@@ -312,12 +313,14 @@ def maybe_cast_result_dtype(dtype: DtypeObj, how: str) -> DtypeObj:
     DtypeObj
         The desired dtype of the result.
     """
-    d = {
-        (np.dtype(np.bool), "add"): np.dtype(np.int64),
-        (np.dtype(np.bool), "cumsum"): np.dtype(np.int64),
-        (np.dtype(np.bool), "sum"): np.dtype(np.int64),
-    }
-    return d.get((dtype, how), dtype)
+    from pandas.core.arrays.boolean import BooleanDtype
+    from pandas.core.arrays.integer import Int64Dtype
+
+    if how in ["add", "cumsum", "sum"] and (dtype == np.dtype(bool)):
+        return np.dtype(np.int64)
+    elif how in ["add", "cumsum", "sum"] and isinstance(dtype, BooleanDtype):
+        return Int64Dtype()
+    return dtype
 
 
 def maybe_cast_to_extension_array(cls: Type["ExtensionArray"], obj, dtype=None):
@@ -335,9 +338,16 @@ def maybe_cast_to_extension_array(cls: Type["ExtensionArray"], obj, dtype=None):
     -------
     ExtensionArray or obj
     """
+    from pandas.core.arrays.string_ import StringArray
+
     assert isinstance(cls, type), f"must pass a type: {cls}"
     assertion_msg = f"must pass a subclass of ExtensionArray: {cls}"
     assert issubclass(cls, ABCExtensionArray), assertion_msg
+
+    # Everything can be be converted to StringArrays, but we may not want to convert
+    if issubclass(cls, StringArray) and lib.infer_dtype(obj) != "string":
+        return obj
+
     try:
         result = cls._from_sequence(obj, dtype=dtype)
     except Exception:
@@ -588,7 +598,7 @@ def _ensure_dtype_type(value, dtype):
     """
     Ensure that the given value is an instance of the given dtype.
 
-    e.g. if out dtype is np.complex64, we should have an instance of that
+    e.g. if out dtype is np.complex64_, we should have an instance of that
     as opposed to a python complex object.
 
     Parameters
@@ -910,7 +920,7 @@ def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
 
     elif is_datetime64_dtype(arr):
         if is_object_dtype(dtype):
-            return tslib.ints_to_pydatetime(arr.view(np.int64))
+            return ints_to_pydatetime(arr.view(np.int64))
         elif dtype == np.int64:
             if isna(arr).any():
                 raise ValueError("Cannot convert NaT values to integer")
@@ -1366,7 +1376,7 @@ def maybe_cast_to_datetime(value, dtype, errors: str = "raise"):
                             # is solved. String data that is passed with a
                             # datetime64tz is assumed to be naive which should
                             # be localized to the timezone.
-                            is_dt_string = is_string_dtype(value)
+                            is_dt_string = is_string_dtype(value.dtype)
                             value = to_datetime(value, errors=errors).array
                             if is_dt_string:
                                 # Strings here are naive, so directly localize
@@ -1390,7 +1400,7 @@ def maybe_cast_to_datetime(value, dtype, errors: str = "raise"):
                 if value.dtype != DT64NS_DTYPE:
                     value = value.astype(DT64NS_DTYPE)
                 ints = np.asarray(value).view("i8")
-                return tslib.ints_to_pydatetime(ints)
+                return ints_to_pydatetime(ints)
 
             # we have a non-castable dtype that was passed
             raise TypeError(f"Cannot cast datetime64 to {dtype}")
@@ -1474,7 +1484,7 @@ def find_common_type(types: List[DtypeObj]) -> DtypeObj:
     if has_bools:
         for t in types:
             if is_integer_dtype(t) or is_float_dtype(t) or is_complex_dtype(t):
-                return np.object
+                return object
 
     return np.find_common_type(types, [])
 
@@ -1599,7 +1609,7 @@ def construct_1d_ndarray_preserving_na(
     """
     subarr = np.array(values, dtype=dtype, copy=copy)
 
-    if dtype is not None and dtype.kind in ("U", "S"):
+    if dtype is not None and dtype.kind == "U":
         # GH-21083
         # We can't just return np.array(subarr, dtype='str') since
         # NumPy will convert the non-string objects into strings
@@ -1733,7 +1743,7 @@ def validate_numeric_casting(dtype: np.dtype, value):
         if is_float(value) and np.isnan(value):
             raise ValueError("Cannot assign nan to integer series")
 
-    if issubclass(dtype.type, (np.integer, np.floating, np.complex)) and not issubclass(
+    if issubclass(dtype.type, (np.integer, np.floating, complex)) and not issubclass(
         dtype.type, np.bool_
     ):
         if is_bool(value):

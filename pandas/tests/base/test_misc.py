@@ -73,7 +73,7 @@ def test_none_comparison(series_with_simple_index):
     assert result.iat[0]
     assert result.iat[1]
 
-    if is_datetime64_dtype(series) or is_datetime64tz_dtype(series):
+    if is_datetime64_dtype(series.dtype) or is_datetime64tz_dtype(series.dtype):
         # Following DatetimeIndex (and Timestamp) convention,
         # inequality comparisons with Series[datetime64] raise
         msg = "Invalid comparison"
@@ -173,8 +173,7 @@ def test_searchsorted(index_or_series_obj):
     assert 0 <= index <= len(obj)
 
 
-def test_access_by_position(indices):
-    index = indices
+def test_access_by_position(index):
 
     if len(index) == 0:
         pytest.skip("Test doesn't make sense on empty data")

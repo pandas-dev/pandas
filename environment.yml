@@ -17,17 +17,17 @@ dependencies:
   # code checks
   - black=19.10b0
   - cpplint
-  - flake8
+  - flake8<3.8.0  # temporary pin, GH#34150
   - flake8-comprehensions>=3.1.0  # used by flake8, linting of unnecessary comprehensions
   - flake8-rst>=0.6.0,<=0.7.0  # linting of code blocks in rst files
-  - isort  # check that imports are in the right order
+  - isort=4.3.21  # check that imports are in the right order
   - mypy=0.730
   - pycodestyle  # used by flake8
 
   # documentation
   - gitpython  # obtain contributors from git for whatsnew
   - gitdb2=2.0.6  # GH-32060
-  - sphinx
+  - sphinx<=3.1.1
 
   # documentation (jupyter notebooks)
   - nbconvert>=5.4.1
@@ -37,7 +37,6 @@ dependencies:
   # Dask and its dependencies (that dont install with dask)
   - dask-core
   - toolz>=0.7.3
-  - fsspec>=0.5.1
   - partd>=0.3.10
   - cloudpickle>=0.2.1
 
@@ -98,7 +97,9 @@ dependencies:
 
   - pyqt>=5.9.2  # pandas.read_clipboard
   - pytables>=3.4.3  # pandas.read_hdf, DataFrame.to_hdf
-  - s3fs  # pandas.read_csv... when using 's3://...' path
+  - s3fs>=0.4.0  # file IO when using 's3://...' path
+  - fsspec>=0.7.4  # for generic remote file operations
+  - gcsfs>=0.6.0  # file IO when using 'gcs://...' path
   - sqlalchemy  # pandas.read_sql, DataFrame.to_sql
   - xarray  # DataFrame.to_xarray
   - cftime  # Needed for downstream xarray.CFTimeIndex test

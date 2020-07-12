@@ -38,9 +38,12 @@ Exceptions and warnings
    errors.AccessorRegistrationWarning
    errors.DtypeWarning
    errors.EmptyDataError
-   errors.OutOfBoundsDatetime
+   errors.InvalidIndexError
    errors.MergeError
+   errors.NullFrequencyError
    errors.NumbaUtilError
+   errors.OutOfBoundsDatetime
+   errors.OutOfBoundsTimedelta
    errors.ParserError
    errors.ParserWarning
    errors.PerformanceWarning

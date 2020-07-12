@@ -15,10 +15,11 @@ from numpy cimport (
     uint64_t,
 )
 
-cimport numpy as cnp
 import numpy as np
-from pandas._libs.lib cimport c_is_list_like
+cimport numpy as cnp
 cnp.import_array()
+
+from pandas._libs.lib cimport c_is_list_like
 
 ctypedef fused reshape_t:
     uint8_t

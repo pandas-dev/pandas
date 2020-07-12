@@ -771,8 +771,8 @@ class TestDataFrameToCSV:
         for n, dtype in [
             ("float", np.float64),
             ("int", np.int64),
-            ("bool", np.bool),
-            ("object", np.object),
+            ("bool", np.bool_),
+            ("object", object),
         ]:
             for c in create_cols(n):
                 dtypes[c] = dtype

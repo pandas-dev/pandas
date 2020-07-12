@@ -18,10 +18,10 @@ def test_correct_function_signature():
         {"key": ["a", "a", "b", "b", "a"], "data": [1.0, 2.0, 3.0, 4.0, 5.0]},
         columns=["key", "data"],
     )
-    with pytest.raises(NumbaUtilError, match=f"The first 2"):
+    with pytest.raises(NumbaUtilError, match="The first 2"):
         data.groupby("key").agg(incorrect_function, engine="numba")
 
-    with pytest.raises(NumbaUtilError, match=f"The first 2"):
+    with pytest.raises(NumbaUtilError, match="The first 2"):
         data.groupby("key")["data"].agg(incorrect_function, engine="numba")
 
 
