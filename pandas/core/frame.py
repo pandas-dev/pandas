@@ -8623,7 +8623,7 @@ NaN 12.3   33.0
                 df = _get_data(axis_matters=True)
 
             if numeric_only is not None:
-                result = [op(arr) for arr in df._iter_column_arrays()]
+                result = [array_func(arr) for arr in df._iter_column_arrays()]
                 return _constructor(df, result)
             else:
                 # with numeric_only=None, need to ignore exceptions per column
