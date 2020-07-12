@@ -431,7 +431,7 @@ def sanitize_array(
 
     elif isinstance(data, ABCExtensionArray):
         # it is already ensured above this is not a PandasArray
-        # no copy by default for DataFrame({"A": ndarray})
+        # no copy by default for DataFrame({"A": extension_array})
         if copy is None:
             copy = False
         subarr = data
