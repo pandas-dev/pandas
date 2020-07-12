@@ -204,8 +204,7 @@ class TestNumericReduce(base.BaseNumericReduceTests):
             expected = getattr(s.dropna().astype(s.dtype.numpy_dtype), op_name)(
                 skipna=skipna
             )
-        check_less_precise = True if op_name == "skew" else False
-        tm.assert_almost_equal(result, expected, check_less_precise=check_less_precise)
+        tm.assert_almost_equal(result, expected)
 
 
 class TestBooleanReduce(base.BaseBooleanReduceTests):
