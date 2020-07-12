@@ -150,7 +150,8 @@ class TestRename:
 
         c_id = id(float_frame["C"])
         float_frame = float_frame.copy()
-        float_frame.rename(columns={"C": "foo"}, inplace=True)
+        return_value = float_frame.rename(columns={"C": "foo"}, inplace=True)
+        assert return_value is None
 
         assert "C" not in float_frame
         assert "foo" in float_frame

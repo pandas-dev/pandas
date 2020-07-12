@@ -326,7 +326,10 @@ class TestDataFrameIndexingCategorical:
         df = DataFrame({"cats": catsf, "values": valuesf}, index=idxf)
 
         exp_fancy = exp_multi_row.copy()
-        exp_fancy["cats"].cat.set_categories(["a", "b", "c"], inplace=True)
+        return_value = exp_fancy["cats"].cat.set_categories(
+            ["a", "b", "c"], inplace=True
+        )
+        assert return_value is None
 
         df[df["cats"] == "c"] = ["b", 2]
         # category c is kept in .categories

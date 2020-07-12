@@ -218,25 +218,29 @@ class TestDataFrameSortIndex:
         unordered = frame.loc[[3, 2, 4, 1]]
         a_id = id(unordered["A"])
         df = unordered.copy()
-        df.sort_index(inplace=True)
+        return_value = df.sort_index(inplace=True)
+        assert return_value is None
         expected = frame
         tm.assert_frame_equal(df, expected)
         assert a_id != id(df["A"])
 
         df = unordered.copy()
-        df.sort_index(ascending=False, inplace=True)
+        return_value = df.sort_index(ascending=False, inplace=True)
+        assert return_value is None
         expected = frame[::-1]
         tm.assert_frame_equal(df, expected)
 
         # axis=1
         unordered = frame.loc[:, ["D", "B", "C", "A"]]
         df = unordered.copy()
-        df.sort_index(axis=1, inplace=True)
+        return_value = df.sort_index(axis=1, inplace=True)
+        assert return_value is None
         expected = frame
         tm.assert_frame_equal(df, expected)
 
         df = unordered.copy()
-        df.sort_index(axis=1, ascending=False, inplace=True)
+        return_value = df.sort_index(axis=1, ascending=False, inplace=True)
+        assert return_value is None
         expected = frame.iloc[:, ::-1]
         tm.assert_frame_equal(df, expected)
 
@@ -589,7 +593,8 @@ class TestDataFrameSortIndex:
 
         # inplace
         rs = frame.copy()
-        rs.sort_index(level=0, inplace=True)
+        return_value = rs.sort_index(level=0, inplace=True)
+        assert return_value is None
         tm.assert_frame_equal(rs, frame.sort_index(level=0))
 
     def test_sort_index_level_large_cardinality(self):
