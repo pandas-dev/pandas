@@ -8694,7 +8694,7 @@ NaN 12.3   33.0
         """
         return self.apply(Series.nunique, axis=axis, dropna=dropna)
 
-    def idxmin(self, axis=0, skipna=True) -> Series:
+    def idxmin(self, axis=0, skipna=True, keep="first") -> Series:
         """
         Return index of first occurrence of minimum over requested axis.
 
@@ -8707,6 +8707,12 @@ NaN 12.3   33.0
         skipna : bool, default True
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA.
+        keep : {'first', 'last', 'all'}, default 'first'
+            Where there are duplicate values:
+
+            - `first` : prioritize the first occurrence
+            - `last` : prioritize the last occurrence
+            - ``all`` : do not drop any duplicates
 
         Returns
         -------
@@ -8756,18 +8762,34 @@ NaN 12.3   33.0
         dtype: object
         """
         axis = self._get_axis_number(axis)
-        indices = nanops.nanargmin(self.values, axis=axis, skipna=skipna)
+        if keep == "last":
+            if axis == 0:
+                indices = nanops.nanargmin(self.values[::-1], axis=axis, skipna=skipna)
+            else:
+                indices = nanops.nanargmin(self[self.columns[::-1]].values, axis=axis, skipna=skipna)
+            indices = (self.shape[axis] - 1) - indices
+        else:
+            indices = nanops.nanargmin(self.values, axis=axis, skipna=skipna)
 
         # indices will always be np.ndarray since axis is not None and
         # values is a 2d array for DataFrame
         # error: Item "int" of "Union[int, Any]" has no attribute "__iter__"
-        assert isinstance(indices, np.ndarray)  # for mypy
+        assert isinstance(indices, np.ndarray)  # for mypyfffff
 
         index = self._get_axis(axis)
-        result = [index[i] if i >= 0 else np.nan for i in indices]
+        result = []
+        if keep == "all":
+            if axis == 0:
+                for i in range(0,self.shape[1]):
+                    result.append(self[self.iloc[:,i]==self.values[indices[i], i]].index.values)
+            else:
+                for i in range(0,self.shape[0]):
+                    result.append((self.iloc[i,:]==self.values[i, indices[i]])[self.iloc[i,:]==self.values[i, indices[i]]].index.values)
+        else:
+            result = [index[i] if i >= 0 else np.nan for i in indices]
         return self._constructor_sliced(result, index=self._get_agg_axis(axis))
 
-    def idxmax(self, axis=0, skipna=True) -> Series:
+    def idxmax(self, axis=0, skipna=True, keep="first") -> Series:
         """
         Return index of first occurrence of maximum over requested axis.
 
@@ -8780,6 +8802,12 @@ NaN 12.3   33.0
         skipna : bool, default True
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA.
+        keep : {'first', 'last', 'all'}, default 'first'
+            Where there are duplicate values:
+
+            - `first` : prioritize the first occurrence
+            - `last` : prioritize the last occurrence
+            - ``all`` : do not drop any duplicates
 
         Returns
         -------
@@ -8829,7 +8857,14 @@ NaN 12.3   33.0
         dtype: object
         """
         axis = self._get_axis_number(axis)
-        indices = nanops.nanargmax(self.values, axis=axis, skipna=skipna)
+        if keep == "last":
+            if axis == 0:
+                indices = nanops.nanargmax(self.values[::-1], axis=axis, skipna=skipna)
+            else:
+                indices = nanops.nanargmax(self[self.columns[::-1]].values, axis=axis, skipna=skipna)
+            indices = (self.shape[axis] - 1) - indices
+        else:
+            indices = nanops.nanargmax(self.values, axis=axis, skipna=skipna)
 
         # indices will always be np.ndarray since axis is not None and
         # values is a 2d array for DataFrame
@@ -8837,7 +8872,16 @@ NaN 12.3   33.0
         assert isinstance(indices, np.ndarray)  # for mypy
 
         index = self._get_axis(axis)
-        result = [index[i] if i >= 0 else np.nan for i in indices]
+        result = []
+        if keep == "all":
+            if axis == 0:
+                for i in range(0,self.shape[1]):
+                    result.append(self[self.iloc[:,i]==self.values[indices[i], i]].index.values)
+            else:
+                for i in range(0,self.shape[0]):
+                    result.append((self.iloc[i,:]==self.values[i, indices[i]])[self.iloc[i,:]==self.values[i, indices[i]]].index.values)
+        else:
+            result = [index[i] if i >= 0 else np.nan for i in indices]
         return self._constructor_sliced(result, index=self._get_agg_axis(axis))
 
     def _get_agg_axis(self, axis_num: int) -> Index:
