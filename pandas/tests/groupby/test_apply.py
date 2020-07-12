@@ -1048,9 +1048,9 @@ def test_groupby_apply_group_keys_warns():
 
 @pytest.mark.xfail
 def test_resample_with_only_nat(self):
+    # https://github.com/pandas-dev/pandas/issues/35251
     # BinGrouper and Grouper aren't consistent with NA key handling.
     # Causes a false positive here.
-    # https://github.com/pandas-dev/pandas/pull/34998#issuecomment-652497050
     pi = pd.PeriodIndex([pd.NaT] * 3, freq="S")
     frame = DataFrame([2, 3, 5], index=pi)
 
