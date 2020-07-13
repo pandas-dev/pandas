@@ -1,5 +1,5 @@
 from collections.abc import Iterable
-from typing import Any, Sequence, Tuple, Type, Union
+from typing import Any, Optional, Sequence, Tuple, Type, Union
 
 import numpy as np
 import pyarrow as pa
@@ -20,6 +20,14 @@ from pandas.api.types import (
 )
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.indexers import check_array_indexer
+
+
+def _as_pandas_scalar(arrow_scalar: pa.Scalar) -> Optional[str]:
+    scalar = arrow_scalar.as_py()
+    if scalar is None:
+        return libmissing.NA
+    else:
+        return scalar
 
 
 @register_extension_dtype
@@ -259,13 +267,13 @@ class ArrowStringArray(ExtensionArray):
             if item < 0:
                 item += len(self)
             if item >= len(self):
-                return None
+                raise IndexError("index out of bounds")
 
         value = self.data[item]
         if isinstance(value, pa.ChunkedArray):
             return type(self)(value)
         else:
-            return value.as_py()
+            return _as_pandas_scalar(value)
 
     def fillna(self, value=None, method=None, limit=None):
         raise NotImplementedError("fillna")
@@ -281,12 +289,7 @@ class ArrowStringArray(ExtensionArray):
         """
         The number of bytes needed to store this object in memory.
         """
-        size = 0
-        for chunk in self.data.chunks:
-            for buf in chunk.buffers():
-                if buf is not None:
-                    size += buf.size
-        return size
+        return self.data.nbytes
 
     def isna(self) -> np.ndarray:
         """
@@ -294,7 +297,8 @@ class ArrowStringArray(ExtensionArray):
 
         This should return a 1-D array the same length as 'self'.
         """
-        return self.data.is_null()
+        # TODO: Implement .to_numpy for ChunkedArray
+        return self.data.is_null().to_pandas().values
 
     def copy(self) -> ExtensionArray:
         """
