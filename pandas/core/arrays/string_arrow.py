@@ -1,5 +1,7 @@
-from typing import TYPE_CHECKING, Tuple, Type, Union
+from collections.abc import Iterable
+from typing import Tuple, Type, Union
 
+import numpy as np
 import pyarrow as pa
 
 from pandas._libs import missing as libmissing
@@ -7,10 +9,10 @@ from pandas._libs import missing as libmissing
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
+import pandas as pd
+from pandas.api.types import is_integer
 from pandas.core.arrays.base import ExtensionArray
-
-if TYPE_CHECKING:
-    import numpy as np
+from pandas.core.indexers import check_array_indexer
 
 
 @register_extension_dtype
@@ -150,7 +152,9 @@ class ArrowStringArray(ExtensionArray):
 
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
-        return cls(pa.array(scalars, type=pa.string()))
+        # TODO(ARROW-9407): Accept pd.NA in Arrow
+        scalars_corrected = [None if pd.isna(x) else x for x in scalars]
+        return cls(pa.array(scalars_corrected, type=pa.string()))
 
     @property
     def dtype(self) -> ArrowStringDtype:
@@ -209,6 +213,60 @@ class ArrowStringArray(ExtensionArray):
     #         arr[mask] = -1
     #         return arr, -1
 
+    def __getitem__(self, item):
+        # type (Any) -> Any
+        """Select a subset of self.
+
+        Parameters
+        ----------
+        item : int, slice, or ndarray
+            * int: The position in 'self' to get.
+            * slice: A slice object, where 'start', 'stop', and 'step' are
+              integers or None
+            * ndarray: A 1-d boolean NumPy ndarray the same length as 'self'
+
+        Returns
+        -------
+        item : scalar or ExtensionArray
+
+        Notes
+        -----
+        For scalar ``item``, return a scalar value suitable for the array's
+        type. This should be an instance of ``self.dtype.type``.
+        For slice ``key``, return an instance of ``ExtensionArray``, even
+        if the slice is length 0 or 1.
+        For a boolean mask, return an instance of ``ExtensionArray``, filtered
+        to the values where ``item`` is True.
+        """
+        item = check_array_indexer(self, item)
+
+        if isinstance(item, Iterable):
+            raise NotImplementedError("Iterable")
+            # if not is_array_like(item):
+            #     item = np.array(item)
+            # if is_integer_dtype(item) or (len(item) == 0):
+            #     return self.take(item)
+            # elif is_bool_dtype(item):
+            #     indices = np.array(item)
+            #     indices = np.argwhere(indices).flatten()
+            #     return self.take(indices)
+            # else:
+            #     raise IndexError(
+            #         """Only integers, slices and integer or
+            #            boolean arrays are valid indices."""
+            #     )
+        elif is_integer(item):
+            if item < 0:
+                item += len(self)
+            if item >= len(self):
+                return None
+
+        value = self.data[item]
+        if isinstance(value, pa.ChunkedArray):
+            return type(self)(value)
+        else:
+            return value.as_py()
+
     def __setitem__(self, key, value):
         raise NotImplementedError("__setitem__")
 
@@ -252,3 +310,11 @@ class ArrowStringArray(ExtensionArray):
                 if buf is not None:
                     size += buf.size
         return size
+
+    def isna(self) -> np.ndarray:
+        """
+        Boolean NumPy array indicating if each value is missing.
+
+        This should return a 1-D array the same length as 'self'.
+        """
+        return self.data.is_null()

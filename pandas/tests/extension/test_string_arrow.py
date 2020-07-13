@@ -25,7 +25,6 @@ def data():
 @pytest.fixture
 def data_missing():
     """Length 2 array with [NA, Valid]"""
-    # TODO(ARROW-9407): Accept pd.NA in Arrow
     return ArrowStringArray._from_sequence([pd.NA, "A"])
 
 
@@ -36,19 +35,16 @@ def data_for_sorting():
 
 @pytest.fixture
 def data_missing_for_sorting():
-    # TODO(ARROW-9407): Accept pd.NA in Arrow
     return ArrowStringArray._from_sequence(["B", pd.NA, "A"])
 
 
 @pytest.fixture
 def na_value():
-    # TODO(ARROW-9407): Accept pd.NA in Arrow
     return pd.NA
 
 
 @pytest.fixture
 def data_for_grouping():
-    # TODO(ARROW-9407): Accept pd.NA in Arrow
     return ArrowStringArray._from_sequence(["B", "B", pd.NA, pd.NA, "A", "A", "B", "C"])
 
 
