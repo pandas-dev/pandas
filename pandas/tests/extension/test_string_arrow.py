@@ -53,7 +53,9 @@ class TestDtype(base.BaseDtypeTests):
 
 
 class TestInterface(base.BaseInterfaceTests):
-    pass
+    @pytest.mark.xfail(reason="Fails until implement, remove before merge")
+    def test_view(self, data):
+        base.BaseInterfaceTests.test_view(self, data)
 
 
 class TestConstructors(base.BaseConstructorsTests):
@@ -64,12 +66,12 @@ class TestConstructors(base.BaseConstructorsTests):
 #     pass
 
 
-# class TestGetitem(base.BaseGetitemTests):
-#     pass
+class TestGetitem(base.BaseGetitemTests):
+    pass
 
 
-# class TestSetitem(base.BaseSetitemTests):
-#     pass
+class TestSetitem(base.BaseSetitemTests):
+    pass
 
 
 # class TestMissing(base.BaseMissingTests):

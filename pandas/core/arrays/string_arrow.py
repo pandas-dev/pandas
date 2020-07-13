@@ -1,16 +1,23 @@
 from collections.abc import Iterable
-from typing import Tuple, Type, Union
+from typing import Any, Sequence, Tuple, Type, Union
 
 import numpy as np
 import pyarrow as pa
 
 from pandas._libs import missing as libmissing
+from pandas._typing import ArrayLike
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
 import pandas as pd
-from pandas.api.types import is_array_like, is_bool_dtype, is_integer, is_integer_dtype
+from pandas.api.types import (
+    is_array_like,
+    is_bool_dtype,
+    is_integer,
+    is_integer_dtype,
+    is_scalar,
+)
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.indexers import check_array_indexer
 
@@ -260,9 +267,6 @@ class ArrowStringArray(ExtensionArray):
         else:
             return value.as_py()
 
-    def __setitem__(self, key, value):
-        raise NotImplementedError("__setitem__")
-
     def fillna(self, value=None, method=None, limit=None):
         raise NotImplementedError("fillna")
 
@@ -292,8 +296,7 @@ class ArrowStringArray(ExtensionArray):
         """
         return self.data.is_null()
 
-    def copy(self):
-        # type: () -> ExtensionArray
+    def copy(self) -> ExtensionArray:
         """
         Return a copy of the array.
 
@@ -307,3 +310,155 @@ class ArrowStringArray(ExtensionArray):
         ExtensionArray
         """
         return type(self)(self.data)
+
+    def __eq__(self, other: Any) -> ArrayLike:
+        """
+        Return for `self == other` (element-wise equality).
+        """
+        if isinstance(other, (pd.Series, pd.DataFrame, pd.Index)):
+            return NotImplemented
+        if isinstance(other, ArrowStringArray):
+            result = self.data == other.data
+        elif is_scalar(other):
+            result = self.data == pa.scalar(other)
+        else:
+            raise NotImplementedError("Neither scalar nor ArrowStringArray")
+
+        # TODO: Add a .to_numpy() to ChunkedArray
+        return pd.array(result.to_pandas().values)
+
+    def __setitem__(self, key, value):
+        # type: (Union[int, np.ndarray], Any) -> None
+        """Set one or more values inplace.
+
+        Parameters
+        ----------
+        key : int, ndarray, or slice
+            When called from, e.g. ``Series.__setitem__``, ``key`` will be
+            one of
+
+            * scalar int
+            * ndarray of integers.
+            * boolean ndarray
+            * slice object
+
+        value : ExtensionDtype.type, Sequence[ExtensionDtype.type], or object
+            value or values to be set of ``key``.
+
+        Returns
+        -------
+        None
+        """
+        key = check_array_indexer(self, key)
+
+        if is_integer(key):
+            if not pd.api.types.is_scalar(value):
+                raise ValueError("Must pass scalars with scalar indexer")
+            elif pd.isna(value):
+                value = None
+            elif not isinstance(value, str):
+                raise ValueError("Scalar must be NA or str")
+
+            # Slice data and insert inbetween
+            new_data = [
+                *self.data[0:key].chunks,
+                pa.array([value], type=pa.string()),
+                *self.data[(key + 1) :].chunks,
+            ]
+            self.data = pa.chunked_array(new_data)
+        else:
+            # Convert to integer indices and iteratively assign.
+            # TODO: Make a faster variant of this in Arrow upstream.
+            #       This is probably extremely slow.
+
+            # Convert all possible input key types to an array of integers
+            if is_bool_dtype(key):
+                key_array = np.argwhere(key).flatten()
+            elif isinstance(key, slice):
+                key_array = np.array(range(len(self))[key])
+            else:
+                key_array = np.asanyarray(key)
+
+            if pd.api.types.is_scalar(value):
+                value = np.broadcast_to(value, len(key_array))
+            else:
+                value = np.asarray(value)
+
+            if len(key_array) != len(value):
+                raise ValueError("Length of indexer and values mismatch")
+
+            for k, v in zip(key_array, value):
+                self[k] = v
+
+    def take(
+        self, indices: Sequence[int], allow_fill: bool = False, fill_value: Any = None
+    ) -> "ExtensionArray":
+        """
+        Take elements from an array.
+
+        Parameters
+        ----------
+        indices : sequence of int
+            Indices to be taken.
+        allow_fill : bool, default False
+            How to handle negative values in `indices`.
+
+            * False: negative values in `indices` indicate positional indices
+              from the right (the default). This is similar to
+              :func:`numpy.take`.
+
+            * True: negative values in `indices` indicate
+              missing values. These values are set to `fill_value`. Any other
+              other negative values raise a ``ValueError``.
+
+        fill_value : any, optional
+            Fill value to use for NA-indices when `allow_fill` is True.
+            This may be ``None``, in which case the default NA value for
+            the type, ``self.dtype.na_value``, is used.
+
+            For many ExtensionArrays, there will be two representations of
+            `fill_value`: a user-facing "boxed" scalar, and a low-level
+            physical NA value. `fill_value` should be the user-facing version,
+            and the implementation should handle translating that to the
+            physical version for processing the take if necessary.
+
+        Returns
+        -------
+        ExtensionArray
+
+        Raises
+        ------
+        IndexError
+            When the indices are out of bounds for the array.
+        ValueError
+            When `indices` contains negative values other than ``-1``
+            and `allow_fill` is True.
+
+        See Also
+        --------
+        numpy.take
+        api.extensions.take
+
+        Notes
+        -----
+        ExtensionArray.take is called by ``Series.__getitem__``, ``.loc``,
+        ``iloc``, when `indices` is a sequence of values. Additionally,
+        it's called by :meth:`Series.reindex`, or any other method
+        that causes realignment, with a `fill_value`.
+        """
+        # TODO: Remove once we got rid of the (indices < 0) check
+        if not is_array_like(indices):
+            indices_array = np.asanyarray(indices)
+        else:
+            indices_array = indices
+
+        if allow_fill:
+            if (indices_array < 0).any():
+                raise NotImplementedError("allow_fill=True")
+            else:
+                # Nothing to fill
+                return type(self)(self.data.take(indices))
+        else:  # allow_fill=False
+            if (indices_array < 0).any():
+                raise NotImplementedError("negative indices")
+            return type(self)(self.data.take(indices))
