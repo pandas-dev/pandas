@@ -1117,5 +1117,7 @@ def test_setitem_EA_column_update():
 
     # overwrite column with new array
     df["EA"] = pd.array([1, 2, 3], dtype="Int64")
+    # ensure original array was not modified
     assert original_arr is not df.EA.array
-    tm.assert_extension_array_equal(original_arr, pd.array([1, 2, None], dtype="Int64"))
+    expected = pd.array([1, 2, None], dtype="Int64")
+    tm.assert_extension_array_equal(original_arr, expected)

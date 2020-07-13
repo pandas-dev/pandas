@@ -709,7 +709,7 @@ class TestiLoc2:
         cat = pd.Categorical(["A", "B", "C"])
         df = pd.DataFrame({1: cat, 2: [1, 2, 3]})
 
-        df["cat"] = cat[::-1]
+        df[1] = cat[::-1]
 
         expected = pd.Categorical(["A", "B", "C"])
         tm.assert_categorical_equal(cat, expected)
