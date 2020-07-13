@@ -1100,3 +1100,22 @@ def test_long_text_missing_labels_inside_loc_error_message_limited():
     error_message_regex = "long_missing_label_text_0.*\\\\n.*long_missing_label_text_1"
     with pytest.raises(KeyError, match=error_message_regex):
         s.loc[["a", "c"] + missing_labels]
+
+
+def test_setitem_EA_column_update():
+    # https://github.com/pandas-dev/pandas/issues/33457
+
+    df = pd.DataFrame(
+        {
+            "int": [1, 2, 3],
+            "int2": [3, 4, 5],
+            "float": [0.1, 0.2, 0.3],
+            "EA": pd.array([1, 2, None], dtype="Int64"),
+        }
+    )
+    original_arr = df.EA.array
+
+    # overwrite column with new array
+    df["EA"] = pd.array([1, 2, 3], dtype="Int64")
+    assert original_arr is not df.EA.array
+    tm.assert_extension_array_equal(original_arr, pd.array([1, 2, None], dtype="Int64"))

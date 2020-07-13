@@ -705,6 +705,15 @@ class TestiLoc2:
         expected = pd.Categorical(["C", "B", "A"])
         tm.assert_categorical_equal(cat, expected)
 
+        # __setitem__ under the other hand does not work in-place
+        cat = pd.Categorical(["A", "B", "C"])
+        df = pd.DataFrame({1: cat, 2: [1, 2, 3]})
+
+        df["cat"] = cat[::-1]
+
+        expected = pd.Categorical(["A", "B", "C"])
+        tm.assert_categorical_equal(cat, expected)
+
     def test_iloc_with_boolean_operation(self):
         # GH 20627
         result = DataFrame([[0, 1], [2, 3], [4, 5], [6, np.nan]])

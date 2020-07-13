@@ -1684,15 +1684,21 @@ class _iLocIndexer(_LocationIndexer):
                     com.is_null_slice(idx) or com.is_full_slice(idx, len(self.obj))
                     for idx in pi
                 ):
-                    ser = v
+                    if ser._mgr.any_extension_types:
+                        # avoid `iset` for extension arrays, as this doesn't
+                        # change the underlying values inplace (GH33457)
+                        ser._mgr = ser._mgr.setitem(indexer=pi, value=v)
+                    else:
+                        ser = v
+                        self.obj._iset_item(loc, ser)
                 else:
                     # set the item, possibly having a dtype change
                     ser = ser.copy()
                     ser._mgr = ser._mgr.setitem(indexer=pi, value=v)
                     ser._maybe_update_cacher(clear=True)
 
-                # reset the sliced object if unique
-                self.obj._iset_item(loc, ser)
+                    # reset the sliced object if unique
+                    self.obj._iset_item(loc, ser)
 
             # we need an iterable, with a ndim of at least 1
             # eg. don't pass through np.array(0)
