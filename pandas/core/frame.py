@@ -8714,6 +8714,8 @@ NaN 12.3   33.0
             - `last` : prioritize the last occurrence
             - ``all`` : do not drop any duplicates
 
+            .. versionadded:: 1.1.0
+
         Returns
         -------
         Series
@@ -8830,6 +8832,8 @@ NaN 12.3   33.0
             - `first` : prioritize the first occurrence
             - `last` : prioritize the last occurrence
             - ``all`` : do not drop any duplicates
+
+            .. versionadded:: 1.1.0
 
         Returns
         -------

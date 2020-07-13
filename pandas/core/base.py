@@ -919,6 +919,8 @@ class IndexOpsMixin:
             - `first` : prioritize the first occurrence
             - `last` : prioritize the last occurrence
             - ``all`` : do not drop any duplicates
+
+            .. versionadded:: 1.1.0
         *args, **kwargs
             Additional arguments and keywords for compatibility with NumPy.
 

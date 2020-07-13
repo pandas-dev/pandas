@@ -2041,6 +2041,8 @@ Name: Max Speed, dtype: float64
             - `first` : prioritize the first occurrence
             - `last` : prioritize the last occurrence
             - ``all`` : do not drop any duplicates
+
+            .. versionadded:: 1.1.0
         *args, **kwargs
             Additional arguments and keywords have no effect but might be
             accepted for compatibility with NumPy.
@@ -2130,6 +2132,8 @@ Name: Max Speed, dtype: float64
             - `first` : prioritize the first occurrence
             - `last` : prioritize the last occurrence
             - ``all`` : do not drop any duplicates
+
+            .. versionadded:: 1.1.0
         *args, **kwargs
             Additional arguments and keywords have no effect but might be
             accepted for compatibility with NumPy.
