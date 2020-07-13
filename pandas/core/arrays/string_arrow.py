@@ -10,7 +10,7 @@ from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
 import pandas as pd
-from pandas.api.types import is_integer
+from pandas.api.types import is_array_like, is_bool_dtype, is_integer, is_integer_dtype
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.indexers import check_array_indexer
 
@@ -241,20 +241,19 @@ class ArrowStringArray(ExtensionArray):
         item = check_array_indexer(self, item)
 
         if isinstance(item, Iterable):
-            raise NotImplementedError("Iterable")
-            # if not is_array_like(item):
-            #     item = np.array(item)
-            # if is_integer_dtype(item) or (len(item) == 0):
-            #     return self.take(item)
-            # elif is_bool_dtype(item):
-            #     indices = np.array(item)
-            #     indices = np.argwhere(indices).flatten()
-            #     return self.take(indices)
-            # else:
-            #     raise IndexError(
-            #         """Only integers, slices and integer or
-            #            boolean arrays are valid indices."""
-            #     )
+            if not is_array_like(item):
+                item = np.array(item)
+            if len(item) == 0:
+                return type(self)(pa.chunked_array([], type=pa.string()))
+            elif is_integer_dtype(item):
+                return self.take(item)
+            elif is_bool_dtype(item):
+                return type(self)(self.data.filter(item))
+            else:
+                raise IndexError(
+                    "Only integers, slices and integer or "
+                    "boolean arrays are valid indices."
+                )
         elif is_integer(item):
             if item < 0:
                 item += len(self)
