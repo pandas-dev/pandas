@@ -8789,8 +8789,10 @@ NaN 12.3   33.0
                     self[self.columns[::-1]].values, axis=axis, skipna=skipna
                 )
             indices = (self.shape[axis] - 1) - indices
-        else:
+        elif keep == "first" or keep == "all":
             indices = nanops.nanargmin(self.values, axis=axis, skipna=skipna)
+        else:
+            raise ValueError("`keep` must take one of the following values {'first','last','all'}")
 
         # indices will always be np.ndarray since axis is not None and
         # values is a 2d array for DataFrame
@@ -8908,8 +8910,10 @@ NaN 12.3   33.0
                     self[self.columns[::-1]].values, axis=axis, skipna=skipna
                 )
             indices = (self.shape[axis] - 1) - indices
-        else:
+        elif keep == "first" or keep == "all":
             indices = nanops.nanargmax(self.values, axis=axis, skipna=skipna)
+        else:
+            raise ValueError("`keep` must take one of the following values {'first','last','all'}")
 
         # indices will always be np.ndarray since axis is not None and
         # values is a 2d array for DataFrame

@@ -913,7 +913,7 @@ class IndexOpsMixin:
             Dummy argument for consistency with Series.
         skipna : bool, default True
             Exclude NA/null values when showing the result.
-        keep : ('first', 'last', 'all'), default 'first'
+        keep : {{'first', 'last', 'all'}}, default 'first'
             Where there are duplicate values:
 
             - `first` : prioritize the first occurrence
@@ -982,8 +982,10 @@ class IndexOpsMixin:
             return temp[
                 temp == temp[nanops.nanargmax(temp._values, skipna=skipna)]
             ].index.values
-        else:
+        elif keep == "first":
             return nanops.nanargmax(self._values, skipna=skipna)
+        else:
+            raise ValueError("`keep` must take one of the following values {'first','last','all'}")
 
     def min(self, axis=None, skipna=True, *args, **kwargs):
         """
@@ -1040,8 +1042,10 @@ class IndexOpsMixin:
             return temp[
                 temp == temp[nanops.nanargmin(temp._values, skipna=skipna)]
             ].index.values
-        else:
+        elif keep == "first":
             return nanops.nanargmin(self._values, skipna=skipna)
+        else:
+            raise ValueError("`keep` must take one of the following values {'first','last','all'}")
 
     def tolist(self):
         """
