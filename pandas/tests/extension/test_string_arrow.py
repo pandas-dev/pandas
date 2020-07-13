@@ -56,8 +56,8 @@ class TestInterface(base.BaseInterfaceTests):
     pass
 
 
-# class TestConstructors(base.BaseConstructorsTests):
-#     pass
+class TestConstructors(base.BaseConstructorsTests):
+    pass
 
 
 #  class TestReshaping(base.BaseReshapingTests):
