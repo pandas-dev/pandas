@@ -336,10 +336,12 @@ Other enhancements
 
 .. ---------------------------------------------------------------------------
 
-.. _whatsnew_110.api:
+.. _whatsnew_110.notable_bug_fixes:
 
-Backwards incompatible API changes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Notable bug fixes
+~~~~~~~~~~~~~~~~~
+
+These are bug fixes that might have notable behavior changes.
 
 ``MultiIndex.get_indexer`` interprets `method` argument differently
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -403,7 +405,7 @@ And the differences in reindexing ``df`` with ``mi_2`` and using ``method='pad'`
 
 -
 
-.. _whatsnew_110.api_breaking.indexing_raises_key_errors:
+.. _whatsnew_110.notable_bug_fixes.indexing_raises_key_errors:
 
 Failed Label-Based Lookups Always Raise KeyError
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -473,7 +475,7 @@ key and type of :class:`Index`.  These now consistently raise ``KeyError`` (:iss
     ...
     KeyError: Timestamp('1970-01-01 00:00:00')
 
-.. _whatsnew_110.api_breaking.indexing_int_multiindex_raises_key_errors:
+.. _whatsnew_110.notable_bug_fixes.indexing_int_multiindex_raises_key_errors:
 
 Failed Integer Lookups on MultiIndex Raise KeyError
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -531,7 +533,7 @@ those integer keys is not present in the first level of the index (:issue:`33539
 
 .. ---------------------------------------------------------------------------
 
-.. _whatsnew_110.api_breaking.assignment_to_multiple_columns:
+.. _whatsnew_110.notable_bug_fixes.assignment_to_multiple_columns:
 
 Assignment to multiple columns of a DataFrame when some columns do not exist
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -562,7 +564,7 @@ Assignment to multiple columns of a :class:`DataFrame` when some of the columns 
    df[['a', 'c']] = 1
    df
 
-.. _whatsnew_110.api_breaking.groupby_consistency:
+.. _whatsnew_110.notable_bug_fixes.groupby_consistency:
 
 Consistency across groupby reductions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -628,7 +630,7 @@ The method :meth:`core.DataFrameGroupBy.size` would previously ignore ``as_index
 
    df.groupby("a", as_index=False).size()
 
-.. _whatsnew_110.api_breaking.apply_applymap_first_once:
+.. _whatsnew_110.notable_bug_fixes.apply_applymap_first_once:
 
 apply and applymap on ``DataFrame`` evaluates first row/column only once
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
