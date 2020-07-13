@@ -328,7 +328,7 @@ class ArrowStringArray(ExtensionArray):
         else:
             raise NotImplementedError("Neither scalar nor ArrowStringArray")
 
-        # TODO: Add a .to_numpy() to ChunkedArray
+        # TODO(ARROW-9429): Add a .to_numpy() to ChunkedArray
         return pd.array(result.to_pandas().values)
 
     def __setitem__(self, key, value):
@@ -377,10 +377,12 @@ class ArrowStringArray(ExtensionArray):
 
             # Convert all possible input key types to an array of integers
             if is_bool_dtype(key):
+                # TODO(ARROW-9430): Directly support setitem(booleans)
                 key_array = np.argwhere(key).flatten()
             elif isinstance(key, slice):
                 key_array = np.array(range(len(self))[key])
             else:
+                # TODO(ARROW-9431): Directly support setitem(integers)
                 key_array = np.asanyarray(key)
 
             if pd.api.types.is_scalar(value):
@@ -458,11 +460,13 @@ class ArrowStringArray(ExtensionArray):
 
         if allow_fill:
             if (indices_array < 0).any():
+                # TODO(ARROW-9433): Treat negative indices as NULL
                 raise NotImplementedError("allow_fill=True")
             else:
                 # Nothing to fill
                 return type(self)(self.data.take(indices))
         else:  # allow_fill=False
             if (indices_array < 0).any():
+                # TODO(ARROW-9432): Treat negative indices as indices from the right.
                 raise NotImplementedError("negative indices")
             return type(self)(self.data.take(indices))
