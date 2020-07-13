@@ -1672,7 +1672,9 @@ def test_categorical_transform():
 
 
 @pytest.mark.parametrize("func", ["first", "last"])
-def test_groupby_first_on_categorical_col_grouped_on_2_categoricals(func: str):
+def test_groupby_first_on_categorical_col_grouped_on_2_categoricals(
+    func: str, observed: bool
+):
     # GH 34951
 
     cat = pd.Categorical([0, 0, 1, 1])
@@ -1681,15 +1683,22 @@ def test_groupby_first_on_categorical_col_grouped_on_2_categoricals(func: str):
 
     idx = pd.Categorical([0, 1])
     idx = pd.MultiIndex.from_product([idx, idx], names=["a", "b"])
-    expected = {
+    expected_dict = {
         "first": pd.Series([0, np.NaN, np.NaN, 1], idx, name="c"),
         "last": pd.Series([1, np.NaN, np.NaN, 0], idx, name="c"),
     }
 
-    df_grp = df.groupby(["a", "b"])
-    df_res = getattr(df_grp, func)()
-    tm.assert_frame_equal(df_res, expected[func].to_frame())
+    expected = expected_dict[func]
+    if observed:
+        expected = expected.dropna().astype(np.int64)
 
-    srs_grp = df_grp["c"]
-    srs_res = getattr(srs_grp, func)()
-    tm.assert_series_equal(srs_res, expected[func])
+    # Check SeriesGroupBy
+    srs_grp = df.groupby(["a", "b"], observed=observed)["c"]
+    result = getattr(srs_grp, func)()
+    tm.assert_series_equal(result, expected)
+
+    # Check DataFrameGroupBy
+    df_grp = df.groupby(["a", "b"], observed=observed)
+    result = getattr(df_grp, func)()
+    expected = expected.to_frame()
+    tm.assert_frame_equal(result, expected)
