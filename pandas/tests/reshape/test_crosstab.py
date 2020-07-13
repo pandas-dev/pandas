@@ -533,11 +533,11 @@ class TestCrosstab:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_crosstab_dup_index_names(self):
-        # We test that duplicated column names do not produce issues
+    def test_crosstab_duplicated_row_and_col_names(self):
+        # We test that duplicated row or column names do not produce issues
         # GH Issue: #22529, GH#13279
 
-        # Duplicate name shared between rows and columns
+        # Same name in both rows and columns
         s1 = Series(range(3), name="foo")
         s2 = s1 + 1
         expected = crosstab(s1, s2.rename("bar")).rename_axis(
