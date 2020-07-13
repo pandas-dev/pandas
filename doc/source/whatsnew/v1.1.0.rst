@@ -332,7 +332,8 @@ Other enhancements
 - :meth:`~Series.explode` now accepts ``ignore_index`` to reset the index, similarly to :meth:`pd.concat` or :meth:`DataFrame.sort_values` (:issue:`34932`).
 - :meth:`read_csv` now accepts string values like "0", "0.0", "1", "1.0" as convertible to the nullable boolean dtype (:issue:`34859`)
 - :class:`pandas.core.window.ExponentialMovingWindow` now supports a ``times`` argument that allows ``mean`` to be calculated with observations spaced by the timestamps in ``times`` (:issue:`34839`)
-- :meth:`Series.plot` now supports asymmetric error bars. Previously, if :meth:`Series.plot` received a "2xN" array with error values for `yerr` and/or `xerr`, the left/lower values (first row) were mirrored, while the right/upper values (second row) were ignored. Now, the first row represents the left/lower error values and the second row the right/upper error values. (:issue:`9536`)
+- :meth:`DataFrame.agg` and :meth:`Series.agg` now accept named aggregation for renaming the output columns/indexes. (:issue:`26513`)
+- :meth:`DataFrame.agg` and :meth:`Series.agg` now accept named aggregation for renaming the output columns/indexes. (:issue:`26513`)
 
 .. ---------------------------------------------------------------------------
 
@@ -1019,6 +1020,7 @@ MultiIndex
 
 I/O
 ^^^
+- Bug in print-out when ``display.precision`` is zero. (:issue:`20359`)
 - Bug in :meth:`read_json` where integer overflow was occurring when json contains big number strings. (:issue:`30320`)
 - `read_csv` will now raise a ``ValueError`` when the arguments `header` and `prefix` both are not `None`. (:issue:`27394`)
 - Bug in :meth:`DataFrame.to_json` was raising ``NotFoundError`` when ``path_or_buf`` was an S3 URI (:issue:`28375`)
@@ -1054,6 +1056,7 @@ I/O
 - Bug in :meth:`~HDFStore.create_table` now raises an error when `column` argument was not specified in `data_columns` on input (:issue:`28156`)
 - :meth:`read_json` now could read line-delimited json file from a file url while `lines` and `chunksize` are set.
 - Bug in :meth:`DataFrame.to_sql` when reading DataFrames with ``-np.inf`` entries with MySQL now has a more explicit ``ValueError`` (:issue:`34431`)
+- Bug in :meth:`read_excel` that was raising a ``TypeError`` when ``header=None`` and ``index_col`` given as list (:issue:`31783`)
 - Bug in "meth"`read_excel` where datetime values are used in the header in a `MultiIndex` (:issue:`34748`)
 
 Plotting
@@ -1088,6 +1091,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.groupby` lost index, when one of the ``agg`` keys referenced an empty list (:issue:`32580`)
 - Bug in :meth:`Rolling.apply` where ``center=True`` was ignored when ``engine='numba'`` was specified (:issue:`34784`)
 - Bug in :meth:`DataFrame.ewm.cov` was throwing ``AssertionError`` for :class:`MultiIndex` inputs (:issue:`34440`)
+- Bug in :meth:`core.groupby.DataFrameGroupBy.transform` when ``func='nunique'`` and columns are of type ``datetime64``, the result would also be of type ``datetime64`` instead of ``int64`` (:issue:`35109`)
 
 Reshaping
 ^^^^^^^^^
@@ -1144,6 +1148,7 @@ ExtensionArray
 - Fixed bug where :meth:`StringArray.memory_usage` was not implemented (:issue:`33963`)
 - Fixed bug where :meth:`DataFrameGroupBy` would ignore the ``min_count`` argument for aggregations on nullable boolean dtypes (:issue:`34051`)
 - Fixed bug that `DataFrame(columns=.., dtype='string')` would fail (:issue:`27953`, :issue:`33623`)
+- Bug where :class:`DataFrame` column set to scalar extension type was considered an object type rather than the extension type (:issue:`34832`)
 - Fixed bug in ``IntegerArray.astype`` to correctly copy the mask as well (:issue:`34931`).
 
 Other
