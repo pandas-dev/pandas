@@ -28,7 +28,7 @@ class TestDataFrameQuantile:
     def test_quantile_sparse(self, df, expected):
         # GH#17198
         # GH#24600
-        result = df.quantile(0.5)
+        result = df.quantile()
 
         tm.assert_series_equal(result, expected)
 
@@ -81,8 +81,10 @@ class TestDataFrameQuantile:
         ser = pd.Series(dti)
         df = pd.DataFrame(ser)
 
-        result = df.quantile(0.5)
-        expected = pd.Series([], index=[], name=0.5, dtype=np.float64)
+        result = df.quantile(numeric_only=False)
+        expected = pd.Series(
+            ["2016-01-02 00:00:00"], name=0.5, dtype="datetime64[ns, US/Pacific]"
+        )
 
         tm.assert_series_equal(result, expected)
 
