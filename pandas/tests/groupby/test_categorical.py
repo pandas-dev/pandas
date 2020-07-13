@@ -1669,3 +1669,53 @@ def test_categorical_transform():
     expected["status"] = expected["status"].astype(delivery_status_type)
 
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", ["first", "last"])
+def test_series_groupby_first_on_categorical_col_grouped_on_2_categoricals(
+    func: str, observed: bool
+):
+    # GH 34951
+    cat = pd.Categorical([0, 0, 1, 1])
+    val = [0, 1, 1, 0]
+    df = pd.DataFrame({"a": cat, "b": cat, "c": val})
+
+    idx = pd.Categorical([0, 1])
+    idx = pd.MultiIndex.from_product([idx, idx], names=["a", "b"])
+    expected_dict = {
+        "first": pd.Series([0, np.NaN, np.NaN, 1], idx, name="c"),
+        "last": pd.Series([1, np.NaN, np.NaN, 0], idx, name="c"),
+    }
+
+    expected = expected_dict[func]
+    if observed:
+        expected = expected.dropna().astype(np.int64)
+
+    srs_grp = df.groupby(["a", "b"], observed=observed)["c"]
+    result = getattr(srs_grp, func)()
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", ["first", "last"])
+def test_df_groupby_first_on_categorical_col_grouped_on_2_categoricals(
+    func: str, observed: bool
+):
+    # GH 34951
+    cat = pd.Categorical([0, 0, 1, 1])
+    val = [0, 1, 1, 0]
+    df = pd.DataFrame({"a": cat, "b": cat, "c": val})
+
+    idx = pd.Categorical([0, 1])
+    idx = pd.MultiIndex.from_product([idx, idx], names=["a", "b"])
+    expected_dict = {
+        "first": pd.Series([0, np.NaN, np.NaN, 1], idx, name="c"),
+        "last": pd.Series([1, np.NaN, np.NaN, 0], idx, name="c"),
+    }
+
+    expected = expected_dict[func].to_frame()
+    if observed:
+        expected = expected.dropna().astype(np.int64)
+
+    df_grp = df.groupby(["a", "b"], observed=observed)
+    result = getattr(df_grp, func)()
+    tm.assert_frame_equal(result, expected)

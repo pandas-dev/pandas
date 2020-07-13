@@ -1058,7 +1058,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     #  reductions; see GH#28949
                     obj = obj.iloc[:, 0]
 
-                s = get_groupby(obj, self.grouper)
+                # Create SeriesGroupBy with observed=True so that it does
+                # not try to add missing categories if grouping over multiple
+                # Categoricals. This will done by later self._reindex_output()
+                # Doing it here creates an error. See GH#34951
+                s = get_groupby(obj, self.grouper, observed=True)
                 try:
                     result = s.aggregate(lambda x: alt(x, axis=self.axis))
                 except TypeError:
