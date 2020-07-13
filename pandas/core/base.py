@@ -985,7 +985,9 @@ class IndexOpsMixin:
         elif keep == "first":
             return nanops.nanargmax(self._values, skipna=skipna)
         else:
-            raise ValueError("`keep` must take one of the following values {'first','last','all'}")
+            raise ValueError(
+                "`keep` must take one of the following values {'first','last','all'}"
+            )
 
     def min(self, axis=None, skipna=True, *args, **kwargs):
         """
@@ -1045,7 +1047,9 @@ class IndexOpsMixin:
         elif keep == "first":
             return nanops.nanargmin(self._values, skipna=skipna)
         else:
-            raise ValueError("`keep` must take one of the following values {'first','last','all'}")
+            raise ValueError(
+                "`keep` must take one of the following values {'first','last','all'}"
+            )
 
     def tolist(self):
         """

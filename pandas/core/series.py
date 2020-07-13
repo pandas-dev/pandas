@@ -2112,7 +2112,9 @@ Name: Max Speed, dtype: float64
         elif keep == "first" or keep == "last":
             return self.index[i]
         else:
-            raise ValueError("`keep` must take one of the following values {'first','last','all'}")
+            raise ValueError(
+                "`keep` must take one of the following values {'first','last','all'}"
+            )
 
     def idxmax(self, axis=0, skipna=True, keep="first", *args, **kwargs):
         """
@@ -2207,7 +2209,9 @@ Name: Max Speed, dtype: float64
         elif keep == "first" or keep == "last":
             return self.index[i]
         else:
-            raise ValueError("`keep` must take one of the following values {'first','last','all'}")
+            raise ValueError(
+                "`keep` must take one of the following values {'first','last','all'}"
+            )
 
     def round(self, decimals=0, *args, **kwargs) -> "Series":
         """
