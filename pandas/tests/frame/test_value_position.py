@@ -1,6 +1,6 @@
-import pytest
-
 import pandas as pd
+
+import pandas._testing as tm
 
 
 def test_idxmax():
@@ -16,11 +16,10 @@ def test_idxmax():
     assert all(
         df.idxmax(keep="last") == pd.Series(["F", "H", "G"], index=["a", "b", "c"])
     )
-    all_solution = pd.Series(
-        [["B", "F"], ["A", "H"], ["B", "G"]], index=["a", "b", "c"]
+    tm.assert_series_equal(
+        df.idxmax(keep="all"),
+        pd.Series([["B", "F"], ["A", "H"], ["B", "G"]], index=["a", "b", "c"]),
     )
-    for i in range(0, df.idxmax(keep="all").shape[0]):
-        assert all(df.idxmax(keep="all")[i] == all_solution[i])
     assert all(
         df.idxmax(keep="first") == pd.Series(["B", "A", "B"], index=["a", "b", "c"])
     )
