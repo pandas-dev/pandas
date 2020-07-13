@@ -18,9 +18,9 @@ from pandas.core.dtypes.common import is_integer_dtype
 import pandas as pd
 from pandas import (
     Categorical,
+    CategoricalIndex,
     DataFrame,
     Index,
-    CategoricalIndex,
     MultiIndex,
     RangeIndex,
     Series,
