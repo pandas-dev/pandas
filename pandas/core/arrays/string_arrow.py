@@ -207,12 +207,6 @@ class ArrowStringArray(ExtensionArray):
     def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
-    #     def _values_for_factorize(self):
-    #         arr = self._ndarray.copy()
-    #         mask = self.isna()
-    #         arr[mask] = -1
-    #         return arr, -1
-
     def __getitem__(self, item):
         # type (Any) -> Any
         """Select a subset of self.
@@ -272,31 +266,11 @@ class ArrowStringArray(ExtensionArray):
     def fillna(self, value=None, method=None, limit=None):
         raise NotImplementedError("fillna")
 
-    #     def astype(self, dtype, copy=True):
-    #         dtype = pandas_dtype(dtype)
-    #         if isinstance(dtype, StringDtype):
-    #             if copy:
-    #                 return self.copy()
-    #             return self
-    #         elif isinstance(dtype, _IntegerDtype):
-    #             arr = self._ndarray.copy()
-    #             mask = self.isna()
-    #             arr[mask] = 0
-    #             values = arr.astype(dtype.numpy_dtype)
-    #             return IntegerArray(values, mask, copy=False)
-
-    #         return super().astype(dtype, copy)
-
     def _reduce(self, name, skipna=True, **kwargs):
         if name in ["min", "max"]:
             return getattr(self, name)(skipna=skipna)
 
         raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
-
-    #     def value_counts(self, dropna=False):
-    #         from pandas import value_counts
-
-    #         return value_counts(self._ndarray, dropna=dropna).astype("Int64")
 
     @property
     def nbytes(self) -> int:
