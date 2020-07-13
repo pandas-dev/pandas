@@ -17,8 +17,6 @@ except ImportError:
     from pandas._libs.tslibs.period import dt64arr_to_periodarr
 
 
-
-
 class PeriodProperties:
 
     params = (
