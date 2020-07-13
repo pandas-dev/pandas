@@ -34,12 +34,15 @@ def test_multiindex_get_loc():  # GH7724, GH2646
                 right = df[mask].copy()
 
                 if i + 1 != len(key):  # partial key
-                    right.drop(cols[: i + 1], axis=1, inplace=True)
-                    right.set_index(cols[i + 1 : -1], inplace=True)
+                    return_value = right.drop(cols[: i + 1], axis=1, inplace=True)
+                    assert return_value is None
+                    return_value = right.set_index(cols[i + 1 : -1], inplace=True)
+                    assert return_value is None
                     tm.assert_frame_equal(mi.loc[key[: i + 1]], right)
 
                 else:  # full key
-                    right.set_index(cols[:-1], inplace=True)
+                    return_value = right.set_index(cols[:-1], inplace=True)
+                    assert return_value is None
                     if len(right) == 1:  # single hit
                         right = Series(
                             right["jolia"].values, name=right.index[0], index=["jolia"]
