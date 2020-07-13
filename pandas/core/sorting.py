@@ -319,6 +319,33 @@ def nargsort(
     return indexer
 
 
+def nargminmax(values, method: str):
+    """
+    Implementation of np.argmin/argmax but for ExtensionArray and which
+    handles missing values.
+
+    Parameters
+    ----------
+    values : ExtensionArray
+    method : {"argmax", "argmin"}
+
+    Returns
+    -------
+    int
+    """
+    assert method in {"argmax", "argmin"}
+    func = np.argmax if method == "argmax" else np.argmin
+
+    mask = np.asarray(isna(values))
+    values = values._values_for_argsort()
+
+    idx = np.arange(len(values))
+    non_nans = values[~mask]
+    non_nan_idx = idx[~mask]
+
+    return non_nan_idx[func(non_nans)]
+
+
 def ensure_key_mapped_multiindex(index, key: Callable, level=None):
     """
     Returns a new MultiIndex in which key has been applied
@@ -385,7 +412,7 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
     from pandas.core.indexes.api import Index
 
     if not key:
-        return values.copy()
+        return values
 
     if isinstance(values, ABCMultiIndex):
         return ensure_key_mapped_multiindex(values, key, level=levels)

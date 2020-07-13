@@ -7,7 +7,7 @@ from typing import Any, List, Optional, TypeVar, Union, cast
 import numpy as np
 
 from pandas._libs import NaT, Timedelta, iNaT, join as libjoin, lib
-from pandas._libs.tslibs import timezones
+from pandas._libs.tslibs import BaseOffset, Resolution, Tick, timezones
 from pandas._libs.tslibs.parsing import DateParseError
 from pandas._typing import Label
 from pandas.compat.numpy import function as nv
@@ -44,8 +44,6 @@ from pandas.core.ops import get_op_result_name
 from pandas.core.sorting import ensure_key_mapped
 from pandas.core.tools.timedeltas import to_timedelta
 
-from pandas.tseries.offsets import DateOffset, Tick
-
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
 _T = TypeVar("_T", bound="DatetimeIndexOpsMixin")
@@ -78,7 +76,7 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
 
 
 @inherit_names(
-    ["inferred_freq", "_isnan", "_resolution", "resolution"],
+    ["inferred_freq", "_isnan", "_resolution_obj", "resolution"],
     DatetimeLikeArrayMixin,
     cache=True,
 )
@@ -91,9 +89,9 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     """
 
     _data: Union[DatetimeArray, TimedeltaArray, PeriodArray]
-    freq: Optional[DateOffset]
+    freq: Optional[BaseOffset]
     freqstr: Optional[str]
-    _resolution: int
+    _resolution_obj: Resolution
     _bool_ops: List[str] = []
     _field_ops: List[str] = []
 
@@ -340,8 +338,10 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     # --------------------------------------------------------------------
     # Rendering Methods
 
-    def _format_with_header(self, header, na_rep="NaT", **kwargs):
-        return header + list(self._format_native_types(na_rep, **kwargs))
+    def _format_with_header(self, header, na_rep="NaT", date_format=None) -> List[str]:
+        return header + list(
+            self._format_native_types(na_rep=na_rep, date_format=date_format)
+        )
 
     @property
     def _formatter_func(self):
@@ -363,19 +363,23 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    def _validate_partial_date_slice(self, reso: str):
+    def _validate_partial_date_slice(self, reso: Resolution):
         raise NotImplementedError
 
-    def _parsed_string_to_bounds(self, reso: str, parsed: datetime):
+    def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
         raise NotImplementedError
 
     def _partial_date_slice(
-        self, reso: str, parsed: datetime, use_lhs: bool = True, use_rhs: bool = True
+        self,
+        reso: Resolution,
+        parsed: datetime,
+        use_lhs: bool = True,
+        use_rhs: bool = True,
     ):
         """
         Parameters
         ----------
-        reso : str
+        reso : Resolution
         parsed : datetime
         use_lhs : bool, default True
         use_rhs : bool, default True

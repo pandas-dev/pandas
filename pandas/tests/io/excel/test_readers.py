@@ -897,12 +897,6 @@ class TestReaders:
             with pytest.raises(TypeError, match=msg):
                 pd.read_excel("test1" + read_ext, header=arg)
 
-    def test_read_excel_chunksize(self, read_ext):
-        # GH 8011
-        msg = "chunksize keyword of read_excel is not implemented"
-        with pytest.raises(NotImplementedError, match=msg):
-            pd.read_excel("test1" + read_ext, chunksize=100)
-
     def test_read_excel_skiprows_list(self, read_ext):
         # GH 4903
         if pd.read_excel.keywords["engine"] == "pyxlsb":
@@ -973,6 +967,19 @@ class TestReaders:
             pd.read_excel("test1" + read_ext, "Sheet1", 0)
 
         pd.read_excel("test1" + read_ext)
+
+    def test_no_header_with_list_index_col(self, read_ext):
+        # GH 31783
+        file_name = "testmultiindex" + read_ext
+        data = [("B", "B"), ("key", "val"), (3, 4), (3, 4)]
+        idx = pd.MultiIndex.from_tuples(
+            [("A", "A"), ("key", "val"), (1, 2), (1, 2)], names=(0, 1)
+        )
+        expected = pd.DataFrame(data, index=idx, columns=(2, 3))
+        result = pd.read_excel(
+            file_name, sheet_name="index_col_none", index_col=[0, 1], header=None
+        )
+        tm.assert_frame_equal(expected, result)
 
 
 class TestExcelFileRead:
@@ -1047,17 +1054,6 @@ class TestExcelFileRead:
 
         expected = DataFrame(expected, columns=["Test"])
         tm.assert_frame_equal(parsed, expected)
-
-    @pytest.mark.parametrize("arg", ["sheet", "sheetname", "parse_cols"])
-    @td.check_file_leaks
-    def test_unexpected_kwargs_raises(self, read_ext, arg):
-        # gh-17964
-        kwarg = {arg: "Sheet1"}
-        msg = fr"unexpected keyword argument `{arg}`"
-
-        with pd.ExcelFile("test1" + read_ext) as excel:
-            with pytest.raises(TypeError, match=msg):
-                pd.read_excel(excel, **kwarg)
 
     def test_excel_table_sheet_by_index(self, read_ext, df_ref):
         # For some reason pd.read_excel has no attribute 'keywords' here.
@@ -1146,4 +1142,36 @@ class TestExcelFileRead:
 
         # should not produce a segmentation violation
         actual = pd.read_excel("high_surrogate.xlsx")
+        tm.assert_frame_equal(expected, actual)
+
+    @pytest.mark.parametrize("filename", ["df_empty.xlsx", "df_equals.xlsx"])
+    def test_header_with_index_col(self, engine, filename):
+        # GH 33476
+        idx = pd.Index(["Z"], name="I2")
+        cols = pd.MultiIndex.from_tuples(
+            [("A", "B"), ("A", "B.1")], names=["I11", "I12"]
+        )
+        expected = pd.DataFrame([[1, 3]], index=idx, columns=cols, dtype="int64")
+        result = pd.read_excel(
+            filename, sheet_name="Sheet1", index_col=0, header=[0, 1]
+        )
+        tm.assert_frame_equal(expected, result)
+
+    def test_read_datetime_multiindex(self, engine, read_ext):
+        # GH 34748
+        if engine == "pyxlsb":
+            pytest.xfail("Sheets containing datetimes not supported by pyxlsb")
+
+        f = "test_datetime_mi" + read_ext
+        with pd.ExcelFile(f) as excel:
+            actual = pd.read_excel(excel, header=[0, 1], index_col=0, engine=engine)
+        expected_column_index = pd.MultiIndex.from_tuples(
+            [(pd.to_datetime("02/29/2020"), pd.to_datetime("03/01/2020"))],
+            names=[
+                pd.to_datetime("02/29/2020").to_pydatetime(),
+                pd.to_datetime("03/01/2020").to_pydatetime(),
+            ],
+        )
+        expected = pd.DataFrame([], columns=expected_column_index)
+
         tm.assert_frame_equal(expected, actual)

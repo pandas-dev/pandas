@@ -50,7 +50,7 @@ _nat_scalar_rules[Py_GE] = False
 # ----------------------------------------------------------------------
 
 
-def _make_nan_func(func_name, doc):
+def _make_nan_func(func_name: str, doc: str):
     def f(*args, **kwargs):
         return np.nan
     f.__name__ = func_name
@@ -58,7 +58,7 @@ def _make_nan_func(func_name, doc):
     return f
 
 
-def _make_nat_func(func_name, doc):
+def _make_nat_func(func_name: str, doc: str):
     def f(*args, **kwargs):
         return c_NaT
     f.__name__ = func_name
@@ -66,7 +66,7 @@ def _make_nat_func(func_name, doc):
     return f
 
 
-def _make_error_func(func_name, cls):
+def _make_error_func(func_name: str, cls):
     def f(*args, **kwargs):
         raise ValueError(f"NaTType does not support {func_name}")
 
@@ -221,9 +221,6 @@ cdef class _NaT(datetime):
     def __neg__(self):
         return NaT
 
-    def __div__(self, other):
-        return _nat_divide_op(self, other)
-
     def __truediv__(self, other):
         return _nat_divide_op(self, other)
 
@@ -285,31 +282,31 @@ cdef class _NaT(datetime):
         return NPY_NAT
 
     @property
-    def is_leap_year(self):
+    def is_leap_year(self) -> bool:
         return False
 
     @property
-    def is_month_start(self):
+    def is_month_start(self) -> bool:
         return False
 
     @property
-    def is_quarter_start(self):
+    def is_quarter_start(self) -> bool:
         return False
 
     @property
-    def is_year_start(self):
+    def is_year_start(self) -> bool:
         return False
 
     @property
-    def is_month_end(self):
+    def is_month_end(self) -> bool:
         return False
 
     @property
-    def is_quarter_end(self):
+    def is_quarter_end(self) -> bool:
         return False
 
     @property
-    def is_year_end(self):
+    def is_year_end(self) -> bool:
         return False
 
 
@@ -397,7 +394,7 @@ class NaTType(_NaT):
 
         Parameters
         ----------
-        locale : string, default None (English locale)
+        locale : str, default None (English locale)
             Locale determining the language in which to return the month name.
 
         Returns
@@ -414,7 +411,7 @@ class NaTType(_NaT):
 
         Parameters
         ----------
-        locale : string, default None (English locale)
+        locale : str, default None (English locale)
             Locale determining the language in which to return the day name.
 
         Returns

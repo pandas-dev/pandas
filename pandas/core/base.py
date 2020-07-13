@@ -22,7 +22,6 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_scalar,
-    needs_i8_conversion,
 )
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
@@ -438,7 +437,13 @@ class SelectionMixin:
                 # we have a dict of DataFrames
                 # return a MI DataFrame
 
-                return concat([result[k] for k in keys], keys=keys, axis=1), True
+                keys_to_use = [k for k in keys if not result[k].empty]
+                # Have to check, if at least one DataFrame is not empty.
+                keys_to_use = keys_to_use if keys_to_use != [] else keys
+                return (
+                    concat([result[k] for k in keys_to_use], keys=keys_to_use, axis=1),
+                    True,
+                )
 
             elif isinstance(self, ABCSeries) and is_any_series():
 
@@ -650,13 +655,6 @@ class IndexOpsMixin:
         ValueError
             If the data is not length-1.
         """
-        if not (
-            is_extension_array_dtype(self.dtype) or needs_i8_conversion(self.dtype)
-        ):
-            # numpy returns ints instead of datetime64/timedelta64 objects,
-            #  which we need to wrap in Timestamp/Timedelta/Period regardless.
-            return self._values.item()
-
         if len(self) == 1:
             return next(iter(self))
         raise ValueError("can only convert an array of size 1 to a Python scalar")
@@ -737,8 +735,8 @@ class IndexOpsMixin:
 
         >>> ser = pd.Series(pd.Categorical(['a', 'b', 'a']))
         >>> ser.array
-        [a, b, a]
-        Categories (2, object): [a, b]
+        ['a', 'b', 'a']
+        Categories (2, object): ['a', 'b']
         """
         raise AbstractMethodError(self)
 
@@ -1475,8 +1473,8 @@ class IndexOpsMixin:
         ...     ['apple', 'bread', 'bread', 'cheese', 'milk'], ordered=True
         ... )
         >>> ser
-        [apple, bread, bread, cheese, milk]
-        Categories (4, object): [apple < bread < cheese < milk]
+        ['apple', 'bread', 'bread', 'cheese', 'milk']
+        Categories (4, object): ['apple' < 'bread' < 'cheese' < 'milk']
 
         >>> ser.searchsorted('bread')
         1
@@ -1514,7 +1512,7 @@ class IndexOpsMixin:
     def duplicated(self, keep="first"):
         if isinstance(self, ABCIndexClass):
             if self.is_unique:
-                return np.zeros(len(self), dtype=np.bool)
+                return np.zeros(len(self), dtype=bool)
             return duplicated(self, keep=keep)
         else:
             return self._constructor(

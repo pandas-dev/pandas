@@ -152,12 +152,16 @@ cdef inline int64_t pydatetime_to_dt64(datetime val,
     return dtstruct_to_dt64(dts)
 
 
-cdef inline int64_t pydate_to_dt64(date val, npy_datetimestruct *dts):
+cdef inline void pydate_to_dtstruct(date val, npy_datetimestruct *dts):
     dts.year = PyDateTime_GET_YEAR(val)
     dts.month = PyDateTime_GET_MONTH(val)
     dts.day = PyDateTime_GET_DAY(val)
     dts.hour = dts.min = dts.sec = dts.us = 0
     dts.ps = dts.as = 0
+    return
+
+cdef inline int64_t pydate_to_dt64(date val, npy_datetimestruct *dts):
+    pydate_to_dtstruct(val, dts)
     return dtstruct_to_dt64(dts)
 
 

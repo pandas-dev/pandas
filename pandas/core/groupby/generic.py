@@ -19,6 +19,7 @@ from typing import (
     Iterable,
     List,
     Mapping,
+    Optional,
     Sequence,
     Tuple,
     Type,
@@ -30,7 +31,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import FrameOrSeries
+from pandas._typing import FrameOrSeries, FrameOrSeriesUnion
 from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.dtypes.cast import (
@@ -54,9 +55,9 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core.aggregation import (
-    is_multi_agg_with_relabel,
     maybe_mangle_lambdas,
-    normalize_keyword_aggregation,
+    reconstruct_func,
+    validate_func_kwargs,
 )
 import pandas.core.algorithms as algorithms
 from pandas.core.base import DataError, SpecificationError
@@ -120,15 +121,15 @@ def generate_property(name: str, klass: Type[FrameOrSeries]):
     return property(prop)
 
 
-def pin_whitelisted_properties(klass: Type[FrameOrSeries], whitelist: FrozenSet[str]):
+def pin_allowlisted_properties(klass: Type[FrameOrSeries], allowlist: FrozenSet[str]):
     """
-    Create GroupBy member defs for DataFrame/Series names in a whitelist.
+    Create GroupBy member defs for DataFrame/Series names in a allowlist.
 
     Parameters
     ----------
     klass : DataFrame or Series class
         class where members are defined.
-    whitelist : frozenset[str]
+    allowlist : frozenset[str]
         Set of names of klass methods to be constructed
 
     Returns
@@ -142,7 +143,7 @@ def pin_whitelisted_properties(klass: Type[FrameOrSeries], whitelist: FrozenSet[
     """
 
     def pinner(cls):
-        for name in whitelist:
+        for name in allowlist:
             if hasattr(cls, name):
                 # don't override anything that was explicitly defined
                 #  in the base class
@@ -156,9 +157,9 @@ def pin_whitelisted_properties(klass: Type[FrameOrSeries], whitelist: FrozenSet[
     return pinner
 
 
-@pin_whitelisted_properties(Series, base.series_apply_whitelist)
+@pin_allowlisted_properties(Series, base.series_apply_allowlist)
 class SeriesGroupBy(GroupBy[Series]):
-    _apply_whitelist = base.series_apply_whitelist
+    _apply_allowlist = base.series_apply_allowlist
 
     def _iterate_slices(self) -> Iterable[Series]:
         yield self._selected_obj
@@ -223,23 +224,18 @@ class SeriesGroupBy(GroupBy[Series]):
     def apply(self, func, *args, **kwargs):
         return super().apply(func, *args, **kwargs)
 
-    @Substitution(
-        examples=_agg_examples_doc, klass="Series",
+    @doc(
+        _agg_template, examples=_agg_examples_doc, klass="Series",
     )
-    @Appender(_agg_template)
     def aggregate(
         self, func=None, *args, engine="cython", engine_kwargs=None, **kwargs
     ):
 
         relabeling = func is None
         columns = None
-        no_arg_message = "Must provide 'func' or named aggregation **kwargs."
         if relabeling:
-            columns = list(kwargs)
-            func = [kwargs[col] for col in columns]
+            columns, func = validate_func_kwargs(kwargs)
             kwargs = {}
-            if not columns:
-                raise TypeError(no_arg_message)
 
         if isinstance(func, str):
             return getattr(self, func)(*args, **kwargs)
@@ -417,12 +413,31 @@ class SeriesGroupBy(GroupBy[Series]):
         assert isinstance(result, Series)
         return result
 
-    def _wrap_applied_output(self, keys, values, not_indexed_same=False):
+    def _wrap_applied_output(
+        self, keys: Index, values: Optional[List[Any]], not_indexed_same: bool = False
+    ) -> FrameOrSeriesUnion:
+        """
+        Wrap the output of SeriesGroupBy.apply into the expected result.
+
+        Parameters
+        ----------
+        keys : Index
+            Keys of groups that Series was grouped by.
+        values : Optional[List[Any]]
+            Applied output for each group.
+        not_indexed_same : bool, default False
+            Whether the applied outputs are not indexed the same as the group axes.
+
+        Returns
+        -------
+        DataFrame or Series
+        """
         if len(keys) == 0:
             # GH #6265
             return self.obj._constructor(
                 [], name=self._selection_name, index=keys, dtype=np.float64
             )
+        assert values is not None
 
         def _get_index() -> Index:
             if self.grouper.nkeys > 1:
@@ -434,7 +449,7 @@ class SeriesGroupBy(GroupBy[Series]):
         if isinstance(values[0], dict):
             # GH #823 #24880
             index = _get_index()
-            result = self._reindex_output(
+            result: FrameOrSeriesUnion = self._reindex_output(
                 self.obj._constructor_expanddim(values, index=index)
             )
             # if self.observed is False,
@@ -442,11 +457,7 @@ class SeriesGroupBy(GroupBy[Series]):
             result = result.stack(dropna=self.observed)
             result.name = self._selection_name
             return result
-
-        if isinstance(values[0], Series):
-            return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
-        elif isinstance(values[0], DataFrame):
-            # possible that Series -> DataFrame by applied function
+        elif isinstance(values[0], (Series, DataFrame)):
             return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
         else:
             # GH #6265 #24880
@@ -477,18 +488,22 @@ class SeriesGroupBy(GroupBy[Series]):
                 func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
             )
 
-        elif func not in base.transform_kernel_whitelist:
+        elif func not in base.transform_kernel_allowlist:
             msg = f"'{func}' is not a valid function name for transform(name)"
             raise ValueError(msg)
         elif func in base.cythonized_kernels:
             # cythonized transform or canned "agg+broadcast"
             return getattr(self, func)(*args, **kwargs)
+        elif func in base.transformation_kernels:
+            return getattr(self, func)(*args, **kwargs)
 
         # If func is a reduction, we need to broadcast the
         # result to the whole group. Compute func result
         # and deal with possible broadcasting below.
-        result = getattr(self, func)(*args, **kwargs)
-        return self._transform_fast(result, func)
+        # Temporarily set observed for dealing with categoricals.
+        with com.temp_setattr(self, "observed", True):
+            result = getattr(self, func)(*args, **kwargs)
+        return self._transform_fast(result)
 
     def _transform_general(
         self, func, *args, engine="cython", engine_kwargs=None, **kwargs
@@ -541,16 +556,14 @@ class SeriesGroupBy(GroupBy[Series]):
         result.index = self._selected_obj.index
         return result
 
-    def _transform_fast(self, result, func_nm: str) -> Series:
+    def _transform_fast(self, result) -> Series:
         """
         fast version of transform, only applicable to
         builtin/cythonizable functions
         """
         ids, _, ngroup = self.grouper.group_info
-        cast = self._transform_should_cast(func_nm)
+        result = result.reindex(self.grouper.result_index, copy=False)
         out = algorithms.take_1d(result._values, ids)
-        if cast:
-            out = maybe_cast_result(out, self.obj, how=func_nm)
         return self.obj._constructor(out, index=self.obj.index, name=self.obj.name)
 
     def filter(self, func, dropna=True, *args, **kwargs):
@@ -836,10 +849,10 @@ class SeriesGroupBy(GroupBy[Series]):
         return (filled / shifted) - 1
 
 
-@pin_whitelisted_properties(DataFrame, base.dataframe_apply_whitelist)
+@pin_allowlisted_properties(DataFrame, base.dataframe_apply_allowlist)
 class DataFrameGroupBy(GroupBy[DataFrame]):
 
-    _apply_whitelist = base.dataframe_apply_whitelist
+    _apply_allowlist = base.dataframe_apply_allowlist
 
     _agg_examples_doc = dedent(
         """
@@ -915,32 +928,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     See :ref:`groupby.aggregate.named` for more."""
     )
 
-    @Substitution(
-        examples=_agg_examples_doc, klass="DataFrame",
+    @doc(
+        _agg_template, examples=_agg_examples_doc, klass="DataFrame",
     )
-    @Appender(_agg_template)
     def aggregate(
         self, func=None, *args, engine="cython", engine_kwargs=None, **kwargs
     ):
 
-        relabeling = func is None and is_multi_agg_with_relabel(**kwargs)
-        if relabeling:
-            func, columns, order = normalize_keyword_aggregation(kwargs)
-
-            kwargs = {}
-        elif isinstance(func, list) and len(func) > len(set(func)):
-
-            # GH 28426 will raise error if duplicated function names are used and
-            # there is no reassigned name
-            raise SpecificationError(
-                "Function names must be unique if there is no new column "
-                "names assigned"
-            )
-        elif func is None:
-            # nicer error message
-            raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
-
-        func = maybe_mangle_lambdas(func)
+        relabeling, func, columns, order = reconstruct_func(func, **kwargs)
 
         if engine == "numba":
             return self._python_agg_general(
@@ -1220,7 +1215,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             return self.obj._constructor()
         elif isinstance(first_not_none, DataFrame):
             return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
-        elif self.grouper.groupings is not None:
+        else:
             if len(self.grouper.groupings) > 1:
                 key_index = self.grouper.result_index
 
@@ -1375,10 +1370,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # of columns
                 return self.obj._constructor_sliced(values, index=key_index)
 
-        else:
-            # Handle cases like BinGrouper
-            return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
-
     def _transform_general(
         self, func, *args, engine="cython", engine_kwargs=None, **kwargs
     ):
@@ -1458,11 +1449,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
             )
 
-        elif func not in base.transform_kernel_whitelist:
+        elif func not in base.transform_kernel_allowlist:
             msg = f"'{func}' is not a valid function name for transform(name)"
             raise ValueError(msg)
         elif func in base.cythonized_kernels:
             # cythonized transformation or canned "reduction+broadcast"
+            return getattr(self, func)(*args, **kwargs)
+        elif func in base.transformation_kernels:
             return getattr(self, func)(*args, **kwargs)
 
         # GH 30918
@@ -1471,38 +1464,32 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             # If func is a reduction, we need to broadcast the
             # result to the whole group. Compute func result
             # and deal with possible broadcasting below.
-            result = getattr(self, func)(*args, **kwargs)
+            # Temporarily set observed for dealing with categoricals.
+            with com.temp_setattr(self, "observed", True):
+                result = getattr(self, func)(*args, **kwargs)
 
             if isinstance(result, DataFrame) and result.columns.equals(
                 self._obj_with_exclusions.columns
             ):
-                return self._transform_fast(result, func)
+                return self._transform_fast(result)
 
         return self._transform_general(
             func, engine=engine, engine_kwargs=engine_kwargs, *args, **kwargs
         )
 
-    def _transform_fast(self, result: DataFrame, func_nm: str) -> DataFrame:
+    def _transform_fast(self, result: DataFrame) -> DataFrame:
         """
         Fast transform path for aggregations
         """
-        # if there were groups with no observations (Categorical only?)
-        # try casting data to original dtype
-        cast = self._transform_should_cast(func_nm)
-
         obj = self._obj_with_exclusions
 
         # for each col, reshape to to size of original frame
         # by take operation
         ids, _, ngroup = self.grouper.group_info
+        result = result.reindex(self.grouper.result_index, copy=False)
         output = []
         for i, _ in enumerate(result.columns):
-            res = algorithms.take_1d(result.iloc[:, i].values, ids)
-            # TODO: we have no test cases that get here with EA dtypes;
-            #  maybe_cast_result may not be needed if EAs never get here
-            if cast:
-                res = maybe_cast_result(res, obj.iloc[:, i], how=func_nm)
-            output.append(res)
+            output.append(algorithms.take_1d(result.iloc[:, i].values, ids))
 
         return self.obj._constructor._from_arrays(
             output, columns=result.columns, index=obj.index
@@ -1572,8 +1559,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def filter(self, func, dropna=True, *args, **kwargs):
         """
-        Return a copy of a DataFrame excluding elements from groups that
-        do not satisfy the boolean criterion specified by func.
+        Return a copy of a DataFrame excluding filtered elements.
+
+        Elements from groups are filtered if they do not satisfy the
+        boolean criterion specified by func.
 
         Parameters
         ----------
@@ -1731,7 +1720,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         DataFrame
         """
         indexed_output = {key.position: val for key, val in output.items()}
-        columns = Index(key.label for key in output)
+        name = self._obj_with_exclusions._get_axis(1 - self.axis).name
+        columns = Index([key.label for key in output], name=name)
 
         result = self.obj._constructor(indexed_output)
         result.columns = columns
@@ -1834,8 +1824,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def nunique(self, dropna: bool = True):
         """
-        Return DataFrame with number of distinct observations per group for
-        each column.
+        Return DataFrame with counts of unique elements in each position.
 
         Parameters
         ----------

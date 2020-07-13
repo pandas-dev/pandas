@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, tzinfo
 from pathlib import Path
 from typing import (
     IO,
@@ -52,6 +52,7 @@ TimestampConvertibleTypes = Union[
 TimedeltaConvertibleTypes = Union[
     "Timedelta", timedelta, np.timedelta64, int, np.int64, float, str
 ]
+Timezone = Union[str, tzinfo]
 
 # other
 
@@ -95,3 +96,11 @@ F = TypeVar("F", bound=FuncType)
 # DataFrame::sort_index, among others
 ValueKeyFunc = Optional[Callable[["Series"], Union["Series", AnyArrayLike]]]
 IndexKeyFunc = Optional[Callable[["Index"], Union["Index", AnyArrayLike]]]
+
+# types of `func` kwarg for DataFrame.aggregate and Series.aggregate
+AggFuncTypeBase = Union[Callable, str]
+AggFuncType = Union[
+    AggFuncTypeBase,
+    List[AggFuncTypeBase],
+    Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]],
+]
