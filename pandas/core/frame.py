@@ -6450,7 +6450,7 @@ a   13.0   13.0
 b   12.3  123.0
 NaN 12.3   33.0
 
-To exclude or include the group keys in the index, specify ``group_keys``
+When using ``.apply()``, use ``group_keys`` to include or exclude the group keys.
 
 >>> df = pd.DataFrame({'Animal': ['Falcon', 'Falcon',
 ...                               'Parrot', 'Parrot'],
