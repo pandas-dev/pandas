@@ -9766,7 +9766,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             calculated for the column. For DataFrame input, this also
             controls whether datetime columns are included by default.
 
-
             .. versionadded:: 1.1.0
 
         Returns
