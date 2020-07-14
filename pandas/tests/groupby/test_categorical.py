@@ -1299,7 +1299,8 @@ def test_series_groupby_on_2_categoricals_unobserved(
 ):
     # GH 17605
     if reduction_func == "ngroup":
-        pytest.skip("ngroup is not truly a reduction")
+        # https://github.com/pytest-dev/pytest/issues/7495
+        pytest.skip("ngroup is not truly a reduction")  # type: ignore
 
     if reduction_func == "corrwith":  # GH 32293
         mark = pytest.mark.xfail(
@@ -1332,7 +1333,8 @@ def test_series_groupby_on_2_categoricals_unobserved_zeroes_or_nans(
     # Tests whether the unobserved categories in the result contain 0 or NaN
 
     if reduction_func == "ngroup":
-        pytest.skip("ngroup is not truly a reduction")
+        # https://github.com/pytest-dev/pytest/issues/7495
+        pytest.skip("ngroup is not truly a reduction")  # type: ignore
 
     if reduction_func == "corrwith":  # GH 32293
         mark = pytest.mark.xfail(
@@ -1380,7 +1382,8 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_true(reduction_fun
     # Ensure that df.groupby, when 'by' is two pd.Categorical variables,
     # does not return the categories that are not in df when observed=True
     if reduction_func == "ngroup":
-        pytest.skip("ngroup does not return the Categories on the index")
+        # https://github.com/pytest-dev/pytest/issues/7495
+        pytest.skip("ngroup does not return the Categories on the index")  # type: ignore
 
     df = pd.DataFrame(
         {
@@ -1410,7 +1413,8 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_false(
     # returns the categories that are not in df when observed=False/None
 
     if reduction_func == "ngroup":
-        pytest.skip("ngroup does not return the Categories on the index")
+        # https://github.com/pytest-dev/pytest/issues/7495
+        pytest.skip("ngroup does not return the Categories on the index")  # type: ignore
 
     if reduction_func == "count":  # GH 35028
         mark = pytest.mark.xfail(
