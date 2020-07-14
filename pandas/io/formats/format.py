@@ -330,9 +330,8 @@ class SeriesFormatter:
 
     def _get_formatted_index(self) -> Tuple[List[str], bool]:
         index = self.tr_series.index
-        is_multi = isinstance(index, MultiIndex)
 
-        if is_multi:
+        if isinstance(index, MultiIndex):
             have_header = any(name for name in index.names)
             fmt_index = index.format(names=True)
         else:
