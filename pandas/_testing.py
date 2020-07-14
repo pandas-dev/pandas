@@ -2880,9 +2880,7 @@ def convert_rows_list_to_csv_str(rows_list: List[str]):
     return expected
 
 
-def external_error_raised(
-    expected_exception: Type[Exception],
-) -> ContextManager:
+def external_error_raised(expected_exception: Type[Exception],) -> ContextManager:
     """
     Helper function to mark pytest.raises that have an external error message.
 
