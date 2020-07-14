@@ -4,10 +4,7 @@ from cpython.datetime cimport (
     PyDate_Check,
     PyDateTime_Check,
     PyDateTime_IMPORT,
-    date,
     datetime,
-    time,
-    timedelta,
     tzinfo,
 )
 # import datetime C API
@@ -15,7 +12,7 @@ PyDateTime_IMPORT
 
 
 cimport numpy as cnp
-from numpy cimport float64_t, int64_t, ndarray, uint8_t, intp_t
+from numpy cimport float64_t, int64_t, ndarray
 import numpy as np
 cnp.import_array()
 
@@ -42,11 +39,6 @@ from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
 from pandas._libs.tslibs.parsing import parse_datetime_string
 
-from pandas._libs.tslibs.timezones cimport (
-    get_dst_info,
-    is_utc,
-    is_tzlocal,
-)
 from pandas._libs.tslibs.conversion cimport (
     _TSObject,
     cast_from_unit,
@@ -60,172 +52,15 @@ from pandas._libs.tslibs.nattype cimport (
     c_nat_strings as nat_strings,
 )
 
-from pandas._libs.tslibs.offsets cimport to_offset
-
-from pandas._libs.tslibs.timestamps cimport create_timestamp_from_ts, _Timestamp
+from pandas._libs.tslibs.timestamps cimport _Timestamp
 from pandas._libs.tslibs.timestamps import Timestamp
 
 from pandas._libs.tslibs.tzconversion cimport (
-    tz_convert_utc_to_tzlocal,
     tz_localize_to_utc_single,
 )
 
 # Note: this is the only non-tslibs intra-pandas dependency here
 from pandas._libs.missing cimport checknull_with_nat_and_na
-
-
-cdef inline object create_datetime_from_ts(
-    int64_t value,
-    npy_datetimestruct dts,
-    tzinfo tz,
-    object freq,
-    bint fold,
-):
-    """
-    Convenience routine to construct a datetime.datetime from its parts.
-    """
-    return datetime(
-        dts.year, dts.month, dts.day, dts.hour, dts.min, dts.sec, dts.us, tz, fold=fold
-    )
-
-
-cdef inline object create_date_from_ts(
-    int64_t value,
-    npy_datetimestruct dts,
-    tzinfo tz,
-    object freq,
-    bint fold
-):
-    """
-    Convenience routine to construct a datetime.date from its parts.
-    """
-    # GH 25057 add fold argument to match other func_create signatures
-    return date(dts.year, dts.month, dts.day)
-
-
-cdef inline object create_time_from_ts(
-    int64_t value,
-    npy_datetimestruct dts,
-    tzinfo tz,
-    object freq,
-    bint fold
-):
-    """
-    Convenience routine to construct a datetime.time from its parts.
-    """
-    return time(dts.hour, dts.min, dts.sec, dts.us, tz, fold=fold)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def ints_to_pydatetime(
-    const int64_t[:] arr,
-    tzinfo tz=None,
-    object freq=None,
-    bint fold=False,
-    str box="datetime"
-):
-    """
-    Convert an i8 repr to an ndarray of datetimes, date, time or Timestamp.
-
-    Parameters
-    ----------
-    arr : array of i8
-    tz : str, optional
-         convert to this timezone
-    freq : str/Offset, optional
-         freq to convert
-    fold : bint, default is 0
-        Due to daylight saving time, one wall clock time can occur twice
-        when shifting from summer to winter time; fold describes whether the
-        datetime-like corresponds  to the first (0) or the second time (1)
-        the wall clock hits the ambiguous time
-
-        .. versionadded:: 1.1.0
-    box : {'datetime', 'timestamp', 'date', 'time'}, default 'datetime'
-        * If datetime, convert to datetime.datetime
-        * If date, convert to datetime.date
-        * If time, convert to datetime.time
-        * If Timestamp, convert to pandas.Timestamp
-
-    Returns
-    -------
-    ndarray of dtype specified by box
-    """
-    cdef:
-        Py_ssize_t i, n = len(arr)
-        ndarray[int64_t] trans
-        int64_t[:] deltas
-        intp_t[:] pos
-        npy_datetimestruct dts
-        object dt, new_tz
-        str typ
-        int64_t value, local_value, delta = NPY_NAT  # dummy for delta
-        ndarray[object] result = np.empty(n, dtype=object)
-        object (*func_create)(int64_t, npy_datetimestruct, tzinfo, object, bint)
-        bint use_utc = False, use_tzlocal = False, use_fixed = False
-        bint use_pytz = False
-
-    if box == "date":
-        assert (tz is None), "tz should be None when converting to date"
-
-        func_create = create_date_from_ts
-    elif box == "timestamp":
-        func_create = create_timestamp_from_ts
-
-        if isinstance(freq, str):
-            freq = to_offset(freq)
-    elif box == "time":
-        func_create = create_time_from_ts
-    elif box == "datetime":
-        func_create = create_datetime_from_ts
-    else:
-        raise ValueError(
-            "box must be one of 'datetime', 'date', 'time' or 'timestamp'"
-        )
-
-    if is_utc(tz) or tz is None:
-        use_utc = True
-    elif is_tzlocal(tz):
-        use_tzlocal = True
-    else:
-        trans, deltas, typ = get_dst_info(tz)
-        if typ not in ["pytz", "dateutil"]:
-            # static/fixed; in this case we know that len(delta) == 1
-            use_fixed = True
-            delta = deltas[0]
-        else:
-            pos = trans.searchsorted(arr, side="right") - 1
-            use_pytz = typ == "pytz"
-
-    for i in range(n):
-        new_tz = tz
-        value = arr[i]
-
-        if value == NPY_NAT:
-            result[i] = <object>NaT
-        else:
-            if use_utc:
-                local_value = value
-            elif use_tzlocal:
-                local_value = tz_convert_utc_to_tzlocal(value, tz)
-            elif use_fixed:
-                local_value = value + delta
-            elif not use_pytz:
-                # i.e. dateutil
-                # no zone-name change for dateutil tzs - dst etc
-                # represented in single object.
-                local_value = value + deltas[pos[i]]
-            else:
-                # pytz
-                # find right representation of dst etc in pytz timezone
-                new_tz = tz._tzinfos[tz._transition_info[pos[i]]]
-                local_value = value + deltas[pos[i]]
-
-            dt64_to_dtstruct(local_value, &dts)
-            result[i] = func_create(value, dts, new_tz, freq, fold)
-
-    return result
 
 
 def _test_parse_iso8601(ts: str):
@@ -259,8 +94,8 @@ def _test_parse_iso8601(ts: str):
 @cython.boundscheck(False)
 def format_array_from_datetime(
     ndarray[int64_t] values,
-    object tz=None,
-    object format=None,
+    tzinfo tz=None,
+    str format=None,
     object na_rep=None
 ):
     """
@@ -269,8 +104,8 @@ def format_array_from_datetime(
     Parameters
     ----------
     values : a 1-d i8 array
-    tz : the timezone (or None)
-    format : optional, default is None
+    tz : tzinfo or None, default None
+    format : str or None, default None
           a strftime capable string
     na_rep : optional, default is None
           a nat format
@@ -526,7 +361,7 @@ cpdef array_to_datetime(
     str errors='raise',
     bint dayfirst=False,
     bint yearfirst=False,
-    object utc=None,
+    bint utc=False,
     bint require_iso8601=False
 ):
     """
@@ -552,7 +387,7 @@ cpdef array_to_datetime(
          dayfirst parsing behavior when encountering datetime strings
     yearfirst : bool, default False
          yearfirst parsing behavior when encountering datetime strings
-    utc : bool, default None
+    utc : bool, default False
          indicator whether the dates should be UTC
     require_iso8601 : bool, default False
          indicator whether the datetime string should be iso8601
@@ -578,7 +413,7 @@ cpdef array_to_datetime(
         bint is_same_offsets
         _TSObject _ts
         int64_t value
-        int out_local=0, out_tzoffset=0
+        int out_local = 0, out_tzoffset = 0
         float offset_seconds, tz_offset
         set out_tzoffset_vals = set()
         bint string_to_dts_failed
@@ -825,7 +660,7 @@ cdef array_to_datetime_object(
     ndarray[object] values,
     str errors,
     bint dayfirst=False,
-    bint yearfirst=False
+    bint yearfirst=False,
 ):
     """
     Fall back function for array_to_datetime
@@ -837,7 +672,7 @@ cdef array_to_datetime_object(
     ----------
     values : ndarray of object
          date-like objects to convert
-    errors : str, default 'raise'
+    errors : str
          error behavior when parsing
     dayfirst : bool, default False
          dayfirst parsing behavior when encountering datetime strings
@@ -850,7 +685,7 @@ cdef array_to_datetime_object(
     """
     cdef:
         Py_ssize_t i, n = len(values)
-        object val,
+        object val
         bint is_ignore = errors == 'ignore'
         bint is_coerce = errors == 'coerce'
         bint is_raise = errors == 'raise'
