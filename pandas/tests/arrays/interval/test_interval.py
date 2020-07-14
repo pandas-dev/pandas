@@ -28,7 +28,8 @@ from pandas.core.arrays import IntervalArray
             date_range("20170102", periods=3, tz="US/Eastern"),
         ),
     ],
-    ids=lambda x: str(x[0].dtype),
+    # https://github.com/pytest-dev/pytest/issues/7494
+    ids=lambda x: str(x[0].dtype),  # type: ignore
 )
 def left_right_dtypes(request):
     """
