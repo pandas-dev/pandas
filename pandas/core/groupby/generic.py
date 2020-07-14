@@ -548,10 +548,8 @@ class SeriesGroupBy(GroupBy[Series]):
         # we will only try to coerce the result type if
         # we have a numeric dtype, as these are *always* user-defined funcs
         # the cython take a different path (and casting)
-        # make sure we don't accidentally upcast (GH35014)
-        types = ["bool", "int32", "int64", "float32", "float64"]
         dtype = self._selected_obj.dtype
-        if is_numeric_dtype(dtype) and types.index(dtype) < types.index(result.dtype):
+        if is_numeric_dtype(dtype):
             result = maybe_downcast_to_dtype(result, dtype)
 
         result.name = self._selected_obj.name
