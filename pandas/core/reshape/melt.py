@@ -1,5 +1,6 @@
 import re
 from typing import TYPE_CHECKING, List, cast
+import warnings
 
 import numpy as np
 
@@ -13,6 +14,7 @@ from pandas.core.arrays import Categorical
 import pandas.core.common as com
 from pandas.core.indexes.api import Index, MultiIndex
 from pandas.core.reshape.concat import concat
+from pandas.core.reshape.util import _tile_compat
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.tools.numeric import to_numeric
 
@@ -31,14 +33,24 @@ def melt(
     var_name=None,
     value_name="value",
     col_level=None,
+    ignore_index: bool = True,
 ) -> "DataFrame":
-    # TODO: what about the existing index?
     # If multiindex, gather names of columns on all level for checking presence
     # of `id_vars` and `value_vars`
     if isinstance(frame.columns, MultiIndex):
         cols = [x for c in frame.columns for x in c]
     else:
         cols = list(frame.columns)
+
+    if value_name in frame.columns:
+        warnings.warn(
+            "This dataframe has a column name that matches the 'value_name' column "
+            "name of the resultiing Dataframe. "
+            "In the future this will raise an error, please set the 'value_name' "
+            "parameter of DataFrame.melt to a unique name.",
+            FutureWarning,
+            stacklevel=3,
+        )
 
     if id_vars is not None:
         if not is_list_like(id_vars):
@@ -121,7 +133,12 @@ def melt(
         # asanyarray will keep the columns as an Index
         mdata[col] = np.asanyarray(frame.columns._get_level_values(i)).repeat(N)
 
-    return frame._constructor(mdata, columns=mcolumns)
+    result = frame._constructor(mdata, columns=mcolumns)
+
+    if not ignore_index:
+        result.index = _tile_compat(frame.index, K)
+
+    return result
 
 
 @deprecate_kwarg(old_arg_name="label", new_arg_name=None)

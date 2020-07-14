@@ -968,6 +968,19 @@ class TestReaders:
 
         pd.read_excel("test1" + read_ext)
 
+    def test_no_header_with_list_index_col(self, read_ext):
+        # GH 31783
+        file_name = "testmultiindex" + read_ext
+        data = [("B", "B"), ("key", "val"), (3, 4), (3, 4)]
+        idx = pd.MultiIndex.from_tuples(
+            [("A", "A"), ("key", "val"), (1, 2), (1, 2)], names=(0, 1)
+        )
+        expected = pd.DataFrame(data, index=idx, columns=(2, 3))
+        result = pd.read_excel(
+            file_name, sheet_name="index_col_none", index_col=[0, 1], header=None
+        )
+        tm.assert_frame_equal(expected, result)
+
 
 class TestExcelFileRead:
     @pytest.fixture(autouse=True)
@@ -1143,3 +1156,22 @@ class TestExcelFileRead:
             filename, sheet_name="Sheet1", index_col=0, header=[0, 1]
         )
         tm.assert_frame_equal(expected, result)
+
+    def test_read_datetime_multiindex(self, engine, read_ext):
+        # GH 34748
+        if engine == "pyxlsb":
+            pytest.xfail("Sheets containing datetimes not supported by pyxlsb")
+
+        f = "test_datetime_mi" + read_ext
+        with pd.ExcelFile(f) as excel:
+            actual = pd.read_excel(excel, header=[0, 1], index_col=0, engine=engine)
+        expected_column_index = pd.MultiIndex.from_tuples(
+            [(pd.to_datetime("02/29/2020"), pd.to_datetime("03/01/2020"))],
+            names=[
+                pd.to_datetime("02/29/2020").to_pydatetime(),
+                pd.to_datetime("03/01/2020").to_pydatetime(),
+            ],
+        )
+        expected = pd.DataFrame([], columns=expected_column_index)
+
+        tm.assert_frame_equal(expected, actual)

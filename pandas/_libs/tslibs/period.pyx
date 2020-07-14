@@ -40,7 +40,6 @@ cdef extern from "src/datetime/np_datetime.h":
 cimport pandas._libs.tslibs.util as util
 
 from pandas._libs.tslibs.timestamps import Timestamp
-from pandas._libs.tslibs.timezones cimport is_utc, is_tzlocal, get_dst_info
 from pandas._libs.tslibs.timedeltas import Timedelta
 from pandas._libs.tslibs.timedeltas cimport (
     delta_to_nanoseconds,
@@ -55,6 +54,7 @@ from pandas._libs.tslibs.ccalendar cimport (
     get_days_in_month,
 )
 from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
+from pandas._libs.tslibs.conversion import ensure_datetime64ns
 
 from pandas._libs.tslibs.dtypes cimport (
     PeriodDtypeBase,
@@ -90,7 +90,6 @@ from pandas._libs.tslibs.offsets cimport (
     is_offset_object,
 )
 from pandas._libs.tslibs.offsets import INVALID_FREQ_ERR_MSG
-from pandas._libs.tslibs.tzconversion cimport tz_convert_utc_to_tzlocal
 
 
 cdef:
@@ -945,14 +944,34 @@ def periodarr_to_dt64arr(const int64_t[:] periodarr, int freq):
         int64_t[:] out
         Py_ssize_t i, l
 
-    l = len(periodarr)
+    if freq < 6000:  # i.e. FR_DAY, hard-code to avoid need to cast
+        l = len(periodarr)
+        out = np.empty(l, dtype="i8")
 
-    out = np.empty(l, dtype='i8')
+        # We get here with freqs that do not correspond to a datetime64 unit
+        for i in range(l):
+            out[i] = period_ordinal_to_dt64(periodarr[i], freq)
 
-    for i in range(l):
-        out[i] = period_ordinal_to_dt64(periodarr[i], freq)
+        return out.base  # .base to access underlying np.ndarray
 
-    return out.base  # .base to access underlying np.ndarray
+    else:
+        # Short-circuit for performance
+        if freq == FR_NS:
+            return periodarr.base
+
+        if freq == FR_US:
+            dta = periodarr.base.view("M8[us]")
+        elif freq == FR_MS:
+            dta = periodarr.base.view("M8[ms]")
+        elif freq == FR_SEC:
+            dta = periodarr.base.view("M8[s]")
+        elif freq == FR_MIN:
+            dta = periodarr.base.view("M8[m]")
+        elif freq == FR_HR:
+            dta = periodarr.base.view("M8[h]")
+        elif freq == FR_DAY:
+            dta = periodarr.base.view("M8[D]")
+        return ensure_datetime64ns(dta)
 
 
 cpdef int64_t period_asfreq(int64_t ordinal, int freq1, int freq2, bint end):
@@ -1413,60 +1432,6 @@ def extract_freq(ndarray[object] values):
 
 # -----------------------------------------------------------------------
 # period helpers
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def dt64arr_to_periodarr(const int64_t[:] stamps, int freq, object tz):
-    cdef:
-        Py_ssize_t n = len(stamps)
-        int64_t[:] result = np.empty(n, dtype=np.int64)
-        ndarray[int64_t] trans
-        int64_t[:] deltas
-        Py_ssize_t[:] pos
-        npy_datetimestruct dts
-        int64_t local_val
-
-    if is_utc(tz) or tz is None:
-        with nogil:
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    result[i] = NPY_NAT
-                    continue
-                dt64_to_dtstruct(stamps[i], &dts)
-                result[i] = get_period_ordinal(&dts, freq)
-
-    elif is_tzlocal(tz):
-        for i in range(n):
-            if stamps[i] == NPY_NAT:
-                result[i] = NPY_NAT
-                continue
-            local_val = tz_convert_utc_to_tzlocal(stamps[i], tz)
-            dt64_to_dtstruct(local_val, &dts)
-            result[i] = get_period_ordinal(&dts, freq)
-    else:
-        # Adjust datetime64 timestamp, recompute datetimestruct
-        trans, deltas, typ = get_dst_info(tz)
-
-        if typ not in ['pytz', 'dateutil']:
-            # static/fixed; in this case we know that len(delta) == 1
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    result[i] = NPY_NAT
-                    continue
-                dt64_to_dtstruct(stamps[i] + deltas[0], &dts)
-                result[i] = get_period_ordinal(&dts, freq)
-        else:
-            pos = trans.searchsorted(stamps, side='right') - 1
-
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    result[i] = NPY_NAT
-                    continue
-                dt64_to_dtstruct(stamps[i] + deltas[pos[i]], &dts)
-                result[i] = get_period_ordinal(&dts, freq)
-
-    return result.base  # .base to get underlying ndarray
 
 
 DIFFERENT_FREQ = ("Input has different freq={other_freq} "
@@ -2475,13 +2440,13 @@ cdef int64_t _ordinal_from_fields(int year, int month, quarter, int day,
                                   BaseOffset freq):
     base = freq_to_dtype_code(freq)
     if quarter is not None:
-        year, month = quarter_to_myear(year, quarter, freq)
+        year, month = quarter_to_myear(year, quarter, freq.freqstr)
 
     return period_ordinal(year, month, day, hour,
                           minute, second, 0, 0, base)
 
 
-def quarter_to_myear(year: int, quarter: int, freq):
+def quarter_to_myear(year: int, quarter: int, freqstr: str):
     """
     A quarterly frequency defines a "year" which may not coincide with
     the calendar-year.  Find the calendar-year and calendar-month associated
@@ -2491,7 +2456,8 @@ def quarter_to_myear(year: int, quarter: int, freq):
     ----------
     year : int
     quarter : int
-    freq : DateOffset
+    freqstr : str
+        Equivalent to freq.freqstr
 
     Returns
     -------
@@ -2505,7 +2471,7 @@ def quarter_to_myear(year: int, quarter: int, freq):
     if quarter <= 0 or quarter > 4:
         raise ValueError('Quarter must be 1 <= q <= 4')
 
-    mnum = c_MONTH_NUMBERS[get_rule_month(freq)] + 1
+    mnum = c_MONTH_NUMBERS[get_rule_month(freqstr)] + 1
     month = (mnum + (quarter - 1) * 3) % 12 + 1
     if month > mnum:
         year -= 1

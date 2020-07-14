@@ -516,22 +516,6 @@ def test_agg_split_object_part_datetime():
     tm.assert_frame_equal(result, expected)
 
 
-def test_agg_cython_category_not_implemented_fallback():
-    # https://github.com/pandas-dev/pandas/issues/31450
-    df = pd.DataFrame({"col_num": [1, 1, 2, 3]})
-    df["col_cat"] = df["col_num"].astype("category")
-
-    result = df.groupby("col_num").col_cat.first()
-    expected = pd.Series(
-        [1, 2, 3], index=pd.Index([1, 2, 3], name="col_num"), name="col_cat"
-    )
-    tm.assert_series_equal(result, expected)
-
-    result = df.groupby("col_num").agg({"col_cat": "first"})
-    expected = expected.to_frame()
-    tm.assert_frame_equal(result, expected)
-
-
 class TestNamedAggregationSeries:
     def test_series_named_agg(self):
         df = pd.Series([1, 2, 3, 4])
@@ -864,16 +848,6 @@ def test_aggregate_mixed_types():
         index=Index([2, "group 1"], dtype="object", name="grouping"),
         columns=Index(["X", "Y", "Z"], dtype="object"),
     )
-    tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize("func", ["min", "max"])
-def test_aggregate_categorical_lost_index(func: str):
-    # GH: 28641 groupby drops index, when grouping over categorical column with min/max
-    ds = pd.Series(["b"], dtype="category").cat.as_ordered()
-    df = pd.DataFrame({"A": [1997], "B": ds})
-    result = df.groupby("A").agg({"B": func})
-    expected = pd.DataFrame({"B": ["b"]}, index=pd.Index([1997], name="A"))
     tm.assert_frame_equal(result, expected)
 
 
