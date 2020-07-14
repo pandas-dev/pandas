@@ -596,14 +596,12 @@ class BlockManager(PandasObject):
         # figure out our mask apriori to avoid repeated replacements
         values = self.as_array()
 
-        def comp(s, regex=False, mask=None):
+        def comp(s, mask, regex: bool = False):
             """
             Generate a bool array by perform an equality check, or perform
             an element-wise regular expression matching
             """
             if isna(s):
-                if mask is None:
-                    return isna(values)
                 return ~mask
 
             s = com.maybe_box_datetimelike(s)
@@ -613,7 +611,7 @@ class BlockManager(PandasObject):
         # in order to avoid repeating the same computations
         mask = ~isna(values)
 
-        masks = [comp(s, regex, mask) for s in src_list]
+        masks = [comp(s, mask, regex) for s in src_list]
 
         result_blocks = []
         src_len = len(src_list) - 1
@@ -1901,7 +1899,7 @@ def _merge_blocks(
 
 
 def _compare_or_regex_search(
-    a: ArrayLike, b: Scalar, regex: bool = False, mask: Union[ArrayLike, None] = None
+    a: ArrayLike, b: Scalar, regex: bool = False, mask: Optional[ArrayLike] = None
 ) -> Union[ArrayLike, bool]:
     """
     Compare two array_like inputs of the same shape or two scalar values
