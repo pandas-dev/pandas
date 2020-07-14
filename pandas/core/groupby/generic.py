@@ -278,7 +278,7 @@ class SeriesGroupBy(GroupBy[Series]):
         if isinstance(ret, dict):
             from pandas import concat
 
-            ret = concat(ret, axis=1)
+            ret = concat(ret.values(), axis=1, keys=[key.label for key in ret.keys()])
         return ret
 
     agg = aggregate
@@ -307,8 +307,8 @@ class SeriesGroupBy(GroupBy[Series]):
 
             arg = zip(columns, arg)
 
-        results = {}
-        for name, func in arg:
+        results: Dict[base.OutputKey, Union[Series, DataFrame]] = {}
+        for idx, (name, func) in enumerate(arg):
             obj = self
 
             # reset the cache so that we
@@ -317,13 +317,14 @@ class SeriesGroupBy(GroupBy[Series]):
                 obj = copy.copy(obj)
                 obj._reset_cache()
                 obj._selection = name
-            results[name] = obj.aggregate(func)
+            results[base.OutputKey(label=name, position=idx)] = obj.aggregate(func)
 
         if any(isinstance(x, DataFrame) for x in results.values()):
             # let higher level handle
             return results
 
-        return self.obj._constructor_expanddim(results, columns=columns)
+        output = self._wrap_aggregated_output(results)
+        return self.obj._constructor_expanddim(output, columns=columns)
 
     def _wrap_series_output(
         self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]], index: Index,
@@ -354,10 +355,12 @@ class SeriesGroupBy(GroupBy[Series]):
         if len(output) > 1:
             result = self.obj._constructor_expanddim(indexed_output, index=index)
             result.columns = columns
-        else:
+        elif not columns.empty:
             result = self.obj._constructor(
                 indexed_output[0], index=index, name=columns[0]
             )
+        else:
+            result = self.obj._constructor_expanddim()
 
         return result
 
