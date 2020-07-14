@@ -1302,7 +1302,8 @@ class _Rolling_and_Expanding(_Rolling):
         * ``'cython'`` : Runs rolling apply through C-extensions from cython.
         * ``'numba'`` : Runs rolling apply through JIT compiled code from numba.
           Only available when ``raw`` is set to ``True``.
-        * ``None`` : Defaults to ``'cython'`` or global numba configuration.
+        * ``None`` : Defaults to ``'cython'`` or global numba configuration
+          (``'compute.use_numba`'`)
 
           .. versionadded:: 1.0.0
 
