@@ -10,7 +10,7 @@ def test_idxmax():
             "b": [9, 4, 3, 4, 2, 2, 4, 9],
             "c": [1, 8, 2, 4, 1, 5, 8, 3],
         },
-        index=["A", "B", "C", "D", "E", "F", "G", "H"]
+        index=["A", "B", "C", "D", "E", "F", "G", "H"],
     )
     assert all(
         df.idxmax(keep="last") == pd.Series(["F", "H", "G"], index=["a", "b", "c"])
@@ -23,6 +23,7 @@ def test_idxmax():
         df.idxmax(keep="first") == pd.Series(["B", "A", "B"], index=["a", "b", "c"])
     )
 
+
 def test_idxmin():
     # GH#35257
     df = pd.DataFrame(
@@ -31,7 +32,7 @@ def test_idxmin():
             "b": [9, 4, 3, 4, 2, 2, 4, 9],
             "c": [1, 8, 2, 4, 1, 5, 8, 3],
         },
-        index=["A", "B", "C", "D", "E", "F", "G", "H"]
+        index=["A", "B", "C", "D", "E", "F", "G", "H"],
     )
     assert all(
         df.idxmin(keep="last") == pd.Series(["A", "F", "E"], index=["a", "b", "c"])
