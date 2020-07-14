@@ -2,9 +2,12 @@
 test .agg behavior / note that .apply is tested generally in test_groupby.py
 """
 import functools
+from functools import partial
 
 import numpy as np
 import pytest
+
+from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import is_integer_dtype
 
@@ -250,6 +253,61 @@ def test_agg_multiple_functions_maintain_order(df):
     exp_cols = Index(["mean", "max", "min"])
 
     tm.assert_index_equal(result.columns, exp_cols)
+
+
+def test_agg_multiple_functions_same_name():
+    # GH 30880
+    df = pd.DataFrame(
+        np.random.randn(1000, 3),
+        index=pd.date_range("1/1/2012", freq="S", periods=1000),
+        columns=["A", "B", "C"],
+    )
+    result = df.resample("3T").agg(
+        {"A": [partial(np.quantile, q=0.9999), partial(np.quantile, q=0.1111)]}
+    )
+    expected_index = pd.date_range("1/1/2012", freq="3T", periods=6)
+    expected_columns = MultiIndex.from_tuples([("A", "quantile"), ("A", "quantile")])
+    expected_values = np.array(
+        [df.resample("3T").A.quantile(q=q).values for q in [0.9999, 0.1111]]
+    ).T
+    expected = pd.DataFrame(
+        expected_values, columns=expected_columns, index=expected_index
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_multiple_functions_same_name_with_ohlc_present():
+    # GH 30880
+    # ohlc expands dimensions, so different test to the above is required.
+    df = pd.DataFrame(
+        np.random.randn(1000, 3),
+        index=pd.date_range("1/1/2012", freq="S", periods=1000),
+        columns=["A", "B", "C"],
+    )
+    result = df.resample("3T").agg(
+        {"A": ["ohlc", partial(np.quantile, q=0.9999), partial(np.quantile, q=0.1111)]}
+    )
+    expected_index = pd.date_range("1/1/2012", freq="3T", periods=6)
+    expected_columns = pd.MultiIndex.from_tuples(
+        [
+            ("A", "ohlc", "open"),
+            ("A", "ohlc", "high"),
+            ("A", "ohlc", "low"),
+            ("A", "ohlc", "close"),
+            ("A", "quantile", "A"),
+            ("A", "quantile", "A"),
+        ]
+    )
+    non_ohlc_expected_values = np.array(
+        [df.resample("3T").A.quantile(q=q).values for q in [0.9999, 0.1111]]
+    ).T
+    expected_values = np.hstack([df.resample("3T").A.ohlc(), non_ohlc_expected_values])
+    expected = pd.DataFrame(
+        expected_values, columns=expected_columns, index=expected_index
+    )
+    # PerformanceWarning is thrown by `assert col in right` in assert_frame_equal
+    with tm.assert_produces_warning(PerformanceWarning):
+        tm.assert_frame_equal(result, expected)
 
 
 def test_multiple_functions_tuples_and_non_tuples(df):
