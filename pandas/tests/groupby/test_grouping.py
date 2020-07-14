@@ -191,7 +191,7 @@ class TestGrouping:
         result = g.sum()
         tm.assert_frame_equal(result, expected)
 
-        result = g.apply(lambda x: x.sum())
+        result = g[["B"]].apply(lambda x: x.sum())
         tm.assert_frame_equal(result, expected)
 
         g = df.groupby(pd.Grouper(key="A", axis=0))

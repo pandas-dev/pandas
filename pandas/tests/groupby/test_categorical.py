@@ -129,9 +129,9 @@ def test_basic():
     def f(x):
         return x.drop_duplicates("person_name").iloc[0]
 
+    g = x.groupby(["person_id"], observed=False, as_index=False)
     result = g.apply(f)
     expected = x.iloc[[0, 1]].copy()
-    expected.index = Index([1, 2], name="person_id")
     expected["person_name"] = expected["person_name"].astype("object")
     tm.assert_frame_equal(result, expected)
 
@@ -1287,7 +1287,7 @@ def test_get_nonexistent_category():
     # Accessing a Category that is not in the dataframe
     df = pd.DataFrame({"var": ["a", "a", "b", "b"], "val": range(4)})
     with pytest.raises(KeyError, match="'vau'"):
-        df.groupby("var").apply(
+        df.groupby("var", as_index=False).apply(
             lambda rows: pd.DataFrame(
                 {"var": [rows.iloc[-1]["var"]], "val": [rows.iloc[-1]["vau"]]}
             )
