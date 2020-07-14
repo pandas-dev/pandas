@@ -545,6 +545,12 @@ cdef class BaseOffset:
         Returns
         -------
         DatetimeIndex
+
+        Raises
+        ------
+        NotImplementedError
+            When the specific offset subclass does not have a vectorized
+            implementation.
         """
         raise NotImplementedError(
             f"DateOffset subclass {type(self).__name__} "
