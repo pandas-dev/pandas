@@ -121,7 +121,7 @@ def _skip_if_no_scipy() -> bool:
     )
 
 
-def skip_if_installed(package: str) -> Callable:
+def skip_if_installed(package: str) -> MarkDecorator:
     """
     Skip a test if a package is installed.
 
@@ -135,7 +135,7 @@ def skip_if_installed(package: str) -> Callable:
     )
 
 
-def skip_if_no(package: str, min_version: Optional[str] = None) -> Callable:
+def skip_if_no(package: str, min_version: Optional[str] = None) -> MarkDecorator:
     """
     Generic function to help skip tests when required packages are not
     present on the testing system.
