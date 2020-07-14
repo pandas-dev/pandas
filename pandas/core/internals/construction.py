@@ -744,7 +744,12 @@ def sanitize_index(data, index: Index):
     through a non-Index.
     """
     if len(data) != len(index):
-        raise ValueError("Length of values does not match length of index")
+        raise ValueError(
+            "Length of values "
+            f"({len(data)}) "
+            "does not match length of index "
+            f"({len(index)})"
+        )
 
     if isinstance(data, np.ndarray):
 
