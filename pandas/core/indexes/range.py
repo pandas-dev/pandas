@@ -198,7 +198,7 @@ class RangeIndex(Int64Index):
         return None
 
     def _format_with_header(self, header, na_rep="NaN") -> List[str]:
-        return header + list(map(pprint_thing, self._range))
+        return header + [pprint_thing(x) for x in self._range]
 
     # --------------------------------------------------------------------
     _deprecation_message = (
