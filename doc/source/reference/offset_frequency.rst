@@ -203,7 +203,7 @@ Methods
    :toctree: api/
 
     CustomBusinessHour.apply
-    BusinessHour.apply_index
+    CustomBusinessHour.apply_index
     CustomBusinessHour.copy
     CustomBusinessHour.isAnchored
     CustomBusinessHour.onOffset
@@ -1168,6 +1168,7 @@ Methods
     Minute.is_on_offset
     Minute.__call__
     Minute.apply
+    Minute.apply_index
 
 Second
 ------

@@ -86,7 +86,7 @@ cdef bint _is_normalized(datetime dt):
     return True
 
 
-def apply_wrapper_core(func, self, other):
+def apply_wrapper_core(func, self, other) -> ndarray:
     result = func(self, other)
     result = np.asarray(result)
 
