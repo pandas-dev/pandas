@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 import pandas as pd
 from pandas import Categorical, DataFrame, Series, Timestamp, date_range
@@ -360,3 +361,26 @@ class TestDataFrameDescribe:
             ],
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_describe_does_not_raise_error(self):
+        # GH#32409
+        df = pd.DataFrame(
+            [{"test": {"a": "1"}}, {"test": {"a": "2"}}]
+        )
+        expected = DataFrame(
+            {"test": [2, 2, {'a': '1'}, 1]},
+            index=["count", "unique", "top", "freq"]
+        )
+        try:
+            result = df.describe()
+            tm.assert_frame_equal(result, expected)
+            exp_repr = (
+                "              test\n"
+                "count            2\n"
+                "unique           2\n"
+                "top     {'a': '1'}\n"
+                "freq             1"
+            )
+            assert repr(result) == exp_repr
+        except TypeError as e:
+            pytest.fail(f'TypeError was raised {e}')
