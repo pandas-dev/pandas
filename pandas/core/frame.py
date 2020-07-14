@@ -8786,7 +8786,7 @@ NaN 12.3   33.0
                 indices = nanops.nanargmin(self.values[::-1], axis=axis, skipna=skipna)
             else:
                 indices = nanops.nanargmin(
-                    self[self.columns[::-1]].values, axis=axis, skipna=skipna
+                    self.loc[self.columns[::-1]].values, axis=axis, skipna=skipna
                 )
             indices = (self.shape[axis] - 1) - indices
         elif keep == "first" or keep == "all":
@@ -8805,14 +8805,17 @@ NaN 12.3   33.0
         result = []
         if keep == "all":
             if axis == 0:
-                for i in range(0, self.shape[1]):
-                    result.append(
-                        self[self.iloc[:, i] == self.values[indices[i], i]].index.values
-                    )
+                result = [
+                    self.loc[self.iloc[:, i] == self.values[indices[i], i]].index.values
+                    for i in range(0, self.shape[1])
+                ]
             else:
-                for i in range(0, self.shape[0]):
-                    temp = self.iloc[i, :] == self.values[i, indices[i]]
-                    result.append(temp[temp].index.values)
+                result = [
+                    (self.iloc[i, :] == self.values[i, indices[i]])
+                    .loc[self.iloc[i, :] == self.values[i, indices[i]]]
+                    .index.values
+                    for i in range(0, self.shape[0])
+                ]
         else:
             result = [index[i] if i >= 0 else np.nan for i in indices]
         return self._constructor_sliced(result, index=self._get_agg_axis(axis))
@@ -8928,10 +8931,10 @@ NaN 12.3   33.0
         result = []
         if keep == "all":
             if axis == 0:
-                for i in range(0, self.shape[1]):
-                    result.append(
-                        self[self.iloc[:, i] == self.values[indices[i], i]].index.values
-                    )
+                result = [
+                    self[self.iloc[:, i] == self.values[indices[i], i]].index.values
+                    for i in range(0, self.shape[1])
+                ]
             else:
                 for i in range(0, self.shape[0]):
                     temp = self.iloc[i, :] == self.values[i, indices[i]]

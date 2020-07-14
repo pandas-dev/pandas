@@ -978,10 +978,12 @@ class IndexOpsMixin:
         if keep == "last":
             return (self.size - 1) - nanops.nanargmax(self._values[::-1], skipna=skipna)
         elif keep == "all":
-            temp = self.reset_index(drop=True)
-            return temp[
-                temp == temp[nanops.nanargmax(temp._values, skipna=skipna)]
-            ].index.values
+            return [
+                self.index.get_loc(c)
+                for c in self.loc[
+                    self == self.iloc[nanops.nanargmax(self._values, skipna=skipna)]
+                ].index
+            ]
         elif keep == "first":
             return nanops.nanargmax(self._values, skipna=skipna)
         else:
@@ -1040,10 +1042,12 @@ class IndexOpsMixin:
         if keep == "last":
             return (self.size - 1) - nanops.nanargmin(self._values[::-1], skipna=skipna)
         elif keep == "all":
-            temp = self.reset_index(drop=True)
-            return temp[
-                temp == temp[nanops.nanargmin(temp._values, skipna=skipna)]
-            ].index.values
+            return [
+                self.index.get_loc(c)
+                for c in self.loc[
+                    self == self.iloc[nanops.nanargmin(self._values, skipna=skipna)]
+                ].index
+            ]
         elif keep == "first":
             return nanops.nanargmin(self._values, skipna=skipna)
         else:

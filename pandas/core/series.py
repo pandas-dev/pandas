@@ -2108,7 +2108,7 @@ Name: Max Speed, dtype: float64
         if i == -1:
             return np.nan
         if keep == "all":
-            return self[self == self[i]].index.values
+            return self.loc[self == self.iloc[i]].index.values
         elif keep == "first" or keep == "last":
             return self.index[i]
         else:
@@ -2205,7 +2205,7 @@ Name: Max Speed, dtype: float64
         if i == -1:
             return np.nan
         if keep == "all":
-            return self[self == self[i]].index.values
+            return self.loc[self == self.iloc[i]].index.values
         elif keep == "first" or keep == "last":
             return self.index[i]
         else:
