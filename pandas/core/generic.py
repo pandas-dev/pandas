@@ -9762,7 +9762,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
               exclude pandas categorical columns, use ``'category'``
             - None (default) : The result will exclude nothing.
         datetime_is_numeric : bool, default False
-            Whether to treat datetime dtypes as numeric.
+            Whether to treat datetime dtypes as numeric. This affects statistics
+            calculated for the column. For DataFrame input, this also
+            controls whether datetime columns are included by default.
+
 
             .. versionadded:: 1.1.0
 
