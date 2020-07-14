@@ -1125,6 +1125,7 @@ Reshaping
 - Bug in :meth:`Series.where` with an empty Series and empty ``cond`` having non-bool dtype (:issue:`34592`)
 - Fixed regression where :meth:`DataFrame.apply` would raise ``ValueError`` for elements whth ``S`` dtype (:issue:`34529`)
 - Bug in :meth:`DataFrame.append` leading to sorting columns even when ``sort=False`` is specified (:issue:`35092`)
+- Bug in func :meth:`crosstab` when using multiple columns with ``margins=True`` and ``normalize=True`` (:issue:`35144`)
 
 Sparse
 ^^^^^^

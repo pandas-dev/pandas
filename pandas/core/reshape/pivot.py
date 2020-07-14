@@ -671,7 +671,7 @@ def _normalize(table, normalize, margins: bool, margins_name="All"):
         table_index = table.index
         table_columns = table.columns
 
-        # check if margin name is in (for MI cases) or equal to last
+        # check if margin name is not in (for MI cases) and not equal to last
         # index/column and save the column and index margin
         if (margins_name not in table.iloc[-1, :].name) & (
             margins_name != table.iloc[:, -1].name
