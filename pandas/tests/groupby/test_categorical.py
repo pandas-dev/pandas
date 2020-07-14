@@ -1433,37 +1433,6 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_false(
         assert (res.loc[unobserved_cats] == expected).all().all()
 
 
-@pytest.mark.parametrize("func", ["sum", "count"])
-def test_sum_and_count_exception_handling(func: str, observed: bool, monkeypatch):
-    # GH 31422
-    # GH 35028
-    # In order to return 0 instead of NaN for missing categories in
-    # GroupBy.count() and GroupBy.sum(), both methods overwrite the value of
-    # self.observed and then use a try-except-finally block. This test ensures
-    # that:
-    # a) An exception from a internal method is still raised
-    # b) self.observed is set back to its original value
-    df = pd.DataFrame(
-        {
-            "cat_1": pd.Categorical(list("AABB"), categories=list("ABC")),
-            "cat_2": pd.Categorical(list("1111"), categories=list("12")),
-            "value": [0.1, 0.1, 0.1, 0.1],
-        }
-    )
-    df_grp = df.groupby(["cat_1", "cat_2"], observed=observed)
-
-    def _mock_method(*args, **kwargs):
-        raise ZeroDivisionError
-
-    to_patch = {"count": "_wrap_agged_blocks", "sum": "_agg_general"}
-    monkeypatch.setattr(df_grp, to_patch[func], _mock_method)
-
-    with pytest.raises(ZeroDivisionError):
-        getattr(df_grp, func)()
-
-    assert df_grp.observed is observed
-
-
 def test_series_groupby_categorical_aggregation_getitem():
     # GH 8870
     d = {"foo": [10, 8, 4, 1], "bar": [10, 20, 30, 40], "baz": ["d", "c", "d", "c"]}

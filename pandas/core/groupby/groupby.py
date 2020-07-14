@@ -1532,25 +1532,29 @@ class GroupBy(_GroupBy[FrameOrSeries]):
     @doc(_groupby_agg_method_template, fname="sum", no=True, mc=0)
     def sum(self, numeric_only: bool = True, min_count: int = 0):
 
-        # GH 31422: We want .sum() to return 0 for missing categories
-        # rather than NaN. So we set self.observed=True to turn off the
-        # reindexing within self._agg_general, then reindex below with
-        # fill_value=0
-        observed_orig = self.observed
-        self.observed = True
-        try:
-            result = self._agg_general(
-                numeric_only=numeric_only,
-                min_count=min_count,
-                alias="add",
-                npfunc=np.sum,
+        if not self.observed:
+            inner_groupby = get_groupby(
+                obj=self.obj,
+                by=self.keys,
+                axis=self.axis,
+                level=self.level,
+                grouper=self.grouper,
+                exclusions=self.exclusions,
+                selection=self._selection,
+                as_index=self.as_index,
+                sort=self.sort,
+                group_keys=self.group_keys,
+                squeeze=self.squeeze,
+                observed=True,
+                mutated=self.mutated,
+                dropna=self.dropna,
             )
-        except Exception as e:
-            raise e
-        finally:
-            self.observed = observed_orig
+            result = inner_groupby.sum(numeric_only, min_count)
+            return self._reindex_output(result, fill_value=0)
 
-        return self._reindex_output(result, fill_value=0)
+        return self._agg_general(
+            numeric_only=numeric_only, min_count=min_count, alias="add", npfunc=np.sum
+        )
 
     @doc(_groupby_agg_method_template, fname="prod", no=True, mc=0)
     def prod(self, numeric_only: bool = True, min_count: int = 0):

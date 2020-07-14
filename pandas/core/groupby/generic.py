@@ -1807,6 +1807,26 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         DataFrame
             Count of values within each group.
         """
+        if not self.observed:
+            groupby_tmp = get_groupby(
+                obj=self.obj,
+                by=self.keys,
+                axis=self.axis,
+                level=self.level,
+                grouper=self.grouper,
+                exclusions=self.exclusions,
+                selection=self._selection,
+                as_index=self.as_index,
+                sort=self.sort,
+                group_keys=self.group_keys,
+                squeeze=self.squeeze,
+                observed=True,
+                mutated=self.mutated,
+                dropna=self.dropna,
+            )
+            result = groupby_tmp.count()
+            return self._reindex_output(result, fill_value=0)
+
         data = self._get_data_to_aggregate()
         ids, _, ngroups = self.grouper.group_info
         mask = ids != -1
@@ -1820,20 +1840,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
         blocks = [make_block(val, placement=loc) for val, loc in zip(counted, locs)]
 
-        # GH 35028: We want .count() to return 0 for missing categories
-        # rather than NaN. So we set self.observed=True to turn off the
-        # reindexing within self._wrap_agged_blocks, then reindex below with
-        # fill_value=0
-        observed_orig = self.observed
-        self.observed = True
-        try:
-            result = self._wrap_agged_blocks(blocks, items=data.items)
-        except Exception as e:
-            raise e
-        finally:
-            self.observed = observed_orig
-
-        return self._reindex_output(result, fill_value=0)
+        return self._wrap_agged_blocks(blocks, items=data.items)
 
     def nunique(self, dropna: bool = True):
         """
