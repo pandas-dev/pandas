@@ -21,64 +21,6 @@ def mix_abc() -> Dict[str, List[Union[float, str]]]:
     return {"a": list(range(4)), "b": list("ab.."), "c": ["a", "b", np.nan, "d"]}
 
 
-@pytest.fixture
-def input_category_df():
-    """
-    Create the input dataframe with explicit category column
-    """
-
-    # create input data
-    input_dict = {
-        "col1": [1, 2, 3, 4],
-        "col2": ["a", "b", "c", "d"],
-        "col3": [1.5, 2.5, 3.5, 4.5],
-        "col4": ["cat1", "cat2", "cat3", "cat4"],
-        "col5": ["obj1", "obj2", "obj3", "obj4"],
-    }
-
-    # explicitly cast columns as category and order them
-    input_df = pd.DataFrame(data=input_dict).astype(
-        {"col2": "category", "col4": "category"}
-    )
-    input_df["col2"] = input_df["col2"].cat.reorder_categories(
-        ["a", "b", "c", "d"], ordered=True
-    )
-    input_df["col4"] = input_df["col4"].cat.reorder_categories(
-        ["cat1", "cat2", "cat3", "cat4"], ordered=True
-    )
-
-    return input_df
-
-
-@pytest.fixture
-def expected_category_df():
-    """
-    Create the expected dataframe with explicit category column
-    """
-
-    # create expected dataframe
-    expected_dict = {
-        "col1": [1, 2, 3, 4],
-        "col2": ["a", "b", "c", "z"],
-        "col3": [1.5, 2.5, 3.5, 4.5],
-        "col4": ["cat1", "catX", "cat3", "cat4"],
-        "col5": ["obj9", "obj2", "obj3", "obj4"],
-    }
-
-    # explicitly cast columns as category and order them
-    expected_df = pd.DataFrame(data=expected_dict).astype(
-        {"col2": "category", "col4": "category"}
-    )
-    expected_df["col2"] = expected_df["col2"].cat.reorder_categories(
-        ["a", "b", "c", "z"], ordered=True
-    )
-    expected_df["col4"] = expected_df["col4"].cat.reorder_categories(
-        ["cat1", "catX", "cat3", "cat4"], ordered=True
-    )
-
-    return expected_df
-
-
 class TestDataFrameReplace:
     def test_replace_inplace(self, datetime_frame, float_string_frame):
         datetime_frame["A"][:5] = np.nan
@@ -1479,21 +1421,59 @@ class TestDataFrameReplace:
         expected = pd.DataFrame({"Per": [pd.Period("2020-01")] * 3})
         tm.assert_frame_equal(expected, result)
 
-    def test_replace_value_category_type(self, input_category_df, expected_category_df):
+    def test_replace_value_category_type(self):
         """
         Test to ensure category dtypes are maintained
         after replace with direct values
         """
 
+        # create input data
+        input_dict = {
+            "col1": [1, 2, 3, 4],
+            "col2": ["a", "b", "c", "d"],
+            "col3": [1.5, 2.5, 3.5, 4.5],
+            "col4": ["cat1", "cat2", "cat3", "cat4"],
+            "col5": ["obj1", "obj2", "obj3", "obj4"],
+        }
+        # explicitly cast columns as category and order them
+        input_df = pd.DataFrame(data=input_dict).astype(
+            {"col2": "category", "col4": "category"}
+        )
+        input_df["col2"] = input_df["col2"].cat.reorder_categories(
+            ["a", "b", "c", "d"], ordered=True
+        )
+        input_df["col4"] = input_df["col4"].cat.reorder_categories(
+            ["cat1", "cat2", "cat3", "cat4"], ordered=True
+        )
+
+        # create expected dataframe
+        expected_dict = {
+            "col1": [1, 2, 3, 4],
+            "col2": ["a", "b", "c", "z"],
+            "col3": [1.5, 2.5, 3.5, 4.5],
+            "col4": ["cat1", "catX", "cat3", "cat4"],
+            "col5": ["obj9", "obj2", "obj3", "obj4"],
+        }
+        # explicitly cast columns as category and order them
+        expected_df = pd.DataFrame(data=expected_dict).astype(
+            {"col2": "category", "col4": "category"}
+        )
+        expected_df["col2"] = expected_df["col2"].cat.reorder_categories(
+            ["a", "b", "c", "z"], ordered=True
+        )
+        expected_df["col4"] = expected_df["col4"].cat.reorder_categories(
+            ["cat1", "catX", "cat3", "cat4"], ordered=True
+        )
+
         # replace values in input dataframe
-        input_df = input_category_df.replace("d", "z")
+        input_df = input_df.replace("d", "z")
         input_df = input_df.replace("obj1", "obj9")
         input_df = input_df.replace("cat2", "catX")
 
-        tm.assert_frame_equal(input_df, expected_category_df)
+        tm.assert_frame_equal(input_df, expected_df)
 
     @pytest.mark.xfail(
-        reason="category dtype gets changed to object type after replace, see #23305",
+        reason="category dtype gets changed to object type after replace, see #35268",
         strict=True,
     )
     def test_replace_dict_category_type(self, input_category_df, expected_category_df):
@@ -1502,7 +1482,21 @@ class TestDataFrameReplace:
         after replace with dict values
         """
 
-        # replace values in input dataframe
-        input_df = input_category_df.replace({"d": "z", "obj1": "obj9", "cat2": "catX"})
+        # create input dataframe
+        input_dict = {"col1": ["a"], "col2": ["obj1"], "col3": ["cat1"]}
+        # explicitly cast columns as category
+        input_df = pd.DataFrame(data=input_dict).astype(
+            {"col1": "category", "col2": "category", "col3": "category"}
+        )
 
-        tm.assert_frame_equal(input_df, expected_category_df)
+        # create expected dataframe
+        expected_dict = {"col1": ["z"], "col2": ["obj9"], "col3": ["catX"]}
+        # explicitly cast columns as category
+        expected_df = pd.DataFrame(data=expected_dict).astype(
+            {"col1": "category", "col2": "category", "col3": "category"}
+        )
+
+        # replace values in input dataframe using a dict
+        input_df = input_df.replace({"a": "z", "obj1": "obj9", "cat1": "catX"})
+
+        tm.assert_frame_equal(input_df, expected_df)
