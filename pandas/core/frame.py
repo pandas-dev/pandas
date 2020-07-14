@@ -8802,7 +8802,6 @@ NaN 12.3   33.0
         assert isinstance(indices, np.ndarray)  # for mypyfffff
 
         index = self._get_axis(axis)
-        result = []
         if keep == "all":
             if axis == 0:
                 result = [
@@ -8816,9 +8815,10 @@ NaN 12.3   33.0
                     .index.values
                     for i in range(0, self.shape[0])
                 ]
+            return self._constructor_sliced(result, index=self._get_agg_axis(axis))
         else:
             result = [index[i] if i >= 0 else np.nan for i in indices]
-        return self._constructor_sliced(result, index=self._get_agg_axis(axis))
+            return self._constructor_sliced(result, index=self._get_agg_axis(axis))
 
     def idxmax(self, axis=0, skipna=True, keep="first") -> Series:
         """
@@ -8928,7 +8928,6 @@ NaN 12.3   33.0
         assert isinstance(indices, np.ndarray)  # for mypy
 
         index = self._get_axis(axis)
-        result = []
         if keep == "all":
             if axis == 0:
                 result = [
@@ -8939,9 +8938,10 @@ NaN 12.3   33.0
                 for i in range(0, self.shape[0]):
                     temp = self.iloc[i, :] == self.values[i, indices[i]]
                     result.append(temp[temp].index.values)
+            return self._constructor_sliced(result, index=self._get_agg_axis(axis))
         else:
             result = [index[i] if i >= 0 else np.nan for i in indices]
-        return self._constructor_sliced(result, index=self._get_agg_axis(axis))
+            return self._constructor_sliced(result, index=self._get_agg_axis(axis))
 
     def _get_agg_axis(self, axis_num: int) -> Index:
         """
