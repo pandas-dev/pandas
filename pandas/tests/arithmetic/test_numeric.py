@@ -554,7 +554,8 @@ class TestMultiplicationDivision:
             pytest.param(
                 pd.Index,
                 marks=pytest.mark.xfail(
-                    reason="Index.__div__ always raises", raises=TypeError
+                    # https://github.com/pytest-dev/pytest/issues/7488
+                    reason="Index.__div__ always raises", raises=TypeError  # type: ignore  # noqa
                 ),
             ),
             pd.Series,

@@ -30,6 +30,7 @@ from typing import Callable, Optional
 
 import numpy as np
 import pytest
+from _pytest.mark import MarkDecorator
 
 from pandas.compat import is_platform_32bit, is_platform_windows
 from pandas.compat._optional import import_optional_dependency
@@ -197,13 +198,11 @@ skip_if_no_ne = pytest.mark.skipif(
 
 
 def skip_if_np_lt(
-    ver_str: str, reason: Optional[str] = None, *args, **kwds
-) -> Callable:
+    ver_str: str, *args, reason: Optional[str] = None
+) -> MarkDecorator:
     if reason is None:
         reason = f"NumPy {ver_str} or greater required"
-    return pytest.mark.skipif(
-        _np_version < LooseVersion(ver_str), reason=reason, *args, **kwds
-    )
+    return pytest.mark.skipif(_np_version < LooseVersion(ver_str), *args, reason=reason)
 
 
 def parametrize_fixture_doc(*args):

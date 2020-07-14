@@ -427,7 +427,8 @@ class TestTimedeltaMultiplicationDivision:
                 marks=pytest.mark.xfail(
                     # Works on numpy dev only in python 3.9
                     _is_numpy_dev and not compat.PY39,
-                    raises=RuntimeWarning,
+                    # https://github.com/pytest-dev/pytest/issues/7488
+                    raises=RuntimeWarning,  # type: ignore
                     reason="https://github.com/pandas-dev/pandas/issues/31992",
                 ),
             ),

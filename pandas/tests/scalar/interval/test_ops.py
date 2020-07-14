@@ -10,7 +10,7 @@ from pandas import Interval, Timedelta, Timestamp
         (Timestamp("2018-01-01"), Timedelta("1 day")),
         (0, 1),
     ],
-    ids=lambda x: type(x[0]).__name__,
+    ids=lambda x: type(x[0]).__name__,  # type: ignore
 )
 def start_shift(request):
     """

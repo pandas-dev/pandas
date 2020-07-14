@@ -118,7 +118,8 @@ class TestDataFrameDiff:
 
     @pytest.mark.xfail(
         reason="GH#32995 needs to operate column-wise or do inference",
-        raises=AssertionError,
+        # https://github.com/pytest-dev/pytest/issues/7488
+        raises=AssertionError,  # type: ignore
     )
     def test_diff_period(self):
         # GH#32995 Don't pass an incorrect axis

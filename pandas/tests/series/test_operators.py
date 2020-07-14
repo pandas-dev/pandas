@@ -333,7 +333,8 @@ class TestSeriesLogicalOps:
                 ops.rand_,
                 marks=pytest.mark.xfail(
                     reason="GH#22092 Index __and__ returns Index intersection",
-                    raises=AssertionError,
+                    # https://github.com/pytest-dev/pytest/issues/7488
+                    raises=AssertionError,  # type: ignore
                     strict=True,
                 ),
             ),
@@ -341,7 +342,8 @@ class TestSeriesLogicalOps:
                 ops.ror_,
                 marks=pytest.mark.xfail(
                     reason="GH#22092 Index __or__ returns Index union",
-                    raises=AssertionError,
+                    # https://github.com/pytest-dev/pytest/issues/7488
+                    raises=AssertionError,  # type: ignore
                     strict=True,
                 ),
             ),
