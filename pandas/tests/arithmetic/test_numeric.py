@@ -99,7 +99,10 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
     # TODO: also check name retentention
     @pytest.mark.parametrize("box_cls", [np.array, pd.Index, pd.Series])
     @pytest.mark.parametrize(
-        "left", lefts, ids=lambda x: type(x).__name__ + str(x.dtype),
+        "left",
+        lefts,
+        # https://github.com/pytest-dev/pytest/issues/7494
+        ids=lambda x: type(x).__name__ + str(x.dtype),  # type: ignore
     )
     def test_mul_td64arr(self, left, box_cls):
         # GH#22390
@@ -119,7 +122,10 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
     # TODO: also check name retentention
     @pytest.mark.parametrize("box_cls", [np.array, pd.Index, pd.Series])
     @pytest.mark.parametrize(
-        "left", lefts, ids=lambda x: type(x).__name__ + str(x.dtype),
+        "left",
+        lefts,
+        # https://github.com/pytest-dev/pytest/issues/7494
+        ids=lambda x: type(x).__name__ + str(x.dtype),  # type: ignore
     )
     def test_div_td64arr(self, left, box_cls):
         # GH#22390
@@ -562,7 +568,8 @@ class TestMultiplicationDivision:
             pd.Series,
             pd.DataFrame,
         ],
-        ids=lambda x: x.__name__,
+        # https://github.com/pytest-dev/pytest/issues/7494
+        ids=lambda x: x.__name__,  # type: ignore
     )
     def test_divide_decimal(self, box):
         # resolves issue GH#9787

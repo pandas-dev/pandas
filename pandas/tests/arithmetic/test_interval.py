@@ -236,7 +236,8 @@ class TestComparison:
             pd.array(list("abcd")),
             pd.array(["foo", 3.14, None, object()]),
         ],
-        ids=lambda x: str(x.dtype),
+        # https://github.com/pytest-dev/pytest/issues/7494
+        ids=lambda x: str(x.dtype),  # type: ignore
     )
     def test_compare_list_like_other(self, op, array, other):
         result = op(array, other)

@@ -66,7 +66,8 @@ def get_series_na():
     ]
 
 
-@pytest.fixture(params=get_series(), ids=lambda x: x.dtype.name)
+# https://github.com/pytest-dev/pytest/issues/7494
+@pytest.fixture(params=get_series(), ids=lambda x: x.dtype.name)  # type: ignore
 def series_of_dtype(request):
     """
     A parametrized fixture returning a variety of Series of different
@@ -75,7 +76,8 @@ def series_of_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=get_series(), ids=lambda x: x.dtype.name)
+# https://github.com/pytest-dev/pytest/issues/7494
+@pytest.fixture(params=get_series(), ids=lambda x: x.dtype.name)  # type: ignore
 def series_of_dtype2(request):
     """
     A duplicate of the series_of_dtype fixture, so that it can be used
@@ -84,7 +86,8 @@ def series_of_dtype2(request):
     return request.param
 
 
-@pytest.fixture(params=get_series_na(), ids=lambda x: x.dtype.name)
+# https://github.com/pytest-dev/pytest/issues/7494
+@pytest.fixture(params=get_series_na(), ids=lambda x: x.dtype.name)  # type: ignore
 def series_of_dtype_all_na(request):
     """
     A parametrized fixture returning a variety of Series with all NA

@@ -1132,7 +1132,8 @@ class TestCanHoldElement:
             operator.mod,
             operator.pow,
         ],
-        ids=lambda x: x.__name__,
+        # https://github.com/pytest-dev/pytest/issues/7494
+        ids=lambda x: x.__name__,  # type: ignore
     )
     def test_binop_other(self, op, value, dtype):
         skip = {

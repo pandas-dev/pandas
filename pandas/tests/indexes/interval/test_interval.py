@@ -323,7 +323,8 @@ class TestIntervalIndex:
             date_range("20180101", periods=4, tz="US/Eastern"),
             timedelta_range("0 days", periods=4),
         ],
-        ids=lambda x: str(x.dtype),
+        # https://github.com/pytest-dev/pytest/issues/7494
+        ids=lambda x: str(x.dtype),  # type: ignore
     )
     def test_maybe_convert_i8(self, breaks):
         # GH 20636
@@ -376,7 +377,8 @@ class TestIntervalIndex:
     @pytest.mark.parametrize(
         "breaks",
         [np.arange(5, dtype="int64"), np.arange(5, dtype="float64")],
-        ids=lambda x: str(x.dtype),
+        # https://github.com/pytest-dev/pytest/issues/7494
+        ids=lambda x: str(x.dtype),  # type: ignore
     )
     @pytest.mark.parametrize(
         "make_key",
@@ -408,7 +410,8 @@ class TestIntervalIndex:
             ],
             2,
         ),
-        ids=lambda x: str(x.dtype),
+        # https://github.com/pytest-dev/pytest/issues/7494
+        ids=lambda x: str(x.dtype),  # type: ignore
     )
     @pytest.mark.parametrize(
         "make_key",

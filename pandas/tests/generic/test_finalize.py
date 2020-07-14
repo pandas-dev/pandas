@@ -535,7 +535,8 @@ def idfn(x):
         return str(x)
 
 
-@pytest.fixture(params=_all_methods, ids=lambda x: idfn(x[-1]))
+# https://github.com/pytest-dev/pytest/issues/7494
+@pytest.fixture(params=_all_methods, ids=lambda x: idfn(x[-1]))  # type: ignore
 def ndframe_method(request):
     """
     An NDFrame method returning an NDFrame.
