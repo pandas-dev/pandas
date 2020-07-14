@@ -364,12 +364,9 @@ class TestDataFrameDescribe:
 
     def test_describe_does_not_raise_error(self):
         # GH#32409
-        df = pd.DataFrame(
-            [{"test": {"a": "1"}}, {"test": {"a": "2"}}]
-        )
+        df = pd.DataFrame([{"test": {"a": "1"}}, {"test": {"a": "2"}}])
         expected = DataFrame(
-            {"test": [2, 2, {'a': '1'}, 1]},
-            index=["count", "unique", "top", "freq"]
+            {"test": [2, 2, {"a": "1"}, 1]}, index=["count", "unique", "top", "freq"]
         )
         try:
             result = df.describe()
@@ -383,4 +380,4 @@ class TestDataFrameDescribe:
             )
             assert repr(result) == exp_repr
         except TypeError as e:
-            pytest.fail(f'TypeError was raised {e}')
+            pytest.fail(f"TypeError was raised {e}")
