@@ -1239,7 +1239,7 @@ class MultiIndex(Index):
         space: int = 2,
         sparsify=None,
         adjoin: bool = True,
-    ) -> list:
+    ) -> List:
         if name is not None:
             names = name
 
