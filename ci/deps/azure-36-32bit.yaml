@@ -23,4 +23,4 @@ dependencies:
   - pip
   - pip:
     - cython>=0.29.16
-    - pytest>=5.0.1
+    - pytest>=5.0.1,<6.0.0rc0
