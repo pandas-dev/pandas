@@ -382,7 +382,10 @@ cpdef int64_t tz_convert_from_utc_single(int64_t val, tzinfo tz):
     converted: int64
     """
     cdef:
-        int64_t arr[1]
+        int64_t delta
+        int64_t[:] deltas
+        ndarray[int64_t, ndim=1] trans
+        intp_t pos
 
     if val == NPY_NAT:
         return val
@@ -391,9 +394,14 @@ cpdef int64_t tz_convert_from_utc_single(int64_t val, tzinfo tz):
         return val
     elif is_tzlocal(tz):
         return _tz_convert_tzlocal_utc(val, tz, to_utc=False)
+    elif is_fixed_offset(tz):
+        _, deltas, _ = get_dst_info(tz)
+        delta = deltas[0]
+        return val + delta
     else:
-        arr[0] = val
-        return _tz_convert_dst(arr, tz)[0]
+        trans, deltas, _ = get_dst_info(tz)
+        pos = trans.searchsorted(val, side="right") - 1
+        return val + deltas[pos]
 
 
 def tz_convert_from_utc(int64_t[:] vals, tzinfo tz):
@@ -435,9 +443,12 @@ cdef int64_t[:] _tz_convert_from_utc(int64_t[:] vals, tzinfo tz):
     converted : ndarray[int64_t]
     """
     cdef:
-        int64_t[:] converted
+        int64_t[:] converted, deltas
         Py_ssize_t i, n = len(vals)
-        int64_t val
+        int64_t val, delta
+        intp_t[:] pos
+        ndarray[int64_t] trans
+        str typ
 
     if is_utc(tz):
         converted = vals
@@ -450,7 +461,35 @@ cdef int64_t[:] _tz_convert_from_utc(int64_t[:] vals, tzinfo tz):
             else:
                 converted[i] = _tz_convert_tzlocal_utc(val, tz, to_utc=False)
     else:
-        converted = _tz_convert_dst(vals, tz)
+        converted = np.empty(n, dtype=np.int64)
+
+        trans, deltas, typ = get_dst_info(tz)
+
+        if typ not in ["pytz", "dateutil"]:
+            # FixedOffset, we know len(deltas) == 1
+            delta = deltas[0]
+
+            for i in range(n):
+                val = vals[i]
+                if val == NPY_NAT:
+                    converted[i] = val
+                else:
+                    converted[i] = val + delta
+
+        else:
+            pos = trans.searchsorted(vals, side="right") - 1
+
+            for i in range(n):
+                val = vals[i]
+                if val == NPY_NAT:
+                    converted[i] = val
+                else:
+                    if pos[i] < 0:
+                        # TODO: How is this reached?  Should we be checking for
+                        #  it elsewhere?
+                        raise ValueError("First time before start of DST info")
+
+                    converted[i] = val + deltas[pos[i]]
 
     return converted
 
@@ -537,67 +576,3 @@ cdef int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz, bint to_utc=True,
         return val - delta
     else:
         return val + delta
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cdef int64_t[:] _tz_convert_dst(const int64_t[:] values, tzinfo tz):
-    """
-    tz_convert for non-UTC non-tzlocal cases where we have to check
-    DST transitions pointwise.
-
-    Parameters
-    ----------
-    values : ndarray[int64_t]
-    tz : tzinfo
-
-    Returns
-    -------
-    result : ndarray[int64_t]
-    """
-    cdef:
-        Py_ssize_t n = len(values)
-        Py_ssize_t i
-        intp_t[:] pos
-        int64_t[:] result = np.empty(n, dtype=np.int64)
-        ndarray[int64_t] trans
-        int64_t[:] deltas
-        int64_t v, delta
-        str typ
-
-    # tz is assumed _not_ to be tzlocal; that should go
-    #  through _tz_convert_tzlocal_utc
-
-    trans, deltas, typ = get_dst_info(tz)
-
-    if typ not in ["pytz", "dateutil"]:
-        # FixedOffset, we know len(deltas) == 1
-        delta = deltas[0]
-
-        for i in range(n):
-            v = values[i]
-            if v == NPY_NAT:
-                result[i] = v
-            else:
-                result[i] = v + delta
-
-    else:
-        # Previously, this search was done pointwise to try and benefit
-        # from getting to skip searches for iNaTs. However, it seems call
-        # overhead dominates the search time so doing it once in bulk
-        # is substantially faster (GH#24603)
-        pos = trans.searchsorted(values, side="right") - 1
-
-        for i in range(n):
-            v = values[i]
-            if v == NPY_NAT:
-                result[i] = v
-            else:
-                if pos[i] < 0:
-                    # TODO: How is this reached?  Should we be checking for
-                    #  it elsewhere?
-                    raise ValueError("First time before start of DST info")
-
-                result[i] = v + deltas[pos[i]]
-
-    return result
