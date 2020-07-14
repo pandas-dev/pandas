@@ -558,7 +558,6 @@ class Grouping:
             return self.grouper.indices
 
         values = Categorical(self.grouper)
-
         return values._reverse_indexer()
 
     @property

@@ -162,7 +162,6 @@ def test_groupby_dropna_series_by(dropna, expected):
     tm.assert_series_equal(result, expected)
 
 
-
 @pytest.mark.parametrize(
     "dropna, tuples, outputs",
     [
