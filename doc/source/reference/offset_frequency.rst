@@ -1272,7 +1272,7 @@ Methods
     Micro.is_on_offset
     Micro.__call__
     Micro.apply
-    Micro.apply_inex
+    Micro.apply_index
 
 Nano
 ----
