@@ -121,3 +121,20 @@ class TestSeriesDescribe:
             index=["count", "unique", "top", "freq", "first", "last"],
         )
         tm.assert_series_equal(result, expected)
+
+    def test_datetime_is_numeric_includes_datetime(self):
+        s = Series(date_range("2012", periods=3))
+        result = s.describe(datetime_is_numeric=True)
+        expected = Series(
+            [
+                3,
+                Timestamp("2012-01-02"),
+                Timestamp("2012-01-01"),
+                Timestamp("2012-01-01T12:00:00"),
+                Timestamp("2012-01-02"),
+                Timestamp("2012-01-02T12:00:00"),
+                Timestamp("2012-01-03"),
+            ],
+            index=["count", "mean", "min", "25%", "50%", "75%", "max"],
+        )
+        tm.assert_series_equal(result, expected)

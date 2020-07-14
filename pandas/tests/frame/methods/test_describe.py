@@ -270,6 +270,27 @@ class TestDataFrameDescribe:
         result = df.describe(include="all", datetime_is_numeric=True)
         tm.assert_frame_equal(result, expected)
 
+    def test_datetime_is_numeric_includes_datetime(self):
+        df = pd.DataFrame({"a": pd.date_range("2012", periods=3), "b": [1, 2, 3]})
+        result = df.describe(datetime_is_numeric=True)
+        expected = pd.DataFrame(
+            {
+                "a": [
+                    3,
+                    pd.Timestamp("2012-01-02"),
+                    pd.Timestamp("2012-01-01"),
+                    pd.Timestamp("2012-01-01T12:00:00"),
+                    pd.Timestamp("2012-01-02"),
+                    pd.Timestamp("2012-01-02T12:00:00"),
+                    pd.Timestamp("2012-01-03"),
+                    np.nan,
+                ],
+                "b": [3, 2, 1, 1.5, 2, 2.5, 3, 1],
+            },
+            index=["count", "mean", "min", "25%", "50%", "75%", "max", "std"],
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_describe_tz_values2(self):
         tz = "CET"
         s1 = Series(range(5))
