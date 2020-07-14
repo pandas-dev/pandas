@@ -109,9 +109,6 @@ def apply_index_wraps(func):
                       "Use 'offset + other' instead.", FutureWarning)
         return result
 
-    # do @functools.wraps(func) manually since it doesn't work on cdef funcs
-    wrapper.__name__ = func.__name__
-    wrapper.__doc__ = func.__doc__
     return wrapper
 
 
