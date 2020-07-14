@@ -290,8 +290,7 @@ f : function
 engine : str, default None
     * ``'cython'`` : Runs the function through C-extensions from cython.
     * ``'numba'`` : Runs the function through JIT compiled code from numba.
-    * ``None`` : Defaults to ``'cython'`` or global numba configuration
-      (``'compute.use_numba`'`)
+    * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
 
     .. versionadded:: 1.1.0
 engine_kwargs : dict, default None
@@ -399,8 +398,7 @@ func : function, str, list or dict
 engine : str, default None
     * ``'cython'`` : Runs the function through C-extensions from cython.
     * ``'numba'`` : Runs the function through JIT compiled code from numba.
-    * ``None`` : Defaults to ``'cython'`` or global numba configuration
-      (``'compute.use_numba`'`)
+    * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
 
     .. versionadded:: 1.1.0
 engine_kwargs : dict, default None
