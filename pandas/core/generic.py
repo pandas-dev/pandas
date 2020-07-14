@@ -10500,8 +10500,18 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         cls.rolling = rolling
 
         @doc(Expanding)
-        def expanding(self, min_periods=1, center=False, axis=0):
+        def expanding(self, min_periods=1, center=None, axis=0):
             axis = self._get_axis_number(axis)
+            if center is not None:
+                warnings.warn(
+                    "The `center` argument on `expanding` "
+                    "will be removed in the future",
+                    FutureWarning,
+                    stacklevel=2,
+                )
+            else:
+                center = False
+
             return Expanding(self, min_periods=min_periods, center=center, axis=axis)
 
         cls.expanding = expanding
