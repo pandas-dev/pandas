@@ -280,6 +280,7 @@ Other enhancements
 - Added :meth:`DataFrame.value_counts` (:issue:`5377`)
 - Added a :func:`pandas.api.indexers.FixedForwardWindowIndexer` class to support forward-looking windows during ``rolling`` operations.
 - Added a :func:`pandas.api.indexers.VariableOffsetWindowIndexer` class to support ``rolling`` operations with non-fixed offsets (:issue:`34994`)
+- :meth:`~DataFrame.describe` now includes a ``datetime_is_numeric`` keyword to control how datetime columns are summarized (:issue:`30164`, :issue:`34798`)
 - :class:`Styler` may now render CSS more efficiently where multiple cells have the same styling (:issue:`30876`)
 - :meth:`Styler.highlight_null` now accepts ``subset`` argument (:issue:`31345`)
 - When writing directly to a sqlite connection :func:`to_sql` now supports the ``multi`` method (:issue:`29921`)
@@ -674,15 +675,6 @@ apply and applymap on ``DataFrame`` evaluates first row/column only once
 .. ipython:: python
 
     df.apply(func, axis=1)
-
-.. _whatsnew_110.api.other:
-
-Other API changes
-^^^^^^^^^^^^^^^^^
-
-- :meth:`Series.describe` will now show distribution percentiles for ``datetime`` dtypes, statistics ``first`` and ``last``
-  will now be ``min`` and ``max`` to match with numeric dtypes in :meth:`DataFrame.describe` (:issue:`30164`)
-
 
 Increased minimum versions for dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
