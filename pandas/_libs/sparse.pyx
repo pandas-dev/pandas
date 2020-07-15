@@ -791,4 +791,4 @@ def make_mask_object_ndarray(ndarray[object, ndim=1] arr, object fill_value):
         if value == fill_value and type(value) == type(fill_value):
             mask[i] = 0
 
-    return mask.view(dtype=np.bool)
+    return mask.view(dtype=bool)

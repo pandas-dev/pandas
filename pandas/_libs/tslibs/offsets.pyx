@@ -34,11 +34,16 @@ from pandas._libs.tslibs.util cimport (
 from pandas._libs.tslibs.ccalendar import (
     MONTH_ALIASES, MONTH_TO_CAL_NUM, weekday_to_int, int_to_weekday,
 )
-from pandas._libs.tslibs.ccalendar cimport DAY_NANOS, get_days_in_month, dayofweek
+from pandas._libs.tslibs.ccalendar cimport (
+    DAY_NANOS,
+    dayofweek,
+    get_days_in_month,
+    get_firstbday,
+    get_lastbday,
+)
 from pandas._libs.tslibs.conversion cimport (
     convert_datetime_to_tsobject,
     localize_pydatetime,
-    normalize_i8_timestamps,
 )
 from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
 from pandas._libs.tslibs.np_datetime cimport (
@@ -47,11 +52,9 @@ from pandas._libs.tslibs.np_datetime cimport (
     dt64_to_dtstruct,
     pydate_to_dtstruct,
 )
-from pandas._libs.tslibs.timezones cimport utc_pytz as UTC
-from pandas._libs.tslibs.tzconversion cimport tz_convert_single
+from pandas._libs.tslibs.tzconversion cimport tz_convert_from_utc_single
 
 from .dtypes cimport PeriodDtypeCode
-from .fields import get_start_end_field
 from .timedeltas cimport delta_to_nanoseconds
 from .timedeltas import Timedelta
 from .timestamps cimport _Timestamp
@@ -83,28 +86,43 @@ cdef bint _is_normalized(datetime dt):
     return True
 
 
+def apply_wrapper_core(func, self, other) -> ndarray:
+    result = func(self, other)
+    result = np.asarray(result)
+
+    if self.normalize:
+        # TODO: Avoid circular/runtime import
+        from .vectorized import normalize_i8_timestamps
+        result = normalize_i8_timestamps(result.view("i8"), None)
+
+    return result
+
+
 def apply_index_wraps(func):
+    # Note: normally we would use `@functools.wraps(func)`, but this does
+    # not play nicely with cython class methods
+    def wrapper(self, other):
+        # other is a DatetimeArray
+        result = apply_wrapper_core(func, self, other)
+        result = type(other)(result)
+        warnings.warn("'Offset.apply_index(other)' is deprecated. "
+                      "Use 'offset + other' instead.", FutureWarning)
+        return result
+
+    return wrapper
+
+
+def apply_array_wraps(func):
     # Note: normally we would use `@functools.wraps(func)`, but this does
     # not play nicely with cython class methods
     def wrapper(self, other) -> np.ndarray:
         # other is a DatetimeArray
-
-        result = func(self, other)
-        result = np.asarray(result)
-
-        if self.normalize:
-            result = normalize_i8_timestamps(result.view("i8"), None)
+        result = apply_wrapper_core(func, self, other)
         return result
 
     # do @functools.wraps(func) manually since it doesn't work on cdef funcs
     wrapper.__name__ = func.__name__
     wrapper.__doc__ = func.__doc__
-    try:
-        wrapper.__module__ = func.__module__
-    except AttributeError:
-        # AttributeError: 'method_descriptor' object has no
-        # attribute '__module__'
-        pass
     return wrapper
 
 
@@ -159,12 +177,6 @@ def apply_wraps(func):
     # do @functools.wraps(func) manually since it doesn't work on cdef funcs
     wrapper.__name__ = func.__name__
     wrapper.__doc__ = func.__doc__
-    try:
-        wrapper.__module__ = func.__module__
-    except AttributeError:
-        # AttributeError: 'method_descriptor' object has no
-        # attribute '__module__'
-        pass
     return wrapper
 
 
@@ -189,51 +201,6 @@ cdef _wrap_timedelta_result(result):
 
 # ---------------------------------------------------------------------
 # Business Helpers
-
-cpdef int get_lastbday(int year, int month) nogil:
-    """
-    Find the last day of the month that is a business day.
-
-    Parameters
-    ----------
-    year : int
-    month : int
-
-    Returns
-    -------
-    last_bday : int
-    """
-    cdef:
-        int wkday, days_in_month
-
-    wkday = dayofweek(year, month, 1)
-    days_in_month = get_days_in_month(year, month)
-    return days_in_month - max(((wkday + days_in_month - 1) % 7) - 4, 0)
-
-
-cpdef int get_firstbday(int year, int month) nogil:
-    """
-    Find the first day of the month that is a business day.
-
-    Parameters
-    ----------
-    year : int
-    month : int
-
-    Returns
-    -------
-    first_bday : int
-    """
-    cdef:
-        int first, wkday
-
-    wkday = dayofweek(year, month, 1)
-    first = 1
-    if wkday == 5:  # on Saturday
-        first = 3
-    elif wkday == 6:  # on Sunday
-        first = 2
-    return first
 
 
 cdef _get_calendar(weekmask, holidays, calendar):
@@ -276,7 +243,7 @@ cdef _to_dt64D(dt):
         #  equiv `Timestamp(dt).value` or `dt.timestamp() * 10**9`
         nanos = getattr(dt, "nanosecond", 0)
         i8 = convert_datetime_to_tsobject(dt, tz=None, nanos=nanos).value
-        dt = tz_convert_single(i8, UTC, dt.tzinfo)
+        dt = tz_convert_from_utc_single(i8, dt.tzinfo)
         dt = np.int64(dt).astype('datetime64[ns]')
     else:
         dt = np.datetime64(dt)
@@ -355,10 +322,8 @@ class ApplyTypeError(TypeError):
 
 cdef class BaseOffset:
     """
-    Base class for DateOffset methods that are not overridden by subclasses
-    and will (after pickle errors are resolved) go into a cdef class.
+    Base class for DateOffset methods that are not overridden by subclasses.
     """
-    _typ = "dateoffset"
     _day_opt = None
     _attributes = tuple(["n", "normalize"])
     _use_relativedelta = False
@@ -394,7 +359,7 @@ cdef class BaseOffset:
     def __ne__(self, other):
         return not self == other
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self._params)
 
     @cache_readonly
@@ -422,10 +387,10 @@ cdef class BaseOffset:
         return params
 
     @property
-    def kwds(self):
+    def kwds(self) -> dict:
         # for backwards-compatibility
         kwds = {name: getattr(self, name, None) for name in self._attributes
-                if name not in ['n', 'normalize']}
+                if name not in ["n", "normalize"]}
         return {name: kwds[name] for name in kwds if kwds[name] is not None}
 
     @property
@@ -491,18 +456,20 @@ cdef class BaseOffset:
     # Name and Rendering Methods
 
     def __repr__(self) -> str:
-        className = getattr(self, '_outputName', type(self).__name__)
+        # _output_name used by B(Year|Quarter)(End|Begin) to
+        #  expand "B" -> "Business"
+        class_name = getattr(self, "_output_name", type(self).__name__)
 
         if abs(self.n) != 1:
-            plural = 's'
+            plural = "s"
         else:
-            plural = ''
+            plural = ""
 
         n_str = ""
         if self.n != 1:
             n_str = f"{self.n} * "
 
-        out = f'<{n_str}{className}{plural}{self._repr_attrs()}>'
+        out = f"<{n_str}{class_name}{plural}{self._repr_attrs()}>"
         return out
 
     def _repr_attrs(self) -> str:
@@ -567,6 +534,10 @@ cdef class BaseOffset:
         raises NotImplementedError for offsets without a
         vectorized implementation.
 
+        .. deprecated:: 1.1.0
+
+           Use ``offset + dtindex`` instead.
+
         Parameters
         ----------
         index : DatetimeIndex
@@ -574,13 +545,26 @@ cdef class BaseOffset:
         Returns
         -------
         DatetimeIndex
+
+        Raises
+        ------
+        NotImplementedError
+            When the specific offset subclass does not have a vectorized
+            implementation.
         """
         raise NotImplementedError(
             f"DateOffset subclass {type(self).__name__} "
             "does not have a vectorized implementation"
         )
 
-    def rollback(self, dt):
+    @apply_array_wraps
+    def _apply_array(self, dtarr):
+        raise NotImplementedError(
+            f"DateOffset subclass {type(self).__name__} "
+            "does not have a vectorized implementation"
+        )
+
+    def rollback(self, dt) -> datetime:
         """
         Roll provided date backward to next offset only if not on offset.
 
@@ -594,7 +578,7 @@ cdef class BaseOffset:
             dt = dt - type(self)(1, normalize=self.normalize, **self.kwds)
         return dt
 
-    def rollforward(self, dt):
+    def rollforward(self, dt) -> datetime:
         """
         Roll provided date forward to next offset only if not on offset.
 
@@ -608,15 +592,15 @@ cdef class BaseOffset:
             dt = dt + type(self)(1, normalize=self.normalize, **self.kwds)
         return dt
 
-    def _get_offset_day(self, datetime other):
+    def _get_offset_day(self, other: datetime) -> int:
         # subclass must implement `_day_opt`; calling from the base class
-        # will raise NotImplementedError.
+        # will implicitly assume day_opt = "business_end", see get_day_of_month.
         cdef:
             npy_datetimestruct dts
         pydate_to_dtstruct(other, &dts)
         return get_day_of_month(&dts, self._day_opt)
 
-    def is_on_offset(self, dt) -> bool:
+    def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
 
@@ -632,7 +616,7 @@ cdef class BaseOffset:
     # Staticmethod so we can call from Tick.__init__, will be unnecessary
     #  once BaseOffset is a cdef class and is inherited by Tick
     @staticmethod
-    def _validate_n(n):
+    def _validate_n(n) -> int:
         """
         Require that `n` be an integer.
 
@@ -778,6 +762,8 @@ cdef class Tick(SingleConstructorOffset):
     def nanos(self) -> int64_t:
         return self.n * self._nanos_inc
 
+    # FIXME: This should be typed as datetime, but we DatetimeLikeIndex.insert
+    #  checks self.freq.is_on_offset with a Timedelta sometimes.
     def is_on_offset(self, dt) -> bool:
         return True
 
@@ -859,16 +845,8 @@ cdef class Tick(SingleConstructorOffset):
     def apply(self, other):
         # Timestamp can handle tz and nano sec, thus no need to use apply_wraps
         if isinstance(other, _Timestamp):
-
             # GH#15126
-            # in order to avoid a recursive
-            # call of __add__ and __radd__ if there is
-            # an exception, when we call using the + operator,
-            # we directly call the known method
-            result = other.__add__(self)
-            if result is NotImplemented:
-                raise OverflowError
-            return result
+            return other + self.delta
         elif other is NaT:
             return NaT
         elif is_datetime64_object(other) or PyDate_Check(other):
@@ -1010,7 +988,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
         self.__dict__.update(state)
 
     @apply_wraps
-    def apply(self, other):
+    def apply(self, other: datetime) -> datetime:
         if self._use_relativedelta:
             other = _as_datetime(other)
 
@@ -1050,7 +1028,11 @@ cdef class RelativeDeltaOffset(BaseOffset):
         -------
         ndarray[datetime64[ns]]
         """
-        dt64other = np.asarray(dtindex)
+        return self._apply_array(dtindex)
+
+    @apply_array_wraps
+    def _apply_array(self, dtarr):
+        dt64other = np.asarray(dtarr)
         kwds = self.kwds
         relativedelta_fast = {
             "years",
@@ -1095,7 +1077,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 "applied vectorized"
             )
 
-    def is_on_offset(self, dt) -> bool:
+    def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         # TODO: see GH#1395
@@ -1379,10 +1361,14 @@ cdef class BusinessDay(BusinessMixin):
 
     @apply_index_wraps
     def apply_index(self, dtindex):
-        i8other = dtindex.asi8
+        return self._apply_array(dtindex)
+
+    @apply_array_wraps
+    def _apply_array(self, dtarr):
+        i8other = dtarr.view("i8")
         return shift_bdays(i8other, self.n)
 
-    def is_on_offset(self, dt) -> bool:
+    def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         return dt.weekday() < 5
@@ -1482,7 +1468,7 @@ cdef class BusinessHour(BusinessMixin):
         until = datetime(2014, 4, day, end.hour, end.minute)
         return int((until - dtstart).total_seconds())
 
-    def _get_closing_time(self, dt):
+    def _get_closing_time(self, dt: datetime) -> datetime:
         """
         Get the closing time of a business hour interval by its opening time.
 
@@ -1582,7 +1568,7 @@ cdef class BusinessHour(BusinessMixin):
 
         return datetime(other.year, other.month, other.day, hour, minute)
 
-    def _prev_opening_time(self, other):
+    def _prev_opening_time(self, other: datetime) -> datetime:
         """
         If n is positive, return the latest opening time earlier than or equal
         to current time.
@@ -1602,7 +1588,7 @@ cdef class BusinessHour(BusinessMixin):
         return self._next_opening_time(other, sign=-1)
 
     @apply_wraps
-    def rollback(self, dt):
+    def rollback(self, dt: datetime) -> datetime:
         """
         Roll provided date backward to next offset only if not on offset.
         """
@@ -1615,7 +1601,7 @@ cdef class BusinessHour(BusinessMixin):
         return dt
 
     @apply_wraps
-    def rollforward(self, dt):
+    def rollforward(self, dt: datetime) -> datetime:
         """
         Roll provided date forward to next offset only if not on offset.
         """
@@ -1627,108 +1613,105 @@ cdef class BusinessHour(BusinessMixin):
         return dt
 
     @apply_wraps
-    def apply(self, other):
-        if PyDateTime_Check(other):
-            # used for detecting edge condition
-            nanosecond = getattr(other, "nanosecond", 0)
-            # reset timezone and nanosecond
-            # other may be a Timestamp, thus not use replace
-            other = datetime(
-                other.year,
-                other.month,
-                other.day,
-                other.hour,
-                other.minute,
-                other.second,
-                other.microsecond,
-            )
-            n = self.n
+    def apply(self, other: datetime) -> datetime:
+        # used for detecting edge condition
+        nanosecond = getattr(other, "nanosecond", 0)
+        # reset timezone and nanosecond
+        # other may be a Timestamp, thus not use replace
+        other = datetime(
+            other.year,
+            other.month,
+            other.day,
+            other.hour,
+            other.minute,
+            other.second,
+            other.microsecond,
+        )
+        n = self.n
 
-            # adjust other to reduce number of cases to handle
-            if n >= 0:
-                if other.time() in self.end or not self._is_on_offset(other):
-                    other = self._next_opening_time(other)
-            else:
-                if other.time() in self.start:
-                    # adjustment to move to previous business day
-                    other = other - timedelta(seconds=1)
-                if not self._is_on_offset(other):
-                    other = self._next_opening_time(other)
-                    other = self._get_closing_time(other)
-
-            # get total business hours by sec in one business day
-            businesshours = sum(
-                self._get_business_hours_by_sec(st, en)
-                for st, en in zip(self.start, self.end)
-            )
-
-            bd, r = divmod(abs(n * 60), businesshours // 60)
-            if n < 0:
-                bd, r = -bd, -r
-
-            # adjust by business days first
-            if bd != 0:
-                if self._prefix.startswith("C"):
-                    # GH#30593 this is a Custom offset
-                    skip_bd = CustomBusinessDay(
-                        n=bd,
-                        weekmask=self.weekmask,
-                        holidays=self.holidays,
-                        calendar=self.calendar,
-                    )
-                else:
-                    skip_bd = BusinessDay(n=bd)
-                # midnight business hour may not on BusinessDay
-                if not self.next_bday.is_on_offset(other):
-                    prev_open = self._prev_opening_time(other)
-                    remain = other - prev_open
-                    other = prev_open + skip_bd + remain
-                else:
-                    other = other + skip_bd
-
-            # remaining business hours to adjust
-            bhour_remain = timedelta(minutes=r)
-
-            if n >= 0:
-                while bhour_remain != timedelta(0):
-                    # business hour left in this business time interval
-                    bhour = (
-                        self._get_closing_time(self._prev_opening_time(other)) - other
-                    )
-                    if bhour_remain < bhour:
-                        # finish adjusting if possible
-                        other += bhour_remain
-                        bhour_remain = timedelta(0)
-                    else:
-                        # go to next business time interval
-                        bhour_remain -= bhour
-                        other = self._next_opening_time(other + bhour)
-            else:
-                while bhour_remain != timedelta(0):
-                    # business hour left in this business time interval
-                    bhour = self._next_opening_time(other) - other
-                    if (
-                        bhour_remain > bhour
-                        or bhour_remain == bhour
-                        and nanosecond != 0
-                    ):
-                        # finish adjusting if possible
-                        other += bhour_remain
-                        bhour_remain = timedelta(0)
-                    else:
-                        # go to next business time interval
-                        bhour_remain -= bhour
-                        other = self._get_closing_time(
-                            self._next_opening_time(
-                                other + bhour - timedelta(seconds=1)
-                            )
-                        )
-
-            return other
+        # adjust other to reduce number of cases to handle
+        if n >= 0:
+            if other.time() in self.end or not self._is_on_offset(other):
+                other = self._next_opening_time(other)
         else:
-            raise ApplyTypeError("Only know how to combine business hour with datetime")
+            if other.time() in self.start:
+                # adjustment to move to previous business day
+                other = other - timedelta(seconds=1)
+            if not self._is_on_offset(other):
+                other = self._next_opening_time(other)
+                other = self._get_closing_time(other)
 
-    def is_on_offset(self, dt):
+        # get total business hours by sec in one business day
+        businesshours = sum(
+            self._get_business_hours_by_sec(st, en)
+            for st, en in zip(self.start, self.end)
+        )
+
+        bd, r = divmod(abs(n * 60), businesshours // 60)
+        if n < 0:
+            bd, r = -bd, -r
+
+        # adjust by business days first
+        if bd != 0:
+            if self._prefix.startswith("C"):
+                # GH#30593 this is a Custom offset
+                skip_bd = CustomBusinessDay(
+                    n=bd,
+                    weekmask=self.weekmask,
+                    holidays=self.holidays,
+                    calendar=self.calendar,
+                )
+            else:
+                skip_bd = BusinessDay(n=bd)
+            # midnight business hour may not on BusinessDay
+            if not self.next_bday.is_on_offset(other):
+                prev_open = self._prev_opening_time(other)
+                remain = other - prev_open
+                other = prev_open + skip_bd + remain
+            else:
+                other = other + skip_bd
+
+        # remaining business hours to adjust
+        bhour_remain = timedelta(minutes=r)
+
+        if n >= 0:
+            while bhour_remain != timedelta(0):
+                # business hour left in this business time interval
+                bhour = (
+                    self._get_closing_time(self._prev_opening_time(other)) - other
+                )
+                if bhour_remain < bhour:
+                    # finish adjusting if possible
+                    other += bhour_remain
+                    bhour_remain = timedelta(0)
+                else:
+                    # go to next business time interval
+                    bhour_remain -= bhour
+                    other = self._next_opening_time(other + bhour)
+        else:
+            while bhour_remain != timedelta(0):
+                # business hour left in this business time interval
+                bhour = self._next_opening_time(other) - other
+                if (
+                    bhour_remain > bhour
+                    or bhour_remain == bhour
+                    and nanosecond != 0
+                ):
+                    # finish adjusting if possible
+                    other += bhour_remain
+                    bhour_remain = timedelta(0)
+                else:
+                    # go to next business time interval
+                    bhour_remain -= bhour
+                    other = self._get_closing_time(
+                        self._next_opening_time(
+                            other + bhour - timedelta(seconds=1)
+                        )
+                    )
+
+        return other
+
+    def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
 
@@ -1740,7 +1723,7 @@ cdef class BusinessHour(BusinessMixin):
         # Distinguish by the time spent from previous opening time
         return self._is_on_offset(dt)
 
-    def _is_on_offset(self, dt):
+    def _is_on_offset(self, dt: datetime) -> bool:
         """
         Slight speedups using calculated values.
         """
@@ -1779,20 +1762,17 @@ cdef class WeekOfMonthMixin(SingleConstructorOffset):
             raise ValueError(f"Day must be 0<=day<=6, got {weekday}")
 
     @apply_wraps
-    def apply(self, other):
+    def apply(self, other: datetime) -> datetime:
         compare_day = self._get_offset_day(other)
 
         months = self.n
-        if months > 0 and compare_day > other.day:
-            months -= 1
-        elif months <= 0 and compare_day < other.day:
-            months += 1
+        months = roll_convention(other.day, months, compare_day)
 
         shifted = shift_month(other, months, "start")
         to_day = self._get_offset_day(shifted)
         return shift_day(shifted, to_day - shifted.day)
 
-    def is_on_offset(self, dt) -> bool:
+    def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         return dt.day == self._get_offset_day(dt)
@@ -1847,12 +1827,12 @@ cdef class YearOffset(SingleConstructorOffset):
         month = MONTH_ALIASES[self.month]
         return f"{self._prefix}-{month}"
 
-    def is_on_offset(self, dt) -> bool:
+    def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         return dt.month == self.month and dt.day == self._get_offset_day(dt)
 
-    def _get_offset_day(self, other) -> int:
+    def _get_offset_day(self, other: datetime) -> int:
         # override BaseOffset method to use self.month instead of other.month
         cdef:
             npy_datetimestruct dts
@@ -1861,15 +1841,19 @@ cdef class YearOffset(SingleConstructorOffset):
         return get_day_of_month(&dts, self._day_opt)
 
     @apply_wraps
-    def apply(self, other):
+    def apply(self, other: datetime) -> datetime:
         years = roll_qtrday(other, self.n, self.month, self._day_opt, modby=12)
         months = years * 12 + (self.month - other.month)
         return shift_month(other, months, self._day_opt)
 
     @apply_index_wraps
     def apply_index(self, dtindex):
+        return self._apply_array(dtindex)
+
+    @apply_array_wraps
+    def _apply_array(self, dtarr):
         shifted = shift_quarters(
-            dtindex.asi8, self.n, self.month, self._day_opt, modby=12
+            dtarr.view("i8"), self.n, self.month, self._day_opt, modby=12
         )
         return shifted
 
@@ -1963,8 +1947,8 @@ cdef class QuarterOffset(SingleConstructorOffset):
     #       startingMonth vs month attr names are resolved
 
     # FIXME: python annotations here breaks things
-    # _default_startingMonth: int
-    # _from_name_startingMonth: int
+    # _default_starting_month: int
+    # _from_name_starting_month: int
 
     cdef readonly:
         int startingMonth
@@ -1973,7 +1957,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
         BaseOffset.__init__(self, n, normalize)
 
         if startingMonth is None:
-            startingMonth = self._default_startingMonth
+            startingMonth = self._default_starting_month
         self.startingMonth = startingMonth
 
     cpdef __setstate__(self, state):
@@ -1987,8 +1971,8 @@ cdef class QuarterOffset(SingleConstructorOffset):
         if suffix:
             kwargs["startingMonth"] = MONTH_TO_CAL_NUM[suffix]
         else:
-            if cls._from_name_startingMonth is not None:
-                kwargs["startingMonth"] = cls._from_name_startingMonth
+            if cls._from_name_starting_month is not None:
+                kwargs["startingMonth"] = cls._from_name_starting_month
         return cls(**kwargs)
 
     @property
@@ -1999,14 +1983,14 @@ cdef class QuarterOffset(SingleConstructorOffset):
     def is_anchored(self) -> bool:
         return self.n == 1 and self.startingMonth is not None
 
-    def is_on_offset(self, dt) -> bool:
+    def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         mod_month = (dt.month - self.startingMonth) % 3
         return mod_month == 0 and dt.day == self._get_offset_day(dt)
 
     @apply_wraps
-    def apply(self, other):
+    def apply(self, other: datetime) -> datetime:
         # months_since: find the calendar quarter containing other.month,
         # e.g. if other.month == 8, the calendar quarter is [Jul, Aug, Sep].
         # Then find the month in that quarter containing an is_on_offset date for
@@ -2021,8 +2005,12 @@ cdef class QuarterOffset(SingleConstructorOffset):
 
     @apply_index_wraps
     def apply_index(self, dtindex):
+        return self._apply_array(dtindex)
+
+    @apply_array_wraps
+    def _apply_array(self, dtarr):
         shifted = shift_quarters(
-            dtindex.asi8, self.n, self.startingMonth, self._day_opt
+            dtarr.view("i8"), self.n, self.startingMonth, self._day_opt
         )
         return shifted
 
@@ -2048,9 +2036,9 @@ cdef class BQuarterEnd(QuarterOffset):
     >>> ts + BQuarterEnd(startingMonth=2)
     Timestamp('2020-05-29 05:01:15')
     """
-    _outputName = "BusinessQuarterEnd"
-    _default_startingMonth = 3
-    _from_name_startingMonth = 12
+    _output_name = "BusinessQuarterEnd"
+    _default_starting_month = 3
+    _from_name_starting_month = 12
     _prefix = "BQ"
     _day_opt = "business_end"
 
@@ -2076,9 +2064,9 @@ cdef class BQuarterBegin(QuarterOffset):
     >>> ts + BQuarterBegin(-1)
     Timestamp('2020-03-02 05:01:15')
     """
-    _outputName = "BusinessQuarterBegin"
-    _default_startingMonth = 3
-    _from_name_startingMonth = 1
+    _output_name = "BusinessQuarterBegin"
+    _default_starting_month = 3
+    _from_name_starting_month = 1
     _prefix = "BQS"
     _day_opt = "business_start"
 
@@ -2091,8 +2079,7 @@ cdef class QuarterEnd(QuarterOffset):
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
     startingMonth = 3 corresponds to dates like 3/31/2007, 6/30/2007, ...
     """
-    _outputName = "QuarterEnd"
-    _default_startingMonth = 3
+    _default_starting_month = 3
     _prefix = "Q"
     _day_opt = "end"
 
@@ -2105,6 +2092,7 @@ cdef class QuarterEnd(QuarterOffset):
         QuarterOffset.__init__(self, n, normalize, startingMonth)
         self._period_dtype_code = PeriodDtypeCode.Q_DEC + self.startingMonth % 12
 
+
 cdef class QuarterBegin(QuarterOffset):
     """
     DateOffset increments between Quarter start dates.
@@ -2113,9 +2101,8 @@ cdef class QuarterBegin(QuarterOffset):
     startingMonth = 2 corresponds to dates like 2/01/2007, 5/01/2007, ...
     startingMonth = 3 corresponds to dates like 3/01/2007, 6/01/2007, ...
     """
-    _outputName = "QuarterBegin"
-    _default_startingMonth = 3
-    _from_name_startingMonth = 1
+    _default_starting_month = 3
+    _from_name_starting_month = 1
     _prefix = "QS"
     _day_opt = "start"
 
@@ -2124,20 +2111,24 @@ cdef class QuarterBegin(QuarterOffset):
 # Month-Based Offset Classes
 
 cdef class MonthOffset(SingleConstructorOffset):
-    def is_on_offset(self, dt) -> bool:
+    def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         return dt.day == self._get_offset_day(dt)
 
     @apply_wraps
-    def apply(self, other):
+    def apply(self, other: datetime) -> datetime:
         compare_day = self._get_offset_day(other)
         n = roll_convention(other.day, self.n, compare_day)
         return shift_month(other, n, self._day_opt)
 
     @apply_index_wraps
     def apply_index(self, dtindex):
-        shifted = shift_months(dtindex.asi8, self.n, self._day_opt)
+        return self._apply_array(dtindex)
+
+    @apply_array_wraps
+    def _apply_array(self, dtarr):
+        shifted = shift_months(dtarr.view("i8"), self.n, self._day_opt)
         return shifted
 
     cpdef __setstate__(self, state):
@@ -2244,36 +2235,44 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
         return self._prefix + suffix
 
     @apply_wraps
-    def apply(self, other):
+    def apply(self, other: datetime) -> datetime:
+        is_start = isinstance(self, SemiMonthBegin)
+
         # shift `other` to self.day_of_month, incrementing `n` if necessary
         n = roll_convention(other.day, self.n, self.day_of_month)
 
         days_in_month = get_days_in_month(other.year, other.month)
-
         # For SemiMonthBegin on other.day == 1 and
         # SemiMonthEnd on other.day == days_in_month,
         # shifting `other` to `self.day_of_month` _always_ requires
         # incrementing/decrementing `n`, regardless of whether it is
         # initially positive.
-        if type(self) is SemiMonthBegin and (self.n <= 0 and other.day == 1):
+        if is_start and (self.n <= 0 and other.day == 1):
             n -= 1
-        elif type(self) is SemiMonthEnd and (self.n > 0 and other.day == days_in_month):
+        elif (not is_start) and (self.n > 0 and other.day == days_in_month):
             n += 1
 
-        return self._apply(n, other)
+        if is_start:
+            months = n // 2 + n % 2
+            to_day = 1 if n % 2 else self.day_of_month
+        else:
+            months = n // 2
+            to_day = 31 if n % 2 else self.day_of_month
 
-    def _apply(self, n, other):
-        """
-        Handle specific apply logic for child classes.
-        """
-        raise NotImplementedError(self)
+        return shift_month(other, months, to_day)
 
     @apply_index_wraps
     @cython.wraparound(False)
     @cython.boundscheck(False)
     def apply_index(self, dtindex):
+        return self._apply_array(dtindex)
+
+    @apply_array_wraps
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
+    def _apply_array(self, dtarr):
         cdef:
-            int64_t[:] i8other = dtindex.view("i8")
+            int64_t[:] i8other = dtarr.view("i8")
             Py_ssize_t i, count = len(i8other)
             int64_t val
             int64_t[:] out = np.empty(count, dtype="i8")
@@ -2342,16 +2341,11 @@ cdef class SemiMonthEnd(SemiMonthOffset):
     _prefix = "SM"
     _min_day_of_month = 1
 
-    def is_on_offset(self, dt) -> bool:
+    def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         days_in_month = get_days_in_month(dt.year, dt.month)
         return dt.day in (self.day_of_month, days_in_month)
-
-    def _apply(self, n, other):
-        months = n // 2
-        day = 31 if n % 2 else self.day_of_month
-        return shift_month(other, months, day)
 
 
 cdef class SemiMonthBegin(SemiMonthOffset):
@@ -2368,15 +2362,10 @@ cdef class SemiMonthBegin(SemiMonthOffset):
 
     _prefix = "SMS"
 
-    def is_on_offset(self, dt) -> bool:
+    def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         return dt.day in (1, self.day_of_month)
-
-    def _apply(self, n, other):
-        months = n // 2 + n % 2
-        day = 1 if n % 2 else self.day_of_month
-        return shift_month(other, months, day)
 
 
 # ---------------------------------------------------------------------
@@ -2388,8 +2377,8 @@ cdef class Week(SingleConstructorOffset):
     Weekly offset.
 
     Parameters
-    ----------f
-    weekday : int, default None
+    ----------
+    weekday : int or None, default None
         Always generate specific day of week. 0 for Monday.
     """
 
@@ -2441,30 +2430,34 @@ cdef class Week(SingleConstructorOffset):
 
     @apply_index_wraps
     def apply_index(self, dtindex):
+        return self._apply_array(dtindex)
+
+    @apply_array_wraps
+    def _apply_array(self, dtarr):
         if self.weekday is None:
             td = timedelta(days=7 * self.n)
             td64 = np.timedelta64(td, "ns")
-            return dtindex + td64
+            return dtarr + td64
         else:
-            return self._end_apply_index(dtindex)
+            i8other = dtarr.view("i8")
+            return self._end_apply_index(i8other)
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
-    def _end_apply_index(self, dtindex):
+    cdef _end_apply_index(self, const int64_t[:] i8other):
         """
         Add self to the given DatetimeIndex, specialized for case where
         self.weekday is non-null.
 
         Parameters
         ----------
-        dtindex : DatetimeIndex
+        i8other : const int64_t[:]
 
         Returns
         -------
         ndarray[int64_t]
         """
         cdef:
-            int64_t[:] i8other = dtindex.view("i8")
             Py_ssize_t i, count = len(i8other)
             int64_t val
             int64_t[:] out = np.empty(count, dtype="i8")
@@ -2493,7 +2486,7 @@ cdef class Week(SingleConstructorOffset):
 
         return out.base
 
-    def is_on_offset(self, dt) -> bool:
+    def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
         elif self.weekday is None:
@@ -2647,6 +2640,7 @@ cdef class LastWeekOfMonth(WeekOfMonthMixin):
         weekday = weekday_to_int[suffix]
         return cls(weekday=weekday)
 
+
 # ---------------------------------------------------------------------
 # Special Offset Classes
 
@@ -2767,7 +2761,7 @@ cdef class FY5253(FY5253Mixin):
             return year_end == dt
 
     @apply_wraps
-    def apply(self, other):
+    def apply(self, other: datetime) -> datetime:
         norm = Timestamp(other).normalize()
 
         n = self.n
@@ -2822,7 +2816,7 @@ cdef class FY5253(FY5253Mixin):
         )
         return result
 
-    def get_year_end(self, dt):
+    def get_year_end(self, dt: datetime) -> datetime:
         assert dt.tzinfo is None
 
         dim = get_days_in_month(dt.year, self.startingMonth)
@@ -2968,7 +2962,7 @@ cdef class FY5253Quarter(FY5253Mixin):
             variation=self.variation,
         )
 
-    def _rollback_to_year(self, other):
+    def _rollback_to_year(self, other: datetime):
         """
         Roll `other` back to the most recent date that was on a fiscal year
         end.
@@ -3016,7 +3010,7 @@ cdef class FY5253Quarter(FY5253Mixin):
         return start, num_qtrs, tdelta
 
     @apply_wraps
-    def apply(self, other):
+    def apply(self, other: datetime) -> datetime:
         # Note: self.n == 0 is not allowed.
 
         n = self.n
@@ -3044,7 +3038,7 @@ cdef class FY5253Quarter(FY5253Mixin):
 
         return res
 
-    def get_weeks(self, dt):
+    def get_weeks(self, dt: datetime):
         ret = [13] * 4
 
         year_has_extra_week = self.year_has_extra_week(dt)
@@ -3107,7 +3101,7 @@ cdef class Easter(SingleConstructorOffset):
         self.normalize = state.pop("normalize")
 
     @apply_wraps
-    def apply(self, other):
+    def apply(self, other: datetime) -> datetime:
         current_easter = easter(other.year)
         current_easter = datetime(
             current_easter.year, current_easter.month, current_easter.day
@@ -3216,6 +3210,9 @@ cdef class CustomBusinessDay(BusinessDay):
             )
 
     def apply_index(self, dtindex):
+        raise NotImplementedError
+
+    def _apply_array(self, dtarr):
         raise NotImplementedError
 
     def is_on_offset(self, dt: datetime) -> bool:
@@ -3329,7 +3326,7 @@ cdef class _CustomBusinessMonth(BusinessMixin):
         return roll_func
 
     @apply_wraps
-    def apply(self, other):
+    def apply(self, other: datetime) -> datetime:
         # First move to month offset
         cur_month_offset_date = self.month_roll(other)
 
@@ -3683,7 +3680,6 @@ def shift_months(const int64_t[:] dtindex, int months, object day_opt=None):
                 out[i] = dtstruct_to_dt64(&dts)
     elif day_opt in ["start", "end", "business_start", "business_end"]:
         _shift_months(dtindex, out, count, months, day_opt)
-
     else:
         raise ValueError("day must be None, 'start', 'end', "
                          "'business_start', or 'business_end'")
@@ -3873,7 +3869,7 @@ def shift_month(stamp: datetime, months: int, day_opt: object=None) -> datetime:
     return stamp.replace(year=year, month=month, day=day)
 
 
-cdef inline int get_day_of_month(npy_datetimestruct* dts, day_opt) nogil except? -1:
+cdef inline int get_day_of_month(npy_datetimestruct* dts, str day_opt) nogil:
     """
     Find the day in `other`'s month that satisfies a DateOffset's is_on_offset
     policy, as described by the `day_opt` argument.
@@ -3899,27 +3895,23 @@ cdef inline int get_day_of_month(npy_datetimestruct* dts, day_opt) nogil except?
     >>> get_day_of_month(other, 'end')
     30
 
+    Notes
+    -----
+    Caller is responsible for ensuring one of the four accepted day_opt values
+    is passed.
     """
-    cdef:
-        int days_in_month
 
     if day_opt == "start":
         return 1
     elif day_opt == "end":
-        days_in_month = get_days_in_month(dts.year, dts.month)
-        return days_in_month
+        return get_days_in_month(dts.year, dts.month)
     elif day_opt == "business_start":
         # first business day of month
         return get_firstbday(dts.year, dts.month)
-    elif day_opt == "business_end":
+    else:
+        # i.e. day_opt == "business_end":
         # last business day of month
         return get_lastbday(dts.year, dts.month)
-    elif day_opt is not None:
-        raise ValueError(day_opt)
-    elif day_opt is None:
-        # Note: unlike `shift_month`, get_day_of_month does not
-        # allow day_opt = None
-        raise NotImplementedError
 
 
 cpdef int roll_convention(int other, int n, int compare) nogil:
@@ -3947,7 +3939,7 @@ cpdef int roll_convention(int other, int n, int compare) nogil:
 
 
 def roll_qtrday(other: datetime, n: int, month: int,
-                day_opt: object, modby: int) -> int:
+                day_opt: str, modby: int) -> int:
     """
     Possibly increment or decrement the number of periods to shift
     based on rollforward/rollbackward conventions.
@@ -3957,7 +3949,7 @@ def roll_qtrday(other: datetime, n: int, month: int,
     other : datetime or Timestamp
     n : number of periods to increment, before adjusting for rolling
     month : int reference month giving the first month of the year
-    day_opt : 'start', 'end', 'business_start', 'business_end', or int
+    day_opt : {'start', 'end', 'business_start', 'business_end'}
         The convention to use in finding the day in a given month against
         which to compare for rollforward/rollbackward decisions.
     modby : int 3 for quarters, 12 for years
@@ -3973,6 +3965,10 @@ def roll_qtrday(other: datetime, n: int, month: int,
     cdef:
         int months_since
         npy_datetimestruct dts
+
+    if day_opt not in ["start", "end", "business_start", "business_end"]:
+        raise ValueError(day_opt)
+
     pydate_to_dtstruct(other, &dts)
 
     if modby == 12:

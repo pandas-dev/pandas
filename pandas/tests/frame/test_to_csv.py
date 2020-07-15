@@ -570,7 +570,8 @@ class TestDataFrameToCSV:
             from_df.to_csv(path, index=False, header=["X", "Y"])
             recons = self.read_csv(path)
 
-            recons.reset_index(inplace=True)
+            return_value = recons.reset_index(inplace=True)
+            assert return_value is None
             tm.assert_frame_equal(to_df, recons)
 
     def test_to_csv_multiindex(self, float_frame, datetime_frame):
@@ -771,8 +772,8 @@ class TestDataFrameToCSV:
         for n, dtype in [
             ("float", np.float64),
             ("int", np.int64),
-            ("bool", np.bool),
-            ("object", np.object),
+            ("bool", np.bool_),
+            ("object", object),
         ]:
             for c in create_cols(n):
                 dtypes[c] = dtype
