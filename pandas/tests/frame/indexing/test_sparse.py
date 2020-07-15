@@ -64,3 +64,8 @@ class TestSparseDataFrameIndexing:
             index=[0, 2],
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_all_sparse(self):
+        df = pd.DataFrame({"A": pd.array([0, 0], dtype=pd.SparseDtype("int64"))})
+        result = df.loc[[0, 1]]
+        tm.assert_frame_equal(result, df)
