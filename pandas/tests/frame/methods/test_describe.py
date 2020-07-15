@@ -368,16 +368,13 @@ class TestDataFrameDescribe:
         expected = DataFrame(
             {"test": [2, 2, {"a": "1"}, 1]}, index=["count", "unique", "top", "freq"]
         )
-        try:
-            result = df.describe()
-            tm.assert_frame_equal(result, expected)
-            exp_repr = (
-                "              test\n"
-                "count            2\n"
-                "unique           2\n"
-                "top     {'a': '1'}\n"
-                "freq             1"
-            )
-            assert repr(result) == exp_repr
-        except TypeError as e:
-            pytest.fail(f"TypeError was raised {e}")
+        result = df.describe()
+        tm.assert_frame_equal(result, expected)
+        exp_repr = (
+            "              test\n"
+            "count            2\n"
+            "unique           2\n"
+            "top     {'a': '1'}\n"
+            "freq             1"
+        )
+        assert repr(result) == exp_repr
