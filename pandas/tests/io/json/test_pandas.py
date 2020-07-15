@@ -13,7 +13,7 @@ from pandas.compat import is_platform_32bit, is_platform_windows
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, DatetimeIndex, Series, Timestamp, read_json
+from pandas import DataFrame, DatetimeIndex, Series, Timestamp, compat, read_json
 import pandas._testing as tm
 
 _seriesd = tm.getSeriesData()
@@ -1257,7 +1257,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         assert json == expected
 
     @pytest.mark.parametrize("bigNum", [sys.maxsize + 1, -(sys.maxsize + 2)])
-    @pytest.mark.skipif(sys.maxsize <= 2 ** 32, reason="GH-35279")
+    @pytest.mark.skipif(not compat.IS64, reason="GH-35279")
     def test_read_json_large_numbers(self, bigNum):
         # GH20599
 

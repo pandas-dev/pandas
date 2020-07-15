@@ -561,6 +561,7 @@ class TestUltraJSONTests:
         assert long_input == ujson.decode(output)
 
     @pytest.mark.parametrize("bigNum", [sys.maxsize + 1, -(sys.maxsize + 2)])
+    @pytest.mark.xfail(not compat.IS64, reason="GH-35288")
     def test_dumps_ints_larger_than_maxsize(self, bigNum):
         # GH34395
         bigNum = sys.maxsize + 1
