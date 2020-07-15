@@ -133,15 +133,6 @@ def test_integer_array_numpy_sum(values, expected):
     assert result == expected
 
 
-def test_mixed_frame_with_integer_sum():
-    # GH#34520
-    df = pd.DataFrame([["a", 1]], columns=list("ab"))
-    df = df.astype({"b": "Int64"})
-    result = df.sum()
-    expected = pd.Series(["a", 1], index=["a", "b"])
-    tm.assert_series_equal(result, expected)
-
-
 @pytest.mark.parametrize("op", ["sum", "prod", "min", "max"])
 def test_dataframe_reductions(op):
     # https://github.com/pandas-dev/pandas/pull/32867
