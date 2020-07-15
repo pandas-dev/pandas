@@ -1243,8 +1243,8 @@ class DataFrame(NDFrame):
             If 'tight', assume a dict with keys ['index', 'columns', 'data',
             'index_names', 'column_names']
 
-        .. versionadded:: 1.1.0
-           'tight' as an allowed value for the ``orient`` argument
+            .. versionadded:: 1.1.0
+               'tight' as an allowed value for the ``orient`` argument
 
         dtype : dtype, default None
             Data type to force, otherwise infer.
@@ -1289,10 +1289,10 @@ class DataFrame(NDFrame):
         Specify ``orient='tight'`` to create the DataFrame using a 'tight'
         format.
         >>> data = {'index': [('a', 'b'), ('a', 'c')],
-                    'columns': [('x', 1), ('y', 2)],
-                    'data': [[1, 3], [2, 4]],
-                    'index_names': ['n1', 'n2'],
-                    'column_names': ['z1', 'z2']}
+        ...         'columns': [('x', 1), ('y', 2)],
+        ...         'data': [[1, 3], [2, 4]],
+        ...         'index_names': ['n1', 'n2'],
+        ...         'column_names': ['z1', 'z2']}
         >>> pd.DataFrame.from_dict(data, orient='tight')
         z1     x  y
         z2     1  2
@@ -1433,8 +1433,8 @@ class DataFrame(NDFrame):
             Abbreviations are allowed. `s` indicates `series` and `sp`
             indicates `split`.
 
-        .. versionadded:: 1.1.0
-           'tight' as an allowed value for the ``orient`` argument
+            .. versionadded:: 1.1.0
+                'tight' as an allowed value for the ``orient`` argument
 
         into : class, default dict
             The collections.abc.Mapping subclass used for all Mappings
