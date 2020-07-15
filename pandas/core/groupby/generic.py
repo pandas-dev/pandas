@@ -1808,7 +1808,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         DataFrame
             Count of values within each group.
         """
-
         data = self._get_data_to_aggregate()
         ids, _, ngroups = self.grouper.group_info
         mask = ids != -1
@@ -1822,6 +1821,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
         blocks = [make_block(val, placement=loc) for val, loc in zip(counted, locs)]
 
+        # If we are grouping on categoricals we want unobserved categories to
+        # return zero, rather than the default of NaN which the reindexing in
+        # _wrap_agged_blocks() returns. We set self.observed=True for the call to
+        # _wrap_agged_blocks() to avoid it reindexing. We then reindex below with
+        # fill_value=0. See GH 35028
         with _observed_is_true(self):
             result = self._wrap_agged_blocks(blocks, items=data.items)
 

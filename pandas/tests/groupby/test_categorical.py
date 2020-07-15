@@ -1195,7 +1195,6 @@ def test_seriesgroupby_observed_false_or_none(df_cat, observed, operation):
         expected = expected.fillna(0, downcast="infer")
     grouped = df_cat.groupby(["A", "B"], observed=observed)["C"]
     result = getattr(grouped, operation)(sum)
-
     tm.assert_series_equal(result, expected)
 
 
