@@ -596,7 +596,7 @@ class BlockManager(PandasObject):
         # figure out our mask apriori to avoid repeated replacements
         values = self.as_array()
 
-        def comp(s: Scalar, mask: ArrayLike, regex: bool = False):
+        def comp(s: Scalar, mask: np.ndarray, regex: bool = False):
             """
             Generate a bool array by perform an equality check, or perform
             an element-wise regular expression matching
