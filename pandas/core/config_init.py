@@ -52,6 +52,20 @@ def use_numexpr_cb(key):
     expressions.set_use_numexpr(cf.get_option(key))
 
 
+use_numba_doc = """
+: bool
+    Use the numba engine option for select operations if it is installed,
+    the default is False
+    Valid values: False,True
+"""
+
+
+def use_numba_cb(key):
+    from pandas.core.util import numba_
+
+    numba_.set_use_numba(cf.get_option(key))
+
+
 with cf.config_prefix("compute"):
     cf.register_option(
         "use_bottleneck",
@@ -62,6 +76,9 @@ with cf.config_prefix("compute"):
     )
     cf.register_option(
         "use_numexpr", True, use_numexpr_doc, validator=is_bool, cb=use_numexpr_cb
+    )
+    cf.register_option(
+        "use_numba", False, use_numba_doc, validator=is_bool, cb=use_numba_cb
     )
 #
 # options from the "display" namespace

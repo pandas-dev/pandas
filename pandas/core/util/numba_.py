@@ -10,7 +10,20 @@ from pandas._typing import FrameOrSeries
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import NumbaUtilError
 
+GLOBAL_USE_NUMBA: bool = False
 NUMBA_FUNC_CACHE: Dict[Tuple[Callable, str], Callable] = dict()
+
+
+def maybe_use_numba(engine: Optional[str]) -> bool:
+    """Signal whether to use numba routines."""
+    return engine == "numba" or (engine is None and GLOBAL_USE_NUMBA)
+
+
+def set_use_numba(enable: bool = False) -> None:
+    global GLOBAL_USE_NUMBA
+    if enable:
+        import_optional_dependency("numba")
+    GLOBAL_USE_NUMBA = enable
 
 
 def check_kwargs_and_nopython(

@@ -65,6 +65,7 @@ from pandas.core.groupby import base, ops
 from pandas.core.indexes.api import CategoricalIndex, Index, MultiIndex
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
+from pandas.core.util.numba_ import maybe_use_numba
 
 _common_see_also = """
         See Also
@@ -286,9 +287,10 @@ f : function
     .. versionchanged:: 1.1.0
 *args
     Positional arguments to pass to func
-engine : str, default 'cython'
+engine : str, default None
     * ``'cython'`` : Runs the function through C-extensions from cython.
     * ``'numba'`` : Runs the function through JIT compiled code from numba.
+    * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
 
     .. versionadded:: 1.1.0
 engine_kwargs : dict, default None
@@ -393,9 +395,10 @@ func : function, str, list or dict
     .. versionchanged:: 1.1.0
 *args
     Positional arguments to pass to func
-engine : str, default 'cython'
+engine : str, default None
     * ``'cython'`` : Runs the function through C-extensions from cython.
     * ``'numba'`` : Runs the function through JIT compiled code from numba.
+    * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
 
     .. versionadded:: 1.1.0
 engine_kwargs : dict, default None
@@ -1063,7 +1066,7 @@ b  2""",
                 # agg_series below assumes ngroups > 0
                 continue
 
-            if engine == "numba":
+            if maybe_use_numba(engine):
                 result, counts = self.grouper.agg_series(
                     obj,
                     func,
