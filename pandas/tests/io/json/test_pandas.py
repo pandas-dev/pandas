@@ -1250,23 +1250,32 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         json = series.to_json()
         expected = '{"articleId":' + str(bigNum) + "}"
         assert json == expected
-        # GH 20599
+
+        df = DataFrame(bigNum, dtype=object, index=["articleId"], columns=[0])
+        json = df.to_json()
+        expected = '{"0":{"articleId":' + str(bigNum) + "}}"
+        assert json == expected
+
+    @pytest.mark.parametrize("bigNum", [sys.maxsize + 1, -(sys.maxsize + 2)])
+    @pytest.mark.skipif(sys.maxsize <= 2 ** 32, reason="GH-35279")
+    def test_read_json_large_numbers(self, bigNum):
+        # GH20599
+
+        series = Series(bigNum, dtype=object, index=["articleId"])
+        json = '{"articleId":' + str(bigNum) + "}"
         with pytest.raises(ValueError):
             json = StringIO(json)
             result = read_json(json)
             tm.assert_series_equal(series, result)
 
         df = DataFrame(bigNum, dtype=object, index=["articleId"], columns=[0])
-        json = df.to_json()
-        expected = '{"0":{"articleId":' + str(bigNum) + "}}"
-        assert json == expected
-        # GH 20599
+        json = '{"0":{"articleId":' + str(bigNum) + "}}"
         with pytest.raises(ValueError):
             json = StringIO(json)
             result = read_json(json)
             tm.assert_frame_equal(df, result)
 
-    def test_read_json_large_numbers(self):
+    def test_read_json_large_numbers2(self):
         # GH18842
         json = '{"articleId": "1404366058080022500245"}'
         json = StringIO(json)
