@@ -134,3 +134,27 @@ class BaseMissingTests(BaseExtensionTests):
         with pd.option_context("mode.use_inf_as_na", True):
             result = ser.isna()
         self.assert_series_equal(result, expected)
+
+
+def test_dropna_perc():
+    # GH 35299
+    df = pd.DataFrame(
+        {
+            "col": ["A", "A", "B", "B"],
+            "A": [80, np.nan, np.nan, np.nan],
+            "B": [80, np.nan, 76, 67],
+        }
+    )
+
+    # axis = 1
+    expected = pd.DataFrame({"col": ["A", "A", "B", "B"], "B": [80, np.nan, 76, 67]})
+    result = df.dropna(perc=0.5, axis=1)
+    tm.assert_frame_equal(result, expected)
+
+    # axis = 0
+    expected = pd.DataFrame(
+        {"col": ["A", "B", "B"], "A": [80.0, np.nan, np.nan], "B": [80.0, 76.0, 67.0]}
+    )
+    expected.index = [0, 2, 3]
+    result = df.dropna(perc=0.5)
+    tm.assert_frame_equal(result, expected)
