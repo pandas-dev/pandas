@@ -226,6 +226,8 @@ def get_filepath_or_buffer(
             if storage_options is None:
                 storage_options = {"anon": True}
             else:
+                # don't mutate user input.
+                storage_options = dict(storage_options)
                 storage_options["anon"] = True
             file_obj = fsspec.open(
                 filepath_or_buffer, mode=mode or "rb", **(storage_options or {})
