@@ -3810,8 +3810,9 @@ class DataFrame(NDFrame):
         array of the values corresponding to each (row, col) pair.
 
         .. deprecated:: 1.1.0
-            DataFrame.lookup is deprecated, use DataFrame.melt and DataFrame.loc instead,
-            see "Indexing and selecting data" in the user guide for an example.
+            DataFrame.lookup is deprecated,
+            use DataFrame.melt and DataFrame.loc instead.
+            See "Indexing and selecting data" in the user guide for an example.
 
         Parameters
         ----------
