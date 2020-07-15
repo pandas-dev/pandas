@@ -1296,7 +1296,7 @@ class DataFrame(NDFrame):
         row_2  a  b  c  d
 
         Specify ``orient='tight'`` to create the DataFrame using a 'tight'
-        format.
+        format:
         >>> data = {'index': [('a', 'b'), ('a', 'c')],
         ...         'columns': [('x', 1), ('y', 2)],
         ...         'data': [[1, 3], [2, 4]],
@@ -1425,7 +1425,7 @@ class DataFrame(NDFrame):
               {'index' -> [index], 'columns' -> [columns], 'data' -> [values]}
             - 'tight' : dict like
               {'index' -> [index], 'columns' -> [columns], 'data' -> [values],
-               'index_names' -> [index.names], 'column_names' -> [column.names]}
+              'index_names' -> [index.names], 'column_names' -> [column.names]}
             - 'records' : list like
               [{column -> value}, ... , {column -> value}]
             - 'index' : dict like {index -> {column -> value}}
