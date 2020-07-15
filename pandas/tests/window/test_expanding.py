@@ -16,6 +16,9 @@ def test_doc_string():
     df.expanding(2).sum()
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The `center` argument on `expanding` will be removed in the future"
+)
 def test_constructor(which):
     # GH 12669
 
@@ -213,3 +216,16 @@ def test_iter_expanding_series(ser, expected, min_periods):
 
     for (expected, actual) in zip(expected, ser.expanding(min_periods)):
         tm.assert_series_equal(actual, expected)
+
+
+def test_center_deprecate_warning():
+    # GH 20647
+    df = pd.DataFrame()
+    with tm.assert_produces_warning(FutureWarning):
+        df.expanding(center=True)
+
+    with tm.assert_produces_warning(FutureWarning):
+        df.expanding(center=False)
+
+    with tm.assert_produces_warning(None):
+        df.expanding()
