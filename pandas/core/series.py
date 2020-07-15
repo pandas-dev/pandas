@@ -1438,6 +1438,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Mode in which file is opened.
         index : bool, optional, default True
             Add index (row) labels
+
+            .. versionadded:: 1.1.0
+
         **kwargs
             These parameters will be passed to `tabulate \
                 <https://pypi.org/project/tabulate>`_.
