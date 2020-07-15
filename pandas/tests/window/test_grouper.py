@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, compat
 import pandas._testing as tm
 from pandas.core.groupby.groupby import get_groupby
 
@@ -23,6 +23,7 @@ class TestGrouperGrouping:
         g = get_groupby(self.frame, by="A", mutated=True)
         assert g.mutated
 
+    @pytest.mark.xfail(not compat.IS64, reason="GH-35294")
     def test_getitem(self):
         g = self.frame.groupby("A")
         g_mutated = get_groupby(self.frame, by="A", mutated=True)
@@ -55,6 +56,7 @@ class TestGrouperGrouping:
         result = r.B.count()
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(not compat.IS64, reason="GH-35294")
     def test_rolling(self):
         g = self.frame.groupby("A")
         r = g.rolling(window=4)
@@ -72,6 +74,7 @@ class TestGrouperGrouping:
     @pytest.mark.parametrize(
         "interpolation", ["linear", "lower", "higher", "midpoint", "nearest"]
     )
+    @pytest.mark.xfail(not compat.IS64, reason="GH-35294")
     def test_rolling_quantile(self, interpolation):
         g = self.frame.groupby("A")
         r = g.rolling(window=4)
@@ -102,6 +105,7 @@ class TestGrouperGrouping:
             expected = g.apply(func)
             tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(not compat.IS64, reason="GH-35294")
     def test_rolling_apply(self, raw):
         g = self.frame.groupby("A")
         r = g.rolling(window=4)
@@ -111,6 +115,7 @@ class TestGrouperGrouping:
         expected = g.apply(lambda x: x.rolling(4).apply(lambda y: y.sum(), raw=raw))
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(not compat.IS64, reason="GH-35294")
     def test_rolling_apply_mutability(self):
         # GH 14013
         df = pd.DataFrame({"A": ["foo"] * 3 + ["bar"] * 3, "B": [1] * 6})
@@ -192,6 +197,7 @@ class TestGrouperGrouping:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("expected_value,raw_value", [[1.0, True], [0.0, False]])
+    @pytest.mark.xfail(not compat.IS64, reason="GH-35294")
     def test_groupby_rolling(self, expected_value, raw_value):
         # GH 31754
 
