@@ -8590,7 +8590,7 @@ NaN 12.3   33.0
                 out[:] = coerce_to_dtypes(out.values, df.dtypes)
             return out
 
-        if not self._is_homogeneous_type:
+        if not self._is_homogeneous_type or self._mgr.any_extension_types:
             # try to avoid self.values call
 
             if filter_type is None and axis == 0 and len(self) > 0:
