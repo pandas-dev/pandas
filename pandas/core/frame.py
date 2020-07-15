@@ -1286,6 +1286,15 @@ class DataFrame(NDFrame):
         row_1  3  2  1  0
         row_2  a  b  c  d
 
+        When using the 'index' orientation, the column names can be
+        specified manually:
+
+        >>> pd.DataFrame.from_dict(data, orient='index',
+        ...                        columns=['A', 'B', 'C', 'D'])
+               A  B  C  D
+        row_1  3  2  1  0
+        row_2  a  b  c  d
+
         Specify ``orient='tight'`` to create the DataFrame using a 'tight'
         format.
         >>> data = {'index': [('a', 'b'), ('a', 'c')],
@@ -1299,15 +1308,6 @@ class DataFrame(NDFrame):
         n1 n2
         a  b   1  3
            c   2  4
-
-        When using the 'index' orientation, the column names can be
-        specified manually:
-
-        >>> pd.DataFrame.from_dict(data, orient='index',
-        ...                        columns=['A', 'B', 'C', 'D'])
-               A  B  C  D
-        row_1  3  2  1  0
-        row_2  a  b  c  d
         """
         index = None
         orient = orient.lower()
