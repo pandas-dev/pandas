@@ -4901,8 +4901,8 @@ class DataFrame(NDFrame):
         thresh : int, optional
             Require that many non-NA values.
         perc : float, optional
-            If a column or row exceeds this percentage threshold  NA-values
-            it will be dropped
+            If a column or row exceeds this percentage threshold of
+            NA-values, it will be dropped.
         subset : array-like, optional
             Labels along other axis to consider, e.g. if you are dropping rows
             these would be a list of columns to include.
