@@ -214,13 +214,7 @@ def union_indexes(indexes, sort=True) -> Index:
             return result.union_many(indexes[1:])
         else:
             for other in indexes[1:]:
-                # GH 35092. Index.union expects sort=None instead of sort=True
-                # to signify that sort=True isn't fully implemented and
-                # legacy implementation sometimes might not sort (see GH 24959)
-                # In this case we currently sort in _get_combined_index
-                if sort:
-                    sort = None
-                result = result.union(other, sort=sort)
+                result = result.union(other)
             return result
     elif kind == "array":
         index = indexes[0]
