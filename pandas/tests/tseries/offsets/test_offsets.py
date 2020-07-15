@@ -635,22 +635,6 @@ class TestCommon(Base):
             result = offset_s + dta
         tm.assert_equal(result, dta)
 
-    def test_pickle_v1_0_5(self, datapath):
-        offsets = {
-            "DateOffset": DateOffset(years=1),
-            "MonthBegin": MonthBegin(1),
-            "Day": Day(1),
-            "YearBegin": YearBegin(1),
-            "Week": Week(1),
-        }
-
-        pickle_path = datapath("tseries", "offsets", "data", "dateoffset_1_0_5.pickle")
-        # This code was executed once on v1.0.5 to generate the pickle:
-        # with open(pickle_path, 'wb') as f: pickle.dump(offsets, f, protocol=4)
-        #
-        result = read_pickle(pickle_path)
-        tm.assert_dict_equal(offsets, result)
-
     def test_pickle_roundtrip(self, offset_types):
         off = self._get_offset(offset_types)
         res = tm.round_trip_pickle(off)
