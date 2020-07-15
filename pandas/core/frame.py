@@ -1241,7 +1241,7 @@ class DataFrame(NDFrame):
             should be the columns of the resulting DataFrame, pass 'columns'
             (default). Otherwise if the keys should be rows, pass 'index'.
             If 'tight', assume a dict with keys ['index', 'columns', 'data',
-            'index_names', 'column_names']
+            'index_names', 'column_names'].
 
             .. versionadded:: 1.1.0
                'tight' as an allowed value for the ``orient`` argument
