@@ -3,6 +3,7 @@ from typing import Any, Optional, Sequence, Tuple, Type, Union
 
 import numpy as np
 import pyarrow as pa
+import pyarrow.compute as pc
 
 from pandas._libs import missing as libmissing
 from pandas._typing import ArrayLike
@@ -322,9 +323,9 @@ class ArrowStringArray(ExtensionArray):
         if isinstance(other, (pd.Series, pd.DataFrame, pd.Index)):
             return NotImplemented
         if isinstance(other, ArrowStringArray):
-            result = self.data == other.data
+            result = pc.equal(self.data, other.data)
         elif is_scalar(other):
-            result = self.data == pa.scalar(other)
+            result = pc.equal(self.data, pa.scalar(other))
         else:
             raise NotImplementedError("Neither scalar nor ArrowStringArray")
 
