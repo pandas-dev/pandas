@@ -467,7 +467,9 @@ class ArrowStringArray(ExtensionArray):
                 # Nothing to fill
                 return type(self)(self.data.take(indices))
         else:  # allow_fill=False
+            # TODO(ARROW-9432): Treat negative indices as indices from the right.
             if (indices_array < 0).any():
-                # TODO(ARROW-9432): Treat negative indices as indices from the right.
-                raise NotImplementedError("negative indices")
-            return type(self)(self.data.take(indices))
+                # Don't modify in-place
+                indices_array = np.copy(indices_array)
+                indices_array[indices_array < 0] += len(self.data)
+            return type(self)(self.data.take(indices_array))
