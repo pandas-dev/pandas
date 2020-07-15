@@ -5012,13 +5012,7 @@ class DataFrame(NDFrame):
             else:
                 raise TypeError("must specify how or thresh")
 
-        if perc is not None:
-            if axis == 0:
-                result = self.loc[mask, :]
-            else:
-                result = self.loc[:, mask]
-        else:
-            result = self.loc(axis=axis)[mask]
+        result = self.loc(axis=axis)[mask]
 
         if inplace:
             self._update_inplace(result)
