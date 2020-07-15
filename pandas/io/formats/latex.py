@@ -330,9 +330,9 @@ class LatexFormatter(TableFormatter):
         buf.write("\\bottomrule\n")
         buf.write("\\end{tabular}\n")
         if (
-                self.caption is not None
-                or self.label is not None
-                or self.position is not None
+            self.caption is not None
+            or self.label is not None
+            or self.position is not None
         ):
             buf.write("\\end{table}\n")
         else:
