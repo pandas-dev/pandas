@@ -58,6 +58,7 @@ from pandas.core.sorting import (
 from pandas.core.util.numba_ import (
     NUMBA_FUNC_CACHE,
     generate_numba_func,
+    maybe_use_numba,
     split_for_numba,
 )
 
@@ -620,7 +621,7 @@ class BaseGrouper:
         # Caller is responsible for checking ngroups != 0
         assert self.ngroups != 0
 
-        if engine == "numba":
+        if maybe_use_numba(engine):
             return self._aggregate_series_pure_python(
                 obj, func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
             )
@@ -678,7 +679,7 @@ class BaseGrouper:
         **kwargs,
     ):
 
-        if engine == "numba":
+        if maybe_use_numba(engine):
             numba_func, cache_key = generate_numba_func(
                 func, engine_kwargs, kwargs, "groupby_agg"
             )
@@ -691,7 +692,7 @@ class BaseGrouper:
         splitter = get_splitter(obj, group_index, ngroups, axis=0)
 
         for label, group in splitter:
-            if engine == "numba":
+            if maybe_use_numba(engine):
                 values, index = split_for_numba(group)
                 res = numba_func(values, index, *args)
                 if cache_key not in NUMBA_FUNC_CACHE:
