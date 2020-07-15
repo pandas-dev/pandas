@@ -70,9 +70,9 @@ from pandas.core.groupby.groupby import (
     GroupBy,
     _agg_template,
     _apply_docs,
+    _observed_is_true,
     _transform_template,
     get_groupby,
-    _observed_is_true,
 )
 from pandas.core.indexes.api import Index, MultiIndex, all_indexes_same
 import pandas.core.indexes.base as ibase
