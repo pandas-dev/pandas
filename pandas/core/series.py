@@ -1437,7 +1437,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         mode : str, optional
             Mode in which file is opened.
         index : bool, optional, default True
-            Add index (row) labels
+            Add index (row) labels.
 
             .. versionadded:: 1.1.0
 
