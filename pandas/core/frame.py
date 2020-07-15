@@ -4868,7 +4868,9 @@ class DataFrame(NDFrame):
     def notnull(self) -> "DataFrame":
         return ~self.isna()
 
-    def dropna(self, axis=0, how="any", thresh=None, subset=None, inplace=False):
+    def dropna(
+        self, axis=0, how="any", thresh=None, perc=None, subset=None, inplace=False
+    ):
         """
         Remove missing values.
 
@@ -4898,6 +4900,8 @@ class DataFrame(NDFrame):
 
         thresh : int, optional
             Require that many non-NA values.
+        perc : float, optional
+            If a column exceeds this
         subset : array-like, optional
             Labels along other axis to consider, e.g. if you are dropping rows
             these would be a list of columns to include.
@@ -4992,6 +4996,11 @@ class DataFrame(NDFrame):
 
         if thresh is not None:
             mask = count >= thresh
+        elif perc is not None:
+            if axis == 0:
+                mask = agg_obj.isna().mean(axis=agg_axis) <= perc
+            else:
+                mask = agg_obj.isna().mean() <= perc
         elif how == "any":
             mask = count == len(agg_obj._get_axis(agg_axis))
         elif how == "all":
@@ -5002,7 +5011,13 @@ class DataFrame(NDFrame):
             else:
                 raise TypeError("must specify how or thresh")
 
-        result = self.loc(axis=axis)[mask]
+        if perc is not None:
+            if axis == 0:
+                result = self.loc[mask, :]
+            else:
+                result = self.loc[:, mask]
+        else:
+            result = self.loc(axis=axis)[mask]
 
         if inplace:
             self._update_inplace(result)
