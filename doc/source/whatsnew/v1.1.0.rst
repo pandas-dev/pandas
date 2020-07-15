@@ -1114,7 +1114,6 @@ Reshaping
 - Fixed bug in :func:`melt` where melting MultiIndex columns with ``col_level`` > 0 would raise a ``KeyError`` on ``id_vars`` (:issue:`34129`)
 - Bug in :meth:`Series.where` with an empty Series and empty ``cond`` having non-bool dtype (:issue:`34592`)
 - Fixed regression where :meth:`DataFrame.apply` would raise ``ValueError`` for elements whth ``S`` dtype (:issue:`34529`)
-- Bug in :meth:`DataFrame.append` leading to sorting columns even when ``sort=False`` is specified (:issue:`35092`)
 
 Sparse
 ^^^^^^

@@ -636,15 +636,8 @@ class TestStringMethods:
         # mixed list of indexed/unindexed
         u = np.array(["A", "B", "C", "D"])
         expected_outer = Series(["aaA", "bbB", "c-C", "ddD", "-e-"])
-
         # joint index of rhs [t, u]; u will be forced have index of s
-        # GH 35092. If right join, maintain order of t.index
-        if join == "inner":
-            rhs_idx = t.index & s.index
-        elif join == "right":
-            rhs_idx = t.index.union(s.index, sort=False)
-        else:
-            rhs_idx = t.index | s.index
+        rhs_idx = t.index & s.index if join == "inner" else t.index | s.index
 
         expected = expected_outer.loc[s.index.join(rhs_idx, how=join)]
         result = s.str.cat([t, u], join=join, na_rep="-")

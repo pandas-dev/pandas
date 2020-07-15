@@ -13,9 +13,8 @@ from pandas._libs.tslibs import iNaT
 from pandas.core.dtypes.common import is_period_dtype, needs_i8_conversion
 
 import pandas as pd
-from pandas import CategoricalIndex, Index, MultiIndex, RangeIndex
+from pandas import CategoricalIndex, MultiIndex, RangeIndex
 import pandas._testing as tm
-from pandas.core.indexes.api import union_indexes
 
 
 class TestCommon:
@@ -396,18 +395,3 @@ class TestCommon:
             assert result.names == index.names
         else:
             assert result.name == index.name
-
-
-@pytest.mark.parametrize("arr", [[0, 1, 4, 3]])
-@pytest.mark.parametrize("dtype", ["int8", "int16", "int32", "int64"])
-def test_union_index_no_sort(arr, sort, dtype):
-    # GH 35092. Check that we don't sort with sort=False
-    ind1 = Index(arr[:2], dtype=dtype)
-    ind2 = Index(arr[2:], dtype=dtype)
-
-    # sort is None indicates that we sort the combined index
-    if sort is None:
-        arr.sort()
-    expected = Index(arr, dtype=dtype)
-    result = union_indexes([ind1, ind2], sort=sort)
-    tm.assert_index_equal(result, expected)
