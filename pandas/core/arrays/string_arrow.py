@@ -459,10 +459,19 @@ class ArrowStringArray(ExtensionArray):
         else:
             indices_array = indices
 
+        if len(self.data) == 0 and (indices_array >= 0).any():
+            raise IndexError("cannot do a non-empty take")
+        if indices_array.max() >= len(self.data):
+            raise IndexError("out of bounds value in 'indices'.")
+
         if allow_fill:
             if (indices_array < 0).any():
                 # TODO(ARROW-9433): Treat negative indices as NULL
-                raise NotImplementedError("allow_fill=True")
+                indices_array = pa.array(indices_array, mask=indices_array < 0)
+                result = self.data.take(indices_array)
+                if pd.isna(fill_value):
+                    return type(self)(result)
+                return type(self)(pc.fill_null(result, pa.scalar(fill_value)))
             else:
                 # Nothing to fill
                 return type(self)(self.data.take(indices))
