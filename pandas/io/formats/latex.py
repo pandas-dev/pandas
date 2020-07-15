@@ -286,8 +286,11 @@ class LatexFormatter(TableFormatter):
             <https://en.wikibooks.org/wiki/LaTeX/Tables>`__ e.g 'rcl'
             for 3 columns
         """
-        if self.caption is not None or self.label is not None \
-                or self.position is not None:
+        if (
+            self.caption is not None
+            or self.label is not None
+            or self.position is not None
+        ):
             # then write output in a nested table/tabular environment
             buf.write(f"\\begin{{table}}")
             if self.caption is None:
