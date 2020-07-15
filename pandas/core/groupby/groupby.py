@@ -828,7 +828,7 @@ b  2""",
         )
     )
     def apply(self, func, *args, **kwargs):
-        
+
         self._reset_group_selection()
 
         func = self._is_builtin_func(func)

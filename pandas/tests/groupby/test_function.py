@@ -298,7 +298,7 @@ def test_non_cython_api():
         index=expected_index,
         columns=expected_col,
     )
-    result = g.describe()
+    result = g.describe().drop(columns="A")
     tm.assert_frame_equal(result, expected)
 
     expected = pd.concat(
