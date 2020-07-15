@@ -3663,14 +3663,19 @@ class TestSemiMonthEnd(Base):
 
     @pytest.mark.parametrize("case", offset_cases)
     def test_apply_index(self, case):
+        # https://github.com/pandas-dev/pandas/issues/34580
         offset, cases = case
         s = DatetimeIndex(cases.keys())
+        exp = DatetimeIndex(cases.values())
+
         with tm.assert_produces_warning(None):
             # GH#22535 check that we don't get a FutureWarning from adding
             # an integer array to PeriodIndex
             result = offset + s
+        tm.assert_index_equal(result, exp)
 
-        exp = DatetimeIndex(cases.values())
+        with tm.assert_produces_warning(FutureWarning):
+            result = offset.apply_index(s)
         tm.assert_index_equal(result, exp)
 
     on_offset_cases = [
