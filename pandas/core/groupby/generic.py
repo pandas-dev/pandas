@@ -72,6 +72,7 @@ from pandas.core.groupby.groupby import (
     _apply_docs,
     _transform_template,
     get_groupby,
+    _observed_is_true,
 )
 from pandas.core.indexes.api import Index, MultiIndex, all_indexes_same
 import pandas.core.indexes.base as ibase
@@ -1807,25 +1808,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         DataFrame
             Count of values within each group.
         """
-        if not self.observed:
-            groupby_tmp = get_groupby(
-                obj=self.obj,
-                by=self.keys,
-                axis=self.axis,
-                level=self.level,
-                grouper=self.grouper,
-                exclusions=self.exclusions,
-                selection=self._selection,
-                as_index=self.as_index,
-                sort=self.sort,
-                group_keys=self.group_keys,
-                squeeze=self.squeeze,
-                observed=True,
-                mutated=self.mutated,
-                dropna=self.dropna,
-            )
-            result = groupby_tmp.count()
-            return self._reindex_output(result, fill_value=0)
 
         data = self._get_data_to_aggregate()
         ids, _, ngroups = self.grouper.group_info
@@ -1840,7 +1822,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
         blocks = [make_block(val, placement=loc) for val, loc in zip(counted, locs)]
 
-        return self._wrap_agged_blocks(blocks, items=data.items)
+        with _observed_is_true(self):
+            result = self._wrap_agged_blocks(blocks, items=data.items)
+
+        return self._reindex_output(result, fill_value=0)
 
     def nunique(self, dropna: bool = True):
         """

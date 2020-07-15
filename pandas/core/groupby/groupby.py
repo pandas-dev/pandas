@@ -464,6 +464,17 @@ def _group_selection_context(groupby):
     groupby._reset_group_selection()
 
 
+@contextmanager
+def _observed_is_true(groupby):
+    """
+    Set GroupBy.observed to True, then restore to original value
+    """
+    original_value = groupby.observed
+    groupby.observed = True
+    yield groupby
+    groupby.observed = original_value
+
+
 _KeysArgType = Union[
     Hashable,
     List[Hashable],
@@ -1532,29 +1543,15 @@ class GroupBy(_GroupBy[FrameOrSeries]):
     @doc(_groupby_agg_method_template, fname="sum", no=True, mc=0)
     def sum(self, numeric_only: bool = True, min_count: int = 0):
 
-        if not self.observed:
-            inner_groupby = get_groupby(
-                obj=self.obj,
-                by=self.keys,
-                axis=self.axis,
-                level=self.level,
-                grouper=self.grouper,
-                exclusions=self.exclusions,
-                selection=self._selection,
-                as_index=self.as_index,
-                sort=self.sort,
-                group_keys=self.group_keys,
-                squeeze=self.squeeze,
-                observed=True,
-                mutated=self.mutated,
-                dropna=self.dropna,
+        with _observed_is_true(self):
+            result = self._agg_general(
+                numeric_only=numeric_only,
+                min_count=min_count,
+                alias="add",
+                npfunc=np.sum,
             )
-            result = inner_groupby.sum(numeric_only, min_count)
-            return self._reindex_output(result, fill_value=0)
 
-        return self._agg_general(
-            numeric_only=numeric_only, min_count=min_count, alias="add", npfunc=np.sum
-        )
+        return self._reindex_output(result, fill_value=0)
 
     @doc(_groupby_agg_method_template, fname="prod", no=True, mc=0)
     def prod(self, numeric_only: bool = True, min_count: int = 0):
