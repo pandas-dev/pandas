@@ -1010,3 +1010,43 @@ def test_apply_with_timezones_aware():
     result2 = df2.groupby("x", group_keys=False).apply(lambda df: df[["x", "y"]].copy())
 
     tm.assert_frame_equal(result1, result2)
+
+
+@pytest.mark.parametrize(
+    "func", ["sum", "min", "max", "mean", "std", "prod", "cumprod", "cumsum"]
+)
+def test_apply_is_unchanged_when_other_methods_are_clled_first(func):
+    # GH 34656
+    # GH 34271
+    df = DataFrame(
+        {
+            "a": [99, 99, 99, 88, 88, 88],
+            "b": [1, 2, 3, 4, 5, 6],
+            "c": [10, 20, 30, 40, 50, 60],
+        }
+    )
+
+    expected = df.groupby("a").apply(getattr(np, func))
+
+    # Call .apply() without calling any method on the GroupBy beforehand
+    grp = df.groupby("a")
+    result = grp.apply(getattr(np, func))
+    tm.assert_frame_equal(result, expected)
+
+    # Call .apply() after calling .min()  on the GroupBy
+    grp = df.groupby("a")
+    grp.min()
+    result = grp.apply(getattr(np, func))
+    tm.assert_frame_equal(result, expected)
+
+    # Call .apply() after calling 'func' on the GroupBy
+    grp = df.groupby("a")
+    getattr(grp, func)()
+    result = grp.apply(getattr(np, func))
+    tm.assert_frame_equal(result, expected)
+
+    # Call .apply() after directly calling ._set_group_selection() on the GroupBy
+    grp = df.groupby("a")
+    grp._set_group_selection()
+    result = grp.apply(getattr(np, func))
+    tm.assert_frame_equal(result, expected)
