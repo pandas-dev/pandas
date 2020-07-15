@@ -232,24 +232,25 @@ class TestFloat64Index(Numeric):
         i2 = Float64Index([1.0, 2.0])
         assert i.equals(i2)
 
-        i3 = Float64Index([1.0, np.nan])
-        assert i3.equals(i3)
-        assert i3.identical(i3)
+        i = Float64Index([1.0, np.nan])
+        assert i.equals(i)
+        assert i.identical(i)
 
-        i4 = Float64Index([1.0, np.nan])
-        assert i3.equals(i4)
+        i2 = Float64Index([1.0, np.nan])
+        assert i.equals(i2)
 
-        i5 = Int64Index([1, 2])
-        assert i.equals(i5)
-        assert i5.equals(i)
-
-        i6 = Index([1.0, 2.0], dtype=object)
-        assert i.equals(i6)
-        assert i6.equals(i)
-
-        i7 = Index([1, 2], dtype=object)
-        assert i.equals(i7)
-        assert i7.equals(i)
+    @pytest.mark.parametrize(
+        "other",
+        (
+            Int64Index([1, 2]),
+            Index([1.0, 2.0], dtype=object),
+            Index([1, 2], dtype=object),
+        ),
+    )
+    def test_equals_numeric_other_index_type(self, other):
+        i = Float64Index([1.0, 2.0])
+        assert i.equals(other)
+        assert other.equals(i)
 
     @pytest.mark.parametrize(
         "vals",
