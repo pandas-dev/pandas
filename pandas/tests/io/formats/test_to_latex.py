@@ -571,9 +571,9 @@ b &       b &     b \\
         assert result_l == expected_l
 
         # test when only the caption is provided
-        result_c = df.to_latex(longtable=True, position=the_position)
+        result_p = df.to_latex(longtable=True, position=the_position)
 
-        expected_c = r"""\begin{longtable}[t]{lrl}
+        expected_p = r"""\begin{longtable}[t]{lrl}
 \toprule
 {} &  a &   b \\
 \midrule
@@ -589,7 +589,7 @@ b &       b &     b \\
 1 &  2 &  b2 \\
 \end{longtable}
 """
-        assert result_c == expected_c
+        assert result_p == expected_p
 
         # test when the caption and the label are provided
         result_cl = df.to_latex(longtable=True, caption=the_caption, label=the_label)
