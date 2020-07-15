@@ -438,10 +438,11 @@ b &       b &     b \\
         with3columns_result = df.to_latex(index=False, longtable=True)
         assert r"\multicolumn{3}" in with3columns_result
 
-    def test_to_latex_caption_label(self):
+    def test_to_latex_caption_label_position(self):
         # GH 25436
         the_caption = "a table in a \\texttt{table/tabular} environment"
         the_label = "tab:table_tabular"
+        the_position = "h"
 
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
 
@@ -481,6 +482,23 @@ b &       b &     b \\
 """
         assert result_l == expected_l
 
+        # test when only the label is provided
+        result_p = df.to_latex(position=the_position)
+
+        expected_p = r"""\begin{table}[h]
+\centering
+\begin{tabular}{lrl}
+\toprule
+{} &  a &   b \\
+\midrule
+0 &  1 &  b1 \\
+1 &  2 &  b2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+"""
+        assert result_p == expected_p
+
         # test when the caption and the label are provided
         result_cl = df.to_latex(caption=the_caption, label=the_label)
 
@@ -500,10 +518,11 @@ b &       b &     b \\
 """
         assert result_cl == expected_cl
 
-    def test_to_latex_longtable_caption_label(self):
+    def test_to_latex_longtable_caption_label_position(self):
         # GH 25436
         the_caption = "a table in a \\texttt{longtable} environment"
         the_label = "tab:longtable"
+        the_position = "t"
 
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
 
@@ -550,6 +569,27 @@ b &       b &     b \\
 \end{longtable}
 """
         assert result_l == expected_l
+
+        # test when only the caption is provided
+        result_c = df.to_latex(longtable=True, position=the_position)
+
+        expected_c = r"""\begin{longtable}[t]{lrl}
+\toprule
+{} &  a &   b \\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r}{{Continued on next page}} \\
+\midrule
+\endfoot
+
+\bottomrule
+\endlastfoot
+0 &  1 &  b1 \\
+1 &  2 &  b2 \\
+\end{longtable}
+"""
+        assert result_c == expected_c
 
         # test when the caption and the label are provided
         result_cl = df.to_latex(longtable=True, caption=the_caption, label=the_label)
