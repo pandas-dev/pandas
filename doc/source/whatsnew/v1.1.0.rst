@@ -640,6 +640,43 @@ The method :meth:`core.DataFrameGroupBy.size` would previously ignore ``as_index
 
    df.groupby("a", as_index=False).size()
 
+.. _whatsnew_110.api_breaking.groupby_results_lost_as_index_false:
+
+:meth:`DataFrameGroupby.agg` lost results with ``as_index`` ``False`` when relabeling columns
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously :meth:`DataFrameGroupby.agg` lost the result columns, when the ``as_index`` option was
+set to ``False`` and the result columns were relabeled. In this case he result values were replaced with
+the previous index (:issue:`32240`).
+
+.. ipython:: python
+
+   df = pd.DataFrame({"key": ["x", "y", "z", "x", "y", "z"],
+                      "val": [1.0, 0.8, 2.0, 3.0, 3.6, 0.75]})
+   df
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+   In [2]: grouped = df.groupby("key", as_index=False)
+   In [3]: result = grouped.agg(min_val=pd.NamedAgg(column="val", aggfunc="min"))
+   In [4]: result
+   Out[4]:
+        min_val
+    0 	x
+    1 	y
+    2 	z
+
+*New behavior*:
+
+.. ipython:: python
+
+   grouped = df.groupby("key", as_index=False)
+   result = grouped.agg(min_val=pd.NamedAgg(column="val", aggfunc="min"))
+   result
+
+
 .. _whatsnew_110.notable_bug_fixes.apply_applymap_first_once:
 
 apply and applymap on ``DataFrame`` evaluates first row/column only once
