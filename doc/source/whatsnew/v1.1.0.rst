@@ -787,6 +787,7 @@ Deprecations
 - :meth:`DatetimeIndex.week` and `DatetimeIndex.weekofyear` are deprecated and will be removed in a future version, use :meth:`DatetimeIndex.isocalendar().week` instead (:issue:`33595`)
 - :meth:`DatetimeArray.week` and `DatetimeArray.weekofyear` are deprecated and will be removed in a future version, use :meth:`DatetimeArray.isocalendar().week` instead (:issue:`33595`)
 - :meth:`DateOffset.__call__` is deprecated and will be removed in a future version, use ``offset + other`` instead (:issue:`34171`)
+- :meth:`~BusinessDay.apply_index` is deprecated and will be removed in a  future version. Use ``offset + other`` instead (:issue:`34580`)
 - :meth:`DataFrame.tshift` and :meth:`Series.tshift` are deprecated and will be removed in a future version, use :meth:`DataFrame.shift` and :meth:`Series.shift` instead (:issue:`11631`)
 - Indexing an :class:`Index` object with a float key is deprecated, and will
   raise an ``IndexError`` in the future. You can manually convert to an integer key
