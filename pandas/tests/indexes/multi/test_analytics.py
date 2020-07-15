@@ -234,8 +234,7 @@ def test_map_dictlike(idx, mapper):
         np.deg2rad,
         np.rad2deg,
     ],
-    # https://github.com/pytest-dev/pytest/issues/7494
-    ids=lambda func: func.__name__,  # type: ignore
+    ids=lambda func: func.__name__,
 )
 def test_numpy_ufuncs(idx, func):
     # test ufuncs of numpy. see:
@@ -257,8 +256,7 @@ def test_numpy_ufuncs(idx, func):
 @pytest.mark.parametrize(
     "func",
     [np.isfinite, np.isinf, np.isnan, np.signbit],
-    # https://github.com/pytest-dev/pytest/issues/7494
-    ids=lambda func: func.__name__,  # type: ignore
+    ids=lambda func: func.__name__,
 )
 def test_numpy_type_funcs(idx, func):
     msg = (

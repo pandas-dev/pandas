@@ -362,8 +362,7 @@ class TestCasting(BaseSparseTests, base.BaseCastingTests):
         expected = pd.Series([str(x) for x in data[:5]], dtype=expected_dtype)
         self.assert_series_equal(result, expected)
 
-    # https://github.com/pytest-dev/pytest/issues/7488
-    @pytest.mark.xfail(raises=TypeError, reason="no sparse StringDtype")  # type: ignore
+    @pytest.mark.xfail(raises=TypeError, reason="no sparse StringDtype")
     def test_astype_string(self, data):
         super().test_astype_string(data)
 

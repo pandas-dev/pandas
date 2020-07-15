@@ -95,8 +95,7 @@ class TestGetLoc:
             date_range("20180101", periods=4, tz="US/Eastern"),
             timedelta_range("0 days", periods=4),
         ],
-        # https://github.com/pytest-dev/pytest/issues/7494
-        ids=lambda x: str(x.dtype),  # type: ignore
+        ids=lambda x: str(x.dtype),
     )
     def test_get_loc_datetimelike_nonoverlapping(self, breaks):
         # GH 20636
@@ -126,8 +125,7 @@ class TestGetLoc:
                 timedelta_range("2 days", periods=4),
             ),
         ],
-        # https://github.com/pytest-dev/pytest/issues/7494
-        ids=lambda x: str(x[0].dtype),  # type: ignore
+        ids=lambda x: str(x[0].dtype),
     )
     def test_get_loc_datetimelike_overlapping(self, arrays):
         # GH 20636
@@ -152,8 +150,7 @@ class TestGetLoc:
             np.arange(3.0, -1.0, -1.0),
             np.arange(3, -1, -1),
         ],
-        # https://github.com/pytest-dev/pytest/issues/7494
-        ids=lambda x: str(x.dtype),  # type: ignore
+        ids=lambda x: str(x.dtype),
     )
     def test_get_loc_decreasing(self, values):
         # GH 25860

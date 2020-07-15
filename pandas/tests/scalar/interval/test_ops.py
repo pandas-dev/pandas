@@ -10,8 +10,7 @@ from pandas import Interval, Timedelta, Timestamp
         (Timestamp("2018-01-01"), Timedelta("1 day")),
         (0, 1),
     ],
-    # https://github.com/pytest-dev/pytest/issues/7494
-    ids=lambda x: type(x[0]).__name__,  # type: ignore
+    ids=lambda x: type(x[0]).__name__,
 )
 def start_shift(request):
     """

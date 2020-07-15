@@ -156,12 +156,7 @@ def get_is_dtype_funcs():
     return [getattr(com, fname) for fname in fnames]
 
 
-@pytest.mark.parametrize(
-    "func",
-    get_is_dtype_funcs(),
-    # https://github.com/pytest-dev/pytest/issues/7494
-    ids=lambda x: x.__name__,  # type: ignore
-)
+@pytest.mark.parametrize("func", get_is_dtype_funcs(), ids=lambda x: x.__name__)
 def test_get_dtype_error_catch(func):
     # see gh-15941
     #

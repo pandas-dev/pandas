@@ -42,8 +42,7 @@ from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
         np.deg2rad,
         np.rad2deg,
     ],
-    # https://github.com/pytest-dev/pytest/issues/7494
-    ids=lambda x: x.__name__,  # type: ignore
+    ids=lambda x: x.__name__,
 )
 def test_numpy_ufuncs_basic(index, func):
     # test ufuncs of numpy, see:
@@ -73,10 +72,7 @@ def test_numpy_ufuncs_basic(index, func):
 
 
 @pytest.mark.parametrize(
-    "func",
-    [np.isfinite, np.isinf, np.isnan, np.signbit],
-    # https://github.com/pytest-dev/pytest/issues/7494
-    ids=lambda x: x.__name__,  # type: ignore
+    "func", [np.isfinite, np.isinf, np.isnan, np.signbit], ids=lambda x: x.__name__
 )
 def test_numpy_ufuncs_other(index, func):
     # test ufuncs of numpy, see:

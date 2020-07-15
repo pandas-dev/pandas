@@ -22,8 +22,7 @@ import pandas._testing as tm
         (libindex.Float64Engine, np.float64),
         (libindex.Float32Engine, np.float32),
     ],
-    # https://github.com/pytest-dev/pytest/issues/7494
-    ids=lambda x: x[0].__name__,  # type: ignore
+    ids=lambda x: x[0].__name__,
 )
 def numeric_indexing_engine_type_and_dtype(request):
     return request.param

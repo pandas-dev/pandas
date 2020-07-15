@@ -2696,8 +2696,7 @@ class TestDataFramePlots(TestPlotBase):
             with pytest.raises((ValueError, TypeError)):
                 df.plot(yerr=df_err)
 
-    # https://github.com/pytest-dev/pytest/issues/7488
-    @pytest.mark.xfail(reason="Iterator is consumed", raises=ValueError)  # type: ignore
+    @pytest.mark.xfail(reason="Iterator is consumed", raises=ValueError)
     @pytest.mark.slow
     def test_errorbar_plot_iterator(self):
         with warnings.catch_warnings():

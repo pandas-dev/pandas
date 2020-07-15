@@ -40,8 +40,7 @@ from pandas.core.arrays import IntervalArray
             date_range("20170102", periods=3, tz="US/Eastern").insert(4, pd.NaT),
         ),
     ],
-    # https://github.com/pytest-dev/pytest/issues/7494
-    ids=lambda x: str(x[0].dtype),  # type: ignore
+    ids=lambda x: str(x[0].dtype),
 )
 def left_right_dtypes(request):
     """
@@ -237,8 +236,7 @@ class TestComparison:
             pd.array(list("abcd")),
             pd.array(["foo", 3.14, None, object()]),
         ],
-        # https://github.com/pytest-dev/pytest/issues/7494
-        ids=lambda x: str(x.dtype),  # type: ignore
+        ids=lambda x: str(x.dtype),
     )
     def test_compare_list_like_other(self, op, array, other):
         result = op(array, other)

@@ -210,8 +210,7 @@ def test_single_quantile(data, start, end, length, labels):
         Series(DatetimeIndex(["20180101", NaT, "20180103"])),
         Series(TimedeltaIndex(["0 days", NaT, "2 days"])),
     ],
-    # https://github.com/pytest-dev/pytest/issues/7494
-    ids=lambda x: str(x.dtype),  # type: ignore
+    ids=lambda x: str(x.dtype),
 )
 def test_qcut_nat(ser):
     # see gh-19768
