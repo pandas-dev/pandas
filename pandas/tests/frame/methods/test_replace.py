@@ -1423,7 +1423,7 @@ class TestDataFrameReplace:
 
     def test_replace_value_category_type(self):
         """
-        Test to ensure category dtypes are maintained
+        Test for #23305: to ensure category dtypes are maintained
         after replace with direct values
         """
 
@@ -1455,22 +1455,22 @@ class TestDataFrameReplace:
             "col5": ["obj9", "obj2", "obj3", "obj4"],
         }
         # explicitly cast columns as category and order them
-        expected_df = pd.DataFrame(data=expected_dict).astype(
+        expected = pd.DataFrame(data=expected_dict).astype(
             {"col2": "category", "col4": "category"}
         )
-        expected_df["col2"] = expected_df["col2"].cat.reorder_categories(
+        expected["col2"] = expected["col2"].cat.reorder_categories(
             ["a", "b", "c", "z"], ordered=True
         )
-        expected_df["col4"] = expected_df["col4"].cat.reorder_categories(
+        expected["col4"] = expected["col4"].cat.reorder_categories(
             ["cat1", "catX", "cat3", "cat4"], ordered=True
         )
 
         # replace values in input dataframe
         input_df = input_df.replace("d", "z")
         input_df = input_df.replace("obj1", "obj9")
-        input_df = input_df.replace("cat2", "catX")
+        result = input_df.replace("cat2", "catX")
 
-        tm.assert_frame_equal(input_df, expected_df)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.xfail(
         reason="category dtype gets changed to object type after replace, see #35268",
@@ -1492,11 +1492,11 @@ class TestDataFrameReplace:
         # create expected dataframe
         expected_dict = {"col1": ["z"], "col2": ["obj9"], "col3": ["catX"]}
         # explicitly cast columns as category
-        expected_df = pd.DataFrame(data=expected_dict).astype(
+        expected = pd.DataFrame(data=expected_dict).astype(
             {"col1": "category", "col2": "category", "col3": "category"}
         )
 
         # replace values in input dataframe using a dict
-        input_df = input_df.replace({"a": "z", "obj1": "obj9", "cat1": "catX"})
+        result = input_df.replace({"a": "z", "obj1": "obj9", "cat1": "catX"})
 
-        tm.assert_frame_equal(input_df, expected_df)
+        tm.assert_frame_equal(result, expected)
