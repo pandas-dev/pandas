@@ -723,15 +723,15 @@ def value_counts(
 
         # count, remove nulls (from the index), and use the bins
         result = ii.value_counts(dropna=dropna)
+        print(f"{result=}")
         result.index = result.index.astype("interval")
         result = result.sort_index()
 
+        """
         # if we are dropna and we have NO values
         if dropna and (result._values == 0).all():
             result = result.iloc[0:0]
-
-        # normalizing is by len of what gets included in the bins
-        counts = result._values
+        """
 
     else:
 
@@ -740,19 +740,18 @@ def value_counts(
             # handle Categorical and sparse,
             result = Series(values)._values.value_counts(dropna=dropna)
             result.name = name
-            counts = result._values
 
         else:
             keys, counts = _value_counts_arraylike(values, dropna)
 
             result = Series(counts, index=keys, name=name)
 
+    if normalize:
+        counts = result._values
+        result = result / float(max(counts.sum(), 1))
+
     if sort:
         result = result.sort_values(ascending=ascending)
-
-    if normalize:
-        result = result / float(counts.sum())
-
     return result
 
 

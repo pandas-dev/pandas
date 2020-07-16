@@ -40,7 +40,7 @@ def seed_df(seed_nans, n, m):
 binned = []
 ids = []
 for seed_nans in [True, False]:
-    for n, m in product((100, 1000), (5, 20)):
+    for n, m in product((10, 1000), (5, 20)):
         df = seed_df(seed_nans, n, m)
         bins = None, np.arange(0, max(5, df["3rd"].max()) + 1, 2)
         keys = "1st", "2nd", ["1st", "2nd"]
@@ -68,32 +68,65 @@ def test_series_groupby_value_counts(
         normalize=normalize, sort=sort, ascending=ascending, dropna=dropna, bins=bins
     )
 
+    print(f"{df=}")
     gr = df.groupby(keys, sort=isort)
     left = gr["3rd"].value_counts(**kwargs)
     left.index.names = left.index.names[:-1] + ["3rd"]
 
-    gr = df.groupby(keys, sort=isort)
+    # gr = df.groupby(keys, sort=isort)
     right = gr["3rd"].apply(Series.value_counts, **kwargs)
     right.index.names = right.index.names[:-1] + ["3rd"]
+    print(f"{left=}")
+    print(f"{right=}")
 
     # have to sort on index because of unstable sort on values
     left, right = map(rebuild_index, (left, right))  # xref GH9212
+    # have to ignore 0 counts to be consistent with individual column value_counts
+    left = left[left.astype(bool)]
+    right = right[right.astype(bool)]
     tm.assert_series_equal(left.sort_index(), right.sort_index())
 
 
 def test_groubpy_value_counts_bins():
     # GH32471
     BINS = [0, 20, 80, 100]
-    df = DataFrame(
-        [[0, 0], [1, 100], [0, 100], [2, 0], [3, 100]], columns=["key", "score"]
+    values = [
+        [0, 5, 0],
+        [1, 5, 100],
+        [0, 5, 100],
+        [2, 5, 0],
+        [3, 6, 100],
+        [3, 5, 100],
+        [1, 5, 100],
+    ]
+    df = DataFrame(values, columns=["key1", "key2", "score"])
+    result = df.groupby(["key1", "key2"])["score"].value_counts(bins=BINS)
+    print(f"{result=}")
+    print(
+        df.groupby(["key1", "key2"])["score"].apply(
+            Series.value_counts,
+            bins=BINS,
+            sort=True,
+            normalize=True,
+            ascending=True,
+            dropna=True,
+        )
     )
-    result = df.groupby("key")["score"].value_counts(bins=BINS)
+
     result.sort_index(inplace=True)
     intervals = cut(Series([0]), bins=BINS, include_lowest=True).cat.categories
-    index = MultiIndex.from_product(
-        [[0, 1, 2, 3], sorted(intervals)], names=("key", None)
+    # groups = [(0,5), (1,5), (2,5), (3,5), (3,6)]
+    groups = set((v[1], v[2], i) for v in values for i in intervals)
+    # {val[:-1]: 0 for val in values}
+    index = product([], intervals)
+
+    """index = MultiIndex.from_product(
+        [groups, sorted(intervals)], names=("key1", "key2", "score")
+    )"""
+    expected = Series(
+        [1, 0, 1, 0, 0, 2, 1, 0, 0, 0, 0, 1, 0, 0, 1], result.index, name="score"
     )
-    expected = Series([1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1], index, name="score")
+    # expected = [2, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1]
     tm.assert_series_equal(result, expected)
 
 
