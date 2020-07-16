@@ -1024,7 +1024,7 @@ def test_apply_is_unchanged_when_other_methods_are_called_first(reduction_func):
     )
 
     expected = pd.DataFrame(
-        {"a": [264, 297], "b": [15, 6], "c": [150, 60],},
+        {"a": [264, 297], "b": [15, 6], "c": [150, 60]},
         index=pd.Index([88, 99], name="a"),
     )
 
