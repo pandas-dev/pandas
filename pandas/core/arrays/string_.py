@@ -291,7 +291,7 @@ class StringArray(PandasArray):
 
         return super().astype(dtype, copy)
 
-    def _reduce(self, name, skipna=True, **kwargs):
+    def _reduce(self, name: str, skipna: bool = True, **kwargs):
         if name in ["min", "max"]:
             return getattr(self, name)(skipna=skipna)
 
