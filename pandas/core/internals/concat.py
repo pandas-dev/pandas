@@ -333,7 +333,7 @@ def _concatenate_join_units(join_units, concat_axis, copy):
         # concatting with at least one EA means we are concatting a single column
         # the non-EA values are 2D arrays with shape (1, n)
         to_concat = [t if isinstance(t, ExtensionArray) else t[0, :] for t in to_concat]
-        concat_values = concat_compat(to_concat, axis=concat_axis)
+        concat_values = concat_compat(to_concat, axis=0)
         if not isinstance(concat_values, ExtensionArray):
             # if the result of concat is not an EA but an ndarray, reshape to
             # 2D to put it a non-EA Block
