@@ -1012,10 +1012,7 @@ def test_apply_with_timezones_aware():
     tm.assert_frame_equal(result1, result2)
 
 
-@pytest.mark.parametrize(
-    "func", ["sum", "min", "max", "mean", "std", "prod", "cumprod", "cumsum"]
-)
-def test_apply_is_unchanged_when_other_methods_are_clled_first(func):
+def test_apply_is_unchanged_when_other_methods_are_called_first(reduction_func):
     # GH 34656
     # GH 34271
     df = DataFrame(
@@ -1026,27 +1023,19 @@ def test_apply_is_unchanged_when_other_methods_are_clled_first(func):
         }
     )
 
-    expected = df.groupby("a").apply(getattr(np, func))
+    expected = pd.DataFrame(
+        {"a": [264, 297], "b": [15, 6], "c": [150, 60],},
+        index=pd.Index([88, 99], name="a"),
+    )
 
-    # Call .apply() without calling any method on the GroupBy beforehand
-    grp = df.groupby("a")
-    result = grp.apply(getattr(np, func))
+    # Check output wehn no other methods are called before .apply()
+    grp = df.groupby(by="a")
+    result = grp.apply(sum)
     tm.assert_frame_equal(result, expected)
 
-    # Call .apply() after calling .min()  on the GroupBy
-    grp = df.groupby("a")
-    grp.min()
-    result = grp.apply(getattr(np, func))
-    tm.assert_frame_equal(result, expected)
-
-    # Call .apply() after calling 'func' on the GroupBy
-    grp = df.groupby("a")
-    getattr(grp, func)()
-    result = grp.apply(getattr(np, func))
-    tm.assert_frame_equal(result, expected)
-
-    # Call .apply() after directly calling ._set_group_selection() on the GroupBy
-    grp = df.groupby("a")
-    grp._set_group_selection()
-    result = grp.apply(getattr(np, func))
+    # Check output when another methods is called before .apply()
+    grp = df.groupby(by="a")
+    args = {"nth": [0], "corrwith": [df]}.get(reduction_func, [])
+    _ = getattr(grp, reduction_func)(*args)
+    result = grp.apply(sum)
     tm.assert_frame_equal(result, expected)
