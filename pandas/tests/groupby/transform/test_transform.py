@@ -728,6 +728,11 @@ def test_cython_transform_frame(op, args, targop):
             # dict(by=['int','string'])]:
 
             gb = df.groupby(**gb_target)
+            # allowlisted methods set the selection before applying
+            # bit a of hack to make sure the cythonized shift
+            # is equivalent to pre 0.17.1 behavior
+            if op == "shift":
+                gb._set_group_selection()
 
             if op != "shift" and "int" not in gb_target:
                 # numeric apply fastpath promotes dtype so have
