@@ -1539,7 +1539,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         # return zero, rather than the default of NaN which the reindexing in
         # _agg_general() returns. We set self.observed=True for the call to
         # _agg_general() to avoid it reindexing. We then reindex below with
-        # fill_value=0. See GH 31422
+        # fill_value=0. See GH #31422
         with com.temp_setattr(self, "observed", True):
             result = self._agg_general(
                 numeric_only=numeric_only,
