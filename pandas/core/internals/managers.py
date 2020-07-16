@@ -596,18 +596,22 @@ class BlockManager(PandasObject):
         # figure out our mask apriori to avoid repeated replacements
         values = self.as_array()
 
-        def comp(s, regex=False):
+        def comp(s: Scalar, mask: np.ndarray, regex: bool = False):
             """
             Generate a bool array by perform an equality check, or perform
             an element-wise regular expression matching
             """
             if isna(s):
-                return isna(values)
+                return ~mask
 
             s = com.maybe_box_datetimelike(s)
-            return _compare_or_regex_search(values, s, regex)
+            return _compare_or_regex_search(values, s, regex, mask)
 
-        masks = [comp(s, regex) for s in src_list]
+        # Calculate the mask once, prior to the call of comp
+        # in order to avoid repeating the same computations
+        mask = ~isna(values)
+
+        masks = [comp(s, mask, regex) for s in src_list]
 
         result_blocks = []
         src_len = len(src_list) - 1
@@ -1895,7 +1899,7 @@ def _merge_blocks(
 
 
 def _compare_or_regex_search(
-    a: ArrayLike, b: Scalar, regex: bool = False
+    a: ArrayLike, b: Scalar, regex: bool = False, mask: Optional[ArrayLike] = None
 ) -> Union[ArrayLike, bool]:
     """
     Compare two array_like inputs of the same shape or two scalar values
@@ -1908,6 +1912,7 @@ def _compare_or_regex_search(
     a : array_like
     b : scalar
     regex : bool, default False
+    mask : array_like or None (default)
 
     Returns
     -------
@@ -1941,7 +1946,7 @@ def _compare_or_regex_search(
         )
 
     # GH#32621 use mask to avoid comparing to NAs
-    if isinstance(a, np.ndarray) and not isinstance(b, np.ndarray):
+    if mask is None and isinstance(a, np.ndarray) and not isinstance(b, np.ndarray):
         mask = np.reshape(~(isna(a)), a.shape)
     if isinstance(a, np.ndarray):
         a = a[mask]
@@ -1953,7 +1958,7 @@ def _compare_or_regex_search(
 
     result = op(a)
 
-    if isinstance(result, np.ndarray):
+    if isinstance(result, np.ndarray) and mask is not None:
         # The shape of the mask can differ to that of the result
         # since we may compare only a subset of a's or b's elements
         tmp = np.zeros(mask.shape, dtype=np.bool_)
