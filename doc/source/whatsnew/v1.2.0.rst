@@ -14,14 +14,14 @@ Enhancements
 ~~~~~~~~~~~~
 
 
-.. _whatsnew_110.enhancements.other:
+.. _whatsnew_120.enhancements.other:
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
 .. ---------------------------------------------------------------------------
 
-.. _whatsnew_110.notable_bug_fixes:
+.. _whatsnew_120.notable_bug_fixes:
 
 Notable bug fixes
 ~~~~~~~~~~~~~~~~~
@@ -32,17 +32,17 @@ These are bug fixes that might have notable behavior changes.
 Increased minimum versions for dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Some minimum supported versions of dependencies were updated (:issue:`33718`, :issue:`29766`, :issue:`29723`, pytables >= 3.4.3).
+Some minimum supported versions of dependencies were updated ().
 If installed, we now require:
 
 +-----------------+-----------------+----------+---------+
 | Package         | Minimum Version | Required | Changed |
 +=================+=================+==========+=========+
-| numpy           | 1.15.4          |    X     |    X    |
+| numpy           | 1.15.4          |    X     |        |
 +-----------------+-----------------+----------+---------+
 | pytz            | 2015.4          |    X     |         |
 +-----------------+-----------------+----------+---------+
-| python-dateutil | 2.7.3           |    X     |    X    |
+| python-dateutil | 2.7.3           |    X     |        |
 +-----------------+-----------------+----------+---------+
 | bottleneck      | 1.2.1           |          |         |
 +-----------------+-----------------+----------+---------+
@@ -64,7 +64,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | fsspec          | 0.7.4           |         |
 +-----------------+-----------------+---------+
-| gcsfs           | 0.6.0           |    X    |
+| gcsfs           | 0.6.0           |        |
 +-----------------+-----------------+---------+
 | lxml            | 3.8.0           |         |
 +-----------------+-----------------+---------+
@@ -78,11 +78,11 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | pymysql         | 0.7.1           |         |
 +-----------------+-----------------+---------+
-| pytables        | 3.4.3           |    X    |
+| pytables        | 3.4.3           |        |
 +-----------------+-----------------+---------+
-| s3fs            | 0.4.0           |    X    |
+| s3fs            | 0.4.0           |        |
 +-----------------+-----------------+---------+
-| scipy           | 1.2.0           |    X    |
+| scipy           | 1.2.0           |        |
 +-----------------+-----------------+---------+
 | sqlalchemy      | 1.1.4           |         |
 +-----------------+-----------------+---------+
@@ -94,7 +94,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | xlwt            | 1.2.0           |         |
 +-----------------+-----------------+---------+
-| pandas-gbq      | 1.2.0           |    X    |
+| pandas-gbq      | 1.2.0           |        |
 +-----------------+-----------------+---------+
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
@@ -104,7 +104,7 @@ Development Changes
 
 -
 
-.. _whatsnew_110.deprecations:
+.. _whatsnew_120.deprecations:
 
 Deprecations
 ~~~~~~~~~~~~
@@ -114,7 +114,7 @@ Deprecations
 .. ---------------------------------------------------------------------------
 
 
-.. _whatsnew_110.performance:
+.. _whatsnew_120.performance:
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -123,7 +123,7 @@ Performance improvements
 
 .. ---------------------------------------------------------------------------
 
-.. _whatsnew_110.bug_fixes:
+.. _whatsnew_120.bug_fixes:
 
 Bug fixes
 ~~~~~~~~~
