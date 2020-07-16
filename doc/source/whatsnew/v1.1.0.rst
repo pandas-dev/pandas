@@ -640,6 +640,43 @@ The method :meth:`core.DataFrameGroupBy.size` would previously ignore ``as_index
 
    df.groupby("a", as_index=False).size()
 
+.. _whatsnew_110.api_breaking.groupby_results_lost_as_index_false:
+
+:meth:`DataFrameGroupby.agg` lost results with ``as_index`` ``False`` when relabeling columns
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously :meth:`DataFrameGroupby.agg` lost the result columns, when the ``as_index`` option was
+set to ``False`` and the result columns were relabeled. In this case he result values were replaced with
+the previous index (:issue:`32240`).
+
+.. ipython:: python
+
+   df = pd.DataFrame({"key": ["x", "y", "z", "x", "y", "z"],
+                      "val": [1.0, 0.8, 2.0, 3.0, 3.6, 0.75]})
+   df
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+   In [2]: grouped = df.groupby("key", as_index=False)
+   In [3]: result = grouped.agg(min_val=pd.NamedAgg(column="val", aggfunc="min"))
+   In [4]: result
+   Out[4]:
+        min_val
+    0 	x
+    1 	y
+    2 	z
+
+*New behavior*:
+
+.. ipython:: python
+
+   grouped = df.groupby("key", as_index=False)
+   result = grouped.agg(min_val=pd.NamedAgg(column="val", aggfunc="min"))
+   result
+
+
 .. _whatsnew_110.notable_bug_fixes.apply_applymap_first_once:
 
 apply and applymap on ``DataFrame`` evaluates first row/column only once
@@ -885,6 +922,7 @@ Datetimelike
   resolution which converted to object dtype instead of coercing to ``datetime64[ns]``
   dtype when within the timestamp bounds (:issue:`34843`).
 - The ``freq`` keyword in :class:`Period`, :func:`date_range`, :func:`period_range`, :func:`pd.tseries.frequencies.to_offset` no longer allows tuples, pass as string instead (:issue:`34703`)
+- ``OutOfBoundsDatetime`` issues an improved error message when timestamp is out of implementation bounds. (:issue:`32967`)
 
 Timedelta
 ^^^^^^^^^
@@ -916,6 +954,8 @@ Numeric
 - Bug in :meth:`DataFrame.diff` with ``axis=1`` returning incorrect results with mixed dtypes (:issue:`32995`)
 - Bug in :meth:`DataFrame.corr` and :meth:`DataFrame.cov` raising when handling nullable integer columns with ``pandas.NA`` (:issue:`33803`)
 - Bug in :class:`DataFrame` and :class:`Series` addition and subtraction between object-dtype objects and ``datetime64`` dtype objects (:issue:`33824`)
+- Bug in :meth:`Index.difference` incorrect results when comparing a :class:`Float64Index` and object :class:`Index` (:issue:`35217`)
+- Bug in :class:`DataFrame` reductions (e.g. ``df.min()``, ``df.max()``) with ``ExtensionArray`` dtypes (:issue:`34520`, :issue:`32651`)
 
 Conversion
 ^^^^^^^^^^
@@ -1162,6 +1202,8 @@ Other
 - Bug in :meth:`DataFrame.__dir__` caused a segfault when using unicode surrogates in a column name (:issue:`25509`)
 - Bug in :meth:`DataFrame.plot.scatter` caused an error when plotting variable marker sizes (:issue:`32904`)
 - :class:`IntegerArray` now implements the ``sum`` operation (:issue:`33172`)
+- Bug in :meth:`DataFrame.equals` and :meth:`Series.equals` in allowing subclasses
+  to be equal (:issue:`34402`).
 - Bug in :class:`Tick` comparisons raising ``TypeError`` when comparing against timedelta-like objects (:issue:`34088`)
 - Bug in :class:`Tick` multiplication raising ``TypeError`` when multiplying by a float (:issue:`34486`)
 - Passing a `set` as `names` argument to :func:`pandas.read_csv`, :func:`pandas.read_table`, or :func:`pandas.read_fwf` will raise ``ValueError: Names should be an ordered collection.`` (:issue:`34946`)
