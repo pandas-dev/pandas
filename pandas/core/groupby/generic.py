@@ -1828,7 +1828,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # return zero, rather than the default of NaN which the reindexing in
         # _wrap_agged_blocks() returns. We set self.observed=True for the call to
         # _wrap_agged_blocks() to avoid it reindexing. We then reindex below with
-        # fill_value=0. See GH 35028
+        # fill_value=0. See GH #35028
         with com.temp_setattr(self, "observed", True):
             result = self._wrap_agged_blocks(blocks, items=data.items)
 
