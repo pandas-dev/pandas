@@ -1120,7 +1120,7 @@ class ExtensionArray:
     # of objects
     _can_hold_na = True
 
-    def _reduce(self, name, skipna=True, **kwargs):
+    def _reduce(self, name: str, skipna: bool = True, **kwargs):
         """
         Return a scalar result of performing the reduction operation.
 
