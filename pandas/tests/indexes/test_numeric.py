@@ -240,6 +240,19 @@ class TestFloat64Index(Numeric):
         assert i.equals(i2)
 
     @pytest.mark.parametrize(
+        "other",
+        (
+            Int64Index([1, 2]),
+            Index([1.0, 2.0], dtype=object),
+            Index([1, 2], dtype=object),
+        ),
+    )
+    def test_equals_numeric_other_index_type(self, other):
+        i = Float64Index([1.0, 2.0])
+        assert i.equals(other)
+        assert other.equals(i)
+
+    @pytest.mark.parametrize(
         "vals",
         [
             pd.date_range("2016-01-01", periods=3),
@@ -635,3 +648,27 @@ def test_uint_index_does_not_convert_to_float64():
     tm.assert_index_equal(result.index, expected)
 
     tm.assert_equal(result, series[:3])
+
+
+def test_float64_index_equals():
+    # https://github.com/pandas-dev/pandas/issues/35217
+    float_index = pd.Index([1.0, 2, 3])
+    string_index = pd.Index(["1", "2", "3"])
+
+    result = float_index.equals(string_index)
+    assert result is False
+
+    result = string_index.equals(float_index)
+    assert result is False
+
+
+def test_float64_index_difference():
+    # https://github.com/pandas-dev/pandas/issues/35217
+    float_index = pd.Index([1.0, 2, 3])
+    string_index = pd.Index(["1", "2", "3"])
+
+    result = float_index.difference(string_index)
+    tm.assert_index_equal(result, float_index)
+
+    result = string_index.difference(float_index)
+    tm.assert_index_equal(result, string_index)
