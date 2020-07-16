@@ -117,6 +117,7 @@ from pandas.core.aggregation import reconstruct_func, relabel_result
 from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin as DatetimeLikeArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
+from pandas.core.construction import extract_array
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import Index, ensure_index, ensure_index_from_sequences
@@ -2233,10 +2234,23 @@ class DataFrame(NDFrame):
         """,
     )
     def to_markdown(
-        self, buf: Optional[IO[str]] = None, mode: Optional[str] = None, **kwargs
+        self,
+        buf: Optional[IO[str]] = None,
+        mode: Optional[str] = None,
+        index: bool = True,
+        **kwargs,
     ) -> Optional[str]:
+        if "showindex" in kwargs:
+            warnings.warn(
+                "'showindex' is deprecated. Only 'index' will be used "
+                "in a future version. Use 'index' to silence this warning.",
+                FutureWarning,
+                stacklevel=2,
+            )
+
         kwargs.setdefault("headers", "keys")
         kwargs.setdefault("tablefmt", "pipe")
+        kwargs.setdefault("showindex", index)
         tabulate = import_optional_dependency("tabulate")
         result = tabulate.tabulate(self, **kwargs)
         if buf is None:
@@ -8496,7 +8510,14 @@ NaN 12.3   33.0
         return result
 
     def _reduce(
-        self, op, name, axis=0, skipna=True, numeric_only=None, filter_type=None, **kwds
+        self,
+        op,
+        name: str,
+        axis=0,
+        skipna=True,
+        numeric_only=None,
+        filter_type=None,
+        **kwds,
     ):
 
         assert filter_type is None or filter_type == "bool", filter_type
@@ -8528,8 +8549,11 @@ NaN 12.3   33.0
             labels = self._get_agg_axis(axis)
             constructor = self._constructor
 
-        def f(x):
-            return op(x, axis=axis, skipna=skipna, **kwds)
+        def func(values):
+            if is_extension_array_dtype(values.dtype):
+                return extract_array(values)._reduce(name, skipna=skipna, **kwds)
+            else:
+                return op(values, axis=axis, skipna=skipna, **kwds)
 
         def _get_data(axis_matters):
             if filter_type is None:
@@ -8576,7 +8600,7 @@ NaN 12.3   33.0
                 out[:] = coerce_to_dtypes(out.values, df.dtypes)
             return out
 
-        if not self._is_homogeneous_type:
+        if not self._is_homogeneous_type or self._mgr.any_extension_types:
             # try to avoid self.values call
 
             if filter_type is None and axis == 0 and len(self) > 0:
@@ -8596,7 +8620,7 @@ NaN 12.3   33.0
                 from pandas.core.apply import frame_apply
 
                 opa = frame_apply(
-                    self, func=f, result_type="expand", ignore_failures=True
+                    self, func=func, result_type="expand", ignore_failures=True
                 )
                 result = opa.get_result()
                 if result.ndim == self.ndim:
@@ -8608,7 +8632,7 @@ NaN 12.3   33.0
             values = data.values
 
             try:
-                result = f(values)
+                result = func(values)
 
             except TypeError:
                 # e.g. in nanops trying to convert strs to float
@@ -8619,7 +8643,7 @@ NaN 12.3   33.0
 
                 values = data.values
                 with np.errstate(all="ignore"):
-                    result = f(values)
+                    result = func(values)
 
         else:
             if numeric_only:
@@ -8630,7 +8654,7 @@ NaN 12.3   33.0
             else:
                 data = self
                 values = data.values
-            result = f(values)
+            result = func(values)
 
         if filter_type == "bool" and is_object_dtype(values) and axis is None:
             # work around https://github.com/numpy/numpy/issues/10489

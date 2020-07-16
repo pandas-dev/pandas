@@ -3,7 +3,8 @@ channels:
   - conda-forge
 dependencies:
   # required
-  - numpy>=1.16
+  # Pin numpy<1.19 until MPL 3.3.0 is released.
+  - numpy>=1.15,<1.19.0
   - python=3
   - python-dateutil>=2.7.3
   - pytz
@@ -51,7 +52,7 @@ dependencies:
   - botocore>=1.11
   - hypothesis>=3.82
   - moto  # mock S3
-  - pytest>=5.0.1
+  - pytest>=5.0.1,<6.0.0rc0
   - pytest-cov
   - pytest-xdist>=1.21
   - pytest-asyncio
