@@ -118,7 +118,7 @@ def test_basic():
     )
     x["person_name"] = Categorical(x.person_name)
 
-    g = x.groupby(["person_id"], observed=False)
+    g = x.groupby(["person_id"], observed=False, as_index=False)
     result = g.transform(lambda x: x)
     tm.assert_frame_equal(result, x[["person_name"]])
 
@@ -129,7 +129,6 @@ def test_basic():
     def f(x):
         return x.drop_duplicates("person_name").iloc[0]
 
-    g = x.groupby(["person_id"], observed=False, as_index=False)
     result = g.apply(f)
     expected = x.iloc[[0, 1]].copy()
     expected["person_name"] = expected["person_name"].astype("object")
