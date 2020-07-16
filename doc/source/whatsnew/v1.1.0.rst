@@ -922,6 +922,7 @@ Datetimelike
   resolution which converted to object dtype instead of coercing to ``datetime64[ns]``
   dtype when within the timestamp bounds (:issue:`34843`).
 - The ``freq`` keyword in :class:`Period`, :func:`date_range`, :func:`period_range`, :func:`pd.tseries.frequencies.to_offset` no longer allows tuples, pass as string instead (:issue:`34703`)
+- ``OutOfBoundsDatetime`` issues an improved error message when timestamp is out of implementation bounds. (:issue:`32967`)
 
 Timedelta
 ^^^^^^^^^
