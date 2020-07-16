@@ -355,7 +355,9 @@ def _isna_compat(arr, fill_value=np.nan) -> bool:
     return True
 
 
-def array_equivalent(left, right, strict_nan: bool = False) -> bool:
+def array_equivalent(
+    left, right, strict_nan: bool = False, dtype_equal: bool = True
+) -> bool:
     """
     True if two arrays, left and right, have equal non-NaN elements, and NaNs
     in corresponding locations.  False otherwise. It is assumed that left and
@@ -391,46 +393,29 @@ def array_equivalent(left, right, strict_nan: bool = False) -> bool:
     if left.shape != right.shape:
         return False
 
+    if dtype_equal:
+        # fastpath when we require that the dtypes match (Block.equals)
+        if is_float_dtype(left.dtype) or is_complex_dtype(left.dtype):
+            return array_equivalent_float(left, right)
+        elif is_datetimelike_v_numeric(left.dtype):
+            return False
+        elif needs_i8_conversion(left.dtype):
+            return array_equivalent_datetimelike(left, right)
+        elif is_string_dtype(left.dtype):
+            # TODO: fastpath for pandas' StringDtype
+            return array_equivalent_object(left, right)
+        else:
+            return np.array_equal(left, right)
+
+    # Slow path when we allow comparing different dtypes.
     # Object arrays can contain None, NaN and NaT.
     # string dtypes must be come to this path for NumPy 1.7.1 compat
     if is_string_dtype(left.dtype) or is_string_dtype(right.dtype):
-
-        if not strict_nan:
-            # isna considers NaN and None to be equivalent.
-            return lib.array_equivalent_object(
-                ensure_object(left.ravel()), ensure_object(right.ravel())
-            )
-
-        for left_value, right_value in zip(left, right):
-            if left_value is NaT and right_value is not NaT:
-                return False
-
-            elif left_value is libmissing.NA and right_value is not libmissing.NA:
-                return False
-
-            elif isinstance(left_value, float) and np.isnan(left_value):
-                if not isinstance(right_value, float) or not np.isnan(right_value):
-                    return False
-            else:
-                try:
-                    if np.any(np.asarray(left_value != right_value)):
-                        return False
-                except TypeError as err:
-                    if "Cannot compare tz-naive" in str(err):
-                        # tzawareness compat failure, see GH#28507
-                        return False
-                    elif "boolean value of NA is ambiguous" in str(err):
-                        return False
-                    raise
-        return True
+        return array_equivalent_object(left, right)
 
     # NaNs can occur in float and complex arrays.
     if is_float_dtype(left.dtype) or is_complex_dtype(left.dtype):
-
-        # empty
-        if not (np.prod(left.shape) and np.prod(right.shape)):
-            return True
-        return ((left == right) | (isna(left) & isna(right))).all()
+        return ((left == right) | (np.isnan(left) & np.isnan(right))).all()
 
     elif is_datetimelike_v_numeric(left, right):
         # GH#29553 avoid numpy deprecation warning
@@ -450,6 +435,45 @@ def array_equivalent(left, right, strict_nan: bool = False) -> bool:
             return False
 
     return np.array_equal(left, right)
+
+
+def array_equivalent_float(left, right):
+    return ((left == right) | (np.isnan(left) & np.isnan(right))).all()
+
+
+def array_equivalent_datetimelike(left, right):
+    return np.array_equal(left.view("i8"), right.view("i8"))
+
+
+def array_equivalent_object(left, right, strict_nan):
+    if not strict_nan:
+        # isna considers NaN and None to be equivalent.
+        return lib.array_equivalent_object(
+            ensure_object(left.ravel()), ensure_object(right.ravel())
+        )
+
+    for left_value, right_value in zip(left, right):
+        if left_value is NaT and right_value is not NaT:
+            return False
+
+        elif left_value is libmissing.NA and right_value is not libmissing.NA:
+            return False
+
+        elif isinstance(left_value, float) and np.isnan(left_value):
+            if not isinstance(right_value, float) or not np.isnan(right_value):
+                return False
+        else:
+            try:
+                if np.any(np.asarray(left_value != right_value)):
+                    return False
+            except TypeError as err:
+                if "Cannot compare tz-naive" in str(err):
+                    # tzawareness compat failure, see GH#28507
+                    return False
+                elif "boolean value of NA is ambiguous" in str(err):
+                    return False
+                raise
+    return True
 
 
 def _infer_fill_value(val):

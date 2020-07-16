@@ -1445,7 +1445,7 @@ class BlockManager(PandasObject):
                 if not left.equals(right):
                     return False
             else:
-                if not array_equivalent(left, right):
+                if not array_equivalent(left, right, dtype_equal=True):
                     return False
         return True
 
