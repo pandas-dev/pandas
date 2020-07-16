@@ -941,7 +941,6 @@ Timezones
 ^^^^^^^^^
 
 - Bug in :func:`to_datetime` with ``infer_datetime_format=True`` where timezone names (e.g. ``UTC``) would not be parsed correctly (:issue:`33133`)
-- Bug in :func:`date_range` was raising AmbiguousTimeError for valid input with `ambiguous=False` (:issue:`35297`)
 
 
 Numeric
