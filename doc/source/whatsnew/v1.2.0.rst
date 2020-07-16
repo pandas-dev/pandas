@@ -109,7 +109,7 @@ Development Changes
 Deprecations
 ~~~~~~~~~~~~
 
-- 
+-
 
 .. ---------------------------------------------------------------------------
 
@@ -119,7 +119,7 @@ Deprecations
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-- 
+-
 
 .. ---------------------------------------------------------------------------
 
@@ -131,15 +131,15 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
-- 
+-
 
 Datetimelike
 ^^^^^^^^^^^^
-- 
+-
 
 Timedelta
 ^^^^^^^^^
-- 
+-
 
 Timezones
 ^^^^^^^^^
@@ -147,26 +147,27 @@ Timezones
 
 Numeric
 ^^^^^^^
-- 
+-
 
 Conversion
 ^^^^^^^^^^
-- 
+-
+
 Strings
 ^^^^^^^
-- 
+-
 
 Interval
 ^^^^^^^^
-- 
+-
 
 Indexing
 ^^^^^^^^
-- 
+-
 
 Missing
 ^^^^^^^
-- 
+-
 
 MultiIndex
 ^^^^^^^^^^
@@ -178,7 +179,7 @@ I/O
 
 Plotting
 ^^^^^^^^
-- 
+-
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
