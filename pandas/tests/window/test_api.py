@@ -306,6 +306,7 @@ def test_preserve_metadata():
         ),
     ],
 )
+@pytest.mark.xfail(not compat.IS64, reason="GH-35294")
 def test_multiple_agg_funcs(func, window_size, expected_vals):
     # GH 15072
     df = pd.DataFrame(
