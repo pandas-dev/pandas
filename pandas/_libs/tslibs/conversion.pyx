@@ -639,11 +639,20 @@ cdef inline check_overflows(_TSObject obj):
     # GH#12677
     if obj.dts.year == 1677:
         if not (obj.value < 0):
-            raise OutOfBoundsDatetime
+            from pandas._libs.tslibs.timestamps import Timestamp
+            fmt = (f"{obj.dts.year}-{obj.dts.month:02d}-{obj.dts.day:02d} "
+                   f"{obj.dts.hour:02d}:{obj.dts.min:02d}:{obj.dts.sec:02d}")
+            raise OutOfBoundsDatetime(
+                f"Converting {fmt} underflows past {Timestamp.min}"
+            )
     elif obj.dts.year == 2262:
         if not (obj.value > 0):
-            raise OutOfBoundsDatetime
-
+            from pandas._libs.tslibs.timestamps import Timestamp
+            fmt = (f"{obj.dts.year}-{obj.dts.month:02d}-{obj.dts.day:02d} "
+                   f"{obj.dts.hour:02d}:{obj.dts.min:02d}:{obj.dts.sec:02d}")
+            raise OutOfBoundsDatetime(
+                f"Converting {fmt} overflows past {Timestamp.max}"
+            )
 
 # ----------------------------------------------------------------------
 # Localization
