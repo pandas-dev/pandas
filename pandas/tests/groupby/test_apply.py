@@ -1033,7 +1033,7 @@ def test_apply_is_unchanged_when_other_methods_are_called_first(reduction_func):
     result = grp.apply(sum)
     tm.assert_frame_equal(result, expected)
 
-    # Check output when another methods is called before .apply()
+    # Check output when another method is called before .apply()
     grp = df.groupby(by="a")
     args = {"nth": [0], "corrwith": [df]}.get(reduction_func, [])
     _ = getattr(grp, reduction_func)(*args)
