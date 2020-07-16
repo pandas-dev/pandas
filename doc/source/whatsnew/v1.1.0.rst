@@ -953,6 +953,7 @@ Numeric
 - Bug in :meth:`DataFrame.diff` with ``axis=1`` returning incorrect results with mixed dtypes (:issue:`32995`)
 - Bug in :meth:`DataFrame.corr` and :meth:`DataFrame.cov` raising when handling nullable integer columns with ``pandas.NA`` (:issue:`33803`)
 - Bug in :class:`DataFrame` and :class:`Series` addition and subtraction between object-dtype objects and ``datetime64`` dtype objects (:issue:`33824`)
+- Bug in :meth:`Index.difference` incorrect results when comparing a :class:`Float64Index` and object :class:`Index` (:issue:`35217`)
 - Bug in :class:`DataFrame` reductions (e.g. ``df.min()``, ``df.max()``) with ``ExtensionArray`` dtypes (:issue:`34520`, :issue:`32651`)
 
 Conversion
@@ -1112,10 +1113,6 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.resample` where an ``AmbiguousTimeError`` would be raised when the resulting timezone aware :class:`DatetimeIndex` had a DST transition at midnight (:issue:`25758`)
 - Bug in :meth:`DataFrame.groupby` where a ``ValueError`` would be raised when grouping by a categorical column with read-only categories and ``sort=False`` (:issue:`33410`)
 - Bug in :meth:`GroupBy.agg`, :meth:`GroupBy.transform`, and :meth:`GroupBy.resample` where subclasses are not preserved (:issue:`28330`)
-- Bug in :meth:`core.groupby.DataFrameGroupBy.apply` where the output index shape for functions returning a DataFrame which is equally indexed
-  to the input DataFrame is inconsistent. An internal heuristic to detect index mutation would behave differently for equal but not identical
-  indices. In particular, the result index shape might change if a copy of the input would be returned.
-  The behaviour now is consistent, independent of internal heuristics. (:issue:`31612`, :issue:`14927`, :issue:`13056`)
 - Bug in :meth:`SeriesGroupBy.agg` where any column name was accepted in the named aggregation of ``SeriesGroupBy`` previously. The behaviour now allows only ``str`` and callables else would raise ``TypeError``. (:issue:`34422`)
 - Bug in :meth:`DataFrame.groupby` lost index, when one of the ``agg`` keys referenced an empty list (:issue:`32580`)
 - Bug in :meth:`Rolling.apply` where ``center=True`` was ignored when ``engine='numba'`` was specified (:issue:`34784`)
@@ -1161,7 +1158,7 @@ Sparse
 - Creating a :class:`SparseArray` from timezone-aware dtype will issue a warning before dropping timezone information, instead of doing so silently (:issue:`32501`)
 - Bug in :meth:`arrays.SparseArray.from_spmatrix` wrongly read scipy sparse matrix (:issue:`31991`)
 - Bug in :meth:`Series.sum` with ``SparseArray`` raises ``TypeError`` (:issue:`25777`)
-- Bug where :class:`DataFrame` containing :class:`SparseArray` filled with ``NaN`` when indexed by a list-like (:issue:`27781`, :issue:`29563`)
+- Bug where :class:`DataFrame` containing an all-sparse :class:`SparseArray` filled with ``NaN`` when indexed by a list-like (:issue:`27781`, :issue:`29563`)
 - The repr of :class:`SparseDtype` now includes the repr of its ``fill_value`` attribute. Previously it used ``fill_value``'s  string representation (:issue:`34352`)
 - Bug where empty :class:`DataFrame` could not be cast to :class:`SparseDtype` (:issue:`33113`)
 - Bug in :meth:`arrays.SparseArray` was returning the incorrect type when indexing a sparse dataframe with an iterable (:issue:`34526`, :issue:`34540`)
