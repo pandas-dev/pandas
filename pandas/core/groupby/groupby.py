@@ -464,17 +464,6 @@ def _group_selection_context(groupby):
     groupby._reset_group_selection()
 
 
-@contextmanager
-def _observed_is_true(groupby):
-    """
-    Set GroupBy.observed to True, then restore to original value
-    """
-    original_value = groupby.observed
-    groupby.observed = True
-    yield groupby
-    groupby.observed = original_value
-
-
 _KeysArgType = Union[
     Hashable,
     List[Hashable],
@@ -1548,7 +1537,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         # _agg_general() returns. We set self.observed=True for the call to
         # _agg_general() to avoid it reindexing. We then reindex below with
         # fill_value=0. See GH 31422
-        with _observed_is_true(self):
+        with com.temp_setattr(self, "observed", True):
             result = self._agg_general(
                 numeric_only=numeric_only,
                 min_count=min_count,

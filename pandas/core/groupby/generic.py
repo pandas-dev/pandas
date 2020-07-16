@@ -70,7 +70,6 @@ from pandas.core.groupby.groupby import (
     GroupBy,
     _agg_template,
     _apply_docs,
-    _observed_is_true,
     _transform_template,
     get_groupby,
 )
@@ -1833,7 +1832,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # _wrap_agged_blocks() returns. We set self.observed=True for the call to
         # _wrap_agged_blocks() to avoid it reindexing. We then reindex below with
         # fill_value=0. See GH 35028
-        with _observed_is_true(self):
+        with com.temp_setattr(self, "observed", True):
             result = self._wrap_agged_blocks(blocks, items=data.items)
 
         return self._reindex_output(result, fill_value=0)
