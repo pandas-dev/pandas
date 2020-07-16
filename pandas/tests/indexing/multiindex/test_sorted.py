@@ -43,8 +43,10 @@ class TestMultiIndexSorted:
         df2 = df.set_index(["col1", "col2"])
         df2_original = df2.copy()
 
-        df2.index.set_levels(["b", "d", "a"], level="col1", inplace=True)
-        df2.index.set_codes([0, 1, 0, 2], level="col1", inplace=True)
+        return_value = df2.index.set_levels(["b", "d", "a"], level="col1", inplace=True)
+        assert return_value is None
+        return_value = df2.index.set_codes([0, 1, 0, 2], level="col1", inplace=True)
+        assert return_value is None
         assert not df2.index.is_lexsorted()
         assert not df2.index.is_monotonic
 
