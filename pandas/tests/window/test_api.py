@@ -6,7 +6,7 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, Index, Series, Timestamp, concat
+from pandas import DataFrame, Index, Series, Timestamp, compat, concat
 import pandas._testing as tm
 from pandas.core.base import SpecificationError
 
@@ -107,10 +107,7 @@ def test_agg():
 
     with pytest.raises(SpecificationError, match=msg):
         r.aggregate(
-            {
-                "A": {"mean": "mean", "sum": "sum"},
-                "B": {"mean2": "mean", "sum2": "sum"},
-            }
+            {"A": {"mean": "mean", "sum": "sum"}, "B": {"mean2": "mean", "sum2": "sum"}}
         )
 
     result = r.aggregate({"A": ["mean", "std"], "B": ["mean", "std"]})
@@ -191,11 +188,7 @@ def test_count_nonnumeric_types():
         "dt_nat",
         "periods_nat",
     ]
-    dt_nat_col = [
-        Timestamp("20170101"),
-        Timestamp("20170203"),
-        Timestamp(None),
-    ]
+    dt_nat_col = [Timestamp("20170101"), Timestamp("20170203"), Timestamp(None)]
 
     df = DataFrame(
         {
@@ -284,7 +277,7 @@ def test_preserve_metadata():
 @pytest.mark.parametrize(
     "func,window_size,expected_vals",
     [
-        (
+        pytest.param(
             "rolling",
             2,
             [
@@ -296,6 +289,7 @@ def test_preserve_metadata():
                 [35.0, 40.0, 60.0, 40.0],
                 [60.0, 80.0, 85.0, 80],
             ],
+            marks=pytest.mark.xfail(not compat.IS64, reason="GH-35294"),
         ),
         (
             "expanding",

@@ -855,7 +855,7 @@ class Base:
     def test_getitem_2d_deprecated(self):
         # GH#30588
         idx = self.create_index()
-        with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             res = idx[:, None]
 
         assert isinstance(res, np.ndarray), type(res)
