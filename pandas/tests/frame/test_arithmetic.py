@@ -1552,3 +1552,12 @@ def test_dataframe_operation_with_non_numeric_types(df, col_dtype):
     expected = expected.astype({"b": col_dtype})
     result = df + pd.Series([-1.0], index=list("a"))
     tm.assert_frame_equal(result, expected)
+
+
+def test_arith_reindex_with_duplicates():
+    # https://github.com/pandas-dev/pandas/issues/35194
+    df1 = pd.DataFrame(data=[[0]], columns=["second"])
+    df2 = pd.DataFrame(data=[[0, 0, 0]], columns=["first", "second", "second"])
+    result = df1 + df2
+    expected = pd.DataFrame([[np.nan, 0, 0]], columns=["first", "second", "second"])
+    tm.assert_frame_equal(result, expected)

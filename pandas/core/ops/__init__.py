@@ -17,6 +17,7 @@ from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
+from pandas.core import algorithms
 from pandas.core.construction import extract_array
 from pandas.core.ops.array_ops import (
     arithmetic_op,
@@ -562,10 +563,12 @@ def _frame_arith_method_with_reindex(
     DataFrame
     """
     # GH#31623, only operate on shared columns
-    cols = left.columns.intersection(right.columns)
+    cols, lcols, rcols = left.columns.join(
+        right.columns, how="inner", level=None, return_indexers=True
+    )
 
-    new_left = left[cols]
-    new_right = right[cols]
+    new_left = left.iloc[:, lcols]
+    new_right = right.iloc[:, rcols]
     result = op(new_left, new_right)
 
     # Do the join on the columns instead of using _align_method_FRAME
@@ -573,7 +576,19 @@ def _frame_arith_method_with_reindex(
     join_columns, _, _ = left.columns.join(
         right.columns, how="outer", level=None, return_indexers=True
     )
-    return result.reindex(join_columns, axis=1)
+
+    if result.columns.has_duplicates:
+        # Avoid reindexing with a duplicate axis.
+        # https://github.com/pandas-dev/pandas/issues/35194
+        indexer, _ = result.columns.get_indexer_non_unique(join_columns)
+        indexer = algorithms.unique1d(indexer)
+        result = result._reindex_with_indexers(
+            {1: [join_columns, indexer]}, allow_dups=True
+        )
+    else:
+        result = result.reindex(join_columns, axis=1)
+
+    return result
 
 
 def _maybe_align_series_as_frame(frame: "DataFrame", series: "Series", axis: int):

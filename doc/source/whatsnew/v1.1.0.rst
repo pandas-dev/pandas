@@ -953,6 +953,7 @@ Numeric
 - Bug in :meth:`DataFrame.count` with ``level="foo"`` and index level ``"foo"`` containing NaNs causes segmentation fault (:issue:`21824`)
 - Bug in :meth:`DataFrame.diff` with ``axis=1`` returning incorrect results with mixed dtypes (:issue:`32995`)
 - Bug in :meth:`DataFrame.corr` and :meth:`DataFrame.cov` raising when handling nullable integer columns with ``pandas.NA`` (:issue:`33803`)
+- Bug in arithmetic operations between ``DataFrame`` objects with non-overlapping columns with duplicate labels causing an infinite loop (:issue:`35194`)
 - Bug in :class:`DataFrame` and :class:`Series` addition and subtraction between object-dtype objects and ``datetime64`` dtype objects (:issue:`33824`)
 - Bug in :meth:`Index.difference` incorrect results when comparing a :class:`Float64Index` and object :class:`Index` (:issue:`35217`)
 - Bug in :class:`DataFrame` reductions (e.g. ``df.min()``, ``df.max()``) with ``ExtensionArray`` dtypes (:issue:`34520`, :issue:`32651`)
