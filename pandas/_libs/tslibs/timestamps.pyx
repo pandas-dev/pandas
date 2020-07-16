@@ -14,7 +14,7 @@ from numpy cimport int64_t, int8_t, uint8_t, ndarray
 cnp.import_array()
 
 from cpython.object cimport (PyObject_RichCompareBool, PyObject_RichCompare,
-                             Py_GT, Py_GE, Py_EQ, Py_NE, Py_LT, Py_LE)
+                             Py_EQ, Py_NE)
 
 from cpython.datetime cimport (
     datetime,
@@ -51,15 +51,17 @@ from pandas._libs.tslibs.np_datetime cimport (
     pydatetime_to_dt64,
 )
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
-from pandas._libs.tslibs.offsets cimport to_offset, is_tick_object, is_offset_object
+from pandas._libs.tslibs.offsets cimport to_offset, is_offset_object
 from pandas._libs.tslibs.timedeltas cimport is_any_td_scalar, delta_to_nanoseconds
 from pandas._libs.tslibs.timedeltas import Timedelta
 from pandas._libs.tslibs.timezones cimport (
     is_utc, maybe_get_tz, treat_tz_as_pytz, utc_pytz as UTC,
     get_timezone, tz_compare,
 )
-from pandas._libs.tslibs.tzconversion cimport tz_convert_single
-from pandas._libs.tslibs.tzconversion import tz_localize_to_utc
+from pandas._libs.tslibs.tzconversion cimport (
+    tz_convert_from_utc_single,
+    tz_localize_to_utc_single,
+)
 
 # ----------------------------------------------------------------------
 # Constants
@@ -1300,14 +1302,14 @@ default 'raise'
             tz = maybe_get_tz(tz)
             if not isinstance(ambiguous, str):
                 ambiguous = [ambiguous]
-            value = tz_localize_to_utc(np.array([self.value], dtype='i8'), tz,
-                                       ambiguous=ambiguous,
-                                       nonexistent=nonexistent)[0]
+            value = tz_localize_to_utc_single(self.value, tz,
+                                              ambiguous=ambiguous,
+                                              nonexistent=nonexistent)
             return Timestamp(value, tz=tz, freq=self.freq)
         else:
             if tz is None:
                 # reset tz
-                value = tz_convert_single(self.value, UTC, self.tz)
+                value = tz_convert_from_utc_single(self.value, self.tz)
                 return Timestamp(value, tz=tz, freq=self.freq)
             else:
                 raise TypeError(
@@ -1380,7 +1382,7 @@ default 'raise'
 
         cdef:
             npy_datetimestruct dts
-            int64_t value, value_tz
+            int64_t value
             object k, v
             datetime ts_input
             tzinfo_type tzobj
@@ -1389,8 +1391,7 @@ default 'raise'
         tzobj = self.tzinfo
         value = self.value
         if tzobj is not None:
-            value_tz = tz_convert_single(value, tzobj, UTC)
-            value += value - value_tz
+            value = tz_convert_from_utc_single(value, tzobj)
 
         # setup components
         dt64_to_dtstruct(value, &dts)
