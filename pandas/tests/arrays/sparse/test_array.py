@@ -281,6 +281,11 @@ class TestSparseArray:
         exp = SparseArray(np.take(self.arr_data, [0, 1, 2]))
         tm.assert_sp_array_equal(self.arr.take([0, 1, 2]), exp)
 
+    def test_take_all_empty(self):
+        a = pd.array([0, 0], dtype=pd.SparseDtype("int64"))
+        result = a.take([0, 1], allow_fill=True, fill_value=np.nan)
+        tm.assert_sp_array_equal(a, result)
+
     def test_take_fill_value(self):
         data = np.array([1, np.nan, 0, 3, 0])
         sparse = SparseArray(data, fill_value=0)
