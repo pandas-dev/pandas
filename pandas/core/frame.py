@@ -1297,6 +1297,7 @@ class DataFrame(NDFrame):
 
         Specify ``orient='tight'`` to create the DataFrame using a 'tight'
         format:
+
         >>> data = {'index': [('a', 'b'), ('a', 'c')],
         ...         'columns': [('x', 1), ('y', 2)],
         ...         'data': [[1, 3], [2, 4]],
