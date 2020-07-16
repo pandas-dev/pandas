@@ -813,6 +813,39 @@ class TestDatetimeIndex:
         result = pd.date_range(end=end, periods=2, ambiguous=False)
         tm.assert_index_equal(result, expected)
 
+    def test_constructor_with_nonexistent_keyword_arg(self):
+        # GH 35297
+
+        timezone = "Europe/Warsaw"
+
+        # nonexistent keyword in start
+        start = pd.Timestamp("2015-03-29 02:30:00").tz_localize(
+            timezone, nonexistent="shift_forward"
+        )
+        result = pd.date_range(start=start, periods=2, freq="H")
+        expected = DatetimeIndex(
+            [
+                pd.Timestamp("2015-03-29 03:00:00+02:00", tz=timezone),
+                pd.Timestamp("2015-03-29 04:00:00+02:00", tz=timezone),
+            ]
+        )
+
+        tm.assert_index_equal(result, expected)
+
+        # nonexistent keyword in end
+        end = pd.Timestamp("2015-03-29 02:30:00").tz_localize(
+            timezone, nonexistent="shift_forward"
+        )
+        result = pd.date_range(end=end, periods=2, freq="H")
+        expected = DatetimeIndex(
+            [
+                pd.Timestamp("2015-03-29 01:00:00+01:00", tz=timezone),
+                pd.Timestamp("2015-03-29 03:00:00+02:00", tz=timezone),
+            ]
+        )
+
+        tm.assert_index_equal(result, expected)
+
     def test_constructor_no_precision_raises(self):
         # GH-24753, GH-24739
 
