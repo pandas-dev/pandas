@@ -402,14 +402,14 @@ def array_equivalent(
     if dtype_equal:
         # fastpath when we require that the dtypes match (Block.equals)
         if is_float_dtype(left.dtype) or is_complex_dtype(left.dtype):
-            return array_equivalent_float(left, right)
+            return _array_equivalent_float(left, right)
         elif is_datetimelike_v_numeric(left.dtype, right.dtype):
             return False
         elif needs_i8_conversion(left.dtype):
-            return array_equivalent_datetimelike(left, right)
+            return _array_equivalent_datetimelike(left, right)
         elif is_string_dtype(left.dtype):
             # TODO: fastpath for pandas' StringDtype
-            return array_equivalent_object(left, right, strict_nan)
+            return _array_equivalent_object(left, right, strict_nan)
         else:
             return np.array_equal(left, right)
 
@@ -417,7 +417,7 @@ def array_equivalent(
     # Object arrays can contain None, NaN and NaT.
     # string dtypes must be come to this path for NumPy 1.7.1 compat
     if is_string_dtype(left.dtype) or is_string_dtype(right.dtype):
-        return array_equivalent_object(left, right, strict_nan)
+        return _array_equivalent_object(left, right, strict_nan)
 
     # NaNs can occur in float and complex arrays.
     if is_float_dtype(left.dtype) or is_complex_dtype(left.dtype):
@@ -445,15 +445,15 @@ def array_equivalent(
     return np.array_equal(left, right)
 
 
-def array_equivalent_float(left, right):
+def _array_equivalent_float(left, right):
     return ((left == right) | (np.isnan(left) & np.isnan(right))).all()
 
 
-def array_equivalent_datetimelike(left, right):
+def _array_equivalent_datetimelike(left, right):
     return np.array_equal(left.view("i8"), right.view("i8"))
 
 
-def array_equivalent_object(left, right, strict_nan):
+def _array_equivalent_object(left, right, strict_nan):
     if not strict_nan:
         # isna considers NaN and None to be equivalent.
         return lib.array_equivalent_object(
