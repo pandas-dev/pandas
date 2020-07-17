@@ -1,8 +1,9 @@
 """ parquet compat """
 
-from typing import Any, Dict, Optional
+from typing import Any, AnyStr, Dict, List, Optional
 from warnings import catch_warnings
 
+from pandas._typing import FilePathOrBuffer
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
 
@@ -85,10 +86,10 @@ class PyArrowImpl(BaseImpl):
     def write(
         self,
         df: DataFrame,
-        path,
-        compression="snappy",
+        path: FilePathOrBuffer[AnyStr],
+        compression: Optional[str] = "snappy",
         index: Optional[bool] = None,
-        partition_cols=None,
+        partition_cols: Optional[List[str]] = None,
         **kwargs,
     ):
         self.validate_dataframe(df)
@@ -213,11 +214,11 @@ class FastParquetImpl(BaseImpl):
 
 def to_parquet(
     df: DataFrame,
-    path,
+    path: FilePathOrBuffer[AnyStr],
     engine: str = "auto",
-    compression="snappy",
+    compression: Optional[str] = "snappy",
     index: Optional[bool] = None,
-    partition_cols=None,
+    partition_cols: Optional[List[str]] = None,
     **kwargs,
 ):
     """
@@ -226,9 +227,12 @@ def to_parquet(
     Parameters
     ----------
     df : DataFrame
-    path : str
-        File path or Root Directory path. Will be used as Root Directory path
-        while writing a partitioned dataset.
+    path : str or file-like object
+        If a string, it will be used as Root Directory path
+        when writing a partitioned dataset. By file-like object,
+        we refer to objects with a write() method, such as a file handler
+        (e.g. via builtin open function) or io.BytesIO. The engine
+        fastparquet does not accept file-like objects.
 
         .. versionchanged:: 0.24.0
 
@@ -251,8 +255,9 @@ def to_parquet(
         .. versionadded:: 0.24.0
 
     partition_cols : str or list, optional, default None
-        Column names by which to partition the dataset
-        Columns are partitioned in the order they are given
+        Column names by which to partition the dataset.
+        Columns are partitioned in the order they are given.
+        Must be None if path is not a string.
 
         .. versionadded:: 0.24.0
 

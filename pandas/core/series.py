@@ -78,7 +78,7 @@ from pandas.core.construction import (
     sanitize_array,
 )
 from pandas.core.generic import NDFrame
-from pandas.core.indexers import unpack_1tuple
+from pandas.core.indexers import deprecate_ndim_indexing, unpack_1tuple
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import Float64Index, Index, MultiIndex, ensure_index
 import pandas.core.indexes.base as ibase
@@ -950,13 +950,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _get_values_tuple(self, key):
         # mpl hackaround
         if com.any_none(*key):
-            # suppress warning from slicing the index with a 2d indexer.
-            # eventually we'll want Series itself to warn.
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore", "Support for multi-dim", DeprecationWarning
-                )
-                return self._get_values(key)
+            result = self._get_values(key)
+            deprecate_ndim_indexing(result, stacklevel=5)
+            return result
 
         if not isinstance(self.index, MultiIndex):
             raise ValueError("Can only tuple-index with a MultiIndex")
@@ -1423,7 +1419,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ),
     )
     def to_markdown(
-        self, buf: Optional[IO[str]] = None, mode: Optional[str] = None, **kwargs
+        self,
+        buf: Optional[IO[str]] = None,
+        mode: Optional[str] = None,
+        index: bool = True,
+        **kwargs,
     ) -> Optional[str]:
         """
         Print {klass} in Markdown-friendly format.
@@ -1436,6 +1436,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Buffer to write to. If None, the output is returned as a string.
         mode : str, optional
             Mode in which file is opened.
+        index : bool, optional, default True
+            Add index (row) labels.
+
+            .. versionadded:: 1.1.0
+
         **kwargs
             These parameters will be passed to `tabulate \
                 <https://pypi.org/project/tabulate>`_.
@@ -1471,7 +1476,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         |  3 | quetzal  |
         +----+----------+
         """
-        return self.to_frame().to_markdown(buf, mode, **kwargs)
+        return self.to_frame().to_markdown(buf, mode, index, **kwargs)
 
     # ----------------------------------------------------------------------
 
@@ -2609,7 +2614,7 @@ Name: Max Speed, dtype: float64
         to_append : Series or list/tuple of Series
             Series to append with self.
         ignore_index : bool, default False
-            If True, do not use the index labels.
+            If True, the resulting axis will be labeled 0, 1, …, n - 1.
         verify_integrity : bool, default False
             If True, raise Exception on creating index with duplicates.
 
@@ -3774,11 +3779,18 @@ Keep all original rows and also all original values
         result.index = result.index.reorder_levels(order)
         return result
 
-    def explode(self) -> "Series":
+    def explode(self, ignore_index: bool = False) -> "Series":
         """
         Transform each element of a list-like to a row.
 
         .. versionadded:: 0.25.0
+
+        Parameters
+        ----------
+        ignore_index : bool, default False
+            If True, the resulting index will be labeled 0, 1, …, n - 1.
+
+            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -3826,9 +3838,13 @@ Keep all original rows and also all original values
 
         values, counts = reshape.explode(np.asarray(self.array))
 
-        result = self._constructor(
-            values, index=self.index.repeat(counts), name=self.name
-        )
+        if ignore_index:
+            index = ibase.default_index(len(values))
+        else:
+            index = self.index.repeat(counts)
+
+        result = self._constructor(values, index=index, name=self.name)
+
         return result
 
     def unstack(self, level=-1, fill_value=None):
@@ -4009,9 +4025,14 @@ Keep all original rows and also all original values
         examples=_agg_examples_doc,
         versionadded="\n.. versionadded:: 0.20.0\n",
     )
-    def aggregate(self, func, axis=0, *args, **kwargs):
+    def aggregate(self, func=None, axis=0, *args, **kwargs):
         # Validate the axis parameter
         self._get_axis_number(axis)
+
+        # if func is None, will switch to user-provided "named aggregation" kwargs
+        if func is None:
+            func = dict(kwargs.items())
+
         result, how = self._aggregate(func, *args, **kwargs)
         if result is None:
 

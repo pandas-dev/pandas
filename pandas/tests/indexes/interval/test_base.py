@@ -15,7 +15,7 @@ class TestBase(Base):
     _holder = IntervalIndex
 
     @pytest.fixture
-    def indices(self):
+    def index(self):
         return tm.makeIntervalIndex(10)
 
     def create_index(self, closed="right"):
@@ -84,5 +84,5 @@ class TestBase(Base):
         # GH#30588 multi-dim indexing is deprecated, but raising is also acceptable
         idx = self.create_index()
         with pytest.raises(ValueError, match="multi-dimensional indexing not allowed"):
-            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+            with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
                 idx[:, None]

@@ -7,7 +7,7 @@ dependencies:
 
   # tools
   - cython>=0.29.16
-  - pytest>=5.0.1
+  - pytest>=5.0.1,<6.0.0rc0
   - pytest-xdist>=1.21
   - hypothesis>=3.58.0
   - pytest-azurepipelines

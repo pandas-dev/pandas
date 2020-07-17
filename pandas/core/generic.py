@@ -1278,7 +1278,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         >>> df.equals(different_data_type)
         False
         """
-        if not isinstance(other, self._constructor):
+        if not (isinstance(other, type(self)) or isinstance(self, type(other))):
             return False
         return self._mgr.equals(other._mgr)
 
@@ -2468,7 +2468,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ----------
         name : str
             Name of SQL table.
-        con : sqlalchemy.engine.Engine or sqlite3.Connection
+        con : sqlalchemy.engine.(Engine or Connection) or sqlite3.Connection
             Using SQLAlchemy makes it possible to use any DB supported by that
             library. Legacy support is provided for sqlite3.Connection objects. The user
             is responsible for engine disposal and connection closure for the SQLAlchemy
@@ -2556,18 +2556,27 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         >>> engine.execute("SELECT * FROM users").fetchall()
         [(0, 'User 1'), (1, 'User 2'), (2, 'User 3')]
 
-        >>> df1 = pd.DataFrame({'name' : ['User 4', 'User 5']})
-        >>> df1.to_sql('users', con=engine, if_exists='append')
+        An `sqlalchemy.engine.Connection` can also be passed to to `con`:
+        >>> with engine.begin() as connection:
+        ...     df1 = pd.DataFrame({'name' : ['User 4', 'User 5']})
+        ...     df1.to_sql('users', con=connection, if_exists='append')
+
+        This is allowed to support operations that require that the same
+        DBAPI connection is used for the entire operation.
+
+        >>> df2 = pd.DataFrame({'name' : ['User 6', 'User 7']})
+        >>> df2.to_sql('users', con=engine, if_exists='append')
         >>> engine.execute("SELECT * FROM users").fetchall()
         [(0, 'User 1'), (1, 'User 2'), (2, 'User 3'),
-         (0, 'User 4'), (1, 'User 5')]
+         (0, 'User 4'), (1, 'User 5'), (0, 'User 6'),
+         (1, 'User 7')]
 
-        Overwrite the table with just ``df1``.
+        Overwrite the table with just ``df2``.
 
-        >>> df1.to_sql('users', con=engine, if_exists='replace',
+        >>> df2.to_sql('users', con=engine, if_exists='replace',
         ...            index_label='id')
         >>> engine.execute("SELECT * FROM users").fetchall()
-        [(0, 'User 4'), (1, 'User 5')]
+        [(0, 'User 6'), (1, 'User 7')]
 
         Specify the dtype (especially useful for integers with missing values).
         Notice that while pandas is forced to store the data as floating point,
@@ -5321,6 +5330,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                ['lion', 80.5, 1],
                ['monkey', nan, None]], dtype=object)
         """
+        self._consolidate_inplace()
         return self._mgr.as_array(transpose=self._AXIS_REVERSED)
 
     @property
@@ -5356,9 +5366,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         string              object
         dtype: object
         """
-        from pandas import Series  # noqa: F811
-
-        return Series(self._mgr.get_dtypes(), index=self._info_axis, dtype=np.object_)
+        data = self._mgr.get_dtypes()
+        return self._constructor_sliced(data, index=self._info_axis, dtype=np.object_)
 
     def _to_dict_of_blocks(self, copy: bool_t = True):
         """
@@ -5527,6 +5536,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             # else, only a single dtype is given
             new_data = self._mgr.astype(dtype=dtype, copy=copy, errors=errors,)
             return self._constructor(new_data).__finalize__(self, method="astype")
+
+        # GH 33113: handle empty frame or series
+        if not results:
+            return self.copy()
 
         # GH 19920: retain column metadata after concat
         result = pd.concat(results, axis=1, copy=False)
@@ -6517,7 +6530,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                             f"Replacement lists must match in length. "
                             f"Expecting {len(to_replace)} got {len(value)} "
                         )
-
+                    self._consolidate_inplace()
                     new_data = self._mgr.replace_list(
                         src_list=to_replace,
                         dest_list=value,
@@ -9566,8 +9579,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         dtype: int64
 
         If the DST transition causes nonexistent times, you can shift these
-        dates forward or backwards with a timedelta object or `'shift_forward'`
-        or `'shift_backwards'`.
+        dates forward or backward with a timedelta object or `'shift_forward'`
+        or `'shift_backward'`.
+
         >>> s = pd.Series(range(2),
         ...               index=pd.DatetimeIndex(['2015-03-29 02:30:00',
         ...                                       '2015-03-29 03:30:00']))
@@ -9697,7 +9711,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return np.abs(self)
 
     def describe(
-        self: FrameOrSeries, percentiles=None, include=None, exclude=None
+        self: FrameOrSeries,
+        percentiles=None,
+        include=None,
+        exclude=None,
+        datetime_is_numeric=False,
     ) -> FrameOrSeries:
         """
         Generate descriptive statistics.
@@ -9743,6 +9761,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
               ``select_dtypes`` (e.g. ``df.describe(include=['O'])``). To
               exclude pandas categorical columns, use ``'category'``
             - None (default) : The result will exclude nothing.
+        datetime_is_numeric : bool, default False
+            Whether to treat datetime dtypes as numeric. This affects statistics
+            calculated for the column. For DataFrame input, this also
+            controls whether datetime columns are included by default.
+
+            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -9820,7 +9844,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ...   np.datetime64("2010-01-01"),
         ...   np.datetime64("2010-01-01")
         ... ])
-        >>> s.describe()
+        >>> s.describe(datetime_is_numeric=True)
         count                      3
         mean     2006-09-01 08:00:00
         min      2000-01-01 00:00:00
@@ -9978,8 +10002,37 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             dtype = None
             if result[1] > 0:
                 top, freq = objcounts.index[0], objcounts.iloc[0]
-                names += ["top", "freq"]
-                result += [top, freq]
+                if is_datetime64_any_dtype(data.dtype):
+                    if self.ndim == 1:
+                        stacklevel = 4
+                    else:
+                        stacklevel = 5
+                    warnings.warn(
+                        "Treating datetime data as categorical rather than numeric in "
+                        "`.describe` is deprecated and will be removed in a future "
+                        "version of pandas. Specify `datetime_is_numeric=True` to "
+                        "silence this warning and adopt the future behavior now.",
+                        FutureWarning,
+                        stacklevel=stacklevel,
+                    )
+                    tz = data.dt.tz
+                    asint = data.dropna().values.view("i8")
+                    top = Timestamp(top)
+                    if top.tzinfo is not None and tz is not None:
+                        # Don't tz_localize(None) if key is already tz-aware
+                        top = top.tz_convert(tz)
+                    else:
+                        top = top.tz_localize(tz)
+                    names += ["top", "freq", "first", "last"]
+                    result += [
+                        top,
+                        freq,
+                        Timestamp(asint.min(), tz=tz),
+                        Timestamp(asint.max(), tz=tz),
+                    ]
+                else:
+                    names += ["top", "freq"]
+                    result += [top, freq]
 
             # If the DataFrame is empty, set 'top' and 'freq' to None
             # to maintain output shape consistency
@@ -10005,7 +10058,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 return describe_categorical_1d(data)
             elif is_numeric_dtype(data):
                 return describe_numeric_1d(data)
-            elif is_datetime64_any_dtype(data.dtype):
+            elif is_datetime64_any_dtype(data.dtype) and datetime_is_numeric:
                 return describe_timestamp_1d(data)
             elif is_timedelta64_dtype(data.dtype):
                 return describe_numeric_1d(data)
@@ -10016,7 +10069,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return describe_1d(self)
         elif (include is None) and (exclude is None):
             # when some numerics are found, keep only numerics
-            data = self.select_dtypes(include=[np.number])
+            default_include = [np.number]
+            if datetime_is_numeric:
+                default_include.append("datetime")
+            data = self.select_dtypes(include=default_include)
             if len(data.columns) == 0:
                 data = self
         elif include == "all":
@@ -10486,8 +10542,18 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         cls.rolling = rolling
 
         @doc(Expanding)
-        def expanding(self, min_periods=1, center=False, axis=0):
+        def expanding(self, min_periods=1, center=None, axis=0):
             axis = self._get_axis_number(axis)
+            if center is not None:
+                warnings.warn(
+                    "The `center` argument on `expanding` "
+                    "will be removed in the future",
+                    FutureWarning,
+                    stacklevel=2,
+                )
+            else:
+                center = False
+
             return Expanding(self, min_periods=min_periods, center=center, axis=axis)
 
         cls.expanding = expanding
@@ -10503,6 +10569,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             adjust=True,
             ignore_na=False,
             axis=0,
+            times=None,
         ):
             axis = self._get_axis_number(axis)
             return ExponentialMovingWindow(
@@ -10515,6 +10582,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 adjust=adjust,
                 ignore_na=ignore_na,
                 axis=axis,
+                times=times,
             )
 
         cls.ewm = ewm
