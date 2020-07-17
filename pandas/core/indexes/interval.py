@@ -1005,7 +1005,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     def argsort(self, *args, **kwargs) -> np.ndarray:
         return np.lexsort((self.right, self.left))
 
-    def equals(self, other) -> bool:
+    def equals(self, other: Any) -> bool:
         """
         Determines if two IntervalIndex objects contain the same elements.
         """

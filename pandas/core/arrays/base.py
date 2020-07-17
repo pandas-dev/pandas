@@ -742,7 +742,7 @@ class ExtensionArray:
         arr = self.astype(object)
         return arr.searchsorted(value, side=side, sorter=sorter)
 
-    def equals(self, other: "ExtensionArray") -> bool:
+    def equals(self, other: Any) -> bool:
         """
         Return if another array is equivalent to this array.
 

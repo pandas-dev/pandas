@@ -3204,7 +3204,7 @@ class MultiIndex(Index):
             verify_integrity=False,
         )
 
-    def equals(self, other) -> bool:
+    def equals(self, other: Any) -> bool:
         """
         Determines if two MultiIndex objects have the same labeling information
         (the levels themselves do not necessarily have to be the same)

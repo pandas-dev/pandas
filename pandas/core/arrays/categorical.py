@@ -2,7 +2,7 @@ from csv import QUOTE_NONNUMERIC
 from functools import partial
 import operator
 from shutil import get_terminal_size
-from typing import Dict, Hashable, List, Type, Union, cast
+from typing import Any, Dict, Hashable, List, Type, Union, cast
 from warnings import warn
 
 import numpy as np
@@ -2242,7 +2242,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             original.categories.take(uniques), dtype=original.dtype
         )
 
-    def equals(self, other):
+    def equals(self, other: Any) -> bool:
         """
         Returns True if categorical arrays are equal.
 

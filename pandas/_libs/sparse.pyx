@@ -94,7 +94,7 @@ cdef class IntIndex(SparseIndex):
         if not monotonic:
             raise ValueError("Indices must be strictly increasing")
 
-    def equals(self, other) -> bool:
+    def equals(self, other: Any) -> bool:
         if not isinstance(other, IntIndex):
             return False
 
@@ -390,7 +390,7 @@ cdef class BlockIndex(SparseIndex):
             if blengths[i] == 0:
                 raise ValueError(f'Zero-length block {i}')
 
-    def equals(self, other) -> bool:
+    def equals(self, other: Any) -> bool:
         if not isinstance(other, BlockIndex):
             return False
 
