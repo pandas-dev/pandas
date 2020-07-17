@@ -1008,7 +1008,8 @@ def test_frame_describe_unstacked_format():
 
 
 @pytest.mark.parametrize("by_col_dtype", [int, float, str])
-def test_describe_results_includes_non_nuisance_columns(by_col_dtype):
+@pytest.mark.parametrize("as_index", [True, False])
+def test_describe_results_includes_non_nuisance_columns(by_col_dtype, as_index):
     # GH 34656
     # GH 34271
     df = DataFrame({"a": [1, 1, 1, 2, 2, 2, 3, 3, 3], "b": [1, 2, 3, 4, 5, 6, 7, 8, 9]})
@@ -1042,12 +1043,15 @@ def test_describe_results_includes_non_nuisance_columns(by_col_dtype):
     expected.columns.names = [None, None]
     expected.index = pd.Index(expected.index.astype(by_col_dtype), name="a")
 
+    if not as_index:
+        expected = expected.reset_index(drop=True)
+
     if by_col_dtype is str:
         # If the grouping column is a nuisance column (i.e. can't apply the
         # std() or quantile() to it) then it does not appear in the output
         expected = expected.drop(columns="a")
 
-    result = df.groupby("a").describe()
+    result = df.groupby("a", as_index=as_index).describe()
     tm.assert_frame_equal(result, expected)
 
 
