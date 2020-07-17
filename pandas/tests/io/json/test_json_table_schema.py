@@ -1,6 +1,7 @@
 """Tests for Table Schema integration."""
 from collections import OrderedDict
 import json
+import sys
 
 import numpy as np
 import pytest
@@ -671,6 +672,7 @@ class TestTableOrientReader:
             {"bools": [True, False, False, True]},
         ],
     )
+    @pytest.mark.skipif(sys.version_info[:3] == (3, 7, 0), reason="GH-35309")
     def test_read_json_table_orient(self, index_nm, vals, recwarn):
         df = DataFrame(vals, index=pd.Index(range(4), name=index_nm))
         out = df.to_json(orient="table")
