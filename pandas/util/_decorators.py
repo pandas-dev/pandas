@@ -324,7 +324,7 @@ def rewrite_axis_style_signature(
 
         # https://github.com/python/typing/issues/598
         # error: "F" has no attribute "__signature__"
-        func.__signature__ = sig  # type:ignore[attr-defined]
+        func.__signature__ = sig  # type: ignore[attr-defined]
         return cast(F, wrapper)
 
     return decorate

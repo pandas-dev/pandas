@@ -451,7 +451,7 @@ def get_handle(
                 # error: Argument 3 to "open" has incompatible type
                 # "**Dict[str, str]"; expected "int"
                 f = gzip.open(
-                    path_or_buf, mode, **compression_args  # type:ignore[arg-type]
+                    path_or_buf, mode, **compression_args  # type: ignore[arg-type]
                 )
             else:
                 # error: Argument 2 to "GzipFile" has incompatible type

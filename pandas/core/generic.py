@@ -590,7 +590,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # ignore needed because of NDFrame constructor is different than
         # DataFrame/Series constructors.
         return self._constructor(
-            new_values, *new_axes  # type:ignore[arg-type]
+            new_values, *new_axes  # type: ignore[arg-type]
         ).__finalize__(self, method="swapaxes")
 
     def droplevel(self: FrameOrSeries, level, axis=0) -> FrameOrSeries:
@@ -4078,7 +4078,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # expected "FrameOrSeries")
         # error: Argument 1 to "rename" of "NDFrame" has incompatible type
         # "**Dict[str, partial[str]]"; expected "Union[str, int, None]"
-        return self.rename(**mapper)  # type:ignore[return-value, arg-type]
+        return self.rename(**mapper)  # type: ignore[return-value, arg-type]
 
     def sort_values(
         self,
