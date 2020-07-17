@@ -356,7 +356,7 @@ def _isna_compat(arr, fill_value=np.nan) -> bool:
 
 
 def array_equivalent(
-    left, right, strict_nan: bool = False, dtype_equal: bool = True
+    left, right, strict_nan: bool = False, dtype_equal: bool = False
 ) -> bool:
     """
     True if two arrays, left and right, have equal non-NaN elements, and NaNs
@@ -370,6 +370,12 @@ def array_equivalent(
     left, right : ndarrays
     strict_nan : bool, default False
         If True, consider NaN and None to be different.
+    dtype_equal : bool, default False
+        Whether `left` and `right` are known to have the same dtype
+        according to `is_dtype_equal`. Some methods like `BlockManager.equals`.
+        require that the dtypes match. Setting this to ``True`` can improve
+        performance, but will give different results for arrays that are
+        equal but different dtypes.
 
     Returns
     -------
@@ -397,13 +403,13 @@ def array_equivalent(
         # fastpath when we require that the dtypes match (Block.equals)
         if is_float_dtype(left.dtype) or is_complex_dtype(left.dtype):
             return array_equivalent_float(left, right)
-        elif is_datetimelike_v_numeric(left.dtype):
+        elif is_datetimelike_v_numeric(left.dtype, right.dtype):
             return False
         elif needs_i8_conversion(left.dtype):
             return array_equivalent_datetimelike(left, right)
         elif is_string_dtype(left.dtype):
             # TODO: fastpath for pandas' StringDtype
-            return array_equivalent_object(left, right)
+            return array_equivalent_object(left, right, strict_nan)
         else:
             return np.array_equal(left, right)
 
@@ -411,7 +417,7 @@ def array_equivalent(
     # Object arrays can contain None, NaN and NaT.
     # string dtypes must be come to this path for NumPy 1.7.1 compat
     if is_string_dtype(left.dtype) or is_string_dtype(right.dtype):
-        return array_equivalent_object(left, right)
+        return array_equivalent_object(left, right, strict_nan)
 
     # NaNs can occur in float and complex arrays.
     if is_float_dtype(left.dtype) or is_complex_dtype(left.dtype):
