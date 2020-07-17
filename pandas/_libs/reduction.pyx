@@ -366,7 +366,7 @@ def apply_frame_axis0(object frame, object f, object names,
             # Need to infer if low level index slider will cause segfaults
             require_slow_apply = i == 0 and piece is chunk
             try:
-                if not piece.index.equals(chunk.index):
+                if not piece.index is chunk.index:
                     mutated = True
             except AttributeError:
                 # `piece` might not have an index, could be e.g. an int

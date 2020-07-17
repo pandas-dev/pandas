@@ -1087,15 +1087,27 @@ class TestAppend:
         date = Timestamp("2018-10-24 07:30:00", tz=dateutil.tz.tzutc())
         s = Series({"date": date, "a": 1.0, "b": 2.0})
         df = DataFrame(columns=["c", "d"])
-        result = df.append(s, ignore_index=True)
+        result_a = df.append(s, ignore_index=True)
         expected = DataFrame(
-            [[np.nan, np.nan, 1.0, 2.0, date]],
-            columns=["c", "d", "a", "b", "date"],
-            dtype=object,
+            [[np.nan, np.nan, 1.0, 2.0, date]], columns=["c", "d", "a", "b", "date"]
         )
-        expected["a"] = expected["a"].astype(float)
-        expected["b"] = expected["b"].astype(float)
-        expected["date"] = pd.to_datetime(expected["date"])
+        # These columns get cast to object after append
+        expected["c"] = expected["c"].astype(object)
+        expected["d"] = expected["d"].astype(object)
+        tm.assert_frame_equal(result_a, expected)
+
+        expected = DataFrame(
+            [[np.nan, np.nan, 1.0, 2.0, date]] * 2, columns=["c", "d", "a", "b", "date"]
+        )
+        expected["c"] = expected["c"].astype(object)
+        expected["d"] = expected["d"].astype(object)
+
+        result_b = result_a.append(s, ignore_index=True)
+        tm.assert_frame_equal(result_b, expected)
+
+        # column order is different
+        expected = expected[["c", "d", "date", "a", "b"]]
+        result = df.append([s, s], ignore_index=True)
         tm.assert_frame_equal(result, expected)
 
 

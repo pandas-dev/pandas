@@ -393,7 +393,7 @@ void Buffer_Realloc(JSONObjectEncoder *enc, size_t cbNeeded) {
     enc->end = enc->start + newSize;
 }
 
-FASTCALL_ATTR INLINE_PREFIX void FASTCALL_MSVC
+INLINE_PREFIX void FASTCALL_MSVC
 Buffer_AppendShortHexUnchecked(char *outputOffset, unsigned short value) {
     *(outputOffset++) = g_hexChars[(value & 0xf000) >> 12];
     *(outputOffset++) = g_hexChars[(value & 0x0f00) >> 8];
@@ -722,7 +722,7 @@ int Buffer_EscapeStringValidated(JSOBJ obj, JSONObjectEncoder *enc,
 
 #define Buffer_AppendCharUnchecked(__enc, __chr) *((__enc)->offset++) = __chr;
 
-FASTCALL_ATTR INLINE_PREFIX void FASTCALL_MSVC strreverse(char *begin,
+INLINE_PREFIX void FASTCALL_MSVC strreverse(char *begin,
                                                           char *end) {
     char aux;
     while (end > begin) aux = *end, *end-- = *begin, *begin++ = aux;
