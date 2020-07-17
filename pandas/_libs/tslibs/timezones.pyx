@@ -1,5 +1,5 @@
-from cpython.datetime cimport tzinfo
 from datetime import timezone
+from cpython.datetime cimport datetime, timedelta, tzinfo
 
 # dateutil compat
 from dateutil.tz import (
@@ -29,24 +29,24 @@ cdef tzinfo utc_pytz = UTC
 
 # ----------------------------------------------------------------------
 
-cpdef inline bint is_utc(object tz):
+cpdef inline bint is_utc(tzinfo tz):
     return tz is utc_pytz or tz is utc_stdlib or isinstance(tz, _dateutil_tzutc)
 
 
-cdef inline bint is_tzlocal(object tz):
+cdef inline bint is_tzlocal(tzinfo tz):
     return isinstance(tz, _dateutil_tzlocal)
 
 
-cdef inline bint treat_tz_as_pytz(object tz):
+cdef inline bint treat_tz_as_pytz(tzinfo tz):
     return (hasattr(tz, '_utc_transition_times') and
             hasattr(tz, '_transition_info'))
 
 
-cdef inline bint treat_tz_as_dateutil(object tz):
+cdef inline bint treat_tz_as_dateutil(tzinfo tz):
     return hasattr(tz, '_trans_list') and hasattr(tz, '_trans_idx')
 
 
-cpdef inline object get_timezone(object tz):
+cpdef inline object get_timezone(tzinfo tz):
     """
     We need to do several things here:
     1) Distinguish between pytz and dateutil timezones
@@ -84,7 +84,7 @@ cpdef inline object get_timezone(object tz):
                 return tz
 
 
-cpdef inline object maybe_get_tz(object tz):
+cpdef inline tzinfo maybe_get_tz(object tz):
     """
     (Maybe) Construct a timezone object from a string. If tz is a string, use
     it to construct a timezone object. Otherwise, just return tz.
@@ -102,6 +102,12 @@ cpdef inline object maybe_get_tz(object tz):
             tz = pytz.timezone(tz)
     elif is_integer_object(tz):
         tz = pytz.FixedOffset(tz / 60)
+    elif isinstance(tz, tzinfo):
+        pass
+    elif tz is None:
+        pass
+    else:
+        raise TypeError(type(tz))
     return tz
 
 
@@ -116,7 +122,7 @@ def _p_tz_cache_key(tz):
 dst_cache = {}
 
 
-cdef inline object tz_cache_key(object tz):
+cdef inline object tz_cache_key(tzinfo tz):
     """
     Return the key in the cache for the timezone info object or None
     if unknown.
@@ -153,7 +159,7 @@ cdef inline object tz_cache_key(object tz):
 # UTC Offsets
 
 
-cdef get_utcoffset(tzinfo tz, obj):
+cdef timedelta get_utcoffset(tzinfo tz, datetime obj):
     try:
         return tz._utcoffset
     except AttributeError:
@@ -210,13 +216,16 @@ cdef int64_t[:] unbox_utcoffsets(object transinfo):
 # Daylight Savings
 
 
-cdef object get_dst_info(object tz):
+cdef object get_dst_info(tzinfo tz):
     """
-    return a tuple of :
-      (UTC times of DST transitions,
-       UTC offsets in microseconds corresponding to DST transitions,
-       string of type of transitions)
-
+    Returns
+    -------
+    ndarray[int64_t]
+        Nanosecond UTC times of DST transitions.
+    ndarray[int64_t]
+        Nanosecond UTC offsets corresponding to DST transitions.
+    str
+        Desscribing the type of tzinfo object.
     """
     cache_key = tz_cache_key(tz)
     if cache_key is None:
@@ -225,7 +234,7 @@ cdef object get_dst_info(object tz):
         num = int(get_utcoffset(tz, None).total_seconds()) * 1_000_000_000
         return (np.array([NPY_NAT + 1], dtype=np.int64),
                 np.array([num], dtype=np.int64),
-                None)
+                "unknown")
 
     if cache_key not in dst_cache:
         if treat_tz_as_pytz(tz):
@@ -267,21 +276,20 @@ cdef object get_dst_info(object tz):
                 # (under the just-deleted code that returned empty arrays)
                 raise AssertionError("dateutil tzinfo is not a FixedOffset "
                                      "and has an empty `_trans_list`.", tz)
-
         else:
-            # static tzinfo
-            # TODO: This case is not hit in tests (2018-07-17); is it possible?
+            # static tzinfo, we can get here with pytz.StaticTZInfo
+            #  which are not caught by treat_tz_as_pytz
             trans = np.array([NPY_NAT + 1], dtype=np.int64)
-            num = int(get_utcoffset(tz, None).total_seconds()) * 1000000000
+            num = int(get_utcoffset(tz, None).total_seconds()) * 1_000_000_000
             deltas = np.array([num], dtype=np.int64)
-            typ = 'static'
+            typ = "static"
 
         dst_cache[cache_key] = (trans, deltas, typ)
 
     return dst_cache[cache_key]
 
 
-def infer_tzinfo(start, end):
+def infer_tzinfo(datetime start, datetime end):
     if start is not None and end is not None:
         tz = start.tzinfo
         if not tz_compare(tz, end.tzinfo):
@@ -296,7 +304,7 @@ def infer_tzinfo(start, end):
     return tz
 
 
-cpdef bint tz_compare(object start, object end):
+cpdef bint tz_compare(tzinfo start, tzinfo end):
     """
     Compare string representations of timezones
 
@@ -319,13 +327,12 @@ cpdef bint tz_compare(object start, object end):
     Returns:
     -------
     bool
-
     """
     # GH 18523
     return get_timezone(start) == get_timezone(end)
 
 
-def tz_standardize(tz: object):
+def tz_standardize(tz: tzinfo):
     """
     If the passed tz is a pytz timezone object, "normalize" it to the a
     consistent version

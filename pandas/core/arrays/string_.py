@@ -5,9 +5,8 @@ import numpy as np
 
 from pandas._libs import lib, missing as libmissing
 
-from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.base import ExtensionDtype, register_extension_dtype
 from pandas.core.dtypes.common import pandas_dtype
-from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import is_array_like
 
@@ -292,7 +291,7 @@ class StringArray(PandasArray):
 
         return super().astype(dtype, copy)
 
-    def _reduce(self, name, skipna=True, **kwargs):
+    def _reduce(self, name: str, skipna: bool = True, **kwargs):
         if name in ["min", "max"]:
             return getattr(self, name)(skipna=skipna)
 
