@@ -17,7 +17,7 @@ Enhancements
 
 KeyErrors raised by loc specify missing labels
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Previously, if labels were missing for a loc call, a KeyError was raised stating that this was no longer supported.
+Previously, if labels were missing for a ``.loc`` call, a KeyError was raised stating that this was no longer supported.
 
 Now the error message also includes a list of the missing labels (max 10 items, display width 80 characters). See :issue:`34272`.
 
@@ -123,8 +123,6 @@ compatibility (:issue:`3729`)
     df_dropna.groupby(by=["b"], dropna=False).sum()
 
 The default setting of ``dropna`` argument is ``True`` which means ``NA`` are not included in group keys.
-
-.. versionadded:: 1.1.0
 
 
 .. _whatsnew_110.key_sorting:
@@ -281,17 +279,17 @@ Other enhancements
 - Added a :func:`pandas.api.indexers.FixedForwardWindowIndexer` class to support forward-looking windows during ``rolling`` operations.
 - Added a :func:`pandas.api.indexers.VariableOffsetWindowIndexer` class to support ``rolling`` operations with non-fixed offsets (:issue:`34994`)
 - :meth:`~DataFrame.describe` now includes a ``datetime_is_numeric`` keyword to control how datetime columns are summarized (:issue:`30164`, :issue:`34798`)
-- :class:`Styler` may now render CSS more efficiently where multiple cells have the same styling (:issue:`30876`)
-- :meth:`Styler.highlight_null` now accepts ``subset`` argument (:issue:`31345`)
-- When writing directly to a sqlite connection :func:`to_sql` now supports the ``multi`` method (:issue:`29921`)
-- `OptionError` is now exposed in `pandas.errors` (:issue:`27553`)
-- Add :meth:`ExtensionArray.argmax` and :meth:`ExtensionArray.argmin` (:issue:`24382`)
+- :class:`~pandas.io.formats.style.Styler` may now render CSS more efficiently where multiple cells have the same styling (:issue:`30876`)
+- :meth:`~pandas.io.formats.style.Styler.highlight_null` now accepts ``subset`` argument (:issue:`31345`)
+- When writing directly to a sqlite connection :meth:`DataFrame.to_sql` now supports the ``multi`` method (:issue:`29921`)
+- :class:`pandas.errors.OptionError` is now exposed in ``pandas.errors`` (:issue:`27553`)
+- Add :meth:`api.extensions.ExtensionArray.argmax` and :meth:`api.extensions.ExtensionArray.argmin` (:issue:`24382`)
 - :func:`timedelta_range` will now infer a frequency when passed ``start``, ``stop``, and ``periods`` (:issue:`32377`)
 - Positional slicing on a :class:`IntervalIndex` now supports slices with ``step > 1`` (:issue:`31658`)
 - :class:`Series.str` now has a `fullmatch` method that matches a regular expression against the entire string in each row of the series, similar to `re.fullmatch` (:issue:`32806`).
 - :meth:`DataFrame.sample` will now also allow array-like and BitGenerator objects to be passed to ``random_state`` as seeds (:issue:`32503`)
-- :meth:`MultiIndex.union` will now raise `RuntimeWarning` if the object inside are unsortable, pass `sort=False` to suppress this warning (:issue:`33015`)
-- :class:`Series.dt` and :class:`DatatimeIndex` now have an `isocalendar` method that returns a :class:`DataFrame` with year, week, and day calculated according to the ISO 8601 calendar (:issue:`33206`, :issue:`34392`).
+- :meth:`Index.union` will now raise ``RuntimeWarning`` for :class:`MultiIndex` objects if the object inside are unsortable. Pass ``sort=False`` to suppress this warning (:issue:`33015`)
+- Added :meth:`Series.dt.isocalendar` and :meth:`DatetimeIndex.isocalendar` that returns a :class:`DataFrame` with year, week, and day calculated according to the ISO 8601 calendar (:issue:`33206`, :issue:`34392`).
 - The :meth:`DataFrame.to_feather` method now supports additional keyword
   arguments (e.g. to set the compression) that are added in pyarrow 0.17
   (:issue:`33422`).
@@ -305,32 +303,31 @@ Other enhancements
 - :meth:`melt` has gained an ``ignore_index`` (default ``True``) argument that, if set to ``False``, prevents the method from dropping the index (:issue:`17440`).
 - :meth:`Series.update` now accepts objects that can be coerced to a :class:`Series`,
   such as ``dict`` and ``list``, mirroring the behavior of :meth:`DataFrame.update` (:issue:`33215`)
-- :meth:`~pandas.core.groupby.GroupBy.transform` and :meth:`~pandas.core.groupby.GroupBy.aggregate` has gained ``engine`` and ``engine_kwargs`` arguments that supports executing functions with ``Numba`` (:issue:`32854`, :issue:`33388`)
+- :meth:`~pandas.core.groupby.DataFrameGroupBy.transform` and :meth:`~pandas.core.groupby.DataFrameGroupBy.aggregate` has gained ``engine`` and ``engine_kwargs`` arguments that supports executing functions with ``Numba`` (:issue:`32854`, :issue:`33388`)
 - :meth:`~pandas.core.resample.Resampler.interpolate` now supports SciPy interpolation method :class:`scipy.interpolate.CubicSpline` as method ``cubicspline`` (:issue:`33670`)
-- :class:`~pandas.core.groupby.generic.DataFrameGroupBy` and :class:`~pandas.core.groupby.generic.SeriesGroupBy` now implement the ``sample`` method for doing random sampling within groups (:issue:`31775`)
+- :class:`~pandas.core.groupby.DataFrameGroupBy` and :class:`~pandas.core.groupby.SeriesGroupBy` now implement the ``sample`` method for doing random sampling within groups (:issue:`31775`)
 - :meth:`DataFrame.to_numpy` now supports the ``na_value`` keyword to control the NA sentinel in the output array (:issue:`33820`)
-- The ``ExtensionArray`` class has now an :meth:`~pandas.arrays.ExtensionArray.equals`
-  method, similarly to :meth:`Series.equals` (:issue:`27081`).
-- The minimum suppported dta version has increased to 105 in :meth:`~pandas.io.stata.read_stata` and :class:`~pandas.io.stata.StataReader`  (:issue:`26667`).
-- :meth:`~pandas.core.frame.DataFrame.to_stata` supports compression using the ``compression``
+- Added :class:`api.extension.ExtensionArray.equals` to the extension array interface, similarl to :meth:`Series.equals` (:issue:`27081`).
+- The minimum supported dta version has increased to 105 in :meth:`read_stata` and :class:`~pandas.io.stata.StataReader`  (:issue:`26667`).
+- :meth:`~DataFrame.to_stata` supports compression using the ``compression``
   keyword argument. Compression can either be inferred or explicitly set using a string or a
   dictionary containing both the method and any additional arguments that are passed to the
   compression library. Compression was also added to the low-level Stata-file writers
   :class:`~pandas.io.stata.StataWriter`, :class:`~pandas.io.stata.StataWriter117`,
   and :class:`~pandas.io.stata.StataWriterUTF8` (:issue:`26599`).
-- :meth:`HDFStore.put` now accepts `track_times` parameter. Parameter is passed to ``create_table`` method of ``PyTables`` (:issue:`32682`).
+- :meth:`HDFStore.put` now accepts a ``track_times`` parameter. Parameter is passed to ``create_table`` method of ``PyTables`` (:issue:`32682`).
 - :meth:`Series.plot` and :meth:`DataFrame.plot` now accepts `xlabel` and `ylabel` parameters to present labels on x and y axis (:issue:`9093`).
-- Make :class:`pandas.core.window.Rolling` and :class:`pandas.core.window.Expanding` iterable（:issue:`11704`)
+- Make :class:`pandas.core.window.rolling.Rolling` and :class:`pandas.core.window.expanding.Expanding` iterable（:issue:`11704`)
 - Make ``option_context`` a :class:`contextlib.ContextDecorator`, which allows it to be used as a decorator over an entire function (:issue:`34253`).
 - :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` now accept an ``errors`` argument (:issue:`22610`)
-- :meth:`groupby.transform` now allows ``func`` to be ``pad``, ``backfill`` and ``cumcount`` (:issue:`31269`).
-- :meth:`~pandas.io.json.read_json` now accepts `nrows` parameter. (:issue:`33916`).
-- :meth:`DataFrame.hist`, :meth:`Series.hist`, :meth:`core.groupby.DataFrameGroupBy.hist`, and :meth:`core.groupby.SeriesGroupBy.hist` have gained the ``legend`` argument. Set to True to show a legend in the histogram. (:issue:`6279`)
+- :meth:`~pandas.core.groupby.DataFrameGroupBy.groupby.transform` now allows ``func`` to be ``pad``, ``backfill`` and ``cumcount`` (:issue:`31269`).
+- :meth:`read_json` now accepts an ``nrows`` parameter. (:issue:`33916`).
+- :meth:`DataFrame.hist`, :meth:`Series.hist`, :meth:`core.groupby.DataFrameGroupBy.hist`, and :meth:`core.groupby.SeriesGroupBy.hist` have gained the ``legend`` argument. Set to True to show a legend in the histogram. (:issue:`6279`)0
 - :func:`concat` and :meth:`~DataFrame.append` now preserve extension dtypes, for example
   combining a nullable integer column with a numpy integer column will no longer
   result in object dtype but preserve the integer dtype (:issue:`33607`, :issue:`34339`, :issue:`34095`).
-- :meth:`~pandas.io.gbq.read_gbq` now allows to disable progress bar (:issue:`33360`).
-- :meth:`~pandas.io.gbq.read_gbq` now supports the ``max_results`` kwarg from ``pandas-gbq`` (:issue:`34639`).
+- :meth:`read_gbq` now allows to disable progress bar (:issue:`33360`).
+- :meth:`read_gbq` now supports the ``max_results`` kwarg from ``pandas-gbq`` (:issue:`34639`).
 - :meth:`DataFrame.cov` and :meth:`Series.cov` now support a new parameter ddof to support delta degrees of freedom as in the corresponding numpy methods (:issue:`34611`).
 - :meth:`DataFrame.to_html` and :meth:`DataFrame.to_string`'s ``col_space`` parameter now accepts a list or dict to change only some specific columns' width (:issue:`28917`).
 - :meth:`DataFrame.to_excel` can now also write OpenOffice spreadsheet (.ods) files (:issue:`27222`)
@@ -351,7 +348,7 @@ Notable bug fixes
 
 These are bug fixes that might have notable behavior changes.
 
-``MultiIndex.get_indexer`` interprets `method` argument differently
+``MultiIndex.get_indexer`` interprets ``method`` argument correctly
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This restores the behavior of :meth:`MultiIndex.get_indexer` with ``method='backfill'`` or ``method='pad'`` to the behavior before pandas 0.23.0. In particular, MultiIndexes are treated as a list of tuples and padding or backfilling is done with respect to the ordering of these lists of tuples (:issue:`29896`).
@@ -410,8 +407,6 @@ And the differences in reindexing ``df`` with ``mi_2`` and using ``method='pad'`
 .. ipython:: python
 
         df.reindex(mi_2, method='pad')
-
--
 
 .. _whatsnew_110.notable_bug_fixes.indexing_raises_key_errors:
 
@@ -522,8 +517,10 @@ those integer keys is not present in the first level of the index (:issue:`33539
 
 .. ipython:: python
 
-    left_df = pd.DataFrame({'animal': ['dog', 'pig'], 'max_speed': [40, 11]})
-    right_df = pd.DataFrame({'animal': ['quetzal', 'pig'], 'max_speed': [80, 11]})
+    left_df = pd.DataFrame({'animal': ['dog', 'pig'],
+                           'max_speed': [40, 11]})
+    right_df = pd.DataFrame({'animal': ['quetzal', 'pig'],
+                            'max_speed': [80, 11]})
     left_df
     right_df
 
@@ -622,7 +619,7 @@ Using :meth:`DataFrame.groupby` with ``as_index=False`` and the function ``idxma
 
    df.groupby("a", as_index=False).nunique()
 
-The method :meth:`core.DataFrameGroupBy.size` would previously ignore ``as_index=False``. Now the grouping columns are returned as columns, making the result a `DataFrame` instead of a `Series`. (:issue:`32599`)
+The method :meth:`~pandas.core.groupby.DataFrameGroupBy.size` would previously ignore ``as_index=False``. Now the grouping columns are returned as columns, making the result a `DataFrame` instead of a `Series`. (:issue:`32599`)
 
 *Previous behavior*:
 
@@ -643,11 +640,11 @@ The method :meth:`core.DataFrameGroupBy.size` would previously ignore ``as_index
 
 .. _whatsnew_110.api_breaking.groupby_results_lost_as_index_false:
 
-:meth:`DataFrameGroupby.agg` lost results with ``as_index`` ``False`` when relabeling columns
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+:meth:`~pandas.core.groupby.DataFrameGroupby.agg` lost results with ``as_index=False`` when relabeling columns
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Previously :meth:`DataFrameGroupby.agg` lost the result columns, when the ``as_index`` option was
-set to ``False`` and the result columns were relabeled. In this case he result values were replaced with
+Previously :meth:`~pandas.core.groupby.DataFrameGroupby.agg` lost the result columns, when the ``as_index`` option was
+set to ``False`` and the result columns were relabeled. In this case the result values were replaced with
 the previous index (:issue:`32240`).
 
 .. ipython:: python
@@ -812,7 +809,7 @@ Deprecations
   positional arguments is deprecated since version 1.1. All other
   arguments should be given as keyword arguments (:issue:`27573`).
 
-- Passing any arguments but `path_or_buf` (the first one) to
+- Passing any arguments but ``path_or_buf`` (the first one) to
   :func:`read_json` as positional arguments is deprecated since
   version 1.1. All other arguments should be given as keyword
   arguments (:issue:`27573`).
@@ -821,23 +818,20 @@ Deprecations
   positional arguments is deprecated since version 1.1. All other
   arguments should be given as keyword arguments (:issue:`27573`).
 
-- :func:`pandas.api.types.is_categorical` is deprecated and will be removed in a future version; use `:func:pandas.api.types.is_categorical_dtype` instead (:issue:`33385`)
+- :func:`pandas.api.types.is_categorical` is deprecated and will be removed in a future version; use :func:`pandas.api.types.is_categorical_dtype` instead (:issue:`33385`)
 - :meth:`Index.get_value` is deprecated and will be removed in a future version (:issue:`19728`)
 - :meth:`Series.dt.week` and `Series.dt.weekofyear` are deprecated and will be removed in a future version, use :meth:`Series.dt.isocalendar().week` instead (:issue:`33595`)
-- :meth:`DatetimeIndex.week` and `DatetimeIndex.weekofyear` are deprecated and will be removed in a future version, use :meth:`DatetimeIndex.isocalendar().week` instead (:issue:`33595`)
-- :meth:`DatetimeArray.week` and `DatetimeArray.weekofyear` are deprecated and will be removed in a future version, use :meth:`DatetimeArray.isocalendar().week` instead (:issue:`33595`)
+- :meth:`DatetimeIndex.week` and ``DatetimeIndex.weekofyear`` are deprecated and will be removed in a future version, use ``DatetimeIndex.isocalendar().week`` instead (:issue:`33595`)
+- :meth:`DatetimeArray.week` and ``DatetimeArray.weekofyear`` are deprecated and will be removed in a future version, use ``DatetimeArray.isocalendar().week`` instead (:issue:`33595`)
 - :meth:`DateOffset.__call__` is deprecated and will be removed in a future version, use ``offset + other`` instead (:issue:`34171`)
-- :meth:`~BusinessDay.apply_index` is deprecated and will be removed in a  future version. Use ``offset + other`` instead (:issue:`34580`)
+- :meth:`~pandas.tseries.offsets.BusinessDay.apply_index` is deprecated and will be removed in a  future version. Use ``offset + other`` instead (:issue:`34580`)
 - :meth:`DataFrame.tshift` and :meth:`Series.tshift` are deprecated and will be removed in a future version, use :meth:`DataFrame.shift` and :meth:`Series.shift` instead (:issue:`11631`)
 - Indexing an :class:`Index` object with a float key is deprecated, and will
   raise an ``IndexError`` in the future. You can manually convert to an integer key
   instead (:issue:`34191`).
-- The ``squeeze`` keyword in the ``groupby`` function is deprecated and will be removed in a future version (:issue:`32380`)
-- The ``tz`` keyword in :meth:`Period.to_timestamp` is deprecated and will be removed in a future version; use `per.to_timestamp(...).tz_localize(tz)`` instead (:issue:`34522`)
+- The ``squeeze`` keyword in :meth:`~DataFrame.groupby` is deprecated and will be removed in a future version (:issue:`32380`)
+- The ``tz`` keyword in :meth:`Period.to_timestamp` is deprecated and will be removed in a future version; use ``per.to_timestamp(...).tz_localize(tz)`` instead (:issue:`34522`)
 - :meth:`DatetimeIndex.to_perioddelta` is deprecated and will be removed in a future version.  Use ``index - index.to_period(freq).to_timestamp()`` instead (:issue:`34853`)
-- :meth:`util.testing.assert_almost_equal` now accepts both relative and absolute
-  precision through the ``rtol``, and ``atol`` parameters, thus deprecating the
-  ``check_less_precise`` parameter. (:issue:`13357`).
 - :func:`DataFrame.melt` accepting a value_name that already exists is deprecated, and will be removed in a future version (:issue:`34731`)
 - the ``center`` keyword in the :meth:`DataFrame.expanding`  function is deprecated and will be removed in a future version (:issue:`20647`)
 
@@ -930,10 +924,10 @@ Timedelta
 ^^^^^^^^^
 
 - Bug in constructing a :class:`Timedelta` with a high precision integer that would round the :class:`Timedelta` components (:issue:`31354`)
-- Bug in dividing ``np.nan`` or ``None`` by :class:`Timedelta`` incorrectly returning ``NaT`` (:issue:`31869`)
+- Bug in dividing ``np.nan`` or ``None`` by :class:`Timedelta` incorrectly returning ``NaT`` (:issue:`31869`)
 - Timedeltas now understand ``µs`` as identifier for microsecond (:issue:`32899`)
 - :class:`Timedelta` string representation now includes nanoseconds, when nanoseconds are non-zero (:issue:`9309`)
-- Bug in comparing a :class:`Timedelta`` object against a ``np.ndarray`` with ``timedelta64`` dtype incorrectly viewing all entries as unequal (:issue:`33441`)
+- Bug in comparing a :class:`Timedelta` object against a ``np.ndarray`` with ``timedelta64`` dtype incorrectly viewing all entries as unequal (:issue:`33441`)
 - Bug in :func:`timedelta_range` that produced an extra point on a edge case (:issue:`30353`, :issue:`33498`)
 - Bug in :meth:`DataFrame.resample` that produced an extra point on a edge case (:issue:`30353`, :issue:`13022`, :issue:`33498`)
 - Bug in :meth:`DataFrame.resample` that ignored the ``loffset`` argument when dealing with timedelta (:issue:`7687`, :issue:`33498`)
@@ -972,12 +966,11 @@ Strings
 - Bug in the :meth:`~Series.astype` method when converting "string" dtype data to nullable integer dtype (:issue:`32450`).
 - Fixed issue where taking ``min`` or ``max`` of a ``StringArray`` or ``Series`` with ``StringDtype`` type would raise. (:issue:`31746`)
 - Bug in :meth:`Series.str.cat` returning ``NaN`` output when other had :class:`Index` type (:issue:`33425`)
-- :func: `pandas.api.dtypes.is_string_dtype` no longer incorrectly identifies categorical series as string.
+- :func:`pandas.api.dtypes.is_string_dtype` no longer incorrectly identifies categorical series as string.
 
 Interval
 ^^^^^^^^
 - Bug in :class:`IntervalArray` incorrectly allowing the underlying data to be changed when setting values (:issue:`32782`)
--
 
 Indexing
 ^^^^^^^^
@@ -1002,8 +995,8 @@ Indexing
 - Bug in :meth:`DataFrame.copy` _item_cache not invalidated after copy causes post-copy value updates to not be reflected (:issue:`31784`)
 - Fixed regression in :meth:`DataFrame.loc` and :meth:`Series.loc` throwing an error when a ``datetime64[ns, tz]`` value is provided (:issue:`32395`)
 - Bug in `Series.__getitem__` with an integer key and a :class:`MultiIndex` with leading integer level failing to raise ``KeyError`` if the key is not present in the first level (:issue:`33355`)
-- Bug in :meth:`DataFrame.iloc` when slicing a single column-:class:`DataFrame`` with ``ExtensionDtype`` (e.g. ``df.iloc[:, :1]``) returning an invalid result (:issue:`32957`)
-- Bug in :meth:`DatetimeIndex.insert` and :meth:`TimedeltaIndex.insert` causing index ``freq`` to be lost when setting an element into an empty :class:`Series` (:issue:33573`)
+- Bug in :meth:`DataFrame.iloc` when slicing a single column-:class:`DataFrame` with ``ExtensionDtype`` (e.g. ``df.iloc[:, :1]``) returning an invalid result (:issue:`32957`)
+- Bug in :meth:`DatetimeIndex.insert` and :meth:`TimedeltaIndex.insert` causing index ``freq`` to be lost when setting an element into an empty :class:`Series` (:issue:`33573`)
 - Bug in :meth:`Series.__setitem__` with an :class:`IntervalIndex` and a list-like key of integers (:issue:`33473`)
 - Bug in :meth:`Series.__getitem__` allowing missing labels with ``np.ndarray``, :class:`Index`, :class:`Series` indexers but not ``list``, these now all raise ``KeyError`` (:issue:`33646`)
 - Bug in :meth:`DataFrame.truncate` and :meth:`Series.truncate` where index was assumed to be monotone increasing (:issue:`33756`)
@@ -1089,7 +1082,7 @@ I/O
 - Bug in :meth:`DataFrame.to_sql` when reading DataFrames with ``-np.inf`` entries with MySQL now has a more explicit ``ValueError`` (:issue:`34431`)
 - Bug where capitalised files extensions were not decompressed by read_* functions (:issue:`35164`)
 - Bug in :meth:`read_excel` that was raising a ``TypeError`` when ``header=None`` and ``index_col`` given as list (:issue:`31783`)
-- Bug in "meth"`read_excel` where datetime values are used in the header in a `MultiIndex` (:issue:`34748`)
+- Bug in :meth:`read_excel` where datetime values are used in the header in a `MultiIndex` (:issue:`34748`)
 - :func:`read_excel` no longer takes ``**kwds`` arguments. This means that passing in keyword ``chunksize`` now raises a ``TypeError`` (previously raised a ``NotImplementedError``), while passing in keyword ``encoding`` now raises a ``TypeError`` (:issue:`34464`)
 
 Plotting
@@ -1196,7 +1189,7 @@ Other
 - Bug in :class:`DataFrame` when initiating a frame with lists and assign ``columns`` with nested list for ``MultiIndex`` (:issue:`32173`)
 - Bug in :meth:`DataFrame.to_records` incorrectly losing timezone information in timezone-aware ``datetime64`` columns (:issue:`32535`)
 - Fixed :func:`pandas.testing.assert_series_equal` to correctly raise if left object is a different subclass with ``check_series_type=True`` (:issue:`32670`).
-- :meth:`IntegerArray.astype` now supports ``datetime64`` dtype (:issue:32538`)
+- :meth:`IntegerArray.astype` now supports ``datetime64`` dtype (:issue:`32538`)
 - Getting a missing attribute in a query/eval string raises the correct ``AttributeError`` (:issue:`32408`)
 - Fixed bug in :func:`pandas.testing.assert_series_equal` where dtypes were checked for ``Interval`` and ``ExtensionArray`` operands when ``check_dtype`` was ``False`` (:issue:`32747`)
 - Bug in :meth:`Series.map` not raising on invalid ``na_action`` (:issue:`32815`)
