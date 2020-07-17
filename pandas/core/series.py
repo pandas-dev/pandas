@@ -1419,7 +1419,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ),
     )
     def to_markdown(
-        self, buf: Optional[IO[str]] = None, mode: Optional[str] = None, **kwargs
+        self,
+        buf: Optional[IO[str]] = None,
+        mode: Optional[str] = None,
+        index: bool = True,
+        **kwargs,
     ) -> Optional[str]:
         """
         Print {klass} in Markdown-friendly format.
@@ -1432,6 +1436,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Buffer to write to. If None, the output is returned as a string.
         mode : str, optional
             Mode in which file is opened.
+        index : bool, optional, default True
+            Add index (row) labels.
+
+            .. versionadded:: 1.1.0
+
         **kwargs
             These parameters will be passed to `tabulate \
                 <https://pypi.org/project/tabulate>`_.
@@ -1467,7 +1476,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         |  3 | quetzal  |
         +----+----------+
         """
-        return self.to_frame().to_markdown(buf, mode, **kwargs)
+        return self.to_frame().to_markdown(buf, mode, index, **kwargs)
 
     # ----------------------------------------------------------------------
 

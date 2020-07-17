@@ -80,6 +80,7 @@ from pandas.core.series import Series
 from pandas.core.util.numba_ import (
     NUMBA_FUNC_CACHE,
     generate_numba_func,
+    maybe_use_numba,
     split_for_numba,
 )
 
@@ -227,9 +228,7 @@ class SeriesGroupBy(GroupBy[Series]):
     @doc(
         _agg_template, examples=_agg_examples_doc, klass="Series",
     )
-    def aggregate(
-        self, func=None, *args, engine="cython", engine_kwargs=None, **kwargs
-    ):
+    def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
 
         relabeling = func is None
         columns = None
@@ -278,7 +277,7 @@ class SeriesGroupBy(GroupBy[Series]):
         if isinstance(ret, dict):
             from pandas import concat
 
-            ret = concat(ret, axis=1)
+            ret = concat(ret.values(), axis=1, keys=[key.label for key in ret.keys()])
         return ret
 
     agg = aggregate
@@ -307,8 +306,8 @@ class SeriesGroupBy(GroupBy[Series]):
 
             arg = zip(columns, arg)
 
-        results = {}
-        for name, func in arg:
+        results: Dict[base.OutputKey, Union[Series, DataFrame]] = {}
+        for idx, (name, func) in enumerate(arg):
             obj = self
 
             # reset the cache so that we
@@ -317,13 +316,14 @@ class SeriesGroupBy(GroupBy[Series]):
                 obj = copy.copy(obj)
                 obj._reset_cache()
                 obj._selection = name
-            results[name] = obj.aggregate(func)
+            results[base.OutputKey(label=name, position=idx)] = obj.aggregate(func)
 
         if any(isinstance(x, DataFrame) for x in results.values()):
             # let higher level handle
             return results
 
-        return self.obj._constructor_expanddim(results, columns=columns)
+        output = self._wrap_aggregated_output(results)
+        return self.obj._constructor_expanddim(output, columns=columns)
 
     def _wrap_series_output(
         self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]], index: Index,
@@ -354,10 +354,12 @@ class SeriesGroupBy(GroupBy[Series]):
         if len(output) > 1:
             result = self.obj._constructor_expanddim(indexed_output, index=index)
             result.columns = columns
-        else:
+        elif not columns.empty:
             result = self.obj._constructor(
                 indexed_output[0], index=index, name=columns[0]
             )
+        else:
+            result = self.obj._constructor_expanddim()
 
         return result
 
@@ -480,7 +482,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
     @Substitution(klass="Series")
     @Appender(_transform_template)
-    def transform(self, func, *args, engine="cython", engine_kwargs=None, **kwargs):
+    def transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
         func = self._get_cython_func(func) or func
 
         if not isinstance(func, str):
@@ -512,7 +514,7 @@ class SeriesGroupBy(GroupBy[Series]):
         Transform with a non-str `func`.
         """
 
-        if engine == "numba":
+        if maybe_use_numba(engine):
             numba_func, cache_key = generate_numba_func(
                 func, engine_kwargs, kwargs, "groupby_transform"
             )
@@ -522,7 +524,7 @@ class SeriesGroupBy(GroupBy[Series]):
         results = []
         for name, group in self:
             object.__setattr__(group, "name", name)
-            if engine == "numba":
+            if maybe_use_numba(engine):
                 values, index = split_for_numba(group)
                 res = numba_func(values, index, *args)
                 if cache_key not in NUMBA_FUNC_CACHE:
@@ -931,13 +933,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     @doc(
         _agg_template, examples=_agg_examples_doc, klass="DataFrame",
     )
-    def aggregate(
-        self, func=None, *args, engine="cython", engine_kwargs=None, **kwargs
-    ):
+    def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
 
         relabeling, func, columns, order = reconstruct_func(func, **kwargs)
 
-        if engine == "numba":
+        if maybe_use_numba(engine):
             return self._python_agg_general(
                 func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
             )
@@ -963,27 +963,32 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # try to treat as if we are passing a list
                 try:
                     result = self._aggregate_multiple_funcs([func], _axis=self.axis)
-                except ValueError as err:
-                    if "no results" not in str(err):
-                        # raised directly by _aggregate_multiple_funcs
-                        raise
-                    result = self._aggregate_frame(func)
-                else:
+
                     # select everything except for the last level, which is the one
                     # containing the name of the function(s), see GH 32040
                     result.columns = result.columns.rename(
                         [self._selected_obj.columns.name] * result.columns.nlevels
                     ).droplevel(-1)
 
-        if not self.as_index:
-            self._insert_inaxis_grouper_inplace(result)
-            result.index = np.arange(len(result))
+                except ValueError as err:
+                    if "no results" not in str(err):
+                        # raised directly by _aggregate_multiple_funcs
+                        raise
+                    result = self._aggregate_frame(func)
+                except AttributeError:
+                    # catch exception from line 969
+                    # (Series does not have attribute "columns"), see GH 35246
+                    result = self._aggregate_frame(func)
 
         if relabeling:
 
             # used reordered index of columns
             result = result.iloc[:, order]
             result.columns = columns
+
+        if not self.as_index:
+            self._insert_inaxis_grouper_inplace(result)
+            result.index = np.arange(len(result))
 
         return result._convert(datetime=True)
 
@@ -1382,7 +1387,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         applied = []
         obj = self._obj_with_exclusions
         gen = self.grouper.get_iterator(obj, axis=self.axis)
-        if engine == "numba":
+        if maybe_use_numba(engine):
             numba_func, cache_key = generate_numba_func(
                 func, engine_kwargs, kwargs, "groupby_transform"
             )
@@ -1392,7 +1397,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         for name, group in gen:
             object.__setattr__(group, "name", name)
 
-            if engine == "numba":
+            if maybe_use_numba(engine):
                 values, index = split_for_numba(group)
                 res = numba_func(values, index, *args)
                 if cache_key not in NUMBA_FUNC_CACHE:
@@ -1443,7 +1448,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     @Substitution(klass="DataFrame")
     @Appender(_transform_template)
-    def transform(self, func, *args, engine="cython", engine_kwargs=None, **kwargs):
+    def transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
 
         # optimized transforms
         func = self._get_cython_func(func) or func
