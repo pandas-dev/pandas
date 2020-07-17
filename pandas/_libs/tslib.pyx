@@ -14,6 +14,7 @@ PyDateTime_IMPORT
 
 cimport numpy as cnp
 from numpy cimport float64_t, int64_t, ndarray
+
 import numpy as np
 
 cnp.import_array()
@@ -46,15 +47,14 @@ from pandas._libs.tslibs.nattype cimport (
     c_NaT as NaT,
     c_nat_strings as nat_strings,
 )
-
 from pandas._libs.tslibs.timestamps cimport _Timestamp
+
 from pandas._libs.tslibs.timestamps import Timestamp
 
 # Note: this is the only non-tslibs intra-pandas dependency here
+
 from pandas._libs.missing cimport checknull_with_nat_and_na
-from pandas._libs.tslibs.tzconversion cimport (
-    tz_localize_to_utc_single,
-)
+from pandas._libs.tslibs.tzconversion cimport tz_localize_to_utc_single
 
 
 def _test_parse_iso8601(ts: str):

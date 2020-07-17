@@ -14,7 +14,6 @@ from libc.time cimport strftime, tm
 import cython
 
 from cpython.datetime cimport (
-    datetime,
     PyDate_Check,
     PyDateTime_Check,
     PyDateTime_IMPORT,
@@ -44,8 +43,8 @@ cdef extern from "src/datetime/np_datetime.h":
 
 from pandas._libs.tslibs cimport util as util
 
-from pandas._libs.tslibs.timestamps import Timestamp
 from pandas._libs.tslibs.timedeltas import Timedelta
+from pandas._libs.tslibs.timestamps import Timestamp
 
 from pandas._libs.tslibs.ccalendar cimport (
     c_MONTH_NUMBERS,
@@ -55,7 +54,7 @@ from pandas._libs.tslibs.ccalendar cimport (
     get_week_of_year,
     is_leapyear,
 )
-from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
+
 from pandas._libs.tslibs.conversion import ensure_datetime64ns
 
 from pandas._libs.tslibs.dtypes cimport (
