@@ -19,6 +19,7 @@ from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype, PeriodDtyp
 import pandas as pd
 from pandas import (
     Categorical,
+    CategoricalIndex,
     DataFrame,
     Index,
     Interval,
@@ -1208,8 +1209,10 @@ class TestDataFrameConstructors:
         data = [OrderedDict([["a", 1.5], ["b", 3], ["c", 4], ["d", 6]])]
 
         result = DataFrame(data)
-        expected = DataFrame.from_dict(dict(zip([0], data)), orient="index")
-        tm.assert_frame_equal(result, expected.reindex(result.index))
+        expected = DataFrame.from_dict(dict(zip([0], data)), orient="index").reindex(
+            result.index
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_constructor_ordered_dict_preserve_order(self):
         # see gh-13304
@@ -2507,6 +2510,18 @@ class TestDataFrameConstructors:
         result = DataFrame.from_records(data)
         tm.assert_frame_equal(result, expected)
 
+    def test_from_records_series_categorical_index(self):
+        # GH 32805
+        index = CategoricalIndex(
+            [pd.Interval(-20, -10), pd.Interval(-10, 0), pd.Interval(0, 10)]
+        )
+        series_of_dicts = pd.Series([{"a": 1}, {"a": 2}, {"b": 3}], index=index)
+        frame = pd.DataFrame.from_records(series_of_dicts, index=index)
+        expected = DataFrame(
+            {"a": [1, 2, np.NaN], "b": [np.NaN, np.NaN, 3]}, index=index
+        )
+        tm.assert_frame_equal(frame, expected)
+
     def test_frame_from_records_utc(self):
         rec = {"datum": 1.5, "begin_time": datetime(2006, 4, 27, tzinfo=pytz.utc)}
 
@@ -2576,13 +2591,11 @@ class TestDataFrameConstructors:
             index=pd.CategoricalIndex(["f", "female", "m", "male", "unknown"]),
         )
         result = DataFrame([s1, s2])
-        # GH 35092. Extra s2 columns are now appended to s1 columns
-        # in original order
         expected = DataFrame(
             np.array(
-                [[39.0, 6.0, 4.0, np.nan, np.nan], [152.0, 242.0, 150.0, 2.0, 2.0]]
+                [[np.nan, 39.0, np.nan, 6.0, 4.0], [2.0, 152.0, 2.0, 242.0, 150.0]]
             ),
-            columns=["female", "male", "unknown", "f", "m"],
+            columns=["f", "female", "m", "male", "unknown"],
         )
         tm.assert_frame_equal(result, expected)
 
