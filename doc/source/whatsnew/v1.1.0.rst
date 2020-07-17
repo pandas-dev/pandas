@@ -740,13 +740,10 @@ Using :meth:`DataFrame.explode` and :meth:`Series.explode` would always return a
 
 *New behavior*:
 
-.. ipython:: ipython
+.. ipython:: python
 
-    In [3]: df.explode("A").dtypes
-    Out[3]:
-    A    int64
-    B    int64
-    dtype: object
+    df.explode("A").dtypes
+
 
 Increased minimum versions for dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
