@@ -87,7 +87,17 @@ bar2,12,13,14,15
 
     @pytest.mark.parametrize(
         "extension,expected",
-        [("", None), (".gz", "gzip"), (".bz2", "bz2"), (".zip", "zip"), (".xz", "xz")],
+        [
+            ("", None),
+            (".gz", "gzip"),
+            (".bz2", "bz2"),
+            (".zip", "zip"),
+            (".xz", "xz"),
+            (".GZ", "gzip"),
+            (".BZ2", "bz2"),
+            (".ZIP", "zip"),
+            (".XZ", "xz"),
+        ],
     )
     @pytest.mark.parametrize("path_type", path_types)
     def test_infer_compression_from_path(self, extension, expected, path_type):

@@ -339,7 +339,7 @@ def infer_compression(
 
         # Infer compression from the filename/URL extension
         for compression, extension in _compression_to_extension.items():
-            if filepath_or_buffer.endswith(extension):
+            if filepath_or_buffer.lower().endswith(extension):
                 return compression
         return None
 
