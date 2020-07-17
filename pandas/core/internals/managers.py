@@ -1436,7 +1436,7 @@ class BlockManager(PandasObject):
                 return array_equivalent(left, right)
 
         for i in range(len(self.items)):
-            # Check column-wise, return False if any column doesnt match
+            # Check column-wise, return False if any column doesn't match
             left = self.iget_values(i)
             right = other.iget_values(i)
             if not is_dtype_equal(left.dtype, right.dtype):
@@ -1445,7 +1445,7 @@ class BlockManager(PandasObject):
                 if not left.equals(right):
                     return False
             else:
-                if not array_equivalent(left, right):
+                if not array_equivalent(left, right, dtype_equal=True):
                     return False
         return True
 
