@@ -71,7 +71,7 @@ from pandas._libs.tslibs.timezones cimport (
     utc_pytz as UTC,
 )
 from pandas._libs.tslibs.tzconversion cimport (
-    tz_convert_single,
+    tz_convert_from_utc_single,
     tz_localize_to_utc_single,
 )
 
@@ -1321,7 +1321,7 @@ default 'raise'
         else:
             if tz is None:
                 # reset tz
-                value = tz_convert_single(self.value, UTC, self.tz)
+                value = tz_convert_from_utc_single(self.value, self.tz)
                 return Timestamp(value, tz=tz, freq=self.freq)
             else:
                 raise TypeError(
@@ -1403,7 +1403,7 @@ default 'raise'
         tzobj = self.tzinfo
         value = self.value
         if tzobj is not None:
-            value = tz_convert_single(value, UTC, tzobj)
+            value = tz_convert_from_utc_single(value, tzobj)
 
         # setup components
         dt64_to_dtstruct(value, &dts)

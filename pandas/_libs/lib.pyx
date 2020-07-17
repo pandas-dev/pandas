@@ -980,7 +980,7 @@ def is_list_like(obj: object, allow_sets: bool = True) -> bool:
     False
     >>> is_list_like(np.array([2]))
     True
-    >>> is_list_like(np.array(2)))
+    >>> is_list_like(np.array(2))
     False
     """
     return c_is_list_like(obj, allow_sets)

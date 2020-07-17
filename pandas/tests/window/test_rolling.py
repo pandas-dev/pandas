@@ -6,7 +6,8 @@ import pytest
 from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
-from pandas import DataFrame, Series, _testing as tm, date_range
+from pandas import DataFrame, Series, compat, date_range
+import pandas._testing as tm
 from pandas.core.window import Rolling
 from pandas.util import _test_decorators as td
 
@@ -149,6 +150,7 @@ def test_closed_one_entry(func):
 
 
 @pytest.mark.parametrize("func", ["min", "max"])
+@pytest.mark.xfail(not compat.IS64, reason="GH-35294")
 def test_closed_one_entry_groupby(func):
     # GH24718
     ser = pd.DataFrame(
@@ -681,6 +683,7 @@ def test_iter_rolling_datetime(expected, expected_index, window):
         ),
     ],
 )
+@pytest.mark.xfail(not compat.IS64, reason="GH-35294")
 def test_rolling_positional_argument(grouping, _index, raw):
     # GH 34605
 

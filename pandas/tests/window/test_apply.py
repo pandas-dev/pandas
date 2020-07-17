@@ -3,16 +3,8 @@ import pytest
 
 from pandas.errors import NumbaUtilError
 
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    Series,
-    Timestamp,
-    _testing as tm,
-    date_range,
-)
-from pandas.util import _test_decorators as td
+from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, compat, date_range
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize("bad_raw", [None, 1, 0])
@@ -149,6 +141,7 @@ def test_invalid_kwargs_nopython():
 
 
 @pytest.mark.parametrize("args_kwargs", [[None, {"par": 10}], [(10,), None]])
+@pytest.mark.xfail(not compat.IS64, reason="GH-35294")
 def test_rolling_apply_args_kwargs(args_kwargs):
     # GH 33433
     def foo(x, par):

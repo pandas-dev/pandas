@@ -770,6 +770,12 @@ class MPLPlot:
             DataFrame/dict: error values are paired with keys matching the
                     key in the plotted DataFrame
             str: the name of the column within the plotted DataFrame
+
+        Asymmetrical error bars are also supported, however raw error values
+        must be provided in this case. For a ``N`` length :class:`Series`, a
+        ``2xN`` array should be provided indicating lower and upper (or left
+        and right) errors. For a ``MxN`` :class:`DataFrame`, asymmetrical errors
+        should be in a ``Mx2xN`` array.
         """
         if err is None:
             return None
@@ -810,7 +816,15 @@ class MPLPlot:
             err_shape = err.shape
 
             # asymmetrical error bars
-            if err.ndim == 3:
+            if isinstance(self.data, ABCSeries) and err_shape[0] == 2:
+                err = np.expand_dims(err, 0)
+                err_shape = err.shape
+                if err_shape[2] != len(self.data):
+                    raise ValueError(
+                        "Asymmetrical error bars should be provided "
+                        f"with the shape (2, {len(self.data)})"
+                    )
+            elif isinstance(self.data, ABCDataFrame) and err.ndim == 3:
                 if (
                     (err_shape[0] != self.nseries)
                     or (err_shape[1] != 2)

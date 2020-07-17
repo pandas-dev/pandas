@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas import Series, _testing as tm
+import pandas.util._test_decorators as td
+
+from pandas import Series, option_context
+import pandas._testing as tm
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 from pandas.util import _test_decorators as td
 
@@ -73,3 +76,15 @@ class TestApply:
         )
         expected = roll.apply(func_1, engine="cython", raw=True)
         tm.assert_series_equal(result, expected)
+
+
+@td.skip_if_no("numba", "0.46.0")
+def test_use_global_config():
+    def f(x):
+        return np.mean(x) + 2
+
+    s = Series(range(10))
+    with option_context("compute.use_numba", True):
+        result = s.rolling(2).apply(f, engine=None, raw=True)
+    expected = s.rolling(2).apply(f, engine="numba", raw=True)
+    tm.assert_series_equal(expected, result)

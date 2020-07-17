@@ -1,15 +1,19 @@
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype, PeriodDtype
+
 from pandas import (
     Categorical,
     DataFrame,
     Index,
+    Interval,
+    Period,
     Series,
     Timestamp,
-    _testing as tm,
     date_range,
 )
+import pandas._testing as tm
 from pandas.core.arrays import SparseArray
 
 
@@ -113,7 +117,10 @@ class TestDataFrameSetItem:
         cat = Categorical.from_codes([0, 1, 1, 0, 1, 2], ["a", "b", "c"])
         df = DataFrame(range(10), columns=["bar"])
 
-        msg = "Length of values does not match length of index"
+        msg = (
+            rf"Length of values \({len(cat)}\) "
+            rf"does not match length of index \({len(df)}\)"
+        )
         with pytest.raises(ValueError, match=msg):
             df["foo"] = cat
 
@@ -156,4 +163,24 @@ class TestDataFrameSetItem:
                 "b": float(b),
                 "c": float(b),
             }
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize(
+        "obj,dtype",
+        [
+            (Period("2020-01"), PeriodDtype("M")),
+            (Interval(left=0, right=5), IntervalDtype("int64")),
+            (
+                Timestamp("2011-01-01", tz="US/Eastern"),
+                DatetimeTZDtype(tz="US/Eastern"),
+            ),
+        ],
+    )
+    def test_setitem_extension_types(self, obj, dtype):
+        # GH: 34832
+        expected = DataFrame({"idx": [1, 2, 3], "obj": Series([obj] * 3, dtype=dtype)})
+
+        df = DataFrame({"idx": [1, 2, 3]})
+        df["obj"] = obj
+
         tm.assert_frame_equal(df, expected)

@@ -6,7 +6,8 @@ import pytest
 from pandas.util._test_decorators import async_mark
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp, _testing as tm
+from pandas import DataFrame, Series, Timestamp, compat
+import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
 
 test_frame = DataFrame(
@@ -316,6 +317,7 @@ def test_resample_groupby_with_label():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(not compat.IS64, reason="GH-35148")
 def test_consistency_with_window():
 
     # consistent return values with window
