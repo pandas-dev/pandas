@@ -974,6 +974,50 @@ def test_frame_describe_unstacked_format():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("by_col_dtype", [int, float, str])
+def test_describe_results_includes_non_nuisance_columns(by_col_dtype):
+    # GH 34656
+    # GH 34271
+    df = DataFrame({"a": [1, 1, 1, 2, 2, 2, 3, 3, 3], "b": [1, 2, 3, 4, 5, 6, 7, 8, 9]})
+    df = df.astype({"a": by_col_dtype})
+
+    expected = (
+        DataFrame.from_records(
+            [
+                ("a", "count", 3.0, 3.0, 3.0),
+                ("a", "mean", 1.0, 2.0, 3.0),
+                ("a", "std", 0.0, 0.0, 0.0),
+                ("a", "min", 1.0, 2.0, 3.0),
+                ("a", "25%", 1.0, 2.0, 3.0),
+                ("a", "50%", 1.0, 2.0, 3.0),
+                ("a", "75%", 1.0, 2.0, 3.0),
+                ("a", "max", 1.0, 2.0, 3.0),
+                ("b", "count", 3.0, 3.0, 3.0),
+                ("b", "mean", 2.0, 5.0, 8.0),
+                ("b", "std", 1.0, 1.0, 1.0),
+                ("b", "min", 1.0, 4.0, 7.0),
+                ("b", "25%", 1.5, 4.5, 7.5),
+                ("b", "50%", 2.0, 5.0, 8.0),
+                ("b", "75%", 2.5, 5.5, 8.5),
+                ("b", "max", 3.0, 6.0, 9.0),
+            ],
+            columns=["col", "func", 1, 2, 3],
+        )
+        .set_index(["col", "func"])
+        .T
+    )
+    expected.columns.names = [None, None]
+    expected.index = pd.Index(expected.index.astype(by_col_dtype), name="a")
+
+    if by_col_dtype is str:
+        # If the grouping column is a nuisance column (i.e. can't apply the
+        # std() or quantile() to it) then it does not appear in the output
+        expected = expected.drop(columns="a")
+
+    result = df.groupby("a").describe()
+    tm.assert_frame_equal(result, expected)
+
+
 def test_groupby_mean_no_overflow():
     # Regression test for (#22487)
     df = pd.DataFrame(
