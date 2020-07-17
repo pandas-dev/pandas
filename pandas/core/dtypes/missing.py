@@ -421,7 +421,9 @@ def array_equivalent(
 
     # NaNs can occur in float and complex arrays.
     if is_float_dtype(left.dtype) or is_complex_dtype(left.dtype):
-        return ((left == right) | (np.isnan(left) & np.isnan(right))).all()
+        if not (np.prod(left.shape) and np.prod(right.shape)):
+            return True
+        return ((left == right) | (isna(left) & isna(right))).all()
 
     elif is_datetimelike_v_numeric(left, right):
         # GH#29553 avoid numpy deprecation warning
