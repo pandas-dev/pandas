@@ -2964,7 +2964,7 @@ class MultiIndex(Index):
 
             code = self._get_loc_single_level_index(level_index, key)
 
-            if level > 0 or self.lexsort_depth == 0:
+            if level > 0 or self.lexsort_depth == 0 or self.is_lexsorted():
                 # Desired level is not sorted
                 locs = np.array(level_codes == code, dtype=bool, copy=False)
                 if not locs.any():
