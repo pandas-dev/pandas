@@ -286,19 +286,52 @@ def test_non_cython_api():
 
     # describe
     expected_index = pd.Index([1, 3], name="A")
-    expected_col = pd.MultiIndex(
-        levels=[["B"], ["count", "mean", "std", "min", "25%", "50%", "75%", "max"]],
-        codes=[[0] * 8, list(range(8))],
+    expected_col = pd.MultiIndex.from_product(
+        [["A", "B"], ["count", "mean", "std", "min", "25%", "50%", "75%", "max"]]
     )
     expected = pd.DataFrame(
         [
-            [1.0, 2.0, np.nan, 2.0, 2.0, 2.0, 2.0, 2.0],
-            [0.0, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+            [
+                2.0,
+                1.0,
+                0.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+                2.0,
+                np.nan,
+                2.0,
+                2.0,
+                2.0,
+                2.0,
+                2.0,
+            ],
+            [
+                1.0,
+                3.0,
+                np.nan,
+                3.0,
+                3.0,
+                3.0,
+                3.0,
+                3.0,
+                0.0,
+                np.nan,
+                np.nan,
+                np.nan,
+                np.nan,
+                np.nan,
+                np.nan,
+                np.nan,
+            ],
         ],
         index=expected_index,
         columns=expected_col,
     )
-    result = g.describe().drop(columns="A")
+    result = g.describe()
     tm.assert_frame_equal(result, expected)
 
     expected = pd.concat(
