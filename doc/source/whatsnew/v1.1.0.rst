@@ -274,6 +274,8 @@ change, as ``fsspec`` will still bring in the same packages as before.
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
+- :meth:`IntegerArray.astype` now supports ``datetime64`` dtype (:issue:`32538`)
+- :class:`IntegerArray` now implements the ``sum`` operation (:issue:`33172`)
 - Added :class:`pandas.errors.InvalidIndexError` (:issue:`34570`).
 - Added :meth:`DataFrame.value_counts` (:issue:`5377`)
 - Added a :func:`pandas.api.indexers.FixedForwardWindowIndexer` class to support forward-looking windows during ``rolling`` operations.
@@ -919,6 +921,9 @@ Datetimelike
 - The ``freq`` keyword in :class:`Period`, :func:`date_range`, :func:`period_range`, :func:`pd.tseries.frequencies.to_offset` no longer allows tuples, pass as string instead (:issue:`34703`)
 - Bug in :meth:`DataFrame.append` when appending a :class:`Series` containing a scalar tz-aware :class:`Timestamp` to an empty :class:`DataFrame` resulted in an object column instead of datetime64[ns, tz] dtype (:issue:`35038`)
 - ``OutOfBoundsDatetime`` issues an improved error message when timestamp is out of implementation bounds. (:issue:`32967`)
+- Bug in :meth:`AbstractHolidayCalendar.holidays` when no rules were defined (:issue:`31415`)
+- Bug in :class:`Tick` comparisons raising ``TypeError`` when comparing against timedelta-like objects (:issue:`34088`)
+- Bug in :class:`Tick` multiplication raising ``TypeError`` when multiplying by a float (:issue:`34486`)
 
 Timedelta
 ^^^^^^^^^
@@ -937,7 +942,6 @@ Timezones
 ^^^^^^^^^
 
 - Bug in :func:`to_datetime` with ``infer_datetime_format=True`` where timezone names (e.g. ``UTC``) would not be parsed correctly (:issue:`33133`)
--
 
 
 Numeric
@@ -953,12 +957,17 @@ Numeric
 - Bug in :class:`DataFrame` and :class:`Series` addition and subtraction between object-dtype objects and ``datetime64`` dtype objects (:issue:`33824`)
 - Bug in :meth:`Index.difference` incorrect results when comparing a :class:`Float64Index` and object :class:`Index` (:issue:`35217`)
 - Bug in :class:`DataFrame` reductions (e.g. ``df.min()``, ``df.max()``) with ``ExtensionArray`` dtypes (:issue:`34520`, :issue:`32651`)
+- :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` now raises ValueError if ``limit_direction`` is 'forward' or 'both' and ``method`` is 'backfill' or 'bfill' or ``limit_direction`` is 'backward' or 'both' and ``method`` is 'pad' or 'ffill' (:issue:`34746`)
 
 Conversion
 ^^^^^^^^^^
 - Bug in :class:`Series` construction from NumPy array with big-endian ``datetime64`` dtype (:issue:`29684`)
 - Bug in :class:`Timedelta` construction with large nanoseconds keyword value (:issue:`32402`)
 - Bug in :class:`DataFrame` construction where sets would be duplicated rather than raising (:issue:`32582`)
+- The :class:`DataFrame` constructor no longer accepts a list of ``DataFrame`` objects. Because of changes to NumPy, ``DataFrame`` objects are now consistently treated as 2D objects, so a list of ``DataFrames`` is considered 3D, and no longer acceptible for the ``DataFrame`` constructor (:issue:`32289`).
+- Bug in :class:`DataFrame` when initiating a frame with lists and assign ``columns`` with nested list for ``MultiIndex`` (:issue:`32173`)
+- Improved error message for invalid construction of list when creating a new index (:issue:`35190`)
+
 
 Strings
 ^^^^^^^
@@ -1016,6 +1025,7 @@ Missing
 - :meth:`DataFrame.interpolate` uses the correct axis convention now. Previously interpolating along columns lead to interpolation along indices and vice versa. Furthermore interpolating with methods ``pad``, ``ffill``, ``bfill`` and ``backfill`` are identical to using these methods with :meth:`fillna` (:issue:`12918`, :issue:`29146`)
 - Bug in :meth:`DataFrame.interpolate` when called on a DataFrame with column names of string type was throwing a ValueError. The method is no independing of the type of column names (:issue:`33956`)
 - passing :class:`NA` will into a format string using format specs will now work. For example ``"{:.1f}".format(pd.NA)`` would previously raise a ``ValueError``, but will now return the string ``"<NA>"`` (:issue:`34740`)
+- Bug in :meth:`Series.map` not raising on invalid ``na_action`` (:issue:`32815`)
 
 MultiIndex
 ^^^^^^^^^^
@@ -1044,6 +1054,7 @@ MultiIndex
 
 I/O
 ^^^
+- Passing a `set` as `names` argument to :func:`pandas.read_csv`, :func:`pandas.read_table`, or :func:`pandas.read_fwf` will raise ``ValueError: Names should be an ordered collection.`` (:issue:`34946`)
 - Bug in print-out when ``display.precision`` is zero. (:issue:`20359`)
 - Bug in :meth:`read_json` where integer overflow was occurring when json contains big number strings. (:issue:`30320`)
 - `read_csv` will now raise a ``ValueError`` when the arguments `header` and `prefix` both are not `None`. (:issue:`27394`)
@@ -1084,6 +1095,7 @@ I/O
 - Bug in :meth:`read_excel` that was raising a ``TypeError`` when ``header=None`` and ``index_col`` given as list (:issue:`31783`)
 - Bug in :meth:`read_excel` where datetime values are used in the header in a `MultiIndex` (:issue:`34748`)
 - :func:`read_excel` no longer takes ``**kwds`` arguments. This means that passing in keyword ``chunksize`` now raises a ``TypeError`` (previously raised a ``NotImplementedError``), while passing in keyword ``encoding`` now raises a ``TypeError`` (:issue:`34464`)
+- Bug in :meth:`DataFrame.to_records` incorrectly losing timezone information in timezone-aware ``datetime64`` columns (:issue:`32535`)
 
 Plotting
 ^^^^^^^^
@@ -1095,6 +1107,7 @@ Plotting
 - Bug in :meth:`DataFrame.plot.scatter` that when adding multiple plots with different ``cmap``, colorbars alway use the first ``cmap`` (:issue:`33389`)
 - Bug in :meth:`DataFrame.plot.scatter` was adding a colorbar to the plot even if the argument `c` was assigned to a column containing color names (:issue:`34316`)
 - Bug in :meth:`pandas.plotting.bootstrap_plot` was causing cluttered axes and overlapping labels (:issue:`34905`)
+- Bug in :meth:`DataFrame.plot.scatter` caused an error when plotting variable marker sizes (:issue:`32904`)
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1140,6 +1153,7 @@ Reshaping
 - Bug in :meth:`concat` where when passing a non-dict mapping as ``objs`` would raise a ``TypeError`` (:issue:`32863`)
 - :meth:`DataFrame.agg` now provides more descriptive ``SpecificationError`` message when attempting to aggregating non-existant column (:issue:`32755`)
 - Bug in :meth:`DataFrame.unstack` when MultiIndexed columns and MultiIndexed rows were used (:issue:`32624`, :issue:`24729` and :issue:`28306`)
+- Appending a dictionary to a :class:`DataFrame` without passing ``ignore_index=True`` will raise ``TypeError: Can only append a dict if ignore_index=True`` instead of ``TypeError: Can only append a Series if ignore_index=True or if the Series has a name`` (:issue:`30871`)
 - Bug in :meth:`DataFrame.corrwith()`, :meth:`DataFrame.memory_usage()`, :meth:`DataFrame.dot()`,
   :meth:`DataFrame.idxmin()`, :meth:`DataFrame.idxmax()`, :meth:`DataFrame.duplicated()`, :meth:`DataFrame.isin()`,
   :meth:`DataFrame.count()`, :meth:`Series.explode()`, :meth:`Series.asof()` and :meth:`DataFrame.asof()` not
@@ -1180,28 +1194,12 @@ ExtensionArray
 Other
 ^^^^^
 
-- The :class:`DataFrame` constructor no longer accepts a list of ``DataFrame`` objects. Because of changes to NumPy, ``DataFrame`` objects are now consistently treated as 2D objects, so a list of ``DataFrames`` is considered 3D, and no longer acceptible for the ``DataFrame`` constructor (:issue:`32289`).
-- :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` now raises ValueError if ``limit_direction`` is 'forward' or 'both' and ``method`` is 'backfill' or 'bfill' or ``limit_direction`` is 'backward' or 'both' and ``method`` is 'pad' or 'ffill' (:issue:`34746`)
-- Appending a dictionary to a :class:`DataFrame` without passing ``ignore_index=True`` will raise ``TypeError: Can only append a dict if ignore_index=True``
-  instead of ``TypeError: Can only append a Series if ignore_index=True or if the Series has a name`` (:issue:`30871`)
 - Set operations on an object-dtype :class:`Index` now always return object-dtype results (:issue:`31401`)
-- Bug in :meth:`AbstractHolidayCalendar.holidays` when no rules were defined (:issue:`31415`)
-- Bug in :class:`DataFrame` when initiating a frame with lists and assign ``columns`` with nested list for ``MultiIndex`` (:issue:`32173`)
-- Bug in :meth:`DataFrame.to_records` incorrectly losing timezone information in timezone-aware ``datetime64`` columns (:issue:`32535`)
 - Fixed :func:`pandas.testing.assert_series_equal` to correctly raise if left object is a different subclass with ``check_series_type=True`` (:issue:`32670`).
-- :meth:`IntegerArray.astype` now supports ``datetime64`` dtype (:issue:`32538`)
 - Getting a missing attribute in a query/eval string raises the correct ``AttributeError`` (:issue:`32408`)
 - Fixed bug in :func:`pandas.testing.assert_series_equal` where dtypes were checked for ``Interval`` and ``ExtensionArray`` operands when ``check_dtype`` was ``False`` (:issue:`32747`)
-- Bug in :meth:`Series.map` not raising on invalid ``na_action`` (:issue:`32815`)
 - Bug in :meth:`DataFrame.__dir__` caused a segfault when using unicode surrogates in a column name (:issue:`25509`)
-- Bug in :meth:`DataFrame.plot.scatter` caused an error when plotting variable marker sizes (:issue:`32904`)
-- :class:`IntegerArray` now implements the ``sum`` operation (:issue:`33172`)
-- Bug in :meth:`DataFrame.equals` and :meth:`Series.equals` in allowing subclasses
-  to be equal (:issue:`34402`).
-- Bug in :class:`Tick` comparisons raising ``TypeError`` when comparing against timedelta-like objects (:issue:`34088`)
-- Bug in :class:`Tick` multiplication raising ``TypeError`` when multiplying by a float (:issue:`34486`)
-- Passing a `set` as `names` argument to :func:`pandas.read_csv`, :func:`pandas.read_table`, or :func:`pandas.read_fwf` will raise ``ValueError: Names should be an ordered collection.`` (:issue:`34946`)
-- Improved error message for invalid construction of list when creating a new index (:issue:`35190`)
+- Bug in :meth:`DataFrame.equals` and :meth:`Series.equals` in allowing subclasses to be equal (:issue:`34402`).
 
 .. ---------------------------------------------------------------------------
 
@@ -1210,3 +1208,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
+.. contributors:: v1.0.5..v1.1.0|HEAD
