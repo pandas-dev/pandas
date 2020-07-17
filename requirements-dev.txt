@@ -1,7 +1,7 @@
 # This file is auto-generated from environment.yml, do not modify.
 # See that file for comments about the need/usage of each dependency.
 
-numpy>=1.15
+numpy>=1.15,<1.19.0
 python-dateutil>=2.7.3
 pytz
 asv

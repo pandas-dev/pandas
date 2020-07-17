@@ -3,7 +3,8 @@ channels:
   - conda-forge
 dependencies:
   # required
-  - numpy>=1.15
+  # Pin numpy<1.19 until MPL 3.3.0 is released.
+  - numpy>=1.15,<1.19.0
   - python=3
   - python-dateutil>=2.7.3
   - pytz
