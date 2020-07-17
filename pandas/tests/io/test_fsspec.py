@@ -15,7 +15,8 @@ df1 = DataFrame(
 )
 # the ignore on the following line accounts for to_csv returning Optional(str)
 # in general, but always str in the case we give no filename
-text = df1.to_csv(index=False).encode()  # type: ignore
+# error: Item "None" of "Optional[str]" has no attribute "encode"
+text = df1.to_csv(index=False).encode()  # type: ignore[union-attr]
 
 
 @pytest.fixture

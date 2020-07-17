@@ -885,7 +885,8 @@ class Index(IndexOpsMixin, PandasObject):
         if self.inferred_type == "string":
             is_justify = False
         elif self.inferred_type == "categorical":
-            if is_object_dtype(self.categories):  # type: ignore
+            # error: "Index" has no attribute "categories"
+            if is_object_dtype(self.categories):  # type: ignore[attr-defined]
                 is_justify = False
 
         return format_object_summary(
@@ -940,7 +941,7 @@ class Index(IndexOpsMixin, PandasObject):
             if mask.any():
                 result = np.array(result)
                 result[mask] = na_rep
-                result = result.tolist()  # type: ignore
+                result = result.tolist()
         else:
             result = trim_front(format_array(values, None, justify="left"))
         return header + result

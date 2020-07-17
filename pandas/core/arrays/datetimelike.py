@@ -468,7 +468,7 @@ class DatetimeLikeArrayMixin(
 
     def _from_backing_data(self: _T, arr: np.ndarray) -> _T:
         # Note: we do not retain `freq`
-        return type(self)(arr, dtype=self.dtype)  # type: ignore
+        return type(self)(arr, dtype=self.dtype)
 
     # ------------------------------------------------------------------
 
@@ -809,7 +809,7 @@ class DatetimeLikeArrayMixin(
             value = NaT
 
         elif isinstance(value, self._recognized_scalars):
-            value = self._scalar_type(value)  # type: ignore
+            value = self._scalar_type(value)
 
         else:
             if msg is None:
@@ -1129,7 +1129,7 @@ class DatetimeLikeArrayMixin(
         """
         Returns day, hour, minute, second, millisecond or microsecond
         """
-        return self._resolution_obj.attrname  # type: ignore
+        return self._resolution_obj.attrname
 
     @classmethod
     def _validate_frequency(cls, index, freq, **kwargs):

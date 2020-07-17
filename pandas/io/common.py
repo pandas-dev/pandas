@@ -121,7 +121,7 @@ def stringify_path(
     """
     if hasattr(filepath_or_buffer, "__fspath__"):
         # https://github.com/python/mypy/issues/1424
-        return filepath_or_buffer.__fspath__()  # type: ignore
+        return filepath_or_buffer.__fspath__()
     elif isinstance(filepath_or_buffer, pathlib.Path):
         return str(filepath_or_buffer)
     return _expand_user(filepath_or_buffer)
@@ -441,21 +441,21 @@ def get_handle(
         if compression == "gzip":
             if is_path:
                 f = gzip.open(
-                    path_or_buf, mode, **compression_args  # type: ignore
+                    path_or_buf, mode, **compression_args
                 )
             else:
                 f = gzip.GzipFile(
-                    fileobj=path_or_buf, **compression_args  # type: ignore
+                    fileobj=path_or_buf, **compression_args
                 )
 
         # BZ Compression
         elif compression == "bz2":
             if is_path:
                 f = bz2.BZ2File(
-                    path_or_buf, mode, **compression_args  # type: ignore
+                    path_or_buf, mode, **compression_args
                 )
             else:
-                f = bz2.BZ2File(path_or_buf, **compression_args)  # type: ignore
+                f = bz2.BZ2File(path_or_buf, **compression_args)
 
         # ZIP Compression
         elif compression == "zip":
@@ -523,7 +523,7 @@ def get_handle(
     return f, handles
 
 
-class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore
+class _BytesZipFile(zipfile.ZipFile, BytesIO):
     """
     Wrapper for standard library class ZipFile and allow the returned file-like
     handle to accept byte strings via `write` method.

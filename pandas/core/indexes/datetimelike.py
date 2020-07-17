@@ -54,7 +54,7 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
     Create the join wrapper methods.
     """
 
-    @staticmethod  # type: ignore
+    @staticmethod
     def wrapper(left, right):
         if isinstance(left, (np.ndarray, ABCIndex, ABCSeries, DatetimeLikeArrayMixin)):
             left = left.view("i8")
@@ -95,7 +95,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     _bool_ops: List[str] = []
     _field_ops: List[str] = []
 
-    hasnans = cache_readonly(DatetimeLikeArrayMixin._hasnans.fget)  # type: ignore
+    hasnans = cache_readonly(DatetimeLikeArrayMixin._hasnans.fget)
     _hasnans = hasnans  # for index / array -agnostic code
 
     @property

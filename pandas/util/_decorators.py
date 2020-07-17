@@ -323,7 +323,7 @@ def rewrite_axis_style_signature(
         sig = inspect.Signature(params)
 
         # https://github.com/python/typing/issues/598
-        func.__signature__ = sig  # type: ignore
+        func.__signature__ = sig
         return cast(F, wrapper)
 
     return decorate
@@ -358,7 +358,7 @@ def doc(*docstrings: Union[str, Callable], **params) -> Callable[[F], F]:
         for docstring in docstrings:
             if hasattr(docstring, "_docstring_components"):
                 docstring_components.extend(
-                    docstring._docstring_components  # type: ignore
+                    docstring._docstring_components
                 )
             elif isinstance(docstring, str) or docstring.__doc__:
                 docstring_components.append(docstring)
@@ -373,7 +373,7 @@ def doc(*docstrings: Union[str, Callable], **params) -> Callable[[F], F]:
             ]
         )
 
-        decorated._docstring_components = docstring_components  # type: ignore
+        decorated._docstring_components = docstring_components
         return decorated
 
     return decorator
