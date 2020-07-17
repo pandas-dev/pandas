@@ -941,7 +941,8 @@ class Index(IndexOpsMixin, PandasObject):
             if mask.any():
                 result = np.array(result)
                 result[mask] = na_rep
-                result = result.tolist()
+                # error: "List[str]" has no attribute "tolist"
+                result = result.tolist()  # type: ignore[attr-defined]
         else:
             result = trim_front(format_array(values, None, justify="left"))
         return header + result

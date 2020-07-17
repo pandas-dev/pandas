@@ -3581,8 +3581,7 @@ class DataFrame(NDFrame):
                 # Type[float], Type[int], Type[complex], Type[bool]]]";
                 # expected "Iterable[Union[type, Tuple[Any, ...]]]"
                 if issubclass(
-                    unique_dtype.type,
-                    tuple(dtypes_set)  # type: ignore[arg-type]
+                    unique_dtype.type, tuple(dtypes_set)  # type: ignore[arg-type]
                 )
             ]
             return extracted_dtypes
