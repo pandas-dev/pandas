@@ -6,7 +6,7 @@ https://specs.frictionlessdata.io/json-table-schema/
 from typing import TYPE_CHECKING, Any, Dict, Optional, cast
 import warnings
 
-from pandas._libs import json as json
+from pandas._libs.json import loads
 from pandas._typing import DtypeObj, FrameOrSeries, JSONSerializable
 
 from pandas.core.dtypes.common import (
@@ -27,8 +27,6 @@ from pandas.core import common as com
 
 if TYPE_CHECKING:
     from pandas.core.indexes.multi import MultiIndex  # noqa: F401
-
-loads = json.loads
 
 
 def as_json_table_type(x: DtypeObj) -> str:

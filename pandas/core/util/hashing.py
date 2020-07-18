@@ -6,7 +6,7 @@ from typing import Optional
 
 import numpy as np
 
-from pandas._libs import hashing as hashing
+from pandas._libs.hashing import hash_object_array
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -282,10 +282,10 @@ def hash_array(
             return _hash_categorical(cat, encoding, hash_key)
 
         try:
-            vals = hashing.hash_object_array(vals, hash_key, encoding)
+            vals = hash_object_array(vals, hash_key, encoding)
         except TypeError:
             # we have mixed types
-            vals = hashing.hash_object_array(
+            vals = hash_object_array(
                 vals.astype(str).astype(object), hash_key, encoding
             )
 

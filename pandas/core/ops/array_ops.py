@@ -10,7 +10,9 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import Timedelta, Timestamp, lib, ops as libops
+from pandas._libs import Timedelta, Timestamp
+from pandas._libs.lib import is_integer, is_scalar, item_from_zerodim
+from pandas._libs.ops import scalar_binop, scalar_compare, vec_binop, vec_compare
 from pandas._typing import ArrayLike
 
 from pandas.core.dtypes.cast import (
@@ -50,9 +52,9 @@ def comp_method_OBJECT_ARRAY(op, x, y):
 
         if x.shape != y.shape:
             raise ValueError("Shapes must match", x.shape, y.shape)
-        result = libops.vec_compare(x.ravel(), y.ravel(), op)
+        result = vec_compare(x.ravel(), y.ravel(), op)
     else:
-        result = libops.scalar_compare(x.ravel(), y, op)
+        result = scalar_compare(x.ravel(), y, op)
     return result.reshape(x.shape)
 
 
@@ -210,7 +212,7 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     lvalues = maybe_upcast_datetimelike_array(left)
     rvalues = right
 
-    rvalues = lib.item_from_zerodim(rvalues)
+    rvalues = item_from_zerodim(rvalues)
     if isinstance(rvalues, list):
         # TODO: same for tuples?
         rvalues = np.asarray(rvalues)
@@ -265,14 +267,14 @@ def na_logical_op(x: np.ndarray, y, op):
             assert not (is_bool_dtype(x.dtype) and is_bool_dtype(y.dtype))
             x = ensure_object(x)
             y = ensure_object(y)
-            result = libops.vec_binop(x.ravel(), y.ravel(), op)
+            result = vec_binop(x.ravel(), y.ravel(), op)
         else:
             # let null fall thru
-            assert lib.is_scalar(y)
+            assert is_scalar(y)
             if not isna(y):
                 y = bool(y)
             try:
-                result = libops.scalar_binop(x, y, op)
+                result = scalar_binop(x, y, op)
             except (
                 TypeError,
                 ValueError,
@@ -322,7 +324,7 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
 
     is_self_int_dtype = is_integer_dtype(left.dtype)
 
-    right = lib.item_from_zerodim(right)
+    right = item_from_zerodim(right)
     if is_list_like(right) and not hasattr(right, "dtype"):
         # e.g. list, tuple
         right = construct_1d_object_array_from_listlike(right)
@@ -342,7 +344,7 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
 
         else:
             # i.e. scalar
-            is_other_int_dtype = lib.is_integer(rvalues)
+            is_other_int_dtype = is_integer(rvalues)
 
         # For int vs int `^`, `|`, `&` are bitwise operators and return
         #   integer dtypes.  Otherwise these are boolean ops

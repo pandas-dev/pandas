@@ -7,7 +7,7 @@ from typing import Any, Callable, Optional, Type
 
 import numpy as np
 
-from pandas._libs import json as json
+from pandas._libs.json import dumps, loads
 from pandas._libs.tslibs import iNaT
 from pandas._typing import JSONSerializable
 from pandas.errors import AbstractMethodError
@@ -23,9 +23,6 @@ from pandas.io.common import get_filepath_or_buffer, get_handle, infer_compressi
 from pandas.io.json._normalize import convert_to_line_delimits
 from pandas.io.json._table_schema import build_table_schema, parse_table_schema
 from pandas.io.parsers import _validate_integer
-
-loads = json.loads
-dumps = json.dumps
 
 TABLE_SCHEMA_VERSION = "0.20.0"
 

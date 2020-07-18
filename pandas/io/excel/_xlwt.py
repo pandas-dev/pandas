@@ -1,4 +1,4 @@
-from pandas._libs import json as json
+from pandas._libs.json import dumps
 
 from pandas.io.excel._base import ExcelWriter
 from pandas.io.excel._util import _validate_freeze_panes
@@ -54,7 +54,7 @@ class _XlwtWriter(ExcelWriter):
         for cell in cells:
             val, fmt = self._value_with_fmt(cell.val)
 
-            stylekey = json.dumps(cell.style)
+            stylekey = dumps(cell.style)
             if fmt:
                 stylekey += fmt
 

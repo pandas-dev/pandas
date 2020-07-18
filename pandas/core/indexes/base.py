@@ -16,7 +16,13 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import algos as libalgos, index as libindex, join as libjoin, lib
+from pandas._libs import algos as libalgos, index as libindex, lib
+from pandas._libs.join import (
+    inner_join_indexer,
+    left_join_indexer,
+    left_join_indexer_unique,
+    outer_join_indexer,
+)
 from pandas._libs.lib import is_datetime_array, no_default
 from pandas._libs.tslibs import OutOfBoundsDatetime, Timestamp
 from pandas._libs.tslibs.period import IncompatibleFrequency
@@ -243,16 +249,16 @@ class Index(IndexOpsMixin, PandasObject):
     # Moreover, cython will choose the appropriate-dtyped sub-function
     #  given the dtypes of the passed arguments
     def _left_indexer_unique(self, left, right):
-        return libjoin.left_join_indexer_unique(left, right)
+        return left_join_indexer_unique(left, right)
 
     def _left_indexer(self, left, right):
-        return libjoin.left_join_indexer(left, right)
+        return left_join_indexer(left, right)
 
     def _inner_indexer(self, left, right):
-        return libjoin.inner_join_indexer(left, right)
+        return inner_join_indexer(left, right)
 
     def _outer_indexer(self, left, right):
-        return libjoin.outer_join_indexer(left, right)
+        return outer_join_indexer(left, right)
 
     _typ = "index"
     _data: Union[ExtensionArray, np.ndarray]

@@ -22,8 +22,11 @@ from pandas._config.localization import (  # noqa:F401
     set_locale,
 )
 
-from pandas._libs import testing as _testing
 from pandas._libs.lib import no_default
+from pandas._libs.testing import (
+    assert_almost_equal as _assert_almost_equal,
+    assert_dict_equal as _assert_dict_equal,
+)
 from pandas._typing import Dtype, FilePathOrBuffer, FrameOrSeries
 from pandas.compat import _get_lzma_file, _import_lzma
 
@@ -450,7 +453,7 @@ def assert_almost_equal(
                 else:
                     obj = "Input"
                 assert_class_equal(left, right, obj=obj)
-        _testing.assert_almost_equal(
+        _assert_almost_equal(
             left, right, check_dtype=check_dtype, rtol=rtol, atol=atol, **kwargs
         )
 
@@ -486,7 +489,7 @@ def _check_isinstance(left, right, cls):
 def assert_dict_equal(left, right, compare_keys: bool = True):
 
     _check_isinstance(left, right, dict)
-    _testing.assert_dict_equal(left, right, compare_keys=compare_keys)
+    _assert_dict_equal(left, right, compare_keys=compare_keys)
 
 
 def randbool(size=(), p: float = 0.5):
@@ -791,7 +794,7 @@ def assert_index_equal(
             msg = f"{obj} values are different ({np.round(diff, 5)} %)"
             raise_assert_detail(obj, msg, left, right)
     else:
-        _testing.assert_almost_equal(
+        _assert_almost_equal(
             left.values,
             right.values,
             rtol=rtol,
@@ -1202,7 +1205,7 @@ def assert_extension_array_equal(
             left_valid, right_valid, obj="ExtensionArray", index_values=index_values
         )
     else:
-        _testing.assert_almost_equal(
+        _assert_almost_equal(
             left_valid,
             right_valid,
             check_dtype=check_dtype,
@@ -1368,7 +1371,7 @@ def assert_series_equal(
     elif is_interval_dtype(left.dtype) and is_interval_dtype(right.dtype):
         assert_interval_array_equal(left.array, right.array)
     elif is_categorical_dtype(left.dtype) or is_categorical_dtype(right.dtype):
-        _testing.assert_almost_equal(
+        _assert_almost_equal(
             left._values,
             right._values,
             rtol=rtol,
@@ -1387,7 +1390,7 @@ def assert_series_equal(
             left._values, right._values, index_values=np.asarray(left.index)
         )
     else:
-        _testing.assert_almost_equal(
+        _assert_almost_equal(
             left._values,
             right._values,
             rtol=rtol,

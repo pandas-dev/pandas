@@ -6,7 +6,7 @@ from typing import Optional, Union
 import numpy as np
 
 from pandas._libs.tslibs import Timedelta
-from pandas._libs.window import aggregations as window_aggregations
+from pandas._libs.window.aggregations import ewmcov
 from pandas._typing import FrameOrSeries, TimedeltaConvertibleTypes
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, doc
@@ -380,7 +380,7 @@ class ExponentialMovingWindow(_Rolling):
         nv.validate_window_func("var", args, kwargs)
 
         def f(arg):
-            return window_aggregations.ewmcov(
+            return ewmcov(
                 arg, arg, self.com, self.adjust, self.ignore_na, self.min_periods, bias,
             )
 
@@ -424,7 +424,7 @@ class ExponentialMovingWindow(_Rolling):
         def _get_cov(X, Y):
             X = self._shallow_copy(X)
             Y = self._shallow_copy(Y)
-            cov = window_aggregations.ewmcov(
+            cov = ewmcov(
                 X._prep_values(),
                 Y._prep_values(),
                 self.com,
@@ -476,7 +476,7 @@ class ExponentialMovingWindow(_Rolling):
             Y = self._shallow_copy(Y)
 
             def _cov(x, y):
-                return window_aggregations.ewmcov(
+                return ewmcov(
                     x, y, self.com, self.adjust, self.ignore_na, self.min_periods, 1,
                 )
 

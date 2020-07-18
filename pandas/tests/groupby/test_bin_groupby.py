@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
 
-from pandas._libs import groupby, lib, reduction as libreduction
+from pandas._libs import groupby, lib
+from pandas._libs.reduction import SeriesBinGrouper, SeriesGrouper
 
 from pandas.core.dtypes.common import ensure_int64
 
@@ -15,7 +16,7 @@ def test_series_grouper():
 
     labels = np.array([-1, -1, -1, 0, 0, 0, 1, 1, 1, 1], dtype=np.int64)
 
-    grouper = libreduction.SeriesGrouper(obj, np.mean, labels, 2, dummy)
+    grouper = SeriesGrouper(obj, np.mean, labels, 2, dummy)
     result, counts = grouper.get_result()
 
     expected = np.array([obj[3:6].mean(), obj[6:].mean()])
@@ -32,7 +33,7 @@ def test_series_grouper_requires_nonempty_raises():
     labels = np.array([-1, -1, -1, 0, 0, 0, 1, 1, 1, 1], dtype=np.int64)
 
     with pytest.raises(ValueError, match="SeriesGrouper requires non-empty `series`"):
-        libreduction.SeriesGrouper(dummy, np.mean, labels, 2, dummy)
+        SeriesGrouper(dummy, np.mean, labels, 2, dummy)
 
 
 def test_series_bin_grouper():
@@ -41,7 +42,7 @@ def test_series_bin_grouper():
 
     bins = np.array([3, 6])
 
-    grouper = libreduction.SeriesBinGrouper(obj, np.mean, bins, dummy)
+    grouper = SeriesBinGrouper(obj, np.mean, bins, dummy)
     result, counts = grouper.get_result()
 
     expected = np.array([obj[:3].mean(), obj[3:6].mean(), obj[6:].mean()])

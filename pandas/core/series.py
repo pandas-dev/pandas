@@ -22,8 +22,9 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import lib, properties, reshape, tslibs
+from pandas._libs import lib, properties, tslibs
 from pandas._libs.lib import no_default
+from pandas._libs.reshape import explode
 from pandas._typing import (
     ArrayLike,
     Axis,
@@ -3835,7 +3836,7 @@ Keep all original rows and also all original values
         if not len(self) or not is_object_dtype(self):
             return self.copy()
 
-        values, counts = reshape.explode(np.asarray(self.array))
+        values, counts = explode(np.asarray(self.array))
 
         if ignore_index:
             index = ibase.default_index(len(values))
