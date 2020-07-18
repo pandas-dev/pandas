@@ -8,7 +8,7 @@ def test_argmax():
         index=["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"],
     )
     assert s.argmax(keep="last") == 11
-    assert s.argmax(keep="all") == [2, 5, 11]
+    assert all(s.argmax(keep="all") == [2, 5, 11])
     assert s.argmax() == 2
 
 
@@ -19,7 +19,7 @@ def test_argmin():
         index=["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"],
     )
     assert s.argmin(keep="last") == 8
-    assert s.argmin(keep="all") == [0, 6, 8]
+    assert all(s.argmin(keep="all") == [0, 6, 8])
     assert s.argmin() == 0
 
 
