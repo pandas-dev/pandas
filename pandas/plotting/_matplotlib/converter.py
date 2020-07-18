@@ -253,7 +253,7 @@ def _dt_to_float_ordinal(dt):
     is a :func:`float`.
     """
     if isinstance(dt, (np.ndarray, Index, Series)) and is_datetime64_ns_dtype(dt):
-        base = dates.epoch2num(dt.asi8 / 1.0e9)
+        base = np.asarray(dt.asi8 / 1.0e9) / 86400
     else:
         base = dates.date2num(dt)
     return base
