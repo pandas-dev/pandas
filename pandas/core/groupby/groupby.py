@@ -1628,6 +1628,8 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         result = self.apply(lambda x: x.describe(**kwargs))
         if self.axis == 1:
             return result.T
+        # GH 34656 self.apply() will return non-nuisance grouping columns, but
+        # we remove them from describe if as_index=True
         if self.as_index:
             with _group_selection_context(self):
                 if self._group_selection is not None:
