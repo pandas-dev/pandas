@@ -10,7 +10,7 @@ from typing import Callable, Dict, List, Optional, Set, Tuple, Type, Union
 
 import numpy as np
 
-from pandas._libs.tslibs import to_offset
+from pandas._libs.tslibs import BaseOffset, to_offset
 import pandas._libs.window.aggregations as window_aggregations
 from pandas._typing import Axis, FrameOrSeries, Scalar
 from pandas.compat._optional import import_optional_dependency
@@ -39,7 +39,7 @@ from pandas.core.base import DataError, PandasObject, SelectionMixin, ShallowMix
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.indexes.api import Index, MultiIndex, ensure_index
-from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
+from pandas.core.util.numba_ import NUMBA_FUNC_CACHE, maybe_use_numba
 from pandas.core.window.common import (
     WindowGroupByMixin,
     _doc_template,
@@ -54,8 +54,6 @@ from pandas.core.window.indexers import (
     VariableWindowIndexer,
 )
 from pandas.core.window.numba_ import generate_numba_apply_func
-
-from pandas.tseries.offsets import DateOffset
 
 
 def calculate_center_offset(window) -> int:
@@ -1300,10 +1298,11 @@ class _Rolling_and_Expanding(_Rolling):
           objects instead.
           If you are just applying a NumPy reduction function this will
           achieve much better performance.
-    engine : str, default 'cython'
+    engine : str, default None
         * ``'cython'`` : Runs rolling apply through C-extensions from cython.
         * ``'numba'`` : Runs rolling apply through JIT compiled code from numba.
           Only available when ``raw`` is set to ``True``.
+        * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
 
           .. versionadded:: 1.0.0
 
@@ -1359,18 +1358,7 @@ class _Rolling_and_Expanding(_Rolling):
         if not is_bool(raw):
             raise ValueError("raw parameter must be `True` or `False`")
 
-        if engine == "cython":
-            if engine_kwargs is not None:
-                raise ValueError("cython engine does not accept engine_kwargs")
-            # Cython apply functions handle center, so don't need to use
-            # _apply's center handling
-            window = self._get_window()
-            offset = calculate_center_offset(window) if self.center else 0
-            apply_func = self._generate_cython_apply_func(
-                args, kwargs, raw, offset, func
-            )
-            center = False
-        elif engine == "numba":
+        if maybe_use_numba(engine):
             if raw is False:
                 raise ValueError("raw must be `True` when using the numba engine")
             cache_key = (func, "rolling_apply")
@@ -1382,6 +1370,17 @@ class _Rolling_and_Expanding(_Rolling):
                     args, kwargs, func, engine_kwargs
                 )
             center = self.center
+        elif engine in ("cython", None):
+            if engine_kwargs is not None:
+                raise ValueError("cython engine does not accept engine_kwargs")
+            # Cython apply functions handle center, so don't need to use
+            # _apply's center handling
+            window = self._get_window()
+            offset = calculate_center_offset(window) if self.center else 0
+            apply_func = self._generate_cython_apply_func(
+                args, kwargs, raw, offset, func
+            )
+            center = False
         else:
             raise ValueError("engine must be either 'numba' or 'cython'")
 
@@ -1935,7 +1934,7 @@ class Rolling(_Rolling_and_Expanding):
 
         # we allow rolling on a datetimelike index
         if (self.obj.empty or self.is_datetimelike) and isinstance(
-            self.window, (str, DateOffset, timedelta)
+            self.window, (str, BaseOffset, timedelta)
         ):
 
             self._validate_monotonic()
@@ -2055,13 +2054,7 @@ class Rolling(_Rolling_and_Expanding):
     @Substitution(name="rolling")
     @Appender(_shared_docs["apply"])
     def apply(
-        self,
-        func,
-        raw=False,
-        engine="cython",
-        engine_kwargs=None,
-        args=None,
-        kwargs=None,
+        self, func, raw=False, engine=None, engine_kwargs=None, args=None, kwargs=None,
     ):
         return super().apply(
             func,

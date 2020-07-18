@@ -1,4 +1,4 @@
-from cpython.datetime cimport datetime
+from cpython.datetime cimport datetime, tzinfo
 
 from numpy cimport int64_t
 
@@ -8,7 +8,7 @@ from pandas._libs.tslibs.np_datetime cimport npy_datetimestruct
 
 cdef object create_timestamp_from_ts(int64_t value,
                                      npy_datetimestruct dts,
-                                     object tz, object freq, bint fold)
+                                     tzinfo tz, object freq, bint fold)
 
 
 cdef class _Timestamp(ABCTimestamp):
@@ -16,8 +16,8 @@ cdef class _Timestamp(ABCTimestamp):
         int64_t value, nanosecond
         object freq
 
-    cpdef bint _get_start_end_field(self, str field)
-    cpdef _get_date_name_field(self, object field, object locale)
+    cdef bint _get_start_end_field(self, str field)
+    cdef _get_date_name_field(self, str field, object locale)
     cdef int64_t _maybe_convert_value_to_local(self)
     cpdef to_datetime64(self)
     cdef _assert_tzawareness_compat(_Timestamp self, datetime other)

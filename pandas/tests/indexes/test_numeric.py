@@ -97,7 +97,7 @@ class TestFloat64Index(Numeric):
         ],
         ids=["mixed", "float", "mixed_dec", "float_dec"],
     )
-    def indices(self, request):
+    def index(self, request):
         return Float64Index(request.param)
 
     @pytest.fixture
@@ -111,8 +111,8 @@ class TestFloat64Index(Numeric):
     def create_index(self) -> Float64Index:
         return Float64Index(np.arange(5, dtype="float64"))
 
-    def test_repr_roundtrip(self, indices):
-        tm.assert_index_equal(eval(repr(indices)), indices)
+    def test_repr_roundtrip(self, index):
+        tm.assert_index_equal(eval(repr(index)), index)
 
     def check_is_index(self, i):
         assert isinstance(i, Index)
@@ -238,6 +238,19 @@ class TestFloat64Index(Numeric):
 
         i2 = Float64Index([1.0, np.nan])
         assert i.equals(i2)
+
+    @pytest.mark.parametrize(
+        "other",
+        (
+            Int64Index([1, 2]),
+            Index([1.0, 2.0], dtype=object),
+            Index([1, 2], dtype=object),
+        ),
+    )
+    def test_equals_numeric_other_index_type(self, other):
+        i = Float64Index([1.0, 2.0])
+        assert i.equals(other)
+        assert other.equals(i)
 
     @pytest.mark.parametrize(
         "vals",
@@ -428,7 +441,7 @@ class TestInt64Index(NumericInt):
     @pytest.fixture(
         params=[range(0, 20, 2), range(19, -1, -1)], ids=["index_inc", "index_dec"]
     )
-    def indices(self, request):
+    def index(self, request):
         return Int64Index(request.param)
 
     def create_index(self) -> Int64Index:
@@ -537,7 +550,7 @@ class TestUInt64Index(NumericInt):
         ],
         ids=["index_inc", "index_dec"],
     )
-    def indices(self, request):
+    def index(self, request):
         return UInt64Index(request.param)
 
     @pytest.fixture
@@ -635,3 +648,27 @@ def test_uint_index_does_not_convert_to_float64():
     tm.assert_index_equal(result.index, expected)
 
     tm.assert_equal(result, series[:3])
+
+
+def test_float64_index_equals():
+    # https://github.com/pandas-dev/pandas/issues/35217
+    float_index = pd.Index([1.0, 2, 3])
+    string_index = pd.Index(["1", "2", "3"])
+
+    result = float_index.equals(string_index)
+    assert result is False
+
+    result = string_index.equals(float_index)
+    assert result is False
+
+
+def test_float64_index_difference():
+    # https://github.com/pandas-dev/pandas/issues/35217
+    float_index = pd.Index([1.0, 2, 3])
+    string_index = pd.Index(["1", "2", "3"])
+
+    result = float_index.difference(string_index)
+    tm.assert_index_equal(result, float_index)
+
+    result = string_index.difference(float_index)
+    tm.assert_index_equal(result, string_index)

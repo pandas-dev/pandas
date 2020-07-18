@@ -5,10 +5,11 @@ Note: pandas.core.common is *not* part of the public API.
 """
 
 from collections import abc, defaultdict
+import contextlib
 from datetime import datetime, timedelta
 from functools import partial
 import inspect
-from typing import Any, Collection, Dict, Iterable, List, Union
+from typing import Any, Collection, Dict, Iterable, Iterator, List, Union
 import warnings
 
 import numpy as np
@@ -704,7 +705,7 @@ def random_state(state=None):
         If receives `None`, returns np.random.
         If receives anything else, raises an informative ValueError.
 
-        ..versionchanged:: 1.1.0
+        .. versionchanged:: 1.1.0
 
             array-like and BitGenerator (for NumPy>=1.18) object now passed to
             np.random.RandomState() as seed
@@ -802,3 +803,21 @@ def convert_to_list_like(
         return list(values)
 
     return [values]
+
+
+@contextlib.contextmanager
+def temp_setattr(obj, attr: str, value) -> Iterator[None]:
+    """Temporarily set attribute on an object.
+
+    Args:
+        obj: Object whose attribute will be modified.
+        attr: Attribute to modify.
+        value: Value to temporarily set attribute to.
+
+    Yields:
+        obj with modified attribute.
+    """
+    old_value = getattr(obj, attr)
+    setattr(obj, attr, value)
+    yield obj
+    setattr(obj, attr, old_value)

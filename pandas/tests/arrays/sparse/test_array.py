@@ -281,6 +281,11 @@ class TestSparseArray:
         exp = SparseArray(np.take(self.arr_data, [0, 1, 2]))
         tm.assert_sp_array_equal(self.arr.take([0, 1, 2]), exp)
 
+    def test_take_all_empty(self):
+        a = pd.array([0, 0], dtype=pd.SparseDtype("int64"))
+        result = a.take([0, 1], allow_fill=True, fill_value=np.nan)
+        tm.assert_sp_array_equal(a, result)
+
     def test_take_fill_value(self):
         data = np.array([1, np.nan, 0, 3, 0])
         sparse = SparseArray(data, fill_value=0)
@@ -1295,3 +1300,15 @@ def test_map_missing():
 
     result = arr.map({0: 10, 1: 11})
     tm.assert_sp_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("fill_value", [np.nan, 1])
+def test_dropna(fill_value):
+    # GH-28287
+    arr = SparseArray([np.nan, 1], fill_value=fill_value)
+    exp = SparseArray([1.0], fill_value=fill_value)
+    tm.assert_sp_array_equal(arr.dropna(), exp)
+
+    df = pd.DataFrame({"a": [0, 1], "b": arr})
+    expected_df = pd.DataFrame({"a": [1], "b": exp}, index=pd.Int64Index([1]))
+    tm.assert_equal(df.dropna(), expected_df)

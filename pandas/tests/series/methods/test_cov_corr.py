@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 import pytest
 
@@ -35,6 +37,19 @@ class TestSeriesCov:
         ts1 = datetime_series[:15].reindex(datetime_series.index)
         ts2 = datetime_series[5:].reindex(datetime_series.index)
         assert isna(ts1.cov(ts2, min_periods=12))
+
+    @pytest.mark.parametrize("test_ddof", [None, 0, 1, 2, 3])
+    def test_cov_ddof(self, test_ddof):
+        # GH#34611
+        np_array1 = np.random.rand(10)
+        np_array2 = np.random.rand(10)
+
+        s1 = Series(np_array1)
+        s2 = Series(np_array2)
+
+        result = s1.cov(s2, ddof=test_ddof)
+        expected = np.cov(np_array1, np_array2, ddof=test_ddof)[0][1]
+        assert math.isclose(expected, result)
 
 
 class TestSeriesCorr:
