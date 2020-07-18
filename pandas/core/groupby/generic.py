@@ -963,17 +963,22 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # try to treat as if we are passing a list
                 try:
                     result = self._aggregate_multiple_funcs([func], _axis=self.axis)
-                except ValueError as err:
-                    if "no results" not in str(err):
-                        # raised directly by _aggregate_multiple_funcs
-                        raise
-                    result = self._aggregate_frame(func)
-                else:
+
                     # select everything except for the last level, which is the one
                     # containing the name of the function(s), see GH 32040
                     result.columns = result.columns.rename(
                         [self._selected_obj.columns.name] * result.columns.nlevels
                     ).droplevel(-1)
+
+                except ValueError as err:
+                    if "no results" not in str(err):
+                        # raised directly by _aggregate_multiple_funcs
+                        raise
+                    result = self._aggregate_frame(func)
+                except AttributeError:
+                    # catch exception from line 969
+                    # (Series does not have attribute "columns"), see GH 35246
+                    result = self._aggregate_frame(func)
 
         if relabeling:
 

@@ -1636,10 +1636,7 @@ class ExtensionBlock(Block):
     @property
     def fill_value(self):
         # Used in reindex_indexer
-        if is_sparse(self.values):
-            return self.values.dtype.fill_value
-        else:
-            return self.values.dtype.na_value
+        return self.values.dtype.na_value
 
     @property
     def _can_hold_na(self):
