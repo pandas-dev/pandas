@@ -21,7 +21,6 @@ from pandas import (
     isna,
     notna,
 )
-import pandas._testing as tm
 import pandas.core.common as com
 from pandas.core.indexing import IndexingError
 
