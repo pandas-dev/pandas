@@ -158,10 +158,14 @@ class CSVFormatter:
         """
         Create the writer & save.
         """
-        # GH21227 internal compression is not used when file-like passed.
-        if self.compression and hasattr(self.path_or_buf, "write"):
+        # GH21227 internal compression is not used for non-binary handles.
+        if (
+            self.compression
+            and hasattr(self.path_or_buf, "write")
+            and "b" not in self.mode
+        ):
             warnings.warn(
-                "compression has no effect when passing file-like object as input.",
+                "compression has no effect when passing a non-binary object as input.",
                 RuntimeWarning,
                 stacklevel=2,
             )
@@ -194,8 +198,7 @@ class CSVFormatter:
         finally:
             if self.should_close:
                 f.close()
-
-            if (
+            elif (
                 isinstance(f, TextIOWrapper)
                 and not f.closed
                 and f != self.path_or_buf

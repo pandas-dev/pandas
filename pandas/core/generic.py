@@ -3086,6 +3086,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                supported for compression modes 'gzip' and 'bz2'
                as well as 'zip'.
 
+            .. versionchanged:: 1.2.0
+
+                Compression is supported for non-binary file objects.
+
         quoting : optional constant from csv module
             Defaults to csv.QUOTE_MINIMAL. If you have set a `float_format`
             then floats are converted to strings and thus csv.QUOTE_NONNUMERIC

@@ -1067,6 +1067,8 @@ DD/MM/YYYY instead. For convenience, a ``dayfirst`` keyword is provided:
 Writing CSVs to binary file objects
 +++++++++++++++++++++++++++++++++++
 
+.. versionadded:: 1.2.0
+
 ``df.to_csv(..., mode="w+b")`` allows writing a CSV to a file object
 opened binary mode. For this to work, it is necessary that ``mode``
 contains a "b":

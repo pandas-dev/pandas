@@ -450,14 +450,14 @@ def get_handle(
             if is_path:
                 f = gzip.open(path_or_buf, mode, **compression_args)
             else:
-                f = gzip.GzipFile(fileobj=path_or_buf, **compression_args)
+                f = gzip.GzipFile(fileobj=path_or_buf, mode=mode, **compression_args)
 
         # BZ Compression
         elif compression == "bz2":
             if is_path:
                 f = bz2.BZ2File(path_or_buf, mode, **compression_args)
             else:
-                f = bz2.BZ2File(path_or_buf, **compression_args)
+                f = bz2.BZ2File(path_or_buf, mode=mode, **compression_args)
 
         # ZIP Compression
         elif compression == "zip":
