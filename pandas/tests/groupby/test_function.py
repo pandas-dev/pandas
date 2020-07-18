@@ -286,62 +286,19 @@ def test_non_cython_api():
 
     # describe
     expected_index = pd.Index([1, 3], name="A")
-    expected_col = pd.MultiIndex.from_product(
-        [["A", "B"], ["count", "mean", "std", "min", "25%", "50%", "75%", "max"]]
+    expected_col = pd.MultiIndex(
+        levels=[["B"], ["count", "mean", "std", "min", "25%", "50%", "75%", "max"]],
+        codes=[[0] * 8, list(range(8))],
     )
     expected = pd.DataFrame(
         [
-            [
-                2.0,
-                1.0,
-                0.0,
-                1.0,
-                1.0,
-                1.0,
-                1.0,
-                1.0,
-                1.0,
-                2.0,
-                np.nan,
-                2.0,
-                2.0,
-                2.0,
-                2.0,
-                2.0,
-            ],
-            [
-                1.0,
-                3.0,
-                np.nan,
-                3.0,
-                3.0,
-                3.0,
-                3.0,
-                3.0,
-                0.0,
-                np.nan,
-                np.nan,
-                np.nan,
-                np.nan,
-                np.nan,
-                np.nan,
-                np.nan,
-            ],
+            [1.0, 2.0, np.nan, 2.0, 2.0, 2.0, 2.0, 2.0],
+            [0.0, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
         ],
         index=expected_index,
         columns=expected_col,
     )
     result = g.describe()
-    tm.assert_frame_equal(result, expected)
-
-    expected = pd.concat(
-        [
-            df[df.A == 1].describe().unstack().to_frame().T,
-            df[df.A == 3].describe().unstack().to_frame().T,
-        ]
-    )
-    expected.index = pd.Index([0, 1])
-    result = gni.describe()
     tm.assert_frame_equal(result, expected)
 
     # any
@@ -1003,112 +960,5 @@ def test_frame_describe_unstacked_format():
         data,
         index=pd.Index([24990, 25499], name="PRICE"),
         columns=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
-    )
-    tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize("by_col_dtype", [int, float, str])
-@pytest.mark.parametrize("as_index", [True, False])
-def test_describe_results_includes_non_nuisance_columns(by_col_dtype, as_index):
-    # GH 34656
-    # GH 34271
-    df = DataFrame({"a": [1, 1, 1, 2, 2, 2, 3, 3, 3], "b": [1, 2, 3, 4, 5, 6, 7, 8, 9]})
-    df = df.astype({"a": by_col_dtype})
-
-    expected = (
-        DataFrame.from_records(
-            [
-                ("a", "count", 3.0, 3.0, 3.0),
-                ("a", "mean", 1.0, 2.0, 3.0),
-                ("a", "std", 0.0, 0.0, 0.0),
-                ("a", "min", 1.0, 2.0, 3.0),
-                ("a", "25%", 1.0, 2.0, 3.0),
-                ("a", "50%", 1.0, 2.0, 3.0),
-                ("a", "75%", 1.0, 2.0, 3.0),
-                ("a", "max", 1.0, 2.0, 3.0),
-                ("b", "count", 3.0, 3.0, 3.0),
-                ("b", "mean", 2.0, 5.0, 8.0),
-                ("b", "std", 1.0, 1.0, 1.0),
-                ("b", "min", 1.0, 4.0, 7.0),
-                ("b", "25%", 1.5, 4.5, 7.5),
-                ("b", "50%", 2.0, 5.0, 8.0),
-                ("b", "75%", 2.5, 5.5, 8.5),
-                ("b", "max", 3.0, 6.0, 9.0),
-            ],
-            columns=["col", "func", 1, 2, 3],
-        )
-        .set_index(["col", "func"])
-        .T
-    )
-    expected.columns.names = [None, None]
-    expected.index = pd.Index(expected.index.astype(by_col_dtype), name="a")
-
-    if not as_index:
-        expected = expected.reset_index(drop=True)
-
-    if by_col_dtype is str:
-        # If the grouping column is a nuisance column (i.e. can't apply the
-        # std() or quantile() to it) then it does not appear in the output
-        expected = expected.drop(columns="a")
-
-    result = df.groupby("a", as_index=as_index).describe()
-    tm.assert_frame_equal(result, expected)
-
-
-def test_groupby_mean_no_overflow():
-    # Regression test for (#22487)
-    df = pd.DataFrame(
-        {
-            "user": ["A", "A", "A", "A", "A"],
-            "connections": [4970, 4749, 4719, 4704, 18446744073699999744],
-        }
-    )
-    assert df.groupby("user")["connections"].mean()["A"] == 3689348814740003840
-
-
-@pytest.mark.parametrize(
-    "values",
-    [
-        {
-            "a": [1, 1, 1, 2, 2, 2, 3, 3, 3],
-            "b": [1, pd.NA, 2, 1, pd.NA, 2, 1, pd.NA, 2],
-        },
-        {"a": [1, 1, 2, 2, 3, 3], "b": [1, 2, 1, 2, 1, 2]},
-    ],
-)
-@pytest.mark.parametrize("function", ["mean", "median", "var"])
-def test_apply_to_nullable_integer_returns_float(values, function):
-    # https://github.com/pandas-dev/pandas/issues/32219
-    output = 0.5 if function == "var" else 1.5
-    arr = np.array([output] * 3, dtype=float)
-    idx = pd.Index([1, 2, 3], dtype=object, name="a")
-    expected = pd.DataFrame({"b": arr}, index=idx)
-
-    groups = pd.DataFrame(values, dtype="Int64").groupby("a")
-
-    result = getattr(groups, function)()
-    tm.assert_frame_equal(result, expected)
-
-    result = groups.agg(function)
-    tm.assert_frame_equal(result, expected)
-
-    result = groups.agg([function])
-    expected.columns = MultiIndex.from_tuples([("b", function)])
-    tm.assert_frame_equal(result, expected)
-
-
-def test_groupby_sum_below_mincount_nullable_integer():
-    # https://github.com/pandas-dev/pandas/issues/32861
-    df = pd.DataFrame({"a": [0, 1, 2], "b": [0, 1, 2], "c": [0, 1, 2]}, dtype="Int64")
-    grouped = df.groupby("a")
-    idx = pd.Index([0, 1, 2], dtype=object, name="a")
-
-    result = grouped["b"].sum(min_count=2)
-    expected = pd.Series([pd.NA] * 3, dtype="Int64", index=idx, name="b")
-    tm.assert_series_equal(result, expected)
-
-    result = grouped.sum(min_count=2)
-    expected = pd.DataFrame(
-        {"b": [pd.NA] * 3, "c": [pd.NA] * 3}, dtype="Int64", index=idx
     )
     tm.assert_frame_equal(result, expected)

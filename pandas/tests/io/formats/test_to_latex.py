@@ -224,7 +224,7 @@ a & b &    \\
 
         assert result == expected
 
-        result = df.groupby("a").describe().drop(columns="a").to_latex()
+        result = df.groupby("a").describe().to_latex()
         expected = r"""\begin{tabular}{lrrrrrrrr}
 \toprule
 {} & \multicolumn{8}{l}{c} \\
