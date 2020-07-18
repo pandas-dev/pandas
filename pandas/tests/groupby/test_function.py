@@ -319,6 +319,16 @@ def test_non_cython_api():
     result = g.describe()
     tm.assert_frame_equal(result, expected)
 
+    expected = pd.concat(
+        [
+            df[df.A == 1].describe().unstack().to_frame().T,
+            df[df.A == 3].describe().unstack().to_frame().T,
+        ]
+    )
+    expected.index = pd.Index([0, 1])
+    result = gni.describe()
+    tm.assert_frame_equal(result, expected)
+
     # any
     expected = DataFrame(
         [[True, True], [False, True]], columns=["B", "C"], index=[1, 3]
@@ -978,5 +988,64 @@ def test_frame_describe_unstacked_format():
         data,
         index=pd.Index([24990, 25499], name="PRICE"),
         columns=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_mean_no_overflow():
+    # Regression test for (#22487)
+    df = pd.DataFrame(
+        {
+            "user": ["A", "A", "A", "A", "A"],
+            "connections": [4970, 4749, 4719, 4704, 18446744073699999744],
+        }
+    )
+    assert df.groupby("user")["connections"].mean()["A"] == 3689348814740003840
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        {
+            "a": [1, 1, 1, 2, 2, 2, 3, 3, 3],
+            "b": [1, pd.NA, 2, 1, pd.NA, 2, 1, pd.NA, 2],
+        },
+        {"a": [1, 1, 2, 2, 3, 3], "b": [1, 2, 1, 2, 1, 2]},
+    ],
+)
+@pytest.mark.parametrize("function", ["mean", "median", "var"])
+def test_apply_to_nullable_integer_returns_float(values, function):
+    # https://github.com/pandas-dev/pandas/issues/32219
+    output = 0.5 if function == "var" else 1.5
+    arr = np.array([output] * 3, dtype=float)
+    idx = pd.Index([1, 2, 3], dtype=object, name="a")
+    expected = pd.DataFrame({"b": arr}, index=idx)
+
+    groups = pd.DataFrame(values, dtype="Int64").groupby("a")
+
+    result = getattr(groups, function)()
+    tm.assert_frame_equal(result, expected)
+
+    result = groups.agg(function)
+    tm.assert_frame_equal(result, expected)
+
+    result = groups.agg([function])
+    expected.columns = MultiIndex.from_tuples([("b", function)])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_sum_below_mincount_nullable_integer():
+    # https://github.com/pandas-dev/pandas/issues/32861
+    df = pd.DataFrame({"a": [0, 1, 2], "b": [0, 1, 2], "c": [0, 1, 2]}, dtype="Int64")
+    grouped = df.groupby("a")
+    idx = pd.Index([0, 1, 2], dtype=object, name="a")
+
+    result = grouped["b"].sum(min_count=2)
+    expected = pd.Series([pd.NA] * 3, dtype="Int64", index=idx, name="b")
+    tm.assert_series_equal(result, expected)
+
+    result = grouped.sum(min_count=2)
+    expected = pd.DataFrame(
+        {"b": [pd.NA] * 3, "c": [pd.NA] * 3}, dtype="Int64", index=idx
     )
     tm.assert_frame_equal(result, expected)
