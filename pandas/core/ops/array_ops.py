@@ -11,7 +11,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import Timedelta, Timestamp
-from pandas._libs.lib import is_integer, is_scalar, item_from_zerodim
+from pandas._libs.lib import is_integer, is_scalar as lib_is_scalar, item_from_zerodim
 from pandas._libs.ops import scalar_binop, scalar_compare, vec_binop, vec_compare
 from pandas._typing import ArrayLike
 
@@ -270,7 +270,7 @@ def na_logical_op(x: np.ndarray, y, op):
             result = vec_binop(x.ravel(), y.ravel(), op)
         else:
             # let null fall thru
-            assert is_scalar(y)
+            assert lib_is_scalar(y)
             if not isna(y):
                 y = bool(y)
             try:
