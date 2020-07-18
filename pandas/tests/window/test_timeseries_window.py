@@ -11,6 +11,7 @@ from pandas import (
     date_range,
     to_datetime,
 )
+import pandas._testing as tm
 
 from pandas.tseries import offsets as offsets
 

@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import is_platform_32bit, is_platform_windows
+from pandas.util._test_decorators import skip_if_not_us_locale
 
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex, Series, Timestamp, compat, read_json
@@ -1208,7 +1209,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_if_not_us_locale
+    @skip_if_not_us_locale
     def test_read_s3_jsonl(self, s3_resource):
         # GH17200
 

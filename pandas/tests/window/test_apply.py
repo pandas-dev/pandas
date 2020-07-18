@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas.errors import NumbaUtilError
+from pandas.util._test_decorators import skip_if_no
 
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, compat, date_range
 import pandas._testing as tm
@@ -132,7 +133,7 @@ def test_invalid_raw_numba():
         Series(range(1)).rolling(1).apply(lambda x: x, raw=False, engine="numba")
 
 
-@td.skip_if_no("numba")
+@skip_if_no("numba")
 def test_invalid_kwargs_nopython():
     with pytest.raises(NumbaUtilError, match="numba does not support kwargs with"):
         Series(range(1)).rolling(1).apply(

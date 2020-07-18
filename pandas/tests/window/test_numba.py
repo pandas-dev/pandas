@@ -1,15 +1,14 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
+from pandas.util._test_decorators import skip_if_no
 
 from pandas import Series, option_context
 import pandas._testing as tm
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
-from pandas.util import _test_decorators as td
 
 
-@td.skip_if_no("numba", "0.46.0")
+@skip_if_no("numba", "0.46.0")
 @pytest.mark.filterwarnings("ignore:\\nThe keyword argument")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 class TestApply:
@@ -78,7 +77,7 @@ class TestApply:
         tm.assert_series_equal(result, expected)
 
 
-@td.skip_if_no("numba", "0.46.0")
+@skip_if_no("numba", "0.46.0")
 def test_use_global_config():
     def f(x):
         return np.mean(x) + 2
