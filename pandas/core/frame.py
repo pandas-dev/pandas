@@ -4263,7 +4263,12 @@ class DataFrame(NDFrame):
             downcast=downcast,
         )
 
-    @doc(NDFrame.replace, **_shared_doc_kwargs)
+    @doc(
+        NDFrame.replace,
+        inplace=com._core_shared_docs_kwargs["inplace"],
+        replace_iloc=com._core_shared_docs_kwargs["replace_iloc"],
+        **_shared_doc_kwargs,
+    )
     def replace(
         self,
         to_replace=None,

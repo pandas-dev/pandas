@@ -4492,7 +4492,12 @@ Keep all original rows and also all original values
             downcast=downcast,
         )
 
-    @doc(NDFrame.replace, klass=_shared_doc_kwargs["klass"])
+    @doc(
+        NDFrame.replace,
+        klass=_shared_doc_kwargs["klass"],
+        inplace=_shared_doc_kwargs["inplace"],
+        replace_iloc=com._core_shared_docs_kwargs["replace_iloc"],
+    )
     def replace(
         self,
         to_replace=None,

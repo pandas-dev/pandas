@@ -1351,6 +1351,12 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self.set_names([name], inplace=inplace)
 
+    @doc(
+        com._core_shared_docs["to_replace"],
+        klass=_index_doc_kwargs["klass"],
+        inplace=_index_doc_kwargs["inplace"],
+        replace_iloc="",
+    )
     def replace(
         self, to_replace=None, value=None, limit=None, regex=False, method="pad",
     ):
