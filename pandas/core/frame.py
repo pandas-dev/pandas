@@ -8805,7 +8805,9 @@ NaN 12.3   33.0
         if keep == "all":
             if axis == 0:
                 result = [
-                    self.loc[self.iloc[:, i].isin([self.iloc[indices[i], i]])].index.values
+                    self.loc[
+                        self.iloc[:, i].isin([self.iloc[indices[i], i]])
+                    ].index.values
                     for i in range(0, self.shape[1])
                 ]
             else:
@@ -8931,7 +8933,9 @@ NaN 12.3   33.0
         if keep == "all":
             if axis == 0:
                 result = [
-                    self.loc[self.iloc[:, i].isin([self.iloc[indices[i], i]])].index.values
+                    self.loc[
+                        self.iloc[:, i].isin([self.iloc[indices[i], i]])
+                    ].index.values
                     for i in range(0, self.shape[1])
                 ]
             else:
