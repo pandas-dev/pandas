@@ -4249,6 +4249,10 @@ class Index(IndexOpsMixin, PandasObject):
         if not isinstance(other, Index):
             return False
 
+        # If other is a subclass of self and defines it's own equals method, we
+        # dispatch to the subclass method. For instance for a MultiIndex,
+        # a d-level MultiIndex can equal d-tuple Index.
+        # Note: All EA-backed Index subclasses override equals
         if (
             isinstance(other, type(self))
             and type(other) is not type(self)
