@@ -1777,16 +1777,48 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def __array__(self, dtype=None) -> np.ndarray:
         return np.asarray(self._values, dtype=dtype)
 
-    def __array_wrap__(self, result, context=None):
+    def __array_wrap__(
+        self,
+        result: np.ndarray,
+        context: Optional[Tuple[Callable, Tuple[Any, ...], int]] = None,
+    ):
+        """
+        Gets called after a ufunc and other functions.
+
+        Parameters
+        ----------
+        result: np.ndarray
+            The result of the ufunc or other function called on the NumPy array
+            returned by __array__
+        context: tuple of (func, tuple, int)
+            This parameter is returned by ufuncs as a 3-element tuple: (name of the
+            ufunc, arguments of the ufunc, domain of the ufunc), but is not set by
+            other numpy functions.q
+
+        Notes
+        -----
+        Series implements __array_ufunc_ so this not called for ufunc on Series.
+        """
         result = lib.item_from_zerodim(result)
         if is_scalar(result):
             # e.g. we get here with np.ptp(series)
             # ptp also requires the item_from_zerodim
             return result
-        d = self._construct_axes_dict(self._AXIS_ORDERS, copy=False)
-        return self._constructor(result, **d).__finalize__(
-            self, method="__array_wrap__"
-        )
+
+        # if shape of result is the same as self we use the original axes
+        if result.shape == self.shape:
+            d = self._construct_axes_dict(self._AXIS_ORDERS, copy=False)
+        else:
+            d = dict()
+
+        # if ndim of result is the same as self we return the same object
+        # otherwise we just return the NumPy array
+        if result.ndim == self.ndim:
+            return self._constructor(result, **d).__finalize__(
+                self, method="__array_wrap__"
+            )
+        else:
+            return result
 
     # ideally we would define this to avoid the getattr checks, but
     # is slower
