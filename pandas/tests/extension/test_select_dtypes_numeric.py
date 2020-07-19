@@ -11,7 +11,7 @@ class DummyDtype(ExtensionDtype):
 
     @property
     def name(self):
-        return 'Dummy'
+        return "Dummy"
 
     @property
     def _is_numeric(self):
