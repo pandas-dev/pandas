@@ -3547,6 +3547,7 @@ class DataFrame(NDFrame):
         4   True  1.0
         5  False  2.0
         """
+
         if not is_list_like(include):
             include = (include,) if include is not None else ()
         if not is_list_like(exclude):
@@ -3578,7 +3579,14 @@ class DataFrame(NDFrame):
                 unique_dtype
                 for unique_dtype in unique_dtypes
                 if issubclass(unique_dtype.type, tuple(dtypes_set))  # type: ignore
+                or (
+                    np.number in dtypes_set
+                    and is_extension_array_dtype(unique_dtype)
+                    and unique_dtype._is_numeric
+                )
             ]
+            if np.number in dtypes_set:
+                extracted_dtypes.extend([])
             return extracted_dtypes
 
         unique_dtypes = self.dtypes.unique()
