@@ -56,12 +56,7 @@ from pandas.core.dtypes.generic import (
     ABCPandasArray,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import (
-    _isna_compat,
-    array_equivalent,
-    is_valid_nat_for_dtype,
-    isna,
-)
+from pandas.core.dtypes.missing import _isna_compat, is_valid_nat_for_dtype, isna
 
 import pandas.core.algorithms as algos
 from pandas.core.array_algos.transforms import shift
@@ -1383,11 +1378,6 @@ class Block(PandasObject):
 
         return result_blocks
 
-    def equals(self, other) -> bool:
-        if self.dtype != other.dtype or self.shape != other.shape:
-            return False
-        return array_equivalent(self.values, other.values)
-
     def _unstack(self, unstacker, fill_value, new_placement):
         """
         Return a list of unstacked blocks of self
@@ -1646,10 +1636,7 @@ class ExtensionBlock(Block):
     @property
     def fill_value(self):
         # Used in reindex_indexer
-        if is_sparse(self.values):
-            return self.values.dtype.fill_value
-        else:
-            return self.values.dtype.na_value
+        return self.values.dtype.na_value
 
     @property
     def _can_hold_na(self):
@@ -1881,9 +1868,6 @@ class ExtensionBlock(Block):
 
         return [self.make_block_same_class(result, placement=self.mgr_locs)]
 
-    def equals(self, other) -> bool:
-        return self.values.equals(other.values)
-
     def _unstack(self, unstacker, fill_value, new_placement):
         # ExtensionArray-safe unstack.
         # We override ObjectBlock._unstack, which unstacks directly on the
@@ -1928,12 +1912,6 @@ class NumericBlock(Block):
 
 class FloatOrComplexBlock(NumericBlock):
     __slots__ = ()
-
-    def equals(self, other) -> bool:
-        if self.dtype != other.dtype or self.shape != other.shape:
-            return False
-        left, right = self.values, other.values
-        return ((left == right) | (np.isnan(left) & np.isnan(right))).all()
 
 
 class FloatBlock(FloatOrComplexBlock):
@@ -2298,12 +2276,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         )
         return newb.setitem(indexer, value)
 
-    def equals(self, other) -> bool:
-        # override for significant performance improvement
-        if self.dtype != other.dtype or self.shape != other.shape:
-            return False
-        return (self.values.view("i8") == other.values.view("i8")).all()
-
     def quantile(self, qs, interpolation="linear", axis=0):
         naive = self.values.view("M8[ns]")
 
@@ -2327,7 +2299,8 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
 
     def __init__(self, values, placement, ndim=None):
         if values.dtype != TD64NS_DTYPE:
-            values = conversion.ensure_timedelta64ns(values)
+            # e.g. non-nano or int64
+            values = TimedeltaArray._from_sequence(values)._data
         if isinstance(values, TimedeltaArray):
             values = values._data
         assert isinstance(values, np.ndarray), type(values)

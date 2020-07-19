@@ -473,7 +473,8 @@ class TestDataFrameReshape:
         )
 
         df_named = df.copy()
-        df_named.columns.set_names(range(3), inplace=True)
+        return_value = df_named.columns.set_names(range(3), inplace=True)
+        assert return_value is None
 
         tm.assert_frame_equal(
             df_named.stack(level=[1, 2]), df_named.stack(level=1).stack(level=1)

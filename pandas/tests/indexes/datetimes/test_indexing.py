@@ -95,7 +95,7 @@ class TestGetItem:
 
     def test_dti_business_getitem_matplotlib_hackaround(self):
         rng = pd.bdate_range(START, END)
-        with tm.assert_produces_warning(DeprecationWarning):
+        with tm.assert_produces_warning(FutureWarning):
             # GH#30588 multi-dimensional indexing deprecated
             values = rng[:, None]
         expected = rng.values[:, None]
@@ -122,7 +122,7 @@ class TestGetItem:
 
     def test_dti_custom_getitem_matplotlib_hackaround(self):
         rng = pd.bdate_range(START, END, freq="C")
-        with tm.assert_produces_warning(DeprecationWarning):
+        with tm.assert_produces_warning(FutureWarning):
             # GH#30588 multi-dimensional indexing deprecated
             values = rng[:, None]
         expected = rng.values[:, None]
@@ -470,6 +470,16 @@ class TestGetLoc:
         msg = "cannot yet lookup inexact labels when key is a time object"
         with pytest.raises(NotImplementedError, match=msg):
             idx.get_loc(time(12, 30), method="pad")
+
+    def test_get_loc_time_nat(self):
+        # GH#35114
+        # Case where key's total microseconds happens to match iNaT % 1e6 // 1000
+        tic = time(minute=12, second=43, microsecond=145224)
+        dti = pd.DatetimeIndex([pd.NaT])
+
+        loc = dti.get_loc(tic)
+        expected = np.array([], dtype=np.intp)
+        tm.assert_numpy_array_equal(loc, expected)
 
     def test_get_loc_tz_aware(self):
         # https://github.com/pandas-dev/pandas/issues/32140

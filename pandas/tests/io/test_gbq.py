@@ -148,7 +148,6 @@ def test_read_gbq_progress_bar_type_kwarg(monkeypatch, progress_bar):
 
 
 @pytest.mark.single
-@pytest.mark.xfail(reason="skipping gbq integration for now, xref #34779")
 class TestToGBQIntegrationWithServiceAccountKeyPath:
     @pytest.fixture()
     def gbq_dataset(self):
