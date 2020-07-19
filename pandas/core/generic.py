@@ -6129,7 +6129,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         replace_iloc=com._core_shared_docs_kwargs["replace_iloc"],
     )
     def replace(
-        self, to_replace, value, inplace, limit, regex, method,
+        self,
+        to_replace=None,
+        value=None,
+        inplace=False,
+        limit=None,
+        regex=False,
+        method="pad",
     ):
 
         if not (
