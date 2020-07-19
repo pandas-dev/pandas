@@ -3613,7 +3613,7 @@ class MultiIndex(Index):
         replace_iloc="",
     )
     def replace(
-        self, to_replace, value, limit, regex, method,
+        self, to_replace=None, value=None, limit=None, regex=False, method="pad",
     ):
         names = self.names
 
