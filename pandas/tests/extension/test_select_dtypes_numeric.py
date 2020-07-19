@@ -1,13 +1,14 @@
+import pytest
+import numpy as np
+
+import pandas as pd
 from pandas.core.arrays import ExtensionArray
 from pandas.core.dtypes.dtypes import ExtensionDtype
-
-import pytest
-import pandas as pd
-import numpy as np
 
 
 class DummyDtype(ExtensionDtype):
     type = int
+    _numeric = False
 
     @property
     def name(self):
@@ -15,7 +16,6 @@ class DummyDtype(ExtensionDtype):
 
     @property
     def _is_numeric(self):
-        # type: () -> bool
         return self._numeric
 
 
@@ -44,4 +44,7 @@ def test_select_dtypes_numeric(numeric):
     da = DummyArray([1, 2])
     da._dtype._numeric = numeric
     df = pd.DataFrame(da)
-    assert df.select_dtypes(np.number).shape == df.shape
+    if numeric:
+        assert df.select_dtypes(np.number).shape == df.shape
+    else:
+        assert df.select_dtypes(np.number).shape != df.shape
