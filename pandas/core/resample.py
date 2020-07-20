@@ -795,7 +795,7 @@ class Resampler(_GroupBy, ShallowMixin):
         """
         Interpolate values according to different methods.
         """
-        result = self._upsample(None)
+        result = self._upsample("asfreq")
         return result.interpolate(
             method=method,
             axis=axis,
