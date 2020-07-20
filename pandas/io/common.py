@@ -202,9 +202,37 @@ def get_filepath_or_buffer(
             filepath_or_buffer = filepath_or_buffer.replace("s3n://", "s3://")
         fsspec = import_optional_dependency("fsspec")
 
-        file_obj = fsspec.open(
-            filepath_or_buffer, mode=mode or "rb", **(storage_options or {})
-        ).open()
+        # If botocore is installed we fallback to reading with anon=True
+        # to allow reads from public buckets
+        err_types_to_retry_with_anon: List[Any] = []
+        try:
+            import_optional_dependency("botocore")
+            from botocore.exceptions import ClientError, NoCredentialsError
+
+            err_types_to_retry_with_anon = [
+                ClientError,
+                NoCredentialsError,
+                PermissionError,
+            ]
+        except ImportError:
+            pass
+
+        try:
+            file_obj = fsspec.open(
+                filepath_or_buffer, mode=mode or "rb", **(storage_options or {})
+            ).open()
+        # GH 34626 Reads from Public Buckets without Credentials needs anon=True
+        except tuple(err_types_to_retry_with_anon):
+            if storage_options is None:
+                storage_options = {"anon": True}
+            else:
+                # don't mutate user input.
+                storage_options = dict(storage_options)
+                storage_options["anon"] = True
+            file_obj = fsspec.open(
+                filepath_or_buffer, mode=mode or "rb", **(storage_options or {})
+            ).open()
+
         return file_obj, encoding, compression, True
 
     if isinstance(filepath_or_buffer, (str, bytes, mmap.mmap)):
@@ -311,7 +339,7 @@ def infer_compression(
 
         # Infer compression from the filename/URL extension
         for compression, extension in _compression_to_extension.items():
-            if filepath_or_buffer.endswith(extension):
+            if filepath_or_buffer.lower().endswith(extension):
                 return compression
         return None
 

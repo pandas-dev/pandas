@@ -7,6 +7,7 @@ from pandas import (
     MultiIndex,
     Series,
     Timestamp,
+    compat,
     date_range,
     to_datetime,
 )
@@ -656,6 +657,7 @@ class TestRollingTS:
 
             tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(not compat.IS64, reason="GH-35294")
     def test_groupby_monotonic(self):
 
         # GH 15130
@@ -685,6 +687,7 @@ class TestRollingTS:
         result = df.groupby("name").rolling("180D", on="date")["amount"].sum()
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(not compat.IS64, reason="GH-35294")
     def test_non_monotonic(self):
         # GH 13966 (similar to #15130, closed by #15175)
 
