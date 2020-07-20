@@ -9,13 +9,10 @@ if TYPE_CHECKING:
     from pandas.core.internals.blocks import Block  # noqa:F401
 
 
-def operate_blockwise(
-    left: "BlockManager", right: "BlockManager", array_op
-) -> "BlockManager":
+def _iter_block_pairs(left: "BlockManager", right: "BlockManager"):
     # At this point we have already checked the parent DataFrames for
     #  assert rframe._indexed_same(lframe)
 
-    res_blks: List["Block"] = []
     for n, blk in enumerate(left.blocks):
         locs = blk.mgr_locs
         blk_vals = blk.values
@@ -34,21 +31,31 @@ def operate_blockwise(
             right_ea = not isinstance(rblk.values, np.ndarray)
 
             lvals, rvals = _get_same_shape_values(blk, rblk, left_ea, right_ea)
+            yield lvals, rvals, locs, left_ea, right_ea, rblk
 
-            res_values = array_op(lvals, rvals)
-            if left_ea and not right_ea and hasattr(res_values, "reshape"):
-                res_values = res_values.reshape(1, -1)
-            nbs = rblk._split_op_result(res_values)
 
-            # Assertions are disabled for performance, but should hold:
-            # if right_ea or left_ea:
-            #    assert len(nbs) == 1
-            # else:
-            #    assert res_values.shape == lvals.shape, (res_values.shape, lvals.shape)
+def operate_blockwise(
+    left: "BlockManager", right: "BlockManager", array_op
+) -> "BlockManager":
+    # At this point we have already checked the parent DataFrames for
+    #  assert rframe._indexed_same(lframe)
 
-            _reset_block_mgr_locs(nbs, locs)
+    res_blks: List["Block"] = []
+    for lvals, rvals, locs, left_ea, right_ea, rblk in _iter_block_pairs(left, right):
+        res_values = array_op(lvals, rvals)
+        if left_ea and not right_ea and hasattr(res_values, "reshape"):
+            res_values = res_values.reshape(1, -1)
+        nbs = rblk._split_op_result(res_values)
 
-            res_blks.extend(nbs)
+        # Assertions are disabled for performance, but should hold:
+        # if right_ea or left_ea:
+        #    assert len(nbs) == 1
+        # else:
+        #    assert res_values.shape == lvals.shape, (res_values.shape, lvals.shape)
+
+        _reset_block_mgr_locs(nbs, locs)
+
+        res_blks.extend(nbs)
 
     # Assertions are disabled for performance, but should hold:
     #  slocs = {y for nb in res_blks for y in nb.mgr_locs.as_array}
@@ -85,7 +92,7 @@ def _get_same_shape_values(
     # Require that the indexing into lvals be slice-like
     assert rblk.mgr_locs.is_slice_like, rblk.mgr_locs
 
-    # TODO(EA2D): with 2D EAs pnly this first clause would be needed
+    # TODO(EA2D): with 2D EAs only this first clause would be needed
     if not (left_ea or right_ea):
         lvals = lvals[rblk.mgr_locs.indexer, :]
         assert lvals.shape == rvals.shape, (lvals.shape, rvals.shape)
@@ -102,3 +109,11 @@ def _get_same_shape_values(
         rvals = rvals[0, :]
 
     return lvals, rvals
+
+
+def blockwise_all(left: "BlockManager", right: "BlockManager", op) -> bool:
+    for lvals, rvals, _, _, _, _ in _iter_block_pairs(left, right):
+        res = op(lvals, rvals)
+        if not res:
+            return False
+    return True

@@ -49,7 +49,7 @@ from pandas.core.internals.blocks import (
     get_block_type,
     make_block,
 )
-from pandas.core.internals.ops import operate_blockwise
+from pandas.core.internals.ops import blockwise_all, operate_blockwise
 
 # TODO: flexible with index=None and/or items=None
 
@@ -1422,32 +1422,25 @@ class BlockManager(PandasObject):
         if not all(ax1.equals(ax2) for ax1, ax2 in zip(self_axes, other_axes)):
             return False
 
+        def blk_func(left, right):
+            if not is_dtype_equal(left.dtype, right.dtype):
+                return False
+            elif isinstance(left, ExtensionArray):
+                return left.equals(right)
+            elif isinstance(right, ExtensionArray):
+                return False
+            else:
+                return array_equivalent(left, right, dtype_equal=True)
+
         if self.ndim == 1:
             # For SingleBlockManager (i.e.Series)
             if other.ndim != 1:
                 return False
             left = self.blocks[0].values
             right = other.blocks[0].values
-            if not is_dtype_equal(left.dtype, right.dtype):
-                return False
-            elif isinstance(left, ExtensionArray):
-                return left.equals(right)
-            else:
-                return array_equivalent(left, right)
+            return blk_func(left, right)
 
-        for i in range(len(self.items)):
-            # Check column-wise, return False if any column doesn't match
-            left = self.iget_values(i)
-            right = other.iget_values(i)
-            if not is_dtype_equal(left.dtype, right.dtype):
-                return False
-            elif isinstance(left, ExtensionArray):
-                if not left.equals(right):
-                    return False
-            else:
-                if not array_equivalent(left, right, dtype_equal=True):
-                    return False
-        return True
+        return blockwise_all(self, other, blk_func)
 
     def unstack(self, unstacker, fill_value) -> "BlockManager":
         """
