@@ -487,6 +487,36 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             return VariableWindowIndexer(index_array=self._on.asi8, window_size=window)
         return FixedWindowIndexer(window_size=window)
 
+    def _apply_blockwise(self, homogeneous_func: Callable):
+        """
+        Apply the given function to the DataFrame broken down into homogeneous
+        sub-frames.
+        """
+        # This isn't quite blockwise, since `blocks` is actually a collection
+        #  of homogenenous DataFrames.
+        blocks, obj = self._create_blocks(self._selected_obj)
+
+        skipped = []
+        results = []
+        exclude: List[Scalar] = []
+        for i, b in enumerate(blocks):
+            try:
+                values = self._prep_values(b.values)
+
+            except (TypeError, NotImplementedError) as err:
+                if isinstance(obj, ABCDataFrame):
+                    skipped.append(i)
+                    exclude.extend(b.columns)
+                    continue
+                else:
+                    raise DataError("No numeric types to aggregate") from err
+
+            result = homogeneous_func(values)
+            results.append(result)
+
+        block_list = [blk for i, blk in enumerate(blocks) if i not in skipped]
+        return self._wrap_results(results, block_list, obj, exclude)
+
     def _apply(
         self,
         func: Callable,
@@ -524,30 +554,14 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         """
         win_type = self._get_win_type(kwargs)
         window = self._get_window(win_type=win_type)
-
-        blocks, obj = self._create_blocks(self._selected_obj)
-        block_list = list(blocks)
         window_indexer = self._get_window_indexer(window)
 
-        results = []
-        exclude: List[Scalar] = []
-        for i, b in enumerate(blocks):
-            try:
-                values = self._prep_values(b.values)
-
-            except (TypeError, NotImplementedError) as err:
-                if isinstance(obj, ABCDataFrame):
-                    exclude.extend(b.columns)
-                    del block_list[i]
-                    continue
-                else:
-                    raise DataError("No numeric types to aggregate") from err
+        def homogeneous_func(values: np.ndarray):
+            # calculation function
 
             if values.size == 0:
-                results.append(values.copy())
-                continue
+                return values.copy()
 
-            # calculation function
             offset = calculate_center_offset(window) if center else 0
             additional_nans = np.array([np.nan] * offset)
 
@@ -594,9 +608,9 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             if center:
                 result = self._center_window(result, window)
 
-            results.append(result)
+            return result
 
-        return self._wrap_results(results, block_list, obj, exclude)
+        return self._apply_blockwise(homogeneous_func)
 
     def aggregate(self, func, *args, **kwargs):
         result, how = self._aggregate(func, *args, **kwargs)
