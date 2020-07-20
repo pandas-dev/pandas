@@ -47,7 +47,7 @@ bottleneck>=1.2.1
 ipykernel
 ipython>=7.11.1
 jinja2
-matplotlib>=2.2.2
+matplotlib>=2.2.2,<3.3.0
 numexpr>=2.6.8
 scipy>=1.2
 numba>=0.46.0
