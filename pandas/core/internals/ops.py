@@ -112,6 +112,9 @@ def _get_same_shape_values(
 
 
 def blockwise_all(left: "BlockManager", right: "BlockManager", op) -> bool:
+    """
+    Blockwise `all` reduction.
+    """
     for lvals, rvals, _, _, _, _ in _iter_block_pairs(left, right):
         res = op(lvals, rvals)
         if not res:
