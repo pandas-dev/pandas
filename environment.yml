@@ -21,7 +21,6 @@ dependencies:
   - flake8<3.8.0  # temporary pin, GH#34150
   - flake8-comprehensions>=3.1.0  # used by flake8, linting of unnecessary comprehensions
   - flake8-rst>=0.6.0,<=0.7.0  # linting of code blocks in rst files
-  - pyflakes>=2.2.0  # minimum version to support mypy error codes
   - isort=4.3.21  # check that imports are in the right order
   - mypy=0.730
   - pycodestyle  # used by flake8
@@ -110,3 +109,4 @@ dependencies:
   - pip:
     - git+https://github.com/pandas-dev/pydata-sphinx-theme.git@master
     - git+https://github.com/numpy/numpydoc
+    - pyflakes>=2.2.0
