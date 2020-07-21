@@ -10,6 +10,7 @@ from pandas.core.dtypes.missing import remove_na_arraylike
 import pandas as pd
 
 from pandas.io.formats.printing import pprint_thing
+from pandas.plotting._matplotlib.compat import _mpl_ge_3_3_0
 from pandas.plotting._matplotlib.core import LinePlot, MPLPlot
 from pandas.plotting._matplotlib.style import _get_standard_colors
 from pandas.plotting._matplotlib.tools import _flatten, _subplots
@@ -299,6 +300,11 @@ def boxplot(
         if fontsize is not None:
             ax.tick_params(axis="both", labelsize=fontsize)
         if kwds.get("vert", 1):
+            ticks = ax.get_xticks()
+            if len(ticks) != len(keys):
+                i, remainder = divmod(len(ticks), len(keys))
+                assert remainder == 0, remainder
+                keys *= i
             ax.set_xticklabels(keys, rotation=rot)
         else:
             ax.set_yticklabels(keys, rotation=rot)

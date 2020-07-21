@@ -684,11 +684,13 @@ class TestSeriesPlots(TestPlotBase):
         kinds = (
             plotting.PlotAccessor._common_kinds + plotting.PlotAccessor._series_kinds
         )
-        _, ax = self.plt.subplots()
         for kind in kinds:
-
+            _, ax = self.plt.subplots()
             s.plot(kind=kind, ax=ax)
+            self.plt.close()
+            _, ax = self.plt.subplots()
             getattr(s.plot, kind)()
+            self.plt.close()
 
     @pytest.mark.slow
     def test_invalid_plot_data(self):
