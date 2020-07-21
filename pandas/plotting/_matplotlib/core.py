@@ -767,7 +767,7 @@ class MPLPlot:
         else:
             return getattr(ax, "right_ax", ax)
 
-    def _col_idx_to_axis_idx(self, col_idx):
+    def _col_idx_to_axis_idx(self, col_idx: int):
         """Return the index of the axis where the column at col_idx should be plotted"""
         if isinstance(self.subplots, list):
             # Subplots is a list: some columns are be grouped together in the same ax
