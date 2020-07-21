@@ -729,6 +729,26 @@ class TestSeriesPlots(TestPlotBase):
         s = Series(values, index=index)
         _check_plot_works(s.plot)
 
+    def test_errorbar_asymmetrical(self):
+        # GH9536
+        s = Series(np.arange(10), name="x")
+        err = np.random.rand(2, 10)
+
+        ax = s.plot(yerr=err, xerr=err)
+
+        result = np.vstack([i.vertices[:, 1] for i in ax.collections[1].get_paths()])
+        expected = (err.T * np.array([-1, 1])) + s.to_numpy().reshape(-1, 1)
+        tm.assert_numpy_array_equal(result, expected)
+
+        msg = (
+            "Asymmetrical error bars should be provided "
+            f"with the shape \\(2, {len(s)}\\)"
+        )
+        with pytest.raises(ValueError, match=msg):
+            s.plot(yerr=np.random.rand(2, 11))
+
+        tm.close()
+
     @pytest.mark.slow
     def test_errorbar_plot(self):
 
@@ -934,3 +954,23 @@ class TestSeriesPlots(TestPlotBase):
         s = pd.Series([1, 2])
         ax = s.plot(style="s", color="C3")
         assert ax.lines[0].get_color() == ["C3"]
+
+    @pytest.mark.parametrize(
+        "index_name, old_label, new_label",
+        [(None, "", "new"), ("old", "old", "new"), (None, "", "")],
+    )
+    @pytest.mark.parametrize("kind", ["line", "area", "bar"])
+    def test_xlabel_ylabel_series(self, kind, index_name, old_label, new_label):
+        # GH 9093
+        ser = pd.Series([1, 2, 3, 4])
+        ser.index.name = index_name
+
+        # default is the ylabel is not shown and xlabel is index name
+        ax = ser.plot(kind=kind)
+        assert ax.get_ylabel() == ""
+        assert ax.get_xlabel() == old_label
+
+        # old xlabel will be overriden and assigned ylabel will be used as ylabel
+        ax = ser.plot(kind=kind, ylabel=new_label, xlabel=new_label)
+        assert ax.get_ylabel() == new_label
+        assert ax.get_xlabel() == new_label

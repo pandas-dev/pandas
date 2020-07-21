@@ -1,7 +1,7 @@
 from datetime import timedelta
 import operator
 from sys import getsizeof
-from typing import Any, Optional
+from typing import Any, List, Optional
 import warnings
 
 import numpy as np
@@ -197,8 +197,8 @@ class RangeIndex(Int64Index):
         # we are formatting thru the attributes
         return None
 
-    def _format_with_header(self, header, na_rep="NaN", **kwargs):
-        return header + list(map(pprint_thing, self._range))
+    def _format_with_header(self, header, na_rep="NaN") -> List[str]:
+        return header + [pprint_thing(x) for x in self._range]
 
     # --------------------------------------------------------------------
     _deprecation_message = (
