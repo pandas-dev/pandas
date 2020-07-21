@@ -201,7 +201,7 @@ class MPLPlot:
         self._validate_color_args()
 
     def _validate_subplots_kwarg(
-        self, subplots: Union[bool, Sequence[Sequence[Label]]]
+        self, subplots: Union[bool, Sequence[Sequence[str]]]
     ) -> Union[bool, Sequence[Sequence[int]]]:
 
         if isinstance(subplots, bool):
