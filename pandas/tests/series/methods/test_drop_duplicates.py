@@ -22,7 +22,8 @@ def test_drop_duplicates(any_numpy_dtype, keep, expected):
     tm.assert_series_equal(tc.duplicated(keep=keep), expected)
     tm.assert_series_equal(tc.drop_duplicates(keep=keep), tc[~expected])
     sc = tc.copy()
-    sc.drop_duplicates(keep=keep, inplace=True)
+    return_value = sc.drop_duplicates(keep=keep, inplace=True)
+    assert return_value is None
     tm.assert_series_equal(sc, tc[~expected])
 
 
@@ -40,8 +41,9 @@ def test_drop_duplicates_bool(keep, expected):
     tm.assert_series_equal(tc.duplicated(keep=keep), expected)
     tm.assert_series_equal(tc.drop_duplicates(keep=keep), tc[~expected])
     sc = tc.copy()
-    sc.drop_duplicates(keep=keep, inplace=True)
+    return_value = sc.drop_duplicates(keep=keep, inplace=True)
     tm.assert_series_equal(sc, tc[~expected])
+    assert return_value is None
 
 
 @pytest.mark.parametrize("values", [[], list(range(5))])
@@ -84,21 +86,24 @@ class TestSeriesDropDuplicates:
         tm.assert_series_equal(tc1.duplicated(), expected)
         tm.assert_series_equal(tc1.drop_duplicates(), tc1[~expected])
         sc = tc1.copy()
-        sc.drop_duplicates(inplace=True)
+        return_value = sc.drop_duplicates(inplace=True)
+        assert return_value is None
         tm.assert_series_equal(sc, tc1[~expected])
 
         expected = Series([False, False, True, False])
         tm.assert_series_equal(tc1.duplicated(keep="last"), expected)
         tm.assert_series_equal(tc1.drop_duplicates(keep="last"), tc1[~expected])
         sc = tc1.copy()
-        sc.drop_duplicates(keep="last", inplace=True)
+        return_value = sc.drop_duplicates(keep="last", inplace=True)
+        assert return_value is None
         tm.assert_series_equal(sc, tc1[~expected])
 
         expected = Series([False, False, True, True])
         tm.assert_series_equal(tc1.duplicated(keep=False), expected)
         tm.assert_series_equal(tc1.drop_duplicates(keep=False), tc1[~expected])
         sc = tc1.copy()
-        sc.drop_duplicates(keep=False, inplace=True)
+        return_value = sc.drop_duplicates(keep=False, inplace=True)
+        assert return_value is None
         tm.assert_series_equal(sc, tc1[~expected])
 
         # Test case 2
@@ -113,21 +118,24 @@ class TestSeriesDropDuplicates:
         tm.assert_series_equal(tc2.duplicated(), expected)
         tm.assert_series_equal(tc2.drop_duplicates(), tc2[~expected])
         sc = tc2.copy()
-        sc.drop_duplicates(inplace=True)
+        return_value = sc.drop_duplicates(inplace=True)
+        assert return_value is None
         tm.assert_series_equal(sc, tc2[~expected])
 
         expected = Series([False, True, True, False, False, False, False])
         tm.assert_series_equal(tc2.duplicated(keep="last"), expected)
         tm.assert_series_equal(tc2.drop_duplicates(keep="last"), tc2[~expected])
         sc = tc2.copy()
-        sc.drop_duplicates(keep="last", inplace=True)
+        return_value = sc.drop_duplicates(keep="last", inplace=True)
+        assert return_value is None
         tm.assert_series_equal(sc, tc2[~expected])
 
         expected = Series([False, True, True, False, True, True, False])
         tm.assert_series_equal(tc2.duplicated(keep=False), expected)
         tm.assert_series_equal(tc2.drop_duplicates(keep=False), tc2[~expected])
         sc = tc2.copy()
-        sc.drop_duplicates(keep=False, inplace=True)
+        return_value = sc.drop_duplicates(keep=False, inplace=True)
+        assert return_value is None
         tm.assert_series_equal(sc, tc2[~expected])
 
     def test_drop_duplicates_categorical_bool(self, ordered):
@@ -141,19 +149,22 @@ class TestSeriesDropDuplicates:
         tm.assert_series_equal(tc.duplicated(), expected)
         tm.assert_series_equal(tc.drop_duplicates(), tc[~expected])
         sc = tc.copy()
-        sc.drop_duplicates(inplace=True)
+        return_value = sc.drop_duplicates(inplace=True)
+        assert return_value is None
         tm.assert_series_equal(sc, tc[~expected])
 
         expected = Series([True, True, False, False])
         tm.assert_series_equal(tc.duplicated(keep="last"), expected)
         tm.assert_series_equal(tc.drop_duplicates(keep="last"), tc[~expected])
         sc = tc.copy()
-        sc.drop_duplicates(keep="last", inplace=True)
+        return_value = sc.drop_duplicates(keep="last", inplace=True)
+        assert return_value is None
         tm.assert_series_equal(sc, tc[~expected])
 
         expected = Series([True, True, True, True])
         tm.assert_series_equal(tc.duplicated(keep=False), expected)
         tm.assert_series_equal(tc.drop_duplicates(keep=False), tc[~expected])
         sc = tc.copy()
-        sc.drop_duplicates(keep=False, inplace=True)
+        return_value = sc.drop_duplicates(keep=False, inplace=True)
+        assert return_value is None
         tm.assert_series_equal(sc, tc[~expected])
