@@ -85,7 +85,7 @@ class MPLPlot:
         data,
         kind=None,
         by=None,
-        subplots: Optional[Union[bool, Sequence[Sequence[Union[str, int]]]]] = False,
+        subplots: Union[bool, Sequence[Sequence[Label]]] = False,
         sharex=None,
         sharey=False,
         use_index=True,
@@ -120,78 +120,7 @@ class MPLPlot:
         self.kind = kind
 
         self.sort_columns = sort_columns
-
-        if isinstance(subplots, bool):
-            self.subplots = (
-                subplots
-            )  # type: Optional[Union[bool, Sequence[Sequence[Union[str, int]]]]]
-        elif isinstance(subplots, Iterable):
-            supported_kinds = (
-                "line",
-                "bar",
-                "barh",
-                "hist",
-                "kde",
-                "density",
-                "area",
-                "pie",
-            )
-            if self._kind not in supported_kinds:
-                raise ValueError(
-                    "When subplots is an iterable, kind must be "
-                    f"one of {', '.join(supported_kinds)}. Got {self._kind}."
-                )
-
-            if any(
-                not isinstance(group, Iterable) or isinstance(group, str)
-                for group in subplots
-            ):
-                raise ValueError(
-                    "When subplots is an iterable, each entry "
-                    "should be a list/tuple of column names."
-                )
-
-            cols_in_groups = [col for group in subplots for col in group]
-            duplicates = {
-                col for (col, cnt) in Counter(cols_in_groups).items() if cnt > 1
-            }
-            if duplicates:
-                raise ValueError(
-                    f"Each column should be in only one subplot. Columns {duplicates} "
-                    "were found in multiple sublots."
-                )
-
-            cols_in_groups_set = set(cols_in_groups)
-            cols_remaining = set(data.columns) - cols_in_groups_set
-            bad_columns = cols_in_groups_set - set(data.columns)
-
-            if bad_columns:
-                raise ValueError(
-                    "Subplots contains the following column(s) "
-                    f"which are invalid names: {bad_columns}"
-                )
-
-            # subplots is a list of tuples where each tuple is a group of
-            # columns to be grouped together (one ax per group).
-            # we consolidate the subplots list such that:
-            # - the tuples contain indices instead of column names
-            # - the columns that aren't yet in the list are added in a group
-            #   of their own.
-            # For example with columns from a to g, and
-            # subplots = [(a, c), (b, f, e)],
-            # we end up with [(ai, ci), (bi, fi, ei), (di,), (gi,)]
-            # This way, we can handle self.subplots in a homogeneous manner
-            # later.
-            # TODO: also accept indices instead of just names?
-
-            self.subplots = []
-            index = list(data.columns).index
-            for group in subplots:
-                self.subplots.append(tuple(index(col) for col in group))
-            for col in cols_remaining:
-                self.subplots.append((index(col),))
-        else:
-            raise ValueError("subplots should be a bool or an iterable")
+        self.subplots = self._validate_subplots_kwarg(subplots)
 
         if sharex is None:
             if ax is None:
@@ -270,6 +199,79 @@ class MPLPlot:
         self.kwds = kwds
 
         self._validate_color_args()
+
+    def _validate_subplots_kwarg(
+        self, subplots: Union[bool, Sequence[Sequence[Label]]]
+    ) -> Union[bool, Sequence[Sequence[Label]]]:
+
+        if isinstance(subplots, bool):
+            return subplots
+        elif not isinstance(subplots, Iterable):
+            raise ValueError("subplots should be a bool or an iterable")
+
+        supported_kinds = (
+            "line",
+            "bar",
+            "barh",
+            "hist",
+            "kde",
+            "density",
+            "area",
+            "pie",
+        )
+        if self._kind not in supported_kinds:
+            raise ValueError(
+                "When subplots is an iterable, kind must be "
+                f"one of {', '.join(supported_kinds)}. Got {self._kind}."
+            )
+
+        if any(
+            not isinstance(group, Iterable) or isinstance(group, str)
+            for group in subplots
+        ):
+            raise ValueError(
+                "When subplots is an iterable, each entry "
+                "should be a list/tuple of column names."
+            )
+
+        cols_in_groups = [col for group in subplots for col in group]
+        duplicates = {col for (col, cnt) in Counter(cols_in_groups).items() if cnt > 1}
+        if duplicates:
+            raise ValueError(
+                f"Each column should be in only one subplot. Columns {duplicates} "
+                "were found in multiple sublots."
+            )
+
+        cols_in_groups_set = set(cols_in_groups)
+        cols_remaining = set(self.data.columns) - cols_in_groups_set
+        bad_columns = cols_in_groups_set - set(self.data.columns)
+
+        if bad_columns:
+            raise ValueError(
+                "Subplots contains the following column(s) "
+                f"which are invalid names: {bad_columns}"
+            )
+
+        # subplots is a list of tuples where each tuple is a group of
+        # columns to be grouped together (one ax per group).
+        # we consolidate the subplots list such that:
+        # - the tuples contain indices instead of column names
+        # - the columns that aren't yet in the list are added in a group
+        #   of their own.
+        # For example with columns from a to g, and
+        # subplots = [(a, c), (b, f, e)],
+        # we end up with [(ai, ci), (bi, fi, ei), (di,), (gi,)]
+        # This way, we can handle self.subplots in a homogeneous manner
+        # later.
+        # TODO: also accept indices instead of just names?
+
+        out = []
+        index = list(self.data.columns).index
+        for group in subplots:
+            out.append(tuple(index(col) for col in group))
+        for col in cols_remaining:
+            out.append((index(col),))
+        return out
 
     def _validate_color_args(self):
         import matplotlib.colors

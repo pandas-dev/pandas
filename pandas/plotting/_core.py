@@ -640,7 +640,7 @@ class PlotAccessor(PandasObject):
 
         - ``False`` - no subplots will be used
         - ``True`` - Make separate subplots for each column.
-        - ``list of iterables`` - create a subplot for each group of columns.
+        - ``sequence of sequences of str`` - create a subplot for each group of columns.
           For example `[('a', 'c'), ('b', 'd')]` will create 2 subplots: one
           with columns 'a' and 'c', and one with columns 'b' and 'd'.
           Remaining columns that aren't specified will be plotted in
