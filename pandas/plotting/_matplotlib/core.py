@@ -85,7 +85,7 @@ class MPLPlot:
         data,
         kind=None,
         by=None,
-        subplots: Union[bool, Sequence[Sequence[Label]]] = False,
+        subplots: Union[bool, Sequence[Sequence[str]]] = False,
         sharex=None,
         sharey=False,
         use_index=True,
