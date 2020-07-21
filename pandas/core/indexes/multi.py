@@ -2,6 +2,7 @@ from sys import getsizeof
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Hashable,
     Iterable,
     List,
@@ -20,7 +21,7 @@ from pandas._libs import algos as libalgos, index as libindex, lib
 from pandas._libs.hashtable import duplicated_int64
 from pandas._typing import AnyArrayLike, Scalar
 from pandas.compat.numpy import function as nv
-from pandas.errors import PerformanceWarning, UnsortedIndexError
+from pandas.errors import InvalidIndexError, PerformanceWarning, UnsortedIndexError
 from pandas.util._decorators import Appender, cache_readonly, doc
 
 from pandas.core.dtypes.cast import coerce_indexer_dtype
@@ -37,7 +38,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCDataFrame, ABCDatetimeIndex, ABCTimedeltaIndex
 from pandas.core.dtypes.missing import array_equivalent, isna
 
 import pandas.core.algorithms as algos
@@ -45,12 +46,7 @@ from pandas.core.arrays import Categorical
 from pandas.core.arrays.categorical import factorize_from_iterables
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import (
-    Index,
-    InvalidIndexError,
-    _index_shared_docs,
-    ensure_index,
-)
+from pandas.core.indexes.base import Index, _index_shared_docs, ensure_index
 from pandas.core.indexes.frozen import FrozenList
 from pandas.core.indexes.numeric import Int64Index
 import pandas.core.missing as missing
@@ -387,7 +383,7 @@ class MultiIndex(Index):
         return new_codes
 
     @classmethod
-    def from_arrays(cls, arrays, sortorder=None, names=lib.no_default):
+    def from_arrays(cls, arrays, sortorder=None, names=lib.no_default) -> "MultiIndex":
         """
         Convert arrays to MultiIndex.
 
@@ -651,9 +647,11 @@ class MultiIndex(Index):
 
         for i in range(self.nlevels):
             vals = self._get_level_values(i)
-            if is_categorical_dtype(vals):
+            if is_categorical_dtype(vals.dtype):
                 vals = vals._internal_get_values()
-            if isinstance(vals.dtype, ExtensionDtype) or hasattr(vals, "_box_values"):
+            if isinstance(vals.dtype, ExtensionDtype) or isinstance(
+                vals, (ABCDatetimeIndex, ABCTimedeltaIndex)
+            ):
                 vals = vals.astype(object)
             vals = np.array(vals, copy=False)
             values.append(vals)
@@ -901,8 +899,7 @@ class MultiIndex(Index):
 
     def set_codes(self, codes, level=None, inplace=False, verify_integrity=True):
         """
-        Set new codes on MultiIndex. Defaults to returning
-        new index.
+        Set new codes on MultiIndex. Defaults to returning new index.
 
         .. versionadded:: 0.24.0
 
@@ -1046,16 +1043,17 @@ class MultiIndex(Index):
         result._cache.pop("levels", None)  # GH32669
         return result
 
-    def _shallow_copy_with_infer(self, values, **kwargs):
-        # On equal MultiIndexes the difference is empty.
+    def symmetric_difference(self, other, result_name=None, sort=None):
+        # On equal symmetric_difference MultiIndexes the difference is empty.
         # Therefore, an empty MultiIndex is returned GH13490
-        if len(values) == 0:
+        tups = Index.symmetric_difference(self, other, result_name, sort)
+        if len(tups) == 0:
             return MultiIndex(
                 levels=[[] for _ in range(self.nlevels)],
                 codes=[[] for _ in range(self.nlevels)],
-                **kwargs,
+                names=tups.name,
             )
-        return self._shallow_copy(values, **kwargs)
+        return type(self).from_tuples(tups, names=tups.name)
 
     # --------------------------------------------------------------------
 
@@ -1234,13 +1232,17 @@ class MultiIndex(Index):
 
     def format(
         self,
-        space=2,
+        name: Optional[bool] = None,
+        formatter: Optional[Callable] = None,
+        na_rep: Optional[str] = None,
+        names: bool = False,
+        space: int = 2,
         sparsify=None,
-        adjoin=True,
-        names=False,
-        na_rep=None,
-        formatter=None,
-    ):
+        adjoin: bool = True,
+    ) -> List:
+        if name is not None:
+            names = name
+
         if len(self) == 0:
             return []
 
@@ -1268,13 +1270,13 @@ class MultiIndex(Index):
             stringified_levels.append(formatted)
 
         result_levels = []
-        for lev, name in zip(stringified_levels, self.names):
+        for lev, lev_name in zip(stringified_levels, self.names):
             level = []
 
             if names:
                 level.append(
-                    pprint_thing(name, escape_chars=("\t", "\r", "\n"))
-                    if name is not None
+                    pprint_thing(lev_name, escape_chars=("\t", "\r", "\n"))
+                    if lev_name is not None
                     else ""
                 )
 
@@ -1286,10 +1288,9 @@ class MultiIndex(Index):
 
         if sparsify:
             sentinel = ""
-            # GH3547
-            # use value of sparsify as sentinel,  unless it's an obvious
-            # "Truthy" value
-            if sparsify not in [True, 1]:
+            # GH3547 use value of sparsify as sentinel if it's "Falsey"
+            assert isinstance(sparsify, bool) or sparsify is lib.no_default
+            if sparsify in [False, lib.no_default]:
                 sentinel = sparsify
             # little bit of a kludge job for #1217
             result_levels = _sparsify(
@@ -1461,7 +1462,7 @@ class MultiIndex(Index):
 
         # reversed() because lexsort() wants the most significant key last.
         values = [
-            self._get_level_values(i).values for i in reversed(range(len(self.levels)))
+            self._get_level_values(i)._values for i in reversed(range(len(self.levels)))
         ]
         try:
             sort_order = np.lexsort(values)
@@ -1538,8 +1539,9 @@ class MultiIndex(Index):
 
     def get_level_values(self, level):
         """
-        Return vector of label values for requested level,
-        equal to the length of the index.
+        Return vector of label values for requested level.
+
+        Length of returned vector is equal to the length of the index.
 
         Parameters
         ----------
@@ -1794,12 +1796,12 @@ class MultiIndex(Index):
 
     def remove_unused_levels(self):
         """
-        Create a new MultiIndex from the current that removes
-        unused levels, meaning that they are not expressed in the labels.
+        Create new MultiIndex from current that removes unused levels.
 
-        The resulting MultiIndex will have the same outward
-        appearance, meaning the same .values and ordering. It will also
-        be .equals() to the original.
+        Unused level(s) means levels that are not expressed in the
+        labels. The resulting MultiIndex will have the same outward
+        appearance, meaning the same .values and ordering. It will
+        also be .equals() to the original.
 
         Returns
         -------
@@ -1893,7 +1895,7 @@ class MultiIndex(Index):
 
     def __getitem__(self, key):
         if is_scalar(key):
-            key = com.cast_scalar_indexer(key)
+            key = com.cast_scalar_indexer(key, warn_float=True)
 
             retval = []
             for lev, level_codes in zip(self.levels, self.codes):
@@ -2192,8 +2194,10 @@ class MultiIndex(Index):
 
     def sortlevel(self, level=0, ascending=True, sort_remaining=True):
         """
-        Sort MultiIndex at the requested level. The result will respect the
-        original ordering of the associated factor at that level.
+        Sort MultiIndex at the requested level.
+
+        The result will respect the original ordering of the associated
+        factor at that level.
 
         Parameters
         ----------
@@ -2342,10 +2346,8 @@ class MultiIndex(Index):
 
     def _should_fallback_to_positional(self) -> bool:
         """
-        If an integer key is not found, should we fall back to positional indexing?
+        Should integer key(s) be treated as positional?
         """
-        if not self.nlevels:
-            return False
         # GH#33355
         return self.levels[0]._should_fallback_to_positional()
 
@@ -2454,7 +2456,7 @@ class MultiIndex(Index):
                     "tolerance not implemented yet for MultiIndex"
                 )
             indexer = self._engine.get_indexer(
-                values=self.values, target=target, method=method, limit=limit
+                values=self._values, target=target, method=method, limit=limit
             )
         elif method == "nearest":
             raise NotImplementedError(
@@ -2633,8 +2635,10 @@ class MultiIndex(Index):
 
     def get_loc(self, key, method=None):
         """
-        Get location for a label or a tuple of labels as an integer, slice or
-        boolean mask.
+        Get location for a label or a tuple of labels.
+
+        The location is returned as an integer/slice or boolean
+        mask.
 
         Parameters
         ----------
@@ -2742,8 +2746,7 @@ class MultiIndex(Index):
 
     def get_loc_level(self, key, level=0, drop_level: bool = True):
         """
-        Get both the location for the requested label(s) and the
-        resulting sliced index.
+        Get location and sliced index for requested label(s)/level(s).
 
         Parameters
         ----------
@@ -2783,7 +2786,7 @@ class MultiIndex(Index):
         def maybe_mi_droplevels(indexer, levels, drop_level: bool):
             if not drop_level:
                 return self[indexer]
-            # kludgearound
+            # kludge around
             orig_index = new_index = self[indexer]
             levels = [self._get_level_number(i) for i in levels]
             for i in sorted(levels, reverse=True):
@@ -3194,7 +3197,12 @@ class MultiIndex(Index):
         new_codes = [level_codes[left:right] for level_codes in self.codes]
         new_codes[0] = new_codes[0] - i
 
-        return MultiIndex(levels=new_levels, codes=new_codes, verify_integrity=False)
+        return MultiIndex(
+            levels=new_levels,
+            codes=new_codes,
+            names=self._names,
+            verify_integrity=False,
+        )
 
     def equals(self, other) -> bool:
         """
@@ -3216,7 +3224,8 @@ class MultiIndex(Index):
             if not is_object_dtype(other.dtype):
                 # other cannot contain tuples, so cannot match self
                 return False
-
+            elif len(self) != len(other):
+                return False
             return array_equivalent(self._values, other._values)
 
         if self.nlevels != other.nlevels:

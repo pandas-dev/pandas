@@ -113,6 +113,35 @@ def test_value_counts_empty():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.parametrize("min_count", [0, 4])
+def test_integer_array_sum(skipna, min_count):
+    arr = pd.array([1, 2, 3, None], dtype="Int64")
+    result = arr.sum(skipna=skipna, min_count=min_count)
+    if skipna and min_count == 0:
+        assert result == 6
+    else:
+        assert result is pd.NA
+
+
+@pytest.mark.parametrize(
+    "values, expected", [([1, 2, 3], 6), ([1, 2, 3, None], 6), ([None], 0)]
+)
+def test_integer_array_numpy_sum(values, expected):
+    arr = pd.array(values, dtype="Int64")
+    result = np.sum(arr)
+    assert result == expected
+
+
+@pytest.mark.parametrize("op", ["sum", "prod", "min", "max"])
+def test_dataframe_reductions(op):
+    # https://github.com/pandas-dev/pandas/pull/32867
+    # ensure the integers are not cast to float during reductions
+    df = pd.DataFrame({"a": pd.array([1, 2], dtype="Int64")})
+    result = df.max()
+    assert isinstance(result["a"], np.int64)
+
+
 # TODO(jreback) - these need testing / are broken
 
 # shift

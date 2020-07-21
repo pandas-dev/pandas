@@ -641,7 +641,7 @@ class BaseExprVisitor(ast.NodeVisitor):
 
     def visit_Call(self, node, side=None, **kwargs):
 
-        if isinstance(node.func, ast.Attribute):
+        if isinstance(node.func, ast.Attribute) and node.func.attr != "__call__":
             res = self.visit_Attribute(node.func)
         elif not isinstance(node.func, ast.Name):
             raise TypeError("Only named functions are supported")

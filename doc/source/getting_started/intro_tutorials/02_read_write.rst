@@ -23,7 +23,7 @@
                     <div class="card-body">
                         <p class="card-text">
 
-This tutorial uses the titanic data set, stored as CSV. The data
+This tutorial uses the Titanic data set, stored as CSV. The data
 consists of the following data columns:
 
 -  PassengerId: Id of every passenger.
@@ -61,7 +61,7 @@ How do I read and write tabular data?
     <ul class="task-bullet">
         <li>
 
-I want to analyse the titanic passenger data, available as a CSV file.
+I want to analyze the Titanic passenger data, available as a CSV file.
 
 .. ipython:: python
 
@@ -134,7 +134,7 @@ strings (``object``).
     <ul class="task-bullet">
         <li>
 
-My colleague requested the titanic data as a spreadsheet.
+My colleague requested the Titanic data as a spreadsheet.
 
 .. ipython:: python
 
@@ -151,7 +151,7 @@ named *passengers* instead of the default *Sheet1*. By setting
         </li>
     </ul>
 
-The equivalent read function :meth:`~DataFrame.to_excel` will reload the data to a
+The equivalent read function :meth:`~DataFrame.read_excel` will reload the data to a
 ``DataFrame``:
 
 .. ipython:: python

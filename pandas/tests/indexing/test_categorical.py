@@ -14,7 +14,6 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
-    conftest,
 )
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
@@ -157,7 +156,7 @@ class TestCategoricalIndex:
         # frame
         res_df = df.iloc[2:4, :]
         tm.assert_frame_equal(res_df, exp_df)
-        assert is_categorical_dtype(res_df["cats"])
+        assert is_categorical_dtype(res_df["cats"].dtype)
 
         # row
         res_row = df.iloc[2, :]
@@ -167,7 +166,7 @@ class TestCategoricalIndex:
         # col
         res_col = df.iloc[:, 0]
         tm.assert_series_equal(res_col, exp_col)
-        assert is_categorical_dtype(res_col)
+        assert is_categorical_dtype(res_col.dtype)
 
         # single value
         res_val = df.iloc[2, 0]
@@ -177,7 +176,7 @@ class TestCategoricalIndex:
         # frame
         res_df = df.loc["j":"k", :]
         tm.assert_frame_equal(res_df, exp_df)
-        assert is_categorical_dtype(res_df["cats"])
+        assert is_categorical_dtype(res_df["cats"].dtype)
 
         # row
         res_row = df.loc["j", :]
@@ -187,7 +186,7 @@ class TestCategoricalIndex:
         # col
         res_col = df.loc[:, "cats"]
         tm.assert_series_equal(res_col, exp_col)
-        assert is_categorical_dtype(res_col)
+        assert is_categorical_dtype(res_col.dtype)
 
         # single value
         res_val = df.loc["j", "cats"]
@@ -198,7 +197,7 @@ class TestCategoricalIndex:
         # res_df = df.loc["j":"k",[0,1]] # doesn't work?
         res_df = df.loc["j":"k", :]
         tm.assert_frame_equal(res_df, exp_df)
-        assert is_categorical_dtype(res_df["cats"])
+        assert is_categorical_dtype(res_df["cats"].dtype)
 
         # row
         res_row = df.loc["j", :]
@@ -208,7 +207,7 @@ class TestCategoricalIndex:
         # col
         res_col = df.loc[:, "cats"]
         tm.assert_series_equal(res_col, exp_col)
-        assert is_categorical_dtype(res_col)
+        assert is_categorical_dtype(res_col.dtype)
 
         # single value
         res_val = df.loc["j", df.columns[0]]
@@ -241,23 +240,23 @@ class TestCategoricalIndex:
 
         res_df = df.iloc[slice(2, 4)]
         tm.assert_frame_equal(res_df, exp_df)
-        assert is_categorical_dtype(res_df["cats"])
+        assert is_categorical_dtype(res_df["cats"].dtype)
 
         res_df = df.iloc[[2, 3]]
         tm.assert_frame_equal(res_df, exp_df)
-        assert is_categorical_dtype(res_df["cats"])
+        assert is_categorical_dtype(res_df["cats"].dtype)
 
         res_col = df.iloc[:, 0]
         tm.assert_series_equal(res_col, exp_col)
-        assert is_categorical_dtype(res_col)
+        assert is_categorical_dtype(res_col.dtype)
 
         res_df = df.iloc[:, slice(0, 2)]
         tm.assert_frame_equal(res_df, df)
-        assert is_categorical_dtype(res_df["cats"])
+        assert is_categorical_dtype(res_df["cats"].dtype)
 
         res_df = df.iloc[:, [0, 1]]
         tm.assert_frame_equal(res_df, df)
-        assert is_categorical_dtype(res_df["cats"])
+        assert is_categorical_dtype(res_df["cats"].dtype)
 
     def test_slicing_doc_examples(self):
 
@@ -752,9 +751,9 @@ class TestCategoricalIndex:
             [1.5, 2.5, 3.5],
             [-1.5, -2.5, -3.5],
             # numpy int/uint
-            *[np.array([1, 2, 3], dtype=dtype) for dtype in conftest.ALL_INT_DTYPES],
+            *[np.array([1, 2, 3], dtype=dtype) for dtype in tm.ALL_INT_DTYPES],
             # numpy floats
-            *[np.array([1.5, 2.5, 3.5], dtype=dtyp) for dtyp in conftest.FLOAT_DTYPES],
+            *[np.array([1.5, 2.5, 3.5], dtype=dtyp) for dtyp in tm.FLOAT_DTYPES],
             # numpy object
             np.array([1, "b", 3.5], dtype=object),
             # pandas scalars
@@ -762,7 +761,7 @@ class TestCategoricalIndex:
             [Timestamp(2019, 1, 1), Timestamp(2019, 2, 1), Timestamp(2019, 3, 1)],
             [Timedelta(1, "d"), Timedelta(2, "d"), Timedelta(3, "D")],
             # pandas Integer arrays
-            *[pd.array([1, 2, 3], dtype=dtype) for dtype in conftest.ALL_EA_INT_DTYPES],
+            *[pd.array([1, 2, 3], dtype=dtype) for dtype in tm.ALL_EA_INT_DTYPES],
             # other pandas arrays
             pd.IntervalIndex.from_breaks([1, 4, 6, 9]).array,
             pd.date_range("2019-01-01", periods=3).array,

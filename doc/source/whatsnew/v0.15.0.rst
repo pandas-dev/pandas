@@ -1,7 +1,7 @@
 .. _whatsnew_0150:
 
-v0.15.0 (October 18, 2014)
---------------------------
+Version 0.15.0 (October 18, 2014)
+---------------------------------
 
 {{ header }}
 
@@ -105,7 +105,7 @@ For full docs, see the :ref:`categorical introduction <categorical>` and the
 
 .. _whatsnew_0150.timedeltaindex:
 
-TimedeltaIndex/Scalar
+TimedeltaIndex/scalar
 ^^^^^^^^^^^^^^^^^^^^^
 
 We introduce a new scalar type ``Timedelta``, which is a subclass of ``datetime.timedelta``, and behaves in a similar manner,
@@ -247,8 +247,8 @@ Additionally :meth:`~pandas.DataFrame.memory_usage` is an available method for a
 
 .. _whatsnew_0150.dt:
 
-.dt accessor
-^^^^^^^^^^^^
+Series.dt accessor
+^^^^^^^^^^^^^^^^^^
 
 ``Series`` has gained an accessor to succinctly return datetime like properties for the *values* of the Series, if its a datetime/period like Series. (:issue:`7207`)
 This will return a Series, indexed like the existing Series. See the :ref:`docs <basics.dt_accessors>`
@@ -600,7 +600,7 @@ Rolling/expanding moments improvements
 
 .. _whatsnew_0150.sql:
 
-Improvements in the SQL io module
+Improvements in the SQL IO module
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Added support for a ``chunksize`` parameter to ``to_sql`` function. This allows DataFrame to be written in chunks and avoid packet-size overflow errors (:issue:`8062`).

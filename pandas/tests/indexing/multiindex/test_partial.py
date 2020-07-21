@@ -151,7 +151,8 @@ class TestMultiIndexPartial:
         with pytest.raises(KeyError, match="14"):
             ser[14]
         with pytest.raises(KeyError, match="14"):
-            mi.get_value(ser, 14)
+            with tm.assert_produces_warning(FutureWarning):
+                mi.get_value(ser, 14)
 
     # ---------------------------------------------------------------------
     # AMBIGUOUS CASES!

@@ -382,10 +382,14 @@ class TestSeriesDtypes:
         tm.assert_index_equal(result.cat.categories, Index(["a", "b", "c"]))
 
     @pytest.mark.parametrize("dtype", [np.datetime64, np.timedelta64])
-    def test_astype_generic_timestamp_no_frequency(self, dtype):
+    def test_astype_generic_timestamp_no_frequency(self, dtype, request):
         # see gh-15524, gh-15987
         data = [1]
         s = Series(data)
+
+        if np.dtype(dtype).name not in ["timedelta64", "datetime64"]:
+            mark = pytest.mark.xfail(reason="GH#33890 Is assigned ns unit")
+            request.node.add_marker(mark)
 
         msg = (
             fr"The '{dtype.__name__}' dtype has no unit\. "

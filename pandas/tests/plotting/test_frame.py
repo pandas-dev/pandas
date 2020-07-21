@@ -48,6 +48,7 @@ class TestDataFramePlots(TestPlotBase):
         for ax, exp in zip(axes, expected):
             self._check_visible(ax.get_xticklabels(), visible=exp)
 
+    @pytest.mark.xfail(reason="Waiting for PR 34334", strict=True)
     @pytest.mark.slow
     def test_plot(self):
         from pandas.plotting._matplotlib.compat import _mpl_ge_3_1_0
@@ -470,6 +471,7 @@ class TestDataFramePlots(TestPlotBase):
         expected = [False, False, True, True]
         self._assert_xtickslabels_visibility(axes, expected)
 
+    @pytest.mark.xfail(reason="Waiting for PR 34334", strict=True)
     @pytest.mark.slow
     def test_subplots_timeseries(self):
         idx = date_range(start="2014-07-01", freq="M", periods=10)
@@ -1308,6 +1310,17 @@ class TestDataFramePlots(TestPlotBase):
         # later.
         float_array = np.array([0.0, 1.0])
         df.plot.scatter(x="A", y="B", c=float_array, cmap="spring")
+
+    @pytest.mark.parametrize("cmap", [None, "Greys"])
+    def test_scatter_with_c_column_name_with_colors(self, cmap):
+        # https://github.com/pandas-dev/pandas/issues/34316
+        df = pd.DataFrame(
+            [[5.1, 3.5], [4.9, 3.0], [7.0, 3.2], [6.4, 3.2], [5.9, 3.0]],
+            columns=["length", "width"],
+        )
+        df["species"] = ["r", "r", "g", "g", "b"]
+        ax = df.plot.scatter(x=0, y=1, c="species", cmap=cmap)
+        assert ax.collections[0].colorbar is None
 
     def test_plot_scatter_with_s(self):
         # this refers to GH 32904
@@ -3417,6 +3430,62 @@ class TestDataFramePlots(TestPlotBase):
         result = df_concat.plot()
         for legend, line in zip(result.get_legend().legendHandles, result.lines):
             assert legend.get_color() == line.get_color()
+
+    @pytest.mark.parametrize(
+        "index_name, old_label, new_label",
+        [
+            (None, "", "new"),
+            ("old", "old", "new"),
+            (None, "", ""),
+            (None, "", 1),
+            (None, "", [1, 2]),
+        ],
+    )
+    @pytest.mark.parametrize("kind", ["line", "area", "bar"])
+    def test_xlabel_ylabel_dataframe_single_plot(
+        self, kind, index_name, old_label, new_label
+    ):
+        # GH 9093
+        df = pd.DataFrame([[1, 2], [2, 5]], columns=["Type A", "Type B"])
+        df.index.name = index_name
+
+        # default is the ylabel is not shown and xlabel is index name
+        ax = df.plot(kind=kind)
+        assert ax.get_xlabel() == old_label
+        assert ax.get_ylabel() == ""
+
+        # old xlabel will be overriden and assigned ylabel will be used as ylabel
+        ax = df.plot(kind=kind, ylabel=new_label, xlabel=new_label)
+        assert ax.get_ylabel() == str(new_label)
+        assert ax.get_xlabel() == str(new_label)
+
+    @pytest.mark.parametrize(
+        "index_name, old_label, new_label",
+        [
+            (None, "", "new"),
+            ("old", "old", "new"),
+            (None, "", ""),
+            (None, "", 1),
+            (None, "", [1, 2]),
+        ],
+    )
+    @pytest.mark.parametrize("kind", ["line", "area", "bar"])
+    def test_xlabel_ylabel_dataframe_subplots(
+        self, kind, index_name, old_label, new_label
+    ):
+        # GH 9093
+        df = pd.DataFrame([[1, 2], [2, 5]], columns=["Type A", "Type B"])
+        df.index.name = index_name
+
+        # default is the ylabel is not shown and xlabel is index name
+        axes = df.plot(kind=kind, subplots=True)
+        assert all(ax.get_ylabel() == "" for ax in axes)
+        assert all(ax.get_xlabel() == old_label for ax in axes)
+
+        # old xlabel will be overriden and assigned ylabel will be used as ylabel
+        axes = df.plot(kind=kind, ylabel=new_label, xlabel=new_label, subplots=True)
+        assert all(ax.get_ylabel() == str(new_label) for ax in axes)
+        assert all(ax.get_xlabel() == str(new_label) for ax in axes)
 
 
 def _generate_4_axes_via_gridspec():
