@@ -11,13 +11,13 @@ from pandas._libs import Interval, Period, algos
 from pandas._libs.tslibs import conversion
 from pandas._typing import ArrayLike, DtypeObj
 
+from pandas.core.dtypes.base import registry
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
     IntervalDtype,
     PeriodDtype,
-    registry,
 )
 from pandas.core.dtypes.generic import ABCCategorical, ABCIndexClass
 from pandas.core.dtypes.inference import (  # noqa:F401
@@ -1354,7 +1354,7 @@ def is_bool_dtype(arr_or_dtype) -> bool:
     False
     >>> is_bool_dtype(bool)
     True
-    >>> is_bool_dtype(np.bool)
+    >>> is_bool_dtype(np.bool_)
     True
     >>> is_bool_dtype(np.array(['a', 'b']))
     False
@@ -1526,7 +1526,7 @@ def is_complex_dtype(arr_or_dtype) -> bool:
     False
     >>> is_complex_dtype(int)
     False
-    >>> is_complex_dtype(np.complex)
+    >>> is_complex_dtype(np.complex_)
     True
     >>> is_complex_dtype(np.array(['a', 'b']))
     False

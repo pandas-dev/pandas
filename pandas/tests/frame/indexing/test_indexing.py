@@ -21,7 +21,6 @@ from pandas import (
     notna,
 )
 import pandas._testing as tm
-from pandas.arrays import SparseArray
 import pandas.core.common as com
 from pandas.core.indexing import IndexingError
 
@@ -161,10 +160,13 @@ class TestDataFrameIndexing:
         msg = "Columns must be same length as key"
         with pytest.raises(ValueError, match=msg):
             data[["A"]] = float_frame[["A", "B"]]
-
-        msg = "Length of values does not match length of index"
+        newcolumndata = range(len(data.index) - 1)
+        msg = (
+            rf"Length of values \({len(newcolumndata)}\) "
+            rf"does not match length of index \({len(data)}\)"
+        )
         with pytest.raises(ValueError, match=msg):
-            data["A"] = range(len(data.index) - 1)
+            data["A"] = newcolumndata
 
         df = DataFrame(0, index=range(3), columns=["tt1", "tt2"], dtype=np.int_)
         df.loc[1, ["tt1", "tt2"]] = [1, 2]
@@ -1906,20 +1908,6 @@ class TestDataFrameIndexing:
 
         expect = df.iloc[[1, -1], 0]
         tm.assert_series_equal(df.loc[0.2, "a"], expect)
-
-    def test_getitem_sparse_column(self):
-        # https://github.com/pandas-dev/pandas/issues/23559
-        data = SparseArray([0, 1])
-        df = pd.DataFrame({"A": data})
-        expected = pd.Series(data, name="A")
-        result = df["A"]
-        tm.assert_series_equal(result, expected)
-
-        result = df.iloc[:, 0]
-        tm.assert_series_equal(result, expected)
-
-        result = df.loc[:, "A"]
-        tm.assert_series_equal(result, expected)
 
     def test_setitem_with_unaligned_tz_aware_datetime_column(self):
         # GH 12981

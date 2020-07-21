@@ -35,7 +35,12 @@ def _get_default_writer(ext):
     str
         The default engine for the extension.
     """
-    _default_writers = {"xlsx": "openpyxl", "xlsm": "openpyxl", "xls": "xlwt"}
+    _default_writers = {
+        "xlsx": "openpyxl",
+        "xlsm": "openpyxl",
+        "xls": "xlwt",
+        "ods": "odf",
+    }
     xlsxwriter = import_optional_dependency(
         "xlsxwriter", raise_on_missing=False, on_version="warn"
     )

@@ -2,6 +2,8 @@ from typing import TYPE_CHECKING, Hashable, List, Tuple, Union
 
 import numpy as np
 
+from pandas._config.config import option_context
+
 from pandas._libs.indexing import _NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
 from pandas.errors import AbstractMethodError, InvalidIndexError
@@ -1163,6 +1165,10 @@ class _LocIndexer(_LocationIndexer):
                     if len(key) == labels.nlevels:
                         return {"key": key}
                     raise
+            except InvalidIndexError:
+                # GH35015, using datetime as column indices raises exception
+                if not isinstance(labels, ABCMultiIndex):
+                    raise
             except TypeError:
                 pass
             except ValueError:
@@ -1283,7 +1289,8 @@ class _LocIndexer(_LocationIndexer):
             return
 
         # Count missing values:
-        missing = (indexer < 0).sum()
+        missing_mask = indexer < 0
+        missing = (missing_mask).sum()
 
         if missing:
             if missing == len(indexer):
@@ -1302,11 +1309,15 @@ class _LocIndexer(_LocationIndexer):
             # code, so we want to avoid warning & then
             # just raising
             if not ax.is_categorical():
-                raise KeyError(
-                    "Passing list-likes to .loc or [] with any missing labels "
-                    "is no longer supported, see "
-                    "https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#deprecate-loc-reindex-listlike"  # noqa:E501
-                )
+                not_found = key[missing_mask]
+
+                with option_context("display.max_seq_items", 10, "display.width", 80):
+                    raise KeyError(
+                        "Passing list-likes to .loc or [] with any missing labels "
+                        "is no longer supported. "
+                        f"The following labels were missing: {not_found}. "
+                        "See https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#deprecate-loc-reindex-listlike"  # noqa:E501
+                    )
 
 
 @doc(IndexingMixin.iloc)
@@ -1676,7 +1687,6 @@ class _iLocIndexer(_LocationIndexer):
                     ser = v
                 else:
                     # set the item, possibly having a dtype change
-                    ser._consolidate_inplace()
                     ser = ser.copy()
                     ser._mgr = ser._mgr.setitem(indexer=pi, value=v)
                     ser._maybe_update_cacher(clear=True)

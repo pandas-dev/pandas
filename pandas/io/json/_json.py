@@ -1,6 +1,6 @@
 from collections import abc
 import functools
-from io import StringIO
+from io import BytesIO, StringIO
 from itertools import islice
 import os
 from typing import Any, Callable, Optional, Type
@@ -723,6 +723,9 @@ class JsonReader(abc.Iterator):
             )
             self.should_close = True
             self.open_stream = data
+
+        if isinstance(data, BytesIO):
+            data = data.getvalue().decode()
 
         return data
 
