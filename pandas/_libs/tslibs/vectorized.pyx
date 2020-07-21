@@ -209,7 +209,7 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None):
         ndarray[int64_t] trans
         int64_t[:] deltas
         intp_t[:] pos
-        int64_t local_val, delta
+        int64_t local_val, delta = NPY_NAT
         bint use_utc = False, use_tzlocal = False, use_fixed = False
 
     if is_utc(tz) or tz is None:
