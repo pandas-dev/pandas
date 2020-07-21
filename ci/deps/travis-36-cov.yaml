@@ -6,7 +6,6 @@ dependencies:
   - python=3.6.*
 
   # tools
-  - cython>=0.29.16
   - pytest>=5.0.1,<6.0.0rc0
   - pytest-xdist>=1.21
   - hypothesis>=3.58.0
@@ -15,7 +14,6 @@ dependencies:
   # pandas dependencies
   - beautifulsoup4
   - botocore>=1.11
-  - cython>=0.29.16
   - dask
   - fastparquet>=0.3.2
   - fsspec>=0.7.4
@@ -47,6 +45,7 @@ dependencies:
   - xlwt
   - pip
   - pip:
+    - Cython==3.0a5
     - brotlipy
     - coverage
     - pandas-datareader

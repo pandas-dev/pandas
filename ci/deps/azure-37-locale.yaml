@@ -5,7 +5,6 @@ dependencies:
   - python=3.7.*
 
   # tools
-  - cython>=0.29.16
   - pytest>=5.0.1,<6.0.0rc0
   - pytest-xdist>=1.21
   - pytest-asyncio
@@ -35,4 +34,5 @@ dependencies:
   - pyarrow>=0.15
   - pip
   - pip:
+    - Cython==3.0a5
     - pyxlsb

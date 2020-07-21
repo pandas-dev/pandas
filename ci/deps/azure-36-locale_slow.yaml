@@ -6,7 +6,6 @@ dependencies:
   - python=3.6.*
 
   # tools
-  - cython>=0.29.16
   - pytest>=5.0.1,<6.0.0rc0
   - pytest-xdist>=1.21
   - hypothesis>=3.58.0
@@ -29,4 +28,5 @@ dependencies:
   - xlwt=1.2.0
   - pip
   - pip:
+    - Cython==3.0a5
     - html5lib==1.0b2
