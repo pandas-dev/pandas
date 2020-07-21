@@ -174,7 +174,7 @@ class MPLPlot:
             # subplots is a list of tuples where each tuple is a group of
             # columns to be grouped together (one ax per group).
             # we consolidate the subplots list such that:
-            # - the tuples contain indexes instead of column names
+            # - the tuples contain indices instead of column names
             # - the columns that aren't yet in the list are added in a group
             #   of their own.
             # For example with columns from a to g, and
@@ -182,7 +182,7 @@ class MPLPlot:
             # we end up with [(ai, ci), (bi, fi, ei), (di,), (gi,)]
             # This way, we can handle self.subplots in a homogeneous manner
             # later.
-            # TODO: also accept indexes instead of just names?
+            # TODO: also accept indices instead of just names?
 
             self.subplots = []
             index = list(data.columns).index
@@ -770,7 +770,7 @@ class MPLPlot:
     def _col_idx_to_axis_idx(self, col_idx: int):
         """Return the index of the axis where the column at col_idx should be plotted"""
         if isinstance(self.subplots, list):
-            # Subplots is a list: some columns are be grouped together in the same ax
+            # Subplots is a list: some columns will be grouped together in the same ax
             for group_idx, group in enumerate(self.subplots):
                 if col_idx in group:
                     return group_idx
