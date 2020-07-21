@@ -11,6 +11,7 @@ cpplint
 flake8<3.8.0
 flake8-comprehensions>=3.1.0
 flake8-rst>=0.6.0,<=0.7.0
+pyflakes>=2.2.0
 isort==4.3.21
 mypy==0.730
 pycodestyle
@@ -74,4 +75,3 @@ pyreadstat
 tabulate>=0.8.3
 git+https://github.com/pandas-dev/pydata-sphinx-theme.git@master
 git+https://github.com/numpy/numpydoc
-pyflakes>=2.2.0
