@@ -202,7 +202,7 @@ class MPLPlot:
 
     def _validate_subplots_kwarg(
         self, subplots: Union[bool, Sequence[Sequence[Label]]]
-    ) -> Union[bool, Sequence[Sequence[Label]]]:
+    ) -> Union[bool, Sequence[Sequence[int]]]:
 
         if isinstance(subplots, bool):
             return subplots
