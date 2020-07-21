@@ -1,6 +1,6 @@
 from collections import Counter, Iterable
 import re
-from typing import List, Optional
+from typing import List, Optional, Sequence, Union
 import warnings
 
 from matplotlib.artist import Artist
@@ -85,7 +85,7 @@ class MPLPlot:
         data,
         kind=None,
         by=None,
-        subplots=False,
+        subplots: Optional[Union[bool, Sequence[Sequence[Union[str, int]]]]] = False,
         sharex=None,
         sharey=False,
         use_index=True,
@@ -122,7 +122,9 @@ class MPLPlot:
         self.sort_columns = sort_columns
 
         if isinstance(subplots, bool):
-            self.subplots = subplots
+            self.subplots = (
+                subplots
+            )  # type: Optional[Union[bool, Sequence[Sequence[Union[str, int]]]]]
         elif isinstance(subplots, Iterable):
             supported_kinds = (
                 "line",
@@ -159,9 +161,9 @@ class MPLPlot:
                     "were found in multiple sublots."
                 )
 
-            cols_in_groups = set(cols_in_groups)
-            cols_remaining = set(data.columns) - cols_in_groups
-            bad_columns = cols_in_groups - set(data.columns)
+            cols_in_groups_set = set(cols_in_groups)
+            cols_remaining = set(data.columns) - cols_in_groups_set
+            bad_columns = cols_in_groups_set - set(data.columns)
 
             if bad_columns:
                 raise ValueError(
