@@ -162,14 +162,14 @@ class ArrowExtensionArray(ExtensionArray):
     def __invert__(self):
         return type(self).from_scalars(~self._data.to_pandas())
 
-    def _reduce(self, method, skipna=True, **kwargs):
+    def _reduce(self, name: str, skipna: bool = True, **kwargs):
         if skipna:
             arr = self[~self.isna()]
         else:
             arr = self
 
         try:
-            op = getattr(arr, method)
+            op = getattr(arr, name)
         except AttributeError as err:
             raise TypeError from err
         return op(**kwargs)
