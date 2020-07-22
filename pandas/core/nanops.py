@@ -1313,7 +1313,7 @@ def check_below_min_count(
             non_nulls = np.prod(shape)
         else:
             non_nulls = mask.size - mask.sum()
-        if non_nulls < min_count:
+        if non_nulls > 0 and non_nulls < min_count:
             return True
     return False
 
