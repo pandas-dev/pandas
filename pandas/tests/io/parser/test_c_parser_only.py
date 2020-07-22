@@ -606,3 +606,41 @@ def test_unix_style_breaks(c_parser_only):
         result = parser.read_csv(path, skiprows=2, encoding="utf-8", engine="c")
     expected = DataFrame(columns=["col_1", "col_2", "col_3"])
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("float_precision", [None, "high", "round_trip"])
+@pytest.mark.parametrize(
+    "data,thousands,decimal",
+    [
+        (
+            """A|B|C
+1|2,334.01|5
+10|13|10.
+""",
+            ",",
+            ".",
+        ),
+        (
+            """A|B|C
+1|2.334,01|5
+10|13|10,
+""",
+            ".",
+            ",",
+        ),
+    ],
+)
+def test_1000_sep_with_decimal(
+    c_parser_only, data, thousands, decimal, float_precision
+):
+    parser = c_parser_only
+    expected = DataFrame({"A": [1, 10], "B": [2334.01, 13], "C": [5, 10.0]})
+
+    result = parser.read_csv(
+        StringIO(data),
+        sep="|",
+        thousands=thousands,
+        decimal=decimal,
+        float_precision=float_precision,
+    )
+    tm.assert_frame_equal(result, expected)

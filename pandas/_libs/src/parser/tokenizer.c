@@ -1778,20 +1778,161 @@ double precise_xstrtod(const char *str, char **endptr, char decimal,
     return number;
 }
 
+/* copy a decimal number string in form `decimal` and `tsep` and `sci` as
+   decimal point, thousands separator and sci exponent character to a an
+   equivalent c-locale decimal string (striping tsep, replacing `decimal`
+   with '.'). Return NULL if nothing could be copied.
+*/
+
+char* str_copy_decimal_str_c(const char *s, char **endpos, char decimal,
+                             char tsep, char sci) {
+    #define IS_TSEP(c) (tsep != '\0' && c == tsep)
+    ssize_t size = 0;
+    ssize_t num_digits = 0;
+    char has_exponent = 0;
+    const char *p = s;
+    // First count how many characters we can consume.
+    // Leading sign
+    if (*p == '+' || *p == '-') p++;
+    // Integer part
+    while (isdigit_ascii(*p)) {
+        p++;
+        p += IS_TSEP(*p);
+        num_digits++;
+    }
+    // Fractional part
+    if (*p == decimal) {
+        p++;
+        while (isdigit_ascii(*p)) {
+            p++;
+            num_digits++;
+        }
+    }
+    if (num_digits == 0) {
+        if (endpos != NULL) {
+            *endpos = (char *)s;
+        }
+        return NULL;
+    }
+    // Exponent part
+    if (toupper_ascii(*p) == toupper_ascii(sci)) {
+        const char * p_at_e = p;
+        num_digits = 0;
+        p++;
+        // Exponent sign
+        if (*p == '+' || *p == '-') p++;
+        // Exponent
+        while (isdigit_ascii(*p)) {
+            p++;
+            num_digits++;
+        }
+        if (num_digits == 0) {
+            // no digits after exponent; un-consume the (+|-)?
+            p = p_at_e;
+            has_exponent = 0;
+        } else {
+            has_exponent = 1;
+        }
+    }
+
+    size = p - s;
+    char *pc = malloc(size + 1);
+    memcpy(pc, p, size);
+    pc[size] = '\0';
+    char *dst = pc;
+    p = s;
+    num_digits = 0;
+    // Copy leading sign
+    if (*p == '+' || *p == '-') {
+        *dst++ = *p++;
+    }
+    // Copy integer part
+    while (isdigit_ascii(*p)) {
+        *dst++ = *p++;
+        p += IS_TSEP(*p);
+        num_digits++;
+    }
+    // Copy factional part, replacing `decimal` with '.'
+    if (*p == decimal) {
+        *dst++ = '.';
+        p++;
+        while (isdigit_ascii(*p)) {
+            *dst++ = *p++;
+            num_digits++;
+        }
+    }
+    assert(num_digits > 0);
+    // Copy exponent
+    if (has_exponent && toupper_ascii(*p) == toupper_ascii(sci)) {
+        num_digits = 0;
+        *dst++ = *p++;
+        // Copy leading exponent sign
+        if (*p == '+' || *p == '-') {
+            *dst++ = *p++;
+        }
+        // Exponent
+        while (isdigit_ascii(*p)) {
+            *dst++ = *p++;
+            num_digits++;
+        }
+        assert(num_digits > 0);
+    }
+    *dst = '\0';
+    if (endpos != NULL) {
+        *endpos = (char *)p;
+    }
+    return pc;
+    #undef IS_TSEP
+}
+
 double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
                   int skip_trailing, int *error, int *maybe_int) {
+    char *pc = NULL;
+    // 'normalize' representation to C-locale; replace decimal with '.' and
+    // remove t(housand)sep.
+    char *endptr = NULL;
+    if (decimal != '.' || tsep != '\0') {
+        pc = str_copy_decimal_str_c(p, &endptr, decimal, tsep, sci);
+        if (pc == NULL) {
+            if (q != NULL) {
+                *q = (char *)p;
+            }
+            *error = -1;
+            return 0.0;
+        }
+    }
     // This is called from a nogil block in parsers.pyx
     // so need to explicitly get GIL before Python calls
     PyGILState_STATE gstate;
     gstate = PyGILState_Ensure();
-
-    double r = PyOS_string_to_double(p, q, 0);
+    double r;
+    if (pc != NULL) {
+        char *endpc = NULL;
+        r = PyOS_string_to_double(pc, &endpc, 0);
+        // PyOS_string_to_double needs to consume the whole string
+        if (endpc == pc + strlen(pc)) {
+            if (q != NULL) {
+               // report endptr from source string (p)
+                *q = (char *) endptr;
+            }
+        } else {
+            *error = -1;
+            if (q != NULL) {
+               // p and pc are different len due to tsep removal. Can't report
+               // how much it has consumed of p. Just rewind to beginning.
+                *q = (char *)p;
+            }
+        }
+    } else {
+        r = PyOS_string_to_double(p, q, 0);
+    }
     if (maybe_int != NULL) *maybe_int = 0;
     if (PyErr_Occurred() != NULL) *error = -1;
     else if (r == Py_HUGE_VAL) *error = (int)Py_HUGE_VAL;
     PyErr_Clear();
 
     PyGILState_Release(gstate);
+    free(pc);
     return r;
 }
 
