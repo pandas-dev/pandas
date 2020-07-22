@@ -21,9 +21,12 @@ class TestTimestampTZOperations:
     # Timestamp.tz_localize
 
     def test_tz_localize_pushes_out_of_bounds(self):
-        msg = "^$"
         # GH#12677
         # tz_localize that pushes away from the boundary is OK
+        msg = (
+            f"Converting {Timestamp.min.strftime('%Y-%m-%d %H:%M:%S')} "
+            f"underflows past {Timestamp.min}"
+        )
         pac = Timestamp.min.tz_localize("US/Pacific")
         assert pac.value > Timestamp.min.value
         pac.tz_convert("Asia/Tokyo")  # tz_convert doesn't change value
@@ -31,6 +34,10 @@ class TestTimestampTZOperations:
             Timestamp.min.tz_localize("Asia/Tokyo")
 
         # tz_localize that pushes away from the boundary is OK
+        msg = (
+            f"Converting {Timestamp.max.strftime('%Y-%m-%d %H:%M:%S')} "
+            f"overflows past {Timestamp.max}"
+        )
         tokyo = Timestamp.max.tz_localize("Asia/Tokyo")
         assert tokyo.value < Timestamp.max.value
         tokyo.tz_convert("US/Pacific")  # tz_convert doesn't change value

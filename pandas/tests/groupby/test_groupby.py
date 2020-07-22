@@ -605,6 +605,14 @@ def test_as_index_select_column():
     tm.assert_series_equal(result, expected)
 
 
+def test_groupby_as_index_select_column_sum_empty_df():
+    # GH 35246
+    df = DataFrame(columns=["A", "B", "C"])
+    left = df.groupby(by="A", as_index=False)["B"].sum()
+    assert type(left) is DataFrame
+    assert left.to_dict() == {"A": {}, "B": {}}
+
+
 def test_groupby_as_index_agg(df):
     grouped = df.groupby("A", as_index=False)
 
