@@ -51,7 +51,7 @@ cdef class _BaseGrouper:
             # See the comment in indexes/base.py about _index_data.
             # We need this for EA-backed indexes that have a reference
             # to a 1-d ndarray like datetime / timedelta / period.
-            object.__setattr__(cached_ityp, '_index_data', islider.buf)
+            object.__setattr__(cached_ityp, '_data', islider.buf)
             cached_ityp._engine.clear_mapping()
             cached_ityp._cache.clear()  # e.g. inferred_freq must go
             object.__setattr__(cached_typ._mgr._block, 'values', vslider.buf)
@@ -353,7 +353,7 @@ def apply_frame_axis0(object frame, object f, object names,
             slider.move(starts[i], ends[i])
 
             item_cache.clear()  # ugh
-            chunk = slider.dummy
+            chunk = slider.frame[starts[i]:ends[i]]
             object.__setattr__(chunk, 'name', names[i])
 
             try:
