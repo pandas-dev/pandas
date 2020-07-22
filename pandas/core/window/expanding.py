@@ -137,7 +137,7 @@ class Expanding(_Rolling_and_Expanding):
         self,
         func,
         raw: bool = False,
-        engine: str = "cython",
+        engine: Optional[str] = None,
         engine_kwargs: Optional[Dict[str, bool]] = None,
         args=None,
         kwargs=None,

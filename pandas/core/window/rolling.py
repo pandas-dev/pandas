@@ -1344,7 +1344,7 @@ class _Rolling_and_Expanding(_Rolling):
         self,
         func,
         raw: bool = False,
-        engine: str = "cython",
+        engine: Optional[str] = None,
         engine_kwargs: Optional[Dict] = None,
         args: Optional[Tuple] = None,
         kwargs: Optional[Dict] = None,
