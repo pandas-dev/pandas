@@ -62,12 +62,60 @@ def test_to_csv(cleared_fs):
     tm.assert_frame_equal(df1, df2)
 
 
+def test_csv_options(fsspectest):
+    df = DataFrame({"a": [0]})
+    df.to_csv(
+        "testmem://test/test.csv", storage_options={"test": "csv_write"}, index=False
+    )
+    assert fsspectest.test[0] == "csv_write"
+    read_csv("testmem://test/test.csv", storage_options={"test": "csv_read"})
+    assert fsspectest.test[0] == "csv_read"
+
+
 @td.skip_if_no("fastparquet")
 def test_to_parquet_new_file(monkeypatch, cleared_fs):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
     df1.to_parquet(
         "memory://test/test.csv", index=True, engine="fastparquet", compression=None
     )
+
+
+@td.skip_if_no("pyarrow")
+def test_arrowparquet_options(fsspectest):
+    """Regression test for writing to a not-yet-existent GCS Parquet file."""
+    df = DataFrame({"a": [0]})
+    df.to_parquet(
+        "testmem://test/test.csv",
+        engine="pyarrow",
+        compression=None,
+        storage_options={"test": "parquet_write"},
+    )
+    assert fsspectest.test[0] == "parquet_write"
+    read_parquet(
+        "testmem://test/test.csv",
+        engine="pyarrow",
+        storage_options={"test": "parquet_read"},
+    )
+    assert fsspectest.test[0] == "parquet_read"
+
+
+@td.skip_if_no("fastparquet")
+def test_fastparquet_options(fsspectest):
+    """Regression test for writing to a not-yet-existent GCS Parquet file."""
+    df = DataFrame({"a": [0]})
+    df.to_parquet(
+        "testmem://test/test.csv",
+        engine="fastparquet",
+        compression=None,
+        storage_options={"test": "parquet_write"},
+    )
+    assert fsspectest.test[0] == "parquet_write"
+    read_parquet(
+        "testmem://test/test.csv",
+        engine="fastparquet",
+        storage_options={"test": "parquet_read"},
+    )
+    assert fsspectest.test[0] == "parquet_read"
 
 
 @td.skip_if_no("s3fs")

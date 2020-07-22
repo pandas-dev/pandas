@@ -1228,17 +1228,17 @@ def sort_by_key(request):
 
 @pytest.fixture()
 def fsspectest():
-    pytest.importorskip('fsspec')
+    pytest.importorskip("fsspec")
     from fsspec.implementations.memory import MemoryFileSystem
     from fsspec import register_implementation
 
     class TestMemoryFS(MemoryFileSystem):
-        protocol = 'testmem'
+        protocol = "testmem"
         test = [None]
 
         def __init__(self, **kwargs):
-            self.test[0] = kwargs.pop('test', None)
+            self.test[0] = kwargs.pop("test", None)
             super().__init__(**kwargs)
 
-    register_implementation('testmem', TestMemoryFS, True)
+    register_implementation("testmem", TestMemoryFS, True)
     return TestMemoryFS()

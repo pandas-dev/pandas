@@ -89,8 +89,7 @@ class PyArrowImpl(BaseImpl):
         path: FilePathOrBuffer[AnyStr],
         compression: Optional[str] = "snappy",
         index: Optional[bool] = None,
-        partition_cols=None,
-        storage_options=None,
+        storage_options: Optional[Dict[str, Any]] = None,
         partition_cols: Optional[List[str]] = None,
         **kwargs,
     ):
@@ -126,12 +125,18 @@ class PyArrowImpl(BaseImpl):
             # write to single output file
             self.api.parquet.write_table(table, path, compression=compression, **kwargs)
 
-    def read(self, path, columns=None, **kwargs):
+    def read(
+        self,
+        path,
+        columns=None,
+        storage_options: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ):
         if is_fsspec_url(path) and "filesystem" not in kwargs:
             import_optional_dependency("fsspec")
             import fsspec.core
 
-            fs, path = fsspec.core.url_to_fs(path)
+            fs, path = fsspec.core.url_to_fs(path, **(storage_options or {}))
             should_close = False
         else:
             fs = kwargs.pop("filesystem", None)
@@ -167,6 +172,7 @@ class FastParquetImpl(BaseImpl):
         compression="snappy",
         index=None,
         partition_cols=None,
+        storage_options: Optional[Dict[str, Any]] = None,
         **kwargs,
     ):
         self.validate_dataframe(df)
@@ -189,7 +195,9 @@ class FastParquetImpl(BaseImpl):
             fsspec = import_optional_dependency("fsspec")
 
             # if filesystem is provided by fsspec, file must be opened in 'wb' mode.
-            kwargs["open_with"] = lambda path, _: fsspec.open(path, "wb").open()
+            kwargs["open_with"] = lambda path, _: fsspec.open(
+                path, "wb", **(storage_options or {})
+            ).open()
         else:
             path, _, _, _ = get_filepath_or_buffer(path)
 
@@ -203,11 +211,19 @@ class FastParquetImpl(BaseImpl):
                 **kwargs,
             )
 
-    def read(self, path, columns=None, **kwargs):
+    def read(
+        self,
+        path,
+        columns=None,
+        storage_options: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ):
         if is_fsspec_url(path):
             fsspec = import_optional_dependency("fsspec")
 
-            open_with = lambda path, _: fsspec.open(path, "rb").open()
+            open_with = lambda path, _: fsspec.open(
+                path, "rb", **(storage_options or {})
+            ).open()
             parquet_file = self.api.ParquetFile(path, open_with=open_with)
         else:
             path, _, _, _ = get_filepath_or_buffer(path)

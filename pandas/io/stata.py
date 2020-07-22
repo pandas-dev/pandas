@@ -11,7 +11,7 @@ https://www.statsmodels.org/devel/
 """
 from collections import abc
 import datetime
-from io import BytesIO, IOBase
+from io import BytesIO
 import os
 from pathlib import Path
 import struct
@@ -1069,8 +1069,9 @@ class StataReader(StataParser, abc.Iterator):
         self._native_byteorder = _set_endianness(sys.byteorder)
         path_or_buf = stringify_path(path_or_buf)
         if isinstance(path_or_buf, str):
-            path_or_buf, encoding, _, should_close = get_filepath_or_buffer(path_or_buf,
-                                                                            storage_options=storage_options)
+            path_or_buf, encoding, _, should_close = get_filepath_or_buffer(
+                path_or_buf, storage_options=storage_options
+            )
 
         if isinstance(path_or_buf, (str, bytes)):
             self.path_or_buf = open(path_or_buf, "rb")

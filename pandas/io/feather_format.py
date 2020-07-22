@@ -4,7 +4,7 @@ from pandas.compat._optional import import_optional_dependency
 
 from pandas import DataFrame, Int64Index, RangeIndex
 
-from pandas.io.common import get_filepath_or_buffer, stringify_path
+from pandas.io.common import get_filepath_or_buffer
 
 
 def to_feather(df: DataFrame, path, storage_options=None, **kwargs):
@@ -24,7 +24,8 @@ def to_feather(df: DataFrame, path, storage_options=None, **kwargs):
     from pyarrow import feather
 
     path, _, _, should_close = get_filepath_or_buffer(
-        path, mode='wb', storage_options=storage_options)
+        path, mode="wb", storage_options=storage_options
+    )
 
     if not isinstance(df, DataFrame):
         raise ValueError("feather only support IO with DataFrames")
@@ -65,8 +66,7 @@ def to_feather(df: DataFrame, path, storage_options=None, **kwargs):
     feather.write_feather(df, path, **kwargs)
 
 
-def read_feather(path, columns=None, use_threads: bool = True,
-                 storage_options=None):
+def read_feather(path, columns=None, use_threads: bool = True, storage_options=None):
     """
     Load a feather-format object from the file path.
 
@@ -100,7 +100,9 @@ def read_feather(path, columns=None, use_threads: bool = True,
     import_optional_dependency("pyarrow")
     from pyarrow import feather
 
-    path, _, _, should_close = get_filepath_or_buffer(path, storage_options=storage_options)
+    path, _, _, should_close = get_filepath_or_buffer(
+        path, storage_options=storage_options
+    )
 
     df = feather.read_feather(path, columns=columns, use_threads=bool(use_threads))
 

@@ -54,7 +54,7 @@ class CSVFormatter:
         doublequote: bool = True,
         escapechar: Optional[str] = None,
         decimal=".",
-        storage_options: Optional[Dict[str, Any]] = None
+        storage_options: Optional[Dict[str, Any]] = None,
     ):
         self.obj = obj
 
@@ -65,8 +65,11 @@ class CSVFormatter:
         compression, self.compression_args = get_compression_method(compression)
 
         self.path_or_buf, _, _, self.should_close = get_filepath_or_buffer(
-            path_or_buf, encoding=encoding, compression=compression, mode=mode,
-            storage_options=storage_options
+            path_or_buf,
+            encoding=encoding,
+            compression=compression,
+            mode=mode,
+            storage_options=storage_options,
         )
         self.sep = sep
         self.na_rep = na_rep

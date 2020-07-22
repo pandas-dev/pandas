@@ -3010,6 +3010,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         escapechar: Optional[str] = None,
         decimal: Optional[str] = ".",
         errors: str = "strict",
+        storage_options: Optional[Dict[str, Any]] = None,
     ) -> Optional[str]:
         r"""
         Write object to a comma-separated values (csv) file.
@@ -3163,6 +3164,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             doublequote=doublequote,
             escapechar=escapechar,
             decimal=decimal,
+            storage_options=storage_options,
         )
         formatter.save()
 

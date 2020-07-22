@@ -14,7 +14,7 @@ def to_pickle(
     filepath_or_buffer: FilePathOrBuffer,
     compression: Optional[str] = "infer",
     protocol: int = pickle.HIGHEST_PROTOCOL,
-    storage_options: Optional[Dict[str, Any]] = None
+    storage_options: Optional[Dict[str, Any]] = None,
 ):
     """
     Pickle (serialize) object to file.
@@ -77,8 +77,10 @@ def to_pickle(
     >>> os.remove("./dummy.pkl")
     """
     fp_or_buf, _, compression, should_close = get_filepath_or_buffer(
-        filepath_or_buffer, compression=compression, mode="wb",
-        storage_options=storage_options
+        filepath_or_buffer,
+        compression=compression,
+        mode="wb",
+        storage_options=storage_options,
     )
     if not isinstance(fp_or_buf, str) and compression == "infer":
         compression = None
@@ -99,8 +101,9 @@ def to_pickle(
 
 
 def read_pickle(
-    filepath_or_buffer: FilePathOrBuffer, compression: Optional[str] = "infer",
-    storage_options: Optional[Dict[str, Any]] = None
+    filepath_or_buffer: FilePathOrBuffer,
+    compression: Optional[str] = "infer",
+    storage_options: Optional[Dict[str, Any]] = None,
 ):
     """
     Load pickled pandas object (or any object) from file.
