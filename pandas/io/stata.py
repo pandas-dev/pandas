@@ -35,7 +35,7 @@ import numpy as np
 
 from pandas._libs.lib import infer_dtype
 from pandas._libs.writers import max_len_string_array
-from pandas._typing import FilePathOrBuffer, IO, Label
+from pandas._typing import IO, FilePathOrBuffer, Label
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
@@ -1077,8 +1077,8 @@ class StataReader(StataParser, abc.Iterator):
             self.path_or_buf = open(path_or_buf, "rb")
         elif hasattr(path_or_buf, "read"):
             # Copy to BytesIO, and ensure no encoding
-            assert isinstance(path_or_buf, IO)
-            contents = path_or_buf.read()
+            pb: Any = path_or_buf
+            contents = pb.read()
             self.path_or_buf = BytesIO(contents)
 
         self._read_header()
