@@ -442,7 +442,6 @@ b &       b &     b \\
         # GH 25436
         the_caption = "a table in a \\texttt{table/tabular} environment"
         the_label = "tab:table_tabular"
-        the_position = "h"
 
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
 
@@ -482,23 +481,6 @@ b &       b &     b \\
 """
         assert result_l == expected_l
 
-        # test when only the label is provided
-        result_p = df.to_latex(position=the_position)
-
-        expected_p = r"""\begin{table}[h]
-\centering
-\begin{tabular}{lrl}
-\toprule
-{} &  a &   b \\
-\midrule
-0 &  1 &  b1 \\
-1 &  2 &  b2 \\
-\bottomrule
-\end{tabular}
-\end{table}
-"""
-        assert result_p == expected_p
-
         # test when the caption and the label are provided
         result_cl = df.to_latex(caption=the_caption, label=the_label)
 
@@ -522,7 +504,6 @@ b &       b &     b \\
         # GH 25436
         the_caption = "a table in a \\texttt{longtable} environment"
         the_label = "tab:longtable"
-        the_position = "t"
 
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
 
@@ -570,27 +551,6 @@ b &       b &     b \\
 """
         assert result_l == expected_l
 
-        # test when only the caption is provided
-        result_p = df.to_latex(longtable=True, position=the_position)
-
-        expected_p = r"""\begin{longtable}[t]{lrl}
-\toprule
-{} &  a &   b \\
-\midrule
-\endhead
-\midrule
-\multicolumn{3}{r}{{Continued on next page}} \\
-\midrule
-\endfoot
-
-\bottomrule
-\endlastfoot
-0 &  1 &  b1 \\
-1 &  2 &  b2 \\
-\end{longtable}
-"""
-        assert result_p == expected_p
-
         # test when the caption and the label are provided
         result_cl = df.to_latex(longtable=True, caption=the_caption, label=the_label)
 
@@ -612,6 +572,54 @@ b &       b &     b \\
 \end{longtable}
 """
         assert result_cl == expected_cl
+
+    def test_to_latex_position(self):
+        the_position = "h"
+
+        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+
+        # test when only the position is provided
+        result_p = df.to_latex(position=the_position)
+
+        expected_p = r"""\begin{table}[h]
+\centering
+\begin{tabular}{lrl}
+\toprule
+{} &  a &   b \\
+\midrule
+0 &  1 &  b1 \\
+1 &  2 &  b2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+"""
+        assert result_p == expected_p
+
+    def test_to_latex_longtable_position(self):
+        the_position = "t"
+
+        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+
+        # test when only the position is provided
+        result_p = df.to_latex(longtable=True, position=the_position)
+
+        expected_p = r"""\begin{longtable}[t]{lrl}
+\toprule
+{} &  a &   b \\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r}{{Continued on next page}} \\
+\midrule
+\endfoot
+
+\bottomrule
+\endlastfoot
+0 &  1 &  b1 \\
+1 &  2 &  b2 \\
+\end{longtable}
+"""
+        assert result_p == expected_p
 
     def test_to_latex_escape_special_chars(self):
         special_characters = ["&", "%", "$", "#", "_", "{", "}", "~", "^", "\\"]
