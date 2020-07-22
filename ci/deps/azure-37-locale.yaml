@@ -1,5 +1,6 @@
-name: pandas-dev
+name: pandas-test
 channels:
+  - defaults
   - conda-forge
 dependencies:
   - python=3.7.*
@@ -18,12 +19,14 @@ dependencies:
   - ipython
   - jinja2
   - lxml
-  - matplotlib <3.3.0
-  - moto
+  - matplotlib=3.0.*
   - nomkl
   - numexpr
-  - numpy
+  - numpy=1.16.*
   - openpyxl
+  # lowest supported version of pyarrow (putting it here instead of in
+  # azure-36-minimum_versions because it needs numpy >= 1.14)
+  - pyarrow=0.13
   - pytables
   - python-dateutil
   - pytz
@@ -32,7 +35,4 @@ dependencies:
   - xlrd
   - xlsxwriter
   - xlwt
-  - pyarrow>=0.15
-  - pip
-  - pip:
-    - pyxlsb
+  - moto
