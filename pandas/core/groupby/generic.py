@@ -39,7 +39,6 @@ from pandas.core.dtypes.cast import (
     maybe_cast_result_dtype,
     maybe_convert_objects,
     maybe_downcast_numeric,
-    maybe_downcast_to_dtype,
 )
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -535,26 +534,25 @@ class SeriesGroupBy(GroupBy[Series]):
             if isinstance(res, (ABCDataFrame, ABCSeries)):
                 res = res._values
 
-            indexer = self._get_index(name)
-            ser = klass(res, indexer)
-            results.append(ser)
+            results.append(klass(res, index=group.index))
 
         # check for empty "results" to avoid concat ValueError
         if results:
             from pandas.core.reshape.concat import concat
 
-            result = concat(results).sort_index()
+            concatenated = concat(results)
+            result = self._set_result_index_ordered(concatenated)
         else:
             result = self.obj._constructor(dtype=np.float64)
-
         # we will only try to coerce the result type if
         # we have a numeric dtype, as these are *always* user-defined funcs
         # the cython take a different path (and casting)
-        # make sure we don't accidentally upcast (GH35014)
-        types = ["bool", "int32", "int64", "float32", "float64"]
-        dtype = self._selected_obj.dtype
-        if is_numeric_dtype(dtype) and types.index(dtype) < types.index(result.dtype):
-            result = maybe_downcast_to_dtype(result, dtype)
+        if is_numeric_dtype(result.dtype):
+            common_dtype = np.find_common_type(
+                [self._selected_obj.dtype, result.dtype], []
+            )
+            if common_dtype is result.dtype:
+                result = maybe_downcast_numeric(result, self._selected_obj.dtype)
 
         result.name = self._selected_obj.name
         result.index = self._selected_obj.index

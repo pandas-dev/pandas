@@ -246,31 +246,11 @@ def array_with_unit_to_datetime(
             if ((fvalues < Timestamp.min.value).any()
                     or (fvalues > Timestamp.max.value).any()):
                 raise OutOfBoundsDatetime(f"cannot convert input with unit '{unit}'")
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 7df44d10f... revert accidental changes
             result = (iresult * m).astype('M8[ns]')
             iresult = result.view('i8')
             iresult[mask] = NPY_NAT
             return result, tz
 
-<<<<<<< HEAD
-=======
-            # GH20445
-            if values.dtype.kind == 'i':
-                result = (iresult * m).astype('M8[ns]')
-                iresult = result.view('i8')
-                iresult[mask] = NPY_NAT
-                return result, tz
-            elif values.dtype.kind == 'f':
-                result = (fresult * m_as_float).astype('M8[ns]')
-                fresult = result.view('f8')
-                fresult[mask] = NPY_NAT
-                return result, tz
->>>>>>> f1ae8f562... _libs/tslib.pyx added comments
-=======
->>>>>>> 7df44d10f... revert accidental changes
     result = np.empty(n, dtype='M8[ns]')
     iresult = result.view('i8')
 

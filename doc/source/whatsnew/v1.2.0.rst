@@ -109,7 +109,7 @@ Indexing
 Missing
 ^^^^^^^
 
--
+- Bug in :meth:`SeriesGroupBy.transform` now correctly handles missing values for `dropna=False` (:issue:`35014`)
 -
 
 MultiIndex
