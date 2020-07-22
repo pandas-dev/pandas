@@ -35,7 +35,7 @@ import numpy as np
 
 from pandas._libs.lib import infer_dtype
 from pandas._libs.writers import max_len_string_array
-from pandas._typing import IO, FilePathOrBuffer, Label
+from pandas._typing import FilePathOrBuffer, Label
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
