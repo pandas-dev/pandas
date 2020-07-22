@@ -5,10 +5,10 @@ from pandas import (
     DataFrame,
     date_range,
     read_csv,
-    read_parquet,
     read_feather,
-    read_pickle,
     read_json,
+    read_parquet,
+    read_pickle,
 )
 import pandas._testing as tm
 from pandas.util import _test_decorators as td
@@ -45,8 +45,8 @@ def test_read_csv(cleared_fs):
 
 
 def test_reasonable_error(monkeypatch, cleared_fs):
-    from fsspec.registry import known_implementations
     from fsspec import registry
+    from fsspec.registry import known_implementations
 
     registry.target.clear()
     with pytest.raises(ValueError) as e:
