@@ -1419,7 +1419,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ),
     )
     def to_markdown(
-        self, buf: Optional[IO[str]] = None, mode: Optional[str] = None, **kwargs
+        self,
+        buf: Optional[IO[str]] = None,
+        mode: Optional[str] = None,
+        index: bool = True,
+        **kwargs,
     ) -> Optional[str]:
         """
         Print {klass} in Markdown-friendly format.
@@ -1432,6 +1436,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Buffer to write to. If None, the output is returned as a string.
         mode : str, optional
             Mode in which file is opened.
+        index : bool, optional, default True
+            Add index (row) labels.
+
+            .. versionadded:: 1.1.0
+
         **kwargs
             These parameters will be passed to `tabulate \
                 <https://pypi.org/project/tabulate>`_.
@@ -1467,7 +1476,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         |  3 | quetzal  |
         +----+----------+
         """
-        return self.to_frame().to_markdown(buf, mode, **kwargs)
+        return self.to_frame().to_markdown(buf, mode, index, **kwargs)
 
     # ----------------------------------------------------------------------
 
@@ -4016,9 +4025,14 @@ Keep all original rows and also all original values
         examples=_agg_examples_doc,
         versionadded="\n.. versionadded:: 0.20.0\n",
     )
-    def aggregate(self, func, axis=0, *args, **kwargs):
+    def aggregate(self, func=None, axis=0, *args, **kwargs):
         # Validate the axis parameter
         self._get_axis_number(axis)
+
+        # if func is None, will switch to user-provided "named aggregation" kwargs
+        if func is None:
+            func = dict(kwargs.items())
+
         result, how = self._aggregate(func, *args, **kwargs)
         if result is None:
 

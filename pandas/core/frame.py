@@ -19,6 +19,7 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
+    AnyStr,
     Dict,
     FrozenSet,
     Hashable,
@@ -114,9 +115,11 @@ from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 from pandas.core import algorithms, common as com, nanops, ops
 from pandas.core.accessor import CachedAccessor
+from pandas.core.aggregation import reconstruct_func, relabel_result
 from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin as DatetimeLikeArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
+from pandas.core.construction import extract_array
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import Index, ensure_index, ensure_index_from_sequences
@@ -519,25 +522,43 @@ class DataFrame(NDFrame):
                     mgr = init_ndarray(data, index, columns, dtype=dtype, copy=copy)
             else:
                 mgr = init_dict({}, index, columns, dtype=dtype)
+        # For data is scalar
         else:
-            try:
-                arr = np.array(data, dtype=dtype, copy=copy)
-            except (ValueError, TypeError) as err:
-                exc = TypeError(
-                    "DataFrame constructor called with "
-                    f"incompatible data and dtype: {err}"
-                )
-                raise exc from err
+            if index is None or columns is None:
+                raise ValueError("DataFrame constructor not properly called!")
 
-            if arr.ndim == 0 and index is not None and columns is not None:
+            if not dtype:
+                dtype, _ = infer_dtype_from_scalar(data, pandas_dtype=True)
+
+            # For data is a scalar extension dtype
+            if is_extension_array_dtype(dtype):
+
+                values = [
+                    construct_1d_arraylike_from_scalar(data, len(index), dtype)
+                    for _ in range(len(columns))
+                ]
+                mgr = arrays_to_mgr(values, columns, index, columns, dtype=None)
+            else:
+                # Attempt to coerce to a numpy array
+                try:
+                    arr = np.array(data, dtype=dtype, copy=copy)
+                except (ValueError, TypeError) as err:
+                    exc = TypeError(
+                        "DataFrame constructor called with "
+                        f"incompatible data and dtype: {err}"
+                    )
+                    raise exc from err
+
+                if arr.ndim != 0:
+                    raise ValueError("DataFrame constructor not properly called!")
+
                 values = cast_scalar_to_array(
                     (len(index), len(columns)), data, dtype=dtype
                 )
+
                 mgr = init_ndarray(
                     values, index, columns, dtype=values.dtype, copy=False
                 )
-            else:
-                raise ValueError("DataFrame constructor not properly called!")
 
         NDFrame.__init__(self, mgr)
 
@@ -2217,11 +2238,24 @@ class DataFrame(NDFrame):
         """,
     )
     def to_markdown(
-        self, buf: Optional[IO[str]] = None, mode: Optional[str] = None,
-            storage_options: Optional[Dict[str, Any]] = None, **kwargs
+        self,
+        buf: Optional[IO[str]] = None,
+        mode: Optional[str] = None,
+        index: bool = True,
+        storage_options: Optional[Dict[str, Any]] = None,
+        **kwargs,
     ) -> Optional[str]:
+        if "showindex" in kwargs:
+            warnings.warn(
+                "'showindex' is deprecated. Only 'index' will be used "
+                "in a future version. Use 'index' to silence this warning.",
+                FutureWarning,
+                stacklevel=2,
+            )
+
         kwargs.setdefault("headers", "keys")
         kwargs.setdefault("tablefmt", "pipe")
+        kwargs.setdefault("showindex", index)
         tabulate = import_optional_dependency("tabulate")
         result = tabulate.tabulate(self, **kwargs)
         if buf is None:
@@ -2235,11 +2269,11 @@ class DataFrame(NDFrame):
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_parquet(
         self,
-        path,
-        engine="auto",
-        compression="snappy",
-        index=None,
-        partition_cols=None,
+        path: FilePathOrBuffer[AnyStr],
+        engine: str = "auto",
+        compression: Optional[str] = "snappy",
+        index: Optional[bool] = None,
+        partition_cols: Optional[List[str]] = None,
         storage_options: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> None:
@@ -2253,9 +2287,12 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        path : str
-            File path or Root Directory path. Will be used as Root Directory
-            path while writing a partitioned dataset.
+        path : str or file-like object
+            If a string, it will be used as Root Directory path
+            when writing a partitioned dataset. By file-like object,
+            we refer to objects with a write() method, such as a file handler
+            (e.g. via builtin open function) or io.BytesIO. The engine
+            fastparquet does not accept file-like objects.
 
             .. versionchanged:: 1.0.0
 
@@ -2282,6 +2319,7 @@ class DataFrame(NDFrame):
         partition_cols : list, optional, default None
             Column names by which to partition the dataset.
             Columns are partitioned in the order they are given.
+            Must be None if path is not a string.
 
             .. versionadded:: 0.24.0
 
@@ -3743,7 +3781,13 @@ class DataFrame(NDFrame):
             infer_dtype, _ = infer_dtype_from_scalar(value, pandas_dtype=True)
 
             # upcast
-            value = cast_scalar_to_array(len(self.index), value)
+            if is_extension_array_dtype(infer_dtype):
+                value = construct_1d_arraylike_from_scalar(
+                    value, len(self.index), infer_dtype
+                )
+            else:
+                value = cast_scalar_to_array(len(self.index), value)
+
             value = maybe_cast_to_datetime(value, infer_dtype)
 
         # return internal types directly
@@ -7305,8 +7349,10 @@ NaN 12.3   33.0
         examples=_agg_examples_doc,
         versionadded="\n.. versionadded:: 0.20.0\n",
     )
-    def aggregate(self, func, axis=0, *args, **kwargs):
+    def aggregate(self, func=None, axis=0, *args, **kwargs):
         axis = self._get_axis_number(axis)
+
+        relabeling, func, columns, order = reconstruct_func(func, **kwargs)
 
         result = None
         try:
@@ -7319,6 +7365,13 @@ NaN 12.3   33.0
             raise exc from err
         if result is None:
             return self.apply(func, axis=axis, args=args, **kwargs)
+
+        if relabeling:
+            # This is to keep the order to columns occurrence unchanged, and also
+            # keep the order of new columns occurrence unchanged
+            result_in_dict = relabel_result(result, func, columns, order)
+            result = DataFrame(result_in_dict, index=columns)
+
         return result
 
     def _aggregate(self, arg, axis=0, *args, **kwargs):
@@ -8469,7 +8522,14 @@ NaN 12.3   33.0
         return result
 
     def _reduce(
-        self, op, name, axis=0, skipna=True, numeric_only=None, filter_type=None, **kwds
+        self,
+        op,
+        name: str,
+        axis=0,
+        skipna=True,
+        numeric_only=None,
+        filter_type=None,
+        **kwds,
     ):
 
         assert filter_type is None or filter_type == "bool", filter_type
@@ -8501,8 +8561,11 @@ NaN 12.3   33.0
             labels = self._get_agg_axis(axis)
             constructor = self._constructor
 
-        def f(x):
-            return op(x, axis=axis, skipna=skipna, **kwds)
+        def func(values):
+            if is_extension_array_dtype(values.dtype):
+                return extract_array(values)._reduce(name, skipna=skipna, **kwds)
+            else:
+                return op(values, axis=axis, skipna=skipna, **kwds)
 
         def _get_data(axis_matters):
             if filter_type is None:
@@ -8549,7 +8612,7 @@ NaN 12.3   33.0
                 out[:] = coerce_to_dtypes(out.values, df.dtypes)
             return out
 
-        if not self._is_homogeneous_type:
+        if not self._is_homogeneous_type or self._mgr.any_extension_types:
             # try to avoid self.values call
 
             if filter_type is None and axis == 0 and len(self) > 0:
@@ -8569,7 +8632,7 @@ NaN 12.3   33.0
                 from pandas.core.apply import frame_apply
 
                 opa = frame_apply(
-                    self, func=f, result_type="expand", ignore_failures=True
+                    self, func=func, result_type="expand", ignore_failures=True
                 )
                 result = opa.get_result()
                 if result.ndim == self.ndim:
@@ -8581,7 +8644,7 @@ NaN 12.3   33.0
             values = data.values
 
             try:
-                result = f(values)
+                result = func(values)
 
             except TypeError:
                 # e.g. in nanops trying to convert strs to float
@@ -8592,7 +8655,7 @@ NaN 12.3   33.0
 
                 values = data.values
                 with np.errstate(all="ignore"):
-                    result = f(values)
+                    result = func(values)
 
         else:
             if numeric_only:
@@ -8603,7 +8666,7 @@ NaN 12.3   33.0
             else:
                 data = self
                 values = data.values
-            result = f(values)
+            result = func(values)
 
         if filter_type == "bool" and is_object_dtype(values) and axis is None:
             # work around https://github.com/numpy/numpy/issues/10489
