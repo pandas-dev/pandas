@@ -338,7 +338,7 @@ Other enhancements
 - :meth:`read_csv` now accepts string values like "0", "0.0", "1", "1.0" as convertible to the nullable boolean dtype (:issue:`34859`)
 - :class:`pandas.core.window.ExponentialMovingWindow` now supports a ``times`` argument that allows ``mean`` to be calculated with observations spaced by the timestamps in ``times`` (:issue:`34839`)
 - :meth:`DataFrame.agg` and :meth:`Series.agg` now accept named aggregation for renaming the output columns/indexes. (:issue:`26513`)
-- ``compute.use_numba`` now exists as a configuration option that utilizes the numba engine when available (:issue:`33966`)
+- ``compute.use_numba`` now exists as a configuration option that utilizes the numba engine when available (:issue:`33966`, :issue:`35374`)
 - :meth:`Series.plot` now supports asymmetric error bars. Previously, if :meth:`Series.plot` received a "2xN" array with error values for `yerr` and/or `xerr`, the left/lower values (first row) were mirrored, while the right/upper values (second row) were ignored. Now, the first row represents the left/lower error values and the second row the right/upper error values. (:issue:`9536`)
 
 .. ---------------------------------------------------------------------------
