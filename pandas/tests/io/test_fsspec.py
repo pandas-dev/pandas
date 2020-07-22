@@ -1,7 +1,15 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, date_range, read_csv, read_parquet
+from pandas import (
+    DataFrame,
+    date_range,
+    read_csv,
+    read_parquet,
+    read_feather,
+    read_pickle,
+    read_json,
+)
 import pandas._testing as tm
 from pandas.util import _test_decorators as td
 
@@ -148,3 +156,31 @@ def test_not_present_exception():
     with pytest.raises(ImportError) as e:
         read_csv("memory://test/test.csv")
         assert "fsspec library is required" in str(e.value)
+
+
+@td.skip_if_no("pyarrow")
+def test_feather_options(fsspectest):
+    df = DataFrame({"a": [0]})
+    df.to_feather("testmem://afile", storage_options={"test": "feather_write"})
+    assert fsspectest.test[0] == "feather_write"
+    out = read_feather("testmem://afile", storage_options={"test": "feather_read"})
+    assert fsspectest.test[0] == "feather_read"
+    tm.assert_frame_equal(df, out)
+
+
+def test_pickle_options(fsspectest):
+    df = DataFrame({"a": [0]})
+    df.to_pickle("testmem://afile", storage_options={"test": "pickle_write"})
+    assert fsspectest.test[0] == "pickle_write"
+    out = read_pickle("testmem://afile", storage_options={"test": "pickle_read"})
+    assert fsspectest.test[0] == "pickle_read"
+    tm.assert_frame_equal(df, out)
+
+
+def test_json_options(fsspectest):
+    df = DataFrame({"a": [0]})
+    df.to_json("testmem://afile", storage_options={"test": "json_write"})
+    assert fsspectest.test[0] == "json_write"
+    out = read_json("testmem://afile", storage_options={"test": "json_read"})
+    assert fsspectest.test[0] == "json_read"
+    tm.assert_frame_equal(df, out)

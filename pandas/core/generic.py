@@ -2042,6 +2042,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         compression: Optional[str] = "infer",
         index: bool_t = True,
         indent: Optional[int] = None,
+        storage_options: Optional[Dict[str, Any]] = None,
     ) -> Optional[str]:
         """
         Convert the object to a JSON string.
@@ -2303,6 +2304,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             compression=compression,
             index=index,
             indent=indent,
+            storage_options=storage_options,
         )
 
     def to_hdf(
@@ -2617,6 +2619,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         path,
         compression: Optional[str] = "infer",
         protocol: int = pickle.HIGHEST_PROTOCOL,
+        storage_options: Optional[Dict[str, Any]] = None,
     ) -> None:
         """
         Pickle (serialize) object to file.
@@ -2670,7 +2673,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         from pandas.io.pickle import to_pickle
 
-        to_pickle(self, path, compression=compression, protocol=protocol)
+        to_pickle(
+            self,
+            path,
+            compression=compression,
+            protocol=protocol,
+            storage_options=storage_options,
+        )
 
     def to_clipboard(
         self, excel: bool_t = True, sep: Optional[str] = None, **kwargs

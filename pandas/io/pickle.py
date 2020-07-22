@@ -1,9 +1,9 @@
 """ pickle compat """
 import pickle
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 import warnings
 
-from pandas._typing import Dict, FilePathOrBuffer
+from pandas._typing import FilePathOrBuffer
 from pandas.compat import pickle_compat as pc
 from pandas.io.common import get_filepath_or_buffer, get_handle
 

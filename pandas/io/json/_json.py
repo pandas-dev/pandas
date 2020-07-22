@@ -53,7 +53,7 @@ def to_json(
         )
 
     if path_or_buf is not None:
-        path_or_buf, _, _, _ = get_filepath_or_buffer(
+        path_or_buf, _, _, should_close = get_filepath_or_buffer(
             path_or_buf,
             compression=compression,
             mode="w",
@@ -101,6 +101,8 @@ def to_json(
         return s
     else:
         path_or_buf.write(s)
+        if should_close:
+            path_or_buf.close()
 
 
 class Writer:
