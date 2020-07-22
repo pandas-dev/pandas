@@ -1283,6 +1283,10 @@ class _MergeOperation:
                 raise MergeError(
                     "Merge keys are not unique in left dataset; not a one-to-many merge"
                 )
+            elif right_unique:
+                raise MergeError(
+                    "Merge keys are unique in right dataset; not a one-to-many merge"
+                )
 
         elif validate in ["many_to_one", "m:1"]:
             if not right_unique:
@@ -1290,17 +1294,19 @@ class _MergeOperation:
                     "Merge keys are not unique in right dataset; "
                     "not a many-to-one merge"
                 )
+            elif left_unique:
+                raise MergeError(
+                    "Merge keys are unique in left dataset; not a many-to-one merge"
+                )
 
         elif validate in ["many_to_many", "m:m"]:
             if left_unique:
                 raise MergeError(
-                    "Merge keys are unique in the left dataset;"
-                    "not a many-to-many merge"
+                    "Merge keys are unique in left dataset; not a many-to-many merge"
                 )
             elif right_unique:
                 raise MergeError(
-                    "Merge keys are unique in the right dataset;"
-                    "not a many-to-many merge"
+                    "Merge keys are unique in right dataset; not a many-to-many merge"
                 )
 
         else:
