@@ -3,7 +3,7 @@ import functools
 from io import BytesIO, StringIO
 from itertools import islice
 import os
-from typing import Any, Callable, Optional, Type, Dict
+from typing import Any, Callable, Dict, Optional, Type
 
 import numpy as np
 

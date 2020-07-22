@@ -5,14 +5,14 @@ Module for formatting output data into CSV files.
 import csv as csvlib
 from io import StringIO
 import os
-from typing import Hashable, List, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, Hashable, List, Mapping, Optional, Sequence, Union
 import warnings
 from zipfile import ZipFile
 
 import numpy as np
 
 from pandas._libs import writers as libwriters
-from pandas._typing import FilePathOrBuffer, Dict, Any
+from pandas._typing import FilePathOrBuffer
 
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,

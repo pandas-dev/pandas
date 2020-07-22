@@ -3,9 +3,8 @@ import pickle
 from typing import Any, Optional
 import warnings
 
-from pandas._typing import FilePathOrBuffer, Dict
+from pandas._typing import Dict, FilePathOrBuffer
 from pandas.compat import pickle_compat as pc
-
 from pandas.io.common import get_filepath_or_buffer, get_handle
 
 

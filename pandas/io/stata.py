@@ -1076,6 +1076,7 @@ class StataReader(StataParser, abc.Iterator):
         if isinstance(path_or_buf, (str, bytes)):
             self.path_or_buf = open(path_or_buf, "rb")
         elif hasattr(path_or_buf, "read"):
+            assert not isinstance(path_or_buf, str)  # appease typing
             # Copy to BytesIO, and ensure no encoding
             contents = path_or_buf.read()
             self.path_or_buf = BytesIO(contents)
