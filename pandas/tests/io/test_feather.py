@@ -186,3 +186,12 @@ class TestFeather:
         expected = pd.read_feather(feather_file)
         res = pd.read_feather(url)
         tm.assert_frame_equal(expected, res)
+
+
+def test_fsspec_options(fsspectest):
+    df = pd.DataFrame({'a': [0]})
+    df.to_feather('testmem://afile', storage_options={'test': 'feather_write'})
+    assert fsspectest.test[0] == "feather_write"
+    out = pd.read_feather('testmem://afile', storage_options={'test': 'feather_read'})
+    assert fsspectest.test[0] == "feather_read"
+    tm.assert_frame_equal(df, out)

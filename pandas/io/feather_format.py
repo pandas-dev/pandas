@@ -7,7 +7,7 @@ from pandas import DataFrame, Int64Index, RangeIndex
 from pandas.io.common import get_filepath_or_buffer, stringify_path
 
 
-def to_feather(df: DataFrame, path, **kwargs):
+def to_feather(df: DataFrame, path, storage_options=None, **kwargs):
     """
     Write a DataFrame to the binary Feather format.
 
@@ -23,7 +23,8 @@ def to_feather(df: DataFrame, path, **kwargs):
     import_optional_dependency("pyarrow")
     from pyarrow import feather
 
-    path = stringify_path(path)
+    path, _, _, should_close = get_filepath_or_buffer(
+        path, mode='wb', storage_options=storage_options)
 
     if not isinstance(df, DataFrame):
         raise ValueError("feather only support IO with DataFrames")
