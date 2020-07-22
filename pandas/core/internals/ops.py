@@ -1,3 +1,4 @@
+from collections import namedtuple
 from typing import TYPE_CHECKING, List, Tuple
 
 import numpy as np
@@ -7,6 +8,11 @@ from pandas._typing import ArrayLike
 if TYPE_CHECKING:
     from pandas.core.internals.managers import BlockManager  # noqa:F401
     from pandas.core.internals.blocks import Block  # noqa:F401
+
+
+BlockPairInfo = namedtuple(
+    "BlockPairInfo", ["lvals", "rvals", "locs", "left_ea", "right_ea", "rblk"],
+)
 
 
 def _iter_block_pairs(left: "BlockManager", right: "BlockManager"):
@@ -31,7 +37,8 @@ def _iter_block_pairs(left: "BlockManager", right: "BlockManager"):
             right_ea = not isinstance(rblk.values, np.ndarray)
 
             lvals, rvals = _get_same_shape_values(blk, rblk, left_ea, right_ea)
-            yield lvals, rvals, locs, left_ea, right_ea, rblk
+            info = BlockPairInfo(lvals, rvals, locs, left_ea, right_ea, rblk)
+            yield info
 
 
 def operate_blockwise(
@@ -115,8 +122,8 @@ def blockwise_all(left: "BlockManager", right: "BlockManager", op) -> bool:
     """
     Blockwise `all` reduction.
     """
-    for lvals, rvals, _, _, _, _ in _iter_block_pairs(left, right):
-        res = op(lvals, rvals)
+    for info in _iter_block_pairs(left, right):
+        res = op(info.lvals, info.rvals)
         if not res:
             return False
     return True
