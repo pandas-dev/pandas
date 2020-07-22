@@ -1292,7 +1292,16 @@ class _MergeOperation:
                 )
 
         elif validate in ["many_to_many", "m:m"]:
-            pass
+            if left_unique:
+                raise MergeError(
+                    "Merge keys are unique in the left dataset;"
+                    "not a many-to-many merge"
+                )
+            elif right_unique:
+                raise MergeError(
+                    "Merge keys are unique in the right dataset;"
+                    "not a many-to-many merge"
+                )
 
         else:
             raise ValueError("Not a valid argument for validate")
