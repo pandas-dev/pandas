@@ -1563,6 +1563,7 @@ class TestDataFramePlots(TestPlotBase):
             ax.xaxis.get_ticklocs(), np.arange(1, len(numeric_cols) + 1)
         )
         assert len(ax.lines) == self.bp_n_objects * len(numeric_cols)
+        tm.close()
 
         axes = series.plot.box(rot=40)
         self._check_ticks_props(axes, xrot=40, yrot=0)
