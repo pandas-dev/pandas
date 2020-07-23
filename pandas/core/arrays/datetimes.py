@@ -2398,6 +2398,7 @@ def generate_range(start=None, end=None, periods=None, offset=BDay()):
 
     elif end and not offset.is_on_offset(end):
         end = offset.rollback(end)
+        # https://github.com/pandas-dev/pandas/issues/35342
         end = Timestamp(str(end).split(' ')[0] + ' 23:59:59')
 
     if periods is None and end < start and offset.n >= 0:
