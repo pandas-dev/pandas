@@ -156,9 +156,6 @@ class TestDateTimeConverter:
         rs = self.dtc.convert(date(2012, 1, 1), None, None)
         assert rs == xp
 
-        # rs = self.dtc.convert(datetime(2012, 1, 1).toordinal(), None, None)
-        # assert rs == xp
-
         rs = self.dtc.convert("2012-1-1", None, None)
         assert rs == xp
 
