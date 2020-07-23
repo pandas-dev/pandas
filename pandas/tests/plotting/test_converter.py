@@ -2,7 +2,6 @@ from datetime import date, datetime
 import subprocess
 import sys
 
-from matplotlib import dates
 import numpy as np
 import pytest
 
@@ -28,6 +27,7 @@ except ImportError:
     pass
 
 pytest.importorskip("matplotlib.pyplot")
+dates = pytest.importorskip("matplotlib.dates")
 
 
 def test_registry_mpl_resets():
