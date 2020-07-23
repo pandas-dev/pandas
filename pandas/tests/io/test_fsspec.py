@@ -196,3 +196,10 @@ def test_stata_options(fsspectest):
     out = read_stata("testmem://afile", storage_options={"test": "stata_read"})
     assert fsspectest.test[0] == "stata_read"
     tm.assert_frame_equal(df, out.astype("int64"))
+
+
+def test_markdown_options(fsspectest):
+    df = DataFrame({"a": [0]})
+    df.to_markdown("testmem://afile", storage_options={"test": "md_write"})
+    assert fsspectest.test[0] == "md_write"
+    assert fsspectest.cat("afile")

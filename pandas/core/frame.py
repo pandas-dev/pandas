@@ -2241,8 +2241,8 @@ class DataFrame(NDFrame):
     )
     def to_markdown(
         self,
-        buf: Optional[IO[str]] = None,
-        mode: Optional[str] = None,
+        buf: Optional[Union[IO[str], str]] = None,
+        mode: Optional[str] = "wt",
         index: bool = True,
         storage_options: Optional[Dict[str, Any]] = None,
         **kwargs,
@@ -2262,11 +2262,14 @@ class DataFrame(NDFrame):
         result = tabulate.tabulate(self, **kwargs)
         if buf is None:
             return result
-        buf, _, _, _ = get_filepath_or_buffer(
+        buf, _, _, should_close = get_filepath_or_buffer(
             buf, mode=mode, storage_options=storage_options
         )
         assert buf is not None  # Help mypy.
+        assert not isinstance(buf, str)
         buf.writelines(result)
+        if should_close:
+            buf.close()
         return None
 
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
