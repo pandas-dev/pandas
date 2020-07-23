@@ -198,6 +198,7 @@ def test_stata_options(fsspectest):
     tm.assert_frame_equal(df, out.astype("int64"))
 
 
+@td.skip_if_no("tabulate")
 def test_markdown_options(fsspectest):
     df = DataFrame({"a": [0]})
     df.to_markdown("testmem://afile", storage_options={"test": "md_write"})
