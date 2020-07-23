@@ -244,12 +244,7 @@ class XportReader(ReaderBase, abc.Iterator):
     __doc__ = _xport_reader_doc
 
     def __init__(
-        self,
-        filepath_or_buffer,
-        index=None,
-        encoding="ISO-8859-1",
-        chunksize=None,
-        storage_options=None,
+        self, filepath_or_buffer, index=None, encoding="ISO-8859-1", chunksize=None,
     ):
 
         self._encoding = encoding
@@ -263,9 +258,7 @@ class XportReader(ReaderBase, abc.Iterator):
                 encoding,
                 compression,
                 should_close,
-            ) = get_filepath_or_buffer(
-                filepath_or_buffer, encoding=encoding, storage_options=storage_options
-            )
+            ) = get_filepath_or_buffer(filepath_or_buffer, encoding=encoding)
 
         if isinstance(filepath_or_buffer, (str, bytes)):
             self.filepath_or_buffer = open(filepath_or_buffer, "rb")
