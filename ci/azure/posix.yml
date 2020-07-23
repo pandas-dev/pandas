@@ -35,13 +35,13 @@ jobs:
           CONDA_PY: "37"
           PATTERN: "slow"
 
-        py37_locale:
-          ENV_FILE: ci/deps/azure-37-locale.yaml
-          CONDA_PY: "37"
-          PATTERN: "not slow and not network"
-          LANG: "it_IT.utf8"
-          LC_ALL: "it_IT.utf8"
-          EXTRA_APT: "language-pack-it xsel"
+#        py37_locale:
+#          ENV_FILE: ci/deps/azure-37-locale.yaml
+#          CONDA_PY: "37"
+#          PATTERN: "not slow and not network"
+#          LANG: "it_IT.utf8"
+#          LC_ALL: "it_IT.utf8"
+#          EXTRA_APT: "language-pack-it xsel"
 
 #        py37_32bit:
 #          ENV_FILE: ci/deps/azure-37-32bit.yaml

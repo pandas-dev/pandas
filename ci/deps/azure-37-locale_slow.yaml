@@ -16,7 +16,7 @@ dependencies:
   - beautifulsoup4=4.6.0
   - bottleneck=1.2.*
   - lxml
-  - matplotlib=2.2.2
+  - matplotlib=2.2.4
   - numpy=1.16.*
   - openpyxl=2.5.7
   - python-dateutil
