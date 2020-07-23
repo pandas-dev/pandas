@@ -1911,6 +1911,7 @@ def read_stata(
     order_categoricals: bool = True,
     chunksize: Optional[int] = None,
     iterator: bool = False,
+    storage_options: Optional[Dict[str, Any]] = None,
 ) -> Union[DataFrame, StataReader]:
 
     reader = StataReader(
@@ -1923,6 +1924,7 @@ def read_stata(
         columns=columns,
         order_categoricals=order_categoricals,
         chunksize=chunksize,
+        storage_options=storage_options,
     )
 
     if iterator or chunksize:
@@ -1936,7 +1938,9 @@ def read_stata(
 
 
 def _open_file_binary_write(
-    fname: FilePathOrBuffer, compression: Union[str, Mapping[str, str], None],
+    fname: FilePathOrBuffer,
+    compression: Union[str, Mapping[str, str], None],
+    storage_options: Optional[Dict[str, Any]] = None,
 ) -> Tuple[BinaryIO, bool, Optional[Union[str, Mapping[str, str]]]]:
     """
     Open a binary file or no-op if file-like.
@@ -1963,7 +1967,10 @@ def _open_file_binary_write(
         compression_typ, compression_args = get_compression_method(compression)
         compression_typ = infer_compression(fname, compression_typ)
         path_or_buf, _, compression_typ, _ = get_filepath_or_buffer(
-            fname, compression=compression_typ
+            fname,
+            mode="wb",
+            compression=compression_typ,
+            storage_options=storage_options,
         )
         if compression_typ is not None:
             compression = compression_args
@@ -2209,6 +2216,7 @@ class StataWriter(StataParser):
         data_label: Optional[str] = None,
         variable_labels: Optional[Dict[Label, str]] = None,
         compression: Union[str, Mapping[str, str], None] = "infer",
+        storage_options: Optional[Dict[str, Any]] = None,
     ):
         super().__init__()
         self._convert_dates = {} if convert_dates is None else convert_dates
@@ -2221,6 +2229,7 @@ class StataWriter(StataParser):
         self._output_file: Optional[BinaryIO] = None
         # attach nobs, nvars, data, varlist, typlist
         self._prepare_pandas(data)
+        self.storage_options = storage_options
 
         if byteorder is None:
             byteorder = sys.byteorder
@@ -2507,7 +2516,7 @@ supported types."""
 
     def write_file(self) -> None:
         self._file, self._own_file, compression = _open_file_binary_write(
-            self._fname, self._compression
+            self._fname, self._compression, storage_options=self.storage_options
         )
         if compression is not None:
             self._output_file = self._file
@@ -3090,6 +3099,7 @@ class StataWriter117(StataWriter):
         variable_labels: Optional[Dict[Label, str]] = None,
         convert_strl: Optional[Sequence[Label]] = None,
         compression: Union[str, Mapping[str, str], None] = "infer",
+        storage_options: Optional[Dict[str, Any]] = None,
     ):
         # Copy to new list since convert_strl might be modified later
         self._convert_strl: List[Label] = []
@@ -3106,6 +3116,7 @@ class StataWriter117(StataWriter):
             data_label=data_label,
             variable_labels=variable_labels,
             compression=compression,
+            storage_options=storage_options,
         )
         self._map: Dict[str, int] = {}
         self._strl_blob = b""
@@ -3493,6 +3504,7 @@ class StataWriterUTF8(StataWriter117):
         convert_strl: Optional[Sequence[Label]] = None,
         version: Optional[int] = None,
         compression: Union[str, Mapping[str, str], None] = "infer",
+        storage_options: Optional[Dict[str, Any]] = None,
     ):
         if version is None:
             version = 118 if data.shape[1] <= 32767 else 119
@@ -3515,6 +3527,7 @@ class StataWriterUTF8(StataWriter117):
             variable_labels=variable_labels,
             convert_strl=convert_strl,
             compression=compression,
+            storage_options=storage_options,
         )
         # Override version set in StataWriter117 init
         self._dta_version = version

@@ -2055,6 +2055,7 @@ class DataFrame(NDFrame):
         version: Optional[int] = 114,
         convert_strl: Optional[Sequence[Label]] = None,
         compression: Union[str, Mapping[str, str], None] = "infer",
+        storage_options: Optional[Dict[str, Any]] = None,
     ) -> None:
         """
         Export DataFrame object to Stata dta format.
@@ -2187,6 +2188,7 @@ class DataFrame(NDFrame):
             write_index=write_index,
             variable_labels=variable_labels,
             compression=compression,
+            storage_options=storage_options,
             **kwargs,
         )
         writer.write_file()
