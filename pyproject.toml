@@ -4,7 +4,7 @@
 requires = [
     "setuptools",
     "wheel",
-    "Cython>=0.29.16",  # Note: sync with setup.py
+    "Cython>=0.29.16,<3",  # Note: sync with setup.py
     "numpy==1.15.4; python_version=='3.6' and platform_system!='AIX'",
     "numpy==1.15.4; python_version=='3.7' and platform_system!='AIX'",
     "numpy==1.17.3; python_version>='3.8' and platform_system!='AIX'",
