@@ -265,6 +265,12 @@ SSH, FTP, dropbox and github. For docs and capabilities, see the `fsspec docs`_.
 The existing capability to interface with S3 and GCS will be unaffected by this
 change, as ``fsspec`` will still bring in the same packages as before.
 
+Many read/write functions have acquired the `storage_options` optional argument,
+to pass a dictionary of parameters to the storage backend. This allows, for
+example, for passing credentials to S3 and GCS storage. The details of what
+parameters can be passed to which backends can be found in the documentation
+of the individual storage backends.
+
 .. _Azure Datalake and Blob: https://github.com/dask/adlfs
 
 .. _fsspec docs: https://filesystem-spec.readthedocs.io/en/latest/
