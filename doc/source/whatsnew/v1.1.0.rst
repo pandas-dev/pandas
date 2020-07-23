@@ -274,6 +274,7 @@ change, as ``fsspec`` will still bring in the same packages as before.
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
+- Compatibility with matplotlib 3.3.0 (:issue:`34850`)
 - :meth:`IntegerArray.astype` now supports ``datetime64`` dtype (:issue:`32538`)
 - :class:`IntegerArray` now implements the ``sum`` operation (:issue:`33172`)
 - Added :class:`pandas.errors.InvalidIndexError` (:issue:`34570`).
