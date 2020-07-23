@@ -16,7 +16,6 @@ from pandas.core.indexes.period import Period, PeriodIndex, period_range
 from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.tests.plotting.common import TestPlotBase
 
-from pandas.plotting._matplotlib.converter import DatetimeConverter
 from pandas.tseries.offsets import WeekOfMonth
 
 
@@ -1280,6 +1279,8 @@ class TestTSPlot(TestPlotBase):
     @pytest.mark.slow
     def test_irregular_ts_shared_ax_xlim(self):
         # GH 2960
+        from pandas.plotting._matplotlib.converter import DatetimeConverter
+
         ts = tm.makeTimeSeries()[:20]
         ts_irregular = ts[[1, 4, 5, 6, 8, 9, 10, 12, 13, 14, 15, 17, 18]]
 
@@ -1346,6 +1347,8 @@ class TestTSPlot(TestPlotBase):
     @pytest.mark.slow
     def test_secondary_y_irregular_ts_xlim(self):
         # GH 3490 - irregular-timeseries with secondary y
+        from pandas.plotting._matplotlib.converter import DatetimeConverter
+
         ts = tm.makeTimeSeries()[:20]
         ts_irregular = ts[[1, 4, 5, 6, 8, 9, 10, 12, 13, 14, 15, 17, 18]]
 
