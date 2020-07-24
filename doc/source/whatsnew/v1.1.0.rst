@@ -43,7 +43,7 @@ For example, the below now works:
 .. _whatsnew_110.period_index_partial_string_slicing:
 
 Non-monotonic PeriodIndex Partial String Slicing
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :class:`PeriodIndex` now supports partial string slicing for non-monotonic indexes, mirroring :class:`DatetimeIndex` behavior (:issue:`31096`)
 
