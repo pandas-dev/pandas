@@ -207,6 +207,7 @@ def test_markdown_options(fsspectest):
     assert fsspectest.cat("afile")
 
 
+@td.skip_if_no("pyarrow")
 def test_non_fsspec_options():
     with pytest.raises(ValueError, match="storage_options"):
         read_csv("localfile", storage_options={"a": True})
