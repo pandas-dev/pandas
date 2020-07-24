@@ -346,6 +346,11 @@ float_precision : str, optional
     values. The options are `None` for the ordinary converter,
     `high` for the high-precision converter, and `round_trip` for the
     round-trip converter.
+kwargs:
+    Additional keyword arguments passed to read_csv for compatibility
+    with `csv` module. Include lineterminator (an alternative to
+    line_terminator: see above).
+    .. versionadded:: 1.2.0
 
 Returns
 -------
@@ -580,7 +585,6 @@ def read_csv(
     thousands=None,
     decimal: str = ".",
     line_terminator=None,
-    lineterminator=None,
     quotechar='"',
     quoting=csv.QUOTE_MINIMAL,
     doublequote=True,
@@ -596,6 +600,7 @@ def read_csv(
     low_memory=_c_parser_defaults["low_memory"],
     memory_map=False,
     float_precision=None,
+    **kwargs,
 ):
     # gh-23761
     #
@@ -633,6 +638,8 @@ def read_csv(
         engine = "c"
         engine_specified = False
 
+    kwargs.setdefault("lineterminator", line_terminator)
+
     kwds.update(
         delimiter=delimiter,
         engine=engine,
@@ -644,7 +651,6 @@ def read_csv(
         quotechar=quotechar,
         quoting=quoting,
         skipinitialspace=skipinitialspace,
-        lineterminator=lineterminator or line_terminator,  # GH 9568
         header=header,
         index_col=index_col,
         names=names,
@@ -682,6 +688,7 @@ def read_csv(
         mangle_dupe_cols=mangle_dupe_cols,
         infer_datetime_format=infer_datetime_format,
         skip_blank_lines=skip_blank_lines,
+        **kwargs,
     )
 
     return _read(filepath_or_buffer, kwds)
