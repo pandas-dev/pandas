@@ -6,7 +6,6 @@ import gzip
 from io import BufferedIOBase, BytesIO, RawIOBase
 import mmap
 import os
-import pathlib
 from typing import (
     IO,
     TYPE_CHECKING,
@@ -74,7 +73,9 @@ def is_url(url) -> bool:
     return parse_url(url).scheme in _VALID_URLS
 
 
-def _expand_user(filepath_or_buffer: FileOrBuffer[AnyStr]) -> FileOrBuffer[AnyStr]:
+def _expand_user(
+    filepath_or_buffer: FileOrBuffer[AnyStr], fallback=True,
+) -> FileOrBuffer[AnyStr]:
     """
     Return the argument with an initial component of ~ or ~user
     replaced by that user's home directory.
@@ -83,14 +84,18 @@ def _expand_user(filepath_or_buffer: FileOrBuffer[AnyStr]) -> FileOrBuffer[AnySt
     ----------
     filepath_or_buffer : object to be converted if possible
 
+    fallback : safely return the unchanged input object if expansion fails
     Returns
     -------
     expanded_filepath_or_buffer : an expanded filepath or the
                                   input if not expandable
     """
-    if isinstance(filepath_or_buffer, str):
+    try:
         return os.path.expanduser(filepath_or_buffer)
-    return filepath_or_buffer
+    except TypeError:
+        if fallback:
+            return filepath_or_buffer
+        raise
 
 
 def validate_header_arg(header) -> None:
@@ -118,28 +123,9 @@ def stringify_path(
 
     Notes
     -----
-    Objects supporting the fspath protocol (python 3.6+) are coerced
-    according to its __fspath__ method.
-
-    For backwards compatibility with older pythons, pathlib.Path and
-    py.path objects are specially coerced.
-
-    Any other object is passed through unchanged, which includes bytes,
-    strings, buffers, or anything else that's not even path-like.
+    Anything that is not path-like is returned unchanged.
+    This function is an alias for _expand_user
     """
-    if hasattr(filepath_or_buffer, "__fspath__"):
-        # https://github.com/python/mypy/issues/1424
-        # error: Item "str" of "Union[str, Path, IO[str]]" has no attribute
-        # "__fspath__"  [union-attr]
-        # error: Item "IO[str]" of "Union[str, Path, IO[str]]" has no attribute
-        # "__fspath__"  [union-attr]
-        # error: Item "str" of "Union[str, Path, IO[bytes]]" has no attribute
-        # "__fspath__"  [union-attr]
-        # error: Item "IO[bytes]" of "Union[str, Path, IO[bytes]]" has no
-        # attribute "__fspath__"  [union-attr]
-        filepath_or_buffer = filepath_or_buffer.__fspath__()  # type: ignore[union-attr]
-    elif isinstance(filepath_or_buffer, pathlib.Path):
-        filepath_or_buffer = str(filepath_or_buffer)
     return _expand_user(filepath_or_buffer)
 
 
@@ -322,16 +308,17 @@ def get_filepath_or_buffer(
             "storage_options passed with file object or non-fsspec file path"
         )
 
-    if isinstance(filepath_or_buffer, (str, bytes, mmap.mmap)):
-        return IOargs(
-            filepath_or_buffer=_expand_user(filepath_or_buffer),
-            encoding=encoding,
-            compression=compression,
-            should_close=False,
-            mode=mode,
-        )
+    if is_file_like(filepath_or_buffer) or isinstance(filepath_or_buffer, mmap.mmap):
+        return filepath_or_buffer, None, compression, False
 
-    if not is_file_like(filepath_or_buffer):
+    try:
+        return (
+            _expand_user(filepath_or_buffer, fallback=False),
+            None,
+            compression,
+            False,
+        )
+    except TypeError:
         msg = f"Invalid file path or buffer object type: {type(filepath_or_buffer)}"
         raise ValueError(msg)
 
