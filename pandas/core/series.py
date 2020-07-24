@@ -1421,7 +1421,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def to_markdown(
         self,
         buf: Optional[IO[str]] = None,
-        mode: Optional[str] = None,
+        mode: str = "wt",
         index: bool = True,
         **kwargs,
     ) -> Optional[str]:
