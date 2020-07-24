@@ -3004,13 +3004,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         quoting: Optional[int] = None,
         quotechar: str = '"',
         line_terminator: Optional[str] = None,
-        lineterminator: Optional[str] = None,
         chunksize: Optional[int] = None,
         date_format: Optional[str] = None,
         doublequote: bool_t = True,
         escapechar: Optional[str] = None,
         decimal: Optional[str] = ".",
         errors: str = "strict",
+        **kwargs,
     ) -> Optional[str]:
         r"""
         Write object to a comma-separated values (csv) file.
@@ -3109,8 +3109,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             Specifies how encoding and decoding errors are to be handled.
             See the errors argument for :func:`open` for a full list
             of options.
+        kwargs:
+            Additional keyword arguments passed to read_csv for compatibility
+            with `csv` module. Include lineterminator (an alternative to
+            line_terminator: see above).
 
-            .. versionadded:: 1.1.0
+            .. versionadded:: 1.2.0
 
         Returns
         -------
@@ -3142,10 +3146,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         from pandas.io.formats.csvs import CSVFormatter
 
+        kwargs.setdefault("lineterminator", line_terminator)
+        line_terminator = line_terminator or kwargs["lineterminator"]
+
         formatter = CSVFormatter(
             df,
             path_or_buf,
-            line_terminator=line_terminator or lineterminator,
+            line_terminator=line_terminator,
             sep=sep,
             encoding=encoding,
             errors=errors,
