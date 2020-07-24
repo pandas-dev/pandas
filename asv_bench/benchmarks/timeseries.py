@@ -263,6 +263,19 @@ class Lookup:
         self.ts.index._cleanup()
 
 
+class ToDatetimeFromIntsFloats:
+    def setup(self):
+        timestamp_seconds_int = Series(range(1521080307, 1521685107), dtype="int64")
+        timestamp_seconds_float = timestamp_seconds_int.astype("float64")
+
+    def to_datetime_int(self):
+        to_datetime(timestamp_seconds_int, unit="s")
+
+    # float64 should about the same as int64
+    def to_datetime_float(self):
+        to_datetime(timestamp_seconds_float, unit="s")
+
+
 class ToDatetimeYYYYMMDD:
     def setup(self):
         rng = date_range(start="1/1/2000", periods=10000, freq="D")
