@@ -2132,6 +2132,16 @@ class DataFrame(NDFrame):
 
             .. versionadded:: 1.1.0
 
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc., if using a URL that will
+            be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+            will be raised if providing this argument with a local path or
+            a file-like buffer. See the fsspec and backend storage implementation
+            docs for the set of allowed keys and values
+
+            .. versionadded:: 1.1.0
+
         Raises
         ------
         NotImplementedError
@@ -2242,7 +2252,7 @@ class DataFrame(NDFrame):
     def to_markdown(
         self,
         buf: Optional[Union[IO[str], str]] = None,
-        mode: Optional[str] = "wt",
+        mode: str = "wt",
         index: bool = True,
         storage_options: Optional[Dict[str, Any]] = None,
         **kwargs,
@@ -2328,6 +2338,16 @@ class DataFrame(NDFrame):
             Must be None if path is not a string.
 
             .. versionadded:: 0.24.0
+
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc., if using a URL that will
+            be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+            will be raised if providing this argument with a local path or
+            a file-like buffer. See the fsspec and backend storage implementation
+            docs for the set of allowed keys and values
+
+            .. versionadded:: 1.1.0
 
         **kwargs
             Additional arguments passed to the parquet library. See

@@ -2126,6 +2126,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
            .. versionadded:: 1.0.0
 
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc., if using a URL that will
+            be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+            will be raised if providing this argument with a local path or
+            a file-like buffer. See the fsspec and backend storage implementation
+            docs for the set of allowed keys and values
+
+            .. versionadded:: 1.1.0
+
         Returns
         -------
         None or str
@@ -2640,6 +2650,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             .. [1] https://docs.python.org/3/library/pickle.html.
 
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc., if using a URL that will
+            be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+            will be raised if providing this argument with a local path or
+            a file-like buffer. See the fsspec and backend storage implementation
+            docs for the set of allowed keys and values
+
+            .. versionadded:: 1.1.0
+
         See Also
         --------
         read_pickle : Load pickled pandas object (or any object) from file.
@@ -3118,6 +3138,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             Specifies how encoding and decoding errors are to be handled.
             See the errors argument for :func:`open` for a full list
             of options.
+
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc., if using a URL that will
+            be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+            will be raised if providing this argument with a local path or
+            a file-like buffer. See the fsspec and backend storage implementation
+            docs for the set of allowed keys and values
 
             .. versionadded:: 1.1.0
 

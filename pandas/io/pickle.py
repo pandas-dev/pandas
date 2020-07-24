@@ -43,6 +43,16 @@ def to_pickle(
         protocol parameter is equivalent to setting its value to
         HIGHEST_PROTOCOL.
 
+    storage_options : dict, optional
+        Extra options that make sense for a particular storage connection, e.g.
+        host, port, username, password, etc., if using a URL that will
+        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+        will be raised if providing this argument with a local path or
+        a file-like buffer. See the fsspec and backend storage implementation
+        docs for the set of allowed keys and values
+
+        .. versionadded:: 1.1.0
+
         .. [1] https://docs.python.org/3/library/pickle.html
 
     See Also
@@ -126,6 +136,16 @@ def read_pickle(
         the following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
         compression) If 'infer' and 'path_or_url' is not path-like, then use
         None (= no decompression).
+
+    storage_options : dict, optional
+        Extra options that make sense for a particular storage connection, e.g.
+        host, port, username, password, etc., if using a URL that will
+        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+        will be raised if providing this argument with a local path or
+        a file-like buffer. See the fsspec and backend storage implementation
+        docs for the set of allowed keys and values
+
+        .. versionadded:: 1.1.0
 
     Returns
     -------

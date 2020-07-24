@@ -1952,6 +1952,16 @@ def _open_file_binary_write(
     compression : {str, dict, None}
         The compression method to use.
 
+    storage_options : dict, optional
+        Extra options that make sense for a particular storage connection, e.g.
+        host, port, username, password, etc., if using a URL that will
+        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+        will be raised if providing this argument with a local path or
+        a file-like buffer. See the fsspec and backend storage implementation
+        docs for the set of allowed keys and values
+
+        .. versionadded:: 1.1.0
+
     Returns
     -------
     file : file-like object
@@ -2164,6 +2174,16 @@ class StataWriter(StataParser):
         '.zip', or '.xz' (otherwise no compression). If dict and compression
         mode is one of {'zip', 'gzip', 'bz2'}, or inferred as one of the above,
         other entries passed as additional compression options.
+
+        .. versionadded:: 1.1.0
+
+    storage_options : dict, optional
+        Extra options that make sense for a particular storage connection, e.g.
+        host, port, username, password, etc., if using a URL that will
+        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+        will be raised if providing this argument with a local path or
+        a file-like buffer. See the fsspec and backend storage implementation
+        docs for the set of allowed keys and values
 
         .. versionadded:: 1.1.0
 

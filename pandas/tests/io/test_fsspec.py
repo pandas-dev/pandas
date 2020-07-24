@@ -1,3 +1,4 @@
+import io
 import numpy as np
 import pytest
 
@@ -204,3 +205,15 @@ def test_markdown_options(fsspectest):
     df.to_markdown("testmem://afile", storage_options={"test": "md_write"})
     assert fsspectest.test[0] == "md_write"
     assert fsspectest.cat("afile")
+
+
+def test_non_fsspec_options():
+    with pytest.raises(ValueError, match="storage_options"):
+        read_csv("localfile", storage_options={"a": True})
+    with pytest.raises(ValueError, match="storage_options"):
+        # separate test for parquet, which has a different code path
+        read_parquet("localfile", storage_options={"a": True})
+    by = io.BytesIO()
+
+    with pytest.raises(ValueError, match="storage_options"):
+        read_csv(by, storage_options={"a": True})
