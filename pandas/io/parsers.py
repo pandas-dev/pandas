@@ -644,7 +644,7 @@ def read_csv(
         quotechar=quotechar,
         quoting=quoting,
         skipinitialspace=skipinitialspace,
-        lineterminator=lineterminator or line_terminator,
+        lineterminator=lineterminator or line_terminator,  # GH 9568
         header=header,
         index_col=index_col,
         names=names,

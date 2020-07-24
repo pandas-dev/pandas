@@ -1,6 +1,7 @@
 import csv
 from io import StringIO
 import os
+import re
 
 import numpy as np
 import pytest
@@ -997,6 +998,45 @@ class TestDataFrameToCSV:
 
             with open(path, mode="rb") as f:
                 assert f.read() == expected
+
+    def test_to_csv_lineterminator_alternative_args(self):
+        # GH 9568
+        # examples from test_to_csv_line_terminators
+        # test equivalence of line_terminator vs. lineterminator keyword args
+
+        df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, index=["one", "two", "three"])
+
+        # case 1: CRLF as line terminator
+
+        with tm.ensure_clean() as path:
+            df.to_csv(path, line_terminator="\r\n")
+
+            with open(path, mode="rb") as f:
+                res_line_terminator = f.read()
+
+        with tm.ensure_clean() as path:
+            df.to_csv(path, lineterminator="\r\n")
+
+            with open(path, mode="rb") as f:
+                res_lineterminator = f.read()
+
+        assert re.match(res_line_terminator, res_lineterminator)
+
+        # case 2: LF as line terminator
+
+        with tm.ensure_clean() as path:
+            df.to_csv(path, line_terminator="\n")
+
+            with open(path, mode="rb") as f:
+                res_line_terminator = f.read()
+
+        with tm.ensure_clean() as path:
+            df.to_csv(path, lineterminator="\n")
+
+            with open(path, mode="rb") as f:
+                res_lineterminator = f.read()
+
+        assert re.match(res_line_terminator, res_lineterminator)
 
     def test_to_csv_from_csv_categorical(self):
 

@@ -3004,6 +3004,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         quoting: Optional[int] = None,
         quotechar: str = '"',
         line_terminator: Optional[str] = None,
+        lineterminator: Optional[str] = None,
         chunksize: Optional[int] = None,
         date_format: Optional[str] = None,
         doublequote: bool_t = True,
@@ -3144,7 +3145,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         formatter = CSVFormatter(
             df,
             path_or_buf,
-            line_terminator=line_terminator,
+            line_terminator=line_terminator or lineterminator,
             sep=sep,
             encoding=encoding,
             errors=errors,
