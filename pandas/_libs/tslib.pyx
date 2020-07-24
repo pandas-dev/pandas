@@ -399,23 +399,21 @@ def array_with_unit_to_datetime(
 
     if is_raise:
 
-        # try a quick conversion to i8
+        # try a quick conversion to i8/f8
         # if we have nulls that are not type-compat
         # then need to iterate
+
         if values.dtype.kind == "i":
-            # Note: this condition makes the casting="same_kind" redundant
-            iresult = values.astype("i8", casting="same_kind", copy=False)
-            # fill by comparing to NPY_NAT constant
-            mask = iresult == NPY_NAT
+            iresult = values.astype("i8", copy=False)
+            # fill missing values by comparing to np.nan
+            mask = iresult == np.nan
             iresult[mask] = 0
             fvalues = iresult.astype("f8") * m
             need_to_iterate = False
-
         elif values.dtype.kind == "f":
-            # Note: this condition makes the casting="same_kind" redundant
-            fresult = values.astype("f8", casting="same_kind", copy=False)
-            # fill by comparing to NPY_NAT constant
-            mask = fresult == NPY_NAT
+            fresult = values.astype("f8", copy=False)
+            # fill missing values by comparing to np.nan
+            mask = fresult == np.nan
             fresult[mask] = 0
             fvalues = fresult * (<float64_t>m)
             need_to_iterate = False
@@ -426,13 +424,13 @@ def array_with_unit_to_datetime(
             if ((fvalues < Timestamp.min.value).any()
                     or (fvalues > Timestamp.max.value).any()):
                 raise OutOfBoundsDatetime(f"cannot convert input with unit '{unit}'")
-            result = fvalues.astype("M8[ns]")
-            iresult = result.view("i8")
-            iresult[mask] = NPY_NAT
+            result = fvalues.astype('M8[ns]')
+            iresult = result.view('i8')
+            iresult[mask] = np.nan
             return result, tz
 
-    result = np.empty(n, dtype="M8[ns]")
-    iresult = result.view("i8")
+    result = np.empty(n, dtype='M8[ns]')
+    iresult = result.view('i8')
 
     try:
         for i in range(n):
