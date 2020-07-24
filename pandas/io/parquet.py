@@ -141,6 +141,8 @@ class PyArrowImpl(BaseImpl):
             fs, path = fsspec.core.url_to_fs(path, **(storage_options or {}))
             should_close = False
         else:
+            if storage_options:
+                raise ValueError("storage_options passed with buffer or non-fsspec filepath")
             fs = kwargs.pop("filesystem", None)
             should_close = False
             path = _expand_user(path)
