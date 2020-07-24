@@ -142,7 +142,9 @@ class PyArrowImpl(BaseImpl):
             should_close = False
         else:
             if storage_options:
-                raise ValueError("storage_options passed with buffer or non-fsspec filepath")
+                raise ValueError(
+                    "storage_options passed with buffer or non-fsspec filepath"
+                )
             fs = kwargs.pop("filesystem", None)
             should_close = False
             path = _expand_user(path)
