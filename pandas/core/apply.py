@@ -252,33 +252,20 @@ class FrameApply(metaclass=abc.ABCMeta):
         return result
 
     def apply_standard(self):
-
-        # partial result that may be returned from reduction
-        partial_result = None
-
-        # compute the result using the series generator,
-        # use the result computed while trying to reduce if available.
-        results, res_index = self.apply_series_generator(partial_result)
+        results, res_index = self.apply_series_generator()
 
         # wrap results
         return self.wrap_results(results, res_index)
 
-    def apply_series_generator(self, partial_result=None) -> Tuple[ResType, "Index"]:
+    def apply_series_generator(self) -> Tuple[ResType, "Index"]:
         series_gen = self.series_generator
         res_index = self.result_index
 
         results = {}
 
-        # If a partial result was already computed,
-        # use it instead of running on the first element again
-        series_gen_enumeration = enumerate(series_gen)
-        if partial_result is not None:
-            i, v = next(series_gen_enumeration)
-            results[i] = partial_result
-
         if self.ignore_failures:
             successes = []
-            for i, v in series_gen_enumeration:
+            for i, v in enumerate(series_gen):
                 try:
                     results[i] = self.f(v)
                 except Exception:
@@ -292,7 +279,7 @@ class FrameApply(metaclass=abc.ABCMeta):
 
         else:
             with option_context("mode.chained_assignment", None):
-                for i, v in series_gen_enumeration:
+                for i, v in enumerate(series_gen):
                     # ignore SettingWithCopy here in case the user mutates
                     results[i] = self.f(v)
                     if isinstance(results[i], ABCSeries):
