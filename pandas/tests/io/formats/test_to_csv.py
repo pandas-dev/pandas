@@ -1,5 +1,6 @@
 import io
 import os
+import re
 import sys
 
 import numpy as np
@@ -330,10 +331,15 @@ $1$,$2$
     @pytest.mark.parametrize("klass", [pd.DataFrame, pd.Series])
     def test_to_csv_single_level_multi_index(self, ind, expected, klass):
         # see gh-19589
-        result = klass(pd.Series([1], ind, name="data")).to_csv(
+        # GH9568 test for equivalence between line_terminator and lineterminator
+        result_line_terminator = klass(pd.Series([1], ind, name="data")).to_csv(
             line_terminator="\n", header=True
         )
-        assert result == expected
+        result_lineterminator = klass(pd.Series([1], ind, name="data")).to_csv(
+            lineterminator="\n", header=True
+        )
+        assert re.match(result_lineterminator, result_line_terminator)
+        assert re.match(result_line_terminator, expected)
 
     def test_to_csv_string_array_ascii(self):
         # GH 10813
@@ -435,6 +441,25 @@ $1$,$2$
             df.to_csv(path, line_terminator="\r\n", index=False)
             with open(path, "rb") as f:
                 assert f.read() == expected_crlf
+
+    def test_to_csv_string_line_terminator_alternative_args(self):
+        # GH 9568
+        # test equivalence of line_terminator vs. lineterminator keyword args
+
+        data = {"int": [1, 2, 3], "str_lf": ["abc", "d\nef", "g\nh\n\ni"]}
+        df = pd.DataFrame(data)
+
+        with tm.ensure_clean("crlf_test.csv") as path:
+            df.to_csv(path, line_terminator="\n", index=False)
+            with open(path, "rb") as f:
+                res_line_terminator = f.read()
+
+        with tm.ensure_clean("crlf_test.csv") as path:
+            df.to_csv(path, lineterminator="\n", index=False)
+            with open(path, "rb") as f:
+                res_lineterminator = f.read()
+
+        assert re.match(res_line_terminator, res_lineterminator)
 
     def test_to_csv_stdout_file(self, capsys):
         # GH 21561
