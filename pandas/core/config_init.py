@@ -91,6 +91,12 @@ pc_max_rows_doc = """
     correct auto-detection.
 """
 
+pc_max_groups_doc = """
+: int
+    If max_groups is exceeded, switch to truncate groupby view. 'None' value 
+    means unlimited.
+"""
+
 pc_min_rows_doc = """
 : int
     The numbers of rows to show in a truncated view (when `max_rows` is
@@ -336,6 +342,7 @@ with cf.config_prefix("display"):
         validator=is_instance_factory((int, type(None))),
     )
     cf.register_option("max_rows", 60, pc_max_rows_doc, validator=is_nonnegative_int)
+    cf.register_option("max_groups", 10, pc_max_groups_doc, validator=is_nonnegative_int)
     cf.register_option(
         "min_rows",
         10,
