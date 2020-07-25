@@ -292,7 +292,6 @@ class LatexFormatter(TableFormatter):
             or self.position is not None
         ):
             # then write output in a nested table/tabular environment
-            buf.write(f"\\begin{{table}}")
             if self.caption is None:
                 caption_ = ""
             else:
@@ -308,7 +307,9 @@ class LatexFormatter(TableFormatter):
             else:
                 position_ = f"[{self.position}]"
 
-            buf.write(f"{position_}\n\\centering{caption_}{label_}\n")
+            buf.write(
+                f"\\begin{{table}}{position_}\n" f"\\centering{caption_}{label_}\n"
+            )
         else:
             # then write output only in a tabular environment
             pass
