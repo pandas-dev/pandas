@@ -3109,7 +3109,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             Specifies how encoding and decoding errors are to be handled.
             See the errors argument for :func:`open` for a full list
             of options.
-        kwargs :
+        kwargs
             Additional keyword arguments passed to read_csv for compatibility
             with `csv` module. Include lineterminator (an alternative to
             line_terminator: see above).
