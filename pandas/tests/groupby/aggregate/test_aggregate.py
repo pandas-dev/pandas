@@ -2,9 +2,12 @@
 test .agg behavior / note that .apply is tested generally in test_groupby.py
 """
 import functools
+from functools import partial
 
 import numpy as np
 import pytest
+
+from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import is_integer_dtype
 
@@ -252,6 +255,61 @@ def test_agg_multiple_functions_maintain_order(df):
     tm.assert_index_equal(result.columns, exp_cols)
 
 
+def test_agg_multiple_functions_same_name():
+    # GH 30880
+    df = pd.DataFrame(
+        np.random.randn(1000, 3),
+        index=pd.date_range("1/1/2012", freq="S", periods=1000),
+        columns=["A", "B", "C"],
+    )
+    result = df.resample("3T").agg(
+        {"A": [partial(np.quantile, q=0.9999), partial(np.quantile, q=0.1111)]}
+    )
+    expected_index = pd.date_range("1/1/2012", freq="3T", periods=6)
+    expected_columns = MultiIndex.from_tuples([("A", "quantile"), ("A", "quantile")])
+    expected_values = np.array(
+        [df.resample("3T").A.quantile(q=q).values for q in [0.9999, 0.1111]]
+    ).T
+    expected = pd.DataFrame(
+        expected_values, columns=expected_columns, index=expected_index
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_multiple_functions_same_name_with_ohlc_present():
+    # GH 30880
+    # ohlc expands dimensions, so different test to the above is required.
+    df = pd.DataFrame(
+        np.random.randn(1000, 3),
+        index=pd.date_range("1/1/2012", freq="S", periods=1000),
+        columns=["A", "B", "C"],
+    )
+    result = df.resample("3T").agg(
+        {"A": ["ohlc", partial(np.quantile, q=0.9999), partial(np.quantile, q=0.1111)]}
+    )
+    expected_index = pd.date_range("1/1/2012", freq="3T", periods=6)
+    expected_columns = pd.MultiIndex.from_tuples(
+        [
+            ("A", "ohlc", "open"),
+            ("A", "ohlc", "high"),
+            ("A", "ohlc", "low"),
+            ("A", "ohlc", "close"),
+            ("A", "quantile", "A"),
+            ("A", "quantile", "A"),
+        ]
+    )
+    non_ohlc_expected_values = np.array(
+        [df.resample("3T").A.quantile(q=q).values for q in [0.9999, 0.1111]]
+    ).T
+    expected_values = np.hstack([df.resample("3T").A.ohlc(), non_ohlc_expected_values])
+    expected = pd.DataFrame(
+        expected_values, columns=expected_columns, index=expected_index
+    )
+    # PerformanceWarning is thrown by `assert col in right` in assert_frame_equal
+    with tm.assert_produces_warning(PerformanceWarning):
+        tm.assert_frame_equal(result, expected)
+
+
 def test_multiple_functions_tuples_and_non_tuples(df):
     # #1359
     funcs = [("foo", "mean"), "std"]
@@ -455,22 +513,6 @@ def test_agg_split_object_part_datetime():
             "F": [1],
         }
     )
-    tm.assert_frame_equal(result, expected)
-
-
-def test_agg_cython_category_not_implemented_fallback():
-    # https://github.com/pandas-dev/pandas/issues/31450
-    df = pd.DataFrame({"col_num": [1, 1, 2, 3]})
-    df["col_cat"] = df["col_num"].astype("category")
-
-    result = df.groupby("col_num").col_cat.first()
-    expected = pd.Series(
-        [1, 2, 3], index=pd.Index([1, 2, 3], name="col_num"), name="col_cat"
-    )
-    tm.assert_series_equal(result, expected)
-
-    result = df.groupby("col_num").agg({"col_cat": "first"})
-    expected = expected.to_frame()
     tm.assert_frame_equal(result, expected)
 
 
@@ -753,6 +795,41 @@ def test_groupby_aggregate_empty_key_empty_return():
     tm.assert_frame_equal(result, expected)
 
 
+def test_grouby_agg_loses_results_with_as_index_false_relabel():
+    # GH 32240: When the aggregate function relabels column names and
+    # as_index=False is specified, the results are dropped.
+
+    df = pd.DataFrame(
+        {"key": ["x", "y", "z", "x", "y", "z"], "val": [1.0, 0.8, 2.0, 3.0, 3.6, 0.75]}
+    )
+
+    grouped = df.groupby("key", as_index=False)
+    result = grouped.agg(min_val=pd.NamedAgg(column="val", aggfunc="min"))
+    expected = pd.DataFrame({"key": ["x", "y", "z"], "min_val": [1.0, 0.8, 0.75]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_grouby_agg_loses_results_with_as_index_false_relabel_multiindex():
+    # GH 32240: When the aggregate function relabels column names and
+    # as_index=False is specified, the results are dropped. Check if
+    # multiindex is returned in the right order
+
+    df = pd.DataFrame(
+        {
+            "key": ["x", "y", "x", "y", "x", "x"],
+            "key1": ["a", "b", "c", "b", "a", "c"],
+            "val": [1.0, 0.8, 2.0, 3.0, 3.6, 0.75],
+        }
+    )
+
+    grouped = df.groupby(["key", "key1"], as_index=False)
+    result = grouped.agg(min_val=pd.NamedAgg(column="val", aggfunc="min"))
+    expected = pd.DataFrame(
+        {"key": ["x", "x", "y"], "key1": ["a", "c", "b"], "min_val": [1.0, 0.75, 0.8]}
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "func", [lambda s: s.mean(), lambda s: np.mean(s), lambda s: np.nanmean(s)]
 )
@@ -806,16 +883,6 @@ def test_aggregate_mixed_types():
         index=Index([2, "group 1"], dtype="object", name="grouping"),
         columns=Index(["X", "Y", "Z"], dtype="object"),
     )
-    tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize("func", ["min", "max"])
-def test_aggregate_categorical_lost_index(func: str):
-    # GH: 28641 groupby drops index, when grouping over categorical column with min/max
-    ds = pd.Series(["b"], dtype="category").cat.as_ordered()
-    df = pd.DataFrame({"A": [1997], "B": ds})
-    result = df.groupby("A").agg({"B": func})
-    expected = pd.DataFrame({"B": ["b"]}, index=pd.Index([1997], name="A"))
     tm.assert_frame_equal(result, expected)
 
 

@@ -300,7 +300,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
         creating a new one with default parameters.
     size : int, default 50
         Number of data points to consider during each sampling. It must be
-        greater or equal than the length of the `series`.
+        less than or equal to the length of the `series`.
     samples : int, default 500
         Number of times the bootstrap procedure is performed.
     **kwds

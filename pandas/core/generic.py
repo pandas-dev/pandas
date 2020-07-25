@@ -1278,7 +1278,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         >>> df.equals(different_data_type)
         False
         """
-        if not isinstance(other, self._constructor):
+        if not (isinstance(other, type(self)) or isinstance(self, type(other))):
             return False
         return self._mgr.equals(other._mgr)
 
@@ -5366,9 +5366,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         string              object
         dtype: object
         """
-        from pandas import Series  # noqa: F811
-
-        return Series(self._mgr.get_dtypes(), index=self._info_axis, dtype=np.object_)
+        data = self._mgr.get_dtypes()
+        return self._constructor_sliced(data, index=self._info_axis, dtype=np.object_)
 
     def _to_dict_of_blocks(self, copy: bool_t = True):
         """
@@ -9580,8 +9579,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         dtype: int64
 
         If the DST transition causes nonexistent times, you can shift these
-        dates forward or backwards with a timedelta object or `'shift_forward'`
-        or `'shift_backwards'`.
+        dates forward or backward with a timedelta object or `'shift_forward'`
+        or `'shift_backward'`.
+
         >>> s = pd.Series(range(2),
         ...               index=pd.DatetimeIndex(['2015-03-29 02:30:00',
         ...                                       '2015-03-29 03:30:00']))
@@ -9711,7 +9711,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return np.abs(self)
 
     def describe(
-        self: FrameOrSeries, percentiles=None, include=None, exclude=None
+        self: FrameOrSeries,
+        percentiles=None,
+        include=None,
+        exclude=None,
+        datetime_is_numeric=False,
     ) -> FrameOrSeries:
         """
         Generate descriptive statistics.
@@ -9757,6 +9761,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
               ``select_dtypes`` (e.g. ``df.describe(include=['O'])``). To
               exclude pandas categorical columns, use ``'category'``
             - None (default) : The result will exclude nothing.
+        datetime_is_numeric : bool, default False
+            Whether to treat datetime dtypes as numeric. This affects statistics
+            calculated for the column. For DataFrame input, this also
+            controls whether datetime columns are included by default.
+
+            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -9834,7 +9844,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ...   np.datetime64("2010-01-01"),
         ...   np.datetime64("2010-01-01")
         ... ])
-        >>> s.describe()
+        >>> s.describe(datetime_is_numeric=True)
         count                      3
         mean     2006-09-01 08:00:00
         min      2000-01-01 00:00:00
@@ -9992,8 +10002,37 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             dtype = None
             if result[1] > 0:
                 top, freq = objcounts.index[0], objcounts.iloc[0]
-                names += ["top", "freq"]
-                result += [top, freq]
+                if is_datetime64_any_dtype(data.dtype):
+                    if self.ndim == 1:
+                        stacklevel = 4
+                    else:
+                        stacklevel = 5
+                    warnings.warn(
+                        "Treating datetime data as categorical rather than numeric in "
+                        "`.describe` is deprecated and will be removed in a future "
+                        "version of pandas. Specify `datetime_is_numeric=True` to "
+                        "silence this warning and adopt the future behavior now.",
+                        FutureWarning,
+                        stacklevel=stacklevel,
+                    )
+                    tz = data.dt.tz
+                    asint = data.dropna().values.view("i8")
+                    top = Timestamp(top)
+                    if top.tzinfo is not None and tz is not None:
+                        # Don't tz_localize(None) if key is already tz-aware
+                        top = top.tz_convert(tz)
+                    else:
+                        top = top.tz_localize(tz)
+                    names += ["top", "freq", "first", "last"]
+                    result += [
+                        top,
+                        freq,
+                        Timestamp(asint.min(), tz=tz),
+                        Timestamp(asint.max(), tz=tz),
+                    ]
+                else:
+                    names += ["top", "freq"]
+                    result += [top, freq]
 
             # If the DataFrame is empty, set 'top' and 'freq' to None
             # to maintain output shape consistency
@@ -10019,7 +10058,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 return describe_categorical_1d(data)
             elif is_numeric_dtype(data):
                 return describe_numeric_1d(data)
-            elif is_datetime64_any_dtype(data.dtype):
+            elif is_datetime64_any_dtype(data.dtype) and datetime_is_numeric:
                 return describe_timestamp_1d(data)
             elif is_timedelta64_dtype(data.dtype):
                 return describe_numeric_1d(data)
@@ -10030,7 +10069,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return describe_1d(self)
         elif (include is None) and (exclude is None):
             # when some numerics are found, keep only numerics
-            data = self.select_dtypes(include=[np.number])
+            default_include = [np.number]
+            if datetime_is_numeric:
+                default_include.append("datetime")
+            data = self.select_dtypes(include=default_include)
             if len(data.columns) == 0:
                 data = self
         elif include == "all":
@@ -10500,8 +10542,18 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         cls.rolling = rolling
 
         @doc(Expanding)
-        def expanding(self, min_periods=1, center=False, axis=0):
+        def expanding(self, min_periods=1, center=None, axis=0):
             axis = self._get_axis_number(axis)
+            if center is not None:
+                warnings.warn(
+                    "The `center` argument on `expanding` "
+                    "will be removed in the future",
+                    FutureWarning,
+                    stacklevel=2,
+                )
+            else:
+                center = False
+
             return Expanding(self, min_periods=min_periods, center=center, axis=axis)
 
         cls.expanding = expanding
@@ -10517,6 +10569,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             adjust=True,
             ignore_na=False,
             axis=0,
+            times=None,
         ):
             axis = self._get_axis_number(axis)
             return ExponentialMovingWindow(
@@ -10529,6 +10582,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 adjust=adjust,
                 ignore_na=ignore_na,
                 axis=axis,
+                times=times,
             )
 
         cls.ewm = ewm
