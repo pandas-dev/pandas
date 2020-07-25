@@ -64,7 +64,8 @@ class TestDataFrameBlockInternals:
         float_frame["F"] = 8.0
         assert len(float_frame._mgr.blocks) == 3
 
-        float_frame._consolidate(inplace=True)
+        return_value = float_frame._consolidate(inplace=True)
+        assert return_value is None
         assert len(float_frame._mgr.blocks) == 1
 
     def test_consolidate_inplace(self, float_frame):
@@ -86,8 +87,13 @@ class TestDataFrameBlockInternals:
 
         # unconsolidated
         float_frame["E"] = 7.0
+        col = float_frame["E"]
         float_frame.values[6] = 6
         assert (float_frame.values[6] == 6).all()
+
+        # check that item_cache was cleared
+        assert float_frame["E"] is not col
+        assert (col == 7).all()
 
     def test_boolean_set_uncons(self, float_frame):
         float_frame["E"] = 7.0

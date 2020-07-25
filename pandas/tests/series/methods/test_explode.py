@@ -88,7 +88,6 @@ def test_typical_usecase():
         columns=["var1", "var2"],
     )
     exploded = df.var1.str.split(",").explode()
-    exploded
     result = df[["var2"]].join(exploded)
     expected = pd.DataFrame(
         {"var2": [1, 1, 1, 2, 2, 2], "var1": list("abcdef")},
@@ -118,4 +117,12 @@ def test_duplicate_index():
     s = pd.Series([[1, 2], [3, 4]], index=[0, 0])
     result = s.explode()
     expected = pd.Series([1, 2, 3, 4], index=[0, 0, 0, 0], dtype=object)
+    tm.assert_series_equal(result, expected)
+
+
+def test_ignore_index():
+    # GH 34932
+    s = pd.Series([[1, 2], [3, 4]])
+    result = s.explode(ignore_index=True)
+    expected = pd.Series([1, 2, 3, 4], index=[0, 1, 2, 3], dtype=object)
     tm.assert_series_equal(result, expected)

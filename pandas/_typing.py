@@ -96,3 +96,11 @@ F = TypeVar("F", bound=FuncType)
 # DataFrame::sort_index, among others
 ValueKeyFunc = Optional[Callable[["Series"], Union["Series", AnyArrayLike]]]
 IndexKeyFunc = Optional[Callable[["Index"], Union["Index", AnyArrayLike]]]
+
+# types of `func` kwarg for DataFrame.aggregate and Series.aggregate
+AggFuncTypeBase = Union[Callable, str]
+AggFuncType = Union[
+    AggFuncTypeBase,
+    List[AggFuncTypeBase],
+    Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]],
+]

@@ -7,12 +7,13 @@ dependencies:
 
   # tools
   - cython>=0.29.16
-  - pytest>=5.0.1
+  - pytest>=5.0.1,<6.0.0rc0
   - pytest-xdist>=1.21
   - hypothesis>=3.58.0
 
   # pandas dependencies
   - beautifulsoup4
+  - fsspec>=0.7.4
   - html5lib
   - lxml
   - matplotlib
@@ -25,7 +26,7 @@ dependencies:
   - pytables
   - python-dateutil
   - pytz
-  - s3fs
+  - s3fs>=0.4.0
   - scipy
   - sqlalchemy
   - xlrd
