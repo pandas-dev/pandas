@@ -545,22 +545,24 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
 
     def _repr_html_(self) -> str:
         max_groups = get_option("display.max_groups")
-        ngroups = self.ngroups
-        n_start = (max_groups + 1) // 2
-        n_end = max_groups - n_start
-        repr_html = ""
-        truncated = ngroups > max_groups
-        for k, (group_name, group) in enumerate(self):
-            if not truncated or (n_start > k or k >= ngroups - n_end):
-                if not hasattr(group, "to_html"):
-                    group = group.to_frame()
-                repr_html += f"<H3>Group Key: {group_name}<H3/>"
-                repr_html += group.to_html(
-                    max_rows=max(1, get_option("display.max_rows") // self.ngroups)
-                )
-            elif k == max_groups // 2:
-                repr_html += "<H3>...<H3/>"
-        return repr_html
+        max_rows = max(1, get_option("display.max_rows") // self.ngroups)
+        group_names = list(self.groups.keys())
+        truncated = max_groups < self.ngroups
+        if truncated:
+            n_start = (max_groups + 1) // 2
+            n_end = max_groups - n_start
+            group_names = group_names[:n_start] + group_names[-n_end:]
+        repr_html_list = list()
+        for group_name in group_names:
+            group = self.get_group(group_name)
+            if not hasattr(group, "to_html"):
+                group = group.to_frame()
+            repr_html_list.append(
+                f"<H3>Group Key: {group_name}<H3/>\n{group.to_html(max_rows=max_rows)}"
+            )
+        if truncated:
+            repr_html_list.insert(max_groups // 2, "<H3>...<H3/>")
+        return "\n".join(repr_html_list)
 
     def _assure_grouper(self):
         """
