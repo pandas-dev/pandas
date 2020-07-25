@@ -544,15 +544,15 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         return object.__repr__(self)
 
     def _repr_html_(self) -> str:
-        html_text = ""
-        for idx, df_group in self:
-            if not hasattr(df_group, "to_html"):
-                df_group = df_group.to_frame()
-            html_text += f"<H3>Group Key: {idx}<H3/>"
-            html_text += df_group.to_html(
+        repr_html = ""
+        for group_name, group in self:
+            if not hasattr(group, "to_html"):
+                group = group.to_frame()
+            repr_html += f"<H3>Group Key: {group_name}<H3/>"
+            repr_html += group.to_html(
                 max_rows=get_option("display.max_rows") // self.ngroups
             )
-        return html_text
+        return repr_html
 
     def _assure_grouper(self):
         """
