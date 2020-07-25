@@ -52,6 +52,7 @@ class LatexFormatter(TableFormatter):
         self.label = label
         self.escape = self.fmt.escape
         self.position = position
+        self._table_float = any([p is not None for p in (caption, label, position)])
 
     def write_result(self, buf: IO[str]) -> None:
         """
@@ -286,11 +287,7 @@ class LatexFormatter(TableFormatter):
             <https://en.wikibooks.org/wiki/LaTeX/Tables>`__ e.g 'rcl'
             for 3 columns
         """
-        if (
-            self.caption is not None
-            or self.label is not None
-            or self.position is not None
-        ):
+        if self._table_float:
             # then write output in a nested table/tabular environment
             if self.caption is None:
                 caption_ = ""
@@ -330,11 +327,7 @@ class LatexFormatter(TableFormatter):
         """
         buf.write("\\bottomrule\n")
         buf.write("\\end{tabular}\n")
-        if (
-            self.caption is not None
-            or self.label is not None
-            or self.position is not None
-        ):
+        if self._table_float:
             buf.write("\\end{table}\n")
         else:
             pass
