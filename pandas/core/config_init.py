@@ -342,7 +342,9 @@ with cf.config_prefix("display"):
         validator=is_instance_factory((int, type(None))),
     )
     cf.register_option("max_rows", 60, pc_max_rows_doc, validator=is_nonnegative_int)
-    cf.register_option("max_groups", 10, pc_max_groups_doc, validator=is_nonnegative_int)
+    cf.register_option(
+        "max_groups", 10, pc_max_groups_doc, validator=is_nonnegative_int
+    )
     cf.register_option(
         "min_rows",
         10,
