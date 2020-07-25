@@ -1213,171 +1213,112 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if len(keys) == 0:
             return self.obj._constructor(index=keys)
 
-        key_names = self.grouper.names
-
-        # GH12824
+        # GH12824 - If first value is None, can't assume all are None
         first_not_none = next(com.not_none(*values), None)
 
         if first_not_none is None:
-            # GH9684. If all values are None, then this will throw an error.
-            # We'd prefer it return an empty dataframe.
+            # GH9684 - All values are None, return an empty frame.
             return self.obj._constructor()
-        elif isinstance(first_not_none, DataFrame):
+
+        if isinstance(first_not_none, DataFrame):
             return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
-        else:
-            if len(self.grouper.groupings) > 1:
-                key_index = self.grouper.result_index
 
+        if isinstance(first_not_none, NDFrame):
+
+            # this is to silence a DeprecationWarning
+            # TODO: Remove when default dtype of empty Series is object
+            kwargs = first_not_none._construct_axes_dict()
+            if isinstance(first_not_none, Series):
+                backup = create_series_with_explicit_dtype(
+                    **kwargs, dtype_if_empty=object
+                )
             else:
-                ping = self.grouper.groupings[0]
-                if len(keys) == ping.ngroups:
-                    key_index = ping.group_index
-                    key_index.name = key_names[0]
+                backup = first_not_none._constructor(**kwargs)
 
-                    key_lookup = Index(keys)
-                    indexer = key_lookup.get_indexer(key_index)
+            values = [x if (x is not None) else backup for x in values]
 
-                    # reorder the values
-                    values = [values[i] for i in indexer]
+        key_index = self.grouper.result_index if self.as_index else None
+        v = values[0]
 
-                    # update due to the potential reorder
-                    first_not_none = next(com.not_none(*values), None)
-                else:
-
-                    key_index = Index(keys, name=key_names[0])
-
-                # don't use the key indexer
-                if not self.as_index:
-                    key_index = None
-
-            # make Nones an empty object
-            if first_not_none is None:
-                return self.obj._constructor()
-            elif isinstance(first_not_none, NDFrame):
-
-                # this is to silence a DeprecationWarning
-                # TODO: Remove when default dtype of empty Series is object
-                kwargs = first_not_none._construct_axes_dict()
-                if isinstance(first_not_none, Series):
-                    backup = create_series_with_explicit_dtype(
-                        **kwargs, dtype_if_empty=object
-                    )
-                else:
-                    backup = first_not_none._constructor(**kwargs)
-
-                values = [x if (x is not None) else backup for x in values]
-
-            v = values[0]
-
-            if isinstance(v, (np.ndarray, Index, Series)) or not self.as_index:
-                if isinstance(v, Series):
-                    applied_index = self._selected_obj._get_axis(self.axis)
-                    all_indexed_same = all_indexes_same([x.index for x in values])
-                    singular_series = len(values) == 1 and applied_index.nlevels == 1
-
-                    # GH3596
-                    # provide a reduction (Frame -> Series) if groups are
-                    # unique
-                    if self.squeeze:
-                        # assign the name to this series
-                        if singular_series:
-                            values[0].name = keys[0]
-
-                            # GH2893
-                            # we have series in the values array, we want to
-                            # produce a series:
-                            # if any of the sub-series are not indexed the same
-                            # OR we don't have a multi-index and we have only a
-                            # single values
-                            return self._concat_objects(
-                                keys, values, not_indexed_same=not_indexed_same
-                            )
-
-                        # still a series
-                        # path added as of GH 5545
-                        elif all_indexed_same:
-                            from pandas.core.reshape.concat import concat
-
-                            return concat(values)
-
-                    if not all_indexed_same:
-                        # GH 8467
-                        return self._concat_objects(keys, values, not_indexed_same=True)
-
-                if self.axis == 0 and isinstance(v, ABCSeries):
-                    # GH6124 if the list of Series have a consistent name,
-                    # then propagate that name to the result.
-                    index = v.index.copy()
-                    if index.name is None:
-                        # Only propagate the series name to the result
-                        # if all series have a consistent name.  If the
-                        # series do not have a consistent name, do
-                        # nothing.
-                        names = {v.name for v in values}
-                        if len(names) == 1:
-                            index.name = list(names)[0]
-
-                    # normally use vstack as its faster than concat
-                    # and if we have mi-columns
-                    if (
-                        isinstance(v.index, MultiIndex)
-                        or key_index is None
-                        or isinstance(key_index, MultiIndex)
-                    ):
-                        stacked_values = np.vstack([np.asarray(v) for v in values])
-                        result = self.obj._constructor(
-                            stacked_values, index=key_index, columns=index
-                        )
-                    else:
-                        # GH5788 instead of stacking; concat gets the
-                        # dtypes correct
-                        from pandas.core.reshape.concat import concat
-
-                        result = concat(
-                            values,
-                            keys=key_index,
-                            names=key_index.names,
-                            axis=self.axis,
-                        ).unstack()
-                        result.columns = index
-                elif isinstance(v, ABCSeries):
-                    stacked_values = np.vstack([np.asarray(v) for v in values])
-                    result = self.obj._constructor(
-                        stacked_values.T, index=v.index, columns=key_index
-                    )
-                elif not self.as_index:
-                    # We add grouping column below, so create a frame here
-                    result = DataFrame(
-                        values, index=key_index, columns=[self._selection]
-                    )
-                else:
-                    # GH#1738: values is list of arrays of unequal lengths
-                    #  fall through to the outer else clause
-                    # TODO: sure this is right?  we used to do this
-                    #  after raising AttributeError above
-                    return self.obj._constructor_sliced(
-                        values, index=key_index, name=self._selection_name
-                    )
-
-                # if we have date/time like in the original, then coerce dates
-                # as we are stacking can easily have object dtypes here
-                so = self._selected_obj
-                if so.ndim == 2 and so.dtypes.apply(needs_i8_conversion).any():
-                    result = _recast_datetimelike_result(result)
-                else:
-                    result = result._convert(datetime=True)
-
-                if not self.as_index:
-                    self._insert_inaxis_grouper_inplace(result)
-
-                return self._reindex_output(result)
-
+        if not isinstance(v, (np.ndarray, Index, Series)):
             # values are not series or array-like but scalars
-            else:
-                # self._selection_name not passed through to Series as the
-                # result should not take the name of original selection
-                # of columns
+            # self._selection_name not passed through to Series as the
+            # result should not take the name of original selection
+            # of columns
+            if self.as_index:
                 return self.obj._constructor_sliced(values, index=key_index)
+            else:
+                result = DataFrame(values, index=key_index, columns=[self._selection])
+                self._insert_inaxis_grouper_inplace(result)
+                return result
+
+        if not isinstance(v, ABCSeries):
+            # GH1738: values is list of arrays of unequal lengths
+            # TODO: sure this is right?  we used to do this
+            #  after raising AttributeError above
+            return self.obj._constructor_sliced(
+                values, index=key_index, name=self._selection_name
+            )
+
+        all_indexed_same = all_indexes_same((x.index for x in values))
+
+        # GH3596 - provide a reduction (Frame -> Series) if groups are unique
+        if self.squeeze:
+            # assign the name to this series
+            applied_index = self._selected_obj._get_axis(self.axis)
+            if len(values) == 1 and applied_index.nlevels == 1:
+                values[0].name = keys[0]
+
+                # GH2893
+                # we have series in the values array, we want to
+                # produce a series:
+                # if any of the sub-series are not indexed the same
+                # OR we don't have a multi-index and we have only a
+                # single values
+                return self._concat_objects(
+                    keys, values, not_indexed_same=not_indexed_same
+                )
+
+            # still a series
+            # path added as of GH 5545
+            elif all_indexed_same:
+                from pandas.core.reshape.concat import concat
+
+                return concat(values)
+
+        if not all_indexed_same:
+            # GH 8467
+            return self._concat_objects(keys, values, not_indexed_same=True)
+
+        stacked_values = np.vstack([np.asarray(v) for v in values])
+
+        if self.axis == 0:
+            index = key_index
+            columns = v.index.copy()
+            if columns.name is None:
+                # GH6124 - propagate name of Series when it's consistent
+                names = {v.name for v in values}
+                if len(names) == 1:
+                    columns.name = list(names)[0]
+        else:
+            index = v.index
+            columns = key_index
+            stacked_values = stacked_values.T
+
+        result = self.obj._constructor(stacked_values, index=index, columns=columns)
+
+        # if we have date/time like in the original, then coerce dates
+        # as we are stacking can easily have object dtypes here
+        so = self._selected_obj
+        if so.ndim == 2 and so.dtypes.apply(needs_i8_conversion).any():
+            result = _recast_datetimelike_result(result)
+        else:
+            result = result._convert(datetime=True)
+
+        if not self.as_index:
+            self._insert_inaxis_grouper_inplace(result)
+
+        return self._reindex_output(result)
 
     def _transform_general(
         self, func, *args, engine="cython", engine_kwargs=None, **kwargs
