@@ -545,7 +545,9 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
 
     def _repr_html_(self) -> str:
         max_groups = get_option("display.max_groups")
-        max_rows = max(1, get_option("display.max_rows") // self.ngroups)
+        max_rows = max(
+            1, get_option("display.max_rows") // min(max_groups, self.ngroups)
+        )
         group_names = list(self.groups.keys())
         truncated = max_groups < self.ngroups
         if truncated:
