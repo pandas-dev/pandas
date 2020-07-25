@@ -544,14 +544,22 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         return object.__repr__(self)
 
     def _repr_html_(self) -> str:
+        max_groups = get_option("display.max_groups")
+        ngroups = self.ngroups
+        n_start = (max_groups + 1) // 2
+        n_end = max_groups - n_start
         repr_html = ""
-        for group_name, group in self:
-            if not hasattr(group, "to_html"):
-                group = group.to_frame()
-            repr_html += f"<H3>Group Key: {group_name}<H3/>"
-            repr_html += group.to_html(
-                max_rows=get_option("display.max_rows") // self.ngroups
-            )
+        truncated = ngroups > max_groups
+        for k, (group_name, group) in enumerate(self):
+            if not truncated or (n_start > k or k >= ngroups - n_end):
+                if not hasattr(group, "to_html"):
+                    group = group.to_frame()
+                repr_html += f"<H3>Group Key: {group_name}<H3/>"
+                repr_html += group.to_html(
+                    max_rows=max(1, get_option("display.max_rows") // self.ngroups)
+                )
+            elif k == max_groups // 2:
+                repr_html += "<H3>...<H3/>"
         return repr_html
 
     def _assure_grouper(self):
