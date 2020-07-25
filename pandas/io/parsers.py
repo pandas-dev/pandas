@@ -346,7 +346,7 @@ float_precision : str, optional
     values. The options are `None` for the ordinary converter,
     `high` for the high-precision converter, and `round_trip` for the
     round-trip converter.
-kwargs :
+kwargs
     Additional keyword arguments passed to read_csv for compatibility
     with `csv` module. Include lineterminator (an alternative to
     line_terminator: see above).
