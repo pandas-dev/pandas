@@ -1062,18 +1062,16 @@ class BlockManager(PandasObject):
         for blkno, val_locs in libinternals.get_blkno_placements(blknos, group=True):
             blk = self.blocks[blkno]
             blk_locs = blklocs[val_locs.indexer]
-            if blk.should_store(value):
-                blk.set(blk_locs, value_getitem(val_locs))
-            else:
-                unfit_mgr_locs.append(blk.mgr_locs.as_array[blk_locs])
-                unfit_val_locs.append(val_locs)
 
-                # If all block items are unfit, schedule the block for removal.
-                if len(val_locs) == len(blk.mgr_locs):
-                    removed_blknos.append(blkno)
-                else:
-                    blk.delete(blk_locs)
-                    self._blklocs[blk.mgr_locs.indexer] = np.arange(len(blk))
+            unfit_mgr_locs.append(blk.mgr_locs.as_array[blk_locs])
+            unfit_val_locs.append(val_locs)
+
+            # If all block items are unfit, schedule the block for removal.
+            if len(val_locs) == len(blk.mgr_locs):
+                removed_blknos.append(blkno)
+            else:
+                blk.delete(blk_locs)
+                self._blklocs[blk.mgr_locs.indexer] = np.arange(len(blk))
 
         if len(removed_blknos):
             # Remove blocks & update blknos accordingly

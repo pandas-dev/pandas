@@ -877,7 +877,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         assert original_df[:] is not original_df
 
         # should be a shallow copy
-        original_df["a"] = [4, 4, 4]
+        original_df["a"][:] = [4, 4, 4]
         assert (sliced_df["a"] == 4).all()
 
         # These should not return copies

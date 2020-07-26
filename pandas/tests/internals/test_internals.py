@@ -642,33 +642,31 @@ class TestBlockManager:
             item_shape=(3,),
         )
         mgr.iset(5, np.array([1, 2, 3], dtype=np.object_))
-
         numeric = mgr.get_numeric_data()
         tm.assert_index_equal(
             numeric.items, pd.Index(["int", "float", "complex", "bool"])
         )
+        mgr_idx = mgr.items.get_loc("float")
+        num_idx = numeric.items.get_loc("float")
+
         tm.assert_almost_equal(
-            mgr.iget(mgr.items.get_loc("float")).internal_values(),
-            numeric.iget(numeric.items.get_loc("float")).internal_values(),
+            mgr.iget(mgr_idx).internal_values(),
+            numeric.iget(num_idx).internal_values(),
         )
 
         # Check sharing
-        numeric.iset(numeric.items.get_loc("float"), np.array([100.0, 200.0, 300.0]))
+        numeric.iget(num_idx).internal_values()[:] = [100.0, 200.0, 300.0]
         tm.assert_almost_equal(
-            mgr.iget(mgr.items.get_loc("float")).internal_values(),
-            np.array([100.0, 200.0, 300.0]),
+            mgr.iget(mgr_idx).internal_values(), np.array([100.0, 200.0, 300.0]),
         )
 
         numeric2 = mgr.get_numeric_data(copy=True)
         tm.assert_index_equal(
             numeric.items, pd.Index(["int", "float", "complex", "bool"])
         )
-        numeric2.iset(
-            numeric2.items.get_loc("float"), np.array([1000.0, 2000.0, 3000.0])
-        )
+        numeric2.iget(num_idx).internal_values()[:] = [1000.0, 2000.0, 3000.0]
         tm.assert_almost_equal(
-            mgr.iget(mgr.items.get_loc("float")).internal_values(),
-            np.array([100.0, 200.0, 300.0]),
+            mgr.iget(mgr_idx).internal_values(), np.array([100.0, 200.0, 300.0]),
         )
 
     def test_get_bool_data(self):
@@ -686,18 +684,20 @@ class TestBlockManager:
             bools.iget(bools.items.get_loc("bool")).internal_values(),
         )
 
+        # GH#33457 setting a new array on bools does _not_ alter the original
+        #  array in-place, so mgr is unchanged
         bools.iset(0, np.array([True, False, True]))
         tm.assert_numpy_array_equal(
             mgr.iget(mgr.items.get_loc("bool")).internal_values(),
-            np.array([True, False, True]),
+            np.array([True, True, True]),
         )
 
-        # Check sharing
+        # Check non-sharing
         bools2 = mgr.get_bool_data(copy=True)
-        bools2.iset(0, np.array([False, True, False]))
+        bools2.blocks[0].values[:] = [[False, True, False]]
         tm.assert_numpy_array_equal(
             mgr.iget(mgr.items.get_loc("bool")).internal_values(),
-            np.array([True, False, True]),
+            np.array([True, True, True]),
         )
 
     def test_unicode_repr_doesnt_raise(self):
@@ -1179,23 +1179,6 @@ class TestCanHoldElement:
             result = op(s, e.value).dtypes
             expected = op(s, value).dtypes
             tm.assert_series_equal(result, expected)
-
-
-class TestShouldStore:
-    def test_should_store_categorical(self):
-        cat = pd.Categorical(["A", "B", "C"])
-        df = pd.DataFrame(cat)
-        blk = df._mgr.blocks[0]
-
-        # matching dtype
-        assert blk.should_store(cat)
-        assert blk.should_store(cat[:-1])
-
-        # different dtype
-        assert not blk.should_store(cat.as_ordered())
-
-        # ndarray instead of Categorical
-        assert not blk.should_store(np.asarray(cat))
 
 
 @pytest.mark.parametrize(

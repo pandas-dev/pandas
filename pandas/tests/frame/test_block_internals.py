@@ -322,7 +322,7 @@ class TestDataFrameBlockInternals:
         blocks = df._to_dict_of_blocks(copy=True)
         for dtype, _df in blocks.items():
             if column in _df:
-                _df.loc[:, column] = _df[column] + 1
+                _df.loc[:, column].values[:] = _df[column] + 1
 
         # make sure we did not change the original DataFrame
         assert not _df[column].equals(df[column])
@@ -334,12 +334,14 @@ class TestDataFrameBlockInternals:
 
         # use the copy=False, change a column
         blocks = df._to_dict_of_blocks(copy=False)
-        for dtype, _df in blocks.items():
+        for _, _df in blocks.items():
             if column in _df:
-                _df.loc[:, column] = _df[column] + 1
+                _df.loc[:, column].values[:] = _df[column] + 1
+                # FIXME: I think the need for .values here means we are doing something wrong
 
         # make sure we did change the original DataFrame
-        assert _df[column].equals(df[column])
+        tm.assert_series_equal(df[column], _df[column])
+        #assert _df[column].equals(df[column])
 
     def test_copy(self, float_frame, float_string_frame):
         cop = float_frame.copy()

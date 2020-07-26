@@ -634,20 +634,6 @@ class Block(PandasObject):
             return issubclass(tipo.type, dtype)
         return isinstance(element, dtype)
 
-    def should_store(self, value: ArrayLike) -> bool:
-        """
-        Should we set self.values[indexer] = value inplace or do we need to cast?
-
-        Parameters
-        ----------
-        value : np.ndarray or ExtensionArray
-
-        Returns
-        -------
-        bool
-        """
-        return is_dtype_equal(value.dtype, self.dtype)
-
     def to_native_types(self, na_rep="nan", quoting=None, **kwargs):
         """ convert to our native types format """
         values = self.values
@@ -1581,12 +1567,6 @@ class ExtensionBlock(Block):
                 raise IndexError(f"{self} only contains one item")
             return self.values
 
-    def should_store(self, value: ArrayLike) -> bool:
-        """
-        Can we set the given array-like value inplace?
-        """
-        return isinstance(value, self._holder)
-
     def set(self, locs, values):
         assert locs.tolist() == [0]
         self.values[:] = values
@@ -1976,9 +1956,6 @@ class ComplexBlock(FloatOrComplexBlock):
             element, (float, int, complex, np.float_, np.int_)
         ) and not isinstance(element, (bool, np.bool_))
 
-    def should_store(self, value: ArrayLike) -> bool:
-        return issubclass(value.dtype.type, np.complexfloating)
-
 
 class IntBlock(NumericBlock):
     __slots__ = ()
@@ -2142,7 +2119,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     _can_hold_element = DatetimeBlock._can_hold_element
     to_native_types = DatetimeBlock.to_native_types
     fill_value = np.datetime64("NaT", "ns")
-    should_store = Block.should_store
     array_values = ExtensionBlock.array_values
 
     @property
@@ -2615,8 +2591,6 @@ class CategoricalBlock(ExtensionBlock):
     is_categorical = True
     _verify_integrity = True
     _can_hold_na = True
-
-    should_store = Block.should_store
 
     def __init__(self, values, placement, ndim=None):
         # coerce to categorical if we can

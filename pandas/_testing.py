@@ -1089,6 +1089,8 @@ def assert_numpy_array_equal(
             raise AssertionError(f"{repr(left_base)} is {repr(right_base)}")
 
     def _raise(left, right, err_msg):
+        __tracebackhide__ = True
+
         if err_msg is None:
             if left.shape != right.shape:
                 raise_assert_detail(

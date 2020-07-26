@@ -284,7 +284,7 @@ class TestMerge:
 
         merged = merge(left, right, left_index=True, right_index=True, copy=False)
 
-        merged["a"] = 6
+        merged.loc[:, "a"] = 6
         assert (left["a"] == 6).all()
 
         merged["d"] = "peekaboo"
