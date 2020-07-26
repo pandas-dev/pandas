@@ -2051,8 +2051,7 @@ def test_groups_repr_truncates(max_seq_items, expected):
 
 def test_groupby_repr():
     """
-    This test only works when all groups and all rows in a group are shown in
-    html output.
+    All groups and all rows in a group are shown in html output.
     """
     n_groups = 5
     length = n_groups * 5
@@ -2071,3 +2070,64 @@ def test_groupby_repr():
 
     for k, (group_name, df_group) in enumerate(df_groupby):
         tm.assert_frame_equal(dfs_from_html[k], df_group)
+
+
+def test_groupby_repr_truncated_group():
+    """
+    In the groups not all rows are shown in html output.
+    """
+    n_groups = 10
+    length = n_groups * 20
+
+    df = pd.DataFrame(
+        {
+            "A": range(length),
+            "B": range(0, length * 2, 2),
+            "C": list(range(n_groups)) * (length // n_groups),
+        }
+    )
+
+    df_groupby = df.groupby("C")
+    html_groupby = df_groupby._repr_html_()
+
+    dfs_from_html = pd.read_html(StringIO(html_groupby), index_col=0)
+
+    # For each group only test first and last row
+    for k, (group_name, df_group) in enumerate(df_groupby):
+        dtype = df_group.iloc[0].dtype
+        tm.assert_series_equal(
+            dfs_from_html[k].iloc[0].astype(dtype), df_group.iloc[0], check_names=False
+        )
+        tm.assert_series_equal(
+            dfs_from_html[k].iloc[-1].astype(dtype),
+            df_group.iloc[-1],
+            check_names=False,
+        )
+
+
+def test_groupby_repr_not_all_groups():
+    """
+    Not all groups are shown in html output.
+    """
+    n_groups = 30
+    length = n_groups * 5
+    df = pd.DataFrame(
+        {
+            "A": range(length),
+            "B": range(0, length * 2, 2),
+            "C": list(range(n_groups)) * (length // n_groups),
+        }
+    )
+
+    df_groupby = df.groupby("C")
+    html_groupby = df_groupby._repr_html_()
+
+    dfs_from_html = pd.read_html(StringIO(html_groupby), index_col=0)
+
+    # Test first and last group
+    tm.assert_frame_equal(
+        dfs_from_html[0], df_groupby.get_group(tuple(df_groupby.groups.keys())[0])
+    )
+    tm.assert_frame_equal(
+        dfs_from_html[-1], df_groupby.get_group(tuple(df_groupby.groups.keys())[-1])
+    )
