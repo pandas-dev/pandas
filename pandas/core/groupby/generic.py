@@ -692,7 +692,7 @@ class SeriesGroupBy(GroupBy[Series]):
         mask = ids != -1
         ids, val = ids[mask], val[mask]
         if dropna:
-            mask = ~np.isnan(val)
+            mask = ~isna(val)
             if not mask.all():
                 ids, val = ids[mask], val[mask]
                 # codes = [code[mask] for code in codes]
@@ -797,7 +797,7 @@ class SeriesGroupBy(GroupBy[Series]):
             print("codes: ", codes)
             # codes = [code[changes] for code in codes]
             used_ids = np.unique(ids)
-            codes = [code[used_ids] for code in codes]
+            # codes = [code[used_ids] for code in codes]
             codes = [rep(level_codes) for level_codes in codes] + [val_lab]
             print(f"{codes=}")
 
