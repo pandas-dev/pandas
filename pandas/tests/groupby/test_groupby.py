@@ -2047,3 +2047,27 @@ def test_groups_repr_truncates(max_seq_items, expected):
 
         result = df.groupby(np.array(df.a)).groups.__repr__()
         assert result == expected
+
+
+def test_groupby_repr():
+    """
+    This test only works when all groups and all rows in a group are shown in
+    html output.
+    """
+    n_groups = 5
+    length = n_groups * 5
+    df = pd.DataFrame(
+        {
+            "A": range(length),
+            "B": range(0, length * 2, 2),
+            "C": list(range(n_groups)) * (length // n_groups),
+        }
+    )
+
+    df_groupby = df.groupby("C")
+    html_groupby = df_groupby._repr_html_()
+
+    dfs_from_html = pd.read_html(StringIO(html_groupby), index_col=0)
+
+    for k, (group_name, df_group) in enumerate(df_groupby):
+        tm.assert_frame_equal(dfs_from_html[k], df_group)
