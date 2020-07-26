@@ -93,7 +93,7 @@ pc_max_rows_doc = """
 
 pc_max_groups_doc = """
 : int
-    If max_groups is exceeded, switch to truncate groupby view. 'None' value 
+    If max_groups is exceeded, switch to truncate groupby view. 'None' value
     means unlimited.
 """
 
