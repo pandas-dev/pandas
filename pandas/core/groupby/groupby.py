@@ -1633,8 +1633,8 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         if self.as_index:
             with _group_selection_context(self):
                 if self._group_selection is not None:
-                    cols = result.columns.intersection(self._group_selection)
-                    result = result.reindex(columns=cols)
+                    group_cols = result.columns.difference(self._group_selection)
+                    result = result.drop(columns=group_cols)
         return result.unstack()
 
     def resample(self, rule, *args, **kwargs):
