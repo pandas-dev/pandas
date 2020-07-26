@@ -1164,19 +1164,11 @@ Reshaping
 - Bug in :func:`concat` was not allowing for concatenation of :class:`DataFrame` and :class:`Series` with duplicate keys (:issue:`33654`)
 - Bug in :func:`cut` raised an error when the argument ``labels`` contains duplicates (:issue:`33141`)
 - Ensure only named functions can be used in :func:`eval()` (:issue:`32460`)
-<<<<<<< HEAD
-- Bug in :func:`Dataframe.aggregate` and :func:`Series.aggregate` was causing recursive loop in some cases (:issue:`34224`)
-- Fixed bug in :func:`melt` where melting MultiIndex columns with ``col_level`` > 0 would raise a ``KeyError`` on ``id_vars`` (:issue:`34129`)
-- Bug in :meth:`Series.where` with an empty Series and empty ``cond`` having non-bool dtype (:issue:`34592`)
-- Fixed regression where :meth:`DataFrame.apply` would raise ``ValueError`` for elements whth ``S`` dtype (:issue:`34529`)
-- Bug in :meth:`DataFrame.pivot_table` with ``aggfunc='count'`` or ``aggfunc='sum'`` returning ``NaN`` for missing categories when pivoted on a ``Categorical``. Now returning ``0`` (:issue:`31422`)
-
-=======
 - Bug in :meth:`Dataframe.aggregate` and :meth:`Series.aggregate` was causing a recursive loop in some cases (:issue:`34224`)
 - Fixed bug in :func:`melt` where melting :class:`MultiIndex` columns with ``col_level > 0`` would raise a ``KeyError`` on ``id_vars`` (:issue:`34129`)
 - Bug in :meth:`Series.where` with an empty :class:`Series` and empty ``cond`` having non-bool dtype (:issue:`34592`)
 - Fixed regression where :meth:`DataFrame.apply` would raise ``ValueError`` for elements with ``S`` dtype (:issue:`34529`)
->>>>>>> upstream/master
+- Bug in :meth:`DataFrame.pivot_table` with ``aggfunc='count'`` or ``aggfunc='sum'`` returning ``NaN`` for missing categories when pivoted on a ``Categorical``. Now returning ``0`` (:issue:`31422`)
 
 Sparse
 ^^^^^^
