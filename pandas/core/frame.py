@@ -141,6 +141,7 @@ from pandas.core.internals.construction import (
 )
 from pandas.core.reshape.melt import melt
 from pandas.core.series import Series
+from pandas.core.shared_docs import _shared_doc_kwargs as core_shared_doc_kwargs
 from pandas.core.sorting import ensure_key_mapped
 
 from pandas.io.common import get_filepath_or_buffer
@@ -4362,8 +4363,8 @@ class DataFrame(NDFrame):
 
     @doc(
         NDFrame.replace,
-        inplace=com._core_shared_docs_kwargs["inplace"],
-        replace_iloc=com._core_shared_docs_kwargs["replace_iloc"],
+        inplace=core_shared_doc_kwargs["inplace"],
+        replace_iloc=core_shared_doc_kwargs["replace_iloc"],
         **_shared_doc_kwargs,
     )
     def replace(

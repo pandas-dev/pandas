@@ -97,7 +97,7 @@ import pandas.core.indexing as indexing
 from pandas.core.internals import BlockManager
 from pandas.core.missing import find_valid_index
 from pandas.core.ops import _align_method_FRAME
-from pandas.core.shared_docs import _shared_docs
+from pandas.core.shared_docs import _shared_doc_kwargs, _shared_docs
 
 from pandas.io.formats import format as fmt
 from pandas.io.formats.format import DataFrameFormatter, format_percentiles
@@ -109,14 +109,16 @@ if TYPE_CHECKING:
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
-_shared_doc_kwargs = dict(
-    axes="keywords for axes",
-    klass="Series/DataFrame",
-    axes_single_arg="int or labels for object",
-    args_transpose="axes to permute (int or label for object)",
-    optional_by="""
-        by : str or list of str
-            Name or list of names to sort by""",
+_shared_doc_kwargs.update(
+    dict(
+        axes="keywords for axes",
+        klass="Series/DataFrame",
+        axes_single_arg="int or labels for object",
+        args_transpose="axes to permute (int or label for object)",
+        optional_by="""
+            by : str or list of str
+                Name or list of names to sort by""",
+    )
 )
 
 
@@ -6123,10 +6125,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     backfill = bfill
 
     @doc(
-        com._core_shared_docs["to_replace"],
+        _shared_docs["to_replace"],
         klass=_shared_doc_kwargs["klass"],
-        inplace=com._core_shared_docs_kwargs["inplace"],
-        replace_iloc=com._core_shared_docs_kwargs["replace_iloc"],
+        inplace=_shared_doc_kwargs["inplace"],
+        replace_iloc=_shared_doc_kwargs["replace_iloc"],
     )
     def replace(
         self,

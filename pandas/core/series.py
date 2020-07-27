@@ -87,6 +87,7 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexing import check_bool_indexer
 from pandas.core.internals import SingleBlockManager
+from pandas.core.shared_docs import _shared_doc_kwargs
 from pandas.core.sorting import ensure_key_mapped
 from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
@@ -100,21 +101,21 @@ if TYPE_CHECKING:
 
 __all__ = ["Series"]
 
-_shared_doc_kwargs = dict(
-    axes="index",
-    klass="Series",
-    axes_single_arg="{0 or 'index'}",
-    axis="""axis : {0 or 'index'}
-        Parameter needed for compatibility with DataFrame.""",
-    inplace="""inplace : boolean, default False
-        If True, performs operation inplace and returns None.""",
-    unique="np.ndarray",
-    duplicated="Series",
-    optional_by="",
-    optional_mapper="",
-    optional_labels="",
-    optional_axis="",
-    versionadded_to_excel="\n    .. versionadded:: 0.20.0\n",
+_shared_doc_kwargs.update(
+    dict(
+        axes="index",
+        klass="Series",
+        axes_single_arg="{0 or 'index'}",
+        axis="""axis : {0 or 'index'}
+            Parameter needed for compatibility with DataFrame.""",
+        unique="np.ndarray",
+        duplicated="Series",
+        optional_by="",
+        optional_mapper="",
+        optional_labels="",
+        optional_axis="",
+        versionadded_to_excel="\n    .. versionadded:: 0.20.0\n",
+    )
 )
 
 
@@ -4554,7 +4555,7 @@ Keep all original rows and also all original values
         NDFrame.replace,
         klass=_shared_doc_kwargs["klass"],
         inplace=_shared_doc_kwargs["inplace"],
-        replace_iloc=com._core_shared_docs_kwargs["replace_iloc"],
+        replace_iloc=_shared_doc_kwargs["replace_iloc"],
     )
     def replace(
         self,
