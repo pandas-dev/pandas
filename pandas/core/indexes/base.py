@@ -85,6 +85,7 @@ from pandas.core.indexes.frozen import FrozenList
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
 from pandas.core.ops.invalid import make_invalid_op
+from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import ensure_key_mapped
 from pandas.core.strings import StringMethods
 
@@ -1367,7 +1368,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self.set_names([name], inplace=inplace)
 
     @doc(
-        com._core_shared_docs["to_replace"],
+        _shared_docs["to_replace"],
         klass=_index_doc_kwargs["klass"],
         inplace=_index_doc_kwargs["inplace"],
         replace_iloc="",

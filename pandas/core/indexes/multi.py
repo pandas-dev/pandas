@@ -50,6 +50,7 @@ from pandas.core.indexes.base import Index, _index_shared_docs, ensure_index
 from pandas.core.indexes.frozen import FrozenList
 from pandas.core.indexes.numeric import Int64Index
 import pandas.core.missing as missing
+from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import (
     get_group_index,
     indexer_from_factorized,
@@ -3607,7 +3608,7 @@ class MultiIndex(Index):
             return levs.isin(values)
 
     @doc(
-        com._core_shared_docs["to_replace"],
+        _shared_docs["to_replace"],
         klass=_index_doc_kwargs["klass"],
         inplace=_index_doc_kwargs["inplace"],
         replace_iloc="",
