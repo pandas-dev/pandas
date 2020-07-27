@@ -1435,7 +1435,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         buf : str, Path or StringIO-like, optional, default None
             Buffer to write to. If None, the output is returned as a string.
         mode : str, optional
-            Mode in which file is opened.
+            Mode in which file is opened, "wt" by default.
         index : bool, optional, default True
             Add index (row) labels.
 

@@ -56,7 +56,7 @@ def to_json(
         path_or_buf, _, _, should_close = get_filepath_or_buffer(
             path_or_buf,
             compression=compression,
-            mode="w",
+            mode="wt",
             storage_options=storage_options,
         )
 
