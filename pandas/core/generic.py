@@ -56,7 +56,7 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError, InvalidIndexError
 from pandas.util._decorators import (
     doc,
-    rewrite_axis_style_signature,
+    rewrite_axis_style_signature, Appender,
 )
 from pandas.util._validators import (
     validate_bool_kwarg,
