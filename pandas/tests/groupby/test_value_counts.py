@@ -9,7 +9,7 @@ from itertools import product
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Grouper, MultiIndex, Series, cut, date_range, to_datetime
+from pandas import DataFrame, Grouper, MultiIndex, Series, date_range, to_datetime
 import pandas._testing as tm
 
 
@@ -40,7 +40,7 @@ def seed_df(seed_nans, n, m):
 binned = []
 ids = []
 for seed_nans in [True, False]:
-    for n, m in product((10, 1000), (5, 20)):
+    for n, m in product((100, 1000), (5, 20)):
         df = seed_df(seed_nans, n, m)
         bins = None, np.arange(0, max(5, df["3rd"].max()) + 1, 2)
         keys = "1st", "2nd", ["1st", "2nd"]
@@ -114,19 +114,9 @@ def test_groubpy_value_counts_bins():
     )
 
     result.sort_index(inplace=True)
-    intervals = cut(Series([0]), bins=BINS, include_lowest=True).cat.categories
-    # groups = [(0,5), (1,5), (2,5), (3,5), (3,6)]
-    groups = set((v[1], v[2], i) for v in values for i in intervals)
-    # {val[:-1]: 0 for val in values}
-    index = product([], intervals)
-
-    """index = MultiIndex.from_product(
-        [groups, sorted(intervals)], names=("key1", "key2", "score")
-    )"""
     expected = Series(
         [1, 0, 1, 0, 0, 2, 1, 0, 0, 0, 0, 1, 0, 0, 1], result.index, name="score"
     )
-    # expected = [2, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1]
     tm.assert_series_equal(result, expected)
 
 

@@ -45,13 +45,11 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_bool,
     is_integer_dtype,
-    is_interval_dtype,
     is_numeric_dtype,
     is_object_dtype,
     is_scalar,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core.aggregation import (
@@ -61,6 +59,7 @@ from pandas.core.aggregation import (
     validate_func_kwargs,
 )
 import pandas.core.algorithms as algorithms
+from pandas.core.algorithms import unique
 from pandas.core.base import DataError, SpecificationError
 import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
@@ -78,6 +77,7 @@ from pandas.core.indexes.api import Index, MultiIndex, all_indexes_same
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
+from pandas.core.sorting import compress_group_index
 from pandas.core.util.numba_ import (
     NUMBA_FUNC_CACHE,
     generate_numba_func,
@@ -667,7 +667,6 @@ class SeriesGroupBy(GroupBy[Series]):
     ):
 
         from pandas.core.reshape.tile import cut
-        from pandas.core.reshape.merge import _get_join_indexers
 
         if bins is not None and not np.iterable(bins):
             # scalar bins cannot be done at top level
@@ -679,14 +678,9 @@ class SeriesGroupBy(GroupBy[Series]):
                 ascending=ascending,
                 bins=bins,
             )
-        keys = [k for k in self.groups]
-        # print(f'{self.groups=}')
         ids, _, _ = self.grouper.group_info
-        # print(f'{ids=}')
         val = self.obj._values
-        print(f"{keys=}")
         codes = self.grouper.reconstructed_codes  # this will track the groups
-        print("codes: ", codes)
 
         # groupby removes null keys from groupings
         mask = ids != -1
@@ -695,111 +689,63 @@ class SeriesGroupBy(GroupBy[Series]):
             mask = ~isna(val)
             if not mask.all():
                 ids, val = ids[mask], val[mask]
-                # codes = [code[mask] for code in codes]
 
-        print(f"{ids=}")
-        print(f"{val=}")
-
-        print(f"{bins=}")
         if bins is None:
             val_lab, val_lev = algorithms.factorize(val, sort=True, dropna=dropna)
-            print(f"{val_lab=}")
         else:
             # val_lab is a Categorical with categories an IntervalIndex
-            print(f"{Series(val)=}")
             val_lab = cut(Series(val), bins, include_lowest=True)
-            # cut excludes NaN from its categories, so need to manually add
-            print(f"{val_lab=}")
-            print((not dropna) and (val_lab.hasnans))
-            """if (not dropna) and (val_lab.hasnans):
-                # val_lab =
-                cat_nan = CategoricalDtype(val_lab.cat.add_categories('NaN').cat.categories)
-                print(cat_nan)
-                val_lab = val_lab.astype(cat_nan).fillna('NaN')
-            """
-            print(f"{val_lab=}")
             val_lev = val_lab.cat.categories
             val_lab = val_lab.cat.codes.values
-            print(f"{val_lab=}")
-            if dropna:
-                included = val_lab != -1
-                ids, val_lab = ids[included], val_lab[included]
 
-            # print('1st val_lab: ', val_lab.cat.codes)
-            # llab = lambda val_lab, inc: val_lab[inc]._multiindex.codes[-1]
-        print(f"{val_lev=}")
-        if is_interval_dtype(val_lab.dtype):
-            # TODO: should we do this inside II?
-            sorter = np.lexsort((val_lab.right, val_lab.left, ids))
-        else:
-            sorter = np.lexsort((val_lab, ids))
+        if dropna:
+            included = val_lab != -1
+            ids, val_lab = ids[included], val_lab[included]
+
+        sorter = np.lexsort((val_lab, ids))
         ids, val_lab = ids[sorter], val_lab[sorter]
+        used_ids = unique(ids)
+        if max(used_ids) >= len(
+            codes[0]
+        ):  # this means we had something skipped from the start
+            used_ids = compress_group_index(used_ids)[0]
+        codes = [code[used_ids] for code in codes]  # drop what was taken out for n/a
 
-        print("ids: ", ids)
-        print(f"{val_lab=}")
-        # val_lab = val_lab.values
-        # print(f'{val_lab=}')
         # group boundaries are where group ids change
         # new values are where sorted labels change
         change_ids = ids[1:] != ids[:-1]
-        print((val_lab[1:] != val_lab[:-1]))
         changes = np.logical_or(change_ids, (val_lab[1:] != val_lab[:-1]))
-        """
-        changes = [(ids[i] != ids[i+1]) or (val_lab[i] != val_lab[i+1])
-                       for i in range(len(ids)-1)] #((ids[1:] != ids[:-1]) or (val_lab[1:] != val_lab[:-1]))
-        """
-        print(f"{changes=}")
-        print(np.diff(np.nonzero(changes), append=len(changes))[0])
         changes = np.r_[True, changes]
-        cts = np.diff(np.nonzero(np.r_[changes, True]))[0]  # , append=len(changes))[0]
-        print(f"{cts=}")
         val_lab = val_lab[changes]
         ids = ids[changes]
-        print("ids: ", ids)
+        cts = np.diff(np.nonzero(np.r_[changes, True]))[0]
 
-        change_ids = (
-            ids[1:] != ids[:-1]
-        )  # need to update now that we removed full repeats
-        # num_id_rep = np.diff(np.nonzero(np.r_[True, chan]))
-        print(f"{change_ids=}")
-        print(f"{val_lab=}")
-
+        idx = np.r_[0, 1 + np.nonzero(change_ids)[0]]
+        rep = partial(np.repeat, repeats=np.add.reduceat(changes, idx))
         num_repeats = np.diff(np.nonzero(np.r_[True, change_ids, True]))[0]
-        rep = partial(np.repeat, repeats=num_repeats)
-        print(f"{rep=}")
+
+        change_ids = np.r_[  # need to update now that we removed full repeats
+            ids[1:] != ids[:-1], True
+        ]
+
         if (not dropna) and (-1 in val_lab):
+            # in this case we need to explicitly add NaN as a level
             val_lev = np.r_[Index([np.nan]), val_lev]
             val_lab += 1
+
         levels = [ping.group_index for ping in self.grouper.groupings] + [
             Index(val_lev)
         ]
-        print(f"{levels=}")
         names = self.grouper.names + [self._selection_name]
-        print(f"{names=}")
 
         if normalize:
-            num_vals = []
-            ix = 0
-            print(f"{num_repeats=}")
-            for i, r in enumerate(num_repeats):
-                num_vals.append(np.sum(cts[ix : ix + r]))
-                # print(out[ix:ix+r])
-                ix += r
-            # print(f'{ix=}')
-            # [np.sum(out[i:i+r]) ]
-            print(f"{num_vals=}")
-            print(f"{cts=}")
             cts = cts.astype("float")
-            cts /= rep(num_vals)  # each divisor is the number of repeats for that index
-            print(f"{cts=}")
+            cts /= rep(
+                num_repeats
+            )  # each divisor is the number of repeats for that index
 
         if bins is None:
-            print("codes: ", codes)
-            # codes = [code[changes] for code in codes]
-            used_ids = np.unique(ids)
-            # codes = [code[used_ids] for code in codes]
             codes = [rep(level_codes) for level_codes in codes] + [val_lab]
-            print(f"{codes=}")
 
             if sort:
                 indices = tuple(reversed(codes[:-1]))
@@ -808,52 +754,36 @@ class SeriesGroupBy(GroupBy[Series]):
                 )  # sorts using right columns first
                 cts = cts[sorter]
                 codes = [code[sorter] for code in codes]
-            print(f"{cts=}")
+
             mi = MultiIndex(
                 levels=levels, codes=codes, names=names, verify_integrity=False
             )
-            # print(f'{mi=}')
             if is_integer_dtype(cts):
                 cts = ensure_int64(cts)
             return self.obj._constructor(cts, index=mi, name=self._selection_name)
 
-        nbin = len(levels[-1])
-        # print(f'{codes=}')
-        print(len(cts), len(codes[0]), len(sorter))
-
         # for compat. with libgroupby.value_counts need to ensure every
         # bin is present at every index level, null filled with zeros
-        print(f"{ids=}")
+        nbin = len(levels[-1])
         ncat = len(codes[0])
-        # ncat = len(ids)
-        print(f"{nbin=}")
         fout = np.zeros((ncat * nbin), dtype=float if normalize else np.int64)
-        for i, ct in enumerate(cts):
-            fout[ids[i] * nbin + val_lab[i]] = ct
-        print(f"{fout=}", len(fout))
-
+        id = 0
+        for i, ct in enumerate(cts):  # fill in nonzero values of fout
+            fout[id * nbin + val_lab[i]] = cts[i]
+            id += change_ids[i]
         ncodes = [np.repeat(code, nbin) for code in codes]
-        print(f"{ncodes=}")
         ncodes.append(np.tile(range(nbin), len(codes[0])))
-        """
-        fout = cts
-        ncodes = [rep(level_codes) for level_codes in codes] + [val_lab]
-        """
-        print(f"{ncodes=}")
+
         if sort:
             indices = tuple(reversed(ncodes[:-1]))
-            print(f"{indices=}")
-            # print(np.r_[[fout if ascending else -fout], indices])
             sorter = np.lexsort(
                 np.r_[[fout if ascending else -fout], indices]
             )  # sorts using right columns first
-            # print(sorter)
             fout = fout[sorter]
             ncodes = [code[sorter] for code in ncodes]
         mi = MultiIndex(
             levels=levels, codes=ncodes, names=names, verify_integrity=False
         )
-        print(f"{mi=}")
         if is_integer_dtype(fout):
             fout = ensure_int64(fout)
         return self.obj._constructor(fout, index=mi, name=self._selection_name)
