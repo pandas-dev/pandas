@@ -604,6 +604,7 @@ b &       b &     b \\
         result_p = df.to_latex(longtable=True, position=the_position)
 
         expected_p = r"""\begin{longtable}[t]{lrl}
+\\
 \toprule
 {} &  a &   b \\
 \midrule
