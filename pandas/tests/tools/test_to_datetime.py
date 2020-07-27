@@ -1766,16 +1766,12 @@ class TestToDatetimeMisc:
         tm.assert_index_equal(expected, res1)
 
         # B. dayfirst arg incorrect, warning + incorrect output
-        msg = r"Parsing '31/12/2014' in DD/MM/YYYY format."
-        with pytest.warns(UserWarning, match=msg):
-            res2 = to_datetime(arr, dayfirst=False)
+        res2 = to_datetime(arr, dayfirst=False)
         with pytest.raises(AssertionError):
             tm.assert_index_equal(expected, res2)
 
         # C. dayfirst default arg, same as B
-        msg = r"Parsing '31/12/2014' in DD/MM/YYYY format."
-        with pytest.warns(UserWarning, match=msg):
-            res3 = to_datetime(arr, dayfirst=False)
+        res3 = to_datetime(arr, dayfirst=False)
         with pytest.raises(AssertionError):
             tm.assert_index_equal(expected, res3)
 
@@ -1789,22 +1785,26 @@ class TestToDatetimeMisc:
         # warnings *always* raised
 
         arr = ["31/12/2014", "03/30/2011"]
+        # first in DD/MM/YYYY, second in MM/DD/YYYY
+        expected = DatetimeIndex(
+            ["2014-12-31", "2011-03-30"], dtype="datetime64[ns]", freq=None
+        )
 
-        msg = r"Parsing '03/30/2011' in MM/DD/YYYY format."
-        with pytest.warns(UserWarning, match=msg):
-            to_datetime(arr, dayfirst=True)
+        # A. use dayfirst=True
+        res5 = to_datetime(arr, dayfirst=True)
+        tm.assert_index_equal(expected, res5)
 
-        msg = r"Parsing '31/12/2014' in DD/MM/YYYY format."
-        with pytest.warns(UserWarning, match=msg):
-            to_datetime(arr, dayfirst=False)
+        # B. use dayfirst=False
+        res6 = to_datetime(arr, dayfirst=False)
+        tm.assert_index_equal(expected, res6)
 
-        msg = r"Parsing '31/12/2014' in DD/MM/YYYY format."
-        with pytest.warns(UserWarning, match=msg):
-            to_datetime(arr)
+        # C. use dayfirst default arg, same as B
+        res7 = to_datetime(arr, dayfirst=False)
+        tm.assert_index_equal(expected, res7)
 
-        msg = r"Parsing '31/12/2014' in DD/MM/YYYY format."
-        with pytest.warns(UserWarning, match=msg):
-            to_datetime(arr, infer_datetime_format=True)
+        # D. use infer_datetime_format=True
+        res8 = to_datetime(arr, infer_datetime_format=True)
+        tm.assert_index_equal(expected, res8)
 
     @pytest.mark.parametrize("klass", [DatetimeIndex, DatetimeArray])
     def test_to_datetime_dta_tz(self, klass):
