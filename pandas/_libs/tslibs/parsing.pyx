@@ -159,19 +159,19 @@ cdef inline object _parse_delimited_date(str date_string, bint dayfirst):
         if PY_VERSION_HEX >= 0x03060100:
             # In Python <= 3.6.0 there is no range checking for invalid dates
             # in C api, thus we call faster C version for 3.6.1 or newer
-        
+
             if dayfirst and not swapped_day_and_month:
                 warnings.warn(f"Parsing '{date_string}' in MM/DD/YYYY format.")
             elif not dayfirst and swapped_day_and_month:
                 warnings.warn(f"Parsing '{date_string}' in DD/MM/YYYY format.")
-        
+
             return datetime_new(year, month, day, 0, 0, 0, 0, None), reso
-        
+
         if dayfirst and not swapped_day_and_month:
             warnings.warn(f"Parsing '{date_string}' in MM/DD/YYYY format.")
         elif not dayfirst and swapped_day_and_month:
             warnings.warn(f"Parsing '{date_string}' in DD/MM/YYYY format.")
-        
+
         return datetime(year, month, day, 0, 0, 0, 0, None), reso
 
     raise DateParseError(f"Invalid date specified ({month}/{day})")
