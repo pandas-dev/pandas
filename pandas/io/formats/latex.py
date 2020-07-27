@@ -304,9 +304,7 @@ class LatexFormatter(TableFormatter):
             else:
                 position_ = f"[{self.position}]"
 
-            buf.write(
-                f"\\begin{{table}}{position_}\n\\centering{caption_}{label_}\n"
-            )
+            buf.write(f"\\begin{{table}}{position_}\n\\centering{caption_}{label_}\n")
         else:
             # then write output only in a tabular environment
             pass
@@ -347,29 +345,30 @@ class LatexFormatter(TableFormatter):
             <https://en.wikibooks.org/wiki/LaTeX/Tables>`__ e.g 'rcl'
             for 3 columns
         """
+
+        if self.caption is None:
+            caption_ = ""
+        else:
+            caption_ = f"\\caption{{{self.caption}}}"
+
+        if self.label is None:
+            label_ = ""
+        else:
+            label_ = f"\\label{{{self.label}}}"
+
         if self.position is None:
             position_ = ""
         else:
             position_ = f"[{self.position}]"
-        buf.write(f"\\begin{{longtable}}{position_}{{{column_format}}}\n")
-
-        if self.caption is not None or self.label is not None:
-            if self.caption is None:
-                pass
-            else:
-                buf.write(f"\\caption{{{self.caption}}}")
-
-            if self.label is None:
-                pass
-            else:
-                buf.write(f"\\label{{{self.label}}}")
-
-            # a double-backslash is required at the end of the line
-            # as discussed here:
-            # https://tex.stackexchange.com/questions/219138
-            buf.write("\\\\\n")
+        if self.position is None:
+            position_ = ""
         else:
-            pass
+            position_ = f"[{self.position}]"
+        buf.write(
+            f"\\begin{{longtable}}{position_}{{{column_format}}}\n{caption_}{label_}"
+        )
+        if self._table_float:
+            buf.write("\\\\\n")
 
     @staticmethod
     def _write_longtable_end(buf):
