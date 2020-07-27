@@ -345,7 +345,6 @@ class LatexFormatter(TableFormatter):
             <https://en.wikibooks.org/wiki/LaTeX/Tables>`__ e.g 'rcl'
             for 3 columns
         """
-
         if self.caption is None:
             caption_ = ""
         else:
@@ -367,7 +366,10 @@ class LatexFormatter(TableFormatter):
         buf.write(
             f"\\begin{{longtable}}{position_}{{{column_format}}}\n{caption_}{label_}"
         )
-        if self._table_float:
+        if self.caption is not None or self.label is not None:
+            # a double-backslash is required at the end of the line
+            # as discussed here:
+            # https://tex.stackexchange.com/questions/219138
             buf.write("\\\\\n")
 
     @staticmethod
