@@ -1633,7 +1633,6 @@ class GroupBy(_GroupBy[FrameOrSeries]):
             if self.axis == 1:
                 return result.T
             return result.unstack()
-        return result.unstack()
 
     def resample(self, rule, *args, **kwargs):
         """
@@ -1934,7 +1933,6 @@ class GroupBy(_GroupBy[FrameOrSeries]):
                 nth_values = list(set(n))
 
             nth_array = np.array(nth_values, dtype=np.intp)
-            # self._set_group_selection()
             with _group_selection_context(self):
 
                 mask_left = np.in1d(self._cumcount_array(), nth_array)
