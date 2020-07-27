@@ -734,56 +734,58 @@ b  2""",
     def _make_wrapper(self, name):
         assert name in self._apply_allowlist
 
-        self._set_group_selection()
+        with _group_selection_context(self):
 
-        # need to setup the selection
-        # as are not passed directly but in the grouper
-        f = getattr(self._obj_with_exclusions, name)
-        if not isinstance(f, types.MethodType):
-            return self.apply(lambda self: getattr(self, name))
+            # need to setup the selection
+            # as are not passed directly but in the grouper
+            f = getattr(self._obj_with_exclusions, name)
+            if not isinstance(f, types.MethodType):
+                return self.apply(lambda self: getattr(self, name))
 
-        f = getattr(type(self._obj_with_exclusions), name)
-        sig = inspect.signature(f)
+            f = getattr(type(self._obj_with_exclusions), name)
+            sig = inspect.signature(f)
 
-        def wrapper(*args, **kwargs):
-            # a little trickery for aggregation functions that need an axis
-            # argument
-            if "axis" in sig.parameters:
-                if kwargs.get("axis", None) is None:
-                    kwargs["axis"] = self.axis
+            def wrapper(*args, **kwargs):
+                # a little trickery for aggregation functions that need an axis
+                # argument
+                if "axis" in sig.parameters:
+                    if kwargs.get("axis", None) is None:
+                        kwargs["axis"] = self.axis
 
-            def curried(x):
-                return f(x, *args, **kwargs)
+                def curried(x):
+                    return f(x, *args, **kwargs)
 
-            # preserve the name so we can detect it when calling plot methods,
-            # to avoid duplicates
-            curried.__name__ = name
+                # preserve the name so we can detect it when calling plot methods,
+                # to avoid duplicates
+                curried.__name__ = name
 
-            # special case otherwise extra plots are created when catching the
-            # exception below
-            if name in base.plotting_methods:
-                return self.apply(curried)
+                # special case otherwise extra plots are created when catching the
+                # exception below
+                if name in base.plotting_methods:
+                    return self.apply(curried)
 
-            try:
-                return self._python_apply_general(curried, self._obj_with_exclusions)
-            except TypeError as err:
-                if not re.search(
-                    "reduction operation '.*' not allowed for this dtype", str(err)
-                ):
-                    # We don't have a cython implementation
-                    # TODO: is the above comment accurate?
-                    raise
+                try:
+                    return self._python_apply_general(
+                        curried, self._obj_with_exclusions
+                    )
+                except TypeError as err:
+                    if not re.search(
+                        "reduction operation '.*' not allowed for this dtype", str(err)
+                    ):
+                        # We don't have a cython implementation
+                        # TODO: is the above comment accurate?
+                        raise
 
-            if self.obj.ndim == 1:
-                # this can be called recursively, so need to raise ValueError
-                raise ValueError
+                if self.obj.ndim == 1:
+                    # this can be called recursively, so need to raise ValueError
+                    raise ValueError
 
-            # GH#3688 try to operate item-by-item
-            result = self._aggregate_item_by_item(name, *args, **kwargs)
-            return result
+                # GH#3688 try to operate item-by-item
+                result = self._aggregate_item_by_item(name, *args, **kwargs)
+                return result
 
-        wrapper.__name__ = name
-        return wrapper
+            wrapper.__name__ = name
+            return wrapper
 
     def get_group(self, name, obj=None):
         """
@@ -828,8 +830,6 @@ b  2""",
         )
     )
     def apply(self, func, *args, **kwargs):
-
-        self._reset_group_selection()
 
         func = self._is_builtin_func(func)
 
@@ -992,28 +992,31 @@ b  2""",
         alias: str,
         npfunc: Callable,
     ):
-        self._set_group_selection()
-
-        # try a cython aggregation if we can
-        try:
-            return self._cython_agg_general(
-                how=alias, alt=npfunc, numeric_only=numeric_only, min_count=min_count,
-            )
-        except DataError:
-            pass
-        except NotImplementedError as err:
-            if "function is not implemented for this dtype" in str(
-                err
-            ) or "category dtype not supported" in str(err):
-                # raised in _get_cython_function, in some cases can
-                #  be trimmed by implementing cython funcs for more dtypes
+        # self._set_group_selection()
+        with _group_selection_context(self):
+            # try a cython aggregation if we can
+            try:
+                return self._cython_agg_general(
+                    how=alias,
+                    alt=npfunc,
+                    numeric_only=numeric_only,
+                    min_count=min_count,
+                )
+            except DataError:
                 pass
-            else:
-                raise
+            except NotImplementedError as err:
+                if "function is not implemented for this dtype" in str(
+                    err
+                ) or "category dtype not supported" in str(err):
+                    # raised in _get_cython_function, in some cases can
+                    #  be trimmed by implementing cython funcs for more dtypes
+                    pass
+                else:
+                    raise
 
-        # apply a non-cython aggregation
-        result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
-        return result
+            # apply a non-cython aggregation
+            result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
+            return result
 
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
@@ -1625,16 +1628,11 @@ class GroupBy(_GroupBy[FrameOrSeries]):
 
     @doc(DataFrame.describe)
     def describe(self, **kwargs):
-        result = self.apply(lambda x: x.describe(**kwargs))
-        if self.axis == 1:
-            return result.T
-        # GH 34656 self.apply() will return non-nuisance grouping columns, but
-        # we remove them from describe if as_index=True
-        if self.as_index:
-            with _group_selection_context(self):
-                if self._group_selection is not None:
-                    group_cols = result.columns.difference(self._group_selection)
-                    result = result.drop(columns=group_cols)
+        with _group_selection_context(self):
+            result = self.apply(lambda x: x.describe(**kwargs))
+            if self.axis == 1:
+                return result.T
+            return result.unstack()
         return result.unstack()
 
     def resample(self, rule, *args, **kwargs):
@@ -1936,29 +1934,32 @@ class GroupBy(_GroupBy[FrameOrSeries]):
                 nth_values = list(set(n))
 
             nth_array = np.array(nth_values, dtype=np.intp)
-            self._set_group_selection()
+            # self._set_group_selection()
+            with _group_selection_context(self):
 
-            mask_left = np.in1d(self._cumcount_array(), nth_array)
-            mask_right = np.in1d(self._cumcount_array(ascending=False) + 1, -nth_array)
-            mask = mask_left | mask_right
+                mask_left = np.in1d(self._cumcount_array(), nth_array)
+                mask_right = np.in1d(
+                    self._cumcount_array(ascending=False) + 1, -nth_array
+                )
+                mask = mask_left | mask_right
 
-            ids, _, _ = self.grouper.group_info
+                ids, _, _ = self.grouper.group_info
 
-            # Drop NA values in grouping
-            mask = mask & (ids != -1)
+                # Drop NA values in grouping
+                mask = mask & (ids != -1)
 
-            out = self._selected_obj[mask]
-            if not self.as_index:
-                return out
+                out = self._selected_obj[mask]
+                if not self.as_index:
+                    return out
 
-            result_index = self.grouper.result_index
-            out.index = result_index[ids[mask]]
+                result_index = self.grouper.result_index
+                out.index = result_index[ids[mask]]
 
-            if not self.observed and isinstance(result_index, CategoricalIndex):
-                out = out.reindex(result_index)
+                if not self.observed and isinstance(result_index, CategoricalIndex):
+                    out = out.reindex(result_index)
 
-            out = self._reindex_output(out)
-            return out.sort_index() if self.sort else out
+                out = self._reindex_output(out)
+                return out.sort_index() if self.sort else out
 
         # dropna is truthy
         if isinstance(n, valid_containers):

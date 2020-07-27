@@ -743,9 +743,6 @@ def test_cython_transform_frame(op, args, targop):
             else:
                 expected = gb.apply(targop)
 
-            if op == "shift" and type(gb_target.get("by")) is str:
-                expected = expected.drop(columns=gb_target.get("by"))
-
             expected = expected.sort_index(axis=1)
             tm.assert_frame_equal(expected, gb.transform(op, *args).sort_index(axis=1))
             tm.assert_frame_equal(expected, getattr(gb, op)(*args).sort_index(axis=1))
