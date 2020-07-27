@@ -18,7 +18,7 @@ dependencies:
   - ipython
   - jinja2
   - lxml
-  - matplotlib <3.3.0
+  - matplotlib>=3.3.0
   - moto
   - nomkl
   - numexpr
