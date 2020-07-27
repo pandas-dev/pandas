@@ -52,7 +52,7 @@ class LatexFormatter(TableFormatter):
         self.label = label
         self.escape = self.fmt.escape
         self.position = position
-        self._table_float = any([p is not None for p in (caption, label, position)])
+        self._table_float = any(p is not None for p in (caption, label, position))
 
     def write_result(self, buf: IO[str]) -> None:
         """
@@ -305,7 +305,7 @@ class LatexFormatter(TableFormatter):
                 position_ = f"[{self.position}]"
 
             buf.write(
-                f"\\begin{{table}}{position_}\n" f"\\centering{caption_}{label_}\n"
+                f"\\begin{{table}}{position_}\n\\centering{caption_}{label_}\n"
             )
         else:
             # then write output only in a tabular environment
