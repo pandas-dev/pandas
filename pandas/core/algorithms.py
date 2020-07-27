@@ -723,15 +723,8 @@ def value_counts(
 
         # count, remove nulls (from the index), and use the bins
         result = ii.value_counts(dropna=dropna)
-        print(f"{result=}")
         result.index = result.index.astype("interval")
         result = result.sort_index()
-
-        """
-        # if we are dropna and we have NO values
-        if dropna and (result._values == 0).all():
-            result = result.iloc[0:0]
-        """
 
     else:
 
