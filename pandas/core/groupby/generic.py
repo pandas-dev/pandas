@@ -684,6 +684,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         from pandas.core.reshape.tile import cut
 
+        """
         if bins is not None and not np.iterable(bins):
             # scalar bins cannot be done at top level
             # in a backward compatible way
@@ -694,6 +695,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 ascending=ascending,
                 bins=bins,
             )
+        """
         ids, _, _ = self.grouper.group_info
         val = self.obj._values
         codes = self.grouper.reconstructed_codes  # this will track the groups
@@ -735,14 +737,9 @@ class SeriesGroupBy(GroupBy[Series]):
         val_lab = val_lab[changes]
         ids = ids[changes]
         cts = np.diff(np.nonzero(np.r_[changes, True]))[0]
-
         idx = np.r_[0, 1 + np.nonzero(change_ids)[0]]
+        # how many times each index gets repeated
         rep = partial(np.repeat, repeats=np.add.reduceat(changes, idx))
-        num_repeats = np.diff(np.nonzero(np.r_[True, change_ids, True]))[0]
-
-        change_ids = np.r_[  # need to update now that we removed full repeats
-            ids[1:] != ids[:-1], True
-        ]
 
         if (not dropna) and (-1 in val_lab):
             # in this case we need to explicitly add NaN as a level
@@ -755,6 +752,7 @@ class SeriesGroupBy(GroupBy[Series]):
         names = self.grouper.names + [self._selection_name]
 
         if normalize:
+            num_repeats = np.diff(idx, append=len(ids))
             cts = cts.astype("float")
             cts /= rep(
                 num_repeats
@@ -784,6 +782,9 @@ class SeriesGroupBy(GroupBy[Series]):
         ncat = len(codes[0])
         fout = np.zeros((ncat * nbin), dtype=float if normalize else np.int64)
         id = 0
+        change_ids = np.r_[  # need to update now that we removed full repeats
+            ids[1:] != ids[:-1], True
+        ]
         for i, ct in enumerate(cts):  # fill in nonzero values of fout
             fout[id * nbin + val_lab[i]] = cts[i]
             id += change_ids[i]

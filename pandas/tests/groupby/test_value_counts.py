@@ -68,7 +68,6 @@ def test_series_groupby_value_counts(
         normalize=normalize, sort=sort, ascending=ascending, dropna=dropna, bins=bins
     )
 
-    print(f"{df=}")
     gr = df.groupby(keys, sort=isort)
     left = gr["3rd"].value_counts(**kwargs)
     left.index.names = left.index.names[:-1] + ["3rd"]
@@ -76,8 +75,6 @@ def test_series_groupby_value_counts(
     # gr = df.groupby(keys, sort=isort)
     right = gr["3rd"].apply(Series.value_counts, **kwargs)
     right.index.names = right.index.names[:-1] + ["3rd"]
-    print(f"{left=}")
-    print(f"{right=}")
 
     # have to sort on index because of unstable sort on values
     left, right = map(rebuild_index, (left, right))  # xref GH9212
@@ -101,18 +98,6 @@ def test_groubpy_value_counts_bins():
     ]
     df = DataFrame(values, columns=["key1", "key2", "score"])
     result = df.groupby(["key1", "key2"])["score"].value_counts(bins=BINS)
-    print(f"{result=}")
-    print(
-        df.groupby(["key1", "key2"])["score"].apply(
-            Series.value_counts,
-            bins=BINS,
-            sort=True,
-            normalize=True,
-            ascending=True,
-            dropna=True,
-        )
-    )
-
     result.sort_index(inplace=True)
     expected = Series(
         [1, 0, 1, 0, 0, 2, 1, 0, 0, 0, 0, 1, 0, 0, 1], result.index, name="score"
