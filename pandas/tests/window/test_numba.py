@@ -3,8 +3,9 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import Series
+from pandas import Series, option_context
 import pandas._testing as tm
+from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 
 
 @td.skip_if_no("numba", "0.46.0")
@@ -12,7 +13,7 @@ import pandas._testing as tm
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 class TestApply:
     @pytest.mark.parametrize("jit", [True, False])
-    def test_numba_vs_cython(self, jit, nogil, parallel, nopython):
+    def test_numba_vs_cython(self, jit, nogil, parallel, nopython, center):
         def f(x, *args):
             arg_sum = 0
             for arg in args:
@@ -28,10 +29,12 @@ class TestApply:
         args = (2,)
 
         s = Series(range(10))
-        result = s.rolling(2).apply(
+        result = s.rolling(2, center=center).apply(
             f, args=args, engine="numba", engine_kwargs=engine_kwargs, raw=True
         )
-        expected = s.rolling(2).apply(f, engine="cython", args=args, raw=True)
+        expected = s.rolling(2, center=center).apply(
+            f, engine="cython", args=args, raw=True
+        )
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("jit", [True, False])
@@ -59,7 +62,7 @@ class TestApply:
         tm.assert_series_equal(result, expected)
 
         # func_1 should be in the cache now
-        assert func_1 in roll._numba_func_cache
+        assert (func_1, "rolling_apply") in NUMBA_FUNC_CACHE
 
         result = roll.apply(
             func_2, engine="numba", engine_kwargs=engine_kwargs, raw=True
@@ -72,3 +75,15 @@ class TestApply:
         )
         expected = roll.apply(func_1, engine="cython", raw=True)
         tm.assert_series_equal(result, expected)
+
+
+@td.skip_if_no("numba", "0.46.0")
+def test_use_global_config():
+    def f(x):
+        return np.mean(x) + 2
+
+    s = Series(range(10))
+    with option_context("compute.use_numba", True):
+        result = s.rolling(2).apply(f, engine=None, raw=True)
+    expected = s.rolling(2).apply(f, engine="numba", raw=True)
+    tm.assert_series_equal(expected, result)

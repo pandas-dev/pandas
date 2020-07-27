@@ -20,8 +20,7 @@ from typing import (
     Type,
     Union,
 )
-from urllib.parse import (  # noqa
-    urlencode,
+from urllib.parse import (
     urljoin,
     urlparse as parse_url,
     uses_netloc,
@@ -32,13 +31,7 @@ import zipfile
 
 from pandas._typing import FilePathOrBuffer
 from pandas.compat import _get_lzma_file, _import_lzma
-from pandas.errors import (  # noqa
-    AbstractMethodError,
-    DtypeWarning,
-    EmptyDataError,
-    ParserError,
-    ParserWarning,
-)
+from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import is_file_like
 
@@ -134,20 +127,6 @@ def stringify_path(
     return _expand_user(filepath_or_buffer)
 
 
-def is_s3_url(url) -> bool:
-    """Check for an s3, s3n, or s3a url"""
-    if not isinstance(url, str):
-        return False
-    return parse_url(url).scheme in ["s3", "s3n", "s3a"]
-
-
-def is_gcs_url(url) -> bool:
-    """Check for a gcs url"""
-    if not isinstance(url, str):
-        return False
-    return parse_url(url).scheme in ["gcs", "gs"]
-
-
 def urlopen(*args, **kwargs):
     """
     Lazy-import wrapper for stdlib urlopen, as that imports a big chunk of
@@ -158,11 +137,24 @@ def urlopen(*args, **kwargs):
     return urllib.request.urlopen(*args, **kwargs)
 
 
+def is_fsspec_url(url: FilePathOrBuffer) -> bool:
+    """
+    Returns true if the given URL looks like
+    something fsspec can handle
+    """
+    return (
+        isinstance(url, str)
+        and "://" in url
+        and not url.startswith(("http://", "https://"))
+    )
+
+
 def get_filepath_or_buffer(
     filepath_or_buffer: FilePathOrBuffer,
     encoding: Optional[str] = None,
     compression: Optional[str] = None,
     mode: Optional[str] = None,
+    storage_options: Optional[Dict[str, Any]] = None,
 ):
     """
     If the filepath_or_buffer is a url, translate and return the buffer.
@@ -175,6 +167,8 @@ def get_filepath_or_buffer(
     compression : {{'gzip', 'bz2', 'zip', 'xz', None}}, optional
     encoding : the encoding to use to decode bytes, default is 'utf-8'
     mode : str, optional
+    storage_options: dict, optional
+        passed on to fsspec, if using it; this is not yet accessed by the public API
 
     Returns
     -------
@@ -185,6 +179,7 @@ def get_filepath_or_buffer(
     filepath_or_buffer = stringify_path(filepath_or_buffer)
 
     if isinstance(filepath_or_buffer, str) and is_url(filepath_or_buffer):
+        # TODO: fsspec can also handle HTTP via requests, but leaving this unchanged
         req = urlopen(filepath_or_buffer)
         content_encoding = req.headers.get("Content-Encoding", None)
         if content_encoding == "gzip":
@@ -194,19 +189,51 @@ def get_filepath_or_buffer(
         req.close()
         return reader, encoding, compression, True
 
-    if is_s3_url(filepath_or_buffer):
-        from pandas.io import s3
+    if is_fsspec_url(filepath_or_buffer):
+        assert isinstance(
+            filepath_or_buffer, str
+        )  # just to appease mypy for this branch
+        # two special-case s3-like protocols; these have special meaning in Hadoop,
+        # but are equivalent to just "s3" from fsspec's point of view
+        # cc #11071
+        if filepath_or_buffer.startswith("s3a://"):
+            filepath_or_buffer = filepath_or_buffer.replace("s3a://", "s3://")
+        if filepath_or_buffer.startswith("s3n://"):
+            filepath_or_buffer = filepath_or_buffer.replace("s3n://", "s3://")
+        fsspec = import_optional_dependency("fsspec")
 
-        return s3.get_filepath_or_buffer(
-            filepath_or_buffer, encoding=encoding, compression=compression, mode=mode
-        )
+        # If botocore is installed we fallback to reading with anon=True
+        # to allow reads from public buckets
+        err_types_to_retry_with_anon: List[Any] = []
+        try:
+            import_optional_dependency("botocore")
+            from botocore.exceptions import ClientError, NoCredentialsError
 
-    if is_gcs_url(filepath_or_buffer):
-        from pandas.io import gcs
+            err_types_to_retry_with_anon = [
+                ClientError,
+                NoCredentialsError,
+                PermissionError,
+            ]
+        except ImportError:
+            pass
 
-        return gcs.get_filepath_or_buffer(
-            filepath_or_buffer, encoding=encoding, compression=compression, mode=mode
-        )
+        try:
+            file_obj = fsspec.open(
+                filepath_or_buffer, mode=mode or "rb", **(storage_options or {})
+            ).open()
+        # GH 34626 Reads from Public Buckets without Credentials needs anon=True
+        except tuple(err_types_to_retry_with_anon):
+            if storage_options is None:
+                storage_options = {"anon": True}
+            else:
+                # don't mutate user input.
+                storage_options = dict(storage_options)
+                storage_options["anon"] = True
+            file_obj = fsspec.open(
+                filepath_or_buffer, mode=mode or "rb", **(storage_options or {})
+            ).open()
+
+        return file_obj, encoding, compression, True
 
     if isinstance(filepath_or_buffer, (str, bytes, mmap.mmap)):
         return _expand_user(filepath_or_buffer), None, compression, False
@@ -312,7 +339,7 @@ def infer_compression(
 
         # Infer compression from the filename/URL extension
         for compression, extension in _compression_to_extension.items():
-            if filepath_or_buffer.endswith(extension):
+            if filepath_or_buffer.lower().endswith(extension):
                 return compression
         return None
 
@@ -333,6 +360,7 @@ def get_handle(
     compression: Optional[Union[str, Mapping[str, Any]]] = None,
     memory_map: bool = False,
     is_text: bool = True,
+    errors=None,
 ):
     """
     Get file handle for given path/buffer and mode.
@@ -371,6 +399,12 @@ def get_handle(
     is_text : boolean, default True
         whether file/buffer is in text format (csv, json, etc.), or in binary
         mode (pickle, etc.).
+    errors : str, default 'strict'
+        Specifies how encoding and decoding errors are to be handled.
+        See the errors argument for :func:`open` for a full list
+        of options.
+
+        .. versionadded:: 1.1.0
 
     Returns
     -------
@@ -456,7 +490,7 @@ def get_handle(
     elif is_path:
         if encoding:
             # Encoding
-            f = open(path_or_buf, mode, encoding=encoding, newline="")
+            f = open(path_or_buf, mode, encoding=encoding, errors=errors, newline="")
         elif is_text:
             # No explicit encoding
             f = open(path_or_buf, mode, errors="replace", newline="")
@@ -469,7 +503,7 @@ def get_handle(
     if is_text and (compression or isinstance(f, need_text_wrapping)):
         from io import TextIOWrapper
 
-        g = TextIOWrapper(f, encoding=encoding, newline="")
+        g = TextIOWrapper(f, encoding=encoding, errors=errors, newline="")
         if not isinstance(f, (BufferedIOBase, RawIOBase)):
             handles.append(g)
         f = g

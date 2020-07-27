@@ -211,9 +211,9 @@ class TestTimestampComparison:
         assert arr.ndim == 0
 
         result = arr < ts
-        assert result is True
+        assert result is np.bool_(True)
         result = arr > ts
-        assert result is False
+        assert result is np.bool_(False)
 
 
 def test_rich_comparison_with_unsupported_type():

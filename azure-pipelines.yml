@@ -5,6 +5,9 @@ trigger:
 pr:
 - master
 
+variables:
+  PYTEST_WORKERS: auto
+
 jobs:
 # Mac and Linux use the same template
 - template: ci/azure/posix.yml

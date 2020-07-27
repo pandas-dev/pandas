@@ -423,7 +423,7 @@ class TestPivotTable:
             index=pd.Grouper(freq="A"), columns=pd.Grouper(key="dt", freq="M")
         )
         exp = pd.DataFrame(
-            [3], index=pd.DatetimeIndex(["2011-12-31"]), columns=exp_columns
+            [3], index=pd.DatetimeIndex(["2011-12-31"], freq="A"), columns=exp_columns
         )
         tm.assert_frame_equal(res, exp)
 
@@ -1224,7 +1224,7 @@ class TestPivotTable:
 
         expected = DataFrame(
             np.array([10, 18, 3], dtype="int64").reshape(1, 3),
-            index=[datetime(2013, 12, 31)],
+            index=pd.DatetimeIndex([datetime(2013, 12, 31)], freq="A"),
             columns="Carl Joe Mark".split(),
         )
         expected.index.name = "Date"
@@ -1250,7 +1250,9 @@ class TestPivotTable:
 
         expected = DataFrame(
             np.array([1, np.nan, 3, 9, 18, np.nan]).reshape(2, 3),
-            index=[datetime(2013, 1, 1), datetime(2013, 7, 1)],
+            index=pd.DatetimeIndex(
+                [datetime(2013, 1, 1), datetime(2013, 7, 1)], freq="6MS"
+            ),
             columns="Carl Joe Mark".split(),
         )
         expected.index.name = "Date"
@@ -1407,18 +1409,24 @@ class TestPivotTable:
                     np.nan,
                 ]
             ).reshape(4, 4),
-            index=[
-                datetime(2013, 9, 30),
-                datetime(2013, 10, 31),
-                datetime(2013, 11, 30),
-                datetime(2013, 12, 31),
-            ],
-            columns=[
-                datetime(2013, 9, 30),
-                datetime(2013, 10, 31),
-                datetime(2013, 11, 30),
-                datetime(2013, 12, 31),
-            ],
+            index=pd.DatetimeIndex(
+                [
+                    datetime(2013, 9, 30),
+                    datetime(2013, 10, 31),
+                    datetime(2013, 11, 30),
+                    datetime(2013, 12, 31),
+                ],
+                freq="M",
+            ),
+            columns=pd.DatetimeIndex(
+                [
+                    datetime(2013, 9, 30),
+                    datetime(2013, 10, 31),
+                    datetime(2013, 11, 30),
+                    datetime(2013, 12, 31),
+                ],
+                freq="M",
+            ),
         )
         expected.index.name = "Date"
         expected.columns.name = "PayDay"

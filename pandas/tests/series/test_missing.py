@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._libs.tslib import iNaT
+from pandas._libs import iNaT
 
 import pandas as pd
 from pandas import (
@@ -453,7 +453,8 @@ class TestSeriesMissingData:
 
     def test_fillna_int(self):
         s = Series(np.random.randint(-100, 100, 50))
-        s.fillna(method="ffill", inplace=True)
+        return_value = s.fillna(method="ffill", inplace=True)
+        assert return_value is None
         tm.assert_series_equal(s.fillna(method="ffill", inplace=False), s)
 
     def test_categorical_nan_equality(self):
@@ -509,12 +510,12 @@ class TestSeriesMissingData:
         tm.assert_frame_equal(filled2, expected)
 
     def test_isna_for_inf(self):
-        s = Series(["a", np.inf, np.nan, 1.0])
+        s = Series(["a", np.inf, np.nan, pd.NA, 1.0])
         with pd.option_context("mode.use_inf_as_na", True):
             r = s.isna()
             dr = s.dropna()
-        e = Series([False, True, True, False])
-        de = Series(["a", 1.0], index=[0, 3])
+        e = Series([False, True, True, True, False])
+        de = Series(["a", 1.0], index=[0, 4])
         tm.assert_series_equal(r, e)
         tm.assert_series_equal(dr, de)
 
@@ -680,7 +681,8 @@ class TestSeriesMissingData:
         s = Series([], dtype=object)
 
         assert len(s.dropna()) == 0
-        s.dropna(inplace=True)
+        return_value = s.dropna(inplace=True)
+        assert return_value is None
         assert len(s) == 0
 
         # invalid axis
@@ -729,7 +731,8 @@ class TestSeriesMissingData:
             assert result is not s
 
             s2 = s.copy()
-            s2.dropna(inplace=True)
+            return_value = s2.dropna(inplace=True)
+            assert return_value is None
             tm.assert_series_equal(s2, s)
 
     def test_dropna_intervals(self):
@@ -744,6 +747,7 @@ class TestSeriesMissingData:
 
     def test_valid(self, datetime_series):
         ts = datetime_series.copy()
+        ts.index = ts.index._with_freq(None)
         ts[::2] = np.NaN
 
         result = ts.dropna()
@@ -774,7 +778,8 @@ class TestSeriesMissingData:
             [np.nan, 1.0, np.nan, 3.0, np.nan], ["z", "a", "b", "c", "d"], dtype=float
         )
 
-        x.fillna(method="pad", inplace=True)
+        return_value = x.fillna(method="pad", inplace=True)
+        assert return_value is None
 
         expected = Series(
             [np.nan, 1.0, 1.0, 3.0, 3.0], ["z", "a", "b", "c", "d"], dtype=float
@@ -798,7 +803,8 @@ class TestSeriesMissingData:
         assert result.name == datetime_series.name
         name = datetime_series.name
         ts = datetime_series.copy()
-        ts.dropna(inplace=True)
+        return_value = ts.dropna(inplace=True)
+        assert return_value is None
         assert ts.name == name
 
     def test_series_fillna_limit(self):

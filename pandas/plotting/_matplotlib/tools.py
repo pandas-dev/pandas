@@ -277,7 +277,7 @@ def _remove_labels_from_axis(axis):
         t.set_visible(False)
 
     # set_visible will not be effective if
-    # minor axis has NullLocator and NullFormattor (default)
+    # minor axis has NullLocator and NullFormatter (default)
     if isinstance(axis.get_minor_locator(), ticker.NullLocator):
         axis.set_minor_locator(ticker.AutoLocator())
     if isinstance(axis.get_minor_formatter(), ticker.NullFormatter):
@@ -301,7 +301,7 @@ def _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey):
             try:
                 # first find out the ax layout,
                 # so that we can correctly handle 'gaps"
-                layout = np.zeros((nrows + 1, ncols + 1), dtype=np.bool)
+                layout = np.zeros((nrows + 1, ncols + 1), dtype=np.bool_)
                 for ax in axarr:
                     layout[row_num(ax), col_num(ax)] = ax.get_visible()
 

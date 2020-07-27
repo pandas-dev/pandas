@@ -241,7 +241,7 @@ def _json_normalize(
 
     def _pull_records(js: Dict[str, Any], spec: Union[List, str]) -> List:
         """
-        Interal function to pull field for records, and similar to
+        Internal function to pull field for records, and similar to
         _pull_field, but require to return list. And will raise error
         if has non iterable value.
         """

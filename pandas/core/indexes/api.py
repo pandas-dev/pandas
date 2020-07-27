@@ -2,11 +2,11 @@ import textwrap
 from typing import List, Set
 
 from pandas._libs import NaT, lib
+from pandas.errors import InvalidIndexError
 
 import pandas.core.common as com
 from pandas.core.indexes.base import (
     Index,
-    InvalidIndexError,
     _new_Index,
     ensure_index,
     ensure_index_from_sequences,
@@ -256,8 +256,7 @@ def _sanitize_and_check(indexes):
     if list in kinds:
         if len(kinds) > 1:
             indexes = [
-                Index(com.try_sort(x)) if not isinstance(x, Index) else x
-                for x in indexes
+                Index(list(x)) if not isinstance(x, Index) else x for x in indexes
             ]
             kinds.remove(list)
         else:

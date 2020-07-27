@@ -87,7 +87,17 @@ bar2,12,13,14,15
 
     @pytest.mark.parametrize(
         "extension,expected",
-        [("", None), (".gz", "gzip"), (".bz2", "bz2"), (".zip", "zip"), (".xz", "xz")],
+        [
+            ("", None),
+            (".gz", "gzip"),
+            (".bz2", "bz2"),
+            (".zip", "zip"),
+            (".xz", "xz"),
+            (".GZ", "gzip"),
+            (".BZ2", "bz2"),
+            (".ZIP", "zip"),
+            (".XZ", "xz"),
+        ],
     )
     @pytest.mark.parametrize("path_type", path_types)
     def test_infer_compression_from_path(self, extension, expected, path_type):
@@ -207,8 +217,8 @@ bar2,12,13,14,15
     @pytest.mark.parametrize(
         "reader, module, path",
         [
-            (pd.read_csv, "os", ("data", "iris.csv")),
-            (pd.read_table, "os", ("data", "iris.csv")),
+            (pd.read_csv, "os", ("io", "data", "csv", "iris.csv")),
+            (pd.read_table, "os", ("io", "data", "csv", "iris.csv")),
             (
                 pd.read_fwf,
                 "os",
@@ -234,6 +244,11 @@ bar2,12,13,14,15
                 ("io", "data", "pickle", "categorical.0.25.0.pickle"),
             ),
         ],
+    )
+    @pytest.mark.filterwarnings(
+        "ignore:This method will be removed in future versions.  "
+        r"Use 'tree.iter\(\)' or 'list\(tree.iter\(\)\)' instead."
+        ":PendingDeprecationWarning"
     )
     def test_read_fspath_all(self, reader, module, path, datapath):
         pytest.importorskip(module)
@@ -362,3 +377,13 @@ class TestMMapWrapper:
             df.to_csv(path)
             with pytest.raises(ValueError, match="Unknown engine"):
                 pd.read_csv(path, engine="pyt")
+
+
+def test_is_fsspec_url():
+    assert icom.is_fsspec_url("gcs://pandas/somethingelse.com")
+    assert icom.is_fsspec_url("gs://pandas/somethingelse.com")
+    # the following is the only remote URL that is handled without fsspec
+    assert not icom.is_fsspec_url("http://pandas/somethingelse.com")
+    assert not icom.is_fsspec_url("random:pandas/somethingelse.com")
+    assert not icom.is_fsspec_url("/local/path")
+    assert not icom.is_fsspec_url("relative/local/path")

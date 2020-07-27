@@ -209,18 +209,7 @@ class TestStringMethods:
         box = index_or_series
         inferred_dtype, values = any_skipna_inferred_dtype
 
-        if dtype == "category" and len(values) and values[1] is pd.NA:
-            pytest.xfail(reason="Categorical does not yet support pd.NA")
-
         t = box(values, dtype=dtype)  # explicit dtype to avoid casting
-
-        # TODO: get rid of these xfails
-        if dtype == "category" and inferred_dtype in ["period", "interval"]:
-            pytest.xfail(
-                reason="Conversion to numpy array fails because "
-                "the ._values-attribute is not a numpy array for "
-                "PeriodArray/IntervalArray; see GH 23553"
-            )
 
         types_passing_constructor = [
             "string",
@@ -247,6 +236,7 @@ class TestStringMethods:
         dtype,
         any_allowed_skipna_inferred_dtype,
         any_string_method,
+        request,
     ):
         # this test does not check correctness of the different methods,
         # just that the methods work on the specified (inferred) dtypes,
@@ -258,26 +248,24 @@ class TestStringMethods:
         method_name, args, kwargs = any_string_method
 
         # TODO: get rid of these xfails
-        if (
-            method_name in ["partition", "rpartition"]
-            and box == Index
-            and inferred_dtype == "empty"
-        ):
-            pytest.xfail(reason="Method cannot deal with empty Index")
-        if (
-            method_name == "split"
-            and box == Index
-            and values.size == 0
-            and kwargs.get("expand", None) is not None
-        ):
-            pytest.xfail(reason="Split fails on empty Series when expand=True")
-        if (
-            method_name == "get_dummies"
-            and box == Index
-            and inferred_dtype == "empty"
-            and (dtype == object or values.size == 0)
-        ):
-            pytest.xfail(reason="Need to fortify get_dummies corner cases")
+        reason = None
+        if box is Index and values.size == 0:
+            if method_name in ["partition", "rpartition"] and kwargs.get(
+                "expand", True
+            ):
+                reason = "Method cannot deal with empty Index"
+            elif method_name == "split" and kwargs.get("expand", None):
+                reason = "Split fails on empty Series when expand=True"
+            elif method_name == "get_dummies":
+                reason = "Need to fortify get_dummies corner cases"
+
+        elif box is Index and inferred_dtype == "empty" and dtype == object:
+            if method_name == "get_dummies":
+                reason = "Need to fortify get_dummies corner cases"
+
+        if reason is not None:
+            mark = pytest.mark.xfail(reason=reason)
+            request.node.add_marker(mark)
 
         t = box(values, dtype=dtype)  # explicit dtype to avoid casting
         method = getattr(t.str, method_name)
@@ -671,14 +659,10 @@ class TestStringMethods:
         with pytest.raises(ValueError, match=rgx):
             s.str.cat([t, z], join=join)
 
-    index_or_series2 = [Series, Index]  # type: ignore
-    # List item 0 has incompatible type "Type[Series]"; expected "Type[PandasObject]"
-    # See GH#29725
-
-    @pytest.mark.parametrize("other", index_or_series2)
-    def test_str_cat_all_na(self, index_or_series, other):
+    def test_str_cat_all_na(self, index_or_series, index_or_series2):
         # GH 24044
         box = index_or_series
+        other = index_or_series2
 
         # check that all NaNs in caller / target work
         s = Index(["a", "b", "c", "d"])

@@ -102,11 +102,6 @@ class TestDataFrameRound:
         # nan in Series round
         nan_round_Series = Series({"col1": np.nan, "col2": 1})
 
-        # TODO(wesm): unused?
-        expected_nan_round = DataFrame(  # noqa
-            {"col1": [1.123, 2.123, 3.123], "col2": [1.2, 2.2, 3.2]}
-        )
-
         msg = "integer argument expected, got float"
         with pytest.raises(TypeError, match=msg):
             df.round(nan_round_Series)
