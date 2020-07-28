@@ -228,10 +228,15 @@ def asarray_tuplesafe(values, dtype=None):
     if isinstance(values, list) and dtype in [np.object_, object]:
         return construct_1d_object_array_from_listlike(values)
 
-    # https://github.com/pandas-dev/pandas/issues/35434
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=np.VisibleDeprecationWarning)
-        result = np.asarray(values, dtype=dtype)
+    try:
+        # https://github.com/pandas-dev/pandas/issues/35434
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=np.VisibleDeprecationWarning)
+            result = np.asarray(values, dtype=dtype)
+    except ValueError:
+        # we get here with a list-like of nested values if dtype=None
+        # for numpy < 1.18
+        return construct_1d_object_array_from_listlike(values)
 
     if issubclass(result.dtype.type, str):
         result = np.asarray(values, dtype=object)
