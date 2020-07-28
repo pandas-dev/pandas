@@ -138,7 +138,7 @@ class TestRangeIndex(Numeric):
         assert index.dtype == np.int64
 
     def test_cache(self):
-        # GH 26565, GH26617
+        # GH 26565, GH26617, GH35432
         # This test checks whether _cache has been set.
         # Calling RangeIndex._cache["_data"] creates an int64 array of the same length
         # as the RangeIndex and stores it in _cache.
