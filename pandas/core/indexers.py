@@ -17,6 +17,41 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 
+from pandas.core.dtypes.common import is_scalar, is_iterator
+import pandas.core.common as com
+
+
+class Indexer:
+    _is_iterator = None
+    _is_bool_indexer = None
+
+    def __init__(self, key):
+        if isinstance(key, (list, tuple)):
+            key = unpack_1tuple(key)
+        self.key = key
+
+    @property
+    def is_scalar(self):
+        return is_scalar(self.key)
+
+    @property
+    def is_bool_indexer(self):
+        is_bool_indexer = self._is_bool_indexer
+        if is_bool_indexer is not None:
+            return is_bool_indexer
+
+        key = self.key
+        if self._is_iterator is None:
+            if is_iterator(key):
+                key = list(key)
+                self.key = key
+            self._is_iterator = False
+
+        is_bool_indexer = com.is_bool_indexer(key)
+        self._is_bool_indexer = is_bool_indexer
+        return is_bool_indexer
+
+
 # -----------------------------------------------------------
 # Indexer Identification
 

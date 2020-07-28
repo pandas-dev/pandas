@@ -50,7 +50,6 @@ from pandas.core.dtypes.common import (
     is_dict_like,
     is_extension_array_dtype,
     is_integer,
-    is_iterator,
     is_list_like,
     is_object_dtype,
     is_scalar,
@@ -78,7 +77,7 @@ from pandas.core.construction import (
     sanitize_array,
 )
 from pandas.core.generic import NDFrame
-from pandas.core.indexers import deprecate_ndim_indexing, unpack_1tuple
+from pandas.core.indexers import deprecate_ndim_indexing, unpack_1tuple, Indexer
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import Float64Index, Index, MultiIndex, ensure_index
 import pandas.core.indexes.base as ibase
@@ -897,17 +896,23 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 #  in the first level of our MultiIndex
                 return self._get_values_tuple(key)
 
-        if is_iterator(key):
-            key = list(key)
+        # if is_iterator(key):
+        #     key = list(key)
 
-        if com.is_bool_indexer(key):
+        _key = Indexer(key)
+
+        if _key.is_bool_indexer:
             key = check_bool_indexer(self.index, key)
             key = np.asarray(key, dtype=bool)
             return self._get_values(key)
 
-        return self._get_with(key)
+        return self._get_with(_key)
 
     def _get_with(self, key):
+        # breakpoint()
+        _key = key
+        key = _key.key
+
         # other: fancy integer or otherwise
         if isinstance(key, slice):
             # _convert_slice_indexer to determine if this slice is positional
