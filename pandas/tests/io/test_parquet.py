@@ -158,6 +158,9 @@ def check_round_trip(
     """
     write_kwargs = write_kwargs or {"compression": None}
     read_kwargs = read_kwargs or {}
+    s3so = dict(client_kwargs={'endpoint_url': 'http://127.0.0.1:5555/'})
+    read_kwargs['storage_options'] = s3so
+    write_kwargs['storage_options'] = s3so
 
     if expected is None:
         expected = df

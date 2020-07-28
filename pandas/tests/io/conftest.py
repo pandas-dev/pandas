@@ -72,12 +72,29 @@ def s3_resource(tips_file, jsonl_file, feather_file):
                     conn.Bucket(bucket_name).put_object(Key=s3_key, Body=f)
 
         try:
-            s3 = moto.mock_s3()
-            s3.start()
+            import shlex
+            import subprocess
+            import requests
+            import time
+
+            endpoint_uri = 'http://127.0.0.1:5555/'
+
+            proc = subprocess.Popen(shlex.split("moto_server s3 -p 5555"))
+
+            timeout = 5
+            while timeout > 0:
+                try:
+                    r = requests.get(endpoint_uri)
+                    if r.ok:
+                        break
+                except Exception:
+                    pass
+                timeout -= 0.1
+                time.sleep(0.1)
 
             # see gh-16135
             bucket = "pandas-test"
-            conn = boto3.resource("s3", region_name="us-east-1")
+            conn = boto3.resource("s3", endpoint_url=endpoint_uri)
 
             conn.create_bucket(Bucket=bucket)
             add_tips_files(bucket)
@@ -87,4 +104,5 @@ def s3_resource(tips_file, jsonl_file, feather_file):
             s3fs.S3FileSystem.clear_instance_cache()
             yield conn
         finally:
-            s3.stop()
+            proc.terminate()
+            proc.wait()

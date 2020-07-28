@@ -1703,7 +1703,9 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         # GH 28375
         mock_bucket_name, target_file = "pandas-test", "test.json"
         df = DataFrame({"x": [1, 2, 3], "y": [2, 4, 6]})
-        df.to_json(f"s3://{mock_bucket_name}/{target_file}")
+        df.to_json(f"s3://{mock_bucket_name}/{target_file}",
+                   storage_options=dict(client_kwargs={'endpoint_url': 'http://127.0.0.1:5555/'})
+)
         timeout = 5
         while True:
             if target_file in (
