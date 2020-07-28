@@ -1100,3 +1100,13 @@ def test_long_text_missing_labels_inside_loc_error_message_limited():
     error_message_regex = "long_missing_label_text_0.*\\\\n.*long_missing_label_text_1"
     with pytest.raises(KeyError, match=error_message_regex):
         s.loc[["a", "c"] + missing_labels]
+
+
+def test_setitem_categorical():
+    # https://github.com/pandas-dev/pandas/issues/35369
+    df = pd.DataFrame({"h": pd.Series(list("mn")).astype("category")})
+    df.h = df.h.cat.reorder_categories(["n", "m"])
+    expected = pd.DataFrame(
+        {"h": pd.Categorical(["m", "n"]).reorder_categories(["n", "m"])}
+    )
+    tm.assert_frame_equal(df, expected)

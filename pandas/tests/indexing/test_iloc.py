@@ -694,6 +694,7 @@ class TestiLoc2:
         result = s.iloc[np.array(0)]
         assert result == 1
 
+    @pytest.mark.xfail(reason="https://github.com/pandas-dev/pandas/issues/33457")
     def test_iloc_setitem_categorical_updates_inplace(self):
         # Mixed dtype ensures we go through take_split_path in setitem_with_indexer
         cat = pd.Categorical(["A", "B", "C"])
