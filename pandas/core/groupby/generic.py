@@ -681,8 +681,8 @@ class SeriesGroupBy(GroupBy[Series]):
         self, normalize=False, sort=True, ascending=False, bins=None, dropna=True
     ):
 
-        from pandas.core.reshape.tile import cut
         from pandas.core.reshape.merge import _get_join_indexers
+        from pandas.core.reshape.tile import cut
 
         if bins is not None and not np.iterable(bins):
             # scalar bins cannot be done at top level
@@ -1662,11 +1662,18 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             return DataFrameGroupBy(
                 subset,
                 self.grouper,
-                selection=key,
+                axis=self.axis,
+                level=self.level,
                 grouper=self.grouper,
                 exclusions=self.exclusions,
+                selection=key,
                 as_index=self.as_index,
+                sort=self.sort,
+                group_keys=self.group_keys,
+                squeeze=self.squeeze,
                 observed=self.observed,
+                mutated=self.mutated,
+                dropna=self.dropna,
             )
         elif ndim == 1:
             if subset is None:

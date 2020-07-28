@@ -9,7 +9,7 @@ import os
 from shutil import rmtree
 import string
 import tempfile
-from typing import Any, Callable, List, Optional, Type, Union, cast
+from typing import Any, Callable, ContextManager, List, Optional, Type, Union, cast
 import warnings
 import zipfile
 
@@ -535,7 +535,7 @@ def rands(nchars):
 
 
 def close(fignum=None):
-    from matplotlib.pyplot import get_fignums, close as _close
+    from matplotlib.pyplot import close as _close, get_fignums
 
     if fignum is None:
         for fignum in get_fignums():
@@ -2880,9 +2880,7 @@ def convert_rows_list_to_csv_str(rows_list: List[str]):
     return expected
 
 
-def external_error_raised(
-    expected_exception: Type[Exception],
-) -> Callable[[Type[Exception], None], None]:
+def external_error_raised(expected_exception: Type[Exception],) -> ContextManager:
     """
     Helper function to mark pytest.raises that have an external error message.
 

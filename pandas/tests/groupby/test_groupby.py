@@ -2055,3 +2055,31 @@ def test_groups_repr_truncates(max_seq_items, expected):
 
         result = df.groupby(np.array(df.a)).groups.__repr__()
         assert result == expected
+
+
+@pytest.mark.parametrize(
+    "attr, value",
+    [
+        ("axis", 1),
+        ("level", "a"),
+        ("as_index", False),
+        ("sort", False),
+        ("group_keys", False),
+        ("squeeze", True),
+        ("observed", True),
+        ("dropna", False),
+    ],
+)
+@pytest.mark.filterwarnings(
+    "ignore:The `squeeze` parameter is deprecated:FutureWarning"
+)
+def test_subsetting_columns_keeps_attrs(attr, value):
+    # GH 9959 - When subsetting columns, don't drop attributes
+    df = pd.DataFrame({"a": [1], "b": [2], "c": [3]})
+    if attr != "axis":
+        df = df.set_index("a")
+
+    expected = df.groupby("a", **{attr: value})
+
+    result = expected[["b"]]
+    assert getattr(result, attr) == getattr(expected, attr)
