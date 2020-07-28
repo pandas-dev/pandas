@@ -73,7 +73,7 @@ dependencies:
   - ipykernel
   - ipython>=7.11.1
   - jinja2  # pandas.Styler
-  - matplotlib>=2.2.2  # pandas.plotting, Series.plot, DataFrame.plot
+  - matplotlib>=2.2.2,<3.3.0  # pandas.plotting, Series.plot, DataFrame.plot
   - numexpr>=2.6.8
   - scipy>=1.2
   - numba>=0.46.0
