@@ -1110,3 +1110,11 @@ def test_setitem_categorical():
         {"h": pd.Categorical(["m", "n"]).reorder_categories(["n", "m"])}
     )
     tm.assert_frame_equal(df, expected)
+
+
+def test_nested_tuple_no_warning():
+    # https://github.com/pandas-dev/pandas/issues/35434
+    tup = "A", ("B", 2)
+    ser = pd.Series([42], index=[tup])
+    with tm.assert_produces_warning(None):
+        ser[[tup]]
