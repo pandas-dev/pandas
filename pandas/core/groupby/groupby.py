@@ -2403,7 +2403,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
             signature
         needs_2d : bool, default False
             Whether the values and result of the Cython call signature
-            are at least 2-dimensional.
+            are 2-dimensional.
         min_count : int, default None
             When not None, min_count for the Cython call
         needs_mask : bool, default False
@@ -2419,7 +2419,9 @@ class GroupBy(_GroupBy[FrameOrSeries]):
             Function should return a tuple where the first element is the
             values to be passed to Cython and the second element is an optional
             type which the values should be converted to after being returned
-            by the Cython operation. Raises if `needs_values` is False.
+            by the Cython operation. This function is also responsible for
+            raising a TypeError if the values have an invalid type. Raises
+            if `needs_values` is False.
         post_processing : function, default None
             Function to be applied to result of Cython function. Should accept
             an array of values as the first argument and type inferences as its
@@ -2451,6 +2453,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         output: Dict[base.OutputKey, np.ndarray] = {}
         base_func = getattr(libgroupby, how)
 
+        error_msg = ""
         for idx, obj in enumerate(self._iterate_slices()):
             name = obj.name
             values = obj._values
@@ -2477,7 +2480,11 @@ class GroupBy(_GroupBy[FrameOrSeries]):
             if needs_values:
                 vals = values
                 if pre_processing:
-                    vals, inferences = pre_processing(vals)
+                    try:
+                        vals, inferences = pre_processing(vals)
+                    except TypeError as e:
+                        error_msg = str(e)
+                        continue
                 if needs_2d:
                     vals = vals.reshape((-1, 1))
                 vals = vals.astype(cython_dtype, copy=False)
@@ -2508,6 +2515,10 @@ class GroupBy(_GroupBy[FrameOrSeries]):
 
             key = base.OutputKey(label=name, position=idx)
             output[key] = result
+
+        # error_msg is "" on an frame/series with no rows or columns
+        if len(output) == 0 and error_msg != "":
+            raise TypeError(error_msg)
 
         if aggregate:
             return self._wrap_aggregated_output(output)
