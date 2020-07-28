@@ -1478,7 +1478,7 @@ default value.
 .. _indexing.lookup
 
 Looking up values by index/column labels
--------------------------------------------
+----------------------------------------
 
 Sometimes you want to extract a set of values given a sequence of row labels
 and column labels, this can be achieved by ``DataFrame.melt`` combined by filtering the corresponding
