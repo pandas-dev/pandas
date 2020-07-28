@@ -1692,7 +1692,7 @@ class _iLocIndexer(_LocationIndexer):
                     ser._maybe_update_cacher(clear=True)
 
                 # reset the sliced object if unique
-                self.obj._iset_item(loc, ser)
+                self.obj._iset_item(loc, ser, inplace=True)
 
             # we need an iterable, with a ndim of at least 1
             # eg. don't pass through np.array(0)
@@ -1780,7 +1780,11 @@ class _iLocIndexer(_LocationIndexer):
                     )
                     and item_labels.is_unique
                 ):
-                    self.obj[item_labels[indexer[info_axis]]] = value
+
+                    col = item_labels[indexer[info_axis]]
+                    loc = item_labels.get_loc(col)
+                    self.obj._iset_item(loc, value, inplace=True)
+                    #self.obj[loc] = value
                     return
 
                 indexer = maybe_convert_ix(*indexer)

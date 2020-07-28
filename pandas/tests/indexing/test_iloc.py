@@ -670,7 +670,7 @@ class TestiLoc2:
         assert sliced_df is not original_df
 
         # should be a shallow copy
-        original_df["a"] = [4, 4, 4]
+        original_df.loc[:, "a"] = [4, 4, 4]
         assert (sliced_df["a"] == 4).all()
 
         original_series = Series([1, 2, 3, 4, 5, 6])

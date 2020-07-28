@@ -881,7 +881,7 @@ class TestDataFrameIndexing:
 
         msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
         with pytest.raises(com.SettingWithCopyError, match=msg):
-            sliced["C"] = 4.0
+            sliced.loc[:, "C"] = 4.0
 
         assert (float_frame["C"] == 4).all()
 
@@ -1581,7 +1581,7 @@ class TestDataFrameIndexing:
         # setting it makes it raise/warn
         msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
         with pytest.raises(com.SettingWithCopyError, match=msg):
-            result[2] = 0.0
+            result.loc[:, 2] = 0.0
 
         exp_col = df[2].copy()
         exp_col[4:8] = 0.0
@@ -1613,7 +1613,7 @@ class TestDataFrameIndexing:
         # and that we are setting a copy
         msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
         with pytest.raises(com.SettingWithCopyError, match=msg):
-            result[8] = 0.0
+            result.loc[:, 8] = 0.0
 
         assert (df[8] == 0).all()
 
