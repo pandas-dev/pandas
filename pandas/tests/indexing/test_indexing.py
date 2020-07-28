@@ -1117,4 +1117,5 @@ def test_nested_tuple_no_warning():
     tup = "A", ("B", 2)
     ser = pd.Series([42], index=[tup])
     with tm.assert_produces_warning(None):
-        ser[[tup]]
+        result = ser[[tup]]
+    tm.assert_series_equal(result, ser)
