@@ -140,7 +140,7 @@ def is_bool_indexer(key: Any) -> bool:
         try:
             # https://github.com/pandas-dev/pandas/issues/35434
             with warnings.catch_warnings():
-                warnings.simplefilter('ignore', category=np.VisibleDeprecationWarning)
+                warnings.simplefilter("ignore", category=np.VisibleDeprecationWarning)
                 arr = np.asarray(key)
             return arr.dtype == np.bool_ and len(arr) == len(key)
         except TypeError:  # pragma: no cover
@@ -230,7 +230,7 @@ def asarray_tuplesafe(values, dtype=None):
 
     # https://github.com/pandas-dev/pandas/issues/35434
     with warnings.catch_warnings():
-        warnings.simplefilter('ignore', category=np.VisibleDeprecationWarning)
+        warnings.simplefilter("ignore", category=np.VisibleDeprecationWarning)
         result = np.asarray(values, dtype=dtype)
 
     if issubclass(result.dtype.type, str):
