@@ -143,7 +143,7 @@ def is_bool_indexer(key: Any) -> bool:
                 warnings.simplefilter("ignore", category=np.VisibleDeprecationWarning)
                 arr = np.asarray(key)
             return arr.dtype == np.bool_ and len(arr) == len(key)
-        except TypeError:  # pragma: no cover
+        except (TypeError, ValueError):  # pragma: no cover
             return False
 
     return False
