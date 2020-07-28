@@ -1,7 +1,7 @@
 from datetime import timedelta
 import operator
 from sys import getsizeof
-from typing import Any, Optional
+from typing import Any
 import warnings
 
 import numpy as np
