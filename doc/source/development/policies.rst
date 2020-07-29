@@ -52,6 +52,6 @@ Python support
 ~~~~~~~~~~~~~~
 
 pandas will only drop support for specific Python versions (e.g. 3.6.x, 3.7.x) in
-pandas **major** releases.
+pandas **major** or **minor** releases.
 
 .. _SemVer: https://semver.org
