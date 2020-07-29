@@ -2140,7 +2140,7 @@ class DataFrame(NDFrame):
             a file-like buffer. See the fsspec and backend storage implementation
             docs for the set of allowed keys and values
 
-            .. versionadded:: 1.1.0
+            .. versionadded:: 1.2.0
 
         Raises
         ------
@@ -2347,7 +2347,7 @@ class DataFrame(NDFrame):
             a file-like buffer. See the fsspec and backend storage implementation
             docs for the set of allowed keys and values
 
-            .. versionadded:: 1.1.0
+            .. versionadded:: 1.2.0
 
         **kwargs
             Additional arguments passed to the parquet library. See
@@ -4996,9 +4996,10 @@ class DataFrame(NDFrame):
 
         Define in which columns to look for missing values.
 
-        >>> df.dropna(subset=['name', 'born'])
+        >>> df.dropna(subset=['name', 'toy'])
                name        toy       born
         1    Batman  Batmobile 1940-04-25
+        2  Catwoman   Bullwhip        NaT
 
         Keep the DataFrame with valid entries in the same variable.
 
