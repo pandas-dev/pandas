@@ -1,7 +1,7 @@
 .. _whatsnew_110:
 
-What's new in 1.1.0 (??)
-------------------------
+What's new in 1.1.0 (July 28, 2020)
+-----------------------------------
 
 These are the changes in pandas 1.1.0. See :ref:`release` for a full changelog
 including other versions of pandas.
@@ -999,7 +999,6 @@ Indexing
 - Bug in :meth:`Series.__getitem__` indexing with non-standard scalars, e.g. ``np.dtype`` (:issue:`32684`)
 - Bug in :class:`Index` constructor where an unhelpful error message was raised for NumPy scalars (:issue:`33017`)
 - Bug in :meth:`DataFrame.lookup` incorrectly raising an ``AttributeError`` when ``frame.index`` or ``frame.columns`` is not unique; this will now raise a ``ValueError`` with a helpful error message (:issue:`33041`)
-- Bug in :meth:`DataFrame.iloc.__setitem__` creating a new array instead of overwriting ``Categorical`` values in-place (:issue:`32831`)
 - Bug in :class:`Interval` where a :class:`Timedelta` could not be added or subtracted from a :class:`Timestamp` interval (:issue:`32023`)
 - Bug in :meth:`DataFrame.copy` not invalidating _item_cache after copy caused post-copy value updates to not be reflected (:issue:`31784`)
 - Fixed regression in :meth:`DataFrame.loc` and :meth:`Series.loc` throwing an error when a ``datetime64[ns, tz]`` value is provided (:issue:`32395`)
