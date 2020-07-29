@@ -741,7 +741,7 @@ def setup_package():
     setuptools_kwargs = {
         "install_requires": [
             "python-dateutil >= 2.7.3",
-            "pytz >= 2017.2",
+            "pytz >= 2017.3",
             f"numpy >= {min_numpy_ver}",
         ],
         "setup_requires": [f"numpy >= {min_numpy_ver}"],
@@ -765,11 +765,11 @@ def setup_package():
         long_description=LONG_DESCRIPTION,
         classifiers=CLASSIFIERS,
         platforms="any",
-        python_requires=">=3.7.0",
+        python_requires=">=3.7.1",
         extras_require={
             "test": [
                 # sync with setup.cfg minversion & install.rst
-                "pytest>=4.0.2",
+                "pytest>=5.0.1",
                 "pytest-xdist",
                 "hypothesis>=3.58",
             ]
