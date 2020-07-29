@@ -3052,8 +3052,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             sequence should be given if the object uses MultiIndex. If
             False do not print fields for index names. Use index_label=False
             for easier importing in R.
-        mode : str
-            Python write mode, default 'w'.
+        mode : str, default 'w'
+            Python write mode.
         encoding : str, optional
             A string representing the encoding to use in the output file,
             defaults to 'utf-8'.
@@ -3092,8 +3092,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             this method is called ('\n' for linux, '\r\n' for Windows, i.e.).
 
             .. versionchanged:: 0.24.0
-        chunksize : int or None
+        chunksize : int or None, default None
             Rows to write at a time.
+            If None then it's set to `100000 // (len(self.cols) or 1)) or 1`.
         date_format : str, default None
             Format string for datetime objects.
         doublequote : bool, default True
