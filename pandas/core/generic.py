@@ -2134,7 +2134,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             a file-like buffer. See the fsspec and backend storage implementation
             docs for the set of allowed keys and values
 
-            .. versionadded:: 1.1.0
+            .. versionadded:: 1.2.0
 
         Returns
         -------
@@ -2658,7 +2658,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             a file-like buffer. See the fsspec and backend storage implementation
             docs for the set of allowed keys and values
 
-            .. versionadded:: 1.1.0
+            .. versionadded:: 1.2.0
 
         See Also
         --------
@@ -3139,6 +3139,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             See the errors argument for :func:`open` for a full list
             of options.
 
+            .. versionadded:: 1.1.0
+
         storage_options : dict, optional
             Extra options that make sense for a particular storage connection, e.g.
             host, port, username, password, etc., if using a URL that will
@@ -3147,7 +3149,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             a file-like buffer. See the fsspec and backend storage implementation
             docs for the set of allowed keys and values
 
-            .. versionadded:: 1.1.0
+            .. versionadded:: 1.2.0
 
         Returns
         -------

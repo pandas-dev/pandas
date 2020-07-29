@@ -176,7 +176,7 @@ def get_filepath_or_buffer(
         a file-like buffer. See the fsspec and backend storage implementation
         docs for the set of allowed keys and values
 
-        .. versionadded:: 1.1.0
+        .. versionadded:: 1.2.0
 
     Returns
     -------
