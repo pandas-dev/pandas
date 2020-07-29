@@ -2,6 +2,7 @@ from sys import getsizeof
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Hashable,
     Iterable,
     List,
@@ -1231,13 +1232,17 @@ class MultiIndex(Index):
 
     def format(
         self,
-        space=2,
+        name: Optional[bool] = None,
+        formatter: Optional[Callable] = None,
+        na_rep: Optional[str] = None,
+        names: bool = False,
+        space: int = 2,
         sparsify=None,
-        adjoin=True,
-        names=False,
-        na_rep=None,
-        formatter=None,
-    ):
+        adjoin: bool = True,
+    ) -> List:
+        if name is not None:
+            names = name
+
         if len(self) == 0:
             return []
 
@@ -1265,13 +1270,13 @@ class MultiIndex(Index):
             stringified_levels.append(formatted)
 
         result_levels = []
-        for lev, name in zip(stringified_levels, self.names):
+        for lev, lev_name in zip(stringified_levels, self.names):
             level = []
 
             if names:
                 level.append(
-                    pprint_thing(name, escape_chars=("\t", "\r", "\n"))
-                    if name is not None
+                    pprint_thing(lev_name, escape_chars=("\t", "\r", "\n"))
+                    if lev_name is not None
                     else ""
                 )
 
@@ -1283,10 +1288,9 @@ class MultiIndex(Index):
 
         if sparsify:
             sentinel = ""
-            # GH3547
-            # use value of sparsify as sentinel,  unless it's an obvious
-            # "Truthy" value
-            if sparsify not in [True, 1]:
+            # GH3547 use value of sparsify as sentinel if it's "Falsey"
+            assert isinstance(sparsify, bool) or sparsify is lib.no_default
+            if sparsify in [False, lib.no_default]:
                 sentinel = sparsify
             # little bit of a kludge job for #1217
             result_levels = _sparsify(
