@@ -63,3 +63,7 @@ You can use `Valgrind <https://www.valgrind.org>`_ to check for and log memory l
    PYTHONMALLOC=malloc valgrind --leak-check=yes --track-origins=yes --log-file=valgrind-log.txt python -m pytest <path_to_a_test>
 
 Note that code execution under valgrind will take much longer than usual. While you can run valgrind against extensions compiled with any optimization level, it is suggested to have optimizations turned off from compiled extensions to reduce the amount of false positives. The ``--with-debugging-symbols`` flag passed during package setup will do this for you automatically.
+
+.. note::
+
+   For best results, you should run use a Python installation configured with Valgrind support (--with-valgrind)
