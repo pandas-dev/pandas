@@ -536,6 +536,10 @@ Metadata
 
 .. warning:: ``Series.attrs`` is considered experimental and may change without warning.
 
+.. note:: ``Series.attrs`` is retained for the ``Series`` object alone. Once the series
+   is placed into a ``DataFrame`` the ``attrs`` dictionary will not be propagated through
+   or retained in the ``DataFrame``.
+
 .. autosummary::
    :toctree: api/
 
