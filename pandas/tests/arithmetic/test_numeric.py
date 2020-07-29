@@ -234,7 +234,8 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
             "unsupported operand type|"
             "Addition/subtraction of integers and integer-arrays|"
             "Instead of adding/subtracting|"
-            "cannot use operands with types dtype"
+            "cannot use operands with types dtype|"
+            "Concatenation operation is not implemented for NumPy arrays"
         )
         with pytest.raises(TypeError, match=msg):
             left + other
@@ -263,7 +264,8 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         msg = (
             "unsupported operand type|"
             "Cannot (add|subtract) NaT (to|from) ndarray|"
-            "Addition/subtraction of integers and integer-arrays"
+            "Addition/subtraction of integers and integer-arrays|"
+            "Concatenation operation is not implemented for NumPy arrays"
         )
         with pytest.raises(TypeError, match=msg):
             left + other
@@ -649,7 +651,7 @@ class TestMultiplicationDivision:
 
     def test_mul_size_mismatch_raises(self, numeric_idx):
         idx = numeric_idx
-        msg = "Lengths must match"
+        msg = "operands could not be broadcast together"
         with pytest.raises(ValueError, match=msg):
             idx * idx[0:3]
         with pytest.raises(ValueError, match=msg):

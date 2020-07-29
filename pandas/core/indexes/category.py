@@ -347,6 +347,15 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
             attrs.append(("length", len(self)))
         return attrs
 
+    def _format_with_header(self, header, na_rep="NaN") -> List[str]:
+        from pandas.io.formats.format import format_array
+
+        formatted_values = format_array(
+            self._values, formatter=None, na_rep=na_rep, justify="left"
+        )
+        result = ibase.trim_front(formatted_values)
+        return header + result
+
     # --------------------------------------------------------------------
 
     @property
@@ -738,13 +747,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
     def _concat(self, to_concat, name):
         # if calling index is category, don't check dtype of others
-        return CategoricalIndex._concat_same_dtype(self, to_concat, name)
-
-    def _concat_same_dtype(self, to_concat, name):
-        """
-        Concatenate to_concat which has the same class
-        ValueError if other is not in the categories
-        """
         codes = np.concatenate([self._is_dtype_compat(c).codes for c in to_concat])
         result = self._create_from_codes(codes, name=name)
         # if name is None, _create_from_codes sets self.name

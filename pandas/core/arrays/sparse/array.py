@@ -13,6 +13,7 @@ from pandas._libs import lib
 import pandas._libs.sparse as splib
 from pandas._libs.sparse import BlockIndex, IntIndex, SparseIndex
 from pandas._libs.tslibs import NaT
+from pandas._typing import Scalar
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning
@@ -46,6 +47,7 @@ import pandas.core.common as com
 from pandas.core.construction import extract_array, sanitize_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import interpolate_2d
+from pandas.core.nanops import check_below_min_count
 import pandas.core.ops as ops
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
@@ -148,7 +150,7 @@ def _sparse_array_op(
             # to make template simple, cast here
             left_sp_values = left.sp_values.view(np.uint8)
             right_sp_values = right.sp_values.view(np.uint8)
-            result_dtype = np.bool
+            result_dtype = bool
         else:
             opname = f"sparse_{name}_{dtype}"
             left_sp_values = left.sp_values
@@ -181,7 +183,7 @@ def _wrap_result(name, data, sparse_index, fill_value, dtype=None):
         name = name[2:-2]
 
     if name in ("eq", "ne", "lt", "gt", "le", "ge"):
-        dtype = np.bool
+        dtype = bool
 
     fill_value = lib.item_from_zerodim(fill_value)
 
@@ -860,23 +862,25 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             else:
                 raise IndexError("cannot do a non-empty take from an empty axes.")
 
+        # sp_indexer may be -1 for two reasons
+        # 1.) we took for an index of -1 (new)
+        # 2.) we took a value that was self.fill_value (old)
         sp_indexer = self.sp_index.lookup_array(indices)
+        new_fill_indices = indices == -1
+        old_fill_indices = (sp_indexer == -1) & ~new_fill_indices
 
-        if self.sp_index.npoints == 0:
-            # Avoid taking from the empty self.sp_values
+        if self.sp_index.npoints == 0 and old_fill_indices.all():
+            # We've looked up all valid points on an all-sparse array.
             taken = np.full(
-                sp_indexer.shape,
-                fill_value=fill_value,
-                dtype=np.result_type(type(fill_value)),
+                sp_indexer.shape, fill_value=self.fill_value, dtype=self.dtype.subtype
             )
+
+        elif self.sp_index.npoints == 0:
+            # Avoid taking from the empty self.sp_values
+            _dtype = np.result_type(self.dtype.subtype, type(fill_value))
+            taken = np.full(sp_indexer.shape, fill_value=fill_value, dtype=_dtype)
         else:
             taken = self.sp_values.take(sp_indexer)
-
-            # sp_indexer may be -1 for two reasons
-            # 1.) we took for an index of -1 (new)
-            # 2.) we took a value that was self.fill_value (old)
-            new_fill_indices = indices == -1
-            old_fill_indices = (sp_indexer == -1) & ~new_fill_indices
 
             # Fill in two steps.
             # Old fill values
@@ -1061,7 +1065,9 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         """
         dtype = self.dtype.update_dtype(dtype)
         subtype = dtype._subtype_with_str
-        sp_values = astype_nansafe(self.sp_values, subtype, copy=copy)
+        # TODO copy=False is broken for astype_nansafe with int -> float, so cannot
+        # passthrough copy keyword: https://github.com/pandas-dev/pandas/issues/34456
+        sp_values = astype_nansafe(self.sp_values, subtype, copy=True)
         if sp_values is self.sp_values and copy:
             sp_values = sp_values.copy()
 
@@ -1158,7 +1164,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     # Reductions
     # ------------------------------------------------------------------------
 
-    def _reduce(self, name, skipna=True, **kwargs):
+    def _reduce(self, name: str, skipna: bool = True, **kwargs):
         method = getattr(self, name, None)
 
         if method is None:
@@ -1220,21 +1226,36 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         return values.any().item()
 
-    def sum(self, axis=0, *args, **kwargs):
+    def sum(self, axis: int = 0, min_count: int = 0, *args, **kwargs) -> Scalar:
         """
         Sum of non-NA/null values
 
+        Parameters
+        ----------
+        axis : int, default 0
+            Not Used. NumPy compatibility.
+        min_count : int, default 0
+            The required number of valid values to perform the summation. If fewer
+            than ``min_count`` valid values are present, the result will be the missing
+            value indicator for subarray type.
+        *args, **kwargs
+            Not Used. NumPy compatibility.
+
         Returns
         -------
-        sum : float
+        scalar
         """
         nv.validate_sum(args, kwargs)
         valid_vals = self._valid_sp_values
         sp_sum = valid_vals.sum()
         if self._null_fill_value:
+            if check_below_min_count(valid_vals.shape, None, min_count):
+                return na_value_for_dtype(self.dtype.subtype, compat=False)
             return sp_sum
         else:
             nsparse = self.sp_index.ngaps
+            if check_below_min_count(valid_vals.shape, None, min_count - nsparse):
+                return na_value_for_dtype(self.dtype.subtype, compat=False)
             return sp_sum + self.fill_value * nsparse
 
     def cumsum(self, axis=0, *args, **kwargs):

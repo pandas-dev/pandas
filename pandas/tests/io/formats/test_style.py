@@ -405,9 +405,10 @@ class TestStyler:
 
         result = self.df.style.where(f, style1)._compute().ctx
         expected = {
-            (r, c): [style1 if f(self.df.loc[row, col]) else ""]
+            (r, c): [style1]
             for r, row in enumerate(self.df.index)
             for c, col in enumerate(self.df.columns)
+            if f(self.df.loc[row, col])
         }
         assert result == expected
 
@@ -966,7 +967,6 @@ class TestStyler:
                 "transparent 25.0%, #d65f5f 25.0%, "
                 "#d65f5f 50.0%, transparent 50.0%)",
             ],
-            (1, 0): [""],
             (0, 1): [
                 "width: 10em",
                 " height: 80%",
@@ -994,7 +994,6 @@ class TestStyler:
                 "transparent 50.0%, #d65f5f 50.0%, "
                 "#d65f5f 75.0%, transparent 75.0%)",
             ],
-            (1, 0): [""],
             (0, 1): [
                 "width: 10em",
                 " height: 80%",
@@ -1091,7 +1090,7 @@ class TestStyler:
     def test_highlight_null(self, null_color="red"):
         df = pd.DataFrame({"A": [0, np.nan]})
         result = df.style.highlight_null()._compute().ctx
-        expected = {(0, 0): [""], (1, 0): ["background-color: red"]}
+        expected = {(1, 0): ["background-color: red"]}
         assert result == expected
 
     def test_highlight_null_subset(self):
@@ -1104,9 +1103,7 @@ class TestStyler:
             .ctx
         )
         expected = {
-            (0, 0): [""],
             (1, 0): ["background-color: red"],
-            (0, 1): [""],
             (1, 1): ["background-color: green"],
         }
         assert result == expected
@@ -1219,8 +1216,6 @@ class TestStyler:
             expected = {
                 (1, 0): ["background-color: yellow"],
                 (1, 1): ["background-color: yellow"],
-                (0, 1): [""],
-                (0, 0): [""],
             }
             assert result == expected
 
@@ -1228,8 +1223,6 @@ class TestStyler:
             expected = {
                 (0, 1): ["background-color: yellow"],
                 (1, 1): ["background-color: yellow"],
-                (0, 0): [""],
-                (1, 0): [""],
             }
             assert result == expected
 

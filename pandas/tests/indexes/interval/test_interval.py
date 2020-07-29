@@ -4,6 +4,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import InvalidIndexError
+
 import pandas as pd
 from pandas import (
     Index,
@@ -19,7 +21,6 @@ from pandas import (
 )
 import pandas._testing as tm
 import pandas.core.common as com
-from pandas.core.indexes.base import InvalidIndexError
 
 
 @pytest.fixture(scope="class", params=[None, "foo"])
@@ -579,7 +580,7 @@ class TestIntervalIndex:
         with pytest.raises(TypeError, match=msg):
             self.index > np.arange(2)
 
-        msg = "Lengths must match"
+        msg = "Lengths must match to compare"
         with pytest.raises(ValueError, match=msg):
             self.index > np.arange(3)
 

@@ -27,7 +27,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
-    ABCExtensionArray,
     ABCIndexClass,
     ABCIntervalIndex,
     ABCPeriodIndex,
@@ -681,8 +680,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         array : ExtensionArray or ndarray
             ExtensionArray or NumPy ndarray with 'dtype' for its dtype.
         """
+        from pandas.core.arrays.string_ import StringDtype
+
         if dtype is not None:
             dtype = pandas_dtype(dtype)
+
         if is_interval_dtype(dtype):
             if dtype == self.dtype:
                 return self.copy() if copy else self
@@ -699,6 +701,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             return self._shallow_copy(new_left, new_right)
         elif is_categorical_dtype(dtype):
             return Categorical(np.asarray(self))
+        elif isinstance(dtype, StringDtype):
+            return dtype.construct_array_type()._from_sequence(self, copy=False)
+
         # TODO: This try/except will be repeated.
         try:
             return np.asarray(self).astype(dtype, copy=copy)
@@ -767,7 +772,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         # Avoid materializing self.values
         return self.left.size
 
-    def shift(self, periods: int = 1, fill_value: object = None) -> ABCExtensionArray:
+    def shift(self, periods: int = 1, fill_value: object = None) -> "IntervalArray":
         if not len(self) or periods == 0:
             return self.copy()
 
