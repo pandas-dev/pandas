@@ -298,10 +298,11 @@ def read_excel(
     skipfooter=0,
     convert_float=True,
     mangle_dupe_cols=True,
+    storage_options=None,
 ):
 
     if not isinstance(io, ExcelFile):
-        io = ExcelFile(io, engine=engine)
+        io = ExcelFile(io, storage_options=storage_options, engine=engine)
     elif engine and engine != io.engine:
         raise ValueError(
             "Engine should not be specified when passing "
@@ -336,12 +337,14 @@ def read_excel(
 
 
 class _BaseExcelReader(metaclass=abc.ABCMeta):
-    def __init__(self, filepath_or_buffer):
+    def __init__(self, filepath_or_buffer, storage_options=None):
         # If filepath_or_buffer is a url, load the data into a BytesIO
         if is_url(filepath_or_buffer):
             filepath_or_buffer = BytesIO(urlopen(filepath_or_buffer).read())
         elif not isinstance(filepath_or_buffer, (ExcelFile, self._workbook_class)):
-            filepath_or_buffer, _, _, _ = get_filepath_or_buffer(filepath_or_buffer)
+            filepath_or_buffer, _, _, _ = get_filepath_or_buffer(
+                filepath_or_buffer, storage_options=storage_options
+            )
 
         if isinstance(filepath_or_buffer, self._workbook_class):
             self.book = filepath_or_buffer
@@ -844,7 +847,7 @@ class ExcelFile:
         "pyxlsb": _PyxlsbReader,
     }
 
-    def __init__(self, path_or_buffer, engine=None):
+    def __init__(self, path_or_buffer, storage_options=None, engine=None):
         if engine is None:
             engine = "xlrd"
             if isinstance(path_or_buffer, (BufferedIOBase, RawIOBase)):
@@ -858,13 +861,14 @@ class ExcelFile:
             raise ValueError(f"Unknown engine: {engine}")
 
         self.engine = engine
+        self.storage_options = storage_options
 
         # Could be a str, ExcelFile, Book, etc.
         self.io = path_or_buffer
         # Always a string
         self._io = stringify_path(path_or_buffer)
 
-        self._reader = self._engines[engine](self._io)
+        self._reader = self._engines[engine](self._io, storage_options)
 
     def __fspath__(self):
         return self._io

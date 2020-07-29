@@ -467,7 +467,9 @@ class _OpenpyxlWriter(ExcelWriter):
 
 
 class _OpenpyxlReader(_BaseExcelReader):
-    def __init__(self, filepath_or_buffer: FilePathOrBuffer) -> None:
+    def __init__(
+        self, filepath_or_buffer: FilePathOrBuffer, storage_options=None
+    ) -> None:
         """
         Reader using openpyxl engine.
 
@@ -475,9 +477,11 @@ class _OpenpyxlReader(_BaseExcelReader):
         ----------
         filepath_or_buffer : string, path object or Workbook
             Object to be parsed.
+        storage_options: dict (optional)
+            passed to fsspec for appropriate URLs (see ``get_filepath_or_buffer``)
         """
         import_optional_dependency("openpyxl")
-        super().__init__(filepath_or_buffer)
+        super().__init__(filepath_or_buffer, storage_options=storage_options)
 
     @property
     def _workbook_class(self):

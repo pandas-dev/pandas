@@ -18,11 +18,13 @@ class _ODFReader(_BaseExcelReader):
     ----------
     filepath_or_buffer: string, path to be parsed or
         an open readable stream.
+    storage_options: dict (optional)
+        passed to fsspec for appropriate URLs (see ``get_filepath_or_buffer``)
     """
 
-    def __init__(self, filepath_or_buffer: FilePathOrBuffer):
+    def __init__(self, filepath_or_buffer: FilePathOrBuffer, storage_options=None):
         import_optional_dependency("odf")
-        super().__init__(filepath_or_buffer)
+        super().__init__(filepath_or_buffer, storage_options=storage_options)
 
     @property
     def _workbook_class(self):

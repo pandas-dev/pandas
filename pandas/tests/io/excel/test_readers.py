@@ -630,9 +630,7 @@ class TestReaders:
     def test_read_from_s3_url(self, read_ext, s3_resource):
         # Bucket "pandas-test" created in tests/io/conftest.py
         with open("test1" + read_ext, "rb") as f:
-            s3_resource.Bucket(
-                "pandas-test", endpoint_url="http://127.0.0.1:5555/"
-            ).put_object(Key="test1" + read_ext, Body=f)
+            s3_resource.Bucket("pandas-test").put_object(Key="test1" + read_ext, Body=f)
 
         url = "s3://pandas-test/test1" + read_ext
         s3so = dict(client_kwargs={"endpoint_url": "http://127.0.0.1:5555/"})

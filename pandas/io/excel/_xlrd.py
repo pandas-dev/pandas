@@ -8,7 +8,7 @@ from pandas.io.excel._base import _BaseExcelReader
 
 
 class _XlrdReader(_BaseExcelReader):
-    def __init__(self, filepath_or_buffer):
+    def __init__(self, filepath_or_buffer, storage_options=None):
         """
         Reader using xlrd engine.
 
@@ -16,10 +16,12 @@ class _XlrdReader(_BaseExcelReader):
         ----------
         filepath_or_buffer : string, path object or Workbook
             Object to be parsed.
+        storage_options: dict (optional)
+            passed to fsspec for appropriate URLs (see ``get_filepath_or_buffer``)
         """
         err_msg = "Install xlrd >= 1.0.0 for Excel support"
         import_optional_dependency("xlrd", extra=err_msg)
-        super().__init__(filepath_or_buffer)
+        super().__init__(filepath_or_buffer, storage_options=storage_options)
 
     @property
     def _workbook_class(self):
