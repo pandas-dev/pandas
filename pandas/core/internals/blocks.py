@@ -1589,7 +1589,7 @@ class ExtensionBlock(Block):
 
     def set(self, locs, values):
         assert locs.tolist() == [0]
-        self.values[:] = values
+        self.values = values
 
     def putmask(
         self, mask, new, inplace: bool = False, axis: int = 0, transpose: bool = False,
