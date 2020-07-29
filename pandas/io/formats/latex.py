@@ -359,10 +359,7 @@ class LatexFormatter(TableFormatter):
             position_ = ""
         else:
             position_ = f"[{self.position}]"
-        if self.position is None:
-            position_ = ""
-        else:
-            position_ = f"[{self.position}]"
+
         buf.write(
             f"\\begin{{longtable}}{position_}{{{column_format}}}\n{caption_}{label_}"
         )
