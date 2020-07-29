@@ -64,9 +64,8 @@ def test_apply_trivial():
 
 
 def test_apply_trivial_fail():
-    # GH 20066
-    # trivial apply fails if the constant dataframe has the same index
-    # with the one used to create GroupBy object.
+    # GH 35441
+    # test passes, xfail removed
     df = pd.DataFrame(
         {"key": ["a", "a", "b", "b", "a"], "data": [1.0, 2.0, 3.0, 4.0, 5.0]},
         columns=["key", "data"],
