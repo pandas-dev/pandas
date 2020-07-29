@@ -52,6 +52,10 @@ dependencies:
   - botocore>=1.11
   - hypothesis>=3.82
   - moto  # mock S3
+  - pytest>=6.0.0
+  - pytest-cov
+  - pytest-xdist>=1.21
+  - pytest-asyncio
 
   # downstream tests
   - seaborn
@@ -105,7 +109,3 @@ dependencies:
   - pip:
     - git+https://github.com/pandas-dev/pydata-sphinx-theme.git@master
     - git+https://github.com/numpy/numpydoc
-    - git+https://github.com/pytest-dev/pytest@master
-    - pytest-cov
-    - pytest-xdist>=1.21
-    - pytest-asyncio
