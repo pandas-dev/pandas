@@ -274,12 +274,14 @@ class TestSeriesPlots(TestPlotBase):
         self._check_ticks_props(axes, xrot=30)
 
     def test_irregular_datetime(self):
+        from pandas.plotting._matplotlib.converter import DatetimeConverter
+
         rng = date_range("1/1/2000", "3/1/2000")
         rng = rng[[0, 1, 2, 3, 5, 9, 10, 11, 12]]
         ser = Series(randn(len(rng)), rng)
         _, ax = self.plt.subplots()
         ax = ser.plot(ax=ax)
-        xp = datetime(1999, 1, 1).toordinal()
+        xp = DatetimeConverter.convert(datetime(1999, 1, 1), "", ax)
         ax.set_xlim("1/1/1999", "1/1/2001")
         assert xp == ax.get_xlim()[0]
 
@@ -684,11 +686,13 @@ class TestSeriesPlots(TestPlotBase):
         kinds = (
             plotting.PlotAccessor._common_kinds + plotting.PlotAccessor._series_kinds
         )
-        _, ax = self.plt.subplots()
         for kind in kinds:
-
+            _, ax = self.plt.subplots()
             s.plot(kind=kind, ax=ax)
+            self.plt.close()
+            _, ax = self.plt.subplots()
             getattr(s.plot, kind)()
+            self.plt.close()
 
     @pytest.mark.slow
     def test_invalid_plot_data(self):
@@ -728,6 +732,26 @@ class TestSeriesPlots(TestPlotBase):
         values = randn(index.size)
         s = Series(values, index=index)
         _check_plot_works(s.plot)
+
+    def test_errorbar_asymmetrical(self):
+        # GH9536
+        s = Series(np.arange(10), name="x")
+        err = np.random.rand(2, 10)
+
+        ax = s.plot(yerr=err, xerr=err)
+
+        result = np.vstack([i.vertices[:, 1] for i in ax.collections[1].get_paths()])
+        expected = (err.T * np.array([-1, 1])) + s.to_numpy().reshape(-1, 1)
+        tm.assert_numpy_array_equal(result, expected)
+
+        msg = (
+            "Asymmetrical error bars should be provided "
+            f"with the shape \\(2, {len(s)}\\)"
+        )
+        with pytest.raises(ValueError, match=msg):
+            s.plot(yerr=np.random.rand(2, 11))
+
+        tm.close()
 
     @pytest.mark.slow
     def test_errorbar_plot(self):
