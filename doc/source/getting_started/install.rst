@@ -18,7 +18,7 @@ Instructions for installing from source,
 Python version support
 ----------------------
 
-Officially Python 3.7, and 3.8.
+Officially Python 3.7.1 and above, and 3.8.
 
 Installing pandas
 -----------------
