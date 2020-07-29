@@ -77,7 +77,7 @@ def s3_resource(tips_file, jsonl_file, feather_file):
             import requests
             import time
 
-            endpoint_uri = 'http://127.0.0.1:5555/'
+            endpoint_uri = "http://127.0.0.1:5555/"
 
             proc = subprocess.Popen(shlex.split("moto_server s3 -p 5555"))
 
