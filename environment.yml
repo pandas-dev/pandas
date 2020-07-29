@@ -52,7 +52,7 @@ dependencies:
   - botocore>=1.11
   - hypothesis>=3.82
   - moto  # mock S3
-  - pytest>=5.0.1,<6.0.0rc0
+  - pytest>=5.0.1
   - pytest-cov
   - pytest-xdist>=1.21
   - pytest-asyncio

@@ -1294,9 +1294,7 @@ def test_get_nonexistent_category():
         )
 
 
-def test_series_groupby_on_2_categoricals_unobserved(
-    reduction_func: str, observed: bool, request
-):
+def test_series_groupby_on_2_categoricals_unobserved(reduction_func, observed, request):
     # GH 17605
     if reduction_func == "ngroup":
         pytest.skip("ngroup is not truly a reduction")
@@ -1326,7 +1324,7 @@ def test_series_groupby_on_2_categoricals_unobserved(
 
 
 def test_series_groupby_on_2_categoricals_unobserved_zeroes_or_nans(
-    reduction_func: str, request
+    reduction_func, request
 ):
     # GH 17605
     # Tests whether the unobserved categories in the result contain 0 or NaN
@@ -1374,7 +1372,7 @@ def test_series_groupby_on_2_categoricals_unobserved_zeroes_or_nans(
         assert np.issubdtype(result.dtype, np.integer)
 
 
-def test_dataframe_groupby_on_2_categoricals_when_observed_is_true(reduction_func: str):
+def test_dataframe_groupby_on_2_categoricals_when_observed_is_true(reduction_func):
     # GH 23865
     # GH 27075
     # Ensure that df.groupby, when 'by' is two pd.Categorical variables,
@@ -1402,7 +1400,7 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_true(reduction_fun
 
 @pytest.mark.parametrize("observed", [False, None])
 def test_dataframe_groupby_on_2_categoricals_when_observed_is_false(
-    reduction_func: str, observed: bool, request
+    reduction_func, observed, request
 ):
     # GH 23865
     # GH 27075
