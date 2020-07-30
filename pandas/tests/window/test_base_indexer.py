@@ -140,7 +140,7 @@ def test_win_type_not_implemented():
 )
 def test_rolling_forward_window(constructor, func, np_func, expected, np_kwargs):
     # GH 32865
-    values = np.arange(10)
+    values = np.arange(10.0)
     values[5] = 100.0
 
     indexer = FixedForwardWindowIndexer(window_size=3)
@@ -177,7 +177,7 @@ def test_rolling_forward_window(constructor, func, np_func, expected, np_kwargs)
 
 @pytest.mark.parametrize("constructor", [Series, DataFrame])
 def test_rolling_forward_skewness(constructor):
-    values = np.arange(10)
+    values = np.arange(10.0)
     values[5] = 100.0
 
     indexer = FixedForwardWindowIndexer(window_size=5)
