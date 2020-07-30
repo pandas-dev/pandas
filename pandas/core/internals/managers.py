@@ -847,7 +847,7 @@ class BlockManager(PandasObject):
         # Give EAs some input on what happens here. Sparse needs this.
         if isinstance(dtype, SparseDtype):
             dtype = dtype.subtype
-        elif is_extension_array_dtype(dtype):
+        elif is_extension_array_dtype(dtype) or is_dtype_equal(dtype, str):
             dtype = "object"
 
         result = np.empty(self.shape, dtype=dtype)
