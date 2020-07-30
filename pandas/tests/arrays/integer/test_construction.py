@@ -197,3 +197,19 @@ def test_to_integer_array(values, to_dtype, result_dtype):
     assert result.dtype == result_dtype()
     expected = integer_array(values, dtype=result_dtype())
     tm.assert_extension_array_equal(result, expected)
+
+
+def test_construction_large_numbers():
+    # issue 30268
+    values = [9999999999999999, 123123123123123123, 10000000000000543, np.nan]
+    expected = pd.Series(
+        IntegerArray(
+            np.array(
+                [9999999999999999, 123123123123123123, 10000000000000543, 0],
+                dtype="int64",
+            ),
+            np.array([False, False, False, True]),
+        )
+    )
+    result = pd.Series(values, dtype="Int64")
+    tm.assert_series_equal(result, expected, check_exact=True)

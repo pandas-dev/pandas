@@ -1190,6 +1190,7 @@ ExtensionArray
 - Fixed bug where the constructor of :class:`DataFrame` with ``dtype='string'`` would fail (:issue:`27953`, :issue:`33623`)
 - Bug where :class:`DataFrame` column set to scalar extension type was considered an object type rather than the extension type (:issue:`34832`)
 - Fixed bug in :meth:`IntegerArray.astype` to correctly copy the mask as well (:issue:`34931`).
+- Bug in creating nullable integer ``Series`` while using large-ish integers with ``NaN`` values (:issue:`30268`)
 
 Other
 ^^^^^

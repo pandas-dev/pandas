@@ -227,7 +227,11 @@ def coerce_to_array(
             mask = mask.copy()
         return values, mask
 
-    values = np.array(values, copy=copy)
+    typ = dtype.numpy_dtype()
+    values = np.asarray(values, dtype=typ)
+    if copy and hasattr(values, 'dtype'):
+        values = values.copy()
+
     if is_object_dtype(values):
         inferred_type = lib.infer_dtype(values, skipna=True)
         if inferred_type == "empty":
@@ -239,6 +243,7 @@ def coerce_to_array(
             "mixed-integer",
             "integer-na",
             "mixed-integer-float",
+            "boolean",
         ]:
             raise TypeError(f"{values.dtype} cannot be converted to an IntegerDtype")
 
