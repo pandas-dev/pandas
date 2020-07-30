@@ -227,9 +227,8 @@ def coerce_to_array(
             mask = mask.copy()
         return values, mask
 
-    typ = dtype.numpy_dtype()
-    values = np.asarray(values, dtype=typ)
-    if copy and hasattr(values, 'dtype'):
+    values = np.asarray(values, dtype=getattr(values, "dtype", object))
+    if copy and hasattr(values, "dtype"):
         values = values.copy()
 
     if is_object_dtype(values):
