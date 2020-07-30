@@ -15,7 +15,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 
--
+- Regression where :meth:`DataFrame.to_numpy` would raise a ``RuntimeError`` for mixed dtypes when converting to ``str`` (:issue:`35455`)
 -
 -
 
