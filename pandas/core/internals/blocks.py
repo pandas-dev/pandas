@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 import inspect
 import re
 from typing import TYPE_CHECKING, Any, List, Optional, Type, Union, cast
@@ -2225,6 +2225,8 @@ class DatetimeBlock(DatetimeLikeBlockMixin):
             # GH#27419 if we get a non-nano datetime64 object
             return is_datetime64_dtype(tipo)
         elif element is NaT:
+            return True
+        elif isinstance(element, date):
             return True
         elif isinstance(element, datetime):
             if self.is_datetimetz:

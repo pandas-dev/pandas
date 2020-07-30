@@ -1067,7 +1067,7 @@ class TestCanHoldElement:
             arr[0] = val
 
         val = date(2010, 10, 10)
-        assert not block._can_hold_element(val)
+        assert block._can_hold_element(val)
 
         msg = (
             "value should be a 'Timestamp', 'NaT', "

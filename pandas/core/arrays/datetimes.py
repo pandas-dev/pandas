@@ -1,4 +1,4 @@
-from datetime import datetime, time, timedelta, tzinfo
+from datetime import date, datetime, time, timedelta, tzinfo
 from typing import Optional, Union
 import warnings
 
@@ -152,7 +152,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
     _typ = "datetimearray"
     _scalar_type = Timestamp
-    _recognized_scalars = (datetime, np.datetime64)
+    _recognized_scalars = (datetime, np.datetime64, date)
     _is_recognized_dtype = is_datetime64_any_dtype
 
     # define my properties & methods for delegation

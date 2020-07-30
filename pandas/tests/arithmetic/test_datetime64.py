@@ -70,10 +70,6 @@ class TestDatetime64ArrayLikeComparisons:
             4.0,
             object(),
             timedelta(days=2),
-            # GH#19800, GH#19301 datetime.date comparison raises to
-            #  match DatetimeIndex/Timestamp.  This also matches the behavior
-            #  of stdlib datetime.datetime
-            datetime(2001, 1, 1).date(),
             # GH#19301 None and NaN are *not* cast to NaT for comparisons
             None,
             np.nan,

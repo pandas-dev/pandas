@@ -403,3 +403,10 @@ class TestDatetimeIndex:
         result = np.split(indices, indices_or_sections=[])[0]
         expected = indices._with_freq(None)
         tm.assert_index_equal(result, expected)
+
+    def test_in_contains_date_object(self):
+        # GH#35466
+        d1 = date(2002, 9, 1)
+        idx1 = DatetimeIndex([d1])
+        assert d1 in idx1
+        assert "2002-09-01" in idx1
