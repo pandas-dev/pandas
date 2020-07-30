@@ -266,8 +266,11 @@ def init_dict(data: Dict, index, columns, dtype: Optional[DtypeObj] = None):
             else:
                 nan_dtype = dtype
             val = construct_1d_arraylike_from_scalar(np.nan, len(index), nan_dtype)
-            arrays.loc[missing] = [val] * missing.sum()
-
+            if val.size == 0:
+                for iloc in np.where(missing)[0]:
+                    arrays.iloc[iloc] = val
+            else:
+                arrays.loc[missing] = [val] * missing.sum()
     else:
         keys = list(data.keys())
         columns = data_names = Index(keys)
