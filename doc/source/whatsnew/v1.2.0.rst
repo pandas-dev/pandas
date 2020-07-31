@@ -132,7 +132,7 @@ Plotting
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-- Bug in :meth:`DataFrameGroupBy.apply` that would some times throw an erroneous ``ValueError: cannot reindex from a duplicate axis`` (:issue:`16646`)
+- Bug in :meth:`DataFrameGroupBy.apply` that would some times throw an erroneous ``ValueError`` if the grouping axis had duplicate entries (:issue:`16646`)
 -
 -
 
