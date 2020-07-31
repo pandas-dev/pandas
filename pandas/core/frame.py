@@ -60,6 +60,7 @@ from pandas._typing import (
 from pandas.compat import PY37
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
+from pandas.compat.numpy import np_issubclass_compat
 from pandas.util._decorators import (
     Appender,
     Substitution,
