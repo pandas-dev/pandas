@@ -39,7 +39,7 @@ class DummyArray(ExtensionArray):
         pass
 
 
-def test_select_dtypes_numeric(numeric):
+def test_select_dtypes_numeric():
     da = DummyArray([1, 2])
     da._dtype._numeric = True
     df = pd.DataFrame(da)
