@@ -39,12 +39,13 @@ class DummyArray(ExtensionArray):
         pass
 
 
-@pytest.mark.parametrize("numeric", [True, False])
 def test_select_dtypes_numeric(numeric):
     da = DummyArray([1, 2])
-    da._dtype._numeric = numeric
+    da._dtype._numeric = True
     df = pd.DataFrame(da)
-    if numeric:
-        assert df.select_dtypes(np.number).shape == df.shape
-    else:
-        assert df.select_dtypes(np.number).shape != df.shape
+    assert df.select_dtypes(np.number).shape == df.shape
+    
+    da = DummyArray([1, 2])
+    da._dtype._numeric = True
+    df = pd.DataFrame(da)
+    assert df.select_dtypes(np.number).shape != df.shape

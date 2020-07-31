@@ -3578,15 +3578,8 @@ class DataFrame(NDFrame):
             extracted_dtypes = [
                 unique_dtype
                 for unique_dtype in unique_dtypes
-                if issubclass(unique_dtype.type, tuple(dtypes_set))  # type: ignore
-                or (
-                    np.number in dtypes_set
-                    and is_extension_array_dtype(unique_dtype)
-                    and unique_dtype._is_numeric
-                )
+                if np_issubclass_compat(unique_dtype, dtypes_set)
             ]
-            if np.number in dtypes_set:
-                extracted_dtypes.extend([])
             return extracted_dtypes
 
         unique_dtypes = self.dtypes.unique()

@@ -5,6 +5,8 @@ import re
 
 import numpy as np
 
+from pandas.core.dtypes.common import is_extension_array_dtype
+
 # numpy versioning
 _np_version = np.__version__
 _nlv = LooseVersion(_np_version)
@@ -61,6 +63,15 @@ def np_array_datetime64_compat(arr, *args, **kwargs):
 
     return np.array(arr, *args, **kwargs)
 
+def np_issubclass_compat(unique_dtype, dtypes_set):
+    if (issubclass(unique_dtype.type, tuple(dtypes_set))  # type: ignore
+    or (
+        np.number in dtypes_set
+        and is_extension_array_dtype(unique_dtype)
+        and unique_dtype._is_numeric
+    )):
+        return True
+    return False
 
 __all__ = [
     "np",
