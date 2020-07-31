@@ -5899,7 +5899,7 @@ Matching NaNs will not appear as a difference.
 
 Can only compare identically-labeled DataFrame objects,
 this means DataFrames with the same shape and
-identical row and column label.
+identical row and column labels.
 
 Examples
 --------
