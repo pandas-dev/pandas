@@ -963,7 +963,7 @@ class DatetimeLikeArrayMixin(
         -------
         Series
         """
-        from pandas import Series, Index
+        from pandas import Index, Series
 
         if dropna:
             values = self[~self.isna()]._data

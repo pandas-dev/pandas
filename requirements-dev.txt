@@ -11,7 +11,7 @@ cpplint
 flake8<3.8.0
 flake8-comprehensions>=3.1.0
 flake8-rst>=0.6.0,<=0.7.0
-isort==4.3.21
+isort>=5.2.1
 mypy==0.730
 pycodestyle
 gitpython
@@ -32,7 +32,7 @@ boto3
 botocore>=1.11
 hypothesis>=3.82
 moto
-pytest>=5.0.1,<6.0.0rc0
+pytest>=5.0.1
 pytest-cov
 pytest-xdist>=1.21
 pytest-asyncio
