@@ -1,4 +1,4 @@
-from datetime import datetime, date
+from datetime import date, datetime
 from io import StringIO
 
 import numpy as np
