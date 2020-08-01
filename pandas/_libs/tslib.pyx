@@ -7,22 +7,19 @@ from cpython.datetime cimport (
     datetime,
     tzinfo,
 )
+
 # import datetime C API
 PyDateTime_IMPORT
 
 
 cimport numpy as cnp
 from numpy cimport float64_t, int64_t, ndarray
+
 import numpy as np
+
 cnp.import_array()
 
 import pytz
-
-from pandas._libs.util cimport (
-    is_datetime64_object,
-    is_float_object,
-    is_integer_object,
-)
 
 from pandas._libs.tslibs.np_datetime cimport (
     _string_to_dts,
@@ -34,9 +31,9 @@ from pandas._libs.tslibs.np_datetime cimport (
     pydate_to_dt64,
     pydatetime_to_dt64,
 )
+from pandas._libs.util cimport is_datetime64_object, is_float_object, is_integer_object
 
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
-
 from pandas._libs.tslibs.parsing import parse_datetime_string
 
 from pandas._libs.tslibs.conversion cimport (
@@ -45,22 +42,18 @@ from pandas._libs.tslibs.conversion cimport (
     convert_datetime_to_tsobject,
     get_datetime64_nanos,
 )
-
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
     c_NaT as NaT,
     c_nat_strings as nat_strings,
 )
-
 from pandas._libs.tslibs.timestamps cimport _Timestamp
-from pandas._libs.tslibs.timestamps import Timestamp
 
-from pandas._libs.tslibs.tzconversion cimport (
-    tz_localize_to_utc_single,
-)
+from pandas._libs.tslibs.timestamps import Timestamp
 
 # Note: this is the only non-tslibs intra-pandas dependency here
 from pandas._libs.missing cimport checknull_with_nat_and_na
+from pandas._libs.tslibs.tzconversion cimport tz_localize_to_utc_single
 
 
 def _test_parse_iso8601(ts: str):
