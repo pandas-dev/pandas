@@ -662,8 +662,10 @@ register_converter_doc = """
 
 
 def register_converter_cb(key):
-    from pandas.plotting import register_matplotlib_converters
-    from pandas.plotting import deregister_matplotlib_converters
+    from pandas.plotting import (
+        deregister_matplotlib_converters,
+        register_matplotlib_converters,
+    )
 
     if cf.get_option(key):
         register_matplotlib_converters()

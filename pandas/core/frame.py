@@ -151,6 +151,7 @@ import pandas.plotting
 
 if TYPE_CHECKING:
     from pandas.core.groupby.generic import DataFrameGroupBy
+
     from pandas.io.formats.style import Styler
 
 # ---------------------------------------------------------------------
@@ -4972,9 +4973,10 @@ class DataFrame(NDFrame):
 
         Define in which columns to look for missing values.
 
-        >>> df.dropna(subset=['name', 'born'])
+        >>> df.dropna(subset=['name', 'toy'])
                name        toy       born
         1    Batman  Batmobile 1940-04-25
+        2  Catwoman   Bullwhip        NaT
 
         Keep the DataFrame with valid entries in the same variable.
 
@@ -5210,8 +5212,9 @@ class DataFrame(NDFrame):
         4     True
         dtype: bool
         """
+        from pandas._libs.hashtable import _SIZE_HINT_LIMIT, duplicated_int64
+
         from pandas.core.sorting import get_group_index
-        from pandas._libs.hashtable import duplicated_int64, _SIZE_HINT_LIMIT
 
         if self.empty:
             return self._constructor_sliced(dtype=bool)
@@ -7873,8 +7876,8 @@ NaN 12.3   33.0
     def _join_compat(
         self, other, on=None, how="left", lsuffix="", rsuffix="", sort=False
     ):
-        from pandas.core.reshape.merge import merge
         from pandas.core.reshape.concat import concat
+        from pandas.core.reshape.merge import merge
 
         if isinstance(other, Series):
             if other.name is None:
