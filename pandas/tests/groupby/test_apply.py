@@ -64,7 +64,7 @@ def test_apply_trivial():
 
 
 def test_apply_trivial_fail():
-    # GH 35441
+    # GH 20066
     df = pd.DataFrame(
         {"key": ["a", "a", "b", "b", "a"], "data": [1.0, 2.0, 3.0, 4.0, 5.0]},
         columns=["key", "data"],
