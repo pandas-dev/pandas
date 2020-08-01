@@ -1046,6 +1046,11 @@ def test_describe_with_duplicate_output_column_names(as_index):
 
     result = df.groupby("a", as_index=as_index).describe()
 
+    tm.assert_index_equal(result.columns, expected.columns)
+
+    result.columns = pd.RangeIndex(result.shape[1])
+    expected.columns = pd.RangeIndex(expected.shape[1])
+
     tm.assert_frame_equal(result, expected)
 
 
