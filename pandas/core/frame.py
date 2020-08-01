@@ -8831,7 +8831,7 @@ NaN 12.3   33.0
         # indices will always be np.ndarray since axis is not None and
         # values is a 2d array for DataFrame
         # error: Item "int" of "Union[int, Any]" has no attribute "__iter__"
-        assert isinstance(indices, np.ndarray)  # for mypyfffff
+        assert isinstance(indices, np.ndarray)  # for mypy
 
         index = self._get_axis(axis)
         if keep == "all":

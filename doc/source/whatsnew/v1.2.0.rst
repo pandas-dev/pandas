@@ -18,7 +18,7 @@ Enhancements
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
--
+- :meth:`DataFrame.idxmax`, :meth:`DataFrame.idxmin`, :meth:`Series.idxmax`, :meth:`Series.idxmax`, :meth:`Series.argmax` and :meth:`Series.argmin` all now have gained a new `keep` parameter. The functionality of this parameter is similar to the keep parameter in :meth:`Series.nlargest`. (:issue:`34205`)
 -
 
 
