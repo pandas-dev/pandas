@@ -46,6 +46,6 @@ def test_select_dtypes_numeric():
     assert df.select_dtypes(np.number).shape == df.shape
     
     da = DummyArray([1, 2])
-    da._dtype._numeric = True
+    da._dtype._numeric = False
     df = pd.DataFrame(da)
     assert df.select_dtypes(np.number).shape != df.shape
