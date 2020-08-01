@@ -15,7 +15,7 @@ def test_multiindex_get_loc():  # GH7724, GH2646
     with warnings.catch_warnings(record=True):
 
         # test indexing into a multi-index before & past the lexsort depth
-        from numpy.random import randint, choice, randn
+        from numpy.random import choice, randint, randn
 
         cols = ["jim", "joe", "jolie", "joline", "jolia"]
 

@@ -59,6 +59,7 @@ class TestDatetimeIndex:
 
     def test_time_loc(self):  # GH8667
         from datetime import time
+
         from pandas._libs.index import _SIZE_CUTOFF
 
         ns = _SIZE_CUTOFF + np.array([-100, 100], dtype=np.int64)

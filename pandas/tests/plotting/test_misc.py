@@ -131,8 +131,9 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_andrews_curves(self, iris):
-        from pandas.plotting import andrews_curves
         from matplotlib import cm
+
+        from pandas.plotting import andrews_curves
 
         df = iris
 
@@ -206,8 +207,9 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_parallel_coordinates(self, iris):
-        from pandas.plotting import parallel_coordinates
         from matplotlib import cm
+
+        from pandas.plotting import parallel_coordinates
 
         df = iris
 
@@ -279,8 +281,9 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_radviz(self, iris):
-        from pandas.plotting import radviz
         from matplotlib import cm
+
+        from pandas.plotting import radviz
 
         df = iris
         _check_plot_works(radviz, frame=df, class_column="Name")
@@ -397,6 +400,7 @@ class TestDataFramePlots(TestPlotBase):
         # Make sure not to add more colors so that matplotlib can cycle
         # correctly.
         from matplotlib import cm
+
         from pandas.plotting._matplotlib.style import _get_standard_colors
 
         color_before = cm.gnuplot(range(5))

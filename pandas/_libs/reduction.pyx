@@ -2,15 +2,18 @@ from copy import copy
 
 from cython import Py_ssize_t
 
-from libc.stdlib cimport malloc, free
+from libc.stdlib cimport free, malloc
 
 import numpy as np
+
 cimport numpy as cnp
-from numpy cimport ndarray, int64_t
+from numpy cimport int64_t, ndarray
+
 cnp.import_array()
 
 from pandas._libs cimport util
-from pandas._libs.lib import maybe_convert_objects, is_scalar
+
+from pandas._libs.lib import is_scalar, maybe_convert_objects
 
 
 cdef _check_result_array(object obj, Py_ssize_t cnt):

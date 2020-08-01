@@ -1,5 +1,3 @@
-from cpython.object cimport Py_EQ, Py_NE, Py_GE, Py_GT, Py_LT, Py_LE
-
 from cpython.datetime cimport (
     PyDateTime_DATE_GET_HOUR,
     PyDateTime_DATE_GET_MICROSECOND,
@@ -10,10 +8,14 @@ from cpython.datetime cimport (
     PyDateTime_GET_YEAR,
     PyDateTime_IMPORT,
 )
+from cpython.object cimport Py_EQ, Py_GE, Py_GT, Py_LE, Py_LT, Py_NE
+
 PyDateTime_IMPORT
 
 from numpy cimport int64_t
+
 from pandas._libs.tslibs.util cimport get_c_string_buf_and_size
+
 
 cdef extern from "src/datetime/np_datetime.h":
     int cmp_npy_datetimestruct(npy_datetimestruct *a,

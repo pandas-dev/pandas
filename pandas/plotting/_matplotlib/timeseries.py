@@ -24,7 +24,7 @@ from pandas.plotting._matplotlib.converter import (
 from pandas.tseries.frequencies import get_period_alias, is_subperiod, is_superperiod
 
 if TYPE_CHECKING:
-    from pandas import Series, Index  # noqa:F401
+    from pandas import Index, Series  # noqa:F401
 
 
 # ---------------------------------------------------------------------

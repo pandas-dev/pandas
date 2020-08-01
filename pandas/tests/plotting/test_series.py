@@ -452,7 +452,7 @@ class TestSeriesPlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_hist_no_overlap(self):
-        from matplotlib.pyplot import subplot, gcf
+        from matplotlib.pyplot import gcf, subplot
 
         x = Series(randn(2))
         y = Series(randn(2))
@@ -827,6 +827,7 @@ class TestSeriesPlots(TestPlotBase):
     @pytest.mark.slow
     def test_standard_colors_all(self):
         import matplotlib.colors as colors
+
         from pandas.plotting._matplotlib.style import _get_standard_colors
 
         # multiple colors like mediumaquamarine

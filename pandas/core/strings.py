@@ -155,7 +155,7 @@ def _map_stringarray(
         an ndarray.
 
     """
-    from pandas.arrays import IntegerArray, StringArray, BooleanArray
+    from pandas.arrays import BooleanArray, IntegerArray, StringArray
 
     mask = isna(arr)
 
@@ -2186,7 +2186,7 @@ class StringMethods(NoNewAttributesMixin):
         returns_string=True,
     ):
 
-        from pandas import Index, Series, MultiIndex
+        from pandas import Index, MultiIndex, Series
 
         # for category, we do the stuff on the categories, so blow it up
         # to the full series again
@@ -2292,7 +2292,7 @@ class StringMethods(NoNewAttributesMixin):
         list of Series
             Others transformed into list of Series.
         """
-        from pandas import Series, DataFrame
+        from pandas import DataFrame, Series
 
         # self._orig is either Series or Index
         idx = self._orig if isinstance(self._orig, ABCIndexClass) else self._orig.index

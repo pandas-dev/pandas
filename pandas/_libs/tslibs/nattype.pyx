@@ -1,3 +1,10 @@
+from cpython.datetime cimport (
+    PyDateTime_Check,
+    PyDateTime_IMPORT,
+    PyDelta_Check,
+    datetime,
+    timedelta,
+)
 from cpython.object cimport (
     Py_EQ,
     Py_GE,
@@ -8,28 +15,19 @@ from cpython.object cimport (
     PyObject_RichCompare,
 )
 
-from cpython.datetime cimport (
-    PyDateTime_Check,
-    PyDateTime_IMPORT,
-    PyDelta_Check,
-    datetime,
-    timedelta,
-)
 PyDateTime_IMPORT
 
 from cpython.version cimport PY_MINOR_VERSION
 
 import numpy as np
+
 cimport numpy as cnp
 from numpy cimport int64_t
+
 cnp.import_array()
 
-from pandas._libs.tslibs.np_datetime cimport (
-    get_datetime64_value,
-    get_timedelta64_value,
-)
 cimport pandas._libs.tslibs.util as util
-
+from pandas._libs.tslibs.np_datetime cimport get_datetime64_value, get_timedelta64_value
 
 # ----------------------------------------------------------------------
 # Constants

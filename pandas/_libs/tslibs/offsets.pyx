@@ -1,39 +1,51 @@
-import cython
-
 import operator
 import re
 import time
 from typing import Any
 import warnings
-from cpython.datetime cimport (PyDateTime_IMPORT,
-                               PyDateTime_Check,
-                               PyDate_Check,
-                               PyDelta_Check,
-                               datetime, timedelta, date,
-                               time as dt_time)
+
+import cython
+
+from cpython.datetime cimport (
+    PyDate_Check,
+    PyDateTime_Check,
+    PyDateTime_IMPORT,
+    PyDelta_Check,
+    date,
+    datetime,
+    time as dt_time,
+    timedelta,
+)
+
 PyDateTime_IMPORT
 
-from dateutil.relativedelta import relativedelta
 from dateutil.easter import easter
-
+from dateutil.relativedelta import relativedelta
 import numpy as np
+
 cimport numpy as cnp
 from numpy cimport int64_t, ndarray
+
 cnp.import_array()
 
 # TODO: formalize having _libs.properties "above" tslibs in the dependency structure
+
 from pandas._libs.properties import cache_readonly
 
 from pandas._libs.tslibs cimport util
 from pandas._libs.tslibs.util cimport (
-    is_integer_object,
     is_datetime64_object,
     is_float_object,
+    is_integer_object,
 )
 
 from pandas._libs.tslibs.ccalendar import (
-    MONTH_ALIASES, MONTH_TO_CAL_NUM, weekday_to_int, int_to_weekday,
+    MONTH_ALIASES,
+    MONTH_TO_CAL_NUM,
+    int_to_weekday,
+    weekday_to_int,
 )
+
 from pandas._libs.tslibs.ccalendar cimport (
     DAY_NANOS,
     dayofweek,
@@ -47,17 +59,20 @@ from pandas._libs.tslibs.conversion cimport (
 )
 from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
 from pandas._libs.tslibs.np_datetime cimport (
-    npy_datetimestruct,
-    dtstruct_to_dt64,
     dt64_to_dtstruct,
+    dtstruct_to_dt64,
+    npy_datetimestruct,
     pydate_to_dtstruct,
 )
 from pandas._libs.tslibs.tzconversion cimport tz_convert_from_utc_single
 
 from .dtypes cimport PeriodDtypeCode
 from .timedeltas cimport delta_to_nanoseconds
+
 from .timedeltas import Timedelta
+
 from .timestamps cimport _Timestamp
+
 from .timestamps import Timestamp
 
 # ---------------------------------------------------------------------

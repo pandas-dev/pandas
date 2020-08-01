@@ -1,44 +1,68 @@
 import cython
-
 import numpy as np
+
 cimport numpy as cnp
-from numpy cimport int64_t, int32_t, intp_t, ndarray
+from numpy cimport int32_t, int64_t, intp_t, ndarray
+
 cnp.import_array()
 
 import pytz
 
 # stdlib datetime imports
-from cpython.datetime cimport (datetime, time, tzinfo,
-                               PyDateTime_Check, PyDate_Check,
-                               PyDateTime_IMPORT)
+
+from cpython.datetime cimport (
+    PyDate_Check,
+    PyDateTime_Check,
+    PyDateTime_IMPORT,
+    datetime,
+    time,
+    tzinfo,
+)
+
 PyDateTime_IMPORT
 
 from pandas._libs.tslibs.base cimport ABCTimestamp
-
 from pandas._libs.tslibs.np_datetime cimport (
-    check_dts_bounds, npy_datetimestruct, pandas_datetime_to_datetimestruct,
-    _string_to_dts, npy_datetime, dt64_to_dtstruct, dtstruct_to_dt64,
-    get_datetime64_unit, get_datetime64_value, pydatetime_to_dt64,
-    NPY_DATETIMEUNIT, NPY_FR_ns)
+    NPY_DATETIMEUNIT,
+    NPY_FR_ns,
+    _string_to_dts,
+    check_dts_bounds,
+    dt64_to_dtstruct,
+    dtstruct_to_dt64,
+    get_datetime64_unit,
+    get_datetime64_value,
+    npy_datetime,
+    npy_datetimestruct,
+    pandas_datetime_to_datetimestruct,
+    pydatetime_to_dt64,
+)
+
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
-from pandas._libs.tslibs.util cimport (
-    is_datetime64_object, is_integer_object, is_float_object)
-
 from pandas._libs.tslibs.timezones cimport (
-    is_utc, is_tzlocal, is_fixed_offset, get_utcoffset, get_dst_info,
-    maybe_get_tz, tz_compare,
+    get_dst_info,
+    get_utcoffset,
+    is_fixed_offset,
+    is_tzlocal,
+    is_utc,
+    maybe_get_tz,
+    tz_compare,
     utc_pytz as UTC,
 )
+from pandas._libs.tslibs.util cimport (
+    is_datetime64_object,
+    is_float_object,
+    is_integer_object,
+)
+
 from pandas._libs.tslibs.parsing import parse_datetime_string
 
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
-    checknull_with_nat,
     c_NaT as NaT,
     c_nat_strings as nat_strings,
+    checknull_with_nat,
 )
-
 from pandas._libs.tslibs.tzconversion cimport (
     tz_convert_utc_to_tzlocal,
     tz_localize_to_utc_single,

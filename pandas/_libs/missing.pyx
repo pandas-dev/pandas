@@ -1,26 +1,24 @@
-import cython
-from cython import Py_ssize_t
-
 import numbers
 
+import cython
+from cython import Py_ssize_t
 import numpy as np
+
 cimport numpy as cnp
-from numpy cimport ndarray, int64_t, uint8_t, float64_t
+from numpy cimport float64_t, int64_t, ndarray, uint8_t
+
 cnp.import_array()
 
 from pandas._libs cimport util
-
-
-from pandas._libs.tslibs.np_datetime cimport get_datetime64_value, get_timedelta64_value
 from pandas._libs.tslibs.nattype cimport (
     c_NaT as NaT,
     checknull_with_nat,
     is_null_datetimelike,
 )
+from pandas._libs.tslibs.np_datetime cimport get_datetime64_value, get_timedelta64_value
+
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
-
 from pandas.compat import is_platform_32bit
-
 
 cdef:
     float64_t INF = <float64_t>np.inf

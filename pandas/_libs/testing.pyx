@@ -1,13 +1,16 @@
 import math
 
 import numpy as np
+
 from numpy cimport import_array
+
 import_array()
 
 from pandas._libs.util cimport is_array
 
-from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.missing import array_equivalent, isna
+
 
 cdef NUMERIC_TYPES = (
     bool,
@@ -129,6 +132,7 @@ cpdef assert_almost_equal(a, b,
 
         if not isiterable(b):
             from pandas._testing import assert_class_equal
+
             # classes can't be the same, to raise error
             assert_class_equal(a, b, obj=obj)
 
@@ -181,6 +185,7 @@ cpdef assert_almost_equal(a, b,
 
     elif isiterable(b):
         from pandas._testing import assert_class_equal
+
         # classes can't be the same, to raise error
         assert_class_equal(a, b, obj=obj)
 

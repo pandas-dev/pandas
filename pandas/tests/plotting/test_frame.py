@@ -2408,8 +2408,8 @@ class TestDataFramePlots(TestPlotBase):
         assert result[expected][0].get_color() == "C1"
 
     def test_default_color_cycle(self):
-        import matplotlib.pyplot as plt
         import cycler
+        import matplotlib.pyplot as plt
 
         colors = list("rgbk")
         plt.rcParams["axes.prop_cycle"] = cycler.cycler("color", colors)
@@ -2953,8 +2953,8 @@ class TestDataFramePlots(TestPlotBase):
     @td.skip_if_no_scipy
     def test_memory_leak(self):
         """ Check that every plot type gets properly collected. """
-        import weakref
         import gc
+        import weakref
 
         results = {}
         for kind in plotting.PlotAccessor._all_kinds:
@@ -3032,8 +3032,8 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.slow
     def test_df_gridspec_patterns(self):
         # GH 10819
-        import matplotlib.pyplot as plt
         import matplotlib.gridspec as gridspec
+        import matplotlib.pyplot as plt
 
         ts = Series(np.random.randn(10), index=date_range("1/1/2000", periods=10))
 
@@ -3422,9 +3422,9 @@ class TestDataFramePlots(TestPlotBase):
 
 
 def _generate_4_axes_via_gridspec():
-    import matplotlib.pyplot as plt
     import matplotlib as mpl
     import matplotlib.gridspec  # noqa
+    import matplotlib.pyplot as plt
 
     gs = mpl.gridspec.GridSpec(2, 2)
     ax_tl = plt.subplot(gs[0, 0])

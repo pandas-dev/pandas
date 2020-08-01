@@ -11,7 +11,6 @@ import pandas as pd
 from pandas import DataFrame, DatetimeIndex, NaT, Series, Timestamp, date_range
 import pandas._testing as tm
 
-
 """
 Also test support for datetime64[ns] in Series / DataFrame
 """
@@ -166,6 +165,7 @@ def test_getitem_setitem_datetime_tz_pytz():
 
 def test_getitem_setitem_datetime_tz_dateutil():
     from dateutil.tz import tzutc
+
     from pandas._libs.tslibs.timezones import dateutil_gettz as gettz
 
     tz = (

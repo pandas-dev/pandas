@@ -834,8 +834,8 @@ class ExcelFile:
 
     from pandas.io.excel._odfreader import _ODFReader
     from pandas.io.excel._openpyxl import _OpenpyxlReader
-    from pandas.io.excel._xlrd import _XlrdReader
     from pandas.io.excel._pyxlsb import _PyxlsbReader
+    from pandas.io.excel._xlrd import _XlrdReader
 
     _engines = {
         "xlrd": _XlrdReader,

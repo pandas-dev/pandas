@@ -5731,9 +5731,9 @@ def _maybe_cast_data_without_dtype(subarr):
     """
     # Runtime import needed bc IntervalArray imports Index
     from pandas.core.arrays import (
+        DatetimeArray,
         IntervalArray,
         PeriodArray,
-        DatetimeArray,
         TimedeltaArray,
     )
 
