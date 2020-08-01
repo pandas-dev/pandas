@@ -966,7 +966,7 @@ class IndexOpsMixin:
         >>> s2.argmax(keep='all')
         array([2, 4])
         >>> s2.argmin(keep='all')
-        arrar([0, 5])
+        array([0, 5])
 
         >>> s2.argmax(keep='last')
         4
