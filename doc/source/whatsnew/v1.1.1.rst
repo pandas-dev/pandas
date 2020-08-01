@@ -44,6 +44,10 @@ Bug fixes
 
 -
 
+**Reshaping**
+
+- Bug where :meth:`DataFrame.replace` and :meth:`Series.replace` would fail when replacement value was of a different dtype but equal to values in the original object (:issue:`34871`).
+
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_111.contributors:
