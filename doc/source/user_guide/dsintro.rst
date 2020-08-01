@@ -397,6 +397,30 @@ The result will be a DataFrame with the same index as the input Series, and
 with one column whose name is the original name of the Series (only if no other
 column name provided).
 
+
+.. _basics.dataframe.from_list_namedtuples:
+
+From a list of namedtuples
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The first namedtuple will be used to determine the columns of the DataFrame.
+This means that further (named)tuples are simply unpacked. If additional
+tuples are shorter, the later columns are marked as missing data, while
+longer tuples cause a ``ValueError``.
+
+.. ipython:: python
+
+    from collections import namedtuple
+    
+    Point = namedtuple('Point', 'x y')
+
+    pd.DataFrame([Point(0, 0), Point(0, 3), Point(2, 3)])
+
+    Point3D = namedtuple('Point3D', 'x y z')
+
+    pd.DataFrame([Point3D(0, 0, 0), Point3D(0, 3, 5), Point(2, 3)])
+
+
 .. _basics.dataframe.from_list_dataclasses:
 
 From a list of dataclasses
