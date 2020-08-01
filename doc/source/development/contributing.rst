@@ -751,7 +751,7 @@ Imports are alphabetically sorted within these sections.
 
 As part of :ref:`Continuous Integration <contributing.ci>` checks we run::
 
-    isort --recursive --check-only pandas
+    isort --check-only pandas
 
 to check that imports are correctly formatted as per the `setup.cfg`.
 
@@ -769,8 +769,6 @@ You should run::
     isort pandas/io/pytables.py
 
 to automatically format imports correctly. This will modify your local copy of the files.
-
-The `--recursive` flag can be passed to sort all files in a directory.
 
 Alternatively, you can run a command similar to what was suggested for ``black`` and ``flake8`` :ref:`right above <contributing.code-formatting>`::
 

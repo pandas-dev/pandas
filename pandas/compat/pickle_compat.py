@@ -14,7 +14,7 @@ from pandas._libs.tslibs import BaseOffset
 from pandas import Index
 
 if TYPE_CHECKING:
-    from pandas import Series, DataFrame
+    from pandas import DataFrame, Series
 
 
 def load_reduce(self):
