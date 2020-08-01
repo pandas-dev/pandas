@@ -13,7 +13,7 @@ PyDateTime_IMPORT
 
 
 cimport numpy as cnp
-from numpy cimport float64_t, int64_t, ndarray, uint8_t
+from numpy cimport float64_t, int64_t, ndarray
 
 import numpy as np
 
