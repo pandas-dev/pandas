@@ -70,7 +70,7 @@ def np_issubclass_compat(unique_dtype, dtypes_set):
             np.number in dtypes_set
             and is_extension_array_dtype(unique_dtype)
             and unique_dtype._is_numeric
-        )):
+    )):
         return True
     return False
 
