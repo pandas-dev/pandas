@@ -71,7 +71,7 @@ Timedelta
 Timezones
 ^^^^^^^^^
 
--
+- Bug in :func:`date_range` was raising AmbiguousTimeError for valid input with `ambiguous=False` (:issue:`35297`)
 -
 
 
