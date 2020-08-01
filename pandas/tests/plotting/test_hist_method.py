@@ -101,7 +101,7 @@ class TestSeriesPlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_hist_no_overlap(self):
-        from matplotlib.pyplot import subplot, gcf
+        from matplotlib.pyplot import gcf, subplot
 
         x = Series(randn(2))
         y = Series(randn(2))
@@ -352,6 +352,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
     @pytest.mark.slow
     def test_grouped_hist_legacy(self):
         from matplotlib.patches import Rectangle
+
         from pandas.plotting._matplotlib.hist import _grouped_hist
 
         df = DataFrame(randn(500, 2), columns=["A", "B"])
