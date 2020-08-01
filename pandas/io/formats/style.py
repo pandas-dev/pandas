@@ -42,8 +42,8 @@ jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires ji
 
 
 try:
-    import matplotlib.pyplot as plt
     from matplotlib import colors
+    import matplotlib.pyplot as plt
 
     has_mpl = True
 except ImportError:

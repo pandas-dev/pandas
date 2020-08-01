@@ -9,39 +9,44 @@ from libc.string cimport strchr
 import cython
 from cython import Py_ssize_t
 
-from cpython.object cimport PyObject_Str
-
 from cpython.datetime cimport datetime, datetime_new, import_datetime, tzinfo
+from cpython.object cimport PyObject_Str
 from cpython.version cimport PY_VERSION_HEX
+
 import_datetime()
 
 import numpy as np
+
 cimport numpy as cnp
-from numpy cimport (PyArray_GETITEM, PyArray_ITER_DATA, PyArray_ITER_NEXT,
-                    PyArray_IterNew, flatiter, float64_t)
+from numpy cimport (
+    PyArray_GETITEM,
+    PyArray_ITER_DATA,
+    PyArray_ITER_NEXT,
+    PyArray_IterNew,
+    flatiter,
+    float64_t,
+)
+
 cnp.import_array()
 
 # dateutil compat
-from dateutil.tz import (tzoffset,
-                         tzlocal as _dateutil_tzlocal,
-                         tzutc as _dateutil_tzutc,
-                         tzstr as _dateutil_tzstr)
+
+from dateutil.parser import DEFAULTPARSER, parse as du_parse
 from dateutil.relativedelta import relativedelta
-from dateutil.parser import DEFAULTPARSER
-from dateutil.parser import parse as du_parse
+from dateutil.tz import (
+    tzlocal as _dateutil_tzlocal,
+    tzoffset,
+    tzstr as _dateutil_tzstr,
+    tzutc as _dateutil_tzutc,
+)
 
 from pandas._config import get_option
 
 from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
-from pandas._libs.tslibs.nattype cimport (
-    c_nat_strings as nat_strings,
-    c_NaT as NaT,
-)
-from pandas._libs.tslibs.util cimport (
-    is_array,
-    get_c_string_buf_and_size,
-)
+from pandas._libs.tslibs.nattype cimport c_NaT as NaT, c_nat_strings as nat_strings
 from pandas._libs.tslibs.offsets cimport is_offset_object
+from pandas._libs.tslibs.util cimport get_c_string_buf_and_size, is_array
+
 
 cdef extern from "../src/headers/portable.h":
     int getdigit_ascii(char c, int default) nogil

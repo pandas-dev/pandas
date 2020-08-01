@@ -37,8 +37,8 @@ def test_read_csv(cleared_fs):
 
 
 def test_reasonable_error(monkeypatch, cleared_fs):
-    from fsspec.registry import known_implementations
     from fsspec import registry
+    from fsspec.registry import known_implementations
 
     registry.target.clear()
     with pytest.raises(ValueError) as e:

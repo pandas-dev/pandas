@@ -116,6 +116,7 @@ class _IntegerDtype(BaseMaskedDtype):
         Construct IntegerArray from pyarrow Array/ChunkedArray.
         """
         import pyarrow  # noqa: F811
+
         from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
 
         pyarrow_type = pyarrow.from_numpy_dtype(self.type)

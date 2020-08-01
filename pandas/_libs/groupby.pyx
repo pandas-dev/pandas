@@ -1,26 +1,50 @@
 import cython
 from cython import Py_ssize_t
-from cython cimport floating
 
-from libc.stdlib cimport malloc, free
+from cython cimport floating
+from libc.stdlib cimport free, malloc
 
 import numpy as np
+
 cimport numpy as cnp
-from numpy cimport (ndarray,
-                    int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
-                    uint32_t, uint64_t, float32_t, float64_t, complex64_t, complex128_t)
+from numpy cimport (
+    complex64_t,
+    complex128_t,
+    float32_t,
+    float64_t,
+    int8_t,
+    int16_t,
+    int32_t,
+    int64_t,
+    ndarray,
+    uint8_t,
+    uint16_t,
+    uint32_t,
+    uint64_t,
+)
 from numpy.math cimport NAN
+
 cnp.import_array()
 
-from pandas._libs.util cimport numeric, get_nat
+from pandas._libs.algos cimport (
+    TIEBREAK_AVERAGE,
+    TIEBREAK_DENSE,
+    TIEBREAK_FIRST,
+    TIEBREAK_MAX,
+    TIEBREAK_MIN,
+    TiebreakEnumType,
+    swap,
+)
+from pandas._libs.util cimport get_nat, numeric
 
-from pandas._libs.algos cimport (swap, TiebreakEnumType, TIEBREAK_AVERAGE,
-                                 TIEBREAK_MIN, TIEBREAK_MAX, TIEBREAK_FIRST,
-                                 TIEBREAK_DENSE)
-from pandas._libs.algos import (take_2d_axis1_float64_float64,
-                                groupsort_indexer, tiebreakers)
+from pandas._libs.algos import (
+    groupsort_indexer,
+    take_2d_axis1_float64_float64,
+    tiebreakers,
+)
 
 from pandas._libs.missing cimport checknull
+
 
 cdef int64_t NPY_NAT = get_nat()
 _int64_max = np.iinfo(np.int64).max

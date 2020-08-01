@@ -11,7 +11,7 @@ cpplint
 flake8<3.8.0
 flake8-comprehensions>=3.1.0
 flake8-rst>=0.6.0,<=0.7.0
-isort==4.3.21
+isort>=5.2.1
 mypy==0.730
 pycodestyle
 gitpython

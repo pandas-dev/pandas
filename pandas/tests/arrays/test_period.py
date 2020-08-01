@@ -359,6 +359,7 @@ def test_arrow_extension_type():
 )
 def test_arrow_array(data, freq):
     import pyarrow as pa
+
     from pandas.core.arrays._arrow_utils import ArrowPeriodType
 
     periods = period_array(data, freq=freq)
@@ -384,6 +385,7 @@ def test_arrow_array(data, freq):
 @pyarrow_skip
 def test_arrow_array_missing():
     import pyarrow as pa
+
     from pandas.core.arrays._arrow_utils import ArrowPeriodType
 
     arr = PeriodArray([1, 2, 3], freq="D")
@@ -399,6 +401,7 @@ def test_arrow_array_missing():
 @pyarrow_skip
 def test_arrow_table_roundtrip():
     import pyarrow as pa
+
     from pandas.core.arrays._arrow_utils import ArrowPeriodType
 
     arr = PeriodArray([1, 2, 3], freq="D")

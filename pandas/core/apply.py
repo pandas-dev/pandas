@@ -15,7 +15,7 @@ from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.construction import create_series_with_explicit_dtype
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Series, Index
+    from pandas import DataFrame, Index, Series
 
 ResType = Dict[int, Any]
 
