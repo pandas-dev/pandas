@@ -1,0 +1,54 @@
+.. _whatsnew_111:
+
+What's new in 1.1.1 (?)
+-----------------------
+
+These are the changes in pandas 1.1.1. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_111.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+
+-
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_111.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+**Datetimelike**
+
+-
+-
+
+**Numeric**
+
+-
+-
+
+**Plotting**
+
+-
+
+**Indexing**
+
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_111.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.1.0..v1.1.1|HEAD
