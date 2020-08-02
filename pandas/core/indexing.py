@@ -255,7 +255,7 @@ class IndexingMixin:
 
         - A boolean array of the same length as the axis being sliced,
           e.g. ``[True, False, True]``.
-        - An alignable boolean series. Index of the key will be aligned before
+        - An alignable boolean Series. The index of the key will be aligned before
           masking.
         - A ``callable`` function with one argument (the calling Series or
           DataFrame) and that returns valid output for indexing (one of the above)
@@ -267,7 +267,7 @@ class IndexingMixin:
         KeyError
             If any items are not found.
         IndexingError
-            If an indexed key is passed and its index is unalignable to the index.
+            If an indexed key is passed and its index is unalignable to the frame index.
 
         See Also
         --------
@@ -323,7 +323,7 @@ class IndexingMixin:
                     max_speed  shield
         sidewinder          7       8
 
-        Alignable boolean series:
+        Alignable boolean Series:
 
         >>> df.loc[pd.Series([False, True, False],
         ...        index=['viper', 'sidewinder', 'cobra'])]
