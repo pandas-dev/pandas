@@ -769,17 +769,13 @@ class SeriesGroupBy(GroupBy[Series]):
         nbin = len(levels[-1])
         ncat = len(codes[0])
         fout = np.zeros((ncat * nbin), dtype=float if normalize else np.int64)
-        """
+        id = 0
         change_ids = np.r_[  # need to update now that we removed full repeats
             ids[1:] != ids[:-1], True
         ]
-        """
-        id = 0
-        ct_len = len(cts)
         for i, ct in enumerate(cts):  # fill in nonzero values of fout
             fout[id * nbin + val_lab[i]] = cts[i]
-            if i < ct_len - 1:  # avoid index error
-                id += ids[i] != ids[i + 1]
+            id += change_ids[i]
         ncodes = [np.repeat(code, nbin) for code in codes]
         ncodes.append(np.tile(range(nbin), len(codes[0])))
 
