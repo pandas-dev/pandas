@@ -48,11 +48,11 @@ class _XlrdReader(_BaseExcelReader):
 
     def get_sheet_data(self, sheet, convert_float):
         from xlrd import (
-            xldate,
+            XL_CELL_BOOLEAN,
             XL_CELL_DATE,
             XL_CELL_ERROR,
-            XL_CELL_BOOLEAN,
             XL_CELL_NUMBER,
+            xldate,
         )
 
         epoch1904 = self.book.datemode
