@@ -830,8 +830,9 @@ b  2""",
     def apply(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
 
         if maybe_use_numba(engine):
-            result = self._apply_with_numba(func, func, *args, engine_kwargs=engine_kwargs, **kwargs)
-            return self.obj._constructor(result)
+            return self._apply_with_numba(
+                func, func, *args, engine_kwargs=engine_kwargs, **kwargs
+            )
 
         func = self._is_builtin_func(func)
 
@@ -891,11 +892,18 @@ b  2""",
             # Return an already compiled version of roll_apply if available
             apply_func = NUMBA_FUNC_CACHE[cache_key]
         else:
-            apply_func = numba_.generate_numba_apply_func(args, kwargs, func, engine_kwargs)
-        result = apply_func(sorted_data.to_numpy(), starts, ends, len(group_keys), len(data.columns))
+            apply_func = numba_.generate_numba_apply_func(
+                args, kwargs, func, engine_kwargs
+            )
+        result = apply_func(
+            sorted_data.to_numpy(), starts, ends, len(group_keys), len(data.columns)
+        )
 
-        return result
-
+        if self.grouper.nkeys > 1:
+            index = MultiIndex.from_tuples(group_keys, names=self.grouper.names)
+        else:
+            index = Index(group_keys, name=self.grouper.names[0])
+        return self.obj._constructor(result, index=index, columns=data.columns)
 
     def _python_apply_general(
         self, f: F, data: FrameOrSeriesUnion

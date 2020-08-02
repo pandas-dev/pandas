@@ -57,12 +57,16 @@ def generate_numba_apply_func(
 
     @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
     def roll_apply(
-        values: np.ndarray, begin: np.ndarray, end: np.ndarray, num_groups: int, num_columns: int
+        values: np.ndarray,
+        begin: np.ndarray,
+        end: np.ndarray,
+        num_groups: int,
+        num_columns: int,
     ) -> np.ndarray:
         result = np.empty((num_groups, num_columns))
         for i in loop_range(num_groups):
             for j in loop_range(num_columns):
-                result[i, j] = numba_func(values[begin[i]:end[i], j])
+                result[i, j] = numba_func(values[begin[i] : end[i], j])
         return result
 
     return roll_apply
