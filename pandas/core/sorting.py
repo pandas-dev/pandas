@@ -440,7 +440,9 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
     return result
 
 
-def get_flattened_iterator(comp_ids: np.ndarray, ngroups: int, levels, labels: List[np.ndarray]) -> Generator[Tuple]:
+def get_flattened_iterator(
+    comp_ids: np.ndarray, ngroups: int, levels, labels: List[np.ndarray]
+) -> Generator[Tuple, None, None]:
     """Map compressed group id -> key tuple."""
     comp_ids = comp_ids.astype(np.int64, copy=False)
     tables = []
@@ -449,8 +451,7 @@ def get_flattened_iterator(comp_ids: np.ndarray, ngroups: int, levels, labels: L
         table.map(comp_ids, labs.astype(np.int64, copy=False))
         tables.append(table)
     for i in range(ngroups):
-        for table, level in zip(tables, levels):
-            yield tuple(level[table.get_item(i)])
+        yield tuple(level[table.get_item(i)] for table, level in zip(tables, levels))
 
 
 def get_indexer_dict(label_list, keys):
