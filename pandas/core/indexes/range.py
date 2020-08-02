@@ -197,9 +197,6 @@ class RangeIndex(Int64Index):
         # we are formatting thru the attributes
         return None
 
-    def _format_with_header(self, header, na_rep="NaN") -> List[str]:
-        return header + [pprint_thing(x) for x in self._range]
-
     # --------------------------------------------------------------------
     _deprecation_message = (
         "RangeIndex.{} is deprecated and will be "
