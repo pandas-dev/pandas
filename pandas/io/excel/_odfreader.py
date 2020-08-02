@@ -191,9 +191,9 @@ class _ODFReader(_BaseExcelReader):
         Find and decode OpenDocument text:s tags that represent
         a run length encoded sequence of space characters.
         """
-        from odf.element import Text, Element
-        from odf.text import S, P
+        from odf.element import Element, Text
         from odf.namespaces import TEXTNS
+        from odf.text import P, S
 
         text_p = P().qname
         text_s = S().qname
