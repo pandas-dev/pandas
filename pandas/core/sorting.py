@@ -1,5 +1,5 @@
 """ miscellaneous sorting / groupby utilities """
-from typing import Callable, Optional
+from typing import Callable, Generator, Optional, List, Tuple
 
 import numpy as np
 
@@ -440,36 +440,17 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
     return result
 
 
-class _KeyMapper:
-    """
-    Map compressed group id -> key tuple.
-    """
-
-    def __init__(self, comp_ids, ngroups: int, levels, labels):
-        self.levels = levels
-        self.labels = labels
-        self.comp_ids = comp_ids.astype(np.int64)
-
-        self.k = len(labels)
-        self.tables = [hashtable.Int64HashTable(ngroups) for _ in range(self.k)]
-
-        self._populate_tables()
-
-    def _populate_tables(self):
-        for labs, table in zip(self.labels, self.tables):
-            table.map(self.comp_ids, labs.astype(np.int64))
-
-    def get_key(self, comp_id):
-        return tuple(
-            level[table.get_item(comp_id)]
-            for table, level in zip(self.tables, self.levels)
-        )
-
-
-def get_flattened_iterator(comp_ids, ngroups, levels, labels):
-    # provide "flattened" iterator for multi-group setting
-    mapper = _KeyMapper(comp_ids, ngroups, levels, labels)
-    return [mapper.get_key(i) for i in range(ngroups)]
+def get_flattened_iterator(comp_ids: np.ndarray, ngroups: int, levels, labels: List[np.ndarray]) -> Generator[Tuple]:
+    """Map compressed group id -> key tuple."""
+    comp_ids = comp_ids.astype(np.int64, copy=False)
+    tables = []
+    for labs, level in zip(labels, levels):
+        table = hashtable.Int64HashTable(ngroups)
+        table.map(comp_ids, labs.astype(np.int64, copy=False))
+        tables.append(table)
+    for i in range(ngroups):
+        for table, level in zip(tables, levels):
+            yield tuple(level[table.get_item(i)])
 
 
 def get_indexer_dict(label_list, keys):

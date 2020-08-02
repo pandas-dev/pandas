@@ -153,7 +153,7 @@ class BaseGrouper:
             comp_ids, _, ngroups = self.group_info
 
             # provide "flattened" iterator for multi-group setting
-            return get_flattened_iterator(comp_ids, ngroups, self.levels, self.codes)
+            return list(get_flattened_iterator(comp_ids, ngroups, self.levels, self.codes))
 
     def apply(self, f: F, data: FrameOrSeries, axis: int = 0):
         mutated = self.mutated
