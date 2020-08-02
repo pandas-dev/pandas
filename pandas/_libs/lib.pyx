@@ -1698,6 +1698,20 @@ cpdef bint is_string_array(ndarray values, bint skipna=False):
     return validator.validate(values)
 
 
+cpdef ndarray ensure_string_array(ndarray values, object na_value):
+    cdef:
+        Py_ssize_t i = 0, n = len(values)
+
+    for i in range(n):
+        val = values[i]
+        if not checknull(val):
+            values[i] = str(val)
+        else:
+            values[i] = na_value
+
+    return values
+
+
 cdef class BytesValidator(Validator):
     cdef inline bint is_value_typed(self, object value) except -1:
         return isinstance(value, bytes)
