@@ -39,6 +39,7 @@ from pandas._libs.tslibs.parsing import parse_datetime_string
 from pandas._libs.tslibs.conversion cimport (
     _TSObject,
     cast_from_unit,
+    precision_from_unit,
     convert_datetime_to_tsobject,
     get_datetime64_nanos,
 )
@@ -205,6 +206,7 @@ def array_with_unit_to_datetime(
     cdef:
         Py_ssize_t i, j, n=len(values)
         int64_t m
+        int prec = 0
         ndarray[float64_t] fvalues
         bint is_ignore = errors=='ignore'
         bint is_coerce = errors=='coerce'
@@ -224,10 +226,9 @@ def array_with_unit_to_datetime(
             result, tz = array_to_datetime(values.astype(object), errors=errors)
         return result, tz
 
-    m = cast_from_unit(None, unit)
+    m, p = precision_from_unit(unit)
 
     if is_raise:
-
         # try a quick conversion to i8/f8
         # if we have nulls that are not type-compat
         # then need to iterate
@@ -237,25 +238,32 @@ def array_with_unit_to_datetime(
             # fill missing values by comparing to np.nan
             mask = iresult == np.nan
             iresult[mask] = 0
-            fvalues = iresult.astype("f8") * m
+            fvalues = iresult.astype("f8")
             need_to_iterate = False
         elif values.dtype.kind == "f":
             fresult = values.astype("f8", copy=False)
             # fill missing values by comparing to np.nan
             mask = fresult == np.nan
             fresult[mask] = 0
-            fvalues = fresult * (<float64_t>m)
+            fvalues = fresult
             need_to_iterate = False
 
-        # check the bounds
         if not need_to_iterate:
-
+            # check the bounds
             if ((fvalues < Timestamp.min.value).any()
                     or (fvalues > Timestamp.max.value).any()):
                 raise OutOfBoundsDatetime(f"cannot convert input with unit '{unit}'")
-            result = fvalues.astype('M8[ns]')
-            iresult = result.view('i8')
-            iresult[mask] = np.nan
+
+            if values.dtype.kind == 'i':
+                result = iresult * m
+
+            elif values.dtype.kind == 'f':
+                base = fresult.view("i8")
+                frac = fresult - base
+                if prec:
+                    frac = round(frac, prec)
+                result = (base*m).astype("i8") + (frac*m).astype("i8")
+
             return result, tz
 
     result = np.empty(n, dtype='M8[ns]')
