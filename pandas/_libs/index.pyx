@@ -1,6 +1,7 @@
 import warnings
 
 import numpy as np
+
 cimport numpy as cnp
 from numpy cimport (
     float32_t,
@@ -16,17 +17,16 @@ from numpy cimport (
     uint32_t,
     uint64_t,
 )
+
 cnp.import_array()
 
 
 from pandas._libs cimport util
-
+from pandas._libs.hashtable cimport HashTable
 from pandas._libs.tslibs.nattype cimport c_NaT as NaT
 from pandas._libs.tslibs.period cimport is_period_object
-from pandas._libs.tslibs.timestamps cimport _Timestamp
 from pandas._libs.tslibs.timedeltas cimport _Timedelta
-
-from pandas._libs.hashtable cimport HashTable
+from pandas._libs.tslibs.timestamps cimport _Timestamp
 
 from pandas._libs import algos, hashtable as _hash
 from pandas._libs.missing import checknull
