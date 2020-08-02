@@ -44,6 +44,10 @@ Bug fixes
 
 -
 
+**Groupby/resample/rolling**
+
+- Bug in :class:`pandas.core.groupby.RollingGroupby` where ``__getitem__`` would not select the specified column (:issue:`35486`)
+
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_111.contributors:
