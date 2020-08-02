@@ -21,6 +21,7 @@ class TestDatetimeIndex(DatetimeLike):
         return date_range("20130101", periods=5)
 
     def test_format(self):
+        # GH35439
         idx = self.create_index()
         expected = [f"{x:%Y-%m-%d}" for x in idx]
         assert idx.format() == expected
