@@ -1010,7 +1010,7 @@ def test_apply_with_timezones_aware():
 
 
 def test_apply_by_cols_equals_apply_by_rows_transposed():
-    # GH 16646
+    # GH #16646
     # Operating on the columns, or transposing and operating on the rows
     # should give the same result. There was previously a bug where the
     # by_rows operation would work fine, but by_cols would throw a ValueError
