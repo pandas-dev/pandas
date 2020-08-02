@@ -403,18 +403,20 @@ column name provided).
 From a list of namedtuples
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The first namedtuple will be used to determine the columns of the DataFrame.
-This means that further (named)tuples are simply unpacked. If additional
-tuples are shorter, the later columns are marked as missing data, while
-longer tuples cause a ``ValueError``.
+The field names of the first ``namedtuple`` in the list determine the columns
+of the ``DataFrame``. The remaining namedtuples (or tuples) are simply unpacked
+and their values are fed into the rows of the ``DataFrame``. If any of those
+tuples is shorter than the first ``namedtuple`` then the later columns in the
+corresponding row are marked as missing values. If any are longer than the
+first ``namedtuple``, a ``ValueError`` is raised.
 
 .. ipython:: python
 
     from collections import namedtuple
-    
+
     Point = namedtuple('Point', 'x y')
 
-    pd.DataFrame([Point(0, 0), Point(0, 3), Point(2, 3)])
+    pd.DataFrame([Point(0, 0), Point(0, 3), (2, 3)])
 
     Point3D = namedtuple('Point3D', 'x y z')
 
