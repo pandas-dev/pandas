@@ -1,5 +1,5 @@
 """ miscellaneous sorting / groupby utilities """
-from typing import Callable, Generator, List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple
 
 import numpy as np
 
@@ -440,9 +440,9 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
     return result
 
 
-def get_flattened_iterator(
+def get_flattened_list(
     comp_ids: np.ndarray, ngroups: int, levels, labels: List[np.ndarray]
-) -> Generator[Tuple, None, None]:
+) -> List[Tuple]:
     """Map compressed group id -> key tuple."""
     comp_ids = comp_ids.astype(np.int64, copy=False)
     tables = []
@@ -450,8 +450,10 @@ def get_flattened_iterator(
         table = hashtable.Int64HashTable(ngroups)
         table.map(comp_ids, labs.astype(np.int64, copy=False))
         tables.append(table)
-    for i in range(ngroups):
-        yield tuple(level[table.get_item(i)] for table, level in zip(tables, levels))
+    return [
+        tuple(level[table.get_item(i)] for table, level in zip(tables, levels))
+        for i in range(ngroups)
+    ]
 
 
 def get_indexer_dict(label_list, keys):
