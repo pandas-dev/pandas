@@ -255,7 +255,7 @@ def array_with_unit_to_datetime(
                 raise OutOfBoundsDatetime(f"cannot convert input with unit '{unit}'")
 
             if values.dtype.kind == 'i':
-                result = iresult * m
+                result = (iresult * m)
 
             elif values.dtype.kind == 'f':
                 base = fresult.astype("i8")
@@ -263,8 +263,11 @@ def array_with_unit_to_datetime(
                 if prec:
                     frac = round(frac, prec)
                 result = (base*m).astype("i8") + (frac*m).astype("i8")
-
+            
             result = result.astype('M8[ns]')
+
+            iresult = result.view('i8')
+            iresult[mask] = NPY_NAT
             return result, tz
 
     result = np.empty(n, dtype='M8[ns]')
