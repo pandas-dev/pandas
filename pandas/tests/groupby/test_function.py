@@ -994,7 +994,7 @@ def test_frame_describe_unstacked_format():
 
 @pytest.mark.parametrize("as_index", [True, False])
 def test_describe_with_duplicate_output_column_names(as_index):
-    # GH #35314
+    # GH 35314
     df = pd.DataFrame(
         {
             "a": [99, 99, 99, 88, 88, 88],
