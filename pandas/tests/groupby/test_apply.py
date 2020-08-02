@@ -1017,7 +1017,7 @@ def test_apply_with_timezones_aware():
 
 
 def test_apply_with_date_in_multiindex_does_not_convert_to_timestamp():
-    # GH #29617
+    # GH 29617
 
     df = pd.DataFrame(
         {
