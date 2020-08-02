@@ -1,5 +1,5 @@
 """ miscellaneous sorting / groupby utilities """
-from typing import Callable, Generator, Optional, List, Tuple
+from typing import Callable, Generator, List, Optional, Tuple
 
 import numpy as np
 
