@@ -235,15 +235,15 @@ def array_with_unit_to_datetime(
 
         if values.dtype.kind == "i":
             iresult = values.astype("i8", copy=False)
-            # fill missing values by comparing to np.nan
-            mask = iresult == np.nan
+            # fill missing values by comparing to NPY_NAT
+            mask = iresult == NPY_NAT
             iresult[mask] = 0
             fvalues = iresult.astype("f8")
             need_to_iterate = False
         elif values.dtype.kind == "f":
             fresult = values.astype("f8", copy=False)
             # fill missing values by comparing to np.nan
-            mask = fresult == np.nan
+            mask = np.isnan(fresult)
             fresult[mask] = 0
             fvalues = fresult
             need_to_iterate = False
@@ -258,12 +258,13 @@ def array_with_unit_to_datetime(
                 result = iresult * m
 
             elif values.dtype.kind == 'f':
-                base = fresult.view("i8")
+                base = fresult.astype("i8")
                 frac = fresult - base
                 if prec:
                     frac = round(frac, prec)
                 result = (base*m).astype("i8") + (frac*m).astype("i8")
 
+            result = result.astype('M8[ns]')
             return result, tz
 
     result = np.empty(n, dtype='M8[ns]')
