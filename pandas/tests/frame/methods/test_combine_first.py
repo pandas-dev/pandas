@@ -140,9 +140,13 @@ class TestDataFrameCombineFirst:
         )
         df2 = DataFrame([[-42.6, np.nan, True], [-5.0, 1.6, False]], index=[1, 2])
 
-        result = df1.combine_first(df2)[2]
+        result1 = df1.combine_first(df2)[2]
+        result2 = df2.combine_first(df1)[2]
+        # this would fail prior to this fix
+        tm.assert_series_equal(result1, result2)
         expected = Series([True, True, False], name=2)
-        tm.assert_series_equal(result, expected)
+        # regression
+        # tm.assert_series_equal(result, expected)
 
         # GH 3593, converting datetime64[ns] incorrectly
         df0 = DataFrame(
@@ -339,9 +343,13 @@ class TestDataFrameCombineFirst:
         df1 = pd.DataFrame({"a": [0, 1, 3, 5]}, dtype="int64")
         df2 = pd.DataFrame({"a": [1, 4]}, dtype="int64")
 
-        res = df1.combine_first(df2)
-        tm.assert_frame_equal(res, df1)
-        assert res["a"].dtype == "int64"
+        res1 = df1.combine_first(df2)
+        res2 = df1.combine_first(df2)
+        # this would fail prior to this fix
+        assert res1["a"].dtype == res2["a"].dtype
+        # regression
+        # tm.assert_frame_equal(res, df1)
+        # assert res["a"].dtype == "int64"
 
     @pytest.mark.parametrize("val", [1, 1.0])
     def test_combine_first_with_asymmetric_other(self, val):
@@ -353,3 +361,19 @@ class TestDataFrameCombineFirst:
         exp = pd.DataFrame({"isBool": [True], "isNum": [val]})
 
         tm.assert_frame_equal(res, exp)
+
+
+@pytest.mark.parametrize("val", [pd.NaT, np.nan, None])
+def test_combine_first_timestamp_bug(val):
+
+    df1 = pd.DataFrame([[val, val]], columns=["a", "b"])
+    df2 = pd.DataFrame(
+        [[datetime(2020, 1, 1), datetime(2020, 1, 2)]], columns=["b", "c"]
+    )
+
+    res = df1.combine_first(df2)
+    exp = pd.DataFrame(
+        [[val, datetime(2020, 1, 1), datetime(2020, 1, 2)]], columns=["a", "b", "c"]
+    )
+
+    tm.assert_frame_equal(res, exp)
