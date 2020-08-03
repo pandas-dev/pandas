@@ -1032,7 +1032,7 @@ def test_apply_is_unchanged_when_other_methods_are_called_first(reduction_func):
         index=pd.Index([88, 99], name="a"),
     )
 
-    # Check output wehn no other methods are called before .apply()
+    # Check output when no other methods are called before .apply()
     grp = df.groupby(by="a")
     result = grp.apply(sum)
     tm.assert_frame_equal(result, expected)
