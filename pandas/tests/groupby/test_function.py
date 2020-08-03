@@ -992,6 +992,9 @@ def test_frame_describe_unstacked_format():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:indexing past lexsort depth may impact performance:pandas.errors.PerformanceWarning"
+)
 @pytest.mark.parametrize("as_index", [True, False])
 def test_describe_with_duplicate_output_column_names(as_index):
     # GH 35314
@@ -1045,11 +1048,6 @@ def test_describe_with_duplicate_output_column_names(as_index):
         expected = expected.reset_index(drop=True)
 
     result = df.groupby("a", as_index=as_index).describe()
-
-    tm.assert_index_equal(result.columns, expected.columns)
-
-    result.columns = pd.RangeIndex(result.shape[1])
-    expected.columns = pd.RangeIndex(expected.shape[1])
 
     tm.assert_frame_equal(result, expected)
 
