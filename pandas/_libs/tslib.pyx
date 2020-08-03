@@ -242,8 +242,8 @@ def array_with_unit_to_datetime(
             need_to_iterate = False
         elif values.dtype.kind == "f":
             fresult = values.astype("f8", copy=False)
-            # fill missing values by comparing to np.nan
-            mask = np.isnan(fresult)
+            # fill missing values by comparing to NPY_NAT
+            mask = fresult == NPY_NAT
             fresult[mask] = 0
             fvalues = fresult
             need_to_iterate = False
@@ -255,19 +255,17 @@ def array_with_unit_to_datetime(
                 raise OutOfBoundsDatetime(f"cannot convert input with unit '{unit}'")
 
             if values.dtype.kind == 'i':
-                result = (iresult * m)
+                result = (iresult * m).astype('M8[ns]')
 
             elif values.dtype.kind == 'f':
-                base = fresult.astype("i8")
-                frac = fresult - base
+                result = fresult * m
                 if prec:
-                    frac = round(frac, prec)
-                result = (base*m).astype("i8") + (frac*m).astype("i8")
-            
-            result = result.astype('M8[ns]')
+                    result = round(result, prec)
+                result = result.astype("M8[ns]")
 
             iresult = result.view('i8')
             iresult[mask] = NPY_NAT
+
             return result, tz
 
     result = np.empty(n, dtype='M8[ns]')
