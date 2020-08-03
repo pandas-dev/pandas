@@ -155,7 +155,10 @@ def isnaobj_old(arr: ndarray) -> ndarray:
     result = np.zeros(n, dtype=np.uint8)
     for i in range(n):
         val = arr[i]
-        result[i] = checknull(val) or val == INF or val == NEGINF
+        result[i] = (
+            checknull(val)
+            or util.is_float_object(val) and (val == INF or val == NEGINF)
+        )
     return result.view(np.bool_)
 
 
