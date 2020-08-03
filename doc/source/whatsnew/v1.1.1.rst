@@ -15,7 +15,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 
-- Bug in :class:`pandas.core.groupby.RollingGroupby` where ``__getitem__`` would not select the specified column (:issue:`35486`)
+- Bug in :class:`pandas.core.groupby.RollingGroupby` where column selection was ignored (:issue:`35486`)
 -
 -
 
