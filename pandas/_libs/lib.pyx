@@ -1701,9 +1701,9 @@ cpdef bint is_string_array(ndarray values, bint skipna=False):
 cpdef ndarray ensure_string_array(
         values, object na_value=np.nan, bint convert_na_value=True, bint copy=True):
     """Returns a new numpy array with object dtype and only strings and na values.
-    
+
     Parameters
-    ---------
+    ----------
     values : array-like
         The values to be converted to str, if needed
     na_value : Any
@@ -1715,7 +1715,7 @@ cpdef ndarray ensure_string_array(
 
     Returns
     -------
-    ndarray    
+    ndarray
     """
     cdef:
         Py_ssize_t i = 0, n = len(values)

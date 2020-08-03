@@ -202,7 +202,8 @@ class StringArray(PandasArray):
 
         # convert non-na-likes to str, and nan-likes to StringDtype.na_value
         result = lib.ensure_string_array(
-            result, na_value=StringDtype.na_value, copy=copy)
+            result, na_value=StringDtype.na_value, copy=copy
+        )
 
         return cls(result)
 
