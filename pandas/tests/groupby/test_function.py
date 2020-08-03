@@ -993,7 +993,9 @@ def test_frame_describe_unstacked_format():
 
 
 @pytest.mark.filterwarnings(
-    "ignore:indexing past lexsort depth may impact performance:pandas.errors.PerformanceWarning"
+    "ignore:"
+    "indexing past lexsort depth may impact performance:"
+    "pandas.errors.PerformanceWarning"
 )
 @pytest.mark.parametrize("as_index", [True, False])
 def test_describe_with_duplicate_output_column_names(as_index):
