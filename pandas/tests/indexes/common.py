@@ -642,6 +642,12 @@ class Base:
             tm.assert_numpy_array_equal(index_a == item, expected3)
             tm.assert_series_equal(series_a == item, Series(expected3))
 
+    def test_format(self):
+        # GH35439
+        idx = self.create_index()
+        expected = [str(x) for x in idx]
+        assert idx.format() == expected
+
     def test_hasnans_isnans(self, index):
         # GH 11343, added tests for hasnans / isnans
         if isinstance(index, MultiIndex):
