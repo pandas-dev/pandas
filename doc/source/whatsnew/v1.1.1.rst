@@ -40,6 +40,10 @@ Bug fixes
 
 -
 
+**Groupby/resample/rolling**
+
+- Bug in :meth:`DataFrameGroupBy.apply` where a non-nuisance grouping column would be dropped from the output columns if another groupby method was called before ``.apply()`` (:issue:`34656`)
+
 **Indexing**
 
 -
