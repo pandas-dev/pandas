@@ -194,7 +194,7 @@ class StringArray(PandasArray):
             )
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy=True):
+    def _from_sequence(cls, scalars, dtype=None, copy=False):
         if dtype:
             assert dtype == "string"
 
