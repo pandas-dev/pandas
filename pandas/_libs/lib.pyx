@@ -1698,18 +1698,46 @@ cpdef bint is_string_array(ndarray values, bint skipna=False):
     return validator.validate(values)
 
 
-cpdef ndarray ensure_string_array(ndarray values, object na_value):
+cpdef ndarray ensure_string_array(
+        values, object na_value=np.nan, bint convert_na_value=True, bint copy=True):
+    """Returns a new numpy array with object dtype and only strings and na values.
+    
+    Parameters
+    ---------
+    values : array-like
+        The values to be converted to str, if needed
+    na_value : Any
+        The value to use for na. For example, np.nan or pd.NAN
+    convert_na_value : bool, default True
+        If False, existing na values will be used unchanged in the new array
+    copy : bool, default True
+        Whether to wnsure that a new array is returned
+
+    Returns
+    -------
+    ndarray    
+    """
     cdef:
         Py_ssize_t i = 0, n = len(values)
 
-    for i in range(n):
-        val = values[i]
-        if not checknull(val):
-            values[i] = str(val)
-        else:
-            values[i] = na_value
+    result = np.asarray(values, dtype="object")
+    if copy and result is values:
+        result = result.copy()
 
-    return values
+    if convert_na_value:
+        for i in range(n):
+            val = result[i]
+            if not checknull(val):
+                result[i] = str(val)
+            else:
+                result[i] = na_value
+    else:
+        for i in range(n):
+            val = result[i]
+            if not checknull(val):
+                result[i] = str(val)
+
+    return result
 
 
 cdef class BytesValidator(Validator):

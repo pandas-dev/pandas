@@ -199,11 +199,10 @@ class StringArray(PandasArray):
             assert dtype == "string"
 
         result = np.asarray(scalars, dtype="object")
-        if copy and result is scalars:
-            result = result.copy()
 
         # convert non-na-likes to str, and nan-likes to StringDtype.na_value
-        result = lib.ensure_string_array(result, StringDtype.na_value)
+        result = lib.ensure_string_array(
+            result, na_value=StringDtype.na_value, copy=copy)
 
         return cls(result)
 
