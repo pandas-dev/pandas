@@ -26,6 +26,13 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 
+
+Categorical
+^^^^^^^^^^^
+
+- Bug in :meth:`CategoricalIndex.format` where, when stringified scalars had different lengths, the shorter string would be right-filled with spaces, so it had the same length as the longest string (:issue:`35439`)
+
+
 **Datetimelike**
 
 -
