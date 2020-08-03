@@ -1705,13 +1705,13 @@ cpdef ndarray ensure_string_array(
     Parameters
     ----------
     values : array-like
-        The values to be converted to str, if needed
+        The values to be converted to str, if needed.
     na_value : Any
-        The value to use for na. For example, np.nan or pd.NAN
+        The value to use for na. For example, np.nan or pd.NA.
     convert_na_value : bool, default True
-        If False, existing na values will be used unchanged in the new array
+        If False, existing na values will be used unchanged in the new array.
     copy : bool, default True
-        Whether to wnsure that a new array is returned
+        Whether to ensure that a new array is returned.
 
     Returns
     -------
