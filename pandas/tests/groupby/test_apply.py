@@ -1017,8 +1017,8 @@ def test_apply_with_timezones_aware():
 
 
 def test_apply_is_unchanged_when_other_methods_are_called_first(reduction_func):
-    # GH #34656
-    # GH #34271
+    # GH 34656
+    # GH 34271
     df = DataFrame(
         {
             "a": [99, 99, 99, 88, 88, 88],
