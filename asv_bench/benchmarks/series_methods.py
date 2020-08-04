@@ -124,6 +124,27 @@ class Dropna:
         self.s.dropna()
 
 
+class ValuePosition:
+
+    params = ["first", "last", "all"]
+    param_names = ["keep"]
+
+    def setup(self, keep):
+        self.df = DataFrame(
+            {
+                "A": np.random.randint(0, 100, int(1e6)),
+                "B": np.random.randint(0, 100, int(1e6)),
+                "C": np.random.randint(0, 100, int(1e6)),
+            }
+        )
+
+    def time_idxmax(self, keep):
+        self.df.idxmin(keep=keep)
+
+    def time_idxmin(self, keep):
+        self.df.idxmax(keep=keep)
+
+
 class SearchSorted:
 
     goal_time = 0.2

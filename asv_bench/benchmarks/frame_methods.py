@@ -591,6 +591,27 @@ class NSort:
         self.df.nsmallest(100, ["A", "B"], keep=keep)
 
 
+class ValuePosition:
+
+    params = ["first", "last", "all"]
+    param_names = ["keep"]
+
+    def setup(self, keep):
+        self.s = Series(np.random.randint(1, 10, 100000))
+
+    def time_idxmax(self, keep):
+        self.s.idxmin(keep=keep)
+
+    def time_idxmin(self, keep):
+        self.s.idxmax(keep=keep)
+
+    def time_argmax(self, keep):
+        self.s.argmin(keep=keep)
+
+    def time_argmin(self, keep):
+        self.s.argmax(keep=keep)
+
+
 class Describe:
     def setup(self):
         self.df = DataFrame(
