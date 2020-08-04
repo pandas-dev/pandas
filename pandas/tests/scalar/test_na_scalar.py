@@ -1,3 +1,5 @@
+import pickle
+
 import numpy as np
 import pytest
 
@@ -20,11 +22,24 @@ def test_repr():
     assert str(NA) == "<NA>"
 
 
+def test_format():
+    # GH-34740
+    assert format(NA) == "<NA>"
+    assert format(NA, ">10") == "      <NA>"
+    assert format(NA, "xxx") == "<NA>"  # NA is flexible, accept any format spec
+
+    assert "{}".format(NA) == "<NA>"
+    assert "{:>10}".format(NA) == "      <NA>"
+    assert "{:xxx}".format(NA) == "<NA>"
+
+
 def test_truthiness():
-    with pytest.raises(TypeError):
+    msg = "boolean value of NA is ambiguous"
+
+    with pytest.raises(TypeError, match=msg):
         bool(NA)
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=msg):
         not NA
 
 
@@ -143,7 +158,8 @@ def test_logical_and():
     assert False & NA is False
     assert NA & NA is NA
 
-    with pytest.raises(TypeError):
+    msg = "unsupported operand type"
+    with pytest.raises(TypeError, match=msg):
         NA & 5
 
 
@@ -155,7 +171,8 @@ def test_logical_or():
     assert False | NA is NA
     assert NA | NA is NA
 
-    with pytest.raises(TypeError):
+    msg = "unsupported operand type"
+    with pytest.raises(TypeError, match=msg):
         NA | 5
 
 
@@ -167,7 +184,8 @@ def test_logical_xor():
     assert False ^ NA is NA
     assert NA ^ NA is NA
 
-    with pytest.raises(TypeError):
+    msg = "unsupported operand type"
+    with pytest.raises(TypeError, match=msg):
         NA ^ 5
 
 
@@ -214,7 +232,8 @@ def test_ufunc():
 
 
 def test_ufunc_raises():
-    with pytest.raises(ValueError, match="ufunc method 'at'"):
+    msg = "ufunc method 'at'"
+    with pytest.raises(ValueError, match=msg):
         np.log.at(pd.NA, 0)
 
 
@@ -267,3 +286,26 @@ def test_integer_hash_collision_set():
     assert len(result) == 2
     assert NA in result
     assert hash(NA) in result
+
+
+def test_pickle_roundtrip():
+    # https://github.com/pandas-dev/pandas/issues/31847
+    result = pickle.loads(pickle.dumps(pd.NA))
+    assert result is pd.NA
+
+
+def test_pickle_roundtrip_pandas():
+    result = tm.round_trip_pickle(pd.NA)
+    assert result is pd.NA
+
+
+@pytest.mark.parametrize(
+    "values, dtype", [([1, 2, pd.NA], "Int64"), (["A", "B", pd.NA], "string")]
+)
+@pytest.mark.parametrize("as_frame", [True, False])
+def test_pickle_roundtrip_containers(as_frame, values, dtype):
+    s = pd.Series(pd.array(values, dtype=dtype))
+    if as_frame:
+        s = s.to_frame(name="A")
+    result = tm.round_trip_pickle(s)
+    tm.assert_equal(result, s)

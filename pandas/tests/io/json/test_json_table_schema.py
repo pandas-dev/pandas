@@ -1,6 +1,7 @@
 """Tests for Table Schema integration."""
 from collections import OrderedDict
 import json
+import sys
 
 import numpy as np
 import pytest
@@ -100,22 +101,24 @@ class TestBuildSchema:
 
 
 class TestTableSchemaType:
-    @pytest.mark.parametrize("int_type", [np.int, np.int16, np.int32, np.int64])
+    @pytest.mark.parametrize("int_type", [int, np.int16, np.int32, np.int64])
     def test_as_json_table_type_int_data(self, int_type):
         int_data = [1, 2, 3]
-        assert as_json_table_type(np.array(int_data, dtype=int_type)) == "integer"
+        assert as_json_table_type(np.array(int_data, dtype=int_type).dtype) == "integer"
 
-    @pytest.mark.parametrize(
-        "float_type", [np.float, np.float16, np.float32, np.float64]
-    )
+    @pytest.mark.parametrize("float_type", [float, np.float16, np.float32, np.float64])
     def test_as_json_table_type_float_data(self, float_type):
         float_data = [1.0, 2.0, 3.0]
-        assert as_json_table_type(np.array(float_data, dtype=float_type)) == "number"
+        assert (
+            as_json_table_type(np.array(float_data, dtype=float_type).dtype) == "number"
+        )
 
-    @pytest.mark.parametrize("bool_type", [bool, np.bool])
+    @pytest.mark.parametrize("bool_type", [bool, np.bool_])
     def test_as_json_table_type_bool_data(self, bool_type):
         bool_data = [True, False]
-        assert as_json_table_type(np.array(bool_data, dtype=bool_type)) == "boolean"
+        assert (
+            as_json_table_type(np.array(bool_data, dtype=bool_type).dtype) == "boolean"
+        )
 
     @pytest.mark.parametrize(
         "date_data",
@@ -128,11 +131,11 @@ class TestTableSchemaType:
         ],
     )
     def test_as_json_table_type_date_data(self, date_data):
-        assert as_json_table_type(date_data) == "datetime"
+        assert as_json_table_type(date_data.dtype) == "datetime"
 
     @pytest.mark.parametrize("str_data", [pd.Series(["a", "b"]), pd.Index(["a", "b"])])
     def test_as_json_table_type_string_data(self, str_data):
-        assert as_json_table_type(str_data) == "string"
+        assert as_json_table_type(str_data.dtype) == "string"
 
     @pytest.mark.parametrize(
         "cat_data",
@@ -145,22 +148,20 @@ class TestTableSchemaType:
         ],
     )
     def test_as_json_table_type_categorical_data(self, cat_data):
-        assert as_json_table_type(cat_data) == "any"
+        assert as_json_table_type(cat_data.dtype) == "any"
 
     # ------
     # dtypes
     # ------
-    @pytest.mark.parametrize("int_dtype", [np.int, np.int16, np.int32, np.int64])
+    @pytest.mark.parametrize("int_dtype", [int, np.int16, np.int32, np.int64])
     def test_as_json_table_type_int_dtypes(self, int_dtype):
         assert as_json_table_type(int_dtype) == "integer"
 
-    @pytest.mark.parametrize(
-        "float_dtype", [np.float, np.float16, np.float32, np.float64]
-    )
+    @pytest.mark.parametrize("float_dtype", [float, np.float16, np.float32, np.float64])
     def test_as_json_table_type_float_dtypes(self, float_dtype):
         assert as_json_table_type(float_dtype) == "number"
 
-    @pytest.mark.parametrize("bool_dtype", [bool, np.bool])
+    @pytest.mark.parametrize("bool_dtype", [bool, np.bool_])
     def test_as_json_table_type_bool_dtypes(self, bool_dtype):
         assert as_json_table_type(bool_dtype) == "boolean"
 
@@ -189,7 +190,7 @@ class TestTableSchemaType:
         # TODO: I think before is_categorical_dtype(Categorical)
         # returned True, but now it's False. Figure out why or
         # if it matters
-        assert as_json_table_type(pd.Categorical(["a"])) == "any"
+        assert as_json_table_type(pd.Categorical(["a"]).dtype) == "any"
         assert as_json_table_type(CategoricalDtype()) == "any"
 
 
@@ -236,6 +237,24 @@ class TestTableOrient:
         )
 
         assert result == expected
+
+    def test_read_json_from_to_json_results(self):
+        # GH32383
+        df = pd.DataFrame(
+            {
+                "_id": {"row_0": 0},
+                "category": {"row_0": "Goods"},
+                "recommender_id": {"row_0": 3},
+                "recommender_name_jp": {"row_0": "浦田"},
+                "recommender_name_en": {"row_0": "Urata"},
+                "name_jp": {"row_0": "博多人形（松尾吉将まつお よしまさ）"},
+                "name_en": {"row_0": "Hakata Dolls Matsuo"},
+            }
+        )
+        result1 = pd.read_json(df.to_json())
+        result2 = pd.DataFrame.from_dict(json.loads(df.to_json()))
+        tm.assert_frame_equal(result1, df)
+        tm.assert_frame_equal(result2, df)
 
     def test_to_json(self):
         df = self.df.copy()
@@ -603,8 +622,7 @@ class TestTableOrient:
         result = df.to_json(orient="table")
         js = json.loads(result)
         assert js["schema"]["fields"][1]["name"] == "2016-01-01T00:00:00.000Z"
-        # TODO - below expectation is not correct; see GH 28256
-        assert js["schema"]["fields"][2]["name"] == 10000
+        assert js["schema"]["fields"][2]["name"] == "P0DT0H0M10S"
 
     @pytest.mark.parametrize(
         "case",
@@ -654,6 +672,7 @@ class TestTableOrientReader:
             {"bools": [True, False, False, True]},
         ],
     )
+    @pytest.mark.skipif(sys.version_info[:3] == (3, 7, 0), reason="GH-35309")
     def test_read_json_table_orient(self, index_nm, vals, recwarn):
         df = DataFrame(vals, index=pd.Index(range(4), name=index_nm))
         out = df.to_json(orient="table")

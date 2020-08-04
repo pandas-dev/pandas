@@ -20,11 +20,10 @@ del hard_dependencies, dependency, missing_dependencies
 
 # numpy compat
 from pandas.compat.numpy import (
-    _np_version_under1p14,
-    _np_version_under1p15,
     _np_version_under1p16,
     _np_version_under1p17,
     _np_version_under1p18,
+    _is_numpy_dev,
 )
 
 try:
@@ -36,7 +35,7 @@ except ImportError as e:  # pragma: no cover
         f"C extension: {module} not built. If you want to import "
         "pandas from the source directory, you may need to run "
         "'python setup.py build_ext --inplace --force' to build the C extensions first."
-    )
+    ) from e
 
 from pandas._config import (
     get_option,
@@ -289,8 +288,8 @@ else:
 
             try:
                 return getattr(self.np, item)
-            except AttributeError:
-                raise AttributeError(f"module numpy has no attribute {item}")
+            except AttributeError as err:
+                raise AttributeError(f"module numpy has no attribute {item}") from err
 
     np = __numpy()
 
@@ -305,8 +304,10 @@ else:
 
             try:
                 return getattr(cls.datetime, item)
-            except AttributeError:
-                raise AttributeError(f"module datetime has no attribute {item}")
+            except AttributeError as err:
+                raise AttributeError(
+                    f"module datetime has no attribute {item}"
+                ) from err
 
         def __instancecheck__(cls, other):
             return isinstance(other, cls.datetime)

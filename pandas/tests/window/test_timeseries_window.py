@@ -7,6 +7,7 @@ from pandas import (
     MultiIndex,
     Series,
     Timestamp,
+    compat,
     date_range,
     to_datetime,
 )
@@ -55,28 +56,35 @@ class TestRollingTS:
         df = self.regular
 
         # not a valid freq
-        with pytest.raises(ValueError):
+        msg = "passed window foobar is not compatible with a datetimelike index"
+        with pytest.raises(ValueError, match=msg):
             df.rolling(window="foobar")
-
         # not a datetimelike index
-        with pytest.raises(ValueError):
+        msg = "window must be an integer"
+        with pytest.raises(ValueError, match=msg):
             df.reset_index().rolling(window="foobar")
 
         # non-fixed freqs
+        msg = "\\<2 \\* MonthBegins\\> is a non-fixed frequency"
         for freq in ["2MS", offsets.MonthBegin(2)]:
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match=msg):
                 df.rolling(window=freq)
 
         for freq in ["1D", offsets.Day(2), "2ms"]:
             df.rolling(window=freq)
 
         # non-integer min_periods
+        msg = (
+            r"local variable 'minp' referenced before assignment|"
+            "min_periods must be an integer"
+        )
         for minp in [1.0, "foo", np.array([1, 2, 3])]:
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match=msg):
                 df.rolling(window="1D", min_periods=minp)
 
         # center is not implemented
-        with pytest.raises(NotImplementedError):
+        msg = "center is not implemented for datetimelike and offset based windows"
+        with pytest.raises(NotImplementedError, match=msg):
             df.rolling(window="1D", center=True)
 
     def test_on(self):
@@ -84,7 +92,11 @@ class TestRollingTS:
         df = self.regular
 
         # not a valid column
-        with pytest.raises(ValueError):
+        msg = (
+            r"invalid on specified as foobar, must be a column "
+            "\\(of DataFrame\\), an Index or None"
+        )
+        with pytest.raises(ValueError, match=msg):
             df.rolling(window="2s", on="foobar")
 
         # column is valid
@@ -93,7 +105,8 @@ class TestRollingTS:
         df.rolling(window="2d", on="C").sum()
 
         # invalid columns
-        with pytest.raises(ValueError):
+        msg = "window must be an integer"
+        with pytest.raises(ValueError, match=msg):
             df.rolling(window="2d", on="B")
 
         # ok even though on non-selected
@@ -125,11 +138,17 @@ class TestRollingTS:
 
         assert not df.index.is_monotonic
 
-        with pytest.raises(ValueError):
+        msg = "index must be monotonic"
+        with pytest.raises(ValueError, match=msg):
             df.rolling("2s").sum()
 
         df = df.reset_index()
-        with pytest.raises(ValueError):
+
+        msg = (
+            r"invalid on specified as A, must be a column "
+            "\\(of DataFrame\\), an Index or None"
+        )
+        with pytest.raises(ValueError, match=msg):
             df.rolling("2s", on="A").sum()
 
     def test_frame_on(self):
@@ -254,7 +273,8 @@ class TestRollingTS:
         )
 
         # closed must be 'right', 'left', 'both', 'neither'
-        with pytest.raises(ValueError):
+        msg = "closed must be 'right', 'left', 'both' or 'neither'"
+        with pytest.raises(ValueError, match=msg):
             self.regular.rolling(window="2s", closed="blabla")
 
         expected = df.copy()
@@ -637,6 +657,7 @@ class TestRollingTS:
 
             tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(not compat.IS64, reason="GH-35294")
     def test_groupby_monotonic(self):
 
         # GH 15130
@@ -666,6 +687,7 @@ class TestRollingTS:
         result = df.groupby("name").rolling("180D", on="date")["amount"].sum()
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(not compat.IS64, reason="GH-35294")
     def test_non_monotonic(self):
         # GH 13966 (similar to #15130, closed by #15175)
 
@@ -709,20 +731,25 @@ class TestRollingTS:
         tm.assert_series_equal(result, expected2)
 
     def test_rolling_on_decreasing_index(self):
-        # GH-19248
+        # GH-19248, GH-32385
         index = [
-            Timestamp("20190101 09:00:00"),
-            Timestamp("20190101 09:00:02"),
-            Timestamp("20190101 09:00:03"),
-            Timestamp("20190101 09:00:05"),
-            Timestamp("20190101 09:00:06"),
+            Timestamp("20190101 09:00:30"),
+            Timestamp("20190101 09:00:27"),
+            Timestamp("20190101 09:00:20"),
+            Timestamp("20190101 09:00:18"),
+            Timestamp("20190101 09:00:10"),
         ]
 
-        df = DataFrame({"column": [3, 4, 4, 2, 1]}, index=reversed(index))
-        result = df.rolling("2s").min()
-        expected = DataFrame(
-            {"column": [3.0, 3.0, 3.0, 2.0, 1.0]}, index=reversed(index)
-        )
+        df = DataFrame({"column": [3, 4, 4, 5, 6]}, index=index)
+        result = df.rolling("5s").min()
+        expected = DataFrame({"column": [3.0, 3.0, 4.0, 4.0, 6.0]}, index=index)
+        tm.assert_frame_equal(result, expected)
+
+    def test_rolling_on_empty(self):
+        # GH-32385
+        df = DataFrame({"column": []}, index=[])
+        result = df.rolling("5s").min()
+        expected = DataFrame({"column": []}, index=[])
         tm.assert_frame_equal(result, expected)
 
     def test_rolling_on_multi_index_level(self):

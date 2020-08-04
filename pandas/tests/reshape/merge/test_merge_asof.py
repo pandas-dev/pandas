@@ -35,7 +35,6 @@ class TestAsOfMerge:
 
     def test_examples1(self):
         """ doc-string examples """
-
         left = pd.DataFrame({"a": [1, 5, 10], "left_val": ["a", "b", "c"]})
         right = pd.DataFrame({"a": [1, 2, 3, 6, 7], "right_val": [1, 2, 3, 6, 7]})
 
@@ -48,7 +47,6 @@ class TestAsOfMerge:
 
     def test_examples2(self):
         """ doc-string examples """
-
         trades = pd.DataFrame(
             {
                 "time": pd.to_datetime(
@@ -1198,7 +1196,7 @@ class TestAsOfMerge:
     @pytest.mark.parametrize("side", ["left", "right"])
     def test_merge_on_nans(self, func, side):
         # GH 23189
-        msg = "Merge keys contain null values on {} side".format(side)
+        msg = f"Merge keys contain null values on {side} side"
         nulls = func([1.0, 5.0, np.nan])
         non_nulls = func([1.0, 5.0, 10.0])
         df_null = pd.DataFrame({"a": nulls, "left_val": ["a", "b", "c"]})

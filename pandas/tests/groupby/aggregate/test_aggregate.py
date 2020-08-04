@@ -2,15 +2,32 @@
 test .agg behavior / note that .apply is tested generally in test_groupby.py
 """
 import functools
+from functools import partial
 
 import numpy as np
 import pytest
+
+from pandas.errors import PerformanceWarning
+
+from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, concat
 import pandas._testing as tm
 from pandas.core.base import SpecificationError
 from pandas.core.groupby.grouper import Grouping
+
+
+def test_groupby_agg_no_extra_calls():
+    # GH#31760
+    df = pd.DataFrame({"key": ["a", "b", "c", "c"], "value": [1, 2, 3, 4]})
+    gb = df.groupby("key")["value"]
+
+    def dummy_func(x):
+        assert len(x) != 0
+        return x.sum()
+
+    gb.agg(dummy_func)
 
 
 def test_agg_regression1(tsframe):
@@ -218,7 +235,7 @@ def test_wrap_agg_out(three_group):
     grouped = three_group.groupby(["A", "B"])
 
     def func(ser):
-        if ser.dtype == np.object:
+        if ser.dtype == object:
             raise TypeError
         else:
             return ser.sum()
@@ -236,6 +253,61 @@ def test_agg_multiple_functions_maintain_order(df):
     exp_cols = Index(["mean", "max", "min"])
 
     tm.assert_index_equal(result.columns, exp_cols)
+
+
+def test_agg_multiple_functions_same_name():
+    # GH 30880
+    df = pd.DataFrame(
+        np.random.randn(1000, 3),
+        index=pd.date_range("1/1/2012", freq="S", periods=1000),
+        columns=["A", "B", "C"],
+    )
+    result = df.resample("3T").agg(
+        {"A": [partial(np.quantile, q=0.9999), partial(np.quantile, q=0.1111)]}
+    )
+    expected_index = pd.date_range("1/1/2012", freq="3T", periods=6)
+    expected_columns = MultiIndex.from_tuples([("A", "quantile"), ("A", "quantile")])
+    expected_values = np.array(
+        [df.resample("3T").A.quantile(q=q).values for q in [0.9999, 0.1111]]
+    ).T
+    expected = pd.DataFrame(
+        expected_values, columns=expected_columns, index=expected_index
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_multiple_functions_same_name_with_ohlc_present():
+    # GH 30880
+    # ohlc expands dimensions, so different test to the above is required.
+    df = pd.DataFrame(
+        np.random.randn(1000, 3),
+        index=pd.date_range("1/1/2012", freq="S", periods=1000),
+        columns=["A", "B", "C"],
+    )
+    result = df.resample("3T").agg(
+        {"A": ["ohlc", partial(np.quantile, q=0.9999), partial(np.quantile, q=0.1111)]}
+    )
+    expected_index = pd.date_range("1/1/2012", freq="3T", periods=6)
+    expected_columns = pd.MultiIndex.from_tuples(
+        [
+            ("A", "ohlc", "open"),
+            ("A", "ohlc", "high"),
+            ("A", "ohlc", "low"),
+            ("A", "ohlc", "close"),
+            ("A", "quantile", "A"),
+            ("A", "quantile", "A"),
+        ]
+    )
+    non_ohlc_expected_values = np.array(
+        [df.resample("3T").A.quantile(q=q).values for q in [0.9999, 0.1111]]
+    ).T
+    expected_values = np.hstack([df.resample("3T").A.ohlc(), non_ohlc_expected_values])
+    expected = pd.DataFrame(
+        expected_values, columns=expected_columns, index=expected_index
+    )
+    # PerformanceWarning is thrown by `assert col in right` in assert_frame_equal
+    with tm.assert_produces_warning(PerformanceWarning):
+        tm.assert_frame_equal(result, expected)
 
 
 def test_multiple_functions_tuples_and_non_tuples(df):
@@ -326,6 +398,30 @@ def test_groupby_agg_coercing_bools():
     result = gp["c"].aggregate(lambda x: x.isnull().all())
     expected = Series([True, False], index=index, name="c")
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "op",
+    [
+        lambda x: x.sum(),
+        lambda x: x.cumsum(),
+        lambda x: x.transform("sum"),
+        lambda x: x.transform("cumsum"),
+        lambda x: x.agg("sum"),
+        lambda x: x.agg("cumsum"),
+    ],
+)
+def test_bool_agg_dtype(op):
+    # GH 7001
+    # Bool sum aggregations result in int
+    df = pd.DataFrame({"a": [1, 1], "b": [False, True]})
+    s = df.set_index("a")["b"]
+
+    result = op(df.groupby("a"))["b"].dtype
+    assert is_integer_dtype(result)
+
+    result = op(s.groupby("a")).dtype
+    assert is_integer_dtype(result)
 
 
 def test_order_aggregate_multiple_funcs():
@@ -420,22 +516,6 @@ def test_agg_split_object_part_datetime():
     tm.assert_frame_equal(result, expected)
 
 
-def test_agg_cython_category_not_implemented_fallback():
-    # https://github.com/pandas-dev/pandas/issues/31450
-    df = pd.DataFrame({"col_num": [1, 1, 2, 3]})
-    df["col_cat"] = df["col_num"].astype("category")
-
-    result = df.groupby("col_num").col_cat.first()
-    expected = pd.Series(
-        [1, 2, 3], index=pd.Index([1, 2, 3], name="col_num"), name="col_cat"
-    )
-    tm.assert_series_equal(result, expected)
-
-    result = df.groupby("col_num").agg({"col_cat": "first"})
-    expected = expected.to_frame()
-    tm.assert_frame_equal(result, expected)
-
-
 class TestNamedAggregationSeries:
     def test_series_named_agg(self):
         df = pd.Series([1, 2, 3, 4])
@@ -472,6 +552,21 @@ class TestNamedAggregationSeries:
         result = gr.agg(a=lambda x: 0, b=lambda x: 1)
         expected = pd.DataFrame({"a": [0, 0], "b": [1, 1]})
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "inp",
+        [
+            pd.NamedAgg(column="anything", aggfunc="min"),
+            ("anything", "min"),
+            ["anything", "min"],
+        ],
+    )
+    def test_named_agg_nametuple(self, inp):
+        # GH34422
+        s = pd.Series([1, 1, 2, 2, 3, 3, 4, 5])
+        msg = f"func is expected but recieved {type(inp).__name__}"
+        with pytest.raises(TypeError, match=msg):
+            s.groupby(s.values).agg(a=inp)
 
 
 class TestNamedAggregationDataFrame:
@@ -679,6 +774,75 @@ def test_agg_relabel_multiindex_duplicates():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("kwargs", [{"c": ["min"]}, {"b": [], "c": ["min"]}])
+def test_groupby_aggregate_empty_key(kwargs):
+    # GH: 32580
+    df = pd.DataFrame({"a": [1, 1, 2], "b": [1, 2, 3], "c": [1, 2, 4]})
+    result = df.groupby("a").agg(kwargs)
+    expected = pd.DataFrame(
+        [1, 4],
+        index=pd.Index([1, 2], dtype="int64", name="a"),
+        columns=pd.MultiIndex.from_tuples([["c", "min"]]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_aggregate_empty_key_empty_return():
+    # GH: 32580 Check if everything works, when return is empty
+    df = pd.DataFrame({"a": [1, 1, 2], "b": [1, 2, 3], "c": [1, 2, 4]})
+    result = df.groupby("a").agg({"b": []})
+    expected = pd.DataFrame(columns=pd.MultiIndex(levels=[["b"], []], codes=[[], []]))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_grouby_agg_loses_results_with_as_index_false_relabel():
+    # GH 32240: When the aggregate function relabels column names and
+    # as_index=False is specified, the results are dropped.
+
+    df = pd.DataFrame(
+        {"key": ["x", "y", "z", "x", "y", "z"], "val": [1.0, 0.8, 2.0, 3.0, 3.6, 0.75]}
+    )
+
+    grouped = df.groupby("key", as_index=False)
+    result = grouped.agg(min_val=pd.NamedAgg(column="val", aggfunc="min"))
+    expected = pd.DataFrame({"key": ["x", "y", "z"], "min_val": [1.0, 0.8, 0.75]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_grouby_agg_loses_results_with_as_index_false_relabel_multiindex():
+    # GH 32240: When the aggregate function relabels column names and
+    # as_index=False is specified, the results are dropped. Check if
+    # multiindex is returned in the right order
+
+    df = pd.DataFrame(
+        {
+            "key": ["x", "y", "x", "y", "x", "x"],
+            "key1": ["a", "b", "c", "b", "a", "c"],
+            "val": [1.0, 0.8, 2.0, 3.0, 3.6, 0.75],
+        }
+    )
+
+    grouped = df.groupby(["key", "key1"], as_index=False)
+    result = grouped.agg(min_val=pd.NamedAgg(column="val", aggfunc="min"))
+    expected = pd.DataFrame(
+        {"key": ["x", "x", "y"], "key1": ["a", "c", "b"], "min_val": [1.0, 0.75, 0.8]}
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "func", [lambda s: s.mean(), lambda s: np.mean(s), lambda s: np.nanmean(s)]
+)
+def test_multiindex_custom_func(func):
+    # GH 31777
+    data = [[1, 4, 2], [5, 7, 1]]
+    df = pd.DataFrame(data, columns=pd.MultiIndex.from_arrays([[1, 1, 2], [3, 4, 3]]))
+    result = df.groupby(np.array([0, 1])).agg(func)
+    expected_dict = {(1, 3): {0: 1, 1: 5}, (1, 4): {0: 4, 1: 7}, (2, 3): {0: 2, 1: 1}}
+    expected = pd.DataFrame(expected_dict)
+    tm.assert_frame_equal(result, expected)
+
+
 def myfunc(s):
     return np.percentile(s, q=0.90)
 
@@ -722,7 +886,7 @@ def test_aggregate_mixed_types():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(reason="Not implemented.")
+@pytest.mark.xfail(reason="Not implemented;see GH 31256")
 def test_aggregate_udf_na_extension_type():
     # https://github.com/pandas-dev/pandas/pull/31359
     # This is currently failing to cast back to Int64Dtype.
@@ -889,3 +1053,11 @@ class TestLambdaMangling:
             weight_min=pd.NamedAgg(column="weight", aggfunc=lambda x: np.min(x)),
         )
         tm.assert_frame_equal(result2, expected)
+
+
+def test_groupby_get_by_index():
+    # GH 33439
+    df = pd.DataFrame({"A": ["S", "W", "W"], "B": [1.0, 1.0, 2.0]})
+    res = df.groupby("A").agg({"B": lambda x: x.get(x.index[-1])})
+    expected = pd.DataFrame(dict(A=["S", "W"], B=[1.0, 2.0])).set_index("A")
+    pd.testing.assert_frame_equal(res, expected)

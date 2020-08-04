@@ -9,7 +9,8 @@ from pandas.io.excel._base import _BaseExcelReader
 
 class _XlrdReader(_BaseExcelReader):
     def __init__(self, filepath_or_buffer):
-        """Reader using xlrd engine.
+        """
+        Reader using xlrd engine.
 
         Parameters
         ----------
@@ -47,19 +48,19 @@ class _XlrdReader(_BaseExcelReader):
 
     def get_sheet_data(self, sheet, convert_float):
         from xlrd import (
-            xldate,
+            XL_CELL_BOOLEAN,
             XL_CELL_DATE,
             XL_CELL_ERROR,
-            XL_CELL_BOOLEAN,
             XL_CELL_NUMBER,
+            xldate,
         )
 
         epoch1904 = self.book.datemode
 
         def _parse_cell(cell_contents, cell_typ):
-            """converts the contents of the cell into a pandas
-               appropriate object"""
-
+            """
+            converts the contents of the cell into a pandas appropriate object
+            """
             if cell_typ == XL_CELL_DATE:
 
                 # Use the newer xlrd datetime handling.

@@ -29,11 +29,6 @@ def test_getitem_boolean_empty():
     # GH5877
     # indexing with empty series
     s = Series(["A", "B"])
-    expected = Series(np.nan, index=["C"], dtype=object)
-    result = s[Series(["C"], dtype=object)]
-    tm.assert_series_equal(result, expected)
-
-    s = Series(["A", "B"])
     expected = Series(dtype=object, index=Index([], dtype="int64"))
     result = s[Series([], dtype=object)]
     tm.assert_series_equal(result, expected)
@@ -72,7 +67,7 @@ def test_getitem_boolean_object(string_series):
 
     # nans raise exception
     omask[5:10] = np.nan
-    msg = "cannot mask with array containing NA / NaN values"
+    msg = "Cannot mask with non-boolean array containing NA / NaN values"
     with pytest.raises(ValueError, match=msg):
         s[omask]
     with pytest.raises(ValueError, match=msg):

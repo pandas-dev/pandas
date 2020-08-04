@@ -20,14 +20,6 @@ from pandas.core.dtypes.missing import isna
 import pandas as pd
 import pandas._testing as tm
 from pandas.arrays import SparseArray
-from pandas.conftest import (
-    ALL_EA_INT_DTYPES,
-    ALL_INT_DTYPES,
-    SIGNED_EA_INT_DTYPES,
-    SIGNED_INT_DTYPES,
-    UNSIGNED_EA_INT_DTYPES,
-    UNSIGNED_INT_DTYPES,
-)
 
 
 # EA & Actual Dtypes
@@ -83,6 +75,10 @@ class TestPandasDtype:
             "datetime64[ns, US/Eastern]",
             "datetime64[ns, Asia/Tokyo]",
             "datetime64[ns, UTC]",
+            # GH#33885 check that the M8 alias is understood
+            "M8[ns, US/Eastern]",
+            "M8[ns, Asia/Tokyo]",
+            "M8[ns, UTC]",
         ],
     )
     def test_datetimetz_dtype(self, dtype):
@@ -116,7 +112,7 @@ dtypes = dict(
     period=PeriodDtype("D"),
     integer=np.dtype(np.int64),
     float=np.dtype(np.float64),
-    object=np.dtype(np.object),
+    object=np.dtype(object),
     category=com.pandas_dtype("category"),
 )
 
@@ -156,7 +152,6 @@ def get_is_dtype_funcs():
     begin with 'is_' and end with 'dtype'
 
     """
-
     fnames = [f for f in dir(com) if (f.startswith("is_") and f.endswith("dtype"))]
     return [getattr(com, fname) for fname in fnames]
 
@@ -204,11 +199,18 @@ def test_is_scipy_sparse():
 
 def test_is_categorical():
     cat = pd.Categorical([1, 2, 3])
-    assert com.is_categorical(cat)
-    assert com.is_categorical(pd.Series(cat))
-    assert com.is_categorical(pd.CategoricalIndex([1, 2, 3]))
+    with tm.assert_produces_warning(FutureWarning):
+        assert com.is_categorical(cat)
+        assert com.is_categorical(pd.Series(cat))
+        assert com.is_categorical(pd.CategoricalIndex([1, 2, 3]))
 
-    assert not com.is_categorical([1, 2, 3])
+        assert not com.is_categorical([1, 2, 3])
+
+
+def test_is_categorical_deprecation():
+    # GH#33385
+    with tm.assert_produces_warning(FutureWarning):
+        com.is_categorical([1, 2, 3])
 
 
 def test_is_datetime64_dtype():
@@ -282,18 +284,6 @@ def test_is_string_dtype():
     assert com.is_string_dtype(pd.array(["a", "b"], dtype="string"))
 
 
-def test_is_period_arraylike():
-    assert not com.is_period_arraylike([1, 2, 3])
-    assert not com.is_period_arraylike(pd.Index([1, 2, 3]))
-    assert com.is_period_arraylike(pd.PeriodIndex(["2017-01-01"], freq="D"))
-
-
-def test_is_datetime_arraylike():
-    assert not com.is_datetime_arraylike([1, 2, 3])
-    assert not com.is_datetime_arraylike(pd.Index([1, 2, 3]))
-    assert com.is_datetime_arraylike(pd.DatetimeIndex([1, 2, 3]))
-
-
 integer_dtypes: List = []
 
 
@@ -301,10 +291,10 @@ integer_dtypes: List = []
     "dtype",
     integer_dtypes
     + [pd.Series([1, 2])]
-    + ALL_INT_DTYPES
-    + to_numpy_dtypes(ALL_INT_DTYPES)
-    + ALL_EA_INT_DTYPES
-    + to_ea_dtypes(ALL_EA_INT_DTYPES),
+    + tm.ALL_INT_DTYPES
+    + to_numpy_dtypes(tm.ALL_INT_DTYPES)
+    + tm.ALL_EA_INT_DTYPES
+    + to_ea_dtypes(tm.ALL_EA_INT_DTYPES),
 )
 def test_is_integer_dtype(dtype):
     assert com.is_integer_dtype(dtype)
@@ -333,10 +323,10 @@ signed_integer_dtypes: List = []
     "dtype",
     signed_integer_dtypes
     + [pd.Series([1, 2])]
-    + SIGNED_INT_DTYPES
-    + to_numpy_dtypes(SIGNED_INT_DTYPES)
-    + SIGNED_EA_INT_DTYPES
-    + to_ea_dtypes(SIGNED_EA_INT_DTYPES),
+    + tm.SIGNED_INT_DTYPES
+    + to_numpy_dtypes(tm.SIGNED_INT_DTYPES)
+    + tm.SIGNED_EA_INT_DTYPES
+    + to_ea_dtypes(tm.SIGNED_EA_INT_DTYPES),
 )
 def test_is_signed_integer_dtype(dtype):
     assert com.is_integer_dtype(dtype)
@@ -353,10 +343,10 @@ def test_is_signed_integer_dtype(dtype):
         np.array(["a", "b"]),
         np.array([], dtype=np.timedelta64),
     ]
-    + UNSIGNED_INT_DTYPES
-    + to_numpy_dtypes(UNSIGNED_INT_DTYPES)
-    + UNSIGNED_EA_INT_DTYPES
-    + to_ea_dtypes(UNSIGNED_EA_INT_DTYPES),
+    + tm.UNSIGNED_INT_DTYPES
+    + to_numpy_dtypes(tm.UNSIGNED_INT_DTYPES)
+    + tm.UNSIGNED_EA_INT_DTYPES
+    + to_ea_dtypes(tm.UNSIGNED_EA_INT_DTYPES),
 )
 def test_is_not_signed_integer_dtype(dtype):
     assert not com.is_signed_integer_dtype(dtype)
@@ -369,10 +359,10 @@ unsigned_integer_dtypes: List = []
     "dtype",
     unsigned_integer_dtypes
     + [pd.Series([1, 2], dtype=np.uint32)]
-    + UNSIGNED_INT_DTYPES
-    + to_numpy_dtypes(UNSIGNED_INT_DTYPES)
-    + UNSIGNED_EA_INT_DTYPES
-    + to_ea_dtypes(UNSIGNED_EA_INT_DTYPES),
+    + tm.UNSIGNED_INT_DTYPES
+    + to_numpy_dtypes(tm.UNSIGNED_INT_DTYPES)
+    + tm.UNSIGNED_EA_INT_DTYPES
+    + to_ea_dtypes(tm.UNSIGNED_EA_INT_DTYPES),
 )
 def test_is_unsigned_integer_dtype(dtype):
     assert com.is_unsigned_integer_dtype(dtype)
@@ -389,10 +379,10 @@ def test_is_unsigned_integer_dtype(dtype):
         np.array(["a", "b"]),
         np.array([], dtype=np.timedelta64),
     ]
-    + SIGNED_INT_DTYPES
-    + to_numpy_dtypes(SIGNED_INT_DTYPES)
-    + SIGNED_EA_INT_DTYPES
-    + to_ea_dtypes(SIGNED_EA_INT_DTYPES),
+    + tm.SIGNED_INT_DTYPES
+    + to_numpy_dtypes(tm.SIGNED_INT_DTYPES)
+    + tm.SIGNED_EA_INT_DTYPES
+    + to_ea_dtypes(tm.SIGNED_EA_INT_DTYPES),
 )
 def test_is_not_unsigned_integer_dtype(dtype):
     assert not com.is_unsigned_integer_dtype(dtype)
@@ -557,7 +547,7 @@ def test_is_bool_dtype():
     assert not com.is_bool_dtype(pd.Index(["a", "b"]))
 
     assert com.is_bool_dtype(bool)
-    assert com.is_bool_dtype(np.bool)
+    assert com.is_bool_dtype(np.bool_)
     assert com.is_bool_dtype(np.array([True, False]))
     assert com.is_bool_dtype(pd.Index([True, False]))
 
@@ -625,7 +615,8 @@ def test_is_complex_dtype():
     assert not com.is_complex_dtype(pd.Series([1, 2]))
     assert not com.is_complex_dtype(np.array(["a", "b"]))
 
-    assert com.is_complex_dtype(np.complex)
+    assert com.is_complex_dtype(np.complex_)
+    assert com.is_complex_dtype(complex)
     assert com.is_complex_dtype(np.array([1 + 1j, 5]))
 
 

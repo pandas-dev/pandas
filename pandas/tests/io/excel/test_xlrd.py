@@ -28,7 +28,7 @@ def test_read_xlrd_book(read_ext, frame):
         book = xlrd.open_workbook(pth)
 
         with ExcelFile(book, engine=engine) as xl:
-            result = pd.read_excel(xl, sheet_name, index_col=0)
+            result = pd.read_excel(xl, sheet_name=sheet_name, index_col=0)
             tm.assert_frame_equal(df, result)
 
         result = pd.read_excel(book, sheet_name=sheet_name, engine=engine, index_col=0)
@@ -37,7 +37,7 @@ def test_read_xlrd_book(read_ext, frame):
 
 # TODO: test for openpyxl as well
 def test_excel_table_sheet_by_index(datapath, read_ext):
-    path = datapath("io", "data", "excel", "test1{}".format(read_ext))
+    path = datapath("io", "data", "excel", f"test1{read_ext}")
     with pd.ExcelFile(path) as excel:
         with pytest.raises(xlrd.XLRDError):
-            pd.read_excel(excel, "asdf")
+            pd.read_excel(excel, sheet_name="asdf")

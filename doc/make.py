@@ -83,8 +83,8 @@ class DocBuilder:
                 obj = pandas  # noqa: F821
                 for name in single_doc.split("."):
                     obj = getattr(obj, name)
-            except AttributeError:
-                raise ImportError(f"Could not import {single_doc}")
+            except AttributeError as err:
+                raise ImportError(f"Could not import {single_doc}") from err
             else:
                 return single_doc[len("pandas.") :]
         else:

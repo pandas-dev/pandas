@@ -8,7 +8,16 @@ import pytest
 import pytz
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Index,
+    MultiIndex,
+    Series,
+    Timestamp,
+    date_range,
+    offsets,
+)
 import pandas._testing as tm
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.ops import BinGrouper
@@ -214,7 +223,7 @@ class TestGroupBy:
             result = df.groupby([pd.Grouper(freq="1M", level=0), "Buyer"]).sum()
             tm.assert_frame_equal(result, expected)
 
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match="The level foo is not valid"):
                 df.groupby([pd.Grouper(freq="1M", level="foo"), "Buyer"]).sum()
 
             # multi names
@@ -235,24 +244,28 @@ class TestGroupBy:
             tm.assert_frame_equal(result, expected)
 
             # error as we have both a level and a name!
-            with pytest.raises(ValueError):
+            msg = "The Grouper cannot specify both a key and a level!"
+            with pytest.raises(ValueError, match=msg):
                 df.groupby(
                     [pd.Grouper(freq="1M", key="Date", level="Date"), "Buyer"]
                 ).sum()
 
             # single groupers
             expected = DataFrame(
-                {"Quantity": [31], "Date": [datetime(2013, 10, 31, 0, 0)]}
-            ).set_index("Date")
+                [[31]],
+                columns=["Quantity"],
+                index=DatetimeIndex(
+                    [datetime(2013, 10, 31, 0, 0)], freq=offsets.MonthEnd(), name="Date"
+                ),
+            )
             result = df.groupby(pd.Grouper(freq="1M")).sum()
             tm.assert_frame_equal(result, expected)
 
             result = df.groupby([pd.Grouper(freq="1M")]).sum()
             tm.assert_frame_equal(result, expected)
 
-            expected = DataFrame(
-                {"Quantity": [31], "Date": [datetime(2013, 11, 30, 0, 0)]}
-            ).set_index("Date")
+            expected.index = expected.index.shift(1)
+            assert expected.index.freq == offsets.MonthEnd()
             result = df.groupby(pd.Grouper(freq="1M", key="Date")).sum()
             tm.assert_frame_equal(result, expected)
 
@@ -447,7 +460,7 @@ class TestGroupBy:
         for date in dates:
             result = grouped.get_group(date)
             data = [[df.loc[date, "A"], df.loc[date, "B"]]]
-            expected_index = pd.DatetimeIndex([date], name="date")
+            expected_index = pd.DatetimeIndex([date], name="date", freq="D")
             expected = pd.DataFrame(data, columns=list("AB"), index=expected_index)
             tm.assert_frame_equal(result, expected)
 
@@ -734,6 +747,7 @@ class TestGroupBy:
         grouper = pd.Grouper(key="time", freq="h")
         result = test.groupby(grouper)["data"].nunique()
         expected = test[test.time.notnull()].groupby(grouper)["data"].nunique()
+        expected.index = expected.index._with_freq(None)
         tm.assert_series_equal(result, expected)
 
     def test_scalar_call_versus_list_call(self):
@@ -755,3 +769,17 @@ class TestGroupBy:
         expected = grouped.count()
 
         tm.assert_frame_equal(result, expected)
+
+    def test_grouper_period_index(self):
+        # GH 32108
+        periods = 2
+        index = pd.period_range(
+            start="2018-01", periods=periods, freq="M", name="Month"
+        )
+        period_series = pd.Series(range(periods), index=index)
+        result = period_series.groupby(period_series.index.month).sum()
+
+        expected = pd.Series(
+            range(0, periods), index=Index(range(1, periods + 1), name=index.name),
+        )
+        tm.assert_series_equal(result, expected)

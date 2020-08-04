@@ -30,7 +30,8 @@ def test_groupby(idx):
     tm.assert_dict_equal(groups, exp)
 
 
-def test_truncate():
+def test_truncate_multiindex():
+    # GH 34564 for MultiIndex level names check
     major_axis = Index(list(range(4)))
     minor_axis = Index(list(range(2)))
 
@@ -38,40 +39,28 @@ def test_truncate():
     minor_codes = np.array([0, 1, 0, 1, 0, 1])
 
     index = MultiIndex(
-        levels=[major_axis, minor_axis], codes=[major_codes, minor_codes]
+        levels=[major_axis, minor_axis],
+        codes=[major_codes, minor_codes],
+        names=["L1", "L2"],
     )
 
     result = index.truncate(before=1)
     assert "foo" not in result.levels[0]
     assert 1 in result.levels[0]
+    assert index.names == result.names
 
     result = index.truncate(after=1)
     assert 2 not in result.levels[0]
     assert 1 in result.levels[0]
+    assert index.names == result.names
 
     result = index.truncate(before=1, after=2)
     assert len(result.levels[0]) == 2
+    assert index.names == result.names
 
     msg = "after < before"
     with pytest.raises(ValueError, match=msg):
         index.truncate(3, 1)
-
-
-def test_where():
-    i = MultiIndex.from_tuples([("A", 1), ("A", 2)])
-
-    msg = r"\.where is not supported for MultiIndex operations"
-    with pytest.raises(NotImplementedError, match=msg):
-        i.where(True)
-
-
-@pytest.mark.parametrize("klass", [list, tuple, np.array, pd.Series])
-def test_where_array_like(klass):
-    i = MultiIndex.from_tuples([("A", 1), ("A", 2)])
-    cond = [False, True]
-    msg = r"\.where is not supported for MultiIndex operations"
-    with pytest.raises(NotImplementedError, match=msg):
-        i.where(klass(cond))
 
 
 # TODO: reshape
@@ -249,7 +238,7 @@ def test_map_dictlike(idx, mapper):
 )
 def test_numpy_ufuncs(idx, func):
     # test ufuncs of numpy. see:
-    # https://docs.scipy.org/doc/numpy/reference/ufuncs.html
+    # https://numpy.org/doc/stable/reference/ufuncs.html
 
     if _np_version_under1p17:
         expected_exception = AttributeError

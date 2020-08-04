@@ -17,38 +17,6 @@ class TestSeriesAnalytics:
 
         assert not isinstance(result, Series)
 
-    def test_dot(self):
-        a = Series(np.random.randn(4), index=["p", "q", "r", "s"])
-        b = DataFrame(
-            np.random.randn(3, 4), index=["1", "2", "3"], columns=["p", "q", "r", "s"]
-        ).T
-
-        result = a.dot(b)
-        expected = Series(np.dot(a.values, b.values), index=["1", "2", "3"])
-        tm.assert_series_equal(result, expected)
-
-        # Check index alignment
-        b2 = b.reindex(index=reversed(b.index))
-        result = a.dot(b)
-        tm.assert_series_equal(result, expected)
-
-        # Check ndarray argument
-        result = a.dot(b.values)
-        assert np.all(result == expected.values)
-        tm.assert_almost_equal(a.dot(b["2"].values), expected["2"])
-
-        # Check series argument
-        tm.assert_almost_equal(a.dot(b["1"]), expected["1"])
-        tm.assert_almost_equal(a.dot(b2["1"]), expected["1"])
-
-        msg = r"Dot product shape mismatch, \(4,\) vs \(3,\)"
-        # exception raised is of type Exception
-        with pytest.raises(Exception, match=msg):
-            a.dot(a.values[:3])
-        msg = "matrices are not aligned"
-        with pytest.raises(ValueError, match=msg):
-            a.dot(b.T)
-
     def test_matmul(self):
         # matmul test is for GH #10259
         a = Series(np.random.randn(4), index=["p", "q", "r", "s"])
@@ -169,10 +137,10 @@ class TestSeriesAnalytics:
         name = func.__name__
 
         msg = (
-            r"the '{arg}' parameter is not "
-            r"supported in the pandas "
-            r"implementation of {fname}\(\)"
-        ).format(arg=param, fname=name)
+            f"the '{param}' parameter is not "
+            "supported in the pandas "
+            fr"implementation of {name}\(\)"
+        )
         with pytest.raises(ValueError, match=msg):
             func(s, **kwargs)
 
@@ -209,3 +177,27 @@ class TestSeriesAnalytics:
         )
         with pytest.raises(ValueError, match=msg):
             np.sum(s, keepdims=True)
+
+    def test_td64_summation_overflow(self):
+        # GH 9442
+        s = pd.Series(pd.date_range("20130101", periods=100000, freq="H"))
+        s[0] += pd.Timedelta("1s 1ms")
+
+        # mean
+        result = (s - s.min()).mean()
+        expected = pd.Timedelta((pd.TimedeltaIndex((s - s.min())).asi8 / len(s)).sum())
+
+        # the computation is converted to float so
+        # might be some loss of precision
+        assert np.allclose(result.value / 1000, expected.value / 1000)
+
+        # sum
+        msg = "overflow in timedelta operation"
+        with pytest.raises(ValueError, match=msg):
+            (s - s.min()).sum()
+
+        s1 = s[0:10000]
+        with pytest.raises(ValueError, match=msg):
+            (s1 - s1.min()).sum()
+        s2 = s[0:1000]
+        (s2 - s2.min()).sum()

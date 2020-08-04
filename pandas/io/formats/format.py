@@ -4,6 +4,7 @@ and latex files. This module also applies to display formatting.
 """
 
 from contextlib import contextmanager
+from csv import QUOTE_NONE, QUOTE_NONNUMERIC
 from datetime import tzinfo
 import decimal
 from functools import partial
@@ -38,7 +39,7 @@ from pandas._libs.missing import NA
 from pandas._libs.tslib import format_array_from_datetime
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.nattype import NaTType
-from pandas._typing import FilePathOrBuffer
+from pandas._typing import FilePathOrBuffer, Label
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import (
@@ -56,22 +57,14 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.generic import (
-    ABCDatetimeIndex,
-    ABCIndexClass,
-    ABCMultiIndex,
-    ABCPeriodIndex,
-    ABCSeries,
-    ABCSparseArray,
-    ABCTimedeltaIndex,
-)
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core.arrays.datetimes import DatetimeArray
 from pandas.core.arrays.timedeltas import TimedeltaArray
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.indexes.api import Index, ensure_index
+from pandas.core.construction import extract_array
+from pandas.core.indexes.api import Index, MultiIndex, PeriodIndex, ensure_index
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
@@ -79,12 +72,16 @@ from pandas.io.common import stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
 
 if TYPE_CHECKING:
-    from pandas import Series, DataFrame, Categorical
+    from pandas import Categorical, DataFrame, Series
 
-formatters_type = Union[
+FormattersType = Union[
     List[Callable], Tuple[Callable, ...], Mapping[Union[str, int], Callable]
 ]
-float_format_type = Union[str, Callable, "EngFormatter"]
+FloatFormatType = Union[str, Callable, "EngFormatter"]
+ColspaceType = Mapping[Label, Union[str, int]]
+ColspaceArgType = Union[
+    str, int, Sequence[Union[str, int]], Mapping[Label, Union[str, int]],
+]
 
 common_docstring = """
         Parameters
@@ -180,6 +177,7 @@ class CategoricalFormatter:
         self.na_rep = na_rep
         self.length = length
         self.footer = footer
+        self.quoting = QUOTE_NONNUMERIC
 
     def _get_footer(self) -> str:
         footer = ""
@@ -187,7 +185,7 @@ class CategoricalFormatter:
         if self.length:
             if footer:
                 footer += ", "
-            footer += "Length: {length}".format(length=len(self.categorical))
+            footer += f"Length: {len(self.categorical)}"
 
         level_info = self.categorical._repr_categories_info()
 
@@ -204,6 +202,7 @@ class CategoricalFormatter:
             None,
             float_format=None,
             na_rep=self.na_rep,
+            quoting=self.quoting,
         )
 
     def to_string(self) -> str:
@@ -217,7 +216,6 @@ class CategoricalFormatter:
 
         fmt_values = self._get_formatted_values()
 
-        fmt_values = ["{i}".format(i=i) for i in fmt_values]
         fmt_values = [i.strip() for i in fmt_values]
         values = ", ".join(fmt_values)
         result = ["[" + values + "]"]
@@ -284,9 +282,7 @@ class SeriesFormatter:
                 series = series.iloc[:max_rows]
             else:
                 row_num = max_rows // 2
-                series = series._ensure_type(
-                    concat((series.iloc[:row_num], series.iloc[-row_num:]))
-                )
+                series = concat((series.iloc[:row_num], series.iloc[-row_num:]))
             self.tr_row_num = row_num
         else:
             self.tr_row_num = None
@@ -299,30 +295,28 @@ class SeriesFormatter:
 
         if getattr(self.series.index, "freq", None) is not None:
             assert isinstance(
-                self.series.index, (ABCDatetimeIndex, ABCPeriodIndex, ABCTimedeltaIndex)
+                self.series.index, (DatetimeIndex, PeriodIndex, TimedeltaIndex)
             )
-            footer += "Freq: {freq}".format(freq=self.series.index.freqstr)
+            footer += f"Freq: {self.series.index.freqstr}"
 
         if self.name is not False and name is not None:
             if footer:
                 footer += ", "
 
             series_name = pprint_thing(name, escape_chars=("\t", "\r", "\n"))
-            footer += (
-                ("Name: {sname}".format(sname=series_name)) if name is not None else ""
-            )
+            footer += f"Name: {series_name}"
 
         if self.length is True or (self.length == "truncate" and self.truncate_v):
             if footer:
                 footer += ", "
-            footer += "Length: {length}".format(length=len(self.series))
+            footer += f"Length: {len(self.series)}"
 
         if self.dtype is not False and self.dtype is not None:
-            name = getattr(self.tr_series.dtype, "name", None)
-            if name:
+            dtype_name = getattr(self.tr_series.dtype, "name", None)
+            if dtype_name:
                 if footer:
                     footer += ", "
-                footer += "dtype: {typ}".format(typ=pprint_thing(name))
+                footer += f"dtype: {pprint_thing(dtype_name)}"
 
         # level infos are added to the end and in a new line, like it is done
         # for Categoricals
@@ -336,9 +330,8 @@ class SeriesFormatter:
 
     def _get_formatted_index(self) -> Tuple[List[str], bool]:
         index = self.tr_series.index
-        is_multi = isinstance(index, ABCMultiIndex)
 
-        if is_multi:
+        if isinstance(index, MultiIndex):
             have_header = any(name for name in index.names)
             fmt_index = index.format(names=True)
         else:
@@ -359,9 +352,7 @@ class SeriesFormatter:
         footer = self._get_footer()
 
         if len(series) == 0:
-            return "{name}([], {footer})".format(
-                name=type(self.series).__name__, footer=footer
-            )
+            return f"{type(self.series).__name__}([], {footer})"
 
         fmt_index, have_header = self._get_formatted_index()
         fmt_values = self._get_formatted_values()
@@ -460,7 +451,7 @@ class TableFormatter:
 
     show_dimensions: Union[bool, str]
     is_truncated: bool
-    formatters: formatters_type
+    formatters: FormattersType
     columns: Index
 
     @property
@@ -545,17 +536,19 @@ class DataFrameFormatter(TableFormatter):
     __doc__ = __doc__ if __doc__ else ""
     __doc__ += common_docstring + return_docstring
 
+    col_space: ColspaceType
+
     def __init__(
         self,
         frame: "DataFrame",
         columns: Optional[Sequence[str]] = None,
-        col_space: Optional[Union[str, int]] = None,
+        col_space: Optional[ColspaceArgType] = None,
         header: Union[bool, Sequence[str]] = True,
         index: bool = True,
         na_rep: str = "NaN",
-        formatters: Optional[formatters_type] = None,
+        formatters: Optional[FormattersType] = None,
         justify: Optional[str] = None,
-        float_format: Optional[float_format_type] = None,
+        float_format: Optional[FloatFormatType] = None,
         sparsify: Optional[bool] = None,
         index_names: bool = True,
         line_width: Optional[int] = None,
@@ -584,14 +577,31 @@ class DataFrameFormatter(TableFormatter):
             self.formatters = formatters
         else:
             raise ValueError(
-                (
-                    "Formatters length({flen}) should match "
-                    "DataFrame number of columns({dlen})"
-                ).format(flen=len(formatters), dlen=len(frame.columns))
+                f"Formatters length({len(formatters)}) should match "
+                f"DataFrame number of columns({len(frame.columns)})"
             )
         self.na_rep = na_rep
         self.decimal = decimal
-        self.col_space = col_space
+        if col_space is None:
+            self.col_space = {}
+        elif isinstance(col_space, (int, str)):
+            self.col_space = {"": col_space}
+            self.col_space.update({column: col_space for column in self.frame.columns})
+        elif isinstance(col_space, Mapping):
+            for column in col_space.keys():
+                if column not in self.frame.columns and column != "":
+                    raise ValueError(
+                        f"Col_space is defined for an unknown column: {column}"
+                    )
+            self.col_space = col_space
+        else:
+            if len(frame.columns) != len(col_space):
+                raise ValueError(
+                    f"Col_space length({len(col_space)}) should match "
+                    f"DataFrame number of columns({len(frame.columns)})"
+                )
+            self.col_space = dict(zip(self.frame.columns, col_space))
+
         self.header = header
         self.index = index
         self.line_width = line_width
@@ -719,7 +729,7 @@ class DataFrameFormatter(TableFormatter):
         """
         # this method is not used by to_html where self.col_space
         # could be a string so safe to cast
-        self.col_space = cast(int, self.col_space)
+        col_space = {k: cast(int, v) for k, v in self.col_space.items()}
 
         frame = self.tr_frame
         # may include levels names also
@@ -731,10 +741,7 @@ class DataFrameFormatter(TableFormatter):
             for i, c in enumerate(frame):
                 fmt_values = self._format_col(i)
                 fmt_values = _make_fixed_width(
-                    fmt_values,
-                    self.justify,
-                    minimum=(self.col_space or 0),
-                    adj=self.adj,
+                    fmt_values, self.justify, minimum=col_space.get(c, 0), adj=self.adj,
                 )
                 stringified.append(fmt_values)
         else:
@@ -758,7 +765,7 @@ class DataFrameFormatter(TableFormatter):
             for i, c in enumerate(frame):
                 cheader = str_columns[i]
                 header_colwidth = max(
-                    self.col_space or 0, *(self.adj.len(x) for x in cheader)
+                    col_space.get(c, 0), *(self.adj.len(x) for x in cheader)
                 )
                 fmt_values = self._format_col(i)
                 fmt_values = _make_fixed_width(
@@ -816,10 +823,10 @@ class DataFrameFormatter(TableFormatter):
         frame = self.frame
 
         if len(frame.columns) == 0 or len(frame.index) == 0:
-            info_line = "Empty {name}\nColumns: {col}\nIndex: {idx}".format(
-                name=type(self.frame).__name__,
-                col=pprint_thing(frame.columns),
-                idx=pprint_thing(frame.index),
+            info_line = (
+                f"Empty {type(self.frame).__name__}\n"
+                f"Columns: {pprint_thing(frame.columns)}\n"
+                f"Index: {pprint_thing(frame.index)}"
             )
             text = info_line
         else:
@@ -865,11 +872,7 @@ class DataFrameFormatter(TableFormatter):
         buf.writelines(text)
 
         if self.should_show_dimensions:
-            buf.write(
-                "\n\n[{nrows} rows x {ncols} columns]".format(
-                    nrows=len(frame), ncols=len(frame.columns)
-                )
-            )
+            buf.write(f"\n\n[{len(frame)} rows x {len(frame.columns)} columns]")
 
     def _join_multiline(self, *args) -> str:
         lwidth = self.line_width
@@ -932,7 +935,6 @@ class DataFrameFormatter(TableFormatter):
         """
         Render a DataFrame to a LaTeX tabular/longtable environment output.
         """
-
         from pandas.io.formats.latex import LatexFormatter
 
         return LatexFormatter(
@@ -954,7 +956,7 @@ class DataFrameFormatter(TableFormatter):
             formatter,
             float_format=self.float_format,
             na_rep=self.na_rep,
-            space=self.col_space,
+            space=self.col_space.get(frame.columns[i]),
             decimal=self.decimal,
         )
 
@@ -979,7 +981,7 @@ class DataFrameFormatter(TableFormatter):
         border : int
             A ``border=border`` attribute is included in the opening
             ``<table>`` tag. Default ``pd.options.display.html.border``.
-         """
+        """
         from pandas.io.formats.html import HTMLFormatter, NotebookFormatter
 
         Klass = NotebookFormatter if notebook else HTMLFormatter
@@ -992,7 +994,7 @@ class DataFrameFormatter(TableFormatter):
 
         columns = frame.columns
 
-        if isinstance(columns, ABCMultiIndex):
+        if isinstance(columns, MultiIndex):
             fmt_columns = columns.format(sparsify=False, adjoin=False)
             fmt_columns = list(zip(*fmt_columns))
             dtypes = self.frame.dtypes._values
@@ -1047,12 +1049,12 @@ class DataFrameFormatter(TableFormatter):
     def _get_formatted_index(self, frame: "DataFrame") -> List[str]:
         # Note: this is only used by to_string() and to_latex(), not by
         # to_html(). so safe to cast col_space here.
-        self.col_space = cast(int, self.col_space)
+        col_space = {k: cast(int, v) for k, v in self.col_space.items()}
         index = frame.index
         columns = frame.columns
         fmt = self._get_formatter("__index__")
 
-        if isinstance(index, ABCMultiIndex):
+        if isinstance(index, MultiIndex):
             fmt_index = index.format(
                 sparsify=self.sparsify,
                 adjoin=False,
@@ -1065,7 +1067,7 @@ class DataFrameFormatter(TableFormatter):
         fmt_index = [
             tuple(
                 _make_fixed_width(
-                    list(x), justify="left", minimum=(self.col_space or 0), adj=self.adj
+                    list(x), justify="left", minimum=col_space.get("", 0), adj=self.adj,
                 )
             )
             for x in fmt_index
@@ -1075,7 +1077,7 @@ class DataFrameFormatter(TableFormatter):
 
         # empty space for columns
         if self.show_col_idx_names:
-            col_header = ["{x}".format(x=x) for x in self._get_column_name_list()]
+            col_header = [str(x) for x in self._get_column_name_list()]
         else:
             col_header = [""] * columns.nlevels
 
@@ -1087,7 +1089,7 @@ class DataFrameFormatter(TableFormatter):
     def _get_column_name_list(self) -> List[str]:
         names: List[str] = []
         columns = self.frame.columns
-        if isinstance(columns, ABCMultiIndex):
+        if isinstance(columns, MultiIndex):
             names.extend("" if name is None else name for name in columns.names)
         else:
             names.append("" if columns.name is None else columns.name)
@@ -1101,13 +1103,14 @@ class DataFrameFormatter(TableFormatter):
 def format_array(
     values: Any,
     formatter: Optional[Callable],
-    float_format: Optional[float_format_type] = None,
+    float_format: Optional[FloatFormatType] = None,
     na_rep: str = "NaN",
     digits: Optional[int] = None,
     space: Optional[Union[str, int]] = None,
     justify: str = "right",
     decimal: str = ".",
     leading_space: Optional[bool] = None,
+    quoting: Optional[int] = None,
 ) -> List[str]:
     """
     Format an array for printing.
@@ -1135,11 +1138,10 @@ def format_array(
     -------
     List[str]
     """
-
     fmt_klass: Type[GenericArrayFormatter]
     if is_datetime64_dtype(values.dtype):
         fmt_klass = Datetime64Formatter
-    elif is_datetime64tz_dtype(values):
+    elif is_datetime64tz_dtype(values.dtype):
         fmt_klass = Datetime64TZFormatter
     elif is_timedelta64_dtype(values.dtype):
         fmt_klass = Timedelta64Formatter
@@ -1171,6 +1173,7 @@ def format_array(
         justify=justify,
         decimal=decimal,
         leading_space=leading_space,
+        quoting=quoting,
     )
 
     return fmt_obj.get_result()
@@ -1184,7 +1187,7 @@ class GenericArrayFormatter:
         formatter: Optional[Callable] = None,
         na_rep: str = "NaN",
         space: Union[str, int] = 12,
-        float_format: Optional[float_format_type] = None,
+        float_format: Optional[FloatFormatType] = None,
         justify: str = "right",
         decimal: str = ".",
         quoting: Optional[int] = None,
@@ -1211,18 +1214,20 @@ class GenericArrayFormatter:
         if self.float_format is None:
             float_format = get_option("display.float_format")
             if float_format is None:
-                fmt_str = "{{x: .{prec:d}g}}".format(
-                    prec=get_option("display.precision")
-                )
-                float_format = lambda x: fmt_str.format(x=x)
+                precision = get_option("display.precision")
+                float_format = lambda x: f"{x: .{precision:d}g}"
         else:
             float_format = self.float_format
 
-        formatter = (
-            self.formatter
-            if self.formatter is not None
-            else (lambda x: pprint_thing(x, escape_chars=("\t", "\r", "\n")))
-        )
+        if self.formatter is not None:
+            formatter = self.formatter
+        else:
+            quote_strings = self.quoting is not None and self.quoting != QUOTE_NONE
+            formatter = partial(
+                pprint_thing,
+                escape_chars=("\t", "\r", "\n"),
+                quote_strings=quote_strings,
+            )
 
         def _format(x):
             if self.na_rep is not None and is_scalar(x) and isna(x):
@@ -1240,18 +1245,18 @@ class GenericArrayFormatter:
                     pass
                 return self.na_rep
             elif isinstance(x, PandasObject):
-                return "{x}".format(x=x)
+                return str(x)
             else:
                 # object dtype
-                return "{x}".format(x=formatter(x))
+                return str(formatter(x))
 
-        vals = self.values
-        if isinstance(vals, Index):
-            vals = vals._values
-        elif isinstance(vals, ABCSparseArray):
-            vals = vals.values
+        vals = extract_array(self.values, extract_numpy=True)
 
-        is_float_type = lib.map_infer(vals, is_float) & notna(vals)
+        is_float_type = (
+            lib.map_infer(vals, is_float)
+            # vals may have 2 or more dimensions
+            & np.all(notna(vals), axis=tuple(range(1, len(vals.shape))))
+        )
         leading_space = self.leading_space
         if leading_space is None:
             leading_space = is_float_type.any()
@@ -1259,7 +1264,7 @@ class GenericArrayFormatter:
         fmt_values = []
         for i, v in enumerate(vals):
             if not is_float_type[i] and leading_space:
-                fmt_values.append(" {v}".format(v=_format(v)))
+                fmt_values.append(f" {_format(v)}")
             elif is_float_type[i]:
                 fmt_values.append(float_format(v))
             else:
@@ -1293,12 +1298,10 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
     def _value_formatter(
         self,
-        float_format: Optional[float_format_type] = None,
+        float_format: Optional[FloatFormatType] = None,
         threshold: Optional[Union[float, int]] = None,
     ) -> Callable:
-        """Returns a function to be applied on each value to format it
-        """
-
+        """Returns a function to be applied on each value to format it"""
         # the float_format parameter supersedes self.float_format
         if float_format is None:
             float_format = self.float_format
@@ -1346,7 +1349,6 @@ class FloatArrayFormatter(GenericArrayFormatter):
         Returns the float values converted into strings using
         the parameters given at initialisation, as a numpy array
         """
-
         if self.formatter is not None:
             return np.array([self.formatter(x) for x in self.values])
 
@@ -1370,8 +1372,6 @@ class FloatArrayFormatter(GenericArrayFormatter):
             values = self.values
             is_complex = is_complex_dtype(values)
             mask = isna(values)
-            if hasattr(values, "to_dense"):  # sparse numpy ndarray
-                values = values.to_dense()
             values = np.array(values, dtype="object")
             values[mask] = na_rep
             imask = (~mask).ravel()
@@ -1381,16 +1381,16 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
             if self.fixed_width:
                 if is_complex:
-                    result = _trim_zeros_complex(values, na_rep)
+                    result = _trim_zeros_complex(values, self.decimal, na_rep)
                 else:
-                    result = _trim_zeros_float(values, na_rep)
+                    result = _trim_zeros_float(values, self.decimal, na_rep)
                 return np.asarray(result, dtype="object")
 
             return values
 
         # There is a special default string when we are fixed-width
         # The default is otherwise to use str instead of a formatting string
-        float_format: Optional[float_format_type]
+        float_format: Optional[FloatFormatType]
         if self.float_format is None:
             if self.fixed_width:
                 float_format = partial(
@@ -1442,7 +1442,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
 class IntArrayFormatter(GenericArrayFormatter):
     def _format_strings(self) -> List[str]:
-        formatter = self.formatter or (lambda x: "{x: d}".format(x=x))
+        formatter = self.formatter or (lambda x: f"{x: d}")
         fmt_values = [formatter(x) for x in self.values]
         return fmt_values
 
@@ -1461,7 +1461,6 @@ class Datetime64Formatter(GenericArrayFormatter):
 
     def _format_strings(self) -> List[str]:
         """ we by definition have DO NOT have a TZ """
-
         values = self.values
 
         if not isinstance(values, DatetimeIndex):
@@ -1480,9 +1479,7 @@ class Datetime64Formatter(GenericArrayFormatter):
 
 class ExtensionArrayFormatter(GenericArrayFormatter):
     def _format_strings(self) -> List[str]:
-        values = self.values
-        if isinstance(values, (ABCIndexClass, ABCSeries)):
-            values = values._values
+        values = extract_array(self.values, extract_numpy=True)
 
         formatter = values._formatter(boxed=True)
 
@@ -1541,7 +1538,6 @@ def format_percentiles(
     >>> format_percentiles([0, 0.5, 0.02001, 0.5, 0.666666, 0.9999])
     ['0%', '50%', '2.0%', '50%', '66.67%', '99.99%']
     """
-
     percentiles = np.asarray(percentiles)
 
     # It checks for np.NaN as well
@@ -1579,7 +1575,7 @@ def _is_dates_only(
     values: Union[np.ndarray, DatetimeArray, Index, DatetimeIndex]
 ) -> bool:
     # return a boolean if we are only dates (and don't have a timezone)
-    assert values.ndim == 1
+    values = values.ravel()
 
     values = DatetimeIndex(values)
     if values.tz is not None:
@@ -1642,7 +1638,6 @@ def _get_format_datetime64_from_values(
     values: Union[np.ndarray, DatetimeArray, DatetimeIndex], date_format: Optional[str]
 ) -> Optional[str]:
     """ given values and a date_format, return a string format """
-
     if isinstance(values, np.ndarray) and values.ndim > 1:
         # We don't actually care about the order of values, and DatetimeIndex
         #  only accepts 1D values
@@ -1657,7 +1652,6 @@ def _get_format_datetime64_from_values(
 class Datetime64TZFormatter(Datetime64Formatter):
     def _format_strings(self) -> List[str]:
         """ we by definition have a TZ """
-
         values = self.values.astype(object)
         is_dates_only = _is_dates_only(values)
         formatter = self.formatter or _get_format_datetime64(
@@ -1698,7 +1692,6 @@ def _get_format_timedelta64(
 
     If box, then show the return in quotes
     """
-
     values_int = values.astype(np.int64)
 
     consider_values = values_int != iNaT
@@ -1707,14 +1700,9 @@ def _get_format_timedelta64(
     even_days = (
         np.logical_and(consider_values, values_int % one_day_nanos != 0).sum() == 0
     )
-    all_sub_day = (
-        np.logical_and(consider_values, np.abs(values_int) >= one_day_nanos).sum() == 0
-    )
 
     if even_days:
         format = None
-    elif all_sub_day:
-        format = "sub_day"
     else:
         format = "long"
 
@@ -1726,7 +1714,7 @@ def _get_format_timedelta64(
             x = Timedelta(x)
         result = x._repr_base(format=format)
         if box:
-            result = "'{res}'".format(res=result)
+            result = f"'{result}'"
         return result
 
     return _formatter
@@ -1765,19 +1753,21 @@ def _make_fixed_width(
     return result
 
 
-def _trim_zeros_complex(str_complexes: np.ndarray, na_rep: str = "NaN") -> List[str]:
+def _trim_zeros_complex(
+    str_complexes: np.ndarray, decimal: str = ".", na_rep: str = "NaN"
+) -> List[str]:
     """
     Separates the real and imaginary parts from the complex number, and
     executes the _trim_zeros_float method on each of those.
     """
     return [
-        "".join(_trim_zeros_float(re.split(r"([j+-])", x), na_rep))
+        "".join(_trim_zeros_float(re.split(r"([j+-])", x), decimal, na_rep))
         for x in str_complexes
     ]
 
 
 def _trim_zeros_float(
-    str_floats: Union[np.ndarray, List[str]], na_rep: str = "NaN"
+    str_floats: Union[np.ndarray, List[str]], decimal: str = ".", na_rep: str = "NaN"
 ) -> List[str]:
     """
     Trims zeros, leaving just one before the decimal points if need be.
@@ -1789,8 +1779,11 @@ def _trim_zeros_float(
 
     def _cond(values):
         finite = [x for x in values if _is_number(x)]
+        has_decimal = [decimal in x for x in finite]
+
         return (
             len(finite) > 0
+            and all(has_decimal)
             and all(x.endswith("0") for x in finite)
             and not (any(("e" in x) or ("E" in x) for x in finite))
         )
@@ -1799,11 +1792,11 @@ def _trim_zeros_float(
         trimmed = [x[:-1] if _is_number(x) else x for x in trimmed]
 
     # leave one 0 after the decimal points if need be.
-    return [x + "0" if x.endswith(".") and _is_number(x) else x for x in trimmed]
+    return [x + "0" if x.endswith(decimal) and _is_number(x) else x for x in trimmed]
 
 
 def _has_names(index: Index) -> bool:
-    if isinstance(index, ABCMultiIndex):
+    if isinstance(index, MultiIndex):
         return com.any_not_none(*index.names)
     else:
         return index.name is not None
@@ -1842,7 +1835,8 @@ class EngFormatter:
         self.use_eng_prefix = use_eng_prefix
 
     def __call__(self, num: Union[int, float]) -> str:
-        """ Formats a number in engineering notation, appending a letter
+        """
+        Formats a number in engineering notation, appending a letter
         representing the power of 1000 of the original number. Some examples:
 
         >>> format_eng(0)       # for self.accuracy = 0
@@ -1889,16 +1883,16 @@ class EngFormatter:
             prefix = self.ENG_PREFIXES[int_pow10]
         else:
             if int_pow10 < 0:
-                prefix = "E-{pow10:02d}".format(pow10=-int_pow10)
+                prefix = f"E-{-int_pow10:02d}"
             else:
-                prefix = "E+{pow10:02d}".format(pow10=int_pow10)
+                prefix = f"E+{int_pow10:02d}"
 
         mant = sign * dnum / (10 ** pow10)
 
         if self.accuracy is None:  # pragma: no cover
             format_str = "{mant: g}{prefix}"
         else:
-            format_str = "{{mant: .{acc:d}f}}{{prefix}}".format(acc=self.accuracy)
+            format_str = f"{{mant: .{self.accuracy:d}f}}{{prefix}}"
 
         formatted = format_str.format(mant=mant, prefix=prefix)
 
@@ -1913,7 +1907,6 @@ def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> Non
 
     See also EngFormatter.
     """
-
     set_option("display.float_format", EngFormatter(accuracy, use_eng_prefix))
     set_option("display.column_space", max(12, accuracy + 9))
 
@@ -1941,7 +1934,8 @@ def _binify(cols: List[int], line_width: int) -> List[int]:
 def get_level_lengths(
     levels: Any, sentinel: Union[bool, object, str] = ""
 ) -> List[Dict[int, int]]:
-    """For each index in each level the function returns lengths of indexes.
+    """
+    For each index in each level the function returns lengths of indexes.
 
     Parameters
     ----------

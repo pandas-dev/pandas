@@ -1,29 +1,27 @@
 import pytest
 
-import pandas._testing as tm
-from pandas.core.indexes.api import Index, MultiIndex
 
-indices_dict = {
-    "unicode": tm.makeUnicodeIndex(100),
-    "string": tm.makeStringIndex(100),
-    "datetime": tm.makeDateIndex(100),
-    "datetime-tz": tm.makeDateIndex(100, tz="US/Pacific"),
-    "period": tm.makePeriodIndex(100),
-    "timedelta": tm.makeTimedeltaIndex(100),
-    "int": tm.makeIntIndex(100),
-    "uint": tm.makeUIntIndex(100),
-    "range": tm.makeRangeIndex(100),
-    "float": tm.makeFloatIndex(100),
-    "bool": tm.makeBoolIndex(2),
-    "categorical": tm.makeCategoricalIndex(100),
-    "interval": tm.makeIntervalIndex(100),
-    "empty": Index([]),
-    "tuples": MultiIndex.from_tuples(zip(["foo", "bar", "baz"], [1, 2, 3])),
-    "repeats": Index([0, 0, 1, 1, 2, 2]),
-}
+@pytest.fixture(params=[None, False])
+def sort(request):
+    """
+    Valid values for the 'sort' parameter used in the Index
+    setops methods (intersection, union, etc.)
+
+    Caution:
+        Don't confuse this one with the "sort" fixture used
+        for DataFrame.append or concat. That one has
+        parameters [True, False].
+
+        We can't combine them as sort=True is not permitted
+        in in the Index setops methods.
+    """
+    return request.param
 
 
-@pytest.fixture(params=indices_dict.keys())
-def indices(request):
-    # copy to avoid mutation, e.g. setting .name
-    return indices_dict[request.param].copy()
+@pytest.fixture(params=["D", "3D", "-3D", "H", "2H", "-2H", "T", "2T", "S", "-3S"])
+def freq_sample(request):
+    """
+    Valid values for 'freq' parameter used to create date_range and
+    timedelta_range..
+    """
+    return request.param

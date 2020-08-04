@@ -193,11 +193,10 @@ class TestPDApi(Base):
         "_hashtable",
         "_lib",
         "_libs",
-        "_np_version_under1p14",
-        "_np_version_under1p15",
         "_np_version_under1p16",
         "_np_version_under1p17",
         "_np_version_under1p18",
+        "_is_numpy_dev",
         "_testing",
         "_tslib",
         "_typing",
@@ -268,8 +267,9 @@ def test_sparsearray():
 
 
 def test_np():
-    import numpy as np
     import warnings
+
+    import numpy as np
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", FutureWarning)

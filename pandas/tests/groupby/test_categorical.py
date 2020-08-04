@@ -3,7 +3,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.compat import PY37
+from pandas.compat import PY37, is_platform_windows
 
 import pandas as pd
 from pandas import (
@@ -13,6 +13,7 @@ from pandas import (
     Index,
     MultiIndex,
     Series,
+    _np_version_under1p17,
     qcut,
 )
 import pandas._testing as tm
@@ -20,7 +21,8 @@ import pandas._testing as tm
 
 def cartesian_product_for_groupers(result, args, names):
     """ Reindex to a cartesian production for the groupers,
-    preserving the nature (Categorical) of each grouper """
+    preserving the nature (Categorical) of each grouper
+    """
 
     def f(a):
         if isinstance(a, (CategoricalIndex, Categorical)):
@@ -32,6 +34,41 @@ def cartesian_product_for_groupers(result, args, names):
 
     index = MultiIndex.from_product(map(f, args), names=names)
     return result.reindex(index).sort_index()
+
+
+_results_for_groupbys_with_missing_categories = dict(
+    # This maps the builtin groupby functions to their expected outputs for
+    # missing categories when they are called on a categorical grouper with
+    # observed=False. Some functions are expected to return NaN, some zero.
+    # These expected values can be used across several tests (i.e. they are
+    # the same for SeriesGroupBy and DataFrameGroupBy) but they should only be
+    # hardcoded in one place.
+    [
+        ("all", np.NaN),
+        ("any", np.NaN),
+        ("count", 0),
+        ("corrwith", np.NaN),
+        ("first", np.NaN),
+        ("idxmax", np.NaN),
+        ("idxmin", np.NaN),
+        ("last", np.NaN),
+        ("mad", np.NaN),
+        ("max", np.NaN),
+        ("mean", np.NaN),
+        ("median", np.NaN),
+        ("min", np.NaN),
+        ("nth", np.NaN),
+        ("nunique", 0),
+        ("prod", np.NaN),
+        ("quantile", np.NaN),
+        ("sem", np.NaN),
+        ("size", 0),
+        ("skew", np.NaN),
+        ("std", np.NaN),
+        ("sum", 0),
+        ("var", np.NaN),
+    ]
+)
 
 
 def test_apply_use_categorical_name(df):
@@ -209,7 +246,10 @@ def test_level_get_group(observed):
 
 # GH#21636 flaky on py37; may be related to older numpy, see discussion
 #  https://github.com/MacPython/pandas-wheels/pull/64
-@pytest.mark.xfail(PY37, reason="Flaky, GH-27902", strict=False)
+@pytest.mark.xfail(
+    PY37 and _np_version_under1p17 and not is_platform_windows(),
+    reason="Flaky, GH-27902",
+)
 @pytest.mark.parametrize("ordered", [True, False])
 def test_apply(ordered):
     # GH 10138
@@ -497,9 +537,9 @@ def test_dataframe_categorical_ordered_observed_sort(ordered, observed, sort):
         aggr[aggr.isna()] = "missing"
     if not all(label == aggr):
         msg = (
-            f"Labels and aggregation results not consistently sorted\n"
-            + "for (ordered={ordered}, observed={observed}, sort={sort})\n"
-            + "Result:\n{result}"
+            "Labels and aggregation results not consistently sorted\n"
+            f"for (ordered={ordered}, observed={observed}, sort={sort})\n"
+            f"Result:\n{result}"
         )
         assert False, msg
 
@@ -608,7 +648,8 @@ def test_bins_unequal_len():
     bins = pd.cut(series.dropna().values, 4)
 
     # len(bins) != len(series) here
-    with pytest.raises(ValueError):
+    msg = r"Length of grouper \(8\) and axis \(10\) must be same length"
+    with pytest.raises(ValueError, match=msg):
         series.groupby(bins).mean()
 
 
@@ -1225,10 +1266,10 @@ def test_groupby_categorical_axis_1(code):
     tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_cat_preserves_structure(observed, ordered_fixture):
+def test_groupby_cat_preserves_structure(observed, ordered):
     # GH 28787
     df = DataFrame(
-        {"Name": Categorical(["Bob", "Greg"], ordered=ordered_fixture), "Item": [1, 2]},
+        {"Name": Categorical(["Bob", "Greg"], ordered=ordered), "Item": [1, 2]},
         columns=["Name", "Item"],
     )
     expected = df.copy()
@@ -1253,13 +1294,16 @@ def test_get_nonexistent_category():
         )
 
 
-def test_series_groupby_on_2_categoricals_unobserved(
-    reduction_func: str, observed: bool
-):
+def test_series_groupby_on_2_categoricals_unobserved(reduction_func, observed, request):
     # GH 17605
-
     if reduction_func == "ngroup":
         pytest.skip("ngroup is not truly a reduction")
+
+    if reduction_func == "corrwith":  # GH 32293
+        mark = pytest.mark.xfail(
+            reason="TODO: implemented SeriesGroupBy.corrwith. See GH 32293"
+        )
+        request.node.add_marker(mark)
 
     df = pd.DataFrame(
         {
@@ -1279,36 +1323,30 @@ def test_series_groupby_on_2_categoricals_unobserved(
     assert len(result) == expected_length
 
 
-@pytest.mark.parametrize(
-    "func, zero_or_nan",
-    [
-        ("all", np.NaN),
-        ("any", np.NaN),
-        ("count", 0),
-        ("first", np.NaN),
-        ("idxmax", np.NaN),
-        ("idxmin", np.NaN),
-        ("last", np.NaN),
-        ("mad", np.NaN),
-        ("max", np.NaN),
-        ("mean", np.NaN),
-        ("median", np.NaN),
-        ("min", np.NaN),
-        ("nth", np.NaN),
-        ("nunique", 0),
-        ("prod", np.NaN),
-        ("quantile", np.NaN),
-        ("sem", np.NaN),
-        ("size", 0),
-        ("skew", np.NaN),
-        ("std", np.NaN),
-        ("sum", np.NaN),
-        ("var", np.NaN),
-    ],
-)
-def test_series_groupby_on_2_categoricals_unobserved_zeroes_or_nans(func, zero_or_nan):
+def test_series_groupby_on_2_categoricals_unobserved_zeroes_or_nans(
+    reduction_func, request
+):
     # GH 17605
     # Tests whether the unobserved categories in the result contain 0 or NaN
+
+    if reduction_func == "ngroup":
+        pytest.skip("ngroup is not truly a reduction")
+
+    if reduction_func == "corrwith":  # GH 32293
+        mark = pytest.mark.xfail(
+            reason="TODO: implemented SeriesGroupBy.corrwith. See GH 32293"
+        )
+        request.node.add_marker(mark)
+
+    if reduction_func == "sum":  # GH 31422
+        mark = pytest.mark.xfail(
+            reason=(
+                "sum should return 0 but currently returns NaN. "
+                "This is a known bug. See GH 31422."
+            )
+        )
+        request.node.add_marker(mark)
+
     df = pd.DataFrame(
         {
             "cat_1": pd.Categorical(list("AABB"), categories=list("ABC")),
@@ -1317,11 +1355,13 @@ def test_series_groupby_on_2_categoricals_unobserved_zeroes_or_nans(func, zero_o
         }
     )
     unobserved = [tuple("AC"), tuple("BC"), tuple("CA"), tuple("CB"), tuple("CC")]
-    args = {"nth": [0]}.get(func, [])
+    args = {"nth": [0]}.get(reduction_func, [])
 
     series_groupby = df.groupby(["cat_1", "cat_2"], observed=False)["value"]
-    agg = getattr(series_groupby, func)
+    agg = getattr(series_groupby, reduction_func)
     result = agg(*args)
+
+    zero_or_nan = _results_for_groupbys_with_missing_categories[reduction_func]
 
     for idx in unobserved:
         val = result.loc[idx]
@@ -1330,6 +1370,84 @@ def test_series_groupby_on_2_categoricals_unobserved_zeroes_or_nans(func, zero_o
     # If we expect unobserved values to be zero, we also expect the dtype to be int
     if zero_or_nan == 0:
         assert np.issubdtype(result.dtype, np.integer)
+
+
+def test_dataframe_groupby_on_2_categoricals_when_observed_is_true(reduction_func):
+    # GH 23865
+    # GH 27075
+    # Ensure that df.groupby, when 'by' is two pd.Categorical variables,
+    # does not return the categories that are not in df when observed=True
+    if reduction_func == "ngroup":
+        pytest.skip("ngroup does not return the Categories on the index")
+
+    df = pd.DataFrame(
+        {
+            "cat_1": pd.Categorical(list("AABB"), categories=list("ABC")),
+            "cat_2": pd.Categorical(list("1111"), categories=list("12")),
+            "value": [0.1, 0.1, 0.1, 0.1],
+        }
+    )
+    unobserved_cats = [("A", "2"), ("B", "2"), ("C", "1"), ("C", "2")]
+
+    df_grp = df.groupby(["cat_1", "cat_2"], observed=True)
+
+    args = {"nth": [0], "corrwith": [df]}.get(reduction_func, [])
+    res = getattr(df_grp, reduction_func)(*args)
+
+    for cat in unobserved_cats:
+        assert cat not in res.index
+
+
+@pytest.mark.parametrize("observed", [False, None])
+def test_dataframe_groupby_on_2_categoricals_when_observed_is_false(
+    reduction_func, observed, request
+):
+    # GH 23865
+    # GH 27075
+    # Ensure that df.groupby, when 'by' is two pd.Categorical variables,
+    # returns the categories that are not in df when observed=False/None
+
+    if reduction_func == "ngroup":
+        pytest.skip("ngroup does not return the Categories on the index")
+
+    if reduction_func == "count":  # GH 35028
+        mark = pytest.mark.xfail(
+            reason=(
+                "DataFrameGroupBy.count returns np.NaN for missing "
+                "categories, when it should return 0. See GH 35028"
+            )
+        )
+        request.node.add_marker(mark)
+
+    if reduction_func == "sum":  # GH 31422
+        mark = pytest.mark.xfail(
+            reason=(
+                "sum should return 0 but currently returns NaN. "
+                "This is a known bug. See GH 31422."
+            )
+        )
+        request.node.add_marker(mark)
+
+    df = pd.DataFrame(
+        {
+            "cat_1": pd.Categorical(list("AABB"), categories=list("ABC")),
+            "cat_2": pd.Categorical(list("1111"), categories=list("12")),
+            "value": [0.1, 0.1, 0.1, 0.1],
+        }
+    )
+    unobserved_cats = [("A", "2"), ("B", "2"), ("C", "1"), ("C", "2")]
+
+    df_grp = df.groupby(["cat_1", "cat_2"], observed=observed)
+
+    args = {"nth": [0], "corrwith": [df]}.get(reduction_func, [])
+    res = getattr(df_grp, reduction_func)(*args)
+
+    expected = _results_for_groupbys_with_missing_categories[reduction_func]
+
+    if expected is np.nan:
+        assert res.loc[unobserved_cats].isnull().all().all()
+    else:
+        assert (res.loc[unobserved_cats] == expected).all().all()
 
 
 def test_series_groupby_categorical_aggregation_getitem():
@@ -1375,4 +1493,227 @@ def test_groupby_agg_non_numeric():
     tm.assert_frame_equal(result, expected)
 
     result = df.groupby([1, 2, 1]).nunique()
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", ["first", "last"])
+def test_groupy_first_returned_categorical_instead_of_dataframe(func):
+    # GH 28641: groupby drops index, when grouping over categorical column with
+    # first/last. Renamed Categorical instead of DataFrame previously.
+    df = pd.DataFrame(
+        {"A": [1997], "B": pd.Series(["b"], dtype="category").cat.as_ordered()}
+    )
+    df_grouped = df.groupby("A")["B"]
+    result = getattr(df_grouped, func)()
+    expected = pd.Series(["b"], index=pd.Index([1997], name="A"), name="B")
+    tm.assert_series_equal(result, expected)
+
+
+def test_read_only_category_no_sort():
+    # GH33410
+    cats = np.array([1, 2])
+    cats.flags.writeable = False
+    df = DataFrame(
+        {"a": [1, 3, 5, 7], "b": Categorical([1, 1, 2, 2], categories=Index(cats))}
+    )
+    expected = DataFrame(data={"a": [2, 6]}, index=CategoricalIndex([1, 2], name="b"))
+    result = df.groupby("b", sort=False).mean()
+    tm.assert_frame_equal(result, expected)
+
+
+def test_sorted_missing_category_values():
+    # GH 28597
+    df = pd.DataFrame(
+        {
+            "foo": [
+                "small",
+                "large",
+                "large",
+                "large",
+                "medium",
+                "large",
+                "large",
+                "medium",
+            ],
+            "bar": ["C", "A", "A", "C", "A", "C", "A", "C"],
+        }
+    )
+    df["foo"] = (
+        df["foo"]
+        .astype("category")
+        .cat.set_categories(["tiny", "small", "medium", "large"], ordered=True)
+    )
+
+    expected = pd.DataFrame(
+        {
+            "tiny": {"A": 0, "C": 0},
+            "small": {"A": 0, "C": 1},
+            "medium": {"A": 1, "C": 1},
+            "large": {"A": 3, "C": 2},
+        }
+    )
+    expected = expected.rename_axis("bar", axis="index")
+    expected.columns = pd.CategoricalIndex(
+        ["tiny", "small", "medium", "large"],
+        categories=["tiny", "small", "medium", "large"],
+        ordered=True,
+        name="foo",
+        dtype="category",
+    )
+
+    result = df.groupby(["bar", "foo"]).size().unstack()
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_cython_category_not_implemented_fallback():
+    # https://github.com/pandas-dev/pandas/issues/31450
+    df = pd.DataFrame({"col_num": [1, 1, 2, 3]})
+    df["col_cat"] = df["col_num"].astype("category")
+
+    result = df.groupby("col_num").col_cat.first()
+    expected = pd.Series(
+        [1, 2, 3], index=pd.Index([1, 2, 3], name="col_num"), name="col_cat"
+    )
+    tm.assert_series_equal(result, expected)
+
+    result = df.groupby("col_num").agg({"col_cat": "first"})
+    expected = expected.to_frame()
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", ["min", "max"])
+def test_aggregate_categorical_lost_index(func: str):
+    # GH: 28641 groupby drops index, when grouping over categorical column with min/max
+    ds = pd.Series(["b"], dtype="category").cat.as_ordered()
+    df = pd.DataFrame({"A": [1997], "B": ds})
+    result = df.groupby("A").agg({"B": func})
+    expected = pd.DataFrame({"B": ["b"]}, index=pd.Index([1997], name="A"))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_aggregate_categorical_with_isnan():
+    # GH 29837
+    df = pd.DataFrame(
+        {
+            "A": [1, 1, 1, 1],
+            "B": [1, 2, 1, 2],
+            "numerical_col": [0.1, 0.2, np.nan, 0.3],
+            "object_col": ["foo", "bar", "foo", "fee"],
+            "categorical_col": ["foo", "bar", "foo", "fee"],
+        }
+    )
+
+    df = df.astype({"categorical_col": "category"})
+
+    result = df.groupby(["A", "B"]).agg(lambda df: df.isna().sum())
+    index = pd.MultiIndex.from_arrays([[1, 1], [1, 2]], names=("A", "B"))
+    expected = pd.DataFrame(
+        data={
+            "numerical_col": [1.0, 0.0],
+            "object_col": [0, 0],
+            "categorical_col": [0, 0],
+        },
+        index=index,
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_categorical_transform():
+    # GH 29037
+    df = pd.DataFrame(
+        {
+            "package_id": [1, 1, 1, 2, 2, 3],
+            "status": [
+                "Waiting",
+                "OnTheWay",
+                "Delivered",
+                "Waiting",
+                "OnTheWay",
+                "Waiting",
+            ],
+        }
+    )
+
+    delivery_status_type = pd.CategoricalDtype(
+        categories=["Waiting", "OnTheWay", "Delivered"], ordered=True
+    )
+    df["status"] = df["status"].astype(delivery_status_type)
+    df["last_status"] = df.groupby("package_id")["status"].transform(max)
+    result = df.copy()
+
+    expected = pd.DataFrame(
+        {
+            "package_id": [1, 1, 1, 2, 2, 3],
+            "status": [
+                "Waiting",
+                "OnTheWay",
+                "Delivered",
+                "Waiting",
+                "OnTheWay",
+                "Waiting",
+            ],
+            "last_status": [
+                "Delivered",
+                "Delivered",
+                "Delivered",
+                "OnTheWay",
+                "OnTheWay",
+                "Waiting",
+            ],
+        }
+    )
+
+    expected["status"] = expected["status"].astype(delivery_status_type)
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", ["first", "last"])
+def test_series_groupby_first_on_categorical_col_grouped_on_2_categoricals(
+    func: str, observed: bool
+):
+    # GH 34951
+    cat = pd.Categorical([0, 0, 1, 1])
+    val = [0, 1, 1, 0]
+    df = pd.DataFrame({"a": cat, "b": cat, "c": val})
+
+    idx = pd.Categorical([0, 1])
+    idx = pd.MultiIndex.from_product([idx, idx], names=["a", "b"])
+    expected_dict = {
+        "first": pd.Series([0, np.NaN, np.NaN, 1], idx, name="c"),
+        "last": pd.Series([1, np.NaN, np.NaN, 0], idx, name="c"),
+    }
+
+    expected = expected_dict[func]
+    if observed:
+        expected = expected.dropna().astype(np.int64)
+
+    srs_grp = df.groupby(["a", "b"], observed=observed)["c"]
+    result = getattr(srs_grp, func)()
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", ["first", "last"])
+def test_df_groupby_first_on_categorical_col_grouped_on_2_categoricals(
+    func: str, observed: bool
+):
+    # GH 34951
+    cat = pd.Categorical([0, 0, 1, 1])
+    val = [0, 1, 1, 0]
+    df = pd.DataFrame({"a": cat, "b": cat, "c": val})
+
+    idx = pd.Categorical([0, 1])
+    idx = pd.MultiIndex.from_product([idx, idx], names=["a", "b"])
+    expected_dict = {
+        "first": pd.Series([0, np.NaN, np.NaN, 1], idx, name="c"),
+        "last": pd.Series([1, np.NaN, np.NaN, 0], idx, name="c"),
+    }
+
+    expected = expected_dict[func].to_frame()
+    if observed:
+        expected = expected.dropna().astype(np.int64)
+
+    df_grp = df.groupby(["a", "b"], observed=observed)
+    result = getattr(df_grp, func)()
     tm.assert_frame_equal(result, expected)

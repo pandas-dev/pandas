@@ -229,7 +229,7 @@ def pprint_thing(
             max_seq_items=max_seq_items,
         )
     elif isinstance(thing, str) and quote_strings:
-        result = "'{thing}'".format(thing=as_escaped_string(thing))
+        result = f"'{as_escaped_string(thing)}'"
     else:
         result = as_escaped_string(thing)
 
@@ -276,9 +276,13 @@ def _enable_data_resource_formatter(enable: bool) -> None:
             formatters[mimetype].enabled = False
 
 
-default_pprint = lambda x, max_seq_items=None: pprint_thing(
-    x, escape_chars=("\t", "\r", "\n"), quote_strings=True, max_seq_items=max_seq_items
-)
+def default_pprint(thing: Any, max_seq_items: Optional[int] = None) -> str:
+    return pprint_thing(
+        thing,
+        escape_chars=("\t", "\r", "\n"),
+        quote_strings=True,
+        max_seq_items=max_seq_items,
+    )
 
 
 def format_object_summary(

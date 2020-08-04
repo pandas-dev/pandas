@@ -1,15 +1,28 @@
 import cython
 from cython import Py_ssize_t
-
 import numpy as np
+
 cimport numpy as cnp
-from numpy cimport (ndarray,
-                    int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
-                    uint32_t, uint64_t, float32_t, float64_t)
+from numpy cimport (
+    float32_t,
+    float64_t,
+    int8_t,
+    int16_t,
+    int32_t,
+    int64_t,
+    ndarray,
+    uint8_t,
+    uint16_t,
+    uint32_t,
+    uint64_t,
+)
+
 cnp.import_array()
 
 from pandas._libs.algos import (
-    groupsort_indexer, ensure_platform_int, take_1d_int64_int64
+    ensure_platform_int,
+    groupsort_indexer,
+    take_1d_int64_int64,
 )
 
 
@@ -66,7 +79,7 @@ def inner_join(const int64_t[:] left, const int64_t[:] right,
 
 @cython.boundscheck(False)
 def left_outer_join(const int64_t[:] left, const int64_t[:] right,
-                    Py_ssize_t max_groups, sort=True):
+                    Py_ssize_t max_groups, bint sort=True):
     cdef:
         Py_ssize_t i, j, k, count = 0
         ndarray[int64_t] left_count, right_count, left_sorter, right_sorter
@@ -242,6 +255,8 @@ ctypedef fused join_t:
     float64_t
     float32_t
     object
+    int8_t
+    int16_t
     int32_t
     int64_t
     uint64_t
@@ -626,7 +641,11 @@ def outer_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
 # ----------------------------------------------------------------------
 
 from pandas._libs.hashtable cimport (
-    HashTable, PyObjectHashTable, UInt64HashTable, Int64HashTable)
+    HashTable,
+    Int64HashTable,
+    PyObjectHashTable,
+    UInt64HashTable,
+)
 
 ctypedef fused asof_t:
     uint8_t
@@ -656,7 +675,7 @@ def asof_join_backward_on_X_by_Y(asof_t[:] left_values,
     cdef:
         Py_ssize_t left_pos, right_pos, left_size, right_size, found_right_pos
         ndarray[int64_t] left_indexer, right_indexer
-        bint has_tolerance = 0
+        bint has_tolerance = False
         asof_t tolerance_ = 0
         asof_t diff = 0
         HashTable hash_table
@@ -664,7 +683,7 @@ def asof_join_backward_on_X_by_Y(asof_t[:] left_values,
 
     # if we are using tolerance, set our objects
     if tolerance is not None:
-        has_tolerance = 1
+        has_tolerance = True
         tolerance_ = tolerance
 
     left_size = len(left_values)
@@ -725,7 +744,7 @@ def asof_join_forward_on_X_by_Y(asof_t[:] left_values,
     cdef:
         Py_ssize_t left_pos, right_pos, left_size, right_size, found_right_pos
         ndarray[int64_t] left_indexer, right_indexer
-        bint has_tolerance = 0
+        bint has_tolerance = False
         asof_t tolerance_ = 0
         asof_t diff = 0
         HashTable hash_table
@@ -733,7 +752,7 @@ def asof_join_forward_on_X_by_Y(asof_t[:] left_values,
 
     # if we are using tolerance, set our objects
     if tolerance is not None:
-        has_tolerance = 1
+        has_tolerance = True
         tolerance_ = tolerance
 
     left_size = len(left_values)
@@ -788,7 +807,7 @@ def asof_join_nearest_on_X_by_Y(asof_t[:] left_values,
                                 asof_t[:] right_values,
                                 by_t[:] left_by_values,
                                 by_t[:] right_by_values,
-                                bint allow_exact_matches=1,
+                                bint allow_exact_matches=True,
                                 tolerance=None):
 
     cdef:
@@ -803,18 +822,22 @@ def asof_join_nearest_on_X_by_Y(asof_t[:] left_values,
     right_indexer = np.empty(left_size, dtype=np.int64)
 
     # search both forward and backward
-    bli, bri = asof_join_backward_on_X_by_Y(left_values,
-                                            right_values,
-                                            left_by_values,
-                                            right_by_values,
-                                            allow_exact_matches,
-                                            tolerance)
-    fli, fri = asof_join_forward_on_X_by_Y(left_values,
-                                           right_values,
-                                           left_by_values,
-                                           right_by_values,
-                                           allow_exact_matches,
-                                           tolerance)
+    bli, bri = asof_join_backward_on_X_by_Y(
+        left_values,
+        right_values,
+        left_by_values,
+        right_by_values,
+        allow_exact_matches,
+        tolerance,
+    )
+    fli, fri = asof_join_forward_on_X_by_Y(
+        left_values,
+        right_values,
+        left_by_values,
+        right_by_values,
+        allow_exact_matches,
+        tolerance,
+    )
 
     for i in range(len(bri)):
         # choose timestamp from right with smaller difference
@@ -835,19 +858,19 @@ def asof_join_nearest_on_X_by_Y(asof_t[:] left_values,
 
 def asof_join_backward(asof_t[:] left_values,
                        asof_t[:] right_values,
-                       bint allow_exact_matches=1,
+                       bint allow_exact_matches=True,
                        tolerance=None):
 
     cdef:
         Py_ssize_t left_pos, right_pos, left_size, right_size
         ndarray[int64_t] left_indexer, right_indexer
-        bint has_tolerance = 0
+        bint has_tolerance = False
         asof_t tolerance_ = 0
         asof_t diff = 0
 
     # if we are using tolerance, set our objects
     if tolerance is not None:
-        has_tolerance = 1
+        has_tolerance = True
         tolerance_ = tolerance
 
     left_size = len(left_values)
@@ -888,19 +911,19 @@ def asof_join_backward(asof_t[:] left_values,
 
 def asof_join_forward(asof_t[:] left_values,
                       asof_t[:] right_values,
-                      bint allow_exact_matches=1,
+                      bint allow_exact_matches=True,
                       tolerance=None):
 
     cdef:
         Py_ssize_t left_pos, right_pos, left_size, right_size
         ndarray[int64_t] left_indexer, right_indexer
-        bint has_tolerance = 0
+        bint has_tolerance = False
         asof_t tolerance_ = 0
         asof_t diff = 0
 
     # if we are using tolerance, set our objects
     if tolerance is not None:
-        has_tolerance = 1
+        has_tolerance = True
         tolerance_ = tolerance
 
     left_size = len(left_values)
@@ -942,7 +965,7 @@ def asof_join_forward(asof_t[:] left_values,
 
 def asof_join_nearest(asof_t[:] left_values,
                       asof_t[:] right_values,
-                      bint allow_exact_matches=1,
+                      bint allow_exact_matches=True,
                       tolerance=None):
 
     cdef:

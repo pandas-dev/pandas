@@ -558,11 +558,13 @@ def test_raises_on_usecols_names_mismatch(all_parsers, usecols, kwargs, expected
         tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(
-    reason="see gh-16469: works on the C engine but not the Python engine", strict=False
-)
 @pytest.mark.parametrize("usecols", [["A", "C"], [0, 2]])
-def test_usecols_subset_names_mismatch_orig_columns(all_parsers, usecols):
+def test_usecols_subset_names_mismatch_orig_columns(all_parsers, usecols, request):
+    if all_parsers.engine != "c":
+        reason = "see gh-16469: works on the C engine but not the Python engine"
+        # Number of passed names did not match number of header fields in the file
+        request.node.add_marker(pytest.mark.xfail(reason=reason, raises=ValueError))
+
     data = "a,b,c,d\n1,2,3,4\n5,6,7,8"
     names = ["A", "B", "C", "D"]
     parser = all_parsers

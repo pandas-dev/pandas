@@ -6,7 +6,7 @@ import pandas._testing as tm
 @pytest.fixture
 def setup_path():
     """Fixture for setup path"""
-    return "tmp.__{}__.h5".format(tm.rands(10))
+    return f"tmp.__{tm.rands(10)}__.h5"
 
 
 @pytest.fixture(scope="module", autouse=True)

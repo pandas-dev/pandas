@@ -196,7 +196,6 @@ def test_pickle_path_localpath():
     tm.assert_frame_equal(df, result)
 
 
-@pytest.mark.xfail(reason="GitHub issue #31310", strict=False)
 def test_legacy_sparse_warning(datapath):
     """
 
@@ -382,14 +381,23 @@ class TestProtocol:
             tm.assert_frame_equal(df, df2)
 
 
-def test_unicode_decode_error(datapath):
+@pytest.mark.parametrize(
+    ["pickle_file", "excols"],
+    [
+        ("test_py27.pkl", pd.Index(["a", "b", "c"])),
+        (
+            "test_mi_py27.pkl",
+            pd.MultiIndex.from_arrays([["a", "b", "c"], ["A", "B", "C"]]),
+        ),
+    ],
+)
+def test_unicode_decode_error(datapath, pickle_file, excols):
     # pickle file written with py27, should be readable without raising
-    #  UnicodeDecodeError, see GH#28645
-    path = datapath("io", "data", "pickle", "test_py27.pkl")
+    #  UnicodeDecodeError, see GH#28645 and GH#31988
+    path = datapath("io", "data", "pickle", pickle_file)
     df = pd.read_pickle(path)
 
     # just test the columns are correct since the values are random
-    excols = pd.Index(["a", "b", "c"])
     tm.assert_index_equal(df.columns, excols)
 
 
@@ -447,42 +455,10 @@ def test_pickle_generalurl_read(monkeypatch, mockurl):
         tm.assert_frame_equal(df, result)
 
 
-@td.skip_if_no("gcsfs")
-@pytest.mark.parametrize("mockurl", ["gs://gcs.com", "gcs://gcs.com"])
-def test_pickle_gcsurl_roundtrip(monkeypatch, mockurl):
-    with tm.ensure_clean() as path:
-
-        class MockGCSFileSystem:
-            def __init__(self, *args, **kwargs):
-                pass
-
-            def open(self, *args):
-                mode = args[1] or None
-                f = open(path, mode)
-                return f
-
-        monkeypatch.setattr("gcsfs.GCSFileSystem", MockGCSFileSystem)
-        df = tm.makeDataFrame()
-        df.to_pickle(mockurl)
-        result = pd.read_pickle(mockurl)
-        tm.assert_frame_equal(df, result)
-
-
-@td.skip_if_no("s3fs")
-@pytest.mark.parametrize("mockurl", ["s3://s3.com", "s3n://s3.com", "s3a://s3.com"])
-def test_pickle_s3url_roundtrip(monkeypatch, mockurl):
-    with tm.ensure_clean() as path:
-
-        class MockS3FileSystem:
-            def __init__(self, *args, **kwargs):
-                pass
-
-            def open(self, *args):
-                mode = args[1] or None
-                f = open(path, mode)
-                return f
-
-        monkeypatch.setattr("s3fs.S3FileSystem", MockS3FileSystem)
+@td.skip_if_no("fsspec")
+def test_pickle_fsspec_roundtrip():
+    with tm.ensure_clean():
+        mockurl = "memory://afile"
         df = tm.makeDataFrame()
         df.to_pickle(mockurl)
         result = pd.read_pickle(mockurl)

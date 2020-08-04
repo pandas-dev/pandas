@@ -2,7 +2,7 @@ import codecs
 from functools import wraps
 import re
 import textwrap
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Type, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Pattern, Type, Union
 import warnings
 
 import numpy as np
@@ -10,7 +10,7 @@ import numpy as np
 import pandas._libs.lib as lib
 import pandas._libs.missing as libmissing
 import pandas._libs.ops as libops
-from pandas._typing import ArrayLike, Dtype
+from pandas._typing import ArrayLike, Dtype, Scalar
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
@@ -36,7 +36,6 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.algorithms import take_1d
 from pandas.core.base import NoNewAttributesMixin
-import pandas.core.common as com
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
@@ -119,7 +118,7 @@ def cat_safe(list_of_columns: List, sep: str):
     return result
 
 
-def _na_map(f, arr, na_result=None, dtype=object):
+def _na_map(f, arr, na_result=None, dtype=np.dtype(object)):
     if is_extension_array_dtype(arr.dtype):
         if na_result is None:
             na_result = libmissing.NA
@@ -135,7 +134,7 @@ def _map_stringarray(
     func: Callable[[str], Any], arr: "StringArray", na_value: Any, dtype: Dtype
 ) -> ArrayLike:
     """
-    Map a callable over valid elements of a StringArrray.
+    Map a callable over valid elements of a StringArray.
 
     Parameters
     ----------
@@ -156,7 +155,7 @@ def _map_stringarray(
         an ndarray.
 
     """
-    from pandas.arrays import IntegerArray, StringArray, BooleanArray
+    from pandas.arrays import BooleanArray, IntegerArray, StringArray
 
     mask = isna(arr)
 
@@ -201,12 +200,12 @@ def _map_stringarray(
         return lib.map_infer_mask(arr, func, mask.view("uint8"))
 
 
-def _map_object(f, arr, na_mask=False, na_value=np.nan, dtype=object):
+def _map_object(f, arr, na_mask=False, na_value=np.nan, dtype=np.dtype(object)):
     if not len(arr):
         return np.ndarray(0, dtype=dtype)
 
     if isinstance(arr, ABCSeries):
-        arr = arr.values
+        arr = arr._values  # TODO: extract_array?
     if not isinstance(arr, np.ndarray):
         arr = np.asarray(arr, dtype=object)
     if na_mask:
@@ -349,7 +348,6 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
 
     Examples
     --------
-
     Returning a Series of booleans using only a literal pattern.
 
     >>> s1 = pd.Series(['Mouse', 'dog', 'house and parrot', '23', np.NaN])
@@ -448,7 +446,7 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
                 stacklevel=3,
             )
 
-        f = lambda x: bool(regex.search(x))
+        f = lambda x: regex.search(x) is not None
     else:
         if case:
             f = lambda x: pat in x
@@ -456,8 +454,8 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
             upper_pat = pat.upper()
             f = lambda x: upper_pat in x
             uppered = _na_map(lambda x: x.upper(), arr)
-            return _na_map(f, uppered, na, dtype=bool)
-    return _na_map(f, arr, na, dtype=bool)
+            return _na_map(f, uppered, na, dtype=np.dtype(bool))
+    return _na_map(f, arr, na, dtype=np.dtype(bool))
 
 
 def str_startswith(arr, pat, na=np.nan):
@@ -512,7 +510,7 @@ def str_startswith(arr, pat, na=np.nan):
     dtype: bool
     """
     f = lambda x: x.startswith(pat)
-    return _na_map(f, arr, na, dtype=bool)
+    return _na_map(f, arr, na, dtype=np.dtype(bool))
 
 
 def str_endswith(arr, pat, na=np.nan):
@@ -567,14 +565,14 @@ def str_endswith(arr, pat, na=np.nan):
     dtype: bool
     """
     f = lambda x: x.endswith(pat)
-    return _na_map(f, arr, na, dtype=bool)
+    return _na_map(f, arr, na, dtype=np.dtype(bool))
 
 
 def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     r"""
-    Replace occurrences of pattern/regex in the Series/Index with
-    some other string. Equivalent to :meth:`str.replace` or
-    :func:`re.sub`.
+    Replace each occurrence of pattern/regex in the Series/Index.
+
+    Equivalent to :meth:`str.replace` or :func:`re.sub`, depending on the regex value.
 
     Parameters
     ----------
@@ -654,9 +652,9 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     To get the idea:
 
     >>> pd.Series(['foo', 'fuz', np.nan]).str.replace('f', repr)
-    0    <_sre.SRE_Match object; span=(0, 1), match='f'>oo
-    1    <_sre.SRE_Match object; span=(0, 1), match='f'>uz
-    2                                                  NaN
+    0    <re.Match object; span=(0, 1), match='f'>oo
+    1    <re.Match object; span=(0, 1), match='f'>uz
+    2                                            NaN
     dtype: object
 
     Reverse every lowercase alphabetic word:
@@ -687,7 +685,6 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     2    NaN
     dtype: object
     """
-
     # Check whether repl is valid (GH 13438, GH 15055)
     if not (isinstance(repl, str) or callable(repl)):
         raise TypeError("repl must be a string or callable")
@@ -778,19 +775,27 @@ def str_repeat(arr, repeats):
     else:
 
         def rep(x, r):
+            if x is libmissing.NA:
+                return x
             try:
                 return bytes.__mul__(x, r)
             except TypeError:
                 return str.__mul__(x, r)
 
         repeats = np.asarray(repeats, dtype=object)
-        result = libops.vec_binop(com.values_from_object(arr), repeats, rep)
+        result = libops.vec_binop(np.asarray(arr), repeats, rep)
         return result
 
 
-def str_match(arr, pat, case=True, flags=0, na=np.nan):
+def str_match(
+    arr: ArrayLike,
+    pat: Union[str, Pattern],
+    case: bool = True,
+    flags: int = 0,
+    na: Scalar = np.nan,
+):
     """
-    Determine if each string matches a regular expression.
+    Determine if each string starts with a match of a regular expression.
 
     Parameters
     ----------
@@ -809,6 +814,7 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan):
 
     See Also
     --------
+    fullmatch : Stricter matching that requires the entire string to match.
     contains : Analogous, but less strict, relying on re.search instead of
         re.match.
     extract : Extract matched groups.
@@ -818,10 +824,52 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan):
 
     regex = re.compile(pat, flags=flags)
 
-    dtype = bool
-    f = lambda x: bool(regex.match(x))
+    f = lambda x: regex.match(x) is not None
 
-    return _na_map(f, arr, na, dtype=dtype)
+    return _na_map(f, arr, na, dtype=np.dtype(bool))
+
+
+def str_fullmatch(
+    arr: ArrayLike,
+    pat: Union[str, Pattern],
+    case: bool = True,
+    flags: int = 0,
+    na: Scalar = np.nan,
+):
+    """
+    Determine if each string entirely matches a regular expression.
+
+    .. versionadded:: 1.1.0
+
+    Parameters
+    ----------
+    pat : str
+        Character sequence or regular expression.
+    case : bool, default True
+        If True, case sensitive.
+    flags : int, default 0 (no flags)
+        Regex module flags, e.g. re.IGNORECASE.
+    na : default NaN
+        Fill value for missing values.
+
+    Returns
+    -------
+    Series/array of boolean values
+
+    See Also
+    --------
+    match : Similar, but also returns `True` when only a *prefix* of the string
+        matches the regular expression.
+    extract : Extract matched groups.
+    """
+    if not case:
+        flags |= re.IGNORECASE
+
+    regex = re.compile(pat, flags=flags)
+
+    f = lambda x: regex.fullmatch(x) is not None
+
+    return _na_map(f, arr, na, dtype=np.dtype(bool))
 
 
 def _get_single_group_name(rx):
@@ -1015,6 +1063,8 @@ def str_extract(arr, pat, flags=0, expand=True):
 
 def str_extractall(arr, pat, flags=0):
     r"""
+    Extract capture groups in the regex `pat` as columns in DataFrame.
+
     For each subject string in the Series, extract groups from all
     matches of regular expression pat. When each subject string in the
     Series has exactly one match, extractall(pat).xs(0, level='match')
@@ -1085,7 +1135,6 @@ def str_extractall(arr, pat, flags=0):
     B 0          b     1
     C 0        NaN     1
     """
-
     regex = re.compile(pat, flags=flags)
     # the regex must contain capture groups.
     if regex.groups == 0:
@@ -1127,7 +1176,9 @@ def str_extractall(arr, pat, flags=0):
 
 def str_get_dummies(arr, sep="|"):
     """
-    Split each string in the Series by sep and return a DataFrame
+    Return DataFrame of dummy/indicator variables for Series.
+
+    Each string in Series is split by sep and returned as a DataFrame
     of dummy/indicator variables.
 
     Parameters
@@ -1276,7 +1327,6 @@ def str_findall(arr, pat, flags=0):
 
     Examples
     --------
-
     >>> s = pd.Series(['Lion', 'Monkey', 'Rabbit'])
 
     The search for the pattern 'Monkey' returns one match:
@@ -1358,7 +1408,6 @@ def str_find(arr, sub, start=0, end=None, side="left"):
     Series or Index
         Indexes where substring is found.
     """
-
     if not isinstance(sub, str):
         msg = f"expected a string object, not {type(sub).__name__}"
         raise TypeError(msg)
@@ -1375,7 +1424,7 @@ def str_find(arr, sub, start=0, end=None, side="left"):
     else:
         f = lambda x: getattr(x, method)(sub, start, end)
 
-    return _na_map(f, arr, dtype="int64")
+    return _na_map(f, arr, dtype=np.dtype("int64"))
 
 
 def str_index(arr, sub, start=0, end=None, side="left"):
@@ -1395,7 +1444,7 @@ def str_index(arr, sub, start=0, end=None, side="left"):
     else:
         f = lambda x: getattr(x, method)(sub, start, end)
 
-    return _na_map(f, arr, dtype="int64")
+    return _na_map(f, arr, dtype=np.dtype("int64"))
 
 
 def str_pad(arr, width, side="left", fillchar=" "):
@@ -1698,8 +1747,7 @@ def str_strip(arr, to_strip=None, side="both"):
 
 def str_wrap(arr, width, **kwargs):
     r"""
-    Wrap long strings in the Series/Index to be formatted in
-    paragraphs with length less than a given width.
+    Wrap strings in Series/Index at specified line width.
 
     This method has the same keyword parameters and defaults as
     :class:`textwrap.TextWrapper`.
@@ -1746,7 +1794,6 @@ def str_wrap(arr, width, **kwargs):
 
     Examples
     --------
-
     >>> s = pd.Series(['line to be wrapped', 'another line to be wrapped'])
     >>> s.str.wrap(12)
     0             line to be\nwrapped
@@ -1763,6 +1810,7 @@ def str_wrap(arr, width, **kwargs):
 def str_translate(arr, table):
     """
     Map all characters in the string through the given mapping table.
+
     Equivalent to standard :meth:`str.translate`.
 
     Parameters
@@ -1845,6 +1893,7 @@ def str_get(arr, i):
 def str_decode(arr, encoding, errors="strict"):
     """
     Decode character string in the Series/Index using indicated encoding.
+
     Equivalent to :meth:`str.decode` in python2 and :meth:`bytes.decode` in
     python3.
 
@@ -1869,6 +1918,7 @@ def str_decode(arr, encoding, errors="strict"):
 def str_encode(arr, encoding, errors="strict"):
     """
     Encode character string in the Series/Index using indicated encoding.
+
     Equivalent to :meth:`str.encode`.
 
     Parameters
@@ -1930,7 +1980,6 @@ def forbid_nonstring_types(forbidden, name=None):
     TypeError
         If the inferred type of the underlying data is in `forbidden`.
     """
-
     # deal with None
     forbidden = [] if forbidden is None else forbidden
 
@@ -1963,11 +2012,11 @@ def _noarg_wrapper(
     docstring=None,
     forbidden_types=["bytes"],
     returns_string=True,
-    **kargs,
+    **kwargs,
 ):
     @forbid_nonstring_types(forbidden_types, name=name)
     def wrapper(self):
-        result = _na_map(f, self._parent, **kargs)
+        result = _na_map(f, self._parent, **kwargs)
         return self._wrap_result(result, returns_string=returns_string)
 
     wrapper.__name__ = f.__name__ if name is None else name
@@ -2013,7 +2062,7 @@ def _pat_wrapper(
 
 
 def copy(source):
-    "Copy a docstring from another source function (if present)"
+    """Copy a docstring from another source function (if present)"""
 
     def do_copy(target):
         if source.__doc__:
@@ -2025,23 +2074,35 @@ def copy(source):
 
 class StringMethods(NoNewAttributesMixin):
     """
-    Vectorized string functions for Series and Index. NAs stay NA unless
-    handled otherwise by a particular method. Patterned after Python's string
-    methods, with some inspiration from R's stringr package.
+    Vectorized string functions for Series and Index.
+
+    NAs stay NA unless handled otherwise by a particular method.
+    Patterned after Python's string methods, with some inspiration from
+    R's stringr package.
 
     Examples
     --------
-    >>> s.str.split('_')
-    >>> s.str.replace('_', '')
+    >>> s = pd.Series(["A_Str_Series"])
+    >>> s
+    0    A_Str_Series
+    dtype: object
+
+    >>> s.str.split("_")
+    0    [A, Str, Series]
+    dtype: object
+
+    >>> s.str.replace("_", "")
+    0    AStrSeries
+    dtype: object
     """
 
     def __init__(self, data):
         self._inferred_dtype = self._validate(data)
-        self._is_categorical = is_categorical_dtype(data)
+        self._is_categorical = is_categorical_dtype(data.dtype)
         self._is_string = data.dtype.name == "string"
 
-        # .values.categories works for both Series/Index
-        self._parent = data.values.categories if self._is_categorical else data
+        # ._values.categories works for both Series/Index
+        self._parent = data._values.categories if self._is_categorical else data
         # save orig to blow up categoricals to the right type
         self._orig = data
         self._freeze()
@@ -2125,7 +2186,7 @@ class StringMethods(NoNewAttributesMixin):
         returns_string=True,
     ):
 
-        from pandas import Index, Series, MultiIndex
+        from pandas import Index, MultiIndex, Series
 
         # for category, we do the stuff on the categories, so blow it up
         # to the full series again
@@ -2231,7 +2292,7 @@ class StringMethods(NoNewAttributesMixin):
         list of Series
             Others transformed into list of Series.
         """
-        from pandas import Series, DataFrame
+        from pandas import DataFrame, Series
 
         # self._orig is either Series or Index
         idx = self._orig if isinstance(self._orig, ABCIndexClass) else self._orig.index
@@ -2242,7 +2303,7 @@ class StringMethods(NoNewAttributesMixin):
         if isinstance(others, ABCSeries):
             return [others]
         elif isinstance(others, ABCIndexClass):
-            return [Series(others.values, index=others)]
+            return [Series(others._values, index=idx)]
         elif isinstance(others, ABCDataFrame):
             return [others[x] for x in others]
         elif isinstance(others, np.ndarray) and others.ndim == 2:
@@ -2266,7 +2327,7 @@ class StringMethods(NoNewAttributesMixin):
             elif all(not is_list_like(x) for x in others):
                 return [Series(others, index=idx)]
         raise TypeError(
-            "others must be Series, Index, DataFrame, np.ndarrary "
+            "others must be Series, Index, DataFrame, np.ndarray "
             "or list-like (either containing only strings or "
             "containing only objects of type Series/Index/"
             "np.ndarray[1-dim])"
@@ -2432,12 +2493,12 @@ class StringMethods(NoNewAttributesMixin):
         try:
             # turn anything in "others" into lists of Series
             others = self._get_series_list(others)
-        except ValueError:  # do not catch TypeError raised by _get_series_list
+        except ValueError as err:  # do not catch TypeError raised by _get_series_list
             raise ValueError(
                 "If `others` contains arrays or lists (or other "
                 "list-likes without an index), these must all be "
                 "of the same length as the calling Series/Index."
-            )
+            ) from err
 
         # align if required
         if any(not data.index.equals(x.index) for x in others):
@@ -2504,7 +2565,7 @@ class StringMethods(NoNewAttributesMixin):
         Limit number of splits in output.
         ``None``, 0 and -1 will be interpreted as return all splits.
     expand : bool, default False
-        Expand the splitted strings into separate columns.
+        Expand the split strings into separate columns.
 
         * If ``True``, return DataFrame/MultiIndex expanding dimensionality.
         * If ``False``, return Series/Index, containing lists of strings.
@@ -2538,9 +2599,14 @@ class StringMethods(NoNewAttributesMixin):
 
     Examples
     --------
-    >>> s = pd.Series(["this is a regular sentence",
-    ...                "https://docs.python.org/3/tutorial/index.html",
-    ...                np.nan])
+    >>> s = pd.Series(
+    ...     [
+    ...         "this is a regular sentence",
+    ...         "https://docs.python.org/3/tutorial/index.html",
+    ...         np.nan
+    ...     ]
+    ... )
+    >>> s
     0                       this is a regular sentence
     1    https://docs.python.org/3/tutorial/index.html
     2                                              NaN
@@ -2580,7 +2646,7 @@ class StringMethods(NoNewAttributesMixin):
 
     The `pat` parameter can be used to split by other characters.
 
-    >>> s.str.split(pat = "/")
+    >>> s.str.split(pat="/")
     0                         [this is a regular sentence]
     1    [https:, , docs.python.org, 3, tutorial, index...
     2                                                  NaN
@@ -2591,14 +2657,10 @@ class StringMethods(NoNewAttributesMixin):
     the columns during the split.
 
     >>> s.str.split(expand=True)
-                                                   0     1     2        3
-    0                                           this    is     a  regular
-    1  https://docs.python.org/3/tutorial/index.html  None  None     None
-    2                                            NaN   NaN   NaN      NaN \
-                 4
-    0     sentence
-    1         None
-    2          NaN
+                                                   0     1     2        3         4
+    0                                           this    is     a  regular  sentence
+    1  https://docs.python.org/3/tutorial/index.html  None  None     None      None
+    2                                            NaN   NaN   NaN      NaN       NaN
 
     For slightly more complex use cases like splitting the html document name
     from a url, a combination of parameter settings can be used.
@@ -2613,7 +2675,9 @@ class StringMethods(NoNewAttributesMixin):
     expressions.
 
     >>> s = pd.Series(["1+1=2"])
-
+    >>> s
+    0    1+1=2
+    dtype: object
     >>> s.str.split(r"\+|=", expand=True)
          0    1    2
     0    1    1    2
@@ -2705,7 +2769,7 @@ class StringMethods(NoNewAttributesMixin):
     >>> idx.str.partition()
     MultiIndex([('X', ' ', '123'),
                 ('Y', ' ', '999')],
-               dtype='object')
+               )
 
     Or an index with tuples with ``expand=False``:
 
@@ -2768,6 +2832,12 @@ class StringMethods(NoNewAttributesMixin):
         result = str_match(self._parent, pat, case=case, flags=flags, na=na)
         return self._wrap_result(result, fill_value=na, returns_string=False)
 
+    @copy(str_fullmatch)
+    @forbid_nonstring_types(["bytes"])
+    def fullmatch(self, pat, case=True, flags=0, na=np.nan):
+        result = str_fullmatch(self._parent, pat, case=case, flags=flags, na=na)
+        return self._wrap_result(result, fill_value=na, returns_string=False)
+
     @copy(str_replace)
     @forbid_nonstring_types(["bytes"])
     def replace(self, pat, repl, n=-1, case=None, flags=0, regex=True):
@@ -2791,8 +2861,9 @@ class StringMethods(NoNewAttributesMixin):
     _shared_docs[
         "str_pad"
     ] = """
-    Filling %(side)s side of strings in the Series/Index with an
-    additional character. Equivalent to :meth:`str.%(method)s`.
+    Pad %(side)s side of strings in the Series/Index.
+
+    Equivalent to :meth:`str.%(method)s`.
 
     Parameters
     ----------
@@ -2913,7 +2984,7 @@ class StringMethods(NoNewAttributesMixin):
     _shared_docs[
         "str_strip"
     ] = r"""
-    Remove leading and trailing characters.
+    Remove %(position)s characters.
 
     Strip whitespaces (including newlines) or a set of specified characters
     from each string in the Series/Index from %(side)s.
@@ -2976,20 +3047,29 @@ class StringMethods(NoNewAttributesMixin):
     """
 
     @Appender(
-        _shared_docs["str_strip"] % dict(side="left and right sides", method="strip")
+        _shared_docs["str_strip"]
+        % dict(
+            side="left and right sides", method="strip", position="leading and trailing"
+        )
     )
     @forbid_nonstring_types(["bytes"])
     def strip(self, to_strip=None):
         result = str_strip(self._parent, to_strip, side="both")
         return self._wrap_result(result)
 
-    @Appender(_shared_docs["str_strip"] % dict(side="left side", method="lstrip"))
+    @Appender(
+        _shared_docs["str_strip"]
+        % dict(side="left side", method="lstrip", position="leading")
+    )
     @forbid_nonstring_types(["bytes"])
     def lstrip(self, to_strip=None):
         result = str_strip(self._parent, to_strip, side="left")
         return self._wrap_result(result)
 
-    @Appender(_shared_docs["str_strip"] % dict(side="right side", method="rstrip"))
+    @Appender(
+        _shared_docs["str_strip"]
+        % dict(side="right side", method="rstrip", position="trailing")
+    )
     @forbid_nonstring_types(["bytes"])
     def rstrip(self, to_strip=None):
         result = str_strip(self._parent, to_strip, side="right")
@@ -3046,9 +3126,11 @@ class StringMethods(NoNewAttributesMixin):
     _shared_docs[
         "find"
     ] = """
-    Return %(side)s indexes in each strings in the Series/Index
-    where the substring is fully contained between [start:end].
-    Return -1 on failure. Equivalent to standard :meth:`str.%(method)s`.
+    Return %(side)s indexes in each strings in the Series/Index.
+
+    Each of returned indexes corresponds to the position where the
+    substring is fully contained between [start:end]. Return -1 on
+    failure. Equivalent to standard :meth:`str.%(method)s`.
 
     Parameters
     ----------
@@ -3098,6 +3180,7 @@ class StringMethods(NoNewAttributesMixin):
     def normalize(self, form):
         """
         Return the Unicode normal form for the strings in the Series/Index.
+
         For more information on the forms, see the
         :func:`unicodedata.normalize`.
 
@@ -3119,10 +3202,13 @@ class StringMethods(NoNewAttributesMixin):
     _shared_docs[
         "index"
     ] = """
-    Return %(side)s indexes in each strings where the substring is
-    fully contained between [start:end]. This is the same as
-    ``str.%(similar)s`` except instead of returning -1, it raises a ValueError
-    when the substring is not found. Equivalent to standard ``str.%(method)s``.
+    Return %(side)s indexes in each string in Series/Index.
+
+    Each of the returned indexes corresponds to the position where the
+    substring is fully contained between [start:end]. This is the same
+    as ``str.%(similar)s`` except instead of returning -1, it raises a
+    ValueError when the substring is not found. Equivalent to standard
+    ``str.%(method)s``.
 
     Parameters
     ----------
@@ -3173,8 +3259,9 @@ class StringMethods(NoNewAttributesMixin):
     _shared_docs[
         "len"
     ] = """
-    Compute the length of each element in the Series/Index. The element may be
-    a sequence (such as a string, tuple or list) or a collection
+    Compute the length of each element in the Series/Index.
+
+    The element may be a sequence (such as a string, tuple or list) or a collection
     (such as a dictionary).
 
     Returns
@@ -3220,7 +3307,7 @@ class StringMethods(NoNewAttributesMixin):
         len,
         docstring=_shared_docs["len"],
         forbidden_types=None,
-        dtype="int64",
+        dtype=np.dtype("int64"),
         returns_string=False,
     )
 
@@ -3495,69 +3582,69 @@ class StringMethods(NoNewAttributesMixin):
     _doc_args["istitle"] = dict(type="titlecase", method="istitle")
     _doc_args["isnumeric"] = dict(type="numeric", method="isnumeric")
     _doc_args["isdecimal"] = dict(type="decimal", method="isdecimal")
-    # force _noarg_wrapper return type with dtype=bool (GH 29624)
+    # force _noarg_wrapper return type with dtype=np.dtype(bool) (GH 29624)
     isalnum = _noarg_wrapper(
         lambda x: x.isalnum(),
         name="isalnum",
         docstring=_shared_docs["ismethods"] % _doc_args["isalnum"],
         returns_string=False,
-        dtype=bool,
+        dtype=np.dtype(bool),
     )
     isalpha = _noarg_wrapper(
         lambda x: x.isalpha(),
         name="isalpha",
         docstring=_shared_docs["ismethods"] % _doc_args["isalpha"],
         returns_string=False,
-        dtype=bool,
+        dtype=np.dtype(bool),
     )
     isdigit = _noarg_wrapper(
         lambda x: x.isdigit(),
         name="isdigit",
         docstring=_shared_docs["ismethods"] % _doc_args["isdigit"],
         returns_string=False,
-        dtype=bool,
+        dtype=np.dtype(bool),
     )
     isspace = _noarg_wrapper(
         lambda x: x.isspace(),
         name="isspace",
         docstring=_shared_docs["ismethods"] % _doc_args["isspace"],
         returns_string=False,
-        dtype=bool,
+        dtype=np.dtype(bool),
     )
     islower = _noarg_wrapper(
         lambda x: x.islower(),
         name="islower",
         docstring=_shared_docs["ismethods"] % _doc_args["islower"],
         returns_string=False,
-        dtype=bool,
+        dtype=np.dtype(bool),
     )
     isupper = _noarg_wrapper(
         lambda x: x.isupper(),
         name="isupper",
         docstring=_shared_docs["ismethods"] % _doc_args["isupper"],
         returns_string=False,
-        dtype=bool,
+        dtype=np.dtype(bool),
     )
     istitle = _noarg_wrapper(
         lambda x: x.istitle(),
         name="istitle",
         docstring=_shared_docs["ismethods"] % _doc_args["istitle"],
         returns_string=False,
-        dtype=bool,
+        dtype=np.dtype(bool),
     )
     isnumeric = _noarg_wrapper(
         lambda x: x.isnumeric(),
         name="isnumeric",
         docstring=_shared_docs["ismethods"] % _doc_args["isnumeric"],
         returns_string=False,
-        dtype=bool,
+        dtype=np.dtype(bool),
     )
     isdecimal = _noarg_wrapper(
         lambda x: x.isdecimal(),
         name="isdecimal",
         docstring=_shared_docs["ismethods"] % _doc_args["isdecimal"],
         returns_string=False,
-        dtype=bool,
+        dtype=np.dtype(bool),
     )
 
     @classmethod

@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, tzinfo
 from pathlib import Path
 from typing import (
     IO,
@@ -11,6 +12,7 @@ from typing import (
     List,
     Mapping,
     Optional,
+    Type,
     TypeVar,
     Union,
 )
@@ -22,13 +24,15 @@ import numpy as np
 # https://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles
 if TYPE_CHECKING:
     from pandas._libs import Period, Timedelta, Timestamp  # noqa: F401
-    from pandas.core.arrays.base import ExtensionArray  # noqa: F401
+
     from pandas.core.dtypes.dtypes import ExtensionDtype  # noqa: F401
-    from pandas.core.indexes.base import Index  # noqa: F401
-    from pandas.core.generic import NDFrame  # noqa: F401
+
     from pandas import Interval  # noqa: F401
-    from pandas.core.series import Series  # noqa: F401
+    from pandas.core.arrays.base import ExtensionArray  # noqa: F401
     from pandas.core.frame import DataFrame  # noqa: F401
+    from pandas.core.generic import NDFrame  # noqa: F401
+    from pandas.core.indexes.base import Index  # noqa: F401
+    from pandas.core.series import Series  # noqa: F401
 
 # array-like
 
@@ -42,9 +46,21 @@ DatetimeLikeScalar = TypeVar("DatetimeLikeScalar", "Period", "Timestamp", "Timed
 PandasScalar = Union["Period", "Timestamp", "Timedelta", "Interval"]
 Scalar = Union[PythonScalar, PandasScalar]
 
+# timestamp and timedelta convertible types
+
+TimestampConvertibleTypes = Union[
+    "Timestamp", datetime, np.datetime64, int, np.int64, float, str
+]
+TimedeltaConvertibleTypes = Union[
+    "Timedelta", timedelta, np.timedelta64, int, np.int64, float, str
+]
+Timezone = Union[str, tzinfo]
+
 # other
 
-Dtype = Union[str, np.dtype, "ExtensionDtype"]
+Dtype = Union[
+    "ExtensionDtype", str, np.dtype, Type[Union[str, float, int, complex, bool]]
+]
 DtypeObj = Union[np.dtype, "ExtensionDtype"]
 FilePathOrBuffer = Union[str, Path, IO[AnyStr]]
 
@@ -64,7 +80,7 @@ Axis = Union[str, int]
 Label = Optional[Hashable]
 Level = Union[Label, int]
 Ordered = Optional[bool]
-JSONSerializable = Union[PythonScalar, List, Dict]
+JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
 Axes = Collection
 
 # For functions like rename that convert one label to another
@@ -72,3 +88,21 @@ Renamer = Union[Mapping[Label, Any], Callable[[Label], Label]]
 
 # to maintain type information across generic functions and parametrization
 T = TypeVar("T")
+
+# used in decorators to preserve the signature of the function it decorates
+# see https://mypy.readthedocs.io/en/stable/generics.html#declaring-decorators
+FuncType = Callable[..., Any]
+F = TypeVar("F", bound=FuncType)
+
+# types of vectorized key functions for DataFrame::sort_values and
+# DataFrame::sort_index, among others
+ValueKeyFunc = Optional[Callable[["Series"], Union["Series", AnyArrayLike]]]
+IndexKeyFunc = Optional[Callable[["Index"], Union["Index", AnyArrayLike]]]
+
+# types of `func` kwarg for DataFrame.aggregate and Series.aggregate
+AggFuncTypeBase = Union[Callable, str]
+AggFuncType = Union[
+    AggFuncTypeBase,
+    List[AggFuncTypeBase],
+    Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]],
+]

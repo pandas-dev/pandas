@@ -2,6 +2,8 @@
 Routines for filling missing data.
 """
 
+from typing import Any, List, Optional, Set, Union
+
 import numpy as np
 
 from pandas._libs import algos, lib
@@ -92,29 +94,37 @@ def clean_fill_method(method, allow_nearest=False):
     return method
 
 
-def clean_interp_method(method, **kwargs):
+# interpolation methods that dispatch to np.interp
+
+NP_METHODS = ["linear", "time", "index", "values"]
+
+# interpolation methods that dispatch to _interpolate_scipy_wrapper
+
+SP_METHODS = [
+    "nearest",
+    "zero",
+    "slinear",
+    "quadratic",
+    "cubic",
+    "barycentric",
+    "krogh",
+    "spline",
+    "polynomial",
+    "from_derivatives",
+    "piecewise_polynomial",
+    "pchip",
+    "akima",
+    "cubicspline",
+]
+
+
+def clean_interp_method(method: str, **kwargs) -> str:
     order = kwargs.get("order")
-    valid = [
-        "linear",
-        "time",
-        "index",
-        "values",
-        "nearest",
-        "zero",
-        "slinear",
-        "quadratic",
-        "cubic",
-        "barycentric",
-        "polynomial",
-        "krogh",
-        "piecewise_polynomial",
-        "pchip",
-        "akima",
-        "spline",
-        "from_derivatives",
-    ]
+
     if method in ("spline", "polynomial") and order is None:
         raise ValueError("You must specify the order of the spline or polynomial.")
+
+    valid = NP_METHODS + SP_METHODS
     if method not in valid:
         raise ValueError(f"method must be one of {valid}. Got '{method}' instead.")
 
@@ -159,15 +169,15 @@ def find_valid_index(values, how: str):
 
 
 def interpolate_1d(
-    xvalues,
-    yvalues,
-    method="linear",
-    limit=None,
-    limit_direction="forward",
-    limit_area=None,
-    fill_value=None,
-    bounds_error=False,
-    order=None,
+    xvalues: np.ndarray,
+    yvalues: np.ndarray,
+    method: Optional[str] = "linear",
+    limit: Optional[int] = None,
+    limit_direction: str = "forward",
+    limit_area: Optional[str] = None,
+    fill_value: Optional[Any] = None,
+    bounds_error: bool = False,
+    order: Optional[int] = None,
     **kwargs,
 ):
     """
@@ -177,8 +187,6 @@ def interpolate_1d(
     Bounds_error is currently hardcoded to False since non-scipy ones don't
     take it as an argument.
     """
-    # Treat the original, non-scipy methods first.
-
     invalid = isna(yvalues)
     valid = ~invalid
 
@@ -237,6 +245,7 @@ def interpolate_1d(
     # are more than'limit' away from the prior non-NaN.
 
     # set preserve_nans based on direction using _interp_limit
+    preserve_nans: Union[List, Set]
     if limit_direction == "forward":
         preserve_nans = start_nans | set(_interp_limit(invalid, limit, 0))
     elif limit_direction == "backward":
@@ -257,49 +266,32 @@ def interpolate_1d(
     # sort preserve_nans and covert to list
     preserve_nans = sorted(preserve_nans)
 
-    xvalues = getattr(xvalues, "values", xvalues)
     yvalues = getattr(yvalues, "values", yvalues)
     result = yvalues.copy()
 
-    if method in ["linear", "time", "index", "values"]:
+    # xvalues to pass to NumPy/SciPy
+
+    xvalues = getattr(xvalues, "values", xvalues)
+    if method == "linear":
+        inds = xvalues
+    else:
+        inds = np.asarray(xvalues)
+
+        # hack for DatetimeIndex, #1646
+        if needs_i8_conversion(inds.dtype):
+            inds = inds.view(np.int64)
+
         if method in ("values", "index"):
-            inds = np.asarray(xvalues)
-            # hack for DatetimeIndex, #1646
-            if needs_i8_conversion(inds.dtype.type):
-                inds = inds.view(np.int64)
             if inds.dtype == np.object_:
                 inds = lib.maybe_convert_objects(inds)
-        else:
-            inds = xvalues
+
+    if method in NP_METHODS:
         # np.interp requires sorted X values, #21037
         indexer = np.argsort(inds[valid])
         result[invalid] = np.interp(
             inds[invalid], inds[valid][indexer], yvalues[valid][indexer]
         )
-        result[preserve_nans] = np.nan
-        return result
-
-    sp_methods = [
-        "nearest",
-        "zero",
-        "slinear",
-        "quadratic",
-        "cubic",
-        "barycentric",
-        "krogh",
-        "spline",
-        "polynomial",
-        "from_derivatives",
-        "piecewise_polynomial",
-        "pchip",
-        "akima",
-    ]
-
-    if method in sp_methods:
-        inds = np.asarray(xvalues)
-        # hack for DatetimeIndex, #1646
-        if issubclass(inds.dtype.type, np.datetime64):
-            inds = inds.view(np.int64)
+    else:
         result[invalid] = _interpolate_scipy_wrapper(
             inds[valid],
             yvalues[valid],
@@ -310,8 +302,9 @@ def interpolate_1d(
             order=order,
             **kwargs,
         )
-        result[preserve_nans] = np.nan
-        return result
+
+    result[preserve_nans] = np.nan
+    return result
 
 
 def _interpolate_scipy_wrapper(
@@ -341,14 +334,11 @@ def _interpolate_scipy_wrapper(
         x, new_x = x._values.astype("i8"), new_x.astype("i8")
 
     if method == "pchip":
-        try:
-            alt_methods["pchip"] = interpolate.pchip_interpolate
-        except AttributeError:
-            raise ImportError(
-                "Your version of Scipy does not support PCHIP interpolation."
-            )
+        alt_methods["pchip"] = interpolate.pchip_interpolate
     elif method == "akima":
         alt_methods["akima"] = _akima_interpolate
+    elif method == "cubicspline":
+        alt_methods["cubicspline"] = _cubicspline_interpolate
 
     interp1d_methods = [
         "nearest",
@@ -406,7 +396,7 @@ def _from_derivatives(xi, yi, x, order=None, der=0, extrapolate=False):
     der : int or list
         How many derivatives to extract; None for all potentially nonzero
         derivatives (that is a number equal to the number of points), or a
-        list of derivatives to extract. This numberincludes the function
+        list of derivatives to extract. This number includes the function
         value as 0th derivative.
      extrapolate : bool, optional
         Whether to extrapolate to ouf-of-bounds points based on first and last
@@ -448,7 +438,7 @@ def _akima_interpolate(xi, yi, x, der=0, axis=0):
         parameter to select correct axis.
     x : scalar or array_like
         Of length M.
-    der : int or list, optional
+    der : int, optional
         How many derivatives to extract; None for all potentially
         nonzero derivatives (that is a number equal to the number
         of points), or a list of derivatives to extract. This number
@@ -470,12 +460,86 @@ def _akima_interpolate(xi, yi, x, der=0, axis=0):
 
     P = interpolate.Akima1DInterpolator(xi, yi, axis=axis)
 
-    if der == 0:
-        return P(x)
-    elif interpolate._isscalar(der):
-        return P(x, der=der)
-    else:
-        return [P(x, nu) for nu in der]
+    return P(x, nu=der)
+
+
+def _cubicspline_interpolate(xi, yi, x, axis=0, bc_type="not-a-knot", extrapolate=None):
+    """
+    Convenience function for cubic spline data interpolator.
+
+    See `scipy.interpolate.CubicSpline` for details.
+
+    Parameters
+    ----------
+    xi : array_like, shape (n,)
+        1-d array containing values of the independent variable.
+        Values must be real, finite and in strictly increasing order.
+    yi : array_like
+        Array containing values of the dependent variable. It can have
+        arbitrary number of dimensions, but the length along ``axis``
+        (see below) must match the length of ``x``. Values must be finite.
+    x : scalar or array_like, shape (m,)
+    axis : int, optional
+        Axis along which `y` is assumed to be varying. Meaning that for
+        ``x[i]`` the corresponding values are ``np.take(y, i, axis=axis)``.
+        Default is 0.
+    bc_type : string or 2-tuple, optional
+        Boundary condition type. Two additional equations, given by the
+        boundary conditions, are required to determine all coefficients of
+        polynomials on each segment [2]_.
+        If `bc_type` is a string, then the specified condition will be applied
+        at both ends of a spline. Available conditions are:
+        * 'not-a-knot' (default): The first and second segment at a curve end
+          are the same polynomial. It is a good default when there is no
+          information on boundary conditions.
+        * 'periodic': The interpolated functions is assumed to be periodic
+          of period ``x[-1] - x[0]``. The first and last value of `y` must be
+          identical: ``y[0] == y[-1]``. This boundary condition will result in
+          ``y'[0] == y'[-1]`` and ``y''[0] == y''[-1]``.
+        * 'clamped': The first derivative at curves ends are zero. Assuming
+          a 1D `y`, ``bc_type=((1, 0.0), (1, 0.0))`` is the same condition.
+        * 'natural': The second derivative at curve ends are zero. Assuming
+          a 1D `y`, ``bc_type=((2, 0.0), (2, 0.0))`` is the same condition.
+        If `bc_type` is a 2-tuple, the first and the second value will be
+        applied at the curve start and end respectively. The tuple values can
+        be one of the previously mentioned strings (except 'periodic') or a
+        tuple `(order, deriv_values)` allowing to specify arbitrary
+        derivatives at curve ends:
+        * `order`: the derivative order, 1 or 2.
+        * `deriv_value`: array_like containing derivative values, shape must
+          be the same as `y`, excluding ``axis`` dimension. For example, if
+          `y` is 1D, then `deriv_value` must be a scalar. If `y` is 3D with
+          the shape (n0, n1, n2) and axis=2, then `deriv_value` must be 2D
+          and have the shape (n0, n1).
+    extrapolate : {bool, 'periodic', None}, optional
+        If bool, determines whether to extrapolate to out-of-bounds points
+        based on first and last intervals, or to return NaNs. If 'periodic',
+        periodic extrapolation is used. If None (default), ``extrapolate`` is
+        set to 'periodic' for ``bc_type='periodic'`` and to True otherwise.
+
+    See Also
+    --------
+    scipy.interpolate.CubicHermiteSpline
+
+    Returns
+    -------
+    y : scalar or array_like
+        The result, of shape (m,)
+
+    References
+    ----------
+    .. [1] `Cubic Spline Interpolation
+            <https://en.wikiversity.org/wiki/Cubic_Spline_Interpolation>`_
+            on Wikiversity.
+    .. [2] Carl de Boor, "A Practical Guide to Splines", Springer-Verlag, 1978.
+    """
+    from scipy import interpolate
+
+    P = interpolate.CubicSpline(
+        xi, yi, axis=axis, bc_type=bc_type, extrapolate=extrapolate
+    )
+
+    return P(x)
 
 
 def interpolate_2d(

@@ -1,4 +1,5 @@
-""":func:`~pandas.eval` source string parsing functions
+"""
+:func:`~pandas.eval` source string parsing functions
 """
 
 from io import StringIO
@@ -115,7 +116,7 @@ def clean_column_name(name: str) -> str:
 
         If this name was used in the query string (this makes the query call impossible)
         an error will be raised by :func:`tokenize_backtick_quoted_string` instead,
-        which is not catched and propogates to the user level.
+        which is not caught and propagates to the user level.
     """
     try:
         tokenized = tokenize_string(f"`{name}`")
@@ -184,7 +185,7 @@ def tokenize_string(source: str) -> Iterator[Tuple[int, str]]:
                 yield tokenize_backtick_quoted_string(
                     token_generator, source, string_start=start[1] + 1
                 )
-            except Exception:
-                raise SyntaxError(f"Failed to parse backticks in '{source}'.")
+            except Exception as err:
+                raise SyntaxError(f"Failed to parse backticks in '{source}'.") from err
         else:
             yield toknum, tokval

@@ -209,7 +209,7 @@ def test_aggregate_api_consistency():
     expected = pd.concat([c_mean, c_sum, d_mean, d_sum], axis=1)
     expected.columns = MultiIndex.from_product([["C", "D"], ["mean", "sum"]])
 
-    msg = r"nested renamer is not supported"
+    msg = r"Column\(s\) \['r', 'r2'\] do not exist"
     with pytest.raises(SpecificationError, match=msg):
         grouped[["D", "C"]].agg({"r": np.sum, "r2": np.mean})
 
@@ -224,9 +224,11 @@ def test_agg_dict_renaming_deprecation():
             {"B": {"foo": ["sum", "max"]}, "C": {"bar": ["count", "min"]}}
         )
 
+    msg = r"Column\(s\) \['ma'\] do not exist"
     with pytest.raises(SpecificationError, match=msg):
         df.groupby("A")[["B", "C"]].agg({"ma": "max"})
 
+    msg = r"nested renamer is not supported"
     with pytest.raises(SpecificationError, match=msg):
         df.groupby("A").B.agg({"foo": "count"})
 

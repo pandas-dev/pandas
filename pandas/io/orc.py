@@ -42,7 +42,6 @@ def read_orc(
     -------
     DataFrame
     """
-
     # we require a newer version of pyarrow than we support for parquet
     import pyarrow
 

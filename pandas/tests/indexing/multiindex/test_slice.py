@@ -111,14 +111,18 @@ class TestMultiIndexSlicers:
         expected = df.iloc[[2, 3]]
         tm.assert_frame_equal(result, expected)
 
-        with pytest.raises(ValueError):
+        msg = (
+            "cannot index with a boolean indexer "
+            "that is not the same length as the index"
+        )
+        with pytest.raises(ValueError, match=msg):
             df.loc[(slice(None), np.array([True, False])), :]
 
-        # ambiguous notation
-        # this is interpreted as slicing on both axes (GH #16396)
-        result = df.loc[slice(None), [1]]
-        expected = df.iloc[:, []]
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(KeyError, match=r"\[1\] not in index"):
+            # slice(None) is on the index, [1] is on the columns, but 1 is
+            #  not in the columns, so we raise
+            #  This used to treat [1] as positional GH#16396
+            df.loc[slice(None), [1]]
 
         result = df.loc[(slice(None), [1]), :]
         expected = df.iloc[[0, 3]]
@@ -411,7 +415,11 @@ class TestMultiIndexSlicers:
         tm.assert_frame_equal(result, expected)
 
         # not sorted
-        with pytest.raises(UnsortedIndexError):
+        msg = (
+            "MultiIndex slicing requires the index to be lexsorted: "
+            r"slicing on levels \[1\], lexsort depth 1"
+        )
+        with pytest.raises(UnsortedIndexError, match=msg):
             df.loc["A1", ("a", slice("foo"))]
 
         # GH 16734: not sorted, but no real slicing
@@ -480,14 +488,10 @@ class TestMultiIndexSlicers:
         tm.assert_frame_equal(result, expected)
 
         # invalid axis
-        with pytest.raises(ValueError):
-            df.loc(axis=-1)[:, :, ["C1", "C3"]]
-
-        with pytest.raises(ValueError):
-            df.loc(axis=2)[:, :, ["C1", "C3"]]
-
-        with pytest.raises(ValueError):
-            df.loc(axis="foo")[:, :, ["C1", "C3"]]
+        for i in [-1, 2, "foo"]:
+            msg = f"No axis named {i} for object type DataFrame"
+            with pytest.raises(ValueError, match=msg):
+                df.loc(axis=i)[:, :, ["C1", "C3"]]
 
     def test_loc_axis_single_level_multi_col_indexing_multiindex_col_df(self):
 
@@ -628,12 +632,14 @@ class TestMultiIndexSlicers:
         # not enough values
         df = df_orig.copy()
 
-        with pytest.raises(ValueError):
+        msg = "setting an array element with a sequence."
+        with pytest.raises(ValueError, match=msg):
             df.loc[(slice(None), 1), (slice(None), ["foo"])] = np.array(
                 [[100], [100, 100]], dtype="int64"
             )
 
-        with pytest.raises(ValueError):
+        msg = "Must have equal len keys and value when setting with an iterable"
+        with pytest.raises(ValueError, match=msg):
             df.loc[(slice(None), 1), (slice(None), ["foo"])] = np.array(
                 [100, 100, 100, 100], dtype="int64"
             )

@@ -10,12 +10,12 @@ from pandas.io.parsers import read_csv
 @pytest.fixture
 def tips_file(datapath):
     """Path to the tips dataset"""
-    return datapath("io", "parser", "data", "tips.csv")
+    return datapath("io", "data", "csv", "tips.csv")
 
 
 @pytest.fixture
 def jsonl_file(datapath):
-    """Path a JSONL dataset"""
+    """Path to a JSONL dataset"""
     return datapath("io", "parser", "data", "items.jsonl")
 
 
@@ -26,8 +26,14 @@ def salaries_table(datapath):
 
 
 @pytest.fixture
-def s3_resource(tips_file, jsonl_file):
-    """Fixture for mocking S3 interaction.
+def feather_file(datapath):
+    return datapath("io", "data", "feather", "feather-0_3_1.feather")
+
+
+@pytest.fixture
+def s3_resource(tips_file, jsonl_file, feather_file):
+    """
+    Fixture for mocking S3 interaction.
 
     The primary bucket name is "pandas-test". The following datasets
     are loaded.
@@ -57,6 +63,7 @@ def s3_resource(tips_file, jsonl_file):
             ("tips.csv.gz", tips_file + ".gz"),
             ("tips.csv.bz2", tips_file + ".bz2"),
             ("items.jsonl", jsonl_file),
+            ("simple_dataset.feather", feather_file),
         ]
 
         def add_tips_files(bucket_name):

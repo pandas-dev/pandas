@@ -40,15 +40,15 @@ from pandas.core.computation.expressions import _NUMEXPR_INSTALLED, _USE_NUMEXPR
 
 def safe_import(mod_name: str, min_version: Optional[str] = None):
     """
-    Parameters:
-    -----------
+    Parameters
+    ----------
     mod_name : str
         Name of the module to be imported
     min_version : str, default None
         Minimum required version of the specified mod_name
 
-    Returns:
-    --------
+    Returns
+    -------
     object
         The imported module if successful, or False
     """
@@ -94,7 +94,7 @@ xfail_non_writeable = pytest.mark.xfail(
 def _skip_if_no_mpl():
     mod = safe_import("matplotlib")
     if mod:
-        mod.use("Agg", warn=True)
+        mod.use("Agg")
     else:
         return True
 
@@ -120,7 +120,9 @@ def _skip_if_no_scipy() -> bool:
     )
 
 
-def skip_if_installed(package: str) -> Callable:
+# TODO: return type, _pytest.mark.structures.MarkDecorator is not public
+# https://github.com/pytest-dev/pytest/issues/7469
+def skip_if_installed(package: str):
     """
     Skip a test if a package is installed.
 
@@ -134,7 +136,9 @@ def skip_if_installed(package: str) -> Callable:
     )
 
 
-def skip_if_no(package: str, min_version: Optional[str] = None) -> Callable:
+# TODO: return type, _pytest.mark.structures.MarkDecorator is not public
+# https://github.com/pytest-dev/pytest/issues/7469
+def skip_if_no(package: str, min_version: Optional[str] = None):
     """
     Generic function to help skip tests when required packages are not
     present on the testing system.
@@ -196,14 +200,12 @@ skip_if_no_ne = pytest.mark.skipif(
 )
 
 
-def skip_if_np_lt(
-    ver_str: str, reason: Optional[str] = None, *args, **kwds
-) -> Callable:
+# TODO: return type, _pytest.mark.structures.MarkDecorator is not public
+# https://github.com/pytest-dev/pytest/issues/7469
+def skip_if_np_lt(ver_str: str, *args, reason: Optional[str] = None):
     if reason is None:
         reason = f"NumPy {ver_str} or greater required"
-    return pytest.mark.skipif(
-        _np_version < LooseVersion(ver_str), reason=reason, *args, **kwds
-    )
+    return pytest.mark.skipif(_np_version < LooseVersion(ver_str), *args, reason=reason)
 
 
 def parametrize_fixture_doc(*args):

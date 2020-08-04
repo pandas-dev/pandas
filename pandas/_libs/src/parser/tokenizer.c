@@ -709,7 +709,7 @@ int skip_this_line(parser_t *self, int64_t rownum) {
 }
 
 int tokenize_bytes(parser_t *self,
-                   size_t line_limit, int64_t start_lines) {
+                   size_t line_limit, uint64_t start_lines) {
     int64_t i;
     uint64_t slen;
     int should_skip;
@@ -1189,8 +1189,14 @@ int parser_consume_rows(parser_t *self, size_t nrows) {
 
     /* cannot guarantee that nrows + 1 has been observed */
     word_deletions = self->line_start[nrows - 1] + self->line_fields[nrows - 1];
-    char_count = (self->word_starts[word_deletions - 1] +
-                  strlen(self->words[word_deletions - 1]) + 1);
+    if (word_deletions >= 1) {
+        char_count = (self->word_starts[word_deletions - 1] +
+                      strlen(self->words[word_deletions - 1]) + 1);
+    } else {
+        /* if word_deletions == 0 (i.e. this case) then char_count must
+         * be 0 too, as no data needs to be skipped */
+        char_count = 0;
+    }
 
     TRACE(("parser_consume_rows: Deleting %d words, %d chars\n", word_deletions,
            char_count));
@@ -1342,7 +1348,7 @@ int parser_trim_buffers(parser_t *self) {
 
 int _tokenize_helper(parser_t *self, size_t nrows, int all) {
     int status = 0;
-    int64_t start_lines = self->lines;
+    uint64_t start_lines = self->lines;
 
     if (self->state == FINISHED) {
         return 0;
