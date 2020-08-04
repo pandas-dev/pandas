@@ -1258,16 +1258,6 @@ Thur,Lunch,Yes,51.51,17"""
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(result2, expected)
 
-        # GH 35301
-        msg = (
-            "Expected label or tuple of labels, got "
-            r"\(\('foo', 'qux', 0\), slice\(None, None, None\)\)"
-        )
-        with pytest.raises(TypeError, match=msg):
-            frame.xs(pd.IndexSlice[("foo", "qux", 0), :])
-        with pytest.raises(TypeError, match=msg):
-            series.xs(pd.IndexSlice[("foo", "qux", 0), :])
-
         index = MultiIndex(
             levels=[[("foo", "bar"), ("foo", "baz"), ("foo", "qux")], [0, 1]],
             codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
@@ -1289,6 +1279,26 @@ Thur,Lunch,Yes,51.51,17"""
         expected.index = expected.index.droplevel(0)
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(result2, expected)
+
+    def test_xs_with_IndexSlice(self):
+        # GH 35301
+
+        index = MultiIndex(
+            levels=[[("foo", "bar", 0), ("foo", "baz", 0), ("foo", "qux", 0)], [0, 1]],
+            codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
+        )
+
+        series = Series(np.random.randn(6), index=index)
+        frame = DataFrame(np.random.randn(6, 4), index=index)
+
+        msg = (
+            "Expected label or tuple of labels, got "
+            r"\(\('foo', 'qux', 0\), slice\(None, None, None\)\)"
+        )
+        with pytest.raises(TypeError, match=msg):
+            frame.xs(pd.IndexSlice[("foo", "qux", 0), :])
+        with pytest.raises(TypeError, match=msg):
+            series.xs(pd.IndexSlice[("foo", "qux", 0), :])
 
     def test_mixed_depth_pop(self):
         arrays = [
