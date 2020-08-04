@@ -12,7 +12,7 @@ class Construction:
     params = ["str", "string"]
     param_names = ["dtype"]
 
-    def setup(self):
+    def setup(self, dtype):
         self.data = tm.rands_array(nchars=10 ** 5, size=10)
 
     def time_construction(self, dtype):

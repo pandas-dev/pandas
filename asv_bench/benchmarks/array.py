@@ -2,8 +2,6 @@ import numpy as np
 
 import pandas as pd
 
-from .pandas_vb_common import tm
-
 
 class BooleanArray:
     def setup(self):
