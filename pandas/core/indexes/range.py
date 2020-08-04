@@ -1,7 +1,7 @@
 from datetime import timedelta
 import operator
 from sys import getsizeof
-from typing import Any, List, Optional
+from typing import Any, Optional
 import warnings
 
 import numpy as np
@@ -32,8 +32,6 @@ import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import _index_shared_docs, maybe_extract_name
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops.common import unpack_zerodim_and_defer
-
-from pandas.io.formats.printing import pprint_thing
 
 _empty_range = range(0)
 
@@ -196,9 +194,6 @@ class RangeIndex(Int64Index):
     def _format_data(self, name=None):
         # we are formatting thru the attributes
         return None
-
-    def _format_with_header(self, header, na_rep="NaN") -> List[str]:
-        return header + [pprint_thing(x) for x in self._range]
 
     # --------------------------------------------------------------------
     _deprecation_message = (
