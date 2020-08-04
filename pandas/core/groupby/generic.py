@@ -1223,6 +1223,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if isinstance(first_not_none, DataFrame):
             return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
 
+        key_index = self.grouper.result_index if self.as_index else None
+
         if isinstance(first_not_none, NDFrame):
 
             # this is to silence a DeprecationWarning
@@ -1236,11 +1238,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 backup = first_not_none._constructor(**kwargs)
 
             values = [x if (x is not None) else backup for x in values]
-
-        key_index = self.grouper.result_index if self.as_index else None
-        v = values[0]
-
-        if not isinstance(v, (np.ndarray, Index, Series)):
+        else:
             # values are not series or array-like but scalars
             # self._selection_name not passed through to Series as the
             # result should not take the name of original selection
@@ -1251,6 +1249,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 result = DataFrame(values, index=key_index, columns=[self._selection])
                 self._insert_inaxis_grouper_inplace(result)
                 return result
+
+        v = values[0]
 
         if not isinstance(v, ABCSeries):
             # GH1738: values is list of arrays of unequal lengths
