@@ -1,3 +1,10 @@
+from cpython.datetime cimport (
+    PyDateTime_Check,
+    PyDateTime_IMPORT,
+    PyDelta_Check,
+    datetime,
+    timedelta,
+)
 from cpython.object cimport (
     Py_EQ,
     Py_GE,
@@ -8,28 +15,19 @@ from cpython.object cimport (
     PyObject_RichCompare,
 )
 
-from cpython.datetime cimport (
-    PyDateTime_Check,
-    PyDateTime_IMPORT,
-    PyDelta_Check,
-    datetime,
-    timedelta,
-)
 PyDateTime_IMPORT
 
 from cpython.version cimport PY_MINOR_VERSION
 
 import numpy as np
+
 cimport numpy as cnp
 from numpy cimport int64_t
+
 cnp.import_array()
 
-from pandas._libs.tslibs.np_datetime cimport (
-    get_datetime64_value,
-    get_timedelta64_value,
-)
 cimport pandas._libs.tslibs.util as util
-
+from pandas._libs.tslibs.np_datetime cimport get_datetime64_value, get_timedelta64_value
 
 # ----------------------------------------------------------------------
 # Constants
@@ -50,7 +48,7 @@ _nat_scalar_rules[Py_GE] = False
 # ----------------------------------------------------------------------
 
 
-def _make_nan_func(func_name, doc):
+def _make_nan_func(func_name: str, doc: str):
     def f(*args, **kwargs):
         return np.nan
     f.__name__ = func_name
@@ -58,7 +56,7 @@ def _make_nan_func(func_name, doc):
     return f
 
 
-def _make_nat_func(func_name, doc):
+def _make_nat_func(func_name: str, doc: str):
     def f(*args, **kwargs):
         return c_NaT
     f.__name__ = func_name
@@ -66,7 +64,7 @@ def _make_nat_func(func_name, doc):
     return f
 
 
-def _make_error_func(func_name, cls):
+def _make_error_func(func_name: str, cls):
     def f(*args, **kwargs):
         raise ValueError(f"NaTType does not support {func_name}")
 
@@ -282,31 +280,31 @@ cdef class _NaT(datetime):
         return NPY_NAT
 
     @property
-    def is_leap_year(self):
+    def is_leap_year(self) -> bool:
         return False
 
     @property
-    def is_month_start(self):
+    def is_month_start(self) -> bool:
         return False
 
     @property
-    def is_quarter_start(self):
+    def is_quarter_start(self) -> bool:
         return False
 
     @property
-    def is_year_start(self):
+    def is_year_start(self) -> bool:
         return False
 
     @property
-    def is_month_end(self):
+    def is_month_end(self) -> bool:
         return False
 
     @property
-    def is_quarter_end(self):
+    def is_quarter_end(self) -> bool:
         return False
 
     @property
-    def is_year_end(self):
+    def is_year_end(self) -> bool:
         return False
 
 

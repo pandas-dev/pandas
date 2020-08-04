@@ -132,10 +132,10 @@ def test_putmask_with_wrong_mask(idx):
 
     msg = "putmask: mask and data must be the same size"
     with pytest.raises(ValueError, match=msg):
-        idx.putmask(np.ones(len(idx) + 1, np.bool), 1)
+        idx.putmask(np.ones(len(idx) + 1, np.bool_), 1)
 
     with pytest.raises(ValueError, match=msg):
-        idx.putmask(np.ones(len(idx) - 1, np.bool), 1)
+        idx.putmask(np.ones(len(idx) - 1, np.bool_), 1)
 
     with pytest.raises(ValueError, match=msg):
         idx.putmask("foo", 1)

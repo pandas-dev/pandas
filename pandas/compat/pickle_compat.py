@@ -9,12 +9,12 @@ import pickle as pkl
 from typing import TYPE_CHECKING, Optional
 import warnings
 
+from pandas._libs.tslibs import BaseOffset
+
 from pandas import Index
 
-from pandas.tseries.offsets import DateOffset
-
 if TYPE_CHECKING:
-    from pandas import Series, DataFrame
+    from pandas import DataFrame, Series
 
 
 def load_reduce(self):
@@ -42,7 +42,7 @@ def load_reduce(self):
                 return
             except TypeError:
                 pass
-        elif args and issubclass(args[0], DateOffset):
+        elif args and issubclass(args[0], BaseOffset):
             # TypeError: object.__new__(Day) is not safe, use Day.__new__()
             cls = args[0]
             stack[-1] = cls.__new__(*args)

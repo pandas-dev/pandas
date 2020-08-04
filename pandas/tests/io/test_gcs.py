@@ -1,4 +1,4 @@
-from io import StringIO
+from io import BytesIO
 import os
 
 import numpy as np
@@ -8,17 +8,13 @@ from pandas import DataFrame, date_range, read_csv
 import pandas._testing as tm
 from pandas.util import _test_decorators as td
 
-from pandas.io.common import is_gcs_url
-
-
-def test_is_gcs_url():
-    assert is_gcs_url("gcs://pandas/somethingelse.com")
-    assert is_gcs_url("gs://pandas/somethingelse.com")
-    assert not is_gcs_url("s3://pandas/somethingelse.com")
-
 
 @td.skip_if_no("gcsfs")
 def test_read_csv_gcs(monkeypatch):
+    from fsspec import AbstractFileSystem, registry
+
+    registry.target.clear()  # noqa  # remove state
+
     df1 = DataFrame(
         {
             "int": [1, 3],
@@ -28,9 +24,9 @@ def test_read_csv_gcs(monkeypatch):
         }
     )
 
-    class MockGCSFileSystem:
-        def open(*args):
-            return StringIO(df1.to_csv(index=False))
+    class MockGCSFileSystem(AbstractFileSystem):
+        def open(*args, **kwargs):
+            return BytesIO(df1.to_csv(index=False).encode())
 
     monkeypatch.setattr("gcsfs.GCSFileSystem", MockGCSFileSystem)
     df2 = read_csv("gs://test/test.csv", parse_dates=["dt"])
@@ -40,6 +36,9 @@ def test_read_csv_gcs(monkeypatch):
 
 @td.skip_if_no("gcsfs")
 def test_to_csv_gcs(monkeypatch):
+    from fsspec import AbstractFileSystem, registry
+
+    registry.target.clear()  # noqa  # remove state
     df1 = DataFrame(
         {
             "int": [1, 3],
@@ -48,20 +47,22 @@ def test_to_csv_gcs(monkeypatch):
             "dt": date_range("2018-06-18", periods=2),
         }
     )
-    s = StringIO()
+    s = BytesIO()
+    s.close = lambda: True
 
-    class MockGCSFileSystem:
-        def open(*args):
+    class MockGCSFileSystem(AbstractFileSystem):
+        def open(*args, **kwargs):
+            s.seek(0)
             return s
 
     monkeypatch.setattr("gcsfs.GCSFileSystem", MockGCSFileSystem)
     df1.to_csv("gs://test/test.csv", index=True)
 
     def mock_get_filepath_or_buffer(*args, **kwargs):
-        return StringIO(df1.to_csv()), None, None, False
+        return BytesIO(df1.to_csv(index=True).encode()), None, None, False
 
     monkeypatch.setattr(
-        "pandas.io.gcs.get_filepath_or_buffer", mock_get_filepath_or_buffer
+        "pandas.io.common.get_filepath_or_buffer", mock_get_filepath_or_buffer
     )
 
     df2 = read_csv("gs://test/test.csv", parse_dates=["dt"], index_col=0)
@@ -73,6 +74,9 @@ def test_to_csv_gcs(monkeypatch):
 @td.skip_if_no("gcsfs")
 def test_to_parquet_gcs_new_file(monkeypatch, tmpdir):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
+    from fsspec import AbstractFileSystem, registry
+
+    registry.target.clear()  # noqa  # remove state
     df1 = DataFrame(
         {
             "int": [1, 3],
@@ -82,7 +86,7 @@ def test_to_parquet_gcs_new_file(monkeypatch, tmpdir):
         }
     )
 
-    class MockGCSFileSystem:
+    class MockGCSFileSystem(AbstractFileSystem):
         def open(self, path, mode="r", *args):
             if "w" not in mode:
                 raise FileNotFoundError

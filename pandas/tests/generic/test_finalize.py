@@ -700,8 +700,6 @@ def test_datetime_method(method):
         "second",
         "microsecond",
         "nanosecond",
-        "week",
-        "weekofyear",
         "dayofweek",
         "dayofyear",
         "quarter",
