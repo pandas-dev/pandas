@@ -130,19 +130,19 @@ class ValuePosition:
     param_names = ["keep"]
 
     def setup(self, keep):
-        self.df = DataFrame(
-            {
-                "A": np.random.randint(0, 100, int(1e6)),
-                "B": np.random.randint(0, 100, int(1e6)),
-                "C": np.random.randint(0, 100, int(1e6)),
-            }
-        )
+        self.s = Series(np.random.randint(1, 10, 100000))
 
     def time_idxmax(self, keep):
-        self.df.idxmin(keep=keep)
+        self.s.nlargest(keep=keep)
 
     def time_idxmin(self, keep):
-        self.df.idxmax(keep=keep)
+        self.s.nsmallest(keep=keep)
+
+    def time_argmin(self, keep):
+        self.s.nsmallest(keep=keep)
+
+    def time_argmin(self, keep):
+        self.s.nsmallest(keep=keep)
 
 
 class SearchSorted:
