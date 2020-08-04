@@ -1,7 +1,7 @@
 from datetime import timedelta
 import operator
 from sys import getsizeof
-from typing import Any, List, Optional
+from typing import Any
 import warnings
 
 import numpy as np
@@ -32,8 +32,6 @@ import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import _index_shared_docs, maybe_extract_name
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops.common import unpack_zerodim_and_defer
-
-from pandas.io.formats.printing import pprint_thing
 
 _empty_range = range(0)
 
@@ -80,8 +78,6 @@ class RangeIndex(Int64Index):
     _engine_type = libindex.Int64Engine
     _range: range
 
-    # check whether self._data has been called
-    _cached_data: Optional[np.ndarray] = None
     # --------------------------------------------------------------------
     # Constructors
 
@@ -152,20 +148,14 @@ class RangeIndex(Int64Index):
         """ return the class to use for construction """
         return Int64Index
 
-    @property
+    @cache_readonly
     def _data(self):
         """
         An int array that for performance reasons is created only when needed.
 
-        The constructed array is saved in ``_cached_data``. This allows us to
-        check if the array has been created without accessing ``_data`` and
-        triggering the construction.
+        The constructed array is saved in ``_cache``.
         """
-        if self._cached_data is None:
-            self._cached_data = np.arange(
-                self.start, self.stop, self.step, dtype=np.int64
-            )
-        return self._cached_data
+        return np.arange(self.start, self.stop, self.step, dtype=np.int64)
 
     @cache_readonly
     def _int64index(self) -> Int64Index:
@@ -196,9 +186,6 @@ class RangeIndex(Int64Index):
     def _format_data(self, name=None):
         # we are formatting thru the attributes
         return None
-
-    def _format_with_header(self, header, na_rep="NaN") -> List[str]:
-        return header + [pprint_thing(x) for x in self._range]
 
     # --------------------------------------------------------------------
     _deprecation_message = (
