@@ -1610,7 +1610,6 @@ def construct_1d_ndarray_preserving_na(
     """
 
     if dtype is not None and dtype.kind == "U":
-        values = np.asarray(values, dtype="object")
         subarr = lib.ensure_string_array(values, convert_na_value=False, copy=copy)
     else:
         subarr = np.array(values, dtype=dtype, copy=copy)
