@@ -33,6 +33,7 @@ Methods
    :toctree: api/
 
     DateOffset.apply
+    DateOffset.apply_index
     DateOffset.copy
     DateOffset.isAnchored
     DateOffset.onOffset
@@ -117,6 +118,7 @@ Methods
    :toctree: api/
 
     BusinessHour.apply
+    BusinessHour.apply_index
     BusinessHour.copy
     BusinessHour.isAnchored
     BusinessHour.onOffset
@@ -201,6 +203,7 @@ Methods
    :toctree: api/
 
     CustomBusinessHour.apply
+    CustomBusinessHour.apply_index
     CustomBusinessHour.copy
     CustomBusinessHour.isAnchored
     CustomBusinessHour.onOffset
@@ -401,6 +404,7 @@ Methods
    :toctree: api/
 
     CustomBusinessMonthEnd.apply
+    CustomBusinessMonthEnd.apply_index
     CustomBusinessMonthEnd.copy
     CustomBusinessMonthEnd.isAnchored
     CustomBusinessMonthEnd.onOffset
@@ -447,6 +451,7 @@ Methods
    :toctree: api/
 
     CustomBusinessMonthBegin.apply
+    CustomBusinessMonthBegin.apply_index
     CustomBusinessMonthBegin.copy
     CustomBusinessMonthBegin.isAnchored
     CustomBusinessMonthBegin.onOffset
@@ -586,6 +591,7 @@ Methods
    :toctree: api/
 
     WeekOfMonth.apply
+    WeekOfMonth.apply_index
     WeekOfMonth.copy
     WeekOfMonth.isAnchored
     WeekOfMonth.onOffset
@@ -622,6 +628,7 @@ Methods
    :toctree: api/
 
     LastWeekOfMonth.apply
+    LastWeekOfMonth.apply_index
     LastWeekOfMonth.copy
     LastWeekOfMonth.isAnchored
     LastWeekOfMonth.onOffset
@@ -938,6 +945,7 @@ Methods
    :toctree: api/
 
     FY5253.apply
+    FY5253.apply_index
     FY5253.copy
     FY5253.get_rule_code_suffix
     FY5253.get_year_end
@@ -977,6 +985,7 @@ Methods
    :toctree: api/
 
     FY5253Quarter.apply
+    FY5253Quarter.apply_index
     FY5253Quarter.copy
     FY5253Quarter.get_rule_code_suffix
     FY5253Quarter.get_weeks
@@ -1013,6 +1022,7 @@ Methods
    :toctree: api/
 
     Easter.apply
+    Easter.apply_index
     Easter.copy
     Easter.isAnchored
     Easter.onOffset
@@ -1053,6 +1063,7 @@ Methods
     Tick.is_on_offset
     Tick.__call__
     Tick.apply
+    Tick.apply_index
 
 Day
 ---
@@ -1087,6 +1098,7 @@ Methods
     Day.is_on_offset
     Day.__call__
     Day.apply
+    Day.apply_index
 
 Hour
 ----
@@ -1121,6 +1133,7 @@ Methods
     Hour.is_on_offset
     Hour.__call__
     Hour.apply
+    Hour.apply_index
 
 Minute
 ------
@@ -1155,6 +1168,7 @@ Methods
     Minute.is_on_offset
     Minute.__call__
     Minute.apply
+    Minute.apply_index
 
 Second
 ------
@@ -1189,6 +1203,7 @@ Methods
     Second.is_on_offset
     Second.__call__
     Second.apply
+    Second.apply_index
 
 Milli
 -----
@@ -1223,6 +1238,7 @@ Methods
     Milli.is_on_offset
     Milli.__call__
     Milli.apply
+    Milli.apply_index
 
 Micro
 -----
@@ -1257,6 +1273,7 @@ Methods
     Micro.is_on_offset
     Micro.__call__
     Micro.apply
+    Micro.apply_index
 
 Nano
 ----
@@ -1291,6 +1308,7 @@ Methods
     Nano.is_on_offset
     Nano.__call__
     Nano.apply
+    Nano.apply_index
 
 .. _api.frequencies:
 

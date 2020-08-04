@@ -959,7 +959,7 @@ class DatetimeLikeArrayMixin(
         -------
         Series
         """
-        from pandas import Series, Index
+        from pandas import Index, Series
 
         if dropna:
             values = self[~self.isna()]._data
@@ -1552,7 +1552,7 @@ class DatetimeLikeArrayMixin(
     # --------------------------------------------------------------
     # Reductions
 
-    def _reduce(self, name, axis=0, skipna=True, **kwargs):
+    def _reduce(self, name: str, skipna: bool = True, **kwargs):
         op = getattr(self, name, None)
         if op:
             return op(skipna=skipna, **kwargs)

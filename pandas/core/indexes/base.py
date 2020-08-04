@@ -902,7 +902,12 @@ class Index(IndexOpsMixin, PandasObject):
         # how to represent ourselves to matplotlib
         return self.values
 
-    def format(self, name: bool = False, formatter=None, **kwargs):
+    def format(
+        self,
+        name: bool = False,
+        formatter: Optional[Callable] = None,
+        na_rep: str_t = "NaN",
+    ) -> List[str_t]:
         """
         Render a string representation of the Index.
         """
@@ -917,7 +922,7 @@ class Index(IndexOpsMixin, PandasObject):
         if formatter is not None:
             return header + list(self.map(formatter))
 
-        return self._format_with_header(header, **kwargs)
+        return self._format_with_header(header, na_rep=na_rep)
 
     def _format_with_header(self, header, na_rep="NaN") -> List[str_t]:
         from pandas.io.formats.format import format_array
@@ -3392,7 +3397,10 @@ class Index(IndexOpsMixin, PandasObject):
                 new_indexer = np.arange(len(self.take(indexer)))
                 new_indexer[~check] = -1
 
-        new_index = Index(new_labels, name=self.name)
+        if isinstance(self, ABCMultiIndex):
+            new_index = type(self).from_tuples(new_labels, names=self.names)
+        else:
+            new_index = Index(new_labels, name=self.name)
         return new_index, indexer, new_indexer
 
     # --------------------------------------------------------------------
@@ -4244,16 +4252,15 @@ class Index(IndexOpsMixin, PandasObject):
         if not isinstance(other, Index):
             return False
 
-        if is_object_dtype(self.dtype) and not is_object_dtype(other.dtype):
-            # if other is not object, use other's logic for coercion
-            return other.equals(self)
-
-        if isinstance(other, ABCMultiIndex):
-            # d-level MultiIndex can equal d-tuple Index
-            return other.equals(self)
-
-        if is_extension_array_dtype(other.dtype):
-            # All EA-backed Index subclasses override equals
+        # If other is a subclass of self and defines it's own equals method, we
+        # dispatch to the subclass method. For instance for a MultiIndex,
+        # a d-level MultiIndex can equal d-tuple Index.
+        # Note: All EA-backed Index subclasses override equals
+        if (
+            isinstance(other, type(self))
+            and type(other) is not type(self)
+            and other.equals is not self.equals
+        ):
             return other.equals(self)
 
         return array_equivalent(self._values, other._values)
@@ -5723,9 +5730,9 @@ def _maybe_cast_data_without_dtype(subarr):
     """
     # Runtime import needed bc IntervalArray imports Index
     from pandas.core.arrays import (
+        DatetimeArray,
         IntervalArray,
         PeriodArray,
-        DatetimeArray,
         TimedeltaArray,
     )
 

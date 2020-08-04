@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from io import StringIO
 
 import numpy as np
@@ -211,6 +211,7 @@ def test_group_apply_once_per_group2(capsys):
     assert result == expected
 
 
+@pytest.mark.xfail(reason="GH-34998")
 def test_apply_fast_slow_identical():
     # GH 31613
 
@@ -234,9 +235,11 @@ def test_apply_fast_slow_identical():
     "func",
     [
         lambda x: x,
-        lambda x: x[:],
+        pytest.param(lambda x: x[:], marks=pytest.mark.xfail(reason="GH-34998")),
         lambda x: x.copy(deep=False),
-        lambda x: x.copy(deep=True),
+        pytest.param(
+            lambda x: x.copy(deep=True), marks=pytest.mark.xfail(reason="GH-34998")
+        ),
     ],
 )
 def test_groupby_apply_identity_maybecopy_index_identical(func):
@@ -995,3 +998,49 @@ def test_apply_function_with_indexing_return_column():
     result = df.groupby("foo1", as_index=False).apply(lambda x: x.mean())
     expected = DataFrame({"foo1": ["one", "three", "two"], "foo2": [3.0, 4.0, 4.0]})
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.xfail(reason="GH-34998")
+def test_apply_with_timezones_aware():
+    # GH: 27212
+
+    dates = ["2001-01-01"] * 2 + ["2001-01-02"] * 2 + ["2001-01-03"] * 2
+    index_no_tz = pd.DatetimeIndex(dates)
+    index_tz = pd.DatetimeIndex(dates, tz="UTC")
+    df1 = pd.DataFrame({"x": list(range(2)) * 3, "y": range(6), "t": index_no_tz})
+    df2 = pd.DataFrame({"x": list(range(2)) * 3, "y": range(6), "t": index_tz})
+
+    result1 = df1.groupby("x", group_keys=False).apply(lambda df: df[["x", "y"]].copy())
+    result2 = df2.groupby("x", group_keys=False).apply(lambda df: df[["x", "y"]].copy())
+
+    tm.assert_frame_equal(result1, result2)
+
+
+def test_apply_with_date_in_multiindex_does_not_convert_to_timestamp():
+    # GH 29617
+
+    df = pd.DataFrame(
+        {
+            "A": ["a", "a", "a", "b"],
+            "B": [
+                date(2020, 1, 10),
+                date(2020, 1, 10),
+                date(2020, 2, 10),
+                date(2020, 2, 10),
+            ],
+            "C": [1, 2, 3, 4],
+        },
+        index=pd.Index([100, 101, 102, 103], name="idx"),
+    )
+
+    grp = df.groupby(["A", "B"])
+    result = grp.apply(lambda x: x.head(1))
+
+    expected = df.iloc[[0, 2, 3]]
+    expected = expected.reset_index()
+    expected.index = pd.MultiIndex.from_frame(expected[["A", "B", "idx"]])
+    expected = expected.drop(columns="idx")
+
+    tm.assert_frame_equal(result, expected)
+    for val in result.index.levels[1]:
+        assert type(val) is date

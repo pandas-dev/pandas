@@ -1589,7 +1589,7 @@ class ExtensionBlock(Block):
 
     def set(self, locs, values):
         assert locs.tolist() == [0]
-        self.values[:] = values
+        self.values = values
 
     def putmask(
         self, mask, new, inplace: bool = False, axis: int = 0, transpose: bool = False,
@@ -1636,10 +1636,7 @@ class ExtensionBlock(Block):
     @property
     def fill_value(self):
         # Used in reindex_indexer
-        if is_sparse(self.values):
-            return self.values.dtype.fill_value
-        else:
-            return self.values.dtype.na_value
+        return self.values.dtype.na_value
 
     @property
     def _can_hold_na(self):
@@ -2302,7 +2299,8 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
 
     def __init__(self, values, placement, ndim=None):
         if values.dtype != TD64NS_DTYPE:
-            values = conversion.ensure_timedelta64ns(values)
+            # e.g. non-nano or int64
+            values = TimedeltaArray._from_sequence(values)._data
         if isinstance(values, TimedeltaArray):
             values = values._data
         assert isinstance(values, np.ndarray), type(values)

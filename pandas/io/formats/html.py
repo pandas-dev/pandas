@@ -442,6 +442,7 @@ class HTMLFormatter(TableFormatter):
         frame = self.fmt.tr_frame
         nrows = len(frame)
 
+        assert isinstance(frame.index, MultiIndex)
         idx_values = frame.index.format(sparsify=False, adjoin=False, names=False)
         idx_values = list(zip(*idx_values))
 

@@ -1,27 +1,31 @@
 from datetime import timezone
+
 from cpython.datetime cimport datetime, timedelta, tzinfo
 
 # dateutil compat
+
 from dateutil.tz import (
     gettz as dateutil_gettz,
     tzfile as _dateutil_tzfile,
     tzlocal as _dateutil_tzlocal,
     tzutc as _dateutil_tzutc,
 )
-
-
-from pytz.tzinfo import BaseTzInfo as _pytz_BaseTzInfo
 import pytz
+from pytz.tzinfo import BaseTzInfo as _pytz_BaseTzInfo
+
 UTC = pytz.utc
 
 
 import numpy as np
+
 cimport numpy as cnp
 from numpy cimport int64_t
+
 cnp.import_array()
 
 # ----------------------------------------------------------------------
-from pandas._libs.tslibs.util cimport is_integer_object, get_nat
+from pandas._libs.tslibs.util cimport get_nat, is_integer_object
+
 
 cdef int64_t NPY_NAT = get_nat()
 cdef tzinfo utc_stdlib = timezone.utc
@@ -84,7 +88,7 @@ cpdef inline object get_timezone(tzinfo tz):
                 return tz
 
 
-cpdef inline object maybe_get_tz(object tz):
+cpdef inline tzinfo maybe_get_tz(object tz):
     """
     (Maybe) Construct a timezone object from a string. If tz is a string, use
     it to construct a timezone object. Otherwise, just return tz.
@@ -102,6 +106,12 @@ cpdef inline object maybe_get_tz(object tz):
             tz = pytz.timezone(tz)
     elif is_integer_object(tz):
         tz = pytz.FixedOffset(tz / 60)
+    elif isinstance(tz, tzinfo):
+        pass
+    elif tz is None:
+        pass
+    else:
+        raise TypeError(type(tz))
     return tz
 
 

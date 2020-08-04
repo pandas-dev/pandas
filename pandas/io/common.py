@@ -202,9 +202,37 @@ def get_filepath_or_buffer(
             filepath_or_buffer = filepath_or_buffer.replace("s3n://", "s3://")
         fsspec = import_optional_dependency("fsspec")
 
-        file_obj = fsspec.open(
-            filepath_or_buffer, mode=mode or "rb", **(storage_options or {})
-        ).open()
+        # If botocore is installed we fallback to reading with anon=True
+        # to allow reads from public buckets
+        err_types_to_retry_with_anon: List[Any] = []
+        try:
+            import_optional_dependency("botocore")
+            from botocore.exceptions import ClientError, NoCredentialsError
+
+            err_types_to_retry_with_anon = [
+                ClientError,
+                NoCredentialsError,
+                PermissionError,
+            ]
+        except ImportError:
+            pass
+
+        try:
+            file_obj = fsspec.open(
+                filepath_or_buffer, mode=mode or "rb", **(storage_options or {})
+            ).open()
+        # GH 34626 Reads from Public Buckets without Credentials needs anon=True
+        except tuple(err_types_to_retry_with_anon):
+            if storage_options is None:
+                storage_options = {"anon": True}
+            else:
+                # don't mutate user input.
+                storage_options = dict(storage_options)
+                storage_options["anon"] = True
+            file_obj = fsspec.open(
+                filepath_or_buffer, mode=mode or "rb", **(storage_options or {})
+            ).open()
+
         return file_obj, encoding, compression, True
 
     if isinstance(filepath_or_buffer, (str, bytes, mmap.mmap)):
@@ -239,8 +267,8 @@ _compression_to_extension = {"gzip": ".gz", "bz2": ".bz2", "zip": ".zip", "xz": 
 
 
 def get_compression_method(
-    compression: Optional[Union[str, Mapping[str, str]]]
-) -> Tuple[Optional[str], Dict[str, str]]:
+    compression: Optional[Union[str, Mapping[str, Any]]]
+) -> Tuple[Optional[str], Dict[str, Any]]:
     """
     Simplifies a compression argument to a compression method string and
     a mapping containing additional arguments.
@@ -254,21 +282,23 @@ def get_compression_method(
     Returns
     -------
     tuple of ({compression method}, Optional[str]
-              {compression arguments}, Dict[str, str])
+              {compression arguments}, Dict[str, Any])
 
     Raises
     ------
     ValueError on mapping missing 'method' key
     """
+    compression_method: Optional[str]
     if isinstance(compression, Mapping):
         compression_args = dict(compression)
         try:
-            compression = compression_args.pop("method")
+            compression_method = compression_args.pop("method")
         except KeyError as err:
             raise ValueError("If mapping, compression must have key 'method'") from err
     else:
         compression_args = {}
-    return compression, compression_args
+        compression_method = compression
+    return compression_method, compression_args
 
 
 def infer_compression(
@@ -311,7 +341,7 @@ def infer_compression(
 
         # Infer compression from the filename/URL extension
         for compression, extension in _compression_to_extension.items():
-            if filepath_or_buffer.endswith(extension):
+            if filepath_or_buffer.lower().endswith(extension):
                 return compression
         return None
 
@@ -406,28 +436,19 @@ def get_handle(
 
     if compression:
 
-        # GH33398 the type ignores here seem related to mypy issue #5382;
-        # it may be possible to remove them once that is resolved.
-
         # GZ Compression
         if compression == "gzip":
             if is_path:
-                f = gzip.open(
-                    path_or_buf, mode, **compression_args  # type: ignore
-                )
+                f = gzip.open(path_or_buf, mode, **compression_args)
             else:
-                f = gzip.GzipFile(
-                    fileobj=path_or_buf, **compression_args  # type: ignore
-                )
+                f = gzip.GzipFile(fileobj=path_or_buf, **compression_args)
 
         # BZ Compression
         elif compression == "bz2":
             if is_path:
-                f = bz2.BZ2File(
-                    path_or_buf, mode, **compression_args  # type: ignore
-                )
+                f = bz2.BZ2File(path_or_buf, mode, **compression_args)
             else:
-                f = bz2.BZ2File(path_or_buf, **compression_args)  # type: ignore
+                f = bz2.BZ2File(path_or_buf, **compression_args)
 
         # ZIP Compression
         elif compression == "zip":
