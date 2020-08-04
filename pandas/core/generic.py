@@ -6801,7 +6801,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         if obj.empty:
             return self
-        
+
         if method not in fillna_methods:
             axis = self._info_axis_number
 
