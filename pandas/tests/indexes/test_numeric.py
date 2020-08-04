@@ -21,6 +21,13 @@ class Numeric(Base):
         key = idx[0]
         assert idx._can_hold_identifiers_and_holds_name(key) is False
 
+    def test_format(self):
+        # GH35439
+        idx = self.create_index()
+        max_width = max(len(str(x)) for x in idx)
+        expected = [str(x).ljust(max_width) for x in idx]
+        assert idx.format() == expected
+
     def test_numeric_compat(self):
         pass  # override Base method
 
