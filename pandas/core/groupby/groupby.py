@@ -831,7 +831,7 @@ b  2""",
 
         if maybe_use_numba(engine):
             return self._apply_with_numba(
-                func, func, *args, engine_kwargs=engine_kwargs, **kwargs
+                func, *args, engine_kwargs=engine_kwargs, **kwargs
             )
 
         func = self._is_builtin_func(func)
@@ -893,7 +893,7 @@ b  2""",
             apply_func = NUMBA_FUNC_CACHE[cache_key]
         else:
             apply_func = numba_.generate_numba_apply_func(
-                args, kwargs, func, engine_kwargs
+                tuple(args), kwargs, func, engine_kwargs
             )
         result = apply_func(
             sorted_data.to_numpy(), starts, ends, len(group_keys), len(data.columns)
