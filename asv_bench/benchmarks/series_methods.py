@@ -133,16 +133,16 @@ class ValuePosition:
         self.s = Series(np.random.randint(1, 10, 100000))
 
     def time_idxmax(self, keep):
-        self.s.nlargest(keep=keep)
+        self.s.idxmax(keep=keep)
 
     def time_idxmin(self, keep):
-        self.s.nsmallest(keep=keep)
+        self.s.idxmin(keep=keep)
 
     def time_argmin(self, keep):
-        self.s.nsmallest(keep=keep)
+        self.s.argmin(keep=keep)
 
-    def time_argmin(self, keep):
-        self.s.nsmallest(keep=keep)
+    def time_argmax(self, keep):
+        self.s.argmax(keep=keep)
 
 
 class SearchSorted:
