@@ -229,3 +229,13 @@ class TestGrouperGrouping:
             ),
         )
         tm.assert_frame_equal(result, expected)
+
+        result = df.groupby("a")["b"].rolling(2).max()
+        expected = Series(
+            [np.nan, np.nan, 2.0, np.nan],
+            index=pd.MultiIndex.from_tuples(
+                ((1, 0), (2, 1), (2, 3), (3, 2)), names=["a", None]
+            ),
+            name="b",
+        )
+        tm.assert_series_equal(result, expected)
