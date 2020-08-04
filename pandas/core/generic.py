@@ -1234,7 +1234,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         -----
         Header or index values may be of a different dtype.
         NaN values at same positions are considered equal.
-        
+
         Examples
         --------
         >>> df = pd.DataFrame({1: [10], 2: [20]})
