@@ -72,7 +72,7 @@ from pandas.io.common import stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
 
 if TYPE_CHECKING:
-    from pandas import Series, DataFrame, Categorical
+    from pandas import Categorical, DataFrame, Series
 
 FormattersType = Union[
     List[Callable], Tuple[Callable, ...], Mapping[Union[str, int], Callable]
