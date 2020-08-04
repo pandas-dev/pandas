@@ -619,7 +619,7 @@ def astype_intsafe(ndarray[object] arr, new_dtype):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef ndarray[object] ensure_string_array(
-        ndarray[object] arr,
+        ndarray arr,
         object na_value=np.nan,
         bint convert_na_value=True,
         bint copy=True,
