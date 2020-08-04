@@ -1199,11 +1199,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         Test whether two objects contain the same elements.
 
-        This function allows two Series or DataFrames to be compared against
-        each other to see if they have the same shape and elements. NaNs in
-        the same location are considered equal. The column headers do not
-        need to have the same type, but the elements within the columns must
-        be the same dtype.
+        This function compares two Series or DataFrames.
+        checks if both have the same shape and elements. 
+        columns must be the same dtype. 
 
         Parameters
         ----------
@@ -1234,10 +1232,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Notes
         -----
-        This function requires that the elements have the same dtype as their
-        respective elements in the other Series or DataFrame. However, the
-        column labels do not need to have the same type, as long as they are
-        still considered equal.
+        Header or index values may be of a different dtype.
+        NaN values at same positions are considered equal. 
+
 
         Examples
         --------
