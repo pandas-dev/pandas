@@ -15,9 +15,8 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 
-- Bug in :class:`pandas.core.groupby.RollingGroupby` where column selection was ignored (:issue:`35486`)
--
--
+- Fixed regression where :func:`read_csv` would raise a ``ValueError`` when ``pandas.options.mode.use_inf_as_na`` was set to ``True`` (:issue:`35493`).
+- Fixed regression in :class:`pandas.core.groupby.RollingGroupby` where column selection was ignored (:issue:`35486`)
 
 .. ---------------------------------------------------------------------------
 
@@ -25,6 +24,13 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
+
+
+Categorical
+^^^^^^^^^^^
+
+- Bug in :meth:`CategoricalIndex.format` where, when stringified scalars had different lengths, the shorter string would be right-filled with spaces, so it had the same length as the longest string (:issue:`35439`)
+
 
 **Datetimelike**
 
