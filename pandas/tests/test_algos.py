@@ -1769,6 +1769,19 @@ class TestRank:
             s = Series([1, 100], dtype=dtype)
             tm.assert_numpy_array_equal(algos.rank(s), exp)
 
+    @pytest.mark.parametrize("dtype", ["int32", "int64"])
+    def test_negative_min_rank(self, dtype):
+        # GH#32859
+        # Check that nan is respected on float64
+        s = pd.Series(np.array([np.inf, np.nan, -np.inf]))
+        expected = pd.Series(np.array([2.0, np.nan, 1.0]))
+        tm.assert_series_equal(s.rank(na_option="keep"), expected)
+
+        # Rank works if coverted to most negative value
+        s = pd.Series(np.array([np.inf, np.nan, -np.inf]).astype(dtype))
+        expected = pd.Series(np.array([2.0, 2.0, 2.0]))
+        tm.assert_series_equal(s.rank(na_option="keep"), expected)
+
     def test_uint64_overflow(self):
         exp = np.array([1, 2], dtype=np.float64)
 

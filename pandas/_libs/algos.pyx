@@ -840,7 +840,7 @@ def rank_1d(
     elif rank_t is float64_t:
         mask = np.isnan(values)
     elif rank_t is int64_t:
-        mask = values == NPY_NAT
+        mask = missing.isnaobj(values)
 
         # create copy in case of NPY_NAT
         # values are mutated inplace
