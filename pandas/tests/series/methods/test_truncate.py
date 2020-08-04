@@ -141,3 +141,11 @@ class TestTruncate:
         expected = df.col
 
         tm.assert_series_equal(result, expected)
+
+    def test_truncate_one_element_series(self):
+        # GH 35544
+        series = pd.Series([0.1], index=pd.DatetimeIndex(['2020-08-04']))
+        before = pd.Timestamp('2020-08-02')
+        after = pd.Timestamp('2020-08-04')
+
+        assert series.truncate(before=before, after=after).equals(series)
