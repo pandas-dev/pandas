@@ -20,7 +20,7 @@ import pandas.core.algorithms as algorithms
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
-    from pandas.core.indexes.base import Index  # noqa:F401
+    from pandas.core.indexes.base import Index  # noqa:F811
 
 _INT64_MAX = np.iinfo(np.int64).max
 
