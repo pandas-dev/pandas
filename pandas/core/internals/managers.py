@@ -19,7 +19,6 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     is_datetimelike_v_numeric,
-    is_dtype_equal,
     is_extension_array_dtype,
     is_list_like,
     is_numeric_v_string_like,
@@ -28,10 +27,9 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
-from pandas.core.dtypes.missing import array_equivalent, isna
+from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
@@ -49,7 +47,7 @@ from pandas.core.internals.blocks import (
     get_block_type,
     make_block,
 )
-from pandas.core.internals.ops import blockwise_all, operate_blockwise
+from pandas.core.internals.ops import array_equals, blockwise_all, operate_blockwise
 
 # TODO: flexible with index=None and/or items=None
 
@@ -1422,25 +1420,15 @@ class BlockManager(PandasObject):
         if not all(ax1.equals(ax2) for ax1, ax2 in zip(self_axes, other_axes)):
             return False
 
-        def blk_func(left, right):
-            if not is_dtype_equal(left.dtype, right.dtype):
-                return False
-            elif isinstance(left, ExtensionArray):
-                return left.equals(right)
-            elif isinstance(right, ExtensionArray):
-                return False
-            else:
-                return array_equivalent(left, right, dtype_equal=True)
-
         if self.ndim == 1:
             # For SingleBlockManager (i.e.Series)
             if other.ndim != 1:
                 return False
             left = self.blocks[0].values
             right = other.blocks[0].values
-            return blk_func(left, right)
+            return array_equals(left, right)
 
-        return blockwise_all(self, other, blk_func)
+        return blockwise_all(self, other, array_equals)
 
     def unstack(self, unstacker, fill_value) -> "BlockManager":
         """

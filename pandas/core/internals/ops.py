@@ -1,9 +1,14 @@
 from collections import namedtuple
-from typing import TYPE_CHECKING, List, Tuple
+from typing import TYPE_CHECKING, Generator, List, Tuple
 
 import numpy as np
 
 from pandas._typing import ArrayLike
+
+from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.missing import array_equivalent
+
+from pandas.core.arrays import ExtensionArray
 
 if TYPE_CHECKING:
     from pandas.core.internals.blocks import Block  # noqa:F401
@@ -15,7 +20,9 @@ BlockPairInfo = namedtuple(
 )
 
 
-def _iter_block_pairs(left: "BlockManager", right: "BlockManager"):
+def _iter_block_pairs(
+    left: "BlockManager", right: "BlockManager"
+) -> Generator[BlockPairInfo, None, None]:
     # At this point we have already checked the parent DataFrames for
     #  assert rframe._indexed_same(lframe)
 
@@ -127,3 +134,17 @@ def blockwise_all(left: "BlockManager", right: "BlockManager", op) -> bool:
         if not res:
             return False
     return True
+
+
+def array_equals(left: ArrayLike, right: ArrayLike) -> bool:
+    """
+    ExtensionArray-compatible implementation of array_equivalent.
+    """
+    if not is_dtype_equal(left.dtype, right.dtype):
+        return False
+    elif isinstance(left, ExtensionArray):
+        return left.equals(right)
+    elif isinstance(right, ExtensionArray):
+        return False
+    else:
+        return array_equivalent(left, right, dtype_equal=True)
