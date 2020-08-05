@@ -24,6 +24,18 @@ class TestTimedeltas:
         result = to_timedelta(Series(["1d", "1days 00:00:01"]))
         tm.assert_series_equal(result, expected)
 
+        # IntegerArray Series
+        expected = Series([timedelta(days=1), timedelta(days=2)])
+        result = to_timedelta(Series([1, 2], dtype="Int64"), unit="days")
+
+        tm.assert_series_equal(result, expected)
+
+        # IntegerArray Series with nulls
+        expected = Series([timedelta(days=1), None])
+        result = to_timedelta(Series([1, None], dtype="Int64"), unit="days")
+
+        tm.assert_series_equal(result, expected)
+
         # with units
         result = TimedeltaIndex(
             [np.timedelta64(0, "ns"), np.timedelta64(10, "s").astype("m8[ns]")]
