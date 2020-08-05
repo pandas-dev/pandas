@@ -1,6 +1,6 @@
 """ miscellaneous sorting / groupby utilities """
 from collections import defaultdict
-from typing import Callable, DefaultDict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Callable, DefaultDict, List, Optional, Tuple
 
 import numpy as np
 
@@ -18,6 +18,9 @@ from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algorithms
 from pandas.core.construction import extract_array
+
+if TYPE_CHECKING:
+    from pandas.core.indexes.base import Index  # noqa:F401
 
 _INT64_MAX = np.iinfo(np.int64).max
 
@@ -442,7 +445,7 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
 
 
 def get_flattened_list(
-    comp_ids: np.ndarray, ngroups: int, levels, labels: List[np.ndarray]
+    comp_ids: np.ndarray, ngroups: int, levels: List["Index"], labels: List[np.ndarray]
 ) -> List[Tuple]:
     """Map compressed group id -> key tuple."""
     comp_ids = comp_ids.astype(np.int64, copy=False)
