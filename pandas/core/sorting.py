@@ -20,7 +20,7 @@ import pandas.core.algorithms as algorithms
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
-    from pandas.core.indexes.base import Index  # noqa:F811
+    from pandas.core.indexes.base import Index  # noqa:F401
 
 _INT64_MAX = np.iinfo(np.int64).max
 
@@ -413,7 +413,7 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
     levels : Optional[List], if values is a MultiIndex, list of levels to
     apply the key to.
     """
-    from pandas.core.indexes.api import Index
+    from pandas.core.indexes.api import Index  # noqa:F811
 
     if not key:
         return values
