@@ -210,7 +210,6 @@ For example:
     pd.to_datetime(tz_strs, format='%Y-%m-%d %H:%M:%S %z', utc=True)
     pd.to_datetime(tz_strs, format='%Y-%m-%d %H:%M:%S %z')
 
-
 .. _whatsnew_110.grouper_resample_origin:
 
 Grouper and resample now supports the arguments origin and offset
