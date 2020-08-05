@@ -1,6 +1,6 @@
 """ miscellaneous sorting / groupby utilities """
 from collections import defaultdict
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -446,7 +446,7 @@ def get_flattened_list(
 ) -> List[Tuple]:
     """Map compressed group id -> key tuple."""
     comp_ids = comp_ids.astype(np.int64, copy=False)
-    arrays = defaultdict(list)
+    arrays: Dict[int, List] = defaultdict(list)
     for labs, level in zip(labels, levels):
         table = hashtable.Int64HashTable(ngroups)
         table.map(comp_ids, labs.astype(np.int64, copy=False))
