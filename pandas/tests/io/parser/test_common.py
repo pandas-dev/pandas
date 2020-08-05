@@ -18,7 +18,7 @@ from pandas._libs.tslib import Timestamp
 from pandas.errors import DtypeWarning, EmptyDataError, ParserError
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Index, MultiIndex, Series, compat, concat
+from pandas import DataFrame, Index, MultiIndex, Series, compat, concat, option_context
 import pandas._testing as tm
 
 from pandas.io.parsers import CParserWrapper, TextFileReader, TextParser
@@ -2179,3 +2179,13 @@ def test_read_csv_names_not_accepting_sets(all_parsers):
     parser = all_parsers
     with pytest.raises(ValueError, match="Names should be an ordered collection."):
         parser.read_csv(StringIO(data), names=set("QAZ"))
+
+
+def test_read_csv_with_use_inf_as_na(all_parsers):
+    # https://github.com/pandas-dev/pandas/issues/35493
+    parser = all_parsers
+    data = "1.0\nNaN\n3.0"
+    with option_context("use_inf_as_na", True):
+        result = parser.read_csv(StringIO(data), header=None)
+    expected = DataFrame([1.0, np.nan, 3.0])
+    tm.assert_frame_equal(result, expected)

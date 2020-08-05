@@ -4193,7 +4193,7 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         mapper : dict-like or function
-            Dict-like or functions transformations to apply to
+            Dict-like or function transformations to apply to
             that axis' values. Use either ``mapper`` and ``axis`` to
             specify the axis to target with ``mapper``, or ``index`` and
             ``columns``.

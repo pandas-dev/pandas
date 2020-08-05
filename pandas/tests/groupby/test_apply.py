@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from io import StringIO
 
 import numpy as np
@@ -1043,3 +1043,33 @@ def test_apply_is_unchanged_when_other_methods_are_called_first(reduction_func):
     _ = getattr(grp, reduction_func)(*args)
     result = grp.apply(sum)
     tm.assert_frame_equal(result, expected)
+
+
+def test_apply_with_date_in_multiindex_does_not_convert_to_timestamp():
+    # GH 29617
+
+    df = pd.DataFrame(
+        {
+            "A": ["a", "a", "a", "b"],
+            "B": [
+                date(2020, 1, 10),
+                date(2020, 1, 10),
+                date(2020, 2, 10),
+                date(2020, 2, 10),
+            ],
+            "C": [1, 2, 3, 4],
+        },
+        index=pd.Index([100, 101, 102, 103], name="idx"),
+    )
+
+    grp = df.groupby(["A", "B"])
+    result = grp.apply(lambda x: x.head(1))
+
+    expected = df.iloc[[0, 2, 3]]
+    expected = expected.reset_index()
+    expected.index = pd.MultiIndex.from_frame(expected[["A", "B", "idx"]])
+    expected = expected.drop(columns="idx")
+
+    tm.assert_frame_equal(result, expected)
+    for val in result.index.levels[1]:
+        assert type(val) is date
