@@ -1007,8 +1007,6 @@ b  2""",
                     # raised in _get_cython_function, in some cases can
                     #  be trimmed by implementing cython funcs for more dtypes
                     pass
-                else:
-                    raise
 
             # apply a non-cython aggregation
             result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
