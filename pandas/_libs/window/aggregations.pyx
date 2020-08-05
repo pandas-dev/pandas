@@ -2,13 +2,15 @@
 
 import cython
 from cython import Py_ssize_t
+
+from libc.stdlib cimport free, malloc
 from libcpp.deque cimport deque
 
-from libc.stdlib cimport malloc, free
-
 import numpy as np
+
 cimport numpy as cnp
-from numpy cimport ndarray, int64_t, float64_t, float32_t, uint8_t
+from numpy cimport float32_t, float64_t, int64_t, ndarray, uint8_t
+
 cnp.import_array()
 
 
@@ -21,6 +23,7 @@ cdef extern from "src/headers/cmath" namespace "std":
 from pandas._libs.algos import is_monotonic
 
 from pandas._libs.util cimport numeric
+
 
 cdef extern from "../src/skiplist.h":
     ctypedef struct node_t:

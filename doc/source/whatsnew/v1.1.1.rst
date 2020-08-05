@@ -1,0 +1,61 @@
+.. _whatsnew_111:
+
+What's new in 1.1.1 (?)
+-----------------------
+
+These are the changes in pandas 1.1.1. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_111.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+
+- Fixed regression where :func:`read_csv` would raise a ``ValueError`` when ``pandas.options.mode.use_inf_as_na`` was set to ``True`` (:issue:`35493`).
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_111.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+
+Categorical
+^^^^^^^^^^^
+
+- Bug in :meth:`CategoricalIndex.format` where, when stringified scalars had different lengths, the shorter string would be right-filled with spaces, so it had the same length as the longest string (:issue:`35439`)
+
+
+**Datetimelike**
+
+-
+-
+
+**Numeric**
+
+-
+-
+
+**Plotting**
+
+-
+
+**Indexing**
+
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_111.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.1.0..v1.1.1|HEAD
