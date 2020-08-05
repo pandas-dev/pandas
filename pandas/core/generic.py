@@ -266,7 +266,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # avoid `can_hold_identifiers` check.
         object.__setattr__(self, "_allows_duplicate_labels", value)
 
-    def set_flags(self, *, allows_duplicate_labels: Optional[bool] = None) -> FrameOrSeries:
+    def set_flags(
+        self, *, allows_duplicate_labels: Optional[bool] = None
+    ) -> FrameOrSeries:
         """
         Set global attributes on a copy of this object.
 
