@@ -59,7 +59,8 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
--
+
+- Bug in :meth:`DataFrame.combine_first` that would convert datetime-like column on other :class:`DataFrame` to integer when the column is not present in original :class:`DataFrame` (:issue:`28481`)
 -
 
 Timedelta
