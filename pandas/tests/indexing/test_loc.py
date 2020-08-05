@@ -5,6 +5,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import _is_numpy_dev
+
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp, date_range
 import pandas._testing as tm
@@ -945,6 +947,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df.loc[0, "x"] = expected.loc[0, "x"]
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.xfail(_is_numpy_dev, reason="gh-35481")
     def test_loc_setitem_empty_append_raises(self):
         # GH6173, various appends to an empty dataframe
 
