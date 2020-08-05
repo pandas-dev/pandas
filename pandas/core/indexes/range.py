@@ -1,7 +1,7 @@
 from datetime import timedelta
 import operator
 from sys import getsizeof
-from typing import Any, Optional
+from typing import Any
 import warnings
 
 import numpy as np
@@ -78,8 +78,6 @@ class RangeIndex(Int64Index):
     _engine_type = libindex.Int64Engine
     _range: range
 
-    # check whether self._data has been called
-    _cached_data: Optional[np.ndarray] = None
     # --------------------------------------------------------------------
     # Constructors
 
@@ -150,20 +148,14 @@ class RangeIndex(Int64Index):
         """ return the class to use for construction """
         return Int64Index
 
-    @property
+    @cache_readonly
     def _data(self):
         """
         An int array that for performance reasons is created only when needed.
 
-        The constructed array is saved in ``_cached_data``. This allows us to
-        check if the array has been created without accessing ``_data`` and
-        triggering the construction.
+        The constructed array is saved in ``_cache``.
         """
-        if self._cached_data is None:
-            self._cached_data = np.arange(
-                self.start, self.stop, self.step, dtype=np.int64
-            )
-        return self._cached_data
+        return np.arange(self.start, self.stop, self.step, dtype=np.int64)
 
     @cache_readonly
     def _int64index(self) -> Int64Index:
