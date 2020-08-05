@@ -142,6 +142,22 @@ which indicates whether that object can have duplicate labels.
    df
    df.allows_duplicate_labels
 
+:meth:`DataFrame.set_flags` can be used to return a new ``DataFrame`` with attributes
+like ``allows_duplicate_labels`` set to some value
+
+.. ipython:: python
+
+   df2 = df.set_flags(allows_duplicate_labels=True)
+   df2.allows_duplicate_labels
+
+Or the property can just be set directly on the same object
+
+
+.. ipython:: python
+
+   df2.allows_duplicate_labels = False
+   df2.allows_duplicate_labels
+
 When processing raw, messy data you might initially read in the messy data
 (which potentially has duplicate labels), deduplicate, and then disallow duplicates
 going forward, to ensure that your data pipeline doesn't introduce duplicates.
@@ -153,7 +169,8 @@ going forward, to ensure that your data pipeline doesn't introduce duplicates.
    >>> deduplicated = raw.groupby(level=0).first()  # remove duplicates
    >>> deduplicated.allows_duplicate_labels = False  # disallow going forward
 
-Performing an operation that introduces duplicate labels on a ``Series`` or
+Setting ``allows_duplicate_labels=True`` on a ``Series`` or ``DataFrame`` with duplicate
+labels or performing an operation that introduces duplicate labels on a ``Series`` or
 ``DataFrame`` that disallows duplicates will raise an
 :class:`errors.DuplicateLabelError`.
 

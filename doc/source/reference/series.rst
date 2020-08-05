@@ -39,6 +39,8 @@ Attributes
    Series.empty
    Series.dtypes
    Series.name
+   Series.allows_duplicate_labels
+   Series.set_flags
 
 Conversion
 ----------

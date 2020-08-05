@@ -522,6 +522,22 @@ class TestSeriesMisc:
         result = s + 1
         assert result.attrs == {"version": 1}
 
+    @pytest.mark.parametrize("allows_duplicate_labels", [True, False, None])
+    def test_set_flags(self, allows_duplicate_labels):
+        df = pd.Series([1, 2])
+        result = df.set_flags(allows_duplicate_labels=allows_duplicate_labels)
+        if allows_duplicate_labels is None:
+            # We don't update when it's not provided
+            assert result.allows_duplicate_labels is True
+        else:
+            assert result.allows_duplicate_labels is allows_duplicate_labels
+
+        # We made a copy
+        assert df is not result
+        # We didn't mutate df
+        assert df.allows_duplicate_labels is True
+        tm.assert_series_equal(result, df)
+
 
 class TestCategoricalSeries:
     @pytest.mark.parametrize(

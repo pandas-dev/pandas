@@ -37,6 +37,8 @@ Attributes and underlying data
    DataFrame.shape
    DataFrame.memory_usage
    DataFrame.empty
+   DataFrame.allows_duplicate_labels
+   DataFrame.set_flags
 
 Conversion
 ~~~~~~~~~~

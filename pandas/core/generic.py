@@ -230,6 +230,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return mgr
 
     # ----------------------------------------------------------------------
+    # attrs and flags
 
     @property
     def attrs(self) -> Dict[Optional[Hashable], Any]:
@@ -264,6 +265,32 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         # avoid `can_hold_identifiers` check.
         object.__setattr__(self, "_allows_duplicate_labels", value)
+
+    def set_flags(self, *, allows_duplicate_labels: Optional[bool] = None) -> FrameOrSeries:
+        """
+        Set global attributes on a copy of this object.
+
+        This method is intended to be used in method chains.
+
+        Parameters
+        ----------
+        allows_duplicate_labels:
+            Whether the returned object allows duplicate labels.
+
+        Returns
+        -------
+        Series or DataFrame
+            The same type as the caller.
+
+        See Also
+        --------
+        DataFrame.attrs
+        DataFrame.allows_duplicate_labels
+        """
+        df = self.copy()
+        if allows_duplicate_labels is not None:
+            df.allows_duplicate_labels = allows_duplicate_labels
+        return df
 
     @classmethod
     def _validate_dtype(cls, dtype):
