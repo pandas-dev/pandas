@@ -1226,7 +1226,7 @@ def assert_series_equal(
     check_datetimelike_compat=False,
     check_categorical=True,
     check_category_order=True,
-    check_freq=True,
+    check_freq=False,
     rtol=1.0e-5,
     atol=1.0e-8,
     obj="Series",
@@ -1271,7 +1271,7 @@ def assert_series_equal(
         Whether to compare category order of internal Categoricals.
 
         .. versionadded:: 1.0.2
-    check_freq : bool, default True
+    check_freq : bool, default False
         Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex.
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
@@ -1426,7 +1426,7 @@ def assert_frame_equal(
     check_datetimelike_compat=False,
     check_categorical=True,
     check_like=False,
-    check_freq=True,
+    check_freq=False,
     rtol=1.0e-5,
     atol=1.0e-8,
     obj="DataFrame",
@@ -1486,7 +1486,7 @@ def assert_frame_equal(
         If True, ignore the order of index & columns.
         Note: index labels must match their respective rows
         (same as in columns) - same labels must be with the same data.
-    check_freq : bool, default True
+    check_freq : bool, default False
         Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex.
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
