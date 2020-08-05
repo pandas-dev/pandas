@@ -44,6 +44,7 @@ Exceptions and warnings
    errors.NullFrequencyError
    errors.NumbaUtilError
    errors.OutOfBoundsDatetime
+   errors.OutOfBoundsTimedelta
    errors.ParserError
    errors.ParserWarning
    errors.PerformanceWarning

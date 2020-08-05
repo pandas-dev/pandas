@@ -3,7 +3,8 @@ channels:
   - conda-forge
 dependencies:
   # required
-  - numpy>=1.15
+  # Pin numpy<1.19 until MPL 3.3.0 is released.
+  - numpy>=1.15,<1.19.0
   - python=3
   - python-dateutil>=2.7.3
   - pytz
@@ -20,14 +21,14 @@ dependencies:
   - flake8<3.8.0  # temporary pin, GH#34150
   - flake8-comprehensions>=3.1.0  # used by flake8, linting of unnecessary comprehensions
   - flake8-rst>=0.6.0,<=0.7.0  # linting of code blocks in rst files
-  - isort  # check that imports are in the right order
+  - isort>=5.2.1  # check that imports are in the right order
   - mypy=0.730
   - pycodestyle  # used by flake8
 
   # documentation
   - gitpython  # obtain contributors from git for whatsnew
   - gitdb2=2.0.6  # GH-32060
-  - sphinx
+  - sphinx<=3.1.1
 
   # documentation (jupyter notebooks)
   - nbconvert>=5.4.1
@@ -72,7 +73,7 @@ dependencies:
   - ipykernel
   - ipython>=7.11.1
   - jinja2  # pandas.Styler
-  - matplotlib>=2.2.2  # pandas.plotting, Series.plot, DataFrame.plot
+  - matplotlib>=2.2.2,<3.3.0  # pandas.plotting, Series.plot, DataFrame.plot
   - numexpr>=2.6.8
   - scipy>=1.2
   - numba>=0.46.0

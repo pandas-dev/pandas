@@ -862,23 +862,25 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             else:
                 raise IndexError("cannot do a non-empty take from an empty axes.")
 
+        # sp_indexer may be -1 for two reasons
+        # 1.) we took for an index of -1 (new)
+        # 2.) we took a value that was self.fill_value (old)
         sp_indexer = self.sp_index.lookup_array(indices)
+        new_fill_indices = indices == -1
+        old_fill_indices = (sp_indexer == -1) & ~new_fill_indices
 
-        if self.sp_index.npoints == 0:
-            # Avoid taking from the empty self.sp_values
+        if self.sp_index.npoints == 0 and old_fill_indices.all():
+            # We've looked up all valid points on an all-sparse array.
             taken = np.full(
-                sp_indexer.shape,
-                fill_value=fill_value,
-                dtype=np.result_type(type(fill_value)),
+                sp_indexer.shape, fill_value=self.fill_value, dtype=self.dtype.subtype
             )
+
+        elif self.sp_index.npoints == 0:
+            # Avoid taking from the empty self.sp_values
+            _dtype = np.result_type(self.dtype.subtype, type(fill_value))
+            taken = np.full(sp_indexer.shape, fill_value=fill_value, dtype=_dtype)
         else:
             taken = self.sp_values.take(sp_indexer)
-
-            # sp_indexer may be -1 for two reasons
-            # 1.) we took for an index of -1 (new)
-            # 2.) we took a value that was self.fill_value (old)
-            new_fill_indices = indices == -1
-            old_fill_indices = (sp_indexer == -1) & ~new_fill_indices
 
             # Fill in two steps.
             # Old fill values
@@ -1162,7 +1164,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     # Reductions
     # ------------------------------------------------------------------------
 
-    def _reduce(self, name, skipna=True, **kwargs):
+    def _reduce(self, name: str, skipna: bool = True, **kwargs):
         method = getattr(self, name, None)
 
         if method is None:

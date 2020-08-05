@@ -5,8 +5,8 @@ import numpy as np
 from pandas._typing import ArrayLike
 
 if TYPE_CHECKING:
-    from pandas.core.internals.managers import BlockManager  # noqa:F401
     from pandas.core.internals.blocks import Block  # noqa:F401
+    from pandas.core.internals.managers import BlockManager  # noqa:F401
 
 
 def operate_blockwise(

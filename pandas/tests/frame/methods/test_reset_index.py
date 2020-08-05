@@ -3,6 +3,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas import (
     DataFrame,
     Index,
@@ -118,7 +119,8 @@ class TestResetIndex:
         # test resetting in place
         df = float_frame.copy()
         resetted = float_frame.reset_index()
-        df.reset_index(inplace=True)
+        return_value = df.reset_index(inplace=True)
+        assert return_value is None
         tm.assert_frame_equal(df, resetted, check_names=False)
 
         df = float_frame.reset_index().set_index(["index", "A", "B"])
@@ -136,7 +138,8 @@ class TestResetIndex:
         )
         assert df.reset_index().index.name is None
         assert df.reset_index(drop=True).index.name is None
-        df.reset_index(inplace=True)
+        return_value = df.reset_index(inplace=True)
+        assert return_value is None
         assert df.index.name is None
 
     def test_reset_index_level(self):
@@ -299,9 +302,19 @@ class TestResetIndex:
         tm.assert_frame_equal(result, expected)
 
 
-def test_reset_index_dtypes_on_empty_frame_with_multiindex():
+@pytest.mark.parametrize(
+    "array, dtype",
+    [
+        (["a", "b"], object),
+        (
+            pd.period_range("12-1-2000", periods=2, freq="Q-DEC"),
+            pd.PeriodDtype(freq="Q-DEC"),
+        ),
+    ],
+)
+def test_reset_index_dtypes_on_empty_frame_with_multiindex(array, dtype):
     # GH 19602 - Preserve dtype on empty DataFrame with MultiIndex
-    idx = MultiIndex.from_product([[0, 1], [0.5, 1.0], ["a", "b"]])
+    idx = MultiIndex.from_product([[0, 1], [0.5, 1.0], array])
     result = DataFrame(index=idx)[:0].reset_index().dtypes
-    expected = Series({"level_0": np.int64, "level_1": np.float64, "level_2": object})
+    expected = Series({"level_0": np.int64, "level_1": np.float64, "level_2": dtype})
     tm.assert_series_equal(result, expected)

@@ -357,6 +357,47 @@ class TestMelt:
         expected = DataFrame({"variable": [0, "a"], "value": ["foo", "bar"]})
         tm.assert_frame_equal(result, expected)
 
+    def test_ignore_index(self):
+        # GH 17440
+        df = DataFrame({"foo": [0], "bar": [1]}, index=["first"])
+        result = melt(df, ignore_index=False)
+        expected = DataFrame(
+            {"variable": ["foo", "bar"], "value": [0, 1]}, index=["first", "first"]
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_ignore_multiindex(self):
+        # GH 17440
+        index = pd.MultiIndex.from_tuples(
+            [("first", "second"), ("first", "third")], names=["baz", "foobar"]
+        )
+        df = DataFrame({"foo": [0, 1], "bar": [2, 3]}, index=index)
+        result = melt(df, ignore_index=False)
+
+        expected_index = pd.MultiIndex.from_tuples(
+            [("first", "second"), ("first", "third")] * 2, names=["baz", "foobar"]
+        )
+        expected = DataFrame(
+            {"variable": ["foo"] * 2 + ["bar"] * 2, "value": [0, 1, 2, 3]},
+            index=expected_index,
+        )
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_ignore_index_name_and_type(self):
+        # GH 17440
+        index = pd.Index(["foo", "bar"], dtype="category", name="baz")
+        df = DataFrame({"x": [0, 1], "y": [2, 3]}, index=index)
+        result = melt(df, ignore_index=False)
+
+        expected_index = pd.Index(["foo", "bar"] * 2, dtype="category", name="baz")
+        expected = DataFrame(
+            {"variable": ["x", "x", "y", "y"], "value": [0, 1, 2, 3]},
+            index=expected_index,
+        )
+
+        tm.assert_frame_equal(result, expected)
+
 
 class TestLreshape:
     def test_pairs(self):
@@ -1014,3 +1055,17 @@ class TestWideToLong:
         )
         result = pd.wide_to_long(wide_df, stubnames="PA", i=["node_id", "A"], j="time")
         tm.assert_frame_equal(result, expected)
+
+    def test_warn_of_column_name_value(self):
+        # GH34731
+        # raise a warning if the resultant value column name matches
+        # a name in the dataframe already (default name is "value")
+        df = pd.DataFrame({"col": list("ABC"), "value": range(10, 16, 2)})
+        expected = pd.DataFrame(
+            [["A", "col", "A"], ["B", "col", "B"], ["C", "col", "C"]],
+            columns=["value", "variable", "value"],
+        )
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.melt(id_vars="value")
+            tm.assert_frame_equal(result, expected)
