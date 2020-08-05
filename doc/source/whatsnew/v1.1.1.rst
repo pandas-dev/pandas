@@ -49,7 +49,7 @@ Categorical
 
 **Indexing**
 
-- Bug in series.truncate when trying to truncate a single-element series (:issue:`35544`)
+- Bug in :meth:`Series.truncate` when trying to truncate a single-element series (:issue:`35544`)
 
 .. ---------------------------------------------------------------------------
 
