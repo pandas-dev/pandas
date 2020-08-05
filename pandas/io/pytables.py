@@ -294,8 +294,8 @@ def read_hdf(
     .. warning::
 
        Pandas uses PyTables for reading and writing HDF5 files, which allows
-       serializing object-dtype data with pickle. Loading pickled data received
-       from untrusted sources can be unsafe.
+       serializing object-dtype data with pickle when using the "fixed" format.
+       Loading pickled data received from untrusted sources can be unsafe.
 
        See: https://docs.python.org/3/library/pickle.html for more.
 
@@ -456,8 +456,8 @@ class HDFStore:
     .. warning::
 
        Pandas uses PyTables for reading and writing HDF5 files, which allows
-       serializing object-dtype data with pickle. Loading pickled data received
-       from untrusted sources can be unsafe.
+       serializing object-dtype data with pickle when using the "fixed" format.
+       Loading pickled data received from untrusted sources can be unsafe.
 
        See: https://docs.python.org/3/library/pickle.html for more.
 
@@ -808,8 +808,8 @@ class HDFStore:
         .. warning::
 
            Pandas uses PyTables for reading and writing HDF5 files, which allows
-           serializing object-dtype data with pickle. Loading pickled data received
-           from untrusted sources can be unsafe.
+           serializing object-dtype data with pickle when using the "fixed" format.
+           Loading pickled data received from untrusted sources can be unsafe.
 
            See: https://docs.python.org/3/library/pickle.html for more.
 
@@ -879,8 +879,8 @@ class HDFStore:
         .. warning::
 
            Pandas uses PyTables for reading and writing HDF5 files, which allows
-           serializing object-dtype data with pickle. Loading pickled data received
-           from untrusted sources can be unsafe.
+           serializing object-dtype data with pickle when using the "fixed" format.
+           Loading pickled data received from untrusted sources can be unsafe.
 
            See: https://docs.python.org/3/library/pickle.html for more.
 
@@ -912,8 +912,8 @@ class HDFStore:
         .. warning::
 
            Pandas uses PyTables for reading and writing HDF5 files, which allows
-           serializing object-dtype data with pickle. Loading pickled data received
-           from untrusted sources can be unsafe.
+           serializing object-dtype data with pickle when using the "fixed" format.
+           Loading pickled data received from untrusted sources can be unsafe.
 
            See: https://docs.python.org/3/library/pickle.html for more.
 
@@ -956,8 +956,8 @@ class HDFStore:
         .. warning::
 
            Pandas uses PyTables for reading and writing HDF5 files, which allows
-           serializing object-dtype data with pickle. Loading pickled data received
-           from untrusted sources can be unsafe.
+           serializing object-dtype data with pickle when using the "fixed" format.
+           Loading pickled data received from untrusted sources can be unsafe.
 
            See: https://docs.python.org/3/library/pickle.html for more.
 
