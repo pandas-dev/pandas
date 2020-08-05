@@ -597,19 +597,19 @@ class ValuePosition:
     param_names = ["keep"]
 
     def setup(self, keep):
-        self.s = Series(np.random.randint(1, 10, 100000))
+        self.df = DataFrame(
+            {
+                "a": np.random.randint(0, 100, 100000),
+                "b": np.random.randint(0, 100, 100000),
+                "c": np.random.randint(0, 100, 100000),
+            }
+        )
 
     def time_idxmax(self, keep):
-        self.s.idxmin(keep=keep)
+        self.df.idxmin(keep=keep)
 
     def time_idxmin(self, keep):
-        self.s.idxmax(keep=keep)
-
-    def time_argmax(self, keep):
-        self.s.argmin(keep=keep)
-
-    def time_argmin(self, keep):
-        self.s.argmax(keep=keep)
+        self.df.idxmax(keep=keep)
 
 
 class Describe:
