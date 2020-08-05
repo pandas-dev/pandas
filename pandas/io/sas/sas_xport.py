@@ -264,7 +264,11 @@ class XportReader(ReaderBase, abc.Iterator):
             # should already be opened in binary mode in Python 3.
             self.filepath_or_buffer = filepath_or_buffer
 
-        self._read_header()
+        try:
+            self._read_header()
+        except Exception:
+            self.close()
+            raise
 
     def close(self):
         self.filepath_or_buffer.close()

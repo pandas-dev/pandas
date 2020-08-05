@@ -136,8 +136,8 @@ def read_sas(
     if iterator or chunksize:
         return reader
 
-    data = reader.read()
-
-    if ioargs.should_close:
-        reader.close()
-    return data
+    try:
+        return reader.read()
+    finally:
+        if ioargs.should_close:
+            reader.close()

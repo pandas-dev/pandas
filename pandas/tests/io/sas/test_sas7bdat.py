@@ -217,6 +217,14 @@ def test_zero_variables(datapath):
         pd.read_sas(fname)
 
 
+def test_corrupt_read(datapath):
+    # We don't really care about the exact failure, the important thing is
+    # that the resource should be cleaned up afterwards (BUG #35566)
+    fname = datapath("io", "sas", "data", "corrupt.sas7bdat")
+    with pytest.raises(AttributeError):
+        pd.read_sas(fname)
+
+
 def round_datetime_to_ms(ts):
     if isinstance(ts, datetime):
         return ts.replace(microsecond=int(round(ts.microsecond, -3) / 1000) * 1000)
