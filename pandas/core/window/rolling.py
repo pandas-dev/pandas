@@ -12,7 +12,7 @@ import numpy as np
 
 from pandas._libs.tslibs import BaseOffset, to_offset
 import pandas._libs.window.aggregations as window_aggregations
-from pandas._typing import Axis, FrameOrSeries, Scalar
+from pandas._typing import ArrayLike, Axis, FrameOrSeries, Scalar
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
@@ -487,7 +487,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             return VariableWindowIndexer(index_array=self._on.asi8, window_size=window)
         return FixedWindowIndexer(window_size=window)
 
-    def _apply_blockwise(self, homogeneous_func: Callable):
+    def _apply_blockwise(self, homogeneous_func: Callable) -> FrameOrSeries:
         """
         Apply the given function to the DataFrame broken down into homogeneous
         sub-frames.
@@ -496,8 +496,8 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         #  of homogenenous DataFrames.
         blocks, obj = self._create_blocks(self._selected_obj)
 
-        skipped = []
-        results = []
+        skipped: List[int] = []
+        results: List[ArrayLike] = []
         exclude: List[Scalar] = []
         for i, b in enumerate(blocks):
             try:
