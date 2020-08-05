@@ -253,6 +253,31 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def allows_duplicate_labels(self) -> bool:
         """
         Whether this object allows duplicate labels.
+
+        Setting ``allows_duplicate_labels=False`` ensures that the
+        index (and columns of a DataFrame) are unique. Most methods
+        that accept and return a Series or DataFrame will propagate
+        the value of ``allows_duplicate_labels``.
+
+        See :ref:`duplicates` for more.
+
+        See Also
+        --------
+        DataFrame.attrs : Set global metadata on this object.
+        DataFrame.set_flags : Set global flags on this object.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": [1, 2]}, index=['a', 'a'])
+        >>> df.allows_duplicate_labels
+        True
+        >>> df.allows_duplicate_labels = False
+        Traceback (most recent call last):
+            ...
+        pandas.errors.DuplicateLabelError: Index has duplicates.
+              positions
+        label
+        a        [0, 1]
         """
         return self._allows_duplicate_labels
 
@@ -276,7 +301,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Parameters
         ----------
-        allows_duplicate_labels:
+        allows_duplicate_labels : bool, optional
             Whether the returned object allows duplicate labels.
 
         Returns
@@ -286,8 +311,17 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         See Also
         --------
-        DataFrame.attrs
-        DataFrame.allows_duplicate_labels
+        DataFrame.attrs : Set global metadata on this object.
+        DataFrame.allows_duplicate_labels : If this object allows duplicate labels.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": [1, 2]})
+        >>> df.allows_duplicate_labels
+        True
+        >>> df2 = df.set_flags(allows_duplicate_labels=False)
+        >>> df2.allows_duplicate_labels
+        False
         """
         df = self.copy()
         if allows_duplicate_labels is not None:
