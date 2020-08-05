@@ -1815,37 +1815,29 @@ char* _str_copy_decimal_str_c(const char *s, char **endpos, char decimal,
 
 double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
                   int skip_trailing, int *error, int *maybe_int) {
-    char *pc = NULL;
     // 'normalize' representation to C-locale; replace decimal with '.' and
     // remove t(housand)sep.
     char *endptr = NULL;
-    if (decimal != '.' || tsep != '\0') {
-        pc = _str_copy_decimal_str_c(p, &endptr, decimal, tsep);
-    }
+    char *pc = _str_copy_decimal_str_c(p, &endptr, decimal, tsep);
     // This is called from a nogil block in parsers.pyx
     // so need to explicitly get GIL before Python calls
     PyGILState_STATE gstate;
     gstate = PyGILState_Ensure();
-    double r;
-    if (pc != NULL) {
-        char *endpc = NULL;
-        r = PyOS_string_to_double(pc, &endpc, 0);
-        // PyOS_string_to_double needs to consume the whole string
-        if (endpc == pc + strlen(pc)) {
-            if (q != NULL) {
-               // report endptr from source string (p)
-                *q = (char *) endptr;
-            }
-        } else {
-            *error = -1;
-            if (q != NULL) {
-               // p and pc are different len due to tsep removal. Can't report
-               // how much it has consumed of p. Just rewind to beginning.
-                *q = (char *)p;
-            }
+    char *endpc = NULL;
+    double r = PyOS_string_to_double(pc, &endpc, 0);
+    // PyOS_string_to_double needs to consume the whole string
+    if (endpc == pc + strlen(pc)) {
+        if (q != NULL) {
+           // report endptr from source string (p)
+            *q = (char *) endptr;
         }
     } else {
-        r = PyOS_string_to_double(p, q, 0);
+        *error = -1;
+        if (q != NULL) {
+           // p and pc are different len due to tsep removal. Can't report
+           // how much it has consumed of p. Just rewind to beginning.
+            *q = (char *)p;
+        }
     }
     if (maybe_int != NULL) *maybe_int = 0;
     if (PyErr_Occurred() != NULL) *error = -1;
