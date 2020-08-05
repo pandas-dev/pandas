@@ -132,14 +132,14 @@ Plotting
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
--
+- Bug in :meth:`DataFrameGroupBy.count` and :meth:`SeriesGroupBy.sum` returning ``NaN`` for missing categories when grouped on multiple ``Categoricals``. Now returning ``0`` (:issue:`35028`)
 -
 
 
 Reshaping
 ^^^^^^^^^
 
--
+- Bug in :meth:`DataFrame.pivot_table` with ``aggfunc='count'`` or ``aggfunc='sum'`` returning ``NaN`` for missing categories when pivoted on a ``Categorical``. Now returning ``0`` (:issue:`31422`)
 -
 
 Sparse

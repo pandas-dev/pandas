@@ -1131,7 +1131,6 @@ Groupby/resample/rolling
 - Bug in :meth:`core.groupby.DataFrameGroupBy.transform` when ``func='nunique'`` and columns are of type ``datetime64``, the result would also be of type ``datetime64`` instead of ``int64`` (:issue:`35109`)
 - Bug in :meth:`DataFrame.groupby` raising an ``AttributeError`` when selecting a column and aggregating with ``as_index=False`` (:issue:`35246`).
 - Bug in :meth:`DataFrameGroupBy.first` and :meth:`DataFrameGroupBy.last` that would raise an unnecessary ``ValueError`` when grouping on multiple ``Categoricals`` (:issue:`34951`)
-- Bug in :meth:`DataFrameGroupBy.count` and :meth:`SeriesGroupBy.sum` returning ``NaN`` for missing categories when grouped on multiple ``Categoricals``. Now returning ``0`` (:issue:`35028`)
 
 Reshaping
 ^^^^^^^^^
@@ -1166,7 +1165,6 @@ Reshaping
 - Fixed bug in :func:`melt` where melting :class:`MultiIndex` columns with ``col_level > 0`` would raise a ``KeyError`` on ``id_vars`` (:issue:`34129`)
 - Bug in :meth:`Series.where` with an empty :class:`Series` and empty ``cond`` having non-bool dtype (:issue:`34592`)
 - Fixed regression where :meth:`DataFrame.apply` would raise ``ValueError`` for elements with ``S`` dtype (:issue:`34529`)
-- Bug in :meth:`DataFrame.pivot_table` with ``aggfunc='count'`` or ``aggfunc='sum'`` returning ``NaN`` for missing categories when pivoted on a ``Categorical``. Now returning ``0`` (:issue:`31422`)
 
 Sparse
 ^^^^^^
