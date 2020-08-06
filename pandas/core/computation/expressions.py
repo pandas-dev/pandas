@@ -227,7 +227,8 @@ def evaluate(op, a, b, use_numexpr: bool = True):
     if op_str is not None:
         use_numexpr = use_numexpr and _bool_arith_check(op_str, a, b)
         if use_numexpr:
-            return _evaluate(op, op_str, a, b)  # type: ignore
+            # error: "None" not callable
+            return _evaluate(op, op_str, a, b)  # type: ignore[misc]
     return _evaluate_standard(op, op_str, a, b)
 
 

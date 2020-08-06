@@ -635,7 +635,8 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
     def __init__(self, unit: Union[str_type, "DatetimeTZDtype"] = "ns", tz=None):
         if isinstance(unit, DatetimeTZDtype):
-            unit, tz = unit.unit, unit.tz  # type: ignore
+            # error: "str" has no attribute "tz"
+            unit, tz = unit.unit, unit.tz  # type: ignore[attr-defined]
 
         if unit != "ns":
             if isinstance(unit, str) and tz is None:

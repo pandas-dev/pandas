@@ -2280,7 +2280,8 @@ class DataCol(IndexCol):
         Get an appropriately typed and shaped pytables.Col object for values.
         """
         dtype = values.dtype
-        itemsize = dtype.itemsize  # type: ignore
+        # error: "ExtensionDtype" has no attribute "itemsize"
+        itemsize = dtype.itemsize  # type: ignore[attr-defined]
 
         shape = values.shape
         if values.ndim == 1:
@@ -3349,9 +3350,9 @@ class Table(Fixed):
             (v.cname, v) for v in self.values_axes if v.name in set(self.data_columns)
         ]
 
-        return dict(d1 + d2 + d3)  # type: ignore
-        # error: List comprehension has incompatible type
-        #  List[Tuple[Any, None]]; expected List[Tuple[str, IndexCol]]
+        # error: Unsupported operand types for + ("List[Tuple[str, IndexCol]]"
+        # and "List[Tuple[str, None]]")
+        return dict(d1 + d2 + d3)  # type: ignore[operator]
 
     def index_cols(self):
         """ return a list of my index cols """

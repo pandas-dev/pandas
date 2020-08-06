@@ -45,7 +45,10 @@ def _maybe_resample(series: "Series", ax, kwargs):
     if ax_freq is not None and freq != ax_freq:
         if is_superperiod(freq, ax_freq):  # upsample input
             series = series.copy()
-            series.index = series.index.asfreq(ax_freq, how="s")  # type: ignore
+            # error: "Index" has no attribute "asfreq"
+            series.index = series.index.asfreq(  # type: ignore[attr-defined]
+                ax_freq, how="s"
+            )
             freq = ax_freq
         elif _is_sup(freq, ax_freq):  # one is weekly
             how = kwargs.pop("how", "last")
@@ -222,7 +225,8 @@ def _get_index_freq(index: "Index") -> Optional[BaseOffset]:
     if freq is None:
         freq = getattr(index, "inferred_freq", None)
         if freq == "B":
-            weekdays = np.unique(index.dayofweek)  # type: ignore
+            # error: "Index" has no attribute "dayofweek"
+            weekdays = np.unique(index.dayofweek)  # type: ignore[attr-defined]
             if (5 in weekdays) or (6 in weekdays):
                 freq = None
 

@@ -74,3 +74,4 @@ pyreadstat
 tabulate>=0.8.3
 git+https://github.com/pandas-dev/pydata-sphinx-theme.git@master
 git+https://github.com/numpy/numpydoc
+pyflakes>=2.2.0

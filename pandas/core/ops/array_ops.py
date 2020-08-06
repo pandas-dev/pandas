@@ -349,7 +349,8 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         filler = fill_int if is_self_int_dtype and is_other_int_dtype else fill_bool
 
         res_values = na_logical_op(lvalues, rvalues, op)
-        res_values = filler(res_values)  # type: ignore
+        # error: Cannot call function of unknown type
+        res_values = filler(res_values)  # type: ignore[operator]
 
     return res_values
 
