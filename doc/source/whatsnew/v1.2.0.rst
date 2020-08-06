@@ -17,7 +17,7 @@ Enhancements
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
-
+- :class:`Index` with object dtype supports division and multiplication (:issue:`34160`)
 -
 -
 
@@ -59,7 +59,7 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
--
+- Bug in :attr:`DatetimeArray.date` where a ``ValueError`` would be raised with a read-only backing array (:issue:`33530`)
 -
 
 Timedelta
@@ -71,7 +71,7 @@ Timedelta
 Timezones
 ^^^^^^^^^
 
--
+- Bug in :func:`date_range` was raising AmbiguousTimeError for valid input with `ambiguous=False` (:issue:`35297`)
 -
 
 
