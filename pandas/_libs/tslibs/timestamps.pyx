@@ -1246,6 +1246,35 @@ timedelta}, default 'raise'
         """
         return getattr(self.freq, 'freqstr', self.freq)
 
+    def age_in_years(self, on=None) -> int:
+        """
+        Return the age in years of the timestamp. If either age is NaT, will
+        return np.nan.
+
+        Parameters
+        ----------
+        on : Timestamp
+            Date at which the age should be valid. Defaults to today.
+
+            * If None, defaults to today
+
+        Returns
+        -------
+        age_in_years : int
+        """
+        from pandas import to_datetime
+
+        if on is None:
+            on = self.today()
+
+        # if NaT is input, there is no age. Return NaN.
+        if self is NaT or on is NaT:
+            return np.nan
+
+        day_this_year = to_datetime(datetime(on.year, self.month, self.day))
+        age_in_years = on.year - self.year - (on < day_this_year)
+        return age_in_years
+
     def tz_localize(self, tz, ambiguous='raise', nonexistent='raise'):
         """
         Convert naive Timestamp to local time zone, or remove

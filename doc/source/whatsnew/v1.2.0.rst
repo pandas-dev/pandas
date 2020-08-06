@@ -59,7 +59,7 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
--
+- Added :func:`age_in_years` to calculate the years since a reference time (such as years of age since date of birth).
 -
 
 Timedelta

@@ -106,6 +106,13 @@ class TestTimestampArithmetic:
         assert (ts - dt).days == 1
         assert (dt - ts).days == -1
 
+    def test_age_in_years(self):
+        # test individual values
+        birthday = Timestamp(datetime(1983, 2, 4))
+        assert birthday.age_in_years(on=Timestamp(datetime(2020, 2, 3))) == 36
+        assert birthday.age_in_years(on=Timestamp(datetime(2020, 2, 4))) == 37
+        assert np.isnan(birthday.age_in_years(on=Timestamp("NaT")))
+
     def test_addition_subtraction_types(self):
         # Assert on the types resulting from Timestamp +/- various date/time
         # objects
