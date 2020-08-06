@@ -2220,6 +2220,10 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
     def _constructor(self):
         return Rolling
 
+    @cache_readonly
+    def _selected_obj(self):
+        return self._groupby._selected_obj
+
     def _create_blocks(self, obj: FrameOrSeries):
         """
         Split data into blocks & return conformed data.
