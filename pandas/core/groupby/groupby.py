@@ -463,8 +463,10 @@ def _group_selection_context(groupby):
     Set / reset the _group_selection_context.
     """
     groupby._set_group_selection()
-    yield groupby
-    groupby._reset_group_selection()
+    try:
+        yield groupby
+    finally:
+        groupby._reset_group_selection()
 
 
 _KeysArgType = Union[
