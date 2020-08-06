@@ -1231,6 +1231,7 @@ def fsspectest():
     pytest.importorskip("fsspec")
     from fsspec.implementations.memory import MemoryFileSystem
     from fsspec import register_implementation
+    from fsspec.registry import _registry as registry
 
     class TestMemoryFS(MemoryFileSystem):
         protocol = "testmem"
@@ -1240,5 +1241,8 @@ def fsspectest():
             self.test[0] = kwargs.pop("test", None)
             super().__init__(**kwargs)
 
-    register_implementation("testmem", TestMemoryFS, True)
-    return TestMemoryFS()
+    register_implementation("testmem", TestMemoryFS, clobber=True)
+    yield TestMemoryFS()
+    registry.pop("testmem", None)
+    TestMemoryFS.test[0] = None
+    TestMemoryFS.store.clear()

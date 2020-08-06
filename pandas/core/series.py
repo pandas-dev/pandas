@@ -9,6 +9,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Dict,
     Iterable,
     List,
     Optional,
@@ -1423,6 +1424,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         buf: Optional[IO[str]] = None,
         mode: str = "wt",
         index: bool = True,
+        storage_options: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> Optional[str]:
         """
@@ -1440,6 +1442,16 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Add index (row) labels.
 
             .. versionadded:: 1.1.0
+
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc., if using a URL that will
+            be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+            will be raised if providing this argument with a local path or
+            a file-like buffer. See the fsspec and backend storage implementation
+            docs for the set of allowed keys and values
+
+            .. versionadded:: 1.2.0
 
         **kwargs
             These parameters will be passed to `tabulate \
@@ -1476,7 +1488,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         |  3 | quetzal  |
         +----+----------+
         """
-        return self.to_frame().to_markdown(buf, mode, index, **kwargs)
+        return self.to_frame().to_markdown(
+            buf, mode, index, storage_options=storage_options, **kwargs
+        )
 
     # ----------------------------------------------------------------------
 

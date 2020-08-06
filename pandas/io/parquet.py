@@ -205,6 +205,10 @@ class FastParquetImpl(BaseImpl):
                 path, "wb", **(storage_options or {})
             ).open()
         else:
+            if storage_options:
+                raise ValueError(
+                    "storage_options passed with file object or non-fsspec file path"
+                )
             path, _, _, _ = get_filepath_or_buffer(path)
 
         with catch_warnings(record=True):
