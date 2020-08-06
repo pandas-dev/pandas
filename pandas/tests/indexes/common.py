@@ -146,22 +146,41 @@ class Base:
         # Check that this doesn't cover MultiIndex case, if/when it does,
         #  we can remove multi.test_compat.test_numeric_compat
         assert not isinstance(idx, MultiIndex)
+        if type(idx) is Index:
+            return
 
-        with pytest.raises(TypeError, match="cannot perform __mul__"):
+        typ = type(idx._data).__name__
+        lmsg = "|".join(
+            [
+                rf"unsupported operand type\(s\) for \*: '{typ}' and 'int'",
+                "cannot perform (__mul__|__truediv__|__floordiv__) with "
+                f"this index type: {typ}",
+            ]
+        )
+        with pytest.raises(TypeError, match=lmsg):
             idx * 1
-        with pytest.raises(TypeError, match="cannot perform __rmul__"):
+        rmsg = "|".join(
+            [
+                rf"unsupported operand type\(s\) for \*: 'int' and '{typ}'",
+                "cannot perform (__rmul__|__rtruediv__|__rfloordiv__) with "
+                f"this index type: {typ}",
+            ]
+        )
+        with pytest.raises(TypeError, match=rmsg):
             1 * idx
 
-        div_err = "cannot perform __truediv__"
+        div_err = lmsg.replace("*", "/")
         with pytest.raises(TypeError, match=div_err):
             idx / 1
-
-        div_err = div_err.replace(" __", " __r")
+        div_err = rmsg.replace("*", "/")
         with pytest.raises(TypeError, match=div_err):
             1 / idx
-        with pytest.raises(TypeError, match="cannot perform __floordiv__"):
+
+        floordiv_err = lmsg.replace("*", "//")
+        with pytest.raises(TypeError, match=floordiv_err):
             idx // 1
-        with pytest.raises(TypeError, match="cannot perform __rfloordiv__"):
+        floordiv_err = rmsg.replace("*", "//")
+        with pytest.raises(TypeError, match=floordiv_err):
             1 // idx
 
     def test_logical_compat(self):
