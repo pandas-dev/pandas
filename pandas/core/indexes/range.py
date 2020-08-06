@@ -385,11 +385,13 @@ class RangeIndex(Int64Index):
             return Int64Index._simple_new(values, name=name)
 
     @doc(Int64Index.copy)
-    def copy(self, name=None, deep=False, dtype=None, **kwargs):
+    def copy(self, name=None, deep=False, dtype=None, names=None):
         self._validate_dtype(dtype)
-        if name is None:
-            name = self.name
-        return self.from_range(self._range, name=name)
+
+        new_index = self._shallow_copy()
+        names = self._validate_names(name=name, names=names, deep=deep)
+        new_index = new_index.set_names(names)
+        return new_index
 
     def _minmax(self, meth: str):
         no_steps = len(self) - 1

@@ -121,7 +121,15 @@ def stringify_path(
     """
     if hasattr(filepath_or_buffer, "__fspath__"):
         # https://github.com/python/mypy/issues/1424
-        return filepath_or_buffer.__fspath__()  # type: ignore
+        # error: Item "str" of "Union[str, Path, IO[str]]" has no attribute
+        # "__fspath__"  [union-attr]
+        # error: Item "IO[str]" of "Union[str, Path, IO[str]]" has no attribute
+        # "__fspath__"  [union-attr]
+        # error: Item "str" of "Union[str, Path, IO[bytes]]" has no attribute
+        # "__fspath__"  [union-attr]
+        # error: Item "IO[bytes]" of "Union[str, Path, IO[bytes]]" has no
+        # attribute "__fspath__"  [union-attr]
+        return filepath_or_buffer.__fspath__()  # type: ignore[union-attr]
     elif isinstance(filepath_or_buffer, pathlib.Path):
         return str(filepath_or_buffer)
     return _expand_user(filepath_or_buffer)
@@ -516,7 +524,19 @@ def get_handle(
     return f, handles
 
 
-class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore
+# error: Definition of "__exit__" in base class "ZipFile" is incompatible with
+# definition in base class "BytesIO"  [misc]
+# error: Definition of "__enter__" in base class "ZipFile" is incompatible with
+# definition in base class "BytesIO"  [misc]
+# error: Definition of "__enter__" in base class "ZipFile" is incompatible with
+# definition in base class "BinaryIO"  [misc]
+# error: Definition of "__enter__" in base class "ZipFile" is incompatible with
+# definition in base class "IO"  [misc]
+# error: Definition of "read" in base class "ZipFile" is incompatible with
+# definition in base class "BytesIO"  [misc]
+# error: Definition of "read" in base class "ZipFile" is incompatible with
+# definition in base class "IO"  [misc]
+class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore[misc]
     """
     Wrapper for standard library class ZipFile and allow the returned file-like
     handle to accept byte strings via `write` method.
