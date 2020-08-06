@@ -289,7 +289,15 @@ def read_hdf(
     Read from the store, close it if we opened it.
 
     Retrieve pandas object stored in file, optionally based on where
-    criteria
+    criteria.
+
+    .. warning::
+
+       Pandas uses PyTables for reading and writing HDF5 files, which allows
+       serializing object-dtype data with pickle when using the "fixed" format.
+       Loading pickled data received from untrusted sources can be unsafe.
+
+       See: https://docs.python.org/3/library/pickle.html for more.
 
     Parameters
     ----------
@@ -444,6 +452,14 @@ class HDFStore:
     Dict-like IO interface for storing pandas objects in PyTables.
 
     Either Fixed or Table format.
+
+    .. warning::
+
+       Pandas uses PyTables for reading and writing HDF5 files, which allows
+       serializing object-dtype data with pickle when using the "fixed" format.
+       Loading pickled data received from untrusted sources can be unsafe.
+
+       See: https://docs.python.org/3/library/pickle.html for more.
 
     Parameters
     ----------
@@ -789,6 +805,14 @@ class HDFStore:
         """
         Retrieve pandas object stored in file, optionally based on where criteria.
 
+        .. warning::
+
+           Pandas uses PyTables for reading and writing HDF5 files, which allows
+           serializing object-dtype data with pickle when using the "fixed" format.
+           Loading pickled data received from untrusted sources can be unsafe.
+
+           See: https://docs.python.org/3/library/pickle.html for more.
+
         Parameters
         ----------
         key : str
@@ -852,6 +876,15 @@ class HDFStore:
         """
         return the selection as an Index
 
+        .. warning::
+
+           Pandas uses PyTables for reading and writing HDF5 files, which allows
+           serializing object-dtype data with pickle when using the "fixed" format.
+           Loading pickled data received from untrusted sources can be unsafe.
+
+           See: https://docs.python.org/3/library/pickle.html for more.
+
+
         Parameters
         ----------
         key : str
@@ -875,6 +908,14 @@ class HDFStore:
         """
         return a single column from the table. This is generally only useful to
         select an indexable
+
+        .. warning::
+
+           Pandas uses PyTables for reading and writing HDF5 files, which allows
+           serializing object-dtype data with pickle when using the "fixed" format.
+           Loading pickled data received from untrusted sources can be unsafe.
+
+           See: https://docs.python.org/3/library/pickle.html for more.
 
         Parameters
         ----------
@@ -911,6 +952,14 @@ class HDFStore:
     ):
         """
         Retrieve pandas objects from multiple tables.
+
+        .. warning::
+
+           Pandas uses PyTables for reading and writing HDF5 files, which allows
+           serializing object-dtype data with pickle when using the "fixed" format.
+           Loading pickled data received from untrusted sources can be unsafe.
+
+           See: https://docs.python.org/3/library/pickle.html for more.
 
         Parameters
         ----------
@@ -2280,7 +2329,8 @@ class DataCol(IndexCol):
         Get an appropriately typed and shaped pytables.Col object for values.
         """
         dtype = values.dtype
-        itemsize = dtype.itemsize  # type: ignore
+        # error: "ExtensionDtype" has no attribute "itemsize"
+        itemsize = dtype.itemsize  # type: ignore[attr-defined]
 
         shape = values.shape
         if values.ndim == 1:
@@ -3349,9 +3399,9 @@ class Table(Fixed):
             (v.cname, v) for v in self.values_axes if v.name in set(self.data_columns)
         ]
 
-        return dict(d1 + d2 + d3)  # type: ignore
-        # error: List comprehension has incompatible type
-        #  List[Tuple[Any, None]]; expected List[Tuple[str, IndexCol]]
+        # error: Unsupported operand types for + ("List[Tuple[str, IndexCol]]"
+        # and "List[Tuple[str, None]]")
+        return dict(d1 + d2 + d3)  # type: ignore[operator]
 
     def index_cols(self):
         """ return a list of my index cols """
