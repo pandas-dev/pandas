@@ -289,7 +289,15 @@ def read_hdf(
     Read from the store, close it if we opened it.
 
     Retrieve pandas object stored in file, optionally based on where
-    criteria
+    criteria.
+
+    .. warning::
+
+       Pandas uses PyTables for reading and writing HDF5 files, which allows
+       serializing object-dtype data with pickle when using the "fixed" format.
+       Loading pickled data received from untrusted sources can be unsafe.
+
+       See: https://docs.python.org/3/library/pickle.html for more.
 
     Parameters
     ----------
@@ -444,6 +452,14 @@ class HDFStore:
     Dict-like IO interface for storing pandas objects in PyTables.
 
     Either Fixed or Table format.
+
+    .. warning::
+
+       Pandas uses PyTables for reading and writing HDF5 files, which allows
+       serializing object-dtype data with pickle when using the "fixed" format.
+       Loading pickled data received from untrusted sources can be unsafe.
+
+       See: https://docs.python.org/3/library/pickle.html for more.
 
     Parameters
     ----------
@@ -789,6 +805,14 @@ class HDFStore:
         """
         Retrieve pandas object stored in file, optionally based on where criteria.
 
+        .. warning::
+
+           Pandas uses PyTables for reading and writing HDF5 files, which allows
+           serializing object-dtype data with pickle when using the "fixed" format.
+           Loading pickled data received from untrusted sources can be unsafe.
+
+           See: https://docs.python.org/3/library/pickle.html for more.
+
         Parameters
         ----------
         key : str
@@ -852,6 +876,15 @@ class HDFStore:
         """
         return the selection as an Index
 
+        .. warning::
+
+           Pandas uses PyTables for reading and writing HDF5 files, which allows
+           serializing object-dtype data with pickle when using the "fixed" format.
+           Loading pickled data received from untrusted sources can be unsafe.
+
+           See: https://docs.python.org/3/library/pickle.html for more.
+
+
         Parameters
         ----------
         key : str
@@ -875,6 +908,14 @@ class HDFStore:
         """
         return a single column from the table. This is generally only useful to
         select an indexable
+
+        .. warning::
+
+           Pandas uses PyTables for reading and writing HDF5 files, which allows
+           serializing object-dtype data with pickle when using the "fixed" format.
+           Loading pickled data received from untrusted sources can be unsafe.
+
+           See: https://docs.python.org/3/library/pickle.html for more.
 
         Parameters
         ----------
@@ -911,6 +952,14 @@ class HDFStore:
     ):
         """
         Retrieve pandas objects from multiple tables.
+
+        .. warning::
+
+           Pandas uses PyTables for reading and writing HDF5 files, which allows
+           serializing object-dtype data with pickle when using the "fixed" format.
+           Loading pickled data received from untrusted sources can be unsafe.
+
+           See: https://docs.python.org/3/library/pickle.html for more.
 
         Parameters
         ----------
