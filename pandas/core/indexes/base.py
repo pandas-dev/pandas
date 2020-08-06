@@ -2377,30 +2377,9 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Arithmetic & Logical Methods
 
-    def __add__(self, other):
-        if isinstance(other, (ABCSeries, ABCDataFrame)):
-            return NotImplemented
-        from pandas import Series
-
-        return Index(Series(self) + other)
-
-    def __radd__(self, other):
-        from pandas import Series
-
-        return Index(other + Series(self))
-
     def __iadd__(self, other):
         # alias for __add__
         return self + other
-
-    def __sub__(self, other):
-        return Index(np.array(self) - other)
-
-    def __rsub__(self, other):
-        # wrap Series to ensure we pin name correctly
-        from pandas import Series
-
-        return Index(other - Series(self))
 
     def __and__(self, other):
         return self.intersection(other)
@@ -5294,38 +5273,6 @@ class Index(IndexOpsMixin, PandasObject):
         cls.__ge__ = _make_comparison_op(operator.ge, cls)
 
     @classmethod
-    def _add_numeric_methods_add_sub_disabled(cls):
-        """
-        Add in the numeric add/sub methods to disable.
-        """
-        cls.__add__ = make_invalid_op("__add__")
-        cls.__radd__ = make_invalid_op("__radd__")
-        cls.__iadd__ = make_invalid_op("__iadd__")
-        cls.__sub__ = make_invalid_op("__sub__")
-        cls.__rsub__ = make_invalid_op("__rsub__")
-        cls.__isub__ = make_invalid_op("__isub__")
-
-    @classmethod
-    def _add_numeric_methods_disabled(cls):
-        """
-        Add in numeric methods to disable other than add/sub.
-        """
-        cls.__pow__ = make_invalid_op("__pow__")
-        cls.__rpow__ = make_invalid_op("__rpow__")
-        cls.__mul__ = make_invalid_op("__mul__")
-        cls.__rmul__ = make_invalid_op("__rmul__")
-        cls.__floordiv__ = make_invalid_op("__floordiv__")
-        cls.__rfloordiv__ = make_invalid_op("__rfloordiv__")
-        cls.__truediv__ = make_invalid_op("__truediv__")
-        cls.__rtruediv__ = make_invalid_op("__rtruediv__")
-        cls.__mod__ = make_invalid_op("__mod__")
-        cls.__divmod__ = make_invalid_op("__divmod__")
-        cls.__neg__ = make_invalid_op("__neg__")
-        cls.__pos__ = make_invalid_op("__pos__")
-        cls.__abs__ = make_invalid_op("__abs__")
-        cls.__inv__ = make_invalid_op("__inv__")
-
-    @classmethod
     def _add_numeric_methods_binary(cls):
         """
         Add in numeric methods.
@@ -5340,11 +5287,12 @@ class Index(IndexOpsMixin, PandasObject):
         cls.__truediv__ = _make_arithmetic_op(operator.truediv, cls)
         cls.__rtruediv__ = _make_arithmetic_op(ops.rtruediv, cls)
 
-        # TODO: rmod? rdivmod?
         cls.__mod__ = _make_arithmetic_op(operator.mod, cls)
+        cls.__rmod__ = _make_arithmetic_op(ops.rmod, cls)
         cls.__floordiv__ = _make_arithmetic_op(operator.floordiv, cls)
         cls.__rfloordiv__ = _make_arithmetic_op(ops.rfloordiv, cls)
         cls.__divmod__ = _make_arithmetic_op(divmod, cls)
+        cls.__rdivmod__ = _make_arithmetic_op(ops.rdivmod, cls)
         cls.__mul__ = _make_arithmetic_op(operator.mul, cls)
         cls.__rmul__ = _make_arithmetic_op(ops.rmul, cls)
 
@@ -5504,7 +5452,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._values.shape
 
 
-Index._add_numeric_methods_disabled()
+Index._add_numeric_methods()
 Index._add_logical_methods()
 Index._add_comparison_methods()
 
