@@ -468,6 +468,9 @@ class DatetimeLikeArrayMixin(
 
     def _from_backing_data(self: _T, arr: np.ndarray) -> _T:
         # Note: we do not retain `freq`
+        # error: Unexpected keyword argument "dtype" for "NDArrayBackedExtensionArray"
+        # TODO: add my error code
+        # https://github.com/python/mypy/issues/7384
         return type(self)(arr, dtype=self.dtype)  # type: ignore
 
     # ------------------------------------------------------------------
@@ -809,7 +812,8 @@ class DatetimeLikeArrayMixin(
             value = NaT
 
         elif isinstance(value, self._recognized_scalars):
-            value = self._scalar_type(value)  # type: ignore
+            # error: Too many arguments for "object"  [call-arg]
+            value = self._scalar_type(value)  # type: ignore[call-arg]
 
         else:
             if msg is None:
@@ -1129,7 +1133,8 @@ class DatetimeLikeArrayMixin(
         """
         Returns day, hour, minute, second, millisecond or microsecond
         """
-        return self._resolution_obj.attrname  # type: ignore
+        # error: Item "None" of "Optional[Any]" has no attribute "attrname"
+        return self._resolution_obj.attrname  # type: ignore[union-attr]
 
     @classmethod
     def _validate_frequency(cls, index, freq, **kwargs):

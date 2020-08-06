@@ -230,6 +230,11 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --include="*.py" -P '# type: (?!ignore)' pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    # https://github.com/python/mypy/issues/7384
+    # MSG='Check for missing error codes with # type: ignore' ; echo $MSG
+    # invgrep -R --include="*.py" -P '# type: ignore(?!\[)' pandas
+    # RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     MSG='Check for use of foo.__class__ instead of type(foo)' ; echo $MSG
     invgrep -R --include=*.{py,pyx} '\.__class__' pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
