@@ -1643,8 +1643,7 @@ the string values returned are correct."""
 
         data = self._insert_strls(data)
 
-        cols_ = np.where(self.dtyplist)[0]
-
+        cols_ = np.where([dtyp is not None for dtyp in self.dtyplist])[0]
         # Convert columns (if needed) to match input type
         ix = data.index
         requires_type_conversion = False
