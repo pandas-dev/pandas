@@ -487,7 +487,9 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             return VariableWindowIndexer(index_array=self._on.asi8, window_size=window)
         return FixedWindowIndexer(window_size=window)
 
-    def _apply_blockwise(self, homogeneous_func: Callable) -> FrameOrSeries:
+    def _apply_blockwise(
+        self, homogeneous_func: Callable[..., ArrayLike]
+    ) -> FrameOrSeries:
         """
         Apply the given function to the DataFrame broken down into homogeneous
         sub-frames.
