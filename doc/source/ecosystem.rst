@@ -80,6 +80,11 @@ ML pipeline.
 
 Featuretools is a Python library for automated feature engineering built on top of pandas. It excels at transforming temporal and relational datasets into feature matrices for machine learning using reusable feature engineering "primitives". Users can contribute their own primitives in Python and share them with the rest of the community.
 
+`Compose <https://github.com/FeatureLabs/compose>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Compose is a machine learning tool for labeling data and prediction engineering. It allows you to structure the labeling process by parameterizing prediction problems and transforming time-driven relational data into target values with cutoff times that can be used for supervised learning.
+
 .. _ecosystem.visualization:
 
 Visualization
@@ -445,6 +450,7 @@ Library         Accessor   Classes                   Description
 `pdvega`_       ``vgplot`` ``Series``, ``DataFrame`` Provides plotting functions from the Altair_ library.
 `pandas_path`_  ``path``   ``Index``, ``Series``     Provides `pathlib.Path`_ functions for Series.
 `pint-pandas`_  ``pint``   ``Series``, ``DataFrame`` Provides units support for numeric Series and DataFrames.
+`composeml`_    ``slice``  ``DataFrame``             Provides a generator for enhanced data slicing.
 =============== ========== ========================= ===============================================================
 
 .. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest
@@ -453,3 +459,4 @@ Library         Accessor   Classes                   Description
 .. _pandas_path: https://github.com/drivendataorg/pandas-path/
 .. _pathlib.Path: https://docs.python.org/3/library/pathlib.html
 .. _pint-pandas: https://github.com/hgrecco/pint-pandas
+.. _composeml: https://github.com/FeatureLabs/compose
