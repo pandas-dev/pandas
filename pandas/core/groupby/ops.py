@@ -211,7 +211,7 @@ class BaseGrouper:
             # group might be modified
             group_axes = group.axes
             res = f(group)
-            if not _is_indexed_like(res, group_axes):
+            if not _is_indexed_like(res, group_axes, axis):
                 mutated = True
             result_values.append(res)
 
@@ -897,13 +897,13 @@ class BinGrouper(BaseGrouper):
         return grouper.get_result()
 
 
-def _is_indexed_like(obj, axes) -> bool:
+def _is_indexed_like(obj, axes, axis: int) -> bool:
     if isinstance(obj, Series):
         if len(axes) > 1:
             return False
-        return obj.index.equals(axes[0])
+        return obj.axes[axis].equals(axes[axis])
     elif isinstance(obj, DataFrame):
-        return obj.index.equals(axes[0])
+        return obj.axes[axis].equals(axes[axis])
 
     return False
 
