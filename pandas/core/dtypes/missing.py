@@ -492,8 +492,6 @@ def array_equals(left: ArrayLike, right: ArrayLike) -> bool:
         return False
     elif isinstance(left, ABCExtensionArray):
         return left.equals(right)
-    elif isinstance(right, ABCExtensionArray):
-        return False
     else:
         return array_equivalent(left, right, dtype_equal=True)
 
