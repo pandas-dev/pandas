@@ -60,6 +60,7 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 - Bug in :attr:`DatetimeArray.date` where a ``ValueError`` would be raised with a read-only backing array (:issue:`33530`)
+- Bug in ``NaT`` comparisons failing to raise ``TypeError`` on invalid inequality comparisons (:issue:`35046`)
 -
 
 Timedelta
