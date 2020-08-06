@@ -560,20 +560,20 @@ def test_nat_comparisons_numpy(other):
 
 
 @pytest.mark.parametrize("other", ["foo", 2, 2.0])
-def test_nat_comparisons_invalid(other):
-
+@pytest.mark.parametrize("op", [operator.le, operator.lt, operator.ge, operator.gt])
+def test_nat_comparisons_invalid(other, op):
+    # GH#35585
     assert not NaT == other
     assert not other == NaT
 
     assert NaT != other
     assert other != NaT
 
-    for op in [operator.le, operator.lt, operator.ge, operator.gt]:
-        with pytest.raises(TypeError):
-            op(NaT, other)
+    with pytest.raises(TypeError):
+        op(NaT, other)
 
-        with pytest.raises(TypeError):
-            op(other, NaT)
+    with pytest.raises(TypeError):
+        op(other, NaT)
 
 
 @pytest.mark.parametrize(
