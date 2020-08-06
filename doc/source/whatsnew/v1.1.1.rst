@@ -51,6 +51,9 @@ Categorical
 
 -
 
+**Other**
+- Bug in :meth:`DataFrame.shift` with ``axis=1`` and heterogeneous dtypes (:issue:`35488`)
+
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_111.contributors:
