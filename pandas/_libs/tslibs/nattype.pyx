@@ -125,7 +125,6 @@ cdef class _NaT(datetime):
                 return NotImplemented
             return result
 
-
         return NotImplemented
 
     def __add__(self, other):
