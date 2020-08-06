@@ -3441,10 +3441,11 @@ for some advanced strategies
 
 .. warning::
 
-   pandas requires ``PyTables`` >= 3.0.0.
-   There is a indexing bug in ``PyTables`` < 3.2 which may appear when querying stores using an index.
-   If you see a subset of results being returned, upgrade to ``PyTables`` >= 3.2.
-   Stores created previously will need to be rewritten using the updated version.
+   Pandas uses PyTables for reading and writing HDF5 files, which allows
+   serializing object-dtype data with pickle. Loading pickled data received from
+   untrusted sources can be unsafe.
+
+   See: https://docs.python.org/3/library/pickle.html for more.
 
 .. ipython:: python
    :suppress:
