@@ -64,7 +64,7 @@ Datetimelike
 
 Timedelta
 ^^^^^^^^^
-
+- Bug in :class:`TimedeltaIndex`, :class:`Series`, and :class:`DataFrame` floor-division with ``timedelta64`` dtypes and ``NaT`` in the denominator (:issue:`35529`)
 -
 -
 
