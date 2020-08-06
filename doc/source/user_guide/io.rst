@@ -1689,7 +1689,7 @@ directory for the duration of the session only, but you can also specify
 a permanent store.
 
 .. _fsspec: https://filesystem-spec.readthedocs.io/en/latest/
-.. _fsimpl:: https://filesystem-spec.readthedocs.io/en/latest/api.html#built-in-implementations
+.. _fsimpl: https://filesystem-spec.readthedocs.io/en/latest/api.html#built-in-implementations
 
 Writing out data
 ''''''''''''''''

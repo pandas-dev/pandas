@@ -1229,8 +1229,8 @@ def sort_by_key(request):
 @pytest.fixture()
 def fsspectest():
     pytest.importorskip("fsspec")
-    from fsspec.implementations.memory import MemoryFileSystem
     from fsspec import register_implementation
+    from fsspec.implementations.memory import MemoryFileSystem
     from fsspec.registry import _registry as registry
 
     class TestMemoryFS(MemoryFileSystem):
