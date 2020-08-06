@@ -2,6 +2,7 @@ from sys import getsizeof
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Hashable,
     Iterable,
     List,
@@ -49,6 +50,7 @@ from pandas.core.indexes.base import Index, _index_shared_docs, ensure_index
 from pandas.core.indexes.frozen import FrozenList
 from pandas.core.indexes.numeric import Int64Index
 import pandas.core.missing as missing
+from pandas.core.ops.invalid import make_invalid_op
 from pandas.core.sorting import (
     get_group_index,
     indexer_from_factorized,
@@ -1231,13 +1233,17 @@ class MultiIndex(Index):
 
     def format(
         self,
-        space=2,
+        name: Optional[bool] = None,
+        formatter: Optional[Callable] = None,
+        na_rep: Optional[str] = None,
+        names: bool = False,
+        space: int = 2,
         sparsify=None,
-        adjoin=True,
-        names=False,
-        na_rep=None,
-        formatter=None,
-    ):
+        adjoin: bool = True,
+    ) -> List:
+        if name is not None:
+            names = name
+
         if len(self) == 0:
             return []
 
@@ -1265,13 +1271,13 @@ class MultiIndex(Index):
             stringified_levels.append(formatted)
 
         result_levels = []
-        for lev, name in zip(stringified_levels, self.names):
+        for lev, lev_name in zip(stringified_levels, self.names):
             level = []
 
             if names:
                 level.append(
-                    pprint_thing(name, escape_chars=("\t", "\r", "\n"))
-                    if name is not None
+                    pprint_thing(lev_name, escape_chars=("\t", "\r", "\n"))
+                    if lev_name is not None
                     else ""
                 )
 
@@ -1283,10 +1289,9 @@ class MultiIndex(Index):
 
         if sparsify:
             sentinel = ""
-            # GH3547
-            # use value of sparsify as sentinel,  unless it's an obvious
-            # "Truthy" value
-            if sparsify not in [True, 1]:
+            # GH3547 use value of sparsify as sentinel if it's "Falsey"
+            assert isinstance(sparsify, bool) or sparsify is lib.no_default
+            if sparsify in [False, lib.no_default]:
                 sentinel = sparsify
             # little bit of a kludge job for #1217
             result_levels = _sparsify(
@@ -3601,6 +3606,40 @@ class MultiIndex(Index):
             if levs.size == 0:
                 return np.zeros(len(levs), dtype=np.bool_)
             return levs.isin(values)
+
+    @classmethod
+    def _add_numeric_methods_add_sub_disabled(cls):
+        """
+        Add in the numeric add/sub methods to disable.
+        """
+        cls.__add__ = make_invalid_op("__add__")
+        cls.__radd__ = make_invalid_op("__radd__")
+        cls.__iadd__ = make_invalid_op("__iadd__")
+        cls.__sub__ = make_invalid_op("__sub__")
+        cls.__rsub__ = make_invalid_op("__rsub__")
+        cls.__isub__ = make_invalid_op("__isub__")
+
+    @classmethod
+    def _add_numeric_methods_disabled(cls):
+        """
+        Add in numeric methods to disable other than add/sub.
+        """
+        cls.__pow__ = make_invalid_op("__pow__")
+        cls.__rpow__ = make_invalid_op("__rpow__")
+        cls.__mul__ = make_invalid_op("__mul__")
+        cls.__rmul__ = make_invalid_op("__rmul__")
+        cls.__floordiv__ = make_invalid_op("__floordiv__")
+        cls.__rfloordiv__ = make_invalid_op("__rfloordiv__")
+        cls.__truediv__ = make_invalid_op("__truediv__")
+        cls.__rtruediv__ = make_invalid_op("__rtruediv__")
+        cls.__mod__ = make_invalid_op("__mod__")
+        cls.__rmod__ = make_invalid_op("__rmod__")
+        cls.__divmod__ = make_invalid_op("__divmod__")
+        cls.__rdivmod__ = make_invalid_op("__rdivmod__")
+        cls.__neg__ = make_invalid_op("__neg__")
+        cls.__pos__ = make_invalid_op("__pos__")
+        cls.__abs__ = make_invalid_op("__abs__")
+        cls.__inv__ = make_invalid_op("__inv__")
 
 
 MultiIndex._add_numeric_methods_disabled()

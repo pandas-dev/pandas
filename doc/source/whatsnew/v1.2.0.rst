@@ -1,0 +1,219 @@
+.. _whatsnew_120:
+
+What's new in 1.2.0 (??)
+------------------------
+
+These are the changes in pandas 1.2.0. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+Enhancements
+~~~~~~~~~~~~
+
+.. _whatsnew_120.enhancements.other:
+
+Other enhancements
+^^^^^^^^^^^^^^^^^^
+- :class:`Index` with object dtype supports division and multiplication (:issue:`34160`)
+-
+-
+
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_120.deprecations:
+
+Deprecations
+~~~~~~~~~~~~
+
+:meth:`~DataFrame.groupby` no longer ignores ``group_keys`` for transform-like ``apply``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`~DataFrame.groupby` will no longer ignore the ``group_keys`` argument for functions passed to ``apply`` that return like-indexed outputs (:issue:`34809`).
+Previous versions of pandas would add the group keys only when the result from the applied function had a different index to the input.
+
+*Previous behavior*:
+
+.. code-block:: python
+
+   >>> # pandas 1.0.4
+   >>> df = pd.DataFrame({"A": [1, 2, 2], "B": [1, 2, 3]})
+   >>> df
+      A  B
+   0  1  1
+   1  2  2
+   2  2  3
+   >>> df.groupby("A").apply(lambda x: x.rename(np.exp))  # Different index
+               A  B
+   A
+   1 1.000000  1  1
+   2 2.718282  2  2
+     7.389056  2  3
+
+   >>> df.groupby("A").apply(lambda x: x)  # Same index
+      A  B
+   0  1  1
+   1  2  2
+   2  2  3
+
+In this future this behavior will change to always respect ``group_keys``, which defaults to True.
+
+*New behavior*:
+
+.. ipython:: python
+
+   df = pd.DataFrame({"A": [1, 2, 2], "B": [1, 2, 3]})
+   df.groupby("A", group_keys=True).apply(lambda x: x)
+   df.groupby("A", group_keys=True).apply(lambda x: x.rename(np.exp))
+
+A warning will be issued if the result would change from pandas 1.0.4
+
+.. ipython:: python
+   :okwarning:
+
+   df.groupby("A").apply(lambda x: x)
+
+
+Other Deprecations
+^^^^^^^^^^^^^^^^^^
+
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+
+.. _whatsnew_120.performance:
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_120.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+
+Categorical
+^^^^^^^^^^^
+
+-
+-
+
+Datetimelike
+^^^^^^^^^^^^
+- Bug in :attr:`DatetimeArray.date` where a ``ValueError`` would be raised with a read-only backing array (:issue:`33530`)
+-
+
+Timedelta
+^^^^^^^^^
+- Bug in :class:`TimedeltaIndex`, :class:`Series`, and :class:`DataFrame` floor-division with ``timedelta64`` dtypes and ``NaT`` in the denominator (:issue:`35529`)
+-
+-
+
+Timezones
+^^^^^^^^^
+
+- Bug in :func:`date_range` was raising AmbiguousTimeError for valid input with `ambiguous=False` (:issue:`35297`)
+-
+
+
+Numeric
+^^^^^^^
+-
+-
+
+Conversion
+^^^^^^^^^^
+
+-
+-
+
+Strings
+^^^^^^^
+
+-
+-
+
+
+Interval
+^^^^^^^^
+
+-
+-
+
+Indexing
+^^^^^^^^
+
+-
+-
+
+Missing
+^^^^^^^
+
+-
+-
+
+MultiIndex
+^^^^^^^^^^
+
+-
+-
+
+I/O
+^^^
+
+-
+-
+
+Plotting
+^^^^^^^^
+
+-
+-
+
+Groupby/resample/rolling
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+-
+-
+
+
+Reshaping
+^^^^^^^^^
+
+-
+-
+
+Sparse
+^^^^^^
+
+-
+-
+
+ExtensionArray
+^^^^^^^^^^^^^^
+
+-
+-
+
+
+Other
+^^^^^
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_120.contributors:
+
+Contributors
+~~~~~~~~~~~~

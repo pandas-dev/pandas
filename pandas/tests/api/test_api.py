@@ -267,8 +267,9 @@ def test_sparsearray():
 
 
 def test_np():
-    import numpy as np
     import warnings
+
+    import numpy as np
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", FutureWarning)

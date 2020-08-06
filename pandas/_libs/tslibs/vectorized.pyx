@@ -1,18 +1,21 @@
 import cython
 
-from cpython.datetime cimport datetime, date, time, tzinfo
+from cpython.datetime cimport date, datetime, time, tzinfo
 
 import numpy as np
+
 from numpy cimport int64_t, intp_t, ndarray
 
 from .conversion cimport normalize_i8_stamp
+
 from .dtypes import Resolution
+
 from .nattype cimport NPY_NAT, c_NaT as NaT
-from .np_datetime cimport npy_datetimestruct, dt64_to_dtstruct
+from .np_datetime cimport dt64_to_dtstruct, npy_datetimestruct
 from .offsets cimport to_offset
 from .period cimport get_period_ordinal
 from .timestamps cimport create_timestamp_from_ts
-from .timezones cimport is_utc, is_tzlocal, get_dst_info
+from .timezones cimport get_dst_info, is_tzlocal, is_utc
 from .tzconversion cimport tz_convert_utc_to_tzlocal
 
 # -------------------------------------------------------------------------
@@ -208,49 +211,40 @@ def get_resolution(const int64_t[:] stamps, tzinfo tz=None):
         int reso = RESO_DAY, curr_reso
         ndarray[int64_t] trans
         int64_t[:] deltas
-        Py_ssize_t[:] pos
-        int64_t local_val, delta
+        intp_t[:] pos
+        int64_t local_val, delta = NPY_NAT
+        bint use_utc = False, use_tzlocal = False, use_fixed = False
 
     if is_utc(tz) or tz is None:
-        for i in range(n):
-            if stamps[i] == NPY_NAT:
-                continue
-            dt64_to_dtstruct(stamps[i], &dts)
-            curr_reso = _reso_stamp(&dts)
-            if curr_reso < reso:
-                reso = curr_reso
+        use_utc = True
     elif is_tzlocal(tz):
-        for i in range(n):
-            if stamps[i] == NPY_NAT:
-                continue
-            local_val = tz_convert_utc_to_tzlocal(stamps[i], tz)
-            dt64_to_dtstruct(local_val, &dts)
-            curr_reso = _reso_stamp(&dts)
-            if curr_reso < reso:
-                reso = curr_reso
+        use_tzlocal = True
     else:
-        # Adjust datetime64 timestamp, recompute datetimestruct
         trans, deltas, typ = get_dst_info(tz)
-
         if typ not in ["pytz", "dateutil"]:
             # static/fixed; in this case we know that len(delta) == 1
+            use_fixed = True
             delta = deltas[0]
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    continue
-                dt64_to_dtstruct(stamps[i] + delta, &dts)
-                curr_reso = _reso_stamp(&dts)
-                if curr_reso < reso:
-                    reso = curr_reso
         else:
             pos = trans.searchsorted(stamps, side="right") - 1
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    continue
-                dt64_to_dtstruct(stamps[i] + deltas[pos[i]], &dts)
-                curr_reso = _reso_stamp(&dts)
-                if curr_reso < reso:
-                    reso = curr_reso
+
+    for i in range(n):
+        if stamps[i] == NPY_NAT:
+            continue
+
+        if use_utc:
+            local_val = stamps[i]
+        elif use_tzlocal:
+            local_val = tz_convert_utc_to_tzlocal(stamps[i], tz)
+        elif use_fixed:
+            local_val = stamps[i] + delta
+        else:
+            local_val = stamps[i] + deltas[pos[i]]
+
+        dt64_to_dtstruct(local_val, &dts)
+        curr_reso = _reso_stamp(&dts)
+        if curr_reso < reso:
+            reso = curr_reso
 
     return Resolution(reso)
 

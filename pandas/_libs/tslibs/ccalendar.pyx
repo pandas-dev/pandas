@@ -5,7 +5,7 @@ Cython implementations of functions resembling the stdlib calendar module
 
 import cython
 
-from numpy cimport int64_t, int32_t
+from numpy cimport int32_t, int64_t
 
 # ----------------------------------------------------------------------
 # Constants
