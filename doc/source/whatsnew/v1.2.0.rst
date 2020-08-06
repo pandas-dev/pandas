@@ -59,7 +59,7 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
--
+- Bug in ``NaT`` comparisons failing to raise ``TypeError`` on invalid inequality comparisons (:issue:`35046`)
 -
 
 Timedelta
