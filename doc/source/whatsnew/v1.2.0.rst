@@ -17,7 +17,7 @@ Enhancements
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
-
+- :class:`Index` with object dtype supports division and multiplication (:issue:`34160`)
 -
 -
 
