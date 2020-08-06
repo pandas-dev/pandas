@@ -7400,7 +7400,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             By default group keys are not included when the result's index
             (and column) labels match the inputs, and are included otherwise.
 
-            .. versionchanged:: 1.1.0
+            .. versionchanged:: 1.2.0
 
                Warns that `group_keys` will no longer be ignored when the
                result from ``apply`` is a like-indexed Series or DataFrame.
@@ -7783,7 +7783,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             Whether to include the group keys in the result index when performing
             a ``.groupby().apply()`` to the resampled object.
 
-            .. versionadded:: 1.1.0
+            .. versionadded:: 1.2.0
 
         Returns
         -------

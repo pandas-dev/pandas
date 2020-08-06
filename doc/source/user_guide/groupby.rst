@@ -1017,16 +1017,14 @@ for both ``aggregate`` and ``transform`` in many standard use cases. However,
 
 The dimension of the returned result can also change:
 
-.. ipython::
+.. ipython:: python
 
-    In [8]: grouped = df.groupby('A', group_keys=False)['C']
+    grouped = df.groupby('A', group_keys=False)['C']
 
-    In [10]: def f(group):
-       ....:     return pd.DataFrame({'original': group,
-       ....:                          'demeaned': group - group.mean()})
-       ....:
-
-    In [11]: grouped.apply(f)
+    def f(group):
+        return pd.DataFrame({'original': group,
+                             'demeaned': group - group.mean()})
+    grouped.apply(f)
 
 ``apply`` on a Series can operate on a returned value from the applied function,
 that is itself a series, and possibly upcast the result to a DataFrame:

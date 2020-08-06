@@ -910,6 +910,8 @@ b  2""",
         if (not not_indexed_same and self.group_keys is lib.no_default) and not (
             is_transform or is_empty_agg
         ):
+            # We've detected value-dependent behavior: the result's index depends on
+            # whether the user's function `f` returned the same index or not.
             if self.ndim == 1:
                 stacklevel = 4
             elif self._selection is None:

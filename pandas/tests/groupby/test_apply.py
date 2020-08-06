@@ -215,7 +215,6 @@ def test_group_apply_once_per_group2(capsys):
     assert result == expected
 
 
-@pytest.mark.xfail(reason="GH-34998")
 def test_apply_fast_slow_identical():
     # GH 31613
 
@@ -239,11 +238,9 @@ def test_apply_fast_slow_identical():
     "func",
     [
         lambda x: x,
-        pytest.param(lambda x: x[:], marks=pytest.mark.xfail(reason="GH-34998")),
+        lambda x: x[:],
         lambda x: x.copy(deep=False),
-        pytest.param(
-            lambda x: x.copy(deep=True), marks=pytest.mark.xfail(reason="GH-34998")
-        ),
+        lambda x: x.copy(deep=True),
     ],
 )
 def test_groupby_apply_identity_maybecopy_index_identical(func):
