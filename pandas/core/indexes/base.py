@@ -812,13 +812,11 @@ class Index(IndexOpsMixin, PandasObject):
         In most cases, there should be no functional difference from using
         ``deep``, but if ``deep`` is passed it will attempt to deepcopy.
         """
+        name = self._validate_names(name=name, names=names, deep=deep)[0]
         if deep:
-            new_index = self._shallow_copy(self._data.copy())
+            new_index = self._shallow_copy(self._data.copy(), name=name)
         else:
-            new_index = self._shallow_copy()
-
-        names = self._validate_names(name=name, names=names, deep=deep)
-        new_index = new_index.set_names(names)
+            new_index = self._shallow_copy(name=name)
 
         if dtype:
             new_index = new_index.astype(dtype)
@@ -1186,7 +1184,7 @@ class Index(IndexOpsMixin, PandasObject):
         maybe_extract_name(value, None, type(self))
         self._name = value
 
-    def _validate_names(self, name=None, names=None, deep: bool = False):
+    def _validate_names(self, name=None, names=None, deep: bool = False) -> List[Label]:
         """
         Handles the quirks of having a singular 'name' parameter for general
         Index and plural 'names' parameter for MultiIndex.
@@ -1196,15 +1194,26 @@ class Index(IndexOpsMixin, PandasObject):
         if names is not None and name is not None:
             raise TypeError("Can only provide one of `names` and `name`")
         elif names is None and name is None:
-            return deepcopy(self.names) if deep else self.names
+            new_names = deepcopy(self.names) if deep else self.names
         elif names is not None:
             if not is_list_like(names):
                 raise TypeError("Must pass list-like as `names`.")
-            return names
+            new_names = names
+        elif not is_list_like(name):
+            new_names = [name]
         else:
-            if not is_list_like(name):
-                return [name]
-            return name
+            new_names = name
+
+        if len(new_names) != len(self.names):
+            raise ValueError(
+                f"Length of new names must be {len(self.names)}, got {len(new_names)}"
+            )
+        # All items in 'new_names' need to be hashable
+        for new_name in new_names:
+            if not is_hashable(new_name):
+                raise TypeError(f"{type(self).__name__}.name must be a hashable type")
+
+        return new_names
 
     def _get_names(self):
         return FrozenList((self.name,))
