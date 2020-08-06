@@ -1,6 +1,6 @@
 from collections import abc
 import functools
-from io import StringIO
+from io import BytesIO, StringIO
 from itertools import islice
 import os
 from typing import Any, Callable, Optional, Type
@@ -115,7 +115,8 @@ class Writer:
         self.obj = obj
 
         if orient is None:
-            orient = self._default_orient  # type: ignore
+            # error: "Writer" has no attribute "_default_orient"
+            orient = self._default_orient  # type: ignore[attr-defined]
 
         self.orient = orient
         self.date_format = date_format
@@ -723,6 +724,9 @@ class JsonReader(abc.Iterator):
             )
             self.should_close = True
             self.open_stream = data
+
+        if isinstance(data, BytesIO):
+            data = data.getvalue().decode()
 
         return data
 

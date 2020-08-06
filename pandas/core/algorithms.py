@@ -171,7 +171,7 @@ def _ensure_data(
         return values, dtype
 
     # we have failed, return object
-    values = np.asarray(values, dtype=np.object)
+    values = np.asarray(values, dtype=object)
     return ensure_object(values), np.dtype("object")
 
 
@@ -427,7 +427,8 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     if is_categorical_dtype(comps):
         # TODO(extension)
         # handle categoricals
-        return comps.isin(values)  # type: ignore
+        # error: "ExtensionArray" has no attribute "isin"  [attr-defined]
+        return comps.isin(values)  # type: ignore[attr-defined]
 
     comps, dtype = _ensure_data(comps)
     values, _ = _ensure_data(values, dtype=dtype)
@@ -604,8 +605,8 @@ def factorize(
     >>> codes
     array([0, 0, 1]...)
     >>> uniques
-    [a, c]
-    Categories (3, object): [a, b, c]
+    ['a', 'c']
+    Categories (3, object): ['a', 'b', 'c']
 
     Notice that ``'b'`` is in ``uniques.categories``, despite not being
     present in ``cat.values``.

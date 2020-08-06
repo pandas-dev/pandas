@@ -57,7 +57,7 @@ from pandas.io.common import stringify_path
 from pandas.io.formats.printing import adjoin, pprint_thing
 
 if TYPE_CHECKING:
-    from tables import File, Node, Col  # noqa:F401
+    from tables import Col, File, Node  # noqa:F401
 
 
 # versioning attribute
@@ -447,8 +447,8 @@ class HDFStore:
 
     Parameters
     ----------
-    path : string
-        File path to HDF5 file
+    path : str
+        File path to HDF5 file.
     mode : {'a', 'w', 'r', 'r+'}, default 'a'
 
         ``'r'``
@@ -462,18 +462,20 @@ class HDFStore:
         ``'r+'``
             It is similar to ``'a'``, but the file must already exist.
     complevel : int, 0-9, default None
-            Specifies a compression level for data.
-            A value of 0 or None disables compression.
+        Specifies a compression level for data.
+        A value of 0 or None disables compression.
     complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default 'zlib'
-            Specifies the compression library to be used.
-            As of v0.20.2 these additional compressors for Blosc are supported
-            (default if no compressor specified: 'blosc:blosclz'):
-            {'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy',
-             'blosc:zlib', 'blosc:zstd'}.
-            Specifying a compression library which is not available issues
-            a ValueError.
+        Specifies the compression library to be used.
+        As of v0.20.2 these additional compressors for Blosc are supported
+        (default if no compressor specified: 'blosc:blosclz'):
+        {'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy',
+         'blosc:zlib', 'blosc:zstd'}.
+        Specifying a compression library which is not available issues
+        a ValueError.
     fletcher32 : bool, default False
-            If applying compression use the fletcher32 checksum
+        If applying compression use the fletcher32 checksum.
+    **kwargs
+        These parameters will be passed to the PyTables open_file method.
 
     Examples
     --------
@@ -482,6 +484,17 @@ class HDFStore:
     >>> store['foo'] = bar   # write to HDF5
     >>> bar = store['foo']   # retrieve
     >>> store.close()
+
+    **Create or load HDF5 file in-memory**
+
+    When passing the `driver` option to the PyTables open_file method through
+    **kwargs, the HDF5 file is loaded or created in-memory and will only be
+    written when closed:
+
+    >>> bar = pd.DataFrame(np.random.randn(10, 4))
+    >>> store = pd.HDFStore('test.h5', driver='H5FD_CORE')
+    >>> store['foo'] = bar
+    >>> store.close()   # only now, data is written to disk
     """
 
     _handle: Optional["File"]
@@ -580,16 +593,39 @@ class HDFStore:
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
 
-    def keys(self) -> List[str]:
+    def keys(self, include: str = "pandas") -> List[str]:
         """
         Return a list of keys corresponding to objects stored in HDFStore.
+
+        Parameters
+        ----------
+
+        include : str, default 'pandas'
+                When kind equals 'pandas' return pandas objects
+                When kind equals 'native' return native HDF5 Table objects
+
+                .. versionadded:: 1.1.0
 
         Returns
         -------
         list
             List of ABSOLUTE path-names (e.g. have the leading '/').
+
+        Raises
+        ------
+        raises ValueError if kind has an illegal value
         """
-        return [n._v_pathname for n in self.groups()]
+        if include == "pandas":
+            return [n._v_pathname for n in self.groups()]
+
+        elif include == "native":
+            assert self._handle is not None  # mypy
+            return [
+                n._v_pathname for n in self._handle.walk_nodes("/", classname="Table")
+            ]
+        raise ValueError(
+            f"`include` should be either 'pandas' or 'native' but is '{include}'"
+        )
 
     def __iter__(self):
         return iter(self.keys())
@@ -611,6 +647,8 @@ class HDFStore:
         ----------
         mode : {'a', 'w', 'r', 'r+'}, default 'a'
             See HDFStore docstring or tables.open_file for info about modes
+        **kwargs
+            These parameters will be passed to the PyTables open_file method.
         """
         tables = _tables()
 
@@ -1265,6 +1303,8 @@ class HDFStore:
                 valid_index = valid_index.intersection(index)
             value = value.loc[valid_index]
 
+        min_itemsize = kwargs.pop("min_itemsize", None)
+
         # append
         for k, v in d.items():
             dc = data_columns if k == selector else None
@@ -1272,7 +1312,12 @@ class HDFStore:
             # compute the val
             val = value.reindex(v, axis=axis)
 
-            self.append(k, val, data_columns=dc, **kwargs)
+            filtered = (
+                {key: value for (key, value) in min_itemsize.items() if key in v}
+                if min_itemsize is not None
+                else None
+            )
+            self.append(k, val, data_columns=dc, min_itemsize=filtered, **kwargs)
 
     def create_table_index(
         self,
@@ -2235,7 +2280,8 @@ class DataCol(IndexCol):
         Get an appropriately typed and shaped pytables.Col object for values.
         """
         dtype = values.dtype
-        itemsize = dtype.itemsize  # type: ignore
+        # error: "ExtensionDtype" has no attribute "itemsize"
+        itemsize = dtype.itemsize  # type: ignore[attr-defined]
 
         shape = values.shape
         if values.ndim == 1:
@@ -3304,9 +3350,9 @@ class Table(Fixed):
             (v.cname, v) for v in self.values_axes if v.name in set(self.data_columns)
         ]
 
-        return dict(d1 + d2 + d3)  # type: ignore
-        # error: List comprehension has incompatible type
-        #  List[Tuple[Any, None]]; expected List[Tuple[str, IndexCol]]
+        # error: Unsupported operand types for + ("List[Tuple[str, IndexCol]]"
+        # and "List[Tuple[str, None]]")
+        return dict(d1 + d2 + d3)  # type: ignore[operator]
 
     def index_cols(self):
         """ return a list of my index cols """
@@ -3524,7 +3570,6 @@ class Table(Fixed):
         for c in columns:
             v = getattr(table.cols, c, None)
             if v is not None:
-
                 # remove the index if the kind/optlevel have changed
                 if v.is_indexed:
                     index = v.index
@@ -3552,6 +3597,13 @@ class Table(Fixed):
                             "data_columns when initializing the table."
                         )
                     v.create_index(**kw)
+            elif c in self.non_index_axes[0][1]:
+                # GH 28156
+                raise AttributeError(
+                    f"column {c} is not a data_column.\n"
+                    f"In order to read column {c} you must reload the dataframe \n"
+                    f"into HDFStore and include {c} with the data_columns argument."
+                )
 
     def _read_axes(
         self, where, start: Optional[int] = None, stop: Optional[int] = None
@@ -4663,7 +4715,7 @@ def _set_tz(
     if tz is not None:
         name = getattr(values, "name", None)
         values = values.ravel()
-        tz = timezones.get_timezone(_ensure_decoded(tz))
+        tz = _ensure_decoded(tz)
         values = DatetimeIndex(values, name=name)
         values = values.tz_localize("UTC").tz_convert(tz)
     elif coerce:

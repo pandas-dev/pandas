@@ -90,7 +90,7 @@ def test_statsmodels():
 def test_scikit_learn(df):
 
     sklearn = import_module("sklearn")  # noqa
-    from sklearn import svm, datasets
+    from sklearn import datasets, svm
 
     digits = datasets.load_digits()
     clf = svm.SVC(gamma=0.001, C=100.0)

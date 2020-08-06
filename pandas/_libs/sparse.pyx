@@ -1,9 +1,18 @@
 import cython
-
 import numpy as np
+
 cimport numpy as cnp
-from numpy cimport (ndarray, uint8_t, int64_t, int32_t, int16_t, int8_t,
-                    float64_t, float32_t)
+from numpy cimport (
+    float32_t,
+    float64_t,
+    int8_t,
+    int16_t,
+    int32_t,
+    int64_t,
+    ndarray,
+    uint8_t,
+)
+
 cnp.import_array()
 
 
@@ -791,4 +800,4 @@ def make_mask_object_ndarray(ndarray[object, ndim=1] arr, object fill_value):
         if value == fill_value and type(value) == type(fill_value):
             mask[i] = 0
 
-    return mask.view(dtype=np.bool)
+    return mask.view(dtype=bool)

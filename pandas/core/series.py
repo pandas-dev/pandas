@@ -34,6 +34,7 @@ from pandas._typing import (
     ValueKeyFunc,
 )
 from pandas.compat.numpy import function as nv
+from pandas.errors import InvalidIndexError
 from pandas.util._decorators import Appender, Substitution, doc
 from pandas.util._validators import validate_bool_kwarg, validate_percentile
 
@@ -77,15 +78,9 @@ from pandas.core.construction import (
     sanitize_array,
 )
 from pandas.core.generic import NDFrame
-from pandas.core.indexers import unpack_1tuple
+from pandas.core.indexers import deprecate_ndim_indexing, unpack_1tuple
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
-from pandas.core.indexes.api import (
-    Float64Index,
-    Index,
-    InvalidIndexError,
-    MultiIndex,
-    ensure_index,
-)
+from pandas.core.indexes.api import Float64Index, Index, MultiIndex, ensure_index
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex
@@ -529,8 +524,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         array(['a', 'a', 'b', 'c'], dtype=object)
 
         >>> pd.Series(list('aabc')).astype('category').values
-        [a, a, b, c]
-        Categories (3, object): [a, b, c]
+        ['a', 'a', 'b', 'c']
+        Categories (3, object): ['a', 'b', 'c']
 
         Timezone aware datetime data is converted to UTC:
 
@@ -576,7 +571,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return self._mgr.internal_values()
 
-    @Appender(base.IndexOpsMixin.array.__doc__)  # type: ignore
+    # error: Decorated property not supported
+    @Appender(base.IndexOpsMixin.array.__doc__)  # type: ignore[misc]
     @property
     def array(self) -> ExtensionArray:
         return self._mgr._block.array_values()
@@ -955,13 +951,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _get_values_tuple(self, key):
         # mpl hackaround
         if com.any_none(*key):
-            # suppress warning from slicing the index with a 2d indexer.
-            # eventually we'll want Series itself to warn.
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore", "Support for multi-dim", DeprecationWarning
-                )
-                return self._get_values(key)
+            result = self._get_values(key)
+            deprecate_ndim_indexing(result, stacklevel=5)
+            return result
 
         if not isinstance(self.index, MultiIndex):
             raise ValueError("Can only tuple-index with a MultiIndex")
@@ -1410,8 +1402,55 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 with open(buf, "w") as f:
                     f.write(result)
 
-    @Appender(
+    @doc(
+        klass=_shared_doc_kwargs["klass"],
+        examples=dedent(
+            """
+            Examples
+            --------
+            >>> s = pd.Series(["elk", "pig", "dog", "quetzal"], name="animal")
+            >>> print(s.to_markdown())
+            |    | animal   |
+            |---:|:---------|
+            |  0 | elk      |
+            |  1 | pig      |
+            |  2 | dog      |
+            |  3 | quetzal  |
+            """
+        ),
+    )
+    def to_markdown(
+        self,
+        buf: Optional[IO[str]] = None,
+        mode: Optional[str] = None,
+        index: bool = True,
+        **kwargs,
+    ) -> Optional[str]:
         """
+        Print {klass} in Markdown-friendly format.
+
+        .. versionadded:: 1.0.0
+
+        Parameters
+        ----------
+        buf : str, Path or StringIO-like, optional, default None
+            Buffer to write to. If None, the output is returned as a string.
+        mode : str, optional
+            Mode in which file is opened.
+        index : bool, optional, default True
+            Add index (row) labels.
+
+            .. versionadded:: 1.1.0
+
+        **kwargs
+            These parameters will be passed to `tabulate \
+                <https://pypi.org/project/tabulate>`_.
+
+        Returns
+        -------
+        str
+            {klass} in Markdown-friendly format.
+
         Examples
         --------
         >>> s = pd.Series(["elk", "pig", "dog", "quetzal"], name="animal")
@@ -1438,13 +1477,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         |  3 | quetzal  |
         +----+----------+
         """
-    )
-    @Substitution(klass="Series")
-    @Appender(generic._shared_docs["to_markdown"])
-    def to_markdown(
-        self, buf: Optional[IO[str]] = None, mode: Optional[str] = None, **kwargs
-    ) -> Optional[str]:
-        return self.to_frame().to_markdown(buf, mode, **kwargs)
+        return self.to_frame().to_markdown(buf, mode, index, **kwargs)
 
     # ----------------------------------------------------------------------
 
@@ -1823,15 +1856,15 @@ Name: Max Speed, dtype: float64
         appearance.
 
         >>> pd.Series(pd.Categorical(list('baabc'))).unique()
-        [b, a, c]
-        Categories (3, object): [b, a, c]
+        ['b', 'a', 'c']
+        Categories (3, object): ['b', 'a', 'c']
 
         An ordered Categorical preserves the category ordering.
 
         >>> pd.Series(pd.Categorical(list('baabc'), categories=list('abc'),
         ...                          ordered=True)).unique()
-        [b, a, c]
-        Categories (3, object): [a < b < c]
+        ['b', 'a', 'c']
+        Categories (3, object): ['a' < 'b' < 'c']
         """
         result = super().unique()
         return result
@@ -2296,7 +2329,12 @@ Name: Max Speed, dtype: float64
             f"'{method}' was supplied"
         )
 
-    def cov(self, other, min_periods=None) -> float:
+    def cov(
+        self,
+        other: "Series",
+        min_periods: Optional[int] = None,
+        ddof: Optional[int] = 1,
+    ) -> float:
         """
         Compute covariance with Series, excluding missing values.
 
@@ -2306,6 +2344,11 @@ Name: Max Speed, dtype: float64
             Series with which to compute the covariance.
         min_periods : int, optional
             Minimum number of observations needed to have a valid result.
+        ddof : int, default 1
+            Delta degrees of freedom.  The divisor used in calculations
+            is ``N - ddof``, where ``N`` represents the number of elements.
+
+            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -2327,7 +2370,9 @@ Name: Max Speed, dtype: float64
         this, other = self.align(other, join="inner", copy=False)
         if len(this) == 0:
             return np.nan
-        return nanops.nancov(this.values, other.values, min_periods=min_periods)
+        return nanops.nancov(
+            this.values, other.values, min_periods=min_periods, ddof=ddof
+        )
 
     @doc(
         klass="Series",
@@ -2570,7 +2615,7 @@ Name: Max Speed, dtype: float64
         to_append : Series or list/tuple of Series
             Series to append with self.
         ignore_index : bool, default False
-            If True, do not use the index labels.
+            If True, the resulting axis will be labeled 0, 1, …, n - 1.
         verify_integrity : bool, default False
             If True, raise Exception on creating index with duplicates.
 
@@ -2935,8 +2980,10 @@ Keep all original rows and also all original values
 
     def update(self, other) -> None:
         """
-        Modify Series in place using non-NA values from passed
-        Series. Aligns on index.
+        Modify Series in place using values from passed Series.
+
+        Uses non-NA values from passed Series to make updates. Aligns
+        on index.
 
         Parameters
         ----------
@@ -3451,6 +3498,8 @@ Keep all original rows and also all original values
 
     def argsort(self, axis=0, kind="quicksort", order=None) -> "Series":
         """
+        Return the integer indices that would sort the Series values.
+
         Override ndarray.argsort. Argsorts the value, omitting NA/null values,
         and places the result in the same locations as the non-NA values.
 
@@ -3731,12 +3780,18 @@ Keep all original rows and also all original values
         result.index = result.index.reorder_levels(order)
         return result
 
-    def explode(self) -> "Series":
+    def explode(self, ignore_index: bool = False) -> "Series":
         """
-        Transform each element of a list-like to a row, replicating the
-        index values.
+        Transform each element of a list-like to a row.
 
         .. versionadded:: 0.25.0
+
+        Parameters
+        ----------
+        ignore_index : bool, default False
+            If True, the resulting index will be labeled 0, 1, …, n - 1.
+
+            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -3784,15 +3839,18 @@ Keep all original rows and also all original values
 
         values, counts = reshape.explode(np.asarray(self.array))
 
-        result = self._constructor(
-            values, index=self.index.repeat(counts), name=self.name
-        )
+        if ignore_index:
+            index = ibase.default_index(len(values))
+        else:
+            index = self.index.repeat(counts)
+
+        result = self._constructor(values, index=index, name=self.name)
+
         return result
 
     def unstack(self, level=-1, fill_value=None):
         """
         Unstack, also known as pivot, Series with MultiIndex to produce DataFrame.
-        The level involved will automatically get sorted.
 
         Parameters
         ----------
@@ -3960,16 +4018,22 @@ Keep all original rows and also all original values
     """
     )
 
-    @Substitution(
+    @doc(
+        generic._shared_docs["aggregate"],
+        klass=_shared_doc_kwargs["klass"],
+        axis=_shared_doc_kwargs["axis"],
         see_also=_agg_see_also_doc,
         examples=_agg_examples_doc,
         versionadded="\n.. versionadded:: 0.20.0\n",
-        **_shared_doc_kwargs,
     )
-    @Appender(generic._shared_docs["aggregate"])
-    def aggregate(self, func, axis=0, *args, **kwargs):
+    def aggregate(self, func=None, axis=0, *args, **kwargs):
         # Validate the axis parameter
         self._get_axis_number(axis)
+
+        # if func is None, will switch to user-provided "named aggregation" kwargs
+        if func is None:
+            func = dict(kwargs.items())
+
         result, how = self._aggregate(func, *args, **kwargs)
         if result is None:
 
@@ -3995,7 +4059,11 @@ Keep all original rows and also all original values
 
     agg = aggregate
 
-    @Appender(generic._shared_docs["transform"] % _shared_doc_kwargs)
+    @doc(
+        NDFrame.transform,
+        klass=_shared_doc_kwargs["klass"],
+        axis=_shared_doc_kwargs["axis"],
+    )
     def transform(self, func, axis=0, *args, **kwargs):
         # Validate the axis parameter
         self._get_axis_number(axis)
@@ -4186,7 +4254,11 @@ Keep all original rows and also all original values
         """
         return False
 
-    @doc(NDFrame.align, **_shared_doc_kwargs)
+    @doc(
+        NDFrame.align,
+        klass=_shared_doc_kwargs["klass"],
+        axes_single_arg=_shared_doc_kwargs["axes_single_arg"],
+    )
     def align(
         self,
         other,
@@ -4317,8 +4389,13 @@ Keep all original rows and also all original values
     def set_axis(self, labels, axis: Axis = 0, inplace: bool = False):
         return super().set_axis(labels, axis=axis, inplace=inplace)
 
-    @Substitution(**_shared_doc_kwargs)
-    @Appender(generic.NDFrame.reindex.__doc__)
+    @doc(
+        NDFrame.reindex,
+        klass=_shared_doc_kwargs["klass"],
+        axes=_shared_doc_kwargs["axes"],
+        optional_labels=_shared_doc_kwargs["optional_labels"],
+        optional_axis=_shared_doc_kwargs["optional_axis"],
+    )
     def reindex(self, index=None, **kwargs):
         return super().reindex(index=index, **kwargs)
 
@@ -4447,7 +4524,34 @@ Keep all original rows and also all original values
             downcast=downcast,
         )
 
-    @doc(NDFrame.replace, **_shared_doc_kwargs)
+    def pop(self, item: Label) -> Any:
+        """
+        Return item and drops from series. Raise KeyError if not found.
+
+        Parameters
+        ----------
+        item : label
+            Index of the element that needs to be removed.
+
+        Returns
+        -------
+        Value that is popped from series.
+
+        Examples
+        --------
+        >>> ser = pd.Series([1,2,3])
+
+        >>> ser.pop(0)
+        1
+
+        >>> ser
+        1    2
+        2    3
+        dtype: int64
+        """
+        return super().pop(item=item)
+
+    @doc(NDFrame.replace, klass=_shared_doc_kwargs["klass"])
     def replace(
         self,
         to_replace=None,
@@ -4466,7 +4570,7 @@ Keep all original rows and also all original values
             method=method,
         )
 
-    @doc(NDFrame.shift, **_shared_doc_kwargs)
+    @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
     def shift(self, periods=1, freq=None, axis=0, fill_value=None) -> "Series":
         return super().shift(
             periods=periods, freq=freq, axis=axis, fill_value=fill_value
@@ -4687,19 +4791,19 @@ Keep all original rows and also all original values
             result = input_series.copy()
         return result
 
-    @Appender(generic._shared_docs["isna"] % _shared_doc_kwargs)
+    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
     def isna(self) -> "Series":
         return super().isna()
 
-    @Appender(generic._shared_docs["isna"] % _shared_doc_kwargs)
+    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
     def isnull(self) -> "Series":
         return super().isnull()
 
-    @Appender(generic._shared_docs["notna"] % _shared_doc_kwargs)
+    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])
     def notna(self) -> "Series":
         return super().notna()
 
-    @Appender(generic._shared_docs["notna"] % _shared_doc_kwargs)
+    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])
     def notnull(self) -> "Series":
         return super().notnull()
 
@@ -4818,15 +4922,17 @@ Keep all original rows and also all original values
 
         if not isinstance(self.index, PeriodIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
-        new_index = self.index.to_timestamp(freq=freq, how=how)  # type: ignore
+        # error: "PeriodIndex" has no attribute "to_timestamp"
+        new_index = self.index.to_timestamp(  # type: ignore[attr-defined]
+            freq=freq, how=how
+        )
         return self._constructor(new_values, index=new_index).__finalize__(
             self, method="to_timestamp"
         )
 
     def to_period(self, freq=None, copy=True) -> "Series":
         """
-        Convert Series from DatetimeIndex to PeriodIndex with desired
-        frequency (inferred from index if not passed).
+        Convert Series from DatetimeIndex to PeriodIndex.
 
         Parameters
         ----------

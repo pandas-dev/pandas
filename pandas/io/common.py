@@ -31,6 +31,7 @@ import zipfile
 
 from pandas._typing import FilePathOrBuffer
 from pandas.compat import _get_lzma_file, _import_lzma
+from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import is_file_like
 
@@ -120,24 +121,18 @@ def stringify_path(
     """
     if hasattr(filepath_or_buffer, "__fspath__"):
         # https://github.com/python/mypy/issues/1424
-        return filepath_or_buffer.__fspath__()  # type: ignore
+        # error: Item "str" of "Union[str, Path, IO[str]]" has no attribute
+        # "__fspath__"  [union-attr]
+        # error: Item "IO[str]" of "Union[str, Path, IO[str]]" has no attribute
+        # "__fspath__"  [union-attr]
+        # error: Item "str" of "Union[str, Path, IO[bytes]]" has no attribute
+        # "__fspath__"  [union-attr]
+        # error: Item "IO[bytes]" of "Union[str, Path, IO[bytes]]" has no
+        # attribute "__fspath__"  [union-attr]
+        return filepath_or_buffer.__fspath__()  # type: ignore[union-attr]
     elif isinstance(filepath_or_buffer, pathlib.Path):
         return str(filepath_or_buffer)
     return _expand_user(filepath_or_buffer)
-
-
-def is_s3_url(url) -> bool:
-    """Check for an s3, s3n, or s3a url"""
-    if not isinstance(url, str):
-        return False
-    return parse_url(url).scheme in ["s3", "s3n", "s3a"]
-
-
-def is_gcs_url(url) -> bool:
-    """Check for a gcs url"""
-    if not isinstance(url, str):
-        return False
-    return parse_url(url).scheme in ["gcs", "gs"]
 
 
 def urlopen(*args, **kwargs):
@@ -150,31 +145,16 @@ def urlopen(*args, **kwargs):
     return urllib.request.urlopen(*args, **kwargs)
 
 
-def get_fs_for_path(filepath: str):
+def is_fsspec_url(url: FilePathOrBuffer) -> bool:
     """
-    Get appropriate filesystem given a filepath.
-    Supports s3fs, gcs and local file system.
-
-    Parameters
-    ----------
-    filepath : str
-        File path. e.g s3://bucket/object, /local/path, gcs://pandas/obj
-
-    Returns
-    -------
-    s3fs.S3FileSystem, gcsfs.GCSFileSystem, None
-        Appropriate FileSystem to use. None for local filesystem.
+    Returns true if the given URL looks like
+    something fsspec can handle
     """
-    if is_s3_url(filepath):
-        from pandas.io import s3
-
-        return s3.get_fs()
-    elif is_gcs_url(filepath):
-        from pandas.io import gcs
-
-        return gcs.get_fs()
-    else:
-        return None
+    return (
+        isinstance(url, str)
+        and "://" in url
+        and not url.startswith(("http://", "https://"))
+    )
 
 
 def get_filepath_or_buffer(
@@ -182,6 +162,7 @@ def get_filepath_or_buffer(
     encoding: Optional[str] = None,
     compression: Optional[str] = None,
     mode: Optional[str] = None,
+    storage_options: Optional[Dict[str, Any]] = None,
 ):
     """
     If the filepath_or_buffer is a url, translate and return the buffer.
@@ -194,6 +175,8 @@ def get_filepath_or_buffer(
     compression : {{'gzip', 'bz2', 'zip', 'xz', None}}, optional
     encoding : the encoding to use to decode bytes, default is 'utf-8'
     mode : str, optional
+    storage_options: dict, optional
+        passed on to fsspec, if using it; this is not yet accessed by the public API
 
     Returns
     -------
@@ -204,6 +187,7 @@ def get_filepath_or_buffer(
     filepath_or_buffer = stringify_path(filepath_or_buffer)
 
     if isinstance(filepath_or_buffer, str) and is_url(filepath_or_buffer):
+        # TODO: fsspec can also handle HTTP via requests, but leaving this unchanged
         req = urlopen(filepath_or_buffer)
         content_encoding = req.headers.get("Content-Encoding", None)
         if content_encoding == "gzip":
@@ -213,19 +197,51 @@ def get_filepath_or_buffer(
         req.close()
         return reader, encoding, compression, True
 
-    if is_s3_url(filepath_or_buffer):
-        from pandas.io import s3
+    if is_fsspec_url(filepath_or_buffer):
+        assert isinstance(
+            filepath_or_buffer, str
+        )  # just to appease mypy for this branch
+        # two special-case s3-like protocols; these have special meaning in Hadoop,
+        # but are equivalent to just "s3" from fsspec's point of view
+        # cc #11071
+        if filepath_or_buffer.startswith("s3a://"):
+            filepath_or_buffer = filepath_or_buffer.replace("s3a://", "s3://")
+        if filepath_or_buffer.startswith("s3n://"):
+            filepath_or_buffer = filepath_or_buffer.replace("s3n://", "s3://")
+        fsspec = import_optional_dependency("fsspec")
 
-        return s3.get_filepath_or_buffer(
-            filepath_or_buffer, encoding=encoding, compression=compression, mode=mode
-        )
+        # If botocore is installed we fallback to reading with anon=True
+        # to allow reads from public buckets
+        err_types_to_retry_with_anon: List[Any] = []
+        try:
+            import_optional_dependency("botocore")
+            from botocore.exceptions import ClientError, NoCredentialsError
 
-    if is_gcs_url(filepath_or_buffer):
-        from pandas.io import gcs
+            err_types_to_retry_with_anon = [
+                ClientError,
+                NoCredentialsError,
+                PermissionError,
+            ]
+        except ImportError:
+            pass
 
-        return gcs.get_filepath_or_buffer(
-            filepath_or_buffer, encoding=encoding, compression=compression, mode=mode
-        )
+        try:
+            file_obj = fsspec.open(
+                filepath_or_buffer, mode=mode or "rb", **(storage_options or {})
+            ).open()
+        # GH 34626 Reads from Public Buckets without Credentials needs anon=True
+        except tuple(err_types_to_retry_with_anon):
+            if storage_options is None:
+                storage_options = {"anon": True}
+            else:
+                # don't mutate user input.
+                storage_options = dict(storage_options)
+                storage_options["anon"] = True
+            file_obj = fsspec.open(
+                filepath_or_buffer, mode=mode or "rb", **(storage_options or {})
+            ).open()
+
+        return file_obj, encoding, compression, True
 
     if isinstance(filepath_or_buffer, (str, bytes, mmap.mmap)):
         return _expand_user(filepath_or_buffer), None, compression, False
@@ -259,8 +275,8 @@ _compression_to_extension = {"gzip": ".gz", "bz2": ".bz2", "zip": ".zip", "xz": 
 
 
 def get_compression_method(
-    compression: Optional[Union[str, Mapping[str, str]]]
-) -> Tuple[Optional[str], Dict[str, str]]:
+    compression: Optional[Union[str, Mapping[str, Any]]]
+) -> Tuple[Optional[str], Dict[str, Any]]:
     """
     Simplifies a compression argument to a compression method string and
     a mapping containing additional arguments.
@@ -274,21 +290,23 @@ def get_compression_method(
     Returns
     -------
     tuple of ({compression method}, Optional[str]
-              {compression arguments}, Dict[str, str])
+              {compression arguments}, Dict[str, Any])
 
     Raises
     ------
     ValueError on mapping missing 'method' key
     """
+    compression_method: Optional[str]
     if isinstance(compression, Mapping):
         compression_args = dict(compression)
         try:
-            compression = compression_args.pop("method")
+            compression_method = compression_args.pop("method")
         except KeyError as err:
             raise ValueError("If mapping, compression must have key 'method'") from err
     else:
         compression_args = {}
-    return compression, compression_args
+        compression_method = compression
+    return compression_method, compression_args
 
 
 def infer_compression(
@@ -331,7 +349,7 @@ def infer_compression(
 
         # Infer compression from the filename/URL extension
         for compression, extension in _compression_to_extension.items():
-            if filepath_or_buffer.endswith(extension):
+            if filepath_or_buffer.lower().endswith(extension):
                 return compression
         return None
 
@@ -426,28 +444,19 @@ def get_handle(
 
     if compression:
 
-        # GH33398 the type ignores here seem related to mypy issue #5382;
-        # it may be possible to remove them once that is resolved.
-
         # GZ Compression
         if compression == "gzip":
             if is_path:
-                f = gzip.open(
-                    path_or_buf, mode, **compression_args  # type: ignore
-                )
+                f = gzip.open(path_or_buf, mode, **compression_args)
             else:
-                f = gzip.GzipFile(
-                    fileobj=path_or_buf, **compression_args  # type: ignore
-                )
+                f = gzip.GzipFile(fileobj=path_or_buf, **compression_args)
 
         # BZ Compression
         elif compression == "bz2":
             if is_path:
-                f = bz2.BZ2File(
-                    path_or_buf, mode, **compression_args  # type: ignore
-                )
+                f = bz2.BZ2File(path_or_buf, mode, **compression_args)
             else:
-                f = bz2.BZ2File(path_or_buf, **compression_args)  # type: ignore
+                f = bz2.BZ2File(path_or_buf, **compression_args)
 
         # ZIP Compression
         elif compression == "zip":
@@ -515,7 +524,19 @@ def get_handle(
     return f, handles
 
 
-class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore
+# error: Definition of "__exit__" in base class "ZipFile" is incompatible with
+# definition in base class "BytesIO"  [misc]
+# error: Definition of "__enter__" in base class "ZipFile" is incompatible with
+# definition in base class "BytesIO"  [misc]
+# error: Definition of "__enter__" in base class "ZipFile" is incompatible with
+# definition in base class "BinaryIO"  [misc]
+# error: Definition of "__enter__" in base class "ZipFile" is incompatible with
+# definition in base class "IO"  [misc]
+# error: Definition of "read" in base class "ZipFile" is incompatible with
+# definition in base class "BytesIO"  [misc]
+# error: Definition of "read" in base class "ZipFile" is incompatible with
+# definition in base class "IO"  [misc]
+class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore[misc]
     """
     Wrapper for standard library class ZipFile and allow the returned file-like
     handle to accept byte strings via `write` method.

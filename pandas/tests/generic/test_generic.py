@@ -8,7 +8,7 @@ from pandas.compat.numpy import _np_version_under1p17
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, Series, date_range
+from pandas import DataFrame, Series, date_range
 import pandas._testing as tm
 import pandas.core.common as com
 
@@ -251,13 +251,13 @@ class Generic:
             self.check_metadata(v1 & v2)
             self.check_metadata(v1 | v2)
 
-    def test_head_tail(self, indices):
+    def test_head_tail(self, index):
         # GH5370
 
-        o = self._construct(shape=len(indices))
+        o = self._construct(shape=len(index))
 
         axis = o._get_axis_name(0)
-        setattr(o, axis, indices)
+        setattr(o, axis, index)
 
         o.head()
 
@@ -273,8 +273,8 @@ class Generic:
         self._compare(o.tail(len(o) + 1), o)
 
         # neg index
-        self._compare(o.head(-3), o.head(len(indices) - 3))
-        self._compare(o.tail(-3), o.tail(len(indices) - 3))
+        self._compare(o.head(-3), o.head(len(index) - 3))
+        self._compare(o.tail(-3), o.tail(len(index) - 3))
 
     def test_sample(self):
         # Fixes issue: 2419
@@ -785,26 +785,6 @@ class TestNDFrame:
             s.take([0, 1], is_copy=is_copy)
 
     def test_equals(self):
-        s1 = pd.Series([1, 2, 3], index=[0, 2, 1])
-        s2 = s1.copy()
-        assert s1.equals(s2)
-
-        s1[1] = 99
-        assert not s1.equals(s2)
-
-        # NaNs compare as equal
-        s1 = pd.Series([1, np.nan, 3, np.nan], index=[0, 2, 1, 3])
-        s2 = s1.copy()
-        assert s1.equals(s2)
-
-        s2[0] = 9.9
-        assert not s1.equals(s2)
-
-        idx = MultiIndex.from_tuples([(0, "a"), (1, "b"), (2, "c")])
-        s1 = Series([1, 2, np.nan], index=idx)
-        s2 = s1.copy()
-        assert s1.equals(s2)
-
         # Add object dtype column with nans
         index = np.random.random(10)
         df1 = DataFrame(np.random.random(10), index=index, columns=["floats"])
@@ -856,21 +836,6 @@ class TestNDFrame:
         df3 = df1.set_index(["floats"], append=True)
         df2 = df1.set_index(["floats"], append=True)
         assert df3.equals(df2)
-
-        # GH 8437
-        a = pd.Series([False, np.nan])
-        b = pd.Series([False, np.nan])
-        c = pd.Series(index=range(2), dtype=object)
-        d = c.copy()
-        e = c.copy()
-        f = c.copy()
-        c[:-1] = d[:-1] = e[0] = f[0] = False
-        assert a.equals(a)
-        assert a.equals(b)
-        assert a.equals(c)
-        assert a.equals(d)
-        assert a.equals(e)
-        assert e.equals(f)
 
     def test_pipe(self):
         df = DataFrame({"A": [1, 2, 3]})

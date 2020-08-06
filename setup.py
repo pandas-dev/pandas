@@ -117,7 +117,7 @@ class build_ext(_build_ext):
 
 DESCRIPTION = "Powerful data structures for data analysis, time series, and statistics"
 LONG_DESCRIPTION = """
-**pandas** is a Python package providing fast, flexible, and expressive data
+**pandas** is a Python package that provides fast, flexible, and expressive data
 structures designed to make working with structured (tabular, multidimensional,
 potentially heterogeneous) and time series data both easy and intuitive. It
 aims to be the fundamental high-level building block for doing practical,
@@ -319,10 +319,9 @@ class CheckSDist(sdist_class):
         "pandas/_libs/tslibs/conversion.pyx",
         "pandas/_libs/tslibs/fields.pyx",
         "pandas/_libs/tslibs/offsets.pyx",
-        "pandas/_libs/tslibs/frequencies.pyx",
-        "pandas/_libs/tslibs/resolution.pyx",
         "pandas/_libs/tslibs/parsing.pyx",
         "pandas/_libs/tslibs/tzconversion.pyx",
+        "pandas/_libs/tslibs/vectorized.pyx",
         "pandas/_libs/window/indexers.pyx",
         "pandas/_libs/writers.pyx",
         "pandas/io/sas/sas.pyx",
@@ -615,7 +614,6 @@ ext_data = {
         "pyxfile": "_libs/tslibs/fields",
         "depends": tseries_depends,
     },
-    "_libs.tslibs.frequencies": {"pyxfile": "_libs/tslibs/frequencies"},
     "_libs.tslibs.nattype": {"pyxfile": "_libs/tslibs/nattype"},
     "_libs.tslibs.np_datetime": {
         "pyxfile": "_libs/tslibs/np_datetime",
@@ -640,10 +638,6 @@ ext_data = {
         "depends": tseries_depends,
         "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
-    "_libs.tslibs.resolution": {
-        "pyxfile": "_libs/tslibs/resolution",
-        "depends": tseries_depends,
-    },
     "_libs.tslibs.strptime": {
         "pyxfile": "_libs/tslibs/strptime",
         "depends": tseries_depends,
@@ -661,6 +655,7 @@ ext_data = {
         "pyxfile": "_libs/tslibs/tzconversion",
         "depends": tseries_depends,
     },
+    "_libs.tslibs.vectorized": {"pyxfile": "_libs/tslibs/vectorized"},
     "_libs.testing": {"pyxfile": "_libs/testing"},
     "_libs.window.aggregations": {
         "pyxfile": "_libs/window/aggregations",

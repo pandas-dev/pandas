@@ -322,7 +322,7 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt) -> Series:
     elif fmt.startswith(("%tC", "tC")):
 
         warnings.warn("Encountered %tC format. Leaving in Stata Internal Format.")
-        conv_dates = Series(dates, dtype=np.object)
+        conv_dates = Series(dates, dtype=object)
         if has_bad_values:
             conv_dates[bad_locs] = NaT
         return conv_dates
@@ -451,7 +451,7 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
         conv_dates = 4 * (d.year - stata_epoch.year) + (d.month - 1) // 3
     elif fmt in ["%th", "th"]:
         d = parse_dates_safe(dates, year=True)
-        conv_dates = 2 * (d.year - stata_epoch.year) + (d.month > 6).astype(np.int)
+        conv_dates = 2 * (d.year - stata_epoch.year) + (d.month > 6).astype(int)
     elif fmt in ["%ty", "ty"]:
         d = parse_dates_safe(dates, year=True)
         conv_dates = d.year
@@ -553,7 +553,7 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
     ws = ""
     #                  original, if small, if large
     conversion_data = (
-        (np.bool, np.int8, np.int8),
+        (np.bool_, np.int8, np.int8),
         (np.uint8, np.int8, np.int16),
         (np.uint16, np.int16, np.int32),
         (np.uint32, np.int32, np.int64),
@@ -1643,8 +1643,7 @@ the string values returned are correct."""
 
         data = self._insert_strls(data)
 
-        cols_ = np.where(self.dtyplist)[0]
-
+        cols_ = np.where([dtyp is not None for dtyp in self.dtyplist])[0]
         # Convert columns (if needed) to match input type
         ix = data.index
         requires_type_conversion = False
@@ -1725,7 +1724,7 @@ the string values returned are correct."""
             if convert_missing:  # Replacement follows Stata notation
                 missing_loc = np.nonzero(np.asarray(missing))[0]
                 umissing, umissing_loc = np.unique(series[missing], return_inverse=True)
-                replacement = Series(series, dtype=np.object)
+                replacement = Series(series, dtype=object)
                 for j, um in enumerate(umissing):
                     missing_value = StataMissingValue(um)
 
@@ -1953,7 +1952,10 @@ def _open_file_binary_write(
     """
     if hasattr(fname, "write"):
         # See https://github.com/python/mypy/issues/1424 for hasattr challenges
-        return fname, False, None  # type: ignore
+        # error: Incompatible return value type (got "Tuple[Union[str, Path,
+        # IO[Any]], bool, None]", expected "Tuple[BinaryIO, bool, Union[str,
+        # Mapping[str, str], None]]")
+        return fname, False, None  # type: ignore[return-value]
     elif isinstance(fname, (str, Path)):
         # Extract compression mode as given, if dict
         compression_typ, compression_args = get_compression_method(compression)

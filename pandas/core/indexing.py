@@ -2,9 +2,11 @@ from typing import TYPE_CHECKING, Hashable, List, Tuple, Union
 
 import numpy as np
 
+from pandas._config.config import option_context
+
 from pandas._libs.indexing import _NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
-from pandas.errors import AbstractMethodError
+from pandas.errors import AbstractMethodError, InvalidIndexError
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import (
@@ -29,7 +31,7 @@ from pandas.core.indexers import (
     is_list_like_indexer,
     length_of_indexer,
 )
-from pandas.core.indexes.api import Index, InvalidIndexError
+from pandas.core.indexes.api import Index
 
 if TYPE_CHECKING:
     from pandas import DataFrame  # noqa:F401
@@ -253,6 +255,8 @@ class IndexingMixin:
 
         - A boolean array of the same length as the axis being sliced,
           e.g. ``[True, False, True]``.
+        - An alignable boolean Series. The index of the key will be aligned before
+          masking.
         - A ``callable`` function with one argument (the calling Series or
           DataFrame) and that returns valid output for indexing (one of the above)
 
@@ -262,6 +266,8 @@ class IndexingMixin:
         ------
         KeyError
             If any items are not found.
+        IndexingError
+            If an indexed key is passed and its index is unalignable to the frame index.
 
         See Also
         --------
@@ -314,6 +320,13 @@ class IndexingMixin:
         Boolean list with the same length as the row axis
 
         >>> df.loc[[False, False, True]]
+                    max_speed  shield
+        sidewinder          7       8
+
+        Alignable boolean Series:
+
+        >>> df.loc[pd.Series([False, True, False],
+        ...        index=['viper', 'sidewinder', 'cobra'])]
                     max_speed  shield
         sidewinder          7       8
 
@@ -1163,6 +1176,10 @@ class _LocIndexer(_LocationIndexer):
                     if len(key) == labels.nlevels:
                         return {"key": key}
                     raise
+            except InvalidIndexError:
+                # GH35015, using datetime as column indices raises exception
+                if not isinstance(labels, ABCMultiIndex):
+                    raise
             except TypeError:
                 pass
             except ValueError:
@@ -1283,7 +1300,8 @@ class _LocIndexer(_LocationIndexer):
             return
 
         # Count missing values:
-        missing = (indexer < 0).sum()
+        missing_mask = indexer < 0
+        missing = (missing_mask).sum()
 
         if missing:
             if missing == len(indexer):
@@ -1302,11 +1320,15 @@ class _LocIndexer(_LocationIndexer):
             # code, so we want to avoid warning & then
             # just raising
             if not ax.is_categorical():
-                raise KeyError(
-                    "Passing list-likes to .loc or [] with any missing labels "
-                    "is no longer supported, see "
-                    "https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#deprecate-loc-reindex-listlike"  # noqa:E501
-                )
+                not_found = key[missing_mask]
+
+                with option_context("display.max_seq_items", 10, "display.width", 80):
+                    raise KeyError(
+                        "Passing list-likes to .loc or [] with any missing labels "
+                        "is no longer supported. "
+                        f"The following labels were missing: {not_found}. "
+                        "See https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#deprecate-loc-reindex-listlike"  # noqa:E501
+                    )
 
 
 @doc(IndexingMixin.iloc)
@@ -1676,7 +1698,6 @@ class _iLocIndexer(_LocationIndexer):
                     ser = v
                 else:
                     # set the item, possibly having a dtype change
-                    ser._consolidate_inplace()
                     ser = ser.copy()
                     ser._mgr = ser._mgr.setitem(indexer=pi, value=v)
                     ser._maybe_update_cacher(clear=True)
