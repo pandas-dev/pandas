@@ -513,11 +513,67 @@ def test_to_numpy_alias():
     assert isna(expected) and isna(result)
 
 
-@pytest.mark.parametrize("other", [Timedelta(0), Timestamp(0)])
+@pytest.mark.parametrize(
+    "other",
+    [
+        Timedelta(0),
+        Timedelta(0).to_pytimedelta(),
+        pytest.param(
+            Timedelta(0).to_timedelta64(),
+            marks=pytest.mark.xfail(
+                reason="td64 doesnt return NotImplemented, see numpy#17017"
+            ),
+        ),
+        Timestamp(0),
+        Timestamp(0).to_pydatetime(),
+        pytest.param(
+            Timestamp(0).to_datetime64(),
+            marks=pytest.mark.xfail(
+                reason="dt64 doesnt return NotImplemented, see numpy#17017"
+            ),
+        ),
+        Timestamp(0).tz_localize("UTC"),
+        NaT,
+    ],
+)
 def test_nat_comparisons(compare_operators_no_eq_ne, other):
     # GH 26039
-    assert getattr(NaT, compare_operators_no_eq_ne)(other) is False
-    assert getattr(other, compare_operators_no_eq_ne)(NaT) is False
+    opname = compare_operators_no_eq_ne
+
+    assert getattr(NaT, opname)(other) is False
+
+    op = getattr(operator, opname.strip("_"))
+    assert op(NaT, other) is False
+    assert op(other, NaT) is False
+
+
+@pytest.mark.parametrize("other", [np.timedelta64(0, "ns"), np.datetime64("now", "ns")])
+def test_nat_comparisons_numpy(other):
+    # Once numpy#17017 is fixed and the xfailed cases in test_nat_comparisons
+    #  pass, this test can be removed
+    assert not NaT == other
+    assert NaT != other
+    assert not NaT < other
+    assert not NaT > other
+    assert not NaT <= other
+    assert not NaT >= other
+
+
+@pytest.mark.parametrize("other", ["foo", 2, 2.0])
+@pytest.mark.parametrize("op", [operator.le, operator.lt, operator.ge, operator.gt])
+def test_nat_comparisons_invalid(other, op):
+    # GH#35585
+    assert not NaT == other
+    assert not other == NaT
+
+    assert NaT != other
+    assert other != NaT
+
+    with pytest.raises(TypeError):
+        op(NaT, other)
+
+    with pytest.raises(TypeError):
+        op(other, NaT)
 
 
 @pytest.mark.parametrize(
