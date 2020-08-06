@@ -1643,8 +1643,7 @@ the string values returned are correct."""
 
         data = self._insert_strls(data)
 
-        cols_ = np.where(self.dtyplist)[0]
-
+        cols_ = np.where([dtyp is not None for dtyp in self.dtyplist])[0]
         # Convert columns (if needed) to match input type
         ix = data.index
         requires_type_conversion = False
@@ -1953,7 +1952,10 @@ def _open_file_binary_write(
     """
     if hasattr(fname, "write"):
         # See https://github.com/python/mypy/issues/1424 for hasattr challenges
-        return fname, False, None  # type: ignore
+        # error: Incompatible return value type (got "Tuple[Union[str, Path,
+        # IO[Any]], bool, None]", expected "Tuple[BinaryIO, bool, Union[str,
+        # Mapping[str, str], None]]")
+        return fname, False, None  # type: ignore[return-value]
     elif isinstance(fname, (str, Path)):
         # Extract compression mode as given, if dict
         compression_typ, compression_args = get_compression_method(compression)

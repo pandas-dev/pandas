@@ -60,6 +60,7 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 - Added :func:`age_in_years` to calculate the years since a reference time (such as years of age since date of birth).
+- Bug in :attr:`DatetimeArray.date` where a ``ValueError`` would be raised with a read-only backing array (:issue:`33530`)
 -
 
 Timedelta

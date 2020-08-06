@@ -1751,9 +1751,9 @@ class TestHDFStore:
 
                 # try to index a col which isn't a data_column
                 msg = (
-                    f"column string2 is not a data_column.\n"
-                    f"In order to read column string2 you must reload the dataframe \n"
-                    f"into HDFStore and include string2 with the data_columns argument."
+                    "column string2 is not a data_column.\n"
+                    "In order to read column string2 you must reload the dataframe \n"
+                    "into HDFStore and include string2 with the data_columns argument."
                 )
                 with pytest.raises(AttributeError, match=msg):
                     store.create_table_index("f", columns=["string2"])
