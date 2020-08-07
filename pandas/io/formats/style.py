@@ -966,12 +966,12 @@ class Styler:
         ... }, axis=1, overwrite=False)
         """
         if isinstance(table_styles, dict):
-            if axis == 0 or axis == 'index':
+            if axis == 0 or axis == "index":
                 obj = self.data.columns
-                idf = '.col'
+                idf = ".col"
             else:
                 obj = self.data.index
-                idf = '.row'
+                idf = ".row"
 
             _styles = []
             for key, styles in table_styles.items():

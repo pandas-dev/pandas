@@ -1697,20 +1697,17 @@ class TestStyler:
             [{"selector": "", "props": [("background-color", "yellow")]}]
         ).set_table_styles(
             [{"selector": ".col0", "props": [("background-color", "blue")]}],
-            overwrite=False
+            overwrite=False,
         )
         assert len(styler.table_styles) == 2
 
     def test_column_and_row_styling(self):
         df = pd.DataFrame(data=[[0, 1], [1, 2]], columns=["A", "B"])
         s = Styler(df, uuid="_")
-        s = s.set_table_styles(
-            {"A": [{"selector": "", "props": [("color", "blue")]}]}
-        )
+        s = s.set_table_styles({"A": [{"selector": "", "props": [("color", "blue")]}]})
         assert "#T__ .col0 {\n          color: blue;\n    }" in s.render()
         s = s.set_table_styles(
-            {0: [{"selector": "", "props": [("color", "blue")]}]},
-            axis=1
+            {0: [{"selector": "", "props": [("color", "blue")]}]}, axis=1
         )
         assert "#T__ .row0 {\n          color: blue;\n    }" in s.render()
 
