@@ -43,7 +43,14 @@ class TestCategoricalIndex(Base):
         # GH 10039
         # set ops (+/-) raise TypeError
         idx = pd.Index(pd.Categorical(["a", "b"]))
-        msg = f"cannot perform {op_name} with this index type: CategoricalIndex"
+        cat_or_list = "'(Categorical|list)' and '(Categorical|list)'"
+        msg = "|".join(
+            [
+                f"cannot perform {op_name} with this index type: CategoricalIndex",
+                "can only concatenate list",
+                rf"unsupported operand type\(s\) for [\+-]: {cat_or_list}",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             func(idx)
 
@@ -478,3 +485,9 @@ class TestCategoricalIndex(Base):
     def test_map_str(self):
         # See test_map.py
         pass
+
+    def test_format_different_scalar_lengths(self):
+        # GH35439
+        idx = CategoricalIndex(["aaaaaaaaa", "b"])
+        expected = ["aaaaaaaaa", "b"]
+        assert idx.format() == expected
