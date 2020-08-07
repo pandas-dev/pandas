@@ -36,7 +36,9 @@ class TestDataFrameInterpolate:
 
     def test_interp_empty(self):
         df = DataFrame()
-        tm.assert_frame_equal(df, df.interpolate())
+        result = df.interpolate()
+        expected = df
+        tm.assert_frame_equal(result, expected)
 
     def test_interp_bad_method(self):
         df = DataFrame(
