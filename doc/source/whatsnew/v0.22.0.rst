@@ -1,7 +1,7 @@
 .. _whatsnew_0220:
 
-v0.22.0 (December 29, 2017)
----------------------------
+Version 0.22.0 (December 29, 2017)
+----------------------------------
 
 {{ header }}
 
@@ -96,7 +96,7 @@ returning ``1`` instead.
 These changes affect :meth:`DataFrame.sum` and :meth:`DataFrame.prod` as well.
 Finally, a few less obvious places in pandas are affected by this change.
 
-Grouping by a categorical
+Grouping by a Categorical
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Grouping by a ``Categorical`` and summing now returns ``0`` instead of

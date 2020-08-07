@@ -407,8 +407,9 @@ def get_handle(
     memory_map : boolean, default False
         See parsers._parser_params for more information.
     is_text : boolean, default True
-        whether file/buffer is in text format (csv, json, etc.), or in binary
-        mode (pickle, etc.).
+        Whether the type of the content passed to the file/buffer is string or
+        bytes. This is not the same as `"b" not in mode`. If a string content is
+        passed to a binary file/buffer, a wrapper is inserted.
     errors : str, default 'strict'
         Specifies how encoding and decoding errors are to be handled.
         See the errors argument for :func:`open` for a full list
@@ -449,14 +450,14 @@ def get_handle(
             if is_path:
                 f = gzip.open(path_or_buf, mode, **compression_args)
             else:
-                f = gzip.GzipFile(fileobj=path_or_buf, **compression_args)
+                f = gzip.GzipFile(fileobj=path_or_buf, mode=mode, **compression_args)
 
         # BZ Compression
         elif compression == "bz2":
             if is_path:
                 f = bz2.BZ2File(path_or_buf, mode, **compression_args)
             else:
-                f = bz2.BZ2File(path_or_buf, **compression_args)
+                f = bz2.BZ2File(path_or_buf, mode=mode, **compression_args)
 
         # ZIP Compression
         elif compression == "zip":
@@ -489,10 +490,14 @@ def get_handle(
         handles.append(f)
 
     elif is_path:
-        if encoding:
+        # Check whether the filename is to be opened in binary mode.
+        # Binary mode does not support 'encoding' and 'newline'.
+        is_binary_mode = "b" in mode
+
+        if encoding and not is_binary_mode:
             # Encoding
             f = open(path_or_buf, mode, encoding=encoding, errors=errors, newline="")
-        elif is_text:
+        elif is_text and not is_binary_mode:
             # No explicit encoding
             f = open(path_or_buf, mode, errors="replace", newline="")
         else:
