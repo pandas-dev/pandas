@@ -29,7 +29,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops
 from pandas.core.algorithms import checked_add_with_arr
-from pandas.core.arrays import datetimelike as dtl
+from pandas.core.arrays import IntegerArray, datetimelike as dtl
 from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
 from pandas.core.construction import extract_array
@@ -921,6 +921,8 @@ def sequence_to_td64ns(data, copy=False, unit=None, errors="raise"):
     elif isinstance(data, (ABCTimedeltaIndex, TimedeltaArray)):
         inferred_freq = data.freq
         data = data._data
+    elif isinstance(data, IntegerArray):
+        data = data.to_numpy("int64", na_value=tslibs.iNaT)
 
     # Convert whatever we have into timedelta64[ns] dtype
     if is_object_dtype(data.dtype) or is_string_dtype(data.dtype):
