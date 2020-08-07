@@ -1064,6 +1064,23 @@ DD/MM/YYYY instead. For convenience, a ``dayfirst`` keyword is provided:
    pd.read_csv('tmp.csv', parse_dates=[0])
    pd.read_csv('tmp.csv', dayfirst=True, parse_dates=[0])
 
+Writing CSVs to binary file objects
++++++++++++++++++++++++++++++++++++
+
+.. versionadded:: 1.2.0
+
+``df.to_csv(..., mode="w+b")`` allows writing a CSV to a file object
+opened binary mode. For this to work, it is necessary that ``mode``
+contains a "b":
+
+.. ipython:: python
+
+   import io
+
+   data = pd.DataFrame([0, 1, 2])
+   buffer = io.BytesIO()
+   data.to_csv(buffer, mode="w+b", encoding="utf-8", compression="gzip")
+
 .. _io.float_precision:
 
 Specifying method for floating-point conversion

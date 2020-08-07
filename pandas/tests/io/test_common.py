@@ -378,6 +378,17 @@ class TestMMapWrapper:
             with pytest.raises(ValueError, match="Unknown engine"):
                 pd.read_csv(path, engine="pyt")
 
+    def test_binary_mode(self):
+        """
+        'encoding' shouldn't be passed to 'open' in binary mode.
+
+        GH 35058
+        """
+        with tm.ensure_clean() as path:
+            df = tm.makeDataFrame()
+            df.to_csv(path, mode="w+b")
+            tm.assert_frame_equal(df, pd.read_csv(path, index_col=0))
+
 
 def test_is_fsspec_url():
     assert icom.is_fsspec_url("gcs://pandas/somethingelse.com")
