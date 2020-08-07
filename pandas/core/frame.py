@@ -1371,6 +1371,8 @@ class DataFrame(NDFrame):
         result = self._mgr.as_array(
             transpose=self._AXIS_REVERSED, dtype=dtype, copy=copy, na_value=na_value
         )
+        if result.dtype is not dtype:
+            result = np.array(result, dtype=dtype, copy=False)
 
         return result
 
