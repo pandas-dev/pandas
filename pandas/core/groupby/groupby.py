@@ -736,13 +736,12 @@ b  2""",
     def _make_wrapper(self, name):
         assert name in self._apply_allowlist
 
-        self._set_group_selection()
-
-        # need to setup the selection
-        # as are not passed directly but in the grouper
-        f = getattr(self._obj_with_exclusions, name)
-        if not isinstance(f, types.MethodType):
-            return self.apply(lambda self: getattr(self, name))
+        with _group_selection_context(self):
+            # need to setup the selection
+            # as are not passed directly but in the grouper
+            f = getattr(self._obj_with_exclusions, name)
+            if not isinstance(f, types.MethodType):
+                return self.apply(lambda self: getattr(self, name))
 
         f = getattr(type(self._obj_with_exclusions), name)
         sig = inspect.signature(f)
@@ -992,28 +991,28 @@ b  2""",
         alias: str,
         npfunc: Callable,
     ):
-        self._set_group_selection()
-
-        # try a cython aggregation if we can
-        try:
-            return self._cython_agg_general(
-                how=alias, alt=npfunc, numeric_only=numeric_only, min_count=min_count,
-            )
-        except DataError:
-            pass
-        except NotImplementedError as err:
-            if "function is not implemented for this dtype" in str(
-                err
-            ) or "category dtype not supported" in str(err):
-                # raised in _get_cython_function, in some cases can
-                #  be trimmed by implementing cython funcs for more dtypes
+        with _group_selection_context(self):
+            # try a cython aggregation if we can
+            try:
+                return self._cython_agg_general(
+                    how=alias,
+                    alt=npfunc,
+                    numeric_only=numeric_only,
+                    min_count=min_count,
+                )
+            except DataError:
                 pass
-            else:
-                raise
+            except NotImplementedError as err:
+                if "function is not implemented for this dtype" in str(
+                    err
+                ) or "category dtype not supported" in str(err):
+                    # raised in _get_cython_function, in some cases can
+                    #  be trimmed by implementing cython funcs for more dtypes
+                    pass
 
-        # apply a non-cython aggregation
-        result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
-        return result
+            # apply a non-cython aggregation
+            result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
+            return result
 
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
@@ -1940,29 +1939,31 @@ class GroupBy(_GroupBy[FrameOrSeries]):
                 nth_values = list(set(n))
 
             nth_array = np.array(nth_values, dtype=np.intp)
-            self._set_group_selection()
+            with _group_selection_context(self):
 
-            mask_left = np.in1d(self._cumcount_array(), nth_array)
-            mask_right = np.in1d(self._cumcount_array(ascending=False) + 1, -nth_array)
-            mask = mask_left | mask_right
+                mask_left = np.in1d(self._cumcount_array(), nth_array)
+                mask_right = np.in1d(
+                    self._cumcount_array(ascending=False) + 1, -nth_array
+                )
+                mask = mask_left | mask_right
 
-            ids, _, _ = self.grouper.group_info
+                ids, _, _ = self.grouper.group_info
 
-            # Drop NA values in grouping
-            mask = mask & (ids != -1)
+                # Drop NA values in grouping
+                mask = mask & (ids != -1)
 
-            out = self._selected_obj[mask]
-            if not self.as_index:
-                return out
+                out = self._selected_obj[mask]
+                if not self.as_index:
+                    return out
 
-            result_index = self.grouper.result_index
-            out.index = result_index[ids[mask]]
+                result_index = self.grouper.result_index
+                out.index = result_index[ids[mask]]
 
-            if not self.observed and isinstance(result_index, CategoricalIndex):
-                out = out.reindex(result_index)
+                if not self.observed and isinstance(result_index, CategoricalIndex):
+                    out = out.reindex(result_index)
 
-            out = self._reindex_output(out)
-            return out.sort_index() if self.sort else out
+                out = self._reindex_output(out)
+                return out.sort_index() if self.sort else out
 
         # dropna is truthy
         if isinstance(n, valid_containers):

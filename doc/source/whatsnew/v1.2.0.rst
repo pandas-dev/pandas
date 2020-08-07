@@ -156,7 +156,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupBy.apply` that would some times throw an erroneous ``ValueError`` if the grouping axis had duplicate entries (:issue:`16646`)
 -
 -
-
+- Bug in :meth:`DataFrameGroupBy.apply` where a non-nuisance grouping column would be dropped from the output columns if another groupby method was called before ``.apply()`` (:issue:`34656`)
 
 Reshaping
 ^^^^^^^^^
