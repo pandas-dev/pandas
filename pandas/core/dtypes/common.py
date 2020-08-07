@@ -1732,7 +1732,7 @@ def _validate_date_like_dtype(dtype) -> None:
         )
 
 
-def validate_all_hashable(*args) -> None:
+def validate_all_hashable(*args, name: str = None) -> None:
     """
     Return None if all args are hashable, else raise a TypeError.
 
@@ -1752,7 +1752,10 @@ def validate_all_hashable(*args) -> None:
     TypeError: All elements must be hashable
     """
     if not all(is_hashable(arg) for arg in args):
-        raise TypeError("All elements must be hashable")
+        if name:
+            raise TypeError(f"{name} must be a hashable type")
+        else:
+            raise TypeError("All elements must be hashable")
 
 
 def pandas_dtype(dtype) -> DtypeObj:
