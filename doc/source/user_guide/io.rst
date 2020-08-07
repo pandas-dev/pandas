@@ -1681,7 +1681,8 @@ you will need to define credentials in one of the several ways listed in
 the `S3Fs documentation
 <https://s3fs.readthedocs.io/en/latest/#credentials>`_. The same is true
 for several of the storage backends, and you should follow the links
-at `fsimpl`_ for implementations not included in the main ``fsspec``
+at `fsimpl1`_ for implementations built into ``fsspec`` and `fsimpl2`_
+for those not included in the main ``fsspec``
 distribution.
 
 You can also pass parameters directly to the backend driver. For example,
@@ -1712,7 +1713,8 @@ directory for the duration of the session only, but you can also specify
 a permanent store.
 
 .. _fsspec: https://filesystem-spec.readthedocs.io/en/latest/
-.. _fsimpl: https://filesystem-spec.readthedocs.io/en/latest/api.html#built-in-implementations
+.. _fsimpl1: https://filesystem-spec.readthedocs.io/en/latest/api.html#built-in-implementations
+.. _fsimpl2: https://filesystem-spec.readthedocs.io/en/latest/api.html#other-known-implementations
 
 Writing out data
 ''''''''''''''''
