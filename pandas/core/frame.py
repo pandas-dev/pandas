@@ -2161,10 +2161,14 @@ class DataFrame(NDFrame):
             from pandas.io.stata import StataWriter as statawriter
         elif version == 117:
             # mypy: Name 'statawriter' already defined (possibly by an import)
-            from pandas.io.stata import StataWriter117 as statawriter  # type: ignore
+            from pandas.io.stata import (  # type: ignore[no-redef]
+                StataWriter117 as statawriter,
+            )
         else:  # versions 118 and 119
             # mypy: Name 'statawriter' already defined (possibly by an import)
-            from pandas.io.stata import StataWriterUTF8 as statawriter  # type: ignore
+            from pandas.io.stata import (  # type: ignore[no-redef]
+                StataWriterUTF8 as statawriter,
+            )
 
         kwargs: Dict[str, Any] = {}
         if version is None or version >= 117:
@@ -2175,7 +2179,7 @@ class DataFrame(NDFrame):
             kwargs["version"] = version
 
         # mypy: Too many arguments for "StataWriter"
-        writer = statawriter(  # type: ignore
+        writer = statawriter(  # type: ignore[call-arg]
             path,
             self,
             convert_dates=convert_dates,
@@ -3575,7 +3579,13 @@ class DataFrame(NDFrame):
             extracted_dtypes = [
                 unique_dtype
                 for unique_dtype in unique_dtypes
-                if issubclass(unique_dtype.type, tuple(dtypes_set))  # type: ignore
+                # error: Argument 1 to "tuple" has incompatible type
+                # "FrozenSet[Union[ExtensionDtype, str, Any, Type[str],
+                # Type[float], Type[int], Type[complex], Type[bool]]]";
+                # expected "Iterable[Union[type, Tuple[Any, ...]]]"
+                if issubclass(
+                    unique_dtype.type, tuple(dtypes_set)  # type: ignore[arg-type]
+                )
             ]
             return extracted_dtypes
 
@@ -5247,7 +5257,8 @@ class DataFrame(NDFrame):
     # TODO: Just move the sort_values doc here.
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.sort_values.__doc__)
-    def sort_values(  # type: ignore[override] # NOQA # issue 27237
+    # error: Signature of "sort_values" incompatible with supertype "NDFrame"
+    def sort_values(  # type: ignore[override]
         self,
         by,
         axis=0,
