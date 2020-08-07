@@ -2840,6 +2840,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         multirow=None,
         caption=None,
         label=None,
+        position=None,
     ):
         r"""
         Render object to a LaTeX tabular, longtable, or nested table/tabular.
@@ -2925,6 +2926,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             This is used with ``\ref{}`` in the main ``.tex`` file.
 
             .. versionadded:: 1.0.0
+        position : str, optional
+            The LaTeX positional argument for tables, to be placed after
+            ``\begin{}`` in the output.
         %(returns)s
         See Also
         --------
@@ -2986,6 +2990,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             multirow=multirow,
             caption=caption,
             label=label,
+            position=position,
         )
 
     def to_csv(
