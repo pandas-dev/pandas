@@ -105,7 +105,6 @@ class Block(PandasObject):
     is_extension = False
     _can_hold_na = False
     _can_consolidate = True
-    _verify_integrity = True
     _validate_ndim = True
 
     @classmethod
@@ -1525,7 +1524,6 @@ class ExtensionBlock(Block):
     """
 
     _can_consolidate = False
-    _verify_integrity = False
     _validate_ndim = False
     is_extension = True
 
@@ -2613,7 +2611,6 @@ class ObjectBlock(Block):
 class CategoricalBlock(ExtensionBlock):
     __slots__ = ()
     is_categorical = True
-    _verify_integrity = True
     _can_hold_na = True
 
     should_store = Block.should_store
