@@ -931,6 +931,7 @@ class DataFrameFormatter(TableFormatter):
         multirow: bool = False,
         caption: Optional[str] = None,
         label: Optional[str] = None,
+        position: Optional[str] = None,
     ) -> Optional[str]:
         """
         Render a DataFrame to a LaTeX tabular/longtable environment output.
@@ -946,6 +947,7 @@ class DataFrameFormatter(TableFormatter):
             multirow=multirow,
             caption=caption,
             label=label,
+            position=position,
         ).get_result(buf=buf, encoding=encoding)
 
     def _format_col(self, i: int) -> List[str]:
