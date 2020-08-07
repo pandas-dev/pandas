@@ -10,7 +10,7 @@ from pandas._config import get_option
 from pandas._libs import lib
 import pandas._libs.missing as libmissing
 from pandas._libs.tslibs import NaT, iNaT
-from pandas._typing import DtypeObj
+from pandas._typing import ArrayLike, DtypeObj
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
@@ -482,6 +482,18 @@ def _array_equivalent_object(left, right, strict_nan):
                     return False
                 raise
     return True
+
+
+def array_equals(left: ArrayLike, right: ArrayLike) -> bool:
+    """
+    ExtensionArray-compatible implementation of array_equivalent.
+    """
+    if not is_dtype_equal(left.dtype, right.dtype):
+        return False
+    elif isinstance(left, ABCExtensionArray):
+        return left.equals(right)
+    else:
+        return array_equivalent(left, right, dtype_equal=True)
 
 
 def _infer_fill_value(val):
