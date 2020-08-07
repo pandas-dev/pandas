@@ -162,25 +162,42 @@ def test_groupby_dropna_series_by(dropna, expected):
     tm.assert_series_equal(result, expected)
 
 
-def test_slice_groupby_then_transform():
+@pytest.mark.parametrize(
+    "dropna,df_expected,s_expected",
+    [
+        pytest.param(
+            True,
+            pd.DataFrame({"B": [2, 2, 1]}),
+            pd.Series(data=[2, 2, 1], name="B"),
+            marks=pytest.mark.xfail(
+                raises=ValueError,
+                msg="Length mismatch: Expected axis has 3 elements, "
+                "new values have 4 elements",
+            ),
+        ),
+        (
+            False,
+            pd.DataFrame({"B": [2, 2, 1, 1]}),
+            pd.Series(data=[2, 2, 1, 1], name="B"),
+        ),
+    ],
+)
+def test_slice_groupby_then_transform(dropna, df_expected, s_expected):
     # GH35014
 
     df = pd.DataFrame({"A": [0, 0, 1, None], "B": [1, 2, 3, None]})
-    gb = df.groupby("A", dropna=False)
+    gb = df.groupby("A", dropna=dropna)
 
     res = gb.transform(len)
-    expected = pd.DataFrame({"B": [2, 2, 1, 1]})
-    tm.assert_frame_equal(res, expected)
+    tm.assert_frame_equal(res, df_expected)
 
     gb_slice = gb[["B"]]
     res = gb_slice.transform(len)
-    expected = pd.DataFrame({"B": [2, 2, 1, 1]})
-    tm.assert_frame_equal(res, expected)
+    tm.assert_frame_equal(res, df_expected)
 
     gb_slice = gb["B"]
     res = gb["B"].transform(len)
-    expected = pd.Series(data=[2, 2, 1, 1], name="B")
-    tm.assert_series_equal(res, expected)
+    tm.assert_series_equal(res, s_expected)
 
 
 @pytest.mark.parametrize(

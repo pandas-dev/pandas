@@ -35,6 +35,7 @@ from pandas._typing import FrameOrSeries, FrameOrSeriesUnion
 from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.dtypes.cast import (
+    find_common_type,
     maybe_cast_result,
     maybe_cast_result_dtype,
     maybe_convert_objects,
@@ -512,7 +513,6 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         Transform with a non-str `func`.
         """
-
         if maybe_use_numba(engine):
             numba_func, cache_key = generate_numba_func(
                 func, engine_kwargs, kwargs, "groupby_transform"
@@ -548,9 +548,7 @@ class SeriesGroupBy(GroupBy[Series]):
         # we have a numeric dtype, as these are *always* user-defined funcs
         # the cython take a different path (and casting)
         if is_numeric_dtype(result.dtype):
-            common_dtype = np.find_common_type(
-                [self._selected_obj.dtype, result.dtype], []
-            )
+            common_dtype = find_common_type([self._selected_obj.dtype, result.dtype])
             if common_dtype is result.dtype:
                 result = maybe_downcast_numeric(result, self._selected_obj.dtype)
 
