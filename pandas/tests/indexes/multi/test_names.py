@@ -75,6 +75,12 @@ def test_copy_names():
     assert multi_idx.names == ["MyName1", "MyName2"]
     assert multi_idx3.names == ["NewName1", "NewName2"]
 
+    with pytest.raises(ValueError, match="Length of new names must be 2, got 1"):
+        multi_idx.copy(names=["mario"])
+
+    with pytest.raises(TypeError, match="MultiIndex.name must be a hashable type"):
+        multi_idx.copy(names=[["mario"], ["luigi"]])
+
 
 def test_names(idx, index_names):
 
