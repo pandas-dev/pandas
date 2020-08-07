@@ -4455,7 +4455,6 @@ class Index(IndexOpsMixin, PandasObject):
             if not ascending:
                 _as = _as[::-1]
 
-
         sorted_index = self.take(_as)
 
         if return_indexer:
