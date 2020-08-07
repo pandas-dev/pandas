@@ -48,7 +48,7 @@ Categorical
 
 **Indexing**
 
--
+- Bug in :meth:`Series.truncate` when trying to truncate a single-element series (:issue:`35544`)
 
 **DataFrame**
 - Bug in :class:`DataFrame` constructor failing to raise ``ValueError`` in some cases when data and index have mismatched lengths (:issue:`33437`)
