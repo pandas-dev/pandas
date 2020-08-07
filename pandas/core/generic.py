@@ -589,9 +589,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         # ignore needed because of NDFrame constructor is different than
         # DataFrame/Series constructors.
-        return self._constructor(new_values, *new_axes).__finalize__(  # type: ignore
-            self, method="swapaxes"
-        )
+        return self._constructor(
+            new_values, *new_axes  # type: ignore[arg-type]
+        ).__finalize__(self, method="swapaxes")
 
     def droplevel(self: FrameOrSeries, level, axis=0) -> FrameOrSeries:
         """
@@ -3021,12 +3021,17 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ----------
         path_or_buf : str or file handle, default None
             File path or object, if None is provided the result is returned as
-            a string.  If a file object is passed it should be opened with
-            `newline=''`, disabling universal newlines.
+            a string.  If a non-binary file object is passed, it should be opened
+            with `newline=''`, disabling universal newlines. If a binary
+            file object is passed, `mode` needs to contain a `'b'`.
 
             .. versionchanged:: 0.24.0
 
                Was previously named "path" for Series.
+
+            .. versionchanged:: 1.2.0
+
+               Support for binary file objects was introduced.
 
         sep : str, default ','
             String of length 1. Field delimiter for the output file.
@@ -3056,7 +3061,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             Python write mode, default 'w'.
         encoding : str, optional
             A string representing the encoding to use in the output file,
-            defaults to 'utf-8'.
+            defaults to 'utf-8'. `encoding` is not supported if `path_or_buf`
+            is a non-binary file object.
         compression : str or dict, default 'infer'
             If str, represents compression mode. If dict, value at 'method' is
             the compression mode. Compression mode may be any of the following
@@ -3079,6 +3085,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                Passing compression options as keys in dict is
                supported for compression modes 'gzip' and 'bz2'
                as well as 'zip'.
+
+            .. versionchanged:: 1.2.0
+
+                Compression is supported for non-binary file objects.
 
         quoting : optional constant from csv module
             Defaults to csv.QUOTE_MINIMAL. If you have set a `float_format`
@@ -4011,7 +4021,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         f = functools.partial("{prefix}{}".format, prefix=prefix)
 
         mapper = {self._info_axis_name: f}
-        return self.rename(**mapper)  # type: ignore
+        # error: Incompatible return value type (got "Optional[FrameOrSeries]",
+        # expected "FrameOrSeries")
+        # error: Argument 1 to "rename" of "NDFrame" has incompatible type
+        # "**Dict[str, partial[str]]"; expected "Union[str, int, None]"
+        return self.rename(**mapper)  # type: ignore[return-value, arg-type]
 
     def add_suffix(self: FrameOrSeries, suffix: str) -> FrameOrSeries:
         """
@@ -4070,7 +4084,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         f = functools.partial("{}{suffix}".format, suffix=suffix)
 
         mapper = {self._info_axis_name: f}
-        return self.rename(**mapper)  # type: ignore
+        # error: Incompatible return value type (got "Optional[FrameOrSeries]",
+        # expected "FrameOrSeries")
+        # error: Argument 1 to "rename" of "NDFrame" has incompatible type
+        # "**Dict[str, partial[str]]"; expected "Union[str, int, None]"
+        return self.rename(**mapper)  # type: ignore[return-value, arg-type]
 
     def sort_values(
         self,
@@ -9397,7 +9415,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if before > after:
                 raise ValueError(f"Truncate: {after} must be after {before}")
 
-        if ax.is_monotonic_decreasing:
+        if len(ax) > 1 and ax.is_monotonic_decreasing:
             before, after = after, before
 
         slicer = [slice(None, None)] * self._AXIS_LEN
