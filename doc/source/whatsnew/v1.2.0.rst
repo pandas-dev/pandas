@@ -13,6 +13,25 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+.. _whatsnew_120.binary_handle_to_csv:
+
+Support for binary file handles in ``to_csv``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`to_csv` supports file handles in binary mode (:issue:`19827` and :issue:`35058`)
+with ``encoding`` (:issue:`13068` and :issue:`23854`) and ``compression`` (:issue:`22555`).
+``mode`` has to contain a ``b`` for binary handles to be supported.
+
+For example:
+
+.. ipython:: python
+
+   import io
+
+   data = pd.DataFrame([0, 1, 2])
+   buffer = io.BytesIO()
+   data.to_csv(buffer, mode="w+b", encoding="utf-8", compression="gzip")
+
 .. _whatsnew_120.enhancements.other:
 
 Other enhancements
@@ -115,13 +134,13 @@ Missing
 MultiIndex
 ^^^^^^^^^^
 
--
+- Bug in :meth:`DataFrame.xs` when used with :class:`IndexSlice` raises ``TypeError`` with message `Expected label or tuple of labels` (:issue:`35301`)
 -
 
 I/O
 ^^^
 
--
+- Bug in :meth:`to_csv` caused a ``ValueError`` when it was called with a filename in combination with ``mode`` containing a ``b`` (:issue:`35058`)
 -
 
 Plotting
@@ -133,15 +152,16 @@ Plotting
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
+- Bug in :meth:`DataFrameGroupBy.count` and :meth:`SeriesGroupBy.sum` returning ``NaN`` for missing categories when grouped on multiple ``Categoricals``. Now returning ``0`` (:issue:`35028`)
 - Bug in :meth:`DataFrameGroupBy.apply` that would some times throw an erroneous ``ValueError`` if the grouping axis had duplicate entries (:issue:`16646`)
 -
 -
-
+- Bug in :meth:`DataFrameGroupBy.apply` where a non-nuisance grouping column would be dropped from the output columns if another groupby method was called before ``.apply()`` (:issue:`34656`)
 
 Reshaping
 ^^^^^^^^^
 
--
+- Bug in :meth:`DataFrame.pivot_table` with ``aggfunc='count'`` or ``aggfunc='sum'`` returning ``NaN`` for missing categories when pivoted on a ``Categorical``. Now returning ``0`` (:issue:`31422`)
 -
 
 Sparse

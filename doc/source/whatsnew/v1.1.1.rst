@@ -18,6 +18,8 @@ Fixed regressions
 - Fixed regression where :func:`read_csv` would raise a ``ValueError`` when ``pandas.options.mode.use_inf_as_na`` was set to ``True`` (:issue:`35493`).
 - Fixed regression in :class:`pandas.core.groupby.RollingGroupby` where column selection was ignored (:issue:`35486`)
 - Fixed regression where :meth:`DataFrame.interpolate` would raise a ``TypeError`` when the :class:`DataFrame` was empty (:issue:`35598`).
+- Fixed regression in :meth:`DataFrame.shift` with ``axis=1`` and heterogeneous dtypes (:issue:`35488`)
+- Fixed regression in ``.groupby(..).rolling(..)`` where a segfault would occur with ``center=True`` and an odd number of values (:issue:`35552`)
 
 .. ---------------------------------------------------------------------------
 
@@ -38,6 +40,11 @@ Categorical
 -
 -
 
+**Timedelta**
+
+- Bug in :meth:`to_timedelta` fails when arg is a :class:`Series` with `Int64` dtype containing null values (:issue:`35574`)
+
+
 **Numeric**
 
 -
@@ -49,7 +56,7 @@ Categorical
 
 **Indexing**
 
--
+- Bug in :meth:`Series.truncate` when trying to truncate a single-element series (:issue:`35544`)
 
 **DataFrame**
 - Bug in :class:`DataFrame` constructor failing to raise ``ValueError`` in some cases when data and index have mismatched lengths (:issue:`33437`)
