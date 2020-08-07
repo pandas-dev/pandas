@@ -1682,6 +1682,12 @@ class TestStyler:
         result = styler.pipe((f, "styler"), a=1, b=2)
         assert result == (1, 2, styler)
 
+    def test_no_cell_ids(self):
+        # GH 35588
+        df = pd.DataFrame(data=[[0]])
+        s = Styler(df, uuid="_", cell_ids=False).render()
+        assert s.find('<td  class="data row0 col0" >') != -1
+
 
 @td.skip_if_no_mpl
 class TestStylerMatplotlibDep:
