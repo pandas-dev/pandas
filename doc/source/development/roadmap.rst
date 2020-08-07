@@ -62,15 +62,17 @@ type: pandas uses ``np.nan`` as missing value indicator in floating point data,
 missing values are cast to object), ``pd.NaT`` in datetimelike data. For
 categorical or interval data, they return ``np.nan`` on access even when the
 categories or intervals are datetime-like. Integer data cannot store missing
-data or are cast to float.
+data or are cast to float. In addition, ``NaN`` has different semantics as
+"nulls" in many other data tools. 
 
 Long term, we want to introduce consistent missing value handling accross the
 different data types: all data types should support missing values and with the
 same behaviour.
 
-To this end, a new experimental ``pd.NA`` scalar to be used as missing value
-indicator has already been added in pandas 1.0 (and used in the experimental
-nullable dtypes). Further work is needed to integrate this with other data
+To this end, a new experimental ``pd.NA`` scalar that can be used as missing
+value indicator and with a behaviour that deviates from ``np.nan`` has already
+been added in pandas 1.0 (and used in the experimental nullable dtypes). Further
+work and research is needed to integrate these new semantics with other data
 types, and to provide a path forward to make this the default in a future
 version of pandas.
 
