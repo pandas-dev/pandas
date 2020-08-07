@@ -169,11 +169,7 @@ def test_groupby_dropna_series_by(dropna, expected):
             True,
             pd.DataFrame({"B": [2, 2, 1]}),
             pd.Series(data=[2, 2, 1], name="B"),
-            marks=pytest.mark.xfail(
-                raises=ValueError,
-                msg="Length mismatch: Expected axis has 3 elements, "
-                "new values have 4 elements",
-            ),
+            marks=pytest.mark.xfail(raises=ValueError),
         ),
         (
             False,
