@@ -909,20 +909,38 @@ class Styler:
         self.caption = caption
         return self
 
-    def set_table_styles(self, table_styles) -> "Styler":
+    def set_table_styles(self, table_styles, axis=0, overwrite=True) -> "Styler":
         """
         Set the table styles on a Styler.
 
         These are placed in a ``<style>`` tag before the generated HTML table.
 
+        This function can be used to style the entire table, columns, rows or
+        specific HTML selectors.
+
         Parameters
         ----------
-        table_styles : list
-            Each individual table_style should be a dictionary with
-            ``selector`` and ``props`` keys. ``selector`` should be a CSS
-            selector that the style will be applied to (automatically
-            prefixed by the table's UUID) and ``props`` should be a list of
-            tuples with ``(attribute, value)``.
+        table_styles : list or dict
+            If supplying a list, each individual table_style should be a
+            dictionary with ``selector`` and ``props`` keys. ``selector``
+            should be a CSS selector that the style will be applied to
+            (automatically prefixed by the table's UUID) and ``props``
+            should be a list of tuples with ``(attribute, value)``.
+            If supplying a dict, the dict keys should correspond to
+            column names or index values, depending upon the specified
+            `axis` argument. These will be mapped to row or col CSS
+            selectors. MultiIndex values as dict keys should be
+            in their respective tuple form. The dict values should be
+            a list as specified in the form with CSS selectors and
+            props that will be applied to the specified row or column.
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            Apply to each column (``axis=0`` or ``'index'``), to each row
+            (``axis=1`` or ``'columns'``). Only used if `table_styles` is
+            dict.
+        overwrite : boolean, default True
+            Styles are replaced if `True`, or extended if `False`. CSS
+            rules are preserved so most recent styles set will dominate
+            if selectors intersect.
 
         Returns
         -------
@@ -930,95 +948,44 @@ class Styler:
 
         Examples
         --------
-        >>> df = pd.DataFrame(np.random.randn(10, 4))
+        >>> df = pd.DataFrame(np.random.randn(10, 4),
+        ...                   columns=['A', 'B', 'C', 'D'])
         >>> df.style.set_table_styles(
         ...     [{'selector': 'tr:hover',
         ...       'props': [('background-color', 'yellow')]}]
         ... )
+        >>> df.style.set_table_styles({
+        ...     'A': [{'selector': '',
+        ...            'props': [('color', 'red')]}],
+        ...     'B': [{'selector': 'td',
+        ...            'props': [('color', 'blue')]}]
+        ... }, overwrite=False)
+        >>> df.style.set_table_styles({
+        ...     0: [{'selector': 'td:hover',
+        ...          'props': [('font-size', '25px')]}]
+        ... }, axis=1, overwrite=False)
         """
-        self.table_styles = table_styles
+        if isinstance(table_styles, dict):
+            if axis == 0 or axis == 'index':
+                obj = self.data.columns
+                idf = '.col'
+            else:
+                obj = self.data.index
+                idf = '.row'
+
+            _styles = []
+            for key, styles in table_styles.items():
+                for s in styles:
+                    c = str(obj.get_loc(key))
+                    _styles.append(
+                        {"selector": s["selector"] + idf + c, "props": s["props"]}
+                    )
+            table_styles = _styles
+        if not overwrite and self.table_styles is not None:
+            self.table_styles.extend(table_styles)
+        else:
+            self.table_styles = table_styles
         return self
-
-    def extend_table_styles(self, table_styles) -> "Styler":
-        """
-        Extend the existing table styles on a Styler.
-
-        These are placed in a ``<style>`` tag before the generated HTML table.
-
-        Parameters
-        ----------
-        table_styles : list
-            Each individual table_style should be a dictionary with
-            ``selector`` and ``props`` keys. ``selector`` should be a CSS
-            selector that the style will be applied to (automatically
-            prefixed by the table's UUID) and ``props`` should be a list of
-            tuples with ``(attribute, value)``.
-
-        Returns
-        -------
-        self : Styler
-
-        Examples
-        --------
-        >>> df = pd.DataFrame(np.random.randn(10, 4))
-        >>> df.style.set_table_styles(
-        ...     [{'selector': 'tr:hover',
-        ...       'props': [('background-color', 'yellow')]}]
-        ... ).extend_table_styles(
-        ...     [{'selector': '.col2',
-        ...       'props': [('background-color', 'blue')]}]
-        ...)
-        """
-        if self.table_styles is None:
-            return self.set_table_styles(table_styles)
-        self.table_styles.extend(table_styles)
-        return self
-
-    def extend_column_styles(self, column_styles) -> "Styler":
-        """
-        Sets class styles for each column on a Styler.
-
-        These are placed in a ``<style>`` tag before the generated HTML table.
-
-        Parameters
-        ----------
-        column_styles : dict
-            Each key of the dict should be a column header with the value
-            being a list of individual styles. Each style is a dictionary with
-            ``selector`` and ``props`` keys. ``selector`` should be a CSS
-            selector that the style will be applied to (automatically
-            prefixed by the table's UUID) and ``props`` should be a list of
-            tuples with ``(attribute, value)``.
-
-        Returns
-        -------
-        self : Styler
-
-        Notes
-        -----
-        Where the ``selector`` is an empty string or `None` the ``props`` will
-        be applied to the column class generically.
-
-        Examples
-        --------
-        >>> df = pd.DataFrame(np.random.randn(3, 2), columns=['a', 'b'])
-        >>> df.style.extend_column_styles({
-        ...        'a': [{'selector': '',
-        ...               'props': [('font-size', '20px')]},
-        ...              {'selector': 'td:hover',
-        ...               'props': [('color', 'pink')]}],
-        ...        'b': [{'selector': '',
-        ...               'props': [('font-size', '10px')]}]
-        ... })
-        """
-        _styles = []
-        for col, styles in column_styles.items():
-            for s in styles:
-                c = str(self.data.columns.get_loc(col))
-                _styles.append(
-                    {"selector": s["selector"] + ".col" + c, "props": s["props"]}
-                )
-        return self.extend_table_styles(_styles)
 
     def set_na_rep(self, na_rep: str) -> "Styler":
         """
