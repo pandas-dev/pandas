@@ -168,6 +168,7 @@ class TestTimedeltas:
         tm.assert_numpy_array_equal(result, arr)
 
     def test_to_timedelta_nullable_int64_dtype(self):
+        # GH 35574
         expected = Series([timedelta(days=1), timedelta(days=2)])
         result = to_timedelta(Series([1, 2], dtype="Int64"), unit="days")
 
