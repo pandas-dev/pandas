@@ -220,7 +220,7 @@ Dependencies
 Package                                                          Minimum supported version
 ================================================================ ==========================
 `setuptools <https://setuptools.readthedocs.io/en/latest/>`__    24.2.0
-`NumPy <https://www.numpy.org>`__                                1.16.0
+`NumPy <https://www.numpy.org>`__                                1.16.5
 `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.7.3
 `pytz <https://pypi.org/project/pytz/>`__                        2017.3
 ================================================================ ==========================
@@ -277,7 +277,7 @@ numba                     0.46.0             Alternative execution engine for ro
 openpyxl                  2.5.7              Reading / writing for xlsx files
 pandas-gbq                0.12.0             Google Big Query access
 psycopg2                  2.7                PostgreSQL engine for sqlalchemy
-pyarrow                   0.13.0             Parquet, ORC (requires 0.13.0), and feather reading / writing
+pyarrow                   0.15.0             Parquet, ORC (requires 0.13.0), and feather reading / writing
 pymysql                   0.7.11             MySQL engine for sqlalchemy
 pyreadstat                                   SPSS files (.sav) reading
 pytables                  3.4.4              HDF5 reading / writing

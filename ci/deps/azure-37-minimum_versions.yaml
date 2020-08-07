@@ -18,12 +18,12 @@ dependencies:
   - jinja2=2.10
   - numba=0.46.0
   - numexpr=2.6.8
-  - numpy=1.16.0
+  - numpy=1.16.5
   - openpyxl=2.5.7
   - pytables=3.4.4
   - python-dateutil=2.7.3
   - pytz=2017.3
-  - pyarrow=0.13
+  - pyarrow=0.15
   - scipy=1.2
   - xlrd=1.1.0
   - xlsxwriter=1.0.2
