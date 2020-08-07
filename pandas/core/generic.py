@@ -3021,12 +3021,17 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ----------
         path_or_buf : str or file handle, default None
             File path or object, if None is provided the result is returned as
-            a string.  If a file object is passed it should be opened with
-            `newline=''`, disabling universal newlines.
+            a string.  If a non-binary file object is passed, it should be opened
+            with `newline=''`, disabling universal newlines. If a binary
+            file object is passed, `mode` needs to contain a `'b'`.
 
             .. versionchanged:: 0.24.0
 
                Was previously named "path" for Series.
+
+            .. versionchanged:: 1.2.0
+
+               Support for binary file objects was introduced.
 
         sep : str, default ','
             String of length 1. Field delimiter for the output file.
@@ -3056,7 +3061,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             Python write mode, default 'w'.
         encoding : str, optional
             A string representing the encoding to use in the output file,
-            defaults to 'utf-8'.
+            defaults to 'utf-8'. `encoding` is not supported if `path_or_buf`
+            is a non-binary file object.
         compression : str or dict, default 'infer'
             If str, represents compression mode. If dict, value at 'method' is
             the compression mode. Compression mode may be any of the following
@@ -3079,6 +3085,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                Passing compression options as keys in dict is
                supported for compression modes 'gzip' and 'bz2'
                as well as 'zip'.
+
+            .. versionchanged:: 1.2.0
+
+                Compression is supported for non-binary file objects.
 
         quoting : optional constant from csv module
             Defaults to csv.QUOTE_MINIMAL. If you have set a `float_format`
