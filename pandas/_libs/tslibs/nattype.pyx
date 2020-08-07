@@ -1,3 +1,10 @@
+from cpython.datetime cimport (
+    PyDateTime_Check,
+    PyDateTime_IMPORT,
+    PyDelta_Check,
+    datetime,
+    timedelta,
+)
 from cpython.object cimport (
     Py_EQ,
     Py_GE,
@@ -8,28 +15,19 @@ from cpython.object cimport (
     PyObject_RichCompare,
 )
 
-from cpython.datetime cimport (
-    PyDateTime_Check,
-    PyDateTime_IMPORT,
-    PyDelta_Check,
-    datetime,
-    timedelta,
-)
 PyDateTime_IMPORT
 
 from cpython.version cimport PY_MINOR_VERSION
 
 import numpy as np
+
 cimport numpy as cnp
 from numpy cimport int64_t
+
 cnp.import_array()
 
-from pandas._libs.tslibs.np_datetime cimport (
-    get_datetime64_value,
-    get_timedelta64_value,
-)
 cimport pandas._libs.tslibs.util as util
-
+from pandas._libs.tslibs.np_datetime cimport get_datetime64_value, get_timedelta64_value
 
 # ----------------------------------------------------------------------
 # Constants
@@ -109,30 +107,25 @@ cdef class _NaT(datetime):
     __array_priority__ = 100
 
     def __richcmp__(_NaT self, object other, int op):
-        cdef:
-            int ndim = getattr(other, "ndim", -1)
+        if util.is_datetime64_object(other) or PyDateTime_Check(other):
+            # We treat NaT as datetime-like for this comparison
+            return _nat_scalar_rules[op]
 
-        if ndim == -1:
+        elif util.is_timedelta64_object(other) or PyDelta_Check(other):
+            # We treat NaT as timedelta-like for this comparison
             return _nat_scalar_rules[op]
 
         elif util.is_array(other):
-            result = np.empty(other.shape, dtype=np.bool_)
-            result.fill(_nat_scalar_rules[op])
+            if other.dtype.kind in "mM":
+                result = np.empty(other.shape, dtype=np.bool_)
+                result.fill(_nat_scalar_rules[op])
+            elif other.dtype.kind == "O":
+                result = np.array([PyObject_RichCompare(self, x, op) for x in other])
+            else:
+                return NotImplemented
             return result
 
-        elif ndim == 0:
-            if util.is_datetime64_object(other):
-                return _nat_scalar_rules[op]
-            else:
-                raise TypeError(
-                    f"Cannot compare type {type(self).__name__} "
-                    f"with type {type(other).__name__}"
-                )
-
-        # Note: instead of passing "other, self, _reverse_ops[op]", we observe
-        # that `_nat_scalar_rules` is invariant under `_reverse_ops`,
-        # rendering it unnecessary.
-        return PyObject_RichCompare(other, self, op)
+        return NotImplemented
 
     def __add__(self, other):
         if self is not c_NaT:

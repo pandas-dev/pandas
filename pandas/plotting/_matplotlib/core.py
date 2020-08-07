@@ -1149,8 +1149,8 @@ class LinePlot(MPLPlot):
     @classmethod
     def _ts_plot(cls, ax, x, data, style=None, **kwds):
         from pandas.plotting._matplotlib.timeseries import (
-            _maybe_resample,
             _decorate_axes,
+            _maybe_resample,
             format_dateaxis,
         )
 

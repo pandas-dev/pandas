@@ -5,12 +5,15 @@ from cython import Py_ssize_t
 
 from cpython.slice cimport PySlice_GetIndicesEx
 
+
 cdef extern from "Python.h":
     Py_ssize_t PY_SSIZE_T_MAX
 
 import numpy as np
+
 cimport numpy as cnp
 from numpy cimport NPY_INT64, int64_t
+
 cnp.import_array()
 
 from pandas._libs.algos import ensure_int64
