@@ -4449,7 +4449,7 @@ class Index(IndexOpsMixin, PandasObject):
         _as = np.concatenate([_as[good][idx[good].argsort()], _as[bad]])
 
         if not ascending:
-            _as[:np.sum(good)] = _as[:np.sum(good)][::-1]
+            _as[: np.sum(good)] = _as[: np.sum(good)][::-1]
 
         sorted_index = self.take(_as)
 
