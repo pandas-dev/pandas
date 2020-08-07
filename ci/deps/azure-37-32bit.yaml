@@ -6,7 +6,7 @@ dependencies:
   - python=3.7.*
 
   # tools
-  ### Cython 0.29.13 and pytest 5.0.1 for 32 bits are not available with conda, installing below with pip instead
+  ### Cython 0.29.16 and pytest 5.0.1 for 32 bits are not available with conda, installing below with pip instead
   - pytest-xdist>=1.21
   - hypothesis>=3.58.0
   - pytest-azurepipelines
@@ -15,7 +15,6 @@ dependencies:
   - attrs=19.1.0
   - gcc_linux-32
   - gxx_linux-32
-  - numpy=1.16.*
   - python-dateutil
   - pytz=2017.3
 
@@ -23,4 +22,5 @@ dependencies:
   - pip
   - pip:
     - cython>=0.29.16
+    - numpy>=1.16.5
     - pytest>=5.0.1
