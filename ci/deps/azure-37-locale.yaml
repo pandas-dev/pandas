@@ -25,9 +25,6 @@ dependencies:
   - numexpr
   - numpy=1.16.*
   - openpyxl
-  # lowest supported version of pyarrow (putting it here instead of in
-  # azure-36-minimum_versions because it needs numpy >= 1.14)
-  - pyarrow=0.13
   - pytables
   - python-dateutil
   - pytz

@@ -1,4 +1,4 @@
-name: pandas-dev
+name: pandas-test
 channels:
   - conda-forge
 dependencies:
@@ -23,6 +23,7 @@ dependencies:
   - pytables=3.4.4
   - python-dateutil=2.7.3
   - pytz=2017.3
+  - pyarrow=0.13
   - scipy=1.2
   - xlrd=1.1.0
   - xlsxwriter=1.0.2
