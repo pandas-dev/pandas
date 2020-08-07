@@ -56,25 +56,23 @@ pandas.
 Consistent missing value handling
 ---------------------------------
 
-Currently, pandas has varying missing data interfaces depending on the data
-type: pandas uses ``np.nan`` as missing value indicator in floating point data,
-``np.nan`` or ``None`` in object dtype data (eg strings, or booleans with
-missing values are cast to object), ``pd.NaT`` in datetimelike data. For
-categorical or interval data, they return ``np.nan`` on access even when the
-categories or intervals are datetime-like. Integer data cannot store missing
-data or are cast to float. In addition, ``NaN`` has different semantics as
-"nulls" in many other data tools. 
+Currently, pandas handles missing data differently for different data types. We
+use different types to indicate that a value is missing (``np.nan`` for
+floating-point data, ``np.nan`` or ``None`` for object-dtype data -- typically
+strings or booleans -- with missing values, and ``pd.NaT`` for datetimelike
+data). Integer data cannot store missing data or are cast to float. In addition,
+pandas 1.0 introduced a new missing value sentinel, ``pd.NA``, which is being
+used for the experimental nullable integer, boolean, and string data types.
 
-Long term, we want to introduce consistent missing value handling accross the
-different data types: all data types should support missing values and with the
-same behaviour.
+These different missing values have different behaviors in user-facing
+operations. Specifically, we introduced different semantics for the nullable
+data types for certain operations (e.g. propagating in comparison operations
+instead of comparing as False).
 
-To this end, a new experimental ``pd.NA`` scalar that can be used as missing
-value indicator and with a behaviour that deviates from ``np.nan`` has already
-been added in pandas 1.0 (and used in the experimental nullable dtypes). Further
-work and research is needed to integrate these new semantics with other data
-types, and to provide a path forward to make this the default in a future
-version of pandas.
+Long term, we want to introduce consistent missing data handling for all data
+types. This includes consistent behavior in all operations (indexing, arithmetic
+operations, comparisons, etc.). We want to eventually make the new semantics the
+default.
 
 This has been discussed at
 `github #28095 <https://github.com/pandas-dev/pandas/issues/28095>`__ (and
