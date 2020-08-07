@@ -46,6 +46,12 @@ Bug fixes
 - Bug in ``.groupby(..).rolling(..)`` where passing ``closed`` with column selection would raise a ``ValueError`` (:issue:`35549`)
 - Bug in :class:`DataFrame` constructor failing to raise ``ValueError`` in some cases when ``data`` and ``index`` have mismatched lengths (:issue:`33437`)
 
+Other enhancements
+~~~~~~~~~~~~~~~~~~
+
+- :meth:`Styler.extend_table_styles` added the supplement `Styler.set_table_styles` (:issue:`35607`)
+- :meth:`Styler.extend_column_styles` to directly add class based CSS to specified DataFrame columns (:issue:`35607`)
+
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_111.contributors:
