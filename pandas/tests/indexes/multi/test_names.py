@@ -75,6 +75,7 @@ def test_copy_names():
     assert multi_idx.names == ["MyName1", "MyName2"]
     assert multi_idx3.names == ["NewName1", "NewName2"]
 
+    # gh-35592
     with pytest.raises(ValueError, match="Length of new names must be 2, got 1"):
         multi_idx.copy(names=["mario"])
 
