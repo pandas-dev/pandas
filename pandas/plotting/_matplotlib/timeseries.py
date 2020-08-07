@@ -5,8 +5,9 @@ from typing import TYPE_CHECKING, Optional
 
 import numpy as np
 
-from pandas._libs.tslibs.frequencies import FreqGroup, base_and_stride, get_freq_code
-from pandas._libs.tslibs.period import Period
+from pandas._libs.tslibs import BaseOffset, Period, to_offset
+from pandas._libs.tslibs.dtypes import FreqGroup
+from pandas._typing import FrameOrSeriesUnion
 
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
@@ -20,16 +21,10 @@ from pandas.plotting._matplotlib.converter import (
     TimeSeries_DateLocator,
     TimeSeries_TimedeltaFormatter,
 )
-from pandas.tseries.frequencies import (
-    get_period_alias,
-    is_subperiod,
-    is_superperiod,
-    to_offset,
-)
-from pandas.tseries.offsets import DateOffset
+from pandas.tseries.frequencies import get_period_alias, is_subperiod, is_superperiod
 
 if TYPE_CHECKING:
-    from pandas import Series, Index  # noqa:F401
+    from pandas import Index, Series  # noqa:F401
 
 
 # ---------------------------------------------------------------------
@@ -50,7 +45,10 @@ def _maybe_resample(series: "Series", ax, kwargs):
     if ax_freq is not None and freq != ax_freq:
         if is_superperiod(freq, ax_freq):  # upsample input
             series = series.copy()
-            series.index = series.index.asfreq(ax_freq, how="s")  # type: ignore
+            # error: "Index" has no attribute "asfreq"
+            series.index = series.index.asfreq(  # type: ignore[attr-defined]
+                ax_freq, how="s"
+            )
             freq = ax_freq
         elif _is_sup(freq, ax_freq):  # one is weekly
             how = kwargs.pop("how", "last")
@@ -170,12 +168,9 @@ def _get_ax_freq(ax):
 
 
 def _get_period_alias(freq) -> Optional[str]:
-    if isinstance(freq, DateOffset):
-        freq = freq.rule_code
-    else:
-        freq = base_and_stride(freq)[0]
+    freqstr = to_offset(freq).rule_code
 
-    freq = get_period_alias(freq)
+    freq = get_period_alias(freqstr)
     return freq
 
 
@@ -197,7 +192,7 @@ def _get_freq(ax, series: "Series"):
     return freq, ax_freq
 
 
-def _use_dynamic_x(ax, data):
+def _use_dynamic_x(ax, data: "FrameOrSeriesUnion") -> bool:
     freq = _get_index_freq(data.index)
     ax_freq = _get_ax_freq(ax)
 
@@ -217,20 +212,21 @@ def _use_dynamic_x(ax, data):
 
     # FIXME: hack this for 0.10.1, creating more technical debt...sigh
     if isinstance(data.index, ABCDatetimeIndex):
-        base = get_freq_code(freq)[0]
+        base = to_offset(freq)._period_dtype_code
         x = data.index
         if base <= FreqGroup.FR_DAY:
             return x[:1].is_normalized
-        return Period(x[0], freq).to_timestamp(tz=x.tz) == x[0]
+        return Period(x[0], freq).to_timestamp().tz_localize(x.tz) == x[0]
     return True
 
 
-def _get_index_freq(index: "Index") -> Optional[DateOffset]:
+def _get_index_freq(index: "Index") -> Optional[BaseOffset]:
     freq = getattr(index, "freq", None)
     if freq is None:
         freq = getattr(index, "inferred_freq", None)
         if freq == "B":
-            weekdays = np.unique(index.dayofweek)  # type: ignore
+            # error: "Index" has no attribute "dayofweek"
+            weekdays = np.unique(index.dayofweek)  # type: ignore[attr-defined]
             if (5 in weekdays) or (6 in weekdays):
                 freq = None
 

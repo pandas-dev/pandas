@@ -41,8 +41,7 @@ class _Unstacker:
 
     Parameters
     ----------
-    index : object
-        Pandas ``Index``
+    index : MultiIndex
     level : int or str, default last level
         Level to "unstack". Accepts a name for the level.
     fill_value : scalar, optional
@@ -83,7 +82,7 @@ class _Unstacker:
     """
 
     def __init__(
-        self, index, level=-1, constructor=None,
+        self, index: MultiIndex, level=-1, constructor=None,
     ):
 
         if constructor is None:
@@ -415,7 +414,7 @@ def unstack(obj, level, fill_value=None):
         level = obj.index._get_level_number(level)
 
     if isinstance(obj, DataFrame):
-        if isinstance(obj.index, MultiIndex) or not obj._can_fast_transpose:
+        if isinstance(obj.index, MultiIndex):
             return _unstack_frame(obj, level, fill_value=fill_value)
         else:
             return obj.T.stack(dropna=False)

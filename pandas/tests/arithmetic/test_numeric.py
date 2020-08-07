@@ -234,7 +234,8 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
             "unsupported operand type|"
             "Addition/subtraction of integers and integer-arrays|"
             "Instead of adding/subtracting|"
-            "cannot use operands with types dtype"
+            "cannot use operands with types dtype|"
+            "Concatenation operation is not implemented for NumPy arrays"
         )
         with pytest.raises(TypeError, match=msg):
             left + other
@@ -263,7 +264,8 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         msg = (
             "unsupported operand type|"
             "Cannot (add|subtract) NaT (to|from) ndarray|"
-            "Addition/subtraction of integers and integer-arrays"
+            "Addition/subtraction of integers and integer-arrays|"
+            "Concatenation operation is not implemented for NumPy arrays"
         )
         with pytest.raises(TypeError, match=msg):
             left + other
@@ -546,20 +548,6 @@ class TestMultiplicationDivision:
     # __mul__, __rmul__, __div__, __rdiv__, __floordiv__, __rfloordiv__
     # for non-timestamp/timedelta/period dtypes
 
-    @pytest.mark.parametrize(
-        "box",
-        [
-            pytest.param(
-                pd.Index,
-                marks=pytest.mark.xfail(
-                    reason="Index.__div__ always raises", raises=TypeError
-                ),
-            ),
-            pd.Series,
-            pd.DataFrame,
-        ],
-        ids=lambda x: x.__name__,
-    )
     def test_divide_decimal(self, box):
         # resolves issue GH#9787
         ser = Series([Decimal(10)])

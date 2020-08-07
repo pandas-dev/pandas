@@ -341,6 +341,40 @@ class TestHDFStore:
         # checksums are NOT same if track_time = True
         assert checksum_0_tt_true != checksum_1_tt_true
 
+    def test_non_pandas_keys(self, setup_path):
+        class Table1(tables.IsDescription):
+            value1 = tables.Float32Col()
+
+        class Table2(tables.IsDescription):
+            value2 = tables.Float32Col()
+
+        class Table3(tables.IsDescription):
+            value3 = tables.Float32Col()
+
+        with ensure_clean_path(setup_path) as path:
+            with tables.open_file(path, mode="w") as h5file:
+                group = h5file.create_group("/", "group")
+                h5file.create_table(group, "table1", Table1, "Table 1")
+                h5file.create_table(group, "table2", Table2, "Table 2")
+                h5file.create_table(group, "table3", Table3, "Table 3")
+            with HDFStore(path) as store:
+                assert len(store.keys(include="native")) == 3
+                expected = {"/group/table1", "/group/table2", "/group/table3"}
+                assert set(store.keys(include="native")) == expected
+                assert set(store.keys(include="pandas")) == set()
+                for name in expected:
+                    df = store.get(name)
+                    assert len(df.columns) == 1
+
+    def test_keys_illegal_include_keyword_value(self, setup_path):
+        with ensure_clean_store(setup_path) as store:
+            with pytest.raises(
+                ValueError,
+                match="`include` should be either 'pandas' or 'native' "
+                "but is 'illegal'",
+            ):
+                store.keys(include="illegal")
+
     def test_keys_ignore_hdf_softlink(self, setup_path):
 
         # GH 20523
@@ -1693,6 +1727,37 @@ class TestHDFStore:
                 with pytest.raises(TypeError):
                     store.create_table_index("f2")
 
+    def test_create_table_index_data_columns_argument(self, setup_path):
+        # GH 28156
+
+        with ensure_clean_store(setup_path) as store:
+
+            with catch_warnings(record=True):
+
+                def col(t, column):
+                    return getattr(store.get_storer(t).table.cols, column)
+
+                # data columns
+                df = tm.makeTimeDataFrame()
+                df["string"] = "foo"
+                df["string2"] = "bar"
+                store.append("f", df, data_columns=["string"])
+                assert col("f", "index").is_indexed is True
+                assert col("f", "string").is_indexed is True
+
+                msg = "'Cols' object has no attribute 'string2'"
+                with pytest.raises(AttributeError, match=msg):
+                    col("f", "string2").is_indexed
+
+                # try to index a col which isn't a data_column
+                msg = (
+                    "column string2 is not a data_column.\n"
+                    "In order to read column string2 you must reload the dataframe \n"
+                    "into HDFStore and include string2 with the data_columns argument."
+                )
+                with pytest.raises(AttributeError, match=msg):
+                    store.create_table_index("f", columns=["string2"])
+
     def test_append_hierarchical(self, setup_path):
         index = MultiIndex(
             levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
@@ -2459,7 +2524,7 @@ class TestHDFStore:
 
     @td.xfail_non_writeable
     @pytest.mark.parametrize(
-        "dtype", [np.int64, np.float64, np.object, "m8[ns]", "M8[ns]"]
+        "dtype", [np.int64, np.float64, object, "m8[ns]", "M8[ns]"]
     )
     def test_empty_series(self, dtype, setup_path):
         s = Series(dtype=dtype)
@@ -3662,6 +3727,33 @@ class TestHDFStore:
                 store.select_as_multiple(["df1a", "df2a"])
 
             assert not store.select("df1a").index.equals(store.select("df2a").index)
+
+    def test_append_to_multiple_min_itemsize(self, setup_path):
+        # GH 11238
+        df = pd.DataFrame(
+            {
+                "IX": np.arange(1, 21),
+                "Num": np.arange(1, 21),
+                "BigNum": np.arange(1, 21) * 88,
+                "Str": ["a" for _ in range(20)],
+                "LongStr": ["abcde" for _ in range(20)],
+            }
+        )
+        expected = df.iloc[[0]]
+
+        with ensure_clean_store(setup_path) as store:
+            store.append_to_multiple(
+                {
+                    "index": ["IX"],
+                    "nums": ["Num", "BigNum"],
+                    "strs": ["Str", "LongStr"],
+                },
+                df.iloc[[0]],
+                "index",
+                min_itemsize={"Str": 10, "LongStr": 100, "Num": 2},
+            )
+            result = store.select_as_multiple(["index", "nums", "strs"])
+            tm.assert_frame_equal(result, expected)
 
     def test_select_as_multiple(self, setup_path):
 

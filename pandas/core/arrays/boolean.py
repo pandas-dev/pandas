@@ -286,9 +286,9 @@ class BooleanArray(BaseMaskedArray):
         def map_string(s):
             if isna(s):
                 return s
-            elif s in ["True", "TRUE", "true"]:
+            elif s in ["True", "TRUE", "true", "1", "1.0"]:
                 return True
-            elif s in ["False", "FALSE", "false"]:
+            elif s in ["False", "FALSE", "false", "0", "0.0"]:
                 return False
             else:
                 raise ValueError(f"{s} cannot be cast to bool")
@@ -370,11 +370,15 @@ class BooleanArray(BaseMaskedArray):
             if incompatible type with an BooleanDtype, equivalent of same_kind
             casting
         """
+        from pandas.core.arrays.string_ import StringDtype
+
         dtype = pandas_dtype(dtype)
 
         if isinstance(dtype, BooleanDtype):
             values, mask = coerce_to_array(self, copy=copy)
             return BooleanArray(values, mask, copy=False)
+        elif isinstance(dtype, StringDtype):
+            return dtype.construct_array_type()._from_sequence(self, copy=False)
 
         if is_bool_dtype(dtype):
             # astype_nansafe converts np.nan to True
@@ -713,11 +717,22 @@ class BooleanArray(BaseMaskedArray):
             # nans propagate
             if mask is None:
                 mask = self._mask
+                if other is libmissing.NA:
+                    mask |= True
             else:
                 mask = self._mask | mask
 
-            with np.errstate(all="ignore"):
-                result = op(self._data, other)
+            if other is libmissing.NA:
+                # if other is NA, the result will be all NA and we can't run the
+                # actual op, so we need to choose the resulting dtype manually
+                if op_name in {"floordiv", "rfloordiv", "mod", "rmod", "pow", "rpow"}:
+                    dtype = "int8"
+                else:
+                    dtype = "bool"
+                result = np.zeros(len(self._data), dtype=dtype)
+            else:
+                with np.errstate(all="ignore"):
+                    result = op(self._data, other)
 
             # divmod returns a tuple
             if op_name == "divmod":

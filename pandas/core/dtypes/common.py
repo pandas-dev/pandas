@@ -11,13 +11,13 @@ from pandas._libs import Interval, Period, algos
 from pandas._libs.tslibs import conversion
 from pandas._typing import ArrayLike, DtypeObj
 
+from pandas.core.dtypes.base import registry
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
     IntervalDtype,
     PeriodDtype,
-    registry,
 )
 from pandas.core.dtypes.generic import ABCCategorical, ABCIndexClass
 from pandas.core.dtypes.inference import (  # noqa:F401
@@ -136,11 +136,13 @@ def ensure_int_or_float(arr: ArrayLike, copy: bool = False) -> np.array:
     """
     # TODO: GH27506 potential bug with ExtensionArrays
     try:
-        return arr.astype("int64", copy=copy, casting="safe")  # type: ignore
+        # error: Unexpected keyword argument "casting" for "astype"
+        return arr.astype("int64", copy=copy, casting="safe")  # type: ignore[call-arg]
     except TypeError:
         pass
     try:
-        return arr.astype("uint64", copy=copy, casting="safe")  # type: ignore
+        # error: Unexpected keyword argument "casting" for "astype"
+        return arr.astype("uint64", copy=copy, casting="safe")  # type: ignore[call-arg]
     except TypeError:
         if is_extension_array_dtype(arr.dtype):
             return arr.to_numpy(dtype="float64", na_value=np.nan)
@@ -1354,7 +1356,7 @@ def is_bool_dtype(arr_or_dtype) -> bool:
     False
     >>> is_bool_dtype(bool)
     True
-    >>> is_bool_dtype(np.bool)
+    >>> is_bool_dtype(np.bool_)
     True
     >>> is_bool_dtype(np.array(['a', 'b']))
     False
@@ -1526,7 +1528,7 @@ def is_complex_dtype(arr_or_dtype) -> bool:
     False
     >>> is_complex_dtype(int)
     False
-    >>> is_complex_dtype(np.complex)
+    >>> is_complex_dtype(np.complex_)
     True
     >>> is_complex_dtype(np.array(['a', 'b']))
     False

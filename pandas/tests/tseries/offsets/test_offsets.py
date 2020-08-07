@@ -11,13 +11,9 @@ from pandas._libs.tslibs import (
     conversion,
     timezones,
 )
-from pandas._libs.tslibs.frequencies import (
-    INVALID_FREQ_ERR_MSG,
-    get_freq_code,
-    get_freq_str,
-)
 import pandas._libs.tslibs.offsets as liboffsets
 from pandas._libs.tslibs.offsets import ApplyTypeError, _get_offset, _offset_map
+from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 import pandas.compat as compat
 from pandas.compat.numpy import np_datetime64_compat
 from pandas.errors import PerformanceWarning
@@ -3524,7 +3520,7 @@ class TestSemiMonthEnd(Base):
         with tm.assert_produces_warning(None):
             # GH#22535 check that we don't get a FutureWarning from adding
             # an integer array to PeriodIndex
-            result = SemiMonthEnd().apply_index(s)
+            result = SemiMonthEnd() + s
 
         exp = DatetimeIndex(dates[1:])
         tm.assert_index_equal(result, exp)
@@ -3667,14 +3663,19 @@ class TestSemiMonthEnd(Base):
 
     @pytest.mark.parametrize("case", offset_cases)
     def test_apply_index(self, case):
+        # https://github.com/pandas-dev/pandas/issues/34580
         offset, cases = case
         s = DatetimeIndex(cases.keys())
+        exp = DatetimeIndex(cases.values())
+
         with tm.assert_produces_warning(None):
             # GH#22535 check that we don't get a FutureWarning from adding
             # an integer array to PeriodIndex
-            result = offset.apply_index(s)
+            result = offset + s
+        tm.assert_index_equal(result, exp)
 
-        exp = DatetimeIndex(cases.values())
+        with tm.assert_produces_warning(FutureWarning):
+            result = offset.apply_index(s)
         tm.assert_index_equal(result, exp)
 
     on_offset_cases = [
@@ -3783,7 +3784,7 @@ class TestSemiMonthBegin(Base):
         with tm.assert_produces_warning(None):
             # GH#22535 check that we don't get a FutureWarning from adding
             # an integer array to PeriodIndex
-            result = SemiMonthBegin().apply_index(s)
+            result = SemiMonthBegin() + s
 
         exp = DatetimeIndex(dates[1:])
         tm.assert_index_equal(result, exp)
@@ -3936,7 +3937,7 @@ class TestSemiMonthBegin(Base):
         with tm.assert_produces_warning(None):
             # GH#22535 check that we don't get a FutureWarning from adding
             # an integer array to PeriodIndex
-            result = offset.apply_index(s)
+            result = offset + s
 
         exp = DatetimeIndex(cases.values())
         tm.assert_index_equal(result, exp)
@@ -4111,13 +4112,6 @@ class TestOffsetAliases:
                 alias = "-".join([base, v])
                 assert alias == _get_offset(alias).rule_code
                 assert alias == (_get_offset(alias) * 5).rule_code
-
-        lst = ["M", "D", "B", "H", "T", "S", "L", "U"]
-        for k in lst:
-            code, stride = get_freq_code("3" + k)
-            assert isinstance(code, int)
-            assert stride == 3
-            assert k == get_freq_str(code)
 
 
 def test_dateoffset_misc():
@@ -4321,12 +4315,6 @@ class TestDST:
 
 
 # ---------------------------------------------------------------------
-def test_get_offset_day_error():
-    # subclass of _BaseOffset must override _day_opt attribute, or we should
-    # get a NotImplementedError
-
-    with pytest.raises(NotImplementedError):
-        DateOffset()._get_offset_day(datetime.now())
 
 
 def test_valid_default_arguments(offset_types):
