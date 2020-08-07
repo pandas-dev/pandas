@@ -1015,8 +1015,9 @@ class Styler:
         for col, styles in column_styles.items():
             for s in styles:
                 c = str(self.data.columns.get_loc(col))
-                _styles.append({'selector': s['selector'] + '.col' + c,
-                                'props': s['props']})
+                _styles.append(
+                    {"selector": s["selector"] + ".col" + c, "props": s["props"]}
+                )
         return self.extend_table_styles(_styles)
 
     def set_na_rep(self, na_rep: str) -> "Styler":
