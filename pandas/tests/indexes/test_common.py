@@ -13,7 +13,7 @@ from pandas._libs.tslibs import iNaT
 from pandas.core.dtypes.common import is_period_dtype, needs_i8_conversion
 
 import pandas as pd
-from pandas import CategoricalIndex, MultiIndex, RangeIndex
+from pandas import CategoricalIndex, Index, MultiIndex, RangeIndex
 import pandas._testing as tm
 
 
@@ -391,3 +391,12 @@ class TestCommon:
             assert result.names == index.names
         else:
             assert result.name == index.name
+
+
+def test_sort_values_with_missing():
+    # GH 35584. Test that sort_values works with missing values,
+    # sort non-missing and places missing at the end
+    idx_with_nan = Index(["a", None, "c", None, "e"])
+    expected = Index(["a", "c", "e", None, None])
+    result = idx_with_nan.sort_values()
+    tm.assert_index_equal(result, expected)
