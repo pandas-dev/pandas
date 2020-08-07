@@ -1732,6 +1732,29 @@ def _validate_date_like_dtype(dtype) -> None:
         )
 
 
+def validate_all_hashable(*args) -> None:
+    """
+    Return None if all args are hashable, else raise a TypeError.
+
+    Raises
+    ------
+    TypeError : If an argument is not hashable
+
+    Returns
+    -------
+    None
+
+    Examples
+    --------
+    >>> validate_all_hashable(1)
+
+    >>> validate_all_hashable([1])
+    ValueError: All elements must be hashable
+    """
+    if not all(is_hashable(x) for x in args):
+        raise TypeError("All elements must be hashable")
+
+
 def pandas_dtype(dtype) -> DtypeObj:
     """
     Convert input into a pandas only dtype object or a numpy dtype object.

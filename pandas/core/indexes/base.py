@@ -58,6 +58,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     is_unsigned_integer_dtype,
     pandas_dtype,
+    validate_all_hashable,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
@@ -1208,10 +1209,9 @@ class Index(IndexOpsMixin, PandasObject):
             raise ValueError(
                 f"Length of new names must be {len(self.names)}, got {len(new_names)}"
             )
+
         # All items in 'new_names' need to be hashable
-        for new_name in new_names:
-            if not is_hashable(new_name):
-                raise TypeError(f"{type(self).__name__}.name must be a hashable type")
+        validate_all_hashable(*new_names)
 
         return new_names
 
@@ -1241,9 +1241,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         # GH 20527
         # All items in 'name' need to be hashable:
-        for name in values:
-            if not is_hashable(name):
-                raise TypeError(f"{type(self).__name__}.name must be a hashable type")
+        validate_all_hashable(*values)
+
         self._name = values[0]
 
     names = property(fset=_set_names, fget=_get_names)
