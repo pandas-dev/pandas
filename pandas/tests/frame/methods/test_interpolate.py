@@ -35,6 +35,7 @@ class TestDataFrameInterpolate:
         tm.assert_frame_equal(result, expected)
 
     def test_interp_empty(self):
+        # https://github.com/pandas-dev/pandas/issues/35598
         df = DataFrame()
         result = df.interpolate()
         expected = df
