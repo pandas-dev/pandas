@@ -17,7 +17,7 @@ Enhancements
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
-
+- :class:`Index` with object dtype supports division and multiplication (:issue:`34160`)
 -
 -
 
@@ -59,12 +59,13 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
--
+- Bug in :attr:`DatetimeArray.date` where a ``ValueError`` would be raised with a read-only backing array (:issue:`33530`)
+- Bug in ``NaT`` comparisons failing to raise ``TypeError`` on invalid inequality comparisons (:issue:`35046`)
 -
 
 Timedelta
 ^^^^^^^^^
-
+- Bug in :class:`TimedeltaIndex`, :class:`Series`, and :class:`DataFrame` floor-division with ``timedelta64`` dtypes and ``NaT`` in the denominator (:issue:`35529`)
 -
 -
 
@@ -132,6 +133,7 @@ Plotting
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
+- Bug in :meth:`DataFrameGroupBy.apply` that would some times throw an erroneous ``ValueError`` if the grouping axis had duplicate entries (:issue:`16646`)
 -
 -
 
