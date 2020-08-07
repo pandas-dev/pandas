@@ -79,7 +79,7 @@ def test_copy_names():
     with pytest.raises(ValueError, match="Length of new names must be 2, got 1"):
         multi_idx.copy(names=["mario"])
 
-    with pytest.raises(TypeError, match="MultiIndex.name must be a hashable type"):
+    with pytest.raises(TypeError, match="All elements must be hashable"):
         multi_idx.copy(names=[["mario"], ["luigi"]])
 
 

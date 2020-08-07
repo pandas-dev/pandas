@@ -1749,9 +1749,9 @@ def validate_all_hashable(*args) -> None:
     >>> validate_all_hashable(1)
 
     >>> validate_all_hashable([1])
-    ValueError: All elements must be hashable
+    TypeError: All elements must be hashable
     """
-    if not all(is_hashable(x) for x in args):
+    if not all(is_hashable(arg) for arg in args):
         raise TypeError("All elements must be hashable")
 
 
