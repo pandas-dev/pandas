@@ -121,7 +121,15 @@ def stringify_path(
     """
     if hasattr(filepath_or_buffer, "__fspath__"):
         # https://github.com/python/mypy/issues/1424
-        return filepath_or_buffer.__fspath__()  # type: ignore
+        # error: Item "str" of "Union[str, Path, IO[str]]" has no attribute
+        # "__fspath__"  [union-attr]
+        # error: Item "IO[str]" of "Union[str, Path, IO[str]]" has no attribute
+        # "__fspath__"  [union-attr]
+        # error: Item "str" of "Union[str, Path, IO[bytes]]" has no attribute
+        # "__fspath__"  [union-attr]
+        # error: Item "IO[bytes]" of "Union[str, Path, IO[bytes]]" has no
+        # attribute "__fspath__"  [union-attr]
+        return filepath_or_buffer.__fspath__()  # type: ignore[union-attr]
     elif isinstance(filepath_or_buffer, pathlib.Path):
         return str(filepath_or_buffer)
     return _expand_user(filepath_or_buffer)
@@ -415,8 +423,9 @@ def get_handle(
     memory_map : boolean, default False
         See parsers._parser_params for more information.
     is_text : boolean, default True
-        whether file/buffer is in text format (csv, json, etc.), or in binary
-        mode (pickle, etc.).
+        Whether the type of the content passed to the file/buffer is string or
+        bytes. This is not the same as `"b" not in mode`. If a string content is
+        passed to a binary file/buffer, a wrapper is inserted.
     errors : str, default 'strict'
         Specifies how encoding and decoding errors are to be handled.
         See the errors argument for :func:`open` for a full list
@@ -457,14 +466,14 @@ def get_handle(
             if is_path:
                 f = gzip.open(path_or_buf, mode, **compression_args)
             else:
-                f = gzip.GzipFile(fileobj=path_or_buf, **compression_args)
+                f = gzip.GzipFile(fileobj=path_or_buf, mode=mode, **compression_args)
 
         # BZ Compression
         elif compression == "bz2":
             if is_path:
                 f = bz2.BZ2File(path_or_buf, mode, **compression_args)
             else:
-                f = bz2.BZ2File(path_or_buf, **compression_args)
+                f = bz2.BZ2File(path_or_buf, mode=mode, **compression_args)
 
         # ZIP Compression
         elif compression == "zip":
@@ -497,10 +506,14 @@ def get_handle(
         handles.append(f)
 
     elif is_path:
-        if encoding:
+        # Check whether the filename is to be opened in binary mode.
+        # Binary mode does not support 'encoding' and 'newline'.
+        is_binary_mode = "b" in mode
+
+        if encoding and not is_binary_mode:
             # Encoding
             f = open(path_or_buf, mode, encoding=encoding, errors=errors, newline="")
-        elif is_text:
+        elif is_text and not is_binary_mode:
             # No explicit encoding
             f = open(path_or_buf, mode, errors="replace", newline="")
         else:
@@ -532,7 +545,19 @@ def get_handle(
     return f, handles
 
 
-class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore
+# error: Definition of "__exit__" in base class "ZipFile" is incompatible with
+# definition in base class "BytesIO"  [misc]
+# error: Definition of "__enter__" in base class "ZipFile" is incompatible with
+# definition in base class "BytesIO"  [misc]
+# error: Definition of "__enter__" in base class "ZipFile" is incompatible with
+# definition in base class "BinaryIO"  [misc]
+# error: Definition of "__enter__" in base class "ZipFile" is incompatible with
+# definition in base class "IO"  [misc]
+# error: Definition of "read" in base class "ZipFile" is incompatible with
+# definition in base class "BytesIO"  [misc]
+# error: Definition of "read" in base class "ZipFile" is incompatible with
+# definition in base class "IO"  [misc]
+class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore[misc]
     """
     Wrapper for standard library class ZipFile and allow the returned file-like
     handle to accept byte strings via `write` method.

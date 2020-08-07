@@ -681,8 +681,8 @@ class SeriesGroupBy(GroupBy[Series]):
         self, normalize=False, sort=True, ascending=False, bins=None, dropna=True
     ):
 
-        from pandas.core.reshape.tile import cut
         from pandas.core.reshape.merge import _get_join_indexers
+        from pandas.core.reshape.tile import cut
 
         if bins is not None and not np.iterable(bins):
             # scalar bins cannot be done at top level
@@ -1829,7 +1829,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
         blocks = [make_block(val, placement=loc) for val, loc in zip(counted, locs)]
 
-        return self._wrap_agged_blocks(blocks, items=data.items)
+        # If we are grouping on categoricals we want unobserved categories to
+        # return zero, rather than the default of NaN which the reindexing in
+        # _wrap_agged_blocks() returns. GH 35028
+        with com.temp_setattr(self, "observed", True):
+            result = self._wrap_agged_blocks(blocks, items=data.items)
+
+        return self._reindex_output(result, fill_value=0)
 
     def nunique(self, dropna: bool = True):
         """

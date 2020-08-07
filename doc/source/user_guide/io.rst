@@ -1064,6 +1064,23 @@ DD/MM/YYYY instead. For convenience, a ``dayfirst`` keyword is provided:
    pd.read_csv('tmp.csv', parse_dates=[0])
    pd.read_csv('tmp.csv', dayfirst=True, parse_dates=[0])
 
+Writing CSVs to binary file objects
++++++++++++++++++++++++++++++++++++
+
+.. versionadded:: 1.2.0
+
+``df.to_csv(..., mode="w+b")`` allows writing a CSV to a file object
+opened binary mode. For this to work, it is necessary that ``mode``
+contains a "b":
+
+.. ipython:: python
+
+   import io
+
+   data = pd.DataFrame([0, 1, 2])
+   buffer = io.BytesIO()
+   data.to_csv(buffer, mode="w+b", encoding="utf-8", compression="gzip")
+
 .. _io.float_precision:
 
 Specifying method for floating-point conversion
@@ -3476,10 +3493,11 @@ for some advanced strategies
 
 .. warning::
 
-   pandas requires ``PyTables`` >= 3.0.0.
-   There is a indexing bug in ``PyTables`` < 3.2 which may appear when querying stores using an index.
-   If you see a subset of results being returned, upgrade to ``PyTables`` >= 3.2.
-   Stores created previously will need to be rewritten using the updated version.
+   Pandas uses PyTables for reading and writing HDF5 files, which allows
+   serializing object-dtype data with pickle. Loading pickled data received from
+   untrusted sources can be unsafe.
+
+   See: https://docs.python.org/3/library/pickle.html for more.
 
 .. ipython:: python
    :suppress:
