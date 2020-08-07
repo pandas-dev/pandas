@@ -2619,6 +2619,12 @@ class TestDataFrameConstructors:
         data = pd.DataFrame({"datetime": [DatetimeSubclass(2020, 1, 1, 1, 1)]})
         assert data.datetime.dtype == "datetime64[ns]"
 
+    def test_with_mismatched_index_length_raises(self):
+        # GH#33437
+        dti = pd.date_range("2016-01-01", periods=3, tz="US/Pacific")
+        with pytest.raises(ValueError, match="Shape of passed values"):
+            DataFrame(dti, index=range(4))
+
 
 class TestDataFrameConstructorWithDatetimeTZ:
     def test_from_dict(self):
