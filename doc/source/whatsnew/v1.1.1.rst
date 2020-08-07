@@ -38,6 +38,11 @@ Categorical
 -
 -
 
+**Timedelta**
+
+- Bug in :meth:`to_timedelta` fails when arg is a :class:`Series` with `Int64` dtype containing null values (:issue:`35574`)
+
+
 **Numeric**
 
 -
