@@ -114,10 +114,13 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
         with pytest.raises(AttributeError):
             getattr(data, op_name)
 
-    def test_direct_arith_with_series_returns_not_implemented(self, data):
-        # EAs should return NotImplemented for ops with Series.
+    @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
+    def test_direct_arith_with_ndframe_returns_not_implemented(self, data, box):
+        # EAs should return NotImplemented for ops with Series/DataFrame
         # Pandas takes care of unboxing the series and calling the EA's op.
         other = pd.Series(data)
+        if box is pd.DataFrame:
+            other = other.to_frame()
         if hasattr(data, "__add__"):
             result = data.__add__(other)
             assert result is NotImplemented
@@ -156,10 +159,14 @@ class BaseComparisonOpsTests(BaseOpsUtil):
         other = pd.Series([data[0]] * len(data))
         self._compare_other(s, data, op_name, other)
 
-    def test_direct_arith_with_series_returns_not_implemented(self, data):
-        # EAs should return NotImplemented for ops with Series.
+    @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
+    def test_direct_arith_with_ndframe_returns_not_implemented(self, data, box):
+        # EAs should return NotImplemented for ops with Series/DataFrame
         # Pandas takes care of unboxing the series and calling the EA's op.
         other = pd.Series(data)
+        if box is pd.DataFrame:
+            other = other.to_frame()
+
         if hasattr(data, "__eq__"):
             result = data.__eq__(other)
             assert result is NotImplemented
