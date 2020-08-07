@@ -939,6 +939,86 @@ class Styler:
         self.table_styles = table_styles
         return self
 
+    def extend_table_styles(self, table_styles) -> "Styler":
+        """
+        Extend the existing table styles on a Styler.
+
+        These are placed in a ``<style>`` tag before the generated HTML table.
+
+        Parameters
+        ----------
+        table_styles : list
+            Each individual table_style should be a dictionary with
+            ``selector`` and ``props`` keys. ``selector`` should be a CSS
+            selector that the style will be applied to (automatically
+            prefixed by the table's UUID) and ``props`` should be a list of
+            tuples with ``(attribute, value)``.
+
+        Returns
+        -------
+        self : Styler
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(np.random.randn(10, 4))
+        >>> df.style.set_table_styles(
+        ...     [{'selector': 'tr:hover',
+        ...       'props': [('background-color', 'yellow')]}]
+        ... ).extend_table_styles(
+        ...     [{'selector': '.col2',
+        ...       'props': [('background-color', 'blue')]}]
+        ...)
+        """
+        if self.table_styles is None:
+            return self.set_table_styles(table_styles)
+        self.table_styles.extend(table_styles)
+        return self
+
+    def extend_column_styles(self, column_styles) -> "Styler":
+        """
+        Sets class styles for each column on a Styler.
+
+        These are placed in a ``<style>`` tag before the generated HTML table.
+
+        Parameters
+        ----------
+        column_styles : dict
+            Each key of the dict should be a column header with the value
+            being a list of individual styles. Each style is a dictionary with
+            ``selector`` and ``props`` keys. ``selector`` should be a CSS
+            selector that the style will be applied to (automatically
+            prefixed by the table's UUID) and ``props`` should be a list of
+            tuples with ``(attribute, value)``.
+
+        Returns
+        -------
+        self : Styler
+
+        Notes
+        -----
+        Where the ``selector`` is an empty string or `None` the ``props`` will
+        be applied to the column class generically.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(np.random.randn(3, 2), columns=['a', 'b'])
+        >>> df.style.extend_column_styles({
+        ...        'a': [{'selector': '',
+        ...               'props': [('font-size', '20px')]},
+        ...              {'selector': 'td:hover',
+        ...               'props': [('color', 'pink')]}],
+        ...        'b': [{'selector': '',
+        ...               'props': [('font-size', '10px')]}]
+        ... })
+        """
+        _styles = []
+        for col, styles in column_styles.items():
+            for s in styles:
+                c = str(self.data.columns.get_loc(col))
+                _styles.append({'selector': s['selector'] + '.col' + c,
+                                'props': s['props']})
+        return self.extend_table_styles(_styles)
+
     def set_na_rep(self, na_rep: str) -> "Styler":
         """
         Set the missing data representation on a Styler.
