@@ -4441,9 +4441,15 @@ class Index(IndexOpsMixin, PandasObject):
         """
         idx = ensure_key_mapped(self, key)
 
-        _as = idx.argsort()
+        # GH 35584. Place missing values at the end of sorted Index,
+        # same as Series.sort_values
+        bad = isna(idx)
+        good = ~bad
+        _as = np.arange(len(idx), dtype=np.int64)
+        _as = np.concatenate([_as[good][idx[good].argsort()], _as[bad]])
+
         if not ascending:
-            _as = _as[::-1]
+            _as[:np.sum(good)] = _as[:np.sum(good)][::-1]
 
         sorted_index = self.take(_as)
 
