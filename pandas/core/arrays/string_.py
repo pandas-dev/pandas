@@ -7,7 +7,6 @@ from pandas._libs import lib, missing as libmissing
 
 from pandas.core.dtypes.base import ExtensionDtype, register_extension_dtype
 from pandas.core.dtypes.common import pandas_dtype
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import is_array_like
 
 from pandas import compat
@@ -312,15 +311,14 @@ class StringArray(PandasArray):
     @classmethod
     def _create_arithmetic_method(cls, op):
         # Note: this handles both arithmetic and comparison methods.
+
+        @ops.unpack_zerodim_and_defer(op.__name__)
         def method(self, other):
             from pandas.arrays import BooleanArray
 
             assert op.__name__ in ops.ARITHMETIC_BINOPS | ops.COMPARISON_BINOPS
 
-            if isinstance(other, (ABCIndexClass, ABCSeries, ABCDataFrame)):
-                return NotImplemented
-
-            elif isinstance(other, cls):
+            if isinstance(other, cls):
                 other = other._ndarray
 
             mask = isna(self) | isna(other)
