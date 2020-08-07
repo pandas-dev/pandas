@@ -50,6 +50,10 @@ Categorical
 
 -
 
+**DataFrame**
+- Bug in :class:`DataFrame` constructor failing to raise ``ValueError`` in some cases when data and index have mismatched lengths (:issue:`33437`)
+-
+
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_111.contributors:
