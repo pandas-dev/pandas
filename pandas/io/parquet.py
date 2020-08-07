@@ -3,7 +3,7 @@
 from typing import Any, AnyStr, Dict, List, Optional
 from warnings import catch_warnings
 
-from pandas._typing import FilePathOrBuffer
+from pandas._typing import FilePathOrBuffer, StorageOptions
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
 
@@ -89,7 +89,7 @@ class PyArrowImpl(BaseImpl):
         path: FilePathOrBuffer[AnyStr],
         compression: Optional[str] = "snappy",
         index: Optional[bool] = None,
-        storage_options: Optional[Dict[str, Any]] = None,
+        storage_options: StorageOptions = None,
         partition_cols: Optional[List[str]] = None,
         **kwargs,
     ):
@@ -128,11 +128,7 @@ class PyArrowImpl(BaseImpl):
             self.api.parquet.write_table(table, path, compression=compression, **kwargs)
 
     def read(
-        self,
-        path,
-        columns=None,
-        storage_options: Optional[Dict[str, Any]] = None,
-        **kwargs,
+        self, path, columns=None, storage_options: StorageOptions = None, **kwargs,
     ):
         if is_fsspec_url(path) and "filesystem" not in kwargs:
             import_optional_dependency("fsspec")
@@ -178,7 +174,7 @@ class FastParquetImpl(BaseImpl):
         compression="snappy",
         index=None,
         partition_cols=None,
-        storage_options: Optional[Dict[str, Any]] = None,
+        storage_options: StorageOptions = None,
         **kwargs,
     ):
         self.validate_dataframe(df)
@@ -222,11 +218,7 @@ class FastParquetImpl(BaseImpl):
             )
 
     def read(
-        self,
-        path,
-        columns=None,
-        storage_options: Optional[Dict[str, Any]] = None,
-        **kwargs,
+        self, path, columns=None, storage_options: StorageOptions = None, **kwargs,
     ):
         if is_fsspec_url(path):
             fsspec = import_optional_dependency("fsspec")
@@ -248,7 +240,7 @@ def to_parquet(
     engine: str = "auto",
     compression: Optional[str] = "snappy",
     index: Optional[bool] = None,
-    storage_options: Optional[Dict[str, Any]] = None,
+    storage_options: StorageOptions = None,
     partition_cols: Optional[List[str]] = None,
     **kwargs,
 ):

@@ -55,6 +55,7 @@ from pandas._typing import (
     Label,
     Level,
     Renamer,
+    StorageOptions,
     ValueKeyFunc,
 )
 from pandas.compat import PY37
@@ -2056,7 +2057,7 @@ class DataFrame(NDFrame):
         version: Optional[int] = 114,
         convert_strl: Optional[Sequence[Label]] = None,
         compression: Union[str, Mapping[str, str], None] = "infer",
-        storage_options: Optional[Dict[str, Any]] = None,
+        storage_options: StorageOptions = None,
     ) -> None:
         """
         Export DataFrame object to Stata dta format.
@@ -2259,7 +2260,7 @@ class DataFrame(NDFrame):
         buf: Optional[Union[IO[str], str]] = None,
         mode: str = "wt",
         index: bool = True,
-        storage_options: Optional[Dict[str, Any]] = None,
+        storage_options: StorageOptions = None,
         **kwargs,
     ) -> Optional[str]:
         if "showindex" in kwargs:
@@ -2295,7 +2296,7 @@ class DataFrame(NDFrame):
         compression: Optional[str] = "snappy",
         index: Optional[bool] = None,
         partition_cols: Optional[List[str]] = None,
-        storage_options: Optional[Dict[str, Any]] = None,
+        storage_options: StorageOptions = None,
         **kwargs,
     ) -> None:
         """

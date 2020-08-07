@@ -3,13 +3,13 @@ import functools
 from io import BytesIO, StringIO
 from itertools import islice
 import os
-from typing import Any, Callable, Dict, Optional, Type
+from typing import Any, Callable, Optional, Type
 
 import numpy as np
 
 import pandas._libs.json as json
 from pandas._libs.tslibs import iNaT
-from pandas._typing import JSONSerializable
+from pandas._typing import JSONSerializable, StorageOptions
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import deprecate_kwarg, deprecate_nonkeyword_arguments
 
@@ -44,7 +44,7 @@ def to_json(
     compression: Optional[str] = "infer",
     index: bool = True,
     indent: int = 0,
-    storage_options: Optional[Dict[str, Any]] = None,
+    storage_options: StorageOptions = None,
 ):
 
     if not index and orient not in ["split", "table"]:
@@ -371,7 +371,7 @@ def read_json(
     chunksize: Optional[int] = None,
     compression="infer",
     nrows: Optional[int] = None,
-    storage_options: Optional[Dict[str, Any]] = None,
+    storage_options: StorageOptions = None,
 ):
     """
     Convert a JSON string to pandas object.

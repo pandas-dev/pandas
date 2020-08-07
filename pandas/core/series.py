@@ -9,7 +9,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Dict,
     Iterable,
     List,
     Optional,
@@ -32,6 +31,7 @@ from pandas._typing import (
     FrameOrSeriesUnion,
     IndexKeyFunc,
     Label,
+    StorageOptions,
     ValueKeyFunc,
 )
 from pandas.compat.numpy import function as nv
@@ -1425,7 +1425,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         buf: Optional[IO[str]] = None,
         mode: str = "wt",
         index: bool = True,
-        storage_options: Optional[Dict[str, Any]] = None,
+        storage_options: StorageOptions = None,
         **kwargs,
     ) -> Optional[str]:
         """

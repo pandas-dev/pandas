@@ -29,7 +29,7 @@ from urllib.parse import (
 )
 import zipfile
 
-from pandas._typing import FilePathOrBuffer
+from pandas._typing import FilePathOrBuffer, StorageOptions
 from pandas.compat import _get_lzma_file, _import_lzma
 from pandas.compat._optional import import_optional_dependency
 
@@ -162,7 +162,7 @@ def get_filepath_or_buffer(
     encoding: Optional[str] = None,
     compression: Optional[str] = None,
     mode: Optional[str] = None,
-    storage_options: Optional[Dict[str, Any]] = None,
+    storage_options: StorageOptions = None,
 ):
     """
     If the filepath_or_buffer is a url, translate and return the buffer.

@@ -40,6 +40,7 @@ from pandas._typing import (
     Label,
     Level,
     Renamer,
+    StorageOptions,
     TimedeltaConvertibleTypes,
     TimestampConvertibleTypes,
     ValueKeyFunc,
@@ -2042,7 +2043,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         compression: Optional[str] = "infer",
         index: bool_t = True,
         indent: Optional[int] = None,
-        storage_options: Optional[Dict[str, Any]] = None,
+        storage_options: StorageOptions = None,
     ) -> Optional[str]:
         """
         Convert the object to a JSON string.
@@ -2629,7 +2630,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         path,
         compression: Optional[str] = "infer",
         protocol: int = pickle.HIGHEST_PROTOCOL,
-        storage_options: Optional[Dict[str, Any]] = None,
+        storage_options: StorageOptions = None,
     ) -> None:
         """
         Pickle (serialize) object to file.
@@ -3044,7 +3045,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         escapechar: Optional[str] = None,
         decimal: Optional[str] = ".",
         errors: str = "strict",
-        storage_options: Optional[Dict[str, Any]] = None,
+        storage_options: StorageOptions = None,
     ) -> Optional[str]:
         r"""
         Write object to a comma-separated values (csv) file.

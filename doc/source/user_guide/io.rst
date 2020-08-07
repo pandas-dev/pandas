@@ -1649,8 +1649,10 @@ options include:
 Specifying any of the above options will produce a ``ParserWarning`` unless the
 python engine is selected explicitly using ``engine='python'``.
 
-Reading remote files
-''''''''''''''''''''
+.. _io.remote:
+
+Reading/writing remote files
+''''''''''''''''''''''''''''
 
 You can pass in a URL to read or write remote files to many of Pandas' IO
 functions - the following example shows reading a CSV file:
@@ -1686,6 +1688,8 @@ You can also pass parameters directly to the backend driver. For example,
 if you do *not* have S3 credentials, you can still access public data by
 specifying an anonymous connection, such as
 
+.. versionadded:: 1.2.0
+
 .. code-block:: python
 
    pd.read_csv("s3://ncei-wcsd-archive/data/processed/SH1305/18kHz/SaKe2013"
@@ -1695,6 +1699,8 @@ specifying an anonymous connection, such as
 ``fsspec`` also allows complex URLs, for accessing data in compressed
 archives, local caching of files, and more. To locally cache the above
 example, you would modify the call to
+
+.. code-block:: python
 
    pd.read_csv("simplecache::s3://ncei-wcsd-archive/data/processed/SH1305/18kHz/SaKe2013"
                "-D20130523-T080854_to_SaKe2013-D20130523-T085643.csv",

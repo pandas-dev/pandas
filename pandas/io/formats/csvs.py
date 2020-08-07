@@ -5,13 +5,13 @@ Module for formatting output data into CSV files.
 import csv as csvlib
 from io import StringIO, TextIOWrapper
 import os
-from typing import Any, Dict, Hashable, List, Mapping, Optional, Sequence, Union
+from typing import Hashable, List, Mapping, Optional, Sequence, Union
 import warnings
 
 import numpy as np
 
 from pandas._libs import writers as libwriters
-from pandas._typing import FilePathOrBuffer
+from pandas._typing import FilePathOrBuffer, StorageOptions
 
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
@@ -53,7 +53,7 @@ class CSVFormatter:
         doublequote: bool = True,
         escapechar: Optional[str] = None,
         decimal=".",
-        storage_options: Optional[Dict[str, Any]] = None,
+        storage_options: StorageOptions = None,
     ):
         self.obj = obj
 
