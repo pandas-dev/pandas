@@ -1732,9 +1732,16 @@ def _validate_date_like_dtype(dtype) -> None:
         )
 
 
-def validate_all_hashable(*args, name: str = None) -> None:
+def validate_all_hashable(*args, error_name=None) -> None:
     """
     Return None if all args are hashable, else raise a TypeError.
+
+    Parameters
+    ----------
+    *args
+        Arguments to validate.
+    error_name : str, optional
+        The name to use if error
 
     Raises
     ------
@@ -1743,17 +1750,10 @@ def validate_all_hashable(*args, name: str = None) -> None:
     Returns
     -------
     None
-
-    Examples
-    --------
-    >>> validate_all_hashable(1)
-
-    >>> validate_all_hashable([1])
-    TypeError: All elements must be hashable
     """
     if not all(is_hashable(arg) for arg in args):
-        if name:
-            raise TypeError(f"{name} must be a hashable type")
+        if error_name:
+            raise TypeError(f"{error_name} must be a hashable type")
         else:
             raise TypeError("All elements must be hashable")
 

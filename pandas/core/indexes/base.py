@@ -1211,7 +1211,7 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
         # All items in 'new_names' need to be hashable
-        validate_all_hashable(*new_names, name=f"{type(self).__name__}.name")
+        validate_all_hashable(*new_names, error_name=f"{type(self).__name__}.name")
 
         return new_names
 
@@ -1241,7 +1241,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         # GH 20527
         # All items in 'name' need to be hashable:
-        validate_all_hashable(*values, name=f"{type(self).__name__}.name")
+        validate_all_hashable(*values, error_name=f"{type(self).__name__}.name")
 
         self._name = values[0]
 
