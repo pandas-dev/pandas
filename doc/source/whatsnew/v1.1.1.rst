@@ -15,6 +15,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 
+- Fixed regression where :meth:`DataFrame.to_numpy` would raise a ``RuntimeError`` for mixed dtypes when converting to ``str`` (:issue:`35455`)
 - Fixed regression where :func:`read_csv` would raise a ``ValueError`` when ``pandas.options.mode.use_inf_as_na`` was set to ``True`` (:issue:`35493`).
 - Fixed regression in :class:`pandas.core.groupby.RollingGroupby` where column selection was ignored (:issue:`35486`)
 - Fixed regression in :meth:`DataFrame.shift` with ``axis=1`` and heterogeneous dtypes (:issue:`35488`)
