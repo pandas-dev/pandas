@@ -571,7 +571,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return self._mgr.internal_values()
 
-    @Appender(base.IndexOpsMixin.array.__doc__)  # type: ignore
+    # error: Decorated property not supported
+    @Appender(base.IndexOpsMixin.array.__doc__)  # type: ignore[misc]
     @property
     def array(self) -> ExtensionArray:
         return self._mgr._block.array_values()
@@ -4921,7 +4922,10 @@ Keep all original rows and also all original values
 
         if not isinstance(self.index, PeriodIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
-        new_index = self.index.to_timestamp(freq=freq, how=how)  # type: ignore
+        # error: "PeriodIndex" has no attribute "to_timestamp"
+        new_index = self.index.to_timestamp(  # type: ignore[attr-defined]
+            freq=freq, how=how
+        )
         return self._constructor(new_values, index=new_index).__finalize__(
             self, method="to_timestamp"
         )

@@ -390,7 +390,7 @@ class Styler:
                     "is_visible": (c not in hidden_columns),
                 }
                 # only add an id if the cell has a style
-                if self.cell_ids or not (len(ctx[r, c]) == 1 and ctx[r, c][0] == ""):
+                if self.cell_ids or (r, c) in ctx:
                     row_dict["id"] = "_".join(cs[1:])
                 row_es.append(row_dict)
                 props = []
