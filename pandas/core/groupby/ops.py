@@ -50,7 +50,7 @@ from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index,
     decons_obs_group_ids,
-    get_flattened_iterator,
+    get_flattened_list,
     get_group_index,
     get_group_index_sorter,
     get_indexer_dict,
@@ -153,7 +153,7 @@ class BaseGrouper:
             comp_ids, _, ngroups = self.group_info
 
             # provide "flattened" iterator for multi-group setting
-            return get_flattened_iterator(comp_ids, ngroups, self.levels, self.codes)
+            return get_flattened_list(comp_ids, ngroups, self.levels, self.codes)
 
     def apply(self, f: F, data: FrameOrSeries, axis: int = 0):
         mutated = self.mutated
@@ -211,7 +211,7 @@ class BaseGrouper:
             # group might be modified
             group_axes = group.axes
             res = f(group)
-            if not _is_indexed_like(res, group_axes):
+            if not _is_indexed_like(res, group_axes, axis):
                 mutated = True
             result_values.append(res)
 
@@ -897,13 +897,13 @@ class BinGrouper(BaseGrouper):
         return grouper.get_result()
 
 
-def _is_indexed_like(obj, axes) -> bool:
+def _is_indexed_like(obj, axes, axis: int) -> bool:
     if isinstance(obj, Series):
         if len(axes) > 1:
             return False
-        return obj.index.equals(axes[0])
+        return obj.axes[axis].equals(axes[axis])
     elif isinstance(obj, DataFrame):
-        return obj.index.equals(axes[0])
+        return obj.axes[axis].equals(axes[axis])
 
     return False
 
