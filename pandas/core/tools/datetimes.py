@@ -53,8 +53,9 @@ from pandas.core.indexes.base import Index
 from pandas.core.indexes.datetimes import DatetimeIndex
 
 if TYPE_CHECKING:
-    from pandas import Series  # noqa:F401
     from pandas._libs.tslibs.nattype import NaTType  # noqa:F401
+
+    from pandas import Series  # noqa:F401
 
 # ---------------------------------------------------------------------
 # types used in annotations
@@ -308,7 +309,7 @@ def _convert_listlike_datetimes(
         if tz == "utc":
             # error: Item "DatetimeIndex" of "Union[DatetimeArray, DatetimeIndex]" has
             # no attribute "tz_convert"
-            arg = arg.tz_convert(None).tz_localize(tz)  # type: ignore
+            arg = arg.tz_convert(None).tz_localize(tz)  # type: ignore[union-attr]
         return arg
 
     elif is_datetime64_ns_dtype(arg_dtype):
@@ -876,7 +877,7 @@ def _assemble_from_unit_mappings(arg, errors, tz):
     -------
     Series
     """
-    from pandas import to_timedelta, to_numeric, DataFrame
+    from pandas import DataFrame, to_numeric, to_timedelta
 
     arg = DataFrame(arg)
     if not arg.columns.is_unique:

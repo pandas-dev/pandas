@@ -105,7 +105,6 @@ class Block(PandasObject):
     is_extension = False
     _can_hold_na = False
     _can_consolidate = True
-    _verify_integrity = True
     _validate_ndim = True
 
     @classmethod
@@ -1525,7 +1524,6 @@ class ExtensionBlock(Block):
     """
 
     _can_consolidate = False
-    _verify_integrity = False
     _validate_ndim = False
     is_extension = True
 
@@ -1589,7 +1587,7 @@ class ExtensionBlock(Block):
 
     def set(self, locs, values):
         assert locs.tolist() == [0]
-        self.values[:] = values
+        self.values = values
 
     def putmask(
         self, mask, new, inplace: bool = False, axis: int = 0, transpose: bool = False,
@@ -1636,10 +1634,7 @@ class ExtensionBlock(Block):
     @property
     def fill_value(self):
         # Used in reindex_indexer
-        if is_sparse(self.values):
-            return self.values.dtype.fill_value
-        else:
-            return self.values.dtype.na_value
+        return self.values.dtype.na_value
 
     @property
     def _can_hold_na(self):
@@ -2616,7 +2611,6 @@ class ObjectBlock(Block):
 class CategoricalBlock(ExtensionBlock):
     __slots__ = ()
     is_categorical = True
-    _verify_integrity = True
     _can_hold_na = True
 
     should_store = Block.should_store
@@ -2747,7 +2741,8 @@ def _block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
             # TODO(EA2D): https://github.com/pandas-dev/pandas/issues/23023
             # block.shape is incorrect for "2D" ExtensionArrays
             # We can't, and don't need to, reshape.
-            values = values.reshape(tuple((1,) + shape))  # type: ignore
+            # error: "ExtensionArray" has no attribute "reshape"
+            values = values.reshape(tuple((1,) + shape))  # type: ignore[attr-defined]
     return values
 
 

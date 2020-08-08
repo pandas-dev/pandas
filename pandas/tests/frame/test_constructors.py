@@ -19,6 +19,7 @@ from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype, PeriodDtyp
 import pandas as pd
 from pandas import (
     Categorical,
+    CategoricalIndex,
     DataFrame,
     Index,
     Interval,
@@ -1617,6 +1618,42 @@ class TestDataFrameConstructors:
         tm.assert_index_equal(df2.index, other_index)
         tm.assert_frame_equal(df2, exp2)
 
+    @pytest.mark.parametrize(
+        "name_in1,name_in2,name_in3,name_out",
+        [
+            ("idx", "idx", "idx", "idx"),
+            ("idx", "idx", None, "idx"),
+            ("idx", None, None, "idx"),
+            ("idx1", "idx2", None, None),
+            ("idx1", "idx1", "idx2", None),
+            ("idx1", "idx2", "idx3", None),
+            (None, None, None, None),
+        ],
+    )
+    def test_constructor_index_names(self, name_in1, name_in2, name_in3, name_out):
+        # GH13475
+        indices = [
+            pd.Index(["a", "b", "c"], name=name_in1),
+            pd.Index(["b", "c", "d"], name=name_in2),
+            pd.Index(["c", "d", "e"], name=name_in3),
+        ]
+        series = {
+            c: pd.Series([0, 1, 2], index=i) for i, c in zip(indices, ["x", "y", "z"])
+        }
+        result = pd.DataFrame(series)
+
+        exp_ind = pd.Index(["a", "b", "c", "d", "e"], name=name_out)
+        expected = pd.DataFrame(
+            {
+                "x": [0, 1, 2, np.nan, np.nan],
+                "y": [np.nan, 0, 1, 2, np.nan],
+                "z": [np.nan, np.nan, 0, 1, 2],
+            },
+            index=exp_ind,
+        )
+
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_manager_resize(self, float_frame):
         index = list(float_frame.index[:5])
         columns = list(float_frame.columns[:3])
@@ -2509,6 +2546,18 @@ class TestDataFrameConstructors:
         result = DataFrame.from_records(data)
         tm.assert_frame_equal(result, expected)
 
+    def test_from_records_series_categorical_index(self):
+        # GH 32805
+        index = CategoricalIndex(
+            [pd.Interval(-20, -10), pd.Interval(-10, 0), pd.Interval(0, 10)]
+        )
+        series_of_dicts = pd.Series([{"a": 1}, {"a": 2}, {"b": 3}], index=index)
+        frame = pd.DataFrame.from_records(series_of_dicts, index=index)
+        expected = DataFrame(
+            {"a": [1, 2, np.NaN], "b": [np.NaN, np.NaN, 3]}, index=index
+        )
+        tm.assert_frame_equal(frame, expected)
+
     def test_frame_from_records_utc(self):
         rec = {"datum": 1.5, "begin_time": datetime(2006, 4, 27, tzinfo=pytz.utc)}
 
@@ -2578,13 +2627,11 @@ class TestDataFrameConstructors:
             index=pd.CategoricalIndex(["f", "female", "m", "male", "unknown"]),
         )
         result = DataFrame([s1, s2])
-        # GH 35092. Extra s2 columns are now appended to s1 columns
-        # in original order
         expected = DataFrame(
             np.array(
-                [[39.0, 6.0, 4.0, np.nan, np.nan], [152.0, 242.0, 150.0, 2.0, 2.0]]
+                [[np.nan, 39.0, np.nan, 6.0, 4.0], [2.0, 152.0, 2.0, 242.0, 150.0]]
             ),
-            columns=["female", "male", "unknown", "f", "m"],
+            columns=["f", "female", "m", "male", "unknown"],
         )
         tm.assert_frame_equal(result, expected)
 
@@ -2607,6 +2654,12 @@ class TestDataFrameConstructors:
 
         data = pd.DataFrame({"datetime": [DatetimeSubclass(2020, 1, 1, 1, 1)]})
         assert data.datetime.dtype == "datetime64[ns]"
+
+    def test_with_mismatched_index_length_raises(self):
+        # GH#33437
+        dti = pd.date_range("2016-01-01", periods=3, tz="US/Pacific")
+        with pytest.raises(ValueError, match="Shape of passed values"):
+            DataFrame(dti, index=range(4))
 
 
 class TestDataFrameConstructorWithDatetimeTZ:

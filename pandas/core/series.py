@@ -571,7 +571,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return self._mgr.internal_values()
 
-    @Appender(base.IndexOpsMixin.array.__doc__)  # type: ignore
+    # error: Decorated property not supported
+    @Appender(base.IndexOpsMixin.array.__doc__)  # type: ignore[misc]
     @property
     def array(self) -> ExtensionArray:
         return self._mgr._block.array_values()
@@ -1419,7 +1420,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ),
     )
     def to_markdown(
-        self, buf: Optional[IO[str]] = None, mode: Optional[str] = None, **kwargs
+        self,
+        buf: Optional[IO[str]] = None,
+        mode: Optional[str] = None,
+        index: bool = True,
+        **kwargs,
     ) -> Optional[str]:
         """
         Print {klass} in Markdown-friendly format.
@@ -1432,6 +1437,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Buffer to write to. If None, the output is returned as a string.
         mode : str, optional
             Mode in which file is opened.
+        index : bool, optional, default True
+            Add index (row) labels.
+
+            .. versionadded:: 1.1.0
+
         **kwargs
             These parameters will be passed to `tabulate \
                 <https://pypi.org/project/tabulate>`_.
@@ -1467,7 +1477,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         |  3 | quetzal  |
         +----+----------+
         """
-        return self.to_frame().to_markdown(buf, mode, **kwargs)
+        return self.to_frame().to_markdown(buf, mode, index, **kwargs)
 
     # ----------------------------------------------------------------------
 
@@ -4912,7 +4922,10 @@ Keep all original rows and also all original values
 
         if not isinstance(self.index, PeriodIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
-        new_index = self.index.to_timestamp(freq=freq, how=how)  # type: ignore
+        # error: "PeriodIndex" has no attribute "to_timestamp"
+        new_index = self.index.to_timestamp(  # type: ignore[attr-defined]
+            freq=freq, how=how
+        )
         return self._constructor(new_values, index=new_index).__finalize__(
             self, method="to_timestamp"
         )
