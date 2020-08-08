@@ -352,23 +352,6 @@ class BlockManager(PandasObject):
         """
         return operate_blockwise(self, other, array_op)
 
-    def transform(self: T, func, ignore_failures: bool = False) -> T:
-        """Similar to apply, but not necessarily length-preserving."""
-        result_blocks = []
-        failed = []
-
-        for blk in self.blocks:
-            try:
-                res = blk.apply(func)
-            except Exception:
-                if not ignore_failures:
-                    raise
-                failed.append(blk)
-            else:
-                result_blocks.extend(res)
-
-        raise NotImplementedError
-
     def apply(self: T, f, align_keys=None, **kwargs) -> T:
         """
         Iterate over the blocks, collect and create a new BlockManager.
