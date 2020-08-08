@@ -1772,7 +1772,28 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def __array__(self, dtype=None) -> np.ndarray:
         return np.asarray(self._values, dtype=dtype)
 
-    def __array_wrap__(self, result, context=None):
+    def __array_wrap__(
+        self,
+        result: np.ndarray,
+        context: Optional[Tuple[Callable, Tuple[Any, ...], int]] = None,
+    ):
+        """
+        Gets called after a ufunc and other functions.
+
+        Parameters
+        ----------
+        result: np.ndarray
+            The result of the ufunc or other function called on the NumPy array
+            returned by __array__
+        context: tuple of (func, tuple, int)
+            This parameter is returned by ufuncs as a 3-element tuple: (name of the
+            ufunc, arguments of the ufunc, domain of the ufunc), but is not set by
+            other numpy functions.q
+
+        Notes
+        -----
+        Series implements __array_ufunc_ so this not called for ufunc on Series.
+        """
         result = lib.item_from_zerodim(result)
         if is_scalar(result):
             # e.g. we get here with np.ptp(series)
