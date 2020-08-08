@@ -3088,7 +3088,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             .. versionchanged:: 1.2.0
 
-                Compression is supported for non-binary file objects.
+                Compression is supported for binary file objects.
 
         quoting : optional constant from csv module
             Defaults to csv.QUOTE_MINIMAL. If you have set a `float_format`
