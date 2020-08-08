@@ -1061,3 +1061,37 @@ def test_groupby_get_by_index():
     res = df.groupby("A").agg({"B": lambda x: x.get(x.index[-1])})
     expected = pd.DataFrame(dict(A=["S", "W"], B=[1.0, 2.0])).set_index("A")
     pd.testing.assert_frame_equal(res, expected)
+
+
+def test_groupby_agg_categorical_cols():
+    """
+    test aggregation on ordered categorical
+    columns #27800
+    """
+
+    # create the result dataframe
+    input_df = pd.DataFrame(
+        {
+            "nr": [1, 2, 3, 4, 5, 6, 7, 8],
+            "cat_ord": list("aabbccdd"),
+            "cat": list("aaaabbbb"),
+        }
+    )
+
+    input_df = input_df.astype({"cat": "category", "cat_ord": "category"})
+    input_df["cat_ord"] = input_df["cat_ord"].cat.as_ordered()
+    result_df = input_df.groupby("cat").agg({"nr": ["min", "max"], "cat_ord": "min"})
+
+    # create expected dataframe
+    cat_index = pd.CategoricalIndex(
+        ["a", "b"], categories=["a", "b"], ordered=False, name="cat", dtype="category"
+    )
+
+    multi_index_tuple = [("nr", "min"), ("nr", "max"), ("cat_ord", "min")]
+    multi_index = pd.MultiIndex.from_tuples(multi_index_tuple)
+
+    data = np.array([(1, 4, "a"), (5, 8, "c")])
+    expected_df = pd.DataFrame(data=data, columns=multi_index, index=cat_index)
+    expected_df["nr"] = expected_df["nr"].astype("int64")
+
+    tm.assert_frame_equal(result_df, expected_df)
