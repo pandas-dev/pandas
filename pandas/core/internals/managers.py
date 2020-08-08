@@ -2,17 +2,7 @@ from collections import defaultdict
 import itertools
 import operator
 import re
-from typing import (
-    Any,
-    DefaultDict,
-    Dict,
-    List,
-    Optional,
-    Sequence,
-    Tuple,
-    TypeVar,
-    Union,
-)
+from typing import DefaultDict, Dict, List, Optional, Sequence, Tuple, TypeVar, Union
 import warnings
 
 import numpy as np
@@ -1447,7 +1437,10 @@ class BlockManager(PandasObject):
             new_axis=new_labels, indexer=indexer, axis=axis, allow_dups=True
         )
 
-    def equals(self, other: Any) -> bool:
+    def equals(self, other: object) -> bool:
+        if not isinstance(other, BlockManager):
+            return False
+
         self_axes, other_axes = self.axes, other.axes
         if len(self_axes) != len(other_axes):
             return False

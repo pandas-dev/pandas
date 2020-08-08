@@ -22,6 +22,7 @@ from typing import (
     Tuple,
     Type,
     Union,
+    cast,
 )
 import warnings
 import weakref
@@ -1195,7 +1196,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             self._get_axis(a).equals(other._get_axis(a)) for a in self._AXIS_ORDERS
         )
 
-    def equals(self, other: Any) -> bool:
+    def equals(self, other: object) -> bool:
         """
         Test whether two objects contain the same elements.
 
@@ -1275,6 +1276,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         if not (isinstance(other, type(self)) or isinstance(self, type(other))):
             return False
+        other = cast(NDFrame, other)
         return self._mgr.equals(other._mgr)
 
     # -------------------------------------------------------------------------

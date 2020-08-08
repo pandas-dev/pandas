@@ -13,6 +13,7 @@ import pandas as pd
 from pandas import DataFrame, Series
 import pandas._testing as tm
 
+
 """
 This is a common base class used for various plotting tests
 """
