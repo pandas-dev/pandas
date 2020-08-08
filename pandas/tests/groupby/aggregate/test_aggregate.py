@@ -1090,8 +1090,7 @@ def test_groupby_agg_categorical_cols():
     multi_index_tuple = [("nr", "min"), ("nr", "max"), ("cat_ord", "min")]
     multi_index = pd.MultiIndex.from_tuples(multi_index_tuple)
 
-    data = np.array([(1, 4, "a"), (5, 8, "c")])
+    data = [(1, 4, "a"), (5, 8, "c")]
     expected_df = pd.DataFrame(data=data, columns=multi_index, index=cat_index)
-    expected_df["nr"] = expected_df["nr"].astype("int64")
 
     tm.assert_frame_equal(result_df, expected_df)
