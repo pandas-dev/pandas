@@ -92,7 +92,7 @@ def _expand_user(
                                   input if not expandable
     """
     try:
-        return os.path.expanduser(filepath_or_buffer)
+        return os.path.expanduser(filepath_or_buffer)  # type: ignore
     except TypeError:
         if fallback:
             return filepath_or_buffer
