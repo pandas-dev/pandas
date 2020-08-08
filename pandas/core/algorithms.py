@@ -1288,6 +1288,131 @@ class SelectNFrame(SelectN):
         return frame.sort_values(columns, ascending=ascending, kind="mergesort")
 
 
+# ----------------- #
+# idxmax and idxmin
+# ----------------- #
+
+
+class SelectIdx:
+    def __init__(self, obj, axis: int, skipna: bool, keep: str):
+        self.obj = obj
+        self.axis = axis
+        self.skipna = skipna
+        self.keep = keep
+
+        if self.keep not in ("first", "last", "all"):
+            raise ValueError(
+                "`keep` must take one of the following values {'first','last','all'}"
+            )
+
+    def idxmax(self):
+        return self.compute("idxmax")
+
+    def idxmin(self):
+        return self.compute("idxmin")
+
+
+class SelectIdxSeries(SelectIdx):
+    def __init__(self, obj, axis: int, skipna: bool, keep: str, args, kwargs):
+        super().__init__(obj, axis, skipna, keep)
+        self.args = args
+        self.kwargs = kwargs
+
+    def compute(self, method):
+        from pandas.compat.numpy import function as nv
+        from pandas.core import nanops
+
+        series = self.obj
+        if method == "idxmax":
+            skipna = nv.validate_argmax_with_skipna(self.skipna, self.args, self.kwargs)
+            if self.keep == "last":
+                i = nanops.nanargmax(series._values[::-1], skipna=skipna)
+                if i != -1:
+                    i = (series.size - 1) - i
+            else:
+                i = nanops.nanargmax(series._values, skipna=skipna)
+        elif method == "idxmin":
+            skipna = nv.validate_argmin_with_skipna(self.skipna, self.args, self.kwargs)
+            if self.keep == "last":
+                i = nanops.nanargmin(series._values[::-1], skipna=skipna)
+                if i != -1:
+                    i = (series.size - 1) - i
+            else:
+                i = nanops.nanargmin(series._values, skipna=skipna)
+        if i == -1:
+            return np.nan
+        if self.keep == "all":
+            return series.loc[series == series.iloc[i]].index.values
+        elif self.keep == "first" or self.keep == "last":
+            return series.index[i]
+
+
+class SelectIdxFrame(SelectIdx):
+    def compute(self, method):
+        from pandas.core import nanops
+
+        frame = self.obj
+        axis = frame._get_axis_number(self.axis)
+        if method == "idxmax":
+            if self.keep == "last":
+                if axis == 0:
+                    indices = nanops.nanargmax(
+                        frame.values[::-1], axis=axis, skipna=self.skipna
+                    )
+                else:
+                    indices = nanops.nanargmax(
+                        frame[frame.columns[::-1]].values, axis=axis, skipna=self.skipna
+                    )
+                indices = (frame.shape[axis] - 1) - indices
+            elif self.keep == "first" or self.keep == "all":
+                indices = nanops.nanargmax(frame.values, axis=axis, skipna=self.skipna)
+
+        elif method == "idxmin":
+            if self.keep == "last":
+                if axis == 0:
+                    indices = nanops.nanargmin(
+                        frame.values[::-1], axis=axis, skipna=self.skipna
+                    )
+                else:
+                    indices = nanops.nanargmin(
+                        frame.loc[frame.columns[::-1]].values,
+                        axis=axis,
+                        skipna=self.skipna,
+                    )
+                indices = (frame.shape[axis] - 1) - indices
+            elif self.keep == "first" or self.keep == "all":
+                indices = nanops.nanargmin(frame.values, axis=axis, skipna=self.skipna)
+
+        else:
+            raise ValueError("Invalid method, choose either idxmax or idxmin")
+
+        # indices will always be np.ndarray since axis is not None and
+        # values is a 2d array for DataFrame
+        # error: Item "int" of "Union[int, Any]" has no attribute "__iter__"
+        assert isinstance(indices, np.ndarray)  # for mypy
+
+        index = frame._get_axis(axis)
+        if self.keep == "all":
+            if axis == 0:
+                result = [
+                    frame.loc[
+                        frame.iloc[:, i].isin([frame.iloc[indices[i], i]])
+                    ].index.values
+                    for i in range(0, frame.shape[1])
+                ]
+            else:
+                result = [
+                    (frame.iloc[i, :] == frame.values[i, indices[i]])
+                    .loc[frame.iloc[i, :] == frame.values[i, indices[i]]]
+                    .index.values
+                    for i in range(0, frame.shape[0])
+                ]
+            print(result)
+            return frame._constructor_sliced(result, index=frame._get_agg_axis(axis))
+        result = [index[i] if i >= 0 else np.nan for i in indices]
+        return frame._constructor_sliced(result, index=frame._get_agg_axis(axis))
+
+
 # ---- #
 # take #
 # ---- #

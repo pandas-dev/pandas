@@ -8812,47 +8812,7 @@ NaN 12.3   33.0
         c    C
         dtype: object
         """
-        axis = self._get_axis_number(axis)
-        if keep == "last":
-            if axis == 0:
-                indices = nanops.nanargmin(self.values[::-1], axis=axis, skipna=skipna)
-            else:
-                indices = nanops.nanargmin(
-                    self.loc[self.columns[::-1]].values, axis=axis, skipna=skipna
-                )
-            indices = (self.shape[axis] - 1) - indices
-        elif keep == "first" or keep == "all":
-            indices = nanops.nanargmin(self.values, axis=axis, skipna=skipna)
-        else:
-            raise ValueError(
-                "`keep` must take one of the following values {'first','last','all'}"
-            )
-
-        # indices will always be np.ndarray since axis is not None and
-        # values is a 2d array for DataFrame
-        # error: Item "int" of "Union[int, Any]" has no attribute "__iter__"
-        assert isinstance(indices, np.ndarray)  # for mypy
-
-        index = self._get_axis(axis)
-        if keep == "all":
-            if axis == 0:
-                result = [
-                    self.loc[
-                        self.iloc[:, i].isin([self.iloc[indices[i], i]])
-                    ].index.values
-                    for i in range(0, self.shape[1])
-                ]
-            else:
-                result = [
-                    (self.iloc[i, :] == self.values[i, indices[i]])
-                    .loc[self.iloc[i, :] == self.values[i, indices[i]]]
-                    .index.values
-                    for i in range(0, self.shape[0])
-                ]
-            return self._constructor_sliced(result, index=self._get_agg_axis(axis))
-        else:
-            result = [index[i] if i >= 0 else np.nan for i in indices]
-            return self._constructor_sliced(result, index=self._get_agg_axis(axis))
+        return algorithms.SelectIdxFrame(self, axis, skipna, keep).idxmin()
 
     def idxmax(self, axis=0, skipna=True, keep="first") -> Series:
         """
@@ -8940,47 +8900,7 @@ NaN 12.3   33.0
         c    D
         dtype: object
         """
-        axis = self._get_axis_number(axis)
-        if keep == "last":
-            if axis == 0:
-                indices = nanops.nanargmax(self.values[::-1], axis=axis, skipna=skipna)
-            else:
-                indices = nanops.nanargmax(
-                    self[self.columns[::-1]].values, axis=axis, skipna=skipna
-                )
-            indices = (self.shape[axis] - 1) - indices
-        elif keep == "first" or keep == "all":
-            indices = nanops.nanargmax(self.values, axis=axis, skipna=skipna)
-        else:
-            raise ValueError(
-                "`keep` must take one of the following values {'first','last','all'}"
-            )
-
-        # indices will always be np.ndarray since axis is not None and
-        # values is a 2d array for DataFrame
-        # error: Item "int" of "Union[int, Any]" has no attribute "__iter__"
-        assert isinstance(indices, np.ndarray)  # for mypy
-
-        index = self._get_axis(axis)
-        if keep == "all":
-            if axis == 0:
-                result = [
-                    self.loc[
-                        self.iloc[:, i].isin([self.iloc[indices[i], i]])
-                    ].index.values
-                    for i in range(0, self.shape[1])
-                ]
-            else:
-                result = [
-                    (self.iloc[i, :] == self.values[i, indices[i]])
-                    .loc[self.iloc[i, :] == self.values[i, indices[i]]]
-                    .index.values
-                    for i in range(0, self.shape[0])
-                ]
-            return self._constructor_sliced(result, index=self._get_agg_axis(axis))
-        else:
-            result = [index[i] if i >= 0 else np.nan for i in indices]
-            return self._constructor_sliced(result, index=self._get_agg_axis(axis))
+        return algorithms.SelectIdxFrame(self, axis, skipna, keep).idxmax()
 
     def _get_agg_axis(self, axis_num: int) -> Index:
         """

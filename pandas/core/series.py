@@ -2107,23 +2107,9 @@ Name: Max Speed, dtype: float64
         >>> s.idxmin(keep='last')
         'D'
         """
-        skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
-        if keep == "last":
-            i = nanops.nanargmin(self._values[::-1], skipna=skipna)
-            if i != -1:
-                i = (self.size - 1) - i
-        else:
-            i = nanops.nanargmin(self._values, skipna=skipna)
-        if i == -1:
-            return np.nan
-        if keep == "all":
-            return self.loc[self == self.iloc[i]].index.values
-        elif keep == "first" or keep == "last":
-            return self.index[i]
-        else:
-            raise ValueError(
-                "`keep` must take one of the following values {'first','last','all'}"
-            )
+        return algorithms.SelectIdxSeries(
+            self, axis, skipna, keep, args, kwargs
+        ).idxmin()
 
     def idxmax(self, axis=0, skipna=True, keep="first", *args, **kwargs):
         """
@@ -2204,23 +2190,9 @@ Name: Max Speed, dtype: float64
         >>> s.idxmax(keep='last')
         'E'
         """
-        skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
-        if keep == "last":
-            i = nanops.nanargmax(self._values[::-1], skipna=skipna)
-            if i != -1:
-                i = (self.size - 1) - i
-        else:
-            i = nanops.nanargmax(self._values, skipna=skipna)
-        if i == -1:
-            return np.nan
-        if keep == "all":
-            return self.loc[self == self.iloc[i]].index.values
-        elif keep == "first" or keep == "last":
-            return self.index[i]
-        else:
-            raise ValueError(
-                "`keep` must take one of the following values {'first','last','all'}"
-            )
+        return algorithms.SelectIdxSeries(
+            self, axis, skipna, keep, args, kwargs
+        ).idxmax()
 
     def round(self, decimals=0, *args, **kwargs) -> "Series":
         """
