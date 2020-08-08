@@ -5,6 +5,8 @@ import re
 
 import numpy as np
 
+from setup import min_numpy_ver
+
 # numpy versioning
 _np_version = np.__version__
 _nlv = LooseVersion(_np_version)
@@ -15,11 +17,11 @@ _np_version_under1p20 = _nlv < LooseVersion("1.20")
 _is_numpy_dev = ".dev" in str(_nlv)
 
 
-if _nlv < "1.16.0":
+if _nlv < min_numpy_ver:
     raise ImportError(
-        "this version of pandas is incompatible with numpy < 1.16.0\n"
+        f"this version of pandas is incompatible with numpy < {min_numpy_ver}\n"
         f"your numpy version is {_np_version}.\n"
-        "Please upgrade numpy to >= 1.16.0 to use this pandas version"
+        f"Please upgrade numpy to >= {min_numpy_ver} to use this pandas version"
     )
 
 
