@@ -1321,6 +1321,7 @@ class SelectIdxSeries(SelectIdx):
 
     def compute(self, method):
         from pandas.compat.numpy import function as nv
+
         from pandas.core import nanops
 
         series = self.obj
@@ -1408,7 +1409,6 @@ class SelectIdxFrame(SelectIdx):
                     .index.values
                     for i in range(0, frame.shape[0])
                 ]
-            print(result)
             return frame._constructor_sliced(result, index=frame._get_agg_axis(axis))
         result = [index[i] if i >= 0 else np.nan for i in indices]
         return frame._constructor_sliced(result, index=frame._get_agg_axis(axis))
