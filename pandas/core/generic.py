@@ -1799,21 +1799,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             # e.g. we get here with np.ptp(series)
             # ptp also requires the item_from_zerodim
             return result
-
-        # if shape of result is the same as self we use the original axes
-        if result.shape == self.shape:
-            d = self._construct_axes_dict(self._AXIS_ORDERS, copy=False)
-        else:
-            d = dict()
-
-        # if ndim of result is the same as self we return the same object
-        # otherwise we just return the NumPy array
-        if result.ndim == self.ndim:
-            return self._constructor(result, **d).__finalize__(
-                self, method="__array_wrap__"
-            )
-        else:
-            return result
+        d = self._construct_axes_dict(self._AXIS_ORDERS, copy=False)
+        return self._constructor(result, **d).__finalize__(
+            self, method="__array_wrap__"
+        )
 
     # ideally we would define this to avoid the getattr checks, but
     # is slower
