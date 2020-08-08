@@ -1,8 +1,11 @@
+import pytest
+
 import pandas as pd
 import pandas._testing as tm
 
 
-def test_idxmax():
+@pytest.mark.parametrize("keep", ["first", "last", "all", "invalid_parameter"])
+def test_idxmax(keep):
     # GH#35257
     df = pd.DataFrame(
         {
@@ -12,19 +15,26 @@ def test_idxmax():
         },
         index=["A", "B", "C", "D", "E", "F", "G", "H"],
     )
-    assert all(
-        df.idxmax(keep="last") == pd.Series(["F", "H", "G"], index=["a", "b", "c"])
-    )
-    tm.assert_series_equal(
-        df.idxmax(keep="all"),
-        pd.Series([["B", "F"], ["A", "H"], ["B", "G"]], index=["a", "b", "c"]),
-    )
-    assert all(
-        df.idxmax(keep="first") == pd.Series(["B", "A", "B"], index=["a", "b", "c"])
-    )
+
+    if keep == "first":
+        expected = pd.Series(["B", "A", "B"], index=["a", "b", "c"])
+    elif keep == "last":
+        expected = pd.Series(["F", "H", "G"], index=["a", "b", "c"])
+    elif keep == "all":
+        expected = pd.Series(
+            [["B", "F"], ["A", "H"], ["B", "G"]], index=["a", "b", "c"]
+        )
+    else:
+        try:
+            result = df.idxmax(keep=keep)
+        except ValueError:
+            return True
+    result = df.idxmax(keep=keep)
+    tm.assert_series_equal(result, expected)
 
 
-def test_idxmin():
+@pytest.mark.parametrize("keep", ["first", "last", "all", "invalid_parameter"])
+def test_idxmin(keep):
     # GH#35257
     df = pd.DataFrame(
         {
@@ -34,13 +44,16 @@ def test_idxmin():
         },
         index=["A", "B", "C", "D", "E", "F", "G", "H"],
     )
-    assert all(
-        df.idxmin(keep="last") == pd.Series(["A", "F", "E"], index=["a", "b", "c"])
-    )
-    tm.assert_series_equal(
-        df.idxmin(keep="all"),
-        pd.Series([["A"], ["E", "F"], ["A", "E"]], index=["a", "b", "c"]),
-    )
-    assert all(
-        df.idxmin(keep="first") == pd.Series(["A", "E", "A"], index=["a", "b", "c"])
-    )
+    if keep == "first":
+        expected = pd.Series(["A", "E", "A"], index=["a", "b", "c"])
+    elif keep == "last":
+        expected = pd.Series(["A", "F", "E"], index=["a", "b", "c"])
+    elif keep == "all":
+        expected = pd.Series([["A"], ["E", "F"], ["A", "E"]], index=["a", "b", "c"])
+    else:
+        try:
+            result = df.idxmin(keep=keep)
+        except ValueError:
+            return True
+    result = df.idxmin(keep=keep)
+    tm.assert_series_equal(result, expected)
