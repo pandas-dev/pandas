@@ -733,7 +733,7 @@ b  2""",
 
     plot = property(GroupByPlot)
 
-    def _make_wrapper(self, name):
+    def _make_wrapper(self, name):        
         assert name in self._apply_allowlist
 
         with _group_selection_context(self):
@@ -1789,7 +1789,14 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         if limit is None:
             limit = -1
 
-        return self._get_cythonized_result(
+        def _post(values, inferences):
+            if not self.dropna:
+                return values
+            mask = DataFrame(self.grouper.codes).eq(-1).any()
+            values[mask] = np.nan
+            return values
+        
+        res = self._get_cythonized_result(
             "group_fillna_indexer",
             numeric_only=False,
             needs_mask=True,
@@ -1797,7 +1804,10 @@ class GroupBy(_GroupBy[FrameOrSeries]):
             result_is_index=True,
             direction=direction,
             limit=limit,
+            post_processing=_post,
         )
+        
+        return res
 
     @Substitution(name="groupby")
     def pad(self, limit=None):
@@ -2532,7 +2542,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         # error_msg is "" on an frame/series with no rows or columns
         if len(output) == 0 and error_msg != "":
             raise TypeError(error_msg)
-
+        
         if aggregate:
             return self._wrap_aggregated_output(output)
         else:
