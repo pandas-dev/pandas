@@ -275,7 +275,7 @@ cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo t
         int64_t[:] deltas
         str typ
         Py_ssize_t[:] pos
-        int64_t delta, local_val
+        int64_t local_val, delta = NPY_NAT
         bint use_utc = False, use_tzlocal = False, use_fixed = False
 
     if is_utc(tz) or tz is None:
@@ -380,7 +380,7 @@ def dt64arr_to_periodarr(const int64_t[:] stamps, int freq, tzinfo tz):
         int64_t[:] deltas
         Py_ssize_t[:] pos
         npy_datetimestruct dts
-        int64_t local_val
+        int64_t local_val, delta = NPY_NAT
         bint use_utc = False, use_tzlocal = False, use_fixed = False
 
     if is_utc(tz) or tz is None:
