@@ -192,7 +192,11 @@ bar2,12,13,14,15
         pytest.importorskip(module)
 
         path = os.path.join("~", "does_not_exist." + fn_ext)
-        monkeypatch.setattr(icom, "_expand_user", lambda x: os.path.join("foo", x))
+
+        def _fake_expand_user(filename, fallback=True):
+            return os.path.join("foo", filename)
+
+        monkeypatch.setattr(icom, "_expand_user", _fake_expand_user)
 
         msg1 = fr"File (b')?.+does_not_exist\.{fn_ext}'? does not exist"
         msg2 = fr"\[Errno 2\] No such file or directory: '.+does_not_exist\.{fn_ext}'"

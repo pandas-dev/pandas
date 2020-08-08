@@ -85,6 +85,7 @@ def _expand_user(
     filepath_or_buffer : object to be converted if possible
 
     fallback : safely return the unchanged input object if expansion fails
+
     Returns
     -------
     expanded_filepath_or_buffer : an expanded filepath or the
@@ -126,7 +127,7 @@ def stringify_path(
     Anything that is not path-like is returned unchanged.
     This function is an alias for _expand_user
     """
-    return _expand_user(filepath_or_buffer)
+    return _expand_user(filepath_or_buffer, True)
 
 
 def urlopen(*args, **kwargs):
