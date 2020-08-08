@@ -345,10 +345,13 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     def __array_wrap__(self, result, context=None):
         """
-        Gets called after a ufunc. Needs additional handling as
-        PeriodIndex stores internal data as int dtype
+        Gets called after a ufunc and other functions.
 
-        Replace this to __numpy_ufunc__ in future version
+        Needs additional handling as PeriodIndex stores internal data as int
+        dtype
+
+        Replace this to __numpy_ufunc__ in future version and implement
+        __array_function__ for Indexes
         """
         if isinstance(context, tuple) and len(context) > 0:
             func = context[0]
