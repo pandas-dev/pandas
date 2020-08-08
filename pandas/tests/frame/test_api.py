@@ -367,6 +367,13 @@ class TestDataFrameMisc:
         assert df.to_numpy(copy=False).base is arr
         assert df.to_numpy(copy=True).base is not arr
 
+    def test_to_numpy_mixed_dtype_to_str(self):
+        # https://github.com/pandas-dev/pandas/issues/35455
+        df = pd.DataFrame([[pd.Timestamp("2020-01-01 00:00:00"), 100.0]])
+        result = df.to_numpy(dtype=str)
+        expected = np.array([["2020-01-01 00:00:00", "100.0"]], dtype=str)
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_swapaxes(self):
         df = DataFrame(np.random.randn(10, 5))
         tm.assert_frame_equal(df.T, df.swapaxes(0, 1))
