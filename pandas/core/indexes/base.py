@@ -4242,7 +4242,6 @@ class Index(IndexOpsMixin, PandasObject):
             and type(other) is not type(self)
             and other.equals is not self.equals
         ):
-            breakpoint()
             return other.equals(self)
 
         return array_equivalent(self._values, other._values)
