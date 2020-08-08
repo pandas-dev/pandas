@@ -867,6 +867,8 @@ class BlockManager(PandasObject):
             dtype = dtype.subtype
         elif is_extension_array_dtype(dtype):
             dtype = "object"
+        elif is_dtype_equal(dtype, str):
+            dtype = "object"
 
         result = np.empty(self.shape, dtype=dtype)
 
