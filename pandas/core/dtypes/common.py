@@ -9,7 +9,7 @@ import numpy as np
 
 from pandas._libs import Interval, Period, algos
 from pandas._libs.tslibs import conversion
-from pandas._typing import ArrayLike, DtypeObj
+from pandas._typing import ArrayLike, DtypeObj, Optional
 
 from pandas.core.dtypes.base import registry
 from pandas.core.dtypes.dtypes import (
@@ -1732,7 +1732,7 @@ def _validate_date_like_dtype(dtype) -> None:
         )
 
 
-def validate_all_hashable(*args, error_name=None) -> None:
+def validate_all_hashable(*args, error_name: Optional[str] = None) -> None:
     """
     Return None if all args are hashable, else raise a TypeError.
 
