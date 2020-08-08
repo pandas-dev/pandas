@@ -38,10 +38,9 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
-from pandas.core.dtypes.missing import array_equivalent, isna
+from pandas.core.dtypes.missing import array_equals, isna
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
@@ -59,7 +58,7 @@ from pandas.core.internals.blocks import (
     get_block_type,
     make_block,
 )
-from pandas.core.internals.ops import operate_blockwise
+from pandas.core.internals.ops import blockwise_all, operate_blockwise
 
 # TODO: flexible with index=None and/or items=None
 
@@ -322,7 +321,7 @@ class BlockManager(PandasObject):
         mgr_shape = self.shape
         tot_items = sum(len(x.mgr_locs) for x in self.blocks)
         for block in self.blocks:
-            if block._verify_integrity and block.shape[1:] != mgr_shape[1:]:
+            if block.shape[1:] != mgr_shape[1:]:
                 raise construction_error(tot_items, block.shape[1:], self.axes)
         if len(self.items) != tot_items:
             raise AssertionError(
@@ -561,6 +560,24 @@ class BlockManager(PandasObject):
         return self.apply("interpolate", **kwargs)
 
     def shift(self, periods: int, axis: int, fill_value) -> "BlockManager":
+        if axis == 0 and self.ndim == 2 and self.nblocks > 1:
+            # GH#35488 we need to watch out for multi-block cases
+            ncols = self.shape[0]
+            if periods > 0:
+                indexer = [-1] * periods + list(range(ncols - periods))
+            else:
+                nper = abs(periods)
+                indexer = list(range(nper, ncols)) + [-1] * nper
+            result = self.reindex_indexer(
+                self.items,
+                indexer,
+                axis=0,
+                fill_value=fill_value,
+                allow_dups=True,
+                consolidate=False,
+            )
+            return result
+
         return self.apply("shift", periods=periods, axis=axis, fill_value=fill_value)
 
     def fillna(self, value, limit, inplace: bool, downcast) -> "BlockManager":
@@ -858,6 +875,8 @@ class BlockManager(PandasObject):
         if isinstance(dtype, SparseDtype):
             dtype = dtype.subtype
         elif is_extension_array_dtype(dtype):
+            dtype = "object"
+        elif is_dtype_equal(dtype, str):
             dtype = "object"
 
         result = np.empty(self.shape, dtype=dtype)
@@ -1223,6 +1242,7 @@ class BlockManager(PandasObject):
         fill_value=None,
         allow_dups: bool = False,
         copy: bool = True,
+        consolidate: bool = True,
     ) -> T:
         """
         Parameters
@@ -1233,7 +1253,8 @@ class BlockManager(PandasObject):
         fill_value : object, default None
         allow_dups : bool, default False
         copy : bool, default True
-
+        consolidate: bool, default True
+            Whether to consolidate inplace before reindexing.
 
         pandas-indexer with -1's only.
         """
@@ -1246,7 +1267,8 @@ class BlockManager(PandasObject):
             result.axes[axis] = new_axis
             return result
 
-        self._consolidate_inplace()
+        if consolidate:
+            self._consolidate_inplace()
 
         # some axes don't allow reindexing with dups
         if not allow_dups:
@@ -1438,26 +1460,9 @@ class BlockManager(PandasObject):
                 return False
             left = self.blocks[0].values
             right = other.blocks[0].values
-            if not is_dtype_equal(left.dtype, right.dtype):
-                return False
-            elif isinstance(left, ExtensionArray):
-                return left.equals(right)
-            else:
-                return array_equivalent(left, right)
+            return array_equals(left, right)
 
-        for i in range(len(self.items)):
-            # Check column-wise, return False if any column doesnt match
-            left = self.iget_values(i)
-            right = other.iget_values(i)
-            if not is_dtype_equal(left.dtype, right.dtype):
-                return False
-            elif isinstance(left, ExtensionArray):
-                if not left.equals(right):
-                    return False
-            else:
-                if not array_equivalent(left, right):
-                    return False
-        return True
+        return blockwise_all(self, other, array_equals)
 
     def unstack(self, unstacker, fill_value) -> "BlockManager":
         """

@@ -35,11 +35,11 @@ from pandas._typing import FrameOrSeries, FrameOrSeriesUnion
 from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.dtypes.cast import (
+    find_common_type,
     maybe_cast_result,
     maybe_cast_result_dtype,
     maybe_convert_objects,
     maybe_downcast_numeric,
-    maybe_downcast_to_dtype,
 )
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -513,7 +513,6 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         Transform with a non-str `func`.
         """
-
         if maybe_use_numba(engine):
             numba_func, cache_key = generate_numba_func(
                 func, engine_kwargs, kwargs, "groupby_transform"
@@ -535,24 +534,23 @@ class SeriesGroupBy(GroupBy[Series]):
             if isinstance(res, (ABCDataFrame, ABCSeries)):
                 res = res._values
 
-            indexer = self._get_index(name)
-            ser = klass(res, indexer)
-            results.append(ser)
+            results.append(klass(res, index=group.index))
 
         # check for empty "results" to avoid concat ValueError
         if results:
             from pandas.core.reshape.concat import concat
 
-            result = concat(results).sort_index()
+            concatenated = concat(results)
+            result = self._set_result_index_ordered(concatenated)
         else:
             result = self.obj._constructor(dtype=np.float64)
-
         # we will only try to coerce the result type if
         # we have a numeric dtype, as these are *always* user-defined funcs
         # the cython take a different path (and casting)
-        dtype = self._selected_obj.dtype
-        if is_numeric_dtype(dtype):
-            result = maybe_downcast_to_dtype(result, dtype)
+        if is_numeric_dtype(result.dtype):
+            common_dtype = find_common_type([self._selected_obj.dtype, result.dtype])
+            if common_dtype is result.dtype:
+                result = maybe_downcast_numeric(result, self._selected_obj.dtype)
 
         result.name = self._selected_obj.name
         result.index = self._selected_obj.index
@@ -681,8 +679,8 @@ class SeriesGroupBy(GroupBy[Series]):
         self, normalize=False, sort=True, ascending=False, bins=None, dropna=True
     ):
 
-        from pandas.core.reshape.tile import cut
         from pandas.core.reshape.merge import _get_join_indexers
+        from pandas.core.reshape.tile import cut
 
         if bins is not None and not np.iterable(bins):
             # scalar bins cannot be done at top level
@@ -963,17 +961,22 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # try to treat as if we are passing a list
                 try:
                     result = self._aggregate_multiple_funcs([func], _axis=self.axis)
-                except ValueError as err:
-                    if "no results" not in str(err):
-                        # raised directly by _aggregate_multiple_funcs
-                        raise
-                    result = self._aggregate_frame(func)
-                else:
+
                     # select everything except for the last level, which is the one
                     # containing the name of the function(s), see GH 32040
                     result.columns = result.columns.rename(
                         [self._selected_obj.columns.name] * result.columns.nlevels
                     ).droplevel(-1)
+
+                except ValueError as err:
+                    if "no results" not in str(err):
+                        # raised directly by _aggregate_multiple_funcs
+                        raise
+                    result = self._aggregate_frame(func)
+                except AttributeError:
+                    # catch exception from line 969
+                    # (Series does not have attribute "columns"), see GH 35246
+                    result = self._aggregate_frame(func)
 
         if relabeling:
 
@@ -1824,7 +1827,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
         blocks = [make_block(val, placement=loc) for val, loc in zip(counted, locs)]
 
-        return self._wrap_agged_blocks(blocks, items=data.items)
+        # If we are grouping on categoricals we want unobserved categories to
+        # return zero, rather than the default of NaN which the reindexing in
+        # _wrap_agged_blocks() returns. GH 35028
+        with com.temp_setattr(self, "observed", True):
+            result = self._wrap_agged_blocks(blocks, items=data.items)
+
+        return self._reindex_output(result, fill_value=0)
 
     def nunique(self, dropna: bool = True):
         """

@@ -15,7 +15,8 @@ df1 = DataFrame(
 )
 # the ignore on the following line accounts for to_csv returning Optional(str)
 # in general, but always str in the case we give no filename
-text = df1.to_csv(index=False).encode()  # type: ignore
+# error: Item "None" of "Optional[str]" has no attribute "encode"
+text = df1.to_csv(index=False).encode()  # type: ignore[union-attr]
 
 
 @pytest.fixture
@@ -37,8 +38,8 @@ def test_read_csv(cleared_fs):
 
 
 def test_reasonable_error(monkeypatch, cleared_fs):
-    from fsspec.registry import known_implementations
     from fsspec import registry
+    from fsspec.registry import known_implementations
 
     registry.target.clear()
     with pytest.raises(ValueError) as e:
