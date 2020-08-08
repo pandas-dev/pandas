@@ -333,7 +333,7 @@ def is_date_array_normalized(const int64_t[:] stamps, tzinfo tz=None):
         ndarray[int64_t] trans
         int64_t[:] deltas
         intp_t[:] pos
-        int64_t local_val, delta
+        int64_t local_val, delta = NPY_NAT
         str typ
         int64_t day_nanos = 24 * 3600 * 1_000_000_000
         bint use_utc = False, use_tzlocal = False, use_fixed = False
