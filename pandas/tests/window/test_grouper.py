@@ -214,3 +214,93 @@ class TestGrouperGrouping:
             name="value",
         )
         tm.assert_series_equal(result, expected)
+
+    def test_groupby_rolling_center_center(self):
+        # GH 35552
+        series = Series(range(1, 6))
+        result = series.groupby(series).rolling(center=True, window=3).mean()
+        expected = Series(
+            [np.nan] * 5,
+            index=pd.MultiIndex.from_tuples(((1, 0), (2, 1), (3, 2), (4, 3), (5, 4))),
+        )
+        tm.assert_series_equal(result, expected)
+
+        series = Series(range(1, 5))
+        result = series.groupby(series).rolling(center=True, window=3).mean()
+        expected = Series(
+            [np.nan] * 4,
+            index=pd.MultiIndex.from_tuples(((1, 0), (2, 1), (3, 2), (4, 3))),
+        )
+        tm.assert_series_equal(result, expected)
+
+        df = pd.DataFrame({"a": ["a"] * 5 + ["b"] * 6, "b": range(11)})
+        result = df.groupby("a").rolling(center=True, window=3).mean()
+        expected = pd.DataFrame(
+            [np.nan, 1, 2, 3, np.nan, np.nan, 6, 7, 8, 9, np.nan],
+            index=pd.MultiIndex.from_tuples(
+                (
+                    ("a", 0),
+                    ("a", 1),
+                    ("a", 2),
+                    ("a", 3),
+                    ("a", 4),
+                    ("b", 5),
+                    ("b", 6),
+                    ("b", 7),
+                    ("b", 8),
+                    ("b", 9),
+                    ("b", 10),
+                ),
+                names=["a", None],
+            ),
+            columns=["b"],
+        )
+        tm.assert_frame_equal(result, expected)
+
+        df = pd.DataFrame({"a": ["a"] * 5 + ["b"] * 5, "b": range(10)})
+        result = df.groupby("a").rolling(center=True, window=3).mean()
+        expected = pd.DataFrame(
+            [np.nan, 1, 2, 3, np.nan, np.nan, 6, 7, 8, np.nan],
+            index=pd.MultiIndex.from_tuples(
+                (
+                    ("a", 0),
+                    ("a", 1),
+                    ("a", 2),
+                    ("a", 3),
+                    ("a", 4),
+                    ("b", 5),
+                    ("b", 6),
+                    ("b", 7),
+                    ("b", 8),
+                    ("b", 9),
+                ),
+                names=["a", None],
+            ),
+            columns=["b"],
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_groupby_subselect_rolling(self):
+        # GH 35486
+        df = DataFrame(
+            {"a": [1, 2, 3, 2], "b": [4.0, 2.0, 3.0, 1.0], "c": [10, 20, 30, 20]}
+        )
+        result = df.groupby("a")[["b"]].rolling(2).max()
+        expected = DataFrame(
+            [np.nan, np.nan, 2.0, np.nan],
+            columns=["b"],
+            index=pd.MultiIndex.from_tuples(
+                ((1, 0), (2, 1), (2, 3), (3, 2)), names=["a", None]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+        result = df.groupby("a")["b"].rolling(2).max()
+        expected = Series(
+            [np.nan, np.nan, 2.0, np.nan],
+            index=pd.MultiIndex.from_tuples(
+                ((1, 0), (2, 1), (2, 3), (3, 2)), names=["a", None]
+            ),
+            name="b",
+        )
+        tm.assert_series_equal(result, expected)

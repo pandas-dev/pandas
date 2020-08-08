@@ -427,7 +427,8 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     if is_categorical_dtype(comps):
         # TODO(extension)
         # handle categoricals
-        return comps.isin(values)  # type: ignore
+        # error: "ExtensionArray" has no attribute "isin"  [attr-defined]
+        return comps.isin(values)  # type: ignore[attr-defined]
 
     comps, dtype = _ensure_data(comps)
     values, _ = _ensure_data(values, dtype=dtype)
