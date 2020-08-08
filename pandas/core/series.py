@@ -1786,7 +1786,7 @@ Name: Max Speed, dtype: float64
 
     def mode(self, dropna=True) -> "Series":
         """
-        Return the mode(s) of the dataset.
+        Return the mode(s) of the series.
 
         Always returns Series even if only one value is returned.
 
