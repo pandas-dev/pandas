@@ -54,6 +54,7 @@ For example:
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - :class:`Index` with object dtype supports division and multiplication (:issue:`34160`)
+- :meth:`Styler.set_table_styles` now allows the direct styling of rows and columns and can be chained (:issue:`35607`)
 -
 -
 

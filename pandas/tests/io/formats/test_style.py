@@ -1692,6 +1692,7 @@ class TestStyler:
         assert s.find('<td  class="data row0 col0" >') != -1
 
     def test_chaining_table_styles(self):
+        # GH 35607
         df = pd.DataFrame(data=[[0, 1], [1, 2]], columns=["A", "B"])
         styler = df.style.set_table_styles(
             [{"selector": "", "props": [("background-color", "yellow")]}]
@@ -1702,6 +1703,7 @@ class TestStyler:
         assert len(styler.table_styles) == 2
 
     def test_column_and_row_styling(self):
+        # GH 35607
         df = pd.DataFrame(data=[[0, 1], [1, 2]], columns=["A", "B"])
         s = Styler(df, uuid="_")
         s = s.set_table_styles({"A": [{"selector": "", "props": [("color", "blue")]}]})

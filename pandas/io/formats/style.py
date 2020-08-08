@@ -933,14 +933,22 @@ class Styler:
             in their respective tuple form. The dict values should be
             a list as specified in the form with CSS selectors and
             props that will be applied to the specified row or column.
+
+            .. versionchanged:: 1.2.0
+
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``). Only used if `table_styles` is
             dict.
+
+            .. versionadded:: 1.2.0
+
         overwrite : boolean, default True
             Styles are replaced if `True`, or extended if `False`. CSS
             rules are preserved so most recent styles set will dominate
             if selectors intersect.
+
+            .. versionadded:: 1.2.0
 
         Returns
         -------
@@ -954,33 +962,38 @@ class Styler:
         ...     [{'selector': 'tr:hover',
         ...       'props': [('background-color', 'yellow')]}]
         ... )
+
+        Adding column styling by name
+
         >>> df.style.set_table_styles({
         ...     'A': [{'selector': '',
         ...            'props': [('color', 'red')]}],
         ...     'B': [{'selector': 'td',
         ...            'props': [('color', 'blue')]}]
         ... }, overwrite=False)
+
+        Adding row styling
+
         >>> df.style.set_table_styles({
         ...     0: [{'selector': 'td:hover',
         ...          'props': [('font-size', '25px')]}]
         ... }, axis=1, overwrite=False)
         """
-        if isinstance(table_styles, dict):
-            if axis == 0 or axis == "index":
-                obj = self.data.columns
-                idf = ".col"
+        if is_dict_like(table_styles):
+            if axis in [0, "index"]:
+                obj, idf = self.data.columns, ".col"
             else:
-                obj = self.data.index
-                idf = ".row"
+                obj, idf = self.data.index, ".row"
 
-            _styles = []
-            for key, styles in table_styles.items():
-                for s in styles:
-                    c = str(obj.get_loc(key))
-                    _styles.append(
-                        {"selector": s["selector"] + idf + c, "props": s["props"]}
-                    )
-            table_styles = _styles
+            table_styles = [
+                {
+                    "selector": s["selector"] + idf + str(obj.get_loc(key)),
+                    "props": s["props"],
+                }
+                for key, styles in table_styles.items()
+                for s in styles
+            ]
+
         if not overwrite and self.table_styles is not None:
             self.table_styles.extend(table_styles)
         else:
