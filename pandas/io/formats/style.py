@@ -18,7 +18,7 @@ from typing import (
     Tuple,
     Union,
 )
-from uuid import uuid1
+from uuid import uuid4
 
 import numpy as np
 
@@ -159,7 +159,7 @@ class Styler:
         self.index = data.index
         self.columns = data.columns
 
-        self.uuid = uuid
+        self.uuid = uuid or (uuid4().hex[:6] + "_")
         self.table_styles = table_styles
         self.caption = caption
         if precision is None:
@@ -170,6 +170,11 @@ class Styler:
         self.hidden_columns: Sequence[int] = []
         self.cell_ids = cell_ids
         self.na_rep = na_rep
+
+        self.tooltip_styles = None  # VERSION ADDED 1.X
+        self.tooltip_class = None
+        self.tooltip_class_styles = None
+        self.set_tooltip_class(name='pd-t', properties=None)
 
         # display_funcs maps (row, col) -> formatting function
 
@@ -246,7 +251,7 @@ class Styler:
         precision = self.precision
         hidden_index = self.hidden_index
         hidden_columns = self.hidden_columns
-        uuid = self.uuid or str(uuid1()).replace("-", "_")
+        uuid = self.uuid
         ROW_HEADING_CLASS = "row_heading"
         COL_HEADING_CLASS = "col_heading"
         INDEX_NAME_CLASS = "index_name"
@@ -801,6 +806,124 @@ class Styler:
         return self.applymap(
             lambda val: value if cond(val) else other, subset=subset, **kwargs
         )
+
+    def set_tooltips(self, ttips: DataFrame):
+        """
+        Add string based tooltips that will appear in the `Styler` HTML result.
+
+        Parameters
+        ----------
+        ttips : DataFrame
+            DataFrame containing strings that will be translated to tooltips. Empty
+            strings, None, or NaN values will be ignored. DataFrame must have
+            identical rows and columns to the underlying `Styler` data.
+
+        Returns
+        -------
+        self : Styler
+
+        Notes
+        -----
+        Tooltips are created by adding `<span class="pd-t"></span>` to each data cell
+        and then manipulating the table level CSS to attach pseudo hover and pseudo after
+        selectors to produce the required the results. For styling control
+        see `:meth:Styler.set_tooltips_class`.
+        Tooltips are not designed to be efficient, and can add large amounts of additional
+        HTML for larger tables, since they also require that `cell_ids` is forced to `True`.
+
+        :param ttips:
+        :return:
+        """
+        if not (self.columns.equals(ttips.columns) and self.index.equals(ttips.index)):
+            raise AttributeError('Tooltips DataFrame must have identical column and index labelling to underlying.')
+
+        self.cell_ids = True  # tooltips only work with individual cell_ids
+        self.tooltip_styles = []
+        for i, rn in enumerate(ttips.index):
+            for j, cn in enumerate(ttips.columns):
+                if ttips.iloc[i, j] in [np.nan, '', None]:
+                    continue
+                else:
+                    # add pseudo-class and pseudo-elements to css to create tips
+                    self.tooltip_styles.extend([
+                        {'selector': '#T_' + self.uuid + 'row' + str(i) + '_col' + str(j) + f':hover .{self.tooltip_class}',
+                         'props': [('visibility', 'visible')]},
+                        {'selector': '#T_' + self.uuid + 'row' + str(i) + '_col' + str(j) + f' .{self.tooltip_class}::after',
+                         'props': [('content', f'"{str(ttips.iloc[i, j])}"')]}])
+
+        return self
+
+    def set_tooltip_class(self, name='pd-t', properties=None):
+        """
+        Method to set the name and properties of the class for creating tooltips on hover.
+
+        Parameters
+        ----------
+        name : str, default 'pd-t'
+            Name of the tooltip class used in CSS, should conform to HTML standards.
+        properties : list-like, default None
+            List of (attr, value) tuples; see example. If `None` will use defaults.
+
+        Returns
+        -------
+        self : Styler
+
+        Notes
+        -----
+        Default properties for the tooltip class are as follows:
+
+        - visibility: hidden
+        - position: absolute
+        - z-index: 1
+        - background-color: black
+        - color: white
+        - transform: translate(-20px, -20px)
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(np.random.randn(10, 4))
+        >>> df.style.set_tooltip_class(name='tt-add', properties=[
+        ...     ('visibility', 'hidden'),
+        ...     ('position', 'absolute'),
+        ...     ('z-index', 1)])
+        """
+        if properties is None:
+            properties= [  # set default
+                ('visibility', 'hidden'),
+                ('position', 'absolute'),
+                ('z-index', 1),
+                ('background-color', 'black'),
+                ('color', 'white'),
+                ('transform', 'translate(-20px, -20px)')
+            ]
+        self.tooltip_class = name
+
+        self.tooltip_class_styles = [
+            {'selector': f'.{self.tooltip_class}',
+             'props': properties
+             }
+        ]
+        return self
+
+    def _render_tooltips(self, d):
+        """
+        Mutate the render dictionary to allow for tooltips:
+
+        - Add `<span>` HTML element to each data cells `display_value`. Ignores headers.
+        - Add table level CSS styles to control pseudo classes.
+
+        Parameters
+        ----------
+        d : dict
+            The dictionary prior to rendering
+        """
+        if self.tooltip_styles:
+            for row in d['body']:
+                for item in row:
+                    if item['type'] == 'td':
+                        item['display_value'] = str(item['display_value']) + f'<span class="{self.tooltip_class}"></span>'
+            d['table_styles'].extend(self.tooltip_class_styles)
+            d['table_styles'].extend(self.tooltip_styles)
 
     def set_precision(self, precision: int) -> "Styler":
         """
