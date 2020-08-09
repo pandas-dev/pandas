@@ -54,11 +54,15 @@ bar2,12,13,14,15
 
     def test_expand_user(self):
         filename = "~/sometest"
-        expanded_name = icom._expand_user(filename)
+        expanded_name1 = icom._expand_user(filename)
+        expanded_name2 = icom._expand_user(Path(filename))
+        expanded_name3 = icom._expand_user(bytes(filename, "utf-8"))
 
-        assert expanded_name != filename
-        assert os.path.isabs(expanded_name)
-        assert os.path.expanduser(filename) == expanded_name
+        assert expanded_name1 != filename
+        assert os.path.isabs(expanded_name1)
+        assert os.path.expanduser(filename) == expanded_name1
+        assert expanded_name2 == expanded_name1
+        assert expanded_name3 == bytes(expanded_name1, "utf-8")
 
     def test_expand_user_normal_path(self):
         filename = "/somefolder/sometest"
@@ -72,6 +76,13 @@ bar2,12,13,14,15
         assert rel_path == "."
         redundant_path = icom.stringify_path(Path("foo//bar"))
         assert redundant_path == os.path.join("foo", "bar")
+
+    def test_stringify_path_bytes(self):
+        filename = "~/sometest"
+        expanded_name1 = icom.stringify_path(filename)
+        expanded_name2 = icom.stringify_path(bytes(filename, "utf-8"))
+        assert type(expanded_name2) is bytes
+        assert expanded_name2.decode() == expanded_name1
 
     @td.skip_if_no("py.path")
     def test_stringify_path_localpath(self):
