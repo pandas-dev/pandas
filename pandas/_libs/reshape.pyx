@@ -1,5 +1,3 @@
-from collections import abc
-
 import cython
 from cython import Py_ssize_t
 
@@ -126,11 +124,10 @@ def explode(ndarray[object] values):
     counts = np.zeros(n, dtype='int64')
     for i in range(n):
         v = values[i]
-        if isinstance(v, abc.Set):
-            v = list(v)
 
-        if c_is_list_like(v, False):
+        if c_is_list_like(v, True):
             if len(v):
+                v = list(v)
                 counts[i] += len(v)
             else:
                 # empty list-like, use a nan marker
@@ -142,11 +139,10 @@ def explode(ndarray[object] values):
     count = 0
     for i in range(n):
         v = values[i]
-        if isinstance(v, abc.Set):
-            v = list(v)
 
-        if c_is_list_like(v, False):
+        if c_is_list_like(v, True):
             if len(v):
+                v = list(v)
                 for j in range(len(v)):
                     result[count] = v[j]
                     count += 1
