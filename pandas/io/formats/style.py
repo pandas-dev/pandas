@@ -174,7 +174,7 @@ class Styler:
         self.tooltip_styles = None  # VERSION ADDED 1.X
         self.tooltip_class = None
         self.tooltip_class_styles = None
-        self.set_tooltip_class(name='pd-t', properties=None)
+        self.set_tooltip_class(name="pd-t", properties=None)
 
         # display_funcs maps (row, col) -> formatting function
 
@@ -835,25 +835,46 @@ class Styler:
         :return:
         """
         if not (self.columns.equals(ttips.columns) and self.index.equals(ttips.index)):
-            raise AttributeError('Tooltips DataFrame must have identical column and index labelling to underlying.')
+            raise AttributeError(
+                "Tooltips DataFrame must have identical column and index labelling to underlying."
+            )
 
         self.cell_ids = True  # tooltips only work with individual cell_ids
         self.tooltip_styles = []
         for i, rn in enumerate(ttips.index):
             for j, cn in enumerate(ttips.columns):
-                if ttips.iloc[i, j] in [np.nan, '', None]:
+                if ttips.iloc[i, j] in [np.nan, "", None]:
                     continue
                 else:
                     # add pseudo-class and pseudo-elements to css to create tips
-                    self.tooltip_styles.extend([
-                        {'selector': '#T_' + self.uuid + 'row' + str(i) + '_col' + str(j) + f':hover .{self.tooltip_class}',
-                         'props': [('visibility', 'visible')]},
-                        {'selector': '#T_' + self.uuid + 'row' + str(i) + '_col' + str(j) + f' .{self.tooltip_class}::after',
-                         'props': [('content', f'"{str(ttips.iloc[i, j])}"')]}])
+                    self.tooltip_styles.extend(
+                        [
+                            {
+                                "selector": "#T_"
+                                + self.uuid
+                                + "row"
+                                + str(i)
+                                + "_col"
+                                + str(j)
+                                + f":hover .{self.tooltip_class}",
+                                "props": [("visibility", "visible")],
+                            },
+                            {
+                                "selector": "#T_"
+                                + self.uuid
+                                + "row"
+                                + str(i)
+                                + "_col"
+                                + str(j)
+                                + f" .{self.tooltip_class}::after",
+                                "props": [("content", f'"{str(ttips.iloc[i, j])}"')],
+                            },
+                        ]
+                    )
 
         return self
 
-    def set_tooltip_class(self, name='pd-t', properties=None):
+    def set_tooltip_class(self, name="pd-t", properties=None):
         """
         Method to set the name and properties of the class for creating tooltips on hover.
 
@@ -888,20 +909,18 @@ class Styler:
         ...     ('z-index', 1)])
         """
         if properties is None:
-            properties= [  # set default
-                ('visibility', 'hidden'),
-                ('position', 'absolute'),
-                ('z-index', 1),
-                ('background-color', 'black'),
-                ('color', 'white'),
-                ('transform', 'translate(-20px, -20px)')
+            properties = [  # set default
+                ("visibility", "hidden"),
+                ("position", "absolute"),
+                ("z-index", 1),
+                ("background-color", "black"),
+                ("color", "white"),
+                ("transform", "translate(-20px, -20px)"),
             ]
         self.tooltip_class = name
 
         self.tooltip_class_styles = [
-            {'selector': f'.{self.tooltip_class}',
-             'props': properties
-             }
+            {"selector": f".{self.tooltip_class}", "props": properties}
         ]
         return self
 
@@ -918,12 +937,15 @@ class Styler:
             The dictionary prior to rendering
         """
         if self.tooltip_styles:
-            for row in d['body']:
+            for row in d["body"]:
                 for item in row:
-                    if item['type'] == 'td':
-                        item['display_value'] = str(item['display_value']) + f'<span class="{self.tooltip_class}"></span>'
-            d['table_styles'].extend(self.tooltip_class_styles)
-            d['table_styles'].extend(self.tooltip_styles)
+                    if item["type"] == "td":
+                        item["display_value"] = (
+                            str(item["display_value"])
+                            + f'<span class="{self.tooltip_class}"></span>'
+                        )
+            d["table_styles"].extend(self.tooltip_class_styles)
+            d["table_styles"].extend(self.tooltip_styles)
 
     def set_precision(self, precision: int) -> "Styler":
         """

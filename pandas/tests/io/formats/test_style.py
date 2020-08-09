@@ -1694,14 +1694,22 @@ class TestStyler:
     def test_tooltip_render(self):
         # GH XXXXX
         df = pd.DataFrame(data=[[0, 1], [2, 3]])
-        ttips = pd.DataFrame(data=[['Min', ''], [np.nan, 'Max']], columns=df.columns, index=df.index)
+        ttips = pd.DataFrame(
+            data=[["Min", ""], [np.nan, "Max"]], columns=df.columns, index=df.index
+        )
         s = Styler(df, uuid="_").set_tooltips(ttips)
         # test tooltip table level class
         assert "#T__ .pd-t {" in s.render()
         # test 'min' tooltip added
-        assert '#T__ #T__row0_col0:hover .pd-t {\n          visibility: visible;\n    }    #T__ #T__row0_col0 .pd-t::after {\n          content: "Min";\n    }' in s.render()
+        assert (
+            '#T__ #T__row0_col0:hover .pd-t {\n          visibility: visible;\n    }    #T__ #T__row0_col0 .pd-t::after {\n          content: "Min";\n    }'
+            in s.render()
+        )
         # test 'max' tooltip added
-        assert '#T__ #T__row1_col1:hover .pd-t {\n          visibility: visible;\n    }    #T__ #T__row1_col1 .pd-t::after {\n          content: "Max";\n    }' in s.render()
+        assert (
+            '#T__ #T__row1_col1:hover .pd-t {\n          visibility: visible;\n    }    #T__ #T__row1_col1 .pd-t::after {\n          content: "Max";\n    }'
+            in s.render()
+        )
 
 
 @td.skip_if_no_mpl
