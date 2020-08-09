@@ -1786,7 +1786,7 @@ Name: Max Speed, dtype: float64
 
     def mode(self, dropna=True) -> "Series":
         """
-        Return the mode(s) of the series.
+        Return the mode(s) of the Series.
 
         The mode is the value that appears most often.
         It can be multiple values.
