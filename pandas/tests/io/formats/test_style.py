@@ -1702,14 +1702,14 @@ class TestStyler:
         assert "#T__ .pd-t {" in s.render()
         # test 'min' tooltip added
         assert (
-            "#T__ #T__row0_col0:hover .pd-t {\n          visibility: visible;\n    }    "
-            + '#T__ #T__row0_col0 .pd-t::after {\n          content: "Min";\n    }'
+            "#T__ #T__row0_col0:hover .pd-t {\n          visibility: visible;\n    }  "
+            + '  #T__ #T__row0_col0 .pd-t::after {\n          content: "Min";\n    }'
             in s.render()
         )
         # test 'max' tooltip added
         assert (
-            "#T__ #T__row1_col1:hover .pd-t {\n          visibility: visible;\n    }    "
-            + '#T__ #T__row1_col1 .pd-t::after {\n          content: "Max";\n    }'
+            "#T__ #T__row1_col1:hover .pd-t {\n          visibility: visible;\n    }  "
+            + '  #T__ #T__row1_col1 .pd-t::after {\n          content: "Max";\n    }'
             in s.render()
         )
 

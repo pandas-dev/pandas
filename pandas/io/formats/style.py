@@ -825,11 +825,12 @@ class Styler:
         Notes
         -----
         Tooltips are created by adding `<span class="pd-t"></span>` to each data cell
-        and then manipulating the table level CSS to attach pseudo hover and pseudo after
-        selectors to produce the required the results. For styling control
+        and then manipulating the table level CSS to attach pseudo hover and pseudo
+        after selectors to produce the required the results. For styling control
         see `:meth:Styler.set_tooltips_class`.
-        Tooltips are not designed to be efficient, and can add large amounts of additional
-        HTML for larger tables, since they also require that `cell_ids` is forced to `True`.
+        Tooltips are not designed to be efficient, and can add large amounts of
+        additional HTML for larger tables, since they also require that `cell_ids`
+        is forced to `True`.
 
         :param ttips:
         :return:
@@ -876,7 +877,8 @@ class Styler:
 
     def set_tooltip_class(self, name="pd-t", properties=None):
         """
-        Method to set the name and properties of the class for creating tooltips on hover.
+        Method to set the name and properties of the class for creating tooltips on
+        hover.
 
         Parameters
         ----------
