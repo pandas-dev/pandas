@@ -69,12 +69,16 @@ def test_inplace_mutation_resets_values():
     mi1 = MultiIndex(levels=levels, codes=codes)
     mi2 = MultiIndex(levels=levels2, codes=codes)
 
+    # instantiating MultiIndex should not access/cache _.values
     assert "_values" not in mi1._cache
     assert "_values" not in mi2._cache
 
     vals = mi1.values.copy()
     vals2 = mi2.values.copy()
 
+    # accessing .values should cache ._values
+    assert mi1._values is mi1._cache["_values"]
+    assert mi1.values is mi1._cache["_values"]
     assert isinstance(mi1._cache["_values"], np.ndarray)
 
     # Make sure level setting works
@@ -97,6 +101,7 @@ def test_inplace_mutation_resets_values():
     codes2 = [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]]
     exp_values = np.empty((6,), dtype=object)
     exp_values[:] = [(1, "a")] * 6
+
     # Must be 1d array of tuples
     assert exp_values.shape == (6,)
 
