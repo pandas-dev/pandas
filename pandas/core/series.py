@@ -1788,6 +1788,9 @@ Name: Max Speed, dtype: float64
         """
         Return the mode(s) of the series.
 
+        The mode is the value that appears most often.
+        It can be multiple values.
+
         Always returns Series even if only one value is returned.
 
         Parameters
