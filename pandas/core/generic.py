@@ -3144,6 +3144,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
                 Compression is supported for binary file objects.
 
+            .. versionchanged:: 1.2.0
+
+                Previous versions forwarded dict entries for 'gzip' to
+                `gzip.open` instead of `gzip.GzipFile` which prevented
+                setting `mtime`.
+
         quoting : optional constant from csv module
             Defaults to csv.QUOTE_MINIMAL. If you have set a `float_format`
             then floats are converted to strings and thus csv.QUOTE_NONNUMERIC
