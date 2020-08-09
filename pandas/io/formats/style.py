@@ -837,7 +837,8 @@ class Styler:
         """
         if not (self.columns.equals(ttips.columns) and self.index.equals(ttips.index)):
             raise AttributeError(
-                "Tooltips DataFrame must have identical column and index labelling to underlying."
+                "Tooltips DataFrame must have identical column and index labelling"
+                " to underlying."
             )
 
         self.cell_ids = True  # tooltips only work with individual cell_ids
