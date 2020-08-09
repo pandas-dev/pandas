@@ -550,6 +550,7 @@ class Styler:
         # so we have the nested anys below
         trimmed = [x for x in d["cellstyle"] if any(any(y) for y in x["props"])]
         d["cellstyle"] = trimmed
+        self._render_tooltips(d)
         d.update(kwargs)
         return self.template.render(**d)
 
