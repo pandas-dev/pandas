@@ -171,7 +171,7 @@ class Styler:
         self.cell_ids = cell_ids
         self.na_rep = na_rep
 
-        self.tooltip_styles = []  # VERSION ADDED 1.X
+        self.tooltip_styles: List[Dict[str, object]] = []  # VERSION ADDED 1.X
         self.tooltip_class = None
         self.tooltip_class_styles = None
         self.set_tooltip_class(name="pd-t", properties=None)
