@@ -127,7 +127,6 @@ def explode(ndarray[object] values):
 
         if c_is_list_like(v, True):
             if len(v):
-                v = list(v)
                 counts[i] += len(v)
             else:
                 # empty list-like, use a nan marker
