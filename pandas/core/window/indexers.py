@@ -1,6 +1,6 @@
 """Indexer objects for computing start/end window bounds for rolling operations"""
 from datetime import timedelta
-from typing import Dict, Optional, Tuple, Type, Union
+from typing import Dict, Optional, Tuple, Type
 
 import numpy as np
 
