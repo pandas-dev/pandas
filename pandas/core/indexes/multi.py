@@ -243,7 +243,6 @@ class MultiIndex(Index):
     _comparables = ["names"]
     rename = Index.set_names
 
-    _tuples = None
     sortorder: Optional[int]
 
     # --------------------------------------------------------------------
@@ -634,16 +633,9 @@ class MultiIndex(Index):
 
     # --------------------------------------------------------------------
 
-    @property
+    @cache_readonly
     def _values(self):
         # We override here, since our parent uses _data, which we don't use.
-        return self.values
-
-    @property
-    def values(self):
-        if self._tuples is not None:
-            return self._tuples
-
         values = []
 
         for i in range(self.nlevels):
@@ -657,8 +649,12 @@ class MultiIndex(Index):
             vals = np.array(vals, copy=False)
             values.append(vals)
 
-        self._tuples = lib.fast_zip(values)
-        return self._tuples
+        arr = lib.fast_zip(values)
+        return arr
+
+    @property
+    def values(self):
+        return self._values
 
     @property
     def array(self):
@@ -737,7 +733,6 @@ class MultiIndex(Index):
         if any(names):
             self._set_names(names)
 
-        self._tuples = None
         self._reset_cache()
 
     def set_levels(self, levels, level=None, inplace=None, verify_integrity=True):
@@ -906,7 +901,6 @@ class MultiIndex(Index):
 
         self._codes = new_codes
 
-        self._tuples = None
         self._reset_cache()
 
     def set_codes(self, codes, level=None, inplace=None, verify_integrity=True):
