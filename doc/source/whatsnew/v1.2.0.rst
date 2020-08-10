@@ -51,7 +51,7 @@ For example:
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - :class:`Index` with object dtype supports division and multiplication (:issue:`34160`)
--
+- :meth:`DataFrame.fillna` can fill NA values column-wise with a dictionary or :class:`Series` (:issue:`4514`)
 -
 
 

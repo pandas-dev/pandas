@@ -618,10 +618,6 @@ class TestDataFrameMissingData:
         expected = df.fillna(df.max().to_dict())
         tm.assert_frame_equal(result, expected)
 
-        # disable this for now
-        with pytest.raises(NotImplementedError, match="column by column"):
-            df.fillna(df.max(1), axis=1)
-
     def test_fillna_dataframe(self):
         # GH 8377
         df = DataFrame(
@@ -710,3 +706,94 @@ class TestDataFrameMissingData:
 
         # TODO(wesm): unused?
         result = empty_float.fillna(value=0)  # noqa
+
+    @pytest.mark.parametrize(
+        "expected,fill_value",
+        [
+            (
+                DataFrame(
+                    [[100, 100], [200, 4], [5, 6]], columns=list("AB"), dtype="float64"
+                ),
+                Series([100, 200, 300]),
+            ),
+            (
+                DataFrame(
+                    [[100, 100], [np.nan, 4], [5, 6]],
+                    columns=list("AB"),
+                    dtype="float64",
+                ),
+                {0: 100, 2: 300, 3: 400},
+            ),
+        ],
+    )
+    def test_fillna_column_wise(self, expected, fill_value):
+        # GH 4514
+        df = DataFrame([[np.nan, np.nan], [np.nan, 4], [5, 6]], columns=list("AB"))
+        result = df.fillna(fill_value, axis=1)
+        tm.assert_frame_equal(expected, result)
+
+    def test_fillna_column_wise_downcast(self):
+        # GH 4514
+        df = DataFrame([[np.nan, 2], [3, np.nan], [np.nan, np.nan]], columns=list("AB"))
+        s = Series([100, 200, 300])
+
+        expected = DataFrame(
+            [[100, 2], [3, 200], [300, 300]], columns=list("AB"), dtype="int64"
+        )
+        result = df.fillna(s, axis=1, downcast="infer")
+        tm.assert_frame_equal(expected, result)
+
+    @pytest.mark.parametrize(
+        "fill_value", [Series([100, 200, 300]), {0: 100, 2: 300, 3: 400}]
+    )
+    def test_fillna_column_wise_inplace(self, fill_value):
+        # GH 4514
+        df = DataFrame([[np.nan, np.nan], [np.nan, 4], [5, 6]], columns=list("AB"))
+        expected = df.fillna(fill_value, axis=1, inplace=False)
+        df.fillna(fill_value, axis=1, inplace=True)
+        tm.assert_frame_equal(expected, df)
+
+    @pytest.mark.parametrize(
+        "fill_value",
+        [Series([100, 200, 300], index=[0, 1, 2]), {0: 100, 1: 200, 2: 300}],
+    )
+    def test_fillna_column_wise_duplicated_with_series_dict(self, fill_value):
+        # GH 4514
+        df = DataFrame(
+            [[np.nan, np.nan, 3], [np.nan, 5, np.nan], [7, np.nan, np.nan]],
+            columns=list("ABB"),
+            index=[0, 0, 1],
+        )
+        expected = DataFrame(
+            [[100, 100, 3], [100, 5, 100], [7, 200, 200]],
+            columns=list("ABB"),
+            index=[0, 0, 1],
+            dtype="float64",
+        )
+
+        result = df.fillna(fill_value, axis=1)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "fill_value",
+        [
+            Series([100, 200, 300], index=["A", "B", "C"]),
+            {"A": 100, "B": 200, "C": 300},
+        ],
+    )
+    def test_fillna_duplicated_with_series_dict(self, fill_value):
+        # GH 4514
+        df = DataFrame(
+            [[np.nan, np.nan, 3], [np.nan, 5, np.nan], [7, np.nan, np.nan]],
+            columns=list("ABB"),
+            index=[0, 0, 1],
+        )
+        expected = DataFrame(
+            [[100, 200, 3], [100, 5, 200], [7, 200, 200]],
+            columns=list("ABB"),
+            index=[0, 0, 1],
+            dtype="float64",
+        )
+
+        result = df.fillna(fill_value)
+        tm.assert_frame_equal(result, expected)
