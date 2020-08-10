@@ -15,12 +15,12 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslib import Timestamp
+from pandas.compat import is_platform_windows
 from pandas.errors import DtypeWarning, EmptyDataError, ParserError
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Index, MultiIndex, Series, compat, concat, option_context
 import pandas._testing as tm
-from pandas.compat import is_platform_windows
 
 from pandas.io.parsers import CParserWrapper, TextFileReader, TextParser
 
