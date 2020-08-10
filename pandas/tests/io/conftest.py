@@ -74,8 +74,9 @@ def s3_resource(tips_file, jsonl_file, feather_file):
         try:
             import shlex
             import subprocess
-            import requests
             import time
+
+            import requests
 
             endpoint_uri = "http://127.0.0.1:5555/"
 
