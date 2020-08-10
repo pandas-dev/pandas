@@ -51,6 +51,10 @@ Categorical
 -
 -
 
+**Groupby/resample/rolling**
+
+- Bug in :class:`pandas.core.groupby.RollingGroupby` where passing ``closed`` with column selection would raise a ``ValueError`` (:issue:`35549`)
+
 **Plotting**
 
 -
