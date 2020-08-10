@@ -55,6 +55,7 @@ from pandas._typing import (
     Label,
     Level,
     Renamer,
+    StorageOptions,
     ValueKeyFunc,
 )
 from pandas.compat import PY37
@@ -2058,6 +2059,7 @@ class DataFrame(NDFrame):
         version: Optional[int] = 114,
         convert_strl: Optional[Sequence[Label]] = None,
         compression: Union[str, Mapping[str, str], None] = "infer",
+        storage_options: StorageOptions = None,
     ) -> None:
         """
         Export DataFrame object to Stata dta format.
@@ -2134,6 +2136,16 @@ class DataFrame(NDFrame):
 
             .. versionadded:: 1.1.0
 
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc., if using a URL that will
+            be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+            will be raised if providing this argument with a local path or
+            a file-like buffer. See the fsspec and backend storage implementation
+            docs for the set of allowed keys and values.
+
+            .. versionadded:: 1.2.0
+
         Raises
         ------
         NotImplementedError
@@ -2194,6 +2206,7 @@ class DataFrame(NDFrame):
             write_index=write_index,
             variable_labels=variable_labels,
             compression=compression,
+            storage_options=storage_options,
             **kwargs,
         )
         writer.write_file()
@@ -2246,9 +2259,10 @@ class DataFrame(NDFrame):
     )
     def to_markdown(
         self,
-        buf: Optional[IO[str]] = None,
-        mode: Optional[str] = None,
+        buf: Optional[Union[IO[str], str]] = None,
+        mode: str = "wt",
         index: bool = True,
+        storage_options: StorageOptions = None,
         **kwargs,
     ) -> Optional[str]:
         if "showindex" in kwargs:
@@ -2266,9 +2280,14 @@ class DataFrame(NDFrame):
         result = tabulate.tabulate(self, **kwargs)
         if buf is None:
             return result
-        buf, _, _, _ = get_filepath_or_buffer(buf, mode=mode)
+        buf, _, _, should_close = get_filepath_or_buffer(
+            buf, mode=mode, storage_options=storage_options
+        )
         assert buf is not None  # Help mypy.
+        assert not isinstance(buf, str)
         buf.writelines(result)
+        if should_close:
+            buf.close()
         return None
 
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
@@ -2279,6 +2298,7 @@ class DataFrame(NDFrame):
         compression: Optional[str] = "snappy",
         index: Optional[bool] = None,
         partition_cols: Optional[List[str]] = None,
+        storage_options: StorageOptions = None,
         **kwargs,
     ) -> None:
         """
@@ -2327,6 +2347,16 @@ class DataFrame(NDFrame):
 
             .. versionadded:: 0.24.0
 
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc., if using a URL that will
+            be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+            will be raised if providing this argument with a local path or
+            a file-like buffer. See the fsspec and backend storage implementation
+            docs for the set of allowed keys and values
+
+            .. versionadded:: 1.2.0
+
         **kwargs
             Additional arguments passed to the parquet library. See
             :ref:`pandas io <io.parquet>` for more details.
@@ -2373,6 +2403,7 @@ class DataFrame(NDFrame):
             compression=compression,
             index=index,
             partition_cols=partition_cols,
+            storage_options=storage_options,
             **kwargs,
         )
 
