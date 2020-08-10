@@ -13,7 +13,6 @@ import pandas.util._test_decorators as td
 import pandas as pd
 import pandas._testing as tm
 
-from pandas.io.common import is_fsspec_url
 from pandas.io.parquet import (
     FastParquetImpl,
     PyArrowImpl,
