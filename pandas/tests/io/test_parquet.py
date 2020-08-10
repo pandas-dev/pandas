@@ -13,6 +13,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 import pandas._testing as tm
 
+from pandas.io.common import is_fsspec_url
 from pandas.io.parquet import (
     FastParquetImpl,
     PyArrowImpl,
@@ -158,9 +159,10 @@ def check_round_trip(
     """
     write_kwargs = write_kwargs or {"compression": None}
     read_kwargs = read_kwargs or {}
-    s3so = dict(client_kwargs={"endpoint_url": "http://127.0.0.1:5555/"})
-    read_kwargs["storage_options"] = s3so
-    write_kwargs["storage_options"] = s3so
+    if isinstance(path, str) and "s3://" in path:
+        s3so = dict(client_kwargs={"endpoint_url": "http://127.0.0.1:5555/"})
+        read_kwargs["storage_options"] = s3so
+        write_kwargs["storage_options"] = s3so
 
     if expected is None:
         expected = df
