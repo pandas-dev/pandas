@@ -1805,8 +1805,7 @@ char* _str_copy_decimal_str_c(const char *s, char **endpos, char decimal,
        p++;
     }
     // Copy the remainder of the string as is.
-    memcpy(dst, p, length + 1 - (p - s));
-    s_copy[length] = '\0';
+    strncpy(dst, p, length + 1 - (p - s));
     if (endpos != NULL)
         *endpos = (char *)(s + length);
     return s_copy;
