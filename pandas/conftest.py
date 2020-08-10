@@ -359,7 +359,7 @@ def multiindex_year_month_day_dataframe_random_data():
     tdf = tm.makeTimeDataFrame(100)
     ymd = tdf.groupby([lambda x: x.year, lambda x: x.month, lambda x: x.day]).sum()
     # use Int64Index, to make sure things work
-    ymd.index.set_levels([lev.astype("i8") for lev in ymd.index.levels], inplace=True)
+    ymd.index = ymd.index.set_levels([lev.astype("i8") for lev in ymd.index.levels])
     ymd.index.set_names(["year", "month", "day"], inplace=True)
     return ymd
 

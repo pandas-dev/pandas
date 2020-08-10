@@ -54,6 +54,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_scalar,
+    validate_all_hashable,
 )
 from pandas.core.dtypes.generic import ABCDataFrame
 from pandas.core.dtypes.inference import is_hashable
@@ -491,8 +492,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @name.setter
     def name(self, value: Label) -> None:
-        if not is_hashable(value):
-            raise TypeError("Series.name must be a hashable type")
+        validate_all_hashable(value, error_name=f"{type(self).__name__}.name")
         object.__setattr__(self, "_name", value)
 
     @property
