@@ -220,7 +220,7 @@ a minute typically). If a manual backport is needed please do that, and remove
 the "Needs backport" label once you've done it manually. If you forget to assign
 a milestone before tagging, you can request the bot to backport it with:
 
-.. code-block::
+.. code-block:: console
 
    @Meeseeksdev backport <branch>
 
