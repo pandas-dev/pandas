@@ -218,7 +218,7 @@ Interval
 Indexing
 ^^^^^^^^
 
--
+- Bug in :meth:`Index.sort_values` where, when empty values were passed, the method would break by trying to compare missing values instead of pushing them to the end of the sort order. (:issue:`35584`)
 -
 
 Missing
