@@ -1816,13 +1816,13 @@ double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
                   int skip_trailing, int *error, int *maybe_int) {
     // 'normalize' representation to C-locale; replace decimal with '.' and
     // remove t(housand)sep.
-    char *endptr = NULL;
+    char *endptr;
     char *pc = _str_copy_decimal_str_c(p, &endptr, decimal, tsep);
     // This is called from a nogil block in parsers.pyx
     // so need to explicitly get GIL before Python calls
     PyGILState_STATE gstate;
     gstate = PyGILState_Ensure();
-    char *endpc = NULL;
+    char *endpc;
     double r = PyOS_string_to_double(pc, &endpc, 0);
     // PyOS_string_to_double needs to consume the whole string
     if (endpc == pc + strlen(pc)) {
