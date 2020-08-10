@@ -199,7 +199,7 @@ https://github.com/pandas-dev/pandas-governance/blob/master/people.md
 
 .. _maintaining.merging:
 
-Merging Pull Requests
+Merging pull requests
 ---------------------
 
 Only core team members can merge pull requests. We have a few guidelines.
