@@ -4387,7 +4387,11 @@ class Index(IndexOpsMixin, PandasObject):
         return result
 
     def sort_values(
-        self, return_indexer=False, ascending=True, key: Optional[Callable] = None
+        self,
+        return_indexer=False,
+        ascending=True,
+        key: Optional[Callable] = None,
+        na_position: str = "last",
     ):
         """
         Return a sorted copy of the index.
@@ -4409,6 +4413,12 @@ class Index(IndexOpsMixin, PandasObject):
             ``Index`` and return an ``Index`` of the same shape.
 
             .. versionadded:: 1.1.0
+
+        na_position : {'first' or 'last'}, default 'last'
+            Argument 'first' puts NaNs at the beginning, 'last' puts NaNs at
+            the end.
+
+            .. versionadded:: 1.1.1
 
         Returns
         -------
@@ -4447,7 +4457,15 @@ class Index(IndexOpsMixin, PandasObject):
             bad = isna(idx)
             good = ~bad
             _as = np.arange(len(idx), dtype=np.int64)
-            _as = np.concatenate([_as[good][idx[good].argsort()], _as[bad]])
+            if na_position == "last":
+                _as = np.concatenate([_as[good][idx[good].argsort()], _as[bad]])
+            elif na_position == "first":
+                _as = np.concatenate([_as[bad], _as[good][idx[good].argsort()]])
+            else:
+                raise ValueError(
+                    "Invalid na_position keyword argument value."
+                    f"Can be only 'first' or 'last', {na_position} given."
+                )
             if not ascending:
                 _as[: np.sum(good)] = _as[: np.sum(good)][::-1]
         else:
