@@ -84,7 +84,8 @@ def test_inplace_mutation_resets_values():
     tm.assert_almost_equal(mi1.values, vals)
 
     # Inplace should kill _tuples
-    mi1.set_levels(levels2, inplace=True)
+    with tm.assert_produces_warning(FutureWarning):
+        mi1.set_levels(levels2, inplace=True)
     tm.assert_almost_equal(mi1.values, vals2)
 
     # Make sure label setting works too
@@ -103,7 +104,8 @@ def test_inplace_mutation_resets_values():
     tm.assert_almost_equal(exp_values, new_values)
 
     # ...and again setting inplace should kill _tuples, etc
-    mi2.set_codes(codes2, inplace=True)
+    with tm.assert_produces_warning(FutureWarning):
+        mi2.set_codes(codes2, inplace=True)
     tm.assert_almost_equal(mi2.values, new_values)
 
 

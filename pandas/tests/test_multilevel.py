@@ -63,8 +63,8 @@ class Base:
         ).sum()
 
         # use Int64Index, to make sure things work
-        self.ymd.index.set_levels(
-            [lev.astype("i8") for lev in self.ymd.index.levels], inplace=True
+        self.ymd.index = self.ymd.index.set_levels(
+            [lev.astype("i8") for lev in self.ymd.index.levels]
         )
         self.ymd.index.set_names(["year", "month", "day"], inplace=True)
 

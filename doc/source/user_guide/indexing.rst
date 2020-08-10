@@ -1532,12 +1532,8 @@ Setting metadata
 ~~~~~~~~~~~~~~~~
 
 Indexes are "mostly immutable", but it is possible to set and change their
-metadata, like the index ``name`` (or, for ``MultiIndex``, ``levels`` and
-``codes``).
-
-You can use the ``rename``, ``set_names``, ``set_levels``, and ``set_codes``
-to set these attributes directly. They default to returning a copy; however,
-you can specify ``inplace=True`` to have the data change in place.
+``name`` attribute. You can use the ``rename``, ``set_names`` to set these attributes
+directly, and they default to returning a copy.
 
 See :ref:`Advanced Indexing <advanced>` for usage of MultiIndexes.
 
