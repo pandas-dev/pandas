@@ -13,11 +13,30 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+.. _whatsnew_120.binary_handle_to_csv:
+
+Support for binary file handles in ``to_csv``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`to_csv` supports file handles in binary mode (:issue:`19827` and :issue:`35058`)
+with ``encoding`` (:issue:`13068` and :issue:`23854`) and ``compression`` (:issue:`22555`).
+``mode`` has to contain a ``b`` for binary handles to be supported.
+
+For example:
+
+.. ipython:: python
+
+   import io
+
+   data = pd.DataFrame([0, 1, 2])
+   buffer = io.BytesIO()
+   data.to_csv(buffer, mode="w+b", encoding="utf-8", compression="gzip")
+
 .. _whatsnew_120.enhancements.other:
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
-
+- :class:`Index` with object dtype supports division and multiplication (:issue:`34160`)
 -
 -
 
@@ -59,12 +78,13 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
--
+- Bug in :attr:`DatetimeArray.date` where a ``ValueError`` would be raised with a read-only backing array (:issue:`33530`)
+- Bug in ``NaT`` comparisons failing to raise ``TypeError`` on invalid inequality comparisons (:issue:`35046`)
 -
 
 Timedelta
 ^^^^^^^^^
-
+- Bug in :class:`TimedeltaIndex`, :class:`Series`, and :class:`DataFrame` floor-division with ``timedelta64`` dtypes and ``NaT`` in the denominator (:issue:`35529`)
 -
 -
 
@@ -108,19 +128,19 @@ Indexing
 Missing
 ^^^^^^^
 
--
+- Bug in :meth:`SeriesGroupBy.transform` now correctly handles missing values for `dropna=False` (:issue:`35014`)
 -
 
 MultiIndex
 ^^^^^^^^^^
 
--
+- Bug in :meth:`DataFrame.xs` when used with :class:`IndexSlice` raises ``TypeError`` with message `Expected label or tuple of labels` (:issue:`35301`)
 -
 
 I/O
 ^^^
 
--
+- Bug in :meth:`to_csv` caused a ``ValueError`` when it was called with a filename in combination with ``mode`` containing a ``b`` (:issue:`35058`)
 -
 
 Plotting
@@ -132,14 +152,17 @@ Plotting
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
+- Bug in :meth:`DataFrameGroupBy.count` and :meth:`SeriesGroupBy.sum` returning ``NaN`` for missing categories when grouped on multiple ``Categoricals``. Now returning ``0`` (:issue:`35028`)
+- Bug in :meth:`DataFrameGroupBy.apply` that would some times throw an erroneous ``ValueError`` if the grouping axis had duplicate entries (:issue:`16646`)
 -
 -
-
+- Bug in :meth:`DataFrameGroupBy.apply` where a non-nuisance grouping column would be dropped from the output columns if another groupby method was called before ``.apply()`` (:issue:`34656`)
 
 Reshaping
 ^^^^^^^^^
 
--
+- Bug in :meth:`DataFrame.pivot_table` with ``aggfunc='count'`` or ``aggfunc='sum'`` returning ``NaN`` for missing categories when pivoted on a ``Categorical``. Now returning ``0`` (:issue:`31422`)
+- Bug in :func:`union_indexes` where input index names are not preserved in some cases. Affects :func:`concat` and :class:`DataFrame` constructor (:issue:`13475`)
 -
 
 Sparse
