@@ -217,7 +217,12 @@ that the pull request is assigned the correct milestone.
 Pull requests merged with a patch-release milestone will typically be backported
 by our bot. Verify that the bot noticed the merge (it will leave a comment within
 a minute typically). If a manual backport is needed please do that, and remove
-the "Needs backport" label once you've done it manually.
+the "Needs backport" label once you've done it manually. If you forget to assign
+a milestone before tagging, you can request the bot to backport it with:
+
+.. code-block::
+
+   @Meeseeksdev backport <branch>
 
 
 .. _governance documents: https://github.com/pandas-dev/pandas-governance
