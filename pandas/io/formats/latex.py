@@ -121,7 +121,7 @@ class LatexFormatter(TableFormatter):
         else:
             column_format = self.column_format
 
-        self._write_longtable_begin(buf, column_format)
+        self._write_tabular_begin(buf, column_format)
 
         buf.write("\\toprule\n")
 
@@ -187,7 +187,7 @@ class LatexFormatter(TableFormatter):
             if self.multirow and i < len(strrows) - 1:
                 self._print_cline(buf, i, len(strcols))
 
-        self._write_longtable_end(buf)
+        self._write_tabular_end(buf)
 
     def _format_multicolumn(self, row: List[str], ilevels: int) -> List[str]:
         r"""
