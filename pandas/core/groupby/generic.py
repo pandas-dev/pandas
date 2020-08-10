@@ -1026,7 +1026,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if numeric_only:
             data = data.get_numeric_data(copy=False)
 
-        agg_blocks: List[Block] = []
+        agg_blocks: List["Block"] = []
         deleted_items: List[np.ndarray] = []
 
         no_result = object()
@@ -1055,11 +1055,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     # reshape to be valid for non-Extension Block
                     result = result.reshape(1, -1)
 
-            agg_block: Block = block.make_block(result)
+            agg_block: "Block" = block.make_block(result)
             return agg_block
 
-        def blk_func(block: Block) -> List[Block]:
-            new_blocks: List[Block]
+        def blk_func(block: "Block") -> List["Block"]:
+            new_blocks: List["Block"]
 
             result = no_result
             locs = block.mgr_locs.as_array
