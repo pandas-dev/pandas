@@ -593,23 +593,17 @@ class NSort:
 
 class ValuePosition:
 
-    params = ["first", "last", "all"]
-    param_names = ["keep"]
+    params = [[0, 1], ["first", "last", "all"]]
+    param_names = ["axis", "keep"]
 
-    def setup(self, keep):
-        self.df = DataFrame(
-            {
-                "a": np.random.randint(0, 100, 100000),
-                "b": np.random.randint(0, 100, 100000),
-                "c": np.random.randint(0, 100, 100000),
-            }
-        )
+    def setup(self, axis, keep):
+        self.df = DataFrame(np.random.randint(0, 10, (100, 50)), columns=range(0, 50))
 
-    def time_idxmax(self, keep):
-        self.df.idxmin(keep=keep)
+    def time_idxmax(self, axis, keep):
+        self.df.idxmin(axis=axis, keep=keep)
 
-    def time_idxmin(self, keep):
-        self.df.idxmax(keep=keep)
+    def time_idxmin(self, axis, keep):
+        self.df.idxmax(axis=axis, keep=keep)
 
 
 class Describe:

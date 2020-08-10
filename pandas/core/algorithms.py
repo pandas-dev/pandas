@@ -1377,9 +1377,7 @@ class SelectIdxFrame(SelectIdx):
                     )
                 else:
                     indices = nanops.nanargmin(
-                        frame.loc[frame.columns[::-1]].values,
-                        axis=axis,
-                        skipna=self.skipna,
+                        frame[frame.columns[::-1]].values, axis=axis, skipna=self.skipna
                     )
                 indices = (frame.shape[axis] - 1) - indices
             elif self.keep == "first" or self.keep == "all":
