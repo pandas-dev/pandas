@@ -1058,7 +1058,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             agg_block: Block = block.make_block(result)
             return agg_block
 
-        def blk_func(block):
+        def blk_func(block: Block) -> List[Block]:
+            new_blocks: List[Block]
+
             result = no_result
             locs = block.mgr_locs.as_array
             try:
@@ -1118,7 +1120,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 new_blocks = [agg_block]
             return new_blocks
 
-        skipped = []
+        skipped: List[int] = []
         new_items: List[np.ndarray] = []
         for i, block in enumerate(data.blocks):
             try:
