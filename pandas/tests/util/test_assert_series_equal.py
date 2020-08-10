@@ -289,5 +289,10 @@ def test_series_equal_exact_for_nonnumeric():
     s2 = Series(["a", "b"])
     s3 = Series(["b", "a"])
 
-    _assert_series_equal_both(s1, s2, check_exact=True)
-    _assert_not_series_equal_both(s1, s3, check_exact=True)
+    tm.assert_series_equal(s1, s2, check_exact=True)
+    tm.assert_series_equal(s2, s1, check_exact=True)
+
+    with pytest.raises(AssertionError):
+        tm.assert_series_equal(s1, s3, check_exact=True)
+    with pytest.raises(AssertionError):
+        tm.assert_series_equal(s3, s1, check_exact=True)
