@@ -746,3 +746,13 @@ def test_astype_object_preserves_datetime_na(from_type):
     result = astype_nansafe(arr, dtype="object")
 
     assert isna(result)[0]
+
+
+def test_validate_allhashable():
+    assert com.validate_all_hashable(1, "a") is None
+
+    with pytest.raises(TypeError, match="All elements must be hashable"):
+        com.validate_all_hashable([])
+
+    with pytest.raises(TypeError, match="list must be a hashable type"):
+        com.validate_all_hashable([], error_name="list")

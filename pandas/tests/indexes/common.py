@@ -270,6 +270,20 @@ class Base:
             s3 = s1 * s2
             assert s3.index.name == "mario"
 
+    def test_name2(self, index):
+        # gh-35592
+        if isinstance(index, MultiIndex):
+            return
+
+        assert index.copy(name="mario").name == "mario"
+
+        with pytest.raises(ValueError, match="Length of new names must be 1, got 2"):
+            index.copy(name=["mario", "luigi"])
+
+        msg = f"{type(index).__name__}.name must be a hashable type"
+        with pytest.raises(TypeError, match=msg):
+            index.copy(name=[["mario"]])
+
     def test_ensure_copied_data(self, index):
         # Check the "copy" argument of each Index.__new__ is honoured
         # GH12309
