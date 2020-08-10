@@ -410,7 +410,7 @@ def dt64arr_to_periodarr(const int64_t[:] stamps, int freq, tzinfo tz):
             local_val = stamps[i] + delta
         else:
             local_val = stamps[i] + deltas[pos[i]]
-        
+
         dt64_to_dtstruct(local_val, &dts)
         result[i] = get_period_ordinal(&dts, freq)
 
