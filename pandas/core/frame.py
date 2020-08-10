@@ -2298,7 +2298,7 @@ class DataFrame(NDFrame):
         compression: Optional[str] = "snappy",
         index: Optional[bool] = None,
         partition_cols: Optional[List[str]] = None,
-(??)
+        storage_options: StorageOptions = None,
         **kwargs,
     ) -> None:
         """
