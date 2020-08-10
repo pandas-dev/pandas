@@ -188,6 +188,7 @@ Sparse
 ExtensionArray
 ^^^^^^^^^^^^^^
 
+- Added :meth:`api.extensionExtensionArray._accumulate` to the extension array interface. Implements this interface for :class: `IntegerArray` and :class: `BooleanArray` such that type coercion to `object` is avoided (:issue:`28385`)
 -
 -
 
