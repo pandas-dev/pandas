@@ -4391,7 +4391,7 @@ class Index(IndexOpsMixin, PandasObject):
         return_indexer=False,
         ascending=True,
         key: Optional[Callable] = None,
-        na_position: str = "last",
+        na_position: str_t = "last",
     ):
         """
         Return a sorted copy of the index.
