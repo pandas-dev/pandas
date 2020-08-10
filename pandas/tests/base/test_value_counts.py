@@ -207,7 +207,7 @@ def test_value_counts_bins_nas(dropna, bins):
 
 
 def test_value_counts_bins_specific_na():
-    # verify specific NA example
+    # GH25970 case where proportions were incorrect for dropna and normalize=True
     s2 = Series([1, 2, 2, 3, 3, 3, np.nan, np.nan, 4, 5])
     intervals = IntervalIndex.from_breaks([0.995, 2.333, 3.667, 5.0])
     expected_dropna = Series([0.375, 0.375, 0.25], intervals.take([1, 0, 2]))

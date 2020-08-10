@@ -72,12 +72,12 @@ def test_series_groupby_value_counts(
     left = gr["3rd"].value_counts(**kwargs)
     left.index.names = left.index.names[:-1] + ["3rd"]
 
-    # gr = df.groupby(keys, sort=isort)
     right = gr["3rd"].apply(Series.value_counts, **kwargs)
     right.index.names = right.index.names[:-1] + ["3rd"]
 
     # have to sort on index because of unstable sort on values
     left, right = map(rebuild_index, (left, right))  # xref GH9212
+
     # have to ignore 0 counts to be consistent with individual column value_counts
     left = left[left.astype(bool)]
     right = right[right.astype(bool)]

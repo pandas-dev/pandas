@@ -726,7 +726,6 @@ class SeriesGroupBy(GroupBy[Series]):
         ids = ids[changes]
         cts = np.diff(np.nonzero(np.r_[changes, True]))[0]
         idx = np.r_[0, 1 + np.nonzero(change_ids)[0]]
-        print(idx)
         # how many times each index gets repeated
         rep = partial(np.repeat, repeats=np.add.reduceat(changes, idx))
 
@@ -742,7 +741,6 @@ class SeriesGroupBy(GroupBy[Series]):
 
         if normalize:
             num_repeats = np.diff(idx, append=len(change_ids) + 1)
-            print(num_repeats)
             cts = cts.astype("float") / rep(num_repeats)
             # each divisor is the number of repeats for that index
 
