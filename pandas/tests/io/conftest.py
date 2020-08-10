@@ -32,7 +32,7 @@ def feather_file(datapath):
     return datapath("io", "data", "feather", "feather-0_3_1.feather")
 
 
-@pytest.mark.skipif(sys.version_info.major < (3, 7),)
+@pytest.mark.skipif(sys.version_info < (3, 7),)
 @pytest.fixture
 def s3_resource(tips_file, jsonl_file, feather_file):
     """
