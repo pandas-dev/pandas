@@ -20,6 +20,7 @@ import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Index, MultiIndex, Series, compat, concat, option_context
 import pandas._testing as tm
+from pandas.compat import is_platform_windows
 
 from pandas.io.parsers import CParserWrapper, TextFileReader, TextParser
 
@@ -1138,6 +1139,7 @@ def test_parse_integers_above_fp_precision(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.skipif(is_platform_windows(), reason="#35214")
 def test_chunks_have_consistent_numerical_type(all_parsers):
     parser = all_parsers
     integers = [str(i) for i in range(499999)]
