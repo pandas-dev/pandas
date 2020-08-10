@@ -305,8 +305,7 @@ class LatexFormatter(TableFormatter):
                 table_ = f"\\begin{{table}}{position_}\n\\centering"
                 tabular_ = f"\n\\begin{{tabular}}{{{column_format}}}\n"
 
-            if self.longtable and (
-                    self.caption is not None or self.label is not None):
+            if self.longtable and (self.caption is not None or self.label is not None):
                 # a double-backslash is required at the end of the line
                 # as discussed here:
                 # https://tex.stackexchange.com/questions/219138
