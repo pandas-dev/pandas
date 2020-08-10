@@ -13,6 +13,20 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+Passing arguments to fsspec backends
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Many read/write functions have acquired the ``storage_options`` optional argument,
+to pass a dictionary of parameters to the storage backend. This allows, for
+example, for passing credentials to S3 and GCS storage. The details of what
+parameters can be passed to which backends can be found in the documentation
+of the individual storage backends (detailed from the fsspec docs for
+`builtin implementations`_ and linked to `external ones`_). See
+Section :ref:`io.remote`.
+
+.. _builtin implementations: https://filesystem-spec.readthedocs.io/en/latest/api.html#built-in-implementations
+.. _external ones: https://filesystem-spec.readthedocs.io/en/latest/api.html#other-known-implementations
+
 .. _whatsnew_120.binary_handle_to_csv:
 
 Support for binary file handles in ``to_csv``
