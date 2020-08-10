@@ -117,7 +117,8 @@ def test_inplace_mutation_resets_values():
     tm.assert_almost_equal(exp_values, new_values)
 
     # ...and again setting inplace should drop _values from _cache, etc
-    mi2.set_codes(codes2, inplace=True)
+    with tm.assert_produces_warning(FutureWarning):
+        mi2.set_codes(codes2, inplace=True)
     assert "_values" not in mi2._cache
     tm.assert_almost_equal(mi2.values, new_values)
     assert "_values" in mi2._cache
