@@ -4459,15 +4459,17 @@ class Index(IndexOpsMixin, PandasObject):
             _as = np.arange(len(idx), dtype=np.int64)
             if na_position == "last":
                 _as = np.concatenate([_as[good][idx[good].argsort()], _as[bad]])
+                if not ascending:
+                    _as[: np.sum(good)] = _as[: np.sum(good)][::-1]
             elif na_position == "first":
                 _as = np.concatenate([_as[bad], _as[good][idx[good].argsort()]])
+                if not ascending:
+                    _as[np.sum(bad) :] = _as[np.sum(bad) :][::-1]
             else:
                 raise ValueError(
                     "Invalid na_position keyword argument value."
                     f"Can be only 'first' or 'last', {na_position} given."
                 )
-            if not ascending:
-                _as[: np.sum(good)] = _as[: np.sum(good)][::-1]
         else:
             _as = idx.argsort()
             if not ascending:
