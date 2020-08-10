@@ -256,7 +256,8 @@ class TestTableOrient:
         tm.assert_frame_equal(result1, df)
         tm.assert_frame_equal(result2, df)
 
-    @pytest.mark.filterwarnings("ignore:an integer is required (got type float)*:DeprecationWarning")
+    @pytest.mark.filterwarnings(
+        "ignore:an integer is required (got type float)*:DeprecationWarning")
     def test_to_json(self):
         df = self.df.copy()
         df.index.name = "idx"
@@ -433,7 +434,8 @@ class TestTableOrient:
 
         assert result == expected
 
-    @pytest.mark.filterwarnings("ignore:an integer is required (got type float)*:DeprecationWarning")
+    @pytest.mark.filterwarnings(
+        "ignore:an integer is required (got type float)*:DeprecationWarning")
     def test_date_format_raises(self):
         with pytest.raises(ValueError):
             self.df.to_json(orient="table", date_format="epoch")
