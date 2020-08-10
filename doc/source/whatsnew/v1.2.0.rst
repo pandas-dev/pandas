@@ -47,7 +47,7 @@ Other enhancements
 
 Deprecations
 ~~~~~~~~~~~~
-
+- Deprecated parameter ``inplace`` in :meth:`MultiIndex.set_codes` and :meth:`MultiIndex.set_levels` (:issue:`35626`)
 -
 -
 
