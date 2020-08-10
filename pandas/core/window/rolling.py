@@ -145,7 +145,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
     def __init__(
         self,
-        obj,
+        obj: FrameOrSeries,
         window=None,
         min_periods: Optional[int] = None,
         center: bool = False,
@@ -2275,18 +2275,28 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         -------
         GroupbyRollingIndexer
         """
-        rolling_indexer: Union[Type[FixedWindowIndexer], Type[VariableWindowIndexer]]
-        if self.is_freq_type:
+        rolling_indexer: Type[BaseIndexer]
+        indexer_kwargs: Optional[Dict]
+        if isinstance(self.window, BaseIndexer):
+            rolling_indexer = type(self.window)
+            indexer_kwargs = self.window.__dict__
+            # We'll be using the index of each group later
+            indexer_kwargs.pop("index_array", None)
+            index_array = self._groupby._selected_obj.index.asi8
+        elif self.is_freq_type:
             rolling_indexer = VariableWindowIndexer
+            indexer_kwargs = None
             index_array = self._groupby._selected_obj.index.asi8
         else:
             rolling_indexer = FixedWindowIndexer
+            indexer_kwargs = None
             index_array = None
         window_indexer = GroupbyRollingIndexer(
             index_array=index_array,
             window_size=window,
             groupby_indicies=self._groupby.indices,
             rolling_indexer=rolling_indexer,
+            indexer_kwargs=indexer_kwargs,
         )
         return window_indexer
 
