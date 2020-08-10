@@ -1,3 +1,4 @@
+from distutils.version import LooseVersion
 import os
 import sys
 
@@ -31,10 +32,7 @@ def feather_file(datapath):
     return datapath("io", "data", "feather", "feather-0_3_1.feather")
 
 
-@pytest.mark.skipif(
-    sys.version_info.major == 3 and sys.version_info.minor == 6,
-    reason="moto is too old on py36",
-)
+@pytest.mark.skipif(sys.version_info.major < (3, 7),)
 @pytest.fixture
 def s3_resource(tips_file, jsonl_file, feather_file):
     """
