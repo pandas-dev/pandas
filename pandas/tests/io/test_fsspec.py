@@ -26,7 +26,8 @@ df1 = DataFrame(
 )
 # the ignore on the following line accounts for to_csv returning Optional(str)
 # in general, but always str in the case we give no filename
-text = df1.to_csv(index=False).encode()  # type: ignore
+# error: Item "None" of "Optional[str]" has no attribute "encode"
+text = df1.to_csv(index=False).encode()  # type: ignore[union-attr]
 s3so = dict(client_kwargs={"endpoint_url": "http://127.0.0.1:5555/"})
 
 
@@ -231,3 +232,7 @@ def test_non_fsspec_options():
 
     with pytest.raises(ValueError, match="storage_options"):
         read_csv(by, storage_options={"a": True})
+
+    df = DataFrame({"a": [0]})
+    with pytest.raises(ValueError, match="storage_options"):
+        df.to_parquet("nonfsspecpath", storage_options={"a": True})

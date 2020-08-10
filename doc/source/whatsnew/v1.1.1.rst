@@ -15,9 +15,12 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 
--
--
--
+- Fixed regression where :meth:`DataFrame.to_numpy` would raise a ``RuntimeError`` for mixed dtypes when converting to ``str`` (:issue:`35455`)
+- Fixed regression where :func:`read_csv` would raise a ``ValueError`` when ``pandas.options.mode.use_inf_as_na`` was set to ``True`` (:issue:`35493`).
+- Fixed regression where :func:`pandas.testing.assert_series_equal` would raise an error when non-numeric dtypes were passed with ``check_exact=True`` (:issue:`35446`)
+- Fixed regression in :class:`pandas.core.groupby.RollingGroupby` where column selection was ignored (:issue:`35486`)
+- Fixed regression in :meth:`DataFrame.shift` with ``axis=1`` and heterogeneous dtypes (:issue:`35488`)
+- Fixed regression in ``.groupby(..).rolling(..)`` where a segfault would occur with ``center=True`` and an odd number of values (:issue:`35552`)
 
 .. ---------------------------------------------------------------------------
 
@@ -26,15 +29,32 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 
+- Bug in ``Styler`` whereby `cell_ids` argument had no effect due to other recent changes (:issue:`35588`).
+
+Categorical
+^^^^^^^^^^^
+
+- Bug in :meth:`CategoricalIndex.format` where, when stringified scalars had different lengths, the shorter string would be right-filled with spaces, so it had the same length as the longest string (:issue:`35439`)
+
+
 **Datetimelike**
 
 -
 -
 
+**Timedelta**
+
+- Bug in :meth:`to_timedelta` fails when arg is a :class:`Series` with `Int64` dtype containing null values (:issue:`35574`)
+
+
 **Numeric**
 
 -
 -
+
+**Groupby/resample/rolling**
+
+- Bug in :class:`pandas.core.groupby.RollingGroupby` where passing ``closed`` with column selection would raise a ``ValueError`` (:issue:`35549`)
 
 **Plotting**
 
@@ -42,6 +62,10 @@ Bug fixes
 
 **Indexing**
 
+- Bug in :meth:`Series.truncate` when trying to truncate a single-element series (:issue:`35544`)
+
+**DataFrame**
+- Bug in :class:`DataFrame` constructor failing to raise ``ValueError`` in some cases when data and index have mismatched lengths (:issue:`33437`)
 -
 
 .. ---------------------------------------------------------------------------

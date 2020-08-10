@@ -48,9 +48,9 @@ from pandas.core.dtypes.missing import isna
 import pandas.core.common as com
 
 if TYPE_CHECKING:
-    from pandas.core.series import Series  # noqa: F401
-    from pandas.core.indexes.api import Index  # noqa: F401
     from pandas.core.arrays import ExtensionArray  # noqa: F401
+    from pandas.core.indexes.api import Index  # noqa: F401
+    from pandas.core.series import Series  # noqa: F401
 
 
 def array(
@@ -255,14 +255,14 @@ def array(
     ValueError: Cannot pass scalar '1' to 'pandas.array'.
     """
     from pandas.core.arrays import (
-        period_array,
         BooleanArray,
+        DatetimeArray,
         IntegerArray,
         IntervalArray,
         PandasArray,
-        DatetimeArray,
-        TimedeltaArray,
         StringArray,
+        TimedeltaArray,
+        period_array,
     )
 
     if lib.is_scalar(data):

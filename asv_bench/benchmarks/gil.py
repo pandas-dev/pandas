@@ -7,14 +7,14 @@ from .pandas_vb_common import tm
 
 try:
     from pandas import (
-        rolling_median,
-        rolling_mean,
-        rolling_min,
-        rolling_max,
-        rolling_var,
-        rolling_skew,
         rolling_kurt,
+        rolling_max,
+        rolling_mean,
+        rolling_median,
+        rolling_min,
+        rolling_skew,
         rolling_std,
+        rolling_var,
     )
 
     have_rolling_methods = True

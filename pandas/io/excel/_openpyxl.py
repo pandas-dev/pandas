@@ -225,7 +225,7 @@ class _OpenpyxlWriter(ExcelWriter):
         -------
         fill : openpyxl.styles.Fill
         """
-        from openpyxl.styles import PatternFill, GradientFill
+        from openpyxl.styles import GradientFill, PatternFill
 
         _pattern_fill_key_map = {
             "patternType": "fill_type",

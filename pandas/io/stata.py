@@ -35,7 +35,7 @@ import numpy as np
 
 from pandas._libs.lib import infer_dtype
 from pandas._libs.writers import max_len_string_array
-from pandas._typing import FilePathOrBuffer, Label
+from pandas._typing import FilePathOrBuffer, Label, StorageOptions
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
@@ -1035,7 +1035,7 @@ class StataReader(StataParser, abc.Iterator):
         columns: Optional[Sequence[str]] = None,
         order_categoricals: bool = True,
         chunksize: Optional[int] = None,
-        storage_options: Optional[Dict[str, Any]] = None,
+        storage_options: StorageOptions = None,
     ):
         super().__init__()
         self.col_sizes: List[int] = []
@@ -1647,8 +1647,7 @@ the string values returned are correct."""
 
         data = self._insert_strls(data)
 
-        cols_ = np.where(self.dtyplist)[0]
-
+        cols_ = np.where([dtyp is not None for dtyp in self.dtyplist])[0]
         # Convert columns (if needed) to match input type
         ix = data.index
         requires_type_conversion = False
@@ -1911,7 +1910,7 @@ def read_stata(
     order_categoricals: bool = True,
     chunksize: Optional[int] = None,
     iterator: bool = False,
-    storage_options: Optional[Dict[str, Any]] = None,
+    storage_options: StorageOptions = None,
 ) -> Union[DataFrame, StataReader]:
 
     reader = StataReader(
@@ -1940,7 +1939,7 @@ def read_stata(
 def _open_file_binary_write(
     fname: FilePathOrBuffer,
     compression: Union[str, Mapping[str, str], None],
-    storage_options: Optional[Dict[str, Any]] = None,
+    storage_options: StorageOptions = None,
 ) -> Tuple[BinaryIO, bool, Optional[Union[str, Mapping[str, str]]]]:
     """
     Open a binary file or no-op if file-like.
@@ -1971,7 +1970,10 @@ def _open_file_binary_write(
     """
     if hasattr(fname, "write"):
         # See https://github.com/python/mypy/issues/1424 for hasattr challenges
-        return fname, False, None  # type: ignore
+        # error: Incompatible return value type (got "Tuple[Union[str, Path,
+        # IO[Any]], bool, None]", expected "Tuple[BinaryIO, bool, Union[str,
+        # Mapping[str, str], None]]")
+        return fname, False, None  # type: ignore[return-value]
     elif isinstance(fname, (str, Path)):
         # Extract compression mode as given, if dict
         compression_typ, compression_args = get_compression_method(compression)
@@ -2236,7 +2238,7 @@ class StataWriter(StataParser):
         data_label: Optional[str] = None,
         variable_labels: Optional[Dict[Label, str]] = None,
         compression: Union[str, Mapping[str, str], None] = "infer",
-        storage_options: Optional[Dict[str, Any]] = None,
+        storage_options: StorageOptions = None,
     ):
         super().__init__()
         self._convert_dates = {} if convert_dates is None else convert_dates
@@ -3119,7 +3121,7 @@ class StataWriter117(StataWriter):
         variable_labels: Optional[Dict[Label, str]] = None,
         convert_strl: Optional[Sequence[Label]] = None,
         compression: Union[str, Mapping[str, str], None] = "infer",
-        storage_options: Optional[Dict[str, Any]] = None,
+        storage_options: StorageOptions = None,
     ):
         # Copy to new list since convert_strl might be modified later
         self._convert_strl: List[Label] = []
@@ -3524,7 +3526,7 @@ class StataWriterUTF8(StataWriter117):
         convert_strl: Optional[Sequence[Label]] = None,
         version: Optional[int] = None,
         compression: Union[str, Mapping[str, str], None] = "infer",
-        storage_options: Optional[Dict[str, Any]] = None,
+        storage_options: StorageOptions = None,
     ):
         if version is None:
             version = 118 if data.shape[1] <= 32767 else 119

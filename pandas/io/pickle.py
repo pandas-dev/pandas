@@ -1,9 +1,9 @@
 """ pickle compat """
 import pickle
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 import warnings
 
-from pandas._typing import FilePathOrBuffer
+from pandas._typing import FilePathOrBuffer, StorageOptions
 from pandas.compat import pickle_compat as pc
 
 from pandas.io.common import get_filepath_or_buffer, get_handle
@@ -14,7 +14,7 @@ def to_pickle(
     filepath_or_buffer: FilePathOrBuffer,
     compression: Optional[str] = "infer",
     protocol: int = pickle.HIGHEST_PROTOCOL,
-    storage_options: Optional[Dict[str, Any]] = None,
+    storage_options: StorageOptions = None,
 ):
     """
     Pickle (serialize) object to file.
@@ -113,7 +113,7 @@ def to_pickle(
 def read_pickle(
     filepath_or_buffer: FilePathOrBuffer,
     compression: Optional[str] = "infer",
-    storage_options: Optional[Dict[str, Any]] = None,
+    storage_options: StorageOptions = None,
 ):
     """
     Load pickled pandas object (or any object) from file.
