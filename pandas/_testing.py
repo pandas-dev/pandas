@@ -1339,10 +1339,8 @@ def assert_series_equal(
         else:
             assert_attr_equal("dtype", left, right, obj=f"Attributes of {obj}")
 
-    if check_exact:
-        if not is_numeric_dtype(left.dtype):
-            raise AssertionError("check_exact may only be used with numeric Series")
-
+    if check_exact and is_numeric_dtype(left.dtype) and is_numeric_dtype(right.dtype):
+        # Only check exact if dtype is numeric
         assert_numpy_array_equal(
             left._values,
             right._values,

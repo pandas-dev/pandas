@@ -9,7 +9,7 @@ import numpy as np
 
 import pandas._libs.json as json
 from pandas._libs.tslibs import iNaT
-from pandas._typing import JSONSerializable
+from pandas._typing import JSONSerializable, StorageOptions
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import deprecate_kwarg, deprecate_nonkeyword_arguments
 
@@ -44,6 +44,7 @@ def to_json(
     compression: Optional[str] = "infer",
     index: bool = True,
     indent: int = 0,
+    storage_options: StorageOptions = None,
 ):
 
     if not index and orient not in ["split", "table"]:
@@ -52,8 +53,11 @@ def to_json(
         )
 
     if path_or_buf is not None:
-        path_or_buf, _, _, _ = get_filepath_or_buffer(
-            path_or_buf, compression=compression, mode="w"
+        path_or_buf, _, _, should_close = get_filepath_or_buffer(
+            path_or_buf,
+            compression=compression,
+            mode="wt",
+            storage_options=storage_options,
         )
 
     if lines and orient != "records":
@@ -97,6 +101,8 @@ def to_json(
         return s
     else:
         path_or_buf.write(s)
+        if should_close:
+            path_or_buf.close()
 
 
 class Writer:
@@ -365,6 +371,7 @@ def read_json(
     chunksize: Optional[int] = None,
     compression="infer",
     nrows: Optional[int] = None,
+    storage_options: StorageOptions = None,
 ):
     """
     Convert a JSON string to pandas object.
@@ -510,6 +517,16 @@ def read_json(
 
         .. versionadded:: 1.1
 
+    storage_options : dict, optional
+        Extra options that make sense for a particular storage connection, e.g.
+        host, port, username, password, etc., if using a URL that will
+        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+        will be raised if providing this argument with a local path or
+        a file-like buffer. See the fsspec and backend storage implementation
+        docs for the set of allowed keys and values
+
+        .. versionadded:: 1.2.0
+
     Returns
     -------
     Series or DataFrame
@@ -592,7 +609,10 @@ def read_json(
 
     compression = infer_compression(path_or_buf, compression)
     filepath_or_buffer, _, compression, should_close = get_filepath_or_buffer(
-        path_or_buf, encoding=encoding, compression=compression
+        path_or_buf,
+        encoding=encoding,
+        compression=compression,
+        storage_options=storage_options,
     )
 
     json_reader = JsonReader(

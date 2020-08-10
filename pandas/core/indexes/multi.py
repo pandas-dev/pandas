@@ -740,7 +740,7 @@ class MultiIndex(Index):
         self._tuples = None
         self._reset_cache()
 
-    def set_levels(self, levels, level=None, inplace=False, verify_integrity=True):
+    def set_levels(self, levels, level=None, inplace=None, verify_integrity=True):
         """
         Set new levels on MultiIndex. Defaults to returning new index.
 
@@ -752,6 +752,8 @@ class MultiIndex(Index):
             Level(s) to set (None for all levels).
         inplace : bool
             If True, mutates in place.
+
+            .. deprecated:: 1.2.0
         verify_integrity : bool, default True
             If True, checks that levels and codes are compatible.
 
@@ -822,6 +824,15 @@ class MultiIndex(Index):
         >>> idx.set_levels([['a', 'b', 'c'], [1, 2, 3, 4]], level=[0, 1]).levels
         FrozenList([['a', 'b', 'c'], [1, 2, 3, 4]])
         """
+        if inplace is not None:
+            warnings.warn(
+                "inplace is deprecated and will be removed in a future version.",
+                FutureWarning,
+                stacklevel=2,
+            )
+        else:
+            inplace = False
+
         if is_list_like(levels) and not isinstance(levels, Index):
             levels = list(levels)
 
@@ -898,7 +909,7 @@ class MultiIndex(Index):
         self._tuples = None
         self._reset_cache()
 
-    def set_codes(self, codes, level=None, inplace=False, verify_integrity=True):
+    def set_codes(self, codes, level=None, inplace=None, verify_integrity=True):
         """
         Set new codes on MultiIndex. Defaults to returning new index.
 
@@ -914,6 +925,8 @@ class MultiIndex(Index):
             Level(s) to set (None for all levels).
         inplace : bool
             If True, mutates in place.
+
+            .. deprecated:: 1.2.0
         verify_integrity : bool (default True)
             If True, checks that levels and codes are compatible.
 
@@ -958,6 +971,15 @@ class MultiIndex(Index):
                     (1, 'two')],
                    names=['foo', 'bar'])
         """
+        if inplace is not None:
+            warnings.warn(
+                "inplace is deprecated and will be removed in a future version.",
+                FutureWarning,
+                stacklevel=2,
+            )
+        else:
+            inplace = False
+
         if level is not None and not is_list_like(level):
             if not is_list_like(codes):
                 raise TypeError("Codes must be list-like")
