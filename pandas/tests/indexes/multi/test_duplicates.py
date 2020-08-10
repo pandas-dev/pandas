@@ -91,7 +91,8 @@ def test_duplicate_multiindex_codes():
     mi = MultiIndex.from_arrays([["A", "A", "B", "B", "B"], [1, 2, 1, 2, 3]])
     msg = r"Level values must be unique: \[[AB', ]+\] on level 0"
     with pytest.raises(ValueError, match=msg):
-        mi.set_levels([["A", "B", "A", "A", "B"], [2, 1, 3, -2, 5]], inplace=True)
+        with tm.assert_produces_warning(FutureWarning):
+            mi.set_levels([["A", "B", "A", "A", "B"], [2, 1, 3, -2, 5]], inplace=True)
 
 
 @pytest.mark.parametrize("names", [["a", "b", "a"], [1, 1, 2], [1, "a", 1]])
