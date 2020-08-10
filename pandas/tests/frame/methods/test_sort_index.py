@@ -555,8 +555,8 @@ class TestDataFrameSortIndex:
             ),
         )
 
-        df.columns.set_levels(
-            pd.to_datetime(df.columns.levels[1]), level=1, inplace=True
+        df.columns = df.columns.set_levels(
+            pd.to_datetime(df.columns.levels[1]), level=1
         )
         assert not df.columns.is_lexsorted()
         assert not df.columns.is_monotonic

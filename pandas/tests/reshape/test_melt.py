@@ -799,7 +799,7 @@ class TestWideToLong:
         expected = expected.set_index(["id", "year"])[
             ["X", "A2010", "A2011", "B2010", "A", "B"]
         ]
-        expected.index.set_levels([0, 1], level=0, inplace=True)
+        expected.index = expected.index.set_levels([0, 1], level=0)
         result = wide_to_long(df, ["A", "B"], i="id", j="year", sep=sep)
         tm.assert_frame_equal(result.sort_index(axis=1), expected.sort_index(axis=1))
 
@@ -861,7 +861,7 @@ class TestWideToLong:
         expected = pd.DataFrame(exp_data).astype({"year": "int"})
 
         expected = expected.set_index(["id", "year"])
-        expected.index.set_levels([0, 1], level=0, inplace=True)
+        expected.index = expected.index.set_levels([0, 1], level=0)
         result = wide_to_long(df, ["A", "B"], i="id", j="year")
         tm.assert_frame_equal(result.sort_index(axis=1), expected.sort_index(axis=1))
 
