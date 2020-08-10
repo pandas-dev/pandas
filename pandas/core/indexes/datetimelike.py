@@ -54,7 +54,8 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
     Create the join wrapper methods.
     """
 
-    @staticmethod  # type: ignore
+    # error: 'staticmethod' used with a non-method
+    @staticmethod  # type: ignore[misc]
     def wrapper(left, right):
         if isinstance(left, (np.ndarray, ABCIndex, ABCSeries, DatetimeLikeArrayMixin)):
             left = left.view("i8")
@@ -95,7 +96,10 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     _bool_ops: List[str] = []
     _field_ops: List[str] = []
 
-    hasnans = cache_readonly(DatetimeLikeArrayMixin._hasnans.fget)  # type: ignore
+    # error: "Callable[[Any], Any]" has no attribute "fget"
+    hasnans = cache_readonly(
+        DatetimeLikeArrayMixin._hasnans.fget  # type: ignore[attr-defined]
+    )
     _hasnans = hasnans  # for index / array -agnostic code
 
     @property
@@ -112,7 +116,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
     def __array_wrap__(self, result, context=None):
         """
-        Gets called after a ufunc.
+        Gets called after a ufunc and other functions.
         """
         result = lib.item_from_zerodim(result)
         if is_bool_dtype(result) or lib.is_scalar(result):
