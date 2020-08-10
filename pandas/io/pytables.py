@@ -320,6 +320,10 @@ def read_hdf(
     mode : {'r', 'r+', 'a'}, default 'r'
         Mode to use when opening the file. Ignored if path_or_buf is a
         :class:`pandas.HDFStore`. Default is 'r'.
+    errors : str, default 'strict'
+        Specifies how encoding and decoding errors are to be handled.
+        See the errors argument for :func:`open` for a full list
+        of options.
     where : list, optional
         A list of Term (or convertible) objects.
     start : int, optional
@@ -332,10 +336,6 @@ def read_hdf(
         Return an iterator object.
     chunksize : int, optional
         Number of rows to include in an iteration when using an iterator.
-    errors : str, default 'strict'
-        Specifies how encoding and decoding errors are to be handled.
-        See the errors argument for :func:`open` for a full list
-        of options.
     **kwargs
         Additional keyword arguments passed to HDFStore.
 
