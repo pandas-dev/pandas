@@ -86,8 +86,8 @@ Please note that the string `index` is not supported with the round trip format,
 .. _whatsnew_0230.enhancements.assign_dependent:
 
 
-``.assign()`` accepts dependent arguments
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Method ``.assign()`` accepts dependent arguments
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The :func:`DataFrame.assign` now accepts dependent keyword arguments for python version later than 3.6 (see also `PEP 468
 <https://www.python.org/dev/peps/pep-0468/>`_). Later keyword arguments may now refer to earlier ones if the argument is a callable. See the
@@ -244,7 +244,7 @@ documentation. If you build an extension array, publicize it on our
 
 .. _whatsnew_0230.enhancements.categorical_grouping:
 
-New ``observed`` keyword for excluding unobserved categories in ``groupby``
+New ``observed`` keyword for excluding unobserved categories in ``GroupBy``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Grouping by a categorical includes the unobserved categories in the output.
@@ -360,8 +360,8 @@ Fill all consecutive outside values in both directions
 
 .. _whatsnew_0210.enhancements.get_dummies_dtype:
 
-``get_dummies`` now supports ``dtype`` argument
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Function ``get_dummies`` now supports ``dtype`` argument
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The :func:`get_dummies` now accepts a ``dtype`` argument, which specifies a dtype for the new columns. The default remains uint8. (:issue:`18330`)
 
@@ -388,8 +388,8 @@ See the :ref:`documentation here <timedeltas.mod_divmod>`. (:issue:`19365`)
 
 .. _whatsnew_0230.enhancements.ran_inf:
 
-``.rank()`` handles ``inf`` values when ``NaN`` are present
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Method ``.rank()`` handles ``inf`` values when ``NaN`` are present
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In previous versions, ``.rank()`` would assign ``inf`` elements ``NaN`` as their ranks. Now ranks are calculated properly. (:issue:`6945`)
 
@@ -587,7 +587,7 @@ If installed, we now require:
 
 .. _whatsnew_0230.api_breaking.dict_insertion_order:
 
-Instantiation from dicts preserves dict insertion order for python 3.6+
+Instantiation from dicts preserves dict insertion order for Python 3.6+
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Until Python 3.6, dicts in Python had no formally defined ordering. For Python
@@ -1365,8 +1365,8 @@ MultiIndex
 - Bug in indexing where nested indexers having only numpy arrays are handled incorrectly (:issue:`19686`)
 
 
-I/O
-^^^
+IO
+^^
 
 - :func:`read_html` now rewinds seekable IO objects after parse failure, before attempting to parse with a new parser. If a parser errors and the object is non-seekable, an informative error is raised suggesting the use of a different parser (:issue:`17975`)
 - :meth:`DataFrame.to_html` now has an option to add an id to the leading `<table>` tag (:issue:`8496`)
@@ -1403,7 +1403,7 @@ Plotting
 - :func:`DataFrame.plot` now supports multiple columns to the ``y`` argument (:issue:`19699`)
 
 
-Groupby/resample/rolling
+GroupBy/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug when grouping by a single column and aggregating with a class like ``list`` or ``tuple`` (:issue:`18079`)

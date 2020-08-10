@@ -19,7 +19,7 @@ from pandas import (
 import pandas._testing as tm
 
 
-def cartesian_product_for_groupers(result, args, names):
+def cartesian_product_for_groupers(result, args, names, fill_value=np.NaN):
     """ Reindex to a cartesian production for the groupers,
     preserving the nature (Categorical) of each grouper
     """
@@ -33,7 +33,7 @@ def cartesian_product_for_groupers(result, args, names):
         return a
 
     index = MultiIndex.from_product(map(f, args), names=names)
-    return result.reindex(index).sort_index()
+    return result.reindex(index, fill_value=fill_value).sort_index()
 
 
 _results_for_groupbys_with_missing_categories = dict(
@@ -309,7 +309,7 @@ def test_observed(observed):
     result = gb.sum()
     if not observed:
         expected = cartesian_product_for_groupers(
-            expected, [cat1, cat2, ["foo", "bar"]], list("ABC")
+            expected, [cat1, cat2, ["foo", "bar"]], list("ABC"), fill_value=0
         )
 
     tm.assert_frame_equal(result, expected)
@@ -319,7 +319,9 @@ def test_observed(observed):
     expected = DataFrame({"values": [1, 2, 3, 4]}, index=exp_index)
     result = gb.sum()
     if not observed:
-        expected = cartesian_product_for_groupers(expected, [cat1, cat2], list("AB"))
+        expected = cartesian_product_for_groupers(
+            expected, [cat1, cat2], list("AB"), fill_value=0
+        )
 
     tm.assert_frame_equal(result, expected)
 
@@ -1189,6 +1191,8 @@ def test_seriesgroupby_observed_false_or_none(df_cat, observed, operation):
     ).sortlevel()
 
     expected = Series(data=[2, 4, np.nan, 1, np.nan, 3], index=index, name="C")
+    if operation == "agg":
+        expected = expected.fillna(0, downcast="infer")
     grouped = df_cat.groupby(["A", "B"], observed=observed)["C"]
     result = getattr(grouped, operation)(sum)
     tm.assert_series_equal(result, expected)
@@ -1294,9 +1298,7 @@ def test_get_nonexistent_category():
         )
 
 
-def test_series_groupby_on_2_categoricals_unobserved(
-    reduction_func: str, observed: bool, request
-):
+def test_series_groupby_on_2_categoricals_unobserved(reduction_func, observed, request):
     # GH 17605
     if reduction_func == "ngroup":
         pytest.skip("ngroup is not truly a reduction")
@@ -1326,7 +1328,7 @@ def test_series_groupby_on_2_categoricals_unobserved(
 
 
 def test_series_groupby_on_2_categoricals_unobserved_zeroes_or_nans(
-    reduction_func: str, request
+    reduction_func, request
 ):
     # GH 17605
     # Tests whether the unobserved categories in the result contain 0 or NaN
@@ -1337,15 +1339,6 @@ def test_series_groupby_on_2_categoricals_unobserved_zeroes_or_nans(
     if reduction_func == "corrwith":  # GH 32293
         mark = pytest.mark.xfail(
             reason="TODO: implemented SeriesGroupBy.corrwith. See GH 32293"
-        )
-        request.node.add_marker(mark)
-
-    if reduction_func == "sum":  # GH 31422
-        mark = pytest.mark.xfail(
-            reason=(
-                "sum should return 0 but currently returns NaN. "
-                "This is a known bug. See GH 31422."
-            )
         )
         request.node.add_marker(mark)
 
@@ -1369,12 +1362,15 @@ def test_series_groupby_on_2_categoricals_unobserved_zeroes_or_nans(
         val = result.loc[idx]
         assert (pd.isna(zero_or_nan) and pd.isna(val)) or (val == zero_or_nan)
 
-    # If we expect unobserved values to be zero, we also expect the dtype to be int
-    if zero_or_nan == 0:
+    # If we expect unobserved values to be zero, we also expect the dtype to be int.
+    # Except for .sum(). If the observed categories sum to dtype=float (i.e. their
+    # sums have decimals), then the zeros for the missing categories should also be
+    # floats.
+    if zero_or_nan == 0 and reduction_func != "sum":
         assert np.issubdtype(result.dtype, np.integer)
 
 
-def test_dataframe_groupby_on_2_categoricals_when_observed_is_true(reduction_func: str):
+def test_dataframe_groupby_on_2_categoricals_when_observed_is_true(reduction_func):
     # GH 23865
     # GH 27075
     # Ensure that df.groupby, when 'by' is two pd.Categorical variables,
@@ -1402,7 +1398,7 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_true(reduction_fun
 
 @pytest.mark.parametrize("observed", [False, None])
 def test_dataframe_groupby_on_2_categoricals_when_observed_is_false(
-    reduction_func: str, observed: bool, request
+    reduction_func, observed, request
 ):
     # GH 23865
     # GH 27075
@@ -1411,24 +1407,6 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_false(
 
     if reduction_func == "ngroup":
         pytest.skip("ngroup does not return the Categories on the index")
-
-    if reduction_func == "count":  # GH 35028
-        mark = pytest.mark.xfail(
-            reason=(
-                "DataFrameGroupBy.count returns np.NaN for missing "
-                "categories, when it should return 0. See GH 35028"
-            )
-        )
-        request.node.add_marker(mark)
-
-    if reduction_func == "sum":  # GH 31422
-        mark = pytest.mark.xfail(
-            reason=(
-                "sum should return 0 but currently returns NaN. "
-                "This is a known bug. See GH 31422."
-            )
-        )
-        request.node.add_marker(mark)
 
     df = pd.DataFrame(
         {
