@@ -33,3 +33,4 @@ dependencies:
   - xlsxwriter
   - xlwt
   - moto
+  - flask

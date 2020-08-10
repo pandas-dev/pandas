@@ -24,6 +24,7 @@ dependencies:
   - html5lib
   - matplotlib
   - moto
+  - flask
   - nomkl
   - numexpr
   - numpy=1.15.*
