@@ -1649,29 +1649,72 @@ options include:
 Specifying any of the above options will produce a ``ParserWarning`` unless the
 python engine is selected explicitly using ``engine='python'``.
 
-Reading remote files
-''''''''''''''''''''
+.. _io.remote:
 
-You can pass in a URL to a CSV file:
+Reading/writing remote files
+''''''''''''''''''''''''''''
+
+You can pass in a URL to read or write remote files to many of Pandas' IO
+functions - the following example shows reading a CSV file:
 
 .. code-block:: python
 
    df = pd.read_csv('https://download.bls.gov/pub/time.series/cu/cu.item',
                     sep='\t')
 
-S3 URLs are handled as well but require installing the `S3Fs
+All URLs which are not local files or HTTP(s) are handled by
+`fsspec`_, if installed, and its various filesystem implementations
+(including Amazon S3, Google Cloud, SSH, FTP, webHDFS...).
+Some of these implementations will require additional packages to be
+installed, for example
+S3 URLs require the `s3fs
 <https://pypi.org/project/s3fs/>`_ library:
 
 .. code-block:: python
 
-   df = pd.read_csv('s3://pandas-test/tips.csv')
+   df = pd.read_json('s3://pandas-test/adatafile.json')
 
-If your S3 bucket requires credentials you will need to set them as environment
-variables or in the ``~/.aws/credentials`` config file, refer to the `S3Fs
-documentation on credentials
-<https://s3fs.readthedocs.io/en/latest/#credentials>`_.
+When dealing with remote storage systems, you might need
+extra configuration with environment variables or config files in
+special locations. For example, to access data in your S3 bucket,
+you will need to define credentials in one of the several ways listed in
+the `S3Fs documentation
+<https://s3fs.readthedocs.io/en/latest/#credentials>`_. The same is true
+for several of the storage backends, and you should follow the links
+at `fsimpl1`_ for implementations built into ``fsspec`` and `fsimpl2`_
+for those not included in the main ``fsspec``
+distribution.
 
+You can also pass parameters directly to the backend driver. For example,
+if you do *not* have S3 credentials, you can still access public data by
+specifying an anonymous connection, such as
 
+.. versionadded:: 1.2.0
+
+.. code-block:: python
+
+   pd.read_csv("s3://ncei-wcsd-archive/data/processed/SH1305/18kHz/SaKe2013"
+               "-D20130523-T080854_to_SaKe2013-D20130523-T085643.csv",
+               storage_options={"anon": True})
+
+``fsspec`` also allows complex URLs, for accessing data in compressed
+archives, local caching of files, and more. To locally cache the above
+example, you would modify the call to
+
+.. code-block:: python
+
+   pd.read_csv("simplecache::s3://ncei-wcsd-archive/data/processed/SH1305/18kHz/"
+               "SaKe2013-D20130523-T080854_to_SaKe2013-D20130523-T085643.csv",
+               storage_options={"s3": {"anon": True}})
+
+where we specify that the "anon" parameter is meant for the "s3" part of
+the implementation, not to the caching implementation. Note that this caches to a temporary
+directory for the duration of the session only, but you can also specify
+a permanent store.
+
+.. _fsspec: https://filesystem-spec.readthedocs.io/en/latest/
+.. _fsimpl1: https://filesystem-spec.readthedocs.io/en/latest/api.html#built-in-implementations
+.. _fsimpl2: https://filesystem-spec.readthedocs.io/en/latest/api.html#other-known-implementations
 
 Writing out data
 ''''''''''''''''

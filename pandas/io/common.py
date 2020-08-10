@@ -29,7 +29,7 @@ from urllib.parse import (
 )
 import zipfile
 
-from pandas._typing import FilePathOrBuffer
+from pandas._typing import FilePathOrBuffer, StorageOptions
 from pandas.compat import _get_lzma_file, _import_lzma
 from pandas.compat._optional import import_optional_dependency
 
@@ -162,7 +162,7 @@ def get_filepath_or_buffer(
     encoding: Optional[str] = None,
     compression: Optional[str] = None,
     mode: Optional[str] = None,
-    storage_options: Optional[Dict[str, Any]] = None,
+    storage_options: StorageOptions = None,
 ):
     """
     If the filepath_or_buffer is a url, translate and return the buffer.
@@ -175,8 +175,16 @@ def get_filepath_or_buffer(
     compression : {{'gzip', 'bz2', 'zip', 'xz', None}}, optional
     encoding : the encoding to use to decode bytes, default is 'utf-8'
     mode : str, optional
-    storage_options: dict, optional
-        passed on to fsspec, if using it; this is not yet accessed by the public API
+
+    storage_options : dict, optional
+        Extra options that make sense for a particular storage connection, e.g.
+        host, port, username, password, etc., if using a URL that will
+        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+        will be raised if providing this argument with a local path or
+        a file-like buffer. See the fsspec and backend storage implementation
+        docs for the set of allowed keys and values
+
+        .. versionadded:: 1.2.0
 
     Returns
     -------
@@ -188,6 +196,10 @@ def get_filepath_or_buffer(
 
     if isinstance(filepath_or_buffer, str) and is_url(filepath_or_buffer):
         # TODO: fsspec can also handle HTTP via requests, but leaving this unchanged
+        if storage_options:
+            raise ValueError(
+                "storage_options passed with file object or non-fsspec file path"
+            )
         req = urlopen(filepath_or_buffer)
         content_encoding = req.headers.get("Content-Encoding", None)
         if content_encoding == "gzip":
@@ -242,6 +254,10 @@ def get_filepath_or_buffer(
             ).open()
 
         return file_obj, encoding, compression, True
+    elif storage_options:
+        raise ValueError(
+            "storage_options passed with file object or non-fsspec file path"
+        )
 
     if isinstance(filepath_or_buffer, (str, bytes, mmap.mmap)):
         return _expand_user(filepath_or_buffer), None, compression, False

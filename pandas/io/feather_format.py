@@ -4,10 +4,10 @@ from pandas.compat._optional import import_optional_dependency
 
 from pandas import DataFrame, Int64Index, RangeIndex
 
-from pandas.io.common import get_filepath_or_buffer, stringify_path
+from pandas.io.common import get_filepath_or_buffer
 
 
-def to_feather(df: DataFrame, path, **kwargs):
+def to_feather(df: DataFrame, path, storage_options=None, **kwargs):
     """
     Write a DataFrame to the binary Feather format.
 
@@ -15,6 +15,17 @@ def to_feather(df: DataFrame, path, **kwargs):
     ----------
     df : DataFrame
     path : string file path, or file-like object
+
+    storage_options : dict, optional
+        Extra options that make sense for a particular storage connection, e.g.
+        host, port, username, password, etc., if using a URL that will
+        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+        will be raised if providing this argument with a local path or
+        a file-like buffer. See the fsspec and backend storage implementation
+        docs for the set of allowed keys and values
+
+        .. versionadded:: 1.2.0
+
     **kwargs :
         Additional keywords passed to `pyarrow.feather.write_feather`.
 
@@ -23,7 +34,9 @@ def to_feather(df: DataFrame, path, **kwargs):
     import_optional_dependency("pyarrow")
     from pyarrow import feather
 
-    path = stringify_path(path)
+    path, _, _, should_close = get_filepath_or_buffer(
+        path, mode="wb", storage_options=storage_options
+    )
 
     if not isinstance(df, DataFrame):
         raise ValueError("feather only support IO with DataFrames")
@@ -64,7 +77,7 @@ def to_feather(df: DataFrame, path, **kwargs):
     feather.write_feather(df, path, **kwargs)
 
 
-def read_feather(path, columns=None, use_threads: bool = True):
+def read_feather(path, columns=None, use_threads: bool = True, storage_options=None):
     """
     Load a feather-format object from the file path.
 
@@ -98,7 +111,9 @@ def read_feather(path, columns=None, use_threads: bool = True):
     import_optional_dependency("pyarrow")
     from pyarrow import feather
 
-    path, _, _, should_close = get_filepath_or_buffer(path)
+    path, _, _, should_close = get_filepath_or_buffer(
+        path, storage_options=storage_options
+    )
 
     df = feather.read_feather(path, columns=columns, use_threads=bool(use_threads))
 

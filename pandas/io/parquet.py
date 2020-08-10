@@ -3,7 +3,7 @@
 from typing import Any, AnyStr, Dict, List, Optional
 from warnings import catch_warnings
 
-from pandas._typing import FilePathOrBuffer
+from pandas._typing import FilePathOrBuffer, StorageOptions
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
 
@@ -89,6 +89,7 @@ class PyArrowImpl(BaseImpl):
         path: FilePathOrBuffer[AnyStr],
         compression: Optional[str] = "snappy",
         index: Optional[bool] = None,
+        storage_options: StorageOptions = None,
         partition_cols: Optional[List[str]] = None,
         **kwargs,
     ):
@@ -105,9 +106,13 @@ class PyArrowImpl(BaseImpl):
             import_optional_dependency("fsspec")
             import fsspec.core
 
-            fs, path = fsspec.core.url_to_fs(path)
+            fs, path = fsspec.core.url_to_fs(path, **(storage_options or {}))
             kwargs["filesystem"] = fs
         else:
+            if storage_options:
+                raise ValueError(
+                    "storage_options passed with file object or non-fsspec file path"
+                )
             path = _expand_user(path)
         if partition_cols is not None:
             # writes to multiple files under the given path
@@ -122,14 +127,20 @@ class PyArrowImpl(BaseImpl):
             # write to single output file
             self.api.parquet.write_table(table, path, compression=compression, **kwargs)
 
-    def read(self, path, columns=None, **kwargs):
+    def read(
+        self, path, columns=None, storage_options: StorageOptions = None, **kwargs,
+    ):
         if is_fsspec_url(path) and "filesystem" not in kwargs:
             import_optional_dependency("fsspec")
             import fsspec.core
 
-            fs, path = fsspec.core.url_to_fs(path)
+            fs, path = fsspec.core.url_to_fs(path, **(storage_options or {}))
             should_close = False
         else:
+            if storage_options:
+                raise ValueError(
+                    "storage_options passed with buffer or non-fsspec filepath"
+                )
             fs = kwargs.pop("filesystem", None)
             should_close = False
             path = _expand_user(path)
@@ -163,6 +174,7 @@ class FastParquetImpl(BaseImpl):
         compression="snappy",
         index=None,
         partition_cols=None,
+        storage_options: StorageOptions = None,
         **kwargs,
     ):
         self.validate_dataframe(df)
@@ -185,8 +197,14 @@ class FastParquetImpl(BaseImpl):
             fsspec = import_optional_dependency("fsspec")
 
             # if filesystem is provided by fsspec, file must be opened in 'wb' mode.
-            kwargs["open_with"] = lambda path, _: fsspec.open(path, "wb").open()
+            kwargs["open_with"] = lambda path, _: fsspec.open(
+                path, "wb", **(storage_options or {})
+            ).open()
         else:
+            if storage_options:
+                raise ValueError(
+                    "storage_options passed with file object or non-fsspec file path"
+                )
             path, _, _, _ = get_filepath_or_buffer(path)
 
         with catch_warnings(record=True):
@@ -199,11 +217,15 @@ class FastParquetImpl(BaseImpl):
                 **kwargs,
             )
 
-    def read(self, path, columns=None, **kwargs):
+    def read(
+        self, path, columns=None, storage_options: StorageOptions = None, **kwargs,
+    ):
         if is_fsspec_url(path):
             fsspec = import_optional_dependency("fsspec")
 
-            open_with = lambda path, _: fsspec.open(path, "rb").open()
+            open_with = lambda path, _: fsspec.open(
+                path, "rb", **(storage_options or {})
+            ).open()
             parquet_file = self.api.ParquetFile(path, open_with=open_with)
         else:
             path, _, _, _ = get_filepath_or_buffer(path)
@@ -218,6 +240,7 @@ def to_parquet(
     engine: str = "auto",
     compression: Optional[str] = "snappy",
     index: Optional[bool] = None,
+    storage_options: StorageOptions = None,
     partition_cols: Optional[List[str]] = None,
     **kwargs,
 ):
@@ -261,6 +284,16 @@ def to_parquet(
 
         .. versionadded:: 0.24.0
 
+    storage_options : dict, optional
+        Extra options that make sense for a particular storage connection, e.g.
+        host, port, username, password, etc., if using a URL that will
+        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+        will be raised if providing this argument with a local path or
+        a file-like buffer. See the fsspec and backend storage implementation
+        docs for the set of allowed keys and values
+
+        .. versionadded:: 1.2.0
+
     kwargs
         Additional keyword arguments passed to the engine
     """
@@ -273,6 +306,7 @@ def to_parquet(
         compression=compression,
         index=index,
         partition_cols=partition_cols,
+        storage_options=storage_options,
         **kwargs,
     )
 
