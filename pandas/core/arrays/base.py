@@ -20,7 +20,12 @@ from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.cast import maybe_cast_to_extension_array
-from pandas.core.dtypes.common import is_array_like, is_list_like, pandas_dtype
+from pandas.core.dtypes.common import (
+    is_array_like,
+    is_dtype_equal,
+    is_list_like,
+    pandas_dtype,
+)
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
@@ -763,7 +768,7 @@ class ExtensionArray:
         if not type(self) == type(other):
             return False
         other = cast(ExtensionArray, other)
-        if not self.dtype == other.dtype:
+        if not is_dtype_equal(self.dtype, other.dtype):
             return False
         elif not len(self) == len(other):
             return False
