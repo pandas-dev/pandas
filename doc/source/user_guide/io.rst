@@ -1703,8 +1703,8 @@ example, you would modify the call to
 
 .. code-block:: python
 
-   pd.read_csv("simplecache::s3://ncei-wcsd-archive/data/processed/SH1305/18kHz/SaKe2013"
-               "-D20130523-T080854_to_SaKe2013-D20130523-T085643.csv",
+   pd.read_csv("simplecache::s3://ncei-wcsd-archive/data/processed/SH1305/18kHz/"
+               "SaKe2013-D20130523-T080854_to_SaKe2013-D20130523-T085643.csv",
                storage_options={"s3": {"anon": True}})
 
 where we specify that the "anon" parameter is meant for the "s3" part of
