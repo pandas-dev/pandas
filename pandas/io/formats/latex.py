@@ -300,7 +300,7 @@ class LatexFormatter(TableFormatter):
 
             if self.longtable:
                 table_ = f"\\begin{{longtable}}{position_}{{{column_format}}}"
-                tabular_ = ""
+                tabular_ = "\n"
             else:
                 table_ = f"\\begin{{table}}{position_}\n\\centering"
                 tabular_ = f"\n\\begin{{tabular}}{{{column_format}}}\n"
@@ -309,9 +309,7 @@ class LatexFormatter(TableFormatter):
                 # a double-backslash is required at the end of the line
                 # as discussed here:
                 # https://tex.stackexchange.com/questions/219138
-                backlash_ = "\\\\\n"
-            elif self.longtable and self.position is not None:
-                backlash_ = "\n"
+                backlash_ = "\\\\"
             else:
                 backlash_ = ""
             buf.write(f"{table_}{caption_}{label_}{backlash_}{tabular_}")
