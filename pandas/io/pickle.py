@@ -3,7 +3,7 @@ import pickle
 from typing import Any, Optional
 import warnings
 
-from pandas._typing import FilePathOrBuffer
+from pandas._typing import FilePathOrBuffer, StorageOptions
 from pandas.compat import pickle_compat as pc
 
 from pandas.io.common import get_filepath_or_buffer, get_handle
@@ -14,6 +14,7 @@ def to_pickle(
     filepath_or_buffer: FilePathOrBuffer,
     compression: Optional[str] = "infer",
     protocol: int = pickle.HIGHEST_PROTOCOL,
+    storage_options: StorageOptions = None,
 ):
     """
     Pickle (serialize) object to file.
@@ -41,6 +42,16 @@ def to_pickle(
         For Python >= 3.4, 4 is a valid value. A negative value for the
         protocol parameter is equivalent to setting its value to
         HIGHEST_PROTOCOL.
+
+    storage_options : dict, optional
+        Extra options that make sense for a particular storage connection, e.g.
+        host, port, username, password, etc., if using a URL that will
+        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+        will be raised if providing this argument with a local path or
+        a file-like buffer. See the fsspec and backend storage implementation
+        docs for the set of allowed keys and values
+
+        .. versionadded:: 1.2.0
 
         .. [1] https://docs.python.org/3/library/pickle.html
 
@@ -76,7 +87,10 @@ def to_pickle(
     >>> os.remove("./dummy.pkl")
     """
     fp_or_buf, _, compression, should_close = get_filepath_or_buffer(
-        filepath_or_buffer, compression=compression, mode="wb"
+        filepath_or_buffer,
+        compression=compression,
+        mode="wb",
+        storage_options=storage_options,
     )
     if not isinstance(fp_or_buf, str) and compression == "infer":
         compression = None
@@ -97,7 +111,9 @@ def to_pickle(
 
 
 def read_pickle(
-    filepath_or_buffer: FilePathOrBuffer, compression: Optional[str] = "infer"
+    filepath_or_buffer: FilePathOrBuffer,
+    compression: Optional[str] = "infer",
+    storage_options: StorageOptions = None,
 ):
     """
     Load pickled pandas object (or any object) from file.
@@ -120,6 +136,16 @@ def read_pickle(
         the following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
         compression) If 'infer' and 'path_or_url' is not path-like, then use
         None (= no decompression).
+
+    storage_options : dict, optional
+        Extra options that make sense for a particular storage connection, e.g.
+        host, port, username, password, etc., if using a URL that will
+        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+        will be raised if providing this argument with a local path or
+        a file-like buffer. See the fsspec and backend storage implementation
+        docs for the set of allowed keys and values
+
+        .. versionadded:: 1.2.0
 
     Returns
     -------
@@ -162,7 +188,7 @@ def read_pickle(
     >>> os.remove("./dummy.pkl")
     """
     fp_or_buf, _, compression, should_close = get_filepath_or_buffer(
-        filepath_or_buffer, compression=compression
+        filepath_or_buffer, compression=compression, storage_options=storage_options
     )
     if not isinstance(fp_or_buf, str) and compression == "infer":
         compression = None

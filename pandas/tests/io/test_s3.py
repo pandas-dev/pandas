@@ -32,7 +32,7 @@ def test_read_without_creds_from_pub_bucket():
 
 @tm.network
 @td.skip_if_no("s3fs")
-def test_read_with_creds_from_pub_bucke():
+def test_read_with_creds_from_pub_bucket():
     # Ensure we can read from a public bucket with credentials
     # GH 34626
     # Use Amazon Open Data Registry - https://registry.opendata.aws/gdelt

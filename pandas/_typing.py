@@ -106,3 +106,6 @@ AggFuncType = Union[
     List[AggFuncTypeBase],
     Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]],
 ]
+
+# for arbitrary kwargs passed during reading/writing files
+StorageOptions = Optional[Dict[str, Any]]
