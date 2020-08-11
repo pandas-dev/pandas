@@ -10,7 +10,7 @@ import numpy.ma.mrecords as mrecords
 import pytest
 import pytz
 
-from pandas.compat import PY37, is_platform_little_endian
+from pandas.compat import is_platform_little_endian
 from pandas.compat.numpy import _np_version_under1p19
 
 from pandas.core.dtypes.common import is_integer_dtype
@@ -1418,7 +1418,6 @@ class TestDataFrameConstructors:
         result = DataFrame(tuples, columns=["y", "z"])
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.skipif(not PY37, reason="Requires Python >= 3.7")
     def test_constructor_list_of_dataclasses(self):
         # GH21910
         from dataclasses import make_dataclass
@@ -1430,7 +1429,6 @@ class TestDataFrameConstructors:
         result = DataFrame(datas)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.skipif(not PY37, reason="Requires Python >= 3.7")
     def test_constructor_list_of_dataclasses_with_varying_types(self):
         # GH21910
         from dataclasses import make_dataclass
@@ -1447,7 +1445,6 @@ class TestDataFrameConstructors:
         result = DataFrame(datas)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.skipif(not PY37, reason="Requires Python >= 3.7")
     def test_constructor_list_of_dataclasses_error_thrown(self):
         # GH21910
         from dataclasses import make_dataclass
