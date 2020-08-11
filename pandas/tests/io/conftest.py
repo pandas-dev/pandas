@@ -1,6 +1,5 @@
 from distutils.version import LooseVersion
 import os
-import sys
 
 import pytest
 
@@ -32,7 +31,6 @@ def feather_file(datapath):
     return datapath("io", "data", "feather", "feather-0_3_1.feather")
 
 
-@pytest.mark.skipif(sys.version_info < (3, 7),)
 @pytest.fixture
 def s3_resource(tips_file, jsonl_file, feather_file):
     """
@@ -58,8 +56,10 @@ def s3_resource(tips_file, jsonl_file, feather_file):
         os.environ.setdefault("AWS_ACCESS_KEY_ID", "foobar_key")
         os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "foobar_secret")
 
-        pytest.importorskip("moto")
+        moto = pytest.importorskip("moto")
         pytest.importorskip("flask")  # server mode needs flask too
+        if LooseVersion(moto.__version__) < LooseVersion("1.3.14"):
+            pytest.skip("Moto too old")
 
         test_s3_files = [
             ("tips#1.csv", tips_file),
