@@ -23,9 +23,9 @@ dependencies:
   - matplotlib=2.2.*
   - moto
   - numexpr
-  - numpy=1.18.*
+  - numpy=1.16.*
   - openpyxl
-  - pyarrow=0.14
+  - pyarrow=0.15
   - pytables
   - python-dateutil
   - pytz
