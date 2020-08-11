@@ -3,7 +3,7 @@ import datetime
 from io import BufferedIOBase, BytesIO, RawIOBase
 import os
 from textwrap import fill
-from typing import Union
+from typing import Any, Mapping, Union
 
 from pandas._config import config
 
@@ -200,7 +200,7 @@ mangle_dupe_cols : bool, default True
     Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
     'X'...'X'. Passing in False will cause data to be overwritten if there
     are duplicate names in the columns.
-storage_options : dict, optional
+storage_options : StorageOptions
     Extra options that make sense for a particular storage connection, e.g.
     host, port, username, password, etc., if using a URL that will
     be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
@@ -850,7 +850,7 @@ class ExcelFile:
     from pandas.io.excel._pyxlsb import _PyxlsbReader
     from pandas.io.excel._xlrd import _XlrdReader
 
-    _engines = {
+    _engines: Mapping[str, Any] = {
         "xlrd": _XlrdReader,
         "openpyxl": _OpenpyxlReader,
         "odf": _ODFReader,
@@ -880,7 +880,7 @@ class ExcelFile:
         # Always a string
         self._io = stringify_path(path_or_buffer)
 
-        self._reader = self._engines[engine](self._io, storage_options)
+        self._reader = self._engines[engine](self._io, storage_options=storage_options)
 
     def __fspath__(self):
         return self._io
