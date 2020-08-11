@@ -3017,8 +3017,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if short_caption and not caption:
             caption = short_caption
             warnings.warn(
-                'short_caption is provided, but caption is not provided.\n'
-                'Using short_caption value instead.'
+                "short_caption is provided, but caption is not provided.\n"
+                "Using short_caption value instead."
             )
 
         formatter = DataFrameFormatter(

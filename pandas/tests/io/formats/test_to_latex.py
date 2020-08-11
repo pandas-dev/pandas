@@ -521,9 +521,7 @@ b &       b &     b \\
 
         # test when the short_caption is provided alongside caption and label
         result_cl = df.to_latex(
-            caption=the_caption,
-            short_caption=the_short_caption,
-            label=the_label,
+            caption=the_caption, short_caption=the_short_caption, label=the_label,
         )
 
         expected_cl = r"""\begin{table}
@@ -543,12 +541,8 @@ b &       b &     b \\
         assert result_cl == expected_cl
 
         # test when the short_caption is provided but caption is not
-        warn_msg = 'short_caption is provided, but caption is not provided'
         with tm.assert_produces_warning(UserWarning):
-            result_cl = df.to_latex(
-                short_caption=the_short_caption,
-                label=the_label,
-            )
+            result_cl = df.to_latex(short_caption=the_short_caption, label=the_label)
 
             expected_cl = r"""\begin{table}
 \centering
