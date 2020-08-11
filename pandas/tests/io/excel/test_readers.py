@@ -134,6 +134,7 @@ class TestReaders:
         monkeypatch.chdir(datapath("io", "data", "excel"))
         monkeypatch.setattr(pd, "read_excel", func)
 
+    @td.check_file_leaks
     def test_usecols_int(self, read_ext, df_ref):
         df_ref = df_ref.reindex(columns=["A", "B", "C"])
 
@@ -156,6 +157,7 @@ class TestReaders:
                     usecols=3,
                 )
 
+    @td.check_file_leaks
     def test_usecols_list(self, read_ext, df_ref):
         if pd.read_excel.keywords["engine"] == "pyxlsb":
             pytest.xfail("Sheets containing datetimes not supported by pyxlsb")
@@ -176,6 +178,7 @@ class TestReaders:
         tm.assert_frame_equal(df1, df_ref, check_names=False)
         tm.assert_frame_equal(df2, df_ref, check_names=False)
 
+    @td.check_file_leaks
     def test_usecols_str(self, read_ext, df_ref):
         if pd.read_excel.keywords["engine"] == "pyxlsb":
             pytest.xfail("Sheets containing datetimes not supported by pyxlsb")
@@ -225,6 +228,7 @@ class TestReaders:
         tm.assert_frame_equal(df2, df1, check_names=False)
         tm.assert_frame_equal(df3, df1, check_names=False)
 
+    @td.check_file_leaks
     @pytest.mark.parametrize(
         "usecols", [[0, 1, 3], [0, 3, 1], [1, 0, 3], [1, 3, 0], [3, 0, 1], [3, 1, 0]]
     )
@@ -238,6 +242,7 @@ class TestReaders:
         )
         tm.assert_frame_equal(result, expected, check_names=False)
 
+    @td.check_file_leaks
     @pytest.mark.parametrize("usecols", [["B", "D"], ["D", "B"]])
     def test_usecols_diff_positional_str_columns_order(self, read_ext, usecols, df_ref):
         expected = df_ref[["B", "D"]]
@@ -246,6 +251,7 @@ class TestReaders:
         result = pd.read_excel("test1" + read_ext, sheet_name="Sheet1", usecols=usecols)
         tm.assert_frame_equal(result, expected, check_names=False)
 
+    @td.check_file_leaks
     def test_read_excel_without_slicing(self, read_ext, df_ref):
         if pd.read_excel.keywords["engine"] == "pyxlsb":
             pytest.xfail("Sheets containing datetimes not supported by pyxlsb")
@@ -254,6 +260,7 @@ class TestReaders:
         result = pd.read_excel("test1" + read_ext, sheet_name="Sheet1", index_col=0)
         tm.assert_frame_equal(result, expected, check_names=False)
 
+    @td.check_file_leaks
     def test_usecols_excel_range_str(self, read_ext, df_ref):
         if pd.read_excel.keywords["engine"] == "pyxlsb":
             pytest.xfail("Sheets containing datetimes not supported by pyxlsb")
@@ -264,12 +271,14 @@ class TestReaders:
         )
         tm.assert_frame_equal(result, expected, check_names=False)
 
+    @td.check_file_leaks
     def test_usecols_excel_range_str_invalid(self, read_ext):
         msg = "Invalid column name: E1"
 
         with pytest.raises(ValueError, match=msg):
             pd.read_excel("test1" + read_ext, sheet_name="Sheet1", usecols="D:E1")
 
+    @td.check_file_leaks
     def test_index_col_label_error(self, read_ext):
         msg = "list indices must be integers.*, not str"
 
@@ -281,6 +290,7 @@ class TestReaders:
                 usecols=["A", "C"],
             )
 
+    @td.check_file_leaks
     def test_index_col_empty(self, read_ext):
         # see gh-9208
         result = pd.read_excel(
@@ -292,6 +302,7 @@ class TestReaders:
         )
         tm.assert_frame_equal(result, expected)
 
+    @td.check_file_leaks
     @pytest.mark.parametrize("index_col", [None, 2])
     def test_index_col_with_unnamed(self, read_ext, index_col):
         # see gh-18792
@@ -306,6 +317,7 @@ class TestReaders:
 
         tm.assert_frame_equal(result, expected)
 
+    @td.check_file_leaks
     def test_usecols_pass_non_existent_column(self, read_ext):
         msg = (
             "Usecols do not match columns, "
@@ -315,6 +327,7 @@ class TestReaders:
         with pytest.raises(ValueError, match=msg):
             pd.read_excel("test1" + read_ext, usecols=["E"])
 
+    @td.check_file_leaks
     def test_usecols_wrong_type(self, read_ext):
         msg = (
             "'usecols' must either be list-like of "
@@ -324,12 +337,14 @@ class TestReaders:
         with pytest.raises(ValueError, match=msg):
             pd.read_excel("test1" + read_ext, usecols=["E1", 0])
 
+    @td.check_file_leaks
     def test_excel_stop_iterator(self, read_ext):
 
         parsed = pd.read_excel("test2" + read_ext, sheet_name="Sheet1")
         expected = DataFrame([["aaaa", "bbbbb"]], columns=["Test", "Test1"])
         tm.assert_frame_equal(parsed, expected)
 
+    @td.check_file_leaks
     def test_excel_cell_error_na(self, read_ext):
         if pd.read_excel.keywords["engine"] == "pyxlsb":
             pytest.xfail("Sheets containing datetimes not supported by pyxlsb")
@@ -338,6 +353,7 @@ class TestReaders:
         expected = DataFrame([[np.nan]], columns=["Test"])
         tm.assert_frame_equal(parsed, expected)
 
+    @td.check_file_leaks
     def test_excel_table(self, read_ext, df_ref):
         if pd.read_excel.keywords["engine"] == "pyxlsb":
             pytest.xfail("Sheets containing datetimes not supported by pyxlsb")
@@ -355,6 +371,7 @@ class TestReaders:
         )
         tm.assert_frame_equal(df3, df1.iloc[:-1])
 
+    @td.check_file_leaks
     def test_reader_special_dtypes(self, read_ext):
         if pd.read_excel.keywords["engine"] == "pyxlsb":
             pytest.xfail("Sheets containing datetimes not supported by pyxlsb")
@@ -417,6 +434,7 @@ class TestReaders:
         tm.assert_frame_equal(actual, no_convert_float)
 
     # GH8212 - support for converters and missing values
+    @td.check_file_leaks
     def test_reader_converters(self, read_ext):
 
         basename = "test_converters"
@@ -444,6 +462,7 @@ class TestReaders:
         )
         tm.assert_frame_equal(actual, expected)
 
+    @td.check_file_leaks
     def test_reader_dtype(self, read_ext):
         # GH 8212
         basename = "testdtype"
@@ -473,6 +492,7 @@ class TestReaders:
         with pytest.raises(ValueError, match=msg):
             pd.read_excel(basename + read_ext, dtype={"d": "int64"})
 
+    @td.check_file_leaks
     @pytest.mark.parametrize(
         "dtype,expected",
         [
@@ -507,6 +527,7 @@ class TestReaders:
         actual = pd.read_excel(basename + read_ext, dtype=dtype)
         tm.assert_frame_equal(actual, expected)
 
+    @td.check_file_leaks
     def test_reader_spaces(self, read_ext):
         # see gh-32207
         basename = "test_spaces"
@@ -525,6 +546,7 @@ class TestReaders:
         )
         tm.assert_frame_equal(actual, expected)
 
+    @td.check_file_leaks
     def test_reading_all_sheets(self, read_ext):
         # Test reading all sheet names by setting sheet_name to None,
         # Ensure a dict is returned.
@@ -538,6 +560,7 @@ class TestReaders:
         # Ensure sheet order is preserved
         assert expected_keys == list(dfs.keys())
 
+    @td.check_file_leaks
     def test_reading_multiple_specific_sheets(self, read_ext):
         # Test reading specific sheet names by specifying a mixed list
         # of integers and strings, and confirm that duplicated sheet
@@ -552,6 +575,7 @@ class TestReaders:
         tm.assert_contains_all(expected_keys, dfs.keys())
         assert len(expected_keys) == len(dfs.keys())
 
+    @td.check_file_leaks
     def test_reading_all_sheets_with_blank(self, read_ext):
         # Test reading all sheet names by setting sheet_name to None,
         # In the case where some sheets are blank.
@@ -562,15 +586,18 @@ class TestReaders:
         tm.assert_contains_all(expected_keys, dfs.keys())
 
     # GH6403
+    @td.check_file_leaks
     def test_read_excel_blank(self, read_ext):
         actual = pd.read_excel("blank" + read_ext, sheet_name="Sheet1")
         tm.assert_frame_equal(actual, DataFrame())
 
+    @td.check_file_leaks
     def test_read_excel_blank_with_header(self, read_ext):
         expected = DataFrame(columns=["col_1", "col_2"])
         actual = pd.read_excel("blank_with_header" + read_ext, sheet_name="Sheet1")
         tm.assert_frame_equal(actual, expected)
 
+    @td.check_file_leaks
     def test_date_conversion_overflow(self, read_ext):
         # GH 10001 : pandas.ExcelFile ignore parse_dates=False
         if pd.read_excel.keywords["engine"] == "pyxlsb":
@@ -591,6 +618,7 @@ class TestReaders:
         result = pd.read_excel("testdateoverflow" + read_ext)
         tm.assert_frame_equal(result, expected)
 
+    @td.check_file_leaks
     def test_sheet_name(self, read_ext, df_ref):
         if pd.read_excel.keywords["engine"] == "pyxlsb":
             pytest.xfail("Sheets containing datetimes not supported by pyxlsb")
@@ -609,6 +637,7 @@ class TestReaders:
         tm.assert_frame_equal(df1, df_ref, check_names=False)
         tm.assert_frame_equal(df2, df_ref, check_names=False)
 
+    @td.check_file_leaks
     def test_excel_read_buffer(self, read_ext):
 
         pth = "test1" + read_ext
@@ -617,12 +646,14 @@ class TestReaders:
             actual = pd.read_excel(f, sheet_name="Sheet1", index_col=0)
             tm.assert_frame_equal(expected, actual)
 
+    @td.check_file_leaks
     def test_bad_engine_raises(self, read_ext):
         bad_engine = "foo"
         with pytest.raises(ValueError, match="Unknown engine: foo"):
             pd.read_excel("", engine=bad_engine)
 
     @tm.network
+    @td.check_file_leaks
     def test_read_from_http_url(self, read_ext):
         url = (
             "https://raw.githubusercontent.com/pandas-dev/pandas/master/"
@@ -633,6 +664,7 @@ class TestReaders:
         tm.assert_frame_equal(url_table, local_table)
 
     @td.skip_if_not_us_locale
+    @td.check_file_leaks
     def test_read_from_s3_url(self, read_ext, s3_resource):
         # Bucket "pandas-test" created in tests/io/conftest.py
         with open("test1" + read_ext, "rb") as f:
@@ -646,6 +678,7 @@ class TestReaders:
     @pytest.mark.slow
     # ignore warning from old xlrd
     @pytest.mark.filterwarnings("ignore:This metho:PendingDeprecationWarning")
+    @td.check_file_leaks
     def test_read_from_file_url(self, read_ext, datapath):
 
         # FILE
@@ -663,6 +696,7 @@ class TestReaders:
 
         tm.assert_frame_equal(url_table, local_table)
 
+    @td.check_file_leaks
     def test_read_from_pathlib_path(self, read_ext):
 
         # GH12655
@@ -702,6 +736,7 @@ class TestReaders:
             # should not throw an exception because the passed file was closed
             f.read()
 
+    @td.check_file_leaks
     def test_reader_seconds(self, read_ext):
         if pd.read_excel.keywords["engine"] == "pyxlsb":
             pytest.xfail("Sheets containing datetimes not supported by pyxlsb")
@@ -731,6 +766,7 @@ class TestReaders:
         actual = pd.read_excel("times_1904" + read_ext, sheet_name="Sheet1")
         tm.assert_frame_equal(actual, expected)
 
+    @td.check_file_leaks
     def test_read_excel_multiindex(self, read_ext):
         # see gh-4679
         if pd.read_excel.keywords["engine"] == "pyxlsb":
@@ -813,6 +849,7 @@ class TestReaders:
         )
         tm.assert_frame_equal(actual, expected)
 
+    @td.check_file_leaks
     def test_read_excel_multiindex_header_only(self, read_ext):
         # see gh-11733.
         #
@@ -824,6 +861,7 @@ class TestReaders:
         expected = DataFrame([[1, 2, 3, 4]] * 2, columns=exp_columns)
         tm.assert_frame_equal(result, expected)
 
+    @td.check_file_leaks
     def test_excel_old_index_format(self, read_ext):
         # see gh-4679
         filename = "test_index_name_pre17" + read_ext
@@ -896,6 +934,7 @@ class TestReaders:
         actual = pd.read_excel(filename, sheet_name="multi_no_names", index_col=[0, 1])
         tm.assert_frame_equal(actual, expected, check_names=False)
 
+    @td.check_file_leaks
     def test_read_excel_bool_header_arg(self, read_ext):
         # GH 6114
         msg = "Passing a bool to header is invalid"
@@ -903,6 +942,7 @@ class TestReaders:
             with pytest.raises(TypeError, match=msg):
                 pd.read_excel("test1" + read_ext, header=arg)
 
+    @td.check_file_leaks
     def test_read_excel_skiprows_list(self, read_ext):
         # GH 4903
         if pd.read_excel.keywords["engine"] == "pyxlsb":
@@ -929,6 +969,7 @@ class TestReaders:
         )
         tm.assert_frame_equal(actual, expected)
 
+    @td.check_file_leaks
     def test_read_excel_nrows(self, read_ext):
         # GH 16645
         num_rows_to_pull = 5
@@ -937,6 +978,7 @@ class TestReaders:
         expected = expected[:num_rows_to_pull]
         tm.assert_frame_equal(actual, expected)
 
+    @td.check_file_leaks
     def test_read_excel_nrows_greater_than_nrows_in_file(self, read_ext):
         # GH 16645
         expected = pd.read_excel("test1" + read_ext)
@@ -945,12 +987,14 @@ class TestReaders:
         actual = pd.read_excel("test1" + read_ext, nrows=num_rows_to_pull)
         tm.assert_frame_equal(actual, expected)
 
+    @td.check_file_leaks
     def test_read_excel_nrows_non_integer_parameter(self, read_ext):
         # GH 16645
         msg = "'nrows' must be an integer >=0"
         with pytest.raises(ValueError, match=msg):
             pd.read_excel("test1" + read_ext, nrows="5")
 
+    @td.check_file_leaks
     def test_read_excel_squeeze(self, read_ext):
         # GH 12157
         f = "test_squeeze" + read_ext
@@ -968,12 +1012,14 @@ class TestReaders:
         expected = pd.Series([1, 2, 3], name="a")
         tm.assert_series_equal(actual, expected)
 
+    @td.check_file_leaks
     def test_deprecated_kwargs(self, read_ext):
         with tm.assert_produces_warning(FutureWarning, raise_on_extra_warnings=False):
             pd.read_excel("test1" + read_ext, "Sheet1", 0)
 
         pd.read_excel("test1" + read_ext)
 
+    @td.check_file_leaks
     def test_no_header_with_list_index_col(self, read_ext):
         # GH 31783
         file_name = "testmultiindex" + read_ext
@@ -998,6 +1044,7 @@ class TestExcelFileRead:
         monkeypatch.chdir(datapath("io", "data", "excel"))
         monkeypatch.setattr(pd, "ExcelFile", func)
 
+    @td.check_file_leaks
     def test_excel_passes_na(self, read_ext):
         with pd.ExcelFile("test4" + read_ext) as excel:
             parsed = pd.read_excel(
@@ -1036,6 +1083,7 @@ class TestExcelFileRead:
         )
         tm.assert_frame_equal(parsed, expected)
 
+    @td.check_file_leaks
     @pytest.mark.parametrize("na_filter", [None, True, False])
     def test_excel_passes_na_filter(self, read_ext, na_filter):
         # gh-25453
@@ -1061,6 +1109,7 @@ class TestExcelFileRead:
         expected = DataFrame(expected, columns=["Test"])
         tm.assert_frame_equal(parsed, expected)
 
+    @td.check_file_leaks
     def test_excel_table_sheet_by_index(self, read_ext, df_ref):
         # For some reason pd.read_excel has no attribute 'keywords' here.
         # Skipping based on read_ext instead.
@@ -1088,6 +1137,7 @@ class TestExcelFileRead:
 
         tm.assert_frame_equal(df3, df1.iloc[:-1])
 
+    @td.check_file_leaks
     def test_sheet_name(self, read_ext, df_ref):
         # For some reason pd.read_excel has no attribute 'keywords' here.
         # Skipping based on read_ext instead.
@@ -1106,6 +1156,7 @@ class TestExcelFileRead:
         tm.assert_frame_equal(df1_parse, df_ref, check_names=False)
         tm.assert_frame_equal(df2_parse, df_ref, check_names=False)
 
+    @td.check_file_leaks
     def test_excel_read_buffer(self, engine, read_ext):
         pth = "test1" + read_ext
         expected = pd.read_excel(pth, sheet_name="Sheet1", index_col=0, engine=engine)
@@ -1116,6 +1167,7 @@ class TestExcelFileRead:
 
         tm.assert_frame_equal(expected, actual)
 
+    @td.check_file_leaks
     def test_reader_closes_file(self, engine, read_ext):
         with open("test1" + read_ext, "rb") as f:
             with pd.ExcelFile(f) as xlsx:
@@ -1124,6 +1176,7 @@ class TestExcelFileRead:
 
         assert f.closed
 
+    @td.check_file_leaks
     def test_conflicting_excel_engines(self, read_ext):
         # GH 26566
         msg = "Engine should not be specified when passing an ExcelFile"
@@ -1132,6 +1185,7 @@ class TestExcelFileRead:
             with pytest.raises(ValueError, match=msg):
                 pd.read_excel(xl, engine="foo")
 
+    @td.check_file_leaks
     def test_excel_read_binary(self, engine, read_ext):
         # GH 15914
         expected = pd.read_excel("test1" + read_ext, engine=engine)
@@ -1142,6 +1196,7 @@ class TestExcelFileRead:
         actual = pd.read_excel(data, engine=engine)
         tm.assert_frame_equal(expected, actual)
 
+    @td.check_file_leaks
     def test_excel_high_surrogate(self, engine):
         # GH 23809
         expected = pd.DataFrame(["\udc88"], columns=["Column1"])
@@ -1150,6 +1205,7 @@ class TestExcelFileRead:
         actual = pd.read_excel("high_surrogate.xlsx")
         tm.assert_frame_equal(expected, actual)
 
+    @td.check_file_leaks
     @pytest.mark.parametrize("filename", ["df_empty.xlsx", "df_equals.xlsx"])
     def test_header_with_index_col(self, engine, filename):
         # GH 33476
@@ -1163,6 +1219,7 @@ class TestExcelFileRead:
         )
         tm.assert_frame_equal(expected, result)
 
+    @td.check_file_leaks
     def test_read_datetime_multiindex(self, engine, read_ext):
         # GH 34748
         if engine == "pyxlsb":

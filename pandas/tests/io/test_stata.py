@@ -12,6 +12,8 @@ import zipfile
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.common import is_categorical_dtype
 
 import pandas as pd
@@ -133,6 +135,7 @@ class TestStata:
     def read_csv(self, file):
         return read_csv(file, parse_dates=True)
 
+    @td.check_file_leaks
     @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     def test_read_empty_dta(self, version):
         empty_ds = DataFrame(columns=["unit"])
@@ -142,6 +145,7 @@ class TestStata:
             empty_ds2 = read_stata(path)
             tm.assert_frame_equal(empty_ds, empty_ds2)
 
+    @td.check_file_leaks
     @pytest.mark.parametrize("file", ["dta1_114", "dta1_117"])
     def test_read_dta1(self, file):
 
@@ -161,6 +165,7 @@ class TestStata:
 
         tm.assert_frame_equal(parsed, expected)
 
+    @td.check_file_leaks
     def test_read_dta2(self):
 
         expected = DataFrame.from_records(
@@ -221,6 +226,7 @@ class TestStata:
         tm.assert_frame_equal(parsed_115, expected, check_datetimelike_compat=True)
         tm.assert_frame_equal(parsed_117, expected, check_datetimelike_compat=True)
 
+    @td.check_file_leaks
     @pytest.mark.parametrize("file", ["dta3_113", "dta3_114", "dta3_115", "dta3_117"])
     def test_read_dta3(self, file):
 
@@ -235,6 +241,7 @@ class TestStata:
 
         tm.assert_frame_equal(parsed, expected)
 
+    @td.check_file_leaks
     @pytest.mark.parametrize("file", ["dta4_113", "dta4_114", "dta4_115", "dta4_117"])
     def test_read_dta4(self, file):
 
@@ -281,6 +288,7 @@ class TestStata:
         tm.assert_frame_equal(parsed, expected)
 
     # File containing strls
+    @td.check_file_leaks
     def test_read_dta12(self):
         parsed_117 = self.read_dta(self.dta21_117)
         expected = DataFrame.from_records(
@@ -294,6 +302,7 @@ class TestStata:
 
         tm.assert_frame_equal(parsed_117, expected, check_dtype=False)
 
+    @td.check_file_leaks
     def test_read_dta18(self):
         parsed_118 = self.read_dta(self.dta22_118)
         parsed_118["Bytes"] = parsed_118["Bytes"].astype("O")
@@ -334,6 +343,7 @@ class TestStata:
 
             assert rdr.data_label == "This is a  Ünicode data label"
 
+    @td.check_file_leaks
     def test_read_write_dta5(self):
         original = DataFrame(
             [(np.nan, np.nan, np.nan, np.nan, np.nan)],
@@ -346,6 +356,7 @@ class TestStata:
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(written_and_read_again.set_index("index"), original)
 
+    @td.check_file_leaks
     def test_write_dta6(self):
         original = self.read_csv(self.csv3)
         original.index.name = "index"
@@ -362,6 +373,7 @@ class TestStata:
                 check_index_type=False,
             )
 
+    @td.check_file_leaks
     @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     def test_read_write_dta10(self, version):
         original = DataFrame(
@@ -383,11 +395,13 @@ class TestStata:
                 check_index_type=False,
             )
 
+    @td.check_file_leaks
     def test_stata_doc_examples(self):
         with tm.ensure_clean() as path:
             df = DataFrame(np.random.randn(10, 2), columns=list("AB"))
             df.to_stata(path)
 
+    @td.check_file_leaks
     def test_write_preserves_original(self):
         # 9795
         np.random.seed(423)
@@ -398,6 +412,7 @@ class TestStata:
             df.to_stata(path, write_index=False)
         tm.assert_frame_equal(df, df_copy)
 
+    @td.check_file_leaks
     @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     def test_encoding(self, version):
 
@@ -415,6 +430,7 @@ class TestStata:
             reread_encoded = read_stata(path)
             tm.assert_frame_equal(encoded, reread_encoded)
 
+    @td.check_file_leaks
     def test_read_write_dta11(self):
         original = DataFrame(
             [(1, 2, 3, 4)],
@@ -439,6 +455,7 @@ class TestStata:
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(written_and_read_again.set_index("index"), formatted)
 
+    @td.check_file_leaks
     @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     def test_read_write_dta12(self, version):
         original = DataFrame(
@@ -476,6 +493,7 @@ class TestStata:
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(written_and_read_again.set_index("index"), formatted)
 
+    @td.check_file_leaks
     def test_read_write_dta13(self):
         s1 = Series(2 ** 9, dtype=np.int16)
         s2 = Series(2 ** 17, dtype=np.int32)
@@ -491,6 +509,7 @@ class TestStata:
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(written_and_read_again.set_index("index"), formatted)
 
+    @td.check_file_leaks
     @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     @pytest.mark.parametrize(
         "file", ["dta14_113", "dta14_114", "dta14_115", "dta14_117"]
@@ -514,6 +533,7 @@ class TestStata:
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(written_and_read_again.set_index("index"), parsed_114)
 
+    @td.check_file_leaks
     @pytest.mark.parametrize(
         "file", ["dta15_113", "dta15_114", "dta15_115", "dta15_117"]
     )
@@ -534,6 +554,7 @@ class TestStata:
 
         tm.assert_frame_equal(expected, parsed)
 
+    @td.check_file_leaks
     @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     def test_timestamp_and_label(self, version):
         original = DataFrame([(1,)], columns=["variable"])
@@ -548,6 +569,7 @@ class TestStata:
                 assert reader.time_stamp == "29 Feb 2000 14:21"
                 assert reader.data_label == data_label
 
+    @td.check_file_leaks
     @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     def test_invalid_timestamp(self, version):
         original = DataFrame([(1,)], columns=["variable"])
@@ -557,6 +579,7 @@ class TestStata:
             with pytest.raises(ValueError, match=msg):
                 original.to_stata(path, time_stamp=time_stamp, version=version)
 
+    @td.check_file_leaks
     def test_numeric_column_names(self):
         original = DataFrame(np.reshape(np.arange(25.0), (5, 5)))
         original.index.name = "index"
@@ -572,6 +595,7 @@ class TestStata:
             written_and_read_again.columns = map(convert_col_name, columns)
             tm.assert_frame_equal(original, written_and_read_again)
 
+    @td.check_file_leaks
     @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     def test_nan_to_missing_value(self, version):
         s1 = Series(np.arange(4.0), dtype=np.float32)
@@ -586,6 +610,7 @@ class TestStata:
             written_and_read_again = written_and_read_again.set_index("index")
             tm.assert_frame_equal(written_and_read_again, original)
 
+    @td.check_file_leaks
     def test_no_index(self):
         columns = ["x", "y"]
         original = DataFrame(np.reshape(np.arange(10.0), (5, 2)), columns=columns)
@@ -596,6 +621,7 @@ class TestStata:
             with pytest.raises(KeyError, match=original.index.name):
                 written_and_read_again["index_not_written"]
 
+    @td.check_file_leaks
     def test_string_no_dates(self):
         s1 = Series(["a", "A longer string"])
         s2 = Series([1.0, 2.0], dtype=np.float64)
@@ -606,6 +632,7 @@ class TestStata:
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(written_and_read_again.set_index("index"), original)
 
+    @td.check_file_leaks
     def test_large_value_conversion(self):
         s0 = Series([1, 99], dtype=np.int8)
         s1 = Series([1, 127], dtype=np.int8)
@@ -624,6 +651,7 @@ class TestStata:
             modified["s3"] = Series(modified["s3"], dtype=np.float64)
             tm.assert_frame_equal(written_and_read_again.set_index("index"), modified)
 
+    @td.check_file_leaks
     def test_dates_invalid_column(self):
         original = DataFrame([datetime(2006, 11, 19, 23, 13, 20)])
         original.index.name = "index"
@@ -636,6 +664,7 @@ class TestStata:
             modified.columns = ["_0"]
             tm.assert_frame_equal(written_and_read_again.set_index("index"), modified)
 
+    @td.check_file_leaks
     def test_105(self):
         # Data obtained from:
         # http://go.worldbank.org/ZXY29PVJ21
@@ -650,6 +679,7 @@ class TestStata:
         df0["psch_dis"] = df0["psch_dis"].astype(np.float32)
         tm.assert_frame_equal(df.head(3), df0)
 
+    @td.check_file_leaks
     def test_value_labels_old_format(self):
         # GH 19417
         #
@@ -660,6 +690,7 @@ class TestStata:
         assert reader.value_labels() == {}
         reader.close()
 
+    @td.check_file_leaks
     def test_date_export_formats(self):
         columns = ["tc", "td", "tw", "tm", "tq", "th", "ty"]
         conversions = {c: c for c in columns}
@@ -683,6 +714,7 @@ class TestStata:
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(written_and_read_again.set_index("index"), expected)
 
+    @td.check_file_leaks
     def test_write_missing_strings(self):
         original = DataFrame([["1"], [None]], columns=["foo"])
         expected = DataFrame([["1"], [""]], columns=["foo"])
@@ -692,6 +724,7 @@ class TestStata:
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(written_and_read_again.set_index("index"), expected)
 
+    @td.check_file_leaks
     @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     @pytest.mark.parametrize("byteorder", [">", "<"])
     def test_bool_uint(self, byteorder, version):
@@ -726,6 +759,7 @@ class TestStata:
             written_and_read_again = written_and_read_again.set_index("index")
             tm.assert_frame_equal(written_and_read_again, expected)
 
+    @td.check_file_leaks
     def test_variable_labels(self):
         with StataReader(self.dta16_115) as rdr:
             sr_115 = rdr.variable_labels()
@@ -739,6 +773,7 @@ class TestStata:
             assert k in keys
             assert v in labels
 
+    @td.check_file_leaks
     def test_minimal_size_col(self):
         str_lens = (1, 100, 244)
         s = {}
@@ -758,6 +793,7 @@ class TestStata:
                     assert int(variable[1:]) == int(fmt[1:-1])
                     assert int(variable[1:]) == typ
 
+    @td.check_file_leaks
     def test_excessively_long_string(self):
         str_lens = (1, 244, 500)
         s = {}
@@ -776,6 +812,7 @@ class TestStata:
             with tm.ensure_clean() as path:
                 original.to_stata(path)
 
+    @td.check_file_leaks
     def test_missing_value_generator(self):
         types = ("b", "h", "l")
         df = DataFrame([[0.0]], columns=["float_"])
@@ -807,6 +844,7 @@ class TestStata:
         )
         assert val.string == ".z"
 
+    @td.check_file_leaks
     @pytest.mark.parametrize("file", ["dta17_113", "dta17_115", "dta17_117"])
     def test_missing_value_conversion(self, file):
         columns = ["int8_", "int16_", "int32_", "float32_", "float64_"]
@@ -821,6 +859,7 @@ class TestStata:
         parsed = read_stata(getattr(self, file), convert_missing=True)
         tm.assert_frame_equal(parsed, expected)
 
+    @td.check_file_leaks
     def test_big_dates(self):
         yr = [1960, 2000, 9999, 100, 2262, 1677]
         mo = [1, 1, 12, 1, 4, 9]
@@ -879,6 +918,7 @@ class TestStata:
                 check_datetimelike_compat=True,
             )
 
+    @td.check_file_leaks
     def test_dtype_conversion(self):
         expected = self.read_csv(self.csv15)
         expected["byte_"] = expected["byte_"].astype(np.int8)
@@ -905,6 +945,7 @@ class TestStata:
 
         tm.assert_frame_equal(expected, conversion)
 
+    @td.check_file_leaks
     def test_drop_column(self):
         expected = self.read_csv(self.csv15)
         expected["byte_"] = expected["byte_"].astype(np.int8)
@@ -938,6 +979,7 @@ class TestStata:
             columns = ["byte_", "int_", "long_", "not_found"]
             read_stata(self.dta15_117, convert_dates=True, columns=columns)
 
+    @td.check_file_leaks
     @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     @pytest.mark.filterwarnings(
         "ignore:\\nStata value:pandas.io.stata.ValueLabelTypeMismatch"
@@ -993,6 +1035,7 @@ class TestStata:
             res = written_and_read_again.set_index("index")
             tm.assert_frame_equal(res, expected)
 
+    @td.check_file_leaks
     def test_categorical_warnings_and_errors(self):
         # Warning for non-string labels
         # Error for labels too long
@@ -1023,6 +1066,7 @@ class TestStata:
             original.to_stata(path)
             # should get a warning for mixed content
 
+    @td.check_file_leaks
     @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     def test_categorical_with_stata_missing_values(self, version):
         values = [["a" + str(i)] for i in range(120)]
@@ -1045,6 +1089,7 @@ class TestStata:
                 expected[col] = cat
             tm.assert_frame_equal(res, expected)
 
+    @td.check_file_leaks
     @pytest.mark.parametrize("file", ["dta19_115", "dta19_117"])
     def test_categorical_order(self, file):
         # Directly construct using expected codes
@@ -1081,6 +1126,7 @@ class TestStata:
                     expected[col].cat.categories, parsed[col].cat.categories
                 )
 
+    @td.check_file_leaks
     @pytest.mark.parametrize("file", ["dta20_115", "dta20_117"])
     def test_categorical_sorting(self, file):
         parsed = read_stata(getattr(self, file))
@@ -1098,6 +1144,7 @@ class TestStata:
         expected = pd.Series(cat, name="srh")
         tm.assert_series_equal(expected, parsed["srh"])
 
+    @td.check_file_leaks
     @pytest.mark.parametrize("file", ["dta19_115", "dta19_117"])
     def test_categorical_ordering(self, file):
         file = getattr(self, file)
@@ -1110,6 +1157,7 @@ class TestStata:
             assert parsed[col].cat.ordered
             assert not parsed_unordered[col].cat.ordered
 
+    @td.check_file_leaks
     @pytest.mark.parametrize(
         "file",
         [
@@ -1180,6 +1228,7 @@ class TestStata:
                 from_frame[col] = cat
         return from_frame
 
+    @td.check_file_leaks
     def test_iterator(self):
 
         fname = self.dta3_117
@@ -1207,6 +1256,7 @@ class TestStata:
             from_chunks = pd.concat(itr)
         tm.assert_frame_equal(parsed, from_chunks)
 
+    @td.check_file_leaks
     @pytest.mark.parametrize(
         "file",
         [
@@ -1263,6 +1313,7 @@ class TestStata:
             pos += chunksize
         itr.close()
 
+    @td.check_file_leaks
     def test_read_chunks_columns(self):
         fname = self.dta3_117
         columns = ["quarter", "cpi", "m1"]
@@ -1279,6 +1330,7 @@ class TestStata:
                 tm.assert_frame_equal(from_frame, chunk, check_dtype=False)
                 pos += chunksize
 
+    @td.check_file_leaks
     @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     def test_write_variable_labels(self, version, mixed_frame):
         # GH 13631, add support for writing variable labels
@@ -1303,6 +1355,7 @@ class TestStata:
                 read_labels = sr.variable_labels()
             assert read_labels == variable_labels
 
+    @td.check_file_leaks
     @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     def test_invalid_variable_labels(self, version, mixed_frame):
         mixed_frame.index.name = "index"
@@ -1314,6 +1367,7 @@ class TestStata:
                     path, variable_labels=variable_labels, version=version
                 )
 
+    @td.check_file_leaks
     @pytest.mark.parametrize("version", [114, 117])
     def test_invalid_variable_label_encoding(self, version, mixed_frame):
         mixed_frame.index.name = "index"
@@ -1327,6 +1381,7 @@ class TestStata:
                     path, variable_labels=variable_labels, version=version
                 )
 
+    @td.check_file_leaks
     def test_write_variable_label_errors(self, mixed_frame):
         values = ["\u03A1", "\u0391", "\u039D", "\u0394", "\u0391", "\u03A3"]
 
@@ -1357,6 +1412,7 @@ class TestStata:
             with tm.ensure_clean() as path:
                 mixed_frame.to_stata(path, variable_labels=variable_labels_long)
 
+    @td.check_file_leaks
     def test_default_date_conversion(self):
         # GH 12259
         dates = [
@@ -1386,6 +1442,7 @@ class TestStata:
             direct = read_stata(path, convert_dates=True)
             tm.assert_frame_equal(reread, direct)
 
+    @td.check_file_leaks
     def test_unsupported_type(self):
         original = pd.DataFrame({"a": [1 + 2j, 2 + 4j]})
 
@@ -1394,6 +1451,7 @@ class TestStata:
             with tm.ensure_clean() as path:
                 original.to_stata(path)
 
+    @td.check_file_leaks
     def test_unsupported_datetype(self):
         dates = [
             dt.datetime(1999, 12, 31, 12, 12, 12, 12000),
@@ -1425,6 +1483,7 @@ class TestStata:
             with tm.ensure_clean() as path:
                 original.to_stata(path)
 
+    @td.check_file_leaks
     def test_repeated_column_labels(self):
         # GH 13923, 25772
         msg = """
@@ -1440,6 +1499,7 @@ The repeated labels are:\n-+\nwolof
         with pytest.raises(ValueError, match=msg):
             read_stata(self.dta23, convert_categoricals=True)
 
+    @td.check_file_leaks
     def test_stata_111(self):
         # 111 is an old version but still used by current versions of
         # SAS when exporting to Stata format. We do not know of any
@@ -1456,6 +1516,7 @@ The repeated labels are:\n-+\nwolof
         original = original[["y", "x", "w", "z"]]
         tm.assert_frame_equal(original, df)
 
+    @td.check_file_leaks
     def test_out_of_range_double(self):
         # GH 14618
         df = DataFrame(
@@ -1481,6 +1542,7 @@ The repeated labels are:\n-+\nwolof
             with tm.ensure_clean() as path:
                 df.to_stata(path)
 
+    @td.check_file_leaks
     def test_out_of_range_float(self):
         original = DataFrame(
             {
@@ -1515,6 +1577,7 @@ The repeated labels are:\n-+\nwolof
             with tm.ensure_clean() as path:
                 original.to_stata(path)
 
+    @td.check_file_leaks
     def test_path_pathlib(self):
         df = tm.makeDataFrame()
         df.index.name = "index"
@@ -1522,6 +1585,7 @@ The repeated labels are:\n-+\nwolof
         result = tm.round_trip_pathlib(df.to_stata, reader)
         tm.assert_frame_equal(df, result)
 
+    @td.check_file_leaks
     def test_pickle_path_localpath(self):
         df = tm.makeDataFrame()
         df.index.name = "index"
@@ -1529,6 +1593,7 @@ The repeated labels are:\n-+\nwolof
         result = tm.round_trip_localpath(df.to_stata, reader)
         tm.assert_frame_equal(df, result)
 
+    @td.check_file_leaks
     @pytest.mark.parametrize("write_index", [True, False])
     def test_value_labels_iterator(self, write_index):
         # GH 16923
@@ -1542,6 +1607,7 @@ The repeated labels are:\n-+\nwolof
                 value_labels = dta_iter.value_labels()
         assert value_labels == {"A": {0: "A", 1: "B", 2: "C", 3: "E"}}
 
+    @td.check_file_leaks
     def test_set_index(self):
         # GH 17328
         df = tm.makeDataFrame()
@@ -1551,6 +1617,7 @@ The repeated labels are:\n-+\nwolof
             reread = pd.read_stata(path, index_col="index")
         tm.assert_frame_equal(df, reread)
 
+    @td.check_file_leaks
     @pytest.mark.parametrize(
         "column", ["ms", "day", "week", "month", "qtr", "half", "yr"]
     )
@@ -1571,6 +1638,7 @@ The repeated labels are:\n-+\nwolof
         formatted = df.loc[0, column + "_fmt"]
         assert unformatted == formatted
 
+    @td.check_file_leaks
     def test_writer_117(self):
         original = DataFrame(
             data=[
@@ -1642,6 +1710,7 @@ The repeated labels are:\n-+\nwolof
             )
             tm.assert_frame_equal(original, copy)
 
+    @td.check_file_leaks
     def test_convert_strl_name_swap(self):
         original = DataFrame(
             [["a" * 3000, "A", "apple"], ["b" * 1000, "B", "banana"]],
@@ -1657,6 +1726,7 @@ The repeated labels are:\n-+\nwolof
                 reread.columns = original.columns
                 tm.assert_frame_equal(reread, original, check_index_type=False)
 
+    @td.check_file_leaks
     def test_invalid_date_conversion(self):
         # GH 12259
         dates = [
@@ -1677,6 +1747,7 @@ The repeated labels are:\n-+\nwolof
             with pytest.raises(ValueError, match=msg):
                 original.to_stata(path, convert_dates={"wrong_name": "tc"})
 
+    @td.check_file_leaks
     @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     def test_nonfile_writing(self, version):
         # GH 21041
@@ -1691,6 +1762,7 @@ The repeated labels are:\n-+\nwolof
             reread = pd.read_stata(path, index_col="index")
         tm.assert_frame_equal(df, reread)
 
+    @td.check_file_leaks
     def test_gzip_writing(self):
         # writing version 117 requires seek and cannot be used with gzip
         df = tm.makeDataFrame()
@@ -1702,6 +1774,7 @@ The repeated labels are:\n-+\nwolof
                 reread = pd.read_stata(gz, index_col="index")
         tm.assert_frame_equal(df, reread)
 
+    @td.check_file_leaks
     def test_unicode_dta_118(self):
         unicode_df = self.read_dta(self.dta25_118)
 
@@ -1719,6 +1792,7 @@ The repeated labels are:\n-+\nwolof
 
         tm.assert_frame_equal(unicode_df, expected)
 
+    @td.check_file_leaks
     def test_mixed_string_strl(self):
         # GH 23633
         output = [{"mixed": "string" * 500, "number": 0}, {"mixed": None, "number": 1}]
@@ -1740,6 +1814,7 @@ The repeated labels are:\n-+\nwolof
             expected = output.fillna("")
             tm.assert_frame_equal(reread, expected)
 
+    @td.check_file_leaks
     @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     def test_all_none_exception(self, version):
         output = [{"none": "none", "number": 0}, {"none": None, "number": 1}]
@@ -1749,6 +1824,7 @@ The repeated labels are:\n-+\nwolof
             with pytest.raises(ValueError, match="Column `none` cannot be exported"):
                 output.to_stata(path, version=version)
 
+    @td.check_file_leaks
     @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     def test_invalid_file_not_written(self, version):
         content = "Here is one __�__ Another one __·__ Another one __½__"
@@ -1766,6 +1842,7 @@ The repeated labels are:\n-+\nwolof
                 with tm.assert_produces_warning(ResourceWarning):
                     df.to_stata(path)
 
+    @td.check_file_leaks
     def test_strl_latin1(self):
         # GH 23573, correct GSO data to reflect correct size
         output = DataFrame(
@@ -1785,6 +1862,7 @@ The repeated labels are:\n-+\nwolof
                     size = gso[gso.find(b"\x82") + 1]
                     assert len(val) == size - 1
 
+    @td.check_file_leaks
     def test_encoding_latin1_118(self):
         # GH 25960
         msg = """
@@ -1800,6 +1878,7 @@ the string values returned are correct."""
         expected = pd.DataFrame([["Düsseldorf"]] * 151, columns=["kreis1849"])
         tm.assert_frame_equal(encoded, expected)
 
+    @td.check_file_leaks
     @pytest.mark.slow
     def test_stata_119(self):
         # Gzipped since contains 32,999 variables and uncompressed is 20MiB
@@ -1811,6 +1890,7 @@ the string values returned are correct."""
         assert df.iloc[0, -1] == 1
         assert df.iloc[0, 0] == pd.Timestamp(datetime(2012, 12, 21, 21, 12, 21))
 
+    @td.check_file_leaks
     @pytest.mark.parametrize("version", [118, 119, None])
     def test_utf8_writer(self, version):
         cat = pd.Categorical(["a", "β", "ĉ"], ordered=True)
@@ -1855,6 +1935,7 @@ the string values returned are correct."""
             reread_to_stata = read_stata(path)
             tm.assert_frame_equal(data, reread_to_stata)
 
+    @td.check_file_leaks
     def test_writer_118_exceptions(self):
         df = DataFrame(np.zeros((1, 33000), dtype=np.int8))
         with tm.ensure_clean() as path:
@@ -1865,6 +1946,7 @@ the string values returned are correct."""
                 StataWriterUTF8(path, df, version=118)
 
 
+@td.check_file_leaks
 @pytest.mark.parametrize("version", [105, 108, 111, 113, 114])
 def test_backward_compat(version, datapath):
     data_base = datapath("io", "data", "stata")
@@ -1875,6 +1957,7 @@ def test_backward_compat(version, datapath):
     tm.assert_frame_equal(old_dta, expected, check_dtype=False)
 
 
+@td.check_file_leaks
 @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
 @pytest.mark.parametrize("use_dict", [True, False])
 @pytest.mark.parametrize("infer", [True, False])
@@ -1911,6 +1994,7 @@ def test_compression(compression, version, use_dict, infer):
         tm.assert_frame_equal(reread, df)
 
 
+@td.check_file_leaks
 @pytest.mark.parametrize("method", ["zip", "infer"])
 @pytest.mark.parametrize("file_ext", [None, "dta", "zip"])
 def test_compression_dict(method, file_ext):
@@ -1932,6 +2016,7 @@ def test_compression_dict(method, file_ext):
         tm.assert_frame_equal(reread, df)
 
 
+@td.check_file_leaks
 @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
 def test_chunked_categorical(version):
     df = DataFrame({"cats": Series(["a", "b", "a", "b", "c"], dtype="category")})
@@ -1945,6 +2030,7 @@ def test_chunked_categorical(version):
             tm.assert_series_equal(block.cats, df.cats.iloc[2 * i : 2 * (i + 1)])
 
 
+@td.check_file_leaks
 def test_chunked_categorical_partial(dirpath):
     dta_file = os.path.join(dirpath, "stata-dta-partially-labeled.dta")
     values = ["a", "b", "a", "b", 3.0]
@@ -1964,6 +2050,7 @@ def test_chunked_categorical_partial(dirpath):
     tm.assert_frame_equal(direct, large_chunk)
 
 
+@td.check_file_leaks
 def test_iterator_errors(dirpath):
     dta_file = os.path.join(dirpath, "stata-dta-partially-labeled.dta")
     with pytest.raises(ValueError, match="chunksize must be a positive"):
@@ -1977,6 +2064,7 @@ def test_iterator_errors(dirpath):
             reader.__next__()
 
 
+@td.check_file_leaks
 def test_iterator_value_labels():
     # GH 31544
     values = ["c_label", "b_label"] + ["a_label"] * 500
