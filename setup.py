@@ -34,7 +34,7 @@ def is_platform_mac():
 
 
 min_numpy_ver = "1.16.5"
-min_cython_ver = "0.29.16"  # note: sync with pyproject.toml
+min_cython_ver = "0.29.21"  # note: sync with pyproject.toml
 
 try:
     import Cython
