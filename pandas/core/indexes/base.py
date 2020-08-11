@@ -4466,8 +4466,8 @@ class Index(IndexOpsMixin, PandasObject):
                     _as[np.sum(bad) :] = _as[np.sum(bad) :][::-1]
             else:
                 raise ValueError(
-                    "Invalid na_position keyword argument value."
-                    f"Can be only 'first' or 'last', {na_position} given."
+                    "Invalid na_position keyword argument value. "
+                    f"Can be only 'first' or 'last', '{na_position}' given."
                 )
         else:
             _as = idx.argsort()
