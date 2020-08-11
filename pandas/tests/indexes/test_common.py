@@ -393,16 +393,14 @@ class TestCommon:
             assert result.name == index.name
 
 
-@pytest.mark.parametrize(
-    "idx", [Index(["a", None, "c", None, "e"])]
-)
+@pytest.mark.parametrize("idx", [Index(["a", None, "c", None, "e"])])
 @pytest.mark.parametrize(
     "na_position, expected",
     [
         ("first", Index([None, None, "a", "c", "e"])),
         ("last", Index(["a", "c", "e", None, None])),
         ("middle", None),
-    ]
+    ],
 )
 def test_sort_values_with_missing(idx, na_position, expected):
     # GH 35584. Test that sort_values works with missing values,
@@ -412,7 +410,7 @@ def test_sort_values_with_missing(idx, na_position, expected):
         with pytest.raises(
             ValueError,
             match="Invalid na_position keyword argument value. "
-                  f"Can be only 'first' or 'last', '{na_position}' given."
+            f"Can be only 'first' or 'last', '{na_position}' given.",
         ):
             idx.sort_values(na_position=na_position)
     else:
