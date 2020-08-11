@@ -610,21 +610,11 @@ class BaseGrouper:
         return result
 
     def agg_series(
-        self,
-        obj: Series,
-        func: F,
-        *args,
-        engine: str = "cython",
-        engine_kwargs=None,
-        **kwargs,
+        self, obj: Series, func: F, *args, **kwargs,
     ):
         # Caller is responsible for checking ngroups != 0
         assert self.ngroups != 0
 
-        if maybe_use_numba(engine):
-            return self._aggregate_series_pure_python(
-                obj, func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
-            )
         if len(obj) == 0:
             # SeriesGrouper would raise if we were to call _aggregate_series_fast
             return self._aggregate_series_pure_python(obj, func)
@@ -670,20 +660,8 @@ class BaseGrouper:
         return result, counts
 
     def _aggregate_series_pure_python(
-        self,
-        obj: Series,
-        func: F,
-        *args,
-        engine: str = "cython",
-        engine_kwargs=None,
-        **kwargs,
+        self, obj: Series, func: F, *args, **kwargs,
     ):
-
-        if maybe_use_numba(engine):
-            numba_func, cache_key = generate_numba_func(
-                func, engine_kwargs, kwargs, "groupby_agg"
-            )
-
         group_index, _, ngroups = self.group_info
 
         counts = np.zeros(ngroups, dtype=int)
@@ -692,13 +670,7 @@ class BaseGrouper:
         splitter = get_splitter(obj, group_index, ngroups, axis=0)
 
         for label, group in splitter:
-            if maybe_use_numba(engine):
-                values, index = split_for_numba(group)
-                res = numba_func(values, index, *args)
-                if cache_key not in NUMBA_FUNC_CACHE:
-                    NUMBA_FUNC_CACHE[cache_key] = numba_func
-            else:
-                res = func(group, *args, **kwargs)
+            res = func(group, *args, **kwargs)
 
             if result is None:
                 if isinstance(res, (Series, Index, np.ndarray)):
@@ -876,13 +848,7 @@ class BinGrouper(BaseGrouper):
         ]
 
     def agg_series(
-        self,
-        obj: Series,
-        func: F,
-        *args,
-        engine: str = "cython",
-        engine_kwargs=None,
-        **kwargs,
+        self, obj: Series, func: F, *args, **kwargs,
     ):
         # Caller is responsible for checking ngroups != 0
         assert self.ngroups != 0

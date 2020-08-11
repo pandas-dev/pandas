@@ -1051,12 +1051,9 @@ b  2""",
 
         return self._wrap_aggregated_output(output)
 
-    def _python_agg_general(
-        self, func, *args, engine="cython", engine_kwargs=None, **kwargs
-    ):
+    def _python_agg_general(self, func, *args, **kwargs):
         func = self._is_builtin_func(func)
-        if engine != "numba":
-            f = lambda x: func(x, *args, **kwargs)
+        f = lambda x: func(x, *args, **kwargs)
 
         # iterate through "columns" ex exclusions to populate output dict
         output: Dict[base.OutputKey, np.ndarray] = {}
@@ -1067,21 +1064,11 @@ b  2""",
                 # agg_series below assumes ngroups > 0
                 continue
 
-            if maybe_use_numba(engine):
-                result, counts = self.grouper.agg_series(
-                    obj,
-                    func,
-                    *args,
-                    engine=engine,
-                    engine_kwargs=engine_kwargs,
-                    **kwargs,
-                )
-            else:
-                try:
-                    # if this function is invalid for this dtype, we will ignore it.
-                    result, counts = self.grouper.agg_series(obj, f)
-                except TypeError:
-                    continue
+            try:
+                # if this function is invalid for this dtype, we will ignore it.
+                result, counts = self.grouper.agg_series(obj, f)
+            except TypeError:
+                continue
 
             assert result is not None
             key = base.OutputKey(label=name, position=idx)

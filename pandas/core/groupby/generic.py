@@ -252,16 +252,11 @@ class SeriesGroupBy(GroupBy[Series]):
                 return getattr(self, cyfunc)()
 
             if self.grouper.nkeys > 1:
-                return self._python_agg_general(
-                    func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
-                )
+                return self._python_agg_general(func, *args, **kwargs)
 
             try:
-                return self._python_agg_general(
-                    func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
-                )
+                return self._python_agg_general(func, *args, **kwargs)
             except (ValueError, KeyError):
-                # Do not catch Numba errors here, we want to raise and not fall back.
                 # TODO: KeyError is raised in _python_agg_general,
                 #  see see test_groupby.test_basic
                 result = self._aggregate_named(func, *args, **kwargs)
@@ -934,11 +929,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
 
         relabeling, func, columns, order = reconstruct_func(func, **kwargs)
-
-        if maybe_use_numba(engine):
-            return self._python_agg_general(
-                func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
-            )
 
         result, how = self._aggregate(func, *args, **kwargs)
         if how is None:
