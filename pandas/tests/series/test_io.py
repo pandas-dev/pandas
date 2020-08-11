@@ -4,6 +4,8 @@ from io import StringIO
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import DataFrame, Series
 import pandas._testing as tm
@@ -24,6 +26,7 @@ class TestSeriesToCSV:
 
         return out
 
+    @td.check_file_leaks
     def test_from_csv(self, datetime_series, string_series):
         # freq doesnt round-trip
         datetime_series.index = datetime_series.index._with_freq(None)
@@ -65,6 +68,7 @@ class TestSeriesToCSV:
             check_series = Series({"1998-01-01": 1.0, "1999-01-01": 2.0})
             tm.assert_series_equal(check_series, series)
 
+    @td.check_file_leaks
     def test_to_csv(self, datetime_series):
         import io
 
@@ -79,6 +83,7 @@ class TestSeriesToCSV:
             arr = np.loadtxt(path)
             tm.assert_almost_equal(arr, datetime_series.values)
 
+    @td.check_file_leaks
     def test_to_csv_unicode_index(self):
         buf = StringIO()
         s = Series(["\u05d0", "d2"], index=["\u05d0", "\u05d1"])
@@ -89,6 +94,7 @@ class TestSeriesToCSV:
         s2 = self.read_csv(buf, index_col=0, encoding="UTF-8")
         tm.assert_series_equal(s, s2)
 
+    @td.check_file_leaks
     def test_to_csv_float_format(self):
 
         with tm.ensure_clean() as filename:
@@ -99,6 +105,7 @@ class TestSeriesToCSV:
             xp = Series([0.12, 0.23, 0.57])
             tm.assert_series_equal(rs, xp)
 
+    @td.check_file_leaks
     def test_to_csv_list_entries(self):
         s = Series(["jack and jill", "jesse and frank"])
 
@@ -107,6 +114,7 @@ class TestSeriesToCSV:
         buf = StringIO()
         split.to_csv(buf, header=False)
 
+    @td.check_file_leaks
     def test_to_csv_path_is_none(self):
         # GH 8215
         # Series.to_csv() was returning None, inconsistent with
@@ -115,6 +123,7 @@ class TestSeriesToCSV:
         csv_str = s.to_csv(path_or_buf=None, header=False)
         assert isinstance(csv_str, str)
 
+    @td.check_file_leaks
     @pytest.mark.parametrize(
         "s,encoding",
         [
@@ -168,6 +177,7 @@ class TestSeriesToCSV:
                     s, pd.read_csv(fh, index_col=0, squeeze=True, encoding=encoding)
                 )
 
+    @td.check_file_leaks
     def test_to_csv_interval_index(self):
         # GH 28210
         s = Series(["foo", "bar", "baz"], index=pd.interval_range(0, 3))
@@ -184,6 +194,7 @@ class TestSeriesToCSV:
 
 
 class TestSeriesIO:
+    @td.check_file_leaks
     def test_to_frame(self, datetime_series):
         datetime_series.name = None
         rs = datetime_series.to_frame()
@@ -203,6 +214,7 @@ class TestSeriesIO:
         )
         tm.assert_frame_equal(rs, xp)
 
+    @td.check_file_leaks
     def test_timeseries_periodindex(self):
         # GH2891
         from pandas import period_range
@@ -212,6 +224,7 @@ class TestSeriesIO:
         new_ts = tm.round_trip_pickle(ts)
         assert new_ts.index.freq == "M"
 
+    @td.check_file_leaks
     def test_pickle_preserve_name(self):
         for n in [777, 777.0, "name", datetime(2001, 11, 11), (1, 2)]:
             unpickled = self._pickle_roundtrip_name(tm.makeTimeSeries(name=n))
@@ -224,6 +237,7 @@ class TestSeriesIO:
             unpickled = pd.read_pickle(path)
             return unpickled
 
+    @td.check_file_leaks
     def test_to_frame_expanddim(self):
         # GH 9762
 

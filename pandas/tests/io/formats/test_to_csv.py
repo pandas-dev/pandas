@@ -5,6 +5,8 @@ import sys
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import DataFrame, compat
 import pandas._testing as tm
@@ -17,10 +19,13 @@ def setup_module(module):
 
 
 class TestToCSV:
+
+    # TODO: we can remove this xfail now that 3.6 is dropped?
     @pytest.mark.xfail(
         (3, 6, 5) > sys.version_info,
         reason=("Python csv library bug (see https://bugs.python.org/issue32255)"),
     )
+    @td.check_file_leaks
     def test_to_csv_with_single_column(self):
         # see gh-18676, https://bugs.python.org/issue32255
         #
@@ -49,6 +54,7 @@ class TestToCSV:
             with open(path, "r") as f:
                 assert f.read() == expected2
 
+    @td.check_file_leaks
     def test_to_csv_defualt_encoding(self):
         # GH17097
         df = DataFrame({"col": ["AAAAA", "ÄÄÄÄÄ", "ßßßßß", "聞聞聞聞聞"]})
@@ -58,6 +64,7 @@ class TestToCSV:
             df.to_csv(path)
             tm.assert_frame_equal(pd.read_csv(path, index_col=0), df)
 
+    @td.check_file_leaks
     def test_to_csv_quotechar(self):
         df = DataFrame({"col": [1, 2]})
         expected = """\
@@ -86,6 +93,7 @@ $1$,$2$
             with pytest.raises(TypeError, match="quotechar"):
                 df.to_csv(path, quoting=1, quotechar=None)
 
+    @td.check_file_leaks
     def test_to_csv_doublequote(self):
         df = DataFrame({"col": ['a"a', '"bb"']})
         expected = '''\
@@ -105,6 +113,7 @@ $1$,$2$
             with pytest.raises(Error, match="escapechar"):
                 df.to_csv(path, doublequote=False)  # no escapechar set
 
+    @td.check_file_leaks
     def test_to_csv_escapechar(self):
         df = DataFrame({"col": ['a"a', '"bb"']})
         expected = """\
@@ -130,12 +139,14 @@ $1$,$2$
             with open(path, "r") as f:
                 assert f.read() == expected
 
+    @td.check_file_leaks
     def test_csv_to_string(self):
         df = DataFrame({"col": [1, 2]})
         expected_rows = [",col", "0,1", "1,2"]
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert df.to_csv() == expected
 
+    @td.check_file_leaks
     def test_to_csv_decimal(self):
         # see gh-781
         df = DataFrame({"col1": [1], "col2": ["a"], "col3": [10.1]})
@@ -172,6 +183,7 @@ $1$,$2$
         # same for a multi-index
         assert df.set_index(["a", "b"]).to_csv(decimal="^") == expected
 
+    @td.check_file_leaks
     def test_to_csv_float_format(self):
         # testing if float_format is taken into account for the index
         # GH 11553
@@ -184,6 +196,7 @@ $1$,$2$
         # same for a multi-index
         assert df.set_index(["a", "b"]).to_csv(float_format="%.2f") == expected
 
+    @td.check_file_leaks
     def test_to_csv_na_rep(self):
         # see gh-11553
         #
@@ -219,6 +232,7 @@ $1$,$2$
         csv = pd.Series(["a", pd.NA, "c"], dtype="string").to_csv(na_rep="ZZZZZ")
         assert expected == csv
 
+    @td.check_file_leaks
     def test_to_csv_date_format(self):
         # GH 10209
         df_sec = DataFrame({"A": pd.date_range("20130101", periods=5, freq="s")})
@@ -282,6 +296,7 @@ $1$,$2$
         df_sec_grouped = df_sec.groupby([pd.Grouper(key="A", freq="1h"), "B"])
         assert df_sec_grouped.mean().to_csv(date_format="%Y-%m-%d") == expected_ymd_sec
 
+    @td.check_file_leaks
     def test_to_csv_multi_index(self):
         # see gh-6618
         df = DataFrame([1], columns=pd.MultiIndex.from_arrays([[1], [2]]))
@@ -318,6 +333,7 @@ $1$,$2$
         exp = tm.convert_rows_list_to_csv_str(exp_rows)
         assert df.to_csv(index=False) == exp
 
+    @td.check_file_leaks
     @pytest.mark.parametrize(
         "ind,expected",
         [
@@ -341,6 +357,7 @@ $1$,$2$
         )
         assert result == expected
 
+    @td.check_file_leaks
     def test_to_csv_string_array_ascii(self):
         # GH 10813
         str_array = [{"names": ["foo", "bar"]}, {"names": ["baz", "qux"]}]
@@ -355,6 +372,7 @@ $1$,$2$
             with open(path, "r") as f:
                 assert f.read() == expected_ascii
 
+    @td.check_file_leaks
     def test_to_csv_string_array_utf8(self):
         # GH 10813
         str_array = [{"names": ["foo", "bar"]}, {"names": ["baz", "qux"]}]
@@ -369,6 +387,7 @@ $1$,$2$
             with open(path, "r") as f:
                 assert f.read() == expected_utf8
 
+    @td.check_file_leaks
     def test_to_csv_string_with_lf(self):
         # GH 20353
         data = {"int": [1, 2, 3], "str_lf": ["abc", "d\nef", "g\nh\n\ni"]}
@@ -403,6 +422,7 @@ $1$,$2$
             with open(path, "rb") as f:
                 assert f.read() == expected_crlf
 
+    @td.check_file_leaks
     def test_to_csv_string_with_crlf(self):
         # GH 20353
         data = {"int": [1, 2, 3], "str_crlf": ["abc", "d\r\nef", "g\r\nh\r\n\r\ni"]}
@@ -442,6 +462,7 @@ $1$,$2$
             with open(path, "rb") as f:
                 assert f.read() == expected_crlf
 
+    @td.check_file_leaks
     def test_to_csv_stdout_file(self, capsys):
         # GH 21561
         df = pd.DataFrame(
@@ -456,6 +477,7 @@ $1$,$2$
         assert captured.out == expected_ascii
         assert not sys.stdout.closed
 
+    @td.check_file_leaks
     @pytest.mark.xfail(
         compat.is_platform_windows(),
         reason=(
@@ -480,6 +502,7 @@ z
             with open(path, "r") as f:
                 assert f.read() == expected
 
+    @td.check_file_leaks
     def test_to_csv_write_to_open_file_with_newline_py3(self):
         # see gh-21696
         # see gh-20353
@@ -494,6 +517,7 @@ z
             with open(path, "rb") as f:
                 assert f.read() == bytes(expected, "utf-8")
 
+    @td.check_file_leaks
     @pytest.mark.parametrize("to_infer", [True, False])
     @pytest.mark.parametrize("read_infer", [True, False])
     def test_to_csv_compression(self, compression_only, read_infer, to_infer):
@@ -523,6 +547,7 @@ z
             result = pd.read_csv(path, index_col=0, compression=read_compression)
             tm.assert_frame_equal(result, df)
 
+    @td.check_file_leaks
     def test_to_csv_compression_dict(self, compression_only):
         # GH 26023
         method = compression_only
@@ -534,6 +559,7 @@ z
             read_df = pd.read_csv(path, index_col=0)
             tm.assert_frame_equal(read_df, df)
 
+    @td.check_file_leaks
     def test_to_csv_compression_dict_no_method_raises(self):
         # GH 26023
         df = DataFrame({"ABC": [1]})
@@ -544,6 +570,7 @@ z
             with pytest.raises(ValueError, match=msg):
                 df.to_csv(path, compression=compression)
 
+    @td.check_file_leaks
     @pytest.mark.parametrize("compression", ["zip", "infer"])
     @pytest.mark.parametrize(
         "archive_name", [None, "test_to_csv.csv", "test_to_csv.zip"]
@@ -564,6 +591,7 @@ z
             archived_file = os.path.basename(zp.filelist[0].filename)
             assert archived_file == expected_arcname
 
+    @td.check_file_leaks
     @pytest.mark.parametrize("df_new_type", ["Int64"])
     def test_to_csv_na_rep_long_string(self, df_new_type):
         # see gh-25099
@@ -576,6 +604,7 @@ z
 
         assert expected == result
 
+    @td.check_file_leaks
     def test_to_csv_timedelta_precision(self):
         # GH 6783
         s = pd.Series([1, 1]).astype("timedelta64[ns]")
@@ -590,6 +619,7 @@ z
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert result == expected
 
+    @td.check_file_leaks
     def test_na_rep_truncated(self):
         # https://github.com/pandas-dev/pandas/issues/31447
         result = pd.Series(range(8, 12)).to_csv(na_rep="-")
@@ -604,6 +634,7 @@ z
         expected = tm.convert_rows_list_to_csv_str([",0", "0,1.1", "1,2.2"])
         assert result == expected
 
+    @td.check_file_leaks
     @pytest.mark.parametrize("errors", ["surrogatepass", "ignore", "replace"])
     def test_to_csv_errors(self, errors):
         # GH 22610
@@ -614,6 +645,7 @@ z
         # No use in reading back the data as it is not the same anymore
         # due to the error handling
 
+    @td.check_file_leaks
     def test_to_csv_binary_handle(self):
         """
         Binary file objects should work if 'mode' contains a 'b'.
@@ -626,6 +658,7 @@ z
                 df.to_csv(handle, mode="w+b")
             tm.assert_frame_equal(df, pd.read_csv(path, index_col=0))
 
+    @td.check_file_leaks
     def test_to_csv_encoding_binary_handle(self):
         """
         Binary file objects should honor a specified encoding.
