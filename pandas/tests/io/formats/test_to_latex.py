@@ -544,7 +544,7 @@ b &       b &     b \\
 
         # test when the short_caption is provided but caption is not
         warn_msg = 'short_caption is provided, but caption is not provided'
-        with pytest.warns(UserWarning, match=warn_msg):
+        with tm.assert_produces_warning(UserWarning):
             result_cl = df.to_latex(
                 short_caption=the_short_caption,
                 label=the_label,
