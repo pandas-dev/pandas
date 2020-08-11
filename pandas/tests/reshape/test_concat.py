@@ -1279,6 +1279,43 @@ class TestConcatenate:
 
         tm.assert_frame_equal(v1, expected)
 
+    @pytest.mark.parametrize(
+        "name_in1,name_in2,name_in3,name_out",
+        [
+            ("idx", "idx", "idx", "idx"),
+            ("idx", "idx", None, "idx"),
+            ("idx", None, None, "idx"),
+            ("idx1", "idx2", None, None),
+            ("idx1", "idx1", "idx2", None),
+            ("idx1", "idx2", "idx3", None),
+            (None, None, None, None),
+        ],
+    )
+    def test_concat_same_index_names(self, name_in1, name_in2, name_in3, name_out):
+        # GH13475
+        indices = [
+            pd.Index(["a", "b", "c"], name=name_in1),
+            pd.Index(["b", "c", "d"], name=name_in2),
+            pd.Index(["c", "d", "e"], name=name_in3),
+        ]
+        frames = [
+            pd.DataFrame({c: [0, 1, 2]}, index=i)
+            for i, c in zip(indices, ["x", "y", "z"])
+        ]
+        result = pd.concat(frames, axis=1)
+
+        exp_ind = pd.Index(["a", "b", "c", "d", "e"], name=name_out)
+        expected = pd.DataFrame(
+            {
+                "x": [0, 1, 2, np.nan, np.nan],
+                "y": [np.nan, 0, 1, 2, np.nan],
+                "z": [np.nan, np.nan, 0, 1, 2],
+            },
+            index=exp_ind,
+        )
+
+        tm.assert_frame_equal(result, expected)
+
     def test_concat_multiindex_with_keys(self):
         index = MultiIndex(
             levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
