@@ -37,6 +37,7 @@ class LatexFormatter(TableFormatter):
         multicolumn_format: Optional[str] = None,
         multirow: bool = False,
         caption: Optional[str] = None,
+        short_caption: Optional[str] = None,
         label: Optional[str] = None,
         position: Optional[str] = None,
     ):
@@ -49,6 +50,7 @@ class LatexFormatter(TableFormatter):
         self.multicolumn_format = multicolumn_format
         self.multirow = multirow
         self.caption = caption
+        self.short_caption = short_caption
         self.label = label
         self.escape = self.fmt.escape
         self.position = position
@@ -372,6 +374,8 @@ class LatexFormatter(TableFormatter):
     def _compose_caption_macro(self):
         if self.caption is None:
             return ""
+        if self.short_caption:
+            return f"\\caption[{self.short_caption}]{{{self.caption}}}"
         return f"\\caption{{{self.caption}}}"
 
     def _compose_label_macro(self):

@@ -441,6 +441,7 @@ b &       b &     b \\
     def test_to_latex_caption_label(self):
         # GH 25436
         the_caption = "a table in a \\texttt{table/tabular} environment"
+        the_short_caption = "a table"
         the_label = "tab:table_tabular"
 
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
@@ -500,9 +501,75 @@ b &       b &     b \\
 """
         assert result_cl == expected_cl
 
+        # test when the short_caption is provided alongside caption
+        result_cl = df.to_latex(caption=the_caption, short_caption=the_short_caption)
+
+        expected_cl = r"""\begin{table}
+\centering
+\caption[a table]{a table in a \texttt{table/tabular} environment}
+\begin{tabular}{lrl}
+\toprule
+{} &  a &   b \\
+\midrule
+0 &  1 &  b1 \\
+1 &  2 &  b2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+"""
+        assert result_cl == expected_cl
+
+        # test when the short_caption is provided alongside caption and label
+        result_cl = df.to_latex(
+            caption=the_caption,
+            short_caption=the_short_caption,
+            label=the_label,
+        )
+
+        expected_cl = r"""\begin{table}
+\centering
+\caption[a table]{a table in a \texttt{table/tabular} environment}
+\label{tab:table_tabular}
+\begin{tabular}{lrl}
+\toprule
+{} &  a &   b \\
+\midrule
+0 &  1 &  b1 \\
+1 &  2 &  b2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+"""
+        assert result_cl == expected_cl
+
+        # test when the short_caption is provided but caption is not
+        warn_msg = 'short_caption is provided, but caption is not provided'
+        with pytest.warns(UserWarning, match=warn_msg):
+            result_cl = df.to_latex(
+                short_caption=the_short_caption,
+                label=the_label,
+            )
+
+            expected_cl = r"""\begin{table}
+\centering
+\caption[a table]{a table}
+\label{tab:table_tabular}
+\begin{tabular}{lrl}
+\toprule
+{} &  a &   b \\
+\midrule
+0 &  1 &  b1 \\
+1 &  2 &  b2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+"""
+            assert result_cl == expected_cl
+
     def test_to_latex_longtable_caption_label(self):
         # GH 25436
         the_caption = "a table in a \\texttt{longtable} environment"
+        the_short_caption = "a table"
         the_label = "tab:longtable"
 
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
@@ -556,6 +623,33 @@ b &       b &     b \\
 
         expected_cl = r"""\begin{longtable}{lrl}
 \caption{a table in a \texttt{longtable} environment}\label{tab:longtable}\\
+\toprule
+{} &  a &   b \\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r}{{Continued on next page}} \\
+\midrule
+\endfoot
+
+\bottomrule
+\endlastfoot
+0 &  1 &  b1 \\
+1 &  2 &  b2 \\
+\end{longtable}
+"""
+        assert result_cl == expected_cl
+
+        # test when the caption, the short_caption and the label are provided
+        result_cl = df.to_latex(
+            longtable=True,
+            caption=the_caption,
+            short_caption=the_short_caption,
+            label=the_label,
+        )
+
+        expected_cl = r"""\begin{longtable}{lrl}
+\caption[a table]{a table in a \texttt{longtable} environment}\label{tab:longtable}\\
 \toprule
 {} &  a &   b \\
 \midrule

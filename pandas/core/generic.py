@@ -2885,6 +2885,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         multicolumn_format=None,
         multirow=None,
         caption=None,
+        short_caption=None,
         label=None,
         position=None,
     ):
@@ -2966,7 +2967,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             The LaTeX caption to be placed inside ``\caption{}`` in the output.
 
             .. versionadded:: 1.0.0
-
+        short_caption : str, optional
+            The LaTeX short caption.
+            Full caption output would look like this:
+            ``\caption[short_caption]{caption}``.
         label : str, optional
             The LaTeX label to be placed inside ``\label{}`` in the output.
             This is used with ``\ref{}`` in the main ``.tex`` file.
@@ -3010,6 +3014,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             multicolumn_format = config.get_option("display.latex.multicolumn_format")
         if multirow is None:
             multirow = config.get_option("display.latex.multirow")
+        if short_caption and not caption:
+            caption = short_caption
+            warnings.warn(
+                f'short_caption is provided, but caption is not provided.\n'
+                f'Using short_caption value instead.'
+            )
 
         formatter = DataFrameFormatter(
             self,
@@ -3035,6 +3045,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             multicolumn_format=multicolumn_format,
             multirow=multirow,
             caption=caption,
+            short_caption=short_caption,
             label=label,
             position=position,
         )
