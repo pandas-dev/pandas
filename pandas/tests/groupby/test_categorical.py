@@ -3,8 +3,6 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.compat import PY37, is_platform_windows
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -13,7 +11,6 @@ from pandas import (
     Index,
     MultiIndex,
     Series,
-    _np_version_under1p17,
     qcut,
 )
 import pandas._testing as tm
@@ -244,12 +241,6 @@ def test_level_get_group(observed):
     tm.assert_frame_equal(result, expected)
 
 
-# GH#21636 flaky on py37; may be related to older numpy, see discussion
-#  https://github.com/MacPython/pandas-wheels/pull/64
-@pytest.mark.xfail(
-    PY37 and _np_version_under1p17 and not is_platform_windows(),
-    reason="Flaky, GH-27902",
-)
 @pytest.mark.parametrize("ordered", [True, False])
 def test_apply(ordered):
     # GH 10138

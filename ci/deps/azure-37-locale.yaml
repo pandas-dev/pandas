@@ -1,5 +1,6 @@
 name: pandas-dev
 channels:
+  - defaults
   - conda-forge
 dependencies:
   - python=3.7.*
@@ -22,7 +23,7 @@ dependencies:
   - moto
   - nomkl
   - numexpr
-  - numpy
+  - numpy=1.16.*
   - openpyxl
   - pytables
   - python-dateutil
@@ -32,7 +33,4 @@ dependencies:
   - xlrd
   - xlsxwriter
   - xlwt
-  - pyarrow>=0.15
-  - pip
-  - pip:
-    - pyxlsb
+  - moto

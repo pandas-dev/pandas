@@ -6,7 +6,6 @@ import pydoc
 import numpy as np
 import pytest
 
-from pandas.compat import PY37
 from pandas.util._test_decorators import async_mark, skip_if_no
 
 import pandas as pd
@@ -274,10 +273,7 @@ class TestDataFrameMisc:
         # will raise SyntaxError if trying to create namedtuple
         tup3 = next(df3.itertuples())
         assert isinstance(tup3, tuple)
-        if PY37:
-            assert hasattr(tup3, "_fields")
-        else:
-            assert not hasattr(tup3, "_fields")
+        assert hasattr(tup3, "_fields")
 
         # GH 28282
         df_254_columns = DataFrame([{f"foo_{i}": f"bar_{i}" for i in range(254)}])
@@ -288,12 +284,7 @@ class TestDataFrameMisc:
         df_255_columns = DataFrame([{f"foo_{i}": f"bar_{i}" for i in range(255)}])
         result_255_columns = next(df_255_columns.itertuples(index=False))
         assert isinstance(result_255_columns, tuple)
-
-        # Dataframes with >=255 columns will fallback to regular tuples on python < 3.7
-        if PY37:
-            assert hasattr(result_255_columns, "_fields")
-        else:
-            assert not hasattr(result_255_columns, "_fields")
+        assert hasattr(result_255_columns, "_fields")
 
     def test_sequence_like_with_categorical(self):
 

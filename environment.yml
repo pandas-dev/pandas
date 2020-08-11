@@ -4,7 +4,7 @@ channels:
 dependencies:
   # required
   # Pin numpy<1.19 until MPL 3.3.0 is released.
-  - numpy>=1.15,<1.19.0
+  - numpy>=1.16.5,<1.19.0
   - python=3
   - python-dateutil>=2.7.3
   - pytz
@@ -93,11 +93,11 @@ dependencies:
   - odfpy
 
   - fastparquet>=0.3.2  # pandas.read_parquet, DataFrame.to_parquet
-  - pyarrow>=0.13.1  # pandas.read_parquet, DataFrame.to_parquet, pandas.read_feather, DataFrame.to_feather
+  - pyarrow>=0.15.0  # pandas.read_parquet, DataFrame.to_parquet, pandas.read_feather, DataFrame.to_feather
   - python-snappy  # required by pyarrow
 
   - pyqt>=5.9.2  # pandas.read_clipboard
-  - pytables>=3.4.3  # pandas.read_hdf, DataFrame.to_hdf
+  - pytables>=3.4.4  # pandas.read_hdf, DataFrame.to_hdf
   - s3fs>=0.4.0  # file IO when using 's3://...' path
   - fsspec>=0.7.4  # for generic remote file operations
   - gcsfs>=0.6.0  # file IO when using 'gcs://...' path
