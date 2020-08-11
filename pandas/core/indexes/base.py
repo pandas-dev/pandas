@@ -4418,7 +4418,7 @@ class Index(IndexOpsMixin, PandasObject):
             Argument 'first' puts NaNs at the beginning, 'last' puts NaNs at
             the end.
 
-            .. versionadded:: 1.1.1
+            .. versionadded:: 1.2.0
 
         Returns
         -------
