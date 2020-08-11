@@ -294,9 +294,8 @@ cdef class Slider:
     Only handles contiguous data for now
     """
     cdef:
-        ndarray values, buf
-        Py_ssize_t stride, orig_len, orig_stride
-        char *orig_data
+        ndarray values, buf, orig_data
+        Py_ssize_t stride
 
     def __init__(self, ndarray values, ndarray buf):
         assert values.ndim == 1
@@ -309,25 +308,17 @@ cdef class Slider:
         self.buf = buf
         self.stride = values.strides[0]
 
-        self.orig_data = self.buf.data
-        self.orig_len = self.buf.shape[0]
-        self.orig_stride = self.buf.strides[0]
-
-        self.buf.data = self.values.data
-        self.buf.strides[0] = self.stride
+        self.orig_data = self.buf[:]
+        self.buf = self.values[::self.stride]
 
     cdef move(self, int start, int end):
         """
         For slicing
         """
-        self.buf.data = self.values.data + self.stride * start
-        self.buf.shape[0] = end - start
+        self.buf = self.values[start:end:self.stride]
 
     cdef reset(self):
-
-        self.buf.shape[0] = self.orig_len
-        self.buf.data = self.orig_data
-        self.buf.strides[0] = self.orig_stride
+        self.buf = self.orig_data[:]
 
 
 class InvalidApply(Exception):
@@ -407,7 +398,7 @@ cdef class BlockSlider:
         list blocks
 
     cdef:
-        char **base_ptrs
+        list base_ptrs
 
     def __init__(self, object frame):
         cdef:
@@ -430,12 +421,7 @@ cdef class BlockSlider:
         self.idx_slider = Slider(
             self.frame.index._index_data, self.dummy.index._index_data)
 
-        self.base_ptrs = <char**>malloc(sizeof(char*) * len(self.blocks))
-        for i, block in enumerate(self.blocks):
-            self.base_ptrs[i] = (<ndarray>block).data
-
-    def __dealloc__(self):
-        free(self.base_ptrs)
+        self.base_ptrs = [block[:] for block in self.blocks]
 
     cdef move(self, int start, int end):
         cdef:
@@ -444,11 +430,7 @@ cdef class BlockSlider:
 
         # move blocks
         for i in range(self.nblocks):
-            arr = self.blocks[i]
-
-            # axis=1 is the frame's axis=0
-            arr.data = self.base_ptrs[i] + arr.strides[1] * start
-            arr.shape[1] = end - start
+            self.blocks[i] = self.base_ptrs[i][:, start:end]
 
         # move and set the index
         self.idx_slider.move(start, end)
@@ -463,8 +445,4 @@ cdef class BlockSlider:
 
         # reset blocks
         for i in range(self.nblocks):
-            arr = self.blocks[i]
-
-            # axis=1 is the frame's axis=0
-            arr.data = self.base_ptrs[i]
-            arr.shape[1] = 0
+            self.blocks[i] = self.base_ptrs[i][:]
