@@ -2,7 +2,7 @@ from typing import List
 
 import numpy as np
 
-from pandas._typing import FilePathOrBuffer, Scalar
+from pandas._typing import FilePathOrBuffer, Scalar, StorageOptions
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.io.excel._base import ExcelWriter, _BaseExcelReader
@@ -468,7 +468,9 @@ class _OpenpyxlWriter(ExcelWriter):
 
 class _OpenpyxlReader(_BaseExcelReader):
     def __init__(
-        self, filepath_or_buffer: FilePathOrBuffer, storage_options=None
+        self,
+        filepath_or_buffer: FilePathOrBuffer,
+        storage_options: StorageOptions = None,
     ) -> None:
         """
         Reader using openpyxl engine.
@@ -477,7 +479,7 @@ class _OpenpyxlReader(_BaseExcelReader):
         ----------
         filepath_or_buffer : string, path object or Workbook
             Object to be parsed.
-        storage_options: dict (optional)
+        storage_options : StorageOptions
             passed to fsspec for appropriate URLs (see ``get_filepath_or_buffer``)
         """
         import_optional_dependency("openpyxl")

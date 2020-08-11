@@ -28,7 +28,6 @@ df1 = DataFrame(
 # in general, but always str in the case we give no filename
 # error: Item "None" of "Optional[str]" has no attribute "encode"
 text = df1.to_csv(index=False).encode()  # type: ignore[union-attr]
-s3so = dict(client_kwargs={"endpoint_url": "http://127.0.0.1:5555/"})
 
 
 @pytest.fixture
@@ -132,7 +131,7 @@ def test_fastparquet_options(fsspectest):
 
 
 @td.skip_if_no("s3fs")
-def test_from_s3_csv(s3_resource, tips_file):
+def test_from_s3_csv(s3_resource, tips_file, s3so):
     tm.assert_equal(
         read_csv("s3://pandas-test/tips.csv", storage_options=s3so), read_csv(tips_file)
     )
@@ -149,7 +148,7 @@ def test_from_s3_csv(s3_resource, tips_file):
 
 @pytest.mark.parametrize("protocol", ["s3", "s3a", "s3n"])
 @td.skip_if_no("s3fs")
-def test_s3_protocols(s3_resource, tips_file, protocol):
+def test_s3_protocols(s3_resource, tips_file, protocol, s3so):
     tm.assert_equal(
         read_csv("%s://pandas-test/tips.csv" % protocol, storage_options=s3so),
         read_csv(tips_file),
@@ -158,7 +157,7 @@ def test_s3_protocols(s3_resource, tips_file, protocol):
 
 @td.skip_if_no("s3fs")
 @td.skip_if_no("fastparquet")
-def test_s3_parquet(s3_resource):
+def test_s3_parquet(s3_resource, s3so):
     fn = "s3://pandas-test/test.parquet"
     df1.to_parquet(
         fn, index=False, engine="fastparquet", compression=None, storage_options=s3so

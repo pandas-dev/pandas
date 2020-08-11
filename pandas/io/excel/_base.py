@@ -8,6 +8,7 @@ from typing import Union
 from pandas._config import config
 
 from pandas._libs.parsers import STR_NA_VALUES
+from pandas._typing import StorageOptions
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import Appender, deprecate_nonkeyword_arguments
 
@@ -199,6 +200,15 @@ mangle_dupe_cols : bool, default True
     Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
     'X'...'X'. Passing in False will cause data to be overwritten if there
     are duplicate names in the columns.
+storage_options : dict, optional
+    Extra options that make sense for a particular storage connection, e.g.
+    host, port, username, password, etc., if using a URL that will
+    be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+    will be raised if providing this argument with a local path or
+    a file-like buffer. See the fsspec and backend storage implementation
+    docs for the set of allowed keys and values
+
+    .. versionadded:: 1.2.0
 
 Returns
 -------
@@ -298,7 +308,7 @@ def read_excel(
     skipfooter=0,
     convert_float=True,
     mangle_dupe_cols=True,
-    storage_options=None,
+    storage_options: StorageOptions = None,
 ):
 
     if not isinstance(io, ExcelFile):
@@ -337,7 +347,7 @@ def read_excel(
 
 
 class _BaseExcelReader(metaclass=abc.ABCMeta):
-    def __init__(self, filepath_or_buffer, storage_options=None):
+    def __init__(self, filepath_or_buffer, storage_options: StorageOptions = None):
         # If filepath_or_buffer is a url, load the data into a BytesIO
         if is_url(filepath_or_buffer):
             filepath_or_buffer = BytesIO(urlopen(filepath_or_buffer).read())
@@ -847,7 +857,9 @@ class ExcelFile:
         "pyxlsb": _PyxlsbReader,
     }
 
-    def __init__(self, path_or_buffer, storage_options=None, engine=None):
+    def __init__(
+        self, path_or_buffer, storage_options: StorageOptions = None, engine=None
+    ):
         if engine is None:
             engine = "xlrd"
             if isinstance(path_or_buffer, (BufferedIOBase, RawIOBase)):

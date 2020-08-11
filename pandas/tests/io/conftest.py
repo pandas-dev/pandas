@@ -32,6 +32,11 @@ def feather_file(datapath):
 
 
 @pytest.fixture
+def s3so():
+    return dict(client_kwargs={"endpoint_url": "http://127.0.0.1:5555/"})
+
+
+@pytest.fixture
 def s3_resource(tips_file, jsonl_file, feather_file):
     """
     Fixture for mocking S3 interaction.
@@ -76,6 +81,9 @@ def s3_resource(tips_file, jsonl_file, feather_file):
                     conn.Bucket(bucket_name).put_object(Key=s3_key, Body=f)
 
         try:
+            # Launching moto in server mode, i.e., as a separate process
+            # with an S3 endpoint on localhost
+
             import shlex
             import subprocess
             import time
@@ -84,11 +92,15 @@ def s3_resource(tips_file, jsonl_file, feather_file):
 
             endpoint_uri = "http://127.0.0.1:5555/"
 
-            proc = subprocess.Popen(shlex.split("moto_server s3 -p 5555"))
+            # pipe to null to avoid logging in terminal
+            proc = subprocess.Popen(
+                shlex.split("moto_server s3 -p 5555"), stdout=subprocess.DEVNULL
+            )
 
             timeout = 5
             while timeout > 0:
                 try:
+                    # OK to go once server is accepting connections
                     r = requests.get(endpoint_uri)
                     if r.ok:
                         break
@@ -109,5 +121,6 @@ def s3_resource(tips_file, jsonl_file, feather_file):
             s3fs.S3FileSystem.clear_instance_cache()
             yield conn
         finally:
+            # shut down external process
             proc.terminate()
             proc.wait()

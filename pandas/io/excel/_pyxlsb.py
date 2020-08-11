@@ -1,21 +1,25 @@
 from typing import List
 
-from pandas._typing import FilePathOrBuffer, Scalar
+from pandas._typing import FilePathOrBuffer, Scalar, StorageOptions
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.io.excel._base import _BaseExcelReader
 
 
 class _PyxlsbReader(_BaseExcelReader):
-    def __init__(self, filepath_or_buffer: FilePathOrBuffer, storage_options=None):
+    def __init__(
+        self,
+        filepath_or_buffer: FilePathOrBuffer,
+        storage_options: StorageOptions = None,
+    ):
         """
         Reader using pyxlsb engine.
 
         Parameters
         ----------
-        filepath_or_buffer: str, path object, or Workbook
+        filepath_or_buffer : str, path object, or Workbook
             Object to be parsed.
-        storage_options: dict (optional)
+        storage_options : StorageOptions
             passed to fsspec for appropriate URLs (see ``get_filepath_or_buffer``)
         """
         import_optional_dependency("pyxlsb")
