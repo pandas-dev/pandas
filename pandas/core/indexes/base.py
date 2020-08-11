@@ -4451,8 +4451,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         idx = ensure_key_mapped(self, key)
 
-        # GH 35584. Place missing values at the end of sorted Index,
-        # same as Series.sort_values
+        # GH 35584. Sort missing values according to na_position kwarg
         if not isinstance(self, ABCMultiIndex):
             bad = isna(idx)
             good = ~bad
