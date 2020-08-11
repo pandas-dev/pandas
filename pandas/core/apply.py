@@ -389,6 +389,8 @@ class FrameColumnApply(FrameApply):
         blk = mgr.blocks[0]
 
         for (arr, name) in zip(values, self.index):
+            # GH#35462 re-pin mgr in case setitem changed it
+            ser._mgr = mgr
             blk.values = arr
             ser.name = name
             yield ser
