@@ -1133,8 +1133,8 @@ def test_loc_setting_value_at_multiindex():
     tuples = list(zip(*arrays))
     index = pd.MultiIndex.from_tuples(tuples, names=["first", "second"])
 
-    dt1 = pd.Series(array, index=index)
-    dt2 = pd.Series(answer, index=index)
+    result = pd.Series(array, index=index)
+    expected = pd.Series(answer, index=index)
 
-    dt1.loc[("baz", "one"):("foo", "two")] = 100
-    tm.assert_series_equal(dt1, dt2)
+    result.loc[("baz", "one"):("foo", "two")] = 100
+    tm.assert_series_equal(result, expected)
