@@ -7,6 +7,12 @@ from pandas.tests.io.pytables.common import ensure_clean_path
 tables = pytest.importorskip("tables")
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 @pytest.fixture
 def pytables_hdf5_file():
     """

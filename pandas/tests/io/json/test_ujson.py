@@ -21,6 +21,12 @@ from pandas import DataFrame, DatetimeIndex, Index, NaT, Series, Timedelta, date
 import pandas._testing as tm
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 def _clean_dict(d):
     """
     Sanitize dictionary for JSON by converting all keys to strings.

@@ -14,6 +14,12 @@ import pandas as pd
 import pandas._testing as tm
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 # https://github.com/cython/cython/issues/1720
 @pytest.mark.filterwarnings("ignore:can't resolve package:ImportWarning")
 class TestSAS7BDAT:

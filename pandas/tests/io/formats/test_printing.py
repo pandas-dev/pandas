@@ -9,6 +9,12 @@ import pandas.io.formats.format as fmt
 import pandas.io.formats.printing as printing
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 def test_adjoin():
     data = [["a", "b", "c"], ["dd", "ee", "ff"], ["ggg", "hhh", "iii"]]
     expected = "a  dd  ggg\nb  ee  hhh\nc  ff  iii"

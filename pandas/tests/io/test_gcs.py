@@ -9,6 +9,12 @@ import pandas._testing as tm
 from pandas.util import _test_decorators as td
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 @td.skip_if_no("gcsfs")
 def test_read_csv_gcs(monkeypatch):
     from fsspec import AbstractFileSystem, registry

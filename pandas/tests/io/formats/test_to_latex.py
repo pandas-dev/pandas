@@ -8,6 +8,12 @@ from pandas import DataFrame, Series
 import pandas._testing as tm
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 class TestToLatex:
     def test_to_latex_filename(self, float_frame):
         with tm.ensure_clean("test.tex") as path:

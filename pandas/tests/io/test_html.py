@@ -24,6 +24,12 @@ from pandas.io.html import read_html
 HERE = os.path.dirname(__file__)
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 @pytest.fixture(
     params=[
         "chinese_utf-16.html",

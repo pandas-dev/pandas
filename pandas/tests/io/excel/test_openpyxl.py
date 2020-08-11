@@ -14,6 +14,12 @@ openpyxl = pytest.importorskip("openpyxl")
 pytestmark = pytest.mark.parametrize("ext", [".xlsx"])
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 def test_to_excel_styleconverter(ext):
     from openpyxl import styles
 

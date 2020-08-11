@@ -27,6 +27,12 @@ _cat_frame["E"] = list(reversed(cat))
 _cat_frame["sort"] = np.arange(len(_cat_frame), dtype="int64")
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 def assert_json_roundtrip_equal(result, expected, orient):
     if orient == "records" or orient == "values":
         expected = expected.reset_index(drop=True)

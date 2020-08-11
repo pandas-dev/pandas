@@ -9,6 +9,12 @@ xlrd = pytest.importorskip("xlrd")
 xlwt = pytest.importorskip("xlwt")
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 @pytest.fixture(autouse=True)
 def skip_ods_and_xlsb_files(read_ext):
     if read_ext == ".ods":

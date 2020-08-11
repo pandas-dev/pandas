@@ -11,6 +11,12 @@ from pandas import DataFrame
 import pandas._testing as tm
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 @pytest.mark.parametrize("kwargs", [dict(), dict(mangle_dupe_cols=True)])
 def test_basic(all_parsers, kwargs):
     # TODO: add test for condition "mangle_dupe_cols=False"

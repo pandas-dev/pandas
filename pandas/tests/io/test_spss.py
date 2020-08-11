@@ -7,6 +7,12 @@ import pandas._testing as tm
 pyreadstat = pytest.importorskip("pyreadstat")
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 def test_spss_labelled_num(datapath):
     # test file from the Haven project (https://haven.tidyverse.org/)
     fname = datapath("io", "data", "spss", "labelled-num.sav")

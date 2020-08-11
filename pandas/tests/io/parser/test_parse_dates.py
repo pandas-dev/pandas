@@ -35,6 +35,12 @@ else:
     date_strategy = st.datetimes()
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 def test_separator_date_conflict(all_parsers):
     # Regression test for gh-4678
     #

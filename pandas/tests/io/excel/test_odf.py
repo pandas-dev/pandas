@@ -9,6 +9,12 @@ import pandas._testing as tm
 pytest.importorskip("odf")
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 @pytest.fixture(autouse=True)
 def cd_and_set_engine(monkeypatch, datapath):
     func = functools.partial(pd.read_excel, engine="odf")

@@ -13,6 +13,12 @@ from pandas import DataFrame
 import pandas._testing as tm
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 def _construct_dataframe(num_rows):
     """
     Construct a DataFrame for testing.

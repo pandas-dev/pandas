@@ -17,6 +17,12 @@ from pandas.io.feather_format import read_feather
 from pandas.io.parsers import read_csv
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 @pytest.mark.network
 @pytest.mark.parametrize(
     "compress_type, extension",

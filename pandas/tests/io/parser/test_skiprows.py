@@ -15,6 +15,12 @@ from pandas import DataFrame, Index
 import pandas._testing as tm
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 @pytest.mark.parametrize("skiprows", [list(range(6)), 6])
 def test_skip_rows_bug(all_parsers, skiprows):
     # see gh-505

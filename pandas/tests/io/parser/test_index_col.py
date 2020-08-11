@@ -12,6 +12,12 @@ from pandas import DataFrame, Index, MultiIndex
 import pandas._testing as tm
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 @pytest.mark.parametrize("with_header", [True, False])
 def test_index_col_named(all_parsers, with_header):
     parser = all_parsers

@@ -30,6 +30,12 @@ from pandas.io.stata import (
 )
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 @pytest.fixture()
 def mixed_frame():
     return pd.DataFrame(

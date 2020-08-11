@@ -17,6 +17,12 @@ from pandas import Categorical, DataFrame, Index, MultiIndex, Series, Timestamp,
 import pandas._testing as tm
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 @pytest.mark.parametrize("dtype", [str, object])
 @pytest.mark.parametrize("check_orig", [True, False])
 def test_dtype_all_columns(all_parsers, dtype, check_orig):

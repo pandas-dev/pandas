@@ -5,6 +5,12 @@ import pytest
 from pandas._config import detect_console_encoding
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 class MockEncoding:  # TODO(py27): replace with mock
     """
     Used to add a side effect when accessing the 'encoding' property. If the

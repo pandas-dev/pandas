@@ -8,6 +8,12 @@ import pandas._testing as tm
 pytest.importorskip("tabulate")
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 def test_simple():
     buf = StringIO()
     df = pd.DataFrame([1, 2, 3])

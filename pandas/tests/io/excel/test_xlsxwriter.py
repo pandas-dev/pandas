@@ -12,6 +12,12 @@ xlsxwriter = pytest.importorskip("xlsxwriter")
 pytestmark = pytest.mark.parametrize("ext", [".xlsx"])
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 def test_column_format(ext):
     # Test that column formats are applied to cells. Test for issue #9167.
     # Applicable to xlsxwriter only.

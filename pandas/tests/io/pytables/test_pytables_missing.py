@@ -6,6 +6,12 @@ import pandas as pd
 import pandas._testing as tm
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 @td.skip_if_installed("tables")
 def test_pytables_raises():
     df = pd.DataFrame({"A": [1, 2]})

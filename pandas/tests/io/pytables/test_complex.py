@@ -15,6 +15,12 @@ from pandas.io.pytables import read_hdf
 # GH10447
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 def test_complex_fixed(setup_path):
     df = DataFrame(
         np.random.rand(4, 5).astype(np.complex64),

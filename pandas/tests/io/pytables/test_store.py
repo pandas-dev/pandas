@@ -56,6 +56,12 @@ from pandas.io import pytables as pytables  # noqa: E402 isort:skip
 from pandas.io.pytables import TableIterator  # noqa: E402 isort:skip
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 _default_compressor = "blosc"
 ignore_natural_naming_warning = pytest.mark.filterwarnings(
     "ignore:object name:tables.exceptions.NaturalNameWarning"

@@ -5,10 +5,16 @@ import textwrap
 
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 import pandas._testing as tm
 
 import pandas.io.common as icom
+
+
+def setup_module(module):
+    yield from td.check_file_leaks()
 
 
 @pytest.mark.parametrize(

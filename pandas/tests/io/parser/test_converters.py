@@ -13,6 +13,12 @@ from pandas import DataFrame, Index
 import pandas._testing as tm
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 def test_converters_type_must_be_dict(all_parsers):
     parser = all_parsers
     data = """index,A,B,C,D

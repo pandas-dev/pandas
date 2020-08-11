@@ -14,6 +14,12 @@ from pandas.io.sas.sasreader import read_sas
 # before making comparisons.
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 def numeric_as_float(data):
     for v in data.columns:
         if data[v].dtype is np.dtype("int64"):

@@ -18,6 +18,12 @@ pyarrow_version = LooseVersion(pyarrow.__version__)
 filter_sparse = pytest.mark.filterwarnings("ignore:The Sparse")
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 @filter_sparse
 @pytest.mark.single
 class TestFeather:

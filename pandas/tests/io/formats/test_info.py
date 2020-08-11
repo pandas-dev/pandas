@@ -22,6 +22,12 @@ from pandas import (
 import pandas._testing as tm
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 @pytest.fixture
 def datetime_frame():
     """

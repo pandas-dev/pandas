@@ -6,6 +6,12 @@ from pandas import read_sas
 import pandas._testing as tm
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 class TestSas:
     def test_sas_buffer_format(self):
         # see gh-14947

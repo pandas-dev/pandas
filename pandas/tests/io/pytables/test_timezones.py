@@ -15,6 +15,12 @@ from pandas.tests.io.pytables.common import (
 )
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 def _compare_with_tz(a, b):
     tm.assert_frame_equal(a, b)
 

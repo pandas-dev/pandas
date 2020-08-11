@@ -6,6 +6,12 @@ import pandas as pd
 import pandas._testing as tm
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 def test_compression_roundtrip(compression):
     df = pd.DataFrame(
         [[0.123456, 0.234567, 0.567567], [12.32112, 123123.2, 321321.2]],

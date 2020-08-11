@@ -17,6 +17,12 @@ import pandas._testing as tm
 from pandas.io.parsers import TextFileReader, read_csv
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 class TestTextReader:
     @pytest.fixture(autouse=True)
     def setup_method(self, datapath):

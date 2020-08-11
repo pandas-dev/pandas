@@ -30,6 +30,12 @@ df1 = DataFrame(
 text = df1.to_csv(index=False).encode()  # type: ignore[union-attr]
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 @pytest.fixture
 def cleared_fs():
     fsspec = pytest.importorskip("fsspec")

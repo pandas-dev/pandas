@@ -17,6 +17,12 @@ import pandas._testing as tm
 from pandas.io.parsers import EmptyDataError, read_csv, read_fwf
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 def test_basic():
     data = """\
 A         B            C            D

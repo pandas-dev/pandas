@@ -22,6 +22,12 @@ lorem_ipsum = (
 )
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 def expected_html(datapath, name):
     """
     Read HTML file from formats data directory.

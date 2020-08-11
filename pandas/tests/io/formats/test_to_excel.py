@@ -11,6 +11,12 @@ from pandas.io.formats.css import CSSWarning
 from pandas.io.formats.excel import CSSToExcelConverter
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 @pytest.mark.parametrize(
     "css,expected",
     [

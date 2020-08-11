@@ -15,6 +15,12 @@ jinja2 = pytest.importorskip("jinja2")
 from pandas.io.formats.style import Styler, _get_level_lengths  # noqa  # isort:skip
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 class TestStyler:
     def setup_method(self, method):
         np.random.seed(24)

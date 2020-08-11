@@ -43,6 +43,12 @@ import pandas.io.formats.printing as printing
 use_32bit_repr = is_platform_windows() or is_platform_32bit()
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 @pytest.fixture(params=["string", "pathlike", "buffer"])
 def filepath_or_buffer_id(request):
     """

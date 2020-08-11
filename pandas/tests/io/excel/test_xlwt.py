@@ -12,6 +12,12 @@ xlwt = pytest.importorskip("xlwt")
 pytestmark = pytest.mark.parametrize("ext,", [".xls"])
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 def test_excel_raise_error_on_multiindex_columns_and_no_index(ext):
     # MultiIndex as columns is not yet implemented 9794
     cols = MultiIndex.from_tuples(

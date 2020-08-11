@@ -10,6 +10,12 @@ from pandas import DataFrame, compat
 import pandas._testing as tm
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 class TestToCSV:
     @pytest.mark.xfail(
         (3, 6, 5) > sys.version_info,

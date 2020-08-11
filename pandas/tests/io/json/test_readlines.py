@@ -10,6 +10,12 @@ import pandas._testing as tm
 from pandas.io.json._json import JsonReader
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 @pytest.fixture
 def lines_json_df():
     df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})

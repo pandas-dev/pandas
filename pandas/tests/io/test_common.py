@@ -17,6 +17,10 @@ import pandas._testing as tm
 import pandas.io.common as icom
 
 
+def setup_module(module):
+    yield from td.check_file_leaks()
+
+
 class CustomFSPath:
     """For testing fspath on unknown objects"""
 

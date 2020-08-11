@@ -8,6 +8,12 @@ import pandas._testing as tm
 from pandas.io.json import read_json
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 def test_deprecated_kwargs():
     df = pd.DataFrame({"A": [2, 4, 6], "B": [3, 6, 9]}, index=[0, 1, 2])
     buf = df.to_json(orient="split")

@@ -5,6 +5,12 @@ import pandas._testing as tm
 from pandas.io.formats.css import CSSResolver, CSSWarning
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 def assert_resolves(css, props, inherited=None):
     resolve = CSSResolver()
     actual = resolve(css, inherited=inherited)

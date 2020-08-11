@@ -7,6 +7,12 @@ import pandas._testing as tm
 import pandas.io.formats.format as fmt
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 class TestEngFormatter:
     def test_eng_float_formatter(self):
         df = DataFrame({"A": [1.41, 141.0, 14100, 1410000.0]})

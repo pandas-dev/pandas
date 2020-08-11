@@ -21,6 +21,12 @@ from pandas.io.json._table_schema import (
 )
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 class TestBuildSchema:
     def setup_method(self, method):
         self.df = DataFrame(

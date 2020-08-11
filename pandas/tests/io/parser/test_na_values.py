@@ -13,6 +13,12 @@ from pandas import DataFrame, Index, MultiIndex
 import pandas._testing as tm
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 def test_string_nas(all_parsers):
     parser = all_parsers
     data = """A,B,C

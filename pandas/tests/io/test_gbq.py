@@ -24,6 +24,12 @@ PRIVATE_KEY_JSON_CONTENTS = None
 VERSION = platform.python_version()
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 def _skip_if_no_project_id():
     if not _get_project_id():
         pytest.skip("Cannot run integration tests without a project id")

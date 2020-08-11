@@ -11,6 +11,12 @@ from pandas import DataFrame
 import pandas._testing as tm
 
 
+def setup_module(module):
+    import pandas.util._test_decorators as td
+
+    yield from td.check_file_leaks()
+
+
 @pytest.mark.parametrize("na_values", [None, ["NaN"]])
 def test_comment(all_parsers, na_values):
     parser = all_parsers
