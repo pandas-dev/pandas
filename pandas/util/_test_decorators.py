@@ -23,6 +23,7 @@ def test_foo():
 
 For more information, refer to the ``pytest`` documentation on ``skipif``.
 """
+from contextlib import contextmanager
 from distutils.version import LooseVersion
 from functools import wraps
 import locale
@@ -237,7 +238,7 @@ def parametrize_fixture_doc(*args):
 
 def check_file_leaks(func) -> Callable:
     """
-    Decorate a test function tot check that we are not leaking file descriptors.
+    Decorate a test function to check that we are not leaking file descriptors.
     """
     psutil = safe_import("psutil")
     if not psutil:
@@ -254,6 +255,24 @@ def check_file_leaks(func) -> Callable:
         assert flist2 == flist
 
     return new_func
+
+
+@contextmanager
+def file_leak_context():
+    """
+    ContextManager analogue to check_file_leaks.
+    """
+    psutil = safe_import("psutil")
+    if not psutil:
+        yield
+    else:
+        proc = psutil.Process()
+        flist = proc.open_files()
+
+        yield
+
+        flist2 = proc.open_files()
+        assert flist2 == flist, (flist2, flist)
 
 
 def async_mark():

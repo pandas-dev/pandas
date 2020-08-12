@@ -3,6 +3,8 @@ import os
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -29,6 +31,11 @@ class TestXport:
         self.file02b = open(os.path.join(self.dirpath, "SSHSV1_A.xpt"), "rb")
         self.file03 = os.path.join(self.dirpath, "DRXFCD_G.xpt")
         self.file04 = os.path.join(self.dirpath, "paxraw_d_short.xpt")
+
+        with td.file_leak_context():
+            yield
+
+        self.file02b.close()
 
     def test1_basic(self):
         # Tests with DEMO_G.xpt (all numeric file)
