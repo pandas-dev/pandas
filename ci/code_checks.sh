@@ -272,7 +272,6 @@ if mods:
     "
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-
 fi
 
 ### DOCTESTS ###
