@@ -254,11 +254,15 @@ def file_leak_context():
     else:
         proc = psutil.Process()
         flist = proc.open_files()
+        conns = proc.connections()
 
         yield
 
         flist2 = proc.open_files()
         assert flist2 == flist, (flist2, flist)
+
+        conns2 = proc.connections()
+        assert conns2 == conns, (conns2, conns)
 
 
 def async_mark():
