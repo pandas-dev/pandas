@@ -1,8 +1,9 @@
 """
 Test metadata propagation in groupby
 
-The PandasTable class below is implemented according to the [guidelines], and as such would
-expect `__finalize__` to always be called so that the `_pandastable_metadata` is always populated. 
+The PandasTable class below is implemented according to the [guidelines],
+and as such would expect `__finalize__` to always be called so that the
+`_pandastable_metadata` is always populated.
 
 [guidelines]: https://pandas.pydata.org/pandas-docs/stable/development/extending.html#override-constructor-properties
 """
@@ -38,19 +39,21 @@ class PandasTable(pd.DataFrame):
         """
         This method is responsible for populating metadata when creating new Table-object.
 
-        The method argument is subject to change, and a robust handling of this is implemented
+        The method argument is subject to change, and a robust handling of this
+        is implemented.
         """
-        src = [other] #more logic here in actual implementation
-        metadata = _combine_metadata([d.get_metadata() for d in src if isinstance(d, PandasTable)])
+        src = [other]  # more logic here in actual implementation
+        metadata = _combine_metadata(
+            [d.get_metadata() for d in src if isinstance(d, PandasTable)])
 
         if not metadata:
-            warn('__finalize__ unable to combine metadata for method "{method}", falling back to DataFrame')
+            warn('__finalize__ unable to combine metadata for method "{method}", '
+                 'falling back to DataFrame')
             return pd.DataFrame(self)
         object.__setattr__(self, _TABLE_METADATA_FIELD_NAME, metadata)
         return self
 
     def get_metadata(self):
-        #return object.__getattribute__(self, _TABLE_METADATA_FIELD_NAME)
         metadata = getattr(self, _TABLE_METADATA_FIELD_NAME, None)
         if metadata is None:
             warn('PandasTable object not correctly initialized: no metadata')
@@ -65,8 +68,8 @@ class PandasTable(pd.DataFrame):
 
 @pytest.fixture
 def dft():
-    df = pd.DataFrame([[11, 12, 0], [21, 22, 0], [31, 32, 1]], columns={'a','b','g'})
-    return PandasTable.from_table_data(df, 'My metadata')    
+    df = pd.DataFrame([[11, 12, 0], [21, 22, 0], [31, 32, 1]], columns={'a', 'b', 'g'})
+    return PandasTable.from_table_data(df, 'My metadata')
 
 
 def test_initial_metadata(dft):
@@ -74,7 +77,7 @@ def test_initial_metadata(dft):
 
 
 def test_basic_propagation(dft):
-    gg = dft.loc[dft.g==0, :]
+    gg = dft.loc[dft.g == 0, :]
     assert gg.get_metadata() == 'My metadata'
 
 
