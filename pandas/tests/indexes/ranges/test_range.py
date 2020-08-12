@@ -168,7 +168,7 @@ class TestRangeIndex(Numeric):
         assert idx._cache == {}
 
         for _ in idx:
-            ...
+            pass
         assert idx._cache == {}
 
         df = pd.DataFrame({"a": range(10)}, index=idx)
