@@ -1026,8 +1026,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if numeric_only:
             data = data.get_numeric_data(copy=False)
 
-        agg_blocks: List[Block] = []
-        new_items: List[np.ndarray] = []
+        agg_blocks: List["Block"] = []
         deleted_items: List[np.ndarray] = []
 
         no_result = object()
@@ -1056,11 +1055,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     # reshape to be valid for non-Extension Block
                     result = result.reshape(1, -1)
 
-            agg_block: Block = block.make_block(result)
+            agg_block: "Block" = block.make_block(result)
             return agg_block
 
-        for block in data.blocks:
-            # Avoid inheriting result from earlier in the loop
+        def blk_func(block: "Block") -> List["Block"]:
+            new_blocks: List["Block"] = []
+
             result = no_result
             locs = block.mgr_locs.as_array
             try:
@@ -1076,8 +1076,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     # we cannot perform the operation
                     # in an alternate way, exclude the block
                     assert how == "ohlc"
-                    deleted_items.append(locs)
-                    continue
+                    raise
 
                 # call our grouper again with only this block
                 obj = self.obj[data.items[locs]]
@@ -1096,8 +1095,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 except TypeError:
                     # we may have an exception in trying to aggregate
                     # continue and exclude the block
-                    deleted_items.append(locs)
-                    continue
+                    raise
                 else:
                     result = cast(DataFrame, result)
                     # unwrap DataFrame to get array
@@ -1108,20 +1106,33 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                         # clean, we choose to clean up this mess later on.
                         assert len(locs) == result.shape[1]
                         for i, loc in enumerate(locs):
-                            new_items.append(np.array([loc], dtype=locs.dtype))
                             agg_block = result.iloc[:, [i]]._mgr.blocks[0]
-                            agg_blocks.append(agg_block)
+                            new_blocks.append(agg_block)
                     else:
                         result = result._mgr.blocks[0].values
                         if isinstance(result, np.ndarray) and result.ndim == 1:
                             result = result.reshape(1, -1)
                         agg_block = cast_result_block(result, block, how)
-                        new_items.append(locs)
-                        agg_blocks.append(agg_block)
+                        new_blocks = [agg_block]
             else:
                 agg_block = cast_result_block(result, block, how)
-                new_items.append(locs)
-                agg_blocks.append(agg_block)
+                new_blocks = [agg_block]
+            return new_blocks
+
+        skipped: List[int] = []
+        new_items: List[np.ndarray] = []
+        for i, block in enumerate(data.blocks):
+            try:
+                nbs = blk_func(block)
+            except (NotImplementedError, TypeError):
+                # TypeError -> we may have an exception in trying to aggregate
+                #  continue and exclude the block
+                # NotImplementedError -> "ohlc" with wrong dtype
+                skipped.append(i)
+                deleted_items.append(block.mgr_locs.as_array)
+            else:
+                agg_blocks.extend(nbs)
+                new_items.append(block.mgr_locs.as_array)
 
         if not agg_blocks:
             raise DataError("No numeric types to aggregate")
