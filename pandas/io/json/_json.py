@@ -58,7 +58,7 @@ def to_json(
         )
 
     if path_or_buf is not None:
-        path_or_buf, _, _, should_close = get_filepath_or_buffer(
+        path_or_buf, _, _, should_close, _ = get_filepath_or_buffer(
             path_or_buf,
             compression=compression,
             mode="wt",
@@ -615,7 +615,7 @@ def read_json(
     compression_method, compression = get_compression_method(compression)
     compression_method = infer_compression(path_or_buf, compression_method)
     compression = dict(compression, method=compression_method)
-    filepath_or_buffer, _, compression, should_close = get_filepath_or_buffer(
+    filepath_or_buffer, _, compression, should_close, _ = get_filepath_or_buffer(
         path_or_buf,
         encoding=encoding,
         compression=compression,
@@ -645,7 +645,7 @@ def read_json(
 
     result = json_reader.read()
     if should_close:
-        filepath_or_buffer.close()
+        filepath_or_buffer.close()  # type: ignore
 
     return result
 

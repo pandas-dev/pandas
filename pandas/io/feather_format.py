@@ -34,7 +34,7 @@ def to_feather(df: DataFrame, path, storage_options: StorageOptions = None, **kw
     import_optional_dependency("pyarrow")
     from pyarrow import feather
 
-    path, _, _, should_close = get_filepath_or_buffer(
+    path, _, _, should_close, _ = get_filepath_or_buffer(
         path, mode="wb", storage_options=storage_options
     )
 
@@ -122,7 +122,7 @@ def read_feather(
     import_optional_dependency("pyarrow")
     from pyarrow import feather
 
-    path, _, _, should_close = get_filepath_or_buffer(
+    path, _, _, should_close, _ = get_filepath_or_buffer(
         path, storage_options=storage_options
     )
 

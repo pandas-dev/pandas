@@ -86,7 +86,7 @@ def to_pickle(
     >>> import os
     >>> os.remove("./dummy.pkl")
     """
-    fp_or_buf, _, compression, should_close = get_filepath_or_buffer(
+    fp_or_buf, _, compression, should_close, _ = get_filepath_or_buffer(
         filepath_or_buffer,
         compression=compression,
         mode="wb",
@@ -107,7 +107,7 @@ def to_pickle(
             _f.close()
         if should_close:
             try:
-                fp_or_buf.close()
+                fp_or_buf.close()  # type: ignore
             except ValueError:
                 pass
 
@@ -189,7 +189,7 @@ def read_pickle(
     >>> import os
     >>> os.remove("./dummy.pkl")
     """
-    fp_or_buf, _, compression, should_close = get_filepath_or_buffer(
+    fp_or_buf, _, compression, should_close, _ = get_filepath_or_buffer(
         filepath_or_buffer, compression=compression, storage_options=storage_options
     )
     if not isinstance(fp_or_buf, str) and compression == "infer":
@@ -224,6 +224,6 @@ def read_pickle(
             _f.close()
         if should_close:
             try:
-                fp_or_buf.close()
+                fp_or_buf.close()  # type: ignore
             except ValueError:
                 pass

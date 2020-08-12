@@ -2281,10 +2281,9 @@ class DataFrame(NDFrame):
         result = tabulate.tabulate(self, **kwargs)
         if buf is None:
             return result
-        buf, _, _, should_close = get_filepath_or_buffer(
+        buf, _, _, should_close, _ = get_filepath_or_buffer(  # type: ignore
             buf, mode=mode, storage_options=storage_options
         )
-        assert buf is not None  # Help mypy.
         assert not isinstance(buf, str)
         buf.writelines(result)
         if should_close:

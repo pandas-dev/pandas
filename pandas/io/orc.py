@@ -50,7 +50,7 @@ def read_orc(
 
     import pyarrow.orc
 
-    path, _, _, _ = get_filepath_or_buffer(path)
+    path = get_filepath_or_buffer(path)[0]
     orc_file = pyarrow.orc.ORCFile(path)
     result = orc_file.read(columns=columns, **kwargs).to_pandas()
     return result

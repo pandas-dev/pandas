@@ -27,12 +27,14 @@ from urllib.parse import (
     uses_params,
     uses_relative,
 )
+import warnings
 import zipfile
 
 from pandas._typing import (
     CompressionDict,
     CompressionOptions,
     FilePathOrBuffer,
+    IOargs,
     StorageOptions,
 )
 from pandas.compat import _get_lzma_file, _import_lzma
@@ -168,7 +170,7 @@ def get_filepath_or_buffer(
     compression: CompressionOptions = None,
     mode: Optional[str] = None,
     storage_options: StorageOptions = None,
-):
+) -> IOargs:
     """
     If the filepath_or_buffer is a url, translate and return the buffer.
     Otherwise passthrough.
@@ -191,13 +193,36 @@ def get_filepath_or_buffer(
 
         .. versionadded:: 1.2.0
 
-    Returns
-    -------
-    Tuple[FilePathOrBuffer, str, CompressionOptions, bool]
-        Tuple containing the filepath or buffer, the encoding, the compression
-        and should_close.
+    ..versionchange:: 1.2.0
+
+      A named tuple is returned. In addition to previously returned values it also
+      returns `mode`. If a path-like object is converted to a file-like object, the
+      returned mode is binary, otherwise it is the provided `mode`.
     """
     filepath_or_buffer = stringify_path(filepath_or_buffer)
+
+    # bz2 and xz do not write the byte order mark for utf-16 and utf-32
+    # print a warning when writing such files
+    compression_method = infer_compression(
+        filepath_or_buffer, get_compression_method(compression)[0]
+    )
+    if (
+        mode
+        and "w" in mode
+        and compression_method in ["bz2", "xz"]
+        and encoding in ["utf-16", "utf-32"]
+    ):
+        warnings.warn(
+            f"{compression} will not write the byte order mark for {encoding}",
+            UnicodeWarning,
+        )
+
+    # Use binary mode when converting path-like objects to file-like objects (fsspec)
+    # except when text mode is explicitly requested. The original mode is returned if
+    # fsspec is not used.
+    fsspec_mode = mode or "rb"
+    if "t" not in fsspec_mode and "b" not in fsspec_mode:
+        fsspec_mode += "b"
 
     if isinstance(filepath_or_buffer, str) and is_url(filepath_or_buffer):
         # TODO: fsspec can also handle HTTP via requests, but leaving this unchanged
@@ -212,7 +237,13 @@ def get_filepath_or_buffer(
             compression = "gzip"
         reader = BytesIO(req.read())
         req.close()
-        return reader, encoding, compression, True
+        return IOargs(
+            filepath_or_buffer=reader,
+            encoding=encoding,
+            compression=compression,
+            should_close=True,
+            mode=fsspec_mode,
+        )
 
     if is_fsspec_url(filepath_or_buffer):
         assert isinstance(
@@ -244,7 +275,7 @@ def get_filepath_or_buffer(
 
         try:
             file_obj = fsspec.open(
-                filepath_or_buffer, mode=mode or "rb", **(storage_options or {})
+                filepath_or_buffer, mode=fsspec_mode, **(storage_options or {})
             ).open()
         # GH 34626 Reads from Public Buckets without Credentials needs anon=True
         except tuple(err_types_to_retry_with_anon):
@@ -255,23 +286,41 @@ def get_filepath_or_buffer(
                 storage_options = dict(storage_options)
                 storage_options["anon"] = True
             file_obj = fsspec.open(
-                filepath_or_buffer, mode=mode or "rb", **(storage_options or {})
+                filepath_or_buffer, mode=fsspec_mode, **(storage_options or {})
             ).open()
 
-        return file_obj, encoding, compression, True
+        return IOargs(
+            filepath_or_buffer=file_obj,
+            encoding=encoding,
+            compression=compression,
+            should_close=True,
+            mode=fsspec_mode,
+        )
     elif storage_options:
         raise ValueError(
             "storage_options passed with file object or non-fsspec file path"
         )
 
     if isinstance(filepath_or_buffer, (str, bytes, mmap.mmap)):
-        return _expand_user(filepath_or_buffer), None, compression, False
+        return IOargs(
+            filepath_or_buffer=_expand_user(filepath_or_buffer),
+            encoding=None,
+            compression=compression,
+            should_close=False,
+            mode=mode,
+        )
 
     if not is_file_like(filepath_or_buffer):
         msg = f"Invalid file path or buffer object type: {type(filepath_or_buffer)}"
         raise ValueError(msg)
 
-    return filepath_or_buffer, None, compression, False
+    return IOargs(
+        filepath_or_buffer=filepath_or_buffer,
+        encoding=None,
+        compression=compression,
+        should_close=False,
+        mode=mode,
+    )
 
 
 def file_path_to_url(path: str) -> str:
@@ -452,6 +501,13 @@ def get_handle(
         need_text_wrapping = (BufferedIOBase, RawIOBase, S3File)
     except ImportError:
         need_text_wrapping = (BufferedIOBase, RawIOBase)
+    # fsspec is an optional dependency. If it is available, add its file-object
+    # class to the list of classes that need text wrapping.
+    fsspec = import_optional_dependency("fsspec", raise_on_missing=False)
+    if fsspec is not None:
+        need_text_wrapping = tuple(
+            list(need_text_wrapping) + [fsspec.spec.AbstractFileSystem]
+        )
 
     handles: List[Union[IO, _MMapWrapper]] = list()
     f = path_or_buf
@@ -589,6 +645,9 @@ class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore[misc]
         archive_name = self.filename
         if self.archive_name is not None:
             archive_name = self.archive_name
+        if archive_name is None:
+            # ZipFile needs a non-empty string
+            archive_name = "zip"
         super().writestr(archive_name, data)
 
     @property

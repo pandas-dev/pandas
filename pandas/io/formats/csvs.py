@@ -62,14 +62,22 @@ class CSVFormatter:
 
         # Extract compression mode as given, if dict
         compression, self.compression_args = get_compression_method(compression)
+        self.compression = infer_compression(path_or_buf, compression)
 
-        self.path_or_buf, _, _, self.should_close = get_filepath_or_buffer(
+        (
+            self.path_or_buf,
+            _,
+            _,
+            self.should_close,
+            mode,  # type: ignore
+        ) = get_filepath_or_buffer(
             path_or_buf,
             encoding=encoding,
-            compression=compression,
+            compression=self.compression,
             mode=mode,
             storage_options=storage_options,
         )
+        assert self.path_or_buf is not None
         self.sep = sep
         self.na_rep = na_rep
         self.float_format = float_format
@@ -83,7 +91,6 @@ class CSVFormatter:
             encoding = "utf-8"
         self.encoding = encoding
         self.errors = errors
-        self.compression = infer_compression(self.path_or_buf, compression)
 
         if quoting is None:
             quoting = csvlib.QUOTE_MINIMAL

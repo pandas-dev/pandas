@@ -258,6 +258,7 @@ class XportReader(ReaderBase, abc.Iterator):
                 encoding,
                 compression,
                 should_close,
+                _,
             ) = get_filepath_or_buffer(filepath_or_buffer, encoding=encoding)
 
         if isinstance(filepath_or_buffer, (str, bytes)):

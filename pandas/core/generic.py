@@ -3249,7 +3249,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         formatter.save()
 
         if path_or_buf is None:
-            return formatter.path_or_buf.getvalue()
+            return formatter.path_or_buf.getvalue()  # type: ignore
 
         return None
 

@@ -109,7 +109,7 @@ def read_sas(
         else:
             raise ValueError("unable to infer format of SAS file")
 
-    filepath_or_buffer, _, _, should_close = get_filepath_or_buffer(
+    filepath_or_buffer, _, _, should_close, _ = get_filepath_or_buffer(
         filepath_or_buffer, encoding
     )
 

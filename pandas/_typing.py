@@ -11,6 +11,7 @@ from typing import (
     Hashable,
     List,
     Mapping,
+    NamedTuple,
     Optional,
     Type,
     TypeVar,
@@ -114,3 +115,20 @@ StorageOptions = Optional[Dict[str, Any]]
 # compression keywords and compression
 CompressionDict = Mapping[str, Optional[Union[str, int, bool]]]
 CompressionOptions = Optional[Union[str, CompressionDict]]
+
+
+class IOargs(NamedTuple):
+    """
+    Return value of io/common.py:get_filepath_or_buffer.
+
+    Note (copy&past from io/parsers):
+    filepath_or_buffer can be Union[FilePathOrBuffer, s3fs.S3File, gcsfs.GCSFile]
+    though mypy handling of conditional imports is difficult.
+    See https://github.com/python/mypy/issues/1297
+    """
+
+    filepath_or_buffer: FilePathOrBuffer
+    encoding: Optional[str]
+    compression: CompressionOptions = None
+    should_close: bool = False
+    mode: Optional[str] = None

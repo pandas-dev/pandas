@@ -432,7 +432,7 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     # Union[FilePathOrBuffer, s3fs.S3File, gcsfs.GCSFile]
     # though mypy handling of conditional imports is difficult.
     # See https://github.com/python/mypy/issues/1297
-    fp_or_buf, _, compression, should_close = get_filepath_or_buffer(
+    fp_or_buf, _, compression, should_close, _ = get_filepath_or_buffer(
         filepath_or_buffer, encoding, compression, storage_options=storage_options
     )
     kwds["compression"] = compression
@@ -462,7 +462,7 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
 
     if should_close:
         try:
-            fp_or_buf.close()
+            fp_or_buf.close()  # type: ignore
         except ValueError:
             pass
 

@@ -146,7 +146,7 @@ class PyArrowImpl(BaseImpl):
             path = _expand_user(path)
 
         if not fs:
-            path, _, _, should_close = get_filepath_or_buffer(path)
+            path, _, _, should_close, _ = get_filepath_or_buffer(path)
 
         kwargs["use_pandas_metadata"] = True
         result = self.api.parquet.read_table(
@@ -205,7 +205,7 @@ class FastParquetImpl(BaseImpl):
                 raise ValueError(
                     "storage_options passed with file object or non-fsspec file path"
                 )
-            path, _, _, _ = get_filepath_or_buffer(path)
+            path = get_filepath_or_buffer(path)[0]
 
         with catch_warnings(record=True):
             self.api.write(
@@ -228,7 +228,7 @@ class FastParquetImpl(BaseImpl):
             ).open()
             parquet_file = self.api.ParquetFile(path, open_with=open_with)
         else:
-            path, _, _, _ = get_filepath_or_buffer(path)
+            path = get_filepath_or_buffer(path)[0]
             parquet_file = self.api.ParquetFile(path)
 
         return parquet_file.to_pandas(columns=columns, **kwargs)

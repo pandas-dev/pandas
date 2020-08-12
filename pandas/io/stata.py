@@ -1069,7 +1069,7 @@ class StataReader(StataParser, abc.Iterator):
         self._native_byteorder = _set_endianness(sys.byteorder)
         path_or_buf = stringify_path(path_or_buf)
         if isinstance(path_or_buf, str):
-            path_or_buf, encoding, _, should_close = get_filepath_or_buffer(
+            path_or_buf, encoding, _, should_close, _ = get_filepath_or_buffer(
                 path_or_buf, storage_options=storage_options
             )
 
@@ -1979,7 +1979,7 @@ def _open_file_binary_write(
         compression_typ, compression_args = get_compression_method(compression)
         compression_typ = infer_compression(fname, compression_typ)
         compression = dict(compression_args, method=compression_typ)
-        path_or_buf, _, compression, _ = get_filepath_or_buffer(
+        path_or_buf, _, compression, _, _ = get_filepath_or_buffer(
             fname, mode="wb", compression=compression, storage_options=storage_options,
         )
         f, _ = get_handle(path_or_buf, "wb", compression=compression, is_text=False)

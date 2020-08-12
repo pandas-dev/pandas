@@ -107,7 +107,9 @@ bar2,12,13,14,15
 
     def test_get_filepath_or_buffer_with_path(self):
         filename = "~/sometest"
-        filepath_or_buffer, _, _, should_close = icom.get_filepath_or_buffer(filename)
+        filepath_or_buffer, _, _, should_close, _ = icom.get_filepath_or_buffer(
+            filename
+        )
         assert filepath_or_buffer != filename
         assert os.path.isabs(filepath_or_buffer)
         assert os.path.expanduser(filename) == filepath_or_buffer
@@ -115,7 +117,7 @@ bar2,12,13,14,15
 
     def test_get_filepath_or_buffer_with_buffer(self):
         input_buffer = StringIO()
-        filepath_or_buffer, _, _, should_close = icom.get_filepath_or_buffer(
+        filepath_or_buffer, _, _, should_close, _ = icom.get_filepath_or_buffer(
             input_buffer
         )
         assert filepath_or_buffer == input_buffer
@@ -388,6 +390,25 @@ class TestMMapWrapper:
             df = tm.makeDataFrame()
             df.to_csv(path, mode="w+b")
             tm.assert_frame_equal(df, pd.read_csv(path, index_col=0))
+
+    @pytest.mark.parametrize("encoding", ["utf-16", "utf-32"])
+    @pytest.mark.parametrize("compression_", ["bz2", "xz"])
+    def test_warning_missing_utf_bom(self, encoding, compression_):
+        """
+        bz2 and xz do not write the byte order mark (BOM) for utf-16/32.
+
+        https://stackoverflow.com/questions/55171439
+
+        GH 35681
+        """
+        df = tm.makeDataFrame()
+        with tm.ensure_clean() as path:
+            with tm.assert_produces_warning(UnicodeWarning):
+                df.to_csv(path, compression=compression_, encoding=encoding)
+
+            # reading should fail (otherwise we wouldn't need the warning)
+            with pytest.raises(Exception):
+                pd.read_csv(path, compression=compression_, encoding=encoding)
 
 
 def test_is_fsspec_url():
