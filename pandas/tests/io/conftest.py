@@ -1,5 +1,8 @@
 from distutils.version import LooseVersion
 import os
+import shlex
+import subprocess
+import time
 
 import pytest
 
@@ -54,6 +57,7 @@ def s3_resource(tips_file, jsonl_file, feather_file):
     """
     s3fs = pytest.importorskip("s3fs")
     boto3 = pytest.importorskip("boto3")
+    requests = pytest.importorskip("requests")
 
     with tm.ensure_safe_environment_variables():
         # temporary workaround as moto fails for botocore >= 1.11 otherwise,
@@ -83,12 +87,6 @@ def s3_resource(tips_file, jsonl_file, feather_file):
         try:
             # Launching moto in server mode, i.e., as a separate process
             # with an S3 endpoint on localhost
-
-            import shlex
-            import subprocess
-            import time
-
-            import requests
 
             endpoint_uri = "http://127.0.0.1:5555/"
 
