@@ -28,14 +28,11 @@ class TestXport:
         self.dirpath = datapath("io", "sas", "data")
         self.file01 = os.path.join(self.dirpath, "DEMO_G.xpt")
         self.file02 = os.path.join(self.dirpath, "SSHSV1_A.xpt")
-        self.file02b = open(os.path.join(self.dirpath, "SSHSV1_A.xpt"), "rb")
         self.file03 = os.path.join(self.dirpath, "DRXFCD_G.xpt")
         self.file04 = os.path.join(self.dirpath, "paxraw_d_short.xpt")
 
         with td.file_leak_context():
             yield
-
-        self.file02b.close()
 
     def test1_basic(self):
         # Tests with DEMO_G.xpt (all numeric file)
@@ -134,7 +131,8 @@ class TestXport:
         data_csv = pd.read_csv(self.file02.replace(".xpt", ".csv"))
         numeric_as_float(data_csv)
 
-        data = read_sas(self.file02b, format="xport")
+        with open(self.file02, "rb") as fd:
+            data = read_sas(fd, format="xport")
         tm.assert_frame_equal(data, data_csv)
 
     def test_multiple_types(self):
