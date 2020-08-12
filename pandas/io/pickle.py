@@ -100,7 +100,9 @@ def to_pickle(
     try:
         f.write(pickle.dumps(obj, protocol=protocol))
     finally:
-        f.close()
+        if f != filepath_or_buffer:
+            # do not close user-provided file objects GH 35679
+            f.close()
         for _f in fh:
             _f.close()
         if should_close:
@@ -215,7 +217,9 @@ def read_pickle(
         # e.g. can occur for files written in py27; see GH#28645 and GH#31988
         return pc.load(f, encoding="latin-1")
     finally:
-        f.close()
+        if f != filepath_or_buffer:
+            # do not close user-provided file objects GH 35679
+            f.close()
         for _f in fh:
             _f.close()
         if should_close:
