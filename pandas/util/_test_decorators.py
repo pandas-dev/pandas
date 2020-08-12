@@ -25,7 +25,6 @@ For more information, refer to the ``pytest`` documentation on ``skipif``.
 """
 from contextlib import contextmanager
 from distutils.version import LooseVersion
-from functools import wraps
 import locale
 from typing import Callable, Optional
 
@@ -240,21 +239,8 @@ def check_file_leaks(func) -> Callable:
     """
     Decorate a test function to check that we are not leaking file descriptors.
     """
-    psutil = safe_import("psutil")
-    if not psutil:
+    with file_leak_context():
         return func
-
-    @wraps(func)
-    def new_func(*args, **kwargs):
-        proc = psutil.Process()
-        flist = proc.open_files()
-
-        func(*args, **kwargs)
-
-        flist2 = proc.open_files()
-        assert flist2 == flist
-
-    return new_func
 
 
 @contextmanager
