@@ -78,6 +78,16 @@ class Range:
     def time_get_loc_dec(self):
         self.idx_dec.get_loc(100000)
 
+    def time_iter_inc(self):
+        for i in self.idx_inc:
+            if i >= 100_000:
+                break
+
+    def time_iter_dec(self):
+        for i in self.idx_dec:
+            if i >= 100_000:
+                break
+
 
 class IndexEquals:
     def setup(self):
