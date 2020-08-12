@@ -7,7 +7,7 @@ An interface for extending pandas with custom arrays.
    without warning.
 """
 import operator
-from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union, cast
 
 import numpy as np
 
@@ -20,7 +20,12 @@ from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.cast import maybe_cast_to_extension_array
-from pandas.core.dtypes.common import is_array_like, is_list_like, pandas_dtype
+from pandas.core.dtypes.common import (
+    is_array_like,
+    is_dtype_equal,
+    is_list_like,
+    pandas_dtype,
+)
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
@@ -742,7 +747,7 @@ class ExtensionArray:
         arr = self.astype(object)
         return arr.searchsorted(value, side=side, sorter=sorter)
 
-    def equals(self, other: "ExtensionArray") -> bool:
+    def equals(self, other: object) -> bool:
         """
         Return if another array is equivalent to this array.
 
@@ -762,7 +767,8 @@ class ExtensionArray:
         """
         if not type(self) == type(other):
             return False
-        elif not self.dtype == other.dtype:
+        other = cast(ExtensionArray, other)
+        if not is_dtype_equal(self.dtype, other.dtype):
             return False
         elif not len(self) == len(other):
             return False

@@ -3221,7 +3221,7 @@ class MultiIndex(Index):
             verify_integrity=False,
         )
 
-    def equals(self, other) -> bool:
+    def equals(self, other: object) -> bool:
         """
         Determines if two MultiIndex objects have the same labeling information
         (the levels themselves do not necessarily have to be the same)
@@ -3264,11 +3264,10 @@ class MultiIndex(Index):
                 np.asarray(other.levels[i]._values), other_codes, allow_fill=False
             )
 
-            # since we use NaT both datetime64 and timedelta64
-            # we can have a situation where a level is typed say
-            # timedelta64 in self (IOW it has other values than NaT)
-            # but types datetime64 in other (where its all NaT)
-            # but these are equivalent
+            # since we use NaT both datetime64 and timedelta64 we can have a
+            # situation where a level is typed say timedelta64 in self (IOW it
+            # has other values than NaT) but types datetime64 in other (where
+            # its all NaT) but these are equivalent
             if len(self_values) == 0 and len(other_values) == 0:
                 continue
 

@@ -4176,7 +4176,7 @@ class Index(IndexOpsMixin, PandasObject):
             # coerces to object
             return self.astype(object).putmask(mask, value)
 
-    def equals(self, other: Any) -> bool:
+    def equals(self, other: object) -> bool:
         """
         Determine if two Index object are equal.
 
