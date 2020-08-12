@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, tzinfo
 from pathlib import Path
 from typing import (
     IO,
@@ -24,13 +24,15 @@ import numpy as np
 # https://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles
 if TYPE_CHECKING:
     from pandas._libs import Period, Timedelta, Timestamp  # noqa: F401
-    from pandas.core.arrays.base import ExtensionArray  # noqa: F401
+
     from pandas.core.dtypes.dtypes import ExtensionDtype  # noqa: F401
-    from pandas.core.indexes.base import Index  # noqa: F401
-    from pandas.core.generic import NDFrame  # noqa: F401
+
     from pandas import Interval  # noqa: F401
-    from pandas.core.series import Series  # noqa: F401
+    from pandas.core.arrays.base import ExtensionArray  # noqa: F401
     from pandas.core.frame import DataFrame  # noqa: F401
+    from pandas.core.generic import NDFrame  # noqa: F401
+    from pandas.core.indexes.base import Index  # noqa: F401
+    from pandas.core.series import Series  # noqa: F401
 
 # array-like
 
@@ -52,6 +54,7 @@ TimestampConvertibleTypes = Union[
 TimedeltaConvertibleTypes = Union[
     "Timedelta", timedelta, np.timedelta64, int, np.int64, float, str
 ]
+Timezone = Union[str, tzinfo]
 
 # other
 
@@ -95,3 +98,14 @@ F = TypeVar("F", bound=FuncType)
 # DataFrame::sort_index, among others
 ValueKeyFunc = Optional[Callable[["Series"], Union["Series", AnyArrayLike]]]
 IndexKeyFunc = Optional[Callable[["Index"], Union["Index", AnyArrayLike]]]
+
+# types of `func` kwarg for DataFrame.aggregate and Series.aggregate
+AggFuncTypeBase = Union[Callable, str]
+AggFuncType = Union[
+    AggFuncTypeBase,
+    List[AggFuncTypeBase],
+    Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]],
+]
+
+# for arbitrary kwargs passed during reading/writing files
+StorageOptions = Optional[Dict[str, Any]]

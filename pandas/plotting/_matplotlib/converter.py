@@ -10,11 +10,12 @@ from matplotlib.transforms import nonsingular
 import matplotlib.units as units
 import numpy as np
 
-from pandas._libs import lib, tslibs
-from pandas._libs.tslibs.frequencies import FreqGroup, get_freq_code, get_freq_group
+from pandas._libs import lib
+from pandas._libs.tslibs import Timestamp, to_offset
+from pandas._libs.tslibs.dtypes import FreqGroup
+from pandas._libs.tslibs.offsets import BaseOffset
 
 from pandas.core.dtypes.common import (
-    is_datetime64_ns_dtype,
     is_float,
     is_float_dtype,
     is_integer,
@@ -43,7 +44,7 @@ _mpl_units = {}  # Cache for units overwritten by us
 
 def get_pairs():
     pairs = [
-        (tslibs.Timestamp, DatetimeConverter),
+        (Timestamp, DatetimeConverter),
         (Period, PeriodConverter),
         (pydt.datetime, DatetimeConverter),
         (pydt.date, DatetimeConverter),
@@ -244,19 +245,6 @@ def get_datevalue(date, freq):
     raise ValueError(f"Unrecognizable date '{date}'")
 
 
-def _dt_to_float_ordinal(dt):
-    """
-    Convert :mod:`datetime` to the Gregorian date as UTC float days,
-    preserving hours, minutes, seconds and microseconds.  Return value
-    is a :func:`float`.
-    """
-    if isinstance(dt, (np.ndarray, Index, Series)) and is_datetime64_ns_dtype(dt):
-        base = dates.epoch2num(dt.asi8 / 1.0e9)
-    else:
-        base = dates.date2num(dt)
-    return base
-
-
 # Datetime Conversion
 class DatetimeConverter(dates.DateConverter):
     @staticmethod
@@ -272,15 +260,11 @@ class DatetimeConverter(dates.DateConverter):
     def _convert_1d(values, unit, axis):
         def try_parse(values):
             try:
-                return _dt_to_float_ordinal(tools.to_datetime(values))
+                return dates.date2num(tools.to_datetime(values))
             except Exception:
                 return values
 
-        if isinstance(values, (datetime, pydt.date)):
-            return _dt_to_float_ordinal(values)
-        elif isinstance(values, np.datetime64):
-            return _dt_to_float_ordinal(tslibs.Timestamp(values))
-        elif isinstance(values, pydt.time):
+        if isinstance(values, (datetime, pydt.date, np.datetime64, pydt.time)):
             return dates.date2num(values)
         elif is_integer(values) or is_float(values):
             return values
@@ -301,12 +285,10 @@ class DatetimeConverter(dates.DateConverter):
 
             try:
                 values = tools.to_datetime(values)
-                if isinstance(values, Index):
-                    values = _dt_to_float_ordinal(values)
-                else:
-                    values = [_dt_to_float_ordinal(x) for x in values]
             except Exception:
-                values = _dt_to_float_ordinal(values)
+                pass
+
+            values = dates.date2num(values)
 
         return values
 
@@ -409,8 +391,8 @@ class MilliSecondLocator(dates.DateLocator):
         interval = self._get_interval()
         freq = f"{interval}L"
         tz = self.tz.tzname(None)
-        st = _from_ordinal(dates.date2num(dmin))  # strip tz
-        ed = _from_ordinal(dates.date2num(dmax))
+        st = dmin.replace(tzinfo=None)
+        ed = dmin.replace(tzinfo=None)
         all_dates = date_range(start=st, end=ed, freq=freq, tz=tz).astype(object)
 
         try:
@@ -522,34 +504,36 @@ def has_level_label(label_flags, vmin):
         return True
 
 
-def _daily_finder(vmin, vmax, freq):
+def _daily_finder(vmin, vmax, freq: BaseOffset):
+    dtype_code = freq._period_dtype_code
+
     periodsperday = -1
 
-    if freq >= FreqGroup.FR_HR:
-        if freq == FreqGroup.FR_NS:
+    if dtype_code >= FreqGroup.FR_HR:
+        if dtype_code == FreqGroup.FR_NS:
             periodsperday = 24 * 60 * 60 * 1000000000
-        elif freq == FreqGroup.FR_US:
+        elif dtype_code == FreqGroup.FR_US:
             periodsperday = 24 * 60 * 60 * 1000000
-        elif freq == FreqGroup.FR_MS:
+        elif dtype_code == FreqGroup.FR_MS:
             periodsperday = 24 * 60 * 60 * 1000
-        elif freq == FreqGroup.FR_SEC:
+        elif dtype_code == FreqGroup.FR_SEC:
             periodsperday = 24 * 60 * 60
-        elif freq == FreqGroup.FR_MIN:
+        elif dtype_code == FreqGroup.FR_MIN:
             periodsperday = 24 * 60
-        elif freq == FreqGroup.FR_HR:
+        elif dtype_code == FreqGroup.FR_HR:
             periodsperday = 24
         else:  # pragma: no cover
-            raise ValueError(f"unexpected frequency: {freq}")
+            raise ValueError(f"unexpected frequency: {dtype_code}")
         periodsperyear = 365 * periodsperday
         periodspermonth = 28 * periodsperday
 
-    elif freq == FreqGroup.FR_BUS:
+    elif dtype_code == FreqGroup.FR_BUS:
         periodsperyear = 261
         periodspermonth = 19
-    elif freq == FreqGroup.FR_DAY:
+    elif dtype_code == FreqGroup.FR_DAY:
         periodsperyear = 365
         periodspermonth = 28
-    elif get_freq_group(freq) == FreqGroup.FR_WK:
+    elif FreqGroup.get_freq_group(dtype_code) == FreqGroup.FR_WK:
         periodsperyear = 52
         periodspermonth = 3
     else:  # pragma: no cover
@@ -676,7 +660,7 @@ def _daily_finder(vmin, vmax, freq):
     elif span <= periodsperyear // 4:
         month_start = period_break(dates_, "month")
         info_maj[month_start] = True
-        if freq < FreqGroup.FR_HR:
+        if dtype_code < FreqGroup.FR_HR:
             info["min"] = True
         else:
             day_start = period_break(dates_, "day")
@@ -884,21 +868,20 @@ def _annual_finder(vmin, vmax, freq):
     return info
 
 
-def get_finder(freq):
-    if isinstance(freq, str):
-        freq = get_freq_code(freq)[0]
-    fgroup = get_freq_group(freq)
+def get_finder(freq: BaseOffset):
+    dtype_code = freq._period_dtype_code
+    fgroup = (dtype_code // 1000) * 1000
 
     if fgroup == FreqGroup.FR_ANN:
         return _annual_finder
     elif fgroup == FreqGroup.FR_QTR:
         return _quarterly_finder
-    elif freq == FreqGroup.FR_MTH:
+    elif dtype_code == FreqGroup.FR_MTH:
         return _monthly_finder
-    elif (freq >= FreqGroup.FR_BUS) or fgroup == FreqGroup.FR_WK:
+    elif (dtype_code >= FreqGroup.FR_BUS) or fgroup == FreqGroup.FR_WK:
         return _daily_finder
     else:  # pragma: no cover
-        raise NotImplementedError(f"Unsupported frequency: {freq}")
+        raise NotImplementedError(f"Unsupported frequency: {dtype_code}")
 
 
 class TimeSeries_DateLocator(Locator):
@@ -930,8 +913,7 @@ class TimeSeries_DateLocator(Locator):
         day=1,
         plot_obj=None,
     ):
-        if isinstance(freq, str):
-            freq = get_freq_code(freq)[0]
+        freq = to_offset(freq)
         self.freq = freq
         self.base = base
         (self.quarter, self.month, self.day) = (quarter, month, day)
@@ -1009,8 +991,7 @@ class TimeSeries_DateFormatter(Formatter):
     """
 
     def __init__(self, freq, minor_locator=False, dynamic_mode=True, plot_obj=None):
-        if isinstance(freq, str):
-            freq = get_freq_code(freq)[0]
+        freq = to_offset(freq)
         self.format = None
         self.freq = freq
         self.locs = []

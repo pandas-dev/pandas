@@ -1,6 +1,6 @@
 from collections import abc
 import functools
-from io import StringIO
+from io import BytesIO, StringIO
 from itertools import islice
 import os
 from typing import Any, Callable, Optional, Type
@@ -9,7 +9,7 @@ import numpy as np
 
 import pandas._libs.json as json
 from pandas._libs.tslibs import iNaT
-from pandas._typing import JSONSerializable
+from pandas._typing import JSONSerializable, StorageOptions
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import deprecate_kwarg, deprecate_nonkeyword_arguments
 
@@ -44,6 +44,7 @@ def to_json(
     compression: Optional[str] = "infer",
     index: bool = True,
     indent: int = 0,
+    storage_options: StorageOptions = None,
 ):
 
     if not index and orient not in ["split", "table"]:
@@ -52,8 +53,11 @@ def to_json(
         )
 
     if path_or_buf is not None:
-        path_or_buf, _, _, _ = get_filepath_or_buffer(
-            path_or_buf, compression=compression, mode="w"
+        path_or_buf, _, _, should_close = get_filepath_or_buffer(
+            path_or_buf,
+            compression=compression,
+            mode="wt",
+            storage_options=storage_options,
         )
 
     if lines and orient != "records":
@@ -97,6 +101,8 @@ def to_json(
         return s
     else:
         path_or_buf.write(s)
+        if should_close:
+            path_or_buf.close()
 
 
 class Writer:
@@ -115,7 +121,8 @@ class Writer:
         self.obj = obj
 
         if orient is None:
-            orient = self._default_orient  # type: ignore
+            # error: "Writer" has no attribute "_default_orient"
+            orient = self._default_orient  # type: ignore[attr-defined]
 
         self.orient = orient
         self.date_format = date_format
@@ -355,14 +362,16 @@ def read_json(
     dtype=None,
     convert_axes=None,
     convert_dates=True,
-    keep_default_dates=True,
-    numpy=False,
-    precise_float=False,
+    keep_default_dates: bool = True,
+    numpy: bool = False,
+    precise_float: bool = False,
     date_unit=None,
     encoding=None,
-    lines=False,
-    chunksize=None,
+    lines: bool = False,
+    chunksize: Optional[int] = None,
     compression="infer",
+    nrows: Optional[int] = None,
+    storage_options: StorageOptions = None,
 ):
     """
     Convert a JSON string to pandas object.
@@ -493,12 +502,30 @@ def read_json(
         for more information on ``chunksize``.
         This can only be passed if `lines=True`.
         If this is None, the file will be read into memory all at once.
+
     compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
         For on-the-fly decompression of on-disk data. If 'infer', then use
         gzip, bz2, zip or xz if path_or_buf is a string ending in
         '.gz', '.bz2', '.zip', or 'xz', respectively, and no decompression
         otherwise. If using 'zip', the ZIP file must contain only one data
         file to be read in. Set to None for no decompression.
+
+    nrows : int, optional
+        The number of lines from the line-delimited jsonfile that has to be read.
+        This can only be passed if `lines=True`.
+        If this is None, all the rows will be returned.
+
+        .. versionadded:: 1.1
+
+    storage_options : dict, optional
+        Extra options that make sense for a particular storage connection, e.g.
+        host, port, username, password, etc., if using a URL that will
+        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+        will be raised if providing this argument with a local path or
+        a file-like buffer. See the fsspec and backend storage implementation
+        docs for the set of allowed keys and values
+
+        .. versionadded:: 1.2.0
 
     Returns
     -------
@@ -582,7 +609,10 @@ def read_json(
 
     compression = infer_compression(path_or_buf, compression)
     filepath_or_buffer, _, compression, should_close = get_filepath_or_buffer(
-        path_or_buf, encoding=encoding, compression=compression
+        path_or_buf,
+        encoding=encoding,
+        compression=compression,
+        storage_options=storage_options,
     )
 
     json_reader = JsonReader(
@@ -600,6 +630,7 @@ def read_json(
         lines=lines,
         chunksize=chunksize,
         compression=compression,
+        nrows=nrows,
     )
 
     if chunksize:
@@ -629,14 +660,15 @@ class JsonReader(abc.Iterator):
         dtype,
         convert_axes,
         convert_dates,
-        keep_default_dates,
-        numpy,
-        precise_float,
+        keep_default_dates: bool,
+        numpy: bool,
+        precise_float: bool,
         date_unit,
         encoding,
-        lines,
-        chunksize,
+        lines: bool,
+        chunksize: Optional[int],
         compression,
+        nrows: Optional[int],
     ):
 
         self.orient = orient
@@ -654,11 +686,16 @@ class JsonReader(abc.Iterator):
         self.chunksize = chunksize
         self.nrows_seen = 0
         self.should_close = False
+        self.nrows = nrows
 
         if self.chunksize is not None:
             self.chunksize = _validate_integer("chunksize", self.chunksize, 1)
             if not self.lines:
                 raise ValueError("chunksize can only be passed if lines=True")
+        if self.nrows is not None:
+            self.nrows = _validate_integer("nrows", self.nrows, 0)
+            if not self.lines:
+                raise ValueError("nrows can only be passed if lines=True")
 
         data = self._get_data_from_filepath(filepath_or_buffer)
         self.data = self._preprocess_data(data)
@@ -671,9 +708,9 @@ class JsonReader(abc.Iterator):
         If self.chunksize, we prepare the data for the `__next__` method.
         Otherwise, we read it into memory for the `read` method.
         """
-        if hasattr(data, "read") and not self.chunksize:
+        if hasattr(data, "read") and (not self.chunksize or not self.nrows):
             data = data.read()
-        if not hasattr(data, "read") and self.chunksize:
+        if not hasattr(data, "read") and (self.chunksize or self.nrows):
             data = StringIO(data)
 
         return data
@@ -708,6 +745,9 @@ class JsonReader(abc.Iterator):
             self.should_close = True
             self.open_stream = data
 
+        if isinstance(data, BytesIO):
+            data = data.getvalue().decode()
+
         return data
 
     def _combine_lines(self, lines) -> str:
@@ -721,11 +761,17 @@ class JsonReader(abc.Iterator):
         """
         Read the whole JSON input into a pandas object.
         """
-        if self.lines and self.chunksize:
-            obj = concat(self)
-        elif self.lines:
-            data = ensure_str(self.data)
-            obj = self._get_object_parser(self._combine_lines(data.split("\n")))
+        if self.lines:
+            if self.chunksize:
+                obj = concat(self)
+            elif self.nrows:
+                lines = list(islice(self.data, self.nrows))
+                lines_json = self._combine_lines(lines)
+                obj = self._get_object_parser(lines_json)
+            else:
+                data = ensure_str(self.data)
+                data = data.split("\n")
+                obj = self._get_object_parser(self._combine_lines(data))
         else:
             obj = self._get_object_parser(self.data)
         self.close()
@@ -772,6 +818,11 @@ class JsonReader(abc.Iterator):
                 pass
 
     def __next__(self):
+        if self.nrows:
+            if self.nrows_seen >= self.nrows:
+                self.close()
+                raise StopIteration
+
         lines = list(islice(self.data, self.chunksize))
         if lines:
             lines_json = self._combine_lines(lines)

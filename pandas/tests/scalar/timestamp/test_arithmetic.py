@@ -3,13 +3,15 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
-from pandas.errors import OutOfBoundsDatetime
+from pandas._libs.tslibs import (
+    OutOfBoundsDatetime,
+    Timedelta,
+    Timestamp,
+    offsets,
+    to_offset,
+)
 
-from pandas import Timedelta, Timestamp
 import pandas._testing as tm
-
-from pandas.tseries import offsets
-from pandas.tseries.frequencies import to_offset
 
 
 class TestTimestampArithmetic:

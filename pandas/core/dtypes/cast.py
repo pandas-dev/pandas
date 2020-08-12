@@ -15,6 +15,7 @@ from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
     iNaT,
+    ints_to_pydatetime,
 )
 from pandas._libs.tslibs.timezones import tz_compare
 from pandas._typing import ArrayLike, Dtype, DtypeObj
@@ -225,7 +226,7 @@ def maybe_downcast_numeric(result, dtype, do_round: bool = False):
             # if we have any nulls, then we are done
             return result
 
-        elif not isinstance(r[0], (np.integer, np.floating, np.bool, int, float, bool)):
+        elif not isinstance(r[0], (np.integer, np.floating, int, float, bool)):
             # a comparable, e.g. a Decimal may slip in here
             return result
 
@@ -315,7 +316,7 @@ def maybe_cast_result_dtype(dtype: DtypeObj, how: str) -> DtypeObj:
     from pandas.core.arrays.boolean import BooleanDtype
     from pandas.core.arrays.integer import Int64Dtype
 
-    if how in ["add", "cumsum", "sum"] and (dtype == np.dtype(np.bool)):
+    if how in ["add", "cumsum", "sum"] and (dtype == np.dtype(bool)):
         return np.dtype(np.int64)
     elif how in ["add", "cumsum", "sum"] and isinstance(dtype, BooleanDtype):
         return Int64Dtype()
@@ -597,7 +598,7 @@ def _ensure_dtype_type(value, dtype):
     """
     Ensure that the given value is an instance of the given dtype.
 
-    e.g. if out dtype is np.complex64, we should have an instance of that
+    e.g. if out dtype is np.complex64_, we should have an instance of that
     as opposed to a python complex object.
 
     Parameters
@@ -919,7 +920,7 @@ def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
 
     elif is_datetime64_dtype(arr):
         if is_object_dtype(dtype):
-            return tslib.ints_to_pydatetime(arr.view(np.int64))
+            return ints_to_pydatetime(arr.view(np.int64))
         elif dtype == np.int64:
             if isna(arr).any():
                 raise ValueError("Cannot convert NaT values to integer")
@@ -1243,6 +1244,7 @@ def maybe_infer_to_datetimelike(value, convert_dates: bool = False):
             # if so coerce to a DatetimeIndex; if they are not the same,
             # then these stay as object dtype, xref GH19671
             from pandas._libs.tslibs import conversion
+
             from pandas import DatetimeIndex
 
             try:
@@ -1302,8 +1304,8 @@ def maybe_cast_to_datetime(value, dtype, errors: str = "raise"):
     try to cast the array/value to a datetimelike dtype, converting float
     nan to iNaT
     """
-    from pandas.core.tools.timedeltas import to_timedelta
     from pandas.core.tools.datetimes import to_datetime
+    from pandas.core.tools.timedeltas import to_timedelta
 
     if dtype is not None:
         if isinstance(dtype, str):
@@ -1399,7 +1401,7 @@ def maybe_cast_to_datetime(value, dtype, errors: str = "raise"):
                 if value.dtype != DT64NS_DTYPE:
                     value = value.astype(DT64NS_DTYPE)
                 ints = np.asarray(value).view("i8")
-                return tslib.ints_to_pydatetime(ints)
+                return ints_to_pydatetime(ints)
 
             # we have a non-castable dtype that was passed
             raise TypeError(f"Cannot cast datetime64 to {dtype}")
@@ -1483,7 +1485,7 @@ def find_common_type(types: List[DtypeObj]) -> DtypeObj:
     if has_bools:
         for t in types:
             if is_integer_dtype(t) or is_float_dtype(t) or is_complex_dtype(t):
-                return np.object
+                return object
 
     return np.find_common_type(types, [])
 
@@ -1608,7 +1610,7 @@ def construct_1d_ndarray_preserving_na(
     """
     subarr = np.array(values, dtype=dtype, copy=copy)
 
-    if dtype is not None and dtype.kind in ("U", "S"):
+    if dtype is not None and dtype.kind == "U":
         # GH-21083
         # We can't just return np.array(subarr, dtype='str') since
         # NumPy will convert the non-string objects into strings
@@ -1742,7 +1744,7 @@ def validate_numeric_casting(dtype: np.dtype, value):
         if is_float(value) and np.isnan(value):
             raise ValueError("Cannot assign nan to integer series")
 
-    if issubclass(dtype.type, (np.integer, np.floating, np.complex)) and not issubclass(
+    if issubclass(dtype.type, (np.integer, np.floating, complex)) and not issubclass(
         dtype.type, np.bool_
     ):
         if is_bool(value):
