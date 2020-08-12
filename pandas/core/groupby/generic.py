@@ -1059,7 +1059,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             return agg_block
 
         def blk_func(block: "Block") -> List["Block"]:
-            new_blocks: List["Block"]
+            new_blocks: List["Block"] = []
 
             result = no_result
             locs = block.mgr_locs.as_array
@@ -1105,7 +1105,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                         # is a lie. To keep the code-path for the typical non-split case
                         # clean, we choose to clean up this mess later on.
                         assert len(locs) == result.shape[1]
-                        new_blocks = []
                         for i, loc in enumerate(locs):
                             agg_block = result.iloc[:, [i]]._mgr.blocks[0]
                             new_blocks.append(agg_block)
