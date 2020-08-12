@@ -10,6 +10,7 @@ from pandas.compat.numpy import _np_version_under1p17
 
 import pandas as pd
 from pandas import Series, Timestamp
+import pandas._testing as tm
 from pandas.core import ops
 import pandas.core.common as com
 
@@ -157,3 +158,10 @@ def test_version_tag():
         raise ValueError(
             "No git tags exist, please sync tags between upstream and your repo"
         )
+
+
+def test_serializable():
+    for name, obj in pd.__dict__.items():
+        if callable(obj):
+            unpickled = tm.round_trip_pickle(obj)
+            assert type(obj) == type(unpickled)
