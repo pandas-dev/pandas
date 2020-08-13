@@ -4390,8 +4390,8 @@ class Index(IndexOpsMixin, PandasObject):
         self,
         return_indexer=False,
         ascending=True,
-        key: Optional[Callable] = None,
         na_position: str_t = "last",
+        key: Optional[Callable] = None,
     ):
         """
         Return a sorted copy of the index.
@@ -4405,6 +4405,12 @@ class Index(IndexOpsMixin, PandasObject):
             Should the indices that would sort the index be returned.
         ascending : bool, default True
             Should the index values be sorted in an ascending order.
+        na_position : {'first' or 'last'}, default 'last'
+            Argument 'first' puts NaNs at the beginning, 'last' puts NaNs at
+            the end.
+
+            .. versionadded:: 1.2.0
+
         key : callable, optional
             If not None, apply the key function to the index values
             before sorting. This is similar to the `key` argument in the
@@ -4413,12 +4419,6 @@ class Index(IndexOpsMixin, PandasObject):
             ``Index`` and return an ``Index`` of the same shape.
 
             .. versionadded:: 1.1.0
-
-        na_position : {'first' or 'last'}, default 'last'
-            Argument 'first' puts NaNs at the beginning, 'last' puts NaNs at
-            the end.
-
-            .. versionadded:: 1.2.0
 
         Returns
         -------
