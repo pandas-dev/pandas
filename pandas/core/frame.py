@@ -7626,10 +7626,10 @@ NaN 12.3   33.0
 
         >>> df_copy = df.copy()
         >>> df_copy.iloc[0, 0] = pd.NA
-        >>> df.applymap(lambda x: len(str(x)), na_action='ignore')
-               0      1
-        0   <NA>  2.120
-        1  3.356  4.567
+        >>> df_copy.applymap(lambda x: len(str(x)), na_action='ignore')
+              0  1
+        0  <NA>  4
+        1     5  5
 
         Note that a vectorized version of `func` often exists, which will
         be much faster. You could square each number elementwise.
@@ -7647,7 +7647,9 @@ NaN 12.3   33.0
         1  11.262736  20.857489
         """
         if na_action not in {"ignore", None}:
-            raise ValueError(f"na_action must be 'ignore' or None. Got {na_action!r}")
+            raise ValueError(
+                f"na_action must be 'ignore' or None. Got {repr(na_action)}"
+            )
         ignore_na = na_action == "ignore"
 
         # if we have a dtype == 'M8[ns]', provide boxed values
