@@ -10,7 +10,6 @@ import cython
 from cython import Py_ssize_t
 
 from cpython.datetime cimport datetime, datetime_new, import_datetime, tzinfo
-from cpython.object cimport PyObject_Str
 from cpython.version cimport PY_VERSION_HEX
 
 import_datetime()
@@ -939,7 +938,7 @@ cdef inline object convert_to_unicode(object item, bint keep_trivial_numbers):
                 return item
 
     if not isinstance(item, str):
-        item = PyObject_Str(item)
+        item = str(item)
 
     return item
 
