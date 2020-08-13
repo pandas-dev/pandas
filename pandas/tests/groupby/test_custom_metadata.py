@@ -5,7 +5,7 @@ The PandasTable class below is implemented according to the [guidelines],
 and as such would expect `__finalize__` to always be called so that the
 `_pandastable_metadata` is always populated.
 
-[guidelines]: https://pandas.pydata.org/pandas-docs/stable/development/extending.html#override-constructor-properties
+[guidelines]: https://pandas.pydata.org/pandas-docs/stable/development/extending.html#override-constructor-properties  # noqa
 """
 
 import pytest
@@ -37,10 +37,9 @@ class PandasTable(pd.DataFrame):
 
     def __finalize__(self, other, method=None, **kwargs):
         """
-        This method is responsible for populating metadata when creating new Table-object.
+        This method be called after constructor to populate metadata
 
-        The method argument is subject to change, and a robust handling of this
-        is implemented.
+        The "method" argument is subject to change and must be handled robustly.
         """
         src = [other]  # more logic here in actual implementation
         metadata = _combine_metadata(
