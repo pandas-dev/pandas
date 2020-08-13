@@ -70,6 +70,7 @@ from pandas.core.groupby.groupby import (
     GroupBy,
     _agg_template,
     _apply_docs,
+    _group_selection_context,
     _transform_template,
     get_groupby,
 )
@@ -229,6 +230,18 @@ class SeriesGroupBy(GroupBy[Series]):
         _agg_template, examples=_agg_examples_doc, klass="Series",
     )
     def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
+
+        if maybe_use_numba(engine):
+            if not callable(func):
+                raise ValueError(
+                    "Numba engine can only be used with a single function."
+                )
+            with _group_selection_context(self):
+                data = self._selected_obj
+            result, index = self._aggregate_with_numba(
+                data, 1, func, *args, engine_kwargs=None, **kwargs
+            )
+            return self.obj._constructor(result, index=index, name=data.name)
 
         relabeling = func is None
         columns = None
@@ -927,6 +940,19 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         _agg_template, examples=_agg_examples_doc, klass="DataFrame",
     )
     def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
+
+        if maybe_use_numba(engine):
+            if not callable(func):
+                raise ValueError(
+                    "Numba engine can only be used with a single function."
+                )
+            with _group_selection_context(self):
+                data = self._selected_obj
+                num_labels = len(data.columns)
+            result, index = self._aggregate_with_numba(
+                func, num_labels, *args, engine_kwargs=None, **kwargs
+            )
+            return self.obj._constructor(result, index=index, columns=data.columns)
 
         relabeling, func, columns, order = reconstruct_func(func, **kwargs)
 

@@ -34,7 +34,7 @@ import numpy as np
 
 from pandas._config.config import option_context
 
-from pandas._libs import Timestamp
+from pandas._libs import Timestamp, lib
 import pandas._libs.groupby as libgroupby
 from pandas._typing import F, FrameOrSeries, FrameOrSeriesUnion, Scalar
 from pandas.compat.numpy import function as nv
@@ -61,11 +61,11 @@ from pandas.core.base import DataError, PandasObject, SelectionMixin
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.groupby import base, ops
+from pandas.core.groupby import base, numba_, ops
 from pandas.core.indexes.api import CategoricalIndex, Index, MultiIndex
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
-from pandas.core.util.numba_ import maybe_use_numba
+from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 
 _common_see_also = """
         See Also
@@ -1050,6 +1050,38 @@ b  2""",
             raise DataError("No numeric types to aggregate")
 
         return self._wrap_aggregated_output(output)
+
+    def _aggregate_with_numba(
+        self, data, num_labels, func, *args, engine_kwargs=None, **kwargs
+    ):
+        group_keys = self.grouper._get_group_keys()
+        labels, _, n_groups = self.grouper.group_info
+        sorted_index = get_group_index_sorter(labels, n_groups)
+        sorted_labels = algorithms.take_nd(labels, sorted_index, allow_fill=False)
+        sorted_data = data.take(sorted_index, axis=self.axis)
+        starts, ends = lib.generate_slices(sorted_labels, n_groups)
+        cache_key = (func, "groupby_agg")
+        if cache_key in NUMBA_FUNC_CACHE:
+            # Return an already compiled version of roll_apply if available
+            apply_func = NUMBA_FUNC_CACHE[cache_key]
+        else:
+            apply_func = numba_.generate_numba_apply_func(
+                tuple(args), kwargs, func, engine_kwargs
+            )
+        result = apply_func(
+            sorted_data.to_numpy(),
+            sorted_index,
+            starts,
+            ends,
+            len(group_keys),
+            num_labels,
+        )
+
+        if self.grouper.nkeys > 1:
+            index = MultiIndex.from_tuples(group_keys, names=self.grouper.names)
+        else:
+            index = Index(group_keys, name=self.grouper.names[0])
+        return result, index
 
     def _python_agg_general(self, func, *args, **kwargs):
         func = self._is_builtin_func(func)
