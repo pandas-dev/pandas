@@ -63,15 +63,8 @@ def test_apply_trivial():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(
-    reason="GH#20066; function passed into apply "
-    "returns a DataFrame with the same index "
-    "as the one to create GroupBy object."
-)
 def test_apply_trivial_fail():
     # GH 20066
-    # trivial apply fails if the constant dataframe has the same index
-    # with the one used to create GroupBy object.
     df = pd.DataFrame(
         {"key": ["a", "a", "b", "b", "a"], "data": [1.0, 2.0, 3.0, 4.0, 5.0]},
         columns=["key", "data"],
@@ -1018,6 +1011,35 @@ def test_apply_with_timezones_aware():
     tm.assert_frame_equal(result1, result2)
 
 
+def test_apply_is_unchanged_when_other_methods_are_called_first(reduction_func):
+    # GH #34656
+    # GH #34271
+    df = DataFrame(
+        {
+            "a": [99, 99, 99, 88, 88, 88],
+            "b": [1, 2, 3, 4, 5, 6],
+            "c": [10, 20, 30, 40, 50, 60],
+        }
+    )
+
+    expected = pd.DataFrame(
+        {"a": [264, 297], "b": [15, 6], "c": [150, 60]},
+        index=pd.Index([88, 99], name="a"),
+    )
+
+    # Check output when no other methods are called before .apply()
+    grp = df.groupby(by="a")
+    result = grp.apply(sum)
+    tm.assert_frame_equal(result, expected)
+
+    # Check output when another method is called before .apply()
+    grp = df.groupby(by="a")
+    args = {"nth": [0], "corrwith": [df]}.get(reduction_func, [])
+    _ = getattr(grp, reduction_func)(*args)
+    result = grp.apply(sum)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_apply_with_date_in_multiindex_does_not_convert_to_timestamp():
     # GH 29617
 
@@ -1046,3 +1068,23 @@ def test_apply_with_date_in_multiindex_does_not_convert_to_timestamp():
     tm.assert_frame_equal(result, expected)
     for val in result.index.levels[1]:
         assert type(val) is date
+
+
+def test_apply_by_cols_equals_apply_by_rows_transposed():
+    # GH 16646
+    # Operating on the columns, or transposing and operating on the rows
+    # should give the same result. There was previously a bug where the
+    # by_rows operation would work fine, but by_cols would throw a ValueError
+
+    df = pd.DataFrame(
+        np.random.random([6, 4]),
+        columns=pd.MultiIndex.from_product([["A", "B"], [1, 2]]),
+    )
+
+    by_rows = df.T.groupby(axis=0, level=0).apply(
+        lambda x: x.droplevel(axis=0, level=0)
+    )
+    by_cols = df.groupby(axis=1, level=0).apply(lambda x: x.droplevel(axis=1, level=0))
+
+    tm.assert_frame_equal(by_cols, by_rows.T)
+    tm.assert_frame_equal(by_cols, df)

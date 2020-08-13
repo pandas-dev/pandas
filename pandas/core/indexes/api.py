@@ -218,9 +218,8 @@ def union_indexes(indexes, sort=True) -> Index:
             return result
     elif kind == "array":
         index = indexes[0]
-        for other in indexes[1:]:
-            if not index.equals(other):
-                return _unique_indices(indexes)
+        if not all(index.equals(other) for other in indexes[1:]):
+            index = _unique_indices(indexes)
 
         name = get_consensus_names(indexes)[0]
         if name != index.name:
