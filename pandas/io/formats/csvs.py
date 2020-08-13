@@ -11,7 +11,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import writers as libwriters
-from pandas._typing import FilePathOrBuffer
+from pandas._typing import FilePathOrBuffer, StorageOptions
 
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
@@ -53,6 +53,7 @@ class CSVFormatter:
         doublequote: bool = True,
         escapechar: Optional[str] = None,
         decimal=".",
+        storage_options: StorageOptions = None,
     ):
         self.obj = obj
 
@@ -63,7 +64,11 @@ class CSVFormatter:
         compression, self.compression_args = get_compression_method(compression)
 
         self.path_or_buf, _, _, self.should_close = get_filepath_or_buffer(
-            path_or_buf, encoding=encoding, compression=compression, mode=mode
+            path_or_buf,
+            encoding=encoding,
+            compression=compression,
+            mode=mode,
+            storage_options=storage_options,
         )
         self.sep = sep
         self.na_rep = na_rep
