@@ -4470,6 +4470,7 @@ class Index(IndexOpsMixin, PandasObject):
                     f"Can be only 'first' or 'last', '{na_position}' given."
                 )
         else:
+            # GH 35584. Ignore na_position for MultiIndex
             _as = idx.argsort()
             if not ascending:
                 _as = _as[::-1]
