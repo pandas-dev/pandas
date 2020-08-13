@@ -121,7 +121,7 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
 
     # Imports - Check formatting using isort see setup.cfg for settings
     MSG='Check import format using isort' ; echo $MSG
-    ISORT_CMD="isort --quiet --check-only pandas asv_bench scripts"
+    ISORT_CMD="isort --quiet --check-only pandas asv_bench scripts web"
     if [[ "$GITHUB_ACTIONS" == "true" ]]; then
         eval $ISORT_CMD | awk '{print "##[error]" $0}'; RET=$(($RET + ${PIPESTATUS[0]}))
     else
