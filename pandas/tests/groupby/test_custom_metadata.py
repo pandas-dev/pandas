@@ -14,14 +14,14 @@ from warnings import warn
 from typing import List
 
 
-_TABLE_METADATA_FIELD_NAME = '_pandastable_metadata'
+_TABLE_METADATA_FIELD_NAME = "_pandastable_metadata"
 
 
 def _combine_metadata(data: List[str]) -> str:
     """
     A mock implementation for testing
     """
-    return '+'.join(data)
+    return "+".join(data)
 
 
 class PandasTable(pd.DataFrame):
@@ -37,17 +37,20 @@ class PandasTable(pd.DataFrame):
 
     def __finalize__(self, other, method=None, **kwargs):
         """
-        This method be called after constructor to populate metadata
+        This method will be called after constructor to populate metadata
 
         The "method" argument is subject to change and must be handled robustly.
         """
         src = [other]  # more logic here in actual implementation
         metadata = _combine_metadata(
-            [d.get_metadata() for d in src if isinstance(d, PandasTable)])
+            [d.get_metadata() for d in src if isinstance(d, PandasTable)]
+        )
 
         if not metadata:
-            warn('__finalize__ unable to combine metadata for method "{method}", '
-                 'falling back to DataFrame')
+            warn(
+                '__finalize__ unable to combine metadata for method "{method}", '
+                "falling back to DataFrame"
+            )
             return pd.DataFrame(self)
         object.__setattr__(self, _TABLE_METADATA_FIELD_NAME, metadata)
         return self
@@ -55,11 +58,11 @@ class PandasTable(pd.DataFrame):
     def get_metadata(self):
         metadata = getattr(self, _TABLE_METADATA_FIELD_NAME, None)
         if metadata is None:
-            warn('PandasTable object not correctly initialized: no metadata')
+            warn("PandasTable object not correctly initialized: no metadata")
         return metadata
 
     @staticmethod
-    def from_table_data(df: pd.DataFrame, metadata) -> 'PandasTable':
+    def from_table_data(df: pd.DataFrame, metadata) -> "PandasTable":
         df = PandasTable(df)
         object.__setattr__(df, _TABLE_METADATA_FIELD_NAME, metadata)
         return df
@@ -67,19 +70,19 @@ class PandasTable(pd.DataFrame):
 
 @pytest.fixture
 def dft():
-    df = pd.DataFrame([[11, 12, 0], [21, 22, 0], [31, 32, 1]], columns={'a', 'b', 'g'})
-    return PandasTable.from_table_data(df, 'My metadata')
+    df = pd.DataFrame([[11, 12, 0], [21, 22, 0], [31, 32, 1]], columns={"a", "b", "g"})
+    return PandasTable.from_table_data(df, "My metadata")
 
 
 def test_initial_metadata(dft):
-    assert dft.get_metadata() == 'My metadata'
+    assert dft.get_metadata() == "My metadata"
 
 
 def test_basic_propagation(dft):
     gg = dft.loc[dft.g == 0, :]
-    assert gg.get_metadata() == 'My metadata'
+    assert gg.get_metadata() == "My metadata"
 
 
 def test_groupby(dft):
-    gg = [ab for g, ab in dft.groupby('g')]
+    gg = [ab for g, ab in dft.groupby("g")]
     assert gg[0].get_metadata() is not None
