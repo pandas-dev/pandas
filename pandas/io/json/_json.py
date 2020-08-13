@@ -3,13 +3,13 @@ import functools
 from io import BytesIO, StringIO
 from itertools import islice
 import os
-from typing import Any, Callable, Optional, Type
+from typing import IO, Any, Callable, List, Optional, Type
 
 import numpy as np
 
 import pandas._libs.json as json
 from pandas._libs.tslibs import iNaT
-from pandas._typing import JSONSerializable, StorageOptions
+from pandas._typing import CompressionOptions, JSONSerializable, StorageOptions
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import deprecate_kwarg, deprecate_nonkeyword_arguments
 
@@ -19,7 +19,12 @@ from pandas import DataFrame, MultiIndex, Series, isna, to_datetime
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.reshape.concat import concat
 
-from pandas.io.common import get_filepath_or_buffer, get_handle, infer_compression
+from pandas.io.common import (
+    get_compression_method,
+    get_filepath_or_buffer,
+    get_handle,
+    infer_compression,
+)
 from pandas.io.json._normalize import convert_to_line_delimits
 from pandas.io.json._table_schema import build_table_schema, parse_table_schema
 from pandas.io.parsers import _validate_integer
@@ -41,7 +46,7 @@ def to_json(
     date_unit: str = "ms",
     default_handler: Optional[Callable[[Any], JSONSerializable]] = None,
     lines: bool = False,
-    compression: Optional[str] = "infer",
+    compression: CompressionOptions = "infer",
     index: bool = True,
     indent: int = 0,
     storage_options: StorageOptions = None,
@@ -369,7 +374,7 @@ def read_json(
     encoding=None,
     lines: bool = False,
     chunksize: Optional[int] = None,
-    compression="infer",
+    compression: CompressionOptions = "infer",
     nrows: Optional[int] = None,
     storage_options: StorageOptions = None,
 ):
@@ -607,7 +612,9 @@ def read_json(
     if encoding is None:
         encoding = "utf-8"
 
-    compression = infer_compression(path_or_buf, compression)
+    compression_method, compression = get_compression_method(compression)
+    compression_method = infer_compression(path_or_buf, compression_method)
+    compression = dict(compression, method=compression_method)
     filepath_or_buffer, _, compression, should_close = get_filepath_or_buffer(
         path_or_buf,
         encoding=encoding,
@@ -667,9 +674,12 @@ class JsonReader(abc.Iterator):
         encoding,
         lines: bool,
         chunksize: Optional[int],
-        compression,
+        compression: CompressionOptions,
         nrows: Optional[int],
     ):
+
+        compression_method, compression = get_compression_method(compression)
+        compression = dict(compression, method=compression_method)
 
         self.orient = orient
         self.typ = typ
@@ -687,6 +697,7 @@ class JsonReader(abc.Iterator):
         self.nrows_seen = 0
         self.should_close = False
         self.nrows = nrows
+        self.file_handles: List[IO] = []
 
         if self.chunksize is not None:
             self.chunksize = _validate_integer("chunksize", self.chunksize, 1)
@@ -735,8 +746,8 @@ class JsonReader(abc.Iterator):
             except (TypeError, ValueError):
                 pass
 
-        if exists or self.compression is not None:
-            data, _ = get_handle(
+        if exists or self.compression["method"] is not None:
+            data, self.file_handles = get_handle(
                 filepath_or_buffer,
                 "r",
                 encoding=self.encoding,
@@ -816,6 +827,8 @@ class JsonReader(abc.Iterator):
                 self.open_stream.close()
             except (IOError, AttributeError):
                 pass
+        for file_handle in self.file_handles:
+            file_handle.close()
 
     def __next__(self):
         if self.nrows:

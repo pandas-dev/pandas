@@ -35,7 +35,7 @@ import numpy as np
 
 from pandas._libs.lib import infer_dtype
 from pandas._libs.writers import max_len_string_array
-from pandas._typing import FilePathOrBuffer, Label, StorageOptions
+from pandas._typing import CompressionOptions, FilePathOrBuffer, Label, StorageOptions
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
@@ -1938,9 +1938,9 @@ def read_stata(
 
 def _open_file_binary_write(
     fname: FilePathOrBuffer,
-    compression: Union[str, Mapping[str, str], None],
+    compression: CompressionOptions,
     storage_options: StorageOptions = None,
-) -> Tuple[BinaryIO, bool, Optional[Union[str, Mapping[str, str]]]]:
+) -> Tuple[BinaryIO, bool, CompressionOptions]:
     """
     Open a binary file or no-op if file-like.
 
@@ -1978,17 +1978,10 @@ def _open_file_binary_write(
         # Extract compression mode as given, if dict
         compression_typ, compression_args = get_compression_method(compression)
         compression_typ = infer_compression(fname, compression_typ)
-        path_or_buf, _, compression_typ, _ = get_filepath_or_buffer(
-            fname,
-            mode="wb",
-            compression=compression_typ,
-            storage_options=storage_options,
+        compression = dict(compression_args, method=compression_typ)
+        path_or_buf, _, compression, _ = get_filepath_or_buffer(
+            fname, mode="wb", compression=compression, storage_options=storage_options,
         )
-        if compression_typ is not None:
-            compression = compression_args
-            compression["method"] = compression_typ
-        else:
-            compression = None
         f, _ = get_handle(path_or_buf, "wb", compression=compression, is_text=False)
         return f, True, compression
     else:
