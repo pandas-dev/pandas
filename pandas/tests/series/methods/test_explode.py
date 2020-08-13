@@ -129,6 +129,7 @@ def test_ignore_index():
 
 
 def test_explode_sets():
+    # https://github.com/pandas-dev/pandas/issues/35614
     s = pd.Series([{"a", "b", "c"}], index=[1])
     result = s.explode().sort_values()
     expected = pd.Series(["a", "b", "c"], index=[1, 1, 1])
