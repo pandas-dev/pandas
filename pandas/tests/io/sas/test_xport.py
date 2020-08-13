@@ -132,7 +132,11 @@ class TestXport:
         numeric_as_float(data_csv)
 
         with open(self.file02, "rb") as fd:
-            data = read_sas(fd, format="xport")
+            with td.file_leak_context():
+                # GH#35693 ensure that if we pass an open file, we
+                #  dont incorrectly close it in read_sas
+                data = read_sas(fd, format="xport")
+
         tm.assert_frame_equal(data, data_csv)
 
     def test_multiple_types(self):
