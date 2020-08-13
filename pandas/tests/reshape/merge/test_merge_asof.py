@@ -1341,6 +1341,7 @@ class TestAsOfMerge:
         tm.assert_frame_equal(result, expected)
 
     def test_left_index_right_index_tolerance(self):
+        # https://github.com/pandas-dev/pandas/issues/35558
         dr1 = pd.date_range(
             start="1/1/2020", end="1/20/2020", freq="2D"
         ) + pd.Timedelta(seconds=0.4)
