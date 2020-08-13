@@ -23,6 +23,7 @@ Fixed regressions
 - Fixed regression in ``.groupby(..).rolling(..)`` where a segfault would occur with ``center=True`` and an odd number of values (:issue:`35552`)
 - Fixed regression in :meth:`DataFrame.apply` where functions that altered the input in-place only operated on a single row (:issue:`35462`)
 - Fixed regression in ``.groupby(..).rolling(..)`` where a custom ``BaseIndexer`` would be ignored (:issue:`35557`)
+- Fixed regression in :meth:`DataFrame.replace` and :meth:`Series.replace` where compiled regular expressions would be ignored during replacement (:issue:`35680`)
 
 .. ---------------------------------------------------------------------------
 

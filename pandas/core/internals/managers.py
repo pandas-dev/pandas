@@ -1949,7 +1949,7 @@ def _compare_or_regex_search(
     else:
         op = np.vectorize(
             lambda x: bool(re.search(b, x))
-            if isinstance(x, str) and isinstance(b, str)
+            if isinstance(x, str) and isinstance(b, (str, re.Pattern))
             else False
         )
 
