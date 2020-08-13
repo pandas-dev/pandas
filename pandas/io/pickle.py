@@ -1,9 +1,9 @@
 """ pickle compat """
 import pickle
-from typing import Any, Optional
+from typing import Any
 import warnings
 
-from pandas._typing import FilePathOrBuffer, StorageOptions
+from pandas._typing import CompressionOptions, FilePathOrBuffer, StorageOptions
 from pandas.compat import pickle_compat as pc
 
 from pandas.io.common import get_filepath_or_buffer, get_handle
@@ -12,7 +12,7 @@ from pandas.io.common import get_filepath_or_buffer, get_handle
 def to_pickle(
     obj: Any,
     filepath_or_buffer: FilePathOrBuffer,
-    compression: Optional[str] = "infer",
+    compression: CompressionOptions = "infer",
     protocol: int = pickle.HIGHEST_PROTOCOL,
     storage_options: StorageOptions = None,
 ):
@@ -114,7 +114,7 @@ def to_pickle(
 
 def read_pickle(
     filepath_or_buffer: FilePathOrBuffer,
-    compression: Optional[str] = "infer",
+    compression: CompressionOptions = "infer",
     storage_options: StorageOptions = None,
 ):
     """
