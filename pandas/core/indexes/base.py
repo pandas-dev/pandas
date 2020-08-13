@@ -86,7 +86,7 @@ from pandas.core.indexes.frozen import FrozenList
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
 from pandas.core.ops.invalid import make_invalid_op
-from pandas.core.sorting import ensure_key_mapped
+from pandas.core.sorting import ensure_key_mapped, nargsort
 from pandas.core.strings import StringMethods
 
 from pandas.io.formats.printing import (
@@ -4452,25 +4452,12 @@ class Index(IndexOpsMixin, PandasObject):
         idx = ensure_key_mapped(self, key)
 
         # GH 35584. Sort missing values according to na_position kwarg
+        # ignore na_position for MutiIndex
         if not isinstance(self, ABCMultiIndex):
-            bad = isna(idx)
-            good = ~bad
-            _as = np.arange(len(idx), dtype=np.int64)
-            if na_position == "last":
-                _as = np.concatenate([_as[good][idx[good].argsort()], _as[bad]])
-                if not ascending:
-                    _as[: np.sum(good)] = _as[: np.sum(good)][::-1]
-            elif na_position == "first":
-                _as = np.concatenate([_as[bad], _as[good][idx[good].argsort()]])
-                if not ascending:
-                    _as[np.sum(bad) :] = _as[np.sum(bad) :][::-1]
-            else:
-                raise ValueError(
-                    "Invalid na_position keyword argument value. "
-                    f"Can be only 'first' or 'last', '{na_position}' given."
-                )
+            _as = nargsort(
+                items=idx, ascending=ascending, na_position=na_position, key=key
+            )
         else:
-            # GH 35584. Ignore na_position for MultiIndex
             _as = idx.argsort()
             if not ascending:
                 _as = _as[::-1]
