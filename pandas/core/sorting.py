@@ -312,7 +312,7 @@ def nargsort(
         non_nan_idx = non_nan_idx[::-1]
     try:
         indexer = non_nan_idx[non_nans.argsort(kind=kind)]
-    except:
+    except TypeError:
         # For compatibility with Series: fall back to quicksort
         # when mergesort is unavailable for object element type
         indexer = non_nan_idx[non_nans.argsort(kind="quicksort")]
