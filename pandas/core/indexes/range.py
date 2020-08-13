@@ -373,6 +373,10 @@ class RangeIndex(Int64Index):
     def tolist(self):
         return list(self._range)
 
+    @doc(Int64Index.__iter__)
+    def __iter__(self):
+        yield from self._range
+
     @doc(Int64Index._shallow_copy)
     def _shallow_copy(self, values=None, name: Label = no_default):
         name = self.name if name is no_default else name
