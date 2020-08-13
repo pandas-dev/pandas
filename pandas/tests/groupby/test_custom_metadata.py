@@ -8,11 +8,12 @@ and as such would expect `__finalize__` to always be called so that the
 [guidelines]: https://pandas.pydata.org/pandas-docs/stable/development/extending.html#override-constructor-properties  # noqa
 """
 
-import pytest
-import pandas as pd
-from warnings import warn
 from typing import List
+from warnings import warn
 
+import pytest
+
+import pandas as pd
 
 _TABLE_METADATA_FIELD_NAME = "_pandastable_metadata"
 
