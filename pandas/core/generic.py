@@ -35,6 +35,7 @@ from pandas._libs import lib
 from pandas._libs.tslibs import Tick, Timestamp, to_offset
 from pandas._typing import (
     Axis,
+    CompressionOptions,
     FilePathOrBuffer,
     FrameOrSeries,
     JSONSerializable,
@@ -2058,7 +2059,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         date_unit: str = "ms",
         default_handler: Optional[Callable[[Any], JSONSerializable]] = None,
         lines: bool_t = False,
-        compression: Optional[str] = "infer",
+        compression: CompressionOptions = "infer",
         index: bool_t = True,
         indent: Optional[int] = None,
         storage_options: StorageOptions = None,
@@ -2646,7 +2647,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def to_pickle(
         self,
         path,
-        compression: Optional[str] = "infer",
+        compression: CompressionOptions = "infer",
         protocol: int = pickle.HIGHEST_PROTOCOL,
         storage_options: StorageOptions = None,
     ) -> None:
@@ -3053,7 +3054,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         index_label: Optional[Union[bool_t, str, Sequence[Label]]] = None,
         mode: str = "w",
         encoding: Optional[str] = None,
-        compression: Optional[Union[str, Mapping[str, str]]] = "infer",
+        compression: CompressionOptions = "infer",
         quoting: Optional[int] = None,
         quotechar: str = '"',
         line_terminator: Optional[str] = None,
