@@ -306,9 +306,9 @@ def nargsort(
     non_nan_idx = idx[~mask]
 
     nan_idx = np.nonzero(mask)[0]
-    if not ascending:
-        non_nans = non_nans[::-1]
-        non_nan_idx = non_nan_idx[::-1]
+
+    # GH 35584. Reverse order for equal elements if ascending is False
+    # to use in Index and Series sort_values
     indexer = non_nan_idx[non_nans.argsort(kind=kind)]
     if not ascending:
         indexer = indexer[::-1]
