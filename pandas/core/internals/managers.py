@@ -2,17 +2,7 @@ from collections import defaultdict
 import itertools
 import operator
 import re
-from typing import (
-    DefaultDict,
-    Dict,
-    List,
-    Optional,
-    Pattern,
-    Sequence,
-    Tuple,
-    TypeVar,
-    Union,
-)
+from typing import DefaultDict, Dict, List, Optional, Sequence, Tuple, TypeVar, Union
 import warnings
 
 import numpy as np
@@ -1917,10 +1907,7 @@ def _merge_blocks(
 
 
 def _compare_or_regex_search(
-    a: ArrayLike,
-    b: Union[Scalar, Pattern],
-    regex: bool = False,
-    mask: Optional[ArrayLike] = None,
+    a: ArrayLike, b: Scalar, regex: bool = False, mask: Optional[ArrayLike] = None
 ) -> Union[ArrayLike, bool]:
     """
     Compare two array_like inputs of the same shape or two scalar values
