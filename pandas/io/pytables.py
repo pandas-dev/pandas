@@ -99,22 +99,20 @@ Term = PyTablesExpr
 
 def _ensure_term(where, scope_level: int):
     """
-    ensure that the where is a Term or a list of Term
-    this makes sure that we are capturing the scope of variables
-    that are passed
-    create the terms here with a frame_level=2 (we are 2 levels down)
+    Ensure that the where is a Term or a list of Term.
+
+    This makes sure that we are capturing the scope of variables that are
+    passed create the terms here with a frame_level=2 (we are 2 levels down)
     """
     # only consider list/tuple here as an ndarray is automatically a coordinate
     # list
     level = scope_level + 1
     if isinstance(where, (list, tuple)):
-        wlist = []
-        for w in filter(lambda x: x is not None, where):
-            if not maybe_expression(w):
-                wlist.append(w)
-            else:
-                wlist.append(Term(w, scope_level=level))
-        where = wlist
+        where = [
+            Term(term, scope_level=level + 1) if maybe_expression(term) else term
+            for term in where
+            if term is not None
+        ]
     elif maybe_expression(where):
         where = Term(where, scope_level=level)
     return where if where is None or len(where) else None
