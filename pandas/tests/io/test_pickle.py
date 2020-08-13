@@ -183,6 +183,15 @@ def test_round_trip_current(current_pickle_data):
                     result = python_unpickler(path)
                     compare_element(result, expected, typ)
 
+                    # and the same for file objects (GH 35679)
+                    with open(path, mode="wb") as handle:
+                        writer(expected, path)
+                        handle.seek(0)  # shouldn't close file handle
+                    with open(path, mode="rb") as handle:
+                        result = pd.read_pickle(handle)
+                        handle.seek(0)  # shouldn't close file handle
+                    compare_element(result, expected, typ)
+
 
 def test_pickle_path_pathlib():
     df = tm.makeDataFrame()
