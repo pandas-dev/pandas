@@ -309,7 +309,12 @@ def nargsort(
 
     # GH 35584. Reverse order for equal elements if ascending is False
     # to use in Index and Series sort_values
-    indexer = non_nan_idx[non_nans.argsort(kind=kind)]
+    try:
+        indexer = non_nan_idx[non_nans.argsort(kind=kind)]
+    except:
+        # For compatibility with Series: fall back to quicksort
+        # when mergesort is unavailable for object element type
+        indexer = non_nan_idx[non_nans.argsort(kind="quicksort")]
     if not ascending:
         indexer = indexer[::-1]
     # Finally, place the NaNs at the end or the beginning according to
