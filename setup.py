@@ -456,6 +456,9 @@ if is_platform_mac():
     if sys.version_info[:2] == (3, 8):  # GH 33239
         extra_compile_args.append("-Wno-error=deprecated-declarations")
 
+    # https://github.com/pandas-dev/pandas/issues/35559
+    extra_compile_args.append("-Wno-error=unreachable-code")
+
 # enable coverage by building cython files by setting the environment variable
 # "PANDAS_CYTHON_COVERAGE" (with a Truthy value) or by running build_ext
 # with `--with-cython-coverage`enabled
