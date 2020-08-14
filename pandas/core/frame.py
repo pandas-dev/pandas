@@ -4816,7 +4816,7 @@ class DataFrame(NDFrame):
 
                 # we can have situations where the whole mask is -1,
                 # meaning there is nothing found in labels, so make all nan's
-                if mask.all():
+                if mask.size > 0 and mask.all():
                     dtype = index.dtype
                     fill_value = na_value_for_dtype(dtype)
                     values = construct_1d_arraylike_from_scalar(
