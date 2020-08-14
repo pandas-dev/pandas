@@ -325,6 +325,7 @@ class SeriesGroupBy(GroupBy[Series]):
         output = self._wrap_aggregated_output(results, index=None)
         return self.obj._constructor_expanddim(output, columns=columns)
 
+    # TODO: index should not be Optional - see GH 35490
     def _wrap_series_output(
         self,
         output: Mapping[base.OutputKey, Union[Series, np.ndarray]],

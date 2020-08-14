@@ -1063,9 +1063,9 @@ def test_groupby_get_by_index():
     pd.testing.assert_frame_equal(res, expected)
 
 
-# TODO: agg should raise
 def test_nonagg_agg():
     # GH 35490 - Single/Multiple agg of non-agg function give same results
+    # TODO: agg should raise for functions that don't aggregate
     df = pd.DataFrame({"a": [1, 1, 2, 2], "b": [1, 2, 2, 1]})
     g = df.groupby("a")
 
