@@ -287,7 +287,7 @@ s3fs                      0.4.0              Amazon S3 access
 tabulate                  0.8.3              Printing in Markdown-friendly format (see `tabulate`_)
 xarray                    0.12.0             pandas-like API for N-dimensional data
 xclip                                        Clipboard I/O on linux
-xlrd                      1.1.0              Excel reading
+xlrd                      1.2.0              Excel reading
 xlwt                      1.3.0              Excel writing
 xsel                                         Clipboard I/O on linux
 zlib                                         Compression for HDF5
