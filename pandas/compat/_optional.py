@@ -27,7 +27,7 @@ VERSIONS = {
     "tables": "3.4.3",
     "tabulate": "0.8.3",
     "xarray": "0.8.2",
-    "xlrd": "1.1.0",
+    "xlrd": "1.2.0",
     "xlwt": "1.2.0",
     "xlsxwriter": "0.9.8",
     "numba": "0.46.0",
