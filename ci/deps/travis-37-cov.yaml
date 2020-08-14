@@ -23,7 +23,7 @@ dependencies:
   - geopandas
   - html5lib
   - matplotlib
-  - moto
+  - moto>=1.3.14
   - flask
   - nomkl
   - numexpr
