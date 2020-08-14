@@ -3596,7 +3596,7 @@ similar to how ``read_csv`` and ``to_csv`` work.
    os.remove('store_tl.h5')
 
 
-HDFStore will by default not drop rows that are all missing. This behavior can be changed by setting ``dropna=True``.
+HDFStore will by default drop rows that are all missing. This behavior can be changed by setting ``dropna=True``.
 
 
 .. ipython:: python
