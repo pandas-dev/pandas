@@ -318,7 +318,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
     def __iter__(self):
         window = self._get_window(win_type=None)
-        blocks, obj = self._create_blocks(self._selected_obj)
+        _, obj = self._create_blocks(self._selected_obj)
         index = self._get_window_indexer(window=window)
 
         start, end = index.get_window_bounds(
