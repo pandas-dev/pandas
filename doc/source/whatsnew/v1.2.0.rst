@@ -172,6 +172,7 @@ Datetimelike
 ^^^^^^^^^^^^
 - Bug in :attr:`DatetimeArray.date` where a ``ValueError`` would be raised with a read-only backing array (:issue:`33530`)
 - Bug in ``NaT`` comparisons failing to raise ``TypeError`` on invalid inequality comparisons (:issue:`35046`)
+- Bug in :class:`DateOffset` where attributes reconstructed from pickle files differ from original objects when input values exceed normal ranges (e.g months=12) (:issue:`34511`)
 -
 
 Timedelta
