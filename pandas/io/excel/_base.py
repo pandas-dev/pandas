@@ -858,7 +858,7 @@ class ExcelFile:
     }
 
     def __init__(
-        self, path_or_buffer, storage_options: StorageOptions = None, engine=None
+        self, path_or_buffer, engine=None, storage_options: StorageOptions = None
     ):
         if engine is None:
             engine = "xlrd"

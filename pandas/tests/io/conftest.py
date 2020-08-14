@@ -65,10 +65,8 @@ def s3_resource(tips_file, jsonl_file, feather_file):
         os.environ.setdefault("AWS_ACCESS_KEY_ID", "foobar_key")
         os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "foobar_secret")
 
-        moto = pytest.importorskip("moto")
+        moto = pytest.importorskip("moto", minversion="1.3.14")
         pytest.importorskip("flask")  # server mode needs flask too
-        if LooseVersion(moto.__version__) < LooseVersion("1.3.14"):
-            pytest.skip("Moto too old")
 
         test_s3_files = [
             ("tips#1.csv", tips_file),
