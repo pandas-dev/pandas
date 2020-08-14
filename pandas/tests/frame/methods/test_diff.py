@@ -214,3 +214,12 @@ class TestDataFrameDiff:
         # Test case for default behaviour of diff
         result = df.diff(axis=axis)
         tm.assert_frame_equal(result, expected)
+
+    def test_diff_readonly(self):
+        # https://github.com/pandas-dev/pandas/issues/35559
+        arr = np.random.randn(5, 2)
+        arr.flags.writeable = False
+        df = pd.DataFrame(arr)
+        result = df.diff()
+        expected = pd.DataFrame(np.array(df)).diff()
+        tm.assert_frame_equal(result, expected)
