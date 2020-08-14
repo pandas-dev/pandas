@@ -33,7 +33,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 
-- Bug in ``Styler`` whereby `cell_ids` argument had no effect due to other recent changes (:issue:`35588`).
+- Bug in ``Styler`` whereby `cell_ids` argument had no effect due to other recent changes (:issue:`35588`) (:issue:`35663`).
 
 Categorical
 ^^^^^^^^^^^
