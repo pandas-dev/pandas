@@ -924,7 +924,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._format_with_header(header, na_rep=na_rep)
 
-    def _format_with_header(self, header, na_rep="NaN") -> List[str_t]:
+    def _format_with_header(
+        self, header: List[str_t], na_rep: str_t = "NaN"
+    ) -> List[str_t]:
         from pandas.io.formats.format import format_array
 
         values = self._values
