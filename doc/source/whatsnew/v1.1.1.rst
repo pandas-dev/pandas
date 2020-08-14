@@ -16,10 +16,11 @@ Fixed regressions
 ~~~~~~~~~~~~~~~~~
 
 - Fixed regression where :meth:`DataFrame.to_numpy` would raise a ``RuntimeError`` for mixed dtypes when converting to ``str`` (:issue:`35455`)
-- Fixed regression where :func:`read_csv` would raise a ``ValueError`` when ``pandas.options.mode.use_inf_as_na`` was set to ``True`` (:issue:`35493`).
+- Fixed regression where :func:`read_csv` would raise a ``ValueError`` when ``pandas.options.mode.use_inf_as_na`` was set to ``True`` (:issue:`35493`)
 - Fixed regression where :func:`pandas.testing.assert_series_equal` would raise an error when non-numeric dtypes were passed with ``check_exact=True`` (:issue:`35446`)
 - Fixed regression in :class:`pandas.core.groupby.RollingGroupby` where column selection was ignored (:issue:`35486`)
 - Fixed regression in :meth:`DataFrame.shift` with ``axis=1`` and heterogeneous dtypes (:issue:`35488`)
+- Fixed regression in :meth:`DataFrame.diff` with read-only data (:issue:`35559`)
 - Fixed regression in ``.groupby(..).rolling(..)`` where a segfault would occur with ``center=True`` and an odd number of values (:issue:`35552`)
 - Fixed regression in :meth:`DataFrame.apply` where functions that altered the input in-place only operated on a single row (:issue:`35462`)
 - Fixed regression in :meth:`DataFrame.reset_index` would raise a ``ValueError`` on empty :class:`DataFrame` with a :class:`MultiIndex` with a ``datetime64`` dtype level (:issue:`35606`, :issue:`35657`)
