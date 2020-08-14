@@ -168,7 +168,7 @@ class TestEvalNumexprPandas:
     def setup_method(self, method):
         self.setup_ops()
         self.setup_data()
-        self.current_engines = filter(lambda x: x != self.engine, _engines)
+        self.current_engines = (engine for engine in _engines if engine != self.engine)
 
     def teardown_method(self, method):
         del self.lhses, self.rhses, self.scalar_rhses, self.scalar_lhses
@@ -774,11 +774,9 @@ class TestEvalNumexprPython(TestEvalNumexprPandas):
         cls.parser = "python"
 
     def setup_ops(self):
-        self.cmp_ops = list(
-            filter(lambda x: x not in ("in", "not in"), expr._cmp_ops_syms)
-        )
+        self.cmp_ops = [op for op in expr._cmp_ops_syms if op not in ("in", "not in")]
         self.cmp2_ops = self.cmp_ops[::-1]
-        self.bin_ops = [s for s in expr._bool_ops_syms if s not in ("and", "or")]
+        self.bin_ops = [op for op in expr._bool_ops_syms if op not in ("and", "or")]
         self.special_case_ops = _special_case_arith_ops_syms
         self.arith_ops = _good_arith_ops
         self.unary_ops = "+", "-", "~"
@@ -1150,9 +1148,9 @@ class TestOperationsNumExprPandas:
         return pd.eval(*args, **kwargs)
 
     def test_simple_arith_ops(self):
-        ops = self.arith_ops
+        ops = (op for op in self.arith_ops if op != "//")
 
-        for op in filter(lambda x: x != "//", ops):
+        for op in ops:
             ex = f"1 {op} 1"
             ex2 = f"x {op} 1"
             ex3 = f"1 {op} (x + 1)"
@@ -1637,8 +1635,11 @@ class TestOperationsNumExprPython(TestOperationsNumExprPandas):
         super().setup_class()
         cls.engine = "numexpr"
         cls.parser = "python"
-        cls.arith_ops = expr._arith_ops_syms + expr._cmp_ops_syms
-        cls.arith_ops = filter(lambda x: x not in ("in", "not in"), cls.arith_ops)
+        cls.arith_ops = [
+            op
+            for op in expr._arith_ops_syms + expr._cmp_ops_syms
+            if op not in ("in", "not in")
+        ]
 
     def test_check_many_exprs(self):
         a = 1  # noqa
@@ -1726,8 +1727,11 @@ class TestOperationsPythonPython(TestOperationsNumExprPython):
     def setup_class(cls):
         super().setup_class()
         cls.engine = cls.parser = "python"
-        cls.arith_ops = expr._arith_ops_syms + expr._cmp_ops_syms
-        cls.arith_ops = filter(lambda x: x not in ("in", "not in"), cls.arith_ops)
+        cls.arith_ops = [
+            op
+            for op in expr._arith_ops_syms + expr._cmp_ops_syms
+            if op not in ("in", "not in")
+        ]
 
 
 class TestOperationsPythonPandas(TestOperationsNumExprPandas):

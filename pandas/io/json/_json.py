@@ -765,8 +765,9 @@ class JsonReader(abc.Iterator):
         """
         Combines a list of JSON objects into one JSON object.
         """
-        lines = filter(None, map(lambda x: x.strip(), lines))
-        return "[" + ",".join(lines) + "]"
+        return (
+            f'[{",".join((line for line in (line.strip() for line in lines) if line))}]'
+        )
 
     def read(self):
         """
