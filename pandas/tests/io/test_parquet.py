@@ -568,6 +568,7 @@ class TestParquetPyArrow(Base):
         expected_df = df_compat.copy()
         if partition_col:
             expected_df[partition_col] = expected_df[partition_col].astype("category")
+
         check_round_trip(
             df_compat,
             pa,
