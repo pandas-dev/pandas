@@ -6,7 +6,17 @@ from datetime import timedelta
 from functools import partial
 import inspect
 from textwrap import dedent
-from typing import Callable, Dict, List, Optional, Set, Tuple, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    Union,
+)
 
 import numpy as np
 
@@ -54,6 +64,9 @@ from pandas.core.window.indexers import (
     VariableWindowIndexer,
 )
 from pandas.core.window.numba_ import generate_numba_apply_func
+
+if TYPE_CHECKING:
+    from pandas import Series
 
 
 def calculate_center_offset(window) -> int:
@@ -394,12 +407,16 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         """
         from pandas import Series, concat
 
+        if obj.ndim == 1:
+            if not results:
+                raise DataError("No numeric types to aggregate")
+            assert len(results) == 1
+            return Series(results[0], index=obj.index, name=obj.name)
+
         final = []
         for result, block in zip(results, blocks):
 
-            result = self._wrap_result(result, block=block, obj=obj)
-            if result.ndim == 1:
-                return result
+            result = type(obj)(result, index=obj.index, columns=block.columns)
             final.append(result)
 
         # if we have an 'on' column
@@ -487,6 +504,23 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             return VariableWindowIndexer(index_array=self._on.asi8, window_size=window)
         return FixedWindowIndexer(window_size=window)
 
+    def _apply_series(self, homogeneous_func: Callable[..., ArrayLike]) -> "Series":
+        """
+        Series version of _apply_blockwise
+        """
+        from pandas import Series  # TODO: use _constructor?
+
+        _, obj = self._create_blocks(self._selected_obj)
+        values = obj.values
+
+        try:
+            values = self._prep_values(obj.values)
+        except (TypeError, NotImplementedError) as err:
+            raise DataError("No numeric types to aggregate") from err
+
+        result = homogeneous_func(values)
+        return Series(result, index=obj.index, name=obj.name)
+
     def _apply_blockwise(
         self, homogeneous_func: Callable[..., ArrayLike]
     ) -> FrameOrSeries:
@@ -494,6 +528,9 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         Apply the given function to the DataFrame broken down into homogeneous
         sub-frames.
         """
+        if self._selected_obj.ndim == 1:
+            return self._apply_series(homogeneous_func)
+
         # This isn't quite blockwise, since `blocks` is actually a collection
         #  of homogenenous DataFrames.
         blocks, obj = self._create_blocks(self._selected_obj)
@@ -505,13 +542,10 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             try:
                 values = self._prep_values(b.values)
 
-            except (TypeError, NotImplementedError) as err:
-                if isinstance(obj, ABCDataFrame):
-                    skipped.append(i)
-                    exclude.extend(b.columns)
-                    continue
-                else:
-                    raise DataError("No numeric types to aggregate") from err
+            except (TypeError, NotImplementedError):
+                skipped.append(i)
+                exclude.extend(b.columns)
+                continue
 
             result = homogeneous_func(values)
             results.append(result)
