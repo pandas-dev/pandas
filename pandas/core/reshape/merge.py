@@ -2012,8 +2012,11 @@ def _sort_labels(uniques: np.ndarray, left, right):
 def _get_join_keys(llab, rlab, shape, sort: bool):
 
     # how many levels can be done without overflow
-    pred = lambda i: not is_int64_overflow_possible(shape[:i])
-    nlev = next(filter(pred, range(len(shape), 0, -1)))
+    nlev = next(
+        lev
+        for lev in range(len(shape), 0, -1)
+        if not is_int64_overflow_possible(shape[:lev])
+    )
 
     # get keys for the first `nlev` levels
     stride = np.prod(shape[1:nlev], dtype="i8")
