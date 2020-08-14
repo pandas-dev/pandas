@@ -1061,3 +1061,16 @@ def test_groupby_get_by_index():
     res = df.groupby("A").agg({"B": lambda x: x.get(x.index[-1])})
     expected = pd.DataFrame(dict(A=["S", "W"], B=[1.0, 2.0])).set_index("A")
     pd.testing.assert_frame_equal(res, expected)
+
+
+def test_nonagg_agg():
+    # GH 35490 - Single/Multiple agg of non-agg function give same results
+    # TODO: agg should raise for functions that don't aggregate
+    df = pd.DataFrame({"a": [1, 1, 2, 2], "b": [1, 2, 2, 1]})
+    g = df.groupby("a")
+
+    result = g.agg(["cumsum"])
+    result.columns = result.columns.droplevel(-1)
+    expected = g.agg("cumsum")
+
+    tm.assert_frame_equal(result, expected)

@@ -322,11 +322,14 @@ class SeriesGroupBy(GroupBy[Series]):
             # let higher level handle
             return results
 
-        output = self._wrap_aggregated_output(results)
+        output = self._wrap_aggregated_output(results, index=None)
         return self.obj._constructor_expanddim(output, columns=columns)
 
+    # TODO: index should not be Optional - see GH 35490
     def _wrap_series_output(
-        self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]], index: Index,
+        self,
+        output: Mapping[base.OutputKey, Union[Series, np.ndarray]],
+        index: Optional[Index],
     ) -> Union[Series, DataFrame]:
         """
         Wraps the output of a SeriesGroupBy operation into the expected result.
@@ -335,7 +338,7 @@ class SeriesGroupBy(GroupBy[Series]):
         ----------
         output : Mapping[base.OutputKey, Union[Series, np.ndarray]]
             Data to wrap.
-        index : pd.Index
+        index : pd.Index or None
             Index to apply to the output.
 
         Returns
@@ -363,8 +366,11 @@ class SeriesGroupBy(GroupBy[Series]):
 
         return result
 
+    # TODO: Remove index argument, use self.grouper.result_index, see GH 35490
     def _wrap_aggregated_output(
-        self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]]
+        self,
+        output: Mapping[base.OutputKey, Union[Series, np.ndarray]],
+        index: Optional[Index],
     ) -> Union[Series, DataFrame]:
         """
         Wraps the output of a SeriesGroupBy aggregation into the expected result.
@@ -383,9 +389,7 @@ class SeriesGroupBy(GroupBy[Series]):
         In the vast majority of cases output will only contain one element.
         The exception is operations that expand dimensions, like ohlc.
         """
-        result = self._wrap_series_output(
-            output=output, index=self.grouper.result_index
-        )
+        result = self._wrap_series_output(output=output, index=index)
         return self._reindex_output(result)
 
     def _wrap_transformed_output(
@@ -1720,7 +1724,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 result.insert(0, name, lev)
 
     def _wrap_aggregated_output(
-        self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]]
+        self,
+        output: Mapping[base.OutputKey, Union[Series, np.ndarray]],
+        index: Optional[Index],
     ) -> DataFrame:
         """
         Wraps the output of DataFrameGroupBy aggregations into the expected result.
@@ -1745,8 +1751,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             self._insert_inaxis_grouper_inplace(result)
             result = result._consolidate()
         else:
-            index = self.grouper.result_index
-            result.index = index
+            result.index = self.grouper.result_index
 
         if self.axis == 1:
             result = result.T
