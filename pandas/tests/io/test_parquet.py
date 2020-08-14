@@ -541,9 +541,9 @@ class TestParquetPyArrow(Base):
             expected = df.astype(object)
             check_round_trip(df, pa, expected=expected)
 
-    def test_s3_roundtrip_explicit_fs(self, df_compat, s3_resource, pa):
+    def test_s3_roundtrip_explicit_fs(self, df_compat, s3_resource, pa, s3so):
         s3fs = pytest.importorskip("s3fs")
-        s3 = s3fs.S3FileSystem()
+        s3 = s3fs.S3FileSystem(**s3so)
         kw = dict(filesystem=s3)
         check_round_trip(
             df_compat,
