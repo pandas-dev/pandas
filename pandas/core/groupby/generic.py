@@ -1231,20 +1231,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         key_index = self.grouper.result_index if self.as_index else None
 
-        if isinstance(first_not_none, NDFrame):
+        if not isinstance(first_not_none, (Series, np.ndarray, Index)):
 
-            # this is to silence a DeprecationWarning
-            # TODO: Remove when default dtype of empty Series is object
-            kwargs = first_not_none._construct_axes_dict()
-            if isinstance(first_not_none, Series):
-                backup = create_series_with_explicit_dtype(
-                    **kwargs, dtype_if_empty=object
-                )
-            else:
-                backup = first_not_none._constructor(**kwargs)
-
-            values = [x if (x is not None) else backup for x in values]
-        else:
             # values are not series or array-like but scalars
             # self._selection_name not passed through to Series as the
             # result should not take the name of original selection
@@ -1256,9 +1244,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 self._insert_inaxis_grouper_inplace(result)
                 return result
 
-        v = values[0]
+        elif not isinstance(first_not_none, Series):
 
-        if not isinstance(v, ABCSeries):
             # GH1738: values is list of arrays of unequal lengths
             # TODO: sure this is right?  we used to do this
             #  after raising AttributeError above
@@ -1266,6 +1253,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 values, index=key_index, name=self._selection_name
             )
 
+        # this is to silence a DeprecationWarning
+        # TODO: Replace when default dtype of empty Series is object
+        #       with backup = first_not_none._constructor(**kwargs)
+        kwargs = first_not_none._construct_axes_dict()
+        backup = create_series_with_explicit_dtype(**kwargs, dtype_if_empty=object)
+        values = [x if (x is not None) else backup for x in values]
+
+        v = values[0]
         all_indexed_same = all_indexes_same((x.index for x in values))
 
         # GH3596 - provide a reduction (Frame -> Series) if groups are unique
@@ -1273,7 +1268,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             # assign the name to this series
             applied_index = self._selected_obj._get_axis(self.axis)
             if len(values) == 1 and applied_index.nlevels == 1:
-                values[0].name = keys[0]
+                v.name = keys[0]
 
                 # GH2893
                 # we have series in the values array, we want to
