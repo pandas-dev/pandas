@@ -1,13 +1,30 @@
 """This module is designed for community supported date conversion functions"""
+import warnings
+
 import numpy as np
 
 from pandas._libs.tslibs import parsing
 
+from pandas import to_datetime
+
 
 def parse_date_time(date_col, time_col):
-    date_col = _maybe_cast(date_col)
-    time_col = _maybe_cast(time_col)
-    return parsing.try_parse_date_and_time(date_col, time_col)
+    """Convert separate columns with dates and times into a single datetime column
+
+    .. deprecated:: 1.1.0
+       Use pd.to_datetime(date_col + " " + time_col) instead to get a Pandas Series.
+       Use pd.to_datetime(date_col + " " + time_col).to_pydatetime() instead to get
+        a Numpy array.
+    """
+    warnings.warn(
+        """
+        Use pd.to_datetime(date_col + " " + time_col) instead to get a Pandas Series.
+        Use pd.to_datetime(date_col + " " + time_col).to_pydatetime() instead to get a Numpy array.
+""",  # noqa: E501
+        FutureWarning,
+        stacklevel=2,
+    )
+    return to_datetime(date_col + " " + time_col).to_pydatetime()
 
 
 def parse_date_fields(year_col, month_col, day_col):

@@ -927,7 +927,7 @@ take full advantage of the flexibility of the date parsing API:
 .. ipython:: python
 
    df = pd.read_csv('tmp.csv', header=None, parse_dates=date_spec,
-                    date_parser=pd.io.date_converters.parse_date_time)
+                    date_parser=pd.to_datetime)
    df
 
 Pandas will try to call the ``date_parser`` function in three different ways. If

@@ -385,7 +385,7 @@ def test_multiple_date_cols_int_cast(all_parsers):
     result = parser.read_csv(
         StringIO(data),
         header=None,
-        date_parser=conv.parse_date_time,
+        date_parser=pd.to_datetime,
         parse_dates=parse_dates,
         prefix="X",
     )
@@ -1178,7 +1178,7 @@ date, time,a,b
         StringIO(data),
         header=[0, 1],
         parse_dates={"date_time": [0, 1]},
-        date_parser=conv.parse_date_time,
+        date_parser=pd.to_datetime,
     )
 
     expected_data = [
@@ -1263,7 +1263,7 @@ date,time,a,b
 )
 def test_parse_date_time(all_parsers, data, kwargs, expected):
     parser = all_parsers
-    result = parser.read_csv(StringIO(data), date_parser=conv.parse_date_time, **kwargs)
+    result = parser.read_csv(StringIO(data), date_parser=pd.to_datetime, **kwargs)
 
     # Python can sometimes be flaky about how
     # the aggregated columns are entered, so

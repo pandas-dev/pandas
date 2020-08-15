@@ -8,12 +8,13 @@ import pandas.io.date_converters as conv
 
 
 def test_parse_date_time():
+
     dates = np.array(["2007/1/3", "2008/2/4"], dtype=object)
     times = np.array(["05:07:09", "06:08:00"], dtype=object)
     expected = np.array([datetime(2007, 1, 3, 5, 7, 9), datetime(2008, 2, 4, 6, 8, 0)])
-
-    result = conv.parse_date_time(dates, times)
-    tm.assert_numpy_array_equal(result, expected)
+    with tm.assert_produces_warning(FutureWarning):
+        result = conv.parse_date_time(dates, times)
+        tm.assert_numpy_array_equal(result, expected)
 
 
 def test_parse_date_fields():
