@@ -408,8 +408,7 @@ def test_sort_values_with_missing(idx, na_position, expected):
 
     if na_position not in ["first", "last"]:
         with pytest.raises(
-            ValueError,
-            match=f"invalid na_position: {na_position}",
+            ValueError, match=f"invalid na_position: {na_position}",
         ):
             idx.sort_values(na_position=na_position)
     else:
