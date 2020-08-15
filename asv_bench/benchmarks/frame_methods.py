@@ -600,10 +600,10 @@ class ValuePosition:
         self.df = DataFrame(np.random.randint(0, 10, (100, 50)), columns=range(0, 50))
 
     def time_idxmax(self, axis, keep):
-        self.df.idxmin(axis=axis, keep=keep)
+        self.df.idxmax(axis=axis, keep=keep)
 
     def time_idxmin(self, axis, keep):
-        self.df.idxmax(axis=axis, keep=keep)
+        self.df.idxmin(axis=axis, keep=keep)
 
 
 class Describe:
