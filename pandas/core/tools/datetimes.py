@@ -6,6 +6,7 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     List,
+    MutableMapping,
     Optional,
     Tuple,
     TypeVar,
@@ -59,7 +60,7 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------
 # types used in annotations
 
-ArrayConvertible = Union[List, Tuple, ArrayLike, "Series"]
+ArrayConvertible = Union[List, Tuple, ArrayLike, "Series", MutableMapping]
 Scalar = Union[int, float, str]
 DatetimeScalar = TypeVar("DatetimeScalar", Scalar, datetime)
 DatetimeScalarOrArrayConvertible = Union[DatetimeScalar, ArrayConvertible]
