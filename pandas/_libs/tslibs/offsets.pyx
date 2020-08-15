@@ -989,13 +989,6 @@ cdef class RelativeDeltaOffset(BaseOffset):
             state["_offset"] = state.pop("offset")
             state["kwds"]["offset"] = state["_offset"]
 
-        if "_offset" in state and not isinstance(state["_offset"], timedelta):
-            # relativedelta, we need to populate using its kwds
-            offset = state["_offset"]
-            odict = offset.__dict__
-            kwds = {key: odict[key] for key in odict if odict[key]}
-            state.update(kwds)
-
         self.n = state.pop("n")
         self.normalize = state.pop("normalize")
         self._cache = state.pop("_cache", {})
