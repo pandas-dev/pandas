@@ -160,8 +160,10 @@ def test_version_tag():
         )
 
 
-def test_serializable():
-    for name, obj in pd.__dict__.items():
-        if callable(obj):
-            unpickled = tm.round_trip_pickle(obj)
-            assert type(obj) == type(unpickled)
+@pytest.mark.parametrize(
+    "obj", [(obj,) for obj in pd.__dict__.values() if callable(obj)]
+)
+def test_serializable(obj):
+    # GH 35611
+    unpickled = tm.round_trip_pickle(obj)
+    assert type(obj) == type(unpickled)
