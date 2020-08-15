@@ -237,7 +237,6 @@ class Grouper:
             #   core/groupby/grouper.py::Grouper
             # raising these warnings from TimeGrouper directly would fail the test:
             #   tests/resample/test_deprecated.py::test_deprecating_on_loffset_and_base
-
             # hacky way to set the stacklevel: if cls is TimeGrouper it means
             # that the call comes from a pandas internal call of resample,
             # otherwise it comes from pd.Grouper

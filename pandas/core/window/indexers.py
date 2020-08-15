@@ -1,6 +1,6 @@
 """Indexer objects for computing start/end window bounds for rolling operations"""
 from datetime import timedelta
-from typing import Dict, Optional, Tuple, Type, Union
+from typing import Dict, Optional, Tuple, Type
 
 import numpy as np
 
@@ -265,7 +265,8 @@ class GroupbyRollingIndexer(BaseIndexer):
         index_array: Optional[np.ndarray],
         window_size: int,
         groupby_indicies: Dict,
-        rolling_indexer: Union[Type[FixedWindowIndexer], Type[VariableWindowIndexer]],
+        rolling_indexer: Type[BaseIndexer],
+        indexer_kwargs: Optional[Dict],
         **kwargs,
     ):
         """
@@ -276,7 +277,10 @@ class GroupbyRollingIndexer(BaseIndexer):
         """
         self.groupby_indicies = groupby_indicies
         self.rolling_indexer = rolling_indexer
-        super().__init__(index_array, window_size, **kwargs)
+        self.indexer_kwargs = indexer_kwargs or {}
+        super().__init__(
+            index_array, self.indexer_kwargs.pop("window_size", window_size), **kwargs
+        )
 
     @Appender(get_window_bounds_doc)
     def get_window_bounds(
@@ -298,7 +302,9 @@ class GroupbyRollingIndexer(BaseIndexer):
             else:
                 index_array = self.index_array
             indexer = self.rolling_indexer(
-                index_array=index_array, window_size=self.window_size,
+                index_array=index_array,
+                window_size=self.window_size,
+                **self.indexer_kwargs,
             )
             start, end = indexer.get_window_bounds(
                 len(indicies), min_periods, center, closed
@@ -319,4 +325,10 @@ class GroupbyRollingIndexer(BaseIndexer):
             end_arrays.append(window_indicies.take(end))
         start = np.concatenate(start_arrays)
         end = np.concatenate(end_arrays)
+        # GH 35552: Need to adjust start and end based on the nans appended to values
+        # when center=True
+        if num_values > len(start):
+            offset = num_values - len(start)
+            start = np.concatenate([start, np.array([end[-1]] * offset)])
+            end = np.concatenate([end, np.array([end[-1]] * offset)])
         return start, end

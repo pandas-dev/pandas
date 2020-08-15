@@ -1244,6 +1244,7 @@ def maybe_infer_to_datetimelike(value, convert_dates: bool = False):
             # if so coerce to a DatetimeIndex; if they are not the same,
             # then these stay as object dtype, xref GH19671
             from pandas._libs.tslibs import conversion
+
             from pandas import DatetimeIndex
 
             try:
@@ -1303,8 +1304,8 @@ def maybe_cast_to_datetime(value, dtype, errors: str = "raise"):
     try to cast the array/value to a datetimelike dtype, converting float
     nan to iNaT
     """
-    from pandas.core.tools.timedeltas import to_timedelta
     from pandas.core.tools.datetimes import to_datetime
+    from pandas.core.tools.timedeltas import to_timedelta
 
     if dtype is not None:
         if isinstance(dtype, str):
