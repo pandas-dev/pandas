@@ -381,11 +381,7 @@ def test_multiple_date_cols_int_cast(all_parsers):
     parser = all_parsers
 
     result = parser.read_csv(
-        StringIO(data),
-        header=None,
-        date_parser=pd.to_datetime,
-        parse_dates=parse_dates,
-        prefix="X",
+        StringIO(data), header=None, parse_dates=parse_dates, prefix="X",
     )
     expected = DataFrame(
         [
@@ -1173,10 +1169,7 @@ date, time,a,b
 """
     parser = all_parsers
     result = parser.read_csv(
-        StringIO(data),
-        header=[0, 1],
-        parse_dates={"date_time": [0, 1]},
-        date_parser=pd.to_datetime,
+        StringIO(data), header=[0, 1], parse_dates={"date_time": [0, 1]},
     )
 
     expected_data = [
@@ -1261,7 +1254,7 @@ date,time,a,b
 )
 def test_parse_date_time(all_parsers, data, kwargs, expected):
     parser = all_parsers
-    result = parser.read_csv(StringIO(data), date_parser=pd.to_datetime, **kwargs)
+    result = parser.read_csv(StringIO(data), **kwargs)
 
     # Python can sometimes be flaky about how
     # the aggregated columns are entered, so
@@ -1273,12 +1266,7 @@ def test_parse_date_time(all_parsers, data, kwargs, expected):
 def test_parse_date_fields(all_parsers):
     parser = all_parsers
     data = "year,month,day,a\n2001,01,10,10.\n2001,02,1,11."
-    result = parser.read_csv(
-        StringIO(data),
-        header=0,
-        parse_dates={"ymd": [0, 1, 2]},
-        date_parser=pd.to_datetime,
-    )
+    result = parser.read_csv(StringIO(data), header=0, parse_dates={"ymd": [0, 1, 2]},)
 
     expected = DataFrame(
         [[datetime(2001, 1, 10), 10.0], [datetime(2001, 2, 1), 11.0]],
