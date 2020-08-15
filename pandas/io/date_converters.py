@@ -28,10 +28,26 @@ def parse_date_time(date_col, time_col):
 
 
 def parse_date_fields(year_col, month_col, day_col):
-    year_col = _maybe_cast(year_col)
-    month_col = _maybe_cast(month_col)
-    day_col = _maybe_cast(day_col)
-    return parsing.try_parse_year_month_day(year_col, month_col, day_col)
+    """Convert separate columns with years, months and days into a single date column
+
+    .. deprecated:: 1.1.0
+        Use pd.to_datetime({"year": year_col, "month": month_col, "day": day_col})
+        instead to get a Pandas Series.
+        Use ser = pd.to_datetime({"year": year_col, "month": month_col, "day": day_col})
+        and np.array([s.to_pydatetime() for s in ser]) instead to get a Numpy array.
+    """
+    warnings.warn(
+        """
+        Use pd.to_datetime({"year": year_col, "month": month_col, "day": day_col}) instead to get a Pandas Series.
+        Use ser = pd.to_datetime({"year": year_col, "month": month_col, "day": day_col}) and
+        np.array([s.to_pydatetime() for s in ser]) instead to get a Numpy array.
+""",  # noqa: E501
+        FutureWarning,
+        stacklevel=2,
+    )
+
+    ser = to_datetime({"year": year_col, "month": month_col, "day": day_col})
+    return np.array([s.to_pydatetime() for s in ser])
 
 
 def parse_all_fields(year_col, month_col, day_col, hour_col, minute_col, second_col):

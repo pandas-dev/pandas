@@ -1279,7 +1279,7 @@ def test_parse_date_fields(all_parsers):
         StringIO(data),
         header=0,
         parse_dates={"ymd": [0, 1, 2]},
-        date_parser=conv.parse_date_fields,
+        date_parser=pd.to_datetime,
     )
 
     expected = DataFrame(

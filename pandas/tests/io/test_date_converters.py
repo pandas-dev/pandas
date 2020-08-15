@@ -21,10 +21,11 @@ def test_parse_date_fields():
     days = np.array([3, 4])
     months = np.array([1, 2])
     years = np.array([2007, 2008])
-    result = conv.parse_date_fields(years, months, days)
-
     expected = np.array([datetime(2007, 1, 3), datetime(2008, 2, 4)])
-    tm.assert_numpy_array_equal(result, expected)
+
+    with tm.assert_produces_warning(FutureWarning):
+        result = conv.parse_date_fields(years, months, days)
+        tm.assert_numpy_array_equal(result, expected)
 
 
 def test_parse_all_fields():
