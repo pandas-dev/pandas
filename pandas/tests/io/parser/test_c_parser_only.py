@@ -606,3 +606,101 @@ def test_unix_style_breaks(c_parser_only):
         result = parser.read_csv(path, skiprows=2, encoding="utf-8", engine="c")
     expected = DataFrame(columns=["col_1", "col_2", "col_3"])
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("float_precision", [None, "high", "round_trip"])
+@pytest.mark.parametrize(
+    "data,thousands,decimal",
+    [
+        (
+            """A|B|C
+1|2,334.01|5
+10|13|10.
+""",
+            ",",
+            ".",
+        ),
+        (
+            """A|B|C
+1|2.334,01|5
+10|13|10,
+""",
+            ".",
+            ",",
+        ),
+    ],
+)
+def test_1000_sep_with_decimal(
+    c_parser_only, data, thousands, decimal, float_precision
+):
+    parser = c_parser_only
+    expected = DataFrame({"A": [1, 10], "B": [2334.01, 13], "C": [5, 10.0]})
+
+    result = parser.read_csv(
+        StringIO(data),
+        sep="|",
+        thousands=thousands,
+        decimal=decimal,
+        float_precision=float_precision,
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "float_precision", [None, "high", "round_trip"],
+)
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        ("-1,0", -1.0),
+        ("-1,2e0", -1.2),
+        ("-1e0", -1.0),
+        ("+1e0", 1.0),
+        ("+1e+0", 1.0),
+        ("+1e-1", 0.1),
+        ("+,1e1", 1.0),
+        ("+1,e0", 1.0),
+        ("-,1e1", -1.0),
+        ("-1,e0", -1.0),
+        ("0,1", 0.1),
+        ("1,", 1.0),
+        (",1", 0.1),
+        ("-,1", -0.1),
+        ("1_,", 1.0),
+        ("1_234,56", 1234.56),
+        ("1_234,56e0", 1234.56),
+        # negative cases; must not parse as float
+        ("_", "_"),
+        ("-_", "-_"),
+        ("-_1", "-_1"),
+        ("-_1e0", "-_1e0"),
+        ("_1", "_1"),
+        ("_1,", "_1,"),
+        ("_1,_", "_1,_"),
+        ("_1e0", "_1e0"),
+        ("1,2e_1", "1,2e_1"),
+        ("1,2e1_0", "1,2e1_0"),
+        ("1,_2", "1,_2"),
+        (",1__2", ",1__2"),
+        (",1e", ",1e"),
+        ("-,1e", "-,1e"),
+        ("1_000,000_000", "1_000,000_000"),
+        ("1,e1_2", "1,e1_2"),
+    ],
+)
+def test_1000_sep_decimal_float_precision(
+    c_parser_only, value, expected, float_precision
+):
+    # test decimal and thousand sep handling in across 'float_precision'
+    # parsers
+    parser = c_parser_only
+    df = parser.read_csv(
+        StringIO(value),
+        sep="|",
+        thousands="_",
+        decimal=",",
+        header=None,
+        float_precision=float_precision,
+    )
+    val = df.iloc[0, 0]
+    assert val == expected

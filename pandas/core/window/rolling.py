@@ -145,7 +145,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
     def __init__(
         self,
-        obj,
+        obj: FrameOrSeries,
         window=None,
         min_periods: Optional[int] = None,
         center: bool = False,
@@ -318,7 +318,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
     def __iter__(self):
         window = self._get_window(win_type=None)
-        blocks, obj = self._create_blocks(self._selected_obj)
+        _, obj = self._create_blocks(self._selected_obj)
         index = self._get_window_indexer(window=window)
 
         start, end = index.get_window_bounds(
@@ -2212,7 +2212,7 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         # Cannot use _wrap_outputs because we calculate the result all at once
         # Compose MultiIndex result from grouping levels then rolling level
         # Aggregate the MultiIndex data as tuples then the level names
-        grouped_object_index = self._groupby._selected_obj.index
+        grouped_object_index = self.obj.index
         grouped_index_name = [grouped_object_index.name]
         groupby_keys = [grouping.name for grouping in self._groupby.grouper._groupings]
         result_index_names = groupby_keys + grouped_index_name
@@ -2235,10 +2235,6 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
     @property
     def _constructor(self):
         return Rolling
-
-    @cache_readonly
-    def _selected_obj(self):
-        return self._groupby._selected_obj
 
     def _create_blocks(self, obj: FrameOrSeries):
         """
@@ -2275,10 +2271,16 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         -------
         GroupbyRollingIndexer
         """
-        rolling_indexer: Union[Type[FixedWindowIndexer], Type[VariableWindowIndexer]]
-        if self.is_freq_type:
+        rolling_indexer: Type[BaseIndexer]
+        indexer_kwargs: Optional[Dict] = None
+        index_array = self.obj.index.asi8
+        if isinstance(self.window, BaseIndexer):
+            rolling_indexer = type(self.window)
+            indexer_kwargs = self.window.__dict__
+            # We'll be using the index of each group later
+            indexer_kwargs.pop("index_array", None)
+        elif self.is_freq_type:
             rolling_indexer = VariableWindowIndexer
-            index_array = self._groupby._selected_obj.index.asi8
         else:
             rolling_indexer = FixedWindowIndexer
             index_array = None
@@ -2287,6 +2289,7 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
             window_size=window,
             groupby_indicies=self._groupby.indices,
             rolling_indexer=rolling_indexer,
+            indexer_kwargs=indexer_kwargs,
         )
         return window_indexer
 
@@ -2295,7 +2298,7 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         # here so our index is carried thru to the selected obj
         # when we do the splitting for the groupby
         if self.on is not None:
-            self._groupby.obj = self._groupby.obj.set_index(self._on)
+            self.obj = self.obj.set_index(self._on)
             self.on = None
         return super()._gotitem(key, ndim, subset=subset)
 
