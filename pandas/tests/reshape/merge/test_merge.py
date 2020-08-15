@@ -287,7 +287,7 @@ class TestMerge:
         merged.loc[:, "a"] = 6
         assert (left["a"] == 6).all()
 
-        merged["d"] = "peekaboo"
+        merged.loc[:, "d"] = "peekaboo"
         assert (right["d"] == "peekaboo").all()
 
     def test_intelligently_handle_join_key(self):
