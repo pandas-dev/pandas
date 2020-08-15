@@ -165,12 +165,7 @@ def test_groupby_dropna_series_by(dropna, expected):
 @pytest.mark.parametrize(
     "dropna,df_expected,s_expected",
     [
-        pytest.param(
-            True,
-            pd.DataFrame({"B": [2, 2, 1]}),
-            pd.Series(data=[2, 2, 1], name="B"),
-            marks=pytest.mark.xfail(raises=ValueError),
-        ),
+        (True, pd.DataFrame({"B": [2, 2, 1]}), pd.Series(data=[2, 2, 1], name="B"),),
         (
             False,
             pd.DataFrame({"B": [2, 2, 1, 1]}),
@@ -179,7 +174,7 @@ def test_groupby_dropna_series_by(dropna, expected):
     ],
 )
 def test_slice_groupby_then_transform(dropna, df_expected, s_expected):
-    # GH35014
+    # GH35014 & GH35612
 
     df = pd.DataFrame({"A": [0, 0, 1, None], "B": [1, 2, 3, None]})
     gb = df.groupby("A", dropna=dropna)

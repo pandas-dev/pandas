@@ -637,10 +637,12 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
 
         if self._selection is None or isinstance(self.obj, Series):
             if self._group_selection is not None:
-                return self.obj[self._group_selection]
-            return self.obj
+                result = self.obj[self._group_selection]
+            result = self.obj
         else:
-            return self.obj[self._selection]
+            result = self.obj[self._selection]
+
+        return result.dropna() if self.dropna else result
 
     def _reset_group_selection(self):
         """
@@ -690,7 +692,12 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
             result.set_axis(index, axis=self.axis, inplace=True)
             result = result.sort_index(axis=self.axis)
 
-        result.set_axis(self.obj._get_axis(self.axis), axis=self.axis, inplace=True)
+        if hasattr(self, "_selected_obj"):
+            labels = self._selected_obj._get_axis(self.axis)
+        else:
+            labels = self.obj._get_axis(self.axis)
+
+        result.set_axis(labels, axis=self.axis, inplace=True)
         return result
 
     def _dir_additions(self):
