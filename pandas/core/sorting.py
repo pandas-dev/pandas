@@ -271,6 +271,7 @@ def nargsort(
     ascending: bool = True,
     na_position: str = "last",
     key: Optional[Callable] = None,
+    equals_reversible: bool = False,
 ):
     """
     Intended to be a drop-in replacement for np.argsort which handles NaNs.
@@ -285,6 +286,11 @@ def nargsort(
     ascending : bool, default True
     na_position : {'first', 'last'}, default 'last'
     key : Optional[Callable], default None
+    equals_reversible: bool, default False
+        Whether equal elements should be reversed or keep their order
+        when ascending is False. True reverses elements when ascending is False.
+        Added for compatibility between Index and Series
+        (False for Index, True for Series)
     """
 
     if key is not None:
@@ -307,7 +313,7 @@ def nargsort(
 
     nan_idx = np.nonzero(mask)[0]
 
-    if not ascending:
+    if not ascending and not equals_reversible:
         non_nans = non_nans[::-1]
         non_nan_idx = non_nan_idx[::-1]
     try:

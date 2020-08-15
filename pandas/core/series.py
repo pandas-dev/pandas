@@ -3254,27 +3254,83 @@ Keep all original rows and also all original values
                 "sort in-place you must create a copy"
             )
 
-        if is_list_like(ascending):
-            if len(ascending) != 1:
-                raise ValueError(
-                    f"Length of ascending ({len(ascending)}) must be 1 for Series"
-                )
-            ascending = ascending[0]
-        if not is_bool(ascending):
-            raise ValueError("ascending must be boolean")
-
-        if key is not None:
-            arr = ensure_key_mapped(self, key)
+        def _try_kind_sort(arr):
+            arr = ensure_key_mapped(arr, key)
             arr = getattr(arr, "_values", arr)
+
+            # easier to ask forgiveness than permission
+            try:
+                # if kind==mergesort, it can fail for object dtype
+                return arr.argsort(kind=kind)
+            except TypeError:
+                # stable sort not available for object dtype
+                # uses the argsort default quicksort
+                return arr.argsort(kind="quicksort")
+
+        if True:
+            if is_list_like(ascending):
+                if len(ascending) != 1:
+                    raise ValueError(
+                        f"Length of ascending ({len(ascending)}) must be 1 for Series"
+                    )
+                ascending = ascending[0]
+            if not is_bool(ascending):
+                raise ValueError("ascending must be boolean")
+
+            if key is not None:
+                arr = ensure_key_mapped(self, key)
+                arr = getattr(arr, "_values", arr)
+            else:
+                arr = self._values
+            sorted_index = nargsort(
+                items=arr,
+                ascending=ascending,
+                kind=kind,
+                na_position=na_position,
+                key=None,
+                equals_reversible=True,
+            )
+
+            result = self._constructor(
+                self._values[sorted_index], index=self.index[sorted_index]
+            )
         else:
             arr = self._values
-        sorted_index = nargsort(
-            items=arr, ascending=ascending, kind=kind, na_position=na_position, key=None
-        )
+            sorted_index = np.empty(len(self), dtype=np.int32)
 
-        result = self._constructor(
-            self._values[sorted_index], index=self.index[sorted_index]
-        )
+            bad = isna(arr)
+
+            good = ~bad
+            idx = ibase.default_index(len(self))
+
+            argsorted = _try_kind_sort(self[good])
+
+            if is_list_like(ascending):
+                if len(ascending) != 1:
+                    raise ValueError(
+                        f"Length of ascending ({len(ascending)}) must be 1 for Series"
+                    )
+                ascending = ascending[0]
+
+            if not is_bool(ascending):
+                raise ValueError("ascending must be boolean")
+
+            if not ascending:
+                argsorted = argsorted[::-1]
+
+            if na_position == "last":
+                n = good.sum()
+                sorted_index[:n] = idx[good][argsorted]
+                sorted_index[n:] = idx[bad]
+            elif na_position == "first":
+                n = bad.sum()
+                sorted_index[n:] = idx[good][argsorted]
+                sorted_index[:n] = idx[bad]
+            else:
+                raise ValueError(f"invalid na_position: {na_position}")
+            result = self._constructor(
+                arr[sorted_index], index=self.index[sorted_index]
+            )
 
         if ignore_index:
             result.index = ibase.default_index(len(sorted_index))
