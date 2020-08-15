@@ -1684,8 +1684,11 @@ class TestStyler:
 
     def test_no_cell_ids(self):
         # GH 35588
+        # GH 35663
         df = pd.DataFrame(data=[[0]])
-        s = Styler(df, uuid="_", cell_ids=False).render()
+        styler = Styler(df, uuid="_", cell_ids=False)
+        styler.render()
+        s = styler.render()  # render twice to ensure ctx is not updated
         assert s.find('<td  class="data row0 col0" >') != -1
 
 
