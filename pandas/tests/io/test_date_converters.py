@@ -36,7 +36,8 @@ def test_parse_all_fields():
     days = np.array([3, 4])
     years = np.array([2007, 2008])
     months = np.array([1, 2])
-
-    result = conv.parse_all_fields(years, months, days, hours, minutes, seconds)
     expected = np.array([datetime(2007, 1, 3, 5, 7, 9), datetime(2008, 2, 4, 6, 8, 0)])
-    tm.assert_numpy_array_equal(result, expected)
+
+    with tm.assert_produces_warning(FutureWarning):
+        result = conv.parse_all_fields(years, months, days, hours, minutes, seconds)
+        tm.assert_numpy_array_equal(result, expected)

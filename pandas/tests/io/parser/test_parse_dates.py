@@ -23,8 +23,6 @@ from pandas import DataFrame, DatetimeIndex, Index, MultiIndex, Series
 import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
 
-import pandas.io.date_converters as conv
-
 # constant
 _DEFAULT_DATETIME = datetime(1, 1, 1)
 
@@ -1290,6 +1288,7 @@ def test_parse_date_fields(all_parsers):
 
 
 def test_parse_date_all_fields(all_parsers):
+
     parser = all_parsers
     data = """\
 year,month,day,hour,minute,second,a,b
@@ -1299,7 +1298,7 @@ year,month,day,hour,minute,second,a,b
     result = parser.read_csv(
         StringIO(data),
         header=0,
-        date_parser=conv.parse_all_fields,
+        date_parser=lambda x: pd.to_datetime(x, format="%Y %m %d %H %M %S"),
         parse_dates={"ymdHMS": [0, 1, 2, 3, 4, 5]},
     )
     expected = DataFrame(
@@ -1322,7 +1321,8 @@ year,month,day,hour,minute,second,a,b
     result = parser.read_csv(
         StringIO(data),
         header=0,
-        date_parser=conv.parse_all_fields,
+        # date_parser=conv.parse_all_fields,
+        date_parser=lambda x: pd.to_datetime(x, format="%Y %m %d %H %M %S.%f"),
         parse_dates={"ymdHMS": [0, 1, 2, 3, 4, 5]},
     )
     expected = DataFrame(

@@ -3,8 +3,6 @@ import warnings
 
 import numpy as np
 
-from pandas._libs.tslibs import parsing
-
 from pandas import to_datetime
 
 
@@ -51,15 +49,42 @@ def parse_date_fields(year_col, month_col, day_col):
 
 
 def parse_all_fields(year_col, month_col, day_col, hour_col, minute_col, second_col):
-    year_col = _maybe_cast(year_col)
-    month_col = _maybe_cast(month_col)
-    day_col = _maybe_cast(day_col)
-    hour_col = _maybe_cast(hour_col)
-    minute_col = _maybe_cast(minute_col)
-    second_col = _maybe_cast(second_col)
-    return parsing.try_parse_datetime_components(
-        year_col, month_col, day_col, hour_col, minute_col, second_col
+    """Convert separate columns with years, months, days, hours, minutes and seconds
+     into a single datetime column
+
+    .. deprecated:: 1.1.0
+        Use pd.to_datetime({"year": year_col, "month": month_col, "day": day_col,
+        "hour": hour_col, "minute": minute_col, second": second_col}) instead to get
+        a Pandas Series.
+        Use ser = pd.to_datetime({"year": year_col, "month": month_col, "day": day_col,
+        "hour": hour_col, "minute": minute_col, second": second_col}) and
+        np.array([s.to_pydatetime() for s in ser]) instead to get a Numpy array.
+    """
+
+    warnings.warn(
+        """
+        Use pd.to_datetime({"year": year_col, "month": month_col, "day": day_col,
+        "hour": hour_col, "minute": minute_col, second": second_col}) instead to get a Pandas Series.
+        Use ser = pd.to_datetime({"year": year_col, "month": month_col, "day": day_col,
+        "hour": hour_col, "minute": minute_col, second": second_col}) and
+        np.array([s.to_pydatetime() for s in ser]) instead to get a Numpy array.
+""",  # noqa: E501
+        FutureWarning,
+        stacklevel=2,
     )
+
+    ser = to_datetime(
+        {
+            "year": year_col,
+            "month": month_col,
+            "day": day_col,
+            "hour": hour_col,
+            "minute": minute_col,
+            "second": second_col,
+        }
+    )
+
+    return np.array([s.to_pydatetime() for s in ser])
 
 
 def generic_parser(parse_func, *cols):
