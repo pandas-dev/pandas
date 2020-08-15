@@ -2,7 +2,17 @@ from collections import defaultdict
 import itertools
 import operator
 import re
-from typing import DefaultDict, Dict, List, Optional, Sequence, Tuple, TypeVar, Union
+from typing import (
+    DefaultDict,
+    Dict,
+    List,
+    Optional,
+    Pattern,
+    Sequence,
+    Tuple,
+    TypeVar,
+    Union,
+)
 import warnings
 
 import numpy as np
@@ -1949,7 +1959,7 @@ def _compare_or_regex_search(
     else:
         op = np.vectorize(
             lambda x: bool(re.search(b, x))
-            if isinstance(x, str) and isinstance(b, (str, re.Pattern))
+            if isinstance(x, str) and isinstance(b, (str, Pattern))
             else False
         )
 
