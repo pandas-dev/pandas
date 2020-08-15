@@ -587,6 +587,23 @@ def to_datetime(
 
 @overload
 def to_datetime(
+    arg: MutableMapping,
+    errors: str = ...,
+    dayfirst: bool = ...,
+    yearfirst: bool = ...,
+    utc: Optional[bool] = ...,
+    format: Optional[str] = ...,
+    exact: bool = ...,
+    unit: Optional[str] = ...,
+    infer_datetime_format: bool = ...,
+    origin=...,
+    cache: bool = ...,
+) -> "Series":
+    ...
+
+
+@overload
+def to_datetime(
     arg: Union[List, Tuple],
     errors: str = ...,
     dayfirst: bool = ...,
