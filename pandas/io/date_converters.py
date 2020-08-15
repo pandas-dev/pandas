@@ -88,6 +88,20 @@ def parse_all_fields(year_col, month_col, day_col, hour_col, minute_col, second_
 
 
 def generic_parser(parse_func, *cols):
+    """Parse single row of values into a datetime
+
+    .. deprecated:: 1.1.0
+        Use pd.to_datetime.
+    """
+
+    warnings.warn(
+        """
+        Use pd.to_datetime instead.
+""",  # noqa: E501
+        FutureWarning,
+        stacklevel=2,
+    )
+
     N = _check_columns(cols)
     results = np.empty(N, dtype=object)
 
@@ -96,12 +110,6 @@ def generic_parser(parse_func, *cols):
         results[i] = parse_func(*args)
 
     return results
-
-
-def _maybe_cast(arr):
-    if not arr.dtype.type == np.object_:
-        arr = np.array(arr, dtype=object)
-    return arr
 
 
 def _check_columns(cols):
