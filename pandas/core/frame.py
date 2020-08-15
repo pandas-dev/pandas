@@ -7584,7 +7584,7 @@ NaN 12.3   33.0
         )
         return op.get_result()
 
-    def applymap(self, func, na_action=None) -> "DataFrame":
+    def applymap(self, func, na_action: Optional[str] = None) -> "DataFrame":
         """
         Apply a function to a Dataframe elementwise.
 
@@ -7598,7 +7598,7 @@ NaN 12.3   33.0
         na_action : {None, 'ignore'}, default None
             If ‘ignore’, propagate NaN values, without passing them to func.
 
-            .. versionadded:: 1.1
+            .. versionadded:: 1.2
 
         Returns
         -------
