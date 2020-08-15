@@ -254,7 +254,6 @@ def file_leak_context():
     else:
         proc = psutil.Process()
         flist = proc.open_files()
-        conns = proc.connections()
 
         yield
 
@@ -264,9 +263,6 @@ def file_leak_context():
         flist_ex = [(x.path, x.fd) for x in flist]
         flist2_ex = [(x.path, x.fd) for x in flist2]
         assert flist2_ex == flist_ex, (flist2, flist)
-
-        conns2 = proc.connections()
-        assert conns2 == conns, (conns2, conns)
 
 
 def async_mark():
