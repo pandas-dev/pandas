@@ -1071,7 +1071,8 @@ b  2""",
                 tuple(args), kwargs, func, engine_kwargs
             )
         result = apply_func(
-            sorted_data.to_numpy(),
+            # Numba agg routines operates on 2D values; reshape Series-based data
+            sorted_data.to_numpy().reshape(len(sorted_data), 1),
             sorted_index,
             starts,
             ends,

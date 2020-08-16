@@ -239,9 +239,9 @@ class SeriesGroupBy(GroupBy[Series]):
             with _group_selection_context(self):
                 data = self._selected_obj
             result, index = self._aggregate_with_numba(
-                data, 1, func, *args, engine_kwargs=None, **kwargs
+                data, 1, func, *args, engine_kwargs=engine_kwargs, **kwargs
             )
-            return self.obj._constructor(result, index=index, name=data.name)
+            return self.obj._constructor(result.ravel(), index=index, name=data.name)
 
         relabeling = func is None
         columns = None
@@ -954,7 +954,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 data = self._selected_obj
                 num_labels = len(data.columns)
             result, index = self._aggregate_with_numba(
-                func, num_labels, *args, engine_kwargs=None, **kwargs
+                data, num_labels, func, *args, engine_kwargs=engine_kwargs, **kwargs
             )
             return self.obj._constructor(result, index=index, columns=data.columns)
 
