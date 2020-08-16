@@ -24,7 +24,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
 )
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCIndex, ABCSeries
 
 from pandas.core import algorithms
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
@@ -130,14 +130,14 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
     # ------------------------------------------------------------------------
 
-    def equals(self, other) -> bool:
+    def equals(self, other: object) -> bool:
         """
         Determines if two Index objects contain the same elements.
         """
         if self.is_(other):
             return True
 
-        if not isinstance(other, ABCIndexClass):
+        if not isinstance(other, Index):
             return False
         elif not isinstance(other, type(self)):
             try:

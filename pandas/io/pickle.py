@@ -1,9 +1,9 @@
 """ pickle compat """
 import pickle
-from typing import Any, Optional
+from typing import Any
 import warnings
 
-from pandas._typing import FilePathOrBuffer, StorageOptions
+from pandas._typing import CompressionOptions, FilePathOrBuffer, StorageOptions
 from pandas.compat import pickle_compat as pc
 
 from pandas.io.common import get_filepath_or_buffer, get_handle
@@ -12,7 +12,7 @@ from pandas.io.common import get_filepath_or_buffer, get_handle
 def to_pickle(
     obj: Any,
     filepath_or_buffer: FilePathOrBuffer,
-    compression: Optional[str] = "infer",
+    compression: CompressionOptions = "infer",
     protocol: int = pickle.HIGHEST_PROTOCOL,
     storage_options: StorageOptions = None,
 ):
@@ -100,7 +100,9 @@ def to_pickle(
     try:
         f.write(pickle.dumps(obj, protocol=protocol))
     finally:
-        f.close()
+        if f != filepath_or_buffer:
+            # do not close user-provided file objects GH 35679
+            f.close()
         for _f in fh:
             _f.close()
         if should_close:
@@ -112,7 +114,7 @@ def to_pickle(
 
 def read_pickle(
     filepath_or_buffer: FilePathOrBuffer,
-    compression: Optional[str] = "infer",
+    compression: CompressionOptions = "infer",
     storage_options: StorageOptions = None,
 ):
     """
@@ -215,7 +217,9 @@ def read_pickle(
         # e.g. can occur for files written in py27; see GH#28645 and GH#31988
         return pc.load(f, encoding="latin-1")
     finally:
-        f.close()
+        if f != filepath_or_buffer:
+            # do not close user-provided file objects GH 35679
+            f.close()
         for _f in fh:
             _f.close()
         if should_close:
