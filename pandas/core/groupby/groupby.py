@@ -974,7 +974,9 @@ b  2""",
 
         return self._wrap_transformed_output(output)
 
-    def _wrap_aggregated_output(self, output: Mapping[base.OutputKey, np.ndarray]):
+    def _wrap_aggregated_output(
+        self, output: Mapping[base.OutputKey, np.ndarray], index: Optional[Index]
+    ):
         raise AbstractMethodError(self)
 
     def _wrap_transformed_output(self, output: Mapping[base.OutputKey, np.ndarray]):
@@ -1049,7 +1051,7 @@ b  2""",
         if len(output) == 0:
             raise DataError("No numeric types to aggregate")
 
-        return self._wrap_aggregated_output(output)
+        return self._wrap_aggregated_output(output, index=self.grouper.result_index)
 
     def _aggregate_with_numba(
         self, data, num_labels, func, *args, engine_kwargs=None, **kwargs
@@ -1121,7 +1123,7 @@ b  2""",
 
                 output[key] = maybe_cast_result(values[mask], result)
 
-        return self._wrap_aggregated_output(output)
+        return self._wrap_aggregated_output(output, index=self.grouper.result_index)
 
     def _concat_objects(self, keys, values, not_indexed_same: bool = False):
         from pandas.core.reshape.concat import concat
@@ -2553,7 +2555,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
             raise TypeError(error_msg)
 
         if aggregate:
-            return self._wrap_aggregated_output(output)
+            return self._wrap_aggregated_output(output, index=self.grouper.result_index)
         else:
             return self._wrap_transformed_output(output)
 
