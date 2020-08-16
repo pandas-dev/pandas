@@ -260,3 +260,9 @@ def test_assert_frame_equal_interval_dtype_mismatch():
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_frame_equal(left, right, check_dtype=True)
+
+
+def test_assert_frame_equal_ignore_extension_dtype_mismatch():
+    left = pd.DataFrame({"a": [1, 2, 3]}, dtype="Int64")
+    right = pd.DataFrame({"a": [1, 2, 3]}, dtype="Int32")
+    tm.assert_frame_equal(left, right, check_dtype=False)

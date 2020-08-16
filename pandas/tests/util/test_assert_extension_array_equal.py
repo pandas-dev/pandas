@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas import array
 import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray
 
@@ -102,3 +103,9 @@ def test_assert_extension_array_equal_non_extension_array(side):
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_extension_array_equal(*args)
+
+
+def test_assert_extension_array_equal_ignore_dtype_mismatch():
+    left = array([1, 2, 3], dtype="Int64")
+    right = array([1, 2, 3], dtype="Int32")
+    tm.assert_extension_array_equal(left, right, check_dtype=False)
