@@ -556,8 +556,9 @@ class SeriesGroupBy(GroupBy[Series]):
             if common_dtype is result.dtype:
                 result = maybe_downcast_numeric(result, self._selected_obj.dtype)
 
-        result.name = self._selected_obj.name
-        result.index = self._selected_obj.index
+        obj = self._selected_obj.dropna() if self.dropna else self._selected_obj
+        result.name = obj.name
+        result.index = obj.index
         return result
 
     def _transform_fast(self, result) -> Series:
