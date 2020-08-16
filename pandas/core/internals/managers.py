@@ -1917,21 +1917,21 @@ def _merge_blocks(
 
 
 def _compare_or_regex_search(
-    a: ArrayLike,
-    b: Union[Scalar, Pattern],
+    a: Union[ArrayLike, Scalar],
+    b: Union[ArrayLike, Scalar, Pattern],
     regex: bool = False,
     mask: Optional[ArrayLike] = None,
 ) -> Union[ArrayLike, bool]:
     """
-    Compare two array_like inputs of the same shape or two scalar values
+    Compare two array-like or scalar inputs.
 
     Calls operator.eq or re.search, depending on regex argument. If regex is
     True, perform an element-wise regex matching.
 
     Parameters
     ----------
-    a : array_like
-    b : scalar or regex pattern
+    a : array-like or scalar
+    b : array-like, scalar, or regex pattern
     regex : bool, default False
     mask : array_like or None (default)
 
@@ -1941,7 +1941,9 @@ def _compare_or_regex_search(
     """
 
     def _check_comparison_types(
-        result: Union[ArrayLike, bool], a: ArrayLike, b: Union[Scalar, Pattern],
+        result: Union[ArrayLike, bool],
+        a: Union[ArrayLike, Scalar],
+        b: Union[ArrayLike, Scalar, Pattern],
     ):
         """
         Raises an error if the two arrays (a,b) cannot be compared.
