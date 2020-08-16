@@ -106,6 +106,7 @@ def test_assert_extension_array_equal_non_extension_array(side):
 
 
 def test_assert_extension_array_equal_ignore_dtype_mismatch():
+    # https://github.com/pandas-dev/pandas/issues/35715
     left = array([1, 2, 3], dtype="Int64")
     right = array([1, 2, 3], dtype="Int32")
     tm.assert_extension_array_equal(left, right, check_dtype=False)
