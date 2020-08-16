@@ -309,11 +309,11 @@ def test_transform_multiple(ts):
 def test_dispatch_transform(tsframe):
     df = tsframe[::5].reindex(tsframe.index)
 
-    grouped = df.groupby(lambda x: x.month)
+    grouped = df.groupby(lambda x: x.month, dropna=False)
 
     filled = grouped.fillna(method="pad")
     fillit = lambda x: x.fillna(method="pad")
-    expected = df.groupby(lambda x: x.month).transform(fillit)
+    expected = df.groupby(lambda x: x.month, dropna=False).transform(fillit)
     tm.assert_frame_equal(filled, expected)
 
 
@@ -412,10 +412,10 @@ def test_transform_length():
         return np.nansum(x)
 
     results = [
-        df.groupby("col1").transform(sum)["col2"],
-        df.groupby("col1")["col2"].transform(sum),
-        df.groupby("col1").transform(nsum)["col2"],
-        df.groupby("col1")["col2"].transform(nsum),
+        df.groupby("col1", dropna=False).transform(sum)["col2"],
+        df.groupby("col1", dropna=False)["col2"].transform(sum),
+        df.groupby("col1", dropna=False).transform(nsum)["col2"],
+        df.groupby("col1", dropna=False)["col2"].transform(nsum),
     ]
     for result in results:
         tm.assert_series_equal(result, expected, check_names=False)
@@ -448,7 +448,9 @@ def test_groupby_transform_with_int():
         )
     )
     with np.errstate(all="ignore"):
-        result = df.groupby("A").transform(lambda x: (x - x.mean()) / x.std())
+        result = df.groupby("A", dropna=False).transform(
+            lambda x: (x - x.mean()) / x.std()
+        )
     expected = DataFrame(
         dict(B=np.nan, C=Series([-1, 0, 1, -1, 0, 1], dtype="float64"))
     )
@@ -612,8 +614,7 @@ def test_cython_transform_series(op, args, targop):
 
     # series
     for data in [s, s_missing]:
-        # print(data.head())
-        expected = data.groupby(labels).transform(targop)
+        expected = data.groupby(labels, dropna=False).transform(targop)
 
         tm.assert_series_equal(expected, data.groupby(labels).transform(op, *args))
         tm.assert_series_equal(expected, getattr(data.groupby(labels), op)(*args))
