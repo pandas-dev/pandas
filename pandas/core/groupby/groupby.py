@@ -1053,14 +1053,12 @@ b  2""",
 
         return self._wrap_aggregated_output(output, index=self.grouper.result_index)
 
-    def _aggregate_with_numba(
-        self, data, num_labels, func, *args, engine_kwargs=None, **kwargs
-    ):
+    def _aggregate_with_numba(self, data, func, *args, engine_kwargs=None, **kwargs):
         group_keys = self.grouper._get_group_keys()
         labels, _, n_groups = self.grouper.group_info
         sorted_index = get_group_index_sorter(labels, n_groups)
         sorted_labels = algorithms.take_nd(labels, sorted_index, allow_fill=False)
-        sorted_data = data.take(sorted_index, axis=self.axis)
+        sorted_data = data.take(sorted_index, axis=self.axis).to_numpy()
         starts, ends = lib.generate_slices(sorted_labels, n_groups)
         cache_key = (func, "groupby_agg")
         if cache_key in NUMBA_FUNC_CACHE:
@@ -1071,13 +1069,7 @@ b  2""",
                 tuple(args), kwargs, func, engine_kwargs
             )
         result = apply_func(
-            # Numba agg routines operates on 2D values; reshape Series-based data
-            sorted_data.to_numpy().reshape(len(sorted_data), 1),
-            sorted_index,
-            starts,
-            ends,
-            len(group_keys),
-            num_labels,
+            sorted_data, sorted_index, starts, ends, len(group_keys), len(data.columns),
         )
 
         if self.grouper.nkeys > 1:
