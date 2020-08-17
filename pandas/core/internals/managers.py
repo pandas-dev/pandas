@@ -1504,6 +1504,38 @@ class BlockManager(PandasObject):
         bm = BlockManager(new_blocks, [new_columns, new_index])
         return bm
 
+    def reset_dropped_locs(self, blocks: List[Block], skipped: List[int]) -> Index:
+        """
+        Decrement the mgr_locs of the given blocks with `skipped` removed.
+
+        Notes
+        -----
+        Alters each block's mgr_locs inplace.
+        """
+        ncols = len(self)
+
+        new_locs = [blk.mgr_locs.as_array for blk in blocks]
+        indexer = np.concatenate(new_locs)
+
+        new_items = self.items.take(np.sort(indexer))
+
+        if skipped:
+            # we need to adjust the indexer to account for the
+            #  items we have removed
+            deleted_items = [self.blocks[i].mgr_locs.as_array for i in skipped]
+            deleted = np.concatenate(deleted_items)
+            ai = np.arange(ncols)
+            mask = np.zeros(ncols)
+            mask[deleted] = 1
+            indexer = (ai - mask.cumsum())[indexer]
+
+        offset = 0
+        for blk in blocks:
+            loc = len(blk.mgr_locs)
+            blk.mgr_locs = indexer[offset : (offset + loc)]
+            offset += loc
+        return new_items
+
 
 class SingleBlockManager(BlockManager):
     """ manage a single block with """

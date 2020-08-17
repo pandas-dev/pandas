@@ -1111,6 +1111,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                         assert len(locs) == result.shape[1]
                         for i, loc in enumerate(locs):
                             agg_block = result.iloc[:, [i]]._mgr.blocks[0]
+                            agg_block.mgr_locs = [loc]
                             new_blocks.append(agg_block)
                     else:
                         result = result._mgr.blocks[0].values
@@ -1124,7 +1125,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             return new_blocks
 
         skipped: List[int] = []
-        new_items: List[np.ndarray] = []
         for i, block in enumerate(data.blocks):
             try:
                 nbs = blk_func(block)
@@ -1136,33 +1136,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 deleted_items.append(block.mgr_locs.as_array)
             else:
                 agg_blocks.extend(nbs)
-                new_items.append(block.mgr_locs.as_array)
 
         if not agg_blocks:
             raise DataError("No numeric types to aggregate")
 
         # reset the locs in the blocks to correspond to our
         # current ordering
-        indexer = np.concatenate(new_items)
-        agg_items = data.items.take(np.sort(indexer))
-
-        if deleted_items:
-
-            # we need to adjust the indexer to account for the
-            # items we have removed
-            # really should be done in internals :<
-
-            deleted = np.concatenate(deleted_items)
-            ai = np.arange(len(data))
-            mask = np.zeros(len(data))
-            mask[deleted] = 1
-            indexer = (ai - mask.cumsum())[indexer]
-
-        offset = 0
-        for blk in agg_blocks:
-            loc = len(blk.mgr_locs)
-            blk.mgr_locs = indexer[offset : (offset + loc)]
-            offset += loc
+        agg_items = data.reset_dropped_locs(agg_blocks, skipped)
 
         return agg_blocks, agg_items
 
