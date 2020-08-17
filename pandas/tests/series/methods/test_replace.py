@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 import pytest
 
@@ -415,3 +417,11 @@ class TestSeriesReplace:
         # https://github.com/pandas-dev/pandas/issues/34530
         ser = pd.Series(pd.array([1, 2, 3], dtype="Int64"))
         ser.replace("", "")  # no exception
+
+    def test_replace_with_compiled_regex(self):
+        # https://github.com/pandas-dev/pandas/issues/35680
+        s = pd.Series(["a", "b", "c"])
+        regex = re.compile("^a$")
+        result = s.replace({regex: "z"}, regex=True)
+        expected = pd.Series(["z", "b", "c"])
+        tm.assert_series_equal(result, expected)

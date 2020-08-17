@@ -2,7 +2,17 @@ from collections import defaultdict
 import itertools
 import operator
 import re
-from typing import DefaultDict, Dict, List, Optional, Sequence, Tuple, TypeVar, Union
+from typing import (
+    DefaultDict,
+    Dict,
+    List,
+    Optional,
+    Pattern,
+    Sequence,
+    Tuple,
+    TypeVar,
+    Union,
+)
 import warnings
 
 import numpy as np
@@ -1907,7 +1917,10 @@ def _merge_blocks(
 
 
 def _compare_or_regex_search(
-    a: ArrayLike, b: Scalar, regex: bool = False, mask: Optional[ArrayLike] = None
+    a: ArrayLike,
+    b: Union[Scalar, Pattern],
+    regex: bool = False,
+    mask: Optional[ArrayLike] = None,
 ) -> Union[ArrayLike, bool]:
     """
     Compare two array_like inputs of the same shape or two scalar values
@@ -1918,7 +1931,7 @@ def _compare_or_regex_search(
     Parameters
     ----------
     a : array_like
-    b : scalar
+    b : scalar or regex pattern
     regex : bool, default False
     mask : array_like or None (default)
 
@@ -1928,7 +1941,7 @@ def _compare_or_regex_search(
     """
 
     def _check_comparison_types(
-        result: Union[ArrayLike, bool], a: ArrayLike, b: Scalar,
+        result: Union[ArrayLike, bool], a: ArrayLike, b: Union[Scalar, Pattern],
     ):
         """
         Raises an error if the two arrays (a,b) cannot be compared.
@@ -1949,7 +1962,7 @@ def _compare_or_regex_search(
     else:
         op = np.vectorize(
             lambda x: bool(re.search(b, x))
-            if isinstance(x, str) and isinstance(b, str)
+            if isinstance(x, str) and isinstance(b, (str, Pattern))
             else False
         )
 
