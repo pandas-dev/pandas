@@ -229,7 +229,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         if maybe_use_numba(engine):
             if not callable(func):
-                raise ValueError(
+                raise NotImplementedError(
                     "Numba engine can only be used with a single function."
                 )
             with _group_selection_context(self):
@@ -943,7 +943,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         if maybe_use_numba(engine):
             if not callable(func):
-                raise ValueError(
+                raise NotImplementedError(
                     "Numba engine can only be used with a single function."
                 )
             with _group_selection_context(self):
