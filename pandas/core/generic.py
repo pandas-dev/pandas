@@ -22,6 +22,7 @@ from typing import (
     Tuple,
     Type,
     Union,
+    cast,
 )
 import warnings
 import weakref
@@ -34,6 +35,7 @@ from pandas._libs import lib
 from pandas._libs.tslibs import Tick, Timestamp, to_offset
 from pandas._typing import (
     Axis,
+    CompressionOptions,
     FilePathOrBuffer,
     FrameOrSeries,
     JSONSerializable,
@@ -1196,7 +1198,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             self._get_axis(a).equals(other._get_axis(a)) for a in self._AXIS_ORDERS
         )
 
-    def equals(self, other):
+    def equals(self, other: object) -> bool:
         """
         Test whether two objects contain the same elements.
 
@@ -1276,6 +1278,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         if not (isinstance(other, type(self)) or isinstance(self, type(other))):
             return False
+        other = cast(NDFrame, other)
         return self._mgr.equals(other._mgr)
 
     # -------------------------------------------------------------------------
@@ -2056,7 +2059,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         date_unit: str = "ms",
         default_handler: Optional[Callable[[Any], JSONSerializable]] = None,
         lines: bool_t = False,
-        compression: Optional[str] = "infer",
+        compression: CompressionOptions = "infer",
         index: bool_t = True,
         indent: Optional[int] = None,
         storage_options: StorageOptions = None,
@@ -2644,7 +2647,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def to_pickle(
         self,
         path,
-        compression: Optional[str] = "infer",
+        compression: CompressionOptions = "infer",
         protocol: int = pickle.HIGHEST_PROTOCOL,
         storage_options: StorageOptions = None,
     ) -> None:
@@ -3051,7 +3054,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         index_label: Optional[Union[bool_t, str, Sequence[Label]]] = None,
         mode: str = "w",
         encoding: Optional[str] = None,
-        compression: Optional[Union[str, Mapping[str, str]]] = "infer",
+        compression: CompressionOptions = "infer",
         quoting: Optional[int] = None,
         quotechar: str = '"',
         line_terminator: Optional[str] = None,
@@ -3141,6 +3144,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             .. versionchanged:: 1.2.0
 
                 Compression is supported for binary file objects.
+
+            .. versionchanged:: 1.2.0
+
+                Previous versions forwarded dict entries for 'gzip' to
+                `gzip.open` instead of `gzip.GzipFile` which prevented
+                setting `mtime`.
 
         quoting : optional constant from csv module
             Defaults to csv.QUOTE_MINIMAL. If you have set a `float_format`
@@ -6882,6 +6891,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         should_transpose = axis == 1 and method not in fillna_methods
 
         obj = self.T if should_transpose else self
+
+        if obj.empty:
+            return self
 
         if method not in fillna_methods:
             axis = self._info_axis_number
