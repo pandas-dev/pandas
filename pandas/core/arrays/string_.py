@@ -178,11 +178,10 @@ class StringArray(PandasArray):
 
     def __init__(self, values, copy=False):
         values = extract_array(values)
-        skip_validation = isinstance(values, type(self))
 
         super().__init__(values, copy=copy)
         self._dtype = StringDtype()
-        if not skip_validation:
+        if not isinstance(values, type(self)):
             self._validate()
 
     def _validate(self):
@@ -201,23 +200,11 @@ class StringArray(PandasArray):
             assert dtype == "string"
 
         result = np.asarray(scalars, dtype="object")
-        if copy and result is scalars:
-            result = result.copy()
 
-        # Standardize all missing-like values to NA
-        # TODO: it would be nice to do this in _validate / lib.is_string_array
-        # We are already doing a scan over the values there.
-        na_values = isna(result)
-        has_nans = na_values.any()
-        if has_nans and result is scalars:
-            # force a copy now, if we haven't already
-            result = result.copy()
-
-        # convert to str, then to object to avoid dtype like '<U3', then insert na_value
-        result = np.asarray(result, dtype=str)
-        result = np.asarray(result, dtype="object")
-        if has_nans:
-            result[na_values] = StringDtype.na_value
+        # convert non-na-likes to str, and nan-likes to StringDtype.na_value
+        result = lib.ensure_string_array(
+            result, na_value=StringDtype.na_value, copy=copy
+        )
 
         return cls(result)
 
