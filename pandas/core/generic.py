@@ -6799,6 +6799,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         obj = self.T if should_transpose else self
 
+        if obj.empty:
+            return self
+
         if method not in fillna_methods:
             axis = self._info_axis_number
 
