@@ -6,13 +6,23 @@ from datetime import timedelta
 from functools import partial
 import inspect
 from textwrap import dedent
-from typing import Callable, Dict, List, Optional, Set, Tuple, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    Union,
+)
 
 import numpy as np
 
 from pandas._libs.tslibs import BaseOffset, to_offset
 import pandas._libs.window.aggregations as window_aggregations
-from pandas._typing import ArrayLike, Axis, FrameOrSeries, Scalar
+from pandas._typing import ArrayLike, Axis, FrameOrSeriesUnion, Scalar
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
@@ -54,6 +64,9 @@ from pandas.core.window.indexers import (
     VariableWindowIndexer,
 )
 from pandas.core.window.numba_ import generate_numba_apply_func
+
+if TYPE_CHECKING:
+    from pandas import Series
 
 
 def calculate_center_offset(window) -> int:
@@ -145,7 +158,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
     def __init__(
         self,
-        obj: FrameOrSeries,
+        obj: FrameOrSeriesUnion,
         window=None,
         min_periods: Optional[int] = None,
         center: bool = False,
@@ -219,7 +232,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                 f"get_window_bounds"
             )
 
-    def _create_blocks(self, obj: FrameOrSeries):
+    def _create_blocks(self, obj: FrameOrSeriesUnion):
         """
         Split data into blocks & return conformed data.
         """
@@ -381,7 +394,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             return type(obj)(result, index=index, columns=block.columns)
         return result
 
-    def _wrap_results(self, results, blocks, obj, exclude=None) -> FrameOrSeries:
+    def _wrap_results(self, results, blocks, obj, exclude=None) -> FrameOrSeriesUnion:
         """
         Wrap the results.
 
@@ -491,9 +504,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             return VariableWindowIndexer(index_array=self._on.asi8, window_size=window)
         return FixedWindowIndexer(window_size=window)
 
-    def _apply_series(
-        self, homogeneous_func: Callable[..., ArrayLike]
-    ) -> FrameOrSeries:
+    def _apply_series(self, homogeneous_func: Callable[..., ArrayLike]) -> "Series":
         """
         Series version of _apply_blockwise
         """
@@ -512,7 +523,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
     def _apply_blockwise(
         self, homogeneous_func: Callable[..., ArrayLike]
-    ) -> FrameOrSeries:
+    ) -> FrameOrSeriesUnion:
         """
         Apply the given function to the DataFrame broken down into homogeneous
         sub-frames.
@@ -2259,7 +2270,7 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
     def _constructor(self):
         return Rolling
 
-    def _create_blocks(self, obj: FrameOrSeries):
+    def _create_blocks(self, obj: FrameOrSeriesUnion):
         """
         Split data into blocks & return conformed data.
         """
