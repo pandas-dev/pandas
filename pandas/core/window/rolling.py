@@ -6,17 +6,7 @@ from datetime import timedelta
 from functools import partial
 import inspect
 from textwrap import dedent
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-    Dict,
-    List,
-    Optional,
-    Set,
-    Tuple,
-    Type,
-    Union,
-)
+from typing import Callable, Dict, List, Optional, Set, Tuple, Type, Union
 
 import numpy as np
 
@@ -64,9 +54,6 @@ from pandas.core.window.indexers import (
     VariableWindowIndexer,
 )
 from pandas.core.window.numba_ import generate_numba_apply_func
-
-if TYPE_CHECKING:
-    from pandas import Series
 
 
 def calculate_center_offset(window) -> int:
@@ -504,7 +491,9 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             return VariableWindowIndexer(index_array=self._on.asi8, window_size=window)
         return FixedWindowIndexer(window_size=window)
 
-    def _apply_series(self, homogeneous_func: Callable[..., ArrayLike]) -> "Series":
+    def _apply_series(
+        self, homogeneous_func: Callable[..., ArrayLike]
+    ) -> FrameOrSeries:
         """
         Series version of _apply_blockwise
         """
@@ -2311,6 +2300,7 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         if isinstance(self.window, BaseIndexer):
             rolling_indexer = type(self.window)
             indexer_kwargs = self.window.__dict__
+            assert isinstance(indexer_kwargs, dict)  # for mypy
             # We'll be using the index of each group later
             indexer_kwargs.pop("index_array", None)
         elif self.is_freq_type:
