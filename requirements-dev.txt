@@ -1,7 +1,7 @@
 # This file is auto-generated from environment.yml, do not modify.
 # See that file for comments about the need/usage of each dependency.
 
-numpy>=1.15
+numpy>=1.16.5,<1.19.0
 python-dateutil>=2.7.3
 pytz
 asv
@@ -11,7 +11,7 @@ cpplint
 flake8<3.8.0
 flake8-comprehensions>=3.1.0
 flake8-rst>=0.6.0,<=0.7.0
-isort==4.3.21
+isort>=5.2.1
 mypy==0.730
 pycodestyle
 gitpython
@@ -47,7 +47,7 @@ bottleneck>=1.2.1
 ipykernel
 ipython>=7.11.1
 jinja2
-matplotlib>=2.2.2
+matplotlib>=2.2.2,<3.3.0
 numexpr>=2.6.8
 scipy>=1.2
 numba>=0.46.0
@@ -60,10 +60,10 @@ xlsxwriter
 xlwt
 odfpy
 fastparquet>=0.3.2
-pyarrow>=0.13.1
+pyarrow>=0.15.0
 python-snappy
 pyqt5>=5.9.2
-tables>=3.4.3
+tables>=3.4.4
 s3fs>=0.4.0
 fsspec>=0.7.4
 gcsfs>=0.6.0
@@ -74,3 +74,4 @@ pyreadstat
 tabulate>=0.8.3
 git+https://github.com/pandas-dev/pydata-sphinx-theme.git@master
 git+https://github.com/numpy/numpydoc
+pyflakes>=2.2.0

@@ -520,7 +520,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         -------
         Categorical
         """
-        from pandas import Index, to_numeric, to_datetime, to_timedelta
+        from pandas import Index, to_datetime, to_numeric, to_timedelta
 
         cats = Index(inferred_categories)
         known_categories = (
@@ -1403,7 +1403,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         --------
         Series.value_counts
         """
-        from pandas import Series, CategoricalIndex
+        from pandas import CategoricalIndex, Series
 
         code, cat = self._codes, self.categories
         ncat, mask = len(cat), 0 <= code
@@ -2076,11 +2076,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         return result
 
     # reduction ops #
-    def _reduce(self, name, axis=0, **kwargs):
+    def _reduce(self, name: str, skipna: bool = True, **kwargs):
         func = getattr(self, name, None)
         if func is None:
             raise TypeError(f"Categorical cannot perform the operation {name}")
-        return func(**kwargs)
+        return func(skipna=skipna, **kwargs)
 
     @deprecate_kwarg(old_arg_name="numeric_only", new_arg_name="skipna")
     def min(self, skipna=True, **kwargs):
@@ -2242,7 +2242,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             original.categories.take(uniques), dtype=original.dtype
         )
 
-    def equals(self, other):
+    def equals(self, other: object) -> bool:
         """
         Returns True if categorical arrays are equal.
 
@@ -2254,7 +2254,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         -------
         bool
         """
-        if self.is_dtype_equal(other):
+        if not isinstance(other, Categorical):
+            return False
+        elif self.is_dtype_equal(other):
             if self.categories.equals(other.categories):
                 # fastpath to avoid re-coding
                 other_codes = other._codes

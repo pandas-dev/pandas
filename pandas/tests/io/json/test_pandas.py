@@ -13,7 +13,7 @@ from pandas.compat import is_platform_32bit, is_platform_windows
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, DatetimeIndex, Series, Timestamp, read_json
+from pandas import DataFrame, DatetimeIndex, Series, Timestamp, compat, read_json
 import pandas._testing as tm
 
 _seriesd = tm.getSeriesData()
@@ -35,6 +35,9 @@ def assert_json_roundtrip_equal(result, expected, orient):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:an integer is required (got type float)*:DeprecationWarning"
+)
 @pytest.mark.filterwarnings("ignore:the 'numpy' keyword is deprecated:FutureWarning")
 class TestPandasContainer:
     @pytest.fixture(autouse=True)
@@ -1250,23 +1253,32 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         json = series.to_json()
         expected = '{"articleId":' + str(bigNum) + "}"
         assert json == expected
-        # GH 20599
+
+        df = DataFrame(bigNum, dtype=object, index=["articleId"], columns=[0])
+        json = df.to_json()
+        expected = '{"0":{"articleId":' + str(bigNum) + "}}"
+        assert json == expected
+
+    @pytest.mark.parametrize("bigNum", [sys.maxsize + 1, -(sys.maxsize + 2)])
+    @pytest.mark.skipif(not compat.IS64, reason="GH-35279")
+    def test_read_json_large_numbers(self, bigNum):
+        # GH20599
+
+        series = Series(bigNum, dtype=object, index=["articleId"])
+        json = '{"articleId":' + str(bigNum) + "}"
         with pytest.raises(ValueError):
             json = StringIO(json)
             result = read_json(json)
             tm.assert_series_equal(series, result)
 
         df = DataFrame(bigNum, dtype=object, index=["articleId"], columns=[0])
-        json = df.to_json()
-        expected = '{"0":{"articleId":' + str(bigNum) + "}}"
-        assert json == expected
-        # GH 20599
+        json = '{"0":{"articleId":' + str(bigNum) + "}}"
         with pytest.raises(ValueError):
             json = StringIO(json)
             result = read_json(json)
             tm.assert_frame_equal(df, result)
 
-    def test_read_json_large_numbers(self):
+    def test_read_json_large_numbers2(self):
         # GH18842
         json = '{"articleId": "1404366058080022500245"}'
         json = StringIO(json)
