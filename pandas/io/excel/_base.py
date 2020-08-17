@@ -199,6 +199,8 @@ mangle_dupe_cols : bool, default True
     Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
     'X'...'X'. Passing in False will cause data to be overwritten if there
     are duplicate names in the columns.
+encoding : str, default "utf-8"
+    The encoding to use to decode bytes.
 
 Returns
 -------
@@ -298,6 +300,7 @@ def read_excel(
     skipfooter=0,
     convert_float=True,
     mangle_dupe_cols=True,
+    encoding: str = "utf-8",
 ):
 
     if not isinstance(io, ExcelFile):
@@ -332,6 +335,7 @@ def read_excel(
         skipfooter=skipfooter,
         convert_float=convert_float,
         mangle_dupe_cols=mangle_dupe_cols,
+        encoding=encoding,
     )
 
 
