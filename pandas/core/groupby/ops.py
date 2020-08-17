@@ -55,12 +55,6 @@ from pandas.core.sorting import (
     get_group_index_sorter,
     get_indexer_dict,
 )
-from pandas.core.util.numba_ import (
-    NUMBA_FUNC_CACHE,
-    generate_numba_func,
-    maybe_use_numba,
-    split_for_numba,
-)
 
 
 class BaseGrouper:

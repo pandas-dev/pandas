@@ -74,16 +74,12 @@ from pandas.core.groupby.groupby import (
     _transform_template,
     get_groupby,
 )
+from pandas.core.groupby.numba_ import generate_numba_func, split_for_numba
 from pandas.core.indexes.api import Index, MultiIndex, all_indexes_same
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
-from pandas.core.util.numba_ import (
-    NUMBA_FUNC_CACHE,
-    generate_numba_func,
-    maybe_use_numba,
-    split_for_numba,
-)
+from pandas.core.util.numba_ import NUMBA_FUNC_CACHE, maybe_use_numba
 
 from pandas.plotting import boxplot_frame_groupby
 
