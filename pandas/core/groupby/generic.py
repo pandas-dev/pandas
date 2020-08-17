@@ -538,14 +538,19 @@ class SeriesGroupBy(GroupBy[Series]):
             if isinstance(res, (ABCDataFrame, ABCSeries)):
                 res = res._values
 
-            results.append(klass(res, index=group.index))
+            indexer = self._get_index(name) if self.dropna else group.index
+            results.append(klass(res, index=indexer))
 
         # check for empty "results" to avoid concat ValueError
         if results:
             from pandas.core.reshape.concat import concat
 
             concatenated = concat(results)
-            result = self._set_result_index_ordered(concatenated)
+
+            if not self.dropna:
+                result = self._set_result_index_ordered(concatenated)
+            else:
+                result = concatenated.sort_index()
         else:
             result = self.obj._constructor(dtype=np.float64)
         # we will only try to coerce the result type if

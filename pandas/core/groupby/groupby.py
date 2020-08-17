@@ -690,8 +690,7 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
             result.set_axis(index, axis=self.axis, inplace=True)
             result = result.sort_index(axis=self.axis)
 
-        obj = self.obj.dropna() if self.dropna else self.obj
-        result.set_axis(obj._get_axis(self.axis), axis=self.axis, inplace=True)
+        result.set_axis(self.obj._get_axis(self.axis), axis=self.axis, inplace=True)
         return result
 
     def _dir_additions(self):
