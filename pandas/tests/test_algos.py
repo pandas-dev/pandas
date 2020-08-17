@@ -251,6 +251,25 @@ class TestFactorize:
         tm.assert_numpy_array_equal(codes, expected_codes)
         tm.assert_numpy_array_equal(uniques, expected_uniques)
 
+    @pytest.mark.parametrize(
+        "data, expected_codes, expected_uniques",
+        [
+            (
+                np.datetime64("2020-01-01T00:00:00.000"),
+                np.array([0], dtype=np.int64),
+                np.array(["2020-01-01T00:00:00.000000000"], dtype="datetime64[ns]"),
+            )
+        ],
+    )
+    def test_datetime64_factorize(self, data, expected_codes, expected_uniques):
+        # GH35650 Verify whether read-only datetime64 array can be factorized
+        arr = np.array([data])
+        arr.flags.writeable = False
+
+        codes, uniques = pd.factorize(arr)
+        tm.assert_numpy_array_equal(codes, expected_codes)
+        tm.assert_numpy_array_equal(uniques, expected_uniques)
+
     def test_deprecate_order(self):
         # gh 19727 - check warning is raised for deprecated keyword, order.
         # Test not valid once order keyword is removed.
