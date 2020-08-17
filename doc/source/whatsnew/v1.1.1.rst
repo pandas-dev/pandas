@@ -38,6 +38,7 @@ Bug fixes
 ~~~~~~~~~
 
 - Bug in ``Styler`` whereby `cell_ids` argument had no effect due to other recent changes (:issue:`35588`) (:issue:`35663`).
+- Bug in :func:`pandas.testing.assert_series_equal` and :func:`pandas.testing.assert_frame_equal` where extension dtypes were not ignored when ``check_dtypes`` was set to ``False`` (:issue:`35715`).
 
 Categorical
 ^^^^^^^^^^^
