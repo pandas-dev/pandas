@@ -149,7 +149,7 @@ def split_for_numba(arg: FrameOrSeries) -> Tuple[np.ndarray, np.ndarray]:
 
 def validate_udf(func: Callable) -> None:
     """
-    Validate user defined function for ops when using Numba.
+    Validate user defined function for ops when using Numba with groupby ops.
 
     The first signature arguments should include:
 

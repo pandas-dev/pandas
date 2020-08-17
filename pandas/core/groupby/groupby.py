@@ -1063,14 +1063,16 @@ b  2""",
         cache_key = (func, "groupby_agg")
         if cache_key in NUMBA_FUNC_CACHE:
             # Return an already compiled version of roll_apply if available
-            apply_func = NUMBA_FUNC_CACHE[cache_key]
+            numba_agg_func = NUMBA_FUNC_CACHE[cache_key]
         else:
-            apply_func = numba_.generate_numba_apply_func(
+            numba_agg_func = numba_.generate_numba_agg_func(
                 tuple(args), kwargs, func, engine_kwargs
             )
-        result = apply_func(
+        result = numba_agg_func(
             sorted_data, sorted_index, starts, ends, len(group_keys), len(data.columns),
         )
+        if cache_key not in NUMBA_FUNC_CACHE:
+            NUMBA_FUNC_CACHE[cache_key] = numba_agg_func
 
         if self.grouper.nkeys > 1:
             index = MultiIndex.from_tuples(group_keys, names=self.grouper.names)

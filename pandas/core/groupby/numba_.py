@@ -9,10 +9,11 @@ from pandas.core.util.numba_ import (
     check_kwargs_and_nopython,
     get_jit_arguments,
     jit_user_function,
+    validate_udf,
 )
 
 
-def generate_numba_apply_func(
+def generate_numba_agg_func(
     args: Tuple,
     kwargs: Dict[str, Any],
     func: Callable[..., Scalar],
@@ -45,6 +46,8 @@ def generate_numba_apply_func(
     nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
 
     check_kwargs_and_nopython(kwargs, nopython)
+
+    validate_udf(func)
 
     numba_func = jit_user_function(func, nopython, nogil, parallel)
 
