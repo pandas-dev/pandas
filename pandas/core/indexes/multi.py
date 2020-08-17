@@ -2928,18 +2928,9 @@ class MultiIndex(Index):
                     stop = len(level_index) - 1
                 step = key.step
             except KeyError:
-
-                if isinstance(key.start, tuple) or isinstance(key.stop, tuple):
-                    return convert_indexer(key.start, key.stop, key.step)
-
-                else:
-                    # we have a partial slice (like looking up a partial date
-                    # string)
-
-                    start = stop = level_index.slice_indexer(
-                        key.start, key.stop, key.step, kind="loc"
-                    )
-                    step = start.step
+                start = key.start
+                stop = key.stop
+                step = start.step
 
             if isinstance(start, slice) or isinstance(stop, slice):
                 # we have a slice for start and/or stop
