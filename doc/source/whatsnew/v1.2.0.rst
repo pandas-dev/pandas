@@ -275,7 +275,7 @@ ExtensionArray
 
 Other
 ^^^^^
--
+- Bug in :meth:`DataFrame.apply` with ``result_type="reduce"`` returning with incorrect index (:issue:`35683`)
 -
 
 .. ---------------------------------------------------------------------------
