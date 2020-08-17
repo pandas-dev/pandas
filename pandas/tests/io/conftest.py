@@ -2,9 +2,20 @@ import os
 
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas._testing as tm
 
 from pandas.io.parsers import read_csv
+
+
+@pytest.fixture(autouse=True)
+def check_file_leaks():
+    """
+    Check that a test does not leak file handles.
+    """
+    with td.file_leak_context():
+        yield
 
 
 @pytest.fixture

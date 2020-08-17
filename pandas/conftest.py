@@ -157,15 +157,6 @@ def add_imports(doctest_namespace):
     doctest_namespace["pd"] = pd
 
 
-@pytest.fixture(autouse=True)
-def check_file_leaks():
-    """
-    Check that a test does not leak file handles.
-    """
-    with td.file_leak_context():
-        yield
-
-
 # ----------------------------------------------------------------
 # Common arguments
 # ----------------------------------------------------------------
