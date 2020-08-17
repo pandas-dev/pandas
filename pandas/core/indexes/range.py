@@ -373,6 +373,10 @@ class RangeIndex(Int64Index):
     def tolist(self):
         return list(self._range)
 
+    @doc(Int64Index.__iter__)
+    def __iter__(self):
+        yield from self._range
+
     @doc(Int64Index._shallow_copy)
     def _shallow_copy(self, values=None, name: Label = no_default):
         name = self.name if name is no_default else name
@@ -388,9 +392,8 @@ class RangeIndex(Int64Index):
     def copy(self, name=None, deep=False, dtype=None, names=None):
         self._validate_dtype(dtype)
 
-        new_index = self._shallow_copy()
-        names = self._validate_names(name=name, names=names, deep=deep)
-        new_index = new_index.set_names(names)
+        name = self._validate_names(name=name, names=names, deep=deep)[0]
+        new_index = self._shallow_copy(name=name)
         return new_index
 
     def _minmax(self, meth: str):
@@ -434,7 +437,7 @@ class RangeIndex(Int64Index):
         else:
             return np.arange(len(self) - 1, -1, -1)
 
-    def equals(self, other) -> bool:
+    def equals(self, other: object) -> bool:
         """
         Determines if two Index objects contain the same elements.
         """
