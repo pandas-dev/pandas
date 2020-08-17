@@ -46,6 +46,21 @@ def check_compressed_urls(salaries_table, compression, extension, mode, engine):
     tm.assert_frame_equal(url_table, salaries_table)
 
 
+@tm.network("https://raw.githubusercontent.com/", check_before_test=True)
+def test_url_encoding_csv():
+    """
+    read_csv should honor the requested encoding for URLs.
+
+    GH 10424
+    """
+    path = (
+        "https://raw.githubusercontent.com/pandas-dev/pandas/master/"
+        + "pandas/tests/io/parser/data/unicode_series.csv"
+    )
+    df = read_csv(path, encoding="latin-1", header=None)
+    assert df.loc[15, 1] == "Á köldum klaka (Cold Fever) (1994)"
+
+
 @pytest.fixture
 def tips_df(datapath):
     """DataFrame with the tips dataset."""
