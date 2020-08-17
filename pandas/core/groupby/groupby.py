@@ -384,7 +384,8 @@ func : function, str, list or dict
     - dict of axis labels -> functions, function names or list of such.
 
     Can also accept a Numba JIT function with
-    ``engine='numba'`` specified.
+    ``engine='numba'`` specified. Only passing a single function is supported
+    with this engine.
 
     If the ``'numba'`` engine is chosen, the function must be
     a user defined function with ``values`` and ``index`` as the
