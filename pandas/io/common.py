@@ -18,6 +18,7 @@ from typing import (
     Optional,
     Tuple,
     Type,
+    Union,
 )
 from urllib.parse import (
     urljoin,
@@ -452,7 +453,7 @@ def get_handle(
     except ImportError:
         need_text_wrapping = (BufferedIOBase, RawIOBase)
 
-    handles: List[IO] = list()
+    handles: List[Union[IO, _MMapWrapper]] = list()
     f = path_or_buf
 
     # Convert pathlib.Path/py.path.local or string
@@ -535,6 +536,8 @@ def get_handle(
         try:
             wrapped = _MMapWrapper(f)
             f.close()
+            handles.remove(f)
+            handles.append(wrapped)
             f = wrapped
         except Exception:
             # we catch any errors that may have occurred
