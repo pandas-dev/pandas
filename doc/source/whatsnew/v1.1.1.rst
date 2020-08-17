@@ -76,6 +76,11 @@ Categorical
 - Bug in :class:`DataFrame` constructor failing to raise ``ValueError`` in some cases when data and index have mismatched lengths (:issue:`33437`)
 -
 
+**Strings**
+
+- fix memory usage issue when instantiating large  :class:`pandas.arrays.StringArray` (:issue:`35499`)
+
+
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_111.contributors:
