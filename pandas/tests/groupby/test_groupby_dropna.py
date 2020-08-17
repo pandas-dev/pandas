@@ -163,32 +163,40 @@ def test_groupby_dropna_series_by(dropna, expected):
 
 
 @pytest.mark.parametrize(
-    "dropna,df_expected,s_expected",
+    "dropna,expected",
     [
-        (True, pd.DataFrame({"B": [2, 2, 1]}), pd.Series(data=[2, 2, 1], name="B"),),
-        (
-            False,
-            pd.DataFrame({"B": [2, 2, 1, 1]}),
-            pd.Series(data=[2, 2, 1, 1], name="B"),
-        ),
+        (True, pd.DataFrame({"B": [2, 2, 1]})),
+        (False, pd.DataFrame({"B": [2, 2, 1, 1]})),
     ],
 )
-def test_slice_groupby_then_transform(dropna, df_expected, s_expected):
+def test_groupby_dataframe_slice_then_transform(dropna, expected):
     # GH35014 & GH35612
 
     df = pd.DataFrame({"A": [0, 0, 1, None], "B": [1, 2, 3, None]})
     gb = df.groupby("A", dropna=dropna)
 
-    res = gb.transform(len)
-    tm.assert_frame_equal(res, df_expected)
+    result = gb.transform(len)
+    tm.assert_frame_equal(result, expected)
 
-    gb_slice = gb[["B"]]
-    res = gb_slice.transform(len)
-    tm.assert_frame_equal(res, df_expected)
+    result = gb[["B"]].transform(len)
+    tm.assert_frame_equal(result, expected)
 
-    gb_slice = gb["B"]
-    res = gb["B"].transform(len)
-    tm.assert_series_equal(res, s_expected)
+
+@pytest.mark.parametrize(
+    "dropna,expected",
+    [
+        (True, pd.Series(data=[2, 2, 1], name="B")),
+        (False, pd.Series(data=[2, 2, 1, 1], name="B")),
+    ],
+)
+def test_groupby_series_slice_then_transform_(dropna, expected):
+    # GH35014 & GH35612
+
+    df = pd.DataFrame({"A": [0, 0, 1, None], "B": [1, 2, 3, None]})
+    gb = df.groupby("A", dropna=dropna)
+
+    result = gb["B"].transform(len)
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(
