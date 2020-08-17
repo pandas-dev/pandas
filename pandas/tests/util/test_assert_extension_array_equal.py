@@ -105,7 +105,7 @@ def test_assert_extension_array_equal_non_extension_array(side):
         tm.assert_extension_array_equal(*args)
 
 
-@pytest.mark.parametrize("right_dtype", ["Int32", "Int64"])
+@pytest.mark.parametrize("right_dtype", ["Int32", "int64"])
 def test_assert_extension_array_equal_ignore_dtype_mismatch(right_dtype):
     # https://github.com/pandas-dev/pandas/issues/35715
     left = array([1, 2, 3], dtype="Int64")

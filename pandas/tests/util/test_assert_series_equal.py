@@ -298,7 +298,7 @@ def test_series_equal_exact_for_nonnumeric():
         tm.assert_series_equal(s3, s1, check_exact=True)
 
 
-@pytest.mark.parametrize("right_dtype", ["Int32", "Int64"])
+@pytest.mark.parametrize("right_dtype", ["Int32", "int64"])
 def test_assert_series_equal_ignore_extension_dtype_mismatch(right_dtype):
     # https://github.com/pandas-dev/pandas/issues/35715
     left = pd.Series([1, 2, 3], dtype="Int64")
