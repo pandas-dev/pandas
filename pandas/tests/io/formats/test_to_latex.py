@@ -542,10 +542,10 @@ b &       b &     b \\
 
         # test that wrong number of params is raised
         with pytest.raises(ValueError):
-                df.to_latex(caption=(the_caption, the_short_caption, 'extra_string'))
+            df.to_latex(caption=(the_caption, the_short_caption, "extra_string"))
 
         # test that two chars caption is handled correctly
-        result_cl = df.to_latex(caption='xy')
+        result_cl = df.to_latex(caption="xy")
         expected_cl = r"""\begin{table}
 \centering
 \caption{xy}
@@ -638,9 +638,7 @@ b &       b &     b \\
 
         # test when the caption, the short_caption and the label are provided
         result_cl = df.to_latex(
-            longtable=True,
-            caption=(the_caption, the_short_caption),
-            label=the_label,
+            longtable=True, caption=(the_caption, the_short_caption), label=the_label,
         )
 
         expected_cl = r"""\begin{longtable}{lrl}

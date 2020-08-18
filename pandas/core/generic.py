@@ -3015,7 +3015,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             multicolumn_format = config.get_option("display.latex.multicolumn_format")
         if multirow is None:
             multirow = config.get_option("display.latex.multirow")
-        
+
         if caption:
             if isinstance(caption, str):
                 short_caption = ""
