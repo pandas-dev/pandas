@@ -77,7 +77,6 @@ class MPLPlot:
         "loglog": False,
         "mark_right": True,
         "stacked": False,
-        "normalize": False
     }
 
     def __init__(
@@ -1521,6 +1520,7 @@ class PiePlot(MPLPlot):
     def _make_plot(self):
         colors = self._get_colors(num_colors=len(self.data), color_kwds="colors")
         self.kwds.setdefault("colors", colors)
+        self.kwds.setdefault("normalize", False)
 
         for i, (label, y) in enumerate(self._iter_data()):
             ax = self._get_ax(i)
