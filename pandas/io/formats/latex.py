@@ -123,10 +123,7 @@ class LatexFormatter(TableFormatter):
         else:
             column_format = self.column_format
 
-        if self.longtable:
-            self._write_longtable_begin(buf, column_format)
-        else:
-            self._write_tabular_begin(buf, column_format)
+        self._write_tabular_begin(buf, column_format)
 
         buf.write("\\toprule\n")
 
@@ -192,10 +189,7 @@ class LatexFormatter(TableFormatter):
             if self.multirow and i < len(strrows) - 1:
                 self._print_cline(buf, i, len(strcols))
 
-        if self.longtable:
-            self._write_longtable_end(buf)
-        else:
-            self._write_tabular_end(buf)
+        self._write_tabular_end(buf)
 
     def _format_multicolumn(self, row: List[str], ilevels: int) -> List[str]:
         r"""
@@ -290,15 +284,36 @@ class LatexFormatter(TableFormatter):
             for 3 columns
         """
         if self._table_float:
-            # then write output in a nested table/tabular environment
+            # then write output in a nested table/tabular or longtable environment
+            caption_ = self._compose_caption_macro()
+            label_ = self._compose_label_macro()
+
             if self.position is None:
                 position_ = ""
             else:
                 position_ = f"[{self.position}]"
-            buf.write(f"\\begin{{table}}{position_}\n\\centering\n")
-        if self.caption or self.label:
-            buf.write(f"{self._compose_caption_and_label_macro()}\n")
-        buf.write(f"\\begin{{tabular}}{{{column_format}}}\n")
+
+            if self.longtable:
+                table_ = f"\\begin{{longtable}}{position_}{{{column_format}}}"
+                tabular_ = "\n"
+            else:
+                table_ = f"\\begin{{table}}{position_}\n\\centering"
+                tabular_ = f"\n\\begin{{tabular}}{{{column_format}}}\n"
+
+            if self.longtable and (self.caption is not None or self.label is not None):
+                # a double-backslash is required at the end of the line
+                # as discussed here:
+                # https://tex.stackexchange.com/questions/219138
+                backlash_ = "\\\\"
+            else:
+                backlash_ = ""
+            buf.write(f"{table_}{caption_}{label_}{backlash_}{tabular_}")
+        else:
+            if self.longtable:
+                tabletype_ = "longtable"
+            else:
+                tabletype_ = "tabular"
+            buf.write(f"\\begin{{{tabletype_}}}{{{column_format}}}\n")
 
     def _write_tabular_end(self, buf):
         """
@@ -312,74 +327,23 @@ class LatexFormatter(TableFormatter):
             a string.
 
         """
-        buf.write("\\bottomrule\n")
-        buf.write("\\end{tabular}\n")
-        if self._table_float:
-            buf.write("\\end{table}\n")
-        else:
-            pass
-
-    def _write_longtable_begin(self, buf, column_format: str):
-        """
-        Write the beginning of a longtable environment including caption and
-        label if provided by user.
-
-        Parameters
-        ----------
-        buf : string or file handle
-            File path or object. If not specified, the result is returned as
-            a string.
-        column_format : str
-            The columns format as specified in `LaTeX table format
-            <https://en.wikibooks.org/wiki/LaTeX/Tables>`__ e.g 'rcl'
-            for 3 columns
-        """
-        if self.position is None:
-            position_ = ""
-        else:
-            position_ = f"[{self.position}]"
-
-        buf.write(f"\\begin{{longtable}}{position_}{{{column_format}}}\n")
-        if self.caption or self.label:
-            buf.write(f"{self._compose_caption_and_label_macro()}\n")
-
-    @staticmethod
-    def _write_longtable_end(buf):
-        """
-        Write the end of a longtable environment.
-
-        Parameters
-        ----------
-        buf : string or file handle
-            File path or object. If not specified, the result is returned as
-            a string.
-
-        """
-        buf.write("\\end{longtable}\n")
-
-    def _compose_caption_and_label_macro(self):
-        caption_ = self._compose_caption_macro()
-        label_ = self._compose_label_macro()
         if self.longtable:
-            # a double-backslash is required at the end of the line
-            # as discussed here:
-            # https://tex.stackexchange.com/questions/219138
-            double_backslash = "\\\\"
-            parts = [caption_, label_, double_backslash]
-            return "".join([x for x in parts if x])
+            buf.write("\\end{longtable}\n")
         else:
-            parts = [caption_, label_]
-            return "\n".join([x for x in parts if x])
+            buf.write("\\bottomrule\n")
+            buf.write("\\end{tabular}\n")
+            if self._table_float:
+                buf.write("\\end{table}\n")
 
     def _compose_caption_macro(self):
         if self.caption is None:
             return ""
         if self.short_caption:
-            return f"\\caption[{self.short_caption}]{{{self.caption}}}"
-        return f"\\caption{{{self.caption}}}"
+            return f"\n\\caption[{self.short_caption}]{{{self.caption}}}"
+        return f"\n\\caption{{{self.caption}}}"
 
     def _compose_label_macro(self):
         if self.label is None:
             return ""
         else:
-            return f"\\label{{{self.label}}}"
+            return f"\n\\label{{{self.label}}}"

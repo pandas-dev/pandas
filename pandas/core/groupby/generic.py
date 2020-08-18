@@ -322,11 +322,14 @@ class SeriesGroupBy(GroupBy[Series]):
             # let higher level handle
             return results
 
-        output = self._wrap_aggregated_output(results)
+        output = self._wrap_aggregated_output(results, index=None)
         return self.obj._constructor_expanddim(output, columns=columns)
 
+    # TODO: index should not be Optional - see GH 35490
     def _wrap_series_output(
-        self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]], index: Index,
+        self,
+        output: Mapping[base.OutputKey, Union[Series, np.ndarray]],
+        index: Optional[Index],
     ) -> Union[Series, DataFrame]:
         """
         Wraps the output of a SeriesGroupBy operation into the expected result.
@@ -335,7 +338,7 @@ class SeriesGroupBy(GroupBy[Series]):
         ----------
         output : Mapping[base.OutputKey, Union[Series, np.ndarray]]
             Data to wrap.
-        index : pd.Index
+        index : pd.Index or None
             Index to apply to the output.
 
         Returns
@@ -363,8 +366,11 @@ class SeriesGroupBy(GroupBy[Series]):
 
         return result
 
+    # TODO: Remove index argument, use self.grouper.result_index, see GH 35490
     def _wrap_aggregated_output(
-        self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]]
+        self,
+        output: Mapping[base.OutputKey, Union[Series, np.ndarray]],
+        index: Optional[Index],
     ) -> Union[Series, DataFrame]:
         """
         Wraps the output of a SeriesGroupBy aggregation into the expected result.
@@ -383,9 +389,7 @@ class SeriesGroupBy(GroupBy[Series]):
         In the vast majority of cases output will only contain one element.
         The exception is operations that expand dimensions, like ohlc.
         """
-        result = self._wrap_series_output(
-            output=output, index=self.grouper.result_index
-        )
+        result = self._wrap_series_output(output=output, index=index)
         return self._reindex_output(result)
 
     def _wrap_transformed_output(
@@ -1026,9 +1030,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if numeric_only:
             data = data.get_numeric_data(copy=False)
 
-        agg_blocks: List[Block] = []
-        new_items: List[np.ndarray] = []
-        deleted_items: List[np.ndarray] = []
+        agg_blocks: List["Block"] = []
 
         no_result = object()
 
@@ -1056,11 +1058,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     # reshape to be valid for non-Extension Block
                     result = result.reshape(1, -1)
 
-            agg_block: Block = block.make_block(result)
+            agg_block: "Block" = block.make_block(result)
             return agg_block
 
-        for block in data.blocks:
-            # Avoid inheriting result from earlier in the loop
+        def blk_func(block: "Block") -> List["Block"]:
+            new_blocks: List["Block"] = []
+
             result = no_result
             locs = block.mgr_locs.as_array
             try:
@@ -1076,8 +1079,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     # we cannot perform the operation
                     # in an alternate way, exclude the block
                     assert how == "ohlc"
-                    deleted_items.append(locs)
-                    continue
+                    raise
 
                 # call our grouper again with only this block
                 obj = self.obj[data.items[locs]]
@@ -1096,8 +1098,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 except TypeError:
                     # we may have an exception in trying to aggregate
                     # continue and exclude the block
-                    deleted_items.append(locs)
-                    continue
+                    raise
                 else:
                     result = cast(DataFrame, result)
                     # unwrap DataFrame to get array
@@ -1108,46 +1109,38 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                         # clean, we choose to clean up this mess later on.
                         assert len(locs) == result.shape[1]
                         for i, loc in enumerate(locs):
-                            new_items.append(np.array([loc], dtype=locs.dtype))
                             agg_block = result.iloc[:, [i]]._mgr.blocks[0]
-                            agg_blocks.append(agg_block)
+                            agg_block.mgr_locs = [loc]
+                            new_blocks.append(agg_block)
                     else:
                         result = result._mgr.blocks[0].values
                         if isinstance(result, np.ndarray) and result.ndim == 1:
                             result = result.reshape(1, -1)
                         agg_block = cast_result_block(result, block, how)
-                        new_items.append(locs)
-                        agg_blocks.append(agg_block)
+                        new_blocks = [agg_block]
             else:
                 agg_block = cast_result_block(result, block, how)
-                new_items.append(locs)
-                agg_blocks.append(agg_block)
+                new_blocks = [agg_block]
+            return new_blocks
+
+        skipped: List[int] = []
+        for i, block in enumerate(data.blocks):
+            try:
+                nbs = blk_func(block)
+            except (NotImplementedError, TypeError):
+                # TypeError -> we may have an exception in trying to aggregate
+                #  continue and exclude the block
+                # NotImplementedError -> "ohlc" with wrong dtype
+                skipped.append(i)
+            else:
+                agg_blocks.extend(nbs)
 
         if not agg_blocks:
             raise DataError("No numeric types to aggregate")
 
         # reset the locs in the blocks to correspond to our
         # current ordering
-        indexer = np.concatenate(new_items)
-        agg_items = data.items.take(np.sort(indexer))
-
-        if deleted_items:
-
-            # we need to adjust the indexer to account for the
-            # items we have removed
-            # really should be done in internals :<
-
-            deleted = np.concatenate(deleted_items)
-            ai = np.arange(len(data))
-            mask = np.zeros(len(data))
-            mask[deleted] = 1
-            indexer = (ai - mask.cumsum())[indexer]
-
-        offset = 0
-        for blk in agg_blocks:
-            loc = len(blk.mgr_locs)
-            blk.mgr_locs = indexer[offset : (offset + loc)]
-            offset += loc
+        agg_items = data.reset_dropped_locs(agg_blocks, skipped)
 
         return agg_blocks, agg_items
 
@@ -1709,7 +1702,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 result.insert(0, name, lev)
 
     def _wrap_aggregated_output(
-        self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]]
+        self,
+        output: Mapping[base.OutputKey, Union[Series, np.ndarray]],
+        index: Optional[Index],
     ) -> DataFrame:
         """
         Wraps the output of DataFrameGroupBy aggregations into the expected result.
@@ -1734,8 +1729,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             self._insert_inaxis_grouper_inplace(result)
             result = result._consolidate()
         else:
-            index = self.grouper.result_index
-            result.index = index
+            result.index = self.grouper.result_index
 
         if self.axis == 1:
             result = result.T

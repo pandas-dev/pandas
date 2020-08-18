@@ -596,7 +596,8 @@ b &       b &     b \\
         result_cl = df.to_latex(longtable=True, caption=the_caption, label=the_label)
 
         expected_cl = r"""\begin{longtable}{lrl}
-\caption{a table in a \texttt{longtable} environment}\label{tab:longtable}\\
+\caption{a table in a \texttt{longtable} environment}
+\label{tab:longtable}\\
 \toprule
 {} &  a &   b \\
 \midrule
@@ -622,7 +623,8 @@ b &       b &     b \\
         )
 
         expected_cl = r"""\begin{longtable}{lrl}
-\caption[a table]{a table in a \texttt{longtable} environment}\label{tab:longtable}\\
+\caption[a table]{a table in a \texttt{longtable} environment}
+\label{tab:longtable}\\
 \toprule
 {} &  a &   b \\
 \midrule
