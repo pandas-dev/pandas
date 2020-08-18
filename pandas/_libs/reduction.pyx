@@ -404,7 +404,8 @@ cdef class BlockSlider:
         object frame, dummy, index
         int nblocks
         Slider idx_slider
-        list blocks
+        list blocks, blk_values
+        ndarray orig_blklocs, orig_blknos
 
     cdef:
         char **base_ptrs
@@ -418,20 +419,27 @@ cdef class BlockSlider:
         self.dummy = frame[:0]
         self.index = self.dummy.index
 
-        self.blocks = [b.values for b in self.dummy._mgr.blocks]
+        # GH#35417 attributes we need to restore at each step in case
+        #  the function modified them.
+        mgr = self.dummy._mgr
+        self.orig_blklocs = mgr.blklocs
+        self.orig_blknos = mgr.blknos
+        self.blocks = [x for x in self.dummy._mgr.blocks]
 
-        for x in self.blocks:
+        self.blk_values = [b.values for b in self.dummy._mgr.blocks]
+
+        for x in self.blk_values:
             util.set_array_not_contiguous(x)
 
-        self.nblocks = len(self.blocks)
+        self.nblocks = len(self.blk_values)
         # See the comment in indexes/base.py about _index_data.
         # We need this for EA-backed indexes that have a reference to a 1-d
         # ndarray like datetime / timedelta / period.
         self.idx_slider = Slider(
             self.frame.index._index_data, self.dummy.index._index_data)
 
-        self.base_ptrs = <char**>malloc(sizeof(char*) * len(self.blocks))
-        for i, block in enumerate(self.blocks):
+        self.base_ptrs = <char**>malloc(sizeof(char*) * len(self.blk_values))
+        for i, block in enumerate(self.blk_values):
             self.base_ptrs[i] = (<ndarray>block).data
 
     def __dealloc__(self):
@@ -442,9 +450,11 @@ cdef class BlockSlider:
             ndarray arr
             Py_ssize_t i
 
+        self._restore_blocks()
+
         # move blocks
         for i in range(self.nblocks):
-            arr = self.blocks[i]
+            arr = self.blk_values[i]
 
             # axis=1 is the frame's axis=0
             arr.data = self.base_ptrs[i] + arr.strides[1] * start
@@ -456,14 +466,25 @@ cdef class BlockSlider:
         object.__setattr__(self.index, '_index_data', self.idx_slider.buf)
         self.index._engine.clear_mapping()
 
+    cdef _restore_blocks(self):
+        """
+        Ensure that we have the original blocks, blknos, and blklocs.
+        """
+        mgr = self.dummy._mgr
+        mgr.blocks = self.blocks
+        mgr._blklocs = self.orig_blklocs
+        mgr._blknos = self.orig_blknos
+
     cdef reset(self):
         cdef:
             ndarray arr
             Py_ssize_t i
 
+        self._restore_blocks()
+
         # reset blocks
         for i in range(self.nblocks):
-            arr = self.blocks[i]
+            arr = self.blk_values[i]
 
             # axis=1 is the frame's axis=0
             arr.data = self.base_ptrs[i]
