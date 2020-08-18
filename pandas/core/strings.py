@@ -2372,7 +2372,7 @@ class StringMethods(NoNewAttributesMixin):
             Determines the join-style between the calling Series/Index and any
             Series/Index/DataFrame in `others` (objects without an index need
             to match the length of the calling Series/Index). 
-            
+
             **Note**: Since version 1.0.0, index alignment is performed when 
             `others` is a Series/Index/DataFrame (or a list-like containing 
             one). To disable alignment (the behavior in and before v0.23.0), 
@@ -2475,7 +2475,7 @@ class StringMethods(NoNewAttributesMixin):
         If `others` is a Series/Index/DataFrame, index alignment is 
         performed. Due to version differences, this may give unexpected 
         results, as this kind of behavior was introduced from v1.0.0.
-        
+
         To disable this behavior in v1.0.0+, `.values` should be used 
         with `others`. Alternatively, `others` may be converted to a 
         numpy array using `to_numpy()`.
@@ -2489,7 +2489,7 @@ class StringMethods(NoNewAttributesMixin):
         >>> ser = pd.Series(["f", "g", "h", "i", "j"])
         >>> idx.str.cat(ser) # the caller is an Index here
         Index([nan, nan, nan, nan, nan], dtype='object')
-        
+
         When `to_numpy()` is used:
 
         >>> idx.str.cat(ser.to_numpy())
