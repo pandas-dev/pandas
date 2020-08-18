@@ -5,10 +5,12 @@ from typing import Any, Callable, List, Optional, Sequence, Type, Union
 import numpy as np
 
 from pandas._libs.tslibs import (
+    BaseOffset,
     NaT,
     NaTType,
     Timedelta,
     delta_to_nanoseconds,
+    dt64arr_to_periodarr as c_dt64arr_to_periodarr,
     iNaT,
     period as libperiod,
     to_offset,
@@ -47,8 +49,6 @@ from pandas.core.dtypes.missing import isna, notna
 import pandas.core.algorithms as algos
 from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
-
-from pandas.tseries.offsets import DateOffset
 
 
 def _field_accessor(name: str, docstring=None):
@@ -278,9 +278,9 @@ class PeriodArray(PeriodMixin, dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     def dtype(self) -> PeriodDtype:
         return self._dtype
 
-    # error: Read-only property cannot override read-write property  [misc]
-    @property  # type: ignore
-    def freq(self) -> DateOffset:
+    # error: Read-only property cannot override read-write property
+    @property  # type: ignore[misc]
+    def freq(self) -> BaseOffset:
         """
         Return the frequency object for this PeriodArray.
         """
@@ -300,6 +300,7 @@ class PeriodArray(PeriodMixin, dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         Convert myself into a pyarrow Array.
         """
         import pyarrow
+
         from pandas.core.arrays._arrow_utils import ArrowPeriodType
 
         if type is not None:
@@ -656,7 +657,7 @@ class PeriodArray(PeriodMixin, dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         res_values[self._isnan] = iNaT
         return type(self)(res_values, freq=self.freq)
 
-    def _add_offset(self, other: DateOffset):
+    def _add_offset(self, other: BaseOffset):
         assert not isinstance(other, Tick)
 
         if other.base != self.freq.base:
@@ -784,7 +785,7 @@ def raise_on_incompatible(left, right):
     # GH#24283 error message format depends on whether right is scalar
     if isinstance(right, (np.ndarray, ABCTimedeltaArray)) or right is None:
         other_freq = None
-    elif isinstance(right, (ABCPeriodIndex, PeriodArray, Period, DateOffset)):
+    elif isinstance(right, (ABCPeriodIndex, PeriodArray, Period, BaseOffset)):
         other_freq = right.freqstr
     else:
         other_freq = delta_to_tick(Timedelta(right)).freqstr
@@ -952,7 +953,7 @@ def dt64arr_to_periodarr(data, freq, tz=None):
         data = data._values
 
     base = freq._period_dtype_code
-    return libperiod.dt64arr_to_periodarr(data.view("i8"), base, tz), freq
+    return c_dt64arr_to_periodarr(data.view("i8"), base, tz), freq
 
 
 def _get_ordinal_range(start, end, periods, freq, mult=1):
@@ -1034,9 +1035,10 @@ def _range_from_fields(
             if base != FreqGroup.FR_QTR:
                 raise AssertionError("base must equal FR_QTR")
 
+        freqstr = freq.freqstr
         year, quarter = _make_field_arrays(year, quarter)
         for y, q in zip(year, quarter):
-            y, m = libperiod.quarter_to_myear(y, q, freq)
+            y, m = libperiod.quarter_to_myear(y, q, freqstr)
             val = libperiod.period_ordinal(y, m, 1, 1, 1, 1, 0, 0, base)
             ordinals.append(val)
     else:

@@ -183,6 +183,15 @@ def test_round_trip_current(current_pickle_data):
                     result = python_unpickler(path)
                     compare_element(result, expected, typ)
 
+                    # and the same for file objects (GH 35679)
+                    with open(path, mode="wb") as handle:
+                        writer(expected, path)
+                        handle.seek(0)  # shouldn't close file handle
+                    with open(path, mode="rb") as handle:
+                        result = pd.read_pickle(handle)
+                        handle.seek(0)  # shouldn't close file handle
+                    compare_element(result, expected, typ)
+
 
 def test_pickle_path_pathlib():
     df = tm.makeDataFrame()
@@ -455,42 +464,10 @@ def test_pickle_generalurl_read(monkeypatch, mockurl):
         tm.assert_frame_equal(df, result)
 
 
-@td.skip_if_no("gcsfs")
-@pytest.mark.parametrize("mockurl", ["gs://gcs.com", "gcs://gcs.com"])
-def test_pickle_gcsurl_roundtrip(monkeypatch, mockurl):
-    with tm.ensure_clean() as path:
-
-        class MockGCSFileSystem:
-            def __init__(self, *args, **kwargs):
-                pass
-
-            def open(self, *args):
-                mode = args[1] or None
-                f = open(path, mode)
-                return f
-
-        monkeypatch.setattr("gcsfs.GCSFileSystem", MockGCSFileSystem)
-        df = tm.makeDataFrame()
-        df.to_pickle(mockurl)
-        result = pd.read_pickle(mockurl)
-        tm.assert_frame_equal(df, result)
-
-
-@td.skip_if_no("s3fs")
-@pytest.mark.parametrize("mockurl", ["s3://s3.com", "s3n://s3.com", "s3a://s3.com"])
-def test_pickle_s3url_roundtrip(monkeypatch, mockurl):
-    with tm.ensure_clean() as path:
-
-        class MockS3FileSystem:
-            def __init__(self, *args, **kwargs):
-                pass
-
-            def open(self, *args):
-                mode = args[1] or None
-                f = open(path, mode)
-                return f
-
-        monkeypatch.setattr("s3fs.S3FileSystem", MockS3FileSystem)
+@td.skip_if_no("fsspec")
+def test_pickle_fsspec_roundtrip():
+    with tm.ensure_clean():
+        mockurl = "memory://afile"
         df = tm.makeDataFrame()
         df.to_pickle(mockurl)
         result = pd.read_pickle(mockurl)

@@ -793,6 +793,18 @@ class TestDataFrameApply:
         result = df.apply(lambda x: x.astype("object"))
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("val", ["asd", 12, None, np.NaN])
+    def test_apply_category_equalness(self, val):
+        # Check if categorical comparisons on apply, GH 21239
+        df_values = ["asd", None, 12, "asd", "cde", np.NaN]
+        df = pd.DataFrame({"a": df_values}, dtype="category")
+
+        result = df.a.apply(lambda x: x == val)
+        expected = pd.Series(
+            [np.NaN if pd.isnull(x) else x == val for x in df_values], name="a"
+        )
+        tm.assert_series_equal(result, expected)
+
 
 class TestInferOutputShape:
     # the user has supplied an opaque UDF where
@@ -1501,3 +1513,31 @@ class TestDataFrameAggregate:
         tm.assert_series_equal(
             none_in_first_column_result, none_in_second_column_result
         )
+
+    @pytest.mark.parametrize("col", [1, 1.0, True, "a", np.nan])
+    def test_apply_dtype(self, col):
+        # GH 31466
+        df = pd.DataFrame([[1.0, col]], columns=["a", "b"])
+        result = df.apply(lambda x: x.dtype)
+        expected = df.dtypes
+
+        tm.assert_series_equal(result, expected)
+
+
+def test_apply_mutating():
+    # GH#35462 case where applied func pins a new BlockManager to a row
+    df = pd.DataFrame({"a": range(100), "b": range(100, 200)})
+
+    def func(row):
+        mgr = row._mgr
+        row.loc["a"] += 1
+        assert row._mgr is not mgr
+        return row
+
+    expected = df.copy()
+    expected["a"] += 1
+
+    result = df.apply(func, axis=1)
+
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(df, result)

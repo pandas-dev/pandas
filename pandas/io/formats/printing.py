@@ -276,9 +276,13 @@ def _enable_data_resource_formatter(enable: bool) -> None:
             formatters[mimetype].enabled = False
 
 
-default_pprint = lambda x, max_seq_items=None: pprint_thing(
-    x, escape_chars=("\t", "\r", "\n"), quote_strings=True, max_seq_items=max_seq_items
-)
+def default_pprint(thing: Any, max_seq_items: Optional[int] = None) -> str:
+    return pprint_thing(
+        thing,
+        escape_chars=("\t", "\r", "\n"),
+        quote_strings=True,
+        max_seq_items=max_seq_items,
+    )
 
 
 def format_object_summary(
@@ -495,7 +499,7 @@ def _justify(
     # error: Incompatible return value type (got "Tuple[List[Sequence[str]],
     #  List[Sequence[str]]]", expected "Tuple[List[Tuple[str, ...]],
     #  List[Tuple[str, ...]]]")
-    return head, tail  # type: ignore
+    return head, tail  # type: ignore[return-value]
 
 
 def format_object_attrs(
@@ -520,14 +524,16 @@ def format_object_attrs(
     attrs: List[Tuple[str, Union[str, int]]] = []
     if hasattr(obj, "dtype") and include_dtype:
         # error: "Sequence[Any]" has no attribute "dtype"
-        attrs.append(("dtype", f"'{obj.dtype}'"))  # type: ignore
+        attrs.append(("dtype", f"'{obj.dtype}'"))  # type: ignore[attr-defined]
     if getattr(obj, "name", None) is not None:
         # error: "Sequence[Any]" has no attribute "name"
-        attrs.append(("name", default_pprint(obj.name)))  # type: ignore
+        attrs.append(("name", default_pprint(obj.name)))  # type: ignore[attr-defined]
     # error: "Sequence[Any]" has no attribute "names"
-    elif getattr(obj, "names", None) is not None and any(obj.names):  # type: ignore
+    elif getattr(obj, "names", None) is not None and any(
+        obj.names  # type: ignore[attr-defined]
+    ):
         # error: "Sequence[Any]" has no attribute "names"
-        attrs.append(("names", default_pprint(obj.names)))  # type: ignore
+        attrs.append(("names", default_pprint(obj.names)))  # type: ignore[attr-defined]
     max_seq_items = get_option("display.max_seq_items") or len(obj)
     if len(obj) > max_seq_items:
         attrs.append(("length", len(obj)))

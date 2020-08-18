@@ -65,6 +65,7 @@ from pandas.core.groupby import base, ops
 from pandas.core.indexes.api import CategoricalIndex, Index, MultiIndex
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
+from pandas.core.util.numba_ import maybe_use_numba
 
 _common_see_also = """
         See Also
@@ -286,9 +287,10 @@ f : function
     .. versionchanged:: 1.1.0
 *args
     Positional arguments to pass to func
-engine : str, default 'cython'
+engine : str, default None
     * ``'cython'`` : Runs the function through C-extensions from cython.
     * ``'numba'`` : Runs the function through JIT compiled code from numba.
+    * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
 
     .. versionadded:: 1.1.0
 engine_kwargs : dict, default None
@@ -393,9 +395,10 @@ func : function, str, list or dict
     .. versionchanged:: 1.1.0
 *args
     Positional arguments to pass to func
-engine : str, default 'cython'
+engine : str, default None
     * ``'cython'`` : Runs the function through C-extensions from cython.
     * ``'numba'`` : Runs the function through JIT compiled code from numba.
+    * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
 
     .. versionadded:: 1.1.0
 engine_kwargs : dict, default None
@@ -460,8 +463,10 @@ def _group_selection_context(groupby):
     Set / reset the _group_selection_context.
     """
     groupby._set_group_selection()
-    yield groupby
-    groupby._reset_group_selection()
+    try:
+        yield groupby
+    finally:
+        groupby._reset_group_selection()
 
 
 _KeysArgType = Union[
@@ -475,7 +480,7 @@ _KeysArgType = Union[
 
 class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
     _group_selection = None
-    _apply_whitelist: FrozenSet[str] = frozenset()
+    _apply_allowlist: FrozenSet[str] = frozenset()
 
     def __init__(
         self,
@@ -689,7 +694,7 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         return result
 
     def _dir_additions(self):
-        return self.obj._dir_additions() | self._apply_whitelist
+        return self.obj._dir_additions() | self._apply_allowlist
 
     def __getattr__(self, attr: str):
         if attr in self._internal_names_set:
@@ -729,15 +734,14 @@ b  2""",
     plot = property(GroupByPlot)
 
     def _make_wrapper(self, name):
-        assert name in self._apply_whitelist
+        assert name in self._apply_allowlist
 
-        self._set_group_selection()
-
-        # need to setup the selection
-        # as are not passed directly but in the grouper
-        f = getattr(self._obj_with_exclusions, name)
-        if not isinstance(f, types.MethodType):
-            return self.apply(lambda self: getattr(self, name))
+        with _group_selection_context(self):
+            # need to setup the selection
+            # as are not passed directly but in the grouper
+            f = getattr(self._obj_with_exclusions, name)
+            if not isinstance(f, types.MethodType):
+                return self.apply(lambda self: getattr(self, name))
 
         f = getattr(type(self._obj_with_exclusions), name)
         sig = inspect.signature(f)
@@ -944,7 +948,7 @@ b  2""",
         """
         filled_series = self.grouper.size().fillna(0)
         assert filled_series is not None
-        return filled_series.gt(0).any() and func_nm not in base.cython_cast_blacklist
+        return filled_series.gt(0).any() and func_nm not in base.cython_cast_blocklist
 
     def _cython_transform(self, how: str, numeric_only: bool = True, **kwargs):
         output: Dict[base.OutputKey, np.ndarray] = {}
@@ -970,7 +974,9 @@ b  2""",
 
         return self._wrap_transformed_output(output)
 
-    def _wrap_aggregated_output(self, output: Mapping[base.OutputKey, np.ndarray]):
+    def _wrap_aggregated_output(
+        self, output: Mapping[base.OutputKey, np.ndarray], index: Optional[Index]
+    ):
         raise AbstractMethodError(self)
 
     def _wrap_transformed_output(self, output: Mapping[base.OutputKey, np.ndarray]):
@@ -987,28 +993,28 @@ b  2""",
         alias: str,
         npfunc: Callable,
     ):
-        self._set_group_selection()
-
-        # try a cython aggregation if we can
-        try:
-            return self._cython_agg_general(
-                how=alias, alt=npfunc, numeric_only=numeric_only, min_count=min_count,
-            )
-        except DataError:
-            pass
-        except NotImplementedError as err:
-            if "function is not implemented for this dtype" in str(
-                err
-            ) or "category dtype not supported" in str(err):
-                # raised in _get_cython_function, in some cases can
-                #  be trimmed by implementing cython funcs for more dtypes
+        with _group_selection_context(self):
+            # try a cython aggregation if we can
+            try:
+                return self._cython_agg_general(
+                    how=alias,
+                    alt=npfunc,
+                    numeric_only=numeric_only,
+                    min_count=min_count,
+                )
+            except DataError:
                 pass
-            else:
-                raise
+            except NotImplementedError as err:
+                if "function is not implemented for this dtype" in str(
+                    err
+                ) or "category dtype not supported" in str(err):
+                    # raised in _get_cython_function, in some cases can
+                    #  be trimmed by implementing cython funcs for more dtypes
+                    pass
 
-        # apply a non-cython aggregation
-        result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
-        return result
+            # apply a non-cython aggregation
+            result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
+            return result
 
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
@@ -1045,7 +1051,7 @@ b  2""",
         if len(output) == 0:
             raise DataError("No numeric types to aggregate")
 
-        return self._wrap_aggregated_output(output)
+        return self._wrap_aggregated_output(output, index=self.grouper.result_index)
 
     def _python_agg_general(
         self, func, *args, engine="cython", engine_kwargs=None, **kwargs
@@ -1063,7 +1069,7 @@ b  2""",
                 # agg_series below assumes ngroups > 0
                 continue
 
-            if engine == "numba":
+            if maybe_use_numba(engine):
                 result, counts = self.grouper.agg_series(
                     obj,
                     func,
@@ -1098,7 +1104,7 @@ b  2""",
 
                 output[key] = maybe_cast_result(values[mask], result)
 
-        return self._wrap_aggregated_output(output)
+        return self._wrap_aggregated_output(output, index=self.grouper.result_index)
 
     def _concat_objects(self, keys, values, not_indexed_same: bool = False):
         from pandas.core.reshape.concat import concat
@@ -1531,9 +1537,19 @@ class GroupBy(_GroupBy[FrameOrSeries]):
 
     @doc(_groupby_agg_method_template, fname="sum", no=True, mc=0)
     def sum(self, numeric_only: bool = True, min_count: int = 0):
-        return self._agg_general(
-            numeric_only=numeric_only, min_count=min_count, alias="add", npfunc=np.sum
-        )
+
+        # If we are grouping on categoricals we want unobserved categories to
+        # return zero, rather than the default of NaN which the reindexing in
+        # _agg_general() returns. GH #31422
+        with com.temp_setattr(self, "observed", True):
+            result = self._agg_general(
+                numeric_only=numeric_only,
+                min_count=min_count,
+                alias="add",
+                npfunc=np.sum,
+            )
+
+        return self._reindex_output(result, fill_value=0)
 
     @doc(_groupby_agg_method_template, fname="prod", no=True, mc=0)
     def prod(self, numeric_only: bool = True, min_count: int = 0):
@@ -1925,29 +1941,31 @@ class GroupBy(_GroupBy[FrameOrSeries]):
                 nth_values = list(set(n))
 
             nth_array = np.array(nth_values, dtype=np.intp)
-            self._set_group_selection()
+            with _group_selection_context(self):
 
-            mask_left = np.in1d(self._cumcount_array(), nth_array)
-            mask_right = np.in1d(self._cumcount_array(ascending=False) + 1, -nth_array)
-            mask = mask_left | mask_right
+                mask_left = np.in1d(self._cumcount_array(), nth_array)
+                mask_right = np.in1d(
+                    self._cumcount_array(ascending=False) + 1, -nth_array
+                )
+                mask = mask_left | mask_right
 
-            ids, _, _ = self.grouper.group_info
+                ids, _, _ = self.grouper.group_info
 
-            # Drop NA values in grouping
-            mask = mask & (ids != -1)
+                # Drop NA values in grouping
+                mask = mask & (ids != -1)
 
-            out = self._selected_obj[mask]
-            if not self.as_index:
-                return out
+                out = self._selected_obj[mask]
+                if not self.as_index:
+                    return out
 
-            result_index = self.grouper.result_index
-            out.index = result_index[ids[mask]]
+                result_index = self.grouper.result_index
+                out.index = result_index[ids[mask]]
 
-            if not self.observed and isinstance(result_index, CategoricalIndex):
-                out = out.reindex(result_index)
+                if not self.observed and isinstance(result_index, CategoricalIndex):
+                    out = out.reindex(result_index)
 
-            out = self._reindex_output(out)
-            return out.sort_index() if self.sort else out
+                out = self._reindex_output(out)
+                return out.sort_index() if self.sort else out
 
         # dropna is truthy
         if isinstance(n, valid_containers):
@@ -2400,7 +2418,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
             signature
         needs_2d : bool, default False
             Whether the values and result of the Cython call signature
-            are at least 2-dimensional.
+            are 2-dimensional.
         min_count : int, default None
             When not None, min_count for the Cython call
         needs_mask : bool, default False
@@ -2416,7 +2434,9 @@ class GroupBy(_GroupBy[FrameOrSeries]):
             Function should return a tuple where the first element is the
             values to be passed to Cython and the second element is an optional
             type which the values should be converted to after being returned
-            by the Cython operation. Raises if `needs_values` is False.
+            by the Cython operation. This function is also responsible for
+            raising a TypeError if the values have an invalid type. Raises
+            if `needs_values` is False.
         post_processing : function, default None
             Function to be applied to result of Cython function. Should accept
             an array of values as the first argument and type inferences as its
@@ -2448,6 +2468,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         output: Dict[base.OutputKey, np.ndarray] = {}
         base_func = getattr(libgroupby, how)
 
+        error_msg = ""
         for idx, obj in enumerate(self._iterate_slices()):
             name = obj.name
             values = obj._values
@@ -2474,7 +2495,11 @@ class GroupBy(_GroupBy[FrameOrSeries]):
             if needs_values:
                 vals = values
                 if pre_processing:
-                    vals, inferences = pre_processing(vals)
+                    try:
+                        vals, inferences = pre_processing(vals)
+                    except TypeError as e:
+                        error_msg = str(e)
+                        continue
                 if needs_2d:
                     vals = vals.reshape((-1, 1))
                 vals = vals.astype(cython_dtype, copy=False)
@@ -2506,8 +2531,12 @@ class GroupBy(_GroupBy[FrameOrSeries]):
             key = base.OutputKey(label=name, position=idx)
             output[key] = result
 
+        # error_msg is "" on an frame/series with no rows or columns
+        if len(output) == 0 and error_msg != "":
+            raise TypeError(error_msg)
+
         if aggregate:
-            return self._wrap_aggregated_output(output)
+            return self._wrap_aggregated_output(output, index=self.grouper.result_index)
         else:
             return self._wrap_transformed_output(output)
 
