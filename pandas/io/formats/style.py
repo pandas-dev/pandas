@@ -159,7 +159,7 @@ class Styler:
         self.index = data.index
         self.columns = data.columns
 
-        self.uuid = uuid or (uuid4().hex[:4] + "_")
+        self.uuid = uuid or (uuid4().hex[:5] + "_")
         self.table_styles = table_styles
         self.caption = caption
         if precision is None:
@@ -834,9 +834,6 @@ class Styler:
         Tooltips are not designed to be efficient, and can add large amounts of
         additional HTML for larger tables, since they also require that `cell_ids`
         is forced to `True`.
-
-        :param ttips:
-        :return:
         """
         if not (self.columns.equals(ttips.columns) and self.index.equals(ttips.index)):
             raise AttributeError(
