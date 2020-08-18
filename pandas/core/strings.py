@@ -2371,8 +2371,13 @@ class StringMethods(NoNewAttributesMixin):
         join : {'left', 'right', 'outer', 'inner'}, default 'left'
             Determines the join-style between the calling Series/Index and any
             Series/Index/DataFrame in `others` (objects without an index need
-            to match the length of the calling Series/Index). To disable
-            alignment, use `.values` on any Series/Index/DataFrame in `others`.
+            to match the length of the calling Series/Index). 
+            
+            **Note**: Since version 1.0.0, index alignment will be performed when `others`
+            is a Series/Index/DataFrame (or a list-like containing one). To disable alignment
+            (the behavior in and before v0.23.0), use `.values` in `others`, or, alternatively,
+            convert `others` to a numpy array while passing it as an argument (using `.to_numpy()`).
+            (See the Examples section below.).
 
             .. versionadded:: 0.23.0
             .. versionchanged:: 1.0.0
@@ -2466,7 +2471,28 @@ class StringMethods(NoNewAttributesMixin):
         2    -c
         dtype: object
 
-        For more examples, see :ref:`here <text.concatenate>`.
+        If `others` is a Series/Index/DataFrame, index alignment is performed.
+        Due to version differences, this may give unexpected results,
+        as this kind of behavior was introduced from v1.0.0.
+        
+        To disable this behavior in v1.0.0+, `.values` should be used with `others`.
+        Alternatively, `others` may be converted to a numpy array using `to_numpy()`.
+
+        The following example may be used to demonstrate this behavior:
+
+        If `others` is a Series/Index/DataFrame and `to_numpy()` or `.values` is not used:
+
+        >>> idx = pd.Index(["a", "b", "c", "d", "e"])
+        >>> ser = pd.Series(["f", "g", "h", "i", "j"])
+        >>> idx.str.cat(ser) # the caller is an Index here
+        Index([nan, nan, nan, nan, nan], dtype='object')
+        
+        When `to_numpy()` is used:
+
+        >>> idx.str.cat(ser.to_numpy())
+        Index(['af', 'bg', 'ch', 'di', 'ej'], dtype='object')
+
+        For other examples and usages, see :ref:`here <text.concatenate>`.
         """
         from pandas import Index, Series, concat
 
