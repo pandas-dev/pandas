@@ -159,7 +159,7 @@ class Styler:
         self.index = data.index
         self.columns = data.columns
 
-        self.uuid = uuid or (uuid4().hex[:6] + "_")
+        self.uuid = uuid or (uuid4().hex[:4] + "_")
         self.table_styles = table_styles
         self.caption = caption
         if precision is None:
