@@ -1707,7 +1707,8 @@ class TestStyler:
             in s
         )
         assert (
-            '<td id="T__row0_col0" class="data row0 col0" >0<span class="pd-t"></span></td>'
+            '<td id="T__row0_col0" class="data row0 col0" >0<span class="pd-t">'
+            + "</span></td>"
             in s
         )
         # test 'Max' tooltip added
@@ -1717,7 +1718,8 @@ class TestStyler:
             in s
         )
         assert (
-            '<td id="T__row1_col1" class="data row1 col1" >3<span class="pd-t"></span></td>'
+            '<td id="T__row1_col1" class="data row1 col1" >3<span class="pd-t">'
+            + "</span></td>"
             in s
         )
 
