@@ -158,6 +158,10 @@ def check_round_trip(
     """
     write_kwargs = write_kwargs or {"compression": None}
     read_kwargs = read_kwargs or {}
+    if isinstance(path, str) and "s3://" in path:
+        s3so = dict(client_kwargs={"endpoint_url": "http://127.0.0.1:5555/"})
+        read_kwargs["storage_options"] = s3so
+        write_kwargs["storage_options"] = s3so
 
     if expected is None:
         expected = df
@@ -537,9 +541,9 @@ class TestParquetPyArrow(Base):
             expected = df.astype(object)
             check_round_trip(df, pa, expected=expected)
 
-    def test_s3_roundtrip_explicit_fs(self, df_compat, s3_resource, pa):
+    def test_s3_roundtrip_explicit_fs(self, df_compat, s3_resource, pa, s3so):
         s3fs = pytest.importorskip("s3fs")
-        s3 = s3fs.S3FileSystem()
+        s3 = s3fs.S3FileSystem(**s3so)
         kw = dict(filesystem=s3)
         check_round_trip(
             df_compat,
@@ -564,6 +568,7 @@ class TestParquetPyArrow(Base):
         expected_df = df_compat.copy()
         if partition_col:
             expected_df[partition_col] = expected_df[partition_col].astype("category")
+
         check_round_trip(
             df_compat,
             pa,

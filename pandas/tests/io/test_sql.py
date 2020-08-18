@@ -263,8 +263,7 @@ class SQLAlchemyMixIn(MixInBase):
         return table_list
 
     def _close_conn(self):
-        # https://docs.sqlalchemy.org/en/13/core/connections.html#engine-disposal
-        self.conn.dispose()
+        pass
 
 
 class PandasSQLTest:
@@ -1243,7 +1242,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def setup_class(cls):
         cls.setup_import()
         cls.setup_driver()
-        conn = cls.conn = cls.connect()
+        conn = cls.connect()
         conn.connect()
 
     def load_test_data_and_sql(self):

@@ -1,4 +1,7 @@
 import os
+import shlex
+import subprocess
+import time
 
 import pytest
 
@@ -31,6 +34,11 @@ def feather_file(datapath):
 
 
 @pytest.fixture
+def s3so():
+    return dict(client_kwargs={"endpoint_url": "http://127.0.0.1:5555/"})
+
+
+@pytest.fixture
 def s3_resource(tips_file, jsonl_file, feather_file):
     """
     Fixture for mocking S3 interaction.
@@ -48,6 +56,7 @@ def s3_resource(tips_file, jsonl_file, feather_file):
     """
     s3fs = pytest.importorskip("s3fs")
     boto3 = pytest.importorskip("boto3")
+    requests = pytest.importorskip("requests")
 
     with tm.ensure_safe_environment_variables():
         # temporary workaround as moto fails for botocore >= 1.11 otherwise,
@@ -55,7 +64,8 @@ def s3_resource(tips_file, jsonl_file, feather_file):
         os.environ.setdefault("AWS_ACCESS_KEY_ID", "foobar_key")
         os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "foobar_secret")
 
-        moto = pytest.importorskip("moto")
+        pytest.importorskip("moto", minversion="1.3.14")
+        pytest.importorskip("flask")  # server mode needs flask too
 
         test_s3_files = [
             ("tips#1.csv", tips_file),
@@ -72,12 +82,31 @@ def s3_resource(tips_file, jsonl_file, feather_file):
                     conn.Bucket(bucket_name).put_object(Key=s3_key, Body=f)
 
         try:
-            s3 = moto.mock_s3()
-            s3.start()
+            # Launching moto in server mode, i.e., as a separate process
+            # with an S3 endpoint on localhost
+
+            endpoint_uri = "http://127.0.0.1:5555/"
+
+            # pipe to null to avoid logging in terminal
+            proc = subprocess.Popen(
+                shlex.split("moto_server s3 -p 5555"), stdout=subprocess.DEVNULL
+            )
+
+            timeout = 5
+            while timeout > 0:
+                try:
+                    # OK to go once server is accepting connections
+                    r = requests.get(endpoint_uri)
+                    if r.ok:
+                        break
+                except Exception:
+                    pass
+                timeout -= 0.1
+                time.sleep(0.1)
 
             # see gh-16135
             bucket = "pandas-test"
-            conn = boto3.resource("s3", region_name="us-east-1")
+            conn = boto3.resource("s3", endpoint_url=endpoint_uri)
 
             conn.create_bucket(Bucket=bucket)
             add_tips_files(bucket)
@@ -87,4 +116,6 @@ def s3_resource(tips_file, jsonl_file, feather_file):
             s3fs.S3FileSystem.clear_instance_cache()
             yield conn
         finally:
-            s3.stop()
+            # shut down external process
+            proc.terminate()
+            proc.wait()

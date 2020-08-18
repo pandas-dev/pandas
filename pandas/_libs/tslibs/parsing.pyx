@@ -381,8 +381,7 @@ cdef inline object _parse_dateabbr_string(object date_string, datetime default,
                                           object freq):
     cdef:
         object ret
-        # year initialized to prevent compiler warnings
-        int year = -1, quarter = -1, month, mnum, date_len
+        int year, quarter = -1, month, mnum, date_len
 
     # special handling for possibilities eg, 2Q2005, 2Q05, 2005Q1, 05Q1
     assert isinstance(date_string, str)
