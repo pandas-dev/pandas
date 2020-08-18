@@ -2373,7 +2373,7 @@ class StringMethods(NoNewAttributesMixin):
             Series/Index/DataFrame in `others` (objects without an index need
             to match the length of the calling Series/Index). 
             
-            **Note**: Since version 1.0.0, index alignment will be performed when `others`
+            **Note**: Since version 1.0.0, index alignment is performed when `others`
             is a Series/Index/DataFrame (or a list-like containing one). To disable alignment
             (the behavior in and before v0.23.0), use `.values` in `others`, or, alternatively,
             convert `others` to a numpy array while passing it as an argument (using `.to_numpy()`).
