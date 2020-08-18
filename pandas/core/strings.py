@@ -2562,7 +2562,7 @@ class StringMethods(NoNewAttributesMixin):
             # no NaNs - can just concatenate
             result = cat_safe(all_cols, sep)
 
-        if isinstance(self._orig, ABCIndexClass):f
+        if isinstance(self._orig, ABCIndexClass):
             # add dtype for case that result is all-NA
             result = Index(result, dtype=object, name=self._orig.name)
         else:  # Series
