@@ -743,6 +743,7 @@ If you pass values whose sum total is less than 1.0, matplotlib draws a semicirc
    plt.figure()
 
 .. ipython:: python
+   :okwarning:
 
    series = pd.Series([0.1] * 4, index=['a', 'b', 'c', 'd'], name='series2')
 
