@@ -77,6 +77,7 @@ class MPLPlot:
         "loglog": False,
         "mark_right": True,
         "stacked": False,
+        "normalize": False
     }
 
     def __init__(
