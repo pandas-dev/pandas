@@ -10750,9 +10750,48 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         1  1.000000   2.718282
         2  1.414214   7.389056
         """
-        result = self.agg(func, *args, **kwargs)
-        if is_scalar(result) or len(result) != len(self):
-            raise ValueError("transforms cannot produce aggregated results")
+        raise NotImplementedError
+
+    def _transform(self, func, *args, **kwargs):
+        if isinstance(func, dict):
+            results = {}
+            for name, how in func.items():
+                colg = self._gotitem(name, ndim=1)
+                try:
+                    results[name] = colg.transform(how, *args, **kwargs)
+                except Exception as e:
+                    if str(e) == "Function did not transform":
+                        raise e
+
+            # combine results
+            if len(results) == 0:
+                raise ValueError("Transform function failed")
+            from pandas.core.reshape.concat import concat
+
+            return concat(results, axis=1)
+
+        try:
+            if isinstance(func, str):
+                result = self._try_aggregate_string_function(func, *args, **kwargs)
+            else:
+                f = self._get_cython_func(func)
+                if f and not args and not kwargs:
+                    result = getattr(self, f)()
+                else:
+                    try:
+                        result = self.apply(func, args=args, **kwargs)
+                    except Exception:
+                        result = func(self, *args, **kwargs)
+
+        except Exception:
+            raise ValueError("Transform function failed")
+
+        # Functions that transform may return empty Series/DataFrame
+        # when the dtype is not appropriate
+        if isinstance(result, NDFrame) and result.empty:
+            raise ValueError("Transform function failed")
+        if not isinstance(result, NDFrame) or not result.index.equals(self.index):
+            raise ValueError("Function did not transform")
 
         return result
 

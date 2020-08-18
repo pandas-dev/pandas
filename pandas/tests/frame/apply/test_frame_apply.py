@@ -2,6 +2,7 @@ from collections import OrderedDict
 from datetime import datetime
 from itertools import chain
 import operator
+import re
 import warnings
 
 import numpy as np
@@ -14,6 +15,7 @@ from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range, notna
 import pandas._testing as tm
 from pandas.core.apply import frame_apply
 from pandas.core.base import SpecificationError
+from pandas.core.groupby.base import transformation_kernels
 
 
 @pytest.fixture
@@ -1131,9 +1133,29 @@ class TestDataFrameAggregate:
             result = float_frame.transform([np.abs, "sqrt"], axis=axis)
             tm.assert_frame_equal(result, expected)
 
+            # UDF via apply
+            def func(x):
+                if isinstance(x, DataFrame):
+                    raise ValueError
+                return x + 1
+
+            result = float_frame.transform(func, axis=axis)
+            expected = float_frame + 1
+            tm.assert_frame_equal(result, expected)
+
+            # UDF that maps DataFrame -> DataFrame
+            def func(x):
+                if not isinstance(x, DataFrame):
+                    raise ValueError
+                return x + 1
+
+            result = float_frame.transform(func, axis=axis)
+            expected = float_frame + 1
+            tm.assert_frame_equal(result, expected)
+
     def test_transform_and_agg_err(self, axis, float_frame):
         # cannot both transform and agg
-        msg = "transforms cannot produce aggregated results"
+        msg = "Function did not transform"
         with pytest.raises(ValueError, match=msg):
             float_frame.transform(["max", "min"], axis=axis)
 
@@ -1142,6 +1164,7 @@ class TestDataFrameAggregate:
             with np.errstate(all="ignore"):
                 float_frame.agg(["max", "sqrt"], axis=axis)
 
+        msg = "Function did not transform"
         with pytest.raises(ValueError, match=msg):
             with np.errstate(all="ignore"):
                 float_frame.transform(["max", "sqrt"], axis=axis)
@@ -1220,6 +1243,9 @@ class TestDataFrameAggregate:
         msg = r"nested renamer is not supported"
         with pytest.raises(SpecificationError, match=msg):
             df.agg({"A": {"foo": "min"}, "B": {"bar": "max"}})
+
+        with pytest.raises(SpecificationError, match=msg):
+            df.transform({"A": {"foo": "min"}, "B": {"bar": "max"}})
 
     def test_agg_reduce(self, axis, float_frame):
         other_axis = 1 if axis in {0, "index"} else 0
@@ -1550,3 +1576,88 @@ def test_apply_empty_list_reduce():
     result = df.apply(lambda x: [], result_type="reduce")
     expected = pd.Series({"a": [], "b": []}, dtype=object)
     tm.assert_series_equal(result, expected)
+
+
+def test_transform_reducer_raises(all_reductions):
+    op = all_reductions
+    s = pd.DataFrame({"A": [1, 2, 3]})
+    msg = "Function did not transform"
+    with pytest.raises(ValueError, match=msg):
+        s.transform(op)
+    with pytest.raises(ValueError, match=msg):
+        s.transform([op])
+    with pytest.raises(ValueError, match=msg):
+        s.transform({"A": op})
+    with pytest.raises(ValueError, match=msg):
+        s.transform({"A": [op]})
+
+
+# mypy doesn't allow adding lists of different types
+# https://github.com/python/mypy/issues/5492
+@pytest.mark.parametrize("op", [*transformation_kernels, lambda x: x + 1])
+def test_transform_bad_dtype(op):
+    s = pd.DataFrame({"A": 3 * [object]})  # DataFrame that will fail on most transforms
+    if op in ("backfill", "shift", "pad", "bfill", "ffill"):
+        pytest.xfail("Transform function works on any datatype")
+    msg = "Transform function failed"
+    with pytest.raises(ValueError, match=msg):
+        s.transform(op)
+    with pytest.raises(ValueError, match=msg):
+        s.transform([op])
+    with pytest.raises(ValueError, match=msg):
+        s.transform({"A": op})
+    with pytest.raises(ValueError, match=msg):
+        s.transform({"A": [op]})
+
+
+@pytest.mark.parametrize("op", transformation_kernels)
+def test_transform_multi_dtypes(op):
+    df = pd.DataFrame({"A": ["a", "b", "c"], "B": [1, 2, 3]})
+
+    # Determine which columns op will work on
+    columns = []
+    for column in df:
+        try:
+            df[column].transform(op)
+            columns.append(column)
+        except Exception:
+            pass
+
+    if len(columns) > 0:
+        expected = df[columns].transform([op])
+        result = df.transform([op])
+        tm.assert_equal(result, expected)
+
+        expected = df[columns].transform({column: op for column in columns})
+        result = df.transform({column: op for column in columns})
+        tm.assert_equal(result, expected)
+
+        expected = df[columns].transform({column: [op] for column in columns})
+        result = df.transform({column: [op] for column in columns})
+        tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize("use_apply", [True, False])
+def test_transform_passes_args(use_apply):
+    # transform uses UDF either via apply or passing the entire DataFrame
+    expected_args = [1, 2]
+    expected_kwargs = {"c": 3}
+
+    def f(x, a, b, c):
+        # transform is using apply iff x is not a DataFrame
+        if use_apply == isinstance(x, DataFrame):
+            # Force transform to fallback
+            raise ValueError
+        assert [a, b] == expected_args
+        assert c == expected_kwargs["c"]
+        return x
+
+    pd.DataFrame([1]).transform(f, 0, *expected_args, **expected_kwargs)
+
+
+@pytest.mark.parametrize("axis", [0, "index", 1, "columns"])
+def test_transform_missing_columns(axis):
+    df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
+    match = re.escape("Column(s) ['C'] do not exist")
+    with pytest.raises(SpecificationError, match=match):
+        df.transform({"C": "cumsum"})
