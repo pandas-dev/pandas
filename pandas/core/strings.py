@@ -2377,7 +2377,7 @@ class StringMethods(NoNewAttributesMixin):
             is a Series/Index/DataFrame (or a list-like containing one). To disable alignment
             (the behavior in and before v0.23.0), use `.values` in `others`, or, alternatively,
             convert `others` to a numpy array while passing it as an argument (using `.to_numpy()`).
-            (See the Examples section below.).
+            (See the Examples section below).
 
             .. versionadded:: 0.23.0
             .. versionchanged:: 1.0.0
@@ -2562,7 +2562,7 @@ class StringMethods(NoNewAttributesMixin):
             # no NaNs - can just concatenate
             result = cat_safe(all_cols, sep)
 
-        if isinstance(self._orig, ABCIndexClass):
+        if isinstance(self._orig, ABCIndexClass):f
             # add dtype for case that result is all-NA
             result = Index(result, dtype=object, name=self._orig.name)
         else:  # Series
