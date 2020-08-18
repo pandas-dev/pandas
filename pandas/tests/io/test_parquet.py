@@ -564,7 +564,7 @@ class TestParquetPyArrow(Base):
         # https://github.com/apache/arrow/blob/master/python/pyarrow/tests/test_parquet.py#L2716
         # As per pyarrow partitioned columns become 'categorical' dtypes
         # and are added to back of dataframe on read
-        if partition_col and pd.comapt.is_platform_windows():
+        if partition_col and pd.compat.is_platform_windows():
             pytest.skip("pyarrow/win incompatibility #35791")
 
         expected_df = df_compat.copy()
