@@ -2373,10 +2373,11 @@ class StringMethods(NoNewAttributesMixin):
             Series/Index/DataFrame in `others` (objects without an index need
             to match the length of the calling Series/Index). 
             
-            **Note**: Since version 1.0.0, index alignment is performed when `others`
-            is a Series/Index/DataFrame (or a list-like containing one). To disable alignment
-            (the behavior in and before v0.23.0), use `.values` in `others`, or, alternatively,
-            convert `others` to a numpy array while passing it as an argument (using `.to_numpy()`).
+            **Note**: Since version 1.0.0, index alignment is performed when 
+            `others` is a Series/Index/DataFrame (or a list-like containing 
+            one). To disable alignment (the behavior in and before v0.23.0), 
+            use `.values` in `others`, or, alternatively, convert `others` to a 
+            numpy array while passing it as an argument (using `.to_numpy()`).
             (See the Examples section below).
 
             .. versionadded:: 0.23.0
@@ -2471,16 +2472,18 @@ class StringMethods(NoNewAttributesMixin):
         2    -c
         dtype: object
 
-        If `others` is a Series/Index/DataFrame, index alignment is performed.
-        Due to version differences, this may give unexpected results,
-        as this kind of behavior was introduced from v1.0.0.
+        If `others` is a Series/Index/DataFrame, index alignment is 
+        performed. Due to version differences, this may give unexpected 
+        results, as this kind of behavior was introduced from v1.0.0.
         
-        To disable this behavior in v1.0.0+, `.values` should be used with `others`.
-        Alternatively, `others` may be converted to a numpy array using `to_numpy()`.
+        To disable this behavior in v1.0.0+, `.values` should be used 
+        with `others`. Alternatively, `others` may be converted to a 
+        numpy array using `to_numpy()`.
 
         The following example could serve to clarify this:
 
-        If `others` is a Series/Index/DataFrame and `to_numpy()` or `.values` is not used:
+        If `others` is a Series/Index/DataFrame and `to_numpy()` or 
+        `.values` is not used:
 
         >>> idx = pd.Index(["a", "b", "c", "d", "e"])
         >>> ser = pd.Series(["f", "g", "h", "i", "j"])
@@ -2492,7 +2495,8 @@ class StringMethods(NoNewAttributesMixin):
         >>> idx.str.cat(ser.to_numpy())
         Index(['af', 'bg', 'ch', 'di', 'ej'], dtype='object')
 
-        For other examples and usages, see :ref:`here <text.concatenate>`.
+        For other examples and usages, see 
+        :ref:`here <text.concatenate>`.
         """
         from pandas import Index, Series, concat
 
