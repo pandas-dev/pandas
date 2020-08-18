@@ -1,6 +1,5 @@
 """ feather-format compat """
 
-from pandas._typing import StorageOptions
 from pandas.compat._optional import import_optional_dependency
 
 from pandas import DataFrame, Int64Index, RangeIndex
@@ -8,7 +7,7 @@ from pandas import DataFrame, Int64Index, RangeIndex
 from pandas.io.common import get_filepath_or_buffer
 
 
-def to_feather(df: DataFrame, path, storage_options: StorageOptions = None, **kwargs):
+def to_feather(df: DataFrame, path, storage_options=None, **kwargs):
     """
     Write a DataFrame to the binary Feather format.
 
@@ -78,9 +77,7 @@ def to_feather(df: DataFrame, path, storage_options: StorageOptions = None, **kw
     feather.write_feather(df, path, **kwargs)
 
 
-def read_feather(
-    path, columns=None, use_threads: bool = True, storage_options: StorageOptions = None
-):
+def read_feather(path, columns=None, use_threads: bool = True, storage_options=None):
     """
     Load a feather-format object from the file path.
 
