@@ -1692,7 +1692,7 @@ class TestStyler:
         assert s.find('<td  class="data row0 col0" >') != -1
 
     def test_tooltip_render(self):
-        # GH XXXXX
+        # GH 21266
         df = pd.DataFrame(data=[[0, 1], [2, 3]])
         ttips = pd.DataFrame(
             data=[["Min", ""], [np.nan, "Max"]], columns=df.columns, index=df.index
@@ -1722,7 +1722,7 @@ class TestStyler:
         )
 
     def test_tooltip_ignored(self):
-        # GH XXXXX
+        # GH 21266
         df = pd.DataFrame(data=[[0, 1], [2, 3]])
         s = Styler(df, uuid="_")  # no set_tooltips()
         assert '<style  type="text/css" >\n</style>' in s.render()
