@@ -251,22 +251,16 @@ class TestFactorize:
         tm.assert_numpy_array_equal(codes, expected_codes)
         tm.assert_numpy_array_equal(uniques, expected_uniques)
 
-    @pytest.mark.parametrize(
-        "data, expected_codes, expected_uniques",
-        [
-            (
-                np.datetime64("2020-01-01T00:00:00.000"),
-                np.array([0], dtype=np.int64),
-                np.array(["2020-01-01T00:00:00.000000000"], dtype="datetime64[ns]"),
-            )
-        ],
-    )
-    def test_datetime64_factorize(self, data, expected_codes, expected_uniques):
+    def test_datetime64_factorize(self, writable):
         # GH35650 Verify whether read-only datetime64 array can be factorized
-        arr = np.array([data])
-        arr.flags.writeable = False
+        data = np.array([np.datetime64("2020-01-01T00:00:00.000")])
+        data.setflags(write=writable)
+        expected_codes = np.array([0], dtype=np.int64)
+        expected_uniques = np.array(
+            ["2020-01-01T00:00:00.000000000"], dtype="datetime64[ns]"
+        )
 
-        codes, uniques = pd.factorize(arr)
+        codes, uniques = pd.factorize(data)
         tm.assert_numpy_array_equal(codes, expected_codes)
         tm.assert_numpy_array_equal(uniques, expected_uniques)
 
