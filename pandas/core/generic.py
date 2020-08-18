@@ -2884,7 +2884,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         multicolumn=None,
         multicolumn_format=None,
         multirow=None,
-        caption=None,
+        caption: Optional[Union[str, Tuple[str, str]]] = None,
         short_caption=None,
         label=None,
         position=None,
@@ -2963,14 +2963,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             centered labels (instead of top-aligned) across the contained
             rows, separating groups via clines. The default will be read
             from the pandas config module.
-        caption : str, optional
-            The LaTeX caption to be placed inside ``\caption{}`` in the output.
+        caption : str, tuple, optional
+            Tuple (short_caption, full_caption),
+            which results in \caption[short_caption]{caption};
+            if a single string is passed, no short caption will be set.
 
             .. versionadded:: 1.0.0
-        short_caption : str, optional
-            The LaTeX short caption.
-            Full caption output would look like this:
-            ``\caption[short_caption]{caption}``.
         label : str, optional
             The LaTeX label to be placed inside ``\label{}`` in the output.
             This is used with ``\ref{}`` in the main ``.tex`` file.
@@ -3014,12 +3012,18 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             multicolumn_format = config.get_option("display.latex.multicolumn_format")
         if multirow is None:
             multirow = config.get_option("display.latex.multirow")
-        if short_caption and not caption:
-            caption = short_caption
-            warnings.warn(
-                "short_caption is provided, but caption is not provided.\n"
-                "Using short_caption value instead."
-            )
+        
+        if caption:
+            if isinstance(caption, str):
+                short_caption = ""
+            else:
+                try:
+                    caption, short_caption = caption
+                except ValueError as err:
+                    msg = "caption must be either str or tuple of two strings"
+                    raise ValueError(msg) from err
+        else:
+            short_caption = None
 
         formatter = DataFrameFormatter(
             self,

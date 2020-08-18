@@ -502,7 +502,7 @@ b &       b &     b \\
         assert result_cl == expected_cl
 
         # test when the short_caption is provided alongside caption
-        result_cl = df.to_latex(caption=the_caption, short_caption=the_short_caption)
+        result_cl = df.to_latex(caption=(the_caption, the_short_caption))
 
         expected_cl = r"""\begin{table}
 \centering
@@ -521,7 +521,7 @@ b &       b &     b \\
 
         # test when the short_caption is provided alongside caption and label
         result_cl = df.to_latex(
-            caption=the_caption, short_caption=the_short_caption, label=the_label,
+            caption=(the_caption, the_short_caption), label=the_label,
         )
 
         expected_cl = r"""\begin{table}
@@ -539,26 +539,6 @@ b &       b &     b \\
 \end{table}
 """
         assert result_cl == expected_cl
-
-        # test when the short_caption is provided but caption is not
-        with tm.assert_produces_warning(UserWarning):
-            result_cl = df.to_latex(short_caption=the_short_caption, label=the_label)
-
-            expected_cl = r"""\begin{table}
-\centering
-\caption[a table]{a table}
-\label{tab:table_tabular}
-\begin{tabular}{lrl}
-\toprule
-{} &  a &   b \\
-\midrule
-0 &  1 &  b1 \\
-1 &  2 &  b2 \\
-\bottomrule
-\end{tabular}
-\end{table}
-"""
-            assert result_cl == expected_cl
 
     def test_to_latex_longtable_caption_label(self):
         # GH 25436
@@ -637,8 +617,7 @@ b &       b &     b \\
         # test when the caption, the short_caption and the label are provided
         result_cl = df.to_latex(
             longtable=True,
-            caption=the_caption,
-            short_caption=the_short_caption,
+            caption=(the_caption, the_short_caption),
             label=the_label,
         )
 
