@@ -1,7 +1,7 @@
 # This file is auto-generated from environment.yml, do not modify.
 # See that file for comments about the need/usage of each dependency.
 
-numpy>=1.16.5,<1.19.0
+numpy>=1.16.5
 python-dateutil>=2.7.3
 pytz
 asv
@@ -47,7 +47,7 @@ bottleneck>=1.2.1
 ipykernel
 ipython>=7.11.1
 jinja2
-matplotlib>=2.2.2,<3.3.0
+matplotlib>=2.2.2
 numexpr>=2.6.8
 scipy>=1.2
 numba>=0.46.0
