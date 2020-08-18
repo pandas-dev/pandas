@@ -668,6 +668,7 @@ A ``ValueError`` will be raised if there are any negative values in your data.
    plt.figure()
 
 .. ipython:: python
+   :okwarning:
 
    series = pd.Series(3 * np.random.rand(4),
                       index=['a', 'b', 'c', 'd'], name='series')
