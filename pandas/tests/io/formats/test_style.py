@@ -1697,20 +1697,28 @@ class TestStyler:
         ttips = pd.DataFrame(
             data=[["Min", ""], [np.nan, "Max"]], columns=df.columns, index=df.index
         )
-        s = Styler(df, uuid="_").set_tooltips(ttips)
+        s = Styler(df, uuid="_").set_tooltips(ttips).render()
         # test tooltip table level class
-        assert "#T__ .pd-t {" in s.render()
-        # test 'min' tooltip added
+        assert "#T__ .pd-t {\n          visibility: hidden;\n" in s
+        # test 'Min' tooltip added
         assert (
             "#T__ #T__row0_col0:hover .pd-t {\n          visibility: visible;\n    }  "
             + '  #T__ #T__row0_col0 .pd-t::after {\n          content: "Min";\n    }'
-            in s.render()
+            in s
         )
-        # test 'max' tooltip added
+        assert (
+            '<td id="T__row0_col0" class="data row0 col0" >0<span class="pd-t"></span></td>'
+            in s
+        )
+        # test 'Max' tooltip added
         assert (
             "#T__ #T__row1_col1:hover .pd-t {\n          visibility: visible;\n    }  "
             + '  #T__ #T__row1_col1 .pd-t::after {\n          content: "Max";\n    }'
-            in s.render()
+            in s
+        )
+        assert (
+            '<td id="T__row1_col1" class="data row1 col1" >3<span class="pd-t"></span></td>'
+            in s
         )
 
     def test_tooltip_ignored(self):

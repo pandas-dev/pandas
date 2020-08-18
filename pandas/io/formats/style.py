@@ -615,6 +615,8 @@ class Styler:
         Returns None.
         """
         self.ctx.clear()
+        self.tooltip_styles = []
+        self.set_tooltip_class(name="pd-t", properties=None)
         self._todo = []
 
     def _compute(self):
