@@ -1203,8 +1203,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if len(keys) == 0:
             return self.obj._constructor(index=keys)
 
-        key_names = self.grouper.names
-
         # GH12824
         first_not_none = next(com.not_none(*values), None)
 
