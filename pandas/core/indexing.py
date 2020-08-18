@@ -1795,7 +1795,6 @@ class _iLocIndexer(_LocationIndexer):
                     col = item_labels[indexer[info_axis]]
                     loc = item_labels.get_loc(col)
                     self.obj._iset_item(loc, value, inplace=True)
-                    #self.obj[loc] = value
                     return
 
                 indexer = maybe_convert_ix(*indexer)
