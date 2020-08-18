@@ -2478,7 +2478,7 @@ class StringMethods(NoNewAttributesMixin):
         To disable this behavior in v1.0.0+, `.values` should be used with `others`.
         Alternatively, `others` may be converted to a numpy array using `to_numpy()`.
 
-        The following example may be used to demonstrate this behavior:
+        The following example could serve to clarify this:
 
         If `others` is a Series/Index/DataFrame and `to_numpy()` or `.values` is not used:
 
