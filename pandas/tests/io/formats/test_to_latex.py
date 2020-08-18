@@ -540,6 +540,27 @@ b &       b &     b \\
 """
         assert result_cl == expected_cl
 
+        # test that wrong number of params is raised
+        with pytest.raises(ValueError):
+                df.to_latex(caption=(the_caption, the_short_caption, 'extra_string'))
+
+        # test that two chars caption is handled correctly
+        result_cl = df.to_latex(caption='xy')
+        expected_cl = r"""\begin{table}
+\centering
+\caption{xy}
+\begin{tabular}{lrl}
+\toprule
+{} &  a &   b \\
+\midrule
+0 &  1 &  b1 \\
+1 &  2 &  b2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+"""
+        assert result_cl == expected_cl
+
     def test_to_latex_longtable_caption_label(self):
         # GH 25436
         the_caption = "a table in a \\texttt{longtable} environment"
