@@ -508,8 +508,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         """
         Series version of _apply_blockwise
         """
-        from pandas import Series  # TODO: use _constructor?
-
         _, obj = self._create_blocks(self._selected_obj)
         values = obj.values
 
@@ -519,7 +517,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             raise DataError("No numeric types to aggregate") from err
 
         result = homogeneous_func(values)
-        return Series(result, index=obj.index, name=obj.name)
+        return obj._constructor(result, index=obj.index, name=obj.name)
 
     def _apply_blockwise(
         self, homogeneous_func: Callable[..., ArrayLike]
