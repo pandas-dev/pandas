@@ -2,7 +2,17 @@ from collections import defaultdict
 import itertools
 import operator
 import re
-from typing import DefaultDict, Dict, List, Optional, Sequence, Tuple, TypeVar, Union
+from typing import (
+    DefaultDict,
+    Dict,
+    List,
+    Optional,
+    Pattern,
+    Sequence,
+    Tuple,
+    TypeVar,
+    Union,
+)
 import warnings
 
 import numpy as np
@@ -1494,6 +1504,38 @@ class BlockManager(PandasObject):
         bm = BlockManager(new_blocks, [new_columns, new_index])
         return bm
 
+    def reset_dropped_locs(self, blocks: List[Block], skipped: List[int]) -> Index:
+        """
+        Decrement the mgr_locs of the given blocks with `skipped` removed.
+
+        Notes
+        -----
+        Alters each block's mgr_locs inplace.
+        """
+        ncols = len(self)
+
+        new_locs = [blk.mgr_locs.as_array for blk in blocks]
+        indexer = np.concatenate(new_locs)
+
+        new_items = self.items.take(np.sort(indexer))
+
+        if skipped:
+            # we need to adjust the indexer to account for the
+            #  items we have removed
+            deleted_items = [self.blocks[i].mgr_locs.as_array for i in skipped]
+            deleted = np.concatenate(deleted_items)
+            ai = np.arange(ncols)
+            mask = np.zeros(ncols)
+            mask[deleted] = 1
+            indexer = (ai - mask.cumsum())[indexer]
+
+        offset = 0
+        for blk in blocks:
+            loc = len(blk.mgr_locs)
+            blk.mgr_locs = indexer[offset : (offset + loc)]
+            offset += loc
+        return new_items
+
 
 class SingleBlockManager(BlockManager):
     """ manage a single block with """
@@ -1907,7 +1949,10 @@ def _merge_blocks(
 
 
 def _compare_or_regex_search(
-    a: ArrayLike, b: Scalar, regex: bool = False, mask: Optional[ArrayLike] = None
+    a: ArrayLike,
+    b: Union[Scalar, Pattern],
+    regex: bool = False,
+    mask: Optional[ArrayLike] = None,
 ) -> Union[ArrayLike, bool]:
     """
     Compare two array_like inputs of the same shape or two scalar values
@@ -1918,7 +1963,7 @@ def _compare_or_regex_search(
     Parameters
     ----------
     a : array_like
-    b : scalar
+    b : scalar or regex pattern
     regex : bool, default False
     mask : array_like or None (default)
 
@@ -1928,7 +1973,7 @@ def _compare_or_regex_search(
     """
 
     def _check_comparison_types(
-        result: Union[ArrayLike, bool], a: ArrayLike, b: Scalar,
+        result: Union[ArrayLike, bool], a: ArrayLike, b: Union[Scalar, Pattern],
     ):
         """
         Raises an error if the two arrays (a,b) cannot be compared.
@@ -1949,7 +1994,7 @@ def _compare_or_regex_search(
     else:
         op = np.vectorize(
             lambda x: bool(re.search(b, x))
-            if isinstance(x, str) and isinstance(b, str)
+            if isinstance(x, str) and isinstance(b, (str, Pattern))
             else False
         )
 
