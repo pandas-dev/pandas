@@ -3,8 +3,7 @@ channels:
   - conda-forge
 dependencies:
   # required
-  # Pin numpy<1.19 until MPL 3.3.0 is released.
-  - numpy>=1.16.5,<1.19.0
+  - numpy>=1.16.5
   - python=3
   - python-dateutil>=2.7.3
   - pytz
@@ -73,7 +72,7 @@ dependencies:
   - ipykernel
   - ipython>=7.11.1
   - jinja2  # pandas.Styler
-  - matplotlib>=2.2.2,<3.3.0  # pandas.plotting, Series.plot, DataFrame.plot
+  - matplotlib>=2.2.2  # pandas.plotting, Series.plot, DataFrame.plot
   - numexpr>=2.6.8
   - scipy>=1.2
   - numba>=0.46.0
