@@ -2887,8 +2887,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         multicolumn=None,
         multicolumn_format=None,
         multirow=None,
-        caption: Optional[Union[str, Tuple[str, str]]] = None,
-        short_caption=None,
+        caption=None,
         label=None,
         position=None,
     ):
