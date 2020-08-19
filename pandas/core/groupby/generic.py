@@ -1031,7 +1031,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             data = data.get_numeric_data(copy=False)
 
         agg_blocks: List["Block"] = []
-        deleted_items: List[np.ndarray] = []
 
         no_result = object()
 
@@ -1133,7 +1132,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 #  continue and exclude the block
                 # NotImplementedError -> "ohlc" with wrong dtype
                 skipped.append(i)
-                deleted_items.append(block.mgr_locs.as_array)
             else:
                 agg_blocks.extend(nbs)
 
