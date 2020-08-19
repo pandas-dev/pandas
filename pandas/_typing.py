@@ -106,3 +106,11 @@ AggFuncType = Union[
     List[AggFuncTypeBase],
     Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]],
 ]
+
+# for arbitrary kwargs passed during reading/writing files
+StorageOptions = Optional[Dict[str, Any]]
+
+
+# compression keywords and compression
+CompressionDict = Mapping[str, Optional[Union[str, int, bool]]]
+CompressionOptions = Optional[Union[str, CompressionDict]]

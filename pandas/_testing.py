@@ -1339,10 +1339,8 @@ def assert_series_equal(
         else:
             assert_attr_equal("dtype", left, right, obj=f"Attributes of {obj}")
 
-    if check_exact:
-        if not is_numeric_dtype(left.dtype):
-            raise AssertionError("check_exact may only be used with numeric Series")
-
+    if check_exact and is_numeric_dtype(left.dtype) and is_numeric_dtype(right.dtype):
+        # Only check exact if dtype is numeric
         assert_numpy_array_equal(
             left._values,
             right._values,
@@ -1379,12 +1377,18 @@ def assert_series_equal(
         )
     elif is_extension_array_dtype(left.dtype) and is_extension_array_dtype(right.dtype):
         assert_extension_array_equal(
-            left._values, right._values, index_values=np.asarray(left.index)
+            left._values,
+            right._values,
+            check_dtype=check_dtype,
+            index_values=np.asarray(left.index),
         )
     elif needs_i8_conversion(left.dtype) or needs_i8_conversion(right.dtype):
         # DatetimeArray or TimedeltaArray
         assert_extension_array_equal(
-            left._values, right._values, index_values=np.asarray(left.index)
+            left._values,
+            right._values,
+            check_dtype=check_dtype,
+            index_values=np.asarray(left.index),
         )
     else:
         _testing.assert_almost_equal(
