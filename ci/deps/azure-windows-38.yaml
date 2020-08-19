@@ -26,6 +26,7 @@ dependencies:
   - pytables
   - python-dateutil
   - pytz
+  - s3fs>=0.4.0
   - scipy
   - xlrd
   - xlsxwriter
