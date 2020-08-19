@@ -165,7 +165,7 @@ Bug fixes
 Categorical
 ^^^^^^^^^^^
 
--
+- Bug in :func:`pandas.core.dtypes.common.is_categorical_dtype` where categorical ``SparseArray`` dtypes would return ``False`` (:issue:`35793`)
 -
 
 Datetimelike

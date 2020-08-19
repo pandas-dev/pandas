@@ -558,8 +558,9 @@ def is_categorical_dtype(arr_or_dtype) -> bool:
     """
     if isinstance(arr_or_dtype, ExtensionDtype):
         # GH#33400 fastpath for dtype object
-        return arr_or_dtype.name == "category"
-
+        return "category" in arr_or_dtype.name
+    if hasattr(arr_or_dtype, "dtype"):
+        return is_categorical_dtype(arr_or_dtype.dtype)
     if arr_or_dtype is None:
         return False
     return CategoricalDtype.is_dtype(arr_or_dtype)

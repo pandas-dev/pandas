@@ -213,6 +213,15 @@ def test_is_categorical_deprecation():
         com.is_categorical([1, 2, 3])
 
 
+def test_sparse_categorical_is_categorical():
+    # https://github.com/pandas-dev/pandas/issues/35793
+    s = pd.Series(
+        ["a", "b", "c"], dtype=pd.SparseDtype(CategoricalDtype(["a", "b", "c"]))
+    )
+    assert com.is_categorical_dtype(s)
+    assert com.is_categorical_dtype(s.dtype)
+
+
 def test_is_datetime64_dtype():
     assert not com.is_datetime64_dtype(object)
     assert not com.is_datetime64_dtype([1, 2, 3])
