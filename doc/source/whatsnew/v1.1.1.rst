@@ -40,7 +40,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 
-- Bug in ``Styler`` whereby `cell_ids` argument had no effect due to other recent changes (:issue:`35588`) (:issue:`35663`)
+- Bug in :class:`~pandas.io.formats.style.Styler` whereby `cell_ids` argument had no effect due to other recent changes (:issue:`35588`) (:issue:`35663`)
 - Bug in :func:`pandas.testing.assert_series_equal` and :func:`pandas.testing.assert_frame_equal` where extension dtypes were not ignored when ``check_dtypes`` was set to ``False`` (:issue:`35715`)
 - Bug in :meth:`to_timedelta` fails when arg is a :class:`Series` with `Int64` dtype containing null values (:issue:`35574`)
 - Bug in ``.groupby(..).rolling(..)`` where passing ``closed`` with column selection would raise a ``ValueError`` (:issue:`35549`)
