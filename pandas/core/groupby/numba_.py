@@ -112,7 +112,7 @@ def generate_numba_agg_func(
     kwargs: Dict[str, Any],
     func: Callable[..., Scalar],
     engine_kwargs: Optional[Dict[str, bool]],
-):
+) -> Callable[[np.ndarray, np.ndarray, np.ndarray, np.ndarray, int, int], np.ndarray]:
     """
     Generate a numba jitted agg function specified by values from engine_kwargs.
 
