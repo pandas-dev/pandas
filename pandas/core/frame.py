@@ -2216,9 +2216,7 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         path : str or file-like object
-            If a string, it will be used as Root Directory path. By file-like
-            object, we refer to objects with a write() method, such as
-            a file handler (e.g. via builtin open function) or io.BytesIO.
+            If a string, it will be used as Root Directory path.
         **kwargs :
             Additional keywords passed to :func:`pyarrow.feather.write_feather`.
             Starting with pyarrow 0.17, this includes the `compression`,
