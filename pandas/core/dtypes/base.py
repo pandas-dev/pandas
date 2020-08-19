@@ -289,6 +289,8 @@ class ExtensionDtype:
             return False
         elif isinstance(dtype, cls):
             return True
+        elif hasattr(dtype, "subtype") and isinstance(dtype.subtype, cls):
+            return True
         if isinstance(dtype, str):
             try:
                 return cls.construct_from_string(dtype) is not None
