@@ -394,15 +394,13 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         """
         from pandas import Series, concat
 
-        exclude: List[Label]
+        exclude: List[Label] = []
         if obj.ndim == 2:
             orig_blocks = list(obj._to_dict_of_blocks(copy=False).values())
-            exclude = []
             for i in skipped:
                 exclude.extend(orig_blocks[i].columns)
         else:
             orig_blocks = [obj]
-            exclude = []
 
         kept_blocks = [blk for i, blk in enumerate(orig_blocks) if i not in skipped]
 
