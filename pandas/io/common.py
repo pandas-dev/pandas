@@ -319,9 +319,9 @@ def get_filepath_or_buffer(
             compression,
             False,
         )
-    except TypeError as e:
+    except TypeError as err:
         msg = f"Invalid file path or buffer object type: {type(filepath_or_buffer)}"
-        raise ValueError(msg) from e
+        raise ValueError(msg) from err
 
     return IOargs(
         filepath_or_buffer=filepath_or_buffer,
