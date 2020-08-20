@@ -38,7 +38,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.base import DataError, PandasObject, SelectionMixin, ShallowMixin
 import pandas.core.common as com
 from pandas.core.construction import extract_array
-from pandas.core.indexes.api import Index, MultiIndex, ensure_index
+from pandas.core.indexes.api import Index, MultiIndex
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE, maybe_use_numba
 from pandas.core.window.common import (
     WindowGroupByMixin,
@@ -402,36 +402,27 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                 return result
             final.append(result)
 
-        # if we have an 'on' column
-        # we want to put it back into the results
-        # in the same location
-        columns = self._selected_obj.columns
-        if self.on is not None and not self._on.equals(obj.index):
-
-            name = self._on.name
-            final.append(Series(self._on, index=obj.index, name=name))
-
-            if self._selection is not None:
-
-                selection = ensure_index(self._selection)
-
-                # need to reorder to include original location of
-                # the on column (if its not already there)
-                if name not in selection:
-                    columns = self.obj.columns
-                    indexer = columns.get_indexer(selection.tolist() + [name])
-                    columns = columns.take(sorted(indexer))
-
-        # exclude nuisance columns so that they are not reindexed
-        if exclude is not None and exclude:
-            columns = [c for c in columns if c not in exclude]
-
-            if not columns:
-                raise DataError("No numeric types to aggregate")
-
-        if not len(final):
+        exclude = exclude or []
+        columns = [c for c in self._selected_obj.columns if c not in exclude]
+        if not columns and not len(final) and exclude:
+            raise DataError("No numeric types to aggregate")
+        elif not len(final):
             return obj.astype("float64")
-        return concat(final, axis=1).reindex(columns=columns, copy=False)
+
+        df = concat(final, axis=1).reindex(columns=columns, copy=False)
+
+        # if we have an 'on' column we want to put it back into
+        # the results in the same location
+        if self.on is not None and not self._on.equals(obj.index):
+            name = self._on.name
+            extra_col = Series(self._on, index=obj.index, name=name)
+            if name not in df.columns and name not in df.index.names:
+                new_loc = len(df.columns)
+                df.insert(new_loc, name, extra_col)
+            elif name in df.columns:
+                # TODO: sure we want to overwrite results?
+                df[name] = extra_col
+        return df
 
     def _center_window(self, result, window) -> np.ndarray:
         """
@@ -2277,6 +2268,7 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         if isinstance(self.window, BaseIndexer):
             rolling_indexer = type(self.window)
             indexer_kwargs = self.window.__dict__
+            assert isinstance(indexer_kwargs, dict)
             # We'll be using the index of each group later
             indexer_kwargs.pop("index_array", None)
         elif self.is_freq_type:
