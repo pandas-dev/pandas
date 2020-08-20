@@ -2600,7 +2600,7 @@ class DataFrame(NDFrame):
              1   column_2  1000000 non-null  object
              2   column_3  1000000 non-null  object
             dtypes: object(3)
-            memory usage: 188.8 MB"""
+            memory usage: 165.9 MB"""
         ),
         see_also_sub=(
             """
@@ -6609,6 +6609,8 @@ NaN 12.3   33.0
             duplicate values for one index/column pair.
         DataFrame.unstack : Pivot based on the index values instead of a
             column.
+        wide_to_long : Wide panel to long format. Less flexible but more
+            user-friendly than melt.
 
         Notes
         -----
@@ -6763,6 +6765,10 @@ NaN 12.3   33.0
         --------
         DataFrame.pivot : Pivot without aggregation that can handle
             non-numeric data.
+        DataFrame.melt: Unpivot a DataFrame from wide to long format,
+            optionally leaving identifiers set.
+        wide_to_long : Wide panel to long format. Less flexible but more
+            user-friendly than melt.
 
         Examples
         --------
