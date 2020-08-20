@@ -21,8 +21,6 @@ dependencies:
   - jinja2
   - lxml=4.3.0
   - matplotlib=3.0.*
-  - moto
-  - flask
   - nomkl
   - numexpr
   - numpy
