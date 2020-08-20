@@ -215,6 +215,7 @@ class TestGrouperGrouping:
         )
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(not compat.IS64, reason="GH-35294")
     def test_groupby_rolling_center_center(self):
         # GH 35552
         series = Series(range(1, 6))
@@ -280,6 +281,7 @@ class TestGrouperGrouping:
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(not compat.IS64, reason="GH-35294")
     def test_groupby_subselect_rolling(self):
         # GH 35486
         df = DataFrame(
@@ -305,6 +307,7 @@ class TestGrouperGrouping:
         )
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(not compat.IS64, reason="GH-35294")
     def test_groupby_rolling_custom_indexer(self):
         # GH 35557
         class SimpleIndexer(pd.api.indexers.BaseIndexer):
@@ -328,6 +331,7 @@ class TestGrouperGrouping:
         expected = df.groupby(df.index).rolling(window=3, min_periods=1).sum()
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(not compat.IS64, reason="GH-35294")
     def test_groupby_rolling_subset_with_closed(self):
         # GH 35549
         df = pd.DataFrame(
@@ -352,6 +356,7 @@ class TestGrouperGrouping:
         )
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(not compat.IS64, reason="GH-35294")
     def test_groupby_subset_rolling_subset_with_closed(self):
         # GH 35549
         df = pd.DataFrame(
