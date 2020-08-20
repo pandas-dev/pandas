@@ -91,7 +91,7 @@ A :class:`SparseDtype` may be constructed by passing each of these
 
 .. ipython:: python
 
-   pd.SparseDtype(np.dtype('datetime64[ns]'))
+   pd.SparseDtype(np.dtype('datetime64[ns]'), pd.NaT)
 
 The default fill value for a given NumPy dtype is the "missing" value for that dtype,
 though it may be overridden.
