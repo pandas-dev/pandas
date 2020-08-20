@@ -15,7 +15,7 @@ isort>=5.2.1
 mypy==0.730
 pycodestyle
 gitpython
-gitdb2==2.0.6
+gitdb
 sphinx
 nbconvert>=5.4.1
 nbsphinx
