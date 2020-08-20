@@ -129,5 +129,6 @@ def s3_resource(s3_base, tips_file, jsonl_file, feather_file):
     add_tips_files("cant_get_it")
     s3fs.S3FileSystem.clear_instance_cache()
     yield conn
-    s3fs.rm(bucket, recursive=True)
-    s3fs.rm("cant_get_it", recursive=True)
+    s3 = s3fs.S3FileSystem(client_kwargs={"endpoint_url": "http://127.0.0.1:5555/"})
+    s3.rm(bucket, recursive=True)
+    s3.rm("cant_get_it", recursive=True)
