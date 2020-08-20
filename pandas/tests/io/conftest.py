@@ -122,13 +122,30 @@ def s3_resource(s3_base, tips_file, jsonl_file, feather_file):
     endpoint_uri = "http://127.0.0.1:5555/"
     conn = boto3.resource("s3", endpoint_url=endpoint_uri)
 
-    conn.create_bucket(Bucket=bucket)
+    try:
+        conn.create_bucket(Bucket=bucket)
+    except:  # noqa
+        # OK is bucket already exists
+        pass
     add_tips_files(bucket)
 
-    conn.create_bucket(Bucket="cant_get_it", ACL="private")
+    try:
+        conn.create_bucket(Bucket="cant_get_it", ACL="private")
+    except:  # noqa
+        # OK is bucket already exists
+        pass
+
     add_tips_files("cant_get_it")
     s3fs.S3FileSystem.clear_instance_cache()
     yield conn
+
     s3 = s3fs.S3FileSystem(client_kwargs={"endpoint_url": "http://127.0.0.1:5555/"})
-    s3.rm(bucket, recursive=True)
-    s3.rm("cant_get_it", recursive=True)
+
+    try:
+        s3.rm(bucket, recursive=True)
+    except:  # noqa
+        pass
+    try:
+        s3.rm("cant_get_it", recursive=True)
+    except:  # noqa
+        pass
