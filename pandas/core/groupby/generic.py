@@ -1274,6 +1274,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                         if len(names) == 1:
                             index.name = list(names)[0]
 
+                    # Combine values
+                    # Using vstack+constructor is faster than concat, and handles MI-columns
                     stacked_values = np.vstack([np.asarray(v) for v in values])
 
                     if self.axis == 0:
