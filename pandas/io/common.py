@@ -29,7 +29,12 @@ from urllib.parse import (
 )
 import zipfile
 
-from pandas._typing import FilePathOrBuffer, StorageOptions
+from pandas._typing import (
+    CompressionDict,
+    CompressionOptions,
+    FilePathOrBuffer,
+    StorageOptions,
+)
 from pandas.compat import _get_lzma_file, _import_lzma
 from pandas.compat._optional import import_optional_dependency
 
@@ -160,7 +165,7 @@ def is_fsspec_url(url: FilePathOrBuffer) -> bool:
 def get_filepath_or_buffer(
     filepath_or_buffer: FilePathOrBuffer,
     encoding: Optional[str] = None,
-    compression: Optional[str] = None,
+    compression: CompressionOptions = None,
     mode: Optional[str] = None,
     storage_options: StorageOptions = None,
 ):
@@ -188,7 +193,7 @@ def get_filepath_or_buffer(
 
     Returns
     -------
-    Tuple[FilePathOrBuffer, str, str, bool]
+    Tuple[FilePathOrBuffer, str, CompressionOptions, bool]
         Tuple containing the filepath or buffer, the encoding, the compression
         and should_close.
     """
@@ -291,8 +296,8 @@ _compression_to_extension = {"gzip": ".gz", "bz2": ".bz2", "zip": ".zip", "xz": 
 
 
 def get_compression_method(
-    compression: Optional[Union[str, Mapping[str, Any]]]
-) -> Tuple[Optional[str], Dict[str, Any]]:
+    compression: CompressionOptions,
+) -> Tuple[Optional[str], CompressionDict]:
     """
     Simplifies a compression argument to a compression method string and
     a mapping containing additional arguments.
@@ -316,7 +321,7 @@ def get_compression_method(
     if isinstance(compression, Mapping):
         compression_args = dict(compression)
         try:
-            compression_method = compression_args.pop("method")
+            compression_method = compression_args.pop("method")  # type: ignore
         except KeyError as err:
             raise ValueError("If mapping, compression must have key 'method'") from err
     else:
@@ -383,7 +388,7 @@ def get_handle(
     path_or_buf,
     mode: str,
     encoding=None,
-    compression: Optional[Union[str, Mapping[str, Any]]] = None,
+    compression: CompressionOptions = None,
     memory_map: bool = False,
     is_text: bool = True,
     errors=None,
@@ -448,7 +453,7 @@ def get_handle(
     except ImportError:
         need_text_wrapping = (BufferedIOBase, RawIOBase)
 
-    handles: List[IO] = list()
+    handles: List[Union[IO, _MMapWrapper]] = list()
     f = path_or_buf
 
     # Convert pathlib.Path/py.path.local or string
@@ -464,16 +469,13 @@ def get_handle(
         # GZ Compression
         if compression == "gzip":
             if is_path:
-                f = gzip.open(path_or_buf, mode, **compression_args)
+                f = gzip.GzipFile(filename=path_or_buf, mode=mode, **compression_args)
             else:
                 f = gzip.GzipFile(fileobj=path_or_buf, mode=mode, **compression_args)
 
         # BZ Compression
         elif compression == "bz2":
-            if is_path:
-                f = bz2.BZ2File(path_or_buf, mode, **compression_args)
-            else:
-                f = bz2.BZ2File(path_or_buf, mode=mode, **compression_args)
+            f = bz2.BZ2File(path_or_buf, mode=mode, **compression_args)
 
         # ZIP Compression
         elif compression == "zip":
@@ -534,6 +536,8 @@ def get_handle(
         try:
             wrapped = _MMapWrapper(f)
             f.close()
+            handles.remove(f)
+            handles.append(wrapped)
             f = wrapped
         except Exception:
             # we catch any errors that may have occurred
@@ -577,7 +581,9 @@ class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore[misc]
         if mode in ["wb", "rb"]:
             mode = mode.replace("b", "")
         self.archive_name = archive_name
-        super().__init__(file, mode, zipfile.ZIP_DEFLATED, **kwargs)
+        kwargs_zip: Dict[str, Any] = {"compression": zipfile.ZIP_DEFLATED}
+        kwargs_zip.update(kwargs)
+        super().__init__(file, mode, **kwargs_zip)
 
     def write(self, data):
         archive_name = self.filename
