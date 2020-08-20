@@ -111,7 +111,6 @@ def to_json(
         except (TypeError, ValueError):
             pass
 
-
     if isinstance(path_or_buf, str):
         fh, handles = get_handle(path_or_buf, mode, compression=compression)
         try:
