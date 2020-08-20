@@ -2,7 +2,17 @@ from collections import defaultdict
 import itertools
 import operator
 import re
-from typing import DefaultDict, Dict, List, Optional, Sequence, Tuple, TypeVar, Union
+from typing import (
+    DefaultDict,
+    Dict,
+    List,
+    Optional,
+    Pattern,
+    Sequence,
+    Tuple,
+    TypeVar,
+    Union,
+)
 import warnings
 
 import numpy as np
@@ -28,10 +38,9 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
-from pandas.core.dtypes.missing import array_equivalent, isna
+from pandas.core.dtypes.missing import array_equals, isna
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
@@ -49,7 +58,7 @@ from pandas.core.internals.blocks import (
     get_block_type,
     make_block,
 )
-from pandas.core.internals.ops import operate_blockwise
+from pandas.core.internals.ops import blockwise_all, operate_blockwise
 
 # TODO: flexible with index=None and/or items=None
 
@@ -867,6 +876,8 @@ class BlockManager(PandasObject):
             dtype = dtype.subtype
         elif is_extension_array_dtype(dtype):
             dtype = "object"
+        elif is_dtype_equal(dtype, str):
+            dtype = "object"
 
         result = np.empty(self.shape, dtype=dtype)
 
@@ -1436,7 +1447,10 @@ class BlockManager(PandasObject):
             new_axis=new_labels, indexer=indexer, axis=axis, allow_dups=True
         )
 
-    def equals(self, other: "BlockManager") -> bool:
+    def equals(self, other: object) -> bool:
+        if not isinstance(other, BlockManager):
+            return False
+
         self_axes, other_axes = self.axes, other.axes
         if len(self_axes) != len(other_axes):
             return False
@@ -1449,26 +1463,9 @@ class BlockManager(PandasObject):
                 return False
             left = self.blocks[0].values
             right = other.blocks[0].values
-            if not is_dtype_equal(left.dtype, right.dtype):
-                return False
-            elif isinstance(left, ExtensionArray):
-                return left.equals(right)
-            else:
-                return array_equivalent(left, right)
+            return array_equals(left, right)
 
-        for i in range(len(self.items)):
-            # Check column-wise, return False if any column doesn't match
-            left = self.iget_values(i)
-            right = other.iget_values(i)
-            if not is_dtype_equal(left.dtype, right.dtype):
-                return False
-            elif isinstance(left, ExtensionArray):
-                if not left.equals(right):
-                    return False
-            else:
-                if not array_equivalent(left, right, dtype_equal=True):
-                    return False
-        return True
+        return blockwise_all(self, other, array_equals)
 
     def unstack(self, unstacker, fill_value) -> "BlockManager":
         """
@@ -1506,6 +1503,38 @@ class BlockManager(PandasObject):
 
         bm = BlockManager(new_blocks, [new_columns, new_index])
         return bm
+
+    def reset_dropped_locs(self, blocks: List[Block], skipped: List[int]) -> Index:
+        """
+        Decrement the mgr_locs of the given blocks with `skipped` removed.
+
+        Notes
+        -----
+        Alters each block's mgr_locs inplace.
+        """
+        ncols = len(self)
+
+        new_locs = [blk.mgr_locs.as_array for blk in blocks]
+        indexer = np.concatenate(new_locs)
+
+        new_items = self.items.take(np.sort(indexer))
+
+        if skipped:
+            # we need to adjust the indexer to account for the
+            #  items we have removed
+            deleted_items = [self.blocks[i].mgr_locs.as_array for i in skipped]
+            deleted = np.concatenate(deleted_items)
+            ai = np.arange(ncols)
+            mask = np.zeros(ncols)
+            mask[deleted] = 1
+            indexer = (ai - mask.cumsum())[indexer]
+
+        offset = 0
+        for blk in blocks:
+            loc = len(blk.mgr_locs)
+            blk.mgr_locs = indexer[offset : (offset + loc)]
+            offset += loc
+        return new_items
 
 
 class SingleBlockManager(BlockManager):
@@ -1920,7 +1949,10 @@ def _merge_blocks(
 
 
 def _compare_or_regex_search(
-    a: ArrayLike, b: Scalar, regex: bool = False, mask: Optional[ArrayLike] = None
+    a: ArrayLike,
+    b: Union[Scalar, Pattern],
+    regex: bool = False,
+    mask: Optional[ArrayLike] = None,
 ) -> Union[ArrayLike, bool]:
     """
     Compare two array_like inputs of the same shape or two scalar values
@@ -1931,7 +1963,7 @@ def _compare_or_regex_search(
     Parameters
     ----------
     a : array_like
-    b : scalar
+    b : scalar or regex pattern
     regex : bool, default False
     mask : array_like or None (default)
 
@@ -1941,7 +1973,7 @@ def _compare_or_regex_search(
     """
 
     def _check_comparison_types(
-        result: Union[ArrayLike, bool], a: ArrayLike, b: Scalar,
+        result: Union[ArrayLike, bool], a: ArrayLike, b: Union[Scalar, Pattern],
     ):
         """
         Raises an error if the two arrays (a,b) cannot be compared.
@@ -1962,7 +1994,7 @@ def _compare_or_regex_search(
     else:
         op = np.vectorize(
             lambda x: bool(re.search(b, x))
-            if isinstance(x, str) and isinstance(b, str)
+            if isinstance(x, str) and isinstance(b, (str, Pattern))
             else False
         )
 

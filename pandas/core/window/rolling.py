@@ -38,7 +38,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.base import DataError, PandasObject, SelectionMixin, ShallowMixin
 import pandas.core.common as com
 from pandas.core.construction import extract_array
-from pandas.core.indexes.api import Index, MultiIndex, ensure_index
+from pandas.core.indexes.api import Index, MultiIndex
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE, maybe_use_numba
 from pandas.core.window.common import (
     WindowGroupByMixin,
@@ -145,7 +145,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
     def __init__(
         self,
-        obj,
+        obj: FrameOrSeries,
         window=None,
         min_periods: Optional[int] = None,
         center: bool = False,
@@ -318,7 +318,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
     def __iter__(self):
         window = self._get_window(win_type=None)
-        blocks, obj = self._create_blocks(self._selected_obj)
+        _, obj = self._create_blocks(self._selected_obj)
         index = self._get_window_indexer(window=window)
 
         start, end = index.get_window_bounds(
@@ -402,36 +402,27 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                 return result
             final.append(result)
 
-        # if we have an 'on' column
-        # we want to put it back into the results
-        # in the same location
-        columns = self._selected_obj.columns
-        if self.on is not None and not self._on.equals(obj.index):
-
-            name = self._on.name
-            final.append(Series(self._on, index=obj.index, name=name))
-
-            if self._selection is not None:
-
-                selection = ensure_index(self._selection)
-
-                # need to reorder to include original location of
-                # the on column (if its not already there)
-                if name not in selection:
-                    columns = self.obj.columns
-                    indexer = columns.get_indexer(selection.tolist() + [name])
-                    columns = columns.take(sorted(indexer))
-
-        # exclude nuisance columns so that they are not reindexed
-        if exclude is not None and exclude:
-            columns = [c for c in columns if c not in exclude]
-
-            if not columns:
-                raise DataError("No numeric types to aggregate")
-
-        if not len(final):
+        exclude = exclude or []
+        columns = [c for c in self._selected_obj.columns if c not in exclude]
+        if not columns and not len(final) and exclude:
+            raise DataError("No numeric types to aggregate")
+        elif not len(final):
             return obj.astype("float64")
-        return concat(final, axis=1).reindex(columns=columns, copy=False)
+
+        df = concat(final, axis=1).reindex(columns=columns, copy=False)
+
+        # if we have an 'on' column we want to put it back into
+        # the results in the same location
+        if self.on is not None and not self._on.equals(obj.index):
+            name = self._on.name
+            extra_col = Series(self._on, index=obj.index, name=name)
+            if name not in df.columns and name not in df.index.names:
+                new_loc = len(df.columns)
+                df.insert(new_loc, name, extra_col)
+            elif name in df.columns:
+                # TODO: sure we want to overwrite results?
+                df[name] = extra_col
+        return df
 
     def _center_window(self, result, window) -> np.ndarray:
         """
@@ -2212,7 +2203,7 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         # Cannot use _wrap_outputs because we calculate the result all at once
         # Compose MultiIndex result from grouping levels then rolling level
         # Aggregate the MultiIndex data as tuples then the level names
-        grouped_object_index = self._groupby._selected_obj.index
+        grouped_object_index = self.obj.index
         grouped_index_name = [grouped_object_index.name]
         groupby_keys = [grouping.name for grouping in self._groupby.grouper._groupings]
         result_index_names = groupby_keys + grouped_index_name
@@ -2235,10 +2226,6 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
     @property
     def _constructor(self):
         return Rolling
-
-    @cache_readonly
-    def _selected_obj(self):
-        return self._groupby._selected_obj
 
     def _create_blocks(self, obj: FrameOrSeries):
         """
@@ -2275,10 +2262,17 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         -------
         GroupbyRollingIndexer
         """
-        rolling_indexer: Union[Type[FixedWindowIndexer], Type[VariableWindowIndexer]]
-        if self.is_freq_type:
+        rolling_indexer: Type[BaseIndexer]
+        indexer_kwargs: Optional[Dict] = None
+        index_array = self.obj.index.asi8
+        if isinstance(self.window, BaseIndexer):
+            rolling_indexer = type(self.window)
+            indexer_kwargs = self.window.__dict__
+            assert isinstance(indexer_kwargs, dict)
+            # We'll be using the index of each group later
+            indexer_kwargs.pop("index_array", None)
+        elif self.is_freq_type:
             rolling_indexer = VariableWindowIndexer
-            index_array = self._groupby._selected_obj.index.asi8
         else:
             rolling_indexer = FixedWindowIndexer
             index_array = None
@@ -2287,6 +2281,7 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
             window_size=window,
             groupby_indicies=self._groupby.indices,
             rolling_indexer=rolling_indexer,
+            indexer_kwargs=indexer_kwargs,
         )
         return window_indexer
 
@@ -2295,7 +2290,7 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         # here so our index is carried thru to the selected obj
         # when we do the splitting for the groupby
         if self.on is not None:
-            self._groupby.obj = self._groupby.obj.set_index(self._on)
+            self.obj = self.obj.set_index(self._on)
             self.on = None
         return super()._gotitem(key, ndim, subset=subset)
 

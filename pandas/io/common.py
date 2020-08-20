@@ -29,7 +29,12 @@ from urllib.parse import (
 )
 import zipfile
 
-from pandas._typing import FilePathOrBuffer
+from pandas._typing import (
+    CompressionDict,
+    CompressionOptions,
+    FilePathOrBuffer,
+    StorageOptions,
+)
 from pandas.compat import _get_lzma_file, _import_lzma
 from pandas.compat._optional import import_optional_dependency
 
@@ -160,9 +165,9 @@ def is_fsspec_url(url: FilePathOrBuffer) -> bool:
 def get_filepath_or_buffer(
     filepath_or_buffer: FilePathOrBuffer,
     encoding: Optional[str] = None,
-    compression: Optional[str] = None,
+    compression: CompressionOptions = None,
     mode: Optional[str] = None,
-    storage_options: Optional[Dict[str, Any]] = None,
+    storage_options: StorageOptions = None,
 ):
     """
     If the filepath_or_buffer is a url, translate and return the buffer.
@@ -175,12 +180,20 @@ def get_filepath_or_buffer(
     compression : {{'gzip', 'bz2', 'zip', 'xz', None}}, optional
     encoding : the encoding to use to decode bytes, default is 'utf-8'
     mode : str, optional
-    storage_options: dict, optional
-        passed on to fsspec, if using it; this is not yet accessed by the public API
+
+    storage_options : dict, optional
+        Extra options that make sense for a particular storage connection, e.g.
+        host, port, username, password, etc., if using a URL that will
+        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+        will be raised if providing this argument with a local path or
+        a file-like buffer. See the fsspec and backend storage implementation
+        docs for the set of allowed keys and values
+
+        .. versionadded:: 1.2.0
 
     Returns
     -------
-    Tuple[FilePathOrBuffer, str, str, bool]
+    Tuple[FilePathOrBuffer, str, CompressionOptions, bool]
         Tuple containing the filepath or buffer, the encoding, the compression
         and should_close.
     """
@@ -188,6 +201,10 @@ def get_filepath_or_buffer(
 
     if isinstance(filepath_or_buffer, str) and is_url(filepath_or_buffer):
         # TODO: fsspec can also handle HTTP via requests, but leaving this unchanged
+        if storage_options:
+            raise ValueError(
+                "storage_options passed with file object or non-fsspec file path"
+            )
         req = urlopen(filepath_or_buffer)
         content_encoding = req.headers.get("Content-Encoding", None)
         if content_encoding == "gzip":
@@ -242,6 +259,10 @@ def get_filepath_or_buffer(
             ).open()
 
         return file_obj, encoding, compression, True
+    elif storage_options:
+        raise ValueError(
+            "storage_options passed with file object or non-fsspec file path"
+        )
 
     if isinstance(filepath_or_buffer, (str, bytes, mmap.mmap)):
         return _expand_user(filepath_or_buffer), None, compression, False
@@ -275,8 +296,8 @@ _compression_to_extension = {"gzip": ".gz", "bz2": ".bz2", "zip": ".zip", "xz": 
 
 
 def get_compression_method(
-    compression: Optional[Union[str, Mapping[str, Any]]]
-) -> Tuple[Optional[str], Dict[str, Any]]:
+    compression: CompressionOptions,
+) -> Tuple[Optional[str], CompressionDict]:
     """
     Simplifies a compression argument to a compression method string and
     a mapping containing additional arguments.
@@ -300,7 +321,7 @@ def get_compression_method(
     if isinstance(compression, Mapping):
         compression_args = dict(compression)
         try:
-            compression_method = compression_args.pop("method")
+            compression_method = compression_args.pop("method")  # type: ignore
         except KeyError as err:
             raise ValueError("If mapping, compression must have key 'method'") from err
     else:
@@ -367,7 +388,7 @@ def get_handle(
     path_or_buf,
     mode: str,
     encoding=None,
-    compression: Optional[Union[str, Mapping[str, Any]]] = None,
+    compression: CompressionOptions = None,
     memory_map: bool = False,
     is_text: bool = True,
     errors=None,
@@ -432,7 +453,7 @@ def get_handle(
     except ImportError:
         need_text_wrapping = (BufferedIOBase, RawIOBase)
 
-    handles: List[IO] = list()
+    handles: List[Union[IO, _MMapWrapper]] = list()
     f = path_or_buf
 
     # Convert pathlib.Path/py.path.local or string
@@ -448,16 +469,13 @@ def get_handle(
         # GZ Compression
         if compression == "gzip":
             if is_path:
-                f = gzip.open(path_or_buf, mode, **compression_args)
+                f = gzip.GzipFile(filename=path_or_buf, mode=mode, **compression_args)
             else:
                 f = gzip.GzipFile(fileobj=path_or_buf, mode=mode, **compression_args)
 
         # BZ Compression
         elif compression == "bz2":
-            if is_path:
-                f = bz2.BZ2File(path_or_buf, mode, **compression_args)
-            else:
-                f = bz2.BZ2File(path_or_buf, mode=mode, **compression_args)
+            f = bz2.BZ2File(path_or_buf, mode=mode, **compression_args)
 
         # ZIP Compression
         elif compression == "zip":
@@ -518,6 +536,8 @@ def get_handle(
         try:
             wrapped = _MMapWrapper(f)
             f.close()
+            handles.remove(f)
+            handles.append(wrapped)
             f = wrapped
         except Exception:
             # we catch any errors that may have occurred
@@ -561,7 +581,9 @@ class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore[misc]
         if mode in ["wb", "rb"]:
             mode = mode.replace("b", "")
         self.archive_name = archive_name
-        super().__init__(file, mode, zipfile.ZIP_DEFLATED, **kwargs)
+        kwargs_zip: Dict[str, Any] = {"compression": zipfile.ZIP_DEFLATED}
+        kwargs_zip.update(kwargs)
+        super().__init__(file, mode, **kwargs_zip)
 
     def write(self, data):
         archive_name = self.filename

@@ -1,7 +1,10 @@
+import io
 import os
+from pathlib import Path
 import subprocess
 import sys
 import textwrap
+import time
 
 import pytest
 
@@ -128,6 +131,46 @@ def test_compression_binary(compression_only):
         tm.assert_frame_equal(
             df, pd.read_csv(path, index_col=0, compression=compression_only)
         )
+
+
+def test_gzip_reproducibility_file_name():
+    """
+    Gzip should create reproducible archives with mtime.
+
+    Note: Archives created with different filenames will still be different!
+
+    GH 28103
+    """
+    df = tm.makeDataFrame()
+    compression_options = {"method": "gzip", "mtime": 1}
+
+    # test for filename
+    with tm.ensure_clean() as path:
+        path = Path(path)
+        df.to_csv(path, compression=compression_options)
+        time.sleep(2)
+        output = path.read_bytes()
+        df.to_csv(path, compression=compression_options)
+        assert output == path.read_bytes()
+
+
+def test_gzip_reproducibility_file_object():
+    """
+    Gzip should create reproducible archives with mtime.
+
+    GH 28103
+    """
+    df = tm.makeDataFrame()
+    compression_options = {"method": "gzip", "mtime": 1}
+
+    # test for file object
+    buffer = io.BytesIO()
+    df.to_csv(buffer, compression=compression_options, mode="wb")
+    output = buffer.getvalue()
+    time.sleep(2)
+    buffer = io.BytesIO()
+    df.to_csv(buffer, compression=compression_options, mode="wb")
+    assert output == buffer.getvalue()
 
 
 def test_with_missing_lzma():
