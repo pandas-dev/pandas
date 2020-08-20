@@ -100,7 +100,14 @@ def to_json(
     ).write()
 
     if lines:
+        exists = False
+        try:
+            exists = os.path.exists(path_or_buf)
+        except (TypeError, ValueError):
+            pass
+
         s = convert_to_line_delimits(s)
+        s = "\n" + s if exists else s
 
     if isinstance(path_or_buf, str):
         fh, handles = get_handle(path_or_buf, mode, compression=compression)

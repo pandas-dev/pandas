@@ -23,7 +23,7 @@ def convert_to_line_delimits(s):
     # json object, only lists can
     if not s[0] == "[" and s[-1] == "]":
         return s
-    s = s[1:-1] + "\n"
+    s = s[1:-1]
 
     return convert_json_to_lines(s)
 
