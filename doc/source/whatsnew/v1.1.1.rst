@@ -1,6 +1,6 @@
 .. _whatsnew_111:
 
-What's new in 1.1.1 (August XX, 2020)
+What's new in 1.1.1 (August 20, 2020)
 -------------------------------------
 
 These are the changes in pandas 1.1.1. See :ref:`release` for a full changelog
