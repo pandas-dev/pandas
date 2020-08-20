@@ -2063,7 +2063,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         index: bool_t = True,
         indent: Optional[int] = None,
         storage_options: StorageOptions = None,
-        mode: str = 'w'
+        mode: str = "w",
     ) -> Optional[str]:
         """
         Convert the object to a JSON string.
@@ -2336,7 +2336,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             index=index,
             indent=indent,
             storage_options=storage_options,
-            mode=mode
+            mode=mode,
         )
 
     def to_hdf(
