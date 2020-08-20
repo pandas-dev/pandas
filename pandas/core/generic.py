@@ -2164,7 +2164,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
            .. versionadded:: 1.2.0
 
-
         Returns
         -------
         None or str
