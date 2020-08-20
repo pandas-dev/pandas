@@ -2157,6 +2157,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             .. versionadded:: 1.2.0
 
+        mode : str, default 'w'
+            If 'orient' is 'records' and 'lines' is 'True' enable option to append
+            mode ('mode' is 'a') to a json file instead of overwriting.
+            Will throw ValueError if incorrect 'orient' and 'lines'.
+
+           .. versionadded:: 1.2.0
+
+
         Returns
         -------
         None or str
