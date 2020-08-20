@@ -772,7 +772,6 @@ def test_multi_index_parse_dates(all_parsers, index_col):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore::FutureWarning")
 @pytest.mark.parametrize("kwargs", [dict(dayfirst=True), dict(day_first=True)])
 def test_parse_dates_custom_euro_format(all_parsers, kwargs):
     parser = all_parsers
@@ -803,7 +802,9 @@ def test_parse_dates_custom_euro_format(all_parsers, kwargs):
         tm.assert_frame_equal(df, expected)
     else:
         msg = "got an unexpected keyword argument 'day_first'"
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError, match=msg), tm.assert_produces_warning(
+            FutureWarning
+        ):
             parser.read_csv(
                 StringIO(data),
                 names=["time", "Q", "NTU"],
@@ -1324,17 +1325,17 @@ year,month,day,hour,minute,second,a,b
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore::FutureWarning")
 def test_generic(all_parsers):
     parser = all_parsers
     data = "year,month,day,a\n2001,01,10,10.\n2001,02,1,11."
 
-    result = parser.read_csv(
-        StringIO(data),
-        header=0,
-        parse_dates={"ym": [0, 1]},
-        date_parser=lambda y, m: date(year=int(y), month=int(m), day=1),
-    )
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        result = parser.read_csv(
+            StringIO(data),
+            header=0,
+            parse_dates={"ym": [0, 1]},
+            date_parser=lambda y, m: date(year=int(y), month=int(m), day=1),
+        )
     expected = DataFrame(
         [[date(2001, 1, 1), 10, 10.0], [date(2001, 2, 1), 1, 11.0]],
         columns=["ym", "day", "a"],
