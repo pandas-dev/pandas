@@ -1059,8 +1059,8 @@ b  2""",
         Perform groupby aggregation routine with the numba engine.
 
         This routine mimics the data splitting routine of the DataSplitter class
-        to generate the indices of each group in the sorted data and then passes the data
-        and indices into a Numba jitted function.
+        to generate the indices of each group in the sorted data and then passes the
+        data and indices into a Numba jitted function.
         """
         group_keys = self.grouper._get_group_keys()
         labels, _, n_groups = self.grouper.group_info
