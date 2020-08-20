@@ -53,4 +53,4 @@ Bug fixes
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v1.1.0..v1.1.1|HEAD
+.. contributors:: v1.1.0..v1.1.1
