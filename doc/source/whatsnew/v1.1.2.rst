@@ -1,0 +1,38 @@
+.. _whatsnew_112:
+
+What's new in 1.1.2 (??)
+------------------------
+
+These are the changes in pandas 1.1.2. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_112.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_112.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_112.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.1.1..v1.1.2|HEAD
