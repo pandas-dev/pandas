@@ -50,6 +50,7 @@ def to_json(
     index: bool = True,
     indent: int = 0,
     storage_options: StorageOptions = None,
+    mode: str = 'w'
 ):
 
     if not index and orient not in ["split", "table"]:
@@ -67,6 +68,9 @@ def to_json(
 
     if lines and orient != "records":
         raise ValueError("'lines' keyword only valid when 'orient' is records")
+
+    if mode == "a" and (not lines or orient!='records'):
+        raise ValueError("'append mode' only valid when 'line' is True and 'orient' is records")
 
     if orient == "table" and isinstance(obj, Series):
         obj = obj.to_frame(name=obj.name or "values")
@@ -97,7 +101,7 @@ def to_json(
         s = convert_to_line_delimits(s)
 
     if isinstance(path_or_buf, str):
-        fh, handles = get_handle(path_or_buf, "w", compression=compression)
+        fh, handles = get_handle(path_or_buf, mode, compression=compression)
         try:
             fh.write(s)
         finally:
