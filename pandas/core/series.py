@@ -4637,7 +4637,7 @@ Keep all original rows and also all original values
         >>> s.memory_usage()
         144
         >>> s.memory_usage(deep=True)
-        260
+        244
         """
         v = super().memory_usage(deep=deep)
         if index:
