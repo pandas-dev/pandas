@@ -102,12 +102,13 @@ def to_json(
     if lines:
         s = convert_to_line_delimits(s)
         try:
-            exists = (
-                os.path.exists(path_or_buf)
+            add_new_line = (
+                mode == "a"
+                and os.path.exists(path_or_buf)
                 and os.path.isfile(path_or_buf)
                 and os.path.getsize(path_or_buf)
             )
-            s = "\n" + s if exists else s
+            s = "\n" + s if add_new_line else s
         except (TypeError, ValueError):
             pass
 
