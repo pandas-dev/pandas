@@ -25,6 +25,18 @@ namespace std {
   __inline int isnan(double x) { return _isnan(x); }
   __inline int notnan(double x) { return x == x; }
 }
+#elif defined(__MVS__)
+#include <cmath>
+
+#define _signbit signbit
+#undef signbit
+#undef isnan
+
+namespace std {
+  __inline int notnan(double x) { return x == x; }
+  __inline int signbit(double num) { return _signbit(num); }
+  __inline int isnan(double x) { return isnan(x); }
+}
 #else
 #include <cmath>
 

@@ -276,7 +276,7 @@ ExtensionArray
 
 Other
 ^^^^^
--
+- Fixed Pandas not being able to compile on z/OS when using xlc (:issue:`35826`)
 -
 
 .. ---------------------------------------------------------------------------
