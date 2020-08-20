@@ -45,7 +45,6 @@ Bug fixes
 - Bug in :meth:`to_timedelta` fails when ``arg`` is a :class:`Series` with ``Int64`` dtype containing null values (:issue:`35574`)
 - Bug in ``.groupby(..).rolling(..)`` where passing ``closed`` with column selection would raise a ``ValueError`` (:issue:`35549`)
 - Bug in :class:`DataFrame` constructor failing to raise ``ValueError`` in some cases when ``data`` and ``index`` have mismatched lengths (:issue:`33437`)
-- Bug in :meth:`DataFrame.apply` with ``result_type="reduce"`` returning with incorrect index (:issue:`35683`)
 
 .. ---------------------------------------------------------------------------
 
