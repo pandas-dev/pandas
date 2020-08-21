@@ -175,9 +175,7 @@ class TestPeriodIndexOps:
             ordered, indexer = idx.sort_values(return_indexer=True, ascending=False)
             tm.assert_index_equal(ordered, expected[::-1])
 
-            # GH 35584. Preserve order of equal index elements when
-            # ascending is False
-            exp = np.array([2, 1, 3, 0, 4])
+            exp = np.array([2, 1, 3, 4, 0])
             tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
             _check_freq(ordered, idx)
 
