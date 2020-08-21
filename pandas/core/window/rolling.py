@@ -12,7 +12,7 @@ import numpy as np
 
 from pandas._libs.tslibs import BaseOffset, to_offset
 import pandas._libs.window.aggregations as window_aggregations
-from pandas._typing import ArrayLike, Axis, FrameOrSeries, Scalar
+from pandas._typing import ArrayLike, Axis, FrameOrSeries, Label
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
@@ -381,21 +381,31 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             return type(obj)(result, index=index, columns=block.columns)
         return result
 
-    def _wrap_results(self, results, blocks, obj, exclude=None) -> FrameOrSeries:
+    def _wrap_results(self, results, obj, skipped: List[int]) -> FrameOrSeries:
         """
         Wrap the results.
 
         Parameters
         ----------
         results : list of ndarrays
-        blocks : list of blocks
         obj : conformed data (may be resampled)
-        exclude: list of columns to exclude, default to None
+        skipped: List[int]
+            Indices of blocks that are skipped.
         """
         from pandas import Series, concat
 
+        exclude: List[Label] = []
+        if obj.ndim == 2:
+            orig_blocks = list(obj._to_dict_of_blocks(copy=False).values())
+            for i in skipped:
+                exclude.extend(orig_blocks[i].columns)
+        else:
+            orig_blocks = [obj]
+
+        kept_blocks = [blk for i, blk in enumerate(orig_blocks) if i not in skipped]
+
         final = []
-        for result, block in zip(results, blocks):
+        for result, block in zip(results, kept_blocks):
 
             result = self._wrap_result(result, block=block, obj=obj)
             if result.ndim == 1:
@@ -491,7 +501,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
         skipped: List[int] = []
         results: List[ArrayLike] = []
-        exclude: List[Scalar] = []
         for i, b in enumerate(blocks):
             try:
                 values = self._prep_values(b.values)
@@ -499,7 +508,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             except (TypeError, NotImplementedError) as err:
                 if isinstance(obj, ABCDataFrame):
                     skipped.append(i)
-                    exclude.extend(b.columns)
                     continue
                 else:
                     raise DataError("No numeric types to aggregate") from err
@@ -507,8 +515,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             result = homogeneous_func(values)
             results.append(result)
 
-        block_list = [blk for i, blk in enumerate(blocks) if i not in skipped]
-        return self._wrap_results(results, block_list, obj, exclude)
+        return self._wrap_results(results, obj, skipped)
 
     def _apply(
         self,
@@ -1283,7 +1290,7 @@ class _Rolling_and_Expanding(_Rolling):
             ).sum()
             results.append(result)
 
-        return self._wrap_results(results, blocks, obj)
+        return self._wrap_results(results, obj, skipped=[])
 
     _shared_docs["apply"] = dedent(
         r"""
