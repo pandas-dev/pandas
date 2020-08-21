@@ -19,6 +19,7 @@ import pytest
 import pytz
 
 from pandas.compat import is_platform_32bit, is_platform_windows
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -3346,6 +3347,7 @@ def test_format_percentiles_integer_idx():
     assert result == expected
 
 
+@td.check_file_leaks
 def test_repr_html_ipython_config(ip):
     code = textwrap.dedent(
         """\
