@@ -24,7 +24,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
-
+- Bug in :meth:`DataFrame.eval` with ``object`` dtype column binary operations (:issue:`35794`)
 -
 -
 
