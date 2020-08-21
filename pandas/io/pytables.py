@@ -57,7 +57,7 @@ from pandas.io.common import stringify_path
 from pandas.io.formats.printing import adjoin, pprint_thing
 
 if TYPE_CHECKING:
-    from tables import File, Node, Col  # noqa:F401
+    from tables import Col, File, Node  # noqa:F401
 
 
 # versioning attribute
@@ -99,22 +99,20 @@ Term = PyTablesExpr
 
 def _ensure_term(where, scope_level: int):
     """
-    ensure that the where is a Term or a list of Term
-    this makes sure that we are capturing the scope of variables
-    that are passed
-    create the terms here with a frame_level=2 (we are 2 levels down)
+    Ensure that the where is a Term or a list of Term.
+
+    This makes sure that we are capturing the scope of variables that are
+    passed create the terms here with a frame_level=2 (we are 2 levels down)
     """
     # only consider list/tuple here as an ndarray is automatically a coordinate
     # list
     level = scope_level + 1
     if isinstance(where, (list, tuple)):
-        wlist = []
-        for w in filter(lambda x: x is not None, where):
-            if not maybe_expression(w):
-                wlist.append(w)
-            else:
-                wlist.append(Term(w, scope_level=level))
-        where = wlist
+        where = [
+            Term(term, scope_level=level + 1) if maybe_expression(term) else term
+            for term in where
+            if term is not None
+        ]
     elif maybe_expression(where):
         where = Term(where, scope_level=level)
     return where if where is None or len(where) else None
@@ -289,7 +287,15 @@ def read_hdf(
     Read from the store, close it if we opened it.
 
     Retrieve pandas object stored in file, optionally based on where
-    criteria
+    criteria.
+
+    .. warning::
+
+       Pandas uses PyTables for reading and writing HDF5 files, which allows
+       serializing object-dtype data with pickle when using the "fixed" format.
+       Loading pickled data received from untrusted sources can be unsafe.
+
+       See: https://docs.python.org/3/library/pickle.html for more.
 
     Parameters
     ----------
@@ -312,6 +318,10 @@ def read_hdf(
     mode : {'r', 'r+', 'a'}, default 'r'
         Mode to use when opening the file. Ignored if path_or_buf is a
         :class:`pandas.HDFStore`. Default is 'r'.
+    errors : str, default 'strict'
+        Specifies how encoding and decoding errors are to be handled.
+        See the errors argument for :func:`open` for a full list
+        of options.
     where : list, optional
         A list of Term (or convertible) objects.
     start : int, optional
@@ -324,10 +334,6 @@ def read_hdf(
         Return an iterator object.
     chunksize : int, optional
         Number of rows to include in an iteration when using an iterator.
-    errors : str, default 'strict'
-        Specifies how encoding and decoding errors are to be handled.
-        See the errors argument for :func:`open` for a full list
-        of options.
     **kwargs
         Additional keyword arguments passed to HDFStore.
 
@@ -444,6 +450,14 @@ class HDFStore:
     Dict-like IO interface for storing pandas objects in PyTables.
 
     Either Fixed or Table format.
+
+    .. warning::
+
+       Pandas uses PyTables for reading and writing HDF5 files, which allows
+       serializing object-dtype data with pickle when using the "fixed" format.
+       Loading pickled data received from untrusted sources can be unsafe.
+
+       See: https://docs.python.org/3/library/pickle.html for more.
 
     Parameters
     ----------
@@ -789,6 +803,14 @@ class HDFStore:
         """
         Retrieve pandas object stored in file, optionally based on where criteria.
 
+        .. warning::
+
+           Pandas uses PyTables for reading and writing HDF5 files, which allows
+           serializing object-dtype data with pickle when using the "fixed" format.
+           Loading pickled data received from untrusted sources can be unsafe.
+
+           See: https://docs.python.org/3/library/pickle.html for more.
+
         Parameters
         ----------
         key : str
@@ -852,6 +874,15 @@ class HDFStore:
         """
         return the selection as an Index
 
+        .. warning::
+
+           Pandas uses PyTables for reading and writing HDF5 files, which allows
+           serializing object-dtype data with pickle when using the "fixed" format.
+           Loading pickled data received from untrusted sources can be unsafe.
+
+           See: https://docs.python.org/3/library/pickle.html for more.
+
+
         Parameters
         ----------
         key : str
@@ -875,6 +906,14 @@ class HDFStore:
         """
         return a single column from the table. This is generally only useful to
         select an indexable
+
+        .. warning::
+
+           Pandas uses PyTables for reading and writing HDF5 files, which allows
+           serializing object-dtype data with pickle when using the "fixed" format.
+           Loading pickled data received from untrusted sources can be unsafe.
+
+           See: https://docs.python.org/3/library/pickle.html for more.
 
         Parameters
         ----------
@@ -911,6 +950,14 @@ class HDFStore:
     ):
         """
         Retrieve pandas objects from multiple tables.
+
+        .. warning::
+
+           Pandas uses PyTables for reading and writing HDF5 files, which allows
+           serializing object-dtype data with pickle when using the "fixed" format.
+           Loading pickled data received from untrusted sources can be unsafe.
+
+           See: https://docs.python.org/3/library/pickle.html for more.
 
         Parameters
         ----------
@@ -2280,7 +2327,8 @@ class DataCol(IndexCol):
         Get an appropriately typed and shaped pytables.Col object for values.
         """
         dtype = values.dtype
-        itemsize = dtype.itemsize  # type: ignore
+        # error: "ExtensionDtype" has no attribute "itemsize"
+        itemsize = dtype.itemsize  # type: ignore[attr-defined]
 
         shape = values.shape
         if values.ndim == 1:
@@ -3349,9 +3397,9 @@ class Table(Fixed):
             (v.cname, v) for v in self.values_axes if v.name in set(self.data_columns)
         ]
 
-        return dict(d1 + d2 + d3)  # type: ignore
-        # error: List comprehension has incompatible type
-        #  List[Tuple[Any, None]]; expected List[Tuple[str, IndexCol]]
+        # error: Unsupported operand types for + ("List[Tuple[str, IndexCol]]"
+        # and "List[Tuple[str, None]]")
+        return dict(d1 + d2 + d3)  # type: ignore[operator]
 
     def index_cols(self):
         """ return a list of my index cols """

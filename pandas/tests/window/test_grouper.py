@@ -214,3 +214,172 @@ class TestGrouperGrouping:
             name="value",
         )
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.xfail(not compat.IS64, reason="GH-35294")
+    def test_groupby_rolling_center_center(self):
+        # GH 35552
+        series = Series(range(1, 6))
+        result = series.groupby(series).rolling(center=True, window=3).mean()
+        expected = Series(
+            [np.nan] * 5,
+            index=pd.MultiIndex.from_tuples(((1, 0), (2, 1), (3, 2), (4, 3), (5, 4))),
+        )
+        tm.assert_series_equal(result, expected)
+
+        series = Series(range(1, 5))
+        result = series.groupby(series).rolling(center=True, window=3).mean()
+        expected = Series(
+            [np.nan] * 4,
+            index=pd.MultiIndex.from_tuples(((1, 0), (2, 1), (3, 2), (4, 3))),
+        )
+        tm.assert_series_equal(result, expected)
+
+        df = pd.DataFrame({"a": ["a"] * 5 + ["b"] * 6, "b": range(11)})
+        result = df.groupby("a").rolling(center=True, window=3).mean()
+        expected = pd.DataFrame(
+            [np.nan, 1, 2, 3, np.nan, np.nan, 6, 7, 8, 9, np.nan],
+            index=pd.MultiIndex.from_tuples(
+                (
+                    ("a", 0),
+                    ("a", 1),
+                    ("a", 2),
+                    ("a", 3),
+                    ("a", 4),
+                    ("b", 5),
+                    ("b", 6),
+                    ("b", 7),
+                    ("b", 8),
+                    ("b", 9),
+                    ("b", 10),
+                ),
+                names=["a", None],
+            ),
+            columns=["b"],
+        )
+        tm.assert_frame_equal(result, expected)
+
+        df = pd.DataFrame({"a": ["a"] * 5 + ["b"] * 5, "b": range(10)})
+        result = df.groupby("a").rolling(center=True, window=3).mean()
+        expected = pd.DataFrame(
+            [np.nan, 1, 2, 3, np.nan, np.nan, 6, 7, 8, np.nan],
+            index=pd.MultiIndex.from_tuples(
+                (
+                    ("a", 0),
+                    ("a", 1),
+                    ("a", 2),
+                    ("a", 3),
+                    ("a", 4),
+                    ("b", 5),
+                    ("b", 6),
+                    ("b", 7),
+                    ("b", 8),
+                    ("b", 9),
+                ),
+                names=["a", None],
+            ),
+            columns=["b"],
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.xfail(not compat.IS64, reason="GH-35294")
+    def test_groupby_subselect_rolling(self):
+        # GH 35486
+        df = DataFrame(
+            {"a": [1, 2, 3, 2], "b": [4.0, 2.0, 3.0, 1.0], "c": [10, 20, 30, 20]}
+        )
+        result = df.groupby("a")[["b"]].rolling(2).max()
+        expected = DataFrame(
+            [np.nan, np.nan, 2.0, np.nan],
+            columns=["b"],
+            index=pd.MultiIndex.from_tuples(
+                ((1, 0), (2, 1), (2, 3), (3, 2)), names=["a", None]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+        result = df.groupby("a")["b"].rolling(2).max()
+        expected = Series(
+            [np.nan, np.nan, 2.0, np.nan],
+            index=pd.MultiIndex.from_tuples(
+                ((1, 0), (2, 1), (2, 3), (3, 2)), names=["a", None]
+            ),
+            name="b",
+        )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.xfail(not compat.IS64, reason="GH-35294")
+    def test_groupby_rolling_custom_indexer(self):
+        # GH 35557
+        class SimpleIndexer(pd.api.indexers.BaseIndexer):
+            def get_window_bounds(
+                self, num_values=0, min_periods=None, center=None, closed=None
+            ):
+                min_periods = self.window_size if min_periods is None else 0
+                end = np.arange(num_values, dtype=np.int64) + 1
+                start = end.copy() - self.window_size
+                start[start < 0] = min_periods
+                return start, end
+
+        df = pd.DataFrame(
+            {"a": [1.0, 2.0, 3.0, 4.0, 5.0] * 3}, index=[0] * 5 + [1] * 5 + [2] * 5
+        )
+        result = (
+            df.groupby(df.index)
+            .rolling(SimpleIndexer(window_size=3), min_periods=1)
+            .sum()
+        )
+        expected = df.groupby(df.index).rolling(window=3, min_periods=1).sum()
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.xfail(not compat.IS64, reason="GH-35294")
+    def test_groupby_rolling_subset_with_closed(self):
+        # GH 35549
+        df = pd.DataFrame(
+            {
+                "column1": range(6),
+                "column2": range(6),
+                "group": 3 * ["A", "B"],
+                "date": [pd.Timestamp("2019-01-01")] * 6,
+            }
+        )
+        result = (
+            df.groupby("group").rolling("1D", on="date", closed="left")["column1"].sum()
+        )
+        expected = Series(
+            [np.nan, 0.0, 2.0, np.nan, 1.0, 4.0],
+            index=pd.MultiIndex.from_tuples(
+                [("A", pd.Timestamp("2019-01-01"))] * 3
+                + [("B", pd.Timestamp("2019-01-01"))] * 3,
+                names=["group", "date"],
+            ),
+            name="column1",
+        )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.xfail(not compat.IS64, reason="GH-35294")
+    def test_groupby_subset_rolling_subset_with_closed(self):
+        # GH 35549
+        df = pd.DataFrame(
+            {
+                "column1": range(6),
+                "column2": range(6),
+                "group": 3 * ["A", "B"],
+                "date": [pd.Timestamp("2019-01-01")] * 6,
+            }
+        )
+
+        result = (
+            df.groupby("group")[["column1", "date"]]
+            .rolling("1D", on="date", closed="left")["column1"]
+            .sum()
+        )
+        expected = Series(
+            [np.nan, 0.0, 2.0, np.nan, 1.0, 4.0],
+            index=pd.MultiIndex.from_tuples(
+                [("A", pd.Timestamp("2019-01-01"))] * 3
+                + [("B", pd.Timestamp("2019-01-01"))] * 3,
+                names=["group", "date"],
+            ),
+            name="column1",
+        )
+        tm.assert_series_equal(result, expected)

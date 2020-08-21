@@ -15,7 +15,7 @@ from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.construction import create_series_with_explicit_dtype
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Series, Index
+    from pandas import DataFrame, Index, Series
 
 ResType = Dict[int, Any]
 
@@ -389,6 +389,8 @@ class FrameColumnApply(FrameApply):
         blk = mgr.blocks[0]
 
         for (arr, name) in zip(values, self.index):
+            # GH#35462 re-pin mgr in case setitem changed it
+            ser._mgr = mgr
             blk.values = arr
             ser.name = name
             yield ser

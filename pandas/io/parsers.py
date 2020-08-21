@@ -426,6 +426,7 @@ def _validate_names(names):
 def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     """Generic reader of line files."""
     encoding = kwds.get("encoding", None)
+    storage_options = kwds.get("storage_options", None)
     if encoding is not None:
         encoding = re.sub("_", "-", encoding).lower()
         kwds["encoding"] = encoding
@@ -438,7 +439,7 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     # though mypy handling of conditional imports is difficult.
     # See https://github.com/python/mypy/issues/1297
     fp_or_buf, _, compression, should_close = get_filepath_or_buffer(
-        filepath_or_buffer, encoding, compression
+        filepath_or_buffer, encoding, compression, storage_options=storage_options
     )
     kwds["compression"] = compression
 
@@ -601,6 +602,7 @@ def read_csv(
     low_memory=_c_parser_defaults["low_memory"],
     memory_map=False,
     float_precision=None,
+    storage_options=None,
     **kwargs,
 ):
     # gh-23761
@@ -689,6 +691,7 @@ def read_csv(
         mangle_dupe_cols=mangle_dupe_cols,
         infer_datetime_format=infer_datetime_format,
         skip_blank_lines=skip_blank_lines,
+        storage_options=storage_options,
         **kwargs,
     )
 
@@ -2167,9 +2170,7 @@ class CParserWrapper(ParserBase):
                 if self.usecols is not None:
                     columns = self._filter_usecols(columns)
 
-                col_dict = dict(
-                    filter(lambda item: item[0] in columns, col_dict.items())
-                )
+                col_dict = {k: v for k, v in col_dict.items() if k in columns}
 
                 return index, columns, col_dict
 
