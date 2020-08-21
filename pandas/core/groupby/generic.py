@@ -547,11 +547,14 @@ class SeriesGroupBy(GroupBy[Series]):
 
             concatenated = concat(results)
 
-            if not self.dropna:
-                result = self._set_result_index_ordered(concatenated)
-            else:
+            if self.dropna:
                 result = concatenated.sort_index()
-                result.index = self._selected_obj.index[result.index.asi8]
+                if len(result.index) < len(self._selected_obj.index):
+                    result.index = self._selected_obj.index[result.index.asi8]
+                else:
+                    result.index = self._selected_obj.index
+            else:
+                result = self._set_result_index_ordered(concatenated)
         else:
             result = self.obj._constructor(dtype=np.float64)
         # we will only try to coerce the result type if
@@ -1412,9 +1415,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         else:
             fast_path, slow_path = self._define_paths(func, *args, **kwargs)
 
-        has_nan = False
         for name, group in gen:
-            has_nan = has_nan or isna(name)
             object.__setattr__(group, "name", name)
 
             if maybe_use_numba(engine):
