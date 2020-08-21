@@ -133,7 +133,7 @@ def s3_resource(s3_base, tips_file, jsonl_file, feather_file):
         # OK is bucket already exists
         pass
     timeout = 2
-    while not conn.list_buckets()['Buckets'] and timeout > 0:
+    while not conn.list_buckets()["Buckets"] and timeout > 0:
         time.sleep(0.1)
         timeout -= 0.1
 
@@ -153,6 +153,6 @@ def s3_resource(s3_base, tips_file, jsonl_file, feather_file):
     except:  # noqa
         pass
     timeout = 2
-    while conn.list_buckets()['Buckets'] and timeout > 0:
+    while conn.list_buckets()["Buckets"] and timeout > 0:
         time.sleep(0.1)
         timeout -= 0.1
