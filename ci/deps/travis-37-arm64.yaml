@@ -17,5 +17,6 @@ dependencies:
   - python-dateutil
   - pytz
   - pip
+  - flask
   - pip:
     - moto

@@ -21,6 +21,7 @@ dependencies:
   - lxml
   - matplotlib>=3.3.0
   - moto
+  - flask
   - nomkl
   - numexpr
   - numpy=1.16.*
