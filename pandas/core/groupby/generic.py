@@ -551,6 +551,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 result = self._set_result_index_ordered(concatenated)
             else:
                 result = concatenated.sort_index()
+                result.index = self._selected_obj.index[result.index.asi8]
         else:
             result = self.obj._constructor(dtype=np.float64)
         # we will only try to coerce the result type if
