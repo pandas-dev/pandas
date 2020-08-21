@@ -1409,7 +1409,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         else:
             fast_path, slow_path = self._define_paths(func, *args, **kwargs)
 
+        has_nan = False
         for name, group in gen:
+            has_nan = has_nan or isna(name)
             object.__setattr__(group, "name", name)
 
             if maybe_use_numba(engine):
@@ -1418,9 +1420,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 if cache_key not in NUMBA_FUNC_CACHE:
                     NUMBA_FUNC_CACHE[cache_key] = numba_func
                 # Return the result as a DataFrame for concatenation later
-                res = self.obj._constructor(
-                    res, index=group.index, columns=group.columns
-                )
+                indexer = self._get_index(name) if self.dropna else group.index
+                res = self.obj._constructor(res, index=indexer, columns=group.columns)
             else:
                 # Try slow path and fast path.
                 try:
@@ -1459,7 +1460,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         other_axis = 1 if self.axis == 0 else 0  # switches between 0 & 1
         concatenated = concat(applied, axis=self.axis, verify_integrity=False)
         concatenated = concatenated.reindex(concat_index, axis=other_axis, copy=False)
-        return self._set_result_index_ordered(concatenated)
+        if not self.dropna or not has_nan:
+            return self._set_result_index_ordered(concatenated)
+        else:
+            concatenated.sort_index(inplace=True)
+            concatenated.index = obj.index[concatenated.index.asi8]
+            return concatenated
 
     @Substitution(klass="DataFrame")
     @Appender(_transform_template)

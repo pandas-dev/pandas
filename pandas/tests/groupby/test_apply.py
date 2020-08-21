@@ -404,7 +404,7 @@ def test_apply_frame_concat_series():
 
 
 def test_apply_transform(ts):
-    grouped = ts.groupby(lambda x: x.month)
+    grouped = ts.groupby(lambda x: x.month, dropna=False)
     result = grouped.apply(lambda x: x * 2)
     expected = grouped.transform(lambda x: x * 2)
     tm.assert_series_equal(result, expected)
