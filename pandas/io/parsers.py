@@ -20,7 +20,7 @@ import pandas._libs.ops as libops
 import pandas._libs.parsers as parsers
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._libs.tslibs import parsing
-from pandas._typing import FilePathOrBuffer, Union
+from pandas._typing import FilePathOrBuffer, StorageOptions, Union
 from pandas.errors import (
     AbstractMethodError,
     EmptyDataError,
@@ -596,7 +596,7 @@ def read_csv(
     low_memory=_c_parser_defaults["low_memory"],
     memory_map=False,
     float_precision=None,
-    storage_options=None,
+    storage_options: StorageOptions = None,
 ):
     # gh-23761
     #

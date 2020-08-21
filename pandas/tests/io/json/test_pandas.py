@@ -1213,10 +1213,12 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         tm.assert_frame_equal(result, expected)
 
     @td.skip_if_not_us_locale
-    def test_read_s3_jsonl(self, s3_resource):
+    def test_read_s3_jsonl(self, s3_resource, s3so):
         # GH17200
 
-        result = read_json("s3n://pandas-test/items.jsonl", lines=True)
+        result = read_json(
+            "s3n://pandas-test/items.jsonl", lines=True, storage_options=s3so
+        )
         expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
         tm.assert_frame_equal(result, expected)
 
@@ -1706,7 +1708,12 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         # GH 28375
         mock_bucket_name, target_file = "pandas-test", "test.json"
         df = DataFrame({"x": [1, 2, 3], "y": [2, 4, 6]})
-        df.to_json(f"s3://{mock_bucket_name}/{target_file}")
+        df.to_json(
+            f"s3://{mock_bucket_name}/{target_file}",
+            storage_options=dict(
+                client_kwargs={"endpoint_url": "http://127.0.0.1:5555/"}
+            ),
+        )
         timeout = 5
         while True:
             if target_file in (

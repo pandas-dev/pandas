@@ -3,11 +3,12 @@ import datetime
 from io import BufferedIOBase, BytesIO, RawIOBase
 import os
 from textwrap import fill
-from typing import Union
+from typing import Any, Mapping, Union
 
 from pandas._config import config
 
 from pandas._libs.parsers import STR_NA_VALUES
+from pandas._typing import StorageOptions
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import Appender, deprecate_nonkeyword_arguments
 
@@ -199,6 +200,15 @@ mangle_dupe_cols : bool, default True
     Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
     'X'...'X'. Passing in False will cause data to be overwritten if there
     are duplicate names in the columns.
+storage_options : StorageOptions
+    Extra options that make sense for a particular storage connection, e.g.
+    host, port, username, password, etc., if using a URL that will
+    be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+    will be raised if providing this argument with a local path or
+    a file-like buffer. See the fsspec and backend storage implementation
+    docs for the set of allowed keys and values
+
+    .. versionadded:: 1.2.0
 
 Returns
 -------
@@ -298,10 +308,11 @@ def read_excel(
     skipfooter=0,
     convert_float=True,
     mangle_dupe_cols=True,
+    storage_options: StorageOptions = None,
 ):
 
     if not isinstance(io, ExcelFile):
-        io = ExcelFile(io, engine=engine)
+        io = ExcelFile(io, storage_options=storage_options, engine=engine)
     elif engine and engine != io.engine:
         raise ValueError(
             "Engine should not be specified when passing "
@@ -336,12 +347,14 @@ def read_excel(
 
 
 class _BaseExcelReader(metaclass=abc.ABCMeta):
-    def __init__(self, filepath_or_buffer):
+    def __init__(self, filepath_or_buffer, storage_options: StorageOptions = None):
         # If filepath_or_buffer is a url, load the data into a BytesIO
         if is_url(filepath_or_buffer):
             filepath_or_buffer = BytesIO(urlopen(filepath_or_buffer).read())
         elif not isinstance(filepath_or_buffer, (ExcelFile, self._workbook_class)):
-            filepath_or_buffer, _, _, _ = get_filepath_or_buffer(filepath_or_buffer)
+            filepath_or_buffer, _, _, _ = get_filepath_or_buffer(
+                filepath_or_buffer, storage_options=storage_options
+            )
 
         if isinstance(filepath_or_buffer, self._workbook_class):
             self.book = filepath_or_buffer
@@ -837,14 +850,16 @@ class ExcelFile:
     from pandas.io.excel._pyxlsb import _PyxlsbReader
     from pandas.io.excel._xlrd import _XlrdReader
 
-    _engines = {
+    _engines: Mapping[str, Any] = {
         "xlrd": _XlrdReader,
         "openpyxl": _OpenpyxlReader,
         "odf": _ODFReader,
         "pyxlsb": _PyxlsbReader,
     }
 
-    def __init__(self, path_or_buffer, engine=None):
+    def __init__(
+        self, path_or_buffer, engine=None, storage_options: StorageOptions = None
+    ):
         if engine is None:
             engine = "xlrd"
             if isinstance(path_or_buffer, (BufferedIOBase, RawIOBase)):
@@ -858,13 +873,14 @@ class ExcelFile:
             raise ValueError(f"Unknown engine: {engine}")
 
         self.engine = engine
+        self.storage_options = storage_options
 
         # Could be a str, ExcelFile, Book, etc.
         self.io = path_or_buffer
         # Always a string
         self._io = stringify_path(path_or_buffer)
 
-        self._reader = self._engines[engine](self._io)
+        self._reader = self._engines[engine](self._io, storage_options=storage_options)
 
     def __fspath__(self):
         return self._io
