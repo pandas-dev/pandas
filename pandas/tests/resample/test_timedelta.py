@@ -150,3 +150,18 @@ def test_resample_timedelta_edge_case(start, end, freq, resample_freq):
     tm.assert_index_equal(result.index, expected_index)
     assert result.index.freq == expected_index.freq
     assert not np.isnan(result[-1])
+
+
+def test_resample_with_timedelta_yields_no_empty_groups():
+    # GH 10603
+    df = pd.DataFrame(
+        np.random.normal(size=(10000, 4)),
+        index=pd.timedelta_range(start="0s", periods=10000, freq="3906250n"),
+    )
+    result = df.loc["1s":, :].resample("3s").apply(lambda x: len(x))
+
+    expected = pd.DataFrame(
+        [[768.0] * 4] * 12 + [[528.0] * 4],
+        index=pd.timedelta_range(start="1s", periods=13, freq="3s"),
+    )
+    tm.assert_frame_equal(result, expected)
