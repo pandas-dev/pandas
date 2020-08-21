@@ -22,7 +22,7 @@ import numpy as np
 
 from pandas._libs.tslibs import BaseOffset, to_offset
 import pandas._libs.window.aggregations as window_aggregations
-from pandas._typing import ArrayLike, Axis, FrameOrSeriesUnion, Scalar
+from pandas._typing import ArrayLike, Axis, FrameOrSeriesUnion, Label
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
@@ -394,16 +394,16 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             return type(obj)(result, index=index, columns=block.columns)
         return result
 
-    def _wrap_results(self, results, blocks, obj, exclude=None) -> FrameOrSeriesUnion:
+    def _wrap_results(self, results, obj, skipped: List[int]) -> FrameOrSeriesUnion:
         """
         Wrap the results.
 
         Parameters
         ----------
         results : list of ndarrays
-        blocks : list of blocks
         obj : conformed data (may be resampled)
-        exclude: list of columns to exclude, default to None
+        skipped: List[int]
+            Indices of blocks that are skipped.
         """
         from pandas import Series, concat
 
@@ -413,8 +413,15 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             assert len(results) == 1
             return Series(results[0], index=obj.index, name=obj.name)
 
+        exclude: List[Label] = []
+        orig_blocks = list(obj._to_dict_of_blocks(copy=False).values())
+        for i in skipped:
+            exclude.extend(orig_blocks[i].columns)
+
+        kept_blocks = [blk for i, blk in enumerate(orig_blocks) if i not in skipped]
+
         final = []
-        for result, block in zip(results, blocks):
+        for result, block in zip(results, kept_blocks):
 
             result = type(obj)(result, index=obj.index, columns=block.columns)
             final.append(result)
@@ -526,21 +533,18 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
         skipped: List[int] = []
         results: List[ArrayLike] = []
-        exclude: List[Scalar] = []
         for i, b in enumerate(blocks):
             try:
                 values = self._prep_values(b.values)
 
             except (TypeError, NotImplementedError):
                 skipped.append(i)
-                exclude.extend(b.columns)
                 continue
 
             result = homogeneous_func(values)
             results.append(result)
 
-        block_list = [blk for i, blk in enumerate(blocks) if i not in skipped]
-        return self._wrap_results(results, block_list, obj, exclude)
+        return self._wrap_results(results, obj, skipped)
 
     def _apply(
         self,
@@ -1315,7 +1319,7 @@ class _Rolling_and_Expanding(_Rolling):
             ).sum()
             results.append(result)
 
-        return self._wrap_results(results, blocks, obj)
+        return self._wrap_results(results, obj, skipped=[])
 
     _shared_docs["apply"] = dedent(
         r"""
