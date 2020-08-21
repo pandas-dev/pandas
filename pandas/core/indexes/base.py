@@ -5028,7 +5028,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         raise ValueError("index must be monotonic increasing or decreasing")
 
-    def get_slice_bound(self, label, side: str_t, kind) -> int:
+    def get_slice_bound(self, label, side: str_t, kind: Optional[str_t]) -> int:
         """
         Calculate slice bound that corresponds to given label.
 
@@ -5046,12 +5046,16 @@ class Index(IndexOpsMixin, PandasObject):
         int
             Index of label.
         """
-        assert kind in ["loc", "getitem", None]
-
         if side not in ("left", "right"):
             raise ValueError(
                 "Invalid value for side kwarg, must be either "
                 f"'left' or 'right': {side}"
+            )
+
+        if kind not in ("loc", "getitem", None):
+            raise ValueError(
+                "Invalid value for kind kwarg, must be either "
+                f"'loc' or 'getitem': {kind}"
             )
 
         original_label = label
@@ -5059,7 +5063,7 @@ class Index(IndexOpsMixin, PandasObject):
         # For datetime indices label may be a string that has to be converted
         # to datetime boundary according to its resolution.
         label = self._maybe_cast_slice_bound(label, side, kind)
-
+        breakpoint()
         # we need to look up the label
         try:
             slc = self.get_loc(label)
