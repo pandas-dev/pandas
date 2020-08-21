@@ -116,25 +116,28 @@ def s3_resource(s3_base, tips_file, jsonl_file, feather_file):
     def add_tips_files(bucket_name):
         for s3_key, file_name in test_s3_files:
             with open(file_name, "rb") as f:
-                conn.Bucket(bucket_name).put_object(Key=s3_key, Body=f)
+                conn.put_object(Bucket=bucket_name, Key=s3_key, Body=f)
 
     bucket = "pandas-test"
     endpoint_uri = "http://127.0.0.1:5555/"
-    conn = boto3.resource("s3", endpoint_url=endpoint_uri)
+    conn = boto3.client("s3", endpoint_url=endpoint_uri)
 
     try:
         conn.create_bucket(Bucket=bucket)
     except:  # noqa
         # OK is bucket already exists
         pass
-    add_tips_files(bucket)
-
     try:
         conn.create_bucket(Bucket="cant_get_it", ACL="private")
     except:  # noqa
         # OK is bucket already exists
         pass
+    timeout = 2
+    while not conn.list_buckets()['Buckets'] and timeout > 0:
+        time.sleep(0.1)
+        timeout -= 0.1
 
+    add_tips_files(bucket)
     add_tips_files("cant_get_it")
     s3fs.S3FileSystem.clear_instance_cache()
     yield conn
@@ -149,3 +152,7 @@ def s3_resource(s3_base, tips_file, jsonl_file, feather_file):
         s3.rm("cant_get_it", recursive=True)
     except:  # noqa
         pass
+    timeout = 2
+    while conn.list_buckets()['Buckets'] and timeout > 0:
+        time.sleep(0.1)
+        timeout -= 0.1
