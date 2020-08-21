@@ -1063,10 +1063,16 @@ def test_groupby_get_by_index():
     pd.testing.assert_frame_equal(res, expected)
 
 
-def test_groupby_single_agg_numeric_col():
-    """
-    test single agg on a numeric column
-    """
+@pytest.mark.parametrize(
+    "grp_col_dict, exp_data",
+    [
+        ({"nr": "min", "cat_ord": "min"}, {"nr": [1, 5], "cat_ord": ["a", "c"]}),
+        ({"cat_ord": "min"}, {"cat_ord": ["a", "c"]}),
+        ({"nr": "min"}, {"nr": [1, 5]}),
+    ],
+)
+def test_groupby_single_agg_cat_cols(grp_col_dict, exp_data):
+    # test single aggregations on ordered categorical cols GHGH27800
 
     # create the result dataframe
     input_df = pd.DataFrame(
@@ -1079,22 +1085,28 @@ def test_groupby_single_agg_numeric_col():
 
     input_df = input_df.astype({"cat": "category", "cat_ord": "category"})
     input_df["cat_ord"] = input_df["cat_ord"].cat.as_ordered()
-    result_df = input_df.groupby("cat").agg({"nr": "min"})
+    result_df = input_df.groupby("cat").agg(grp_col_dict)
 
     # create expected dataframe
     cat_index = pd.CategoricalIndex(
         ["a", "b"], categories=["a", "b"], ordered=False, name="cat", dtype="category"
     )
 
-    expected_df = pd.DataFrame(data={"nr": [1, 5]}, index=cat_index)
+    expected_df = pd.DataFrame(data=exp_data, index=cat_index)
 
     tm.assert_frame_equal(result_df, expected_df)
 
 
-def test_groupby_single_agg_cat_cols():
-    """
-    test single agg on a ordered categorical column
-    """
+@pytest.mark.parametrize(
+    "grp_col_dict, exp_data",
+    [
+        ({"nr": ["min", "max"], "cat_ord": "min"}, [(1, 4, "a"), (5, 8, "c")]),
+        ({"nr": "min", "cat_ord": ["min", "max"]}, [(1, "a", "b"), (5, "c", "d")]),
+        ({"cat_ord": ["min", "max"]}, [("a", "b"), ("c", "d")]),
+    ],
+)
+def test_groupby_combined_aggs_cat_cols(grp_col_dict, exp_data):
+    # test combined aggregations on ordered categorical cols GH27800
 
     # create the result dataframe
     input_df = pd.DataFrame(
@@ -1107,145 +1119,25 @@ def test_groupby_single_agg_cat_cols():
 
     input_df = input_df.astype({"cat": "category", "cat_ord": "category"})
     input_df["cat_ord"] = input_df["cat_ord"].cat.as_ordered()
-    result_df = input_df.groupby("cat").agg({"cat_ord": "min"})
+    result_df = input_df.groupby("cat").agg(grp_col_dict)
 
     # create expected dataframe
     cat_index = pd.CategoricalIndex(
         ["a", "b"], categories=["a", "b"], ordered=False, name="cat", dtype="category"
     )
 
-    expected_df = pd.DataFrame(data={"cat_ord": ["a", "c"]}, index=cat_index)
+    # unpack the grp_col_dict to create the multi-index tuple
+    # this tuple will be used to create the expected dataframe index
+    multi_index_list = []
+    for k, v in grp_col_dict.items():
+        if isinstance(v, list):
+            for value in v:
+                multi_index_list.append([k, value])
+        else:
+            multi_index_list.append([k, v])
+    multi_index = pd.MultiIndex.from_tuples(tuple(multi_index_list))
 
-    tm.assert_frame_equal(result_df, expected_df)
-
-
-def test_groupby_combined_single_agg_cat_cols():
-    """
-    test combined single aggregations on a
-    numeric and multiple aggregation an ordered
-    categorical column
-    """
-
-    # create the result dataframe
-    input_df = pd.DataFrame(
-        {
-            "nr": [1, 2, 3, 4, 5, 6, 7, 8],
-            "cat_ord": list("aabbccdd"),
-            "cat": list("aaaabbbb"),
-        }
-    )
-
-    input_df = input_df.astype({"cat": "category", "cat_ord": "category"})
-    input_df["cat_ord"] = input_df["cat_ord"].cat.as_ordered()
-    result_df = input_df.groupby("cat").agg({"nr": "min", "cat_ord": "min"})
-
-    # create expected dataframe
-    cat_index = pd.CategoricalIndex(
-        ["a", "b"], categories=["a", "b"], ordered=False, name="cat", dtype="category"
-    )
-
-    expected_df = pd.DataFrame(
-        data={"nr": [1, 5], "cat_ord": ["a", "c"]}, index=cat_index
-    )
-
-    tm.assert_frame_equal(result_df, expected_df)
-
-
-def test_groupby_multiple_agg_cat_cols():
-    """
-    test multiple aggregations on an ordered categorical column
-    """
-
-    # create the result dataframe
-    input_df = pd.DataFrame(
-        {
-            "nr": [1, 2, 3, 4, 5, 6, 7, 8],
-            "cat_ord": list("aabbccdd"),
-            "cat": list("aaaabbbb"),
-        }
-    )
-
-    input_df = input_df.astype({"cat": "category", "cat_ord": "category"})
-    input_df["cat_ord"] = input_df["cat_ord"].cat.as_ordered()
-    result_df = input_df.groupby("cat").agg({"cat_ord": ["min", "max"]})
-
-    # create expected dataframe
-    cat_index = pd.CategoricalIndex(
-        ["a", "b"], categories=["a", "b"], ordered=False, name="cat", dtype="category"
-    )
-
-    multi_index_tuple = [("cat_ord", "min"), ("cat_ord", "max")]
-    multi_index = pd.MultiIndex.from_tuples(multi_index_tuple)
-
-    data = [("a", "b"), ("c", "d")]
-    expected_df = pd.DataFrame(data=data, columns=multi_index, index=cat_index)
-
-    tm.assert_frame_equal(result_df, expected_df)
-
-
-def test_groupby_combined_multiple_agg_cat_cols():
-    """
-    test single aggregations on a numeric and
-    multiple aggregations an ordered categorical column
-    """
-
-    # create the result dataframe
-    input_df = pd.DataFrame(
-        {
-            "nr": [1, 2, 3, 4, 5, 6, 7, 8],
-            "cat_ord": list("aabbccdd"),
-            "cat": list("aaaabbbb"),
-        }
-    )
-
-    input_df = input_df.astype({"cat": "category", "cat_ord": "category"})
-    input_df["cat_ord"] = input_df["cat_ord"].cat.as_ordered()
-    result_df = input_df.groupby("cat").agg({"nr": "min", "cat_ord": ["min", "max"]})
-
-    # create expected dataframe
-    cat_index = pd.CategoricalIndex(
-        ["a", "b"], categories=["a", "b"], ordered=False, name="cat", dtype="category"
-    )
-
-    multi_index_tuple = [("nr", "min"), ("cat_ord", "min"), ("cat_ord", "max")]
-    multi_index = pd.MultiIndex.from_tuples(multi_index_tuple)
-
-    data = [(1, "a", "b"), (5, "c", "d")]
-    expected_df = pd.DataFrame(data=data, columns=multi_index, index=cat_index)
-
-    tm.assert_frame_equal(result_df, expected_df)
-
-
-def test_groupby_combined_multiple_numeric_cat_cols():
-    """
-    test multiple aggregation on numeric and a
-    single aggregation on an ordered categorical
-    column #27800
-    """
-
-    # create the result dataframe
-    input_df = pd.DataFrame(
-        {
-            "nr": [1, 2, 3, 4, 5, 6, 7, 8],
-            "cat_ord": list("aabbccdd"),
-            "cat": list("aaaabbbb"),
-        }
-    )
-
-    input_df = input_df.astype({"cat": "category", "cat_ord": "category"})
-    input_df["cat_ord"] = input_df["cat_ord"].cat.as_ordered()
-    result_df = input_df.groupby("cat").agg({"nr": ["min", "max"], "cat_ord": "min"})
-
-    # create expected dataframe
-    cat_index = pd.CategoricalIndex(
-        ["a", "b"], categories=["a", "b"], ordered=False, name="cat", dtype="category"
-    )
-
-    multi_index_tuple = [("nr", "min"), ("nr", "max"), ("cat_ord", "min")]
-    multi_index = pd.MultiIndex.from_tuples(multi_index_tuple)
-
-    data = [(1, 4, "a"), (5, 8, "c")]
-    expected_df = pd.DataFrame(data=data, columns=multi_index, index=cat_index)
+    expected_df = pd.DataFrame(data=exp_data, columns=multi_index, index=cat_index)
 
     tm.assert_frame_equal(result_df, expected_df)
 
