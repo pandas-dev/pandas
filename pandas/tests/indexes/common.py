@@ -1,5 +1,5 @@
 import gc
-from typing import Optional, Type
+from typing import Type
 
 import numpy as np
 import pytest
@@ -33,7 +33,7 @@ from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 class Base:
     """ base class for index sub-class tests """
 
-    _holder: Optional[Type[Index]] = None
+    _holder: Type[Index]
     _compat_props = ["shape", "ndim", "size", "nbytes"]
 
     def create_index(self) -> Index:
@@ -685,6 +685,10 @@ class Base:
         idx = self.create_index()
         expected = [str(x) for x in idx]
         assert idx.format() == expected
+
+    def test_format_empty(self):
+        # GH35712
+        assert self._holder([]).format() == []
 
     def test_hasnans_isnans(self, index):
         # GH 11343, added tests for hasnans / isnans

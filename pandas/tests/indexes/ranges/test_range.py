@@ -521,3 +521,7 @@ class TestRangeIndex(Numeric):
             idx.get_loc("a")
 
         assert "_engine" not in idx._cache
+
+    def test_format_empty(self):
+        # GH35712
+        assert self._holder(0).format() == []
