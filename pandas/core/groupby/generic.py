@@ -24,7 +24,6 @@ from typing import (
     Tuple,
     Type,
     Union,
-    cast,
 )
 import warnings
 
@@ -1100,24 +1099,19 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     # continue and exclude the block
                     raise
                 else:
-                    result = cast(DataFrame, result)
+                    assert isinstance(result, (Series, DataFrame))  # for mypy
+                    # In the case of object dtype block, it may have been split
+                    #  in the operation.  We un-split here.
+                    result = result._consolidate()
+                    assert isinstance(result, (Series, DataFrame))  # for mypy
+                    assert len(result._mgr.blocks) == 1
+
                     # unwrap DataFrame to get array
-                    if len(result._mgr.blocks) != 1:
-                        # We've split an object block! Everything we've assumed
-                        # about a single block input returning a single block output
-                        # is a lie. To keep the code-path for the typical non-split case
-                        # clean, we choose to clean up this mess later on.
-                        assert len(locs) == result.shape[1]
-                        for i, loc in enumerate(locs):
-                            agg_block = result.iloc[:, [i]]._mgr.blocks[0]
-                            agg_block.mgr_locs = [loc]
-                            new_blocks.append(agg_block)
-                    else:
-                        result = result._mgr.blocks[0].values
-                        if isinstance(result, np.ndarray) and result.ndim == 1:
-                            result = result.reshape(1, -1)
-                        agg_block = cast_result_block(result, block, how)
-                        new_blocks = [agg_block]
+                    result = result._mgr.blocks[0].values
+                    if isinstance(result, np.ndarray) and result.ndim == 1:
+                        result = result.reshape(1, -1)
+                    agg_block = cast_result_block(result, block, how)
+                    new_blocks = [agg_block]
             else:
                 agg_block = cast_result_block(result, block, how)
                 new_blocks = [agg_block]
