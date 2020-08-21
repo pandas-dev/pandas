@@ -16,7 +16,6 @@ dependencies:
   - beautifulsoup4
   - html5lib
   - ipython
-  - jedi>=0.16
   - jinja2
   - lxml
   - matplotlib <3.3.0
