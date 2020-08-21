@@ -24,7 +24,6 @@ from typing import (
     Tuple,
     Type,
     Union,
-    cast,
 )
 import warnings
 
@@ -1100,11 +1099,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     # continue and exclude the block
                     raise
                 else:
-                    result = cast(DataFrame, result)
-
+                    assert isinstance(result, DataFrame)  # for mypy
                     # In the case of object dtype block, it may have been split
                     #  in the operation.  We un-split here.
                     result = result._consolidate()
+                    assert isinstance(result, DataFrame)  # for mypy
                     assert len(result._mgr.blocks) == 1
 
                     # unwrap DataFrame to get array
