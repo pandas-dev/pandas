@@ -27,7 +27,7 @@ from pandas.errors import (
     ParserError,
     ParserWarning,
 )
-from pandas.util._decorators import Appender
+from pandas.util._decorators import Appender, _get_alias_from_kwargs
 
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
@@ -285,7 +285,7 @@ thousands : str, optional
     Thousands separator.
 decimal : str, default '.'
     Character to recognize as decimal point (e.g. use ',' for European data).
-lineterminator : str (length 1), optional
+line_terminator : str (length 1), optional
     Character to break file into lines. Only valid with C parser.
 quotechar : str (length 1), optional
     The character used to denote the start and end of a quoted item. Quoted
@@ -347,9 +347,8 @@ float_precision : str, optional
     `high` for the high-precision converter, and `round_trip` for the
     round-trip converter.
 kwargs
-    Additional keyword arguments passed to read_csv for compatibility
-    with `csv` module. Include lineterminator (an alternative to
-    line_terminator: see above).
+    Additional keyword arguments passed to ``pd.read_csv`` for compatibility
+    with `csv` module. Include `lineterminator` (an alias of `line_terminator`).
 
     .. versionadded:: 1.2.0
 

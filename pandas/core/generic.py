@@ -3190,9 +3190,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             .. versionadded:: 1.2.0
         kwargs
-            Additional keyword arguments passed to read_csv for compatibility
-            with `csv` module. Include lineterminator (an alternative to
-            line_terminator: see above).
+            Additional keyword arguments passed to ``pd.to_csv`` for compatibility
+            with `csv` module. Include `lineterminator` (an alias of `line_terminator`).
 
             .. versionadded:: 1.2.0
 
@@ -3225,9 +3224,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
 
         from pandas.io.formats.csvs import CSVFormatter
-
-        kwargs.setdefault("lineterminator", line_terminator)
-        line_terminator = line_terminator or kwargs["lineterminator"]
 
         formatter = CSVFormatter(
             df,
