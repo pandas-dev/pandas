@@ -69,6 +69,7 @@ def test_oo_optimizable():
 
 @tm.network
 # Cython import warning
+@pytest.mark.filterwarnings("ignore:pandas.util.testing is deprecated")
 @pytest.mark.filterwarnings("ignore:can't:ImportWarning")
 @pytest.mark.filterwarnings(
     # patsy needs to update their imports
@@ -89,7 +90,7 @@ def test_statsmodels():
 def test_scikit_learn(df):
 
     sklearn = import_module("sklearn")  # noqa
-    from sklearn import svm, datasets
+    from sklearn import datasets, svm
 
     digits = datasets.load_digits()
     clf = svm.SVC(gamma=0.001, C=100.0)
@@ -112,7 +113,7 @@ def test_pandas_gbq(df):
     pandas_gbq = import_module("pandas_gbq")  # noqa
 
 
-@pytest.mark.xfail(reason="0.7.0 pending")
+@pytest.mark.xfail(reason="0.8.1 tries to import urlencode from pd.io.common")
 @tm.network
 def test_pandas_datareader():
 
@@ -140,19 +141,19 @@ def test_pyarrow(df):
     tm.assert_frame_equal(result, df)
 
 
-@pytest.mark.xfail(reason="pandas-wheels-50", strict=False)
 def test_missing_required_dependency():
     # GH 23868
     # To ensure proper isolation, we pass these flags
     # -S : disable site-packages
     # -s : disable user site-packages
     # -E : disable PYTHON* env vars, especially PYTHONPATH
-    # And, that's apparently not enough, so we give up.
     # https://github.com/MacPython/pandas-wheels/pull/50
-    call = ["python", "-sSE", "-c", "import pandas"]
+
+    pyexe = sys.executable.replace("\\", "/")
+    call = [pyexe, "-sSE", "-c", "import pandas"]
 
     msg = (
-        r"Command '\['python', '-sSE', '-c', 'import pandas'\]' "
+        rf"Command '\['{pyexe}', '-sSE', '-c', 'import pandas'\]' "
         "returned non-zero exit status 1."
     )
 

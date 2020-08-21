@@ -2,11 +2,11 @@ import textwrap
 from typing import List, Set
 
 from pandas._libs import NaT, lib
+from pandas.errors import InvalidIndexError
 
 import pandas.core.common as com
 from pandas.core.indexes.base import (
     Index,
-    InvalidIndexError,
     _new_Index,
     ensure_index,
     ensure_index_from_sequences,
@@ -218,9 +218,8 @@ def union_indexes(indexes, sort=True) -> Index:
             return result
     elif kind == "array":
         index = indexes[0]
-        for other in indexes[1:]:
-            if not index.equals(other):
-                return _unique_indices(indexes)
+        if not all(index.equals(other) for other in indexes[1:]):
+            index = _unique_indices(indexes)
 
         name = get_consensus_names(indexes)[0]
         if name != index.name:
@@ -256,8 +255,7 @@ def _sanitize_and_check(indexes):
     if list in kinds:
         if len(kinds) > 1:
             indexes = [
-                Index(com.try_sort(x)) if not isinstance(x, Index) else x
-                for x in indexes
+                Index(list(x)) if not isinstance(x, Index) else x for x in indexes
             ]
             kinds.remove(list)
         else:

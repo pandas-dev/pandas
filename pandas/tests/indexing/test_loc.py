@@ -5,6 +5,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import _is_numpy_dev
+
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp, date_range
 import pandas._testing as tm
@@ -106,6 +108,19 @@ class TestLoc(Base):
         self.check_result(
             "loc", slice(2, 4, 2), typs=["mixed"], axes=0, fails=TypeError,
         )
+
+    def test_setitem_from_duplicate_axis(self):
+        # GH#34034
+        df = DataFrame(
+            [[20, "a"], [200, "a"], [200, "a"]],
+            columns=["col1", "col2"],
+            index=[10, 1, 1],
+        )
+        df.loc[1, "col1"] = np.arange(2)
+        expected = DataFrame(
+            [[20, "a"], [0, "a"], [1, "a"]], columns=["col1", "col2"], index=[10, 1, 1]
+        )
+        tm.assert_frame_equal(df, expected)
 
 
 class TestLoc2:
@@ -881,6 +896,22 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         original_series[:3] = [7, 8, 9]
         assert all(sliced_series[:3] == [7, 8, 9])
 
+    def test_loc_copy_vs_view(self):
+        # GH 15631
+        x = DataFrame(zip(range(3), range(3)), columns=["a", "b"])
+
+        y = x.copy()
+        q = y.loc[:, "a"]
+        q += 2
+
+        tm.assert_frame_equal(x, y)
+
+        z = x.copy()
+        q = z.loc[x.index, "a"]
+        q += 2
+
+        tm.assert_frame_equal(x, z)
+
     def test_loc_uint64(self):
         # GH20722
         # Test whether loc accept uint64 max value as index.
@@ -912,10 +943,11 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         # only appends one value
         expected = DataFrame({"x": [1.0], "y": [np.nan]})
-        df = DataFrame(columns=["x", "y"], dtype=np.float)
+        df = DataFrame(columns=["x", "y"], dtype=float)
         df.loc[0, "x"] = expected.loc[0, "x"]
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.xfail(_is_numpy_dev, reason="gh-35481")
     def test_loc_setitem_empty_append_raises(self):
         # GH6173, various appends to an empty dataframe
 

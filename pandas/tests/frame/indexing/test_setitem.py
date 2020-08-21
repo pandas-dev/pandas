@@ -1,13 +1,23 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, Series
+from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype, PeriodDtype
+
+from pandas import (
+    Categorical,
+    DataFrame,
+    Index,
+    Interval,
+    Period,
+    Series,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
+from pandas.core.arrays import SparseArray
 
-# Column add, remove, delete.
 
-
-class TestDataFrameMutateColumns:
+class TestDataFrameSetItem:
     def test_setitem_error_msmgs(self):
 
         # GH 7432
@@ -84,3 +94,93 @@ class TestDataFrameMutateColumns:
         df["X"] = ["x", "y", "z"]
         exp = DataFrame(data={"X": ["x", "y", "z"]}, index=["A", "B", "C"])
         tm.assert_frame_equal(df, exp)
+
+    def test_setitem_dt64_index_empty_columns(self):
+        rng = date_range("1/1/2000 00:00:00", "1/1/2000 1:59:50", freq="10s")
+        df = DataFrame(index=np.arange(len(rng)))
+
+        df["A"] = rng
+        assert df["A"].dtype == np.dtype("M8[ns]")
+
+    def test_setitem_timestamp_empty_columns(self):
+        # GH#19843
+        df = DataFrame(index=range(3))
+        df["now"] = Timestamp("20130101", tz="UTC")
+
+        expected = DataFrame(
+            [[Timestamp("20130101", tz="UTC")]] * 3, index=[0, 1, 2], columns=["now"],
+        )
+        tm.assert_frame_equal(df, expected)
+
+    def test_setitem_wrong_length_categorical_dtype_raises(self):
+        # GH#29523
+        cat = Categorical.from_codes([0, 1, 1, 0, 1, 2], ["a", "b", "c"])
+        df = DataFrame(range(10), columns=["bar"])
+
+        msg = (
+            rf"Length of values \({len(cat)}\) "
+            rf"does not match length of index \({len(df)}\)"
+        )
+        with pytest.raises(ValueError, match=msg):
+            df["foo"] = cat
+
+    def test_setitem_with_sparse_value(self):
+        # GH#8131
+        df = DataFrame({"c_1": ["a", "b", "c"], "n_1": [1.0, 2.0, 3.0]})
+        sp_array = SparseArray([0, 0, 1])
+        df["new_column"] = sp_array
+
+        expected = Series(sp_array, name="new_column")
+        tm.assert_series_equal(df["new_column"], expected)
+
+    def test_setitem_with_unaligned_sparse_value(self):
+        df = DataFrame({"c_1": ["a", "b", "c"], "n_1": [1.0, 2.0, 3.0]})
+        sp_series = Series(SparseArray([0, 0, 1]), index=[2, 1, 0])
+
+        df["new_column"] = sp_series
+        expected = Series(SparseArray([1, 0, 0]), name="new_column")
+        tm.assert_series_equal(df["new_column"], expected)
+
+    def test_setitem_dict_preserves_dtypes(self):
+        # https://github.com/pandas-dev/pandas/issues/34573
+        expected = DataFrame(
+            {
+                "a": Series([0, 1, 2], dtype="int64"),
+                "b": Series([1, 2, 3], dtype=float),
+                "c": Series([1, 2, 3], dtype=float),
+            }
+        )
+        df = DataFrame(
+            {
+                "a": Series([], dtype="int64"),
+                "b": Series([], dtype=float),
+                "c": Series([], dtype=float),
+            }
+        )
+        for idx, b in enumerate([1, 2, 3]):
+            df.loc[df.shape[0]] = {
+                "a": int(idx),
+                "b": float(b),
+                "c": float(b),
+            }
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize(
+        "obj,dtype",
+        [
+            (Period("2020-01"), PeriodDtype("M")),
+            (Interval(left=0, right=5), IntervalDtype("int64")),
+            (
+                Timestamp("2011-01-01", tz="US/Eastern"),
+                DatetimeTZDtype(tz="US/Eastern"),
+            ),
+        ],
+    )
+    def test_setitem_extension_types(self, obj, dtype):
+        # GH: 34832
+        expected = DataFrame({"idx": [1, 2, 3], "obj": Series([obj] * 3, dtype=dtype)})
+
+        df = DataFrame({"idx": [1, 2, 3]})
+        df["obj"] = obj
+
+        tm.assert_frame_equal(df, expected)

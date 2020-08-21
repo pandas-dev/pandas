@@ -54,6 +54,8 @@ class TestDataFrameToCSV:
             float_frame.to_csv(path, index=False)
 
             # test roundtrip
+            # freq does not roundtrip
+            datetime_frame.index = datetime_frame.index._with_freq(None)
             datetime_frame.to_csv(path)
             recons = self.read_csv(path)
             tm.assert_frame_equal(datetime_frame, recons)
@@ -568,7 +570,8 @@ class TestDataFrameToCSV:
             from_df.to_csv(path, index=False, header=["X", "Y"])
             recons = self.read_csv(path)
 
-            recons.reset_index(inplace=True)
+            return_value = recons.reset_index(inplace=True)
+            assert return_value is None
             tm.assert_frame_equal(to_df, recons)
 
     def test_to_csv_multiindex(self, float_frame, datetime_frame):
@@ -769,8 +772,8 @@ class TestDataFrameToCSV:
         for n, dtype in [
             ("float", np.float64),
             ("int", np.int64),
-            ("bool", np.bool),
-            ("object", np.object),
+            ("bool", np.bool_),
+            ("object", object),
         ]:
             for c in create_cols(n):
                 dtypes[c] = dtype
@@ -1157,6 +1160,7 @@ class TestDataFrameToCSV:
             )
 
             for i in [times, times + pd.Timedelta("10s")]:
+                i = i._with_freq(None)  # freq is not preserved by read_csv
                 time_range = np.array(range(len(i)), dtype="int64")
                 df = DataFrame({"A": time_range}, index=i)
                 df.to_csv(path, index=True)
@@ -1170,6 +1174,8 @@ class TestDataFrameToCSV:
 
         # GH11619
         idx = pd.date_range("2015-01-01", "2015-12-31", freq="H", tz="Europe/Paris")
+        idx = idx._with_freq(None)  # freq does not round-trip
+        idx._data._freq = None  # otherwise there is trouble on unpickle
         df = DataFrame({"values": 1, "idx": idx}, index=idx)
         with tm.ensure_clean("csv_date_format_with_dst") as path:
             df.to_csv(path, index=True)

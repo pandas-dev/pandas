@@ -49,7 +49,10 @@ class TestInterval:
         assert Interval(0, 1) != 0
 
     def test_comparison(self):
-        msg = "unorderable types"
+        msg = (
+            "'<' not supported between instances of "
+            "'pandas._libs.interval.Interval' and 'int'"
+        )
         with pytest.raises(TypeError, match=msg):
             Interval(0, 1) < 2
 

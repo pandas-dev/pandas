@@ -17,14 +17,16 @@ from pandas.core.dtypes.common import (
     is_interval_dtype,
     is_list_like,
     is_scalar,
+    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, notna
 
 from pandas.core import accessor
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays.categorical import Categorical, contains, recode_for_categories
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
 from pandas.core.indexes.extension import ExtensionIndex, inherit_names
@@ -198,8 +200,13 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
                 data = []
 
         assert isinstance(dtype, CategoricalDtype), dtype
-        if not isinstance(data, Categorical) or data.dtype != dtype:
+        data = extract_array(data, extract_numpy=True)
+
+        if not isinstance(data, Categorical):
             data = Categorical(data, dtype=dtype)
+        elif isinstance(dtype, CategoricalDtype) and dtype != data.dtype:
+            # we want to silently ignore dtype='category'
+            data = data._set_dtype(dtype)
 
         data = data.copy() if copy else data
 
@@ -283,7 +290,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
         return other
 
-    def equals(self, other) -> bool:
+    def equals(self, other: object) -> bool:
         """
         Determine if two CategoricalIndex objects contain the same elements.
 
@@ -340,6 +347,15 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
             attrs.append(("length", len(self)))
         return attrs
 
+    def _format_with_header(self, header, na_rep="NaN") -> List[str]:
+        from pandas.io.formats.printing import pprint_thing
+
+        result = [
+            pprint_thing(x, escape_chars=("\t", "\r", "\n")) if notna(x) else na_rep
+            for x in self._values
+        ]
+        return header + result
+
     # --------------------------------------------------------------------
 
     @property
@@ -359,14 +375,16 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
     @doc(Index.__contains__)
     def __contains__(self, key: Any) -> bool:
         # if key is a NaN, check if any NaN is in self.
-        if is_scalar(key) and isna(key):
+        if is_valid_nat_for_dtype(key, self.categories.dtype):
             return self.hasnans
 
-        hash(key)
         return contains(self, key, container=self._engine)
 
     @doc(Index.astype)
     def astype(self, dtype, copy=True):
+        if dtype is not None:
+            dtype = pandas_dtype(dtype)
+
         if is_interval_dtype(dtype):
             from pandas import IntervalIndex
 
@@ -684,7 +702,8 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         >>> idx.map({'a': 'first', 'b': 'second'})
         Index(['first', 'second', nan], dtype='object')
         """
-        return self._shallow_copy_with_infer(self._values.map(mapper))
+        mapped = self._values.map(mapper)
+        return Index(mapped, name=self.name)
 
     def delete(self, loc):
         """
@@ -728,13 +747,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
     def _concat(self, to_concat, name):
         # if calling index is category, don't check dtype of others
-        return CategoricalIndex._concat_same_dtype(self, to_concat, name)
-
-    def _concat_same_dtype(self, to_concat, name):
-        """
-        Concatenate to_concat which has the same class
-        ValueError if other is not in the categories
-        """
         codes = np.concatenate([self._is_dtype_compat(c).codes for c in to_concat])
         result = self._create_from_codes(codes, name=name)
         # if name is None, _create_from_codes sets self.name
@@ -758,6 +770,4 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         return self._create_from_codes(joined, name=name)
 
 
-CategoricalIndex._add_numeric_methods_add_sub_disabled()
-CategoricalIndex._add_numeric_methods_disabled()
 CategoricalIndex._add_logical_methods_disabled()

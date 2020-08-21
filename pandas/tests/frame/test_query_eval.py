@@ -71,9 +71,14 @@ class TestCompat:
             result = df.eval("A+1", engine="numexpr")
             tm.assert_series_equal(result, self.expected2, check_names=False)
         else:
-            with pytest.raises(ImportError):
+            msg = (
+                r"'numexpr' is not installed or an unsupported version. "
+                r"Cannot use engine='numexpr' for query/eval if 'numexpr' is "
+                r"not installed"
+            )
+            with pytest.raises(ImportError, match=msg):
                 df.query("A>0", engine="numexpr")
-            with pytest.raises(ImportError):
+            with pytest.raises(ImportError, match=msg):
                 df.eval("A+1", engine="numexpr")
 
 
@@ -408,7 +413,8 @@ class TestDataFrameQueryNumExprPandas:
         df = DataFrame(np.random.randn(n, 3))
         df["dates1"] = date_range("1/1/2012", periods=n)
         df["dates3"] = date_range("1/1/2014", periods=n)
-        df.set_index("dates1", inplace=True, drop=True)
+        return_value = df.set_index("dates1", inplace=True, drop=True)
+        assert return_value is None
         res = df.query("index < 20130101 < dates3", engine=engine, parser=parser)
         expec = df[(df.index < "20130101") & ("20130101" < df.dates3)]
         tm.assert_frame_equal(res, expec)
@@ -420,7 +426,8 @@ class TestDataFrameQueryNumExprPandas:
         df["dates1"] = date_range("1/1/2012", periods=n)
         df["dates3"] = date_range("1/1/2014", periods=n)
         df.iloc[0, 0] = pd.NaT
-        df.set_index("dates1", inplace=True, drop=True)
+        return_value = df.set_index("dates1", inplace=True, drop=True)
+        assert return_value is None
         res = df.query("index < 20130101 < dates3", engine=engine, parser=parser)
         expec = df[(df.index < "20130101") & ("20130101" < df.dates3)]
         tm.assert_frame_equal(res, expec)
@@ -433,7 +440,8 @@ class TestDataFrameQueryNumExprPandas:
         d["dates3"] = date_range("1/1/2014", periods=n)
         df = DataFrame(d)
         df.loc[np.random.rand(n) > 0.5, "dates1"] = pd.NaT
-        df.set_index("dates1", inplace=True, drop=True)
+        return_value = df.set_index("dates1", inplace=True, drop=True)
+        assert return_value is None
         res = df.query("dates1 < 20130101 < dates3", engine=engine, parser=parser)
         expec = df[(df.index.to_series() < "20130101") & ("20130101" < df.dates3)]
         tm.assert_frame_equal(res, expec)
@@ -452,14 +460,16 @@ class TestDataFrameQueryNumExprPandas:
         result = df.query("dates != nondate", parser=parser, engine=engine)
         tm.assert_frame_equal(result, df)
 
+        msg = r"Invalid comparison between dtype=datetime64\[ns\] and ndarray"
         for op in ["<", ">", "<=", ">="]:
-            with pytest.raises(TypeError):
+            with pytest.raises(TypeError, match=msg):
                 df.query(f"dates {op} nondate", parser=parser, engine=engine)
 
     def test_query_syntax_error(self):
         engine, parser = self.engine, self.parser
         df = DataFrame({"i": range(10), "+": range(3, 13), "r": range(4, 14)})
-        with pytest.raises(SyntaxError):
+        msg = "invalid syntax"
+        with pytest.raises(SyntaxError, match=msg):
             df.query("i - +", engine=engine, parser=parser)
 
     def test_query_scope(self):
@@ -695,6 +705,21 @@ class TestDataFrameQueryNumExprPandas:
             result = df.query(q, engine=self.engine, parser=self.parser)
             tm.assert_frame_equal(result, expected)
 
+    def test_check_tz_aware_index_query(self, tz_aware_fixture):
+        # https://github.com/pandas-dev/pandas/issues/29463
+        tz = tz_aware_fixture
+        df_index = pd.date_range(
+            start="2019-01-01", freq="1d", periods=10, tz=tz, name="time"
+        )
+        expected = pd.DataFrame(index=df_index)
+        df = pd.DataFrame(index=df_index)
+        result = df.query('"2018-01-03 00:00:00+00" < time')
+        tm.assert_frame_equal(result, expected)
+
+        expected = pd.DataFrame(df_index)
+        result = df.reset_index().query('"2018-01-03 00:00:00+00" < time')
+        tm.assert_frame_equal(result, expected)
+
 
 @td.skip_if_no_ne
 class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
@@ -737,7 +762,8 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         df = DataFrame(np.random.randn(n, 3))
         df["dates1"] = date_range("1/1/2012", periods=n)
         df["dates3"] = date_range("1/1/2014", periods=n)
-        df.set_index("dates1", inplace=True, drop=True)
+        return_value = df.set_index("dates1", inplace=True, drop=True)
+        assert return_value is None
         res = df.query(
             "(index < 20130101) & (20130101 < dates3)", engine=engine, parser=parser
         )
@@ -751,7 +777,8 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         df["dates1"] = date_range("1/1/2012", periods=n)
         df["dates3"] = date_range("1/1/2014", periods=n)
         df.iloc[0, 0] = pd.NaT
-        df.set_index("dates1", inplace=True, drop=True)
+        return_value = df.set_index("dates1", inplace=True, drop=True)
+        assert return_value is None
         res = df.query(
             "(index < 20130101) & (20130101 < dates3)", engine=engine, parser=parser
         )
@@ -765,8 +792,10 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         df["dates1"] = date_range("1/1/2012", periods=n)
         df["dates3"] = date_range("1/1/2014", periods=n)
         df.loc[np.random.rand(n) > 0.5, "dates1"] = pd.NaT
-        df.set_index("dates1", inplace=True, drop=True)
-        with pytest.raises(NotImplementedError):
+        return_value = df.set_index("dates1", inplace=True, drop=True)
+        assert return_value is None
+        msg = r"'BoolOp' nodes are not implemented"
+        with pytest.raises(NotImplementedError, match=msg):
             df.query("index < 20130101 < dates3", engine=engine, parser=parser)
 
     def test_nested_scope(self):
@@ -783,7 +812,8 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         df2 = DataFrame(np.random.randn(5, 3))
 
         # don't have the pandas parser
-        with pytest.raises(SyntaxError):
+        msg = r"The '@' prefix is only supported by the pandas parser"
+        with pytest.raises(SyntaxError, match=msg):
             df.query("(@df>0) & (@df2>0)", engine=engine, parser=parser)
 
         with pytest.raises(UndefinedVariableError, match="name 'df' is not defined"):
@@ -852,10 +882,10 @@ class TestDataFrameQueryStrings:
 
             eq, ne = "==", "!="
             ops = 2 * ([eq] + [ne])
+            msg = r"'(Not)?In' nodes are not implemented"
 
             for lhs, op, rhs in zip(lhs, ops, rhs):
                 ex = f"{lhs} {op} {rhs}"
-                msg = r"'(Not)?In' nodes are not implemented"
                 with pytest.raises(NotImplementedError, match=msg):
                     df.query(
                         ex,
@@ -893,10 +923,11 @@ class TestDataFrameQueryStrings:
 
             eq, ne = "==", "!="
             ops = 2 * ([eq] + [ne])
+            msg = r"'(Not)?In' nodes are not implemented"
 
             for lhs, op, rhs in zip(lhs, ops, rhs):
                 ex = f"{lhs} {op} {rhs}"
-                with pytest.raises(NotImplementedError):
+                with pytest.raises(NotImplementedError, match=msg):
                     df.query(ex, engine=engine, parser=parser)
         else:
             res = df.query('strings == ["a", "b"]', engine=engine, parser=parser)
@@ -931,10 +962,12 @@ class TestDataFrameQueryStrings:
             expec = df[df.a.isin(df.b) & (df.c < df.d)]
             tm.assert_frame_equal(res, expec)
         else:
-            with pytest.raises(NotImplementedError):
+            msg = r"'(Not)?In' nodes are not implemented"
+            with pytest.raises(NotImplementedError, match=msg):
                 df.query("a in b", parser=parser, engine=engine)
 
-            with pytest.raises(NotImplementedError):
+            msg = r"'BoolOp' nodes are not implemented"
+            with pytest.raises(NotImplementedError, match=msg):
                 df.query("a in b and c < d", parser=parser, engine=engine)
 
     def test_object_array_eq_ne(self, parser, engine):
@@ -1165,14 +1198,43 @@ class TestDataFrameQueryBacktickQuoting:
         expect = df[df["  &^ :!€$?(} >    <++*''  "] > 4]
         tm.assert_frame_equal(res, expect)
 
+    def test_missing_attribute(self, df):
+        message = "module 'pandas' has no attribute 'thing'"
+        with pytest.raises(AttributeError, match=message):
+            df.eval("@pd.thing")
+
     def test_failing_quote(self, df):
-        with pytest.raises(SyntaxError):
+        msg = r"(Could not convert ).*( to a valid Python identifier.)"
+        with pytest.raises(SyntaxError, match=msg):
             df.query("`it's` > `that's`")
 
     def test_failing_character_outside_range(self, df):
-        with pytest.raises(SyntaxError):
+        msg = r"(Could not convert ).*( to a valid Python identifier.)"
+        with pytest.raises(SyntaxError, match=msg):
             df.query("`☺` > 4")
 
     def test_failing_hashtag(self, df):
-        with pytest.raises(SyntaxError):
+        msg = "Failed to parse backticks"
+        with pytest.raises(SyntaxError, match=msg):
             df.query("`foo#bar` > 4")
+
+    def test_call_non_named_expression(self, df):
+        """
+        Only attributes and variables ('named functions') can be called.
+        .__call__() is not an allowed attribute because that would allow
+        calling anything.
+        https://github.com/pandas-dev/pandas/pull/32460
+        """
+
+        def func(*_):
+            return 1
+
+        funcs = [func]  # noqa
+
+        df.eval("@func()")
+
+        with pytest.raises(TypeError, match="Only named functions are supported"):
+            df.eval("@funcs[0]()")
+
+        with pytest.raises(TypeError, match="Only named functions are supported"):
+            df.eval("@funcs[0].__call__()")
