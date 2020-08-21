@@ -1431,6 +1431,7 @@ def assert_frame_equal(
     check_categorical=True,
     check_like=False,
     check_freq=True,
+    check_flags=True,
     rtol=1.0e-5,
     atol=1.0e-8,
     obj="DataFrame",
@@ -1492,6 +1493,8 @@ def assert_frame_equal(
         (same as in columns) - same labels must be with the same data.
     check_freq : bool, default True
         Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex.
+    check_flags : bool, default True
+        Whether to check the `flags` attribute.
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
 
@@ -1564,6 +1567,9 @@ def assert_frame_equal(
 
     if check_like:
         left, right = left.reindex_like(right), right
+
+    if check_flags:
+        assert left.flags == right.flags
 
     # index comparison
     assert_index_equal(

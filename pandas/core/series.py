@@ -216,14 +216,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # Constructors
 
     def __init__(
-        self,
-        data=None,
-        index=None,
-        dtype=None,
-        name=None,
-        copy=False,
-        allows_duplicate_labels=True,
-        fastpath=False,
+        self, data=None, index=None, dtype=None, name=None, copy=False, fastpath=False,
     ):
 
         if (
@@ -234,7 +227,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ):
             # GH#33357 called with just the SingleBlockManager
             NDFrame.__init__(
-                self, data, allows_duplicate_labels=allows_duplicate_labels
+                self, data,
             )
             self.name = name
             return
@@ -355,7 +348,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 data = SingleBlockManager.from_array(data, index)
 
         generic.NDFrame.__init__(
-            self, data, allows_duplicate_labels=allows_duplicate_labels
+            self, data,
         )
         self.name = name
         self._set_axis(0, index, fastpath=True)

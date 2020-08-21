@@ -887,3 +887,13 @@ class TestNDFrame:
         obj = box(dtype=object)
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             obj._AXIS_NUMBERS
+
+    def test_flags_identity(self):
+        s = pd.Series([1, 2])
+        assert s.flags is s.flags
+        df = s.to_frame()
+        assert df.flags is df.flags
+        assert s.flags is not df.flags
+
+        df2 = df.copy()
+        assert df2.flags is not df.flags

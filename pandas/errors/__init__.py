@@ -210,7 +210,9 @@ class DuplicateLabelError(ValueError):
 
     Examples
     --------
-    >>> s = pd.Series([0, 1, 2], index=['a', 'b', 'c'], allows_duplicate_labels=False)
+    >>> s = pd.Series([0, 1, 2], index=['a', 'b', 'c']).set_flags(
+    ...     allows_duplicate_labels=False
+    ... )
     >>> s.reindex(['a', 'a', 'b'])
     Traceback (most recent call last):
        ...

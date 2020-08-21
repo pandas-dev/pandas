@@ -89,6 +89,7 @@ from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
 from pandas.core import missing, nanops
+from pandas.core._flags import Flags
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
 import pandas.core.common as com
@@ -199,7 +200,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self,
         data: BlockManager,
         copy: bool = False,
-        allows_duplicate_labels: bool = True,
         attrs: Optional[Mapping[Optional[Hashable], Any]] = None,
     ):
         # copy kwarg is retained for mypy compat, is not used
@@ -212,7 +212,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         else:
             attrs = dict(attrs)
         object.__setattr__(self, "_attrs", attrs)
-        object.__setattr__(self, "allows_duplicate_labels", allows_duplicate_labels)
+        object.__setattr__(self, "_flags", Flags(self, allows_duplicate_labels=True))
 
     @classmethod
     def _init_mgr(cls, mgr, axes, dtype=None, copy: bool = False) -> BlockManager:
@@ -253,54 +253,17 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self._attrs = dict(value)
 
     @property
-    def allows_duplicate_labels(self) -> bool:
-        """
-        Whether this object allows duplicate labels.
-
-        Setting ``allows_duplicate_labels=False`` ensures that the
-        index (and columns of a DataFrame) are unique. Most methods
-        that accept and return a Series or DataFrame will propagate
-        the value of ``allows_duplicate_labels``.
-
-        See :ref:`duplicates` for more.
-
-        See Also
-        --------
-        DataFrame.attrs : Set global metadata on this object.
-        DataFrame.set_flags : Set global flags on this object.
-
-        Examples
-        --------
-        >>> df = pd.DataFrame({"A": [1, 2]}, index=['a', 'a'])
-        >>> df.allows_duplicate_labels
-        True
-        >>> df.allows_duplicate_labels = False
-        Traceback (most recent call last):
-            ...
-        pandas.errors.DuplicateLabelError: Index has duplicates.
-              positions
-        label
-        a        [0, 1]
-        """
-        return self._allows_duplicate_labels
-
-    @allows_duplicate_labels.setter
-    def allows_duplicate_labels(self, value: bool):
-        value = bool(value)
-        if not value:
-            for ax in self.axes:
-                ax._maybe_check_unique()
-
-        # avoid `can_hold_identifiers` check.
-        object.__setattr__(self, "_allows_duplicate_labels", value)
+    def flags(self) -> Flags:
+        return self._flags
 
     def set_flags(
-        self: FrameOrSeries, *, allows_duplicate_labels: Optional[bool] = None
+        self: FrameOrSeries,
+        *,
+        copy: bool = False,
+        allows_duplicate_labels: Optional[bool] = None,
     ) -> FrameOrSeries:
         """
-        Set global attributes on a copy of this object.
-
-        This method is intended to be used in method chains.
+        Return a new object with updated flags.
 
         Parameters
         ----------
@@ -311,6 +274,18 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         -------
         Series or DataFrame
             The same type as the caller.
+
+        Notes
+        -----
+        This method returns a new object that's a view on the same data
+        as the input. Mutating the input or the output will be reflected
+        in the other.
+
+        This method is intended to be used in method chains.
+
+        "Flags" differ from "metadata". Flags reflect properties of the
+        pandas object (the Series or DataFrame). Metadata refer to properties
+        of the dataset, and should be stored in :attr:`DataFrame.attrs`.
 
         See Also
         --------
@@ -326,9 +301,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         >>> df2.allows_duplicate_labels
         False
         """
-        df = self.copy()
+        df = self.copy(deep=copy)
         if allows_duplicate_labels is not None:
-            df.allows_duplicate_labels = allows_duplicate_labels
+            df.flags["allows_duplicate_labels"] = allows_duplicate_labels
         return df
 
     @classmethod
@@ -3889,10 +3864,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # Unsorted
 
     def _check_inplace_and_allows_duplicate_labels(self, inplace):
-        if inplace and not self.allows_duplicate_labels:
+        if inplace and not self.flags.allows_duplicate_labels:
             raise ValueError(
                 "Cannot specify 'inplace=True' when "
-                "'self.allows_duplicate_labels' is False."
+                "'self.flags.allows_duplicate_labels' is False."
             )
 
     def get(self, key, default=None):
@@ -5298,15 +5273,17 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             for name in other.attrs:
                 self.attrs[name] = other.attrs[name]
 
-            self.allows_duplicate_labels = other.allows_duplicate_labels
+            self.flags.allows_duplicate_labels = other.flags.allows_duplicate_labels
             # For subclasses using _metadata.
             for name in self._metadata:
                 assert isinstance(name, str)
                 object.__setattr__(self, name, getattr(other, name, None))
 
         if method == "concat":
-            allows_duplicate_labels = all(x.allows_duplicate_labels for x in other.objs)
-            self.allows_duplicate_labels = allows_duplicate_labels
+            allows_duplicate_labels = all(
+                x.flags.allows_duplicate_labels for x in other.objs
+            )
+            self.flags.allows_duplicate_labels = allows_duplicate_labels
 
         return self
 
