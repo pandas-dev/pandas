@@ -188,6 +188,8 @@ class RangeIndex(Int64Index):
         return None
 
     def _format_with_header(self, header: List[str], na_rep: str = "NaN") -> List[str]:
+        if len(self._range) == 0:
+            return []
         first_val_str = str(self._range[0])
         last_val_str = str(self._range[-1])
         max_length = max(len(first_val_str), len(last_val_str))
