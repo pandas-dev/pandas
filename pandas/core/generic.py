@@ -22,6 +22,7 @@ from typing import (
     Tuple,
     Type,
     Union,
+    cast,
 )
 import warnings
 import weakref
@@ -34,12 +35,14 @@ from pandas._libs import lib
 from pandas._libs.tslibs import Tick, Timestamp, to_offset
 from pandas._typing import (
     Axis,
+    CompressionOptions,
     FilePathOrBuffer,
     FrameOrSeries,
     JSONSerializable,
     Label,
     Level,
     Renamer,
+    StorageOptions,
     TimedeltaConvertibleTypes,
     TimestampConvertibleTypes,
     ValueKeyFunc,
@@ -589,9 +592,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         # ignore needed because of NDFrame constructor is different than
         # DataFrame/Series constructors.
-        return self._constructor(new_values, *new_axes).__finalize__(  # type: ignore
-            self, method="swapaxes"
-        )
+        return self._constructor(
+            new_values, *new_axes  # type: ignore[arg-type]
+        ).__finalize__(self, method="swapaxes")
 
     def droplevel(self: FrameOrSeries, level, axis=0) -> FrameOrSeries:
         """
@@ -1195,15 +1198,17 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             self._get_axis(a).equals(other._get_axis(a)) for a in self._AXIS_ORDERS
         )
 
-    def equals(self, other):
+    def equals(self, other: object) -> bool:
         """
         Test whether two objects contain the same elements.
 
         This function allows two Series or DataFrames to be compared against
         each other to see if they have the same shape and elements. NaNs in
-        the same location are considered equal. The column headers do not
-        need to have the same type, but the elements within the columns must
-        be the same dtype.
+        the same location are considered equal.
+
+        The row/column index do not need to have the same type, as long
+        as the values are considered equal. Corresponding columns must be of
+        the same dtype.
 
         Parameters
         ----------
@@ -1231,13 +1236,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             DataFrames.
         numpy.array_equal : Return True if two arrays have the same shape
             and elements, False otherwise.
-
-        Notes
-        -----
-        This function requires that the elements have the same dtype as their
-        respective elements in the other Series or DataFrame. However, the
-        column labels do not need to have the same type, as long as they are
-        still considered equal.
 
         Examples
         --------
@@ -1278,8 +1276,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         >>> df.equals(different_data_type)
         False
         """
-        if not isinstance(other, self._constructor):
+        if not (isinstance(other, type(self)) or isinstance(self, type(other))):
             return False
+        other = cast(NDFrame, other)
         return self._mgr.equals(other._mgr)
 
     # -------------------------------------------------------------------------
@@ -1777,7 +1776,28 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def __array__(self, dtype=None) -> np.ndarray:
         return np.asarray(self._values, dtype=dtype)
 
-    def __array_wrap__(self, result, context=None):
+    def __array_wrap__(
+        self,
+        result: np.ndarray,
+        context: Optional[Tuple[Callable, Tuple[Any, ...], int]] = None,
+    ):
+        """
+        Gets called after a ufunc and other functions.
+
+        Parameters
+        ----------
+        result: np.ndarray
+            The result of the ufunc or other function called on the NumPy array
+            returned by __array__
+        context: tuple of (func, tuple, int)
+            This parameter is returned by ufuncs as a 3-element tuple: (name of the
+            ufunc, arguments of the ufunc, domain of the ufunc), but is not set by
+            other numpy functions.q
+
+        Notes
+        -----
+        Series implements __array_ufunc_ so this not called for ufunc on Series.
+        """
         result = lib.item_from_zerodim(result)
         if is_scalar(result):
             # e.g. we get here with np.ptp(series)
@@ -2039,9 +2059,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         date_unit: str = "ms",
         default_handler: Optional[Callable[[Any], JSONSerializable]] = None,
         lines: bool_t = False,
-        compression: Optional[str] = "infer",
+        compression: CompressionOptions = "infer",
         index: bool_t = True,
         indent: Optional[int] = None,
+        storage_options: StorageOptions = None,
     ) -> Optional[str]:
         """
         Convert the object to a JSON string.
@@ -2124,6 +2145,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
            Length of whitespace used to indent each record.
 
            .. versionadded:: 1.0.0
+
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc., if using a URL that will
+            be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+            will be raised if providing this argument with a local path or
+            a file-like buffer. See the fsspec and backend storage implementation
+            docs for the set of allowed keys and values
+
+            .. versionadded:: 1.2.0
 
         Returns
         -------
@@ -2303,6 +2334,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             compression=compression,
             index=index,
             indent=indent,
+            storage_options=storage_options,
         )
 
     def to_hdf(
@@ -2615,8 +2647,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def to_pickle(
         self,
         path,
-        compression: Optional[str] = "infer",
+        compression: CompressionOptions = "infer",
         protocol: int = pickle.HIGHEST_PROTOCOL,
+        storage_options: StorageOptions = None,
     ) -> None:
         """
         Pickle (serialize) object to file.
@@ -2636,6 +2669,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             parameter is equivalent to setting its value to HIGHEST_PROTOCOL.
 
             .. [1] https://docs.python.org/3/library/pickle.html.
+
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc., if using a URL that will
+            be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+            will be raised if providing this argument with a local path or
+            a file-like buffer. See the fsspec and backend storage implementation
+            docs for the set of allowed keys and values
+
+            .. versionadded:: 1.2.0
 
         See Also
         --------
@@ -2670,7 +2713,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         from pandas.io.pickle import to_pickle
 
-        to_pickle(self, path, compression=compression, protocol=protocol)
+        to_pickle(
+            self,
+            path,
+            compression=compression,
+            protocol=protocol,
+            storage_options=storage_options,
+        )
 
     def to_clipboard(
         self, excel: bool_t = True, sep: Optional[str] = None, **kwargs
@@ -2840,6 +2889,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         multirow=None,
         caption=None,
         label=None,
+        position=None,
     ):
         r"""
         Render object to a LaTeX tabular, longtable, or nested table/tabular.
@@ -2925,6 +2975,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             This is used with ``\ref{}`` in the main ``.tex`` file.
 
             .. versionadded:: 1.0.0
+        position : str, optional
+            The LaTeX positional argument for tables, to be placed after
+            ``\begin{}`` in the output.
         %(returns)s
         See Also
         --------
@@ -2986,6 +3039,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             multirow=multirow,
             caption=caption,
             label=label,
+            position=position,
         )
 
     def to_csv(
@@ -3000,7 +3054,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         index_label: Optional[Union[bool_t, str, Sequence[Label]]] = None,
         mode: str = "w",
         encoding: Optional[str] = None,
-        compression: Optional[Union[str, Mapping[str, str]]] = "infer",
+        compression: CompressionOptions = "infer",
         quoting: Optional[int] = None,
         quotechar: str = '"',
         line_terminator: Optional[str] = None,
@@ -3010,6 +3064,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         escapechar: Optional[str] = None,
         decimal: Optional[str] = ".",
         errors: str = "strict",
+        storage_options: StorageOptions = None,
     ) -> Optional[str]:
         r"""
         Write object to a comma-separated values (csv) file.
@@ -3021,12 +3076,17 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ----------
         path_or_buf : str or file handle, default None
             File path or object, if None is provided the result is returned as
-            a string.  If a file object is passed it should be opened with
-            `newline=''`, disabling universal newlines.
+            a string.  If a non-binary file object is passed, it should be opened
+            with `newline=''`, disabling universal newlines. If a binary
+            file object is passed, `mode` needs to contain a `'b'`.
 
             .. versionchanged:: 0.24.0
 
                Was previously named "path" for Series.
+
+            .. versionchanged:: 1.2.0
+
+               Support for binary file objects was introduced.
 
         sep : str, default ','
             String of length 1. Field delimiter for the output file.
@@ -3056,7 +3116,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             Python write mode, default 'w'.
         encoding : str, optional
             A string representing the encoding to use in the output file,
-            defaults to 'utf-8'.
+            defaults to 'utf-8'. `encoding` is not supported if `path_or_buf`
+            is a non-binary file object.
         compression : str or dict, default 'infer'
             If str, represents compression mode. If dict, value at 'method' is
             the compression mode. Compression mode may be any of the following
@@ -3079,6 +3140,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                Passing compression options as keys in dict is
                supported for compression modes 'gzip' and 'bz2'
                as well as 'zip'.
+
+            .. versionchanged:: 1.2.0
+
+                Compression is supported for binary file objects.
+
+            .. versionchanged:: 1.2.0
+
+                Previous versions forwarded dict entries for 'gzip' to
+                `gzip.open` instead of `gzip.GzipFile` which prevented
+                setting `mtime`.
 
         quoting : optional constant from csv module
             Defaults to csv.QUOTE_MINIMAL. If you have set a `float_format`
@@ -3110,6 +3181,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             of options.
 
             .. versionadded:: 1.1.0
+
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc., if using a URL that will
+            be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+            will be raised if providing this argument with a local path or
+            a file-like buffer. See the fsspec and backend storage implementation
+            docs for the set of allowed keys and values
+
+            .. versionadded:: 1.2.0
 
         Returns
         -------
@@ -3163,6 +3244,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             doublequote=doublequote,
             escapechar=escapechar,
             decimal=decimal,
+            storage_options=storage_options,
         )
         formatter.save()
 
@@ -3477,7 +3559,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         index = self.index
         if isinstance(index, MultiIndex):
-            loc, new_index = self.index.get_loc_level(key, drop_level=drop_level)
+            try:
+                loc, new_index = self.index.get_loc_level(key, drop_level=drop_level)
+            except TypeError as e:
+                raise TypeError(f"Expected label or tuple of labels, got {key}") from e
         else:
             loc = self.index.get_loc(key)
 
@@ -4011,7 +4096,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         f = functools.partial("{prefix}{}".format, prefix=prefix)
 
         mapper = {self._info_axis_name: f}
-        return self.rename(**mapper)  # type: ignore
+        # error: Incompatible return value type (got "Optional[FrameOrSeries]",
+        # expected "FrameOrSeries")
+        # error: Argument 1 to "rename" of "NDFrame" has incompatible type
+        # "**Dict[str, partial[str]]"; expected "Union[str, int, None]"
+        return self.rename(**mapper)  # type: ignore[return-value, arg-type]
 
     def add_suffix(self: FrameOrSeries, suffix: str) -> FrameOrSeries:
         """
@@ -4070,7 +4159,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         f = functools.partial("{}{suffix}".format, suffix=suffix)
 
         mapper = {self._info_axis_name: f}
-        return self.rename(**mapper)  # type: ignore
+        # error: Incompatible return value type (got "Optional[FrameOrSeries]",
+        # expected "FrameOrSeries")
+        # error: Argument 1 to "rename" of "NDFrame" has incompatible type
+        # "**Dict[str, partial[str]]"; expected "Union[str, int, None]"
+        return self.rename(**mapper)  # type: ignore[return-value, arg-type]
 
     def sort_values(
         self,
@@ -6799,6 +6892,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         obj = self.T if should_transpose else self
 
+        if obj.empty:
+            return self.copy()
+
         if method not in fillna_methods:
             axis = self._info_axis_number
 
@@ -9397,7 +9493,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if before > after:
                 raise ValueError(f"Truncate: {after} must be after {before}")
 
-        if ax.is_monotonic_decreasing:
+        if len(ax) > 1 and ax.is_monotonic_decreasing:
             before, after = after, before
 
         slicer = [slice(None, None)] * self._AXIS_LEN
@@ -9711,7 +9807,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return np.abs(self)
 
     def describe(
-        self: FrameOrSeries, percentiles=None, include=None, exclude=None
+        self: FrameOrSeries,
+        percentiles=None,
+        include=None,
+        exclude=None,
+        datetime_is_numeric=False,
     ) -> FrameOrSeries:
         """
         Generate descriptive statistics.
@@ -9757,6 +9857,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
               ``select_dtypes`` (e.g. ``df.describe(include=['O'])``). To
               exclude pandas categorical columns, use ``'category'``
             - None (default) : The result will exclude nothing.
+        datetime_is_numeric : bool, default False
+            Whether to treat datetime dtypes as numeric. This affects statistics
+            calculated for the column. For DataFrame input, this also
+            controls whether datetime columns are included by default.
+
+            .. versionadded:: 1.1.0
 
         Returns
         -------
@@ -9834,7 +9940,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ...   np.datetime64("2010-01-01"),
         ...   np.datetime64("2010-01-01")
         ... ])
-        >>> s.describe()
+        >>> s.describe(datetime_is_numeric=True)
         count                      3
         mean     2006-09-01 08:00:00
         min      2000-01-01 00:00:00
@@ -9992,8 +10098,37 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             dtype = None
             if result[1] > 0:
                 top, freq = objcounts.index[0], objcounts.iloc[0]
-                names += ["top", "freq"]
-                result += [top, freq]
+                if is_datetime64_any_dtype(data.dtype):
+                    if self.ndim == 1:
+                        stacklevel = 4
+                    else:
+                        stacklevel = 5
+                    warnings.warn(
+                        "Treating datetime data as categorical rather than numeric in "
+                        "`.describe` is deprecated and will be removed in a future "
+                        "version of pandas. Specify `datetime_is_numeric=True` to "
+                        "silence this warning and adopt the future behavior now.",
+                        FutureWarning,
+                        stacklevel=stacklevel,
+                    )
+                    tz = data.dt.tz
+                    asint = data.dropna().values.view("i8")
+                    top = Timestamp(top)
+                    if top.tzinfo is not None and tz is not None:
+                        # Don't tz_localize(None) if key is already tz-aware
+                        top = top.tz_convert(tz)
+                    else:
+                        top = top.tz_localize(tz)
+                    names += ["top", "freq", "first", "last"]
+                    result += [
+                        top,
+                        freq,
+                        Timestamp(asint.min(), tz=tz),
+                        Timestamp(asint.max(), tz=tz),
+                    ]
+                else:
+                    names += ["top", "freq"]
+                    result += [top, freq]
 
             # If the DataFrame is empty, set 'top' and 'freq' to None
             # to maintain output shape consistency
@@ -10019,7 +10154,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 return describe_categorical_1d(data)
             elif is_numeric_dtype(data):
                 return describe_numeric_1d(data)
-            elif is_datetime64_any_dtype(data.dtype):
+            elif is_datetime64_any_dtype(data.dtype) and datetime_is_numeric:
                 return describe_timestamp_1d(data)
             elif is_timedelta64_dtype(data.dtype):
                 return describe_numeric_1d(data)
@@ -10030,7 +10165,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return describe_1d(self)
         elif (include is None) and (exclude is None):
             # when some numerics are found, keep only numerics
-            data = self.select_dtypes(include=[np.number])
+            default_include = [np.number]
+            if datetime_is_numeric:
+                default_include.append("datetime")
+            data = self.select_dtypes(include=default_include)
             if len(data.columns) == 0:
                 data = self
         elif include == "all":
@@ -10500,8 +10638,18 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         cls.rolling = rolling
 
         @doc(Expanding)
-        def expanding(self, min_periods=1, center=False, axis=0):
+        def expanding(self, min_periods=1, center=None, axis=0):
             axis = self._get_axis_number(axis)
+            if center is not None:
+                warnings.warn(
+                    "The `center` argument on `expanding` "
+                    "will be removed in the future",
+                    FutureWarning,
+                    stacklevel=2,
+                )
+            else:
+                center = False
+
             return Expanding(self, min_periods=min_periods, center=center, axis=axis)
 
         cls.expanding = expanding

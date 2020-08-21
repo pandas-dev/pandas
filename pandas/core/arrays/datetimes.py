@@ -418,9 +418,9 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
                 # index is localized datetime64 array -> have to convert
                 # start/end as well to compare
                 if start is not None:
-                    start = start.tz_localize(tz).asm8
+                    start = start.tz_localize(tz, ambiguous, nonexistent).asm8
                 if end is not None:
-                    end = end.tz_localize(tz).asm8
+                    end = end.tz_localize(tz, ambiguous, nonexistent).asm8
         else:
             # Create a linearly spaced date_range in local time
             # Nanosecond-granularity timestamps aren't always correctly
@@ -683,7 +683,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
                 values = self.tz_localize(None)
             else:
                 values = self
-            result = offset.apply_index(values)
+            result = offset._apply_array(values)
             result = DatetimeArray._simple_new(result)
             result = result.tz_localize(self.tz)
 

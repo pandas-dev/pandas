@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import PY37
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.tests.extension import base
@@ -62,13 +60,11 @@ class TestConstructors(BaseArrowTests, base.BaseConstructorsTests):
     def test_from_sequence_from_cls(self, data):
         super().test_from_sequence_from_cls(data)
 
-    @pytest.mark.skipif(not PY37, reason="timeout on Linux py36_locale")
     @pytest.mark.xfail(reason="pa.NULL is not recognised as scalar, GH-33899")
     def test_series_constructor_no_data_with_index(self, dtype, na_value):
         # pyarrow.lib.ArrowInvalid: only handle 1-dimensional arrays
         super().test_series_constructor_no_data_with_index(dtype, na_value)
 
-    @pytest.mark.skipif(not PY37, reason="timeout on Linux py36_locale")
     @pytest.mark.xfail(reason="pa.NULL is not recognised as scalar, GH-33899")
     def test_series_constructor_scalar_na_with_index(self, dtype, na_value):
         # pyarrow.lib.ArrowInvalid: only handle 1-dimensional arrays
