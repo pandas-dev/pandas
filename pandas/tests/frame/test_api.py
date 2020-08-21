@@ -6,6 +6,7 @@ import pydoc
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
 from pandas.util._test_decorators import async_mark, skip_if_no
 
 import pandas as pd
@@ -521,6 +522,7 @@ class TestDataFrameMisc:
         _check_f(d.copy(), f)
 
     @async_mark()
+    @td.check_file_leaks
     async def test_tab_complete_warning(self, ip):
         # GH 16409
         pytest.importorskip("IPython", minversion="6.0.0")
