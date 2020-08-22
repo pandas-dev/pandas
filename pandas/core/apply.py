@@ -340,7 +340,10 @@ class FrameRowApply(FrameApply):
 
         if self.result_type == "reduce":
             # e.g. test_apply_dict GH#8735
-            return self.obj._constructor_sliced(results)
+            res = self.obj._constructor_sliced(results)
+            res.index = res_index
+            return res
+
         elif self.result_type is None and all(
             isinstance(x, dict) for x in results.values()
         ):

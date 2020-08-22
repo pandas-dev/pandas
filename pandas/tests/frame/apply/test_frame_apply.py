@@ -1541,3 +1541,12 @@ def test_apply_mutating():
 
     tm.assert_frame_equal(result, expected)
     tm.assert_frame_equal(df, result)
+
+
+def test_apply_empty_list_reduce():
+    # GH#35683 get columns correct
+    df = pd.DataFrame([[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]], columns=["a", "b"])
+
+    result = df.apply(lambda x: [], result_type="reduce")
+    expected = pd.Series({"a": [], "b": []}, dtype=object)
+    tm.assert_series_equal(result, expected)

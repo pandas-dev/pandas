@@ -25,6 +25,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Bug in :meth:`DataFrame.eval` with ``object`` dtype column binary operations (:issue:`35794`)
+- Bug in :meth:`DataFrame.apply` with ``result_type="reduce"`` returning with incorrect index (:issue:`35683`)
 -
 -
 
