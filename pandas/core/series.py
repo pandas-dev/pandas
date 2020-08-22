@@ -5000,7 +5000,6 @@ Keep all original rows and also all original values
 
 
 Series._add_numeric_operations()
-Series._add_series_or_dataframe_operations()
 
 # Add arithmetic!
 ops.add_flex_arithmetic_methods(Series)
