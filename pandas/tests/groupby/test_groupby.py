@@ -2099,6 +2099,6 @@ def test_subsetting_columns_keeps_attrs(attr, value):
     assert getattr(result, attr) == getattr(expected, attr)
 
     if attr in ("axis", "as_index"):
-        pytest.skip("GH 35443: Attribute currently not passed on to series")
+        pytest.xfail("GH 35443: Attribute currently not passed on to series")
     result = expected["b"]
     assert getattr(result, attr) == getattr(expected, attr)
