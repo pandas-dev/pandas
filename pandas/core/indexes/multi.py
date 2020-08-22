@@ -1127,8 +1127,8 @@ class MultiIndex(Index):
 
         if dtype:
             warnings.warn(
-                "parameter dtype is deprecated and will be removed in a future version."
-                " Use the astype method instead.",
+                "parameter dtype is deprecated and will be removed in a future "
+                "version. Use the astype method instead.",
                 FutureWarning,
                 stacklevel=2,
             )
