@@ -522,6 +522,12 @@ def _factorize_array(
         Hint to the hashtable sizer.
     """
     ),
+    dropna=dedent(
+        """\
+    dropna : bool, default True
+        Drop the NA from the uniques of the values.
+    """
+    )
 )
 def factorize(
     values,
@@ -543,7 +549,7 @@ def factorize(
     {values}{sort}
     na_sentinel : int, default -1
         Value to mark "not found".
-    {size_hint}\
+    {size_hint}{dropna}\
 
     Returns
     -------
@@ -620,6 +626,23 @@ def factorize(
     array([0, 0, 1]...)
     >>> uniques
     Index(['a', 'c'], dtype='object')
+
+    If NA is in the values, and we want to include NA in the uniques of the
+    values, it can be achieved by setting ``dropna=False``. The default is
+    to exclude NA from the uniques.
+
+    >>> values = np.array([1, 2, 1, np.nan]
+    >>> codes, uniques = pd.factorize(values, dropna=True)  # default
+    >>> codes
+    array([ 0,  1,  0, -1]
+    >>> uniques
+    array([1., 2.])
+
+    >>> codes, uniques = pd.factorize(values, dropna=False)
+    >>> codes
+    array([0, 1, 0, 2])
+    >>> uniques
+    array([ 1.,  2., nan])
     """
     # Implementation notes: This method is responsible for 3 things
     # 1.) coercing data to array-like (ndarray, Index, extension array)
