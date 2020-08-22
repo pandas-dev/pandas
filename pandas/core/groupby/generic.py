@@ -1081,8 +1081,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     assert how == "ohlc"
                     raise
 
+                obj: Union[Series, DataFrame]
                 # call our grouper again with only this block
-                if bvalues.ndim == 1:
+                if isinstance(bvalues, ExtensionArray):
                     # TODO(EA2D): special case not needed with 2D EAs
                     obj = Series(bvalues)
                 else:
