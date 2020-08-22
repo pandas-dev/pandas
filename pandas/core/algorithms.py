@@ -522,12 +522,6 @@ def _factorize_array(
         Hint to the hashtable sizer.
     """
     ),
-    dropna=dedent(
-        """\
-    dropna : bool, default True
-        Drop the NA from the uniques of the values.
-    """
-    )
 )
 def factorize(
     values,
@@ -549,7 +543,9 @@ def factorize(
     {values}{sort}
     na_sentinel : int, default -1
         Value to mark "not found".
-    {size_hint}{dropna}\
+    {size_hint}
+    dropna : bool, default True
+        Drop the NA from the uniques of the values.
 
     Returns
     -------
