@@ -2096,8 +2096,7 @@ def test_group_on_two_row_multiindex_returns_one_tuple_key():
             "as_index",
             False,
             marks=pytest.mark.xfail(
-                reason="GH 35443: Returns a DataFrameGroupBy",
-                strict=False,
+                reason="GH 35443: Returns a DataFrameGroupBy", strict=False,
             ),
         ),
         (Series, "sort", False),
