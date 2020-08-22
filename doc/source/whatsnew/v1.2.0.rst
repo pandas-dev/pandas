@@ -154,7 +154,7 @@ Deprecations
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
--
+- Performance improvement in :meth:`GroupBy.agg` with the ``numba`` engine (:issue:`35759`)
 -
 
 .. ---------------------------------------------------------------------------

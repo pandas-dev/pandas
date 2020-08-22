@@ -34,7 +34,7 @@ import numpy as np
 
 from pandas._config.config import option_context
 
-from pandas._libs import Timestamp
+from pandas._libs import Timestamp, lib
 import pandas._libs.groupby as libgroupby
 from pandas._typing import F, FrameOrSeries, FrameOrSeriesUnion, Scalar
 from pandas.compat.numpy import function as nv
@@ -61,11 +61,11 @@ from pandas.core.base import DataError, PandasObject, SelectionMixin
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.groupby import base, ops
+from pandas.core.groupby import base, numba_, ops
 from pandas.core.indexes.api import CategoricalIndex, Index, MultiIndex
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
-from pandas.core.util.numba_ import maybe_use_numba
+from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 
 _common_see_also = """
         See Also
@@ -384,7 +384,8 @@ func : function, str, list or dict
     - dict of axis labels -> functions, function names or list of such.
 
     Can also accept a Numba JIT function with
-    ``engine='numba'`` specified.
+    ``engine='numba'`` specified. Only passing a single function is supported
+    with this engine.
 
     If the ``'numba'`` engine is chosen, the function must be
     a user defined function with ``values`` and ``index`` as the
@@ -1053,12 +1054,43 @@ b  2""",
 
         return self._wrap_aggregated_output(output, index=self.grouper.result_index)
 
-    def _python_agg_general(
-        self, func, *args, engine="cython", engine_kwargs=None, **kwargs
-    ):
+    def _aggregate_with_numba(self, data, func, *args, engine_kwargs=None, **kwargs):
+        """
+        Perform groupby aggregation routine with the numba engine.
+
+        This routine mimics the data splitting routine of the DataSplitter class
+        to generate the indices of each group in the sorted data and then passes the
+        data and indices into a Numba jitted function.
+        """
+        group_keys = self.grouper._get_group_keys()
+        labels, _, n_groups = self.grouper.group_info
+        sorted_index = get_group_index_sorter(labels, n_groups)
+        sorted_labels = algorithms.take_nd(labels, sorted_index, allow_fill=False)
+        sorted_data = data.take(sorted_index, axis=self.axis).to_numpy()
+        starts, ends = lib.generate_slices(sorted_labels, n_groups)
+        cache_key = (func, "groupby_agg")
+        if cache_key in NUMBA_FUNC_CACHE:
+            # Return an already compiled version of roll_apply if available
+            numba_agg_func = NUMBA_FUNC_CACHE[cache_key]
+        else:
+            numba_agg_func = numba_.generate_numba_agg_func(
+                tuple(args), kwargs, func, engine_kwargs
+            )
+        result = numba_agg_func(
+            sorted_data, sorted_index, starts, ends, len(group_keys), len(data.columns),
+        )
+        if cache_key not in NUMBA_FUNC_CACHE:
+            NUMBA_FUNC_CACHE[cache_key] = numba_agg_func
+
+        if self.grouper.nkeys > 1:
+            index = MultiIndex.from_tuples(group_keys, names=self.grouper.names)
+        else:
+            index = Index(group_keys, name=self.grouper.names[0])
+        return result, index
+
+    def _python_agg_general(self, func, *args, **kwargs):
         func = self._is_builtin_func(func)
-        if engine != "numba":
-            f = lambda x: func(x, *args, **kwargs)
+        f = lambda x: func(x, *args, **kwargs)
 
         # iterate through "columns" ex exclusions to populate output dict
         output: Dict[base.OutputKey, np.ndarray] = {}
@@ -1069,21 +1101,11 @@ b  2""",
                 # agg_series below assumes ngroups > 0
                 continue
 
-            if maybe_use_numba(engine):
-                result, counts = self.grouper.agg_series(
-                    obj,
-                    func,
-                    *args,
-                    engine=engine,
-                    engine_kwargs=engine_kwargs,
-                    **kwargs,
-                )
-            else:
-                try:
-                    # if this function is invalid for this dtype, we will ignore it.
-                    result, counts = self.grouper.agg_series(obj, f)
-                except TypeError:
-                    continue
+            try:
+                # if this function is invalid for this dtype, we will ignore it.
+                result, counts = self.grouper.agg_series(obj, f)
+            except TypeError:
+                continue
 
             assert result is not None
             key = base.OutputKey(label=name, position=idx)
