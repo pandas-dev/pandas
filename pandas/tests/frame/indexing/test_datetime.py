@@ -44,12 +44,3 @@ class TestDataFrameIndexingDatetimeWithTZ:
 
         df = result.set_index("foo")
         tm.assert_index_equal(df.index, idx)
-
-    def test_scalar_assignment(self):
-        # issue #19843
-        df = pd.DataFrame(index=(0, 1, 2))
-        df["now"] = pd.Timestamp("20130101", tz="UTC")
-        expected = pd.DataFrame(
-            {"now": pd.Timestamp("20130101", tz="UTC")}, index=[0, 1, 2]
-        )
-        tm.assert_frame_equal(df, expected)

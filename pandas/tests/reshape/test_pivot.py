@@ -423,7 +423,7 @@ class TestPivotTable:
             index=pd.Grouper(freq="A"), columns=pd.Grouper(key="dt", freq="M")
         )
         exp = pd.DataFrame(
-            [3], index=pd.DatetimeIndex(["2011-12-31"]), columns=exp_columns
+            [3], index=pd.DatetimeIndex(["2011-12-31"], freq="A"), columns=exp_columns
         )
         tm.assert_frame_equal(res, exp)
 
@@ -1224,7 +1224,7 @@ class TestPivotTable:
 
         expected = DataFrame(
             np.array([10, 18, 3], dtype="int64").reshape(1, 3),
-            index=[datetime(2013, 12, 31)],
+            index=pd.DatetimeIndex([datetime(2013, 12, 31)], freq="A"),
             columns="Carl Joe Mark".split(),
         )
         expected.index.name = "Date"
@@ -1250,7 +1250,9 @@ class TestPivotTable:
 
         expected = DataFrame(
             np.array([1, np.nan, 3, 9, 18, np.nan]).reshape(2, 3),
-            index=[datetime(2013, 1, 1), datetime(2013, 7, 1)],
+            index=pd.DatetimeIndex(
+                [datetime(2013, 1, 1), datetime(2013, 7, 1)], freq="6MS"
+            ),
             columns="Carl Joe Mark".split(),
         )
         expected.index.name = "Date"
@@ -1407,18 +1409,24 @@ class TestPivotTable:
                     np.nan,
                 ]
             ).reshape(4, 4),
-            index=[
-                datetime(2013, 9, 30),
-                datetime(2013, 10, 31),
-                datetime(2013, 11, 30),
-                datetime(2013, 12, 31),
-            ],
-            columns=[
-                datetime(2013, 9, 30),
-                datetime(2013, 10, 31),
-                datetime(2013, 11, 30),
-                datetime(2013, 12, 31),
-            ],
+            index=pd.DatetimeIndex(
+                [
+                    datetime(2013, 9, 30),
+                    datetime(2013, 10, 31),
+                    datetime(2013, 11, 30),
+                    datetime(2013, 12, 31),
+                ],
+                freq="M",
+            ),
+            columns=pd.DatetimeIndex(
+                [
+                    datetime(2013, 9, 30),
+                    datetime(2013, 10, 31),
+                    datetime(2013, 11, 30),
+                    datetime(2013, 12, 31),
+                ],
+                freq="M",
+            ),
         )
         expected.index.name = "Date"
         expected.columns.name = "PayDay"
@@ -1809,7 +1817,7 @@ class TestPivotTable:
             ["A", "B", "C"], categories=["A", "B", "C"], ordered=False, name="C1"
         )
         expected_columns = pd.Index(["a", "b"], name="C2")
-        expected_data = np.array([[1.0, np.nan], [1.0, np.nan], [np.nan, 2.0]])
+        expected_data = np.array([[1, 0], [1, 0], [0, 2]], dtype=np.int64)
         expected = pd.DataFrame(
             expected_data, index=expected_index, columns=expected_columns
         )
@@ -1843,18 +1851,19 @@ class TestPivotTable:
             values="Sales",
             index="Month",
             columns="Year",
-            dropna=observed,
+            observed=observed,
             aggfunc="sum",
         )
         expected_columns = pd.Int64Index([2013, 2014], name="Year")
         expected_index = pd.CategoricalIndex(
-            ["January"], categories=months, ordered=False, name="Month"
+            months, categories=months, ordered=False, name="Month"
         )
+        expected_data = [[320, 120]] + [[0, 0]] * 11
         expected = pd.DataFrame(
-            [[320, 120]], index=expected_index, columns=expected_columns
+            expected_data, index=expected_index, columns=expected_columns
         )
-        if not observed:
-            result = result.dropna().astype(np.int64)
+        if observed:
+            expected = expected.loc[["January"]]
 
         tm.assert_frame_equal(result, expected)
 

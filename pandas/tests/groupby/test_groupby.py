@@ -109,7 +109,8 @@ def test_groupby_return_type():
     def func(dataf):
         return dataf["val2"] - dataf["val2"].mean()
 
-    result = df1.groupby("val1", squeeze=True).apply(func)
+    with tm.assert_produces_warning(FutureWarning):
+        result = df1.groupby("val1", squeeze=True).apply(func)
     assert isinstance(result, Series)
 
     df2 = DataFrame(
@@ -124,12 +125,14 @@ def test_groupby_return_type():
     def func(dataf):
         return dataf["val2"] - dataf["val2"].mean()
 
-    result = df2.groupby("val1", squeeze=True).apply(func)
+    with tm.assert_produces_warning(FutureWarning):
+        result = df2.groupby("val1", squeeze=True).apply(func)
     assert isinstance(result, Series)
 
     # GH3596, return a consistent type (regression in 0.11 from 0.10.1)
     df = DataFrame([[1, 1], [1, 1]], columns=["X", "Y"])
-    result = df.groupby("X", squeeze=False).count()
+    with tm.assert_produces_warning(FutureWarning):
+        result = df.groupby("X", squeeze=False).count()
     assert isinstance(result, DataFrame)
 
 
@@ -602,6 +605,14 @@ def test_as_index_select_column():
     tm.assert_series_equal(result, expected)
 
 
+def test_groupby_as_index_select_column_sum_empty_df():
+    # GH 35246
+    df = DataFrame(columns=["A", "B", "C"])
+    left = df.groupby(by="A", as_index=False)["B"].sum()
+    assert type(left) is DataFrame
+    assert left.to_dict() == {"A": {}, "B": {}}
+
+
 def test_groupby_as_index_agg(df):
     grouped = df.groupby("A", as_index=False)
 
@@ -656,6 +667,37 @@ def test_groupby_as_index_agg(df):
         right = getattr(gr, attr)().reset_index(drop=True)
 
         tm.assert_frame_equal(left, right)
+
+
+def test_ops_not_as_index(reduction_func):
+    # GH 10355, 21090
+    # Using as_index=False should not modify grouped column
+
+    if reduction_func in ("corrwith",):
+        pytest.skip("Test not applicable")
+
+    if reduction_func in ("nth", "ngroup",):
+        pytest.skip("Skip until behavior is determined (GH #5755)")
+
+    df = DataFrame(np.random.randint(0, 5, size=(100, 2)), columns=["a", "b"])
+    expected = getattr(df.groupby("a"), reduction_func)()
+    if reduction_func == "size":
+        expected = expected.rename("size")
+    expected = expected.reset_index()
+
+    g = df.groupby("a", as_index=False)
+
+    result = getattr(g, reduction_func)()
+    tm.assert_frame_equal(result, expected)
+
+    result = g.agg(reduction_func)
+    tm.assert_frame_equal(result, expected)
+
+    result = getattr(g["b"], reduction_func)()
+    tm.assert_frame_equal(result, expected)
+
+    result = g["b"].agg(reduction_func)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_as_index_series_return_frame(df):
@@ -919,51 +961,6 @@ def test_groupby_complex():
 
     result = a.sum(level=0)
     tm.assert_series_equal(result, expected)
-
-
-def test_mutate_groups():
-
-    # GH3380
-
-    df = DataFrame(
-        {
-            "cat1": ["a"] * 8 + ["b"] * 6,
-            "cat2": ["c"] * 2
-            + ["d"] * 2
-            + ["e"] * 2
-            + ["f"] * 2
-            + ["c"] * 2
-            + ["d"] * 2
-            + ["e"] * 2,
-            "cat3": [f"g{x}" for x in range(1, 15)],
-            "val": np.random.randint(100, size=14),
-        }
-    )
-
-    def f_copy(x):
-        x = x.copy()
-        x["rank"] = x.val.rank(method="min")
-        return x.groupby("cat2")["rank"].min()
-
-    def f_no_copy(x):
-        x["rank"] = x.val.rank(method="min")
-        return x.groupby("cat2")["rank"].min()
-
-    grpby_copy = df.groupby("cat1").apply(f_copy)
-    grpby_no_copy = df.groupby("cat1").apply(f_no_copy)
-    tm.assert_series_equal(grpby_copy, grpby_no_copy)
-
-
-def test_no_mutate_but_looks_like():
-
-    # GH 8467
-    # first show's mutation indicator
-    # second does not, but should yield the same results
-    df = DataFrame({"key": [1, 1, 1, 2, 2, 2, 3, 3, 3], "value": range(9)})
-
-    result1 = df.groupby("key", group_keys=True).apply(lambda x: x[:].key)
-    result2 = df.groupby("key", group_keys=True).apply(lambda x: x.key)
-    tm.assert_series_equal(result1, result2)
 
 
 def test_groupby_series_indexed_differently():
@@ -1993,6 +1990,7 @@ def test_bool_aggs_dup_column_labels(bool_agg_func):
 @pytest.mark.parametrize(
     "idx", [pd.Index(["a", "a"]), pd.MultiIndex.from_tuples((("a", "a"), ("a", "a")))]
 )
+@pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
 def test_dup_labels_output_shape(groupby_func, idx):
     if groupby_func in {"size", "ngroup", "cumcount"}:
         pytest.skip("Not applicable")
@@ -2057,3 +2055,17 @@ def test_groups_repr_truncates(max_seq_items, expected):
 
         result = df.groupby(np.array(df.a)).groups.__repr__()
         assert result == expected
+
+
+def test_group_on_two_row_multiindex_returns_one_tuple_key():
+    # GH 18451
+    df = pd.DataFrame([{"a": 1, "b": 2, "c": 99}, {"a": 1, "b": 2, "c": 88}])
+    df = df.set_index(["a", "b"])
+
+    grp = df.groupby(["a", "b"])
+    result = grp.indices
+    expected = {(1, 2): np.array([0, 1], dtype=np.int64)}
+
+    assert len(result) == 1
+    key = (1, 2)
+    assert (result[key] == expected[key]).all()

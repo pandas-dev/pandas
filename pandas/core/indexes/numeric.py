@@ -147,10 +147,6 @@ class NumericIndex(Index):
         """
         pass
 
-    def _concat_same_dtype(self, indexes, name):
-        result = type(indexes[0])(np.concatenate([x._values for x in indexes]))
-        return result.rename(name)
-
     @property
     def is_all_dates(self) -> bool:
         """
@@ -376,7 +372,7 @@ class Float64Index(NumericIndex):
     # Indexing Methods
 
     @doc(Index._should_fallback_to_positional)
-    def _should_fallback_to_positional(self):
+    def _should_fallback_to_positional(self) -> bool:
         return False
 
     @doc(Index._convert_slice_indexer)
@@ -403,28 +399,6 @@ class Float64Index(NumericIndex):
             fixed_width=False,
         )
         return formatter.get_result_as_array()
-
-    def equals(self, other) -> bool:
-        """
-        Determines if two Index objects contain the same elements.
-        """
-        if self is other:
-            return True
-
-        if not isinstance(other, Index):
-            return False
-
-        # need to compare nans locations and make sure that they are the same
-        # since nans don't compare equal this is a bit tricky
-        try:
-            if not isinstance(other, Float64Index):
-                other = self._constructor(other)
-            if not is_dtype_equal(self.dtype, other.dtype) or self.shape != other.shape:
-                return False
-            left, right = self._values, other._values
-            return ((left == right) | (self._isnan & other._isnan)).all()
-        except (TypeError, ValueError):
-            return False
 
     def __contains__(self, other: Any) -> bool:
         hash(other)

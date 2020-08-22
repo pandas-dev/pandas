@@ -1,13 +1,22 @@
+import math
+
 import numpy as np
 
-from pandas.core.dtypes.missing import isna, array_equivalent
+from numpy cimport import_array
+
+import_array()
+
+from pandas._libs.util cimport is_array
+
 from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.missing import array_equivalent, isna
+
 
 cdef NUMERIC_TYPES = (
     bool,
     int,
     float,
-    np.bool,
+    np.bool_,
     np.int8,
     np.int16,
     np.int32,
@@ -38,13 +47,6 @@ cdef bint is_dictlike(obj):
     return hasattr(obj, 'keys') and hasattr(obj, '__getitem__')
 
 
-cdef bint decimal_almost_equal(double desired, double actual, int decimal):
-    # Code from
-    # http://docs.scipy.org/doc/numpy/reference/generated
-    # /numpy.testing.assert_almost_equal.html
-    return abs(desired - actual) < (0.5 * 10.0 ** -decimal)
-
-
 cpdef assert_dict_equal(a, b, bint compare_keys=True):
     assert is_dictlike(a) and is_dictlike(b), (
         "Cannot compare dict objects, one or both is not dict-like"
@@ -63,7 +65,7 @@ cpdef assert_dict_equal(a, b, bint compare_keys=True):
 
 
 cpdef assert_almost_equal(a, b,
-                          check_less_precise=False,
+                          rtol=1.e-5, atol=1.e-8,
                           bint check_dtype=True,
                           obj=None, lobj=None, robj=None, index_values=None):
     """
@@ -73,31 +75,33 @@ cpdef assert_almost_equal(a, b,
     ----------
     a : object
     b : object
-    check_less_precise : bool or int, default False
-        Specify comparison precision.
-        5 digits (False) or 3 digits (True) after decimal points are
-        compared. If an integer, then this will be the number of decimal
-        points to compare
+    rtol : float, default 1e-5
+        Relative tolerance.
+
+        .. versionadded:: 1.1.0
+    atol : float, default 1e-8
+        Absolute tolerance.
+
+        .. versionadded:: 1.1.0
     check_dtype: bool, default True
-        check dtype if both a and b are np.ndarray
+        check dtype if both a and b are np.ndarray.
     obj : str, default None
         Specify object name being compared, internally used to show
-        appropriate assertion message
+        appropriate assertion message.
     lobj : str, default None
         Specify left object name being compared, internally used to show
-        appropriate assertion message
+        appropriate assertion message.
     robj : str, default None
         Specify right object name being compared, internally used to show
-        appropriate assertion message
+        appropriate assertion message.
     index_values : ndarray, default None
         Specify shared index values of objects being compared, internally used
-        to show appropriate assertion message
+        to show appropriate assertion message.
 
         .. versionadded:: 1.1.0
 
     """
     cdef:
-        int decimal
         double diff = 0.0
         Py_ssize_t i, na, nb
         double fa, fb
@@ -108,8 +112,6 @@ cpdef assert_almost_equal(a, b,
     if robj is None:
         robj = b
 
-    assert isinstance(check_less_precise, (int, bool))
-
     if isinstance(a, dict) or isinstance(b, dict):
         return assert_dict_equal(a, b)
 
@@ -117,8 +119,8 @@ cpdef assert_almost_equal(a, b,
         assert a == b, f"{a} != {b}"
         return True
 
-    a_is_ndarray = isinstance(a, np.ndarray)
-    b_is_ndarray = isinstance(b, np.ndarray)
+    a_is_ndarray = is_array(a)
+    b_is_ndarray = is_array(b)
 
     if obj is None:
         if a_is_ndarray or b_is_ndarray:
@@ -130,6 +132,7 @@ cpdef assert_almost_equal(a, b,
 
         if not isiterable(b):
             from pandas._testing import assert_class_equal
+
             # classes can't be the same, to raise error
             assert_class_equal(a, b, obj=obj)
 
@@ -167,8 +170,7 @@ cpdef assert_almost_equal(a, b,
 
         for i in range(len(a)):
             try:
-                assert_almost_equal(a[i], b[i],
-                                    check_less_precise=check_less_precise)
+                assert_almost_equal(a[i], b[i], rtol=rtol, atol=atol)
             except AssertionError:
                 is_unequal = True
                 diff += 1
@@ -183,6 +185,7 @@ cpdef assert_almost_equal(a, b,
 
     elif isiterable(b):
         from pandas._testing import assert_class_equal
+
         # classes can't be the same, to raise error
         assert_class_equal(a, b, obj=obj)
 
@@ -200,24 +203,11 @@ cpdef assert_almost_equal(a, b,
             # inf comparison
             return True
 
-        if check_less_precise is True:
-            decimal = 3
-        elif check_less_precise is False:
-            decimal = 5
-        else:
-            decimal = check_less_precise
-
         fa, fb = a, b
 
-        # case for zero
-        if abs(fa) < 1e-5:
-            if not decimal_almost_equal(fa, fb, decimal):
-                assert False, (f'(very low values) expected {fb:.5f} '
-                               f'but got {fa:.5f}, with decimal {decimal}')
-        else:
-            if not decimal_almost_equal(1, fb / fa, decimal):
-                assert False, (f'expected {fb:.5f} but got {fa:.5f}, '
-                               f'with decimal {decimal}')
+        if not math.isclose(fa, fb, rel_tol=rtol, abs_tol=atol):
+            assert False, (f"expected {fb:.5f} but got {fa:.5f}, "
+                           f"with rtol={rtol}, atol={atol}")
         return True
 
     raise AssertionError(f"{a} != {b}")

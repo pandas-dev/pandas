@@ -214,11 +214,18 @@ Missing data handling
 .. autosummary::
    :toctree: api/
 
-   Series.isna
-   Series.notna
+   Series.backfill
+   Series.bfill
    Series.dropna
+   Series.ffill
    Series.fillna
    Series.interpolate
+   Series.isna
+   Series.isnull
+   Series.notna
+   Series.notnull
+   Series.pad
+   Series.replace
 
 Reshaping, sorting
 ------------------
@@ -240,12 +247,13 @@ Reshaping, sorting
    Series.squeeze
    Series.view
 
-Combining / joining / merging
------------------------------
+Combining / comparing / joining / merging
+-----------------------------------------
 .. autosummary::
    :toctree: api/
 
    Series.append
+   Series.compare
    Series.replace
    Series.update
 
@@ -514,6 +522,7 @@ Sparse-dtype specific methods and attributes are provided under the
 
 .. autosummary::
    :toctree: api/
+   :template: autosummary/accessor_method.rst
 
    Series.sparse.from_coo
    Series.sparse.to_coo

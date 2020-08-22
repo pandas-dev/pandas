@@ -15,5 +15,5 @@ class TestDropLevel:
         result = ser.droplevel("b", axis="index")
         tm.assert_series_equal(result, expected)
         # test that droplevel raises ValueError on axis != 0
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="No axis named columns"):
             ser.droplevel(1, axis="columns")

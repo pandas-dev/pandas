@@ -63,7 +63,7 @@ class Term(ops.Term):
             return self.name
 
     # read-only property overwriting read/write property
-    @property  # type: ignore
+    @property  # type: ignore[misc]
     def value(self):
         return self._value
 
@@ -200,7 +200,10 @@ class BinOp(ops.BinOp):
                 v = v.tz_convert("UTC")
             return TermValue(v, v.value, kind)
         elif kind == "timedelta64" or kind == "timedelta":
-            v = Timedelta(v, unit="s").value
+            if isinstance(v, str):
+                v = Timedelta(v).value
+            else:
+                v = Timedelta(v, unit="s").value
             return TermValue(int(v), v, kind)
         elif meta == "category":
             metadata = extract_array(self.metadata, extract_numpy=True)

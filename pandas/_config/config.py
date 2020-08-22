@@ -49,21 +49,12 @@ Implementation
 """
 
 from collections import namedtuple
-from contextlib import contextmanager
+from contextlib import ContextDecorator, contextmanager
 import re
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    List,
-    Optional,
-    Tuple,
-    Type,
-    TypeVar,
-    cast,
-)
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Type, cast
 import warnings
+
+from pandas._typing import F
 
 DeprecatedOption = namedtuple("DeprecatedOption", "key msg rkey removal_ver")
 RegisteredOption = namedtuple("RegisteredOption", "key defval doc validator cb")
@@ -388,7 +379,7 @@ options = DictWrapper(_global_config)
 # Functions for use by pandas developers, in addition to User - api
 
 
-class option_context:
+class option_context(ContextDecorator):
     """
     Context manager to temporarily set options in the `with` statement context.
 
@@ -451,8 +442,8 @@ def register_option(
     ValueError if `validator` is specified and `defval` is not a valid value.
 
     """
-    import tokenize
     import keyword
+    import tokenize
 
     key = key.lower()
 
@@ -471,7 +462,7 @@ def register_option(
     for k in path:
         # NOTE: tokenize.Name is not a public constant
         # error: Module has no attribute "Name"  [attr-defined]
-        if not re.match("^" + tokenize.Name + "$", k):  # type: ignore
+        if not re.match("^" + tokenize.Name + "$", k):  # type: ignore[attr-defined]
             raise ValueError(f"{k} is not a valid identifier")
         if keyword.iskeyword(k):
             raise ValueError(f"{k} is a python keyword")
@@ -669,8 +660,8 @@ def _build_option_description(k: str) -> str:
 
 def pp_options_list(keys: Iterable[str], width=80, _print: bool = False):
     """ Builds a concise listing of available options, grouped by prefix """
-    from textwrap import wrap
     from itertools import groupby
+    from textwrap import wrap
 
     def pp(name: str, ks: Iterable[str]) -> List[str]:
         pfx = "- " + name + ".[" if name else ""
@@ -703,9 +694,6 @@ def pp_options_list(keys: Iterable[str], width=80, _print: bool = False):
 
 #
 # helpers
-
-FuncType = Callable[..., Any]
-F = TypeVar("F", bound=FuncType)
 
 
 @contextmanager

@@ -54,7 +54,7 @@ def test_get_accessor_args():
     assert x is None
     assert y is None
     assert kind == "line"
-    assert len(kwargs) == 22
+    assert len(kwargs) == 24
 
 
 @td.skip_if_no_mpl
@@ -96,13 +96,17 @@ class TestSeriesPlots(TestPlotBase):
 class TestDataFramePlots(TestPlotBase):
     @td.skip_if_no_scipy
     def test_scatter_matrix_axis(self):
+        from pandas.plotting._matplotlib.compat import _mpl_ge_3_0_0
+
         scatter_matrix = plotting.scatter_matrix
 
         with tm.RNGContext(42):
             df = DataFrame(randn(100, 3))
 
         # we are plotting multiples on a sub-plot
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(
+            UserWarning, raise_on_extra_warnings=_mpl_ge_3_0_0()
+        ):
             axes = _check_plot_works(
                 scatter_matrix, filterwarnings="always", frame=df, range_padding=0.1
             )
@@ -127,8 +131,9 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_andrews_curves(self, iris):
-        from pandas.plotting import andrews_curves
         from matplotlib import cm
+
+        from pandas.plotting import andrews_curves
 
         df = iris
 
@@ -202,8 +207,9 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_parallel_coordinates(self, iris):
-        from pandas.plotting import parallel_coordinates
         from matplotlib import cm
+
+        from pandas.plotting import parallel_coordinates
 
         df = iris
 
@@ -275,8 +281,9 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_radviz(self, iris):
-        from pandas.plotting import radviz
         from matplotlib import cm
+
+        from pandas.plotting import radviz
 
         df = iris
         _check_plot_works(radviz, frame=df, class_column="Name")
@@ -393,6 +400,7 @@ class TestDataFramePlots(TestPlotBase):
         # Make sure not to add more colors so that matplotlib can cycle
         # correctly.
         from matplotlib import cm
+
         from pandas.plotting._matplotlib.style import _get_standard_colors
 
         color_before = cm.gnuplot(range(5))

@@ -87,8 +87,8 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         1  0    3.0
         dtype: Sparse[float64, nan]
         """
-        from pandas.core.arrays.sparse.scipy_sparse import _coo_to_sparse_series
         from pandas import Series
+        from pandas.core.arrays.sparse.scipy_sparse import _coo_to_sparse_series
 
         result = _coo_to_sparse_series(A, dense_index=dense_index)
         result = Series(result.array, index=result.index, copy=False)
@@ -253,8 +253,9 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         1  0.0  1.0  0.0
         2  0.0  0.0  1.0
         """
-        from pandas import DataFrame
         from pandas._libs.sparse import IntIndex
+
+        from pandas import DataFrame
 
         data = data.tocsc()
         index, columns = cls._prep_index(data, index, columns)
@@ -354,8 +355,8 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
 
     @staticmethod
     def _prep_index(data, index, columns):
-        import pandas.core.indexes.base as ibase
         from pandas.core.indexes.api import ensure_index
+        import pandas.core.indexes.base as ibase
 
         N, K = data.shape
         if index is None:
