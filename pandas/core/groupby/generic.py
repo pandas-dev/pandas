@@ -30,7 +30,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import FrameOrSeries, FrameOrSeriesUnion
+from pandas._typing import ArrayLike, FrameOrSeries, FrameOrSeriesUnion
 from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.dtypes.cast import (
@@ -59,6 +59,7 @@ from pandas.core.aggregation import (
     validate_func_kwargs,
 )
 import pandas.core.algorithms as algorithms
+from pandas.core.arrays import ExtensionArray
 from pandas.core.base import DataError, SpecificationError
 import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
@@ -1033,32 +1034,31 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         no_result = object()
 
-        def cast_result_block(result, block: "Block", how: str) -> "Block":
-            # see if we can cast the block to the desired dtype
+        def cast_agg_result(result, values: ArrayLike, how: str) -> ArrayLike:
+            # see if we can cast the values to the desired dtype
             # this may not be the original dtype
             assert not isinstance(result, DataFrame)
             assert result is not no_result
 
-            dtype = maybe_cast_result_dtype(block.dtype, how)
+            dtype = maybe_cast_result_dtype(values.dtype, how)
             result = maybe_downcast_numeric(result, dtype)
 
-            if block.is_extension and isinstance(result, np.ndarray):
-                # e.g. block.values was an IntegerArray
-                # (1, N) case can occur if block.values was Categorical
+            if isinstance(values, ExtensionArray) and isinstance(result, np.ndarray):
+                # e.g. values was an IntegerArray
+                # (1, N) case can occur if values was Categorical
                 #  and result is ndarray[object]
                 # TODO(EA2D): special casing not needed with 2D EAs
                 assert result.ndim == 1 or result.shape[0] == 1
                 try:
                     # Cast back if feasible
-                    result = type(block.values)._from_sequence(
-                        result.ravel(), dtype=block.values.dtype
+                    result = type(values)._from_sequence(
+                        result.ravel(), dtype=values.dtype
                     )
                 except (ValueError, TypeError):
                     # reshape to be valid for non-Extension Block
                     result = result.reshape(1, -1)
 
-            agg_block: "Block" = block.make_block(result)
-            return agg_block
+            return result
 
         def blk_func(block: "Block") -> List["Block"]:
             new_blocks: List["Block"] = []
@@ -1092,28 +1092,25 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # Categoricals. This will done by later self._reindex_output()
                 # Doing it here creates an error. See GH#34951
                 sgb = get_groupby(obj, self.grouper, observed=True)
-                try:
-                    result = sgb.aggregate(lambda x: alt(x, axis=self.axis))
-                except TypeError:
-                    # we may have an exception in trying to aggregate
-                    # continue and exclude the block
-                    raise
-                else:
-                    assert isinstance(result, (Series, DataFrame))  # for mypy
-                    # In the case of object dtype block, it may have been split
-                    #  in the operation.  We un-split here.
-                    result = result._consolidate()
-                    assert isinstance(result, (Series, DataFrame))  # for mypy
-                    assert len(result._mgr.blocks) == 1
+                result = sgb.aggregate(lambda x: alt(x, axis=self.axis))
 
-                    # unwrap DataFrame to get array
-                    result = result._mgr.blocks[0].values
-                    if isinstance(result, np.ndarray) and result.ndim == 1:
-                        result = result.reshape(1, -1)
-                    agg_block = cast_result_block(result, block, how)
-                    new_blocks = [agg_block]
+                assert isinstance(result, (Series, DataFrame))  # for mypy
+                # In the case of object dtype block, it may have been split
+                #  in the operation.  We un-split here.
+                result = result._consolidate()
+                assert isinstance(result, (Series, DataFrame))  # for mypy
+                assert len(result._mgr.blocks) == 1
+
+                # unwrap DataFrame to get array
+                result = result._mgr.blocks[0].values
+                if isinstance(result, np.ndarray) and result.ndim == 1:
+                    result = result.reshape(1, -1)
+                res_values = cast_agg_result(result, block.values, how)
+                agg_block = block.make_block(res_values)
+                new_blocks = [agg_block]
             else:
-                agg_block = cast_result_block(result, block, how)
+                res_values = cast_agg_result(result, block.values, how)
+                agg_block = block.make_block(res_values)
                 new_blocks = [agg_block]
             return new_blocks
 
