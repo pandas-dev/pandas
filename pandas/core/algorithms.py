@@ -629,7 +629,7 @@ def factorize(
 
     If NA is in the values, and we want to include NA in the uniques of the
     values, it can be achieved by setting ``dropna=False``. The default is
-    to exclude NA from the uniques.
+    ``dropna=True`` which excludes NA from the uniques.
 
     >>> values = np.array([1, 2, 1, np.nan]
     >>> codes, uniques = pd.factorize(values, dropna=True)  # default
