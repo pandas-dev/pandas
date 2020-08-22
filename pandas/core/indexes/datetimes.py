@@ -672,7 +672,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             if self._is_strictly_monotonic_decreasing and len(self) > 1:
                 return upper if side == "left" else lower
             return lower if side == "left" else upper
-        # GH 35690: Ensure the label matches the time timezone as the index's tz
+        # GH 35690: Ensure the label matches the timezone of the index's tz
         elif isinstance(label, date):
             if not isinstance(label, datetime):
                 label = datetime.combine(label, time(0, 0))
