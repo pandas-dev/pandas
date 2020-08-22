@@ -5076,8 +5076,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         -----
         `agg` is an alias for `aggregate`. Use the alias.
 
-        Pandas operations generally exclude NaNs. For example, ``agg(np.nanmedian)``,
-        ``agg(np.median)``, and ``agg('median')`` will return the same result.
+        In pandas, agg, as most operations just ignores the missing values,
+        and returns the operation only considering the values that are present.
 
         A passed user-defined-function will be passed a Series for evaluation.
         {examples}"""
