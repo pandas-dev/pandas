@@ -70,19 +70,16 @@ from pandas.core.groupby.groupby import (
     GroupBy,
     _agg_template,
     _apply_docs,
+    _group_selection_context,
     _transform_template,
     get_groupby,
 )
+from pandas.core.groupby.numba_ import generate_numba_func, split_for_numba
 from pandas.core.indexes.api import Index, MultiIndex, all_indexes_same
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
-from pandas.core.util.numba_ import (
-    NUMBA_FUNC_CACHE,
-    generate_numba_func,
-    maybe_use_numba,
-    split_for_numba,
-)
+from pandas.core.util.numba_ import NUMBA_FUNC_CACHE, maybe_use_numba
 
 from pandas.plotting import boxplot_frame_groupby
 
@@ -230,6 +227,18 @@ class SeriesGroupBy(GroupBy[Series]):
     )
     def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
 
+        if maybe_use_numba(engine):
+            if not callable(func):
+                raise NotImplementedError(
+                    "Numba engine can only be used with a single function."
+                )
+            with _group_selection_context(self):
+                data = self._selected_obj
+            result, index = self._aggregate_with_numba(
+                data.to_frame(), func, *args, engine_kwargs=engine_kwargs, **kwargs
+            )
+            return self.obj._constructor(result.ravel(), index=index, name=data.name)
+
         relabeling = func is None
         columns = None
         if relabeling:
@@ -252,16 +261,11 @@ class SeriesGroupBy(GroupBy[Series]):
                 return getattr(self, cyfunc)()
 
             if self.grouper.nkeys > 1:
-                return self._python_agg_general(
-                    func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
-                )
+                return self._python_agg_general(func, *args, **kwargs)
 
             try:
-                return self._python_agg_general(
-                    func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
-                )
+                return self._python_agg_general(func, *args, **kwargs)
             except (ValueError, KeyError):
-                # Do not catch Numba errors here, we want to raise and not fall back.
                 # TODO: KeyError is raised in _python_agg_general,
                 #  see see test_groupby.test_basic
                 result = self._aggregate_named(func, *args, **kwargs)
@@ -937,12 +941,19 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     )
     def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
 
-        relabeling, func, columns, order = reconstruct_func(func, **kwargs)
-
         if maybe_use_numba(engine):
-            return self._python_agg_general(
-                func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+            if not callable(func):
+                raise NotImplementedError(
+                    "Numba engine can only be used with a single function."
+                )
+            with _group_selection_context(self):
+                data = self._selected_obj
+            result, index = self._aggregate_with_numba(
+                data, func, *args, engine_kwargs=engine_kwargs, **kwargs
             )
+            return self.obj._constructor(result, index=index, columns=data.columns)
+
+        relabeling, func, columns, order = reconstruct_func(func, **kwargs)
 
         result, how = self._aggregate(func, *args, **kwargs)
         if how is None:
