@@ -632,13 +632,13 @@ def factorize(
     >>> codes
     array([0, 1, 0, -1]...)
     >>> uniques
-    array([1., 2.])
+    Index([1., 2.], dtype='float64')
 
     >>> codes, uniques = pd.factorize(values, dropna=False)
     >>> codes
     array([0, 1, 0, 2]...)
     >>> uniques
-    array([1., 2., nan])
+    Index([1., 2., nan], dtype='float64')
     """
     # Implementation notes: This method is responsible for 3 things
     # 1.) coercing data to array-like (ndarray, Index, extension array)
