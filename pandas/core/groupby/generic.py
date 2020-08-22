@@ -1058,6 +1058,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     # reshape to be valid for non-Extension Block
                     result = result.reshape(1, -1)
 
+            elif isinstance(result, np.ndarray) and result.ndim == 1:
+                # We went through a SeriesGroupByPath and need to reshape
+                result = result.reshape(1, -1)
+
             return result
 
         def blk_func(block: "Block") -> List["Block"]:
@@ -1103,15 +1107,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
                 # unwrap DataFrame to get array
                 result = result._mgr.blocks[0].values
-                if isinstance(result, np.ndarray) and result.ndim == 1:
-                    result = result.reshape(1, -1)
-                res_values = cast_agg_result(result, block.values, how)
-                agg_block = block.make_block(res_values)
-                new_blocks = [agg_block]
-            else:
-                res_values = cast_agg_result(result, block.values, how)
-                agg_block = block.make_block(res_values)
-                new_blocks = [agg_block]
+
+            res_values = cast_agg_result(result, block.values, how)
+            agg_block = block.make_block(res_values)
+            new_blocks = [agg_block]
             return new_blocks
 
         skipped: List[int] = []
