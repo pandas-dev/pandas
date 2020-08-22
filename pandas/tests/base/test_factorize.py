@@ -30,7 +30,7 @@ def test_factorize(index_or_series_obj, sort):
 
 @pytest.mark.parametrize("dropna", [True, False])
 def test_factorize_dropna(dropna):
-    # 35667
+    # GH35667
     values = np.array([1, 2, 1, np.nan])
     ser = pd.Series(values)
     codes, uniques = ser.factorize(dropna=dropna)
