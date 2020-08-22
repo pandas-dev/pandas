@@ -37,10 +37,10 @@ def test_factorize_dropna(dropna):
 
     if dropna:
         expected_codes = np.array([0, 1, 0, -1])
-        expected_uniques = pd.Index([1., 2.])
+        expected_uniques = pd.Index([1.0, 2.0])
     else:
         expected_codes = np.array([0, 1, 0, 2])
-        expected_uniques = pd.Index([1., 2., np.nan])
+        expected_uniques = pd.Index([1.0, 2.0, np.nan])
 
     tm.assert_numpy_array_equal(codes, expected_codes)
     tm.assert_index_equal(uniques, expected_uniques)
