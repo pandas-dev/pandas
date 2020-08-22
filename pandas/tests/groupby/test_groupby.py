@@ -2072,33 +2072,50 @@ def test_group_on_two_row_multiindex_returns_one_tuple_key():
 
 
 @pytest.mark.parametrize(
-    "attr, value",
+    "klass, attr, value",
     [
-        ("axis", 1),
-        ("level", "a"),
-        ("as_index", False),
-        ("sort", False),
-        ("group_keys", False),
-        ("squeeze", True),
-        ("observed", True),
-        ("dropna", False),
+        (DataFrame, "axis", 1),
+        (DataFrame, "level", "a"),
+        (DataFrame, "as_index", False),
+        (DataFrame, "sort", False),
+        (DataFrame, "group_keys", False),
+        (DataFrame, "squeeze", True),
+        (DataFrame, "observed", True),
+        (DataFrame, "dropna", False),
+        pytest.param(
+            Series,
+            "axis",
+            1,
+            marks=pytest.mark.xfail(
+                reason="GH 35443: Attribute currently not passed on to series"
+            ),
+        ),
+        (Series, "level", "a"),
+        pytest.param(
+            Series,
+            "as_index",
+            False,
+            marks=pytest.mark.xfail(
+                reason="GH 35443: Returns a DataFrameGroupBy",
+                strict=False,
+            ),
+        ),
+        (Series, "sort", False),
+        (Series, "group_keys", False),
+        (Series, "squeeze", True),
+        (Series, "observed", True),
+        (Series, "dropna", False),
     ],
 )
 @pytest.mark.filterwarnings(
     "ignore:The `squeeze` parameter is deprecated:FutureWarning"
 )
-def test_subsetting_columns_keeps_attrs(attr, value):
+def test_subsetting_columns_keeps_attrs(klass, attr, value):
     # GH 9959 - When subsetting columns, don't drop attributes
     df = pd.DataFrame({"a": [1], "b": [2], "c": [3]})
     if attr != "axis":
         df = df.set_index("a")
 
     expected = df.groupby("a", **{attr: value})
-
-    result = expected[["b"]]
-    assert getattr(result, attr) == getattr(expected, attr)
-
-    if attr in ("axis", "as_index"):
-        pytest.xfail("GH 35443: Attribute currently not passed on to series")
-    result = expected["b"]
+    result = expected[["b"]] if klass is DataFrame else expected["b"]
     assert getattr(result, attr) == getattr(expected, attr)
