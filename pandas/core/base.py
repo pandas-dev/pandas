@@ -1398,8 +1398,8 @@ class IndexOpsMixin:
             """
         ),
     )
-    def factorize(self, sort=False, na_sentinel=-1):
-        return algorithms.factorize(self, sort=sort, na_sentinel=na_sentinel)
+    def factorize(self, sort=False, na_sentinel=-1, dropna=True):
+        return algorithms.factorize(self, sort=sort, na_sentinel=na_sentinel, dropna=dropna)
 
     _shared_docs[
         "searchsorted"
