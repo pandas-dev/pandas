@@ -545,7 +545,7 @@ def factorize(
         Value to mark "not found".
     {size_hint}
     dropna : bool, default True
-        Drop the NA from the uniques of the values.
+        Drop the NaN from the uniques of the values.
 
     Returns
     -------
@@ -623,9 +623,9 @@ def factorize(
     >>> uniques
     Index(['a', 'c'], dtype='object')
 
-    If NA is in the values, and we want to include NA in the uniques of the
+    If NaN is in the values, and we want to include NaN in the uniques of the
     values, it can be achieved by setting ``dropna=False``. The default is
-    ``dropna=True`` which excludes NA from the uniques.
+    ``dropna=True`` which excludes NaN from the uniques.
 
     >>> values = np.array([1, 2, 1, np.nan]
     >>> codes, uniques = pd.factorize(values, dropna=True)  # default
