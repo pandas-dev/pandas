@@ -24,6 +24,9 @@ of the individual storage backends (detailed from the fsspec docs for
 `builtin implementations`_ and linked to `external ones`_). See
 Section :ref:`io.remote`.
 
+:issue:`35655` added fsspec support (including ``storage_options``)
+for reading excel files.
+
 .. _builtin implementations: https://filesystem-spec.readthedocs.io/en/latest/api.html#built-in-implementations
 .. _external ones: https://filesystem-spec.readthedocs.io/en/latest/api.html#other-known-implementations
 
