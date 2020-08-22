@@ -5063,7 +5063,7 @@ class Index(IndexOpsMixin, PandasObject):
         # For datetime indices label may be a string that has to be converted
         # to datetime boundary according to its resolution.
         label = self._maybe_cast_slice_bound(label, side, kind)
-        breakpoint()
+
         # we need to look up the label
         try:
             slc = self.get_loc(label)
