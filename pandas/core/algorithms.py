@@ -634,15 +634,15 @@ def factorize(
     >>> values = np.array([1, 2, 1, np.nan]
     >>> codes, uniques = pd.factorize(values, dropna=True)  # default
     >>> codes
-    array([ 0,  1,  0, -1]
+    array([0, 1, 0, -1]...)
     >>> uniques
     array([1., 2.])
 
     >>> codes, uniques = pd.factorize(values, dropna=False)
     >>> codes
-    array([0, 1, 0, 2])
+    array([0, 1, 0, 2]...)
     >>> uniques
-    array([ 1.,  2., nan])
+    array([1., 2., nan])
     """
     # Implementation notes: This method is responsible for 3 things
     # 1.) coercing data to array-like (ndarray, Index, extension array)
