@@ -1138,6 +1138,7 @@ def test_parse_integers_above_fp_precision(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(reason="ResourceWarning #35660", strict=False)
 def test_chunks_have_consistent_numerical_type(all_parsers):
     parser = all_parsers
     integers = [str(i) for i in range(499999)]
@@ -1151,6 +1152,7 @@ def test_chunks_have_consistent_numerical_type(all_parsers):
     assert result.a.dtype == float
 
 
+@pytest.mark.xfail(reason="ResourceWarning #35660", strict=False)
 def test_warn_if_chunks_have_mismatched_type(all_parsers):
     warning_type = None
     parser = all_parsers
@@ -1834,6 +1836,7 @@ def test_raise_on_no_columns(all_parsers, nrows):
         parser.read_csv(StringIO(data))
 
 
+@td.check_file_leaks
 def test_memory_map(all_parsers, csv_dir_path):
     mmap_file = os.path.join(csv_dir_path, "test_mmap.csv")
     parser = all_parsers
