@@ -627,7 +627,7 @@ def factorize(
     values, it can be achieved by setting ``dropna=False``. The default is
     ``dropna=True`` which excludes NaN from the uniques.
 
-    >>> values = np.array([1, 2, 1, np.nan]
+    >>> values = np.array([1, 2, 1, np.nan])
     >>> codes, uniques = pd.factorize(values, dropna=True)  # default
     >>> codes
     array([0, 1, 0, -1]...)
