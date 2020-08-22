@@ -266,7 +266,7 @@ Reshaping
 Sparse
 ^^^^^^
 
-- Bug in :class:`Series` constructor raising a ``TypeError`` when constructing sparse datetime64 dtypes (:issue:`35762`)
+-
 -
 
 ExtensionArray
