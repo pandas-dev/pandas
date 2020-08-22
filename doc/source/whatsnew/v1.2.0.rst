@@ -24,6 +24,9 @@ of the individual storage backends (detailed from the fsspec docs for
 `builtin implementations`_ and linked to `external ones`_). See
 Section :ref:`io.remote`.
 
+:issue:`35655` added fsspec support (including ``storage_options``)
+for reading excel files.
+
 .. _builtin implementations: https://filesystem-spec.readthedocs.io/en/latest/api.html#built-in-implementations
 .. _external ones: https://filesystem-spec.readthedocs.io/en/latest/api.html#other-known-implementations
 
@@ -122,7 +125,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | xarray          | 0.12.0          |    X    |
 +-----------------+-----------------+---------+
-| xlrd            | 1.1.0           |         |
+| xlrd            | 1.2.0           |    X    |
 +-----------------+-----------------+---------+
 | xlsxwriter      | 1.0.2           |    X    |
 +-----------------+-----------------+---------+
@@ -151,7 +154,7 @@ Deprecations
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
--
+- Performance improvement in :meth:`GroupBy.agg` with the ``numba`` engine (:issue:`35759`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -172,6 +175,7 @@ Datetimelike
 ^^^^^^^^^^^^
 - Bug in :attr:`DatetimeArray.date` where a ``ValueError`` would be raised with a read-only backing array (:issue:`33530`)
 - Bug in ``NaT`` comparisons failing to raise ``TypeError`` on invalid inequality comparisons (:issue:`35046`)
+- Bug in :class:`DateOffset` where attributes reconstructed from pickle files differ from original objects when input values exceed normal ranges (e.g months=12) (:issue:`34511`)
 -
 
 Timedelta
@@ -235,6 +239,7 @@ I/O
 - Bug in :meth:`to_csv` caused a ``ValueError`` when it was called with a filename in combination with ``mode`` containing a ``b`` (:issue:`35058`)
 - In :meth:`read_csv` `float_precision='round_trip'` now handles `decimal` and `thousands` parameters (:issue:`35365`)
 - :meth:`to_pickle` and :meth:`read_pickle` were closing user-provided file objects (:issue:`35679`)
+- :meth:`to_csv` passes compression arguments for `'gzip'` always to `gzip.GzipFile` (:issue:`28103`)
 
 Plotting
 ^^^^^^^^
@@ -247,8 +252,7 @@ Groupby/resample/rolling
 
 - Bug in :meth:`DataFrameGroupBy.count` and :meth:`SeriesGroupBy.sum` returning ``NaN`` for missing categories when grouped on multiple ``Categoricals``. Now returning ``0`` (:issue:`35028`)
 - Bug in :meth:`DataFrameGroupBy.apply` that would some times throw an erroneous ``ValueError`` if the grouping axis had duplicate entries (:issue:`16646`)
--
--
+- Bug when combining methods :meth:`DataFrame.groupby` with :meth:`DataFrame.resample` and :meth:`DataFrame.interpolate` raising an ``TypeError`` (:issue:`35325`)
 - Bug in :meth:`DataFrameGroupBy.apply` where a non-nuisance grouping column would be dropped from the output columns if another groupby method was called before ``.apply()`` (:issue:`34656`)
 
 Reshaping
@@ -256,6 +260,7 @@ Reshaping
 
 - Bug in :meth:`DataFrame.pivot_table` with ``aggfunc='count'`` or ``aggfunc='sum'`` returning ``NaN`` for missing categories when pivoted on a ``Categorical``. Now returning ``0`` (:issue:`31422`)
 - Bug in :func:`union_indexes` where input index names are not preserved in some cases. Affects :func:`concat` and :class:`DataFrame` constructor (:issue:`13475`)
+- Bug in func :meth:`crosstab` when using multiple columns with ``margins=True`` and ``normalize=True`` (:issue:`35144`)
 -
 
 Sparse
