@@ -630,13 +630,13 @@ def factorize(
     >>> values = np.array([1, 2, 1, np.nan])
     >>> codes, uniques = pd.factorize(values, dropna=True)  # default
     >>> codes
-    array([0, 1, 0, -1]...)
+    array([ 0,  1,  0, -1])
     >>> uniques
     Index([1., 2.], dtype='float64')
 
     >>> codes, uniques = pd.factorize(values, dropna=False)
     >>> codes
-    array([0, 1, 0, 2]...)
+    array([ 0,  1,  0, 2])
     >>> uniques
     Index([1., 2., nan], dtype='float64')
     """
