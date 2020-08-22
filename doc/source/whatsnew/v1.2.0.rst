@@ -54,6 +54,7 @@ For example:
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - :class:`Index` with object dtype supports division and multiplication (:issue:`34160`)
+- :meth:`Series.factorize` accepts ``dropna`` to include NaN in the uniques of the values by setting ``dropna=False``, default is ``dropna=True`` which excludes NaN from the uniques (:issue:`35667`)
 -
 -
 
