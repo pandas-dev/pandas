@@ -351,15 +351,11 @@ class TestExcelWriter:
             msg = "sheet 0 not found"
             with pytest.raises(ValueError, match=msg):
                 pd.read_excel(xl, "0")
-        elif engine == "xlwt":
+        else:
             import xlrd
 
             msg = "No sheet named <'0'>"
             with pytest.raises(xlrd.XLRDError, match=msg):
-                pd.read_excel(xl, sheet_name="0")
-        else:  # openpyxl
-            msg = "Worksheet 0 does not exist."
-            with pytest.raises(KeyError, match=msg):
                 pd.read_excel(xl, sheet_name="0")
 
     def test_excel_writer_context_manager(self, frame, path):
@@ -1216,15 +1212,8 @@ class TestExcelWriter:
         df.to_excel(writer)
         writer.save()
 
-        if engine == "xlwt":
-            read_engine = "xlrd"
-        elif engine == "xlsxwriter":
-            read_engine = "openpyxl"
-        else:
-            read_engine = engine
-
         bio.seek(0)
-        reread_df = pd.read_excel(bio, index_col=0, engine=read_engine)
+        reread_df = pd.read_excel(bio, index_col=0)
         tm.assert_frame_equal(df, reread_df)
 
     def test_write_lists_dict(self, path):

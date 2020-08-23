@@ -37,8 +37,8 @@ engine_params = [
     pytest.param(
         None,
         marks=[
-            td.skip_if_no("openpyxl"),
-            pytest.mark.filterwarnings("ignore:.*html argument"),
+            td.skip_if_no("xlrd"),
+            pytest.mark.filterwarnings("ignore:.*(tree\\.iter|html argument)"),
         ],
     ),
     pytest.param("pyxlsb", marks=td.skip_if_no("pyxlsb")),
@@ -53,8 +53,6 @@ def _is_valid_engine_ext_pair(engine, read_ext: str) -> bool:
     """
     engine = engine.values[0]
     if engine == "openpyxl" and read_ext == ".xls":
-        return False
-    if engine is None and read_ext == ".xls":
         return False
     if engine == "odf" and read_ext != ".ods":
         return False
@@ -564,7 +562,7 @@ class TestReaders:
             columns=["DateColWithBigInt", "StringCol"],
         )
 
-        if pd.read_excel.keywords["engine"] in ["openpyxl", None]:
+        if pd.read_excel.keywords["engine"] == "openpyxl":
             pytest.xfail("Maybe not supported by openpyxl")
 
         result = pd.read_excel("testdateoverflow" + read_ext)
@@ -969,19 +967,6 @@ class TestReaders:
         )
         tm.assert_frame_equal(expected, result)
 
-    def test_excel_high_surrogate(self, engine, read_ext):
-        # GH 23809
-        if read_ext != ".xlsx":
-            pytest.skip("Test is only applicable to .xlsx file")
-        if engine in ["openpyxl", None]:
-            pytest.skip("Test does not work for openpyxl")
-
-        expected = pd.DataFrame(["\udc88"], columns=["Column1"])
-
-        # should not produce a segmentation violation
-        actual = pd.read_excel("high_surrogate.xlsx")
-        tm.assert_frame_equal(expected, actual)
-
 
 class TestExcelFileRead:
     @pytest.fixture(autouse=True)
@@ -1135,6 +1120,14 @@ class TestExcelFileRead:
             data = f.read()
 
         actual = pd.read_excel(data, engine=engine)
+        tm.assert_frame_equal(expected, actual)
+
+    def test_excel_high_surrogate(self, engine):
+        # GH 23809
+        expected = pd.DataFrame(["\udc88"], columns=["Column1"])
+
+        # should not produce a segmentation violation
+        actual = pd.read_excel("high_surrogate.xlsx")
         tm.assert_frame_equal(expected, actual)
 
     @pytest.mark.parametrize("filename", ["df_empty.xlsx", "df_equals.xlsx"])

@@ -826,7 +826,8 @@ def _is_ods_stream(stream: Union[BufferedIOBase, RawIOBase]) -> bool:
 class ExcelFile:
     """
     Class for parsing tabular excel sheets into DataFrame objects.
-    Uses xlrd, openpyxl or odf. See read_excel for more documentation
+
+    Uses xlrd engine by default. See read_excel for more documentation
 
     Parameters
     ----------
@@ -837,7 +838,7 @@ class ExcelFile:
     engine : str, default None
         If io is not a buffer or path, this must be set to identify io.
         Supported engines: ``xlrd``, ``openpyxl``, ``odf``, ``pyxlsb``,
-        default ``openpyxl``, ``xlrd`` for .xls files, ``odf`` for .ods files.
+        default ``xlrd`` for .xls* files, ``odf`` for .ods files.
         Engine compatibility :
         - ``xlrd`` supports most old/new Excel file formats.
         - ``openpyxl`` supports newer Excel file formats.
@@ -860,19 +861,20 @@ class ExcelFile:
     def __init__(
         self, path_or_buffer, engine=None, storage_options: StorageOptions = None
     ):
+        ext = None
+        if not isinstance(path_or_buffer, (BufferedIOBase, RawIOBase)):
+            ext = os.path.splitext(str(path_or_buffer))[-1][1:]
+
         if engine is None:
-            engine = "openpyxl"
+            engine = "xlrd"
             if isinstance(path_or_buffer, (BufferedIOBase, RawIOBase)):
                 if _is_ods_stream(path_or_buffer):
                     engine = "odf"
             else:
-                ext = os.path.splitext(str(path_or_buffer))[-1]
-                if ext == ".ods":
+                if ext == "ods":
                     engine = "odf"
-                elif ext == ".xls":
-                    engine = "xlrd"
 
-        elif engine == "xlrd":
+        elif engine == "xlrd" and ext in ("xlsx", "xlsm"):
             warnings.warn(
                 'The Excel reader engine "xlrd" is deprecated, use "openpyxl" instead. '
                 'Specify engine="openpyxl" to suppress this warning.',
