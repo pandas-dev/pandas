@@ -627,7 +627,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             raise KeyError(orig_key) from err
 
     def _maybe_cast_for_get_loc(self, key) -> Timestamp:
-        # needed to localize naive datetimes
+        # needed to localize naive datetimes or dates (GH 35690)
+        if isinstance(key, date) and not isinstance(key, datetime):
+            key = datetime.combine(key, time(0, 0))
         key = Timestamp(key)
         if key.tzinfo is None:
             key = key.tz_localize(self.tz)
@@ -672,13 +674,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             if self._is_strictly_monotonic_decreasing and len(self) > 1:
                 return upper if side == "left" else lower
             return lower if side == "left" else upper
-        # GH 35690: Ensure the label matches the timezone of the index's tz
-        elif isinstance(label, date):
-            if not isinstance(label, datetime):
-                label = datetime.combine(label, time(0, 0))
-            return self._maybe_cast_for_get_loc(label)
-        else:
-            return label
+        return self._maybe_cast_for_get_loc(label)
 
     def _get_string_slice(self, key: str, use_lhs: bool = True, use_rhs: bool = True):
         freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
