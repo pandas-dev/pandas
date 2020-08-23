@@ -539,8 +539,10 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         mgr = obj._mgr
 
         def hfunc(bvalues: ArrayLike) -> ArrayLike:
-            values = self._prep_values(bvalues.T)
-            return homogeneous_func(values).T
+            # TODO(EA2D): getattr unnecessary with 2D EAs
+            values = self._prep_values(getattr(bvalues, "T", bvalues))
+            res_values = homogeneous_func(values)
+            return getattr(res_values, "T", res_values)
 
         skipped: List[int] = []
         res_blocks: List["Block"] = []
