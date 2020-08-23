@@ -22,6 +22,7 @@ from typing import (
     Tuple,
     Type,
     Union,
+    cast,
 )
 import warnings
 import weakref
@@ -34,12 +35,14 @@ from pandas._libs import lib
 from pandas._libs.tslibs import Tick, Timestamp, to_offset
 from pandas._typing import (
     Axis,
+    CompressionOptions,
     FilePathOrBuffer,
     FrameOrSeries,
     JSONSerializable,
     Label,
     Level,
     Renamer,
+    StorageOptions,
     TimedeltaConvertibleTypes,
     TimestampConvertibleTypes,
     ValueKeyFunc,
@@ -1195,7 +1198,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             self._get_axis(a).equals(other._get_axis(a)) for a in self._AXIS_ORDERS
         )
 
-    def equals(self, other):
+    def equals(self, other: object) -> bool:
         """
         Test whether two objects contain the same elements.
 
@@ -1275,6 +1278,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         if not (isinstance(other, type(self)) or isinstance(self, type(other))):
             return False
+        other = cast(NDFrame, other)
         return self._mgr.equals(other._mgr)
 
     # -------------------------------------------------------------------------
@@ -2055,9 +2059,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         date_unit: str = "ms",
         default_handler: Optional[Callable[[Any], JSONSerializable]] = None,
         lines: bool_t = False,
-        compression: Optional[str] = "infer",
+        compression: CompressionOptions = "infer",
         index: bool_t = True,
         indent: Optional[int] = None,
+        storage_options: StorageOptions = None,
     ) -> Optional[str]:
         """
         Convert the object to a JSON string.
@@ -2140,6 +2145,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
            Length of whitespace used to indent each record.
 
            .. versionadded:: 1.0.0
+
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc., if using a URL that will
+            be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+            will be raised if providing this argument with a local path or
+            a file-like buffer. See the fsspec and backend storage implementation
+            docs for the set of allowed keys and values
+
+            .. versionadded:: 1.2.0
 
         Returns
         -------
@@ -2319,6 +2334,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             compression=compression,
             index=index,
             indent=indent,
+            storage_options=storage_options,
         )
 
     def to_hdf(
@@ -2631,8 +2647,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def to_pickle(
         self,
         path,
-        compression: Optional[str] = "infer",
+        compression: CompressionOptions = "infer",
         protocol: int = pickle.HIGHEST_PROTOCOL,
+        storage_options: StorageOptions = None,
     ) -> None:
         """
         Pickle (serialize) object to file.
@@ -2652,6 +2669,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             parameter is equivalent to setting its value to HIGHEST_PROTOCOL.
 
             .. [1] https://docs.python.org/3/library/pickle.html.
+
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc., if using a URL that will
+            be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+            will be raised if providing this argument with a local path or
+            a file-like buffer. See the fsspec and backend storage implementation
+            docs for the set of allowed keys and values
+
+            .. versionadded:: 1.2.0
 
         See Also
         --------
@@ -2686,7 +2713,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         from pandas.io.pickle import to_pickle
 
-        to_pickle(self, path, compression=compression, protocol=protocol)
+        to_pickle(
+            self,
+            path,
+            compression=compression,
+            protocol=protocol,
+            storage_options=storage_options,
+        )
 
     def to_clipboard(
         self, excel: bool_t = True, sep: Optional[str] = None, **kwargs
@@ -3021,7 +3054,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         index_label: Optional[Union[bool_t, str, Sequence[Label]]] = None,
         mode: str = "w",
         encoding: Optional[str] = None,
-        compression: Optional[Union[str, Mapping[str, str]]] = "infer",
+        compression: CompressionOptions = "infer",
         quoting: Optional[int] = None,
         quotechar: str = '"',
         line_terminator: Optional[str] = None,
@@ -3031,6 +3064,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         escapechar: Optional[str] = None,
         decimal: Optional[str] = ".",
         errors: str = "strict",
+        storage_options: StorageOptions = None,
     ) -> Optional[str]:
         r"""
         Write object to a comma-separated values (csv) file.
@@ -3111,6 +3145,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
                 Compression is supported for binary file objects.
 
+            .. versionchanged:: 1.2.0
+
+                Previous versions forwarded dict entries for 'gzip' to
+                `gzip.open` instead of `gzip.GzipFile` which prevented
+                setting `mtime`.
+
         quoting : optional constant from csv module
             Defaults to csv.QUOTE_MINIMAL. If you have set a `float_format`
             then floats are converted to strings and thus csv.QUOTE_NONNUMERIC
@@ -3141,6 +3181,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             of options.
 
             .. versionadded:: 1.1.0
+
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc., if using a URL that will
+            be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+            will be raised if providing this argument with a local path or
+            a file-like buffer. See the fsspec and backend storage implementation
+            docs for the set of allowed keys and values
+
+            .. versionadded:: 1.2.0
 
         Returns
         -------
@@ -3194,6 +3244,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             doublequote=doublequote,
             escapechar=escapechar,
             decimal=decimal,
+            storage_options=storage_options,
         )
         formatter.save()
 
@@ -6840,6 +6891,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         should_transpose = axis == 1 and method not in fillna_methods
 
         obj = self.T if should_transpose else self
+
+        if obj.empty:
+            return self.copy()
 
         if method not in fillna_methods:
             axis = self._info_axis_number
