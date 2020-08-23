@@ -1793,7 +1793,8 @@ class GroupBy(_GroupBy[FrameOrSeries]):
             if not self.dropna:
                 return values
             mask = DataFrame(self.grouper.codes).eq(-1).any()
-            values[mask] = np.nan
+            if mask.any():
+                values[mask] = np.nan
             return values
         
         res = self._get_cythonized_result(
