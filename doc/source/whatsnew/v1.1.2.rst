@@ -26,6 +26,8 @@ Bug fixes
 ~~~~~~~~~
 - Bug in :meth:`DataFrame.eval` with ``object`` dtype column binary operations (:issue:`35794`)
 - Bug in :class:`Series` constructor raising a ``TypeError`` when constructing sparse datetime64 dtypes (:issue:`35762`)
+- Bug in :meth:`DataFrame.apply` with ``result_type="reduce"`` returning with incorrect index (:issue:`35683`)
+-
 -
 
 .. ---------------------------------------------------------------------------
