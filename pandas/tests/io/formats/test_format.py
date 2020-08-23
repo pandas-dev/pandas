@@ -19,6 +19,7 @@ import pytest
 import pytz
 
 from pandas.compat import is_platform_32bit, is_platform_windows
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -2141,6 +2142,15 @@ c  10  11  12  13  14\
         assert "'a': 1" in val
         assert "'b': 2" in val
 
+    def test_categorical_columns(self):
+        # GH35439
+        data = [[4, 2], [3, 2], [4, 3]]
+        cols = ["aaaaaaaaa", "b"]
+        df = pd.DataFrame(data, columns=cols)
+        df_cat_cols = pd.DataFrame(data, columns=pd.CategoricalIndex(cols))
+
+        assert df.to_string() == df_cat_cols.to_string()
+
     def test_period(self):
         # GH 12615
         df = pd.DataFrame(
@@ -2910,6 +2920,15 @@ class TestFloatArrayFormatter:
         assert result[0] == " 12.0"
         assert result[1] == "  0.0"
 
+    def test_output_display_precision_trailing_zeroes(self):
+        # Issue #20359: trimming zeros while there is no decimal point
+
+        # Happens when display precision is set to zero
+        with pd.option_context("display.precision", 0):
+            s = pd.Series([840.0, 4200.0])
+            expected_output = "0     840\n1    4200\ndtype: float64"
+            assert str(s) == expected_output
+
     def test_output_significant_digits(self):
         # Issue #9764
 
@@ -3320,6 +3339,7 @@ def test_format_percentiles_integer_idx():
     assert result == expected
 
 
+@td.check_file_leaks
 def test_repr_html_ipython_config(ip):
     code = textwrap.dedent(
         """\

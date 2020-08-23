@@ -5,6 +5,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import _is_numpy_dev
+
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp, date_range
 import pandas._testing as tm
@@ -894,6 +896,22 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         original_series[:3] = [7, 8, 9]
         assert all(sliced_series[:3] == [7, 8, 9])
 
+    def test_loc_copy_vs_view(self):
+        # GH 15631
+        x = DataFrame(zip(range(3), range(3)), columns=["a", "b"])
+
+        y = x.copy()
+        q = y.loc[:, "a"]
+        q += 2
+
+        tm.assert_frame_equal(x, y)
+
+        z = x.copy()
+        q = z.loc[x.index, "a"]
+        q += 2
+
+        tm.assert_frame_equal(x, z)
+
     def test_loc_uint64(self):
         # GH20722
         # Test whether loc accept uint64 max value as index.
@@ -929,6 +947,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df.loc[0, "x"] = expected.loc[0, "x"]
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.xfail(_is_numpy_dev, reason="gh-35481")
     def test_loc_setitem_empty_append_raises(self):
         # GH6173, various appends to an empty dataframe
 

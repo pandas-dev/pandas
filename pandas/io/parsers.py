@@ -20,7 +20,7 @@ import pandas._libs.ops as libops
 import pandas._libs.parsers as parsers
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._libs.tslibs import parsing
-from pandas._typing import FilePathOrBuffer, Union
+from pandas._typing import FilePathOrBuffer, StorageOptions, Union
 from pandas.errors import (
     AbstractMethodError,
     EmptyDataError,
@@ -397,7 +397,8 @@ def _validate_integer(name, val, min_val=0):
 
 def _validate_names(names):
     """
-    Raise ValueError if the `names` parameter contains duplicates.
+    Raise ValueError if the `names` parameter contains duplicates or has an
+    invalid data type.
 
     Parameters
     ----------
@@ -407,16 +408,19 @@ def _validate_names(names):
     Raises
     ------
     ValueError
-        If names are not unique.
+        If names are not unique or are not ordered (e.g. set).
     """
     if names is not None:
         if len(names) != len(set(names)):
             raise ValueError("Duplicate names are not allowed.")
+        if not is_list_like(names, allow_sets=False):
+            raise ValueError("Names should be an ordered collection.")
 
 
 def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     """Generic reader of line files."""
     encoding = kwds.get("encoding", None)
+    storage_options = kwds.get("storage_options", None)
     if encoding is not None:
         encoding = re.sub("_", "-", encoding).lower()
         kwds["encoding"] = encoding
@@ -429,7 +433,7 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     # though mypy handling of conditional imports is difficult.
     # See https://github.com/python/mypy/issues/1297
     fp_or_buf, _, compression, should_close = get_filepath_or_buffer(
-        filepath_or_buffer, encoding, compression
+        filepath_or_buffer, encoding, compression, storage_options=storage_options
     )
     kwds["compression"] = compression
 
@@ -527,176 +531,231 @@ _deprecated_defaults: Dict[str, Any] = {}
 _deprecated_args: Set[str] = set()
 
 
-def _make_parser_function(name, default_sep=","):
-    def parser_f(
-        filepath_or_buffer: FilePathOrBuffer,
-        sep=default_sep,
-        delimiter=None,
-        # Column and Index Locations and Names
-        header="infer",
-        names=None,
-        index_col=None,
-        usecols=None,
-        squeeze=False,
-        prefix=None,
-        mangle_dupe_cols=True,
-        # General Parsing Configuration
-        dtype=None,
-        engine=None,
-        converters=None,
-        true_values=None,
-        false_values=None,
-        skipinitialspace=False,
-        skiprows=None,
-        skipfooter=0,
-        nrows=None,
-        # NA and Missing Data Handling
-        na_values=None,
-        keep_default_na=True,
-        na_filter=True,
-        verbose=False,
-        skip_blank_lines=True,
-        # Datetime Handling
-        parse_dates=False,
-        infer_datetime_format=False,
-        keep_date_col=False,
-        date_parser=None,
-        dayfirst=False,
-        cache_dates=True,
-        # Iteration
-        iterator=False,
-        chunksize=None,
-        # Quoting, Compression, and File Format
-        compression="infer",
-        thousands=None,
-        decimal: str = ".",
-        lineterminator=None,
-        quotechar='"',
-        quoting=csv.QUOTE_MINIMAL,
-        doublequote=True,
-        escapechar=None,
-        comment=None,
-        encoding=None,
-        dialect=None,
-        # Error Handling
-        error_bad_lines=True,
-        warn_bad_lines=True,
-        # Internal
-        delim_whitespace=False,
-        low_memory=_c_parser_defaults["low_memory"],
-        memory_map=False,
-        float_precision=None,
-    ):
-
-        # gh-23761
-        #
-        # When a dialect is passed, it overrides any of the overlapping
-        # parameters passed in directly. We don't want to warn if the
-        # default parameters were passed in (since it probably means
-        # that the user didn't pass them in explicitly in the first place).
-        #
-        # "delimiter" is the annoying corner case because we alias it to
-        # "sep" before doing comparison to the dialect values later on.
-        # Thus, we need a flag to indicate that we need to "override"
-        # the comparison to dialect values by checking if default values
-        # for BOTH "delimiter" and "sep" were provided.
-        if dialect is not None:
-            sep_override = delimiter is None and sep == default_sep
-            kwds = dict(sep_override=sep_override)
-        else:
-            kwds = dict()
-
-        # Alias sep -> delimiter.
-        if delimiter is None:
-            delimiter = sep
-
-        if delim_whitespace and delimiter != default_sep:
-            raise ValueError(
-                "Specified a delimiter with both sep and "
-                "delim_whitespace=True; you can only specify one."
-            )
-
-        if engine is not None:
-            engine_specified = True
-        else:
-            engine = "c"
-            engine_specified = False
-
-        kwds.update(
-            delimiter=delimiter,
-            engine=engine,
-            dialect=dialect,
-            compression=compression,
-            engine_specified=engine_specified,
-            doublequote=doublequote,
-            escapechar=escapechar,
-            quotechar=quotechar,
-            quoting=quoting,
-            skipinitialspace=skipinitialspace,
-            lineterminator=lineterminator,
-            header=header,
-            index_col=index_col,
-            names=names,
-            prefix=prefix,
-            skiprows=skiprows,
-            skipfooter=skipfooter,
-            na_values=na_values,
-            true_values=true_values,
-            false_values=false_values,
-            keep_default_na=keep_default_na,
-            thousands=thousands,
-            comment=comment,
-            decimal=decimal,
-            parse_dates=parse_dates,
-            keep_date_col=keep_date_col,
-            dayfirst=dayfirst,
-            date_parser=date_parser,
-            cache_dates=cache_dates,
-            nrows=nrows,
-            iterator=iterator,
-            chunksize=chunksize,
-            converters=converters,
-            dtype=dtype,
-            usecols=usecols,
-            verbose=verbose,
-            encoding=encoding,
-            squeeze=squeeze,
-            memory_map=memory_map,
-            float_precision=float_precision,
-            na_filter=na_filter,
-            delim_whitespace=delim_whitespace,
-            warn_bad_lines=warn_bad_lines,
-            error_bad_lines=error_bad_lines,
-            low_memory=low_memory,
-            mangle_dupe_cols=mangle_dupe_cols,
-            infer_datetime_format=infer_datetime_format,
-            skip_blank_lines=skip_blank_lines,
-        )
-
-        return _read(filepath_or_buffer, kwds)
-
-    parser_f.__name__ = name
-
-    return parser_f
-
-
-read_csv = _make_parser_function("read_csv", default_sep=",")
-read_csv = Appender(
+@Appender(
     _doc_read_csv_and_table.format(
         func_name="read_csv",
         summary="Read a comma-separated values (csv) file into DataFrame.",
         _default_sep="','",
     )
-)(read_csv)
+)
+def read_csv(
+    filepath_or_buffer: FilePathOrBuffer,
+    sep=",",
+    delimiter=None,
+    # Column and Index Locations and Names
+    header="infer",
+    names=None,
+    index_col=None,
+    usecols=None,
+    squeeze=False,
+    prefix=None,
+    mangle_dupe_cols=True,
+    # General Parsing Configuration
+    dtype=None,
+    engine=None,
+    converters=None,
+    true_values=None,
+    false_values=None,
+    skipinitialspace=False,
+    skiprows=None,
+    skipfooter=0,
+    nrows=None,
+    # NA and Missing Data Handling
+    na_values=None,
+    keep_default_na=True,
+    na_filter=True,
+    verbose=False,
+    skip_blank_lines=True,
+    # Datetime Handling
+    parse_dates=False,
+    infer_datetime_format=False,
+    keep_date_col=False,
+    date_parser=None,
+    dayfirst=False,
+    cache_dates=True,
+    # Iteration
+    iterator=False,
+    chunksize=None,
+    # Quoting, Compression, and File Format
+    compression="infer",
+    thousands=None,
+    decimal: str = ".",
+    lineterminator=None,
+    quotechar='"',
+    quoting=csv.QUOTE_MINIMAL,
+    doublequote=True,
+    escapechar=None,
+    comment=None,
+    encoding=None,
+    dialect=None,
+    # Error Handling
+    error_bad_lines=True,
+    warn_bad_lines=True,
+    # Internal
+    delim_whitespace=False,
+    low_memory=_c_parser_defaults["low_memory"],
+    memory_map=False,
+    float_precision=None,
+    storage_options: StorageOptions = None,
+):
+    # gh-23761
+    #
+    # When a dialect is passed, it overrides any of the overlapping
+    # parameters passed in directly. We don't want to warn if the
+    # default parameters were passed in (since it probably means
+    # that the user didn't pass them in explicitly in the first place).
+    #
+    # "delimiter" is the annoying corner case because we alias it to
+    # "sep" before doing comparison to the dialect values later on.
+    # Thus, we need a flag to indicate that we need to "override"
+    # the comparison to dialect values by checking if default values
+    # for BOTH "delimiter" and "sep" were provided.
+    default_sep = ","
 
-read_table = _make_parser_function("read_table", default_sep="\t")
-read_table = Appender(
+    if dialect is not None:
+        sep_override = delimiter is None and sep == default_sep
+        kwds = dict(sep_override=sep_override)
+    else:
+        kwds = dict()
+
+    # Alias sep -> delimiter.
+    if delimiter is None:
+        delimiter = sep
+
+    if delim_whitespace and delimiter != default_sep:
+        raise ValueError(
+            "Specified a delimiter with both sep and "
+            "delim_whitespace=True; you can only specify one."
+        )
+
+    if engine is not None:
+        engine_specified = True
+    else:
+        engine = "c"
+        engine_specified = False
+
+    kwds.update(
+        delimiter=delimiter,
+        engine=engine,
+        dialect=dialect,
+        compression=compression,
+        engine_specified=engine_specified,
+        doublequote=doublequote,
+        escapechar=escapechar,
+        quotechar=quotechar,
+        quoting=quoting,
+        skipinitialspace=skipinitialspace,
+        lineterminator=lineterminator,
+        header=header,
+        index_col=index_col,
+        names=names,
+        prefix=prefix,
+        skiprows=skiprows,
+        skipfooter=skipfooter,
+        na_values=na_values,
+        true_values=true_values,
+        false_values=false_values,
+        keep_default_na=keep_default_na,
+        thousands=thousands,
+        comment=comment,
+        decimal=decimal,
+        parse_dates=parse_dates,
+        keep_date_col=keep_date_col,
+        dayfirst=dayfirst,
+        date_parser=date_parser,
+        cache_dates=cache_dates,
+        nrows=nrows,
+        iterator=iterator,
+        chunksize=chunksize,
+        converters=converters,
+        dtype=dtype,
+        usecols=usecols,
+        verbose=verbose,
+        encoding=encoding,
+        squeeze=squeeze,
+        memory_map=memory_map,
+        float_precision=float_precision,
+        na_filter=na_filter,
+        delim_whitespace=delim_whitespace,
+        warn_bad_lines=warn_bad_lines,
+        error_bad_lines=error_bad_lines,
+        low_memory=low_memory,
+        mangle_dupe_cols=mangle_dupe_cols,
+        infer_datetime_format=infer_datetime_format,
+        skip_blank_lines=skip_blank_lines,
+        storage_options=storage_options,
+    )
+
+    return _read(filepath_or_buffer, kwds)
+
+
+@Appender(
     _doc_read_csv_and_table.format(
         func_name="read_table",
         summary="Read general delimited file into DataFrame.",
         _default_sep=r"'\\t' (tab-stop)",
     )
-)(read_table)
+)
+def read_table(
+    filepath_or_buffer: FilePathOrBuffer,
+    sep="\t",
+    delimiter=None,
+    # Column and Index Locations and Names
+    header="infer",
+    names=None,
+    index_col=None,
+    usecols=None,
+    squeeze=False,
+    prefix=None,
+    mangle_dupe_cols=True,
+    # General Parsing Configuration
+    dtype=None,
+    engine=None,
+    converters=None,
+    true_values=None,
+    false_values=None,
+    skipinitialspace=False,
+    skiprows=None,
+    skipfooter=0,
+    nrows=None,
+    # NA and Missing Data Handling
+    na_values=None,
+    keep_default_na=True,
+    na_filter=True,
+    verbose=False,
+    skip_blank_lines=True,
+    # Datetime Handling
+    parse_dates=False,
+    infer_datetime_format=False,
+    keep_date_col=False,
+    date_parser=None,
+    dayfirst=False,
+    cache_dates=True,
+    # Iteration
+    iterator=False,
+    chunksize=None,
+    # Quoting, Compression, and File Format
+    compression="infer",
+    thousands=None,
+    decimal: str = ".",
+    lineterminator=None,
+    quotechar='"',
+    quoting=csv.QUOTE_MINIMAL,
+    doublequote=True,
+    escapechar=None,
+    comment=None,
+    encoding=None,
+    dialect=None,
+    # Error Handling
+    error_bad_lines=True,
+    warn_bad_lines=True,
+    # Internal
+    delim_whitespace=False,
+    low_memory=_c_parser_defaults["low_memory"],
+    memory_map=False,
+    float_precision=None,
+):
+    return read_csv(**locals())
 
 
 def read_fwf(
@@ -1558,7 +1617,7 @@ class ParserBase:
         # Clean the column names (if we have an index_col).
         if len(ic):
             col_names = [
-                r[0] if (len(r[0]) and r[0] not in self.unnamed_cols) else None
+                r[0] if ((r[0] is not None) and r[0] not in self.unnamed_cols) else None
                 for r in header
             ]
         else:
@@ -2102,9 +2161,7 @@ class CParserWrapper(ParserBase):
                 if self.usecols is not None:
                     columns = self._filter_usecols(columns)
 
-                col_dict = dict(
-                    filter(lambda item: item[0] in columns, col_dict.items())
-                )
+                col_dict = {k: v for k, v in col_dict.items() if k in columns}
 
                 return index, columns, col_dict
 

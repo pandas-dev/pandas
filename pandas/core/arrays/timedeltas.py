@@ -4,7 +4,7 @@ from typing import List
 import numpy as np
 
 from pandas._libs import lib, tslibs
-from pandas._libs.tslibs import NaT, Period, Timedelta, Timestamp, iNaT, to_offset
+from pandas._libs.tslibs import NaT, Period, Tick, Timedelta, Timestamp, iNaT, to_offset
 from pandas._libs.tslibs.conversion import precision_from_unit
 from pandas._libs.tslibs.fields import get_timedelta_field
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64, parse_timedelta_unit
@@ -29,13 +29,11 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops
 from pandas.core.algorithms import checked_add_with_arr
-from pandas.core.arrays import datetimelike as dtl
+from pandas.core.arrays import IntegerArray, datetimelike as dtl
 from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.ops.common import unpack_zerodim_and_defer
-
-from pandas.tseries.offsets import Tick
 
 
 def _field_accessor(name, alias, docstring=None):
@@ -630,7 +628,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             result = self.asi8 // other.asi8
             mask = self._isnan | other._isnan
             if mask.any():
-                result = result.astype(np.int64)
+                result = result.astype(np.float64)
                 result[mask] = np.nan
             return result
 
@@ -923,6 +921,8 @@ def sequence_to_td64ns(data, copy=False, unit=None, errors="raise"):
     elif isinstance(data, (ABCTimedeltaIndex, TimedeltaArray)):
         inferred_freq = data.freq
         data = data._data
+    elif isinstance(data, IntegerArray):
+        data = data.to_numpy("int64", na_value=tslibs.iNaT)
 
     # Convert whatever we have into timedelta64[ns] dtype
     if is_object_dtype(data.dtype) or is_string_dtype(data.dtype):

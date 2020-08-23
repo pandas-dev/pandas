@@ -15,6 +15,7 @@ from pandas._libs import lib
 from pandas._libs.tslibs import IncompatibleFrequency, OutOfBoundsDatetime
 from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj
 
+from pandas.core.dtypes.base import ExtensionDtype, registry
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
     construct_1d_ndarray_preserving_na,
@@ -36,7 +37,6 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_timedelta64_ns_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype, registry
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndexClass,
@@ -48,9 +48,9 @@ from pandas.core.dtypes.missing import isna
 import pandas.core.common as com
 
 if TYPE_CHECKING:
-    from pandas.core.series import Series  # noqa: F401
-    from pandas.core.indexes.api import Index  # noqa: F401
     from pandas.core.arrays import ExtensionArray  # noqa: F401
+    from pandas.core.indexes.api import Index  # noqa: F401
+    from pandas.core.series import Series  # noqa: F401
 
 
 def array(
@@ -217,15 +217,15 @@ def array(
     You can use the string alias for `dtype`
 
     >>> pd.array(['a', 'b', 'a'], dtype='category')
-    [a, b, a]
-    Categories (2, object): [a, b]
+    ['a', 'b', 'a']
+    Categories (2, object): ['a', 'b']
 
     Or specify the actual dtype
 
     >>> pd.array(['a', 'b', 'a'],
     ...          dtype=pd.CategoricalDtype(['a', 'b', 'c'], ordered=True))
-    [a, b, a]
-    Categories (3, object): [a < b < c]
+    ['a', 'b', 'a']
+    Categories (3, object): ['a' < 'b' < 'c']
 
     If pandas does not infer a dedicated extension type a
     :class:`arrays.PandasArray` is returned.
@@ -255,14 +255,14 @@ def array(
     ValueError: Cannot pass scalar '1' to 'pandas.array'.
     """
     from pandas.core.arrays import (
-        period_array,
         BooleanArray,
+        DatetimeArray,
         IntegerArray,
         IntervalArray,
         PandasArray,
-        DatetimeArray,
-        TimedeltaArray,
         StringArray,
+        TimedeltaArray,
+        period_array,
     )
 
     if lib.is_scalar(data):
@@ -357,8 +357,8 @@ def extract_array(obj, extract_numpy: bool = False):
     Examples
     --------
     >>> extract_array(pd.Series(['a', 'b', 'c'], dtype='category'))
-    [a, b, c]
-    Categories (3, object): [a, b, c]
+    ['a', 'b', 'c']
+    Categories (3, object): ['a', 'b', 'c']
 
     Other objects like lists, arrays, and DataFrames are just passed through.
 

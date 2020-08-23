@@ -668,6 +668,7 @@ A ``ValueError`` will be raised if there are any negative values in your data.
    plt.figure()
 
 .. ipython:: python
+   :okwarning:
 
    series = pd.Series(3 * np.random.rand(4),
                       index=['a', 'b', 'c', 'd'], name='series')
@@ -742,6 +743,7 @@ If you pass values whose sum total is less than 1.0, matplotlib draws a semicirc
    plt.figure()
 
 .. ipython:: python
+   :okwarning:
 
    series = pd.Series([0.1] * 4, index=['a', 'b', 'c', 'd'], name='series2')
 
@@ -1108,6 +1110,34 @@ shown by default.
 
    plt.close('all')
 
+
+Controlling the labels
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 1.1.0
+
+You may set the ``xlabel`` and ``ylabel`` arguments to give the plot custom labels
+for x and y axis. By default, pandas will pick up index name as xlabel, while leaving
+it empty for ylabel.
+
+.. ipython:: python
+   :suppress:
+
+   plt.figure()
+
+.. ipython:: python
+
+   df.plot()
+
+   @savefig plot_xlabel_ylabel.png
+   df.plot(xlabel="new x", ylabel="new y")
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
+
 Scales
 ~~~~~~
 
@@ -1397,7 +1427,7 @@ Horizontal and vertical error bars can be supplied to the ``xerr`` and ``yerr`` 
 * As a ``str`` indicating which of the columns of plotting :class:`DataFrame` contain the error values.
 * As raw values (``list``, ``tuple``, or ``np.ndarray``). Must be the same length as the plotting :class:`DataFrame`/:class:`Series`.
 
-Asymmetrical error bars are also supported, however raw error values must be provided in this case. For a ``M`` length :class:`Series`, a ``Mx2`` array should be provided indicating lower and upper (or left and right) errors. For a ``MxN`` :class:`DataFrame`, asymmetrical errors should be in a ``Mx2xN`` array.
+Asymmetrical error bars are also supported, however raw error values must be provided in this case. For a ``N`` length :class:`Series`, a ``2xN`` array should be provided indicating lower and upper (or left and right) errors. For a ``MxN`` :class:`DataFrame`, asymmetrical errors should be in a ``Mx2xN`` array.
 
 Here is an example of one way to easily plot group means with standard deviations from the raw data.
 
