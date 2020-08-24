@@ -121,7 +121,10 @@ an exception will be raised.
 .. ipython:: python
    :okexcept:
 
-   pd.Series([0, 1, 2], index=['a', 'b', 'b']).set_flags(allows_duplicate_labels=False)
+   pd.Series(
+       [0, 1, 2],
+       index=['a', 'b', 'b']
+   ).set_flags(allows_duplicate_labels=False)
 
 This applies to both row and column labels for a :class:`DataFrame`
 
@@ -138,9 +141,9 @@ which indicates whether that object can have duplicate labels.
 .. ipython:: python
 
    df = (
-      pd.DataFrame({"A": [0, 1, 2, 3]},
-                   index=['x', 'y', 'X', 'Y'])
-      .set_flags(allows_duplicate_labels=False)
+       pd.DataFrame({"A": [0, 1, 2, 3]},
+                    index=['x', 'y', 'X', 'Y'])
+         .set_flags(allows_duplicate_labels=False)
    )
    df
    df.flags.allows_duplicate_labels

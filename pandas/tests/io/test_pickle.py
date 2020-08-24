@@ -489,8 +489,8 @@ def test_read_pickle_with_subclass():
 
 
 def test_allows_duplicate_labels():
-    s = pd.Series(dtype=float, allows_duplicate_labels=False)
+    s = pd.Series(dtype=float).set_flags(allows_duplicate_labels=False)
     tm.round_trip_pickle(s)
 
-    df = pd.DataFrame(allows_duplicate_labels=False)
+    df = pd.DataFrame().set_flags(allows_duplicate_labels=False)
     tm.round_trip_pickle(df)

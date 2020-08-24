@@ -315,6 +315,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Series or DataFrame
             The same type as the caller.
 
+        See Also
+        --------
+        DataFrame.attrs : Global metadata applying to this dataset.
+        DataFrame.flags : Global flags applying to this object.
+
         Notes
         -----
         This method returns a new object that's a view on the same data
@@ -326,11 +331,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         "Flags" differ from "metadata". Flags reflect properties of the
         pandas object (the Series or DataFrame). Metadata refer to properties
         of the dataset, and should be stored in :attr:`DataFrame.attrs`.
-
-        See Also
-        --------
-        DataFrame.attrs : Global metadata applying to this dataset.
-        DataFrame.flags : Global flags applying to this object.
 
         Examples
         --------
@@ -1944,9 +1944,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if typ is not None:
                 attrs = state.get("_attrs", {})
                 object.__setattr__(self, "_attrs", attrs)
-                allows_duplicate_labels = state.get("_allows_duplicate_labels", True)
                 object.__setattr__(
-                    self, "_allows_duplicate_labels", allows_duplicate_labels
+                    self, "_flags", Flags(self, allows_duplicate_labels=True)
                 )
 
                 # set in the order of internal names
