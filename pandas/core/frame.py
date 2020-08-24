@@ -8651,7 +8651,6 @@ NaN 12.3   33.0
             res = df._mgr.reduce(blk_func)
             out = df._constructor(res,).iloc[0].rename(None)
             if out_dtype is not None:
-                # only astype if result is empty
                 out = out.astype(out_dtype)
             if axis == 0 and is_object_dtype(out.dtype):
                 out[:] = coerce_to_dtypes(out.values, df.dtypes)
