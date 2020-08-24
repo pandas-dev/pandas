@@ -524,4 +524,6 @@ class TestRangeIndex(Numeric):
 
     def test_format_empty(self):
         # GH35712
-        assert self._holder(0).format() == []
+        empty_idx = self._holder(0)
+        assert empty_idx.format() == []
+        assert empty_idx.format(name=True) == [""]

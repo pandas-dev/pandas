@@ -538,7 +538,9 @@ class TestPeriodIndex(DatetimeLike):
 
     def test_format_empty(self):
         # GH35712
-        assert self._holder([], freq="A").format() == []
+        empty_idx = self._holder([], freq="A")
+        assert empty_idx.format() == []
+        assert empty_idx.format(name=True) == [""]
 
 
 def test_maybe_convert_timedelta():

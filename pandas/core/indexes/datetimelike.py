@@ -354,8 +354,11 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         """
         header = []
         if name:
-            fmt_name = ibase.pprint_thing(self.name, escape_chars=("\t", "\r", "\n"))
-            header.append(fmt_name)
+            header.append(
+                ibase.pprint_thing(self.name, escape_chars=("\t", "\r", "\n"))
+                if self.name is not None
+                else ""
+            )
 
         if formatter is not None:
             return header + list(self.map(formatter))
