@@ -39,8 +39,8 @@ Pandas will propagate the ``allows_duplicate_labels`` property through many oper
    :okexcept:
 
    a = (
-      pd.Series([1, 2], index=['a', 'b'])
-      .set_flags(allows_duplicate_labels=False)
+       pd.Series([1, 2], index=['a', 'b'])
+         .set_flags(allows_duplicate_labels=False)
    )
    a
    # An operation introducing duplicates
