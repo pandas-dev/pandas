@@ -5,8 +5,9 @@ from typing import Dict, Optional, Tuple, Type
 import numpy as np
 
 from pandas._libs.window.indexers import calculate_variable_window_bounds
-from pandas.core.dtypes.common import ensure_platform_int
 from pandas.util._decorators import Appender
+
+from pandas.core.dtypes.common import ensure_platform_int
 
 from pandas.tseries.offsets import Nano
 
