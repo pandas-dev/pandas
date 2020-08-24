@@ -12,9 +12,12 @@ import struct
 import sys
 import warnings
 
-PY37 = sys.version_info >= (3, 7)
+from pandas._typing import F
+
 PY38 = sys.version_info >= (3, 8)
+PY39 = sys.version_info >= (3, 9)
 PYPY = platform.python_implementation() == "PyPy"
+IS64 = sys.maxsize > 2 ** 32
 
 
 # ----------------------------------------------------------------------------
@@ -25,7 +28,7 @@ PYPY = platform.python_implementation() == "PyPy"
 # found at https://bitbucket.org/gutworth/six
 
 
-def set_function_name(f, name, cls):
+def set_function_name(f: F, name: str, cls) -> F:
     """
     Bind the name/qualname attributes of the function.
     """

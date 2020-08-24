@@ -27,7 +27,7 @@ from pandas._config import get_option
 from pandas._libs import lib
 from pandas._typing import Axis, FrameOrSeries, FrameOrSeriesUnion, Label
 from pandas.compat._optional import import_optional_dependency
-from pandas.util._decorators import Appender
+from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import is_float
 
@@ -35,15 +35,15 @@ import pandas as pd
 from pandas.api.types import is_dict_like, is_list_like
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
-from pandas.core.generic import _shared_docs
+from pandas.core.generic import NDFrame
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
 
 
 try:
-    import matplotlib.pyplot as plt
     from matplotlib import colors
+    import matplotlib.pyplot as plt
 
     has_mpl = True
 except ImportError:
@@ -85,7 +85,7 @@ class Styler:
         number and ``<num_col>`` is the column number.
     na_rep : str, optional
         Representation for missing values.
-        If ``na_rep`` is None, no special formatting is applied
+        If ``na_rep`` is None, no special formatting is applied.
 
         .. versionadded:: 1.0.0
 
@@ -124,7 +124,7 @@ class Styler:
     * Column label cells include
       * ``col_heading``
       * ``col<n>`` where `n` is the numeric position of the column
-      * ``evel<k>`` where `k` is the level in a MultiIndex
+      * ``level<k>`` where `k` is the level in a MultiIndex
 
     * Blank cells include ``blank``
     * Data cells include ``data``
@@ -192,18 +192,7 @@ class Styler:
         """
         return self.render()
 
-    @Appender(
-        _shared_docs["to_excel"]
-        % dict(
-            axes="index, columns",
-            klass="Styler",
-            axes_single_arg="{0 or 'index', 1 or 'columns'}",
-            optional_by="""
-            by : str or list of str
-                Name or list of names which refer to the axis items.""",
-            versionadded_to_excel="\n    .. versionadded:: 0.20",
-        )
-    )
+    @doc(NDFrame.to_excel, klass="Styler")
     def to_excel(
         self,
         excel_writer,
@@ -401,16 +390,16 @@ class Styler:
                     "is_visible": (c not in hidden_columns),
                 }
                 # only add an id if the cell has a style
-                if self.cell_ids or not (len(ctx[r, c]) == 1 and ctx[r, c][0] == ""):
-                    row_dict["id"] = "_".join(cs[1:])
-                row_es.append(row_dict)
                 props = []
-                for x in ctx[r, c]:
-                    # have to handle empty styles like ['']
-                    if x.count(":"):
-                        props.append(tuple(x.split(":")))
-                    else:
-                        props.append(("", ""))
+                if self.cell_ids or (r, c) in ctx:
+                    row_dict["id"] = "_".join(cs[1:])
+                    for x in ctx[r, c]:
+                        # have to handle empty styles like ['']
+                        if x.count(":"):
+                            props.append(tuple(x.split(":")))
+                        else:
+                            props.append(("", ""))
+                row_es.append(row_dict)
                 cellstyle_map[tuple(props)].append(f"row{r}_col{c}")
             body.append(row_es)
 
@@ -446,13 +435,13 @@ class Styler:
         Parameters
         ----------
         formatter : str, callable, dict or None
-            If ``formatter`` is None, the default formatter is used
+            If ``formatter`` is None, the default formatter is used.
         subset : IndexSlice
             An argument to ``DataFrame.loc`` that restricts which elements
             ``formatter`` is applied to.
         na_rep : str, optional
             Representation for missing values.
-            If ``na_rep`` is None, no special formatting is applied
+            If ``na_rep`` is None, no special formatting is applied.
 
             .. versionadded:: 1.0.0
 
@@ -462,7 +451,6 @@ class Styler:
 
         Notes
         -----
-
         ``formatter`` is either an ``a`` or a dict ``{column name: a}`` where
         ``a`` is one of
 
@@ -474,7 +462,6 @@ class Styler:
 
         Examples
         --------
-
         >>> df = pd.DataFrame(np.random.randn(4, 2), columns=['a', 'b'])
         >>> df.style.format("{:.2%}")
         >>> df['c'] = ['a', 'b', 'c', 'd']
@@ -555,7 +542,7 @@ class Styler:
         d = self._translate()
         # filter out empty styles, every cell will have a class
         # but the list of props may just be [['', '']].
-        # so we have the neested anys below
+        # so we have the nested anys below
         trimmed = [x for x in d["cellstyle"] if any(any(y) for y in x["props"])]
         d["cellstyle"] = trimmed
         d.update(kwargs)
@@ -574,11 +561,19 @@ class Styler:
             Whitespace shouldn't matter and the final trailing ';' shouldn't
             matter.
         """
-        for row_label, v in attrs.iterrows():
-            for col_label, col in v.items():
-                i = self.index.get_indexer([row_label])[0]
-                j = self.columns.get_indexer([col_label])[0]
-                for pair in col.rstrip(";").split(";"):
+        coli = {k: i for i, k in enumerate(self.columns)}
+        rowi = {k: i for i, k in enumerate(self.index)}
+        for jj in range(len(attrs.columns)):
+            cn = attrs.columns[jj]
+            j = coli[cn]
+            for rn, c in attrs[[cn]].itertuples():
+                if not c:
+                    continue
+                c = c.rstrip(";")
+                if not c:
+                    continue
+                i = rowi[rn]
+                for pair in c.split(";"):
                     self.ctx[(i, j)].append(pair)
 
     def _copy(self, deepcopy: bool = False) -> "Styler":
@@ -778,8 +773,6 @@ class Styler:
         Updates the HTML representation with a style which is
         selected in accordance with the return value of a function.
 
-        .. versionadded:: 0.21.0
-
         Parameters
         ----------
         cond : callable
@@ -802,7 +795,6 @@ class Styler:
         --------
         Styler.applymap
         """
-
         if other is None:
             other = ""
 
@@ -1006,19 +998,27 @@ class Styler:
     def _highlight_null(v, null_color: str) -> str:
         return f"background-color: {null_color}" if pd.isna(v) else ""
 
-    def highlight_null(self, null_color: str = "red") -> "Styler":
+    def highlight_null(
+        self,
+        null_color: str = "red",
+        subset: Optional[Union[Label, Sequence[Label]]] = None,
+    ) -> "Styler":
         """
         Shade the background ``null_color`` for missing values.
 
         Parameters
         ----------
-        null_color : str
+        null_color : str, default 'red'
+        subset : label or list of labels, default None
+            A valid slice for ``data`` to limit the style application to.
+
+            .. versionadded:: 1.1.0
 
         Returns
         -------
         self : Styler
         """
-        self.applymap(self._highlight_null, null_color=null_color)
+        self.applymap(self._highlight_null, null_color=null_color, subset=subset)
         return self
 
     def background_gradient(
@@ -1532,7 +1532,10 @@ def _get_level_lengths(index, hidden_elements=None):
 
     Result is a dictionary of (level, initial_position): span
     """
-    levels = index.format(sparsify=lib.no_default, adjoin=False, names=False)
+    if isinstance(index, pd.MultiIndex):
+        levels = index.format(sparsify=lib.no_default, adjoin=False)
+    else:
+        levels = index.format()
 
     if hidden_elements is None:
         hidden_elements = []

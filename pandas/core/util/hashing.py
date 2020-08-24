@@ -6,10 +6,8 @@ from typing import Optional
 
 import numpy as np
 
-from pandas._libs import Timestamp
 import pandas._libs.hashing as hashing
 
-from pandas.core.dtypes.cast import infer_dtype_from_scalar
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_extension_array_dtype,
@@ -21,7 +19,6 @@ from pandas.core.dtypes.generic import (
     ABCMultiIndex,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import isna
 
 # 16 byte long hashing key
 _default_hash_key = "0123456789123456"
@@ -90,13 +87,13 @@ def hash_pandas_object(
         return Series(hash_tuples(obj, encoding, hash_key), dtype="uint64", copy=False)
 
     elif isinstance(obj, ABCIndexClass):
-        h = hash_array(obj.values, encoding, hash_key, categorize).astype(
+        h = hash_array(obj._values, encoding, hash_key, categorize).astype(
             "uint64", copy=False
         )
         h = Series(h, index=obj, dtype="uint64", copy=False)
 
     elif isinstance(obj, ABCSeries):
-        h = hash_array(obj.values, encoding, hash_key, categorize).astype(
+        h = hash_array(obj._values, encoding, hash_key, categorize).astype(
             "uint64", copy=False
         )
         if index:
@@ -107,7 +104,7 @@ def hash_pandas_object(
                     encoding=encoding,
                     hash_key=hash_key,
                     categorize=categorize,
-                ).values
+                )._values
                 for _ in [None]
             )
             arrays = itertools.chain([h], index_iter)
@@ -116,7 +113,7 @@ def hash_pandas_object(
         h = Series(h, index=obj.index, dtype="uint64", copy=False)
 
     elif isinstance(obj, ABCDataFrame):
-        hashes = (hash_array(series.values) for _, series in obj.items())
+        hashes = (hash_array(series._values) for _, series in obj.items())
         num_items = len(obj.columns)
         if index:
             index_hash_generator = (
@@ -126,7 +123,7 @@ def hash_pandas_object(
                     encoding=encoding,
                     hash_key=hash_key,
                     categorize=categorize,
-                ).values  # noqa
+                )._values
                 for _ in [None]
             )
             num_items += 1
@@ -185,28 +182,6 @@ def hash_tuples(vals, encoding="utf8", hash_key: str = _default_hash_key):
     return h
 
 
-def hash_tuple(val, encoding: str = "utf8", hash_key: str = _default_hash_key):
-    """
-    Hash a single tuple efficiently
-
-    Parameters
-    ----------
-    val : single tuple
-    encoding : str, default 'utf8'
-    hash_key : str, default _default_hash_key
-
-    Returns
-    -------
-    hash
-
-    """
-    hashes = (_hash_scalar(v, encoding=encoding, hash_key=hash_key) for v in val)
-
-    h = _combine_hash_arrays(hashes, len(val))[0]
-
-    return h
-
-
 def _hash_categorical(c, encoding: str, hash_key: str):
     """
     Hash a Categorical by hashing its categories, and then mapping the codes
@@ -223,7 +198,7 @@ def _hash_categorical(c, encoding: str, hash_key: str):
     ndarray of hashed values array, same size as len(c)
     """
     # Convert ExtensionArrays to ndarrays
-    values = np.asarray(c.categories.values)
+    values = np.asarray(c.categories._values)
     hashed = hash_array(values, encoding, hash_key, categorize=False)
 
     # we have uint64, as we don't directly support missing values
@@ -269,7 +244,6 @@ def hash_array(
     -------
     1d uint64 numpy array of hash values, same length as the vals
     """
-
     if not hasattr(vals, "dtype"):
         raise TypeError("must pass a ndarray-like")
     dtype = vals.dtype
@@ -290,18 +264,18 @@ def hash_array(
 
     # First, turn whatever array this is into unsigned 64-bit ints, if we can
     # manage it.
-    elif isinstance(dtype, np.bool):
+    elif isinstance(dtype, bool):
         vals = vals.astype("u8")
     elif issubclass(dtype.type, (np.datetime64, np.timedelta64)):
         vals = vals.view("i8").astype("u8", copy=False)
     elif issubclass(dtype.type, np.number) and dtype.itemsize <= 8:
-        vals = vals.view("u{}".format(vals.dtype.itemsize)).astype("u8")
+        vals = vals.view(f"u{vals.dtype.itemsize}").astype("u8")
     else:
         # With repeated values, its MUCH faster to categorize object dtypes,
         # then hash and rename categories. We allow skipping the categorization
         # when the values are known/likely to be unique.
         if categorize:
-            from pandas import factorize, Categorical, Index
+            from pandas import Categorical, Index, factorize
 
             codes, categories = factorize(vals, sort=False)
             cat = Categorical(codes, Index(categories), ordered=False, fastpath=True)
@@ -322,38 +296,3 @@ def hash_array(
     vals *= np.uint64(0x94D049BB133111EB)
     vals ^= vals >> 31
     return vals
-
-
-def _hash_scalar(
-    val, encoding: str = "utf8", hash_key: str = _default_hash_key
-) -> np.ndarray:
-    """
-    Hash scalar value.
-
-    Parameters
-    ----------
-    val : scalar
-    encoding : str, default "utf8"
-    hash_key : str, default _default_hash_key
-
-    Returns
-    -------
-    1d uint64 numpy array of hash value, of length 1
-    """
-
-    if isna(val):
-        # this is to be consistent with the _hash_categorical implementation
-        return np.array([np.iinfo(np.uint64).max], dtype="u8")
-
-    if getattr(val, "tzinfo", None) is not None:
-        # for tz-aware datetimes, we need the underlying naive UTC value and
-        # not the tz aware object or pd extension type (as
-        # infer_dtype_from_scalar would do)
-        if not isinstance(val, Timestamp):
-            val = Timestamp(val)
-        val = val.tz_convert(None)
-
-    dtype, val = infer_dtype_from_scalar(val)
-    vals = np.array([val], dtype=dtype)
-
-    return hash_array(vals, hash_key=hash_key, encoding=encoding, categorize=False)

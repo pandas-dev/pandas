@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas.core.dtypes.dtypes import registry
+from pandas.core.dtypes.base import registry
 
 import pandas as pd
 import pandas._testing as tm
@@ -222,6 +222,8 @@ cet = pytz.timezone("CET")
         # integer
         ([1, 2], IntegerArray._from_sequence([1, 2])),
         ([1, None], IntegerArray._from_sequence([1, None])),
+        ([1, pd.NA], IntegerArray._from_sequence([1, pd.NA])),
+        ([1, np.nan], IntegerArray._from_sequence([1, np.nan])),
         # string
         (["a", "b"], StringArray._from_sequence(["a", "b"])),
         (["a", None], StringArray._from_sequence(["a", None])),
@@ -291,7 +293,7 @@ class DecimalArray2(DecimalArray):
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         if isinstance(scalars, (pd.Series, pd.Index)):
-            raise TypeError
+            raise TypeError("scalars should not be of type pd.Series or pd.Index")
 
         return super()._from_sequence(scalars, dtype=dtype, copy=copy)
 
@@ -301,7 +303,9 @@ def test_array_unboxes(index_or_series):
 
     data = box([decimal.Decimal("1"), decimal.Decimal("2")])
     # make sure it works
-    with pytest.raises(TypeError):
+    with pytest.raises(
+        TypeError, match="scalars should not be of type pd.Series or pd.Index"
+    ):
         DecimalArray2._from_sequence(data)
 
     result = pd.array(data, dtype="decimal2")

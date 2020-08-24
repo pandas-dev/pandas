@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Top level ``eval`` module.
 """
@@ -266,8 +265,10 @@ def eval(
 
     See Also
     --------
-    DataFrame.query
-    DataFrame.eval
+    DataFrame.query : Evaluates a boolean expression to query the columns
+            of a frame.
+    DataFrame.eval : Evaluate a string describing operations on
+            DataFrame columns.
 
     Notes
     -----
@@ -276,6 +277,21 @@ def eval(
 
     See the :ref:`enhancing performance <enhancingperf.eval>` documentation for
     more details.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({"animal": ["dog", "pig"], "age": [10, 20]})
+    >>> df
+      animal  age
+    0    dog   10
+    1    pig   20
+
+    We can add a new column using ``pd.eval``:
+
+    >>> pd.eval("double_age = df.age * 2", target=df)
+      animal  age  double_age
+    0    dog   10          20
+    1    pig   20          40
     """
     inplace = validate_bool_kwarg(inplace, "inplace")
 
@@ -347,8 +363,8 @@ def eval(
             if not inplace and first_expr:
                 try:
                     target = env.target.copy()
-                except AttributeError:
-                    raise ValueError("Cannot return a copy of the target")
+                except AttributeError as err:
+                    raise ValueError("Cannot return a copy of the target") from err
             else:
                 target = env.target
 
@@ -360,8 +376,8 @@ def eval(
                 with warnings.catch_warnings(record=True):
                     # TODO: Filter the warnings we actually care about here.
                     target[assigner] = ret
-            except (TypeError, IndexError):
-                raise ValueError("Cannot assign expression output to target")
+            except (TypeError, IndexError) as err:
+                raise ValueError("Cannot assign expression output to target") from err
 
             if not resolvers:
                 resolvers = ({assigner: ret},)

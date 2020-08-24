@@ -474,8 +474,8 @@ class TestDataFrameNonuniqueIndexes:
         )
         df = pd.concat([df_float, df_int, df_bool, df_object, df_dt], axis=1)
 
-        assert len(df._data._blknos) == len(df.columns)
-        assert len(df._data._blklocs) == len(df.columns)
+        assert len(df._mgr.blknos) == len(df.columns)
+        assert len(df._mgr.blklocs) == len(df.columns)
 
         # testing iloc
         for i in range(len(df.columns)):
@@ -513,14 +513,3 @@ class TestDataFrameNonuniqueIndexes:
 
         df.iloc[:, 0] = 3
         tm.assert_series_equal(df.iloc[:, 1], expected)
-
-    def test_insert_with_columns_dups(self):
-        # GH 14291
-        df = pd.DataFrame()
-        df.insert(0, "A", ["g", "h", "i"], allow_duplicates=True)
-        df.insert(0, "A", ["d", "e", "f"], allow_duplicates=True)
-        df.insert(0, "A", ["a", "b", "c"], allow_duplicates=True)
-        exp = pd.DataFrame(
-            [["a", "d", "g"], ["b", "e", "h"], ["c", "f", "i"]], columns=["A", "A", "A"]
-        )
-        tm.assert_frame_equal(df, exp)

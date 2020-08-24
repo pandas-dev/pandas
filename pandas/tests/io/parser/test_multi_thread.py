@@ -6,6 +6,7 @@ from io import BytesIO
 from multiprocessing.pool import ThreadPool
 
 import numpy as np
+import pytest
 
 import pandas as pd
 from pandas import DataFrame
@@ -34,6 +35,7 @@ def _construct_dataframe(num_rows):
     return df
 
 
+@pytest.mark.slow
 def test_multi_thread_string_io_read_csv(all_parsers):
     # see gh-11786
     parser = all_parsers
@@ -41,9 +43,7 @@ def test_multi_thread_string_io_read_csv(all_parsers):
     num_files = 100
 
     bytes_to_df = [
-        "\n".join(
-            ["{i:d},{i:d},{i:d}".format(i=i) for i in range(max_row_range)]
-        ).encode()
+        "\n".join([f"{i:d},{i:d},{i:d}" for i in range(max_row_range)]).encode()
         for _ in range(num_files)
     ]
     files = [BytesIO(b) for b in bytes_to_df]
@@ -128,6 +128,7 @@ def _generate_multi_thread_dataframe(parser, path, num_rows, num_tasks):
     return final_dataframe
 
 
+@pytest.mark.slow
 def test_multi_thread_path_multipart_read_csv(all_parsers):
     # see gh-11786
     num_tasks = 4

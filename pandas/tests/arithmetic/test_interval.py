@@ -100,7 +100,7 @@ class TestComparison:
 
     def elementwise_comparison(self, op, array, other):
         """
-        Helper that performs elementwise comparisions between `array` and `other`
+        Helper that performs elementwise comparisons between `array` and `other`
         """
         other = other if is_list_like(other) else [other] * len(array)
         return np.array([op(x, y) for x, y in zip(array, other)])
@@ -126,9 +126,16 @@ class TestComparison:
         expected = self.elementwise_comparison(op, array, other)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_compare_scalar_na(self, op, array, nulls_fixture):
+    def test_compare_scalar_na(self, op, array, nulls_fixture, request):
         result = op(array, nulls_fixture)
         expected = self.elementwise_comparison(op, array, nulls_fixture)
+
+        if nulls_fixture is pd.NA and array.dtype != pd.IntervalDtype("int64"):
+            mark = pytest.mark.xfail(
+                reason="broken for non-integer IntervalArray; see GH 31882"
+            )
+            request.node.add_marker(mark)
+
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -203,10 +210,16 @@ class TestComparison:
         expected = self.elementwise_comparison(op, array, other)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_compare_list_like_nan(self, op, array, nulls_fixture):
+    def test_compare_list_like_nan(self, op, array, nulls_fixture, request):
         other = [nulls_fixture] * 4
         result = op(array, other)
         expected = self.elementwise_comparison(op, array, other)
+
+        if nulls_fixture is pd.NA and array.dtype.subtype != "i8":
+            reason = "broken for non-integer IntervalArray; see GH 31882"
+            mark = pytest.mark.xfail(reason=reason)
+            request.node.add_marker(mark)
+
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -271,3 +284,11 @@ class TestComparison:
         result = op(index, other)
         expected = expected_type(self.elementwise_comparison(op, index, other))
         assert_func(result, expected)
+
+    @pytest.mark.parametrize("scalars", ["a", False, 1, 1.0, None])
+    def test_comparison_operations(self, scalars):
+        # GH #28981
+        expected = Series([False, False])
+        s = pd.Series([pd.Interval(0, 1), pd.Interval(1, 2)], dtype="interval")
+        result = s == scalars
+        tm.assert_series_equal(result, expected)

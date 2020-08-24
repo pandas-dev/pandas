@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas._libs.tslib import iNaT
+from pandas._libs import iNaT
 
 from pandas.core.dtypes.dtypes import PeriodDtype
 
@@ -84,6 +84,15 @@ class TestInterface(BasePeriodTests, base.BaseInterfaceTests):
 class TestArithmeticOps(BasePeriodTests, base.BaseArithmeticOpsTests):
     implements = {"__sub__", "__rsub__"}
 
+    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
+        # frame & scalar
+        if all_arithmetic_operators in self.implements:
+            df = pd.DataFrame({"A": data})
+            self.check_opname(df, all_arithmetic_operators, data[0], exc=None)
+        else:
+            # ... but not the rest.
+            super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
+
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         # we implement substitution...
         if all_arithmetic_operators in self.implements:
@@ -117,9 +126,13 @@ class TestArithmeticOps(BasePeriodTests, base.BaseArithmeticOpsTests):
     def test_error(self):
         pass
 
-    def test_direct_arith_with_series_returns_not_implemented(self, data):
+    @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
+    def test_direct_arith_with_ndframe_returns_not_implemented(self, data, box):
         # Override to use __sub__ instead of __add__
         other = pd.Series(data)
+        if box is pd.DataFrame:
+            other = other.to_frame()
+
         result = data.__sub__(other)
         assert result is NotImplemented
 

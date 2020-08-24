@@ -2,6 +2,7 @@
 Tests for Timestamp parsing, aimed at pandas/_libs/tslibs/parsing.pyx
 """
 from datetime import datetime
+import re
 
 from dateutil.parser import parse
 import numpy as np
@@ -24,7 +25,8 @@ def test_parse_time_string():
 
 def test_parse_time_string_invalid_type():
     # Raise on invalid input, don't just return it
-    with pytest.raises(TypeError):
+    msg = "Argument 'arg' has incorrect type (expected str, got tuple)"
+    with pytest.raises(TypeError, match=re.escape(msg)):
         parse_time_string((4, 5))
 
 
@@ -42,9 +44,9 @@ def test_parse_time_quarter_with_dash(dashed, normal):
 
 @pytest.mark.parametrize("dashed", ["-2Q1992", "2-Q1992", "4-4Q1992"])
 def test_parse_time_quarter_with_dash_error(dashed):
-    msg = "Unknown datetime string format, unable to parse: {dashed}"
+    msg = f"Unknown datetime string format, unable to parse: {dashed}"
 
-    with pytest.raises(parsing.DateParseError, match=msg.format(dashed=dashed)):
+    with pytest.raises(parsing.DateParseError, match=msg):
         parse_time_string(dashed)
 
 
@@ -115,12 +117,12 @@ def test_parsers_quarter_invalid(date_str):
     if date_str == "6Q-20":
         msg = (
             "Incorrect quarterly string is given, quarter "
-            "must be between 1 and 4: {date_str}"
+            f"must be between 1 and 4: {date_str}"
         )
     else:
-        msg = "Unknown datetime string format, unable to parse: {date_str}"
+        msg = f"Unknown datetime string format, unable to parse: {date_str}"
 
-    with pytest.raises(ValueError, match=msg.format(date_str=date_str)):
+    with pytest.raises(ValueError, match=msg):
         parsing.parse_time_string(date_str)
 
 
@@ -217,7 +219,8 @@ def test_try_parse_dates():
 
 def test_parse_time_string_check_instance_type_raise_exception():
     # issue 20684
-    with pytest.raises(TypeError):
+    msg = "Argument 'arg' has incorrect type (expected str, got tuple)"
+    with pytest.raises(TypeError, match=re.escape(msg)):
         parse_time_string((1, 2, 3))
 
     result = parse_time_string("2019")

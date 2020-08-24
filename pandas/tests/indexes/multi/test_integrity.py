@@ -220,7 +220,8 @@ def test_metadata_immutable(idx):
 def test_level_setting_resets_attributes():
     ind = pd.MultiIndex.from_arrays([["A", "A", "B", "B", "B"], [1, 2, 1, 2, 3]])
     assert ind.is_monotonic
-    ind.set_levels([["A", "B"], [1, 3, 2]], inplace=True)
+    with tm.assert_produces_warning(FutureWarning):
+        ind.set_levels([["A", "B"], [1, 3, 2]], inplace=True)
     # if this fails, probably didn't reset the cache correctly.
     assert not ind.is_monotonic
 

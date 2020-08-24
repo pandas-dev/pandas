@@ -1,3 +1,5 @@
+import numpy as np
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -41,3 +43,34 @@ class TestTranspose:
         assert (df2.dtypes == object).all()
         res2 = df2.T
         assert (res2.dtypes == [dti.dtype, dti2.dtype]).all()
+
+    def test_transpose_uint64(self, uint64_frame):
+
+        result = uint64_frame.T
+        expected = pd.DataFrame(uint64_frame.values.T)
+        expected.index = ["A", "B"]
+        tm.assert_frame_equal(result, expected)
+
+    def test_transpose_float(self, float_frame):
+        frame = float_frame
+        dft = frame.T
+        for idx, series in dft.items():
+            for col, value in series.items():
+                if np.isnan(value):
+                    assert np.isnan(frame[col][idx])
+                else:
+                    assert value == frame[col][idx]
+
+        # mixed type
+        index, data = tm.getMixedTypeDict()
+        mixed = pd.DataFrame(data, index=index)
+
+        mixed_T = mixed.T
+        for col, s in mixed_T.items():
+            assert s.dtype == np.object_
+
+    def test_transpose_get_view(self, float_frame):
+        dft = float_frame.T
+        dft.values[:, 5:10] = 5
+
+        assert (float_frame.values[5:10] == 5).all()

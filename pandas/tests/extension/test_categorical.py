@@ -93,55 +93,17 @@ class TestConstructors(base.BaseConstructorsTests):
 
 
 class TestReshaping(base.BaseReshapingTests):
-    pass
+    def test_concat_with_reindex(self, data):
+        pytest.xfail(reason="Deliberately upcast to object?")
 
 
 class TestGetitem(base.BaseGetitemTests):
-    skip_take = pytest.mark.skip(reason="GH-20664.")
-
     @pytest.mark.skip(reason="Backwards compatibility")
     def test_getitem_scalar(self, data):
         # CategoricalDtype.type isn't "correct" since it should
         # be a parent of the elements (object). But don't want
         # to break things by changing.
         super().test_getitem_scalar(data)
-
-    @skip_take
-    def test_take(self, data, na_value, na_cmp):
-        # TODO remove this once Categorical.take is fixed
-        super().test_take(data, na_value, na_cmp)
-
-    @skip_take
-    def test_take_negative(self, data):
-        super().test_take_negative(data)
-
-    @skip_take
-    def test_take_pandas_style_negative_raises(self, data, na_value):
-        super().test_take_pandas_style_negative_raises(data, na_value)
-
-    @skip_take
-    def test_take_non_na_fill_value(self, data_missing):
-        super().test_take_non_na_fill_value(data_missing)
-
-    @skip_take
-    def test_take_out_of_bounds_raises(self, data, allow_fill):
-        return super().test_take_out_of_bounds_raises(data, allow_fill)
-
-    @pytest.mark.skip(reason="GH-20747. Unobserved categories.")
-    def test_take_series(self, data):
-        super().test_take_series(data)
-
-    @skip_take
-    def test_reindex_non_na_fill_value(self, data_missing):
-        super().test_reindex_non_na_fill_value(data_missing)
-
-    @pytest.mark.skip(reason="Categorical.take buggy")
-    def test_take_empty(self, data, na_value, na_cmp):
-        super().test_take_empty(data, na_value, na_cmp)
-
-    @pytest.mark.skip(reason="test not written correctly for categorical")
-    def test_reindex(self, data, na_value):
-        super().test_reindex(data, na_value)
 
 
 class TestSetitem(base.BaseSetitemTests):
@@ -242,6 +204,14 @@ class TestCasting(base.BaseCastingTests):
 
 
 class TestArithmeticOps(base.BaseArithmeticOpsTests):
+    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
+        # frame & scalar
+        op_name = all_arithmetic_operators
+        if op_name != "__rmod__":
+            super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
+        else:
+            pytest.skip("rmod never called when string is first argument")
+
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
 
         op_name = all_arithmetic_operators
@@ -278,8 +248,22 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
             assert (result == expected).all()
 
         else:
-            with pytest.raises(TypeError):
+            msg = "Unordered Categoricals can only compare equality or not"
+            with pytest.raises(TypeError, match=msg):
                 op(data, other)
+
+    @pytest.mark.parametrize(
+        "categories",
+        [["a", "b"], [0, 1], [pd.Timestamp("2019"), pd.Timestamp("2020")]],
+    )
+    def test_not_equal_with_na(self, categories):
+        # https://github.com/pandas-dev/pandas/issues/32276
+        c1 = Categorical.from_codes([-1, 0], categories=categories)
+        c2 = Categorical.from_codes([0, 1], categories=categories)
+
+        result = c1 != c2
+
+        assert result.all()
 
 
 class TestParsing(base.BaseParsingTests):

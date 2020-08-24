@@ -66,8 +66,9 @@ class TestNumericComparisons:
         ts = pd.Timestamp.now()
         df = pd.DataFrame({"x": range(5)})
 
-        msg = "Invalid comparison between dtype=int64 and Timestamp"
-
+        msg = (
+            "'[<>]' not supported between instances of 'numpy.ndarray' and 'Timestamp'"
+        )
         with pytest.raises(TypeError, match=msg):
             df > ts
         with pytest.raises(TypeError, match=msg):
@@ -166,7 +167,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         # GH#19333
         index = numeric_idx
 
-        expected = pd.timedelta_range("0 days", "4 days")
+        expected = pd.TimedeltaIndex([pd.Timedelta(days=n) for n in range(5)])
 
         index = tm.box_expected(index, box)
         expected = tm.box_expected(expected, box)
@@ -176,6 +177,28 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
 
         commute = scalar_td * index
         tm.assert_equal(commute, expected)
+
+    @pytest.mark.parametrize(
+        "scalar_td",
+        [
+            Timedelta(days=1),
+            Timedelta(days=1).to_timedelta64(),
+            Timedelta(days=1).to_pytimedelta(),
+        ],
+        ids=lambda x: type(x).__name__,
+    )
+    def test_numeric_arr_mul_tdscalar_numexpr_path(self, scalar_td, box):
+        arr = np.arange(2 * 10 ** 4).astype(np.int64)
+        obj = tm.box_expected(arr, box, transpose=False)
+
+        expected = arr.view("timedelta64[D]").astype("timedelta64[ns]")
+        expected = tm.box_expected(expected, box, transpose=False)
+
+        result = obj * scalar_td
+        tm.assert_equal(result, expected)
+
+        result = scalar_td * obj
+        tm.assert_equal(result, expected)
 
     def test_numeric_arr_rdiv_tdscalar(self, three_days, numeric_idx, box):
         index = numeric_idx[1:3]
@@ -211,7 +234,8 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
             "unsupported operand type|"
             "Addition/subtraction of integers and integer-arrays|"
             "Instead of adding/subtracting|"
-            "cannot use operands with types dtype"
+            "cannot use operands with types dtype|"
+            "Concatenation operation is not implemented for NumPy arrays"
         )
         with pytest.raises(TypeError, match=msg):
             left + other
@@ -240,7 +264,8 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         msg = (
             "unsupported operand type|"
             "Cannot (add|subtract) NaT (to|from) ndarray|"
-            "Addition/subtraction of integers and integer-arrays"
+            "Addition/subtraction of integers and integer-arrays|"
+            "Concatenation operation is not implemented for NumPy arrays"
         )
         with pytest.raises(TypeError, match=msg):
             left + other
@@ -523,20 +548,6 @@ class TestMultiplicationDivision:
     # __mul__, __rmul__, __div__, __rdiv__, __floordiv__, __rfloordiv__
     # for non-timestamp/timedelta/period dtypes
 
-    @pytest.mark.parametrize(
-        "box",
-        [
-            pytest.param(
-                pd.Index,
-                marks=pytest.mark.xfail(
-                    reason="Index.__div__ always raises", raises=TypeError
-                ),
-            ),
-            pd.Series,
-            pd.DataFrame,
-        ],
-        ids=lambda x: x.__name__,
-    )
     def test_divide_decimal(self, box):
         # resolves issue GH#9787
         ser = Series([Decimal(10)])
@@ -892,13 +903,15 @@ class TestAdditionSubtraction:
 
     # TODO: taken from tests.series.test_operators; needs cleanup
     def test_series_operators(self):
-        def _check_op(series, other, op, pos_only=False, check_dtype=True):
+        def _check_op(series, other, op, pos_only=False):
             left = np.abs(series) if pos_only else series
             right = np.abs(other) if pos_only else other
 
             cython_or_numpy = op(left, right)
             python = left.combine(right, op)
-            tm.assert_series_equal(cython_or_numpy, python, check_dtype=check_dtype)
+            if isinstance(other, Series) and not other.index.equals(series.index):
+                python.index = python.index._with_freq(None)
+            tm.assert_series_equal(cython_or_numpy, python)
 
         def check(series, other):
             simple_ops = ["add", "sub", "mul", "truediv", "floordiv", "mod"]
@@ -921,15 +934,15 @@ class TestAdditionSubtraction:
         check(tser, tser[::2])
         check(tser, 5)
 
-        def check_comparators(series, other, check_dtype=True):
-            _check_op(series, other, operator.gt, check_dtype=check_dtype)
-            _check_op(series, other, operator.ge, check_dtype=check_dtype)
-            _check_op(series, other, operator.eq, check_dtype=check_dtype)
-            _check_op(series, other, operator.lt, check_dtype=check_dtype)
-            _check_op(series, other, operator.le, check_dtype=check_dtype)
+        def check_comparators(series, other):
+            _check_op(series, other, operator.gt)
+            _check_op(series, other, operator.ge)
+            _check_op(series, other, operator.eq)
+            _check_op(series, other, operator.lt)
+            _check_op(series, other, operator.le)
 
         check_comparators(tser, 5)
-        check_comparators(tser, tser + 1, check_dtype=False)
+        check_comparators(tser, tser + 1)
 
     # TODO: taken from tests.series.test_operators; needs cleanup
     def test_divmod(self):
@@ -953,7 +966,7 @@ class TestAdditionSubtraction:
                 tm.assert_almost_equal(np.asarray(result), expected)
 
                 assert result.name == series.name
-                tm.assert_index_equal(result.index, series.index)
+                tm.assert_index_equal(result.index, series.index._with_freq(None))
 
         tser = tm.makeTimeSeries().rename("ts")
         check(tser, tser * 2)

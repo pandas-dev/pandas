@@ -583,3 +583,63 @@ z
         ]
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert result == expected
+
+    def test_na_rep_truncated(self):
+        # https://github.com/pandas-dev/pandas/issues/31447
+        result = pd.Series(range(8, 12)).to_csv(na_rep="-")
+        expected = tm.convert_rows_list_to_csv_str([",0", "0,8", "1,9", "2,10", "3,11"])
+        assert result == expected
+
+        result = pd.Series([True, False]).to_csv(na_rep="nan")
+        expected = tm.convert_rows_list_to_csv_str([",0", "0,True", "1,False"])
+        assert result == expected
+
+        result = pd.Series([1.1, 2.2]).to_csv(na_rep=".")
+        expected = tm.convert_rows_list_to_csv_str([",0", "0,1.1", "1,2.2"])
+        assert result == expected
+
+    @pytest.mark.parametrize("errors", ["surrogatepass", "ignore", "replace"])
+    def test_to_csv_errors(self, errors):
+        # GH 22610
+        data = ["\ud800foo"]
+        ser = pd.Series(data, index=pd.Index(data))
+        with tm.ensure_clean("test.csv") as path:
+            ser.to_csv(path, errors=errors)
+        # No use in reading back the data as it is not the same anymore
+        # due to the error handling
+
+    def test_to_csv_binary_handle(self):
+        """
+        Binary file objects should work if 'mode' contains a 'b'.
+
+        GH 35058 and GH 19827
+        """
+        df = tm.makeDataFrame()
+        with tm.ensure_clean() as path:
+            with open(path, mode="w+b") as handle:
+                df.to_csv(handle, mode="w+b")
+            tm.assert_frame_equal(df, pd.read_csv(path, index_col=0))
+
+    def test_to_csv_encoding_binary_handle(self):
+        """
+        Binary file objects should honor a specified encoding.
+
+        GH 23854 and GH 13068 with binary handles
+        """
+        # example from GH 23854
+        content = "a, b, 🐟".encode("utf-8-sig")
+        buffer = io.BytesIO(content)
+        df = pd.read_csv(buffer, encoding="utf-8-sig")
+
+        buffer = io.BytesIO()
+        df.to_csv(buffer, mode="w+b", encoding="utf-8-sig", index=False)
+        buffer.seek(0)  # tests whether file handle wasn't closed
+        assert buffer.getvalue().startswith(content)
+
+        # example from GH 13068
+        with tm.ensure_clean() as path:
+            with open(path, "w+b") as handle:
+                pd.DataFrame().to_csv(handle, mode="w+b", encoding="utf-8-sig")
+
+                handle.seek(0)
+                assert handle.read().startswith(b'\xef\xbb\xbf""')

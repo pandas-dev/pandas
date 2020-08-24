@@ -1,13 +1,12 @@
-# coding: utf-8
-
 """ Test cases for GroupBy.plot """
 
 
 import numpy as np
+import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Series
+from pandas import DataFrame, Index, Series
 import pandas._testing as tm
 from pandas.tests.plotting.common import TestPlotBase
 
@@ -67,3 +66,49 @@ class TestDataFrameGroupByPlots(TestPlotBase):
 
         res = df.groupby("z").plot.scatter(x="x", y="y")
         assert len(res["a"].collections) == 1
+
+    @pytest.mark.parametrize("column, expected_axes_num", [(None, 2), ("b", 1)])
+    def test_groupby_hist_frame_with_legend(self, column, expected_axes_num):
+        # GH 6279 - DataFrameGroupBy histogram can have a legend
+        expected_layout = (1, expected_axes_num)
+        expected_labels = column or [["a"], ["b"]]
+
+        index = Index(15 * ["1"] + 15 * ["2"], name="c")
+        df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
+        g = df.groupby("c")
+
+        for axes in g.hist(legend=True, column=column):
+            self._check_axes_shape(
+                axes, axes_num=expected_axes_num, layout=expected_layout
+            )
+            for ax, expected_label in zip(axes[0], expected_labels):
+                self._check_legend_labels(ax, expected_label)
+
+    @pytest.mark.parametrize("column", [None, "b"])
+    def test_groupby_hist_frame_with_legend_raises(self, column):
+        # GH 6279 - DataFrameGroupBy histogram with legend and label raises
+        index = Index(15 * ["1"] + 15 * ["2"], name="c")
+        df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
+        g = df.groupby("c")
+
+        with pytest.raises(ValueError, match="Cannot use both legend and label"):
+            g.hist(legend=True, column=column, label="d")
+
+    def test_groupby_hist_series_with_legend(self):
+        # GH 6279 - SeriesGroupBy histogram can have a legend
+        index = Index(15 * ["1"] + 15 * ["2"], name="c")
+        df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
+        g = df.groupby("c")
+
+        for ax in g["a"].hist(legend=True):
+            self._check_axes_shape(ax, axes_num=1, layout=(1, 1))
+            self._check_legend_labels(ax, ["1", "2"])
+
+    def test_groupby_hist_series_with_legend_raises(self):
+        # GH 6279 - SeriesGroupBy histogram with legend and label raises
+        index = Index(15 * ["1"] + 15 * ["2"], name="c")
+        df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
+        g = df.groupby("c")
+
+        with pytest.raises(ValueError, match="Cannot use both legend and label"):
+            g.hist(legend=True, label="d")

@@ -6,7 +6,7 @@ import pandas._testing as tm
 
 
 class TestTimedeltaIndexing:
-    def test_boolean_indexing(self):
+    def test_loc_setitem_bool_mask(self):
         # GH 14946
         df = pd.DataFrame({"x": range(10)})
         df.index = pd.to_timedelta(range(10), unit="s")
@@ -17,7 +17,9 @@ class TestTimedeltaIndexing:
             [10, 10, 10, 3, 4, 5, 6, 7, 8, 9],
         ]
         for cond, data in zip(conditions, expected_data):
-            result = df.assign(x=df.mask(cond, 10).astype("int64"))
+            result = df.copy()
+            result.loc[cond, "x"] = 10
+
             expected = pd.DataFrame(
                 data,
                 index=pd.to_timedelta(range(10), unit="s"),
@@ -58,7 +60,7 @@ class TestTimedeltaIndexing:
         tm.assert_series_equal(sliced, expected)
 
     @pytest.mark.parametrize("value", [None, pd.NaT, np.nan])
-    def test_masked_setitem(self, value):
+    def test_setitem_mask_na_value_td64(self, value):
         # issue (#18586)
         series = pd.Series([0, 1, 2], dtype="timedelta64[ns]")
         series[series == series[0]] = value

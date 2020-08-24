@@ -4,7 +4,19 @@
 Expose public exceptions & warnings
 """
 
-from pandas._libs.tslibs import NullFrequencyError, OutOfBoundsDatetime
+from pandas._config.config import OptionError
+
+from pandas._libs.tslibs import OutOfBoundsDatetime, OutOfBoundsTimedelta
+
+
+class NullFrequencyError(ValueError):
+    """
+    Error raised when a null `freq` attribute is used in an operation
+    that needs a non-null frequency, particularly `DatetimeIndex.shift`,
+    `TimedeltaIndex.shift`, `PeriodIndex.shift`.
+    """
+
+    pass
 
 
 class PerformanceWarning(Warning):
@@ -182,3 +194,17 @@ class AbstractMethodError(NotImplementedError):
         else:
             name = type(self.class_instance).__name__
         return f"This {self.methodtype} must be defined in the concrete class {name}"
+
+
+class NumbaUtilError(Exception):
+    """
+    Error raised for unsupported Numba engine routines.
+    """
+
+
+class InvalidIndexError(Exception):
+    """
+    Exception raised when attemping to use an invalid index key.
+
+    .. versionadded:: 1.1.0
+    """

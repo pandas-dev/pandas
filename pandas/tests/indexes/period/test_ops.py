@@ -2,43 +2,28 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DatetimeIndex, Index, NaT, PeriodIndex, Series
+from pandas import Index, NaT, PeriodIndex, Series
 import pandas._testing as tm
-from pandas.core.arrays import PeriodArray
-from pandas.tests.base.test_ops import Ops
 
 
-class TestPeriodIndexOps(Ops):
-    def setup_method(self, method):
-        super().setup_method(method)
-        mask = lambda x: (isinstance(x, DatetimeIndex) or isinstance(x, PeriodIndex))
-        self.is_valid_objs = [o for o in self.objs if mask(o)]
-        self.not_valid_objs = [o for o in self.objs if not mask(o)]
-
-    def test_ops_properties(self):
-        f = lambda x: isinstance(x, PeriodIndex)
-        self.check_ops_properties(PeriodArray._field_ops, f)
-        self.check_ops_properties(PeriodArray._object_ops, f)
-        self.check_ops_properties(PeriodArray._bool_ops, f)
-
-    def test_resolution(self):
-        for freq, expected in zip(
-            ["A", "Q", "M", "D", "H", "T", "S", "L", "U"],
-            [
-                "day",
-                "day",
-                "day",
-                "day",
-                "hour",
-                "minute",
-                "second",
-                "millisecond",
-                "microsecond",
-            ],
-        ):
-
-            idx = pd.period_range(start="2013-04-01", periods=30, freq=freq)
-            assert idx.resolution == expected
+class TestPeriodIndexOps:
+    @pytest.mark.parametrize(
+        "freq,expected",
+        [
+            ("A", "year"),
+            ("Q", "quarter"),
+            ("M", "month"),
+            ("D", "day"),
+            ("H", "hour"),
+            ("T", "minute"),
+            ("S", "second"),
+            ("L", "millisecond"),
+            ("U", "microsecond"),
+        ],
+    )
+    def test_resolution(self, freq, expected):
+        idx = pd.period_range(start="2013-04-01", periods=30, freq=freq)
+        assert idx.resolution == expected
 
     def test_value_counts_unique(self):
         # GH 7735
@@ -95,9 +80,10 @@ class TestPeriodIndexOps(Ops):
 
         tm.assert_index_equal(idx.unique(), exp_idx)
 
-    def test_drop_duplicates_metadata(self):
+    @pytest.mark.parametrize("freq", ["D", "3D", "H", "2H", "T", "2T", "S", "3S"])
+    def test_drop_duplicates_metadata(self, freq):
         # GH 10115
-        idx = pd.period_range("2011-01-01", "2011-01-31", freq="D", name="idx")
+        idx = pd.period_range("2011-01-01", periods=10, freq=freq, name="idx")
         result = idx.drop_duplicates()
         tm.assert_index_equal(idx, result)
         assert idx.freq == result.freq
@@ -107,26 +93,32 @@ class TestPeriodIndexOps(Ops):
         tm.assert_index_equal(idx, result)
         assert idx.freq == result.freq
 
-    def test_drop_duplicates(self):
+    @pytest.mark.parametrize("freq", ["D", "3D", "H", "2H", "T", "2T", "S", "3S"])
+    @pytest.mark.parametrize(
+        "keep, expected, index",
+        [
+            ("first", np.concatenate(([False] * 10, [True] * 5)), np.arange(0, 10)),
+            ("last", np.concatenate(([True] * 5, [False] * 10)), np.arange(5, 15)),
+            (
+                False,
+                np.concatenate(([True] * 5, [False] * 5, [True] * 5)),
+                np.arange(5, 10),
+            ),
+        ],
+    )
+    def test_drop_duplicates(self, freq, keep, expected, index):
         # to check Index/Series compat
-        base = pd.period_range("2011-01-01", "2011-01-31", freq="D", name="idx")
-        idx = base.append(base[:5])
+        idx = pd.period_range("2011-01-01", periods=10, freq=freq, name="idx")
+        idx = idx.append(idx[:5])
 
-        res = idx.drop_duplicates()
-        tm.assert_index_equal(res, base)
-        res = Series(idx).drop_duplicates()
-        tm.assert_series_equal(res, Series(base))
+        tm.assert_numpy_array_equal(idx.duplicated(keep=keep), expected)
+        expected = idx[~expected]
 
-        res = idx.drop_duplicates(keep="last")
-        exp = base[5:].append(base[:5])
-        tm.assert_index_equal(res, exp)
-        res = Series(idx).drop_duplicates(keep="last")
-        tm.assert_series_equal(res, Series(exp, index=np.arange(5, 36)))
+        result = idx.drop_duplicates(keep=keep)
+        tm.assert_index_equal(result, expected)
 
-        res = idx.drop_duplicates(keep=False)
-        tm.assert_index_equal(res, base[5:])
-        res = Series(idx).drop_duplicates(keep=False)
-        tm.assert_series_equal(res, Series(base[5:], index=np.arange(5, 31)))
+        result = Series(idx).drop_duplicates(keep=keep)
+        tm.assert_series_equal(result, Series(expected, index=index))
 
     def test_order_compat(self):
         def _check_freq(index, expected_index):
@@ -279,10 +271,6 @@ class TestPeriodIndexOps(Ops):
             exp = np.array([2, 1, 3, 4, 0])
             tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
             assert ordered.freq == "D"
-
-    def test_shift(self):
-        # This is tested in test_arithmetic
-        pass
 
     def test_nat(self):
         assert pd.PeriodIndex._na_value is NaT
