@@ -379,14 +379,14 @@ class LongTableBuilder(TableBuilder):
         return "\n".join([item for item in elements if item])
 
     def _caption_and_label(self):
-        if not self.caption and not self.label:
-            return ""
-        elif self.caption or self.label:
+        if self.caption or self.label:
             double_backslash = "\\\\"
             elements = [f"{self._caption_macro}", f"{self._label_macro}"]
             caption_and_label = "\n".join([item for item in elements if item])
             caption_and_label += double_backslash
             return caption_and_label
+        else:
+            return ""
 
     @property
     def middle_separator(self):
