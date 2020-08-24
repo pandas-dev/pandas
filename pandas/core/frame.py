@@ -8647,13 +8647,11 @@ NaN 12.3   33.0
                     return op(values, axis=1, skipna=skipna, **kwds)
 
             # After possibly _get_data and transposing, we are now in the
-            #  simple case where we can use BlockManager._reduce
+            #  simple case where we can use BlockManager.reduce
             res = df._mgr.reduce(blk_func)
-            assert isinstance(res, dict)
-            if len(res):
-                assert len(res) == max(list(res.keys())) + 1, res.keys()
-            out = df._constructor_sliced(res, index=range(len(res)), dtype=out_dtype)
-            out.index = df.columns
+            out = df._constructor(res,).iloc[0].rename(None)
+            if out_dtype is not None:
+                out = out.astype(out_dtype)
             if axis == 0 and is_object_dtype(out.dtype):
                 out[:] = coerce_to_dtypes(out.values, df.dtypes)
             return out
