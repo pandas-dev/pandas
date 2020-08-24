@@ -1,11 +1,12 @@
 import pytest
 
 from pandas import DataFrame
+
 from pandas.io.formats.format import DataFrameFormatter
 from pandas.io.formats.latex import (
     RegularTableBuilder,
-    RowHeaderIterator,
     RowBodyIterator,
+    RowHeaderIterator,
     RowStringConverter,
 )
 

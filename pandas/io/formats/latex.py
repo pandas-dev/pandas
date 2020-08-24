@@ -373,7 +373,7 @@ class LongTableBuilder(TableBuilder):
     @property
     def env_begin(self):
         first_row = (
-            f"\\begin{{longtable}}{self._position_macro}" f"{{{self.column_format}}}"
+            f"\\begin{{longtable}}{self._position_macro}{{{self.column_format}}}"
         )
         elements = [first_row, f"{self._caption_and_label()}"]
         return "\n".join([item for item in elements if item])
@@ -420,7 +420,7 @@ class RegularTableBuilder(TableBuilder):
     def env_begin(self):
         elements = [
             f"\\begin{{table}}{self._position_macro}",
-            f"\\centering",
+            "\\centering",
             f"{self._caption_macro}",
             f"{self._label_macro}",
             f"\\begin{{tabular}}{{{self.column_format}}}",
