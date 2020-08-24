@@ -683,7 +683,9 @@ class Base:
 
     def test_format_empty(self):
         # GH35712
-        assert self._holder([]).format() == []
+        empty_idx = self._holder([])
+        assert empty_idx.format() == []
+        assert empty_idx.format(name=True) == [""]
 
     def test_hasnans_isnans(self, index):
         # GH 11343, added tests for hasnans / isnans
