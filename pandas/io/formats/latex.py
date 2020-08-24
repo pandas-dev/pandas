@@ -92,6 +92,9 @@ class LatexFormatter(TableFormatter, LatexFormatterAbstract):
         self.label = label
         self.position = position
 
+        self.strcols = self._get_strcols()
+        self.strrows = list(zip(*self.strcols))
+
     def write_result(self, buf: IO[str]) -> None:
         """
         Render a DataFrame to a LaTeX tabular, longtable, or table/tabular
@@ -99,8 +102,7 @@ class LatexFormatter(TableFormatter, LatexFormatterAbstract):
         """
         buf.write(self._compose_string())
 
-    @property
-    def strcols(self):
+    def _get_strcols(self):
         """String representation of the columns."""
         if len(self.frame.columns) == 0 or len(self.frame.index) == 0:
             info_line = (
@@ -144,10 +146,6 @@ class LatexFormatter(TableFormatter, LatexFormatterAbstract):
             # Get rid of old multiindex column and add new ones
             strcols = out + strcols[1:]
         return strcols
-
-    @property
-    def strrows(self):
-        return list(zip(*self.strcols))
 
     @property
     def column_format(self):
@@ -242,8 +240,7 @@ class LatexFormatter(TableFormatter, LatexFormatterAbstract):
         return "\n".join(body_list)
 
     def _compose_row(self, row_num):
-        strrows = self.strrows
-        row = strrows[row_num]
+        row = self.strrows[row_num]
 
         is_multicol = row_num < self._clevels and self.fmt.header and self.multicolumn
 
@@ -261,7 +258,7 @@ class LatexFormatter(TableFormatter, LatexFormatterAbstract):
         if is_multicol:
             crow = self._format_multicolumn(crow)
         if is_multirow:
-            crow = self._format_multirow(crow, row_num, strrows)
+            crow = self._format_multirow(crow, row_num)
 
         lst = []
         lst.append(" & ".join(crow))
@@ -347,9 +344,7 @@ class LatexFormatter(TableFormatter, LatexFormatterAbstract):
             append_col()
         return row2
 
-    def _format_multirow(
-        self, row: List[str], i: int, rows: List[Tuple[str, ...]]
-    ) -> List[str]:
+    def _format_multirow(self, row: List[str], i: int) -> List[str]:
         r"""
         Check following rows, whether row should be a multirow
 
@@ -362,7 +357,7 @@ class LatexFormatter(TableFormatter, LatexFormatterAbstract):
         for j in range(self._ilevels):
             if row[j].strip():
                 nrow = 1
-                for r in rows[i + 1 :]:
+                for r in self.strrows[i + 1 :]:
                     if not r[j].strip():
                         nrow += 1
                     else:
