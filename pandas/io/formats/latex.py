@@ -245,44 +245,51 @@ class RowBodyIterator(RowCreator):
 class LatexFormatterAbstract(ABC):
     def _compose_string(self) -> str:
         elements = [
-            self._compose_env_begin(),
-            self._compose_top_separator(),
-            self._compose_header(),
-            self._compose_middle_separator(),
-            self._compose_env_body(),
-            self._compose_bottom_separator(),
-            self._compose_env_end(),
+            self.env_begin,
+            self.top_separator,
+            self.header,
+            self.middle_separator,
+            self.env_body,
+            self.bottom_separator,
+            self.env_end,
         ]
         result = "\n".join([item for item in elements if item])
         trailing_newline = "\n"
         return result + trailing_newline
 
+    @property
     @abstractmethod
-    def _compose_env_begin(self):
+    def env_begin(self):
         pass
 
+    @property
     @abstractmethod
-    def _compose_top_separator(self):
+    def top_separator(self):
         pass
 
+    @property
     @abstractmethod
-    def _compose_header(self):
+    def header(self):
         pass
 
+    @property
     @abstractmethod
-    def _compose_middle_separator(self):
+    def middle_separator(self):
         pass
 
+    @property
     @abstractmethod
-    def _compose_env_body(self):
+    def env_body(self):
         pass
 
+    @property
     @abstractmethod
-    def _compose_bottom_separator(self):
+    def bottom_separator(self):
         pass
 
+    @property
     @abstractmethod
-    def _compose_env_end(self):
+    def env_end(self):
         pass
 
 
@@ -386,26 +393,31 @@ class LatexFormatter(TableFormatter, LatexFormatterAbstract):
         elif over == "body":
             return RowBodyIterator(**kwargs)
 
-    def _compose_header(self):
+    @property
+    def header(self):
         iterator = self._create_row_iterator(over="header")
         return "\n".join(list(iterator))
 
-    def _compose_top_separator(self):
+    @property
+    def top_separator(self):
         return "\\toprule"
 
-    def _compose_middle_separator(self):
+    @property
+    def middle_separator(self):
         return "\\midrule" if self._is_separator_required() else ""
 
-    def _compose_env_body(self):
+    @property
+    def env_body(self):
         iterator = self._create_row_iterator(over="body")
         return "\n".join(list(iterator))
 
     def _is_separator_required(self):
-        return self._compose_header() and self._compose_env_body()
+        return self.header and self.env_body
 
 
 class LatexTableFormatter(LatexFormatter):
-    def _compose_env_begin(self):
+    @property
+    def env_begin(self):
         elements = [
             f"\\begin{{table}}{self.position_macro}",
             f"\\centering",
@@ -415,26 +427,32 @@ class LatexTableFormatter(LatexFormatter):
         ]
         return "\n".join([item for item in elements if item])
 
-    def _compose_bottom_separator(self):
+    @property
+    def bottom_separator(self):
         return "\\bottomrule"
 
-    def _compose_env_end(self):
+    @property
+    def env_end(self):
         return "\n".join(["\\end{tabular}", "\\end{table}"])
 
 
 class LatexTabularFormatter(LatexFormatter):
-    def _compose_env_begin(self):
+    @property
+    def env_begin(self):
         return f"\\begin{{tabular}}{{{self.column_format}}}"
 
-    def _compose_bottom_separator(self):
+    @property
+    def bottom_separator(self):
         return "\\bottomrule"
 
-    def _compose_env_end(self):
+    @property
+    def env_end(self):
         return "\\end{tabular}"
 
 
 class LatexLongTableFormatter(LatexFormatter):
-    def _compose_env_begin(self):
+    @property
+    def env_begin(self):
         first_row = (
             f"\\begin{{longtable}}{self.position_macro}" f"{{{self.column_format}}}"
         )
@@ -451,7 +469,8 @@ class LatexLongTableFormatter(LatexFormatter):
             caption_and_label += double_backslash
             return caption_and_label
 
-    def _compose_middle_separator(self):
+    @property
+    def middle_separator(self):
         iterator = self._create_row_iterator(over="header")
         elements = [
             "\\midrule",
@@ -468,8 +487,10 @@ class LatexLongTableFormatter(LatexFormatter):
             return "\n".join(elements)
         return ""
 
-    def _compose_bottom_separator(self):
+    @property
+    def bottom_separator(self):
         return ""
 
-    def _compose_env_end(self):
+    @property
+    def env_end(self):
         return "\\end{longtable}"
