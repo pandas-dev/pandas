@@ -8598,6 +8598,8 @@ NaN 12.3   33.0
             cols = self.columns[~dtype_is_dt]
             self = self[cols]
 
+        any_object = self.dtypes.apply(is_object_dtype).any()
+
         if axis is None and filter_type == "bool":
             labels = None
             constructor = None
@@ -8648,12 +8650,38 @@ NaN 12.3   33.0
 
             # After possibly _get_data and transposing, we are now in the
             #  simple case where we can use BlockManager.reduce
-            res = df._mgr.reduce(blk_func)
-            out = df._constructor(res,).iloc[0].rename(None)
+            res, _ = df._mgr.reduce(blk_func)
+            out = df._constructor(res).iloc[0].rename(None)
             if out_dtype is not None:
                 out = out.astype(out_dtype)
             if axis == 0 and is_object_dtype(out.dtype):
                 out[:] = coerce_to_dtypes(out.values, df.dtypes)
+            return out
+
+        elif numeric_only is None and axis == 0 and not any_object:
+            # axis==1 is tricky, handled separately
+            # object dtypes need to go through column-wise path
+            df = self
+            if axis == 1:
+                df = df.T
+
+            def blk_func(values):
+                if isinstance(values, ExtensionArray):
+                    return values._reduce(name, skipna=skipna, **kwds)
+                else:
+                    return op(values, axis=1, skipna=skipna, **kwds)
+
+            res, indexer = df._mgr.reduce(blk_func, ignore_failures=True)
+            out = df._constructor(res).iloc[0].rename(None)
+
+            out_dtype = "bool" if filter_type == "bool" else None
+            if out_dtype is not None:
+                out = out.astype(out_dtype)
+
+            if axis == 0 and is_object_dtype(out.dtype):
+                # GH#35865 careful to cast explicitly to object
+                nvs = coerce_to_dtypes(out.values, df.dtypes.iloc[indexer])
+                out[:] = np.array(nvs, dtype=object)
             return out
 
         if not self._is_homogeneous_type or self._mgr.any_extension_types:

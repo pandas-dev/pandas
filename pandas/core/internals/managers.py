@@ -330,18 +330,31 @@ class BlockManager(PandasObject):
                 f"tot_items: {tot_items}"
             )
 
-    def reduce(self: T, func) -> T:
+    def reduce(self: T, func, ignore_failures: bool = False) -> Tuple[T, np.ndarray]:
         # If 2D, we assume that we're operating column-wise
         assert self.ndim == 2
 
-        res_blocks = []
-        for blk in self.blocks:
-            nbs = blk.reduce(func)
+        res_blocks: List[Block] = []
+        skipped: List[int] = []
+        for i, blk in enumerate(self.blocks):
+            try:
+                nbs = blk.reduce(func)
+            except TypeError:
+                if ignore_failures:
+                    skipped.append(i)
+                    continue
+                raise
             res_blocks.extend(nbs)
 
+        if res_blocks:
+            indexer = np.concatenate([blk.mgr_locs.as_array for blk in res_blocks])
+        else:
+            indexer = []
+
+        new_items = self.reset_dropped_locs(res_blocks, skipped)
         index = Index([0])  # placeholder
-        new_mgr = BlockManager.from_blocks(res_blocks, [self.items, index])
-        return new_mgr
+        new_mgr = BlockManager.from_blocks(res_blocks, [new_items, index])
+        return new_mgr, indexer
 
     def operate_blockwise(self, other: "BlockManager", array_op) -> "BlockManager":
         """
@@ -1499,6 +1512,12 @@ class BlockManager(PandasObject):
         -----
         Alters each block's mgr_locs inplace.
         """
+        if not skipped:
+            return self.items.copy()
+        elif not blocks:
+            # empty index with same dtype and name
+            return self.items[:0]
+
         ncols = len(self)
 
         new_locs = [blk.mgr_locs.as_array for blk in blocks]
