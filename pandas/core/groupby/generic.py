@@ -1069,16 +1069,17 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     # reshape to be valid for non-Extension Block
                     result = result.reshape(1, -1)
 
+            elif isinstance(result, np.ndarray) and result.ndim == 1:
+                # We went through a SeriesGroupByPath and need to reshape
+                result = result.reshape(1, -1)
+
             return result
 
-        def blk_func(block: "Block") -> List["Block"]:
-            new_blocks: List["Block"] = []
+        def blk_func(bvalues: ArrayLike) -> ArrayLike:
 
-            result = no_result
-            locs = block.mgr_locs.as_array
             try:
                 result, _ = self.grouper.aggregate(
-                    block.values, how, axis=1, min_count=min_count
+                    bvalues, how, axis=1, min_count=min_count
                 )
             except NotImplementedError:
                 # generally if we have numeric_only=False
@@ -1091,12 +1092,17 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     assert how == "ohlc"
                     raise
 
+                obj: Union[Series, DataFrame]
                 # call our grouper again with only this block
-                obj = self.obj[data.items[locs]]
-                if obj.shape[1] == 1:
-                    # Avoid call to self.values that can occur in DataFrame
-                    #  reductions; see GH#28949
-                    obj = obj.iloc[:, 0]
+                if isinstance(bvalues, ExtensionArray):
+                    # TODO(EA2D): special case not needed with 2D EAs
+                    obj = Series(bvalues)
+                else:
+                    obj = DataFrame(bvalues.T)
+                    if obj.shape[1] == 1:
+                        # Avoid call to self.values that can occur in DataFrame
+                        #  reductions; see GH#28949
+                        obj = obj.iloc[:, 0]
 
                 # Create SeriesGroupBy with observed=True so that it does
                 # not try to add missing categories if grouping over multiple
@@ -1114,21 +1120,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
                 # unwrap DataFrame to get array
                 result = result._mgr.blocks[0].values
-                if isinstance(result, np.ndarray) and result.ndim == 1:
-                    result = result.reshape(1, -1)
-                res_values = cast_agg_result(result, block.values, how)
-                agg_block = block.make_block(res_values)
-                new_blocks = [agg_block]
-            else:
-                res_values = cast_agg_result(result, block.values, how)
-                agg_block = block.make_block(res_values)
-                new_blocks = [agg_block]
-            return new_blocks
+
+            res_values = cast_agg_result(result, bvalues, how)
+            return res_values
 
         skipped: List[int] = []
         for i, block in enumerate(data.blocks):
             try:
-                nbs = blk_func(block)
+                nbs = block.apply(blk_func)
             except (NotImplementedError, TypeError):
                 # TypeError -> we may have an exception in trying to aggregate
                 #  continue and exclude the block
