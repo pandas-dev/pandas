@@ -5,6 +5,7 @@ from typing import Dict, Optional, Tuple, Type
 import numpy as np
 
 from pandas._libs.window.indexers import calculate_variable_window_bounds
+from pandas.core.dtypes.common import ensure_platform_int
 from pandas.util._decorators import Appender
 
 from pandas.tseries.offsets import Nano
@@ -298,7 +299,7 @@ class GroupbyRollingIndexer(BaseIndexer):
         window_indicies_start = 0
         for key, indicies in self.groupby_indicies.items():
             if self.index_array is not None:
-                index_array = self.index_array.take(indicies)
+                index_array = self.index_array.take(ensure_platform_int(indicies))
             else:
                 index_array = self.index_array
             indexer = self.rolling_indexer(
@@ -321,8 +322,8 @@ class GroupbyRollingIndexer(BaseIndexer):
             window_indicies = np.append(
                 window_indicies, [window_indicies[-1] + 1]
             ).astype(np.int64)
-            start_arrays.append(window_indicies.take(start))
-            end_arrays.append(window_indicies.take(end))
+            start_arrays.append(window_indicies.take(ensure_platform_int(start)))
+            end_arrays.append(window_indicies.take(ensure_platform_int(end)))
         start = np.concatenate(start_arrays)
         end = np.concatenate(end_arrays)
         # GH 35552: Need to adjust start and end based on the nans appended to values
