@@ -5,12 +5,26 @@ class Flags:
     """
     Flags that apply to pandas objects.
 
+    .. versionadded:: 1.2.0
+
     Parameters
     ----------
     obj : Series or DataFrame
         The object these flags are associated with
-    allows_duplicate_labels : bool
-        Whether the object allows duplicate labels
+    allows_duplicate_labels : bool, default True
+        Whether to allow duplicate labels in this object. By default,
+        duplicate labels are permitted. Setting this to ``False`` will
+        cause an :class:`errors.DuplicateLabelError` to be raised when
+        `index` (or columns for DataFrame) is not unique, or any
+        subsequent operation on introduces duplicates.
+        See :ref:`duplicates.disallow` for more.
+
+        .. warning::
+
+           This is an experimental feature. Currently, many methods fail to
+           propagate the ``allows_duplicate_labels`` value. In future versions
+           it is expected that every method taking or returning one or more
+           DataFrame or Series objects will propagate ``allows_duplicate_labels``.
 
     Notes
     -----
