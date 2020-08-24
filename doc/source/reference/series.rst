@@ -39,7 +39,7 @@ Attributes
    Series.empty
    Series.dtypes
    Series.name
-   Series.allows_duplicate_labels
+   Series.flags
    Series.set_flags
 
 Conversion
@@ -529,6 +529,19 @@ Sparse-dtype specific methods and attributes are provided under the
    Series.sparse.from_coo
    Series.sparse.to_coo
 
+.. _api.series.flags:
+
+Flags
+~~~~~
+
+Flags refer to attributes of the pandas object. Properties of the dataset (like
+the date is was recorded, the URL it was accessed from, etc.) should be stored
+in :attr:`Series.attrs`.
+
+.. autosummary::
+   :toctree: api/
+
+   Flags
 
 .. _api.series.metadata:
 

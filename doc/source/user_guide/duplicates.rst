@@ -121,26 +121,29 @@ an exception will be raised.
 .. ipython:: python
    :okexcept:
 
-   pd.Series([0, 1, 2], index=['a', 'b', 'b'], allows_duplicate_labels=False)
+   pd.Series([0, 1, 2], index=['a', 'b', 'b']).set_flags(allows_duplicate_labels=False)
 
 This applies to both row and column labels for a :class:`DataFrame`
 
 .. ipython:: python
    :okexcept:
 
-   pd.DataFrame([[0, 1, 2], [3, 4, 5]], columns=["A", "B", "C"],
-                allows_duplicate_labels=False)
+   pd.DataFrame(
+      [[0, 1, 2], [3, 4, 5]], columns=["A", "B", "C"],
+   ).set_flags(allows_duplicate_labels=False)
 
-This attribute can be checked or set with :attr:`~DataFrame.allows_duplicate_labels`,
+This attribute can be checked or set with :attr:`~DataFrame.flags.allows_duplicate_labels`,
 which indicates whether that object can have duplicate labels.
 
 .. ipython:: python
 
-   df = pd.DataFrame({"A": [0, 1, 2, 3]},
-                     index=['x', 'y', 'X', 'Y'],
-                     allows_duplicate_labels=False)
+   df = (
+      pd.DataFrame({"A": [0, 1, 2, 3]},
+                   index=['x', 'y', 'X', 'Y'])
+      .set_flags(allows_duplicate_labels=False)
+   )
    df
-   df.allows_duplicate_labels
+   df.flags.allows_duplicate_labels
 
 :meth:`DataFrame.set_flags` can be used to return a new ``DataFrame`` with attributes
 like ``allows_duplicate_labels`` set to some value
@@ -148,15 +151,16 @@ like ``allows_duplicate_labels`` set to some value
 .. ipython:: python
 
    df2 = df.set_flags(allows_duplicate_labels=True)
-   df2.allows_duplicate_labels
+   df2.flags.allows_duplicate_labels
 
+The new ``DataFrame`` returned is a view on the same data as the old ``DataFrame``.
 Or the property can just be set directly on the same object
 
 
 .. ipython:: python
 
-   df2.allows_duplicate_labels = False
-   df2.allows_duplicate_labels
+   df2.flags.allows_duplicate_labels = False
+   df2.flags.allows_duplicate_labels
 
 When processing raw, messy data you might initially read in the messy data
 (which potentially has duplicate labels), deduplicate, and then disallow duplicates
@@ -167,7 +171,7 @@ going forward, to ensure that your data pipeline doesn't introduce duplicates.
 
    >>> raw = pd.read_csv("...")
    >>> deduplicated = raw.groupby(level=0).first()  # remove duplicates
-   >>> deduplicated.allows_duplicate_labels = False  # disallow going forward
+   >>> deduplicated.flags.allows_duplicate_labels = False  # disallow going forward
 
 Setting ``allows_duplicate_labels=True`` on a ``Series`` or ``DataFrame`` with duplicate
 labels or performing an operation that introduces duplicate labels on a ``Series`` or
@@ -191,7 +195,7 @@ operations.
 .. ipython:: python
    :okexcept:
 
-   s1 = pd.Series(0, index=['a', 'b'], allows_duplicate_labels=False)
+   s1 = pd.Series(0, index=['a', 'b']).set_flags(allows_duplicate_labels=False)
    s1
    s1.head().rename({"a": "b"})
 

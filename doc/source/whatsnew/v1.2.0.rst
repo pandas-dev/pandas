@@ -31,14 +31,14 @@ By default, duplicates continue to be allowed
 .. ipython:: python
    :okexcept:
 
-   pd.Series([1, 2], index=['a', 'a'], allows_duplicate_labels=False)
+   pd.Series([1, 2], index=['a', 'a']).set_flags(allows_duplicate_labels=False)
 
 Pandas will propagate the ``allows_duplicate_labels`` property through many operations.
 
 .. ipython:: python
    :okexcept:
 
-   a = pd.Series([1, 2], index=['a', 'b'], allows_duplicate_labels=False)
+   a = pd.Series([1, 2], index=['a', 'b']).set_flags(allows_duplicate_labels=False)
    a
    # An operation introducing duplicates
    a.reindex(['a', 'b', 'a'])
@@ -51,6 +51,11 @@ Pandas will propagate the ``allows_duplicate_labels`` property through many oper
    DataFrame or Series objects will propagate ``allows_duplicate_labels``.
 
 See :ref:`duplicates` for more.
+
+The ``allows_duplicate_labels`` flag is stored in the new :attr:`DataFrame.flags`
+attribute. This stores global attributes that apply to the *pandas object*. This
+differs from :attr:`DataFrame.attrs`, which stores information that applies to
+the dataset.
 
 Passing arguments to fsspec backends
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

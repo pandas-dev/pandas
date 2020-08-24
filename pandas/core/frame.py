@@ -369,22 +369,6 @@ class DataFrame(NDFrame):
         Data type to force. Only a single dtype is allowed. If None, infer.
     copy : bool, default False
         Copy data from inputs. Only affects DataFrame / 2d ndarray input.
-    allows_duplicate_labels : bool, default True
-        Whether to allow duplicate row or column labels in this DataFrame.
-        By default, duplicate labels are permitted. Setting this to ``False``
-        will cause an :class:`errors.DuplicateLabelError` to be raised when
-        `index` or `columns` are not unique, or when any subsequent operation
-        on this DataFrame introduces duplicates. See :ref:`duplicates.disallow`
-        for more.
-
-        .. versionadded:: 1.1.0
-
-        .. warning::
-
-           This is an experimental feature. Currently, many methods fail to
-           propagate the ``allows_duplicate_labels`` value. In future versions
-           it is expected that every method taking or returning one or more
-           DataFrame or Series objects will propagate ``allows_duplicate_labels``.
 
     See Also
     --------

@@ -89,11 +89,11 @@ from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
 from pandas.core import missing, nanops
-from pandas.core._flags import Flags
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
 import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
+from pandas.core.flags import Flags
 from pandas.core.indexes.api import Index, MultiIndex, RangeIndex, ensure_index
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import Period, PeriodIndex
@@ -238,11 +238,15 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     @property
     def attrs(self) -> Dict[Optional[Hashable], Any]:
         """
-        Dictionary of global attributes on this object.
+        Dictionary of global attributes of this dataset.
 
         .. warning::
 
            attrs is experimental and may change without warning.
+
+        See Also
+        --------
+        DataFrame.flags
         """
         if self._attrs is None:
             self._attrs = {}
@@ -254,6 +258,42 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     @property
     def flags(self) -> Flags:
+        """
+        Get the properties associated with this pandas object.
+
+        The available flags are
+
+        * :attr:`Flags.allows_duplicate_labels`
+
+        Notes
+        -----
+        "Flags" differ from "metadata". Flags reflect properties of the
+        pandas object (the Series or DataFrame). Metadata refer to properties
+        of the dataset, and should be stored in :attr:`DataFrame.attrs`.
+
+        See Also
+        --------
+        Flags
+        DataFrame.attrs
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": [1, 2]})
+        >>> df.flags
+        <Flags(allows_duplicate_labels=True)>
+
+        Flags can be get or set using ``.``
+
+        >>> df.flags.allows_duplicate_labels
+        True
+        >>> df.flags.allows_duplicate_labels = False
+
+        Or by slicing with a key
+
+        >>> df.flags["allows_duplicate_labels"]
+        False
+        >>> df.flags["allows_duplicate_labels"] = True
+        """
         return self._flags
 
     def set_flags(
@@ -278,7 +318,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Notes
         -----
         This method returns a new object that's a view on the same data
-        as the input. Mutating the input or the output will be reflected
+        as the input. Mutating the input or the output values will be reflected
         in the other.
 
         This method is intended to be used in method chains.
@@ -289,16 +329,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         See Also
         --------
-        DataFrame.attrs : Set global metadata on this object.
-        DataFrame.allows_duplicate_labels : If this object allows duplicate labels.
+        DataFrame.attrs : Global metadata applying to this dataset.
+        DataFrame.flags : Global flags applying to this object.
 
         Examples
         --------
         >>> df = pd.DataFrame({"A": [1, 2]})
-        >>> df.allows_duplicate_labels
+        >>> df.flags.allows_duplicate_labels
         True
         >>> df2 = df.set_flags(allows_duplicate_labels=False)
-        >>> df2.allows_duplicate_labels
+        >>> df2.flags.allows_duplicate_labels
         False
         """
         df = self.copy(deep=copy)
