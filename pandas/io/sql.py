@@ -780,7 +780,7 @@ class SQLTable(PandasObject):
         DataFrame
             Filtered dataframe, with values that are already in DB removed.
         """
-        from sqlalchemy import tuple_, select
+        from sqlalchemy import select, tuple_
 
         # Primary key data
         primary_keys, primary_key_values = self._get_primary_key_data()
