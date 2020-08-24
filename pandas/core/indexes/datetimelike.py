@@ -704,16 +704,16 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
                 if result.freq is None:
                     # TODO: no tests rely on this; needed?
                     result = result._with_freq("infer")
-            assert result.name == res_name
+            result.name = res_name
             return result
 
         elif not self._can_fast_intersect(other):
             result = Index.intersection(self, other, sort=sort)
-            assert result.name == res_name
             # We need to invalidate the freq because Index.intersection
             #  uses _shallow_copy on a view of self._data, which will preserve
             #  self.freq if we're not careful.
             result = result._with_freq(None)._with_freq("infer")
+            result.name = res_name
             return result
 
         # to make our life easier, "sort" the two ranges
