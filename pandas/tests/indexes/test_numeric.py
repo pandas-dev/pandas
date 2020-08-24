@@ -394,7 +394,7 @@ class NumericInt(Numeric):
         same_values_different_type = Index(i, dtype=object)
         assert not i.identical(same_values_different_type)
 
-        i = index.copy(dtype=object)
+        i = index.astype(dtype=object)
         i = i.rename("foo")
         same_values = Index(i, dtype=object)
         assert same_values.identical(i)
@@ -402,7 +402,7 @@ class NumericInt(Numeric):
         assert not i.identical(index)
         assert Index(same_values, name="foo", dtype=object).identical(i)
 
-        assert not index.copy(dtype=object).identical(index.copy(dtype=self._dtype))
+        assert not index.astype(dtype=object).identical(index.astype(dtype=self._dtype))
 
     def test_union_noncomparable(self):
         # corner case, non-Int64Index
