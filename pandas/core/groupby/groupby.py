@@ -1818,7 +1818,11 @@ class GroupBy(_GroupBy[FrameOrSeries]):
                 return values
             mask = DataFrame(self.grouper.codes).eq(-1).any()
             if mask.any():
-                values[mask] = np.nan
+                try:
+                    values[mask] = np.nan
+                except ValueError:
+                    values[mask] = np.datetime64('NaT') 
+                
             return values
         
         res = self._get_cythonized_result(

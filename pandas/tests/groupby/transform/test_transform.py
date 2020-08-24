@@ -976,6 +976,51 @@ def test_ffill_bfill_non_unique_multilevel(func, expected_status):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize('dropna', [True, False])
+@pytest.mark.parametrize('limit', [None, 1])
+@pytest.mark.parametrize('method', ['ffill', 'bfill', 'pad'])
+@pytest.mark.parametrize('by', ['grp1', ['grp1'], ['grp1', 'grp2']])
+@pytest.mark.parametrize('has_nan', [[], ['grp1'], ['grp1', 'grp2']])
+def test_pad_handles_nan_groups(dropna, limit, method, by, has_nan):
+    
+    rows = pd.DataFrame({
+        'int' : pd.array([1,2], dtype='Int64'),
+        'float' : [.1, .2], 
+        'bool' : pd.array([True, False], dtype='bool'),
+        'date' : [pd.Timestamp(2010,1,1), pd.Timestamp(2020,2,2)],
+        'period' : pd.array([pd.Period('2010-01'), pd.Period('2020-2')], dtype='period[M]'),
+        'obj' : ['hello', 'world'],
+        'cat' : pd.Categorical(['a', 'b'], categories=['a', 'b', 'c']),
+        })
+
+    ridx = pd.Series([None]*10)
+    ridx[2] = 0
+    ridx[7] = 1
+    df = rows.reindex(ridx).reset_index(drop=True)
+    
+    grps = pd.Series(['good']*5 + ['bad']*5)
+    if type(by) is list:
+        grps = pd.concat([grps]*len(by), axis=1)
+    df[by] = grps
+    
+    by = [by] if type(by) is not list else by
+    has_nan = list(set(has_nan).intersection(set(by)))
+    df[has_nan] = df[has_nan].replace('bad', np.nan)
+    
+    grouped = df.groupby(by=by, dropna=dropna)
+    result = getattr(grouped, method)(limit=limit)
+    
+    if dropna and (len(has_nan) > 0):
+        ridx[7] = None
+    lim = 2 if limit is None else limit
+    
+    ridx = getattr(ridx, method)(limit=lim)
+    expected = rows.reindex(ridx).reset_index(drop=True)
+
+    tm.assert_frame_equal(result, expected)
+
+
+
 @pytest.mark.parametrize("func", [np.any, np.all])
 def test_any_all_np_func(func):
     # GH 20653
