@@ -11,9 +11,11 @@ from pandas.core.dtypes.generic import ABCMultiIndex
 from pandas.io.formats.format import DataFrameFormatter, TableFormatter
 
 
-class RowCreator:
-    def __init__(self, *, fmt, multicolumn, multicolumn_format, multirow):
-        self.fmt = fmt
+class RowStringConverter:
+    def __init__(
+        self, formatter, multicolumn=False, multicolumn_format=None, multirow=False,
+    ):
+        self.fmt = formatter
         self.frame = self.fmt.frame
         self.multicolumn = multicolumn
         self.multicolumn_format = multicolumn_format
@@ -22,8 +24,10 @@ class RowCreator:
         self.strcols = self._get_strcols()
         self.strrows = list(zip(*self.strcols))
 
-    def get_strrow(self, row_num, row):
+    def get_strrow(self, row_num):
         """Get string representation of the row."""
+        row = self.strrows[row_num]
+
         is_multicol = row_num < self._clevels and self.fmt.header and self.multicolumn
 
         is_multirow = (
@@ -116,7 +120,7 @@ class RowCreator:
 
     def _preprocess_row(self, row):
         if self.fmt.escape:
-            crow = self._escape_backslashes(row)
+            crow = self._escape_symbols(row)
         else:
             crow = [x if x else "{}" for x in row]
         if self.fmt.bold_rows and self.fmt.index:
@@ -124,7 +128,7 @@ class RowCreator:
         return crow
 
     @staticmethod
-    def _escape_backslashes(row):
+    def _escape_symbols(row):
         return [
             (
                 x.replace("\\", "\\textbackslash ")
@@ -228,22 +232,23 @@ class RowCreator:
         return "".join(lst)
 
 
-class RowHeaderIterator(RowCreator):
+class RowHeaderIterator(RowStringConverter):
     def __iter__(self):
-        for row_num, row in enumerate(self.strrows):
+        for row_num in range(len(self.strrows)):
             if row_num < self._header_row_num:
-                yield self.get_strrow(row_num, row)
+                yield self.get_strrow(row_num)
 
 
-class RowBodyIterator(RowCreator):
+class RowBodyIterator(RowStringConverter):
     def __iter__(self):
-        for row_num, row in enumerate(self.strrows):
+        for row_num in range(len(self.strrows)):
             if row_num >= self._header_row_num:
-                yield self.get_strrow(row_num, row)
+                yield self.get_strrow(row_num)
 
 
-class LatexFormatterAbstract(ABC):
-    def _compose_string(self) -> str:
+class TableBuilderAbstract(ABC):
+    @property
+    def product(self) -> str:
         elements = [
             self.env_begin,
             self.top_separator,
@@ -255,7 +260,8 @@ class LatexFormatterAbstract(ABC):
         ]
         result = "\n".join([item for item in elements if item])
         trailing_newline = "\n"
-        return result + trailing_newline
+        result += trailing_newline
+        return result
 
     @property
     @abstractmethod
@@ -293,22 +299,7 @@ class LatexFormatterAbstract(ABC):
         pass
 
 
-class LatexFormatter(TableFormatter, LatexFormatterAbstract):
-    """
-    Used to render a DataFrame to a LaTeX tabular/longtable environment output.
-
-    Parameters
-    ----------
-    formatter : `DataFrameFormatter`
-    column_format : str, default None
-        The columns format as specified in `LaTeX table format
-        <https://en.wikibooks.org/wiki/LaTeX/Tables>`__ e.g 'rcl' for 3 columns
-
-    See Also
-    --------
-    HTMLFormatter
-    """
-
+class TableBuilder(TableBuilderAbstract):
     def __init__(
         self,
         formatter: DataFrameFormatter,
@@ -321,7 +312,6 @@ class LatexFormatter(TableFormatter, LatexFormatterAbstract):
         position: Optional[str] = None,
     ):
         self.fmt = formatter
-        self.frame = self.fmt.frame
         self.column_format = column_format
         self.multicolumn = multicolumn
         self.multicolumn_format = multicolumn_format
@@ -329,69 +319,6 @@ class LatexFormatter(TableFormatter, LatexFormatterAbstract):
         self.caption = caption
         self.label = label
         self.position = position
-
-    def write_result(self, buf: IO[str]) -> None:
-        """
-        Render a DataFrame to a LaTeX tabular, longtable, or table/tabular
-        environment output.
-        """
-        buf.write(self._compose_string())
-
-    @property
-    def column_format(self):
-        return self._column_format
-
-    @column_format.setter
-    def column_format(self, input_column_format):
-        if input_column_format is None:
-            self._column_format = (
-                self._get_index_format() + self._get_column_format_based_on_dtypes()
-            )
-        elif not isinstance(input_column_format, str):  # pragma: no cover
-            raise AssertionError(
-                f"column_format must be str or unicode, "
-                f"not {type(input_column_format)}"
-            )
-        else:
-            self._column_format = input_column_format
-
-    def _get_column_format_based_on_dtypes(self):
-        def get_col_type(dtype):
-            if issubclass(dtype.type, np.number):
-                return "r"
-            return "l"
-
-        dtypes = self.frame.dtypes._values
-        return "".join(map(get_col_type, dtypes))
-
-    def _get_index_format(self):
-        if self.fmt.index:
-            return "l" * self.frame.index.nlevels
-        return ""
-
-    @property
-    def position_macro(self):
-        return f"[{self.position}]" if self.position else ""
-
-    @property
-    def caption_macro(self):
-        return f"\\caption{{{self.caption}}}" if self.caption else ""
-
-    @property
-    def label_macro(self):
-        return f"\\label{{{self.label}}}" if self.label else ""
-
-    def _create_row_iterator(self, over):
-        kwargs = dict(
-            fmt=self.fmt,
-            multicolumn=self.multicolumn,
-            multicolumn_format=self.multicolumn_format,
-            multirow=self.multirow,
-        )
-        if over == "header":
-            return RowHeaderIterator(**kwargs)
-        elif over == "body":
-            return RowBodyIterator(**kwargs)
 
     @property
     def header(self):
@@ -414,47 +341,39 @@ class LatexFormatter(TableFormatter, LatexFormatterAbstract):
     def _is_separator_required(self):
         return self.header and self.env_body
 
-
-class LatexTableFormatter(LatexFormatter):
     @property
-    def env_begin(self):
-        elements = [
-            f"\\begin{{table}}{self.position_macro}",
-            f"\\centering",
-            f"{self.caption_macro}",
-            f"{self.label_macro}",
-            f"\\begin{{tabular}}{{{self.column_format}}}",
-        ]
-        return "\n".join([item for item in elements if item])
+    def _position_macro(self):
+        return f"[{self.position}]" if self.position else ""
 
     @property
-    def bottom_separator(self):
-        return "\\bottomrule"
+    def _caption_macro(self):
+        return f"\\caption{{{self.caption}}}" if self.caption else ""
 
     @property
-    def env_end(self):
-        return "\n".join(["\\end{tabular}", "\\end{table}"])
+    def _label_macro(self):
+        return f"\\label{{{self.label}}}" if self.label else ""
+
+    def _create_row_iterator(self, over):
+        kwargs = dict(
+            formatter=self.fmt,
+            multicolumn=self.multicolumn,
+            multicolumn_format=self.multicolumn_format,
+            multirow=self.multirow,
+        )
+        if over == "header":
+            return RowHeaderIterator(**kwargs)
+        elif over == "body":
+            return RowBodyIterator(**kwargs)
+        else:
+            msg = f"'over' must be either 'header' or 'body', but {over} was provided"
+            raise ValueError(msg)
 
 
-class LatexTabularFormatter(LatexFormatter):
-    @property
-    def env_begin(self):
-        return f"\\begin{{tabular}}{{{self.column_format}}}"
-
-    @property
-    def bottom_separator(self):
-        return "\\bottomrule"
-
-    @property
-    def env_end(self):
-        return "\\end{tabular}"
-
-
-class LatexLongTableFormatter(LatexFormatter):
+class LongTableBuilder(TableBuilder):
     @property
     def env_begin(self):
         first_row = (
-            f"\\begin{{longtable}}{self.position_macro}" f"{{{self.column_format}}}"
+            f"\\begin{{longtable}}{self._position_macro}" f"{{{self.column_format}}}"
         )
         elements = [first_row, f"{self._caption_and_label()}"]
         return "\n".join([item for item in elements if item])
@@ -464,7 +383,7 @@ class LatexLongTableFormatter(LatexFormatter):
             return ""
         elif self.caption or self.label:
             double_backslash = "\\\\"
-            elements = [f"{self.caption_macro}", f"{self.label_macro}"]
+            elements = [f"{self._caption_macro}", f"{self._label_macro}"]
             caption_and_label = "\n".join([item for item in elements if item])
             caption_and_label += double_backslash
             return caption_and_label
@@ -494,3 +413,134 @@ class LatexLongTableFormatter(LatexFormatter):
     @property
     def env_end(self):
         return "\\end{longtable}"
+
+
+class RegularTableBuilder(TableBuilder):
+    @property
+    def env_begin(self):
+        elements = [
+            f"\\begin{{table}}{self._position_macro}",
+            f"\\centering",
+            f"{self._caption_macro}",
+            f"{self._label_macro}",
+            f"\\begin{{tabular}}{{{self.column_format}}}",
+        ]
+        return "\n".join([item for item in elements if item])
+
+    @property
+    def bottom_separator(self):
+        return "\\bottomrule"
+
+    @property
+    def env_end(self):
+        return "\n".join(["\\end{tabular}", "\\end{table}"])
+
+
+class TabularBuilder(TableBuilder):
+    @property
+    def env_begin(self):
+        return f"\\begin{{tabular}}{{{self.column_format}}}"
+
+    @property
+    def bottom_separator(self):
+        return "\\bottomrule"
+
+    @property
+    def env_end(self):
+        return "\\end{tabular}"
+
+
+class LatexFormatter(TableFormatter):
+    """
+    Used to render a DataFrame to a LaTeX tabular/longtable environment output.
+
+    Parameters
+    ----------
+    formatter : `DataFrameFormatter`
+    column_format : str, default None
+        The columns format as specified in `LaTeX table format
+        <https://en.wikibooks.org/wiki/LaTeX/Tables>`__ e.g 'rcl' for 3 columns
+
+    See Also
+    --------
+    HTMLFormatter
+    """
+
+    def __init__(
+        self,
+        formatter: DataFrameFormatter,
+        longtable: bool = False,
+        column_format: Optional[str] = None,
+        multicolumn: bool = False,
+        multicolumn_format: Optional[str] = None,
+        multirow: bool = False,
+        caption: Optional[str] = None,
+        label: Optional[str] = None,
+        position: Optional[str] = None,
+    ):
+        self.fmt = formatter
+        self.frame = self.fmt.frame
+        self.longtable = longtable
+        self.column_format = column_format
+        self.multicolumn = multicolumn
+        self.multicolumn_format = multicolumn_format
+        self.multirow = multirow
+        self.caption = caption
+        self.label = label
+        self.position = position
+
+    def write_result(self, buf: IO[str]) -> None:
+        """
+        Render a DataFrame to a LaTeX tabular, longtable, or table/tabular
+        environment output.
+        """
+        table_string = self.builder.product
+        buf.write(table_string)
+
+    @property
+    def builder(self):
+        kwargs = dict(
+            formatter=self.fmt,
+            column_format=self.column_format,
+            multicolumn=self.multicolumn,
+            multicolumn_format=self.multicolumn_format,
+            multirow=self.multirow,
+            caption=self.caption,
+            label=self.label,
+            position=self.position,
+        )
+        if self.longtable:
+            return LongTableBuilder(**kwargs)
+        if any([self.caption, self.label, self.position]):
+            return RegularTableBuilder(**kwargs)
+        return TabularBuilder(**kwargs)
+
+    @property
+    def column_format(self):
+        return self._column_format
+
+    @column_format.setter
+    def column_format(self, input_column_format):
+        if input_column_format is None:
+            self._column_format = (
+                self._get_index_format() + self._get_column_format_based_on_dtypes()
+            )
+        elif not isinstance(input_column_format, str):  # pragma: no cover
+            raise AssertionError(
+                f"column_format must be str or unicode, "
+                f"not {type(input_column_format)}"
+            )
+        else:
+            self._column_format = input_column_format
+
+    def _get_column_format_based_on_dtypes(self):
+        def get_col_type(dtype):
+            if issubclass(dtype.type, np.number):
+                return "r"
+            return "l"
+
+        dtypes = self.frame.dtypes._values
+        return "".join(map(get_col_type, dtypes))
+
+    def _get_index_format(self):
+        return "l" * self.frame.index.nlevels if self.fmt.index else ""
