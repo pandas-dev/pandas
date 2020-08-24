@@ -158,6 +158,10 @@ def check_round_trip(
     """
     write_kwargs = write_kwargs or {"compression": None}
     read_kwargs = read_kwargs or {}
+    if isinstance(path, str) and "s3://" in path:
+        s3so = dict(client_kwargs={"endpoint_url": "http://127.0.0.1:5555/"})
+        read_kwargs["storage_options"] = s3so
+        write_kwargs["storage_options"] = s3so
 
     if expected is None:
         expected = df
@@ -537,33 +541,46 @@ class TestParquetPyArrow(Base):
             expected = df.astype(object)
             check_round_trip(df, pa, expected=expected)
 
+    def test_s3_roundtrip_explicit_fs(self, df_compat, s3_resource, pa, s3so):
+        s3fs = pytest.importorskip("s3fs")
+        if LooseVersion(pyarrow.__version__) <= LooseVersion("0.17.0"):
+            pytest.skip()
+        s3 = s3fs.S3FileSystem(**s3so)
+        kw = dict(filesystem=s3)
+        check_round_trip(
+            df_compat,
+            pa,
+            path="pandas-test/pyarrow.parquet",
+            read_kwargs=kw,
+            write_kwargs=kw,
+        )
+
     def test_s3_roundtrip(self, df_compat, s3_resource, pa):
+        if LooseVersion(pyarrow.__version__) <= LooseVersion("0.17.0"):
+            pytest.skip()
         # GH #19134
         check_round_trip(df_compat, pa, path="s3://pandas-test/pyarrow.parquet")
 
     @td.skip_if_no("s3fs")
     @pytest.mark.parametrize("partition_col", [["A"], []])
     def test_s3_roundtrip_for_dir(self, df_compat, s3_resource, pa, partition_col):
-        from pandas.io.s3 import get_fs as get_s3_fs
-
         # GH #26388
         # https://github.com/apache/arrow/blob/master/python/pyarrow/tests/test_parquet.py#L2716
         # As per pyarrow partitioned columns become 'categorical' dtypes
         # and are added to back of dataframe on read
+        if partition_col and pd.compat.is_platform_windows():
+            pytest.skip("pyarrow/win incompatibility #35791")
 
         expected_df = df_compat.copy()
         if partition_col:
             expected_df[partition_col] = expected_df[partition_col].astype("category")
+
         check_round_trip(
             df_compat,
             pa,
             expected=expected_df,
             path="s3://pandas-test/parquet_dir",
-            write_kwargs={
-                "partition_cols": partition_col,
-                "compression": None,
-                "filesystem": get_s3_fs(),
-            },
+            write_kwargs={"partition_cols": partition_col, "compression": None},
             check_like=True,
             repeat=1,
         )
@@ -584,6 +601,15 @@ class TestParquetPyArrow(Base):
         df_compat.to_parquet(buffer)
         df_from_buf = pd.read_parquet(buffer)
         tm.assert_frame_equal(df_compat, df_from_buf)
+
+    @td.skip_if_no("pyarrow")
+    def test_expand_user(self, df_compat, monkeypatch):
+        monkeypatch.setenv("HOME", "TestingUser")
+        monkeypatch.setenv("USERPROFILE", "TestingUser")
+        with pytest.raises(OSError, match=r".*TestingUser.*"):
+            pd.read_parquet("~/file.parquet")
+        with pytest.raises(OSError, match=r".*TestingUser.*"):
+            df_compat.to_parquet("~/file.parquet")
 
     def test_partition_cols_supported(self, pa, df_full):
         # GH #23283

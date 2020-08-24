@@ -6,7 +6,8 @@ import numpy as np
 from numpy.random import RandomState
 import pytest
 
-from pandas._libs import algos as libalgos, groupby as libgroupby, hashtable as ht
+from pandas._libs import algos as libalgos, hashtable as ht
+from pandas._libs.groupby import group_var_float32, group_var_float64
 from pandas.compat.numpy import np_array_datetime64_compat
 import pandas.util._test_decorators as td
 
@@ -1472,7 +1473,7 @@ class GroupVarTestMixin:
         expected_counts = counts + 2
 
         self.algo(out, counts, values, labels)
-        tm.assert_almost_equal(out, expected_out, check_less_precise=6)
+        tm.assert_almost_equal(out, expected_out, rtol=0.5e-06)
         tm.assert_numpy_array_equal(counts, expected_counts)
 
     def test_group_var_constant(self):
@@ -1493,7 +1494,7 @@ class GroupVarTestMixin:
 class TestGroupVarFloat64(GroupVarTestMixin):
     __test__ = True
 
-    algo = staticmethod(libgroupby.group_var_float64)
+    algo = staticmethod(group_var_float64)
     dtype = np.float64
     rtol = 1e-5
 
@@ -1510,13 +1511,13 @@ class TestGroupVarFloat64(GroupVarTestMixin):
         self.algo(out, counts, values, labels)
 
         assert counts[0] == 10 ** 6
-        tm.assert_almost_equal(out[0, 0], 1.0 / 12, check_less_precise=True)
+        tm.assert_almost_equal(out[0, 0], 1.0 / 12, rtol=0.5e-3)
 
 
 class TestGroupVarFloat32(GroupVarTestMixin):
     __test__ = True
 
-    algo = staticmethod(libgroupby.group_var_float32)
+    algo = staticmethod(group_var_float32)
     dtype = np.float32
     rtol = 1e-2
 
