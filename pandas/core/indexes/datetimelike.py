@@ -7,8 +7,9 @@ from typing import Any, List, Optional, TypeVar, Union, cast
 import numpy as np
 
 from pandas._libs import NaT, Timedelta, iNaT, join as libjoin, lib
-from pandas._libs.tslibs import timezones
-from pandas._typing import Label
+from pandas._libs.tslibs import BaseOffset, Resolution, Tick, timezones
+from pandas._libs.tslibs.parsing import DateParseError
+from pandas._typing import Callable, Label
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly, doc
@@ -23,7 +24,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
 )
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCIndex, ABCSeries
 
 from pandas.core import algorithms
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
@@ -41,10 +42,7 @@ from pandas.core.indexes.extension import (
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 from pandas.core.sorting import ensure_key_mapped
-from pandas.core.tools.datetimes import DateParseError
 from pandas.core.tools.timedeltas import to_timedelta
-
-from pandas.tseries.offsets import DateOffset, Tick
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
@@ -56,7 +54,8 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
     Create the join wrapper methods.
     """
 
-    @staticmethod  # type: ignore
+    # error: 'staticmethod' used with a non-method
+    @staticmethod  # type: ignore[misc]
     def wrapper(left, right):
         if isinstance(left, (np.ndarray, ABCIndex, ABCSeries, DatetimeLikeArrayMixin)):
             left = left.view("i8")
@@ -78,7 +77,7 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
 
 
 @inherit_names(
-    ["inferred_freq", "_isnan", "_resolution", "resolution"],
+    ["inferred_freq", "_isnan", "_resolution_obj", "resolution"],
     DatetimeLikeArrayMixin,
     cache=True,
 )
@@ -91,13 +90,16 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     """
 
     _data: Union[DatetimeArray, TimedeltaArray, PeriodArray]
-    freq: Optional[DateOffset]
+    freq: Optional[BaseOffset]
     freqstr: Optional[str]
-    _resolution: int
+    _resolution_obj: Resolution
     _bool_ops: List[str] = []
     _field_ops: List[str] = []
 
-    hasnans = cache_readonly(DatetimeLikeArrayMixin._hasnans.fget)  # type: ignore
+    # error: "Callable[[Any], Any]" has no attribute "fget"
+    hasnans = cache_readonly(
+        DatetimeLikeArrayMixin._hasnans.fget  # type: ignore[attr-defined]
+    )
     _hasnans = hasnans  # for index / array -agnostic code
 
     @property
@@ -114,7 +116,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
     def __array_wrap__(self, result, context=None):
         """
-        Gets called after a ufunc.
+        Gets called after a ufunc and other functions.
         """
         result = lib.item_from_zerodim(result)
         if is_bool_dtype(result) or lib.is_scalar(result):
@@ -128,14 +130,14 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
     # ------------------------------------------------------------------------
 
-    def equals(self, other) -> bool:
+    def equals(self, other: object) -> bool:
         """
         Determines if two Index objects contain the same elements.
         """
         if self.is_(other):
             return True
 
-        if not isinstance(other, ABCIndexClass):
+        if not isinstance(other, Index):
             return False
         elif not isinstance(other, type(self)):
             try:
@@ -340,8 +342,30 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     # --------------------------------------------------------------------
     # Rendering Methods
 
-    def _format_with_header(self, header, na_rep="NaT", **kwargs):
-        return header + list(self._format_native_types(na_rep, **kwargs))
+    def format(
+        self,
+        name: bool = False,
+        formatter: Optional[Callable] = None,
+        na_rep: str = "NaT",
+        date_format: Optional[str] = None,
+    ) -> List[str]:
+        """
+        Render a string representation of the Index.
+        """
+        header = []
+        if name:
+            fmt_name = ibase.pprint_thing(self.name, escape_chars=("\t", "\r", "\n"))
+            header.append(fmt_name)
+
+        if formatter is not None:
+            return header + list(self.map(formatter))
+
+        return self._format_with_header(header, na_rep=na_rep, date_format=date_format)
+
+    def _format_with_header(self, header, na_rep="NaT", date_format=None) -> List[str]:
+        return header + list(
+            self._format_native_types(na_rep=na_rep, date_format=date_format)
+        )
 
     @property
     def _formatter_func(self):
@@ -363,19 +387,23 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    def _validate_partial_date_slice(self, reso: str):
+    def _validate_partial_date_slice(self, reso: Resolution):
         raise NotImplementedError
 
-    def _parsed_string_to_bounds(self, reso: str, parsed: datetime):
+    def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
         raise NotImplementedError
 
     def _partial_date_slice(
-        self, reso: str, parsed: datetime, use_lhs: bool = True, use_rhs: bool = True
+        self,
+        reso: Resolution,
+        parsed: datetime,
+        use_lhs: bool = True,
+        use_rhs: bool = True,
     ):
         """
         Parameters
         ----------
-        reso : str
+        reso : Resolution
         parsed : datetime
         use_lhs : bool, default True
         use_rhs : bool, default True

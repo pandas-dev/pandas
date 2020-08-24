@@ -91,10 +91,17 @@ class EWMMethods:
     def setup(self, constructor, window, dtype, method):
         N = 10 ** 5
         arr = (100 * np.random.random(N)).astype(dtype)
+        times = pd.date_range("1900", periods=N, freq="23s")
         self.ewm = getattr(pd, constructor)(arr).ewm(halflife=window)
+        self.ewm_times = getattr(pd, constructor)(arr).ewm(
+            halflife="1 Day", times=times
+        )
 
     def time_ewm(self, constructor, window, dtype, method):
         getattr(self.ewm, method)()
+
+    def time_ewm_times(self, constructor, window, dtype, method):
+        self.ewm.mean()
 
 
 class VariableWindowMethods(Methods):
@@ -184,6 +191,29 @@ class ForwardWindowMethods:
 
     def peakmem_rolling(self, constructor, window_size, dtype, method):
         getattr(self.roll, method)()
+
+
+class Groupby:
+
+    params = ["sum", "median", "mean", "max", "min", "kurt", "sum"]
+
+    def setup(self, method):
+        N = 1000
+        df = pd.DataFrame(
+            {
+                "A": [str(i) for i in range(N)] * 10,
+                "B": list(range(N)) * 10,
+                "C": pd.date_range(start="1900-01-01", freq="1min", periods=N * 10),
+            }
+        )
+        self.groupby_roll_int = df.groupby("A").rolling(window=2)
+        self.groupby_roll_offset = df.groupby("A").rolling(window="30s", on="C")
+
+    def time_rolling_int(self, method):
+        getattr(self.groupby_roll_int, method)()
+
+    def time_rolling_offset(self, method):
+        getattr(self.groupby_roll_offset, method)()
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import _np_version_under1p16
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.numpy_ import PandasArray, PandasDtype
@@ -46,11 +44,7 @@ def data(allow_in_pandas, dtype):
 
 @pytest.fixture
 def data_missing(allow_in_pandas, dtype):
-    # For NumPy <1.16, np.array([np.nan, (1,)]) raises
-    # ValueError: setting an array element with a sequence.
     if dtype.numpy_dtype == "object":
-        if _np_version_under1p16:
-            raise pytest.skip("Skipping for NumPy <1.16")
         return PandasArray(np.array([np.nan, (1,)], dtype=object))
     return PandasArray(np.array([np.nan, 1.0]))
 
@@ -138,6 +132,12 @@ class TestCasting(BaseNumPyTests, base.BaseCastingTests):
     def test_astype_str(self, data):
         # ValueError: setting an array element with a sequence
         super().test_astype_str(data)
+
+    @skip_nested
+    def test_astype_string(self, data):
+        # GH-33465
+        # ValueError: setting an array element with a sequence
+        super().test_astype_string(data)
 
 
 class TestConstructors(BaseNumPyTests, base.BaseConstructorsTests):

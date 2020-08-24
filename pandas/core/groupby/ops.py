@@ -50,15 +50,10 @@ from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index,
     decons_obs_group_ids,
-    get_flattened_iterator,
+    get_flattened_list,
     get_group_index,
     get_group_index_sorter,
     get_indexer_dict,
-)
-from pandas.core.util.numba_ import (
-    NUMBA_FUNC_CACHE,
-    generate_numba_func,
-    split_for_numba,
 )
 
 
@@ -152,7 +147,7 @@ class BaseGrouper:
             comp_ids, _, ngroups = self.group_info
 
             # provide "flattened" iterator for multi-group setting
-            return get_flattened_iterator(comp_ids, ngroups, self.levels, self.codes)
+            return get_flattened_list(comp_ids, ngroups, self.levels, self.codes)
 
     def apply(self, f: F, data: FrameOrSeries, axis: int = 0):
         mutated = self.mutated
@@ -210,7 +205,7 @@ class BaseGrouper:
             # group might be modified
             group_axes = group.axes
             res = f(group)
-            if not _is_indexed_like(res, group_axes):
+            if not _is_indexed_like(res, group_axes, axis):
                 mutated = True
             result_values.append(res)
 
@@ -609,21 +604,11 @@ class BaseGrouper:
         return result
 
     def agg_series(
-        self,
-        obj: Series,
-        func: F,
-        *args,
-        engine: str = "cython",
-        engine_kwargs=None,
-        **kwargs,
+        self, obj: Series, func: F, *args, **kwargs,
     ):
         # Caller is responsible for checking ngroups != 0
         assert self.ngroups != 0
 
-        if engine == "numba":
-            return self._aggregate_series_pure_python(
-                obj, func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
-            )
         if len(obj) == 0:
             # SeriesGrouper would raise if we were to call _aggregate_series_fast
             return self._aggregate_series_pure_python(obj, func)
@@ -669,20 +654,8 @@ class BaseGrouper:
         return result, counts
 
     def _aggregate_series_pure_python(
-        self,
-        obj: Series,
-        func: F,
-        *args,
-        engine: str = "cython",
-        engine_kwargs=None,
-        **kwargs,
+        self, obj: Series, func: F, *args, **kwargs,
     ):
-
-        if engine == "numba":
-            numba_func, cache_key = generate_numba_func(
-                func, engine_kwargs, kwargs, "groupby_agg"
-            )
-
         group_index, _, ngroups = self.group_info
 
         counts = np.zeros(ngroups, dtype=int)
@@ -691,13 +664,7 @@ class BaseGrouper:
         splitter = get_splitter(obj, group_index, ngroups, axis=0)
 
         for label, group in splitter:
-            if engine == "numba":
-                values, index = split_for_numba(group)
-                res = numba_func(values, index, *args)
-                if cache_key not in NUMBA_FUNC_CACHE:
-                    NUMBA_FUNC_CACHE[cache_key] = numba_func
-            else:
-                res = func(group, *args, **kwargs)
+            res = func(group, *args, **kwargs)
 
             if result is None:
                 if isinstance(res, (Series, Index, np.ndarray)):
@@ -875,13 +842,7 @@ class BinGrouper(BaseGrouper):
         ]
 
     def agg_series(
-        self,
-        obj: Series,
-        func: F,
-        *args,
-        engine: str = "cython",
-        engine_kwargs=None,
-        **kwargs,
+        self, obj: Series, func: F, *args, **kwargs,
     ):
         # Caller is responsible for checking ngroups != 0
         assert self.ngroups != 0
@@ -896,13 +857,13 @@ class BinGrouper(BaseGrouper):
         return grouper.get_result()
 
 
-def _is_indexed_like(obj, axes) -> bool:
+def _is_indexed_like(obj, axes, axis: int) -> bool:
     if isinstance(obj, Series):
         if len(axes) > 1:
             return False
-        return obj.index.equals(axes[0])
+        return obj.axes[axis].equals(axes[axis])
     elif isinstance(obj, DataFrame):
-        return obj.index.equals(axes[0])
+        return obj.axes[axis].equals(axes[axis])
 
     return False
 
@@ -952,7 +913,9 @@ class DataSplitter:
 
 class SeriesSplitter(DataSplitter):
     def _chop(self, sdata: Series, slice_obj: slice) -> Series:
-        return sdata.iloc[slice_obj]
+        # fastpath equivalent to `sdata.iloc[slice_obj]`
+        mgr = sdata._mgr.get_slice(slice_obj)
+        return type(sdata)(mgr, name=sdata.name, fastpath=True)
 
 
 class FrameSplitter(DataSplitter):
@@ -962,10 +925,13 @@ class FrameSplitter(DataSplitter):
         return libreduction.apply_frame_axis0(sdata, f, names, starts, ends)
 
     def _chop(self, sdata: DataFrame, slice_obj: slice) -> DataFrame:
-        if self.axis == 0:
-            return sdata.iloc[slice_obj]
-        else:
-            return sdata.iloc[:, slice_obj]
+        # Fastpath equivalent to:
+        # if self.axis == 0:
+        #     return sdata.iloc[slice_obj]
+        # else:
+        #     return sdata.iloc[:, slice_obj]
+        mgr = sdata._mgr.get_slice(slice_obj, axis=1 - self.axis)
+        return type(sdata)(mgr)
 
 
 def get_splitter(

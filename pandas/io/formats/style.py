@@ -42,8 +42,8 @@ jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires ji
 
 
 try:
-    import matplotlib.pyplot as plt
     from matplotlib import colors
+    import matplotlib.pyplot as plt
 
     has_mpl = True
 except ImportError:
@@ -390,16 +390,16 @@ class Styler:
                     "is_visible": (c not in hidden_columns),
                 }
                 # only add an id if the cell has a style
-                if self.cell_ids or not (len(ctx[r, c]) == 1 and ctx[r, c][0] == ""):
-                    row_dict["id"] = "_".join(cs[1:])
-                row_es.append(row_dict)
                 props = []
-                for x in ctx[r, c]:
-                    # have to handle empty styles like ['']
-                    if x.count(":"):
-                        props.append(tuple(x.split(":")))
-                    else:
-                        props.append(("", ""))
+                if self.cell_ids or (r, c) in ctx:
+                    row_dict["id"] = "_".join(cs[1:])
+                    for x in ctx[r, c]:
+                        # have to handle empty styles like ['']
+                        if x.count(":"):
+                            props.append(tuple(x.split(":")))
+                        else:
+                            props.append(("", ""))
+                row_es.append(row_dict)
                 cellstyle_map[tuple(props)].append(f"row{r}_col{c}")
             body.append(row_es)
 
@@ -561,11 +561,19 @@ class Styler:
             Whitespace shouldn't matter and the final trailing ';' shouldn't
             matter.
         """
-        for row_label, v in attrs.iterrows():
-            for col_label, col in v.items():
-                i = self.index.get_indexer([row_label])[0]
-                j = self.columns.get_indexer([col_label])[0]
-                for pair in col.rstrip(";").split(";"):
+        coli = {k: i for i, k in enumerate(self.columns)}
+        rowi = {k: i for i, k in enumerate(self.index)}
+        for jj in range(len(attrs.columns)):
+            cn = attrs.columns[jj]
+            j = coli[cn]
+            for rn, c in attrs[[cn]].itertuples():
+                if not c:
+                    continue
+                c = c.rstrip(";")
+                if not c:
+                    continue
+                i = rowi[rn]
+                for pair in c.split(";"):
                     self.ctx[(i, j)].append(pair)
 
     def _copy(self, deepcopy: bool = False) -> "Styler":
@@ -1524,7 +1532,10 @@ def _get_level_lengths(index, hidden_elements=None):
 
     Result is a dictionary of (level, initial_position): span
     """
-    levels = index.format(sparsify=lib.no_default, adjoin=False, names=False)
+    if isinstance(index, pd.MultiIndex):
+        levels = index.format(sparsify=lib.no_default, adjoin=False)
+    else:
+        levels = index.format()
 
     if hidden_elements is None:
         hidden_elements = []

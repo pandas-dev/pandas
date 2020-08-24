@@ -7,7 +7,7 @@ def create_pandas_abc_type(name, attr, comp):
 
     # https://github.com/python/mypy/issues/1006
     # error: 'classmethod' used with a non-method
-    @classmethod  # type: ignore
+    @classmethod  # type: ignore[misc]
     def _check(cls, inst) -> bool:
         return getattr(inst, attr, "_typ") in comp
 
@@ -38,7 +38,7 @@ ABCIntervalIndex = create_pandas_abc_type(
 ABCIndexClass = create_pandas_abc_type(
     "ABCIndexClass",
     "_typ",
-    (
+    {
         "index",
         "int64index",
         "rangeindex",
@@ -50,7 +50,7 @@ ABCIndexClass = create_pandas_abc_type(
         "periodindex",
         "categoricalindex",
         "intervalindex",
-    ),
+    },
 )
 
 ABCSeries = create_pandas_abc_type("ABCSeries", "_typ", ("series",))
@@ -66,6 +66,6 @@ ABCExtensionArray = create_pandas_abc_type(
     "ABCExtensionArray",
     "_typ",
     # Note: IntervalArray and SparseArray are included bc they have _typ="extension"
-    ("extension", "categorical", "periodarray", "datetimearray", "timedeltaarray"),
+    {"extension", "categorical", "periodarray", "datetimearray", "timedeltaarray"},
 )
 ABCPandasArray = create_pandas_abc_type("ABCPandasArray", "_typ", ("npy_extension",))

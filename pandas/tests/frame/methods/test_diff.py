@@ -158,3 +158,68 @@ class TestDataFrameDiff:
 
         result = df.diff(axis=1, periods=-1)
         tm.assert_frame_equal(result, expected)
+
+    def test_diff_sparse(self):
+        # GH#28813 .diff() should work for sparse dataframes as well
+        sparse_df = pd.DataFrame([[0, 1], [1, 0]], dtype="Sparse[int]")
+
+        result = sparse_df.diff()
+        expected = pd.DataFrame(
+            [[np.nan, np.nan], [1.0, -1.0]], dtype=pd.SparseDtype("float", 0.0)
+        )
+
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "axis,expected",
+        [
+            (
+                0,
+                pd.DataFrame(
+                    {
+                        "a": [np.nan, 0, 1, 0, np.nan, np.nan, np.nan, 0],
+                        "b": [np.nan, 1, np.nan, np.nan, -2, 1, np.nan, np.nan],
+                        "c": np.repeat(np.nan, 8),
+                        "d": [np.nan, 3, 5, 7, 9, 11, 13, 15],
+                    },
+                    dtype="Int64",
+                ),
+            ),
+            (
+                1,
+                pd.DataFrame(
+                    {
+                        "a": np.repeat(np.nan, 8),
+                        "b": [0, 1, np.nan, 1, np.nan, np.nan, np.nan, 0],
+                        "c": np.repeat(np.nan, 8),
+                        "d": np.repeat(np.nan, 8),
+                    },
+                    dtype="Int64",
+                ),
+            ),
+        ],
+    )
+    def test_diff_integer_na(self, axis, expected):
+        # GH#24171 IntegerNA Support for DataFrame.diff()
+        df = pd.DataFrame(
+            {
+                "a": np.repeat([0, 1, np.nan, 2], 2),
+                "b": np.tile([0, 1, np.nan, 2], 2),
+                "c": np.repeat(np.nan, 8),
+                "d": np.arange(1, 9) ** 2,
+            },
+            dtype="Int64",
+        )
+
+        # Test case for default behaviour of diff
+        result = df.diff(axis=axis)
+        tm.assert_frame_equal(result, expected)
+
+    def test_diff_readonly(self):
+        # https://github.com/pandas-dev/pandas/issues/35559
+        arr = np.random.randn(5, 2)
+        arr.flags.writeable = False
+        df = pd.DataFrame(arr)
+        result = df.diff()
+        expected = pd.DataFrame(np.array(df)).diff()
+        tm.assert_frame_equal(result, expected)

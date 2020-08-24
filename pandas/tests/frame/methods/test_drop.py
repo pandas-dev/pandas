@@ -70,8 +70,10 @@ class TestDataFrameDrop:
         df_dropped_b = df.drop("b")
         df_dropped_e = df.drop("e", axis=1)
         df_inplace_b, df_inplace_e = df.copy(), df.copy()
-        df_inplace_b.drop("b", inplace=True)
-        df_inplace_e.drop("e", axis=1, inplace=True)
+        return_value = df_inplace_b.drop("b", inplace=True)
+        assert return_value is None
+        return_value = df_inplace_e.drop("e", axis=1, inplace=True)
+        assert return_value is None
         for obj in (df_dropped_b, df_dropped_e, df_inplace_b, df_inplace_e):
             assert obj.index.name == "first"
             assert obj.columns.name == "second"
@@ -148,7 +150,8 @@ class TestDataFrameDrop:
         # GH#5628
         df = pd.DataFrame(np.random.randn(10, 3), columns=list("abc"))
         expected = df[~(df.b > 0)]
-        df.drop(labels=df[df.b > 0].index, inplace=True)
+        return_value = df.drop(labels=df[df.b > 0].index, inplace=True)
+        assert return_value is None
         tm.assert_frame_equal(df, expected)
 
     def test_drop_multiindex_not_lexsorted(self):

@@ -7,7 +7,7 @@ An interface for extending pandas with custom arrays.
    without warning.
 """
 import operator
-from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union, cast
 
 import numpy as np
 
@@ -20,15 +20,20 @@ from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.cast import maybe_cast_to_extension_array
-from pandas.core.dtypes.common import is_array_like, is_list_like
+from pandas.core.dtypes.common import (
+    is_array_like,
+    is_dtype_equal,
+    is_list_like,
+    pandas_dtype,
+)
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
 from pandas.core.algorithms import _factorize_array, unique
 from pandas.core.missing import backfill_1d, pad_1d
-from pandas.core.sorting import nargsort
+from pandas.core.sorting import nargminmax, nargsort
 
 _extension_array_shared_docs: Dict[str, str] = dict()
 
@@ -178,7 +183,7 @@ class ExtensionArray:
         ----------
         scalars : Sequence
             Each element will be an instance of the scalar type for this
-            array, ``cls.dtype.type``.
+            array, ``cls.dtype.type`` or be converted into this type in this method.
         dtype : dtype, optional
             Construct for this particular dtype. This should be a Dtype
             compatible with the ExtensionArray.
@@ -451,6 +456,12 @@ class ExtensionArray:
         array : ndarray
             NumPy ndarray with 'dtype' for its dtype.
         """
+        from pandas.core.arrays.string_ import StringDtype
+
+        dtype = pandas_dtype(dtype)
+        if isinstance(dtype, StringDtype):  # allow conversion to StringArrays
+            return dtype.construct_array_type()._from_sequence(self, copy=False)
+
         return np.array(self, dtype=dtype, copy=copy)
 
     def isna(self) -> ArrayLike:
@@ -506,7 +517,7 @@ class ExtensionArray:
         kind : {'quicksort', 'mergesort', 'heapsort'}, optional
             Sorting algorithm.
         *args, **kwargs:
-            passed through to :func:`numpy.argsort`.
+            Passed through to :func:`numpy.argsort`.
 
         Returns
         -------
@@ -526,6 +537,40 @@ class ExtensionArray:
 
         result = nargsort(self, kind=kind, ascending=ascending, na_position="last")
         return result
+
+    def argmin(self):
+        """
+        Return the index of minimum value.
+
+        In case of multiple occurrences of the minimum value, the index
+        corresponding to the first occurrence is returned.
+
+        Returns
+        -------
+        int
+
+        See Also
+        --------
+        ExtensionArray.argmax
+        """
+        return nargminmax(self, "argmin")
+
+    def argmax(self):
+        """
+        Return the index of maximum value.
+
+        In case of multiple occurrences of the maximum value, the index
+        corresponding to the first occurrence is returned.
+
+        Returns
+        -------
+        int
+
+        See Also
+        --------
+        ExtensionArray.argmin
+        """
+        return nargminmax(self, "argmax")
 
     def fillna(self, value=None, method=None, limit=None):
         """
@@ -702,7 +747,7 @@ class ExtensionArray:
         arr = self.astype(object)
         return arr.searchsorted(value, side=side, sorter=sorter)
 
-    def equals(self, other: "ExtensionArray") -> bool:
+    def equals(self, other: object) -> bool:
         """
         Return if another array is equivalent to this array.
 
@@ -722,7 +767,8 @@ class ExtensionArray:
         """
         if not type(self) == type(other):
             return False
-        elif not self.dtype == other.dtype:
+        other = cast(ExtensionArray, other)
+        if not is_dtype_equal(self.dtype, other.dtype):
             return False
         elif not len(self) == len(other):
             return False
@@ -732,7 +778,7 @@ class ExtensionArray:
                 # boolean array with NA -> fill with False
                 equal_values = equal_values.fillna(False)
             equal_na = self.isna() & other.isna()
-            return (equal_values | equal_na).all().item()
+            return bool((equal_values | equal_na).all())
 
     def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:
         """
@@ -840,14 +886,14 @@ class ExtensionArray:
         --------
         >>> cat = pd.Categorical(['a', 'b', 'c'])
         >>> cat
-        [a, b, c]
-        Categories (3, object): [a, b, c]
+        ['a', 'b', 'c']
+        Categories (3, object): ['a', 'b', 'c']
         >>> cat.repeat(2)
-        [a, a, b, b, c, c]
-        Categories (3, object): [a, b, c]
+        ['a', 'a', 'b', 'b', 'c', 'c']
+        Categories (3, object): ['a', 'b', 'c']
         >>> cat.repeat([1, 2, 3])
-        [a, b, b, c, c, c]
-        Categories (3, object): [a, b, c]
+        ['a', 'b', 'b', 'c', 'c', 'c']
+        Categories (3, object): ['a', 'b', 'c']
         """
 
     @Substitution(klass="ExtensionArray")
@@ -1080,7 +1126,7 @@ class ExtensionArray:
     # of objects
     _can_hold_na = True
 
-    def _reduce(self, name, skipna=True, **kwargs):
+    def _reduce(self, name: str, skipna: bool = True, **kwargs):
         """
         Return a scalar result of performing the reduction operation.
 
@@ -1233,7 +1279,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
                     ovalues = [param] * len(self)
                 return ovalues
 
-            if isinstance(other, (ABCSeries, ABCIndexClass)):
+            if isinstance(other, (ABCSeries, ABCIndexClass, ABCDataFrame)):
                 # rely on pandas to unbox and dispatch to us
                 return NotImplemented
 

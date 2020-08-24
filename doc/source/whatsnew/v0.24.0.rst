@@ -277,8 +277,8 @@ For earlier versions this can be done using the following.
 
 .. _whatsnew_0240.enhancements.read_html:
 
-``read_html`` Enhancements
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+Function ``read_html`` enhancements
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :func:`read_html` previously ignored ``colspan`` and ``rowspan`` attributes.
 Now it understands them, treating them as sequences of cells with the same
@@ -1371,7 +1371,7 @@ the object's ``freq`` attribute (:issue:`21939`, :issue:`23878`).
 
 .. _whatsnew_0240.deprecations.integer_tz:
 
-Passing integer data and a timezone to datetimeindex
+Passing integer data and a timezone to DatetimeIndex
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The behavior of :class:`DatetimeIndex` when passed integer data and
@@ -1769,8 +1769,8 @@ MultiIndex
 - :class:`MultiIndex` has gained the :meth:`MultiIndex.from_frame`, it allows constructing a :class:`MultiIndex` object from a :class:`DataFrame` (:issue:`22420`)
 - Fix ``TypeError`` in Python 3 when creating :class:`MultiIndex` in which some levels have mixed types, e.g. when some labels are tuples (:issue:`15457`)
 
-I/O
-^^^
+IO
+^^
 
 - Bug in :func:`read_csv` in which a column specified with ``CategoricalDtype`` of boolean categories was not being correctly coerced from string values to booleans (:issue:`20498`)
 - Bug in :func:`read_csv` in which unicode column names were not being properly recognized with Python 2.x (:issue:`13253`)
@@ -1827,7 +1827,7 @@ Plotting
 - Bug in :func:`DataFrame.plot.bar` caused bars to use multiple colors instead of a single one (:issue:`20585`)
 - Bug in validating color parameter caused extra color to be appended to the given color array. This happened to multiple plotting functions using matplotlib. (:issue:`20726`)
 
-Groupby/resample/rolling
+GroupBy/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug in :func:`pandas.core.window.Rolling.min` and :func:`pandas.core.window.Rolling.max` with ``closed='left'``, a datetime-like index and only one entry in the series leading to segfault (:issue:`24718`)

@@ -1,10 +1,15 @@
 """
 Read SAS sas7bdat or xport files.
 """
-
 from abc import ABCMeta, abstractmethod
+from typing import TYPE_CHECKING, Optional, Union, overload
 
-from pandas.io.common import stringify_path
+from pandas._typing import FilePathOrBuffer, Label
+
+from pandas.io.common import get_filepath_or_buffer, stringify_path
+
+if TYPE_CHECKING:
+    from pandas import DataFrame  # noqa: F401
 
 
 # TODO(PY38): replace with Protocol in Python 3.8
@@ -22,14 +27,38 @@ class ReaderBase(metaclass=ABCMeta):
         pass
 
 
+@overload
 def read_sas(
-    filepath_or_buffer,
-    format=None,
-    index=None,
-    encoding=None,
-    chunksize=None,
-    iterator=False,
-):
+    filepath_or_buffer: FilePathOrBuffer,
+    format: Optional[str] = ...,
+    index: Optional[Label] = ...,
+    encoding: Optional[str] = ...,
+    chunksize: int = ...,
+    iterator: bool = ...,
+) -> ReaderBase:
+    ...
+
+
+@overload
+def read_sas(
+    filepath_or_buffer: FilePathOrBuffer,
+    format: Optional[str] = ...,
+    index: Optional[Label] = ...,
+    encoding: Optional[str] = ...,
+    chunksize: None = ...,
+    iterator: bool = ...,
+) -> Union["DataFrame", ReaderBase]:
+    ...
+
+
+def read_sas(
+    filepath_or_buffer: FilePathOrBuffer,
+    format: Optional[str] = None,
+    index: Optional[Label] = None,
+    encoding: Optional[str] = None,
+    chunksize: Optional[int] = None,
+    iterator: bool = False,
+) -> Union["DataFrame", ReaderBase]:
     """
     Read SAS files stored as either XPORT or SAS7BDAT format files.
 
@@ -80,6 +109,10 @@ def read_sas(
         else:
             raise ValueError("unable to infer format of SAS file")
 
+    filepath_or_buffer, _, _, should_close = get_filepath_or_buffer(
+        filepath_or_buffer, encoding
+    )
+
     reader: ReaderBase
     if format.lower() == "xport":
         from pandas.io.sas.sas_xport import XportReader
@@ -100,5 +133,7 @@ def read_sas(
         return reader
 
     data = reader.read()
-    reader.close()
+
+    if should_close:
+        reader.close()
     return data

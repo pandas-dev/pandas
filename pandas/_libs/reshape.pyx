@@ -16,7 +16,9 @@ from numpy cimport (
 )
 
 import numpy as np
+
 cimport numpy as cnp
+
 cnp.import_array()
 
 from pandas._libs.lib cimport c_is_list_like

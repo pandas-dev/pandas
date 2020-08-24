@@ -4,6 +4,7 @@ from datetime import timedelta
 from io import StringIO
 import json
 import os
+import sys
 
 import numpy as np
 import pytest
@@ -12,7 +13,7 @@ from pandas.compat import is_platform_32bit, is_platform_windows
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, DatetimeIndex, Series, Timestamp, read_json
+from pandas import DataFrame, DatetimeIndex, Series, Timestamp, compat, read_json
 import pandas._testing as tm
 
 _seriesd = tm.getSeriesData()
@@ -34,6 +35,9 @@ def assert_json_roundtrip_equal(result, expected, orient):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:an integer is required (got type float)*:DeprecationWarning"
+)
 @pytest.mark.filterwarnings("ignore:the 'numpy' keyword is deprecated:FutureWarning")
 class TestPandasContainer:
     @pytest.fixture(autouse=True)
@@ -159,7 +163,7 @@ class TestPandasContainer:
 
         assert_json_roundtrip_equal(result, expected, orient)
 
-    @pytest.mark.parametrize("dtype", [None, np.float64, np.int, "U3"])
+    @pytest.mark.parametrize("dtype", [None, np.float64, int, "U3"])
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
     def test_roundtrip_str_axes(self, orient, convert_axes, numpy, dtype):
@@ -673,7 +677,7 @@ class TestPandasContainer:
 
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("dtype", [np.float64, np.int])
+    @pytest.mark.parametrize("dtype", [np.float64, int])
     @pytest.mark.parametrize("numpy", [True, False])
     def test_series_roundtrip_numeric(self, orient, numpy, dtype):
         s = Series(range(6), index=["a", "b", "c", "d", "e", "f"])
@@ -1209,10 +1213,12 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         tm.assert_frame_equal(result, expected)
 
     @td.skip_if_not_us_locale
-    def test_read_s3_jsonl(self, s3_resource):
+    def test_read_s3_jsonl(self, s3_resource, s3so):
         # GH17200
 
-        result = read_json("s3n://pandas-test/items.jsonl", lines=True)
+        result = read_json(
+            "s3n://pandas-test/items.jsonl", lines=True, storage_options=s3so
+        )
         expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
         tm.assert_frame_equal(result, expected)
 
@@ -1242,7 +1248,39 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         expected = DataFrame([["foo\u201d", "bar"], ["foo", "bar"]], columns=["a", "b"])
         tm.assert_frame_equal(result, expected)
 
-    def test_read_json_large_numbers(self):
+    @pytest.mark.parametrize("bigNum", [sys.maxsize + 1, -(sys.maxsize + 2)])
+    def test_to_json_large_numbers(self, bigNum):
+        # GH34473
+        series = Series(bigNum, dtype=object, index=["articleId"])
+        json = series.to_json()
+        expected = '{"articleId":' + str(bigNum) + "}"
+        assert json == expected
+
+        df = DataFrame(bigNum, dtype=object, index=["articleId"], columns=[0])
+        json = df.to_json()
+        expected = '{"0":{"articleId":' + str(bigNum) + "}}"
+        assert json == expected
+
+    @pytest.mark.parametrize("bigNum", [sys.maxsize + 1, -(sys.maxsize + 2)])
+    @pytest.mark.skipif(not compat.IS64, reason="GH-35279")
+    def test_read_json_large_numbers(self, bigNum):
+        # GH20599
+
+        series = Series(bigNum, dtype=object, index=["articleId"])
+        json = '{"articleId":' + str(bigNum) + "}"
+        with pytest.raises(ValueError):
+            json = StringIO(json)
+            result = read_json(json)
+            tm.assert_series_equal(series, result)
+
+        df = DataFrame(bigNum, dtype=object, index=["articleId"], columns=[0])
+        json = '{"0":{"articleId":' + str(bigNum) + "}}"
+        with pytest.raises(ValueError):
+            json = StringIO(json)
+            result = read_json(json)
+            tm.assert_frame_equal(df, result)
+
+    def test_read_json_large_numbers2(self):
         # GH18842
         json = '{"articleId": "1404366058080022500245"}'
         json = StringIO(json)
@@ -1665,13 +1703,26 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         assert result == expected
 
     def test_to_s3(self, s3_resource):
+        import time
+
         # GH 28375
         mock_bucket_name, target_file = "pandas-test", "test.json"
         df = DataFrame({"x": [1, 2, 3], "y": [2, 4, 6]})
-        df.to_json(f"s3://{mock_bucket_name}/{target_file}")
-        assert target_file in (
-            obj.key for obj in s3_resource.Bucket("pandas-test").objects.all()
+        df.to_json(
+            f"s3://{mock_bucket_name}/{target_file}",
+            storage_options=dict(
+                client_kwargs={"endpoint_url": "http://127.0.0.1:5555/"}
+            ),
         )
+        timeout = 5
+        while True:
+            if target_file in (
+                obj.key for obj in s3_resource.Bucket("pandas-test").objects.all()
+            ):
+                break
+            time.sleep(0.1)
+            timeout -= 0.1
+            assert timeout > 0, "Timed out waiting for file to appear on moto"
 
     def test_json_pandas_na(self):
         # GH 31615
