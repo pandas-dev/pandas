@@ -541,7 +541,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     Parameters
     ----------
-    path : str or BinaryIO
+    path : str or typing.BinaryIO
         Path to xls or xlsx or ods file.
     engine : str (optional)
         Engine to use for writing. If None, defaults to
