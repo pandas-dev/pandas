@@ -330,31 +330,18 @@ class BlockManager(PandasObject):
                 f"tot_items: {tot_items}"
             )
 
-    def reduce(self, func):
+    def reduce(self: T, func) -> T:
         # If 2D, we assume that we're operating column-wise
-        if self.ndim == 1:
-            # we'll be returning a scalar
-            blk = self.blocks[0]
-            return func(blk.values)
+        assert self.ndim == 2
 
-        res = {}
+        res_blocks = []
         for blk in self.blocks:
-            bres = func(blk.values)
+            nbs = blk.reduce(func)
+            res_blocks.extend(nbs)
 
-            if np.ndim(bres) == 0:
-                # EA
-                assert blk.shape[0] == 1
-                new_res = zip(blk.mgr_locs.as_array, [bres])
-            else:
-                assert bres.ndim == 1, bres.shape
-                assert blk.shape[0] == len(bres), (blk.shape, bres.shape)
-                new_res = zip(blk.mgr_locs.as_array, bres)
-
-            nr = dict(new_res)
-            assert not any(key in res for key in nr)
-            res.update(nr)
-
-        return res
+        index = Index([0])  # placeholder
+        new_mgr = BlockManager.from_blocks(res_blocks, [self.items, index])
+        return new_mgr
 
     def operate_blockwise(self, other: "BlockManager", array_op) -> "BlockManager":
         """
