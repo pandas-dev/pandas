@@ -10703,7 +10703,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             - function
             - string function name
-            - list of functions and/or function names, e.g. ``[np.exp. 'sqrt']``
+            - list of functions and/or function names, e.g. ``[np.exp, 'sqrt']``
             - dict of axis labels -> functions, function names or list of such.
         {axis}
         *args
