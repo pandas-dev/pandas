@@ -1460,9 +1460,9 @@ class SQLDatabase(PandasSQL):
             frame: DataFrame,
             table_name: str,
             keys: Optional[List[str]] = None,
-            dtype : Optional[dict]=None,
+            dtype : Optional[dict] = None,
             schema: Optional[str] = None
-        ):
+    ):
         table = SQLTable(
             table_name,
             self,
