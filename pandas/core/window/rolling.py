@@ -561,8 +561,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         elif not len(res_blocks):
             return obj.astype("float64")
 
-        new_cols = mgr.reset_dropped_locs(res_blocks, skipped)
-        new_mgr = type(mgr).from_blocks(res_blocks, [new_cols, obj.index])
+        new_mgr = mgr._combine(res_blocks)
         out = obj._constructor(new_mgr)
         self._insert_on_column(out, obj)
         return out
