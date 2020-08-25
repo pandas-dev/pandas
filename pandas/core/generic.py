@@ -265,16 +265,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         * :attr:`Flags.allows_duplicate_labels`
 
+        See Also
+        --------
+        Flags
+        DataFrame.attrs
+
         Notes
         -----
         "Flags" differ from "metadata". Flags reflect properties of the
         pandas object (the Series or DataFrame). Metadata refer to properties
         of the dataset, and should be stored in :attr:`DataFrame.attrs`.
-
-        See Also
-        --------
-        Flags
-        DataFrame.attrs
 
         Examples
         --------
