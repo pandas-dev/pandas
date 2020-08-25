@@ -771,13 +771,12 @@ class TestParquetFastParquet(Base):
 
     def test_s3_roundtrip(self, df_compat, s3_resource, fp, s3so):
         # GH #19134
-        s3so = dict(storage_options=s3so)
         check_round_trip(
             df_compat,
             fp,
             path="s3://pandas-test/fastparquet.parquet",
-            read_kwargs=s3so,
-            write_kwargs=s3so,
+            read_kwargs=dict(storage_options=s3so),
+            write_kwargs=dict(compression=None, storage_options=s3so),
         )
 
     def test_partition_cols_supported(self, fp, df_full):
