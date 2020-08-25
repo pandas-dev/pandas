@@ -5,6 +5,7 @@ specific classification into the other test modules.
 import codecs
 import csv
 from datetime import datetime
+from inspect import signature
 from io import StringIO
 import os
 import platform
@@ -17,7 +18,7 @@ from pandas._libs.tslib import Timestamp
 from pandas.errors import DtypeWarning, EmptyDataError, ParserError
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Index, MultiIndex, Series, compat, concat
+from pandas import DataFrame, Index, MultiIndex, Series, compat, concat, option_context
 import pandas._testing as tm
 
 from pandas.io.parsers import CParserWrapper, TextFileReader, TextParser
@@ -960,13 +961,32 @@ def test_nonexistent_path(all_parsers):
     parser = all_parsers
     path = f"{tm.rands(10)}.csv"
 
-    msg = f"File {path} does not exist" if parser.engine == "c" else r"\[Errno 2\]"
+    msg = r"\[Errno 2\]"
     with pytest.raises(FileNotFoundError, match=msg) as e:
         parser.read_csv(path)
+    assert path == e.value.filename
 
-        filename = e.value.filename
 
-        assert path == filename
+@td.skip_if_windows  # os.chmod does not work in windows
+def test_no_permission(all_parsers):
+    # GH 23784
+    parser = all_parsers
+
+    msg = r"\[Errno 13\]"
+    with tm.ensure_clean() as path:
+        os.chmod(path, 0)  # make file unreadable
+
+        # verify that this process cannot open the file (not running as sudo)
+        try:
+            with open(path):
+                pass
+            pytest.skip("Running as sudo.")
+        except PermissionError:
+            pass
+
+        with pytest.raises(PermissionError, match=msg) as e:
+            parser.read_csv(path)
+        assert path == e.value.filename
 
 
 def test_missing_trailing_delimiters(all_parsers):
@@ -1063,14 +1083,14 @@ def test_escapechar(all_parsers):
     data = '''SEARCH_TERM,ACTUAL_URL
 "bra tv bord","http://www.ikea.com/se/sv/catalog/categories/departments/living_room/10475/?se%7cps%7cnonbranded%7cvardagsrum%7cgoogle%7ctv_bord"
 "tv p\xc3\xa5 hjul","http://www.ikea.com/se/sv/catalog/categories/departments/living_room/10475/?se%7cps%7cnonbranded%7cvardagsrum%7cgoogle%7ctv_bord"
-"SLAGBORD, \\"Bergslagen\\", IKEA:s 1700-tals serie","http://www.ikea.com/se/sv/catalog/categories/departments/living_room/10475/?se%7cps%7cnonbranded%7cvardagsrum%7cgoogle%7ctv_bord"'''  # noqa
+"SLAGBORD, \\"Bergslagen\\", IKEA:s 1700-tals series","http://www.ikea.com/se/sv/catalog/categories/departments/living_room/10475/?se%7cps%7cnonbranded%7cvardagsrum%7cgoogle%7ctv_bord"'''  # noqa
 
     parser = all_parsers
     result = parser.read_csv(
         StringIO(data), escapechar="\\", quotechar='"', encoding="utf-8"
     )
 
-    assert result["SEARCH_TERM"][2] == 'SLAGBORD, "Bergslagen", IKEA:s 1700-tals serie'
+    assert result["SEARCH_TERM"][2] == 'SLAGBORD, "Bergslagen", IKEA:s 1700-tals series'
 
     tm.assert_index_equal(result.columns, Index(["SEARCH_TERM", "ACTUAL_URL"]))
 
@@ -1118,6 +1138,7 @@ def test_parse_integers_above_fp_precision(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(reason="ResourceWarning #35660", strict=False)
 def test_chunks_have_consistent_numerical_type(all_parsers):
     parser = all_parsers
     integers = [str(i) for i in range(499999)]
@@ -1128,9 +1149,10 @@ def test_chunks_have_consistent_numerical_type(all_parsers):
         result = parser.read_csv(StringIO(data))
 
     assert type(result.a[0]) is np.float64
-    assert result.a.dtype == np.float
+    assert result.a.dtype == float
 
 
+@pytest.mark.xfail(reason="ResourceWarning #35660", strict=False)
 def test_warn_if_chunks_have_mismatched_type(all_parsers):
     warning_type = None
     parser = all_parsers
@@ -1144,7 +1166,7 @@ def test_warn_if_chunks_have_mismatched_type(all_parsers):
 
     with tm.assert_produces_warning(warning_type):
         df = parser.read_csv(StringIO(data))
-    assert df.a.dtype == np.object
+    assert df.a.dtype == object
 
 
 @pytest.mark.parametrize("sep", [" ", r"\s+"])
@@ -1814,6 +1836,7 @@ def test_raise_on_no_columns(all_parsers, nrows):
         parser.read_csv(StringIO(data))
 
 
+@td.check_file_leaks
 def test_memory_map(all_parsers, csv_dir_path):
     mmap_file = os.path.join(csv_dir_path, "test_mmap.csv")
     parser = all_parsers
@@ -2052,6 +2075,39 @@ def test_read_csv_raises_on_header_prefix(all_parsers):
         parser.read_csv(s, header=0, prefix="_X")
 
 
+def test_unexpected_keyword_parameter_exception(all_parsers):
+    # GH-34976
+    parser = all_parsers
+
+    msg = "{}\\(\\) got an unexpected keyword argument 'foo'"
+    with pytest.raises(TypeError, match=msg.format("read_csv")):
+        parser.read_csv("foo.csv", foo=1)
+    with pytest.raises(TypeError, match=msg.format("read_table")):
+        parser.read_table("foo.tsv", foo=1)
+
+
+def test_read_table_same_signature_as_read_csv(all_parsers):
+    # GH-34976
+    parser = all_parsers
+
+    table_sign = signature(parser.read_table)
+    csv_sign = signature(parser.read_csv)
+
+    assert table_sign.parameters.keys() == csv_sign.parameters.keys()
+    assert table_sign.return_annotation == csv_sign.return_annotation
+
+    for key, csv_param in csv_sign.parameters.items():
+        table_param = table_sign.parameters[key]
+        if key == "sep":
+            assert csv_param.default == ","
+            assert table_param.default == "\t"
+            assert table_param.annotation == csv_param.annotation
+            assert table_param.kind == csv_param.kind
+            continue
+        else:
+            assert table_param == csv_param
+
+
 def test_read_table_equivalency_to_read_csv(all_parsers):
     # see gh-21948
     # As of 0.25.0, read_table is undeprecated
@@ -2106,3 +2162,33 @@ def test_blank_lines_between_header_and_data_rows(all_parsers, nrows):
     parser = all_parsers
     df = parser.read_csv(StringIO(csv), header=3, nrows=nrows, skip_blank_lines=False)
     tm.assert_frame_equal(df, ref[:nrows])
+
+
+def test_no_header_two_extra_columns(all_parsers):
+    # GH 26218
+    column_names = ["one", "two", "three"]
+    ref = DataFrame([["foo", "bar", "baz"]], columns=column_names)
+    stream = StringIO("foo,bar,baz,bam,blah")
+    parser = all_parsers
+    df = parser.read_csv(stream, header=None, names=column_names, index_col=False)
+    tm.assert_frame_equal(df, ref)
+
+
+def test_read_csv_names_not_accepting_sets(all_parsers):
+    # GH 34946
+    data = """\
+    1,2,3
+    4,5,6\n"""
+    parser = all_parsers
+    with pytest.raises(ValueError, match="Names should be an ordered collection."):
+        parser.read_csv(StringIO(data), names=set("QAZ"))
+
+
+def test_read_csv_with_use_inf_as_na(all_parsers):
+    # https://github.com/pandas-dev/pandas/issues/35493
+    parser = all_parsers
+    data = "1.0\nNaN\n3.0"
+    with option_context("use_inf_as_na", True):
+        result = parser.read_csv(StringIO(data), header=None)
+    expected = DataFrame([1.0, np.nan, 3.0])
+    tm.assert_frame_equal(result, expected)

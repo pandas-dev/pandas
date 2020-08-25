@@ -165,7 +165,7 @@ index. For example:
 .. note::
     The existence of multiple row/column indices at the same time
     has not been mentioned within these tutorials. *Hierarchical indexing*
-    or *MultiIndex* is an advanced and powerfull pandas feature to analyze
+    or *MultiIndex* is an advanced and powerful pandas feature to analyze
     higher dimensional data.
 
     Multi-indexing is out of scope for this pandas introduction. For the
@@ -305,7 +305,7 @@ More information on join/merge of tables is provided in the user guide section o
     <div class="shadow gs-callout gs-callout-remember">
         <h4>REMEMBER</h4>
 
--  Multiple tables can be concatenated both column as row wise using
+-  Multiple tables can be concatenated both column-wise and row-wise using
    the ``concat`` function.
 -  For database-like merging/joining of tables, use the ``merge``
    function.

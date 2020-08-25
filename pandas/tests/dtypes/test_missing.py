@@ -185,6 +185,21 @@ class TestIsNA:
         exp = np.zeros(len(mask), dtype=bool)
         tm.assert_numpy_array_equal(mask, exp)
 
+    def test_isna_old_datetimelike(self):
+        # isna_old should work for dt64tz, td64, and period, not just tznaive
+        dti = pd.date_range("2016-01-01", periods=3)
+        dta = dti._data
+        dta[-1] = pd.NaT
+        expected = np.array([False, False, True], dtype=bool)
+
+        objs = [dta, dta.tz_localize("US/Eastern"), dta - dta, dta.to_period("D")]
+
+        for obj in objs:
+            with cf.option_context("mode.use_inf_as_na", True):
+                result = pd.isna(obj)
+
+            tm.assert_numpy_array_equal(result, expected)
+
     @pytest.mark.parametrize(
         "value, expected",
         [
@@ -285,50 +300,80 @@ class TestIsNA:
         tm.assert_series_equal(notna(s), ~exp)
 
 
-def test_array_equivalent():
-    assert array_equivalent(np.array([np.nan, np.nan]), np.array([np.nan, np.nan]))
+@pytest.mark.parametrize("dtype_equal", [True, False])
+def test_array_equivalent(dtype_equal):
     assert array_equivalent(
-        np.array([np.nan, 1, np.nan]), np.array([np.nan, 1, np.nan])
+        np.array([np.nan, np.nan]), np.array([np.nan, np.nan]), dtype_equal=dtype_equal
+    )
+    assert array_equivalent(
+        np.array([np.nan, 1, np.nan]),
+        np.array([np.nan, 1, np.nan]),
+        dtype_equal=dtype_equal,
     )
     assert array_equivalent(
         np.array([np.nan, None], dtype="object"),
         np.array([np.nan, None], dtype="object"),
+        dtype_equal=dtype_equal,
     )
     # Check the handling of nested arrays in array_equivalent_object
     assert array_equivalent(
         np.array([np.array([np.nan, None], dtype="object"), None], dtype="object"),
         np.array([np.array([np.nan, None], dtype="object"), None], dtype="object"),
+        dtype_equal=dtype_equal,
     )
     assert array_equivalent(
         np.array([np.nan, 1 + 1j], dtype="complex"),
         np.array([np.nan, 1 + 1j], dtype="complex"),
+        dtype_equal=dtype_equal,
     )
     assert not array_equivalent(
         np.array([np.nan, 1 + 1j], dtype="complex"),
         np.array([np.nan, 1 + 2j], dtype="complex"),
+        dtype_equal=dtype_equal,
     )
     assert not array_equivalent(
-        np.array([np.nan, 1, np.nan]), np.array([np.nan, 2, np.nan])
+        np.array([np.nan, 1, np.nan]),
+        np.array([np.nan, 2, np.nan]),
+        dtype_equal=dtype_equal,
     )
-    assert not array_equivalent(np.array(["a", "b", "c", "d"]), np.array(["e", "e"]))
-    assert array_equivalent(Float64Index([0, np.nan]), Float64Index([0, np.nan]))
-    assert not array_equivalent(Float64Index([0, np.nan]), Float64Index([1, np.nan]))
-    assert array_equivalent(DatetimeIndex([0, np.nan]), DatetimeIndex([0, np.nan]))
-    assert not array_equivalent(DatetimeIndex([0, np.nan]), DatetimeIndex([1, np.nan]))
-    assert array_equivalent(TimedeltaIndex([0, np.nan]), TimedeltaIndex([0, np.nan]))
     assert not array_equivalent(
-        TimedeltaIndex([0, np.nan]), TimedeltaIndex([1, np.nan])
+        np.array(["a", "b", "c", "d"]), np.array(["e", "e"]), dtype_equal=dtype_equal
+    )
+    assert array_equivalent(
+        Float64Index([0, np.nan]), Float64Index([0, np.nan]), dtype_equal=dtype_equal
+    )
+    assert not array_equivalent(
+        Float64Index([0, np.nan]), Float64Index([1, np.nan]), dtype_equal=dtype_equal
+    )
+    assert array_equivalent(
+        DatetimeIndex([0, np.nan]), DatetimeIndex([0, np.nan]), dtype_equal=dtype_equal
+    )
+    assert not array_equivalent(
+        DatetimeIndex([0, np.nan]), DatetimeIndex([1, np.nan]), dtype_equal=dtype_equal
+    )
+    assert array_equivalent(
+        TimedeltaIndex([0, np.nan]),
+        TimedeltaIndex([0, np.nan]),
+        dtype_equal=dtype_equal,
+    )
+    assert not array_equivalent(
+        TimedeltaIndex([0, np.nan]),
+        TimedeltaIndex([1, np.nan]),
+        dtype_equal=dtype_equal,
     )
     assert array_equivalent(
         DatetimeIndex([0, np.nan], tz="US/Eastern"),
         DatetimeIndex([0, np.nan], tz="US/Eastern"),
+        dtype_equal=dtype_equal,
     )
     assert not array_equivalent(
         DatetimeIndex([0, np.nan], tz="US/Eastern"),
         DatetimeIndex([1, np.nan], tz="US/Eastern"),
+        dtype_equal=dtype_equal,
     )
+    # The rest are not dtype_equal
     assert not array_equivalent(
-        DatetimeIndex([0, np.nan]), DatetimeIndex([0, np.nan], tz="US/Eastern")
+        DatetimeIndex([0, np.nan]), DatetimeIndex([0, np.nan], tz="US/Eastern"),
     )
     assert not array_equivalent(
         DatetimeIndex([0, np.nan], tz="CET"),
@@ -336,6 +381,11 @@ def test_array_equivalent():
     )
 
     assert not array_equivalent(DatetimeIndex([0, np.nan]), TimedeltaIndex([0, np.nan]))
+
+
+def test_array_equivalent_different_dtype_but_equal():
+    # Unclear if this is exposed anywhere in the public-facing API
+    assert array_equivalent(np.array([1, 2]), np.array([1.0, 2.0]))
 
 
 @pytest.mark.parametrize(
@@ -549,7 +599,7 @@ class TestLibMissing:
         for value in never_na_vals:
             assert not libmissing.checknull(value)
 
-    def checknull_old(self):
+    def test_checknull_old(self):
         for value in na_vals:
             assert libmissing.checknull_old(value)
 

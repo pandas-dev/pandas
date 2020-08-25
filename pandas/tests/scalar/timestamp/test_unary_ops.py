@@ -5,14 +5,11 @@ import pytest
 import pytz
 from pytz import utc
 
-from pandas._libs.tslibs import conversion
-from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
+from pandas._libs.tslibs import NaT, Timestamp, conversion, to_offset
+from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 import pandas.util._test_decorators as td
 
-from pandas import NaT, Timestamp
 import pandas._testing as tm
-
-from pandas.tseries.frequencies import to_offset
 
 
 class TestTimestampUnaryOps:
@@ -166,7 +163,8 @@ class TestTimestampUnaryOps:
         result = getattr(ts, method)("H", ambiguous="NaT")
         assert result is NaT
 
-        with pytest.raises(pytz.AmbiguousTimeError):
+        msg = "Cannot infer dst time"
+        with pytest.raises(pytz.AmbiguousTimeError, match=msg):
             getattr(ts, method)("H", ambiguous="raise")
 
     @pytest.mark.parametrize(
@@ -187,7 +185,8 @@ class TestTimestampUnaryOps:
         result = getattr(ts, method)(freq, nonexistent="NaT")
         assert result is NaT
 
-        with pytest.raises(pytz.NonExistentTimeError, match="2018-03-11 02:00:00"):
+        msg = "2018-03-11 02:00:00"
+        with pytest.raises(pytz.NonExistentTimeError, match=msg):
             getattr(ts, method)(freq, nonexistent="raise")
 
     @pytest.mark.parametrize(
@@ -298,14 +297,16 @@ class TestTimestampUnaryOps:
         tz = tz_aware_fixture
         # GH#14621, GH#7825
         ts = Timestamp("2016-01-01 09:00:00.000000123", tz=tz)
-        with pytest.raises(TypeError):
+        msg = r"replace\(\) got an unexpected keyword argument"
+        with pytest.raises(TypeError, match=msg):
             ts.replace(foo=5)
 
     def test_replace_integer_args(self, tz_aware_fixture):
         tz = tz_aware_fixture
         # GH#14621, GH#7825
         ts = Timestamp("2016-01-01 09:00:00.000000123", tz=tz)
-        with pytest.raises(ValueError):
+        msg = "value must be an integer, received <class 'float'> for hour"
+        with pytest.raises(ValueError, match=msg):
             ts.replace(hour=0.1)
 
     def test_replace_tzinfo_equiv_tz_localize_none(self):

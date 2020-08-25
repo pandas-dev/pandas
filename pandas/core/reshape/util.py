@@ -19,8 +19,7 @@ def cartesian_product(X):
     Examples
     --------
     >>> cartesian_product([list('ABC'), [1, 2]])
-    [array(['A', 'A', 'B', 'B', 'C', 'C'], dtype='|S1'),
-    array([1, 2, 1, 2, 1, 2])]
+    [array(['A', 'A', 'B', 'B', 'C', 'C'], dtype='<U1'), array([1, 2, 1, 2, 1, 2])]
 
     See Also
     --------

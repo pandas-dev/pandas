@@ -12,7 +12,7 @@ from pandas.core.arrays import TimedeltaArray
 class TestTimedeltaIndex:
     @pytest.mark.parametrize("unit", ["Y", "y", "M"])
     def test_unit_m_y_raises(self, unit):
-        msg = "Units 'M' and 'Y' are no longer supported"
+        msg = "Units 'M', 'Y', and 'y' are no longer supported"
         with pytest.raises(ValueError, match=msg):
             TimedeltaIndex([1, 3, 7], unit)
 
@@ -168,7 +168,11 @@ class TestTimedeltaIndex:
         with pytest.raises(TypeError, match=msg):
             timedelta_range(start="1 days", periods="foo", freq="D")
 
-        with pytest.raises(TypeError):
+        msg = (
+            r"TimedeltaIndex\(\) must be called with a collection of some kind, "
+            "'1 days' was passed"
+        )
+        with pytest.raises(TypeError, match=msg):
             TimedeltaIndex("1 days")
 
         # generator expression
@@ -220,5 +224,17 @@ class TestTimedeltaIndex:
             pd.Index(["2000"], dtype="timedelta64")
 
     def test_constructor_wrong_precision_raises(self):
-        with pytest.raises(ValueError):
+        msg = r"dtype timedelta64\[us\] cannot be converted to timedelta64\[ns\]"
+        with pytest.raises(ValueError, match=msg):
             pd.TimedeltaIndex(["2000"], dtype="timedelta64[us]")
+
+    def test_explicit_none_freq(self):
+        # Explicitly passing freq=None is respected
+        tdi = timedelta_range(1, periods=5)
+        assert tdi.freq is not None
+
+        result = TimedeltaIndex(tdi, freq=None)
+        assert result.freq is None
+
+        result = TimedeltaIndex(tdi._data, freq=None)
+        assert result.freq is None

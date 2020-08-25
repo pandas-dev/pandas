@@ -209,7 +209,8 @@ def test_difference_sort_incomparable():
     # sort=None, the default
     # MultiIndex.difference deviates here from other difference
     # implementations in not catching the TypeError
-    with pytest.raises(TypeError):
+    msg = "'<' not supported between instances of 'Timestamp' and 'int'"
+    with pytest.raises(TypeError, match=msg):
         result = idx.difference(other)
 
     # sort=False
@@ -336,7 +337,8 @@ def test_union_sort_other_incomparable():
     idx = pd.MultiIndex.from_product([[1, pd.Timestamp("2000")], ["a", "b"]])
 
     # default, sort=None
-    result = idx.union(idx[:1])
+    with tm.assert_produces_warning(RuntimeWarning):
+        result = idx.union(idx[:1])
     tm.assert_index_equal(result, idx)
 
     # sort=False

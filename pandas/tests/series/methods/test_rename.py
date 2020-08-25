@@ -89,3 +89,12 @@ class TestRename:
         s = Series([1, 2, 3])
         s.rename(ix, inplace=True)
         assert s.name is ix
+
+    def test_rename_callable(self):
+        # GH 17407
+        s = Series(range(1, 6), index=Index(range(2, 7), name="IntIndex"))
+        result = s.rename(str)
+        expected = s.rename(lambda i: str(i))
+        tm.assert_series_equal(result, expected)
+
+        assert result.name == expected.name

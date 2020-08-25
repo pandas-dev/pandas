@@ -1,8 +1,8 @@
 # cython: profile=False
 # cython: boundscheck=False, initializedcheck=False
 from cython import Py_ssize_t
-
 import numpy as np
+
 import pandas.io.sas.sas_constants as const
 
 ctypedef signed long long   int64_t
@@ -431,7 +431,7 @@ cdef class Parser:
             elif column_types[j] == column_type_string:
                 # string
                 string_chunk[js, current_row] = np.array(source[start:(
-                    start + lngt)]).tostring().rstrip(b"\x00 ")
+                    start + lngt)]).tobytes().rstrip(b"\x00 ")
                 js += 1
 
         self.current_row_on_page_index += 1

@@ -1,7 +1,9 @@
 import numpy as np
+import pytest
 
 import pandas as pd
 from pandas import Series
+import pandas._testing as tm
 
 
 def test_get():
@@ -132,3 +134,61 @@ def test_get_nan_multiple():
 
     idx = [np.nan, np.nan]
     assert s.get(idx) is None
+
+
+def test_get_with_default():
+    # GH#7725
+    d0 = ["a", "b", "c", "d"]
+    d1 = np.arange(4, dtype="int64")
+    others = ["e", 10]
+
+    for data, index in ((d0, d1), (d1, d0)):
+        s = Series(data, index=index)
+        for i, d in zip(index, data):
+            assert s.get(i) == d
+            assert s.get(i, d) == d
+            assert s.get(i, "z") == d
+            for other in others:
+                assert s.get(other, "z") == "z"
+                assert s.get(other, other) == other
+
+
+@pytest.mark.parametrize(
+    "arr",
+    [np.random.randn(10), tm.makeDateIndex(10, name="a").tz_localize(tz="US/Eastern")],
+)
+def test_get2(arr):
+    # TODO: better name, possibly split
+    # GH#21260
+    ser = Series(arr, index=[2 * i for i in range(len(arr))])
+    assert ser.get(4) == ser.iloc[2]
+
+    result = ser.get([4, 6])
+    expected = ser.iloc[[2, 3]]
+    tm.assert_series_equal(result, expected)
+
+    result = ser.get(slice(2))
+    expected = ser.iloc[[0, 1]]
+    tm.assert_series_equal(result, expected)
+
+    assert ser.get(-1) is None
+    assert ser.get(ser.index.max() + 1) is None
+
+    ser = Series(arr[:6], index=list("abcdef"))
+    assert ser.get("c") == ser.iloc[2]
+
+    result = ser.get(slice("b", "d"))
+    expected = ser.iloc[[1, 2, 3]]
+    tm.assert_series_equal(result, expected)
+
+    result = ser.get("Z")
+    assert result is None
+
+    assert ser.get(4) == ser.iloc[4]
+    assert ser.get(-1) == ser.iloc[-1]
+    assert ser.get(len(ser)) is None
+
+    # GH#21257
+    ser = Series(arr)
+    ser2 = ser[::2]
+    assert ser2.get(1) is None

@@ -1,18 +1,22 @@
 import re
-from typing import Optional
+from typing import List, Optional
 import warnings
 
+from matplotlib.artist import Artist
 import numpy as np
 
+from pandas._typing import Label
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
+    is_float,
     is_hashable,
     is_integer,
     is_iterator,
     is_list_like,
     is_number,
+    is_numeric_dtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -95,6 +99,8 @@ class MPLPlot:
         ylim=None,
         xticks=None,
         yticks=None,
+        xlabel: Optional[Label] = None,
+        ylabel: Optional[Label] = None,
         sort_columns=False,
         fontsize=None,
         secondary_y=False,
@@ -136,6 +142,8 @@ class MPLPlot:
         self.ylim = ylim
         self.title = title
         self.use_index = use_index
+        self.xlabel = xlabel
+        self.ylabel = ylabel
 
         self.fontsize = fontsize
 
@@ -153,8 +161,8 @@ class MPLPlot:
 
         self.grid = grid
         self.legend = legend
-        self.legend_handles = []
-        self.legend_labels = []
+        self.legend_handles: List[Artist] = []
+        self.legend_labels: List[Label] = []
 
         for attr in self._pop_attributes:
             value = kwds.pop(attr, self._attr_defaults.get(attr, None))
@@ -247,7 +255,7 @@ class MPLPlot:
                 yield col, values.values
 
     @property
-    def nseries(self):
+    def nseries(self) -> int:
         if self.data.ndim == 1:
             return 1
         else:
@@ -282,10 +290,10 @@ class MPLPlot:
             return self._get_ax_layer(ax)
 
         if hasattr(ax, "right_ax"):
-            # if it has right_ax proparty, ``ax`` must be left axes
+            # if it has right_ax property, ``ax`` must be left axes
             return ax.right_ax
         elif hasattr(ax, "left_ax"):
-            # if it has left_ax proparty, ``ax`` must be right axes
+            # if it has left_ax property, ``ax`` must be right axes
             return ax
         else:
             # otherwise, create twin axes
@@ -387,7 +395,7 @@ class MPLPlot:
         if self.include_bool is True:
             include_type.append(np.bool_)
 
-        # GH22799, exclude datatime-like type for boxplot
+        # GH22799, exclude datetime-like type for boxplot
         exclude_type = None
         if self._kind == "box":
             # TODO: change after solving issue 27881
@@ -479,6 +487,11 @@ class MPLPlot:
 
             if self.xlim is not None:
                 ax.set_xlim(self.xlim)
+
+            # GH9093, currently Pandas does not show ylabel, so if users provide
+            # ylabel will set it as ylabel in the plot.
+            if self.ylabel is not None:
+                ax.set_ylabel(pprint_thing(self.ylabel))
 
             ax.grid(self.grid)
 
@@ -666,6 +679,10 @@ class MPLPlot:
             if name is not None:
                 name = pprint_thing(name)
 
+        # GH 9093, override the default xlabel if xlabel is provided.
+        if self.xlabel is not None:
+            name = pprint_thing(self.xlabel)
+
         return name
 
     @classmethod
@@ -753,6 +770,12 @@ class MPLPlot:
             DataFrame/dict: error values are paired with keys matching the
                     key in the plotted DataFrame
             str: the name of the column within the plotted DataFrame
+
+        Asymmetrical error bars are also supported, however raw error values
+        must be provided in this case. For a ``N`` length :class:`Series`, a
+        ``2xN`` array should be provided indicating lower and upper (or left
+        and right) errors. For a ``MxN`` :class:`DataFrame`, asymmetrical errors
+        should be in a ``Mx2xN`` array.
         """
         if err is None:
             return None
@@ -793,7 +816,15 @@ class MPLPlot:
             err_shape = err.shape
 
             # asymmetrical error bars
-            if err.ndim == 3:
+            if isinstance(self.data, ABCSeries) and err_shape[0] == 2:
+                err = np.expand_dims(err, 0)
+                err_shape = err.shape
+                if err_shape[2] != len(self.data):
+                    raise ValueError(
+                        "Asymmetrical error bars should be provided "
+                        f"with the shape (2, {len(self.data)})"
+                    )
+            elif isinstance(self.data, ABCDataFrame) and err.ndim == 3:
                 if (
                     (err_shape[0] != self.nseries)
                     or (err_shape[1] != 2)
@@ -902,7 +933,11 @@ class PlanePlot(MPLPlot):
         # For a more detailed description of the issue
         # see the following link:
         # https://github.com/ipython/ipython/issues/11215
-        img = ax.collections[0]
+
+        # GH33389, if ax is used multiple times, we should always
+        # use the last one which contains the latest information
+        # about the ax
+        img = ax.collections[-1]
         cbar = self.fig.colorbar(img, ax=ax, **kwds)
 
         if _mpl_ge_3_0_0():
@@ -934,6 +969,8 @@ class ScatterPlot(PlanePlot):
             # hide the matplotlib default for size, in case we want to change
             # the handling of this argument later
             s = 20
+        elif is_hashable(s) and s in data.columns:
+            s = data[s]
         super().__init__(data, x, y, s=s, **kwargs)
         if is_integer(c) and not self.data.columns.holds_integer():
             c = self.data.columns[c]
@@ -944,9 +981,6 @@ class ScatterPlot(PlanePlot):
         ax = self.axes[0]
 
         c_is_column = is_hashable(c) and c in self.data.columns
-
-        # plot a colorbar only if a colormap is provided or necessary
-        cb = self.kwds.pop("colorbar", self.colormap or c_is_column)
 
         # pandas uses colormap, matplotlib uses cmap.
         cmap = self.colormap or "Greys"
@@ -962,6 +996,12 @@ class ScatterPlot(PlanePlot):
             c_values = self.data[c].values
         else:
             c_values = c
+
+        # plot colorbar if
+        # 1. colormap is assigned, and
+        # 2.`c` is a column containing only numeric values
+        plot_colorbar = self.colormap or c_is_column
+        cb = self.kwds.pop("colorbar", is_numeric_dtype(c_values) and plot_colorbar)
 
         if self.legend and hasattr(self, "label"):
             label = self.label
@@ -1097,7 +1137,7 @@ class LinePlot(MPLPlot):
 
     @classmethod
     def _plot(cls, ax, x, y, style=None, column_num=None, stacking_id=None, **kwds):
-        # column_num is used to get the target column from protf in line and
+        # column_num is used to get the target column from plotf in line and
         # area plots
         if column_num == 0:
             cls._initialize_stacker(ax, stacking_id, len(y))
@@ -1109,8 +1149,8 @@ class LinePlot(MPLPlot):
     @classmethod
     def _ts_plot(cls, ax, x, data, style=None, **kwds):
         from pandas.plotting._matplotlib.timeseries import (
-            _maybe_resample,
             _decorate_axes,
+            _maybe_resample,
             format_dateaxis,
         )
 
@@ -1182,6 +1222,8 @@ class LinePlot(MPLPlot):
         from matplotlib.ticker import FixedLocator
 
         def get_label(i):
+            if is_float(i) and i.is_integer():
+                i = int(i)
             try:
                 return pprint_thing(data.index[i])
             except Exception:

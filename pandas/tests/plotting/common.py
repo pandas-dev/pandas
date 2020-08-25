@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# coding: utf-8
-
 import os
 import warnings
 
@@ -16,7 +13,6 @@ import pandas as pd
 from pandas import DataFrame, Series
 import pandas._testing as tm
 
-
 """
 This is a common base class used for various plotting tests
 """
@@ -27,6 +23,7 @@ class TestPlotBase:
     def setup_method(self, method):
 
         import matplotlib as mpl
+
         from pandas.plotting._matplotlib import compat
 
         mpl.rcdefaults()
@@ -190,8 +187,8 @@ class TestPlotBase:
             Series used for color grouping key
             used for andrew_curves, parallel_coordinates, radviz test
         """
+        from matplotlib.collections import Collection, LineCollection, PolyCollection
         from matplotlib.lines import Line2D
-        from matplotlib.collections import Collection, PolyCollection, LineCollection
 
         conv = self.colorconverter
         if linecolors is not None:
@@ -275,7 +272,7 @@ class TestPlotBase:
 
         axes = self._flatten_visible(axes)
         for ax in axes:
-            if xlabelsize or xrot:
+            if xlabelsize is not None or xrot is not None:
                 if isinstance(ax.xaxis.get_minor_formatter(), NullFormatter):
                     # If minor ticks has NullFormatter, rot / fontsize are not
                     # retained
@@ -289,7 +286,7 @@ class TestPlotBase:
                     if xrot is not None:
                         tm.assert_almost_equal(label.get_rotation(), xrot)
 
-            if ylabelsize or yrot:
+            if ylabelsize is not None or yrot is not None:
                 if isinstance(ax.yaxis.get_minor_formatter(), NullFormatter):
                     labels = ax.get_yticklabels()
                 else:

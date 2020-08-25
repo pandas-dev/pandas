@@ -17,9 +17,6 @@ import pandas._testing as tm
 
 import pandas.io.formats.format as fmt
 
-# Segregated collection of methods that require the BlockManager internal data
-# structure
-
 
 class TestDataFrameReprInfoEtc:
     def test_repr_empty(self):
@@ -136,6 +133,10 @@ class TestDataFrameReprInfoEtc:
     def test_unicode_string_with_unicode(self):
         df = DataFrame({"A": ["\u05d0"]})
         str(df)
+
+    def test_repr_unicode_columns(self):
+        df = DataFrame({"\u05d0": [1, 2, 3], "\u05d1": [4, 5, 6], "c": [7, 8, 9]})
+        repr(df.columns)  # should not raise UnicodeDecodeError
 
     def test_str_to_bytes_raises(self):
         # GH 26447

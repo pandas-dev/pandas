@@ -277,8 +277,8 @@ For earlier versions this can be done using the following.
 
 .. _whatsnew_0240.enhancements.read_html:
 
-``read_html`` Enhancements
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+Function ``read_html`` enhancements
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :func:`read_html` previously ignored ``colspan`` and ``rowspan`` attributes.
 Now it understands them, treating them as sequences of cells with the same
@@ -397,7 +397,7 @@ Other enhancements
 - :func:`~DataFrame.to_csv`, :func:`~Series.to_csv`, :func:`~DataFrame.to_json`, and :func:`~Series.to_json` now support ``compression='infer'`` to infer compression based on filename extension (:issue:`15008`).
   The default compression for ``to_csv``, ``to_json``, and ``to_pickle`` methods has been updated to ``'infer'`` (:issue:`22004`).
 - :meth:`DataFrame.to_sql` now supports writing ``TIMESTAMP WITH TIME ZONE`` types for supported databases. For databases that don't support timezones, datetime data will be stored as timezone unaware local timestamps. See the :ref:`io.sql_datetime_data` for implications (:issue:`9086`).
-- :func:`to_timedelta` now supports iso-formated timedelta strings (:issue:`21877`)
+- :func:`to_timedelta` now supports iso-formatted timedelta strings (:issue:`21877`)
 - :class:`Series` and :class:`DataFrame` now support :class:`Iterable` objects in the constructor (:issue:`2193`)
 - :class:`DatetimeIndex` has gained the :attr:`DatetimeIndex.timetz` attribute. This returns the local time with timezone information. (:issue:`21358`)
 - :meth:`~Timestamp.round`, :meth:`~Timestamp.ceil`, and :meth:`~Timestamp.floor` for :class:`DatetimeIndex` and :class:`Timestamp`
@@ -733,7 +733,7 @@ is the case with :attr:`Period.end_time`, for example
 
 .. _whatsnew_0240.api_breaking.datetime_unique:
 
-Series.unique for Timezone-Aware Data
+Series.unique for timezone-aware data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The return type of :meth:`Series.unique` for datetime with timezone values has changed
@@ -1131,7 +1131,7 @@ data is incompatible with a passed ``dtype=`` (:issue:`15832`)
 
 .. _whatsnew_0240.api.concat_categorical:
 
-Concatenation Changes
+Concatenation changes
 ^^^^^^^^^^^^^^^^^^^^^
 
 Calling :func:`pandas.concat` on a ``Categorical`` of ints with NA values now
@@ -1371,7 +1371,7 @@ the object's ``freq`` attribute (:issue:`21939`, :issue:`23878`).
 
 .. _whatsnew_0240.deprecations.integer_tz:
 
-Passing integer data and a timezone to datetimeindex
+Passing integer data and a timezone to DatetimeIndex
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The behavior of :class:`DatetimeIndex` when passed integer data and
@@ -1769,8 +1769,8 @@ MultiIndex
 - :class:`MultiIndex` has gained the :meth:`MultiIndex.from_frame`, it allows constructing a :class:`MultiIndex` object from a :class:`DataFrame` (:issue:`22420`)
 - Fix ``TypeError`` in Python 3 when creating :class:`MultiIndex` in which some levels have mixed types, e.g. when some labels are tuples (:issue:`15457`)
 
-I/O
-^^^
+IO
+^^
 
 - Bug in :func:`read_csv` in which a column specified with ``CategoricalDtype`` of boolean categories was not being correctly coerced from string values to booleans (:issue:`20498`)
 - Bug in :func:`read_csv` in which unicode column names were not being properly recognized with Python 2.x (:issue:`13253`)
@@ -1827,7 +1827,7 @@ Plotting
 - Bug in :func:`DataFrame.plot.bar` caused bars to use multiple colors instead of a single one (:issue:`20585`)
 - Bug in validating color parameter caused extra color to be appended to the given color array. This happened to multiple plotting functions using matplotlib. (:issue:`20726`)
 
-Groupby/resample/rolling
+GroupBy/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug in :func:`pandas.core.window.Rolling.min` and :func:`pandas.core.window.Rolling.max` with ``closed='left'``, a datetime-like index and only one entry in the series leading to segfault (:issue:`24718`)

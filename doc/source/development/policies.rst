@@ -6,7 +6,7 @@ Policies
 
 .. _policies.version:
 
-Version Policy
+Version policy
 ~~~~~~~~~~~~~~
 
 .. versionchanged:: 1.0.0
@@ -48,10 +48,10 @@ deprecation removed in the next next major release (2.0.0).
 These policies do not apply to features marked as **experimental** in the documentation.
 pandas may change the behavior of experimental features at any time.
 
-Python Support
+Python support
 ~~~~~~~~~~~~~~
 
 pandas will only drop support for specific Python versions (e.g. 3.6.x, 3.7.x) in
-pandas **major** releases.
+pandas **major** or **minor** releases.
 
 .. _SemVer: https://semver.org

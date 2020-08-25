@@ -181,6 +181,10 @@ class TestMethods(BaseDecimal, base.BaseMethodsTests):
 
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(reason="value_counts not implemented yet.")
+    def test_value_counts_with_normalize(self, data):
+        return super().test_value_counts_with_normalize(data)
+
 
 class TestCasting(BaseDecimal, base.BaseCastingTests):
     pass

@@ -5,8 +5,7 @@ import numpy as np
 import numpy.ma as ma
 import pytest
 
-from pandas._libs import lib
-from pandas._libs.tslib import iNaT
+from pandas._libs import iNaT, lib
 
 from pandas.core.dtypes.common import is_categorical_dtype, is_datetime64tz_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -377,12 +376,12 @@ class TestSeriesConstructors:
         result = pd.Series(
             ["a", "b"], dtype=CategoricalDtype(["a", "b", "c"], ordered=True)
         )
-        assert is_categorical_dtype(result) is True
+        assert is_categorical_dtype(result.dtype) is True
         tm.assert_index_equal(result.cat.categories, pd.Index(["a", "b", "c"]))
         assert result.cat.ordered
 
         result = pd.Series(["a", "b"], dtype=CategoricalDtype(["b", "a"]))
-        assert is_categorical_dtype(result)
+        assert is_categorical_dtype(result.dtype)
         tm.assert_index_equal(result.cat.categories, pd.Index(["b", "a"]))
         assert result.cat.ordered is False
 
@@ -626,7 +625,7 @@ class TestSeriesConstructors:
         s = pd.Series(index)
 
         # we make 1 copy; this is just a smoke test here
-        assert s._data.blocks[0].values is not index
+        assert s._mgr.blocks[0].values is not index
 
     def test_constructor_pass_none(self):
         with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
@@ -1115,7 +1114,7 @@ class TestSeriesConstructors:
         tm.assert_series_equal(result_datetime, expected)
         tm.assert_series_equal(result_Timestamp, expected)
 
-    def test_contructor_dict_tuple_indexer(self):
+    def test_constructor_dict_tuple_indexer(self):
         # GH 12948
         data = {(1, 1, None): -1.0}
         result = Series(data)
@@ -1124,9 +1123,9 @@ class TestSeriesConstructors:
         )
         tm.assert_series_equal(result, expected)
 
-    def test_constructor_mapping(self, non_mapping_dict_subclass):
+    def test_constructor_mapping(self, non_dict_mapping_subclass):
         # GH 29788
-        ndm = non_mapping_dict_subclass({3: "three"})
+        ndm = non_dict_mapping_subclass({3: "three"})
         result = Series(ndm)
         expected = Series(["three"], index=[3])
 
@@ -1323,17 +1322,22 @@ class TestSeriesConstructors:
         # convert from a numpy array of non-ns datetime64
         # note that creating a numpy datetime64 is in LOCAL time!!!!
         # seems to work for M8[D], but not for M8[s]
+        # TODO: is the above comment still accurate/needed?
 
-        s = Series(
-            np.array(["2013-01-01", "2013-01-02", "2013-01-03"], dtype="datetime64[D]")
+        arr = np.array(
+            ["2013-01-01", "2013-01-02", "2013-01-03"], dtype="datetime64[D]"
         )
-        tm.assert_series_equal(s, Series(date_range("20130101", periods=3, freq="D")))
+        ser = Series(arr)
+        expected = Series(date_range("20130101", periods=3, freq="D"))
+        tm.assert_series_equal(ser, expected)
 
-        # s = Series(np.array(['2013-01-01 00:00:01','2013-01-01
-        # 00:00:02','2013-01-01 00:00:03'],dtype='datetime64[s]'))
-
-        # tm.assert_series_equal(s,date_range('20130101
-        # 00:00:01',period=3,freq='s'))
+        arr = np.array(
+            ["2013-01-01 00:00:01", "2013-01-01 00:00:02", "2013-01-01 00:00:03"],
+            dtype="datetime64[s]",
+        )
+        ser = Series(arr)
+        expected = Series(date_range("20130101 00:00:01", periods=3, freq="s"))
+        tm.assert_series_equal(ser, expected)
 
     @pytest.mark.parametrize(
         "index",
@@ -1385,9 +1389,13 @@ class TestSeriesConstructors:
         tm.assert_series_equal(s, exp)
 
     @pytest.mark.parametrize("dtype", [np.datetime64, np.timedelta64])
-    def test_constructor_generic_timestamp_no_frequency(self, dtype):
+    def test_constructor_generic_timestamp_no_frequency(self, dtype, request):
         # see gh-15524, gh-15987
         msg = "dtype has no unit. Please pass in"
+
+        if np.dtype(dtype).name not in ["timedelta64", "datetime64"]:
+            mark = pytest.mark.xfail(reason="GH#33890 Is assigned ns unit")
+            request.node.add_marker(mark)
 
         with pytest.raises(ValueError, match=msg):
             Series([], dtype=dtype)
@@ -1427,4 +1435,17 @@ class TestSeriesConstructors:
         tz = tz_aware_fixture
         result = Series([Timestamp("2019", tz=tz)], dtype="datetime64[ns]")
         expected = Series([Timestamp("2019")])
+        tm.assert_series_equal(result, expected)
+
+    def test_constructor_datetime64(self):
+        rng = date_range("1/1/2000 00:00:00", "1/1/2000 1:59:50", freq="10s")
+        dates = np.asarray(rng)
+
+        series = Series(dates)
+        assert np.issubdtype(series.dtype, np.dtype("M8[ns]"))
+
+    def test_constructor_datetimelike_scalar_to_string_dtype(self):
+        # https://github.com/pandas-dev/pandas/pull/33846
+        result = Series("M", index=[1, 2, 3], dtype="string")
+        expected = pd.Series(["M", "M", "M"], index=[1, 2, 3], dtype="string")
         tm.assert_series_equal(result, expected)

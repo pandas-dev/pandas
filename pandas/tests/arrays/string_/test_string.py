@@ -206,12 +206,24 @@ def test_constructor_raises():
 
 @pytest.mark.parametrize("copy", [True, False])
 def test_from_sequence_no_mutate(copy):
-    a = np.array(["a", np.nan], dtype=object)
-    original = a.copy()
-    result = pd.arrays.StringArray._from_sequence(a, copy=copy)
-    expected = pd.arrays.StringArray(np.array(["a", pd.NA], dtype=object))
+    nan_arr = np.array(["a", np.nan], dtype=object)
+    na_arr = np.array(["a", pd.NA], dtype=object)
+
+    result = pd.arrays.StringArray._from_sequence(nan_arr, copy=copy)
+    expected = pd.arrays.StringArray(na_arr)
+
     tm.assert_extension_array_equal(result, expected)
-    tm.assert_numpy_array_equal(a, original)
+
+    expected = nan_arr if copy else na_arr
+    tm.assert_numpy_array_equal(nan_arr, expected)
+
+
+def test_astype_int():
+    arr = pd.array(["1", pd.NA, "3"], dtype="string")
+
+    result = arr.astype("Int64")
+    expected = pd.array([1, pd.NA, 3], dtype="Int64")
+    tm.assert_extension_array_equal(result, expected)
 
 
 @pytest.mark.parametrize("skipna", [True, False])
@@ -220,6 +232,32 @@ def test_reduce(skipna):
     arr = pd.Series(["a", "b", "c"], dtype="string")
     result = arr.sum(skipna=skipna)
     assert result == "abc"
+
+
+@pytest.mark.parametrize("method", ["min", "max"])
+@pytest.mark.parametrize("skipna", [True, False])
+def test_min_max(method, skipna):
+    arr = pd.Series(["a", "b", "c", None], dtype="string")
+    result = getattr(arr, method)(skipna=skipna)
+    if skipna:
+        expected = "a" if method == "min" else "c"
+        assert result == expected
+    else:
+        assert result is pd.NA
+
+
+@pytest.mark.parametrize("method", ["min", "max"])
+@pytest.mark.parametrize(
+    "arr",
+    [
+        pd.Series(["a", "b", "c", None], dtype="string"),
+        pd.array(["a", "b", "c", None], dtype="string"),
+    ],
+)
+def test_min_max_numpy(method, arr):
+    result = getattr(np, method)(arr)
+    expected = "a" if method == "min" else "c"
+    assert result == expected
 
 
 @pytest.mark.parametrize("skipna", [True, False])
@@ -269,3 +307,32 @@ def test_value_counts_na():
     result = arr.value_counts(dropna=True)
     expected = pd.Series([2, 1], index=["a", "b"], dtype="Int64")
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        (pd.array(["a", "b", "c"]), np.array([False, False, False])),
+        (pd.array(["a", "b", None]), np.array([False, False, True])),
+    ],
+)
+def test_use_inf_as_na(values, expected):
+    # https://github.com/pandas-dev/pandas/issues/33655
+    with pd.option_context("mode.use_inf_as_na", True):
+        result = values.isna()
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = pd.Series(values).isna()
+        expected = pd.Series(expected)
+        tm.assert_series_equal(result, expected)
+
+        result = pd.DataFrame(values).isna()
+        expected = pd.DataFrame(expected)
+        tm.assert_frame_equal(result, expected)
+
+
+def test_memory_usage():
+    # GH 33963
+    series = pd.Series(["a", "b", "c"], dtype="string")
+
+    assert 0 < series.nbytes <= series.memory_usage() < series.memory_usage(deep=True)

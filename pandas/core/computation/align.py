@@ -38,7 +38,7 @@ def _align_core_single_unary_op(
 def _zip_axes_from_type(
     typ: Type[FrameOrSeries], new_axes: Sequence[int]
 ) -> Dict[str, int]:
-    axes = {name: new_axes[i] for i, name in typ._AXIS_NAMES.items()}
+    axes = {name: new_axes[i] for i, name in enumerate(typ._AXIS_ORDERS)}
     return axes
 
 

@@ -23,8 +23,8 @@ def test_foo():
 
 For more information, refer to the ``pytest`` documentation on ``skipif``.
 """
+from contextlib import contextmanager
 from distutils.version import LooseVersion
-from functools import wraps
 import locale
 from typing import Callable, Optional
 
@@ -94,7 +94,7 @@ xfail_non_writeable = pytest.mark.xfail(
 def _skip_if_no_mpl():
     mod = safe_import("matplotlib")
     if mod:
-        mod.use("Agg", warn=True)
+        mod.use("Agg")
     else:
         return True
 
@@ -120,7 +120,9 @@ def _skip_if_no_scipy() -> bool:
     )
 
 
-def skip_if_installed(package: str) -> Callable:
+# TODO: return type, _pytest.mark.structures.MarkDecorator is not public
+# https://github.com/pytest-dev/pytest/issues/7469
+def skip_if_installed(package: str):
     """
     Skip a test if a package is installed.
 
@@ -134,7 +136,9 @@ def skip_if_installed(package: str) -> Callable:
     )
 
 
-def skip_if_no(package: str, min_version: Optional[str] = None) -> Callable:
+# TODO: return type, _pytest.mark.structures.MarkDecorator is not public
+# https://github.com/pytest-dev/pytest/issues/7469
+def skip_if_no(package: str, min_version: Optional[str] = None):
     """
     Generic function to help skip tests when required packages are not
     present on the testing system.
@@ -196,14 +200,12 @@ skip_if_no_ne = pytest.mark.skipif(
 )
 
 
-def skip_if_np_lt(
-    ver_str: str, reason: Optional[str] = None, *args, **kwds
-) -> Callable:
+# TODO: return type, _pytest.mark.structures.MarkDecorator is not public
+# https://github.com/pytest-dev/pytest/issues/7469
+def skip_if_np_lt(ver_str: str, *args, reason: Optional[str] = None):
     if reason is None:
         reason = f"NumPy {ver_str} or greater required"
-    return pytest.mark.skipif(
-        _np_version < LooseVersion(ver_str), reason=reason, *args, **kwds
-    )
+    return pytest.mark.skipif(_np_version < LooseVersion(ver_str), *args, reason=reason)
 
 
 def parametrize_fixture_doc(*args):
@@ -235,23 +237,36 @@ def parametrize_fixture_doc(*args):
 
 def check_file_leaks(func) -> Callable:
     """
-    Decorate a test function tot check that we are not leaking file descriptors.
+    Decorate a test function to check that we are not leaking file descriptors.
+    """
+    with file_leak_context():
+        return func
+
+
+@contextmanager
+def file_leak_context():
+    """
+    ContextManager analogue to check_file_leaks.
     """
     psutil = safe_import("psutil")
     if not psutil:
-        return func
-
-    @wraps(func)
-    def new_func(*args, **kwargs):
+        yield
+    else:
         proc = psutil.Process()
         flist = proc.open_files()
+        conns = proc.connections()
 
-        func(*args, **kwargs)
+        yield
 
         flist2 = proc.open_files()
-        assert flist2 == flist
+        # on some builds open_files includes file position, which we _dont_
+        #  expect to remain unchanged, so we need to compare excluding that
+        flist_ex = [(x.path, x.fd) for x in flist]
+        flist2_ex = [(x.path, x.fd) for x in flist2]
+        assert flist2_ex == flist_ex, (flist2, flist)
 
-    return new_func
+        conns2 = proc.connections()
+        assert conns2 == conns, (conns2, conns)
 
 
 def async_mark():

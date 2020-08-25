@@ -11,14 +11,15 @@ from .common import Base
 class DatetimeLike(Base):
     def test_argmax_axis_invalid(self):
         # GH#23081
+        msg = r"`axis` must be fewer than the number of dimensions \(1\)"
         rng = self.create_index()
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             rng.argmax(axis=1)
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             rng.argmin(axis=2)
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             rng.min(axis=-2)
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             rng.max(axis=-3)
 
     def test_can_hold_identifiers(self):
@@ -80,8 +81,8 @@ class DatetimeLike(Base):
         expected = index + index.freq
 
         # don't compare the freqs
-        if isinstance(expected, pd.DatetimeIndex):
-            expected._data.freq = None
+        if isinstance(expected, (pd.DatetimeIndex, pd.TimedeltaIndex)):
+            expected = expected._with_freq(None)
 
         result = index.map(mapper(expected, index))
         tm.assert_index_equal(result, expected)
@@ -95,3 +96,10 @@ class DatetimeLike(Base):
         expected = pd.Index([np.nan] * len(index))
         result = index.map(mapper([], []))
         tm.assert_index_equal(result, expected)
+
+    def test_getitem_preserves_freq(self):
+        index = self.create_index()
+        assert index.freq is not None
+
+        result = index[:]
+        assert result.freq == index.freq

@@ -25,7 +25,13 @@ def test_str():
     r = test_series.resample("H")
     assert (
         "DatetimeIndexResampler [freq=<Hour>, axis=0, closed=left, "
-        "label=left, convention=start, base=0]" in str(r)
+        "label=left, convention=start, origin=start_day]" in str(r)
+    )
+
+    r = test_series.resample("H", origin="2000-01-01")
+    assert (
+        "DatetimeIndexResampler [freq=<Hour>, axis=0, closed=left, "
+        "label=left, convention=start, origin=2000-01-01 00:00:00]" in str(r)
     )
 
 
@@ -287,7 +293,7 @@ def test_agg_consistency():
 
     r = df.resample("3T")
 
-    msg = "nested renamer is not supported"
+    msg = r"Column\(s\) \['r1', 'r2'\] do not exist"
     with pytest.raises(pd.core.base.SpecificationError, match=msg):
         r.agg({"r1": "mean", "r2": "sum"})
 
@@ -419,7 +425,7 @@ def test_agg_misc():
         [("result1", "A"), ("result1", "B"), ("result2", "A"), ("result2", "B")]
     )
 
-    msg = "nested renamer is not supported"
+    msg = r"Column\(s\) \['result1', 'result2'\] do not exist"
     for t in cases:
         with pytest.raises(pd.core.base.SpecificationError, match=msg):
             t[["A", "B"]].agg(OrderedDict([("result1", np.sum), ("result2", np.mean)]))
@@ -439,6 +445,8 @@ def test_agg_misc():
     for t in cases:
         result = t[["A", "B"]].agg({"A": ["sum", "std"], "B": ["mean", "std"]})
         tm.assert_frame_equal(result, expected, check_like=True)
+
+    msg = "nested renamer is not supported"
 
     # series like aggs
     for t in cases:

@@ -7,14 +7,10 @@ import numpy as np
 
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import Appender, cache_readonly
+from pandas.util._decorators import cache_readonly, doc
 
-from pandas.core.dtypes.common import (
-    ensure_platform_int,
-    is_dtype_equal,
-    is_object_dtype,
-)
-from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.common import is_dtype_equal, is_object_dtype
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 from pandas.core.arrays import ExtensionArray
 from pandas.core.indexers import deprecate_ndim_indexing
@@ -59,6 +55,8 @@ def inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = Fal
                 if wrap:
                     if isinstance(result, type(self._data)):
                         return type(self)._simple_new(result, name=self.name)
+                    elif isinstance(result, ABCDataFrame):
+                        return result.set_index(self)
                     return Index(result, name=self.name)
                 return result
 
@@ -81,6 +79,8 @@ def inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = Fal
             if wrap:
                 if isinstance(result, type(self._data)):
                     return type(self)._simple_new(result, name=self.name)
+                elif isinstance(result, ABCDataFrame):
+                    return result.set_index(self)
                 return Index(result, name=self.name)
             return result
 
@@ -214,35 +214,22 @@ class ExtensionIndex(Index):
     def __getitem__(self, key):
         result = self._data[key]
         if isinstance(result, type(self._data)):
-            return type(self)(result, name=self.name)
+            if result.ndim == 1:
+                return type(self)(result, name=self.name)
+            # Unpack to ndarray for MPL compat
+            result = result._data
 
         # Includes cases where we get a 2D ndarray back for MPL compat
         deprecate_ndim_indexing(result)
         return result
 
-    def __iter__(self):
-        return self._data.__iter__()
-
     # ---------------------------------------------------------------------
 
-    def __array__(self, dtype=None) -> np.ndarray:
-        return np.asarray(self._data, dtype=dtype)
-
-    @property
-    def _ndarray_values(self) -> np.ndarray:
-        return self._data._ndarray_values
-
     def _get_engine_target(self) -> np.ndarray:
+        # NB: _values_for_argsort happens to match the desired engine targets
+        #  for all of our existing EA-backed indexes, but in general
+        #  cannot be relied upon to exist.
         return self._data._values_for_argsort()
-
-    @Appender(Index.dropna.__doc__)
-    def dropna(self, how="any"):
-        if how not in ("any", "all"):
-            raise ValueError(f"invalid how option: {how}")
-
-        if self.hasnans:
-            return self._shallow_copy(self._data[~self._isnan])
-        return self._shallow_copy()
 
     def repeat(self, repeats, axis=None):
         nv.validate_repeat(tuple(), dict(axis=axis))
@@ -253,31 +240,6 @@ class ExtensionIndex(Index):
         # ExtensionIndex subclasses must override Index.insert
         raise AbstractMethodError(self)
 
-    def _concat_same_dtype(self, to_concat, name):
-        arr = type(self._data)._concat_same_type(to_concat)
-        return type(self)._simple_new(arr, name=name)
-
-    @Appender(Index.take.__doc__)
-    def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
-        nv.validate_take(tuple(), kwargs)
-        indices = ensure_platform_int(indices)
-
-        taken = self._assert_take_fillable(
-            self._data,
-            indices,
-            allow_fill=allow_fill,
-            fill_value=fill_value,
-            na_value=self._na_value,
-        )
-        return type(self)(taken, name=self.name)
-
-    def unique(self, level=None):
-        if level is not None:
-            self._validate_index_level(level)
-
-        result = self._data.unique()
-        return self._shallow_copy(result)
-
     def _get_unique_index(self, dropna=False):
         if self.is_unique and not dropna:
             return self
@@ -287,7 +249,7 @@ class ExtensionIndex(Index):
             result = result[~result.isna()]
         return self._shallow_copy(result)
 
-    @Appender(Index.map.__doc__)
+    @doc(Index.map)
     def map(self, mapper, na_action=None):
         # Try to run function on index first, and then on elements of index
         # Especially important for group-by functionality
@@ -304,7 +266,7 @@ class ExtensionIndex(Index):
         except Exception:
             return self.astype(object).map(mapper)
 
-    @Appender(Index.astype.__doc__)
+    @doc(Index.astype)
     def astype(self, dtype, copy=True):
         if is_dtype_equal(self.dtype, dtype) and copy is False:
             # Ensure that self.astype(self.dtype) is self

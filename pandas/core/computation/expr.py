@@ -167,10 +167,9 @@ _is_str = _is_type(str)
 
 # partition all AST nodes
 _all_nodes = frozenset(
-    filter(
-        lambda x: isinstance(x, type) and issubclass(x, ast.AST),
-        (getattr(ast, node) for node in dir(ast)),
-    )
+    node
+    for node in (getattr(ast, name) for name in dir(ast))
+    if isinstance(node, type) and issubclass(node, ast.AST)
 )
 
 
@@ -635,12 +634,13 @@ class BaseExprVisitor(ast.NodeVisitor):
                 # something like datetime.datetime where scope is overridden
                 if isinstance(value, ast.Name) and value.id == attr:
                     return resolved
+                raise
 
-        raise ValueError(f"Invalid Attribute context {ctx.__name__}")
+        raise ValueError(f"Invalid Attribute context {type(ctx).__name__}")
 
     def visit_Call(self, node, side=None, **kwargs):
 
-        if isinstance(node.func, ast.Attribute):
+        if isinstance(node.func, ast.Attribute) and node.func.attr != "__call__":
             res = self.visit_Attribute(node.func)
         elif not isinstance(node.func, ast.Name):
             raise TypeError("Only named functions are supported")
