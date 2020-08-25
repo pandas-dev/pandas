@@ -6,7 +6,6 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     List,
-    MutableMapping,
     Optional,
     Tuple,
     TypeVar,
@@ -60,7 +59,7 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------
 # types used in annotations
 
-ArrayConvertible = Union[List, Tuple, ArrayLike, "Series", MutableMapping]
+ArrayConvertible = Union[List, Tuple, ArrayLike, "Series"]
 Scalar = Union[int, float, str]
 DatetimeScalar = TypeVar("DatetimeScalar", Scalar, datetime)
 DatetimeScalarOrArrayConvertible = Union[DatetimeScalar, ArrayConvertible]
@@ -571,23 +570,6 @@ def to_datetime(
 @overload
 def to_datetime(
     arg: "Series",
-    errors: str = ...,
-    dayfirst: bool = ...,
-    yearfirst: bool = ...,
-    utc: Optional[bool] = ...,
-    format: Optional[str] = ...,
-    exact: bool = ...,
-    unit: Optional[str] = ...,
-    infer_datetime_format: bool = ...,
-    origin=...,
-    cache: bool = ...,
-) -> "Series":
-    ...
-
-
-@overload
-def to_datetime(
-    arg: MutableMapping,
     errors: str = ...,
     dayfirst: bool = ...,
     yearfirst: bool = ...,

@@ -3,7 +3,7 @@ import warnings
 
 import numpy as np
 
-from pandas import to_datetime
+from pandas._libs.tslibs import parsing
 
 
 def parse_date_time(date_col, time_col):
@@ -20,7 +20,9 @@ def parse_date_time(date_col, time_col):
         FutureWarning,
         stacklevel=2,
     )
-    return to_datetime(date_col + " " + time_col).to_pydatetime()
+    date_col = _maybe_cast(date_col)
+    time_col = _maybe_cast(time_col)
+    return parsing.try_parse_date_and_time(date_col, time_col)
 
 
 def parse_date_fields(year_col, month_col, day_col):
@@ -39,8 +41,10 @@ def parse_date_fields(year_col, month_col, day_col):
         stacklevel=2,
     )
 
-    ser = to_datetime({"year": year_col, "month": month_col, "day": day_col})
-    return np.array([s.to_pydatetime() for s in ser])
+    year_col = _maybe_cast(year_col)
+    month_col = _maybe_cast(month_col)
+    day_col = _maybe_cast(day_col)
+    return parsing.try_parse_year_month_day(year_col, month_col, day_col)
 
 
 def parse_all_fields(year_col, month_col, day_col, hour_col, minute_col, second_col):
@@ -62,18 +66,15 @@ def parse_all_fields(year_col, month_col, day_col, hour_col, minute_col, second_
         stacklevel=2,
     )
 
-    ser = to_datetime(
-        {
-            "year": year_col,
-            "month": month_col,
-            "day": day_col,
-            "hour": hour_col,
-            "minute": minute_col,
-            "second": second_col,
-        }
+    year_col = _maybe_cast(year_col)
+    month_col = _maybe_cast(month_col)
+    day_col = _maybe_cast(day_col)
+    hour_col = _maybe_cast(hour_col)
+    minute_col = _maybe_cast(minute_col)
+    second_col = _maybe_cast(second_col)
+    return parsing.try_parse_datetime_components(
+        year_col, month_col, day_col, hour_col, minute_col, second_col
     )
-
-    return np.array([s.to_pydatetime() for s in ser])
 
 
 def generic_parser(parse_func, *cols):
@@ -99,6 +100,12 @@ def generic_parser(parse_func, *cols):
         results[i] = parse_func(*args)
 
     return results
+
+
+def _maybe_cast(arr):
+    if not arr.dtype.type == np.object_:
+        arr = np.array(arr, dtype=object)
+    return arr
 
 
 def _check_columns(cols):
