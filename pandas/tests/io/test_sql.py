@@ -581,7 +581,7 @@ class PandasSQLTest:
         duplicate_key_query = SQL_STRINGS["read_pkey_table"][self.flavor]
         duplicate_val = self._get_exec().execute(duplicate_key_query, duplicate_keys)
         data_from_db = [val[0] for val in duplicate_val].sort()
-        expected = ["name1", "name2"].sort()
+        expected = ["name1", "name2"]
         assert data_from_db == expected
         # Finally, confirm that duplicate values are not removed from original df object
         assert len(self.pkey_table_frame.index) == 4
