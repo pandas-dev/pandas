@@ -368,7 +368,7 @@ class BlockManager(PandasObject):
             new_mgr = self._combine(res_blocks, copy=False, index=index)
         else:
             indexer = []
-            new_mgr = BlockManager.from_blocks([], [Index([]), index])
+            new_mgr = type(self).from_blocks([], [Index([]), index])
 
         return new_mgr, indexer
 
