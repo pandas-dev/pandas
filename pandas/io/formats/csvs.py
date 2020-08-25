@@ -64,14 +64,17 @@ class CSVFormatter:
         compression, self.compression_args = get_compression_method(compression)
         self.compression = infer_compression(path_or_buf, compression)
 
-        (self.path_or_buf, _, _, self.should_close, mode,) = get_filepath_or_buffer(
+        ioargs = get_filepath_or_buffer(
             path_or_buf,
             encoding=encoding,
             compression=self.compression,
             mode=mode,
             storage_options=storage_options,
         )
-        assert self.path_or_buf is not None
+        self.path_or_buf = ioargs.filepath_or_buffer
+        self.should_close = ioargs.should_close
+        self.mode = ioargs.mode
+
         self.sep = sep
         self.na_rep = na_rep
         self.float_format = float_format
@@ -80,7 +83,6 @@ class CSVFormatter:
         self.header = header
         self.index = index
         self.index_label = index_label
-        self.mode = mode
         if encoding is None:
             encoding = "utf-8"
         self.encoding = encoding

@@ -354,7 +354,7 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
         elif not isinstance(filepath_or_buffer, (ExcelFile, self._workbook_class)):
             filepath_or_buffer = get_filepath_or_buffer(
                 filepath_or_buffer, storage_options=storage_options
-            )[0]
+            ).filepath_or_buffer
 
         if isinstance(filepath_or_buffer, self._workbook_class):
             self.book = filepath_or_buffer

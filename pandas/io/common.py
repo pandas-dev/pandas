@@ -34,8 +34,8 @@ from pandas._typing import (
     CompressionDict,
     CompressionOptions,
     EncodingVar,
+    FileOrBuffer,
     FilePathOrBuffer,
-    FilePathOrBufferVar,
     IOargs,
     ModeVar,
     StorageOptions,
@@ -74,9 +74,7 @@ def is_url(url) -> bool:
     return parse_url(url).scheme in _VALID_URLS
 
 
-def _expand_user(
-    filepath_or_buffer: FilePathOrBuffer[AnyStr],
-) -> FilePathOrBuffer[AnyStr]:
+def _expand_user(filepath_or_buffer: FileOrBuffer[AnyStr]) -> FileOrBuffer[AnyStr]:
     """
     Return the argument with an initial component of ~ or ~user
     replaced by that user's home directory.
@@ -106,7 +104,7 @@ def validate_header_arg(header) -> None:
 
 def stringify_path(
     filepath_or_buffer: FilePathOrBuffer[AnyStr],
-) -> FilePathOrBuffer[AnyStr]:
+) -> FileOrBuffer[AnyStr]:
     """
     Attempt to convert a path-like object to a string.
 
@@ -139,9 +137,9 @@ def stringify_path(
         # "__fspath__"  [union-attr]
         # error: Item "IO[bytes]" of "Union[str, Path, IO[bytes]]" has no
         # attribute "__fspath__"  [union-attr]
-        return filepath_or_buffer.__fspath__()  # type: ignore[union-attr]
+        filepath_or_buffer = filepath_or_buffer.__fspath__()  # type: ignore[union-attr]
     elif isinstance(filepath_or_buffer, pathlib.Path):
-        return str(filepath_or_buffer)
+        filepath_or_buffer = str(filepath_or_buffer)
     return _expand_user(filepath_or_buffer)
 
 
@@ -167,11 +165,11 @@ def is_fsspec_url(url: FilePathOrBuffer) -> bool:
     )
 
 
-def get_filepath_or_buffer(
+def get_filepath_or_buffer(  # type: ignore[assignment]
     filepath_or_buffer: FilePathOrBuffer,
-    encoding: EncodingVar = None,  # type: ignore[assignment]
+    encoding: EncodingVar = None,
     compression: CompressionOptions = None,
-    mode: ModeVar = None,  # type: ignore[assignment]
+    mode: ModeVar = None,
     storage_options: StorageOptions = None,
 ) -> IOargs[ModeVar, EncodingVar]:
     """
@@ -198,9 +196,7 @@ def get_filepath_or_buffer(
 
     ..versionchange:: 1.2.0
 
-      A named tuple is returned. In addition to previously returned values it also
-      returns `mode`. If a path-like object is converted to a file-like object, the
-      returned mode is binary, otherwise it is the provided `mode`.
+      Returns the dataclass IOargs.
     """
     filepath_or_buffer = stringify_path(filepath_or_buffer)
 
@@ -307,7 +303,7 @@ def get_filepath_or_buffer(
     if isinstance(filepath_or_buffer, (str, bytes, mmap.mmap)):
         return IOargs(
             filepath_or_buffer=_expand_user(filepath_or_buffer),
-            encoding=None,
+            encoding=encoding,
             compression=compression,
             should_close=False,
             mode=mode,
@@ -319,7 +315,7 @@ def get_filepath_or_buffer(
 
     return IOargs(
         filepath_or_buffer=filepath_or_buffer,
-        encoding=None,
+        encoding=encoding,
         compression=compression,
         should_close=False,
         mode=mode,
@@ -505,12 +501,14 @@ def get_handle(
     except ImportError:
         need_text_wrapping = (BufferedIOBase, RawIOBase)
     # fsspec is an optional dependency. If it is available, add its file-object
-    # class to the list of classes that need text wrapping.
-    fsspec = import_optional_dependency("fsspec", raise_on_missing=False)
-    if fsspec is not None:
-        need_text_wrapping = tuple(
-            list(need_text_wrapping) + [fsspec.spec.AbstractFileSystem]
-        )
+    # class to the list of classes that need text wrapping. If fsspec is too old and is
+    # needed, get_filepath_or_buffer would already have thrown an exception.
+    try:
+        from fsspec.spec import AbstractFileSystem
+
+        need_text_wrapping = (*need_text_wrapping, AbstractFileSystem)
+    except ImportError:
+        pass
 
     handles: List[Union[IO, _MMapWrapper]] = list()
     f = path_or_buf
@@ -642,7 +640,7 @@ class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore[misc]
         self.archive_name = archive_name
         kwargs_zip: Dict[str, Any] = {"compression": zipfile.ZIP_DEFLATED}
         kwargs_zip.update(kwargs)
-        super().__init__(file, mode, **kwargs_zip)
+        super().__init__(file, mode, **kwargs_zip)  # type: ignore[arg-type]
 
     def write(self, data):
         archive_name = self.filename

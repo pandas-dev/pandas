@@ -105,23 +105,21 @@ bar2,12,13,14,15
         compression = icom.infer_compression(path, compression="infer")
         assert compression == expected
 
-    def test_get_filepath_or_buffer_with_path(self):
-        filename = "~/sometest"
-        filepath_or_buffer, _, _, should_close, _ = icom.get_filepath_or_buffer(
-            filename
-        )
-        assert filepath_or_buffer != filename
-        assert os.path.isabs(filepath_or_buffer)
-        assert os.path.expanduser(filename) == filepath_or_buffer
-        assert not should_close
+    @pytest.mark.parametrize("path_type", [str, CustomFSPath, Path])
+    def test_get_filepath_or_buffer_with_path(self, path_type):
+        # ignore LocalPath: it creates strange paths: /absolute/~/sometest
+        filename = path_type("~/sometest")
+        ioargs = icom.get_filepath_or_buffer(filename)
+        assert ioargs.filepath_or_buffer != filename
+        assert os.path.isabs(ioargs.filepath_or_buffer)
+        assert os.path.expanduser(filename) == ioargs.filepath_or_buffer
+        assert not ioargs.should_close
 
     def test_get_filepath_or_buffer_with_buffer(self):
         input_buffer = StringIO()
-        filepath_or_buffer, _, _, should_close, _ = icom.get_filepath_or_buffer(
-            input_buffer
-        )
-        assert filepath_or_buffer == input_buffer
-        assert not should_close
+        ioargs = icom.get_filepath_or_buffer(input_buffer)
+        assert ioargs.filepath_or_buffer == input_buffer
+        assert not ioargs.should_close
 
     def test_iterator(self):
         reader = pd.read_csv(StringIO(self.data1), chunksize=1)

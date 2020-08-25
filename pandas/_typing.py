@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta, tzinfo
+from io import IOBase
 from pathlib import Path
 from typing import (
     IO,
@@ -13,7 +14,6 @@ from typing import (
     Hashable,
     List,
     Mapping,
-    NamedTuple,
     Optional,
     Type,
     TypeVar,
@@ -65,7 +65,8 @@ Dtype = Union[
     "ExtensionDtype", str, np.dtype, Type[Union[str, float, int, complex, bool]]
 ]
 DtypeObj = Union[np.dtype, "ExtensionDtype"]
-FilePathOrBuffer = Union[str, Path, IO[AnyStr]]
+FilePathOrBuffer = Union[str, Path, IO[AnyStr], IOBase]
+FileOrBuffer = Union[str, IO[AnyStr], IOBase]
 
 # FrameOrSeriesUnion  means either a DataFrame or a Series. E.g.
 # `def func(a: FrameOrSeriesUnion) -> FrameOrSeriesUnion: ...` means that if a Series
@@ -119,9 +120,9 @@ CompressionDict = Mapping[str, Optional[Union[str, int, bool]]]
 CompressionOptions = Optional[Union[str, CompressionDict]]
 
 
-# lets us bind types
-ModeVar = TypeVar("ModeVar", str, None)
-EncodingVar = TypeVar("EncodingVar", str, None)
+# let's bind types
+ModeVar = TypeVar("ModeVar", str, None, Optional[str])
+EncodingVar = TypeVar("EncodingVar", str, None, Optional[str])
 
 
 @dataclass
@@ -135,7 +136,7 @@ class IOargs(Generic[ModeVar, EncodingVar]):
     See https://github.com/python/mypy/issues/1297
     """
 
-    filepath_or_buffer: FilePathOrBuffer
+    filepath_or_buffer: FileOrBuffer
     encoding: EncodingVar
     compression: CompressionOptions
     should_close: bool
