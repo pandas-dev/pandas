@@ -12,6 +12,21 @@ from pandas.io.formats.format import DataFrameFormatter, TableFormatter
 
 
 class RowStringConverter:
+    r"""Converter for dataframe rows into LaTeX strings.
+
+    Parameters
+    ----------
+    formatter : `DataFrameFormatter`
+        Instance of `DataFrameFormatter`.
+    multicolumn: bool, optional
+        Whether to use \multicolumn macro.
+    multicolumn_format: str, optional
+        Multicolumn format.
+    multirow: bool, optional
+        Whether to use \multirow macro.
+
+    """
+
     def __init__(
         self, formatter, multicolumn=False, multicolumn_format=None, multirow=False,
     ):
@@ -56,10 +71,12 @@ class RowStringConverter:
 
     @property
     def _header_row_num(self):
+        """Number of rows in header."""
         return self._nlevels if self.fmt.header else 0
 
     @property
     def _ilevels(self):
+        """Integer number of levels in index."""
         return self.frame.index.nlevels
 
     @property
@@ -119,6 +136,7 @@ class RowStringConverter:
         return strcols
 
     def _preprocess_row(self, row):
+        """Preprocess elements of the row."""
         if self.fmt.escape:
             crow = self._escape_symbols(row)
         else:
@@ -129,6 +147,18 @@ class RowStringConverter:
 
     @staticmethod
     def _escape_symbols(row):
+        """Carry out string replacements for special symbols.
+
+        Parameters
+        ----------
+        row : list
+            List of string, that may contain special symbols.
+
+        Returns
+        -------
+        list
+            list of strings with the special symbols replaced.
+        """
         return [
             (
                 x.replace("\\", "\\textbackslash ")
@@ -149,6 +179,7 @@ class RowStringConverter:
 
     @staticmethod
     def _convert_to_bold(crow, ilevels):
+        """Convert elements in ``crow`` to bold."""
         return [
             f"\\textbf{{{x}}}" if j < ilevels and x.strip() not in ["", "{}"] else x
             for j, x in enumerate(crow)
@@ -221,7 +252,7 @@ class RowStringConverter:
 
     def _compose_cline(self, i: int, icol: int) -> str:
         """
-        Print clines after multirow-blocks are finished.
+        Create clines after multirow-blocks are finished.
         """
         lst = []
         for cl in self.clinebuf:
@@ -233,6 +264,8 @@ class RowStringConverter:
 
 
 class RowHeaderIterator(RowStringConverter):
+    """Iterator for the table header rows."""
+
     def __iter__(self):
         for row_num in range(len(self.strrows)):
             if row_num < self._header_row_num:
@@ -240,6 +273,8 @@ class RowHeaderIterator(RowStringConverter):
 
 
 class RowBodyIterator(RowStringConverter):
+    """Iterator for the table body rows."""
+
     def __iter__(self):
         for row_num in range(len(self.strrows)):
             if row_num >= self._header_row_num:
@@ -247,8 +282,13 @@ class RowBodyIterator(RowStringConverter):
 
 
 class TableBuilderAbstract(ABC):
+    """
+    Abstract table builder producing string representation of LaTeX table.
+    """
+
     @property
     def product(self) -> str:
+        """String representation of LaTeX table."""
         elements = [
             self.env_begin,
             self.top_separator,
@@ -266,40 +306,62 @@ class TableBuilderAbstract(ABC):
     @property
     @abstractmethod
     def env_begin(self):
-        pass
+        """Beginning of the environment."""
 
     @property
     @abstractmethod
     def top_separator(self):
-        pass
+        """Top level separator."""
 
     @property
     @abstractmethod
     def header(self):
-        pass
+        """Header lines."""
 
     @property
     @abstractmethod
     def middle_separator(self):
-        pass
+        """Middle level separator."""
 
     @property
     @abstractmethod
     def env_body(self):
-        pass
+        """Environment body."""
 
     @property
     @abstractmethod
     def bottom_separator(self):
-        pass
+        """Bottom level separator."""
 
     @property
     @abstractmethod
     def env_end(self):
-        pass
+        """End of the environment."""
 
 
 class TableBuilder(TableBuilderAbstract):
+    """Table builder producing string representation of LaTeX table.
+
+    Parameters
+    ----------
+    formatter : `DataFrameFormatter`
+        Instance of `DataFrameFormatter`.
+    column_format: str, optional
+        Column format, for example, 'rcl' for three columns.
+    multicolumn: bool, optional
+        Use multicolumn to enhance MultiIndex columns.
+    multicolumn_format: str, optional
+        The alignment for multicolumns, similar to column_format.
+    multirow: bool, optional
+        Use multirow to enhance MultiIndex rows.
+    caption: str, optional
+        Table caption.
+    label: str, optional
+        LaTeX label.
+    position: str, optional
+        Float placement specifier, for example, 'htb'.
+    """
+
     def __init__(
         self,
         formatter: DataFrameFormatter,
@@ -343,17 +405,32 @@ class TableBuilder(TableBuilderAbstract):
 
     @property
     def _position_macro(self):
+        r"""Position macro, extracted from self.position, like [h]."""
         return f"[{self.position}]" if self.position else ""
 
     @property
     def _caption_macro(self):
+        r"""Caption macro, extracted from self.caption, like \caption{cap}."""
         return f"\\caption{{{self.caption}}}" if self.caption else ""
 
     @property
     def _label_macro(self):
+        r"""Label macro, extracted from self.label, like \label{ref}."""
         return f"\\label{{{self.label}}}" if self.label else ""
 
     def _create_row_iterator(self, over):
+        """Create iterator over header or body of the table.
+
+        Parameters
+        ----------
+        over : {'body', 'header'}
+            Over what to iterate.
+
+        Returns
+        -------
+        RowStringConverter
+            Iterator over body or header.
+        """
         kwargs = dict(
             formatter=self.fmt,
             multicolumn=self.multicolumn,
@@ -370,6 +447,8 @@ class TableBuilder(TableBuilderAbstract):
 
 
 class LongTableBuilder(TableBuilder):
+    """Concrete table builder for longtable."""
+
     @property
     def env_begin(self):
         first_row = (
@@ -416,6 +495,8 @@ class LongTableBuilder(TableBuilder):
 
 
 class RegularTableBuilder(TableBuilder):
+    """Concrete table builder for regular table."""
+
     @property
     def env_begin(self):
         elements = [
@@ -437,6 +518,8 @@ class RegularTableBuilder(TableBuilder):
 
 
 class TabularBuilder(TableBuilder):
+    """Concrete table builder for tabular environment."""
+
     @property
     def env_begin(self):
         return f"\\begin{{tabular}}{{{self.column_format}}}"
@@ -499,6 +582,12 @@ class LatexFormatter(TableFormatter):
 
     @property
     def builder(self):
+        """Concrete table builder.
+
+        Returns
+        -------
+        TableBuilder
+        """
         kwargs = dict(
             formatter=self.fmt,
             column_format=self.column_format,
@@ -517,10 +606,12 @@ class LatexFormatter(TableFormatter):
 
     @property
     def column_format(self):
+        """Column format."""
         return self._column_format
 
     @column_format.setter
     def column_format(self, input_column_format):
+        """Setter for column format."""
         if input_column_format is None:
             self._column_format = (
                 self._get_index_format() + self._get_column_format_based_on_dtypes()
@@ -534,6 +625,11 @@ class LatexFormatter(TableFormatter):
             self._column_format = input_column_format
 
     def _get_column_format_based_on_dtypes(self):
+        """Get column format based on data type.
+
+        Right alignment for numbers and left - for strings.
+        """
+
         def get_col_type(dtype):
             if issubclass(dtype.type, np.number):
                 return "r"
@@ -543,4 +639,5 @@ class LatexFormatter(TableFormatter):
         return "".join(map(get_col_type, dtypes))
 
     def _get_index_format(self):
+        """Get index column format."""
         return "l" * self.frame.index.nlevels if self.fmt.index else ""
