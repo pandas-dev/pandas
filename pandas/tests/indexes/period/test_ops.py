@@ -174,6 +174,7 @@ class TestPeriodIndexOps:
 
             ordered, indexer = idx.sort_values(return_indexer=True, ascending=False)
             tm.assert_index_equal(ordered, expected[::-1])
+            _check_freq(ordered, idx)
 
             # GH 35584. Index sort is now stable when sorting in descending order
             # so we don't expect PeriodIndex and Index to return same indexers
@@ -333,3 +334,16 @@ class TestPeriodIndexOps:
         # warning for setter
         with pytest.raises(AttributeError, match="can't set attribute"):
             idx.freq = pd.offsets.Day()
+
+
+@pytest.mark.xfail(reason="PeriodIndex.sort_values currently unstable")
+def test_order_incompat():
+    # GH 35584. The new implementation of sort_values for Index.sort_values
+    # is stable when sorting in descending order. PeriodIndex.sort_values
+    # currently isn't stable. xfail should be removed after
+    # the implementations' behavior is synchronized.
+    pidx = PeriodIndex(["2011", "2013", "2015", "2012", "2011"], name="pidx", freq="A")
+    iidx = Index([2011, 2013, 2015, 2012, 2011], name="idx")
+    ordered1, indexer1 = pidx.sort_values(return_indexer=True, ascending=False)
+    ordered2, indexer2 = iidx.sort_values(return_indexer=True, ascending=False)
+    tm.assert_numpy_array_equal(indexer1, indexer2)
