@@ -896,12 +896,7 @@ class BlockManager(PandasObject):
         Returns
         -------
         values : a dict of dtype -> BlockManager
-
-        Notes
-        -----
-        This consolidates based on str(dtype)
         """
-        self._consolidate_inplace()
 
         bd: Dict[str, List[Block]] = {}
         for b in self.blocks:
