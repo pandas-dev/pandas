@@ -270,7 +270,7 @@ class Base:
             s3 = s1 * s2
             assert s3.index.name == "mario"
 
-    def test_name2(self, index):
+    def test_copy_name2(self, index):
         # gh-35592
         if isinstance(index, MultiIndex):
             return
@@ -283,6 +283,11 @@ class Base:
         msg = f"{type(index).__name__}.name must be a hashable type"
         with pytest.raises(TypeError, match=msg):
             index.copy(name=[["mario"]])
+
+    def test_copy_dtype_deprecated(self, index):
+        # GH35853
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            index.copy(dtype=object)
 
     def test_ensure_copied_data(self, index):
         # Check the "copy" argument of each Index.__new__ is honoured
