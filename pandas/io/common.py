@@ -33,8 +33,11 @@ import zipfile
 from pandas._typing import (
     CompressionDict,
     CompressionOptions,
+    EncodingVar,
     FilePathOrBuffer,
+    FilePathOrBufferVar,
     IOargs,
+    ModeVar,
     StorageOptions,
 )
 from pandas.compat import _get_lzma_file, _import_lzma
@@ -166,11 +169,11 @@ def is_fsspec_url(url: FilePathOrBuffer) -> bool:
 
 def get_filepath_or_buffer(
     filepath_or_buffer: FilePathOrBuffer,
-    encoding: Optional[str] = None,
+    encoding: EncodingVar = None,  # type: ignore[assignment]
     compression: CompressionOptions = None,
-    mode: Optional[str] = None,
+    mode: ModeVar = None,  # type: ignore[assignment]
     storage_options: StorageOptions = None,
-) -> IOargs:
+) -> IOargs[ModeVar, EncodingVar]:
     """
     If the filepath_or_buffer is a url, translate and return the buffer.
     Otherwise passthrough.

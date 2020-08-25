@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import datetime, timedelta, tzinfo
 from pathlib import Path
 from typing import (
@@ -8,6 +9,7 @@ from typing import (
     Callable,
     Collection,
     Dict,
+    Generic,
     Hashable,
     List,
     Mapping,
@@ -117,7 +119,13 @@ CompressionDict = Mapping[str, Optional[Union[str, int, bool]]]
 CompressionOptions = Optional[Union[str, CompressionDict]]
 
 
-class IOargs(NamedTuple):
+# lets us bind types
+ModeVar = TypeVar("ModeVar", str, None)
+EncodingVar = TypeVar("EncodingVar", str, None)
+
+
+@dataclass
+class IOargs(Generic[ModeVar, EncodingVar]):
     """
     Return value of io/common.py:get_filepath_or_buffer.
 
@@ -128,7 +136,7 @@ class IOargs(NamedTuple):
     """
 
     filepath_or_buffer: FilePathOrBuffer
-    encoding: Optional[str]
-    compression: CompressionOptions = None
-    should_close: bool = False
-    mode: Optional[str] = None
+    encoding: EncodingVar
+    compression: CompressionOptions
+    should_close: bool
+    mode: Union[ModeVar, str]

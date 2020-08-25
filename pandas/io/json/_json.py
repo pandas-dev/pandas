@@ -645,7 +645,7 @@ def read_json(
 
     result = json_reader.read()
     if should_close:
-        filepath_or_buffer.close()  # type: ignore
+        filepath_or_buffer.close()
 
     return result
 

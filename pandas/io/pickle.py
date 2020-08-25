@@ -107,7 +107,7 @@ def to_pickle(
             _f.close()
         if should_close:
             try:
-                fp_or_buf.close()  # type: ignore
+                fp_or_buf.close()
             except ValueError:
                 pass
 

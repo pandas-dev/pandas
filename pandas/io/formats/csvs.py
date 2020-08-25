@@ -64,13 +64,7 @@ class CSVFormatter:
         compression, self.compression_args = get_compression_method(compression)
         self.compression = infer_compression(path_or_buf, compression)
 
-        (
-            self.path_or_buf,
-            _,
-            _,
-            self.should_close,
-            mode,  # type: ignore
-        ) = get_filepath_or_buffer(
+        (self.path_or_buf, _, _, self.should_close, mode,) = get_filepath_or_buffer(
             path_or_buf,
             encoding=encoding,
             compression=self.compression,
