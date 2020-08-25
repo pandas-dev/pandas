@@ -7,7 +7,7 @@ from contextlib import contextmanager
 from datetime import date, datetime, time
 from functools import partial
 import re
-from typing import Iterator, Optional, Union, overload
+from typing import List, Iterator, Optional, Union, overload
 import warnings
 
 import numpy as np
@@ -1455,7 +1455,14 @@ class SQLDatabase(PandasSQL):
             self.get_table(table_name, schema).drop()
             self.meta.clear()
 
-    def _create_sql_schema(self, frame, table_name, keys=None, dtype=None, schema=None):
+    def _create_sql_schema(
+            self,
+            frame: DataFrame,
+            table_name: str,
+            keys: Optional[List[str]] = None,
+            dtype : Optional[dict]=None,
+            schema: Optional[str] = None
+        ):
         table = SQLTable(
             table_name,
             self,
@@ -1595,12 +1602,12 @@ class SQLiteTable(SQLTable):
                 f"CONSTRAINT {self.name}_pk PRIMARY KEY ({cnames_br})"
             )
         if self.schema:
-            schema_to_add = self.schema + "."
+            schema_name = self.schema + "."
         else:
-            schema_to_add = ""
+            schema_name = ""
         create_stmts = [
             "CREATE TABLE "
-            + schema_to_add
+            + schema_name
             + escape(self.name)
             + " (\n"
             + ",\n  ".join(create_tbl_stmts)
