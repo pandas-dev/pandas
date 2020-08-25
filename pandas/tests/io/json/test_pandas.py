@@ -1213,6 +1213,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         tm.assert_frame_equal(result, expected)
 
     @td.skip_if_not_us_locale
+    @pytest.mark.single
     def test_read_s3_jsonl(self, s3_resource, s3so):
         # GH17200
 
@@ -1702,6 +1703,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         result = series.to_json(orient="index")
         assert result == expected
 
+    @pytest.mark.single
     def test_to_s3(self, s3_resource):
         import time
 

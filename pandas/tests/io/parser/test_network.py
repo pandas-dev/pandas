@@ -69,6 +69,7 @@ def tips_df(datapath):
 
 @pytest.mark.usefixtures("s3_resource")
 @td.skip_if_not_us_locale()
+@pytest.mark.single
 class TestS3:
     @td.skip_if_no("s3fs")
     def test_parse_public_s3_bucket(self, tips_df, s3so):
