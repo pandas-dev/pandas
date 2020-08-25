@@ -751,8 +751,8 @@ class BlockManager(PandasObject):
         return self._combine([b for b in self.blocks if b.is_numeric], copy)
 
     def _combine(
-        self, blocks: List[Block], copy: bool = True, index: Optional[Index] = None
-    ) -> "BlockManager":
+        self: T, blocks: List[Block], copy: bool = True, index: Optional[Index] = None
+    ) -> T:
         """ return a new manager with the blocks """
         if len(blocks) == 0:
             return self.make_empty()
