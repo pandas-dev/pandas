@@ -19,7 +19,7 @@ class _PyxlsbReader(_BaseExcelReader):
         ----------
         filepath_or_buffer : str, path object, or Workbook
             Object to be parsed.
-        storage_options : StorageOptions
+        storage_options : dict, optional
             passed to fsspec for appropriate URLs (see ``get_filepath_or_buffer``)
         """
         import_optional_dependency("pyxlsb")
