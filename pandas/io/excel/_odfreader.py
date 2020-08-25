@@ -18,7 +18,7 @@ class _ODFReader(_BaseExcelReader):
     ----------
     filepath_or_buffer : string, path to be parsed or
         an open readable stream.
-    storage_options : StorageOptions
+    storage_options : dict, optional
         passed to fsspec for appropriate URLs (see ``get_filepath_or_buffer``)
     """
 

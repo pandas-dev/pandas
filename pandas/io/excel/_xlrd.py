@@ -17,7 +17,7 @@ class _XlrdReader(_BaseExcelReader):
         ----------
         filepath_or_buffer : string, path object or Workbook
             Object to be parsed.
-        storage_options : StorageOptions
+        storage_options : dict, optional
             passed to fsspec for appropriate URLs (see ``get_filepath_or_buffer``)
         """
         err_msg = "Install xlrd >= 1.0.0 for Excel support"
