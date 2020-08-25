@@ -9,7 +9,7 @@ import os
 from shutil import rmtree
 import string
 import tempfile
-from typing import Any, Callable, List, Optional, Type, Union, cast
+from typing import Any, Callable, ContextManager, List, Optional, Type, Union, cast
 import warnings
 import zipfile
 
@@ -535,7 +535,7 @@ def rands(nchars):
 
 
 def close(fignum=None):
-    from matplotlib.pyplot import get_fignums, close as _close
+    from matplotlib.pyplot import close as _close, get_fignums
 
     if fignum is None:
         for fignum in get_fignums():
@@ -1339,10 +1339,8 @@ def assert_series_equal(
         else:
             assert_attr_equal("dtype", left, right, obj=f"Attributes of {obj}")
 
-    if check_exact:
-        if not is_numeric_dtype(left.dtype):
-            raise AssertionError("check_exact may only be used with numeric Series")
-
+    if check_exact and is_numeric_dtype(left.dtype) and is_numeric_dtype(right.dtype):
+        # Only check exact if dtype is numeric
         assert_numpy_array_equal(
             left._values,
             right._values,
@@ -1379,12 +1377,18 @@ def assert_series_equal(
         )
     elif is_extension_array_dtype(left.dtype) and is_extension_array_dtype(right.dtype):
         assert_extension_array_equal(
-            left._values, right._values, index_values=np.asarray(left.index)
+            left._values,
+            right._values,
+            check_dtype=check_dtype,
+            index_values=np.asarray(left.index),
         )
     elif needs_i8_conversion(left.dtype) or needs_i8_conversion(right.dtype):
         # DatetimeArray or TimedeltaArray
         assert_extension_array_equal(
-            left._values, right._values, index_values=np.asarray(left.index)
+            left._values,
+            right._values,
+            check_dtype=check_dtype,
+            index_values=np.asarray(left.index),
         )
     else:
         _testing.assert_almost_equal(
@@ -2880,9 +2884,7 @@ def convert_rows_list_to_csv_str(rows_list: List[str]):
     return expected
 
 
-def external_error_raised(
-    expected_exception: Type[Exception],
-) -> Callable[[Type[Exception], None], None]:
+def external_error_raised(expected_exception: Type[Exception],) -> ContextManager:
     """
     Helper function to mark pytest.raises that have an external error message.
 

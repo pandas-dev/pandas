@@ -158,6 +158,10 @@ def check_round_trip(
     """
     write_kwargs = write_kwargs or {"compression": None}
     read_kwargs = read_kwargs or {}
+    if isinstance(path, str) and "s3://" in path:
+        s3so = dict(client_kwargs={"endpoint_url": "http://127.0.0.1:5555/"})
+        read_kwargs["storage_options"] = s3so
+        write_kwargs["storage_options"] = s3so
 
     if expected is None:
         expected = df
@@ -537,9 +541,11 @@ class TestParquetPyArrow(Base):
             expected = df.astype(object)
             check_round_trip(df, pa, expected=expected)
 
-    def test_s3_roundtrip_explicit_fs(self, df_compat, s3_resource, pa):
+    def test_s3_roundtrip_explicit_fs(self, df_compat, s3_resource, pa, s3so):
         s3fs = pytest.importorskip("s3fs")
-        s3 = s3fs.S3FileSystem()
+        if LooseVersion(pyarrow.__version__) <= LooseVersion("0.17.0"):
+            pytest.skip()
+        s3 = s3fs.S3FileSystem(**s3so)
         kw = dict(filesystem=s3)
         check_round_trip(
             df_compat,
@@ -550,6 +556,8 @@ class TestParquetPyArrow(Base):
         )
 
     def test_s3_roundtrip(self, df_compat, s3_resource, pa):
+        if LooseVersion(pyarrow.__version__) <= LooseVersion("0.17.0"):
+            pytest.skip()
         # GH #19134
         check_round_trip(df_compat, pa, path="s3://pandas-test/pyarrow.parquet")
 
@@ -557,13 +565,23 @@ class TestParquetPyArrow(Base):
     @pytest.mark.parametrize("partition_col", [["A"], []])
     def test_s3_roundtrip_for_dir(self, df_compat, s3_resource, pa, partition_col):
         # GH #26388
-        # https://github.com/apache/arrow/blob/master/python/pyarrow/tests/test_parquet.py#L2716
-        # As per pyarrow partitioned columns become 'categorical' dtypes
-        # and are added to back of dataframe on read
-
         expected_df = df_compat.copy()
-        if partition_col:
-            expected_df[partition_col] = expected_df[partition_col].astype("category")
+
+        # GH #35791
+        # read_table uses the new Arrow Datasets API since pyarrow 1.0.0
+        # Previous behaviour was pyarrow partitioned columns become 'category' dtypes
+        # These are added to back of dataframe on read. In new API category dtype is
+        # only used if partition field is string.
+        legacy_read_table = LooseVersion(pyarrow.__version__) < LooseVersion("1.0.0")
+        if partition_col and legacy_read_table:
+            partition_col_type = "category"
+        else:
+            partition_col_type = "int32"
+
+        expected_df[partition_col] = expected_df[partition_col].astype(
+            partition_col_type
+        )
+
         check_round_trip(
             df_compat,
             pa,

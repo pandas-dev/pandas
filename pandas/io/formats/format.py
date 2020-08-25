@@ -72,7 +72,7 @@ from pandas.io.common import stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
 
 if TYPE_CHECKING:
-    from pandas import Series, DataFrame, Categorical
+    from pandas import Categorical, DataFrame, Series
 
 FormattersType = Union[
     List[Callable], Tuple[Callable, ...], Mapping[Union[str, int], Callable]
@@ -330,9 +330,8 @@ class SeriesFormatter:
 
     def _get_formatted_index(self) -> Tuple[List[str], bool]:
         index = self.tr_series.index
-        is_multi = isinstance(index, MultiIndex)
 
-        if is_multi:
+        if isinstance(index, MultiIndex):
             have_header = any(name for name in index.names)
             fmt_index = index.format(names=True)
         else:
@@ -932,6 +931,7 @@ class DataFrameFormatter(TableFormatter):
         multirow: bool = False,
         caption: Optional[str] = None,
         label: Optional[str] = None,
+        position: Optional[str] = None,
     ) -> Optional[str]:
         """
         Render a DataFrame to a LaTeX tabular/longtable environment output.
@@ -947,6 +947,7 @@ class DataFrameFormatter(TableFormatter):
             multirow=multirow,
             caption=caption,
             label=label,
+            position=position,
         ).get_result(buf=buf, encoding=encoding)
 
     def _format_col(self, i: int) -> List[str]:
@@ -1382,9 +1383,9 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
             if self.fixed_width:
                 if is_complex:
-                    result = _trim_zeros_complex(values, na_rep)
+                    result = _trim_zeros_complex(values, self.decimal, na_rep)
                 else:
-                    result = _trim_zeros_float(values, na_rep)
+                    result = _trim_zeros_float(values, self.decimal, na_rep)
                 return np.asarray(result, dtype="object")
 
             return values
@@ -1754,19 +1755,21 @@ def _make_fixed_width(
     return result
 
 
-def _trim_zeros_complex(str_complexes: np.ndarray, na_rep: str = "NaN") -> List[str]:
+def _trim_zeros_complex(
+    str_complexes: np.ndarray, decimal: str = ".", na_rep: str = "NaN"
+) -> List[str]:
     """
     Separates the real and imaginary parts from the complex number, and
     executes the _trim_zeros_float method on each of those.
     """
     return [
-        "".join(_trim_zeros_float(re.split(r"([j+-])", x), na_rep))
+        "".join(_trim_zeros_float(re.split(r"([j+-])", x), decimal, na_rep))
         for x in str_complexes
     ]
 
 
 def _trim_zeros_float(
-    str_floats: Union[np.ndarray, List[str]], na_rep: str = "NaN"
+    str_floats: Union[np.ndarray, List[str]], decimal: str = ".", na_rep: str = "NaN"
 ) -> List[str]:
     """
     Trims zeros, leaving just one before the decimal points if need be.
@@ -1778,8 +1781,11 @@ def _trim_zeros_float(
 
     def _cond(values):
         finite = [x for x in values if _is_number(x)]
+        has_decimal = [decimal in x for x in finite]
+
         return (
             len(finite) > 0
+            and all(has_decimal)
             and all(x.endswith("0") for x in finite)
             and not (any(("e" in x) or ("E" in x) for x in finite))
         )
@@ -1788,7 +1794,7 @@ def _trim_zeros_float(
         trimmed = [x[:-1] if _is_number(x) else x for x in trimmed]
 
     # leave one 0 after the decimal points if need be.
-    return [x + "0" if x.endswith(".") and _is_number(x) else x for x in trimmed]
+    return [x + "0" if x.endswith(decimal) and _is_number(x) else x for x in trimmed]
 
 
 def _has_names(index: Index) -> bool:

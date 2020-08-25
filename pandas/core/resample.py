@@ -795,7 +795,7 @@ class Resampler(_GroupBy, ShallowMixin):
         """
         Interpolate values according to different methods.
         """
-        result = self._upsample(None)
+        result = self._upsample("asfreq")
         return result.interpolate(
             method=method,
             axis=axis,
@@ -967,7 +967,7 @@ class _GroupByMixin(GroupByMixin):
             setattr(self, attr, kwargs.get(attr, getattr(parent, attr)))
 
         # error: Too many arguments for "__init__" of "object"
-        super().__init__(None)  # type: ignore
+        super().__init__(None)  # type: ignore[call-arg]
         self._groupby = groupby
         self._groupby.mutated = True
         self._groupby.grouper.mutated = True

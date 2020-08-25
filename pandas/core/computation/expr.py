@@ -167,10 +167,9 @@ _is_str = _is_type(str)
 
 # partition all AST nodes
 _all_nodes = frozenset(
-    filter(
-        lambda x: isinstance(x, type) and issubclass(x, ast.AST),
-        (getattr(ast, node) for node in dir(ast)),
-    )
+    node
+    for node in (getattr(ast, name) for name in dir(ast))
+    if isinstance(node, type) and issubclass(node, ast.AST)
 )
 
 
