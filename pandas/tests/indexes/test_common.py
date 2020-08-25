@@ -16,13 +16,12 @@ import pandas as pd
 from pandas import (
     CategoricalIndex,
     DatetimeIndex,
-    PeriodIndex,
-    Index,
     Int64Index,
-    UInt64Index,
     MultiIndex,
+    PeriodIndex,
     RangeIndex,
     TimedeltaIndex,
+    UInt64Index,
 )
 import pandas._testing as tm
 
