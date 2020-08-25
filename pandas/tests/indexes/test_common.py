@@ -13,7 +13,17 @@ from pandas._libs.tslibs import iNaT
 from pandas.core.dtypes.common import is_period_dtype, needs_i8_conversion
 
 import pandas as pd
-from pandas import CategoricalIndex, Index, MultiIndex, RangeIndex
+from pandas import (
+    CategoricalIndex,
+    DatetimeIndex,
+    PeriodIndex,
+    Index,
+    Int64Index,
+    UInt64Index,
+    MultiIndex,
+    RangeIndex,
+    TimedeltaIndex,
+)
 import pandas._testing as tm
 
 
@@ -393,24 +403,59 @@ class TestCommon:
             assert result.name == index.name
 
 
-@pytest.mark.parametrize("idx", [Index(["a", None, "c", None, "e"])])
-@pytest.mark.parametrize(
-    "na_position, expected",
-    [
-        ("first", Index([None, None, "a", "c", "e"])),
-        ("last", Index(["a", "c", "e", None, None])),
-        ("middle", None),
-    ],
+@pytest.fixture(
+    params=[
+        tm.makeBoolIndex(10),
+        tm.makeFloatIndex(10),
+        tm.makeIntervalIndex(10),
+        tm.makeStringIndex(10),
+        tm.makeIntIndex(10),
+        tm.makeUIntIndex(10),
+        tm.makeRangeIndex(10),
+        tm.makeCategoricalIndex(10),
+        tm.makeMultiIndex(10),
+        tm.makeDateIndex(10),
+        tm.makePeriodIndex(10),
+        tm.makeTimedeltaIndex(10),
+    ]
 )
-def test_sort_values_with_missing(idx, na_position, expected):
-    # GH 35584. Test that sort_values works with missing values,
-    # sort non-missing and places missing according to na_position
+def index_with_missing(request):
+    ind = request.param
+    if type(ind) in [DatetimeIndex, PeriodIndex, TimedeltaIndex]:
+        pytest.xfail("stable descending order sort not implemented")
+    if type(ind) in [Int64Index, UInt64Index, RangeIndex]:
+        pytest.xfail("missing values not supported")
+    if type(ind) in [CategoricalIndex, MultiIndex]:
+        pytest.xfail("missing value sorting order not defined for index type")
+    vals = request.param.values
+    vals[2] = None
+    vals[5] = None
+    ind = type(ind)(vals)
+    return ind
 
+
+@pytest.mark.parametrize("na_position", ["middle"])
+def test_sort_values_invalid_na_position(index_with_missing, na_position):
     if na_position not in ["first", "last"]:
         with pytest.raises(
             ValueError, match=f"invalid na_position: {na_position}",
         ):
-            idx.sort_values(na_position=na_position)
+            index_with_missing.sort_values(na_position=na_position)
+
+
+@pytest.mark.parametrize("na_position", ["first", "last"])
+def test_sort_values_with_missing(index_with_missing, na_position):
+    # GH 35584. Test that sort_values works with missing values,
+    # sort non-missing and places missing according to na_position
+
+    missing_count = np.sum(index_with_missing.isna())
+    not_na_vals = index_with_missing[index_with_missing.notna()].values
+    sorted_values = np.sort(not_na_vals)
+    if na_position == "first":
+        sorted_values = np.concatenate([[None] * missing_count, sorted_values])
     else:
-        result = idx.sort_values(na_position=na_position)
-        tm.assert_index_equal(result, expected)
+        sorted_values = np.concatenate([sorted_values, [None] * missing_count])
+    expected = type(index_with_missing)(sorted_values)
+
+    result = index_with_missing.sort_values(na_position=na_position)
+    tm.assert_index_equal(result, expected)
