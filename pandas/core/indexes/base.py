@@ -5055,16 +5055,12 @@ class Index(IndexOpsMixin, PandasObject):
         int
             Index of label.
         """
+        assert kind in ["loc", "getitem", None]
+
         if side not in ("left", "right"):
             raise ValueError(
                 "Invalid value for side kwarg, must be either "
                 f"'left' or 'right': {side}"
-            )
-
-        if kind not in ("loc", "getitem", None):
-            raise ValueError(
-                "Invalid value for kind kwarg, must be either "
-                f"'loc' or 'getitem': {kind}"
             )
 
         original_label = label
