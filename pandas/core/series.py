@@ -31,6 +31,7 @@ from pandas._typing import (
     FrameOrSeriesUnion,
     IndexKeyFunc,
     Label,
+    StorageOptions,
     ValueKeyFunc,
 )
 from pandas.compat.numpy import function as nv
@@ -54,6 +55,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_scalar,
+    validate_all_hashable,
 )
 from pandas.core.dtypes.generic import ABCDataFrame
 from pandas.core.dtypes.inference import is_hashable
@@ -491,8 +493,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @name.setter
     def name(self, value: Label) -> None:
-        if not is_hashable(value):
-            raise TypeError("Series.name must be a hashable type")
+        validate_all_hashable(value, error_name=f"{type(self).__name__}.name")
         object.__setattr__(self, "_name", value)
 
     @property
@@ -571,7 +572,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return self._mgr.internal_values()
 
-    @Appender(base.IndexOpsMixin.array.__doc__)  # type: ignore
+    # error: Decorated property not supported
+    @Appender(base.IndexOpsMixin.array.__doc__)  # type: ignore[misc]
     @property
     def array(self) -> ExtensionArray:
         return self._mgr._block.array_values()
@@ -1421,8 +1423,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def to_markdown(
         self,
         buf: Optional[IO[str]] = None,
-        mode: Optional[str] = None,
+        mode: str = "wt",
         index: bool = True,
+        storage_options: StorageOptions = None,
         **kwargs,
     ) -> Optional[str]:
         """
@@ -1435,11 +1438,21 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         buf : str, Path or StringIO-like, optional, default None
             Buffer to write to. If None, the output is returned as a string.
         mode : str, optional
-            Mode in which file is opened.
+            Mode in which file is opened, "wt" by default.
         index : bool, optional, default True
             Add index (row) labels.
 
             .. versionadded:: 1.1.0
+
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc., if using a URL that will
+            be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+            will be raised if providing this argument with a local path or
+            a file-like buffer. See the fsspec and backend storage implementation
+            docs for the set of allowed keys and values
+
+            .. versionadded:: 1.2.0
 
         **kwargs
             These parameters will be passed to `tabulate \
@@ -1476,7 +1489,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         |  3 | quetzal  |
         +----+----------+
         """
-        return self.to_frame().to_markdown(buf, mode, index, **kwargs)
+        return self.to_frame().to_markdown(
+            buf, mode, index, storage_options=storage_options, **kwargs
+        )
 
     # ----------------------------------------------------------------------
 
@@ -1785,7 +1800,9 @@ Name: Max Speed, dtype: float64
 
     def mode(self, dropna=True) -> "Series":
         """
-        Return the mode(s) of the dataset.
+        Return the mode(s) of the Series.
+
+        The mode is the value that appears most often. There can be multiple modes.
 
         Always returns Series even if only one value is returned.
 
@@ -4622,7 +4639,7 @@ Keep all original rows and also all original values
         >>> s.memory_usage()
         144
         >>> s.memory_usage(deep=True)
-        260
+        244
         """
         v = super().memory_usage(deep=deep)
         if index:
@@ -4921,7 +4938,10 @@ Keep all original rows and also all original values
 
         if not isinstance(self.index, PeriodIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
-        new_index = self.index.to_timestamp(freq=freq, how=how)  # type: ignore
+        # error: "PeriodIndex" has no attribute "to_timestamp"
+        new_index = self.index.to_timestamp(  # type: ignore[attr-defined]
+            freq=freq, how=how
+        )
         return self._constructor(new_values, index=new_index).__finalize__(
             self, method="to_timestamp"
         )

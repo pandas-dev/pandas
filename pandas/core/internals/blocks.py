@@ -105,7 +105,6 @@ class Block(PandasObject):
     is_extension = False
     _can_hold_na = False
     _can_consolidate = True
-    _verify_integrity = True
     _validate_ndim = True
 
     @classmethod
@@ -346,6 +345,21 @@ class Block(PandasObject):
             result = func(self.values, **kwargs)
 
         return self._split_op_result(result)
+
+    def reduce(self, func) -> List["Block"]:
+        # We will apply the function and reshape the result into a single-row
+        #  Block with the same mgr_locs; squeezing will be done at a higher level
+        assert self.ndim == 2
+
+        result = func(self.values)
+        if np.ndim(result) == 0:
+            # TODO(EA2D): special case not needed with 2D EAs
+            res_values = np.array([[result]])
+        else:
+            res_values = result.reshape(-1, 1)
+
+        nb = self.make_block(res_values)
+        return [nb]
 
     def _split_op_result(self, result) -> List["Block"]:
         # See also: split_and_operate
@@ -1525,7 +1539,6 @@ class ExtensionBlock(Block):
     """
 
     _can_consolidate = False
-    _verify_integrity = False
     _validate_ndim = False
     is_extension = True
 
@@ -2613,7 +2626,6 @@ class ObjectBlock(Block):
 class CategoricalBlock(ExtensionBlock):
     __slots__ = ()
     is_categorical = True
-    _verify_integrity = True
     _can_hold_na = True
 
     should_store = Block.should_store
@@ -2744,7 +2756,8 @@ def _block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
             # TODO(EA2D): https://github.com/pandas-dev/pandas/issues/23023
             # block.shape is incorrect for "2D" ExtensionArrays
             # We can't, and don't need to, reshape.
-            values = values.reshape(tuple((1,) + shape))  # type: ignore
+            # error: "ExtensionArray" has no attribute "reshape"
+            values = values.reshape(tuple((1,) + shape))  # type: ignore[attr-defined]
     return values
 
 

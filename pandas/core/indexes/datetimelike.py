@@ -24,7 +24,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
 )
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCIndex, ABCSeries
 
 from pandas.core import algorithms
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
@@ -54,7 +54,8 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
     Create the join wrapper methods.
     """
 
-    @staticmethod  # type: ignore
+    # error: 'staticmethod' used with a non-method
+    @staticmethod  # type: ignore[misc]
     def wrapper(left, right):
         if isinstance(left, (np.ndarray, ABCIndex, ABCSeries, DatetimeLikeArrayMixin)):
             left = left.view("i8")
@@ -95,7 +96,10 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     _bool_ops: List[str] = []
     _field_ops: List[str] = []
 
-    hasnans = cache_readonly(DatetimeLikeArrayMixin._hasnans.fget)  # type: ignore
+    # error: "Callable[[Any], Any]" has no attribute "fget"
+    hasnans = cache_readonly(
+        DatetimeLikeArrayMixin._hasnans.fget  # type: ignore[attr-defined]
+    )
     _hasnans = hasnans  # for index / array -agnostic code
 
     @property
@@ -112,7 +116,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
     def __array_wrap__(self, result, context=None):
         """
-        Gets called after a ufunc.
+        Gets called after a ufunc and other functions.
         """
         result = lib.item_from_zerodim(result)
         if is_bool_dtype(result) or lib.is_scalar(result):
@@ -126,14 +130,14 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
     # ------------------------------------------------------------------------
 
-    def equals(self, other) -> bool:
+    def equals(self, other: object) -> bool:
         """
         Determines if two Index objects contain the same elements.
         """
         if self.is_(other):
             return True
 
-        if not isinstance(other, ABCIndexClass):
+        if not isinstance(other, Index):
             return False
         elif not isinstance(other, type(self)):
             try:
@@ -700,16 +704,16 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
                 if result.freq is None:
                     # TODO: no tests rely on this; needed?
                     result = result._with_freq("infer")
-            assert result.name == res_name
+            result.name = res_name
             return result
 
         elif not self._can_fast_intersect(other):
             result = Index.intersection(self, other, sort=sort)
-            assert result.name == res_name
             # We need to invalidate the freq because Index.intersection
             #  uses _shallow_copy on a view of self._data, which will preserve
             #  self.freq if we're not careful.
             result = result._with_freq(None)._with_freq("infer")
+            result.name = res_name
             return result
 
         # to make our life easier, "sort" the two ranges
