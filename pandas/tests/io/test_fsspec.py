@@ -131,7 +131,6 @@ def test_fastparquet_options(fsspectest):
 
 
 @td.skip_if_no("s3fs")
-@pytest.mark.single
 def test_from_s3_csv(s3_resource, tips_file, s3so):
     tm.assert_equal(
         read_csv("s3://pandas-test/tips.csv", storage_options=s3so), read_csv(tips_file)
@@ -149,7 +148,6 @@ def test_from_s3_csv(s3_resource, tips_file, s3so):
 
 @pytest.mark.parametrize("protocol", ["s3", "s3a", "s3n"])
 @td.skip_if_no("s3fs")
-@pytest.mark.single
 def test_s3_protocols(s3_resource, tips_file, protocol, s3so):
     tm.assert_equal(
         read_csv("%s://pandas-test/tips.csv" % protocol, storage_options=s3so),
@@ -159,7 +157,6 @@ def test_s3_protocols(s3_resource, tips_file, protocol, s3so):
 
 @td.skip_if_no("s3fs")
 @td.skip_if_no("fastparquet")
-@pytest.mark.single
 def test_s3_parquet(s3_resource, s3so):
     fn = "s3://pandas-test/test.parquet"
     df1.to_parquet(
