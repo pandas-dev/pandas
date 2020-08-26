@@ -347,7 +347,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
             attrs.append(("length", len(self)))
         return attrs
 
-    def _format_with_header(self, header, na_rep="NaN") -> List[str]:
+    def _format_with_header(self, header: List[str], na_rep: str = "NaN") -> List[str]:
         from pandas.io.formats.printing import pprint_thing
 
         result = [
