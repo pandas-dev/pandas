@@ -868,13 +868,14 @@ def test_apply_multi_level_name(category):
     b = [1, 2] * 5
     if category:
         b = pd.Categorical(b, categories=[1, 2, 3])
+        expected_index = pd.CategoricalIndex([1, 2], categories=[1, 2, 3], name="B")
+    else:
+        expected_index = pd.Index([1, 2], name="B")
     df = pd.DataFrame(
         {"A": np.arange(10), "B": b, "C": list(range(10)), "D": list(range(10))}
     ).set_index(["A", "B"])
     result = df.groupby("B").apply(lambda x: x.sum())
-    expected = pd.DataFrame(
-        {"C": [20, 25], "D": [20, 25]}, index=pd.Index([1, 2], name="B")
-    )
+    expected = pd.DataFrame({"C": [20, 25], "D": [20, 25]}, index=expected_index)
     tm.assert_frame_equal(result, expected)
     assert df.index.names == ["A", "B"]
 
