@@ -8610,7 +8610,7 @@ NaN 12.3   33.0
             else:
                 return op(values, axis=axis, skipna=skipna, **kwds)
 
-        def _get_data(axis_matters: bool):
+        def _get_data(axis_matters: bool) -> "DataFrame":
             if filter_type is None:
                 data = self._get_numeric_data()
             elif filter_type == "bool":
