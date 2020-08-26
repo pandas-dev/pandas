@@ -1702,17 +1702,14 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         result = series.to_json(orient="index")
         assert result == expected
 
-    def test_to_s3(self, s3_resource):
+    def test_to_s3(self, s3_resource, s3so):
         import time
 
         # GH 28375
         mock_bucket_name, target_file = "pandas-test", "test.json"
         df = DataFrame({"x": [1, 2, 3], "y": [2, 4, 6]})
         df.to_json(
-            f"s3://{mock_bucket_name}/{target_file}",
-            storage_options=dict(
-                client_kwargs={"endpoint_url": "http://127.0.0.1:5555/"}
-            ),
+            f"s3://{mock_bucket_name}/{target_file}", storage_options=s3so,
         )
         timeout = 5
         while True:
