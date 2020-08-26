@@ -14,7 +14,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
-
+- Regression in :meth:`DatetimeIndex.intersection` incorrectly raising ``AssertionError`` when intersecting against a list (:issue:`35876`)
 -
 -
 
@@ -24,7 +24,8 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
-
+- Bug in :meth:`DataFrame.eval` with ``object`` dtype column binary operations (:issue:`35794`)
+- Bug in :meth:`DataFrame.apply` with ``result_type="reduce"`` returning with incorrect index (:issue:`35683`)
 -
 -
 

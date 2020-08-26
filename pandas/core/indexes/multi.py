@@ -1030,7 +1030,6 @@ class MultiIndex(Index):
         name=lib.no_default,
         levels=None,
         codes=None,
-        dtype=None,
         sortorder=None,
         names=lib.no_default,
         _set_identity: bool = True,
@@ -1041,7 +1040,7 @@ class MultiIndex(Index):
             names = name if name is not lib.no_default else self.names
 
         if values is not None:
-            assert levels is None and codes is None and dtype is None
+            assert levels is None and codes is None
             return MultiIndex.from_tuples(values, sortorder=sortorder, names=names)
 
         levels = levels if levels is not None else self.levels
@@ -1050,7 +1049,6 @@ class MultiIndex(Index):
         result = MultiIndex(
             levels=levels,
             codes=codes,
-            dtype=dtype,
             sortorder=sortorder,
             names=names,
             verify_integrity=False,
@@ -1092,6 +1090,8 @@ class MultiIndex(Index):
         ----------
         names : sequence, optional
         dtype : numpy dtype or pandas type, optional
+
+            .. deprecated:: 1.2.0
         levels : sequence, optional
         codes : sequence, optional
         deep : bool, default False
@@ -1117,14 +1117,23 @@ class MultiIndex(Index):
             if codes is None:
                 codes = deepcopy(self.codes)
 
-        return self._shallow_copy(
+        new_index = self._shallow_copy(
             levels=levels,
             codes=codes,
             names=names,
-            dtype=dtype,
             sortorder=self.sortorder,
             _set_identity=_set_identity,
         )
+
+        if dtype:
+            warnings.warn(
+                "parameter dtype is deprecated and will be removed in a future "
+                "version. Use the astype method instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            new_index = new_index.astype(dtype)
+        return new_index
 
     def __array__(self, dtype=None) -> np.ndarray:
         """ the array interface, return my values """
