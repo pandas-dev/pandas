@@ -350,7 +350,11 @@ class BlockManager(PandasObject):
         return operate_blockwise(self, other, array_op)
 
     def apply(
-        self: T, f, align_keys=None, ignore_failures: bool = False, **kwargs
+        self: T,
+        f,
+        align_keys: Optional[List[str]] = None,
+        ignore_failures: bool = False,
+        **kwargs,
     ) -> T:
         """
         Iterate over the blocks, collect and create a new BlockManager.
