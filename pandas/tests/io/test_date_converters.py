@@ -14,7 +14,7 @@ def test_parse_date_time():
     expected = np.array([datetime(2007, 1, 3, 5, 7, 9), datetime(2008, 2, 4, 6, 8, 0)])
     with tm.assert_produces_warning(FutureWarning):
         result = conv.parse_date_time(dates, times)
-        tm.assert_numpy_array_equal(result, expected)
+    tm.assert_numpy_array_equal(result, expected)
 
 
 def test_parse_date_fields():
@@ -25,7 +25,7 @@ def test_parse_date_fields():
 
     with tm.assert_produces_warning(FutureWarning):
         result = conv.parse_date_fields(years, months, days)
-        tm.assert_numpy_array_equal(result, expected)
+    tm.assert_numpy_array_equal(result, expected)
 
 
 def test_parse_all_fields():
@@ -40,4 +40,4 @@ def test_parse_all_fields():
 
     with tm.assert_produces_warning(FutureWarning):
         result = conv.parse_all_fields(years, months, days, hours, minutes, seconds)
-        tm.assert_numpy_array_equal(result, expected)
+    tm.assert_numpy_array_equal(result, expected)
