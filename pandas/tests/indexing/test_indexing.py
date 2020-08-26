@@ -1110,3 +1110,77 @@ def test_setitem_categorical():
         {"h": pd.Categorical(["m", "n"]).reorder_categories(["n", "m"])}
     )
     tm.assert_frame_equal(df, expected)
+
+
+def test_setitem_EA_column_update():
+    # https://github.com/pandas-dev/pandas/issues/33457
+
+    df = pd.DataFrame(
+        {
+            "int": [1, 2, 3],
+            "int2": [3, 4, 5],
+            "float": [0.1, 0.2, 0.3],
+            "EA": pd.array([1, 2, None], dtype="Int64"),
+        }
+    )
+    original_arr = df.EA.array
+
+    # overwrite column with new array
+    df["EA"] = pd.array([1, 2, 3], dtype="Int64")
+    # ensure original array was not modified
+    assert original_arr is not df.EA.array
+    expected = pd.array([1, 2, None], dtype="Int64")
+    tm.assert_extension_array_equal(original_arr, expected)
+
+
+def test_getitem_EA_no_copy():
+    # ensure we don't copy the EA when taking a subset
+
+    df = pd.DataFrame(
+        {
+            "int": [1, 2, 3],
+            "int2": [3, 4, 5],
+            "float": [0.1, 0.2, 0.3],
+            "EA": pd.array([1, 2, None], dtype="Int64"),
+        }
+    )
+    original_arr = df.EA.array
+    subset = df[["int", "EA"]]
+    assert subset.EA.array is original_arr
+    # check that they view the same data by modifying
+    df["EA"].array[0] = 10
+    expected = pd.array([10, 2, None], dtype="Int64")
+    tm.assert_extension_array_equal(subset["EA"].array, expected)
+
+    # TODO this way it doesn't modify subset - is this expected?
+    # df.iloc[0, 3] = 10
+    # expected = pd.array([10, 2, None], dtype="Int64")
+    # tm.assert_extension_array_equal(subset['EA'].array, expected)
+
+
+def test_getitem_column_view():
+    # test that getting a single column is a view on the data
+
+    df = pd.DataFrame(
+        {
+            "int": [1, 2, 3],
+            "int2": [3, 4, 5],
+            "float": [0.1, 0.2, 0.3],
+            "EA": pd.array([1, 2, None], dtype="Int64"),
+        }
+    )
+
+    # getitem with ExtensionArray
+    original_arr = df._mgr.blocks[2].values
+    col = df["EA"]
+    assert col.array is original_arr
+    col[0] = 10
+    expected = pd.array([10, 2, None], dtype="Int64")
+    tm.assert_extension_array_equal(df["EA"].array, expected)
+
+    # getitem from consolidated block
+    col = df["int"]
+    with pd.option_context("chained_assignment", "warn"):
+        with tm.assert_produces_warning(pd.core.common.SettingWithCopyWarning):
+            col[0] = 10
+    tm.assert_equal(df["int"], pd.Series([10, 2, 3], name="int"))
