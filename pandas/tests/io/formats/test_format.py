@@ -689,6 +689,31 @@ class TestDataFrameFormatting:
         )
         assert result == result2
 
+    def test_to_string_with_truncated_formatters(self):
+        df = DataFrame(
+            {
+                "int": [1, 2, 3],
+                "float": [1.0, 2.0, 3.0],
+                "object": [(1, 2), True, False],
+            },
+            columns=["int", "float", "object"],
+        )
+
+        formatters = [
+            ("int", lambda x: f"[1] {x}"),
+            ("float", lambda x: f"[2] {x}"),
+            ("object", lambda x: f"[3] {x}"),
+        ]
+        result = df.to_string(formatters=dict(formatters), max_cols=2)
+        result2 = df.to_string(formatters=list(zip(*formatters))[1], max_cols=2)
+        assert result == (
+            "    int  ...      object\n"
+            "0 [1] 1  ...  [3] (1, 2)\n"
+            "1 [1] 2  ...    [3] True\n"
+            "2 [1] 3  ...   [3] False"
+        )
+        assert result == result2
+
     def test_to_string_with_datetime64_monthformatter(self):
         months = [datetime(2016, 1, 1), datetime(2016, 2, 2)]
         x = DataFrame({"months": months})

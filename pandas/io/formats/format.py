@@ -722,6 +722,7 @@ class DataFrameFormatter(TableFormatter):
         self.truncate_h = truncate_h
         self.truncate_v = truncate_v
         self.is_truncated = bool(self.truncate_h or self.truncate_v)
+        self.columns = self.tr_frame.columns
 
     def _to_str_columns(self) -> List[List[str]]:
         """
