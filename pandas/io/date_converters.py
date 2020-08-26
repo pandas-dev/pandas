@@ -87,7 +87,7 @@ def generic_parser(parse_func, *cols):
     warnings.warn(
         """
         Use pd.to_datetime instead.
-""",  # noqa: E501
+""",
         FutureWarning,
         stacklevel=2,
     )
