@@ -330,31 +330,18 @@ class BlockManager(PandasObject):
                 f"tot_items: {tot_items}"
             )
 
-    def reduce(self, func):
+    def reduce(self: T, func) -> T:
         # If 2D, we assume that we're operating column-wise
-        if self.ndim == 1:
-            # we'll be returning a scalar
-            blk = self.blocks[0]
-            return func(blk.values)
+        assert self.ndim == 2
 
-        res = {}
+        res_blocks = []
         for blk in self.blocks:
-            bres = func(blk.values)
+            nbs = blk.reduce(func)
+            res_blocks.extend(nbs)
 
-            if np.ndim(bres) == 0:
-                # EA
-                assert blk.shape[0] == 1
-                new_res = zip(blk.mgr_locs.as_array, [bres])
-            else:
-                assert bres.ndim == 1, bres.shape
-                assert blk.shape[0] == len(bres), (blk.shape, bres.shape)
-                new_res = zip(blk.mgr_locs.as_array, bres)
-
-            nr = dict(new_res)
-            assert not any(key in res for key in nr)
-            res.update(nr)
-
-        return res
+        index = Index([0])  # placeholder
+        new_mgr = BlockManager.from_blocks(res_blocks, [self.items, index])
+        return new_mgr
 
     def operate_blockwise(self, other: "BlockManager", array_op) -> "BlockManager":
         """
@@ -909,12 +896,7 @@ class BlockManager(PandasObject):
         Returns
         -------
         values : a dict of dtype -> BlockManager
-
-        Notes
-        -----
-        This consolidates based on str(dtype)
         """
-        self._consolidate_inplace()
 
         bd: Dict[str, List[Block]] = {}
         for b in self.blocks:
@@ -1503,38 +1485,6 @@ class BlockManager(PandasObject):
 
         bm = BlockManager(new_blocks, [new_columns, new_index])
         return bm
-
-    def reset_dropped_locs(self, blocks: List[Block], skipped: List[int]) -> Index:
-        """
-        Decrement the mgr_locs of the given blocks with `skipped` removed.
-
-        Notes
-        -----
-        Alters each block's mgr_locs inplace.
-        """
-        ncols = len(self)
-
-        new_locs = [blk.mgr_locs.as_array for blk in blocks]
-        indexer = np.concatenate(new_locs)
-
-        new_items = self.items.take(np.sort(indexer))
-
-        if skipped:
-            # we need to adjust the indexer to account for the
-            #  items we have removed
-            deleted_items = [self.blocks[i].mgr_locs.as_array for i in skipped]
-            deleted = np.concatenate(deleted_items)
-            ai = np.arange(ncols)
-            mask = np.zeros(ncols)
-            mask[deleted] = 1
-            indexer = (ai - mask.cumsum())[indexer]
-
-        offset = 0
-        for blk in blocks:
-            loc = len(blk.mgr_locs)
-            blk.mgr_locs = indexer[offset : (offset + loc)]
-            offset += loc
-        return new_items
 
 
 class SingleBlockManager(BlockManager):
