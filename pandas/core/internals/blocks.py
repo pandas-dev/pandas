@@ -1190,6 +1190,7 @@ class Block(PandasObject):
         if limit_area is None:
             values = interpolate_2d(values, axis=axis)
         else:
+
             def func(values):
                 invalid = isna(values)
 
