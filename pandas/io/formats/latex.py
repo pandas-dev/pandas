@@ -28,7 +28,11 @@ class RowStringConverter:
     """
 
     def __init__(
-        self, formatter, multicolumn=False, multicolumn_format=None, multirow=False,
+        self,
+        formatter: DataFrameFormatter,
+        multicolumn: bool = False,
+        multicolumn_format: Optional[str] = None,
+        multirow: bool = False,
     ):
         self.fmt = formatter
         self.frame = self.fmt.frame
@@ -39,7 +43,7 @@ class RowStringConverter:
         self.strcols = self._get_strcols()
         self.strrows = list(zip(*self.strcols))
 
-    def get_strrow(self, row_num):
+    def get_strrow(self, row_num: int) -> str:
         """Get string representation of the row."""
         row = self.strrows[row_num]
 
