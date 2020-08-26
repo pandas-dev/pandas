@@ -32,7 +32,7 @@ its way towards this goal.
 Here are just a few of the things that pandas does well:
 
   - Easy handling of [**missing data**][missing-data] (represented as
-    `NaN`) in floating point as well as non-floating point data
+    `NaN`, `NA`, or `NaT`) in floating point as well as non-floating point data
   - Size mutability: columns can be [**inserted and
     deleted**][insertion-deletion] from DataFrame and higher dimensional
     objects
