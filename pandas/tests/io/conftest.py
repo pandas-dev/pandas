@@ -34,12 +34,13 @@ def feather_file(datapath):
 
 
 @pytest.fixture
-def s3so():
-    return dict(client_kwargs={"endpoint_url": "http://127.0.0.1:5555/"})
+def s3so(worker_id):
+    worker_id = "5" if worker_id == "master" else worker_id.lstrip("gw")
+    return dict(client_kwargs={"endpoint_url": f"http://127.0.0.1:555{worker_id}/"})
 
 
-@pytest.fixture(scope="module")
-def s3_base():
+@pytest.fixture(scope="session")
+def s3_base(worker_id):
     """
     Fixture for mocking S3 interaction.
 
@@ -61,11 +62,13 @@ def s3_base():
         # Launching moto in server mode, i.e., as a separate process
         # with an S3 endpoint on localhost
 
-        endpoint_uri = "http://127.0.0.1:5555/"
+        worker_id = "5" if worker_id == "master" else worker_id.lstrip("gw")
+        endpoint_port = f"555{worker_id}"
+        endpoint_uri = f"http://127.0.0.1:{endpoint_port}/"
 
         # pipe to null to avoid logging in terminal
         proc = subprocess.Popen(
-            shlex.split("moto_server s3 -p 5555"), stdout=subprocess.DEVNULL
+            shlex.split(f"moto_server s3 -p {endpoint_port}"), stdout=subprocess.DEVNULL
         )
 
         timeout = 5
@@ -79,7 +82,7 @@ def s3_base():
                 pass
             timeout -= 0.1
             time.sleep(0.1)
-        yield
+        yield endpoint_uri
 
         proc.terminate()
         proc.wait()
@@ -119,9 +122,8 @@ def s3_resource(s3_base, tips_file, jsonl_file, feather_file):
                 cli.put_object(Bucket=bucket_name, Key=s3_key, Body=f)
 
     bucket = "pandas-test"
-    endpoint_uri = "http://127.0.0.1:5555/"
-    conn = boto3.resource("s3", endpoint_url=endpoint_uri)
-    cli = boto3.client("s3", endpoint_url=endpoint_uri)
+    conn = boto3.resource("s3", endpoint_url=s3_base)
+    cli = boto3.client("s3", endpoint_url=s3_base)
 
     try:
         cli.create_bucket(Bucket=bucket)
@@ -143,7 +145,7 @@ def s3_resource(s3_base, tips_file, jsonl_file, feather_file):
     s3fs.S3FileSystem.clear_instance_cache()
     yield conn
 
-    s3 = s3fs.S3FileSystem(client_kwargs={"endpoint_url": "http://127.0.0.1:5555/"})
+    s3 = s3fs.S3FileSystem(client_kwargs={"endpoint_url": s3_base})
 
     try:
         s3.rm(bucket, recursive=True)
