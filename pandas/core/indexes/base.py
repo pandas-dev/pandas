@@ -800,6 +800,9 @@ class Index(IndexOpsMixin, PandasObject):
         deep : bool, default False
         dtype : numpy dtype or pandas type, optional
             Set dtype for new object.
+
+            .. deprecated:: 1.2.0
+                use ``astype`` method instead.
         names : list-like, optional
             Kept for compatibility with MultiIndex. Should not be used.
 
@@ -820,6 +823,12 @@ class Index(IndexOpsMixin, PandasObject):
             new_index = self._shallow_copy(name=name)
 
         if dtype:
+            warnings.warn(
+                "parameter dtype is deprecated and will be removed in a future "
+                "version. Use the astype method instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
             new_index = new_index.astype(dtype)
         return new_index
 
