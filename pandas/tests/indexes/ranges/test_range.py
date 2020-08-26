@@ -166,7 +166,13 @@ class TestRangeIndex(Numeric):
         idx.any()
         assert idx._cached_data is None
 
+        idx.format()
+        assert idx._cache == {}
+
         df = pd.DataFrame({"a": range(10)}, index=idx)
+
+        str(df)
+        assert idx._cache == {}
 
         df.loc[50]
         assert idx._cached_data is None
@@ -506,3 +512,9 @@ class TestRangeIndex(Numeric):
             idx.get_loc("a")
 
         assert "_engine" not in idx._cache
+
+    def test_format_empty(self):
+        # GH35712
+        empty_idx = self._holder(0)
+        assert empty_idx.format() == []
+        assert empty_idx.format(name=True) == [""]
