@@ -1,0 +1,41 @@
+.. _whatsnew_112:
+
+What's new in 1.1.2 (??)
+------------------------
+
+These are the changes in pandas 1.1.2. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_112.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Regression in :meth:`DatetimeIndex.intersection` incorrectly raising ``AssertionError`` when intersecting against a list (:issue:`35876`)
+- Performance regression for :meth:`RangeIndex.format` (:issue:`35712`)
+-
+
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_112.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+- Bug in :meth:`DataFrame.eval` with ``object`` dtype column binary operations (:issue:`35794`)
+- Bug in :class:`Series` constructor raising a ``TypeError`` when constructing sparse datetime64 dtypes (:issue:`35762`)
+- Bug in :meth:`DataFrame.apply` with ``result_type="reduce"`` returning with incorrect index (:issue:`35683`)
+- Bug in :meth:`DateTimeIndex.format` and :meth:`PeriodIndex.format` with ``name=True`` setting the first item to ``"None"`` where it should bw ``""`` (:issue:`35712`)
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_112.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.1.1..v1.1.2|HEAD
