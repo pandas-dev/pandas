@@ -393,7 +393,7 @@ class TestCommon:
             assert result.name == index.name
 
 
-@pytest.mark.parametrize("na_position", ["middle"])
+@pytest.mark.parametrize("na_position", [None, "middle"])
 def test_sort_values_invalid_na_position(index_with_missing, na_position):
     if na_position not in ["first", "last"]:
         with pytest.raises(
@@ -405,7 +405,7 @@ def test_sort_values_invalid_na_position(index_with_missing, na_position):
 @pytest.mark.parametrize("na_position", ["first", "last"])
 def test_sort_values_with_missing(index_with_missing, na_position):
     # GH 35584. Test that sort_values works with missing values,
-    # sort non-missing and places missing according to na_position
+    # sort non-missing and place missing according to na_position
 
     missing_count = np.sum(index_with_missing.isna())
     not_na_vals = index_with_missing[index_with_missing.notna()].values
