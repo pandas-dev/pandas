@@ -74,7 +74,14 @@ from pandas.core.groupby.groupby import (
     get_groupby,
 )
 from pandas.core.groupby.numba_ import generate_numba_func, split_for_numba
-from pandas.core.indexes.api import Index, MultiIndex, all_indexes_same
+from pandas.core.indexes.api import (
+    DatetimeIndex,
+    Index,
+    MultiIndex,
+    PeriodIndex,
+    TimedeltaIndex,
+    all_indexes_same,
+)
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
@@ -262,17 +269,46 @@ class SeriesGroupBy(GroupBy[Series]):
             if self.grouper.nkeys > 1:
                 return self._python_agg_general(func, *args, **kwargs)
 
-            try:
-                return self._python_agg_general(func, *args, **kwargs)
-            except (ValueError, KeyError):
-                # TODO: KeyError is raised in _python_agg_general,
-                #  see see test_groupby.test_basic
+            if isinstance(
+                self._selected_obj.index, (DatetimeIndex, TimedeltaIndex, PeriodIndex)
+            ):
+                # using _python_agg_general would end up incorrectly patching
+                #  _index_data in reduction.pyx
                 result = self._aggregate_named(func, *args, **kwargs)
+            else:
+                try:
+                    return self._python_agg_general(func, *args, **kwargs)
+                except (ValueError, KeyError):
+                    # TODO: KeyError is raised in _python_agg_general,
+                    #  see see test_groupby.test_basic
+                    result = self._aggregate_named(func, *args, **kwargs)
 
             index = Index(sorted(result), name=self.grouper.names[0])
+            if isinstance(index, (DatetimeIndex, TimedeltaIndex)):
+                # TODO: do we _always_ want to do this?
+                #  shouldnt this be done later in eg _wrap_aggregated_output?
+                index = index._with_freq("infer")
+
+                result_index = self.grouper.result_index
+
+                if (
+                    result_index.dtype == index.dtype
+                    and result_index.freq is not None
+                    and index.freq is None
+                ):
+                    # TODO: will dtype equality always hold?
+                    if len(index) == 1:
+                        index.freq = result_index.freq
+
+                    elif len(index) == 2:
+                        if index[0] + result_index.freq == index[1]:
+                            # infer_freq doesn't handle length-2 indexes
+                            index.freq = result_index.freq
+
             ret = create_series_with_explicit_dtype(
                 result, index=index, dtype_if_empty=object
             )
+            ret.name = self._selected_obj.name  # test_metadata_propagation_indiv
 
         if not self.as_index:  # pragma: no cover
             print("Warning, ignoring as_index=True")
@@ -478,7 +514,7 @@ class SeriesGroupBy(GroupBy[Series]):
     def _aggregate_named(self, func, *args, **kwargs):
         result = {}
 
-        for name, group in self:
+        for name, group in self:  # TODO: could we have duplicate names?
             group.name = name
             output = func(group, *args, **kwargs)
             if isinstance(output, (Series, Index, np.ndarray)):
