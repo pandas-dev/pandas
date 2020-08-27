@@ -161,7 +161,7 @@ class RowStringConverter(ABC):
         will become
         \multicolumn{3}{l}{a} & b & \multicolumn{2}{l}{c}
         """
-        row2 = list(row[: self.index_ilevels])
+        row2 = row[: self.index_ilevels]
         ncol = 1
         coltext = ""
 
