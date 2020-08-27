@@ -28,19 +28,14 @@ def test_factorize(index_or_series_obj, sort):
     tm.assert_index_equal(result_uniques, expected_uniques)
 
 
-@pytest.mark.parametrize("dropna", [True, False])
-def test_factorize_dropna(dropna):
+def test_factorize_dropna():
     # GH35667
     values = np.array([1, 2, 1, np.nan])
     ser = pd.Series(values)
-    codes, uniques = ser.factorize(dropna=dropna)
+    codes, uniques = ser.factorize(na_sentinel=None)
 
-    if dropna:
-        expected_codes = np.array([0, 1, 0, -1], dtype="int64")
-        expected_uniques = pd.Index([1.0, 2.0])
-    else:
-        expected_codes = np.array([0, 1, 0, 2], dtype="int64")
-        expected_uniques = pd.Index([1.0, 2.0, np.nan])
+    expected_codes = np.array([0, 1, 0, 2], dtype="int64")
+    expected_uniques = pd.Index([1.0, 2.0, np.nan])
 
     tm.assert_numpy_array_equal(codes, expected_codes)
     tm.assert_index_equal(uniques, expected_uniques)

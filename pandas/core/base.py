@@ -1390,6 +1390,7 @@ class IndexOpsMixin:
         values="",
         order="",
         size_hint="",
+        dropna="",
         sort=textwrap.dedent(
             """\
             sort : bool, default False
@@ -1397,8 +1398,23 @@ class IndexOpsMixin:
                 relationship.
             """
         ),
+        na_sentinel=textwrap.dedent(
+            """\
+            na_sentinel : int or None, default -1
+                Value to mark "not found". If None, will drop the NaN 
+                from the uniques of the values.
+            """
+        ),
     )
-    def factorize(self, sort=False, na_sentinel=-1, dropna=True):
+    def factorize(self, sort: bool = False, na_sentinel: Optional[int] = -1):
+
+        # GH35667, na_sentinel=-1 and dropna to keep backward compatibility of
+        # algorithm.factorize so as not to break.
+        if na_sentinel is None:
+            na_sentinel = -1
+            dropna = False
+        else:
+            dropna = True
         return algorithms.factorize(
             self, sort=sort, na_sentinel=na_sentinel, dropna=dropna
         )
