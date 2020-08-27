@@ -28,7 +28,7 @@ def test_factorize(index_or_series_obj, sort):
     tm.assert_index_equal(result_uniques, expected_uniques)
 
 
-def test_factorize_dropna():
+def test_series_factorize_na_sentinel_none():
     # GH35667
     values = np.array([1, 2, 1, np.nan])
     ser = pd.Series(values)
