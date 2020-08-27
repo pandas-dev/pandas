@@ -3569,6 +3569,7 @@ class Index(IndexOpsMixin, PandasObject):
             # common levels, ldrop_names, rdrop_names
             dropped_names = ldrop_names + rdrop_names
 
+            assert isinstance(self, MultiIndex)  # for mypy
             levels, codes, names = _restore_dropped_levels_multijoin(
                 self, other, dropped_names, join_idx, lidx, ridx
             )
