@@ -2480,15 +2480,15 @@ class StringMethods(NoNewAttributesMixin):
 
         The following example demostrates this:
 
-        If `others` is a Series/Index/DataFrame and `to_numpy()` is
-        **not** used:
+        If `others` is a Series/Index/DataFrame and `to_numpy()`
+        **is not** used:
 
         >>> idx = pd.Index(["a", "b", "c", "d", "e"])
         >>> ser = pd.Series(["f", "g", "h", "i", "j"])
         >>> idx.str.cat(ser) # the caller is an Index here
         Index([nan, nan, nan, nan, nan], dtype='object')
 
-        When `to_numpy()` **is used**:
+        When `to_numpy()` **is** used:
 
         >>> idx.str.cat(ser.to_numpy())
         Index(['af', 'bg', 'ch', 'di', 'ej'], dtype='object')
