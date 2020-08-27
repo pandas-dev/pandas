@@ -438,3 +438,13 @@ def test_inplace_raises(method, frame_only):
     if not frame_only:
         with pytest.raises(ValueError, match=msg):
             method(s)
+
+
+def test_pickle():
+    a = pd.Series([1, 2]).set_flags(allows_duplicate_labels=False)
+    b = tm.round_trip_pickle(a)
+    tm.assert_series_equal(a, b)
+
+    a = a.to_frame()
+    b = tm.round_trip_pickle(a)
+    tm.assert_frame_equal(a, b)
