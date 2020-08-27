@@ -643,8 +643,8 @@ def factorize(
     values = _ensure_arraylike(values)
     original = values
 
-    # if na_sentinel=None, we will not dropna NaNs from the uniques of values,
-    # still assign na_sentinel=-1 to keep backward compatability.
+    # GH35667, if na_sentinel=None, we will not dropna NaNs from the uniques
+    # of values, still assign na_sentinel=-1 to keep backward compatability.
     dropna = True
     if na_sentinel is None:
         na_sentinel = -1
