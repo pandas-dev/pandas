@@ -2373,13 +2373,6 @@ class StringMethods(NoNewAttributesMixin):
             Series/Index/DataFrame in `others` (objects without an index need
             to match the length of the calling Series/Index).
 
-            **Note**: Since version 1.0.0, index alignment is performed when
-            `others` is a Series/Index/DataFrame (or a list-like containing
-            one). To disable alignment (the behavior in and before v0.23.0),
-            use `.values` in `others`, or, alternatively, convert `others` to a
-            numpy array while passing it as an argument (using `.to_numpy()`).
-            (See the Examples section below).
-
             .. versionadded:: 0.23.0
             .. versionchanged:: 1.0.0
                 Changed default of `join` from None to `'left'`.
@@ -2394,6 +2387,15 @@ class StringMethods(NoNewAttributesMixin):
         --------
         split : Split each string in the Series/Index.
         join : Join lists contained as elements in the Series/Index.
+
+        Notes
+        -----
+        Since version 1.0.0, index alignment is performed when
+        `others` is a Series/Index/DataFrame (or a list-like containing
+        one). To disable alignment (the behavior in and before v0.23.0),
+        convert `others` to a numpy array while passing it as an argument
+        (using `.to_numpy()`). See the Examples section below for more
+        information.
 
         Examples
         --------
@@ -2472,25 +2474,21 @@ class StringMethods(NoNewAttributesMixin):
         2    -c
         dtype: object
 
-        If `others` is a Series/Index/DataFrame, index alignment is
-        performed. Due to version differences, this may give unexpected
-        results, as this kind of behavior was introduced from v1.0.0.
+        When `others` is a Series/Index/DataFrame, it is advisable
+        to use `to_numpy()` while passing it to the function to
+        avoid unexpected results.
 
-        To disable this behavior in v1.0.0+, `.values` should be used
-        with `others`. Alternatively, `others` may be converted to a
-        numpy array using `to_numpy()`.
+        The following example demostrates this:
 
-        The following example could serve to clarify this:
-
-        If `others` is a Series/Index/DataFrame and `to_numpy()` or
-        `.values` is not used:
+        If `others` is a Series/Index/DataFrame and `to_numpy()` is
+        **not** used:
 
         >>> idx = pd.Index(["a", "b", "c", "d", "e"])
         >>> ser = pd.Series(["f", "g", "h", "i", "j"])
         >>> idx.str.cat(ser) # the caller is an Index here
         Index([nan, nan, nan, nan, nan], dtype='object')
 
-        When `to_numpy()` is used:
+        When `to_numpy()` **is used**:
 
         >>> idx.str.cat(ser.to_numpy())
         Index(['af', 'bg', 'ch', 'di', 'ej'], dtype='object')
