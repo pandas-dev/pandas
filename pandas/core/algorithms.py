@@ -522,19 +522,12 @@ def _factorize_array(
         Hint to the hashtable sizer.
     """
     ),
-    dropna=dedent(
-        """\
-    dropna : bool, default True
-        Drop the NaN from the uniques of the values.
-    """
-    ),
 )
 def factorize(
     values,
     sort: bool = False,
-    na_sentinel: int = -1,
+    na_sentinel: Optional[int] = -1,
     size_hint: Optional[int] = None,
-    dropna: bool = True,
 ) -> Tuple[np.ndarray, Union[np.ndarray, ABCIndex]]:
     """
     Encode the object as an enumerated type or categorical variable.
@@ -547,9 +540,10 @@ def factorize(
     Parameters
     ----------
     {values}{sort}
-    na_sentinel : int, default -1
-        Value to mark "not found".
-    {size_hint}{dropna}
+    na_sentinel : int or None, default -1
+        Value to mark "not found". If None, will not drop the NaN
+        from the uniques of the values.
+    {size_hint}
 
     Returns
     -------
@@ -632,13 +626,7 @@ def factorize(
     ``dropna=True`` which excludes NaN from the uniques.
 
     >>> values = np.array([1, 2, 1, np.nan])
-    >>> codes, uniques = pd.factorize(values, dropna=True)  # default
-    >>> codes
-    array([ 0,  1,  0, -1])
-    >>> uniques
-    array([1., 2.])
-
-    >>> codes, uniques = pd.factorize(values, dropna=False)
+    >>> codes, uniques = pd.factorize(values, na_sentinel=None)
     >>> codes
     array([0, 1, 0, 2])
     >>> uniques
@@ -655,6 +643,13 @@ def factorize(
 
     values = _ensure_arraylike(values)
     original = values
+
+    # if na_sentinel=None, we will not dropna NaNs from the uniques of values,
+    # still assign na_sentinel=-1 to keep backward compatability.
+    dropna = True
+    if na_sentinel is None:
+        na_sentinel = -1
+        dropna = False
 
     if is_extension_array_dtype(values.dtype):
         values = extract_array(values)
