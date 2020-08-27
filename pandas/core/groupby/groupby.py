@@ -993,8 +993,9 @@ b  2""",
     ):
         with _group_selection_context(self):
             # try a cython aggregation if we can
+            result = None
             try:
-                return self._cython_agg_general(
+                result = self._cython_agg_general(
                     how=alias,
                     alt=npfunc,
                     numeric_only=numeric_only,
@@ -1009,10 +1010,10 @@ b  2""",
                     # raised in _get_cython_function, in some cases can
                     #  be trimmed by implementing cython funcs for more dtypes
                     pass
-
             # apply a non-cython aggregation
-            result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
-            return result
+            if result is None:
+                result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
+            return result.__finalize__(self.obj, method='groupby')
 
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
