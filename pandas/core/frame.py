@@ -8635,6 +8635,10 @@ NaN 12.3   33.0
         if (numeric_only is not None and axis in [0, 1]) or (
             numeric_only is None and axis == 0 and not any_object
         ):
+            # For numeric_only non-None and axis non-None, we know
+            #  which blocks to use and no try/except is needed.
+            #  For numeric_only=None only the case with axis==0 and no object
+            #  dtypes are unambiguous can be handled with BlockManager.reduce
             df = self
             if numeric_only is True:
                 df = _get_data(axis_matters=True)
