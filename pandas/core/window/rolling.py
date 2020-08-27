@@ -6,13 +6,23 @@ from datetime import timedelta
 from functools import partial
 import inspect
 from textwrap import dedent
-from typing import Callable, Dict, List, Optional, Set, Tuple, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    Union,
+)
 
 import numpy as np
 
 from pandas._libs.tslibs import BaseOffset, to_offset
 import pandas._libs.window.aggregations as window_aggregations
-from pandas._typing import ArrayLike, Axis, FrameOrSeries, Label
+from pandas._typing import ArrayLike, Axis, FrameOrSeriesUnion, Label
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
@@ -54,6 +64,10 @@ from pandas.core.window.indexers import (
     VariableWindowIndexer,
 )
 from pandas.core.window.numba_ import generate_numba_apply_func
+
+if TYPE_CHECKING:
+    from pandas import DataFrame, Series
+    from pandas.core.internals import Block  # noqa:F401
 
 
 def calculate_center_offset(window) -> int:
@@ -145,7 +159,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
     def __init__(
         self,
-        obj: FrameOrSeries,
+        obj: FrameOrSeriesUnion,
         window=None,
         min_periods: Optional[int] = None,
         center: bool = False,
@@ -219,7 +233,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                 f"get_window_bounds"
             )
 
-    def _create_blocks(self, obj: FrameOrSeries):
+    def _create_blocks(self, obj: FrameOrSeriesUnion):
         """
         Split data into blocks & return conformed data.
         """
@@ -381,7 +395,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             return type(obj)(result, index=index, columns=block.columns)
         return result
 
-    def _wrap_results(self, results, obj, skipped: List[int]) -> FrameOrSeries:
+    def _wrap_results(self, results, obj, skipped: List[int]) -> FrameOrSeriesUnion:
         """
         Wrap the results.
 
@@ -394,45 +408,51 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         """
         from pandas import Series, concat
 
+        if obj.ndim == 1:
+            if not results:
+                raise DataError("No numeric types to aggregate")
+            assert len(results) == 1
+            return Series(results[0], index=obj.index, name=obj.name)
+
         exclude: List[Label] = []
-        if obj.ndim == 2:
-            orig_blocks = list(obj._to_dict_of_blocks(copy=False).values())
-            for i in skipped:
-                exclude.extend(orig_blocks[i].columns)
-        else:
-            orig_blocks = [obj]
+        orig_blocks = list(obj._to_dict_of_blocks(copy=False).values())
+        for i in skipped:
+            exclude.extend(orig_blocks[i].columns)
 
-        kept_blocks = [blk for i, blk in enumerate(orig_blocks) if i not in skipped]
-
-        final = []
-        for result, block in zip(results, kept_blocks):
-
-            result = self._wrap_result(result, block=block, obj=obj)
-            if result.ndim == 1:
-                return result
-            final.append(result)
-
-        exclude = exclude or []
         columns = [c for c in self._selected_obj.columns if c not in exclude]
-        if not columns and not len(final) and exclude:
+        if not columns and not len(results) and exclude:
             raise DataError("No numeric types to aggregate")
-        elif not len(final):
+        elif not len(results):
             return obj.astype("float64")
 
-        df = concat(final, axis=1).reindex(columns=columns, copy=False)
+        df = concat(results, axis=1).reindex(columns=columns, copy=False)
+        self._insert_on_column(df, obj)
+        return df
 
+    def _insert_on_column(self, result: "DataFrame", obj: "DataFrame"):
         # if we have an 'on' column we want to put it back into
         # the results in the same location
+        from pandas import Series
+
         if self.on is not None and not self._on.equals(obj.index):
             name = self._on.name
             extra_col = Series(self._on, index=obj.index, name=name)
-            if name not in df.columns and name not in df.index.names:
-                new_loc = len(df.columns)
-                df.insert(new_loc, name, extra_col)
-            elif name in df.columns:
+            if name in result.columns:
                 # TODO: sure we want to overwrite results?
-                df[name] = extra_col
-        return df
+                result[name] = extra_col
+            elif name in result.index.names:
+                pass
+            elif name in self._selected_obj.columns:
+                # insert in the same location as we had in _selected_obj
+                old_cols = self._selected_obj.columns
+                new_cols = result.columns
+                old_loc = old_cols.get_loc(name)
+                overlap = new_cols.intersection(old_cols[:old_loc])
+                new_loc = len(overlap)
+                result.insert(new_loc, name, extra_col)
+            else:
+                # insert at the end
+                result[name] = extra_col
 
     def _center_window(self, result, window) -> np.ndarray:
         """
@@ -488,34 +508,63 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             return VariableWindowIndexer(index_array=self._on.asi8, window_size=window)
         return FixedWindowIndexer(window_size=window)
 
+    def _apply_series(self, homogeneous_func: Callable[..., ArrayLike]) -> "Series":
+        """
+        Series version of _apply_blockwise
+        """
+        _, obj = self._create_blocks(self._selected_obj)
+        values = obj.values
+
+        try:
+            values = self._prep_values(obj.values)
+        except (TypeError, NotImplementedError) as err:
+            raise DataError("No numeric types to aggregate") from err
+
+        result = homogeneous_func(values)
+        return obj._constructor(result, index=obj.index, name=obj.name)
+
     def _apply_blockwise(
         self, homogeneous_func: Callable[..., ArrayLike]
-    ) -> FrameOrSeries:
+    ) -> FrameOrSeriesUnion:
         """
         Apply the given function to the DataFrame broken down into homogeneous
         sub-frames.
         """
+        if self._selected_obj.ndim == 1:
+            return self._apply_series(homogeneous_func)
+
         # This isn't quite blockwise, since `blocks` is actually a collection
         #  of homogenenous DataFrames.
         blocks, obj = self._create_blocks(self._selected_obj)
+        mgr = obj._mgr
+
+        def hfunc(bvalues: ArrayLike) -> ArrayLike:
+            # TODO(EA2D): getattr unnecessary with 2D EAs
+            values = self._prep_values(getattr(bvalues, "T", bvalues))
+            res_values = homogeneous_func(values)
+            return getattr(res_values, "T", res_values)
 
         skipped: List[int] = []
-        results: List[ArrayLike] = []
-        for i, b in enumerate(blocks):
+        res_blocks: List["Block"] = []
+        for i, blk in enumerate(mgr.blocks):
             try:
-                values = self._prep_values(b.values)
+                nbs = blk.apply(hfunc)
 
-            except (TypeError, NotImplementedError) as err:
-                if isinstance(obj, ABCDataFrame):
-                    skipped.append(i)
-                    continue
-                else:
-                    raise DataError("No numeric types to aggregate") from err
+            except (TypeError, NotImplementedError):
+                skipped.append(i)
+                continue
 
-            result = homogeneous_func(values)
-            results.append(result)
+            res_blocks.extend(nbs)
 
-        return self._wrap_results(results, obj, skipped)
+        if not len(res_blocks) and skipped:
+            raise DataError("No numeric types to aggregate")
+        elif not len(res_blocks):
+            return obj.astype("float64")
+
+        new_mgr = mgr._combine(res_blocks)
+        out = obj._constructor(new_mgr)
+        self._insert_on_column(out, obj)
+        return out
 
     def _apply(
         self,
@@ -2234,7 +2283,7 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
     def _constructor(self):
         return Rolling
 
-    def _create_blocks(self, obj: FrameOrSeries):
+    def _create_blocks(self, obj: FrameOrSeriesUnion):
         """
         Split data into blocks & return conformed data.
         """
@@ -2275,7 +2324,7 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         if isinstance(self.window, BaseIndexer):
             rolling_indexer = type(self.window)
             indexer_kwargs = self.window.__dict__
-            assert isinstance(indexer_kwargs, dict)
+            assert isinstance(indexer_kwargs, dict)  # for mypy
             # We'll be using the index of each group later
             indexer_kwargs.pop("index_array", None)
         elif self.is_freq_type:
