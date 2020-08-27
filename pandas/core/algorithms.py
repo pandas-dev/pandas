@@ -2,7 +2,6 @@
 Generic data algorithms. This module is experimental at the moment and not
 intended for public consumption
 """
-import abc
 import operator
 from textwrap import dedent
 from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union
@@ -1102,9 +1101,8 @@ class SelectN:
         if self.keep not in ("first", "last", "all"):
             raise ValueError('keep must be either "first", "last" or "all"')
 
-    @abc.abstractmethod
     def compute(self, method: str) -> FrameOrSeriesUnion:
-        pass
+        raise NotImplementedError
 
     def nlargest(self):
         return self.compute("nlargest")
