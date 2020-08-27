@@ -1,25 +1,43 @@
-from pandas import DataFrame
+import pandas as pd
 
 
-class CustomDataFrame(DataFrame):
+class SubclassedDataFrame2(pd.DataFrame):
     """
     Extension of DataFrame as described in [guidelines]
 
     [guidelines]: https://pandas.pydata.org/pandas-docs/stable/development/extending.html#override-constructor-properties  # noqa
     """
 
-    _metadata = ["_custom_metadata"]
+    # temporary properties
+    _internal_names = pd.DataFrame._internal_names + ["internal_cache"]
+    _internal_names_set = set(_internal_names)
+
+    # normal properties
+    _metadata = ["added_property"]
 
     @property
     def _constructor(self):
-        return CustomDataFrame
+        return SubclassedDataFrame2
 
 
 def test_groupby_with_custom_metadata():
-    custom_df = CustomDataFrame(
+    custom_df = SubclassedDataFrame2(
         [[11, 12, 0], [21, 22, 0], [31, 32, 1]], columns=["a", "b", "g"]
     )
-    custom_df._custom_metadata = "Custom metadata"
+    custom_df.added_property = "hello_pandas"
+    grouped = custom_df.groupby("g")
+    for _, group_df in grouped:
+        assert group_df.added_property == "hello_pandas"
 
-    for _, group_df in custom_df.groupby("g"):
-        assert group_df._custom_metadata == "Custom metadata"
+
+def test_groupby_sum_with_custom_metadata():
+    my_data_as_dictionary = {
+        "mycategorical": [1, 1, 2],
+        "myfloat1": [1.0, 2.0, 3.0],
+        "myfloat2": [1.0, 2.0, 3.0],
+    }
+    sdf = SubclassedDataFrame2(my_data_as_dictionary)
+    sdf.added_property = "hello pandas"
+    grouped = sdf.groupby("mycategorical")[["myfloat1", "myfloat2"]]
+    df = grouped.sum()
+    assert df.added_property == "hello pandas"
