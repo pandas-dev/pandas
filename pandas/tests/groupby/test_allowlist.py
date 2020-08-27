@@ -380,6 +380,7 @@ def test_groupby_selection_with_methods(df):
 
     # check that the index cache is cleared
     with pytest.raises(ValueError, match="Freq was not set in the index"):
+        # GH#35937
         g.tshift()
 
     # methods which aren't just .foo()
