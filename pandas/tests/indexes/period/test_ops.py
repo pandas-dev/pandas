@@ -176,10 +176,6 @@ class TestPeriodIndexOps:
             tm.assert_index_equal(ordered, expected[::-1])
             _check_freq(ordered, idx)
 
-            # GH 35584. Index sort is now stable when sorting in descending order
-            # so we don't expect PeriodIndex and Index to return same indexers
-            # for now. TODO: test indexers after making PeriodIndex stable
-
         pidx = PeriodIndex(["2011", "2013", "NaT", "2011"], name="pidx", freq="D")
 
         result = pidx.sort_values()
