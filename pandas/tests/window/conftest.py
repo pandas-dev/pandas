@@ -330,7 +330,8 @@ def halflife_with_times(request):
         pytest.param(
             "datetime64[ns, UTC]",
             marks=pytest.mark.skip(
-                "direct creation of extension dtype datetime64[ns, UTC] is not supported ATM"
+                "direct creation of extension dtype datetime64[ns, UTC] "
+                "is not supported ATM"
             ),
         ),
     ]
