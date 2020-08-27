@@ -35,6 +35,7 @@ from pandas.core.dtypes.common import (
     is_iterator,
     is_list_like,
     is_object_dtype,
+    is_sparse,
     is_timedelta64_ns_dtype,
 )
 from pandas.core.dtypes.generic import (
@@ -535,9 +536,10 @@ def _try_cast(
         if maybe_castable(arr) and not copy and dtype is None:
             return arr
 
-    if isinstance(dtype, ExtensionDtype) and dtype.kind != "M":
+    if isinstance(dtype, ExtensionDtype) and (dtype.kind != "M" or is_sparse(dtype)):
         # create an extension array from its dtype
-        # DatetimeTZ case needs to go through maybe_cast_to_datetime
+        # DatetimeTZ case needs to go through maybe_cast_to_datetime but
+        # SparseDtype does not
         array_type = dtype.construct_array_type()._from_sequence
         subarr = array_type(arr, dtype=dtype, copy=copy)
         return subarr
