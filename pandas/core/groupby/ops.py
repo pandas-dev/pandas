@@ -672,11 +672,6 @@ class BaseGrouper:
                         # e.g. test_agg_lambda_with_timezone lambda e: e.head(1)
                         # FIXME: are we potentially losing important res.index info?
                         res = res.item()
-                    elif group.dtype == object:
-                        # TODO: is this at all right?
-                        # e.g. test_agg_over_numpy_arrays where we have entries
-                        #  that are each ndarrays
-                        pass
                     else:
                         raise ValueError("Function does not reduce")
                 result = np.empty(ngroups, dtype="O")

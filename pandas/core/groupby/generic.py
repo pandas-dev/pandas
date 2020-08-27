@@ -274,14 +274,14 @@ class SeriesGroupBy(GroupBy[Series]):
             ):
                 # using _python_agg_general would end up incorrectly patching
                 #  _index_data in reduction.pyx
-                result = self._aggregate_named(func, *args, **kwargs)
+                result = self._aggregate_maybe_named(func, *args, **kwargs)
             else:
                 try:
                     return self._python_agg_general(func, *args, **kwargs)
                 except (ValueError, KeyError):
                     # TODO: KeyError is raised in _python_agg_general,
                     #  see see test_groupby.test_basic
-                    result = self._aggregate_named(func, *args, **kwargs)
+                    result = self._aggregate_maybe_named(func, *args, **kwargs)
 
             index = Index(sorted(result), name=self.grouper.names[0])
             if isinstance(index, (DatetimeIndex, TimedeltaIndex)):
@@ -511,11 +511,35 @@ class SeriesGroupBy(GroupBy[Series]):
             )
             return self._reindex_output(result)
 
+    def _aggregate_maybe_named(self, func, *args, **kwargs):
+        """
+        Try the named-aggregator first, then unnamed, which better matches
+        what libreduction does.
+        """
+        try:
+            return self._aggregate_named(func, *args, **kwargs)
+        except KeyError:
+            return self._aggregate_unnamed(func, *args, **kwargs)
+
     def _aggregate_named(self, func, *args, **kwargs):
         result = {}
 
         for name, group in self:  # TODO: could we have duplicate names?
-            group.name = name
+            group.name = name  # only difference vs _aggregate_unnamed
+            output = func(group, *args, **kwargs)
+            if isinstance(output, (Series, Index, np.ndarray)):
+                raise ValueError("Must produce aggregated value")
+            result[name] = output
+
+        return result
+
+    def _aggregate_unnamed(self, func, *args, **kwargs):
+        """
+        Pure-python analogue of what _python_agg_general does.
+        """
+        result = {}
+
+        for name, group in self:  # TODO: could we have duplicate names?
             output = func(group, *args, **kwargs)
             if isinstance(output, (Series, Index, np.ndarray)):
                 raise ValueError("Must produce aggregated value")
