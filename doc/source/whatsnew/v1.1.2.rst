@@ -26,6 +26,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Bug in :meth:`DataFrame.eval` with ``object`` dtype column binary operations (:issue:`35794`)
+- Bug in :class:`Series` constructor raising a ``TypeError`` when constructing sparse datetime64 dtypes (:issue:`35762`)
 - Bug in :meth:`DataFrame.apply` with ``result_type="reduce"`` returning with incorrect index (:issue:`35683`)
 - Bug in :meth:`DateTimeIndex.format` and :meth:`PeriodIndex.format` with ``name=True`` setting the first item to ``"None"`` where it should bw ``""`` (:issue:`35712`)
 -

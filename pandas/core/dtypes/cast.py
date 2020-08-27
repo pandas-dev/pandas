@@ -50,6 +50,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_object_dtype,
     is_scalar,
+    is_sparse,
     is_string_dtype,
     is_timedelta64_dtype,
     is_timedelta64_ns_dtype,
@@ -1323,7 +1324,9 @@ def maybe_cast_to_datetime(value, dtype, errors: str = "raise"):
                 f"Please pass in '{dtype.name}[ns]' instead."
             )
 
-            if is_datetime64 and not is_dtype_equal(dtype, DT64NS_DTYPE):
+            if is_datetime64 and not is_dtype_equal(
+                getattr(dtype, "subtype", dtype), DT64NS_DTYPE
+            ):
 
                 # pandas supports dtype whose granularity is less than [ns]
                 # e.g., [ps], [fs], [as]
@@ -1355,7 +1358,7 @@ def maybe_cast_to_datetime(value, dtype, errors: str = "raise"):
             if is_scalar(value):
                 if value == iNaT or isna(value):
                     value = iNaT
-            else:
+            elif not is_sparse(value):
                 value = np.array(value, copy=False)
 
                 # have a scalar array-like (e.g. NaT)
