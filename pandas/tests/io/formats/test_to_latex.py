@@ -68,6 +68,16 @@ class TestToLatex:
 
         assert withoutindex_result == withoutindex_expected
 
+    @pytest.mark.parametrize(
+        "bad_column_format",
+        [5, 1.2, ["l", "r"], ("r", "c"), {"r", "c", "l"}, dict(a="r", b="l")],
+    )
+    def test_to_latex_bad_column_format(self, bad_column_format):
+        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+        msg = r"column_format must be str or unicode"
+        with pytest.raises(ValueError, match=msg):
+            df.to_latex(column_format=bad_column_format)
+
     def test_to_latex_format(self, float_frame):
         # GH Bug #9402
         float_frame.to_latex(column_format="ccc")
