@@ -13,7 +13,14 @@ from pandas._libs.tslibs import iNaT
 from pandas.core.dtypes.common import is_period_dtype, needs_i8_conversion
 
 import pandas as pd
-from pandas import MultiIndex, RangeIndex
+from pandas import (
+    CategoricalIndex,
+    DatetimeIndex,
+    MultiIndex,
+    PeriodIndex,
+    RangeIndex,
+    TimedeltaIndex,
+)
 import pandas._testing as tm
 
 
@@ -395,6 +402,12 @@ class TestCommon:
 
 @pytest.mark.parametrize("na_position", [None, "middle"])
 def test_sort_values_invalid_na_position(index_with_missing, na_position):
+
+    if type(index_with_missing) in [DatetimeIndex, PeriodIndex, TimedeltaIndex]:
+        pytest.xfail("stable descending order sort not implemented")
+    elif type(index_with_missing) in [CategoricalIndex, MultiIndex]:
+        pytest.xfail("missing value sorting order not defined for index type")
+
     if na_position not in ["first", "last"]:
         with pytest.raises(
             ValueError, match=f"invalid na_position: {na_position}",
@@ -407,6 +420,10 @@ def test_sort_values_with_missing(index_with_missing, na_position):
     # GH 35584. Test that sort_values works with missing values,
     # sort non-missing and place missing according to na_position
 
+    if type(index_with_missing) in [DatetimeIndex, PeriodIndex, TimedeltaIndex]:
+        pytest.xfail("stable descending order sort not implemented")
+    elif type(index_with_missing) in [CategoricalIndex, MultiIndex]:
+        pytest.xfail("missing value sorting order not defined for index type")
     missing_count = np.sum(index_with_missing.isna())
     not_na_vals = index_with_missing[index_with_missing.notna()].values
     sorted_values = np.sort(not_na_vals)

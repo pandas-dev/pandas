@@ -442,18 +442,20 @@ def index_with_missing(request):
     """
     Fixture for indices with missing values
     """
-    if request.param in ["datetime", "datetime-tz", "period", "timedelta"]:
-        pytest.xfail("stable descending order sort not implemented")
     if request.param in ["int", "uint", "range", "empty", "repeats"]:
         pytest.xfail("missing values not supported")
-    if request.param in ["categorical", "tuples", "mi-with-dt64tz-level", "multi"]:
-        pytest.xfail("missing value sorting order not defined for index type")
     ind = indices_dict[request.param].copy()
     vals = ind.values
-    print(request.param)
-    vals[0] = None
-    vals[-1] = None
-    ind = type(ind)(vals)
+    if type(vals[0]) == tuple:
+        # For setting missing values in the top level of MultiIndex
+        vals = ind.tolist()
+        vals[0] = tuple([None]) + vals[0][1:]
+        vals[-1] = tuple([None]) + vals[-1][1:]
+        ind = MultiIndex.from_tuples(vals)
+    else:
+        vals[0] = None
+        vals[-1] = None
+        ind = type(ind)(vals)
     return ind
 
 
