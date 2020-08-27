@@ -153,46 +153,6 @@ class RowStringConverter:
             crow = _convert_to_bold(crow, self.index_ilevels)
         return crow
 
-    @staticmethod
-    def _escape_symbols(row):
-        """Carry out string replacements for special symbols.
-
-        Parameters
-        ----------
-        row : list
-            List of string, that may contain special symbols.
-
-        Returns
-        -------
-        list
-            list of strings with the special symbols replaced.
-        """
-        return [
-            (
-                x.replace("\\", "\\textbackslash ")
-                .replace("_", "\\_")
-                .replace("%", "\\%")
-                .replace("$", "\\$")
-                .replace("#", "\\#")
-                .replace("{", "\\{")
-                .replace("}", "\\}")
-                .replace("~", "\\textasciitilde ")
-                .replace("^", "\\textasciicircum ")
-                .replace("&", "\\&")
-                if (x and x != "{}")
-                else "{}"
-            )
-            for x in row
-        ]
-
-    @staticmethod
-    def _convert_to_bold(crow, ilevels):
-        """Convert elements in ``crow`` to bold."""
-        return [
-            f"\\textbf{{{x}}}" if j < ilevels and x.strip() not in ["", "{}"] else x
-            for j, x in enumerate(crow)
-        ]
-
     def _format_multicolumn(self, row: List[str]) -> List[str]:
         r"""
         Combine columns belonging to a group to a single multicolumn entry
@@ -649,3 +609,43 @@ class LatexFormatter(TableFormatter):
     def _get_index_format(self):
         """Get index column format."""
         return "l" * self.frame.index.nlevels if self.fmt.index else ""
+
+
+def _escape_symbols(row: List[str]) -> List[str]:
+    """Carry out string replacements for special symbols.
+
+    Parameters
+    ----------
+    row : list
+        List of string, that may contain special symbols.
+
+    Returns
+    -------
+    list
+        list of strings with the special symbols replaced.
+    """
+    return [
+        (
+            x.replace("\\", "\\textbackslash ")
+            .replace("_", "\\_")
+            .replace("%", "\\%")
+            .replace("$", "\\$")
+            .replace("#", "\\#")
+            .replace("{", "\\{")
+            .replace("}", "\\}")
+            .replace("~", "\\textasciitilde ")
+            .replace("^", "\\textasciicircum ")
+            .replace("&", "\\&")
+            if (x and x != "{}")
+            else "{}"
+        )
+        for x in row
+    ]
+
+
+def _convert_to_bold(crow: List[str], ilevels: int) -> List[str]:
+    """Convert elements in ``crow`` to bold."""
+    return [
+        f"\\textbf{{{x}}}" if j < ilevels and x.strip() not in ["", "{}"] else x
+        for j, x in enumerate(crow)
+    ]
