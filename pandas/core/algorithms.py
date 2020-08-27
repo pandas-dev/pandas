@@ -622,8 +622,7 @@ def factorize(
     Index(['a', 'c'], dtype='object')
 
     If NaN is in the values, and we want to include NaN in the uniques of the
-    values, it can be achieved by setting ``dropna=False``. The default is
-    ``dropna=True`` which excludes NaN from the uniques.
+    values, it can be achieved by setting ``na_sentinel=None``.
 
     >>> values = np.array([1, 2, 1, np.nan])
     >>> codes, uniques = pd.factorize(values, na_sentinel=None)
