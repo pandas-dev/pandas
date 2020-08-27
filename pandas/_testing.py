@@ -1227,6 +1227,7 @@ def assert_series_equal(
     check_categorical=True,
     check_category_order=True,
     check_freq=True,
+    check_flags=True,
     rtol=1.0e-5,
     atol=1.0e-8,
     obj="Series",
@@ -1273,6 +1274,11 @@ def assert_series_equal(
         .. versionadded:: 1.0.2
     check_freq : bool, default True
         Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex.
+    check_flags : bool, default True
+        Whether to check the `flags` attribute.
+
+        .. versionadded:: 1.2.0
+
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
 
@@ -1308,6 +1314,9 @@ def assert_series_equal(
         msg1 = f"{len(left)}, {left.index}"
         msg2 = f"{len(right)}, {right.index}"
         raise_assert_detail(obj, "Series length are different", msg1, msg2)
+
+    if check_flags:
+        assert left.flags == right.flags, f"{repr(left.flags)} != {repr(right.flags)}"
 
     # index comparison
     assert_index_equal(
@@ -1569,7 +1578,7 @@ def assert_frame_equal(
         left, right = left.reindex_like(right), right
 
     if check_flags:
-        assert left.flags == right.flags
+        assert left.flags == right.flags, f"{repr(left.flags)} != {repr(right.flags)}"
 
     # index comparison
     assert_index_equal(
