@@ -13,16 +13,7 @@ from pandas._libs.tslibs import iNaT
 from pandas.core.dtypes.common import is_period_dtype, needs_i8_conversion
 
 import pandas as pd
-from pandas import (
-    CategoricalIndex,
-    DatetimeIndex,
-    Int64Index,
-    MultiIndex,
-    PeriodIndex,
-    RangeIndex,
-    TimedeltaIndex,
-    UInt64Index,
-)
+from pandas import MultiIndex, RangeIndex
 import pandas._testing as tm
 
 
@@ -400,37 +391,6 @@ class TestCommon:
             assert result.names == index.names
         else:
             assert result.name == index.name
-
-
-@pytest.fixture(
-    params=[
-        tm.makeBoolIndex(10),
-        tm.makeFloatIndex(10),
-        tm.makeIntervalIndex(10),
-        tm.makeStringIndex(10),
-        tm.makeIntIndex(10),
-        tm.makeUIntIndex(10),
-        tm.makeRangeIndex(10),
-        tm.makeCategoricalIndex(10),
-        tm.makeMultiIndex(10),
-        tm.makeDateIndex(10),
-        tm.makePeriodIndex(10),
-        tm.makeTimedeltaIndex(10),
-    ]
-)
-def index_with_missing(request):
-    ind = request.param
-    if type(ind) in [DatetimeIndex, PeriodIndex, TimedeltaIndex]:
-        pytest.xfail("stable descending order sort not implemented")
-    if type(ind) in [Int64Index, UInt64Index, RangeIndex]:
-        pytest.xfail("missing values not supported")
-    if type(ind) in [CategoricalIndex, MultiIndex]:
-        pytest.xfail("missing value sorting order not defined for index type")
-    vals = request.param.values
-    vals[2] = None
-    vals[5] = None
-    ind = type(ind)(vals)
-    return ind
 
 
 @pytest.mark.parametrize("na_position", ["middle"])
