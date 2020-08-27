@@ -2,7 +2,7 @@
 Module for formatting output data in Latex.
 """
 from abc import ABC, abstractmethod
-from typing import IO, List, Optional
+from typing import IO, Iterator, List, Optional, Type
 
 import numpy as np
 
@@ -11,7 +11,7 @@ from pandas.core.dtypes.generic import ABCMultiIndex
 from pandas.io.formats.format import DataFrameFormatter, TableFormatter
 
 
-class RowStringConverter:
+class RowStringConverter(ABC):
     r"""Converter for dataframe rows into LaTeX strings.
 
     Parameters
@@ -41,16 +41,14 @@ class RowStringConverter:
         self.multirow = multirow
         self.clinebuf: List[List[int]] = []
         self.strcols = self._get_strcols()
-        self.strrows = list(zip(*self.strcols))
+        self.strrows: List[List[str]] = list(zip(*self.strcols))
 
     def get_strrow(self, row_num: int) -> str:
         """Get string representation of the row."""
         row = self.strrows[row_num]
 
         is_multicol = (
-            row_num < self.index_clevels
-            and self.fmt.header
-            and self.multicolumn
+            row_num < self.index_clevels and self.fmt.header and self.multicolumn
         )
 
         is_multirow = (
@@ -98,7 +96,7 @@ class RowStringConverter:
             nlevels += 1
         return nlevels
 
-    def _get_strcols(self):
+    def _get_strcols(self) -> List[List[str]]:
         """String representation of the columns."""
         if len(self.frame.columns) == 0 or len(self.frame.index) == 0:
             info_line = (
@@ -143,10 +141,10 @@ class RowStringConverter:
             strcols = out + strcols[1:]
         return strcols
 
-    def _preprocess_row(self, row):
+    def _preprocess_row(self, row: List[str]) -> List[str]:
         """Preprocess elements of the row."""
         if self.fmt.escape:
-            crow = self._escape_symbols(row)
+            crow = _escape_symbols(row)
         else:
             crow = [x if x else "{}" for x in row]
         if self.fmt.bold_rows and self.fmt.index:
@@ -231,19 +229,27 @@ class RowStringConverter:
         return "".join(lst)
 
 
-class RowHeaderIterator(RowStringConverter):
+class RowStringIterator(RowStringConverter):
+    """Iterator over rows of the header or the body of the table."""
+
+    @abstractmethod
+    def __iter__(self) -> Iterator[str]:
+        """Iterate over LaTeX string representations of rows."""
+
+
+class RowHeaderIterator(RowStringIterator):
     """Iterator for the table header rows."""
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         for row_num in range(len(self.strrows)):
             if row_num < self._header_row_num:
                 yield self.get_strrow(row_num)
 
 
-class RowBodyIterator(RowStringConverter):
+class RowBodyIterator(RowStringIterator):
     """Iterator for the table body rows."""
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         for row_num in range(len(self.strrows)):
             if row_num >= self._header_row_num:
                 yield self.get_strrow(row_num)
@@ -252,63 +258,6 @@ class RowBodyIterator(RowStringConverter):
 class TableBuilderAbstract(ABC):
     """
     Abstract table builder producing string representation of LaTeX table.
-    """
-
-    @property
-    def product(self) -> str:
-        """String representation of LaTeX table."""
-        elements = [
-            self.env_begin,
-            self.top_separator,
-            self.header,
-            self.middle_separator,
-            self.env_body,
-            self.bottom_separator,
-            self.env_end,
-        ]
-        result = "\n".join([item for item in elements if item])
-        trailing_newline = "\n"
-        result += trailing_newline
-        return result
-
-    @property
-    @abstractmethod
-    def env_begin(self):
-        """Beginning of the environment."""
-
-    @property
-    @abstractmethod
-    def top_separator(self):
-        """Top level separator."""
-
-    @property
-    @abstractmethod
-    def header(self):
-        """Header lines."""
-
-    @property
-    @abstractmethod
-    def middle_separator(self):
-        """Middle level separator."""
-
-    @property
-    @abstractmethod
-    def env_body(self):
-        """Environment body."""
-
-    @property
-    @abstractmethod
-    def bottom_separator(self):
-        """Bottom level separator."""
-
-    @property
-    @abstractmethod
-    def env_end(self):
-        """End of the environment."""
-
-
-class TableBuilder(TableBuilderAbstract):
-    """Table builder producing string representation of LaTeX table.
 
     Parameters
     ----------
@@ -351,42 +300,98 @@ class TableBuilder(TableBuilderAbstract):
         self.position = position
 
     @property
-    def header(self):
+    def product(self) -> str:
+        """String representation of LaTeX table."""
+        elements = [
+            self.env_begin,
+            self.top_separator,
+            self.header,
+            self.middle_separator,
+            self.env_body,
+            self.bottom_separator,
+            self.env_end,
+        ]
+        result = "\n".join([item for item in elements if item])
+        trailing_newline = "\n"
+        result += trailing_newline
+        return result
+
+    @property
+    @abstractmethod
+    def env_begin(self) -> str:
+        """Beginning of the environment."""
+
+    @property
+    @abstractmethod
+    def top_separator(self) -> str:
+        """Top level separator."""
+
+    @property
+    @abstractmethod
+    def header(self) -> str:
+        """Header lines."""
+
+    @property
+    @abstractmethod
+    def middle_separator(self) -> str:
+        """Middle level separator."""
+
+    @property
+    @abstractmethod
+    def env_body(self) -> str:
+        """Environment body."""
+
+    @property
+    @abstractmethod
+    def bottom_separator(self) -> str:
+        """Bottom level separator."""
+
+    @property
+    @abstractmethod
+    def env_end(self) -> str:
+        """End of the environment."""
+
+
+class TableBuilder(TableBuilderAbstract):
+    """Table builder producing string representation of LaTeX table."""
+
+    @property
+    def header(self) -> str:
         iterator = self._create_row_iterator(over="header")
         return "\n".join(list(iterator))
 
     @property
-    def top_separator(self):
+    def top_separator(self) -> str:
         return "\\toprule"
 
     @property
-    def middle_separator(self):
+    def middle_separator(self) -> str:
         return "\\midrule" if self._is_separator_required() else ""
 
     @property
-    def env_body(self):
+    def env_body(self) -> str:
         iterator = self._create_row_iterator(over="body")
         return "\n".join(list(iterator))
 
-    def _is_separator_required(self):
-        return self.header and self.env_body
+    def _is_separator_required(self) -> bool:
+        return bool(self.header and self.env_body)
 
     @property
-    def _position_macro(self):
+    def _position_macro(self) -> str:
         r"""Position macro, extracted from self.position, like [h]."""
         return f"[{self.position}]" if self.position else ""
 
     @property
-    def _caption_macro(self):
+    def _caption_macro(self) -> str:
         r"""Caption macro, extracted from self.caption, like \caption{cap}."""
         return f"\\caption{{{self.caption}}}" if self.caption else ""
 
     @property
-    def _label_macro(self):
+    def _label_macro(self) -> str:
         r"""Label macro, extracted from self.label, like \label{ref}."""
         return f"\\label{{{self.label}}}" if self.label else ""
 
-    def _create_row_iterator(self, over):
+    def _create_row_iterator(self, over: str) -> RowStringIterator:
         """Create iterator over header or body of the table.
 
         Parameters
@@ -396,19 +401,23 @@ class TableBuilder(TableBuilderAbstract):
 
         Returns
         -------
-        RowStringConverter
+        RowStringIterator
             Iterator over body or header.
         """
-        kwargs = dict(
+        iterator_kind = self._select_iterator(over)
+        return iterator_kind(
             formatter=self.fmt,
             multicolumn=self.multicolumn,
             multicolumn_format=self.multicolumn_format,
             multirow=self.multirow,
         )
+
+    def _select_iterator(self, over: str) -> Type[RowStringIterator]:
+        """Select proper iterator over table rows."""
         if over == "header":
-            return RowHeaderIterator(**kwargs)
+            return RowHeaderIterator
         elif over == "body":
-            return RowBodyIterator(**kwargs)
+            return RowBodyIterator
         else:
             msg = f"'over' must be either 'header' or 'body', but {over} was provided"
             raise ValueError(msg)
@@ -418,14 +427,14 @@ class LongTableBuilder(TableBuilder):
     """Concrete table builder for longtable."""
 
     @property
-    def env_begin(self):
+    def env_begin(self) -> str:
         first_row = (
             f"\\begin{{longtable}}{self._position_macro}{{{self.column_format}}}"
         )
         elements = [first_row, f"{self._caption_and_label()}"]
         return "\n".join([item for item in elements if item])
 
-    def _caption_and_label(self):
+    def _caption_and_label(self) -> str:
         if self.caption or self.label:
             double_backslash = "\\\\"
             elements = [f"{self._caption_macro}", f"{self._label_macro}"]
@@ -436,7 +445,7 @@ class LongTableBuilder(TableBuilder):
             return ""
 
     @property
-    def middle_separator(self):
+    def middle_separator(self) -> str:
         iterator = self._create_row_iterator(over="header")
         elements = [
             "\\midrule",
@@ -454,11 +463,11 @@ class LongTableBuilder(TableBuilder):
         return ""
 
     @property
-    def bottom_separator(self):
+    def bottom_separator(self) -> str:
         return ""
 
     @property
-    def env_end(self):
+    def env_end(self) -> str:
         return "\\end{longtable}"
 
 
@@ -466,7 +475,7 @@ class RegularTableBuilder(TableBuilder):
     """Concrete table builder for regular table."""
 
     @property
-    def env_begin(self):
+    def env_begin(self) -> str:
         elements = [
             f"\\begin{{table}}{self._position_macro}",
             "\\centering",
@@ -477,11 +486,11 @@ class RegularTableBuilder(TableBuilder):
         return "\n".join([item for item in elements if item])
 
     @property
-    def bottom_separator(self):
+    def bottom_separator(self) -> str:
         return "\\bottomrule"
 
     @property
-    def env_end(self):
+    def env_end(self) -> str:
         return "\n".join(["\\end{tabular}", "\\end{table}"])
 
 
@@ -489,15 +498,15 @@ class TabularBuilder(TableBuilder):
     """Concrete table builder for tabular environment."""
 
     @property
-    def env_begin(self):
+    def env_begin(self) -> str:
         return f"\\begin{{tabular}}{{{self.column_format}}}"
 
     @property
-    def bottom_separator(self):
+    def bottom_separator(self) -> str:
         return "\\bottomrule"
 
     @property
-    def env_end(self):
+    def env_end(self) -> str:
         return "\\end{tabular}"
 
 
@@ -549,14 +558,15 @@ class LatexFormatter(TableFormatter):
         buf.write(table_string)
 
     @property
-    def builder(self):
+    def builder(self) -> TableBuilderAbstract:
         """Concrete table builder.
 
         Returns
         -------
         TableBuilder
         """
-        kwargs = dict(
+        builder = self._select_builder()
+        return builder(
             formatter=self.fmt,
             column_format=self.column_format,
             multicolumn=self.multicolumn,
@@ -566,19 +576,22 @@ class LatexFormatter(TableFormatter):
             label=self.label,
             position=self.position,
         )
+
+    def _select_builder(self) -> Type[TableBuilderAbstract]:
+        """Select proper table builder."""
         if self.longtable:
-            return LongTableBuilder(**kwargs)
+            return LongTableBuilder
         if any([self.caption, self.label, self.position]):
-            return RegularTableBuilder(**kwargs)
-        return TabularBuilder(**kwargs)
+            return RegularTableBuilder
+        return TabularBuilder
 
     @property
-    def column_format(self):
+    def column_format(self) -> str:
         """Column format."""
         return self._column_format
 
     @column_format.setter
-    def column_format(self, input_column_format):
+    def column_format(self, input_column_format: Optional[str]) -> None:
         """Setter for column format."""
         if input_column_format is None:
             self._column_format = (
@@ -592,7 +605,7 @@ class LatexFormatter(TableFormatter):
         else:
             self._column_format = input_column_format
 
-    def _get_column_format_based_on_dtypes(self):
+    def _get_column_format_based_on_dtypes(self) -> str:
         """Get column format based on data type.
 
         Right alignment for numbers and left - for strings.
@@ -606,7 +619,7 @@ class LatexFormatter(TableFormatter):
         dtypes = self.frame.dtypes._values
         return "".join(map(get_col_type, dtypes))
 
-    def _get_index_format(self):
+    def _get_index_format(self) -> str:
         """Get index column format."""
         return "l" * self.frame.index.nlevels if self.fmt.index else ""
 
