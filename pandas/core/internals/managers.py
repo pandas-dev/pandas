@@ -70,7 +70,35 @@ T = TypeVar("T", bound="BlockManager")
 
 class DataManager(PandasObject):
 
-    pass
+    # TODO share more methods/attributes
+
+    def __len__(self) -> int:
+        return len(self.items)
+
+    @property
+    def ndim(self) -> int:
+        return len(self.axes)
+
+    def reindex_axis(
+        self,
+        new_index,
+        axis: int,
+        method=None,
+        limit=None,
+        fill_value=None,
+        copy: bool = True,
+    ):
+        """
+        Conform block manager to new index.
+        """
+        new_index = ensure_index(new_index)
+        new_index, indexer = self.axes[axis].reindex(
+            new_index, method=method, limit=limit
+        )
+
+        return self.reindex_indexer(
+            new_index, indexer, axis=axis, fill_value=fill_value, copy=copy
+        )
 
 
 class ArrayManager(DataManager):
@@ -111,7 +139,7 @@ class ArrayManager(DataManager):
 
     @property
     def shape_proper(self) -> Tuple[int, ...]:
-        # this still gives the "old" transposed shape
+        # this returns (n_rows, n_columns)
         return tuple(len(ax) for ax in self._axes)
 
     @staticmethod
@@ -120,10 +148,13 @@ class ArrayManager(DataManager):
         axis = 1 if axis == 0 else 0
         return axis
 
-    # TODO can be shared
-    @property
-    def ndim(self) -> int:
-        return len(self.axes)
+    def make_empty(self: T, axes=None) -> T:
+        """ return an empty BlockManager with the items axis of len 0 """
+        if axes is None:
+            axes = [self.axes[1:], Index([])]
+
+        arrays = []
+        return type(self)(arrays, axes)
 
     def consolidate(self) -> "ArrayManager":
         return self
@@ -154,10 +185,6 @@ class ArrayManager(DataManager):
 
     # TODO setstate getstate
 
-    # TODO can be shared
-    def __len__(self) -> int:
-        return len(self.items)
-
     def __repr__(self) -> str:
         output = type(self).__name__
         output += f"\nIndex: {self._axes[0]}"
@@ -182,6 +209,19 @@ class ArrayManager(DataManager):
         #         f"tot_items: {tot_items}"
         #     )
 
+    def reduce(self: T, func) -> T:
+        # TODO this still fails because `func` assumes to work on 2D arrays
+        assert self.ndim == 2
+
+        res_arrays = []
+        for array in self.arrays:
+            res = func(array)
+            res_arrays.append(np.array([res]))
+
+        index = Index([0])  # placeholder
+        new_mgr = type(self)(res_arrays, [index, self.items])
+        return new_mgr
+
     def apply(self: T, f, align_keys=None, **kwargs) -> T:
         """
         Iterate over the blocks, collect and create a new BlockManager.
@@ -203,10 +243,13 @@ class ArrayManager(DataManager):
 
         aligned_args = {k: kwargs[k] for k in align_keys}
 
+        if f == "apply":
+            f = kwargs.pop("func")
+
         for a in self.arrays:
 
             if aligned_args:
-
+                # TODO
                 raise NotImplementedError
 
             if callable(f):
@@ -219,6 +262,9 @@ class ArrayManager(DataManager):
             return self.make_empty(self._axes)
 
         return type(self)(result_arrays, self._axes)
+
+    def isna(self, func) -> "BlockManager":
+        return self.apply("apply", func=func)
 
     def where(
         self, other, cond, align: bool, errors: str, try_cast: bool, axis: int
@@ -239,6 +285,12 @@ class ArrayManager(DataManager):
             try_cast=try_cast,
             axis=axis,
         )
+
+    def replace(self, value, **kwargs) -> "ArrayManager":
+        assert np.ndim(value) == 0, value
+        # TODO "replace" is right now implemented on the blocks, we should move
+        # it to general array algos so it can be reused here
+        return self.apply("replace", value=value, **kwargs)
 
     def operate_blockwise(self, other: "ArrayManager", array_op) -> "ArrayManager":
         """
@@ -297,6 +349,16 @@ class ArrayManager(DataManager):
         Return the data for column i as the values (ndarray or ExtensionArray).
         """
         return self.arrays[i]
+
+    def idelete(self, indexer):
+        """
+        Delete selected locations in-place (new block and array, same BlockManager)
+        """
+        to_keep = np.ones(self.shape[0], dtype=np.bool_)
+        to_keep[indexer] = False
+
+        self.arrays = [self.arrays[i] for i in np.nonzero(to_keep)[0]]
+        self._axes = [self._axes[0], self._axes[1][to_keep]]
 
     def take(self, indexer, axis: int = 1, verify: bool = True, convert: bool = True):
         """
@@ -428,9 +490,15 @@ class ArrayManager(DataManager):
         contained in the current set of items
         """
         if lib.is_integer(loc):
-            # TODO normalize array
-            assert isinstance(value, np.ndarray)
-            value = value[0, :]
+            # TODO normalize array -> this should in theory not be needed
+            if isinstance(value, ExtensionArray):
+                import pytest
+
+                pytest.skip()
+            value = np.asarray(value)
+            # assert isinstance(value, np.ndarray)
+            if value.ndim == 2:
+                value = value[0, :]
             assert len(value) == len(self._axes[0])
             self.arrays[loc] = value
             return
@@ -463,7 +531,8 @@ class ArrayManager(DataManager):
 
         if value.ndim == 2:
             value = value[0, :]
-        assert len(value) == len(self.arrays[0])
+        # TODO self.arrays can be empty
+        # assert len(value) == len(self.arrays[0])
 
         # TODO is this copy needed?
         arrays = self.arrays.copy()
@@ -471,6 +540,21 @@ class ArrayManager(DataManager):
 
         self.arrays = arrays
         self._axes[1] = new_axis
+
+    def fast_xs(self, loc: int) -> ArrayLike:
+        """
+        Return the array corresponding to `frame.iloc[loc]`.
+
+        Parameters
+        ----------
+        loc : int
+
+        Returns
+        -------
+        np.ndarray or ExtensionArray
+        """
+        dtype = _interleaved_dtype(self.arrays)
+        return np.array([a[loc] for a in self.arrays], dtype=dtype)
 
     def fillna(self, value, limit, inplace: bool, downcast) -> "ArrayManager":
 
@@ -495,31 +579,6 @@ class ArrayManager(DataManager):
             return array
 
         return self.apply(array_fillna, value=value, limit=limit, inplace=inplace)
-
-        #     if self._can_hold_element(value):
-        #         # equivalent: _try_coerce_args(value) would not raise
-        #         blocks = self.putmask(mask, value, inplace=inplace)
-        #         return self._maybe_downcast(blocks, downcast)
-
-        #     # we can't process the value, but nothing to do
-        #     if not mask.any():
-        #         return [self] if inplace else [self.copy()]
-
-        #     # operate column-by-column
-        #     def f(mask, val, idx):
-        #         block = self.coerce_to_target_dtype(value)
-
-        #         # slice out our block
-        #         if idx is not None:
-        #             # i.e. self.ndim == 2
-        #             block = block.getitem_block(slice(idx, idx + 1))
-        #         return block.fillna(value, limit=limit, inplace=inplace, downcast=None)
-
-        #     return self.split_and_operate(None, f, inplace)
-
-        # return self.apply(
-        #     "fillna", value=value, limit=limit, inplace=inplace, downcast=downcast
-        # )
 
     def as_array(
         self,
@@ -614,6 +673,10 @@ class ArrayManager(DataManager):
     def any_extension_types(self) -> bool:
         """Whether any of the blocks in this manager are extension blocks"""
         return False  # any(block.is_extension for block in self.blocks)
+
+    # TODO
+    # unstack
+    # to_dict
 
 
 class BlockManager(DataManager):

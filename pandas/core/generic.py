@@ -238,8 +238,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             mgr = mgr.copy()
         if dtype is not None:
             # avoid further copies if we can
-            if len(mgr.blocks) > 1 or mgr.blocks[0].values.dtype != dtype:
-                mgr = mgr.astype(dtype=dtype)
+            # TODO
+            # if len(mgr.blocks) > 1 or mgr.blocks[0].values.dtype != dtype:
+            mgr = mgr.astype(dtype=dtype)
         return mgr
 
     # ----------------------------------------------------------------------

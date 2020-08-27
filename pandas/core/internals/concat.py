@@ -47,8 +47,6 @@ def concatenate_block_managers(
     -------
     BlockManager
     """
-    # breakpoint()
-
     if isinstance(mgrs_indexers[0][0], ArrayManager):
 
         if concat_axis == 1:

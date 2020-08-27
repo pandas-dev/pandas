@@ -446,6 +446,8 @@ class DataFrame(NDFrame):
         columns: Optional[Axes] = None,
         dtype: Optional[Dtype] = None,
         copy: bool = False,
+        # TODO setting default to "array" for testing purposes (the actual default
+        # needs to stay "block" initially of course for backwards compatibility)
         manager: str = "array",
     ):
         if data is None:
@@ -657,6 +659,8 @@ class DataFrame(NDFrame):
         """
         Can we transpose this DataFrame without creating any new array objects.
         """
+        if isinstance(self._data, ArrayManager):
+            return False
         if self._data.any_extension_types:
             # TODO(EA2D) special case would be unnecessary with 2D EAs
             return False
