@@ -45,7 +45,7 @@ import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.groupby import base, grouper
-from pandas.core.indexes.api import Index, MultiIndex, ensure_index
+from pandas.core.indexes.api import Index, MultiIndex, RangeIndex, ensure_index
 from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index,
@@ -620,8 +620,10 @@ class BaseGrouper:
             # TODO: can we get a performant workaround for EAs backed by ndarray?
             return self._aggregate_series_pure_python(obj, func)
 
-        elif obj.index._has_complex_internals:
+        elif obj.index._has_complex_internals or isinstance(obj.index, RangeIndex):
             # Preempt TypeError in _aggregate_series_fast
+            # exclude RangeIndex because patching it in libreduction would
+            #  silently be incorrect
             return self._aggregate_series_pure_python(obj, func)
 
         try:
