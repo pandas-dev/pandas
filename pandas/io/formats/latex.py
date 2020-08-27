@@ -597,7 +597,7 @@ class LatexFormatter(TableFormatter):
             self._column_format = (
                 self._get_index_format() + self._get_column_format_based_on_dtypes()
             )
-        elif not isinstance(input_column_format, str):  # pragma: no cover
+        elif not isinstance(input_column_format, str):
             raise ValueError(
                 f"column_format must be str or unicode, "
                 f"not {type(input_column_format)}"
