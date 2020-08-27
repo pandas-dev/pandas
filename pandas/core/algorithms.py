@@ -543,7 +543,7 @@ def factorize(
     na_sentinel : int or None, default -1
         Value to mark "not found". If None, will not drop the NaN
         from the uniques of the values.
-    {size_hint}
+    {size_hint}\
 
     Returns
     -------
