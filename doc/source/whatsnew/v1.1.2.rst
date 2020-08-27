@@ -16,6 +16,7 @@ Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Regression in :meth:`DatetimeIndex.intersection` incorrectly raising ``AssertionError`` when intersecting against a list (:issue:`35876`)
 - Performance regression for :meth:`RangeIndex.format` (:issue:`35712`)
+- Regression where :meth:`MultiIndex.get_loc` would return a slice spanning the full index when passed an empty list (:issue:`35878`)
 -
 
 
