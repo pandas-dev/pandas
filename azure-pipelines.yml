@@ -34,7 +34,7 @@ jobs:
   steps:
     - script: |
         docker pull quay.io/pypa/manylinux2014_i686
-        docker run -v $(pwd):/pandas quay.io/pypa/manylinux2010_i686 \
+        docker run -v $(pwd):/pandas quay.io/pypa/manylinux2014_i686 \
         /bin/bash -xc "cd pandas && \
         /opt/python/cp37-cp37m/bin/python -m venv ~/virtualenvs/pandas-dev && \
         . ~/virtualenvs/pandas-dev/bin/activate && \
