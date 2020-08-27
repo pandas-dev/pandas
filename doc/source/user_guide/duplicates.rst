@@ -114,9 +114,9 @@ As noted above, handling duplicates is an important feature when reading in raw
 data. That said, you may want to avoid introducing duplicates as part of a data
 processing pipeline (from methods like :meth:`pandas.concat`,
 :meth:`~DataFrame.rename`, etc.). Both :class:`Series` and :class:`DataFrame`
-can be created with the argument ``allows_duplicate_labels=False`` to *disallow*
-duplicate labels (the default is to allow them). If there are duplicate labels,
-an exception will be raised.
+*disallow* duplicate labels by calling ``.set_flags(allows_duplicate_labels=False)``.
+(the default is to allow them). If there are duplicate labels, an exception
+will be raised.
 
 .. ipython:: python
    :okexcept:
