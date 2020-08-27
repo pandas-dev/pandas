@@ -517,32 +517,28 @@ class SeriesGroupBy(GroupBy[Series]):
         what libreduction does.
         """
         try:
-            return self._aggregate_named(func, *args, **kwargs)
+            return self._aggregate_named(func, *args, named=True, **kwargs)
         except KeyError:
-            return self._aggregate_unnamed(func, *args, **kwargs)
+            return self._aggregate_named(func, *args, named=False, **kwargs)
 
-    def _aggregate_named(self, func, *args, **kwargs):
+    def _aggregate_named(self, func, *args, named: bool = True, **kwargs):
         result = {}
 
         for name, group in self:  # TODO: could we have duplicate names?
-            group.name = name  # only difference vs _aggregate_unnamed
+            if named:
+                group.name = name
+
             output = func(group, *args, **kwargs)
             if isinstance(output, (Series, Index, np.ndarray)):
-                raise ValueError("Must produce aggregated value")
-            result[name] = output
-
-        return result
-
-    def _aggregate_unnamed(self, func, *args, **kwargs):
-        """
-        Pure-python analogue of what _python_agg_general does.
-        """
-        result = {}
-
-        for name, group in self:  # TODO: could we have duplicate names?
-            output = func(group, *args, **kwargs)
-            if isinstance(output, (Series, Index, np.ndarray)):
-                raise ValueError("Must produce aggregated value")
+                if (
+                    isinstance(output, Series)
+                    and len(output) == 1
+                    and name in output.index
+                ):
+                    # FIXME: kludge for test_resampler_grouper.test_apply
+                    output = output.iloc[0]
+                else:
+                    raise ValueError("Must produce aggregated value")
             result[name] = output
 
         return result
