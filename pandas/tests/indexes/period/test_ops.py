@@ -337,7 +337,7 @@ def test_order_incompat():
     # GH 35584. The new implementation of sort_values for Index.sort_values
     # is stable when sorting in descending order. PeriodIndex.sort_values
     # currently isn't stable. xfail should be removed after
-    # the implementations' behavior is synchronized.
+    # the implementations' behavior is synchronized (xref GH 35922)
     pidx = PeriodIndex(["2011", "2013", "2015", "2012", "2011"], name="pidx", freq="A")
     iidx = Index([2011, 2013, 2015, 2012, 2011], name="idx")
     ordered1, indexer1 = pidx.sort_values(return_indexer=True, ascending=False)
