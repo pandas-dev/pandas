@@ -47,13 +47,17 @@ class RowStringConverter:
         """Get string representation of the row."""
         row = self.strrows[row_num]
 
-        is_multicol = row_num < self._clevels and self.fmt.header and self.multicolumn
+        is_multicol = (
+            row_num < self.index_clevels
+            and self.fmt.header
+            and self.multicolumn
+        )
 
         is_multirow = (
-            row_num >= self._nlevels
+            row_num >= self.index_nlevels
             and self.fmt.index
             and self.multirow
-            and self._ilevels > 1
+            and self.index_ilevels > 1
         )
 
         is_cline_maybe_required = is_multirow and row_num < len(self.strrows) - 1
@@ -74,22 +78,22 @@ class RowStringConverter:
         return "".join(lst)
 
     @property
-    def _header_row_num(self):
+    def _header_row_num(self) -> int:
         """Number of rows in header."""
-        return self._nlevels if self.fmt.header else 0
+        return self.index_nlevels if self.fmt.header else 0
 
     @property
-    def _ilevels(self):
+    def index_ilevels(self) -> int:
         """Integer number of levels in index."""
         return self.frame.index.nlevels
 
     @property
-    def _clevels(self):
+    def index_clevels(self) -> int:
         return self.frame.columns.nlevels
 
     @property
-    def _nlevels(self):
-        nlevels = self._clevels
+    def index_nlevels(self) -> int:
+        nlevels = self.index_clevels
         if self.fmt.has_index_names and self.fmt.show_index_names:
             nlevels += 1
         return nlevels
@@ -146,7 +150,7 @@ class RowStringConverter:
         else:
             crow = [x if x else "{}" for x in row]
         if self.fmt.bold_rows and self.fmt.index:
-            crow = self._convert_to_bold(crow, self._ilevels)
+            crow = _convert_to_bold(crow, self.index_ilevels)
         return crow
 
     @staticmethod
@@ -199,7 +203,7 @@ class RowStringConverter:
         will become
         \multicolumn{3}{l}{a} & b & \multicolumn{2}{l}{c}
         """
-        row2 = list(row[: self._ilevels])
+        row2 = list(row[: self.index_ilevels])
         ncol = 1
         coltext = ""
 
@@ -214,7 +218,7 @@ class RowStringConverter:
             else:
                 row2.append(coltext)
 
-        for c in row[self._ilevels :]:
+        for c in row[self.index_ilevels :]:
             # if next col has text, write the previous
             if c.strip():
                 if coltext:
@@ -239,7 +243,7 @@ class RowStringConverter:
         b & 0 &   \cline{1-2}
                   b & 0 &
         """
-        for j in range(self._ilevels):
+        for j in range(self.index_ilevels):
             if row[j].strip():
                 nrow = 1
                 for r in self.strrows[i + 1 :]:
