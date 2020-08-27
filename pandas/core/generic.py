@@ -5169,6 +5169,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         -----
         `agg` is an alias for `aggregate`. Use the alias.
 
+        In pandas, agg, as most operations just ignores the missing values,
+        and returns the operation only considering the values that are present.
+
         A passed user-defined-function will be passed a Series for evaluation.
         {examples}"""
     )
@@ -6893,7 +6896,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         obj = self.T if should_transpose else self
 
         if obj.empty:
-            return self
+            return self.copy()
 
         if method not in fillna_methods:
             axis = self._info_axis_number
@@ -10700,7 +10703,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             - function
             - string function name
-            - list of functions and/or function names, e.g. ``[np.exp. 'sqrt']``
+            - list of functions and/or function names, e.g. ``[np.exp, 'sqrt']``
             - dict of axis labels -> functions, function names or list of such.
         {axis}
         *args

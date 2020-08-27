@@ -3705,7 +3705,7 @@ cdef inline void _shift_months(const int64_t[:] dtindex,
     """See shift_months.__doc__"""
     cdef:
         Py_ssize_t i
-        int months_to_roll, compare_day
+        int months_to_roll
         npy_datetimestruct dts
 
     for i in range(count):
@@ -3715,10 +3715,8 @@ cdef inline void _shift_months(const int64_t[:] dtindex,
 
         dt64_to_dtstruct(dtindex[i], &dts)
         months_to_roll = months
-        compare_day = get_day_of_month(&dts, day_opt)
 
-        months_to_roll = roll_convention(dts.day, months_to_roll,
-                                         compare_day)
+        months_to_roll = _roll_qtrday(&dts, months_to_roll, 0, day_opt)
 
         dts.year = year_add_months(dts, months_to_roll)
         dts.month = month_add_months(dts, months_to_roll)
