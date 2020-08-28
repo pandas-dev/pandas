@@ -7029,7 +7029,7 @@ NaN 12.3   33.0
         margins=False,
         dropna=True,
         margins_name="All",
-        observed=False,
+        observed=None,
     ) -> DataFrame:
         from pandas.core.reshape.pivot import pivot_table
 

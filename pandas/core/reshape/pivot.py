@@ -46,7 +46,7 @@ def pivot_table(
     margins=False,
     dropna=True,
     margins_name="All",
-    observed=False,
+    observed=None,
 ) -> "DataFrame":
     index = _convert_by(index)
     columns = _convert_by(columns)
