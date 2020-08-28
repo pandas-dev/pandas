@@ -508,7 +508,7 @@ class Grouping:
             elif is_categorical_dtype(self.grouper):
 
                 if observed is None:
-                    warnings.warn(_observed_msg, FutureWarning, stacklevel=5)
+                    warnings.warn(_observed_msg, FutureWarning)
                     observed = False
 
                 self.grouper, self.all_grouper = recode_for_groupby(
