@@ -717,6 +717,11 @@ class TestGrouping:
             df.groupby(['x', 'y'], observed=False)
         assert len(any_warnings) == 0
 
+        cat = pd.Categorical(['A', 'B', 'C'], categories=['A', 'B', 'C', 'D'])
+        s = Series(cat)
+        with tm.assert_produces_warning(expected_warning=FutureWarning):
+            s.groupby(cat)
+
 
 # get_group
 # --------------------------------
