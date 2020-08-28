@@ -459,7 +459,7 @@ class GroupByPlot(PandasObject):
 
 
 @contextmanager
-def _group_selection_context(groupby):
+def _group_selection_context(groupby: "_GroupBy"):
     """
     Set / reset the _group_selection_context.
     """
@@ -489,7 +489,7 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         keys: Optional[_KeysArgType] = None,
         axis: int = 0,
         level=None,
-        grouper: "Optional[ops.BaseGrouper]" = None,
+        grouper: Optional["ops.BaseGrouper"] = None,
         exclusions=None,
         selection=None,
         as_index: bool = True,
@@ -734,7 +734,7 @@ b  2""",
 
     plot = property(GroupByPlot)
 
-    def _make_wrapper(self, name):
+    def _make_wrapper(self, name: str) -> Callable:
         assert name in self._apply_allowlist
 
         with _group_selection_context(self):

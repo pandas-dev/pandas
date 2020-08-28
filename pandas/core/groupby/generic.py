@@ -83,7 +83,7 @@ from pandas.core.util.numba_ import NUMBA_FUNC_CACHE, maybe_use_numba
 from pandas.plotting import boxplot_frame_groupby
 
 if TYPE_CHECKING:
-    from pandas.core.internals import Block
+    from pandas.core.internals import Block  # noqa:F401
 
 
 NamedAgg = namedtuple("NamedAgg", ["column", "aggfunc"])
@@ -1595,7 +1595,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Parameters
         ----------
         key : string / list of selections
-        ndim : 1,2
+        ndim : {1, 2}
             requested ndim of result
         subset : object, default None
             subset to act on
@@ -1621,7 +1621,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         raise AssertionError("invalid ndim for _gotitem")
 
-    def _wrap_frame_output(self, result, obj) -> DataFrame:
+    def _wrap_frame_output(self, result, obj: DataFrame) -> DataFrame:
         result_index = self.grouper.levels[0]
 
         if self.axis == 0:
@@ -1638,7 +1638,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         else:
             return obj._mgr
 
-    def _insert_inaxis_grouper_inplace(self, result):
+    def _insert_inaxis_grouper_inplace(self, result: DataFrame):
         # zip in reverse so we can always insert at loc 0
         izip = zip(
             *map(
@@ -1716,7 +1716,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         return result
 
-    def _wrap_agged_blocks(self, blocks: "Sequence[Block]", items: Index) -> DataFrame:
+    def _wrap_agged_blocks(self, blocks: Sequence["Block"], items: Index) -> DataFrame:
         if not self.as_index:
             index = np.arange(blocks[0].values.shape[-1])
             mgr = BlockManager(blocks, axes=[items, index])
@@ -1743,7 +1743,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 exclusions=self.exclusions,
             )
 
-    def _apply_to_column_groupbys(self, func):
+    def _apply_to_column_groupbys(self, func) -> DataFrame:
         from pandas.core.reshape.concat import concat
 
         return concat(
@@ -1752,7 +1752,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             axis=1,
         )
 
-    def count(self):
+    def count(self) -> DataFrame:
         """
         Compute count of group, excluding missing values.
 
@@ -1782,7 +1782,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         return self._reindex_output(result, fill_value=0)
 
-    def nunique(self, dropna: bool = True):
+    def nunique(self, dropna: bool = True) -> DataFrame:
         """
         Return DataFrame with counts of unique elements in each position.
 
@@ -1848,6 +1848,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             ],
             axis=1,
         )
+        assert isinstance(results, DataFrame)  # for mypy
 
         if axis_number == 1:
             results = results.T
