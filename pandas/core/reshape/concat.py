@@ -9,9 +9,9 @@ import numpy as np
 
 from pandas._typing import FrameOrSeries, FrameOrSeriesUnion, Label
 
-from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays.categorical import (
     factorize_from_iterable,
