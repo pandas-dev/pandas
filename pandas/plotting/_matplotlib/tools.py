@@ -1,15 +1,21 @@
 # being a bit too dynamic
 from math import ceil
+from typing import TYPE_CHECKING, Tuple
 import warnings
 
 import matplotlib.table
 import matplotlib.ticker as ticker
 import numpy as np
 
+from pandas._typing import FrameOrSeries
+
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 
 from pandas.plotting._matplotlib import compat
+
+if TYPE_CHECKING:
+    from matplotlib.table import Table
 
 
 def format_date_labels(ax, rot):
@@ -21,7 +27,7 @@ def format_date_labels(ax, rot):
     fig.subplots_adjust(bottom=0.2)
 
 
-def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
+def table(ax, data: FrameOrSeries, rowLabels=None, colLabels=None, **kwargs) -> "Table":
     if isinstance(data, ABCSeries):
         data = data.to_frame()
     elif isinstance(data, ABCDataFrame):
@@ -43,7 +49,7 @@ def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
     return table
 
 
-def _get_layout(nplots, layout=None, layout_type="box"):
+def _get_layout(nplots: int, layout=None, layout_type: str = "box") -> Tuple[int, int]:
     if layout is not None:
         if not isinstance(layout, (tuple, list)) or len(layout) != 2:
             raise ValueError("Layout must be a tuple of (rows, columns)")
@@ -92,14 +98,14 @@ def _get_layout(nplots, layout=None, layout_type="box"):
 
 
 def _subplots(
-    naxes=None,
-    sharex=False,
-    sharey=False,
-    squeeze=True,
+    naxes: int,
+    sharex: bool = False,
+    sharey: bool = False,
+    squeeze: bool = True,
     subplot_kw=None,
     ax=None,
     layout=None,
-    layout_type="box",
+    layout_type: str = "box",
     **fig_kw,
 ):
     """
@@ -369,7 +375,7 @@ def _get_all_lines(ax):
     return lines
 
 
-def _get_xlim(lines):
+def _get_xlim(lines) -> Tuple[float, float]:
     left, right = np.inf, -np.inf
     for l in lines:
         x = l.get_xdata(orig=False)
