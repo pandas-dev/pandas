@@ -726,7 +726,7 @@ class TestDataFrameConstructors:
     )
     def test_constructor_period_dict_scalar(self, data, dtype):
         # scalar periods
-        df = DataFrame({"a": data,}, index=[0])
+        df = DataFrame({"a": data}, index=[0])
         assert df["a"].dtype == dtype
 
     @pytest.mark.parametrize(
