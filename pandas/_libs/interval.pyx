@@ -299,7 +299,6 @@ cdef class Interval(IntervalMixin):
     True
     """
     _typ = "interval"
-    __array_priority__ = 1000
 
     cdef readonly object left
     """
