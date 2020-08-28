@@ -23,6 +23,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 from pandas import DataFrame
+from pandas import __version__ as __v__
 import pandas.core.common as com
 
 if TYPE_CHECKING:
@@ -274,7 +275,7 @@ def build_table_schema(
         schema["primaryKey"] = primary_key
 
     if version:
-        schema["pandas_version"] = "0.20.0"
+        schema["pandas_version"] = __v__
     return schema
 
 
