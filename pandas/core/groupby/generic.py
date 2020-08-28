@@ -9,7 +9,6 @@ from collections import abc, namedtuple
 import copy
 from functools import partial
 from textwrap import dedent
-import typing
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -22,6 +21,7 @@ from typing import (
     Optional,
     Sequence,
     Type,
+    TypeVar,
     Union,
 )
 import warnings
@@ -92,7 +92,7 @@ AggScalar = Union[str, Callable[..., Any]]
 # TODO: validate types on ScalarResult and move to _typing
 # Blocked from using by https://github.com/python/mypy/issues/1484
 # See note at _mangle_lambda_list
-ScalarResult = typing.TypeVar("ScalarResult")
+ScalarResult = TypeVar("ScalarResult")
 
 
 def generate_property(name: str, klass: Type[FrameOrSeries]):
@@ -606,8 +606,8 @@ class SeriesGroupBy(GroupBy[Series]):
             wrapper = lambda x: func(x, *args, **kwargs)
 
         # Interpret np.nan as False.
-        def true_and_notna(x, *args, **kwargs) -> bool:
-            b = wrapper(x, *args, **kwargs)
+        def true_and_notna(x) -> bool:
+            b = wrapper(x)
             return b and notna(b)
 
         try:
@@ -1210,7 +1210,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # TODO: Remove when default dtype of empty Series is object
                 kwargs = first_not_none._construct_axes_dict()
                 backup = create_series_with_explicit_dtype(
-                    **kwargs, dtype_if_empty=object
+                    dtype_if_empty=object, **kwargs
                 )
 
                 values = [x if (x is not None) else backup for x in values]
