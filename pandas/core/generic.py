@@ -1960,7 +1960,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
                 for k, v in state.items():
                     if k not in meta:
-                        print(k)
                         object.__setattr__(self, k, v)
 
             else:
