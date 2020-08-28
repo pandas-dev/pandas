@@ -29,7 +29,7 @@ from pandas.core.internals.managers import BlockManager
 
 
 def concatenate_block_managers(
-    mgrs_indexers, axes, concat_axis: int, copy: bool,
+    mgrs_indexers, axes, concat_axis: int, copy: bool
 ) -> BlockManager:
     """
     Concatenate block managers into one.
@@ -76,7 +76,7 @@ def concatenate_block_managers(
             b = make_block(values, placement=placement, ndim=blk.ndim)
         else:
             b = make_block(
-                _concatenate_join_units(join_units, concat_axis, copy=copy,),
+                _concatenate_join_units(join_units, concat_axis, copy=copy),
                 placement=placement,
             )
         blocks.append(b)
@@ -339,7 +339,7 @@ def _concatenate_join_units(join_units, concat_axis, copy):
             # 2D to put it a non-EA Block
             concat_values = np.atleast_2d(concat_values)
     else:
-        concat_values = concat_compat(to_concat, axis=concat_axis,)
+        concat_values = concat_compat(to_concat, axis=concat_axis)
 
     return concat_values
 

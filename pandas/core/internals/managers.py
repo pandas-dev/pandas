@@ -491,7 +491,7 @@ class BlockManager(PandasObject):
             values = values.take(indexer)
 
         return SingleBlockManager(
-            make_block(values, ndim=1, placement=np.arange(len(values))), axes[0],
+            make_block(values, ndim=1, placement=np.arange(len(values))), axes[0]
         )
 
     def isna(self, func) -> "BlockManager":
@@ -519,9 +519,7 @@ class BlockManager(PandasObject):
     def setitem(self, indexer, value) -> "BlockManager":
         return self.apply("setitem", indexer=indexer, value=value)
 
-    def putmask(
-        self, mask, new, align: bool = True, axis: int = 0,
-    ):
+    def putmask(self, mask, new, align: bool = True, axis: int = 0):
         transpose = self.ndim == 2
 
         if align:
@@ -1923,7 +1921,7 @@ def _compare_or_regex_search(
     """
 
     def _check_comparison_types(
-        result: Union[ArrayLike, bool], a: ArrayLike, b: Union[Scalar, Pattern],
+        result: Union[ArrayLike, bool], a: ArrayLike, b: Union[Scalar, Pattern]
     ):
         """
         Raises an error if the two arrays (a,b) cannot be compared.
