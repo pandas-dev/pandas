@@ -279,18 +279,20 @@ def test_groupby_dropna_datetime_like_data(
 
 
 @pytest.mark.parametrize(
-    "dropna, inputs, outputs",
+    "dropna, df_cols_in, df_cols_out, levels",
     [
         pytest.param(
             False,
             {"groups": ["a", "a", "b", np.nan], "values": [10, 10, 20, 30]},
             {"values": [0, 1, 0, 0]},
+            ["a", "b", np.nan],
             id="dropna_false_has_nan"
         ),
         pytest.param(
             True,
             {"groups": ["a", "a", "b", np.nan], "values": [10, 10, 20, 30]},
             {"values": [0, 1, 0]},
+            None,
             id="dropna_true_has_nan"
         ),
         pytest.param(
@@ -298,6 +300,7 @@ def test_groupby_dropna_datetime_like_data(
             False,
             {"groups": ["a", "a", "b", "c"], "values": [10, 10, 20, 30]},
             {"values": [0, 1, 0, 0]},
+            None,
             id="dropna_false_no_nan"
         ),
         pytest.param(
@@ -305,27 +308,28 @@ def test_groupby_dropna_datetime_like_data(
             True,
             {"groups": ["a", "a", "b", "c"], "values": [10, 10, 20, 30]},
             {"values": [0, 1, 0, 0]},
+            None,
             id="dropna_true_no_nan"
         ),
     ],
 )
 def test_groupby_dropna_multi_index_dataframe_apply(
-    dropna, inputs, outputs
+    dropna, df_cols_in, df_cols_out, levels
 ):
     # GH 35889
     # `groupby` with `dropna=False` and `apply` returning DataFrame of different
     # sizes raises error if grouped column has nan values.
 
-    df = pd.DataFrame(inputs)
+    df = pd.DataFrame(df_cols_in)
     dfg = df.groupby("groups", dropna=dropna)
     rv = dfg.apply(lambda grp: pd.DataFrame({"values": list(range(len(grp)))}))
 
-    if dropna:
-        groups = [g for g in inputs["groups"] if g is not None]
-    else:
-        groups = inputs["groups"]
-    tuples = tuple(zip(groups, outputs["values"]))
+    tuples = tuple(zip(df_cols_in["groups"], df_cols_out["values"]))
     mi = pd.MultiIndex.from_tuples(tuples, names=["groups", None])
+    # Since right now, by default MI will drop NA from levels when we create MI
+    # via `from_*`, so we need to add NA for level manually afterwards.
+    if not dropna and levels:
+        mi = mi.set_levels(levels, level="groups")
 
-    expected = pd.DataFrame(outputs, index=mi)
+    expected = pd.DataFrame(df_cols_out, index=mi)
     tm.assert_frame_equal(rv, expected)
