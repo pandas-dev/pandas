@@ -283,29 +283,29 @@ def test_groupby_dropna_datetime_like_data(
     [
         pytest.param(
             False,
-            {'groups': ['a', 'a', 'b', np.nan], 'values': [10, 10, 20, 30]},
-            {'values': [0, 1, 0, 0]},
-            id='dropna_false_has_nan'
+            {"groups": ["a", "a", "b", np.nan], "values": [10, 10, 20, 30]},
+            {"values": [0, 1, 0, 0]},
+            id="dropna_false_has_nan"
         ),
         pytest.param(
             True,
-            {'groups': ['a', 'a', 'b', np.nan], 'values': [10, 10, 20, 30]},
-            {'values': [0, 1, 0]},
-            id='dropna_true_has_nan'
+            {"groups": ["a", "a", "b", np.nan], "values": [10, 10, 20, 30]},
+            {"values": [0, 1, 0]},
+            id="dropna_true_has_nan"
         ),
         pytest.param(
-            # no nan in 'groups'; dropna=True|False should be same.
+            # no nan in "groups"; dropna=True|False should be same.
             False,
-            {'groups': ['a', 'a', 'b', 'c'], 'values': [10, 10, 20, 30]},
-            {'values': [0, 1, 0, 0]},
-            id='dropna_false_no_nan'
+            {"groups": ["a", "a", "b", "c"], "values": [10, 10, 20, 30]},
+            {"values": [0, 1, 0, 0]},
+            id="dropna_false_no_nan"
         ),
         pytest.param(
-            # no nan in 'groups'; dropna=True|False should be same.
+            # no nan in "groups"; dropna=True|False should be same.
             True,
-            {'groups': ['a', 'a', 'b', 'c'], 'values': [10, 10, 20, 30]},
-            {'values': [0, 1, 0, 0]},
-            id='dropna_true_no_nan'
+            {"groups": ["a", "a", "b", "c"], "values": [10, 10, 20, 30]},
+            {"values": [0, 1, 0, 0]},
+            id="dropna_true_no_nan"
         ),
     ],
 )
@@ -317,15 +317,15 @@ def test_groupby_dropna_multi_index_dataframe_apply(
     # sizes raises error if grouped column has nan values.
 
     df = pd.DataFrame(inputs)
-    dfg = df.groupby('groups', dropna=dropna)
-    rv = dfg.apply(lambda grp: pd.DataFrame({'values': list(range(len(grp)))}))
+    dfg = df.groupby("groups", dropna=dropna)
+    rv = dfg.apply(lambda grp: pd.DataFrame({"values": list(range(len(grp)))}))
 
     if dropna:
-        groups = [g for g in inputs['groups'] if g is not None]
+        groups = [g for g in inputs["groups"] if g is not None]
     else:
-        groups = inputs['groups']
-    tuples = tuple(zip(groups, outputs['values']))
-    mi = pd.MultiIndex.from_tuples(tuples, names=['groups', None])
+        groups = inputs["groups"]
+    tuples = tuple(zip(groups, outputs["values"]))
+    mi = pd.MultiIndex.from_tuples(tuples, names=["groups", None])
 
     expected = pd.DataFrame(outputs, index=mi)
     tm.assert_frame_equal(rv, expected)
