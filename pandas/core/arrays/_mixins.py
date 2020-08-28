@@ -40,7 +40,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
             fill_value = self._validate_fill_value(fill_value)
 
         new_data = take(
-            self._ndarray, indices, allow_fill=allow_fill, fill_value=fill_value,
+            self._ndarray, indices, allow_fill=allow_fill, fill_value=fill_value
         )
         return self._from_backing_data(new_data)
 
