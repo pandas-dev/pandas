@@ -1219,8 +1219,6 @@ class LinePlot(MPLPlot):
             ax._stacker_neg_prior[stacking_id] += values
 
     def _post_plot_logic(self, ax, data):
-        from matplotlib.ticker import FixedLocator
-
         def get_label(i):
             if is_float(i) and i.is_integer():
                 i = int(i)
@@ -1232,8 +1230,8 @@ class LinePlot(MPLPlot):
         if self._need_to_set_index:
             xticks = ax.get_xticks()
             xticklabels = [get_label(x) for x in xticks]
+            ax.set_xticks(xticks)
             ax.set_xticklabels(xticklabels)
-            ax.xaxis.set_major_locator(FixedLocator(xticks))
 
         condition = (
             not self._use_dynamic_x()
