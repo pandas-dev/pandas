@@ -107,10 +107,11 @@ from pandas.io.formats.format import DataFrameFormatter, format_percentiles
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
+    from pandas._libs.tslibs import BaseOffset
+
     from pandas.core.resample import Resampler
     from pandas.core.series import Series  # noqa: F401
     from pandas.core.window.indexers import BaseIndexer
-    from pandas._libs.tslibs import BaseOffset
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
