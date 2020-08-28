@@ -281,14 +281,35 @@ def test_groupby_dropna_datetime_like_data(
 @pytest.mark.parametrize(
     "dropna, inputs, outputs",
     [
-        (
+        pytest.param(
             False,
             {'groups': ['a', 'a', 'b', np.nan], 'values': [10, 10, 20, 30]},
-            {'groups': ['a', 'b', np.nan], 'values': [0, 1, 0, 0]}
+            {'values': [0, 1, 0, 0]},
+            id='dropna_false_has_nan'
+        ),
+        pytest.param(
+            True,
+            {'groups': ['a', 'a', 'b', np.nan], 'values': [10, 10, 20, 30]},
+            {'values': [0, 1, 0]},
+            id='dropna_true_has_nan'
+        ),
+        pytest.param(
+            # no nan in 'groups'; dropna=True|False should be same.
+            False,
+            {'groups': ['a', 'a', 'b', 'c'], 'values': [10, 10, 20, 30]},
+            {'values': [0, 1, 0, 0]},
+            id='dropna_false_no_nan'
+        ),
+        pytest.param(
+            # no nan in 'groups'; dropna=True|False should be same.
+            True,
+            {'groups': ['a', 'a', 'b', 'c'], 'values': [10, 10, 20, 30]},
+            {'values': [0, 1, 0, 0]},
+            id='dropna_true_no_nan'
         ),
     ],
 )
-def test_groupby_dropna_multi_index_dataframe_nan_apply(
+def test_groupby_dropna_multi_index_dataframe_apply(
     dropna, inputs, outputs
 ):
     # GH 35889
@@ -299,7 +320,11 @@ def test_groupby_dropna_multi_index_dataframe_nan_apply(
     dfg = df.groupby('groups', dropna=dropna)
     rv = dfg.apply(lambda grp: pd.DataFrame({'values': list(range(len(grp)))}))
 
-    tuples = tuple(zip(inputs['groups'], outputs['values']))
+    if dropna:
+        groups = [g for g in inputs['groups'] if g is not None]
+    else:
+        groups = inputs['groups']
+    tuples = tuple(zip(groups, outputs['values']))
     mi = pd.MultiIndex.from_tuples(tuples, names=['groups', None])
 
     expected = pd.DataFrame(outputs, index=mi)
