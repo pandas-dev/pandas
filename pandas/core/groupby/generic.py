@@ -221,9 +221,7 @@ class SeriesGroupBy(GroupBy[Series]):
     def apply(self, func, *args, **kwargs):
         return super().apply(func, *args, **kwargs)
 
-    @doc(
-        _agg_template, examples=_agg_examples_doc, klass="Series",
-    )
+    @doc(_agg_template, examples=_agg_examples_doc, klass="Series")
     def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
 
         if maybe_use_numba(engine):
@@ -935,9 +933,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     See :ref:`groupby.aggregate.named` for more."""
     )
 
-    @doc(
-        _agg_template, examples=_agg_examples_doc, klass="DataFrame",
-    )
+    @doc(_agg_template, examples=_agg_examples_doc, klass="DataFrame")
     def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
 
         if maybe_use_numba(engine):
