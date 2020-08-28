@@ -1,7 +1,8 @@
 import contextlib
 import datetime as pydt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, tzinfo
 import functools
+from typing import Optional, Tuple
 
 from dateutil.relativedelta import relativedelta
 import matplotlib.dates as dates
@@ -152,7 +153,7 @@ class TimeConverter(units.ConversionInterface):
         return units.AxisInfo(majloc=majloc, majfmt=majfmt, label="time")
 
     @staticmethod
-    def default_units(x, axis):
+    def default_units(x, axis) -> str:
         return "time"
 
 
@@ -421,7 +422,7 @@ class MilliSecondLocator(dates.DateLocator):
         return self.nonsingular(vmin, vmax)
 
 
-def _from_ordinal(x, tz=None):
+def _from_ordinal(x, tz: Optional[tzinfo] = None) -> datetime:
     ix = int(x)
     dt = datetime.fromordinal(ix)
     remainder = float(x) - ix
@@ -450,7 +451,7 @@ def _from_ordinal(x, tz=None):
 # -------------------------------------------------------------------------
 
 
-def _get_default_annual_spacing(nyears):
+def _get_default_annual_spacing(nyears) -> Tuple[int, int]:
     """
     Returns a default spacing between consecutive ticks for annual data.
     """

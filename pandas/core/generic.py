@@ -315,17 +315,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     @property
     def _AXIS_NUMBERS(self) -> Dict[str, int]:
         """.. deprecated:: 1.1.0"""
-        warnings.warn(
-            "_AXIS_NUMBERS has been deprecated.", FutureWarning, stacklevel=3,
-        )
+        warnings.warn("_AXIS_NUMBERS has been deprecated.", FutureWarning, stacklevel=3)
         return {"index": 0}
 
     @property
     def _AXIS_NAMES(self) -> Dict[int, str]:
         """.. deprecated:: 1.1.0"""
-        warnings.warn(
-            "_AXIS_NAMES has been deprecated.", FutureWarning, stacklevel=3,
-        )
+        warnings.warn("_AXIS_NAMES has been deprecated.", FutureWarning, stacklevel=3)
         return {0: "index"}
 
     def _construct_axes_dict(self, axes=None, **kwargs):
@@ -5128,7 +5124,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ...    .pipe(g, arg1=a)
         ...    .pipe((func, 'arg2'), arg1=a, arg3=c)
         ...  )  # doctest: +SKIP
-    """
+        """
         return com.pipe(self, func, *args, **kwargs)
 
     _shared_docs["aggregate"] = dedent(
@@ -5630,7 +5626,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         else:
             # else, only a single dtype is given
-            new_data = self._mgr.astype(dtype=dtype, copy=copy, errors=errors,)
+            new_data = self._mgr.astype(dtype=dtype, copy=copy, errors=errors)
             return self._constructor(new_data).__finalize__(self, method="astype")
 
         # GH 33113: handle empty frame or series
@@ -6520,7 +6516,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         3     b
         4     b
         dtype: object
-    """
+        """
         if not (
             is_scalar(to_replace)
             or is_re_compilable(to_replace)
@@ -7772,7 +7768,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             raise TypeError("Index must be DatetimeIndex")
 
         indexer = index.indexer_between_time(
-            start_time, end_time, include_start=include_start, include_end=include_end,
+            start_time, end_time, include_start=include_start, include_end=include_end
         )
         return self._take_with_is_copy(indexer, axis=axis)
 
@@ -8939,7 +8935,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             self._check_inplace_setting(other)
             new_data = self._mgr.putmask(
-                mask=cond, new=other, align=align, axis=block_axis,
+                mask=cond, new=other, align=align, axis=block_axis
             )
             result = self._constructor(new_data)
             return self._update_inplace(result)
