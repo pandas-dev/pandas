@@ -276,3 +276,31 @@ def test_groupby_dropna_datetime_like_data(
     expected = pd.DataFrame({"values": values}, index=pd.Index(indexes, name="dt"))
 
     tm.assert_frame_equal(grouped, expected)
+
+
+@pytest.mark.parametrize(
+    "dropna, inputs, outputs",
+    [
+        (
+            False,
+            {'groups': ['a', 'a', 'b', np.nan], 'values': [10, 10, 20, 30]},
+            {'groups': ['a', 'b', np.nan], 'values': [0, 1, 0, 0]}
+        ),
+    ],
+)
+def test_groupby_dropna_multi_index_dataframe_nan_apply(
+    dropna, inputs, outputs
+):
+    # GH 35889
+    # `groupby` with `dropna=False` and `apply` returning DataFrame of different
+    # sizes raises error if grouped column has nan values.
+
+    df = pd.DataFrame(inputs)
+    dfg = df.groupby('groups', dropna=dropna)
+    rv = dfg.apply(lambda grp: pd.DataFrame({'values': list(range(len(grp)))}))
+
+    tuples = tuple(zip(inputs['groups'], outputs['values']))
+    mi = pd.MultiIndex.from_tuples(tuples, names=['groups', None])
+
+    expected = pd.DataFrame(outputs, index=mi)
+    tm.assert_frame_equal(rv, expected)
