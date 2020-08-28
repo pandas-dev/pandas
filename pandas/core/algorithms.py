@@ -644,7 +644,7 @@ def factorize(
     original = values
 
     # GH35667, if na_sentinel=None, we will not dropna NaNs from the uniques
-    # of values, still assign na_sentinel=-1 to keep backward compatability.
+    # of values, assign na_sentinel=-1 to replace code value for NaN.
     dropna = True
     if na_sentinel is None:
         na_sentinel = -1
