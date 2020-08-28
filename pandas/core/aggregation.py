@@ -28,10 +28,8 @@ from pandas.core.series import FrameOrSeriesUnion, Series
 
 
 def reconstruct_func(
-    func: Optional[AggFuncType], **kwargs,
-) -> Tuple[
-    bool, Optional[AggFuncType], Optional[List[str]], Optional[List[int]],
-]:
+    func: Optional[AggFuncType], **kwargs
+) -> Tuple[bool, Optional[AggFuncType], Optional[List[str]], Optional[List[int]]]:
     """
     This is the internal function to reconstruct func given if there is relabeling
     or not and also normalize the keyword to get new order of columns.
