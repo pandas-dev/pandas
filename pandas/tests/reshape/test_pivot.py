@@ -84,8 +84,8 @@ class TestPivotTable:
         index = ["A", "B"]
         columns = "C"
         table = pivot_table(
-            self.data, values="D", index=index, columns=columns, observed=observed
-        )
+            self.data, values="D", index=index, columns=columns,
+            observed=observed)
 
         table2 = self.data.pivot_table(
             values="D", index=index, columns=columns, observed=observed
@@ -2186,3 +2186,10 @@ class TestPivot:
 
         assert index == ["lev1", "lev2"]
         assert columns == ["lev3"]
+
+    def test_pivot_table_observed_deprecated_default(self):
+        with tm.assert_produces_warning(FutureWarning):
+            # make sure we actually have a category to warn on
+            self.data.A = self.data.A.astype('category')
+            self.data.pivot_table(values="D", index=["A", "B"],
+                                  columns=["C"])
