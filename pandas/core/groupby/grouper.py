@@ -2,6 +2,7 @@
 Provide user facing operators for doing the split part of the
 split-apply-combine paradigm.
 """
+import textwrap
 from typing import Dict, Hashable, List, Optional, Set, Tuple
 import warnings
 
@@ -30,6 +31,17 @@ from pandas.core.indexes.api import CategoricalIndex, Index, MultiIndex
 from pandas.core.series import Series
 
 from pandas.io.formats.printing import pprint_thing
+
+_observed_msg = textwrap.dedent(
+    """\
+Using 'observed=False', because grouping on a categorical. A future version
+of pandas will change to 'observed=True'.
+
+To silence the warning and switch to the future behavior, pass 'observed=True'.
+
+To keep the current behavior and silence the warning, pass 'observed=False'.
+"""
+)
 
 
 class Grouper:
@@ -432,7 +444,7 @@ class Grouping:
         name=None,
         level=None,
         sort: bool = True,
-        observed: bool = False,
+        observed: Optional[bool] = None,
         in_axis: bool = False,
         dropna: bool = True,
     ):
@@ -494,6 +506,9 @@ class Grouping:
 
             # a passed Categorical
             elif is_categorical_dtype(self.grouper):
+
+                if observed is None:
+                    warnings.warn(_observed_msg, FutureWarning, stacklevel=5)
 
                 self.grouper, self.all_grouper = recode_for_groupby(
                     self.grouper, self.sort, observed
@@ -631,7 +646,7 @@ def get_grouper(
     axis: int = 0,
     level=None,
     sort: bool = True,
-    observed: bool = False,
+    observed: Optional[bool] = None,
     mutated: bool = False,
     validate: bool = True,
     dropna: bool = True,

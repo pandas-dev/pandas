@@ -526,7 +526,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         sort: bool = True,
         group_keys: bool = True,
         squeeze: bool = False,
-        observed: bool = False,
+        observed: Optional[bool] = None,
         mutated: bool = False,
         dropna: bool = True,
     ):
@@ -3016,7 +3016,7 @@ def get_groupby(
     sort: bool = True,
     group_keys: bool = True,
     squeeze: bool = False,
-    observed: bool = False,
+    observed: Optional[bool] = None,
     mutated: bool = False,
     dropna: bool = True,
 ) -> GroupBy:
