@@ -724,7 +724,7 @@ class Block(PandasObject):
                 # _can_hold_element checks have reduced this back to the
                 #  scalar case and we can avoid a costly object cast
                 return self.replace(
-                    to_replace[0], value, inplace=inplace, regex=regex, convert=convert,
+                    to_replace[0], value, inplace=inplace, regex=regex, convert=convert
                 )
 
             # GH 22083, TypeError or ValueError occurred within error handling
@@ -905,7 +905,7 @@ class Block(PandasObject):
         return block
 
     def putmask(
-        self, mask, new, inplace: bool = False, axis: int = 0, transpose: bool = False,
+        self, mask, new, inplace: bool = False, axis: int = 0, transpose: bool = False
     ) -> List["Block"]:
         """
         putmask the data to the block; it is possible that we may create a
@@ -1292,7 +1292,7 @@ class Block(PandasObject):
         return [self.make_block(new_values)]
 
     def where(
-        self, other, cond, errors="raise", try_cast: bool = False, axis: int = 0,
+        self, other, cond, errors="raise", try_cast: bool = False, axis: int = 0
     ) -> List["Block"]:
         """
         evaluate the block; return result block(s) from the result
@@ -1366,7 +1366,7 @@ class Block(PandasObject):
                 # we are explicitly ignoring errors
                 block = self.coerce_to_target_dtype(other)
                 blocks = block.where(
-                    orig_other, cond, errors=errors, try_cast=try_cast, axis=axis,
+                    orig_other, cond, errors=errors, try_cast=try_cast, axis=axis
                 )
                 return self._maybe_downcast(blocks, "infer")
 
@@ -1605,7 +1605,7 @@ class ExtensionBlock(Block):
         self.values = values
 
     def putmask(
-        self, mask, new, inplace: bool = False, axis: int = 0, transpose: bool = False,
+        self, mask, new, inplace: bool = False, axis: int = 0, transpose: bool = False
     ) -> List["Block"]:
         """
         See Block.putmask.__doc__
@@ -1816,7 +1816,7 @@ class ExtensionBlock(Block):
         return super().diff(n, axis)
 
     def shift(
-        self, periods: int, axis: int = 0, fill_value: Any = None,
+        self, periods: int, axis: int = 0, fill_value: Any = None
     ) -> List["ExtensionBlock"]:
         """
         Shift the block by `periods`.
@@ -1833,7 +1833,7 @@ class ExtensionBlock(Block):
         ]
 
     def where(
-        self, other, cond, errors="raise", try_cast: bool = False, axis: int = 0,
+        self, other, cond, errors="raise", try_cast: bool = False, axis: int = 0
     ) -> List["Block"]:
 
         cond = _extract_bool_array(cond)
@@ -1945,7 +1945,7 @@ class FloatBlock(FloatOrComplexBlock):
         )
 
     def to_native_types(
-        self, na_rep="", float_format=None, decimal=".", quoting=None, **kwargs,
+        self, na_rep="", float_format=None, decimal=".", quoting=None, **kwargs
     ):
         """ convert to our native types format """
         values = self.values
@@ -2369,7 +2369,7 @@ class BoolBlock(NumericBlock):
         if not np.can_cast(to_replace_values, bool):
             return self
         return super().replace(
-            to_replace, value, inplace=inplace, regex=regex, convert=convert,
+            to_replace, value, inplace=inplace, regex=regex, convert=convert
         )
 
 
@@ -2453,18 +2453,18 @@ class ObjectBlock(Block):
 
         if not either_list and is_re(to_replace):
             return self._replace_single(
-                to_replace, value, inplace=inplace, regex=True, convert=convert,
+                to_replace, value, inplace=inplace, regex=True, convert=convert
             )
         elif not (either_list or regex):
             return super().replace(
-                to_replace, value, inplace=inplace, regex=regex, convert=convert,
+                to_replace, value, inplace=inplace, regex=regex, convert=convert
             )
         elif both_lists:
             for to_rep, v in zip(to_replace, value):
                 result_blocks = []
                 for b in blocks:
                     result = b._replace_single(
-                        to_rep, v, inplace=inplace, regex=regex, convert=convert,
+                        to_rep, v, inplace=inplace, regex=regex, convert=convert
                     )
                     result_blocks = _extend_blocks(result, result_blocks)
                 blocks = result_blocks
@@ -2475,18 +2475,18 @@ class ObjectBlock(Block):
                 result_blocks = []
                 for b in blocks:
                     result = b._replace_single(
-                        to_rep, value, inplace=inplace, regex=regex, convert=convert,
+                        to_rep, value, inplace=inplace, regex=regex, convert=convert
                     )
                     result_blocks = _extend_blocks(result, result_blocks)
                 blocks = result_blocks
             return result_blocks
 
         return self._replace_single(
-            to_replace, value, inplace=inplace, convert=convert, regex=regex,
+            to_replace, value, inplace=inplace, convert=convert, regex=regex
         )
 
     def _replace_single(
-        self, to_replace, value, inplace=False, regex=False, convert=True, mask=None,
+        self, to_replace, value, inplace=False, regex=False, convert=True, mask=None
     ):
         """
         Replace elements by the given value.
