@@ -718,10 +718,14 @@ class TestDataFrameConstructors:
         assert df["b"].dtype == b.dtype
 
         # list of periods
-        df = DataFrame({"a": pd.Period('2012-01', freq='M'),
-                        "b": pd.Period('2012-02-01', freq='D')})
-        assert df["a"].dtype == 'period[M]'
-        assert df["b"].dtype == 'period[D]'
+        df = DataFrame(
+            {
+                "a": pd.Period("2012-01", freq="M"),
+                "b": pd.Period("2012-02-01", freq="D"),
+            }
+        )
+        assert df["a"].dtype == "period[M]"
+        assert df["b"].dtype == "period[D]"
 
     @pytest.mark.parametrize(
         "data,dtype",
