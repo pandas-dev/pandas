@@ -7,7 +7,7 @@ from contextlib import contextmanager
 from datetime import date, datetime, time
 from functools import partial
 import re
-from typing import List, Iterator, Optional, Union, overload
+from typing import Iterator, List, Optional, Union, overload
 import warnings
 
 import numpy as np
