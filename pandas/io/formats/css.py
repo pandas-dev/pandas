@@ -20,9 +20,7 @@ def _side_expander(prop_fmt: str):
         try:
             mapping = self.SIDE_SHORTHANDS[len(tokens)]
         except KeyError:
-            warnings.warn(
-                f'Could not expand "{prop}: {value}"', CSSWarning,
-            )
+            warnings.warn(f'Could not expand "{prop}: {value}"', CSSWarning)
             return
         for key, idx in zip(self.SIDES, mapping):
             yield prop_fmt.format(key), tokens[idx]
@@ -117,10 +115,7 @@ class CSSResolver:
                 props[prop] = self.size_to_pt(
                     props[prop], em_pt=font_size, conversions=self.BORDER_WIDTH_RATIOS
                 )
-            for prop in [
-                f"margin-{side}",
-                f"padding-{side}",
-            ]:
+            for prop in [f"margin-{side}", f"padding-{side}"]:
                 if prop in props:
                     # TODO: support %
                     props[prop] = self.size_to_pt(

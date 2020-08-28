@@ -362,7 +362,7 @@ class ExponentialMovingWindow(_Rolling):
 
         def f(arg):
             return window_aggregations.ewmcov(
-                arg, arg, self.com, self.adjust, self.ignore_na, self.min_periods, bias,
+                arg, arg, self.com, self.adjust, self.ignore_na, self.min_periods, bias
             )
 
         return self._apply(f)
@@ -458,7 +458,7 @@ class ExponentialMovingWindow(_Rolling):
 
             def _cov(x, y):
                 return window_aggregations.ewmcov(
-                    x, y, self.com, self.adjust, self.ignore_na, self.min_periods, 1,
+                    x, y, self.com, self.adjust, self.ignore_na, self.min_periods, 1
                 )
 
             x_values = X._prep_values()

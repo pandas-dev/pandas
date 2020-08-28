@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 
 def read_orc(
-    path: FilePathOrBuffer, columns: Optional[List[str]] = None, **kwargs,
+    path: FilePathOrBuffer, columns: Optional[List[str]] = None, **kwargs
 ) -> "DataFrame":
     """
     Load an ORC object from the file path, returning a DataFrame.
