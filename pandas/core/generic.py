@@ -10486,7 +10486,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
         if center is not None:
             warnings.warn(
-                "The `center` argument on `expanding` " "will be removed in the future",
+                "The `center` argument on `expanding` will be removed in the future",
                 FutureWarning,
                 stacklevel=2,
             )
