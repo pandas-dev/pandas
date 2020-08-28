@@ -5127,7 +5127,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ...    .pipe(g, arg1=a)
         ...    .pipe((func, 'arg2'), arg1=a, arg3=c)
         ...  )  # doctest: +SKIP
-    """
+        """
         return com.pipe(self, func, *args, **kwargs)
 
     # ----------------------------------------------------------------------
