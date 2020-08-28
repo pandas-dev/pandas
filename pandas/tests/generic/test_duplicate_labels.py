@@ -445,6 +445,6 @@ def test_pickle():
     b = tm.round_trip_pickle(a)
     tm.assert_series_equal(a, b)
 
-    a = a.to_frame()
+    a = pd.DataFrame({"A": []}).set_flags(allows_duplicate_labels=False)
     b = tm.round_trip_pickle(a)
     tm.assert_frame_equal(a, b)

@@ -183,6 +183,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         "_metadata",
         "__array_struct__",
         "__array_interface__",
+        "_flags",
     ]
     _internal_names_set: Set[str] = set(_internal_names)
     _accessors: Set[str] = set()
@@ -1929,11 +1930,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             _typ=self._typ,
             _metadata=self._metadata,
             attrs=self.attrs,
+            _flags={k: self.flags[k] for k in self.flags._keys},
             **meta,
         )
 
     def __setstate__(self, state):
-
         if isinstance(state, BlockManager):
             self._mgr = state
         elif isinstance(state, dict):
@@ -1944,9 +1945,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if typ is not None:
                 attrs = state.get("_attrs", {})
                 object.__setattr__(self, "_attrs", attrs)
-                object.__setattr__(
-                    self, "_flags", Flags(self, allows_duplicate_labels=True)
-                )
+                flags = state.get("_flags", dict(allows_duplicate_labels=True))
+                object.__setattr__(self, "_flags", Flags(self, **flags))
 
                 # set in the order of internal names
                 # to avoid definitional recursion
@@ -1954,12 +1954,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 # defined
                 meta = set(self._internal_names + self._metadata)
                 for k in list(meta):
-                    if k in state:
+                    if k in state and k != "_flags":
                         v = state[k]
                         object.__setattr__(self, k, v)
 
                 for k, v in state.items():
                     if k not in meta:
+                        print(k)
                         object.__setattr__(self, k, v)
 
             else:
