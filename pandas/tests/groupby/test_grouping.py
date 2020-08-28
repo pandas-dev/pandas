@@ -709,7 +709,8 @@ class TestGrouping:
         df.x = df.x.astype('category')
         df.y = df.x.astype('category')
 
-        with tm.assert_produces_warning(expected_warning=FutureWarning):
+        with tm.assert_produces_warning(expected_warning=FutureWarning,
+                                        check_stacklevel=False):
             df.groupby(['x', 'y'])
 
         with pytest.warns(None) as any_warnings:
@@ -719,7 +720,8 @@ class TestGrouping:
 
         cat = pd.Categorical(['A', 'B', 'C'], categories=['A', 'B', 'C', 'D'])
         s = Series(cat)
-        with tm.assert_produces_warning(expected_warning=FutureWarning):
+        with tm.assert_produces_warning(expected_warning=FutureWarning,
+                                        check_stacklevel=False):
             s.groupby(cat)
 
 
