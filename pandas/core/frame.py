@@ -7376,7 +7376,7 @@ NaN 12.3   33.0
     min   1.0  2.0
     sum  12.0  NaN
 
-    Aggregate different functions over the columns and rename the index of the resulting 
+    Aggregate different functions over the columns and rename the index of the resulting
     DataFrame.
 
     >>> df.agg(x=('A', max), y=('B', 'min'), z=('C', np.mean))
