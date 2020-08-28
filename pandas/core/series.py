@@ -1674,7 +1674,7 @@ Name: Max Speed, dtype: float64
         sort: bool = True,
         group_keys: bool = True,
         squeeze: bool = no_default,
-        observed: bool = False,
+        observed: Optional[bool] = None,
         dropna: bool = True,
     ) -> "SeriesGroupBy":
         from pandas.core.groupby.generic import SeriesGroupBy

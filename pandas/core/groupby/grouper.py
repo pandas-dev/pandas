@@ -509,6 +509,7 @@ class Grouping:
 
                 if observed is None:
                     warnings.warn(_observed_msg, FutureWarning, stacklevel=5)
+                    observed = False
 
                 self.grouper, self.all_grouper = recode_for_groupby(
                     self.grouper, self.sort, observed
