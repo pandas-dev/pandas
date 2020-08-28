@@ -54,7 +54,6 @@ For example:
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - :class:`Index` with object dtype supports division and multiplication (:issue:`34160`)
-- :meth:`factorize` now supports ``na_sentinel=None`` to include NaN in the uniques of the values and remove ``dropna`` keyword which was unintentionally exposed to public facing API in 1.1 version from :meth:`factorize`(:issue:`35667`)
 -
 -
 

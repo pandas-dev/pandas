@@ -544,7 +544,7 @@ def factorize(
         Value to mark "not found". If None, will not drop the NaN
         from the uniques of the values.
 
-        .. versionchanged:: 1.2.0
+        .. versionchanged:: 1.1.2
     {size_hint}\
 
     Returns
