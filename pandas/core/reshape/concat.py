@@ -624,7 +624,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
         for hlevel, level in zip(zipped, levels):
             to_concat = []
             for key, index in zip(hlevel, indexes):
-                mask = ((isna(level) & isna(key)) | (level == key))
+                mask = (isna(level) & isna(key)) | (level == key)
                 if not mask.any():
                     raise ValueError(f"Key {key} not in level {level}")
                 i = np.nonzero(mask)[0][0]

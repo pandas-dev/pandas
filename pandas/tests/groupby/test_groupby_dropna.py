@@ -286,14 +286,14 @@ def test_groupby_dropna_datetime_like_data(
             {"groups": ["a", "a", "b", np.nan], "values": [10, 10, 20, 30]},
             {"values": [0, 1, 0, 0]},
             ["a", "b", np.nan],
-            id="dropna_false_has_nan"
+            id="dropna_false_has_nan",
         ),
         pytest.param(
             True,
             {"groups": ["a", "a", "b", np.nan], "values": [10, 10, 20, 30]},
             {"values": [0, 1, 0]},
             None,
-            id="dropna_true_has_nan"
+            id="dropna_true_has_nan",
         ),
         pytest.param(
             # no nan in "groups"; dropna=True|False should be same.
@@ -301,7 +301,7 @@ def test_groupby_dropna_datetime_like_data(
             {"groups": ["a", "a", "b", "c"], "values": [10, 10, 20, 30]},
             {"values": [0, 1, 0, 0]},
             None,
-            id="dropna_false_no_nan"
+            id="dropna_false_no_nan",
         ),
         pytest.param(
             # no nan in "groups"; dropna=True|False should be same.
@@ -309,7 +309,7 @@ def test_groupby_dropna_datetime_like_data(
             {"groups": ["a", "a", "b", "c"], "values": [10, 10, 20, 30]},
             {"values": [0, 1, 0, 0]},
             None,
-            id="dropna_true_no_nan"
+            id="dropna_true_no_nan",
         ),
     ],
 )
