@@ -113,11 +113,9 @@ class _XlrdReader(_BaseExcelReader):
             sheet_nrows = min(header + skiprows + nrows + 1, sheet_nrows)
 
         for i in range(sheet_nrows):
-
             if self.should_skip_row(i, header, skiprows, nrows):
                 data.append([])
                 continue
-
             row = [
                 _parse_cell(value, typ)
                 for value, typ in zip(sheet.row_values(i), sheet.row_types(i))
