@@ -120,6 +120,7 @@ Other enhancements
 - `Styler` now allows direct CSS class name addition to individual data cells (:issue:`36159`)
 - :meth:`Rolling.mean()` and :meth:`Rolling.sum()` use Kahan summation to calculate the mean to avoid numerical problems (:issue:`10319`, :issue:`11645`, :issue:`13254`, :issue:`32761`, :issue:`36031`)
 - :meth:`to_json` now implements timezones parsing for when orient structure is `table`.
+- :meth:`read_json` now implements timezones parsing for when orient structure is `table`.
 -
 
 .. _whatsnew_120.api_breaking.python:
