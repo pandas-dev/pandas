@@ -79,7 +79,7 @@ class TestDataFrameConstructors:
             lambda: DataFrame(data=[]),
             lambda: DataFrame(data=(_ for _ in [])),
             lambda: DataFrame(data=range(0)),
-        ],
+        ]
     )
     def test_empty_constructor(self, constructor):
         expected = DataFrame()
@@ -94,7 +94,7 @@ class TestDataFrameConstructors:
             ([[]], RangeIndex(1), RangeIndex(0)),
             ([[], []], RangeIndex(2), RangeIndex(0)),
             ([(_ for _ in [])], RangeIndex(1), RangeIndex(0)),
-        ],
+        ]
     )
     def test_emptylike_constructor(self, emptylike, expected_index, expected_columns):
         expected = DataFrame(index=expected_index, columns=expected_columns)
@@ -276,7 +276,7 @@ class TestDataFrameConstructors:
             np.array([-(2 ** 63) - 4], dtype=object),
             np.array([-(2 ** 64) - 1]),
             [-(2 ** 65) - 2],
-        ],
+        ]
     )
     def test_constructor_int_overflow(self, values):
         # see gh-18584
@@ -725,8 +725,8 @@ class TestDataFrameConstructors:
             (
                 Timestamp("2011-01-01", tz="US/Eastern"),
                 DatetimeTZDtype(tz="US/Eastern"),
-            ),
-        ],
+            )
+        ]
     )
     def test_constructor_extension_scalar_data(self, data, dtype):
         # GH 34832
@@ -980,7 +980,7 @@ class TestDataFrameConstructors:
             (None, list(range(10)), ["a", "b"], int, np.dtype("float64")),
             ({}, None, ["foo", "bar"], None, np.object_),
             ({"b": 1}, list(range(10)), list("abc"), int, np.dtype("float64")),
-        ],
+        ]
     )
     def test_constructor_dtype(self, data, index, columns, dtype, expected):
         df = DataFrame(data, index, columns, dtype)
@@ -1390,7 +1390,7 @@ class TestDataFrameConstructors:
             (([], []), [[], []]),
             (([1], [2]), [[1], [2]]),  # GH 32776
             (([1, 2, 3], [4, 5, 6]), [[1, 2, 3], [4, 5, 6]]),
-        ],
+        ]
     )
     def test_constructor_tuple(self, tuples, lists):
         # GH 25691
@@ -1532,7 +1532,7 @@ class TestDataFrameConstructors:
             ([{("a",): 1}, {("a",): 2}], [("a",)], "columns"),
             ([OrderedDict([(("a",), 1), (("b",), 2)])], [("a",), ("b",)], "columns"),
             ([{("a", "b"): 1}], [("a", "b")], "columns"),
-        ],
+        ]
     )
     def test_constructor_from_dict_tuples(self, data_dict, keys, orient):
         # GH 16769
@@ -1625,7 +1625,7 @@ class TestDataFrameConstructors:
             ("idx1", "idx1", "idx2", None),
             ("idx1", "idx2", "idx3", None),
             (None, None, None, None),
-        ],
+        ]
     )
     def test_constructor_index_names(self, name_in1, name_in2, name_in3, name_out):
         # GH13475
@@ -1728,7 +1728,7 @@ class TestDataFrameConstructors:
                 np.array([["a", "a"], ["a", "a"]], dtype=object),
                 index=[1, 2],
                 columns=["a", "c"],
-            ),
+            )
         )
 
         msg = "DataFrame constructor not properly called!"
@@ -1891,7 +1891,7 @@ class TestDataFrameConstructors:
             [[None], [pd.NaT]],
             [[pd.NaT], [np.datetime64("NaT")]],
             [[pd.NaT], [None]],
-        ],
+        ]
     )
     def test_constructor_datetimes_with_nulls(self, arr):
         # gh-15869, GH#11220
@@ -2151,7 +2151,7 @@ class TestDataFrameConstructors:
                 ("u", np.float32),
                 ("y", np.int64),
                 ("z", np.int32),
-            ],
+            ]
         )
         df = DataFrame.from_records(iter(arr), nrows=2)
         xp = DataFrame(
@@ -2598,7 +2598,7 @@ class TestDataFrameConstructors:
             SparseArray([1, np.nan, np.nan, np.nan]),
             IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)]),
             PeriodArray(pd.period_range(start="1/1/2017", end="1/1/2018", freq="M")),
-        ],
+        ]
     )
     def test_constructor_with_extension_array(self, extension_arr):
         # GH11363
@@ -2772,7 +2772,7 @@ class TestDataFrameConstructorWithDatetimeTZ:
                     Timestamp("2013-01-01 00:00:00+0100", tz="CET"),
                     pd.NaT,
                     Timestamp("2013-01-03 00:00:00+0100", tz="CET"),
-                ],
+                ]
             ],
             dtype=object,
         ).T

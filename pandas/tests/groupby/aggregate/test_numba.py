@@ -138,7 +138,7 @@ def test_use_global_config():
         "min",
         {"B": ["min", "max"], "C": "sum"},
         NamedAgg(column="B", aggfunc="min"),
-    ],
+    ]
 )
 def test_multifunc_notimplimented(agg_func):
     data = DataFrame(

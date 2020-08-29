@@ -406,7 +406,7 @@ class TestDataFrameAnalytics:
                 0.00031111847529610595,
                 0.0014902627951905339,
                 -0.00094099200035979691,
-            ],
+            ]
         }
         df1 = DataFrame(data, index=["foo", "bar", "baz"], dtype="O")
 
@@ -593,7 +593,7 @@ class TestDataFrameAnalytics:
                     "E": Categorical(["a"], categories=["a"]),
                     "F": to_datetime(["2000-1-2"]),
                     "G": to_timedelta(["1 days"]),
-                },
+                }
             ),
             (
                 False,
@@ -605,7 +605,7 @@ class TestDataFrameAnalytics:
                     "E": Categorical([np.nan], categories=["a"]),
                     "F": [pd.NaT],
                     "G": to_timedelta([pd.NaT]),
-                },
+                }
             ),
             (
                 True,
@@ -617,7 +617,7 @@ class TestDataFrameAnalytics:
                     "L": to_datetime(["2000-1-2", "NaT", "NaT", "NaT"]),
                     "M": to_timedelta(["1 days", "nan", "nan", "nan"]),
                     "N": [0, 1, 2, 3],
-                },
+                }
             ),
             (
                 False,
@@ -629,9 +629,9 @@ class TestDataFrameAnalytics:
                     "L": to_datetime(["NaT", "2000-1-2", "NaT", "NaT"]),
                     "M": to_timedelta(["nan", "1 days", "nan", "nan"]),
                     "N": [0, 1, 2, 3],
-                },
-            ),
-        ],
+                }
+            )
+        ]
     )
     def test_mode_dropna(self, dropna, expected):
 
@@ -1126,8 +1126,8 @@ class TestDataFrameAnalytics:
                 True,
                 # In 1.13.3 and 1.14 np.all(df) returns a Timedelta here
                 marks=[td.skip_if_np_lt("1.15")],
-            ),
-        ],
+            )
+        ]
     )
     def test_any_all_np_func(self, func, data, expected):
         # GH 19976
@@ -1155,7 +1155,7 @@ class TestDataFrameAnalytics:
             {"A": 1},
             index=MultiIndex.from_product(
                 [["A", "B"], ["a", "b"]], names=["out", "in"]
-            ),
+            )
         )
         xpr = "Must specify 'axis' when aggregating by level."
         with pytest.raises(ValueError, match=xpr):
