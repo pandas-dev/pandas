@@ -392,7 +392,7 @@ def _get_all_lines(ax: "Axes") -> List["Line2D"]:
     return lines
 
 
-def _get_xlim(lines: List["Line2D"]) -> Tuple[float, float]:
+def _get_xlim(lines: Iterable["Line2D"]) -> Tuple[float, float]:
     left, right = np.inf, -np.inf
     for l in lines:
         x = l.get_xdata(orig=False)
