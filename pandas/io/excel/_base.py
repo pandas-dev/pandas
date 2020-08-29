@@ -415,7 +415,7 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
         nrows: Optional[int],
     ) -> bool:
         """
-        Determines whether row should be read.
+        Determines whether row should be skipped.
 
         Parameters
         ----------
