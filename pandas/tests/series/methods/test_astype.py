@@ -1,4 +1,6 @@
-from pandas import Series, date_range
+import pytest
+
+from pandas import Interval, Series, Timestamp, date_range
 import pandas._testing as tm
 
 
@@ -22,4 +24,19 @@ class TestAstype:
             ],
             dtype=object,
         )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "values",
+        [
+            Series(["x", "y", "z"], dtype="string"),
+            Series(["x", "y", "z"], dtype="category"),
+            Series(3 * [Timestamp("2020-01-01")]),
+            Series(3 * [Interval(0, 1)]),
+        ],
+    )
+    def test_astype_ignores_errors_for_extension_dtypes(self, values):
+        # https://github.com/pandas-dev/pandas/issues/35471
+        expected = values
+        result = expected.astype(float, errors="ignore")
         tm.assert_series_equal(result, expected)
