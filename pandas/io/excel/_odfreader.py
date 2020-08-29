@@ -1,8 +1,8 @@
-from typing import List, cast
+from typing import List, Optional, Sequence, cast
 
 import numpy as np
 
-from pandas._typing import FilePathOrBuffer, Scalar, StorageOptions
+from pandas._typing import FilePathOrBuffer, Scalar, StorageOptions, Union
 from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
@@ -71,7 +71,14 @@ class _ODFReader(_BaseExcelReader):
 
         raise ValueError(f"sheet {name} not found")
 
-    def get_sheet_data(self, sheet, convert_float: bool) -> List[List[Scalar]]:
+    def get_sheet_data(
+        self,
+        sheet,
+        convert_float: bool,
+        header: Optional[Union[int, Sequence[int]]],
+        skiprows: Optional[Union[int, Sequence[int]]],
+        nrows: Optional[int],
+    ) -> List[List[Scalar]]:
         """
         Parse an ODF Table into a list of lists
         """
@@ -87,7 +94,15 @@ class _ODFReader(_BaseExcelReader):
 
         table: List[List[Scalar]] = []
 
+        if nrows is not None and isinstance(header, int) and isinstance(skiprows, int):
+            sheet_rows = sheet_rows[0 : header + skiprows + nrows + 1]
+
         for i, sheet_row in enumerate(sheet_rows):
+
+            if self.should_skip_row(i, header, skiprows, nrows):
+                table.append([])
+                continue
+
             sheet_cells = [x for x in sheet_row.childNodes if x.qname in cell_names]
             empty_cells = 0
             table_row: List[Scalar] = []

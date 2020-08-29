@@ -1,8 +1,8 @@
-from typing import List
+from typing import List, Optional, Sequence
 
 import numpy as np
 
-from pandas._typing import FilePathOrBuffer, Scalar, StorageOptions
+from pandas._typing import FilePathOrBuffer, Scalar, StorageOptions, Union
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.io.excel._base import ExcelWriter, _BaseExcelReader
@@ -535,9 +535,18 @@ class _OpenpyxlReader(_BaseExcelReader):
 
         return cell.value
 
-    def get_sheet_data(self, sheet, convert_float: bool) -> List[List[Scalar]]:
+    def get_sheet_data(
+        self,
+        sheet,
+        convert_float: bool,
+        header: Optional[Union[int, Sequence[int]]],
+        skiprows: Optional[Union[int, Sequence[int]]],
+        nrows: Optional[int],
+    ) -> List[List[Scalar]]:
         data: List[List[Scalar]] = []
+
         for row in sheet.rows:
+
             data.append([self._convert_cell(cell, convert_float) for cell in row])
 
         return data

@@ -3,12 +3,12 @@ import datetime
 from io import BufferedIOBase, BytesIO, RawIOBase
 import os
 from textwrap import fill
-from typing import Any, Mapping, Union
+from typing import Any, List, Mapping, Optional, Sequence, Union
 
 from pandas._config import config
 
 from pandas._libs.parsers import STR_NA_VALUES
-from pandas._typing import StorageOptions
+from pandas._typing import Scalar, StorageOptions
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import Appender, deprecate_nonkeyword_arguments
 
@@ -397,8 +397,45 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def get_sheet_data(self, sheet, convert_float):
+    def get_sheet_data(
+        self,
+        sheet,
+        convert_float: bool,
+        header: Optional[Union[int, Sequence[int]]],
+        skiprows: Optional[Union[int, Sequence[int]]],
+        nrows: Optional[int],
+    ) -> List[List[Scalar]]:
         pass
+
+    def should_skip_row(
+        self,
+        index: int,
+        header: Optional[Union[int, Sequence[int]]],
+        skiprows: Optional[Union[int, Sequence[int]]],
+        nrows: Optional[int],
+    ) -> bool:
+        """
+        Determines whether row should be read.
+
+        Parameters
+        ----------
+        index : int
+            Index of row.
+        header : int, list of int
+            Rows used as column labels.
+        skiprows : int, list of int
+            Rows to skip at the begining.
+        nrows : int
+            Number of rows to parse.
+
+        Returns
+        -------
+        Bool determining if row should be skipped.
+        """
+        if nrows is not None and isinstance(header, int) and isinstance(skiprows, int):
+            if index < header + skiprows - 1:
+                return True
+        return False
 
     def parse(
         self,
@@ -453,7 +490,16 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
             else:  # assume an integer if not a string
                 sheet = self.get_sheet_by_index(asheetname)
 
-            data = self.get_sheet_data(sheet, convert_float)
+            gsd_header = 0 if header is None else header
+            gsd_skiprows = 0 if skiprows is None else skiprows
+            gsd_nrows = nrows if isinstance(nrows, int) else None
+
+            if isinstance(gsd_header, list) or isinstance(gsd_skiprows, list):
+                gsd_nrows = None
+
+            data = self.get_sheet_data(
+                sheet, convert_float, gsd_header, gsd_skiprows, gsd_nrows
+            )
             usecols = _maybe_convert_usecols(usecols)
 
             if not data:

@@ -1,8 +1,9 @@
 from datetime import time
+from typing import List, Optional, Sequence
 
 import numpy as np
 
-from pandas._typing import StorageOptions
+from pandas._typing import Scalar, StorageOptions, Union
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.io.excel._base import _BaseExcelReader
@@ -49,7 +50,14 @@ class _XlrdReader(_BaseExcelReader):
     def get_sheet_by_index(self, index):
         return self.book.sheet_by_index(index)
 
-    def get_sheet_data(self, sheet, convert_float):
+    def get_sheet_data(
+        self,
+        sheet,
+        convert_float: bool,
+        header: Optional[Union[int, Sequence[int]]],
+        skiprows: Optional[Union[int, Sequence[int]]],
+        nrows: Optional[int],
+    ) -> List[List[Scalar]]:
         from xlrd import (
             XL_CELL_BOOLEAN,
             XL_CELL_DATE,
@@ -98,9 +106,18 @@ class _XlrdReader(_BaseExcelReader):
                     cell_contents = val
             return cell_contents
 
-        data = []
+        data: List[List[Scalar]] = []
 
-        for i in range(sheet.nrows):
+        sheet_nrows = sheet.nrows
+        if nrows is not None and isinstance(header, int) and isinstance(skiprows, int):
+            sheet_nrows = min(header + skiprows + nrows + 1, sheet_nrows)
+
+        for i in range(sheet_nrows):
+
+            if self.should_skip_row(i, header, skiprows, nrows):
+                data.append([])
+                continue
+
             row = [
                 _parse_cell(value, typ)
                 for value, typ in zip(sheet.row_values(i), sheet.row_types(i))
