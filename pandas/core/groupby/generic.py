@@ -23,6 +23,7 @@ from typing import (
     Type,
     TypeVar,
     Union,
+    cast,
 )
 import warnings
 
@@ -1634,20 +1635,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         else:
             return obj._mgr
 
-    def _insert_inaxis_grouper_inplace(self, result: DataFrame):
+    def _insert_inaxis_grouper_inplace(self, result: DataFrame) -> None:
         # zip in reverse so we can always insert at loc 0
-        izip = zip(
-            *map(
-                reversed,
-                (
-                    self.grouper.names,
-                    self.grouper.get_group_levels(),
-                    [grp.in_axis for grp in self.grouper.groupings],
-                ),
-            )
-        )
         columns = result.columns
-        for name, lev, in_axis in izip:
+        for name, lev, in_axis in zip(
+            reversed(self.grouper.names),
+            reversed(self.grouper.get_group_levels()),
+            reversed([grp.in_axis for grp in self.grouper.groupings]),
+        ):
             # GH #28549
             # When using .apply(-), name will be in columns already
             if in_axis and name not in columns:
@@ -1844,7 +1839,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             ],
             axis=1,
         )
-        assert isinstance(results, DataFrame)  # for mypy
+        results = cast(DataFrame, results)
 
         if axis_number == 1:
             results = results.T
