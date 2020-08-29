@@ -491,15 +491,21 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
             else:  # assume an integer if not a string
                 sheet = self.get_sheet_by_index(asheetname)
 
-            gsd_header = 0 if header is None else header
-            gsd_skiprows = 0 if skiprows is None else skiprows
-            gsd_nrows = nrows if isinstance(nrows, int) else None
+            get_sheet_data_header = 0 if header is None else header
+            get_sheet_data_skiprows = 0 if skiprows is None else skiprows
+            get_sheet_data_nrows = nrows if isinstance(nrows, int) else None
 
-            if isinstance(gsd_header, list) or isinstance(gsd_skiprows, list):
-                gsd_nrows = None
+            if isinstance(get_sheet_data_header, list) or isinstance(
+                get_sheet_data_skiprows, list
+            ):
+                get_sheet_data_nrows = None
 
             data = self.get_sheet_data(
-                sheet, convert_float, gsd_header, gsd_skiprows, gsd_nrows
+                sheet,
+                convert_float,
+                get_sheet_data_header,
+                get_sheet_data_skiprows,
+                get_sheet_data_nrows,
             )
             usecols = _maybe_convert_usecols(usecols)
 
