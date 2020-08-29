@@ -302,7 +302,9 @@ class JSONTableWriter(FrameWriter):
 
         # NotImplemented on a column MultiIndex
         if obj.ndim == 2 and isinstance(obj.columns, MultiIndex):
-            raise NotImplementedError("orient='table' is not supported for MultiIndex")
+            raise NotImplementedError(
+                "orient='table' is not supported for MultiIndex columns"
+            )
 
         # TODO: Do this timedelta properly in objToJSON.c See GH #15137
         if (

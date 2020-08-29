@@ -22,11 +22,11 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
-from pandas import DataFrame
+from pandas import DataFrame, Index, MultiIndex
 import pandas.core.common as com
 
-if TYPE_CHECKING:
-    from pandas.core.indexes.multi import MultiIndex  # noqa: F401
+# if TYPE_CHECKING:
+#     from pandas.core.indexes.multi import MultiIndex  # noqa: F401
 
 loads = json.loads
 
@@ -323,9 +323,12 @@ def parse_table_schema(json, precise_float):
         for field in table["schema"]["fields"]
     }
 
-    # Cannot directly use as_type with timezone data on object; raise for now
-    if any(str(x).startswith("datetime64[ns, ") for x in dtypes.values()):
-        raise NotImplementedError('table="orient" can not yet read timezone data')
+    # tz index parsing
+    tz_info = dict()
+    for k, v in dtypes.items():
+        if str(v).startswith("datetime64[ns, "):
+            tz_info.update({k: str(v)[15:-1]})
+            dtypes[k] = "datetime64[ns]"
 
     # No ISO constructor for Timedelta as of yet, so need to raise
     if "timedelta64" in dtypes.values():
@@ -336,13 +339,34 @@ def parse_table_schema(json, precise_float):
     df = df.astype(dtypes)
 
     if "primaryKey" in table["schema"]:
-        df = df.set_index(table["schema"]["primaryKey"])
-        if len(df.index.names) == 1:
+        if len(table["schema"]["primaryKey"]) == 1:
+            df = df.set_index(table["schema"]["primaryKey"])
+            if tz_info.get(table["schema"]["primaryKey"][0], None):
+                df.index = df.index.tz_localize("UTC").tz_convert(
+                    tz_info[table["schema"]["primaryKey"][0]]
+                )
             if df.index.name == "index":
                 df.index.name = None
         else:
+            idxs = tuple(
+                idx
+                for idx in [
+                    Index(df[val])
+                    if not tz_info.get(val, None)
+                    else Index(df[val]).tz_localize("UTC").tz_convert(tz_info[val])
+                    for val in table["schema"]["primaryKey"]
+                ]
+            )
+            df.index = MultiIndex.from_tuples(
+                zip(*idxs), names=table["schema"]["primaryKey"]
+            )
+            df = df.drop(table["schema"]["primaryKey"], axis="columns")
             df.index.names = [
                 None if x.startswith("level_") else x for x in df.index.names
             ]
+
+    for col in df.columns:
+        if tz_info.get(col, None):
+            df[col] = df[col].dt.tz_localize("UTC").dt.tz_convert(tz_info[col])
 
     return df

@@ -676,6 +676,11 @@ class TestTableOrientReader:
             {"floats": [1.0, 2.0, 3.0, 4.0]},
             {"floats": [1.1, 2.2, 3.3, 4.4]},
             {"bools": [True, False, False, True]},
+            {
+                "timezones": pd.date_range(
+                    "2016-01-01", freq="d", periods=4, tz="US/Central"
+                )
+            },
         ],
     )
     @pytest.mark.skipif(sys.version_info[:3] == (3, 7, 0), reason="GH-35309")
@@ -685,17 +690,45 @@ class TestTableOrientReader:
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(df, result)
 
-    @pytest.mark.parametrize("index_nm", [None, "idx", "index"])
+    @pytest.mark.parametrize(
+        "idx",
+        [
+            pd.Index(range(4)),
+            pd.Index(pd.date_range("2020-08-30", freq="d", periods=4,), freq=None),
+            pd.Index(
+                pd.date_range("2020-08-30", freq="d", periods=4, tz="US/Central"),
+                freq=None,
+            ),
+            pd.MultiIndex.from_product(
+                [
+                    pd.date_range("2020-08-30", freq="d", periods=2, tz="US/Central"),
+                    ["x", "y"],
+                ],
+            ),
+        ],
+    )
     @pytest.mark.parametrize(
         "vals",
         [
-            {"timedeltas": pd.timedelta_range("1H", periods=4, freq="T")},
+            {"floats": [1.1, 2.2, 3.3, 4.4]},
+            {"dates": pd.date_range("2020-08-30", freq="d", periods=4)},
             {
                 "timezones": pd.date_range(
-                    "2016-01-01", freq="d", periods=4, tz="US/Central"
+                    "2020-08-30", freq="d", periods=4, tz="Europe/London"
                 )
             },
         ],
+    )
+    # @pytest.mark.skipif(sys.version_info[:3] == (3, 7, 0), reason="GH-35309")
+    def test_read_json_table_timezones_orient(self, idx, vals):
+        df = DataFrame(vals, index=idx)
+        out = df.to_json(orient="table")
+        result = pd.read_json(out, orient="table")
+        tm.assert_frame_equal(df, result)
+
+    @pytest.mark.parametrize("index_nm", [None, "idx", "index"])
+    @pytest.mark.parametrize(
+        "vals", [{"timedeltas": pd.timedelta_range("1H", periods=4, freq="T")},],
     )
     def test_read_json_table_orient_raises(self, index_nm, vals, recwarn):
         df = DataFrame(vals, index=pd.Index(range(4), name=index_nm))
