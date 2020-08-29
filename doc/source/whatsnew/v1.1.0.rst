@@ -869,8 +869,6 @@ Performance improvements
 - Performance improvement in arithmetic operations (``sub``, ``add``, ``mul``, ``div``) for :class:`MultiIndex` (:issue:`34297`)
 - Performance improvement in ``DataFrame[bool_indexer]`` when ``bool_indexer`` is a ``list`` (:issue:`33924`)
 - Significant performance improvement of :meth:`io.formats.style.Styler.render` with styles added with various ways such as :meth:`io.formats.style.Styler.apply`, :meth:`io.formats.style.Styler.applymap` or :meth:`io.formats.style.Styler.bar` (:issue:`19917`)
-- Performance improvement in arithmetic operations (sub, add, mul, div) for MultiIndex (:issue:`34297`)
-- Performance improvement in `DataFrame[bool_indexer]` when `bool_indexer` is a list (:issue:`33924`)
 - Performance improvement in `read_excel` for integer ``header``, ``skiprows``, and ``nrows`` (:issue:`33281`).
 
 .. ---------------------------------------------------------------------------
