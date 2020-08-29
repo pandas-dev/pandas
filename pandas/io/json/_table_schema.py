@@ -350,8 +350,7 @@ def parse_table_schema(json, precise_float):
                 for idx in [
                     Index(df[val])
                     if not tz_info.get(val, None)
-                    else DatetimeIndex(df[val])
-                    .tz_localize("UTC")
+                    else DatetimeIndex(df[val], tz="UTC")  # type: ignore
                     .tz_convert(tz_info[val])
                     for val in table["schema"]["primaryKey"]
                 ]
