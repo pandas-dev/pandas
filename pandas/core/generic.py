@@ -387,7 +387,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return m - axis
         return axis
 
-    def _get_axis_resolvers(self, axis: str) -> Dict[str, ABCSeries]:
+    def _get_axis_resolvers(self, axis: str) -> Dict[str, Union["Series", MultiIndex]]:
         # index or columns
         axis_index = getattr(self, axis)
         d = dict()
@@ -417,10 +417,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         d[axis] = dindex
         return d
 
-    def _get_index_resolvers(self) -> Dict[str, ABCSeries]:
+    def _get_index_resolvers(self) -> Dict[str, Union["Series", MultiIndex]]:
         from pandas.core.computation.parsing import clean_column_name
 
-        d: Dict[str, ABCSeries] = {}
+        d: Dict[str, Union["Series", MultiIndex]] = {}
         for axis_name in self._AXIS_ORDERS:
             d.update(self._get_axis_resolvers(axis_name))
 
@@ -4703,14 +4703,15 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return self.reindex(**{name: [r for r in items if r in labels]})
         elif like:
 
-            def f(x):
+            def f(x) -> bool:
+                assert like is not None  # needed for mypy
                 return like in ensure_str(x)
 
             values = labels.map(f)
             return self.loc(axis=axis)[values]
         elif regex:
 
-            def f(x):
+            def f(x) -> bool:
                 return matcher.search(ensure_str(x)) is not None
 
             matcher = re.compile(regex)
@@ -6556,7 +6557,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 regex = True
 
             items = list(to_replace.items())
-            keys, values = zip(*items) if items else ([], [])
+            if items:
+                keys, values = zip(*items)
+            else:
+                keys, values = ([], [])
 
             are_mappings = [is_dict_like(v) for v in values]
 
