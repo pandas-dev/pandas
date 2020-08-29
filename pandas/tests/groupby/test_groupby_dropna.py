@@ -279,7 +279,7 @@ def test_groupby_dropna_datetime_like_data(
 
 
 @pytest.mark.parametrize(
-    "dropna, df_cols_in, df_cols_out, levels",
+    "dropna, data, selected_data, levels",
     [
         pytest.param(
             False,
@@ -313,23 +313,21 @@ def test_groupby_dropna_datetime_like_data(
         ),
     ],
 )
-def test_groupby_dropna_multi_index_dataframe_apply(
-    dropna, df_cols_in, df_cols_out, levels
+def test_groupby_apply_with_dropna_for_multi_index(
+    dropna, data, selected_data, levels
 ):
     # GH 35889
-    # `groupby` with `dropna=False` and `apply` returning DataFrame of different
-    # sizes raises error if grouped column has nan values.
 
-    df = pd.DataFrame(df_cols_in)
-    dfg = df.groupby("groups", dropna=dropna)
-    rv = dfg.apply(lambda grp: pd.DataFrame({"values": list(range(len(grp)))}))
+    df = pd.DataFrame(data)
+    gb = df.groupby("groups", dropna=dropna)
+    result = gb.apply(lambda grp: pd.DataFrame({"values": range(len(grp))}))
 
-    tuples = tuple(zip(df_cols_in["groups"], df_cols_out["values"]))
-    mi = pd.MultiIndex.from_tuples(tuples, names=["groups", None])
+    mi_tuples = tuple(zip(data["groups"], selected_data["values"]))
+    mi = pd.MultiIndex.from_tuples(mi_tuples, names=["groups", None])
     # Since right now, by default MI will drop NA from levels when we create MI
     # via `from_*`, so we need to add NA for level manually afterwards.
     if not dropna and levels:
         mi = mi.set_levels(levels, level="groups")
 
-    expected = pd.DataFrame(df_cols_out, index=mi)
-    tm.assert_frame_equal(rv, expected)
+    expected = pd.DataFrame(selected_data, index=mi)
+    tm.assert_frame_equal(result, expected)
