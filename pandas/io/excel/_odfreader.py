@@ -95,7 +95,7 @@ class _ODFReader(_BaseExcelReader):
         table: List[List[Scalar]] = []
 
         if nrows is not None and isinstance(header, int) and isinstance(skiprows, int):
-            sheet_rows = sheet_rows[0 : header + skiprows + nrows + 1]
+            sheet_rows = sheet_rows[: header + skiprows + nrows + 1]
 
         for i, sheet_row in enumerate(sheet_rows):
 
