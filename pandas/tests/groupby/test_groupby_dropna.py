@@ -313,9 +313,7 @@ def test_groupby_dropna_datetime_like_data(
         ),
     ],
 )
-def test_groupby_apply_with_dropna_for_multi_index(
-    dropna, data, selected_data, levels
-):
+def test_groupby_apply_with_dropna_for_multi_index(dropna, data, selected_data, levels):
     # GH 35889
 
     df = pd.DataFrame(data)
