@@ -430,7 +430,8 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
 
         Returns
         -------
-        Bool determining if row should be skipped.
+        bool
+            Determines if row should be skipped.
         """
         if nrows is not None and isinstance(header, int) and isinstance(skiprows, int):
             if index < header + skiprows - 1:
