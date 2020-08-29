@@ -16,7 +16,7 @@ def test_correct_function_signature():
 
     data = DataFrame(
         {"key": ["a", "a", "b", "b", "a"], "data": [1.0, 2.0, 3.0, 4.0, 5.0]},
-        columns=["key", "data"],
+        columns=["key", "data"]
     )
     with pytest.raises(NumbaUtilError, match="The first 2"):
         data.groupby("key").agg(incorrect_function, engine="numba")
@@ -32,7 +32,7 @@ def test_check_nopython_kwargs():
 
     data = DataFrame(
         {"key": ["a", "a", "b", "b", "a"], "data": [1.0, 2.0, 3.0, 4.0, 5.0]},
-        columns=["key", "data"],
+        columns=["key", "data"]
     )
     with pytest.raises(NumbaUtilError, match="numba does not support"):
         data.groupby("key").agg(incorrect_function, engine="numba", a=1)
@@ -57,7 +57,7 @@ def test_numba_vs_cython(jit, pandas_obj, nogil, parallel, nopython):
         func_numba = numba.jit(func_numba)
 
     data = DataFrame(
-        {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1],
+        {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1]
     )
     engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
     grouped = data.groupby(0)
@@ -90,7 +90,7 @@ def test_cache(jit, pandas_obj, nogil, parallel, nopython):
         func_2 = numba.jit(func_2)
 
     data = DataFrame(
-        {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1],
+        {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1]
     )
     engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
     grouped = data.groupby(0)
@@ -121,7 +121,7 @@ def test_use_global_config():
         return np.mean(values) - 3.4
 
     data = DataFrame(
-        {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1],
+        {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1]
     )
     grouped = data.groupby(0)
     expected = grouped.agg(func_1, engine="numba")
@@ -137,12 +137,12 @@ def test_use_global_config():
         ["min", "max"],
         "min",
         {"B": ["min", "max"], "C": "sum"},
-        NamedAgg(column="B", aggfunc="min"),
-    ],
+        NamedAgg(column="B", aggfunc="min")
+    ]
 )
 def test_multifunc_notimplimented(agg_func):
     data = DataFrame(
-        {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1],
+        {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1]
     )
     grouped = data.groupby(0)
     with pytest.raises(NotImplementedError, match="Numba engine can"):

@@ -18,7 +18,7 @@ from pandas import (
     isna,
     notna,
     to_datetime,
-    to_timedelta,
+    to_timedelta
 )
 import pandas._testing as tm
 import pandas.core.algorithms as algorithms
@@ -34,7 +34,7 @@ def assert_stat_op_calc(
     check_dates=False,
     rtol=1e-5,
     atol=1e-8,
-    skipna_alternative=None,
+    skipna_alternative=None
 ):
     """
     Check that operator opname works as advertised on frame
@@ -90,7 +90,7 @@ def assert_stat_op_calc(
             frame.apply(wrapper),
             check_dtype=check_dtype,
             rtol=rtol,
-            atol=atol,
+            atol=atol
         )
         # HACK: win32
         tm.assert_series_equal(
@@ -98,7 +98,7 @@ def assert_stat_op_calc(
             frame.apply(wrapper, axis=1),
             check_dtype=False,
             rtol=rtol,
-            atol=atol,
+            atol=atol
         )
     else:
         skipna_wrapper = alternative
@@ -110,13 +110,13 @@ def assert_stat_op_calc(
         frame.apply(skipna_wrapper),
         check_dtype=check_dtype,
         rtol=rtol,
-        atol=atol,
+        atol=atol
     )
 
     if opname in ["sum", "prod"]:
         expected = frame.apply(skipna_wrapper, axis=1)
         tm.assert_series_equal(
-            result1, expected, check_dtype=False, rtol=rtol, atol=atol,
+            result1, expected, check_dtype=False, rtol=rtol, atol=atol
         )
 
     # check dtypes
@@ -333,7 +333,7 @@ class TestDataFrameAnalytics:
             float_frame_with_na,
             has_skipna=False,
             check_dtype=False,
-            check_dates=True,
+            check_dates=True
         )
 
         # GH#32571 check_less_precise is needed on apparently-random
@@ -344,7 +344,7 @@ class TestDataFrameAnalytics:
             np.sum,
             mixed_float_frame.astype("float32"),
             check_dtype=False,
-            rtol=1e-3,
+            rtol=1e-3
         )
 
         assert_stat_op_calc(
@@ -366,7 +366,7 @@ class TestDataFrameAnalytics:
             float_frame_with_na,
             has_skipna=False,
             check_dtype=False,
-            check_dates=True,
+            check_dates=True
         )
 
         try:
@@ -399,14 +399,14 @@ class TestDataFrameAnalytics:
             "a": [
                 -0.00049987540199591344,
                 -0.0016467257772919831,
-                0.00067695870775883013,
+                0.00067695870775883013
             ],
             "b": [-0, -0, 0.0],
             "c": [
                 0.00031111847529610595,
                 0.0014902627951905339,
-                -0.00094099200035979691,
-            ],
+                -0.00094099200035979691
+            ]
         }
         df1 = DataFrame(data, index=["foo", "bar", "baz"], dtype="O")
 
@@ -427,7 +427,7 @@ class TestDataFrameAnalytics:
             {
                 "int": [1, 2, 3, 4],
                 "float": [1.0, 2.0, 3.0, 4.0],
-                "str": ["a", "b", "c", "d"],
+                "str": ["a", "b", "c", "d"]
             }
         )
 
@@ -444,7 +444,7 @@ class TestDataFrameAnalytics:
             {
                 "bool_data": [True, True, False, False, False],
                 "int_data": [10, 20, 30, 40, 50],
-                "string_data": ["a", "b", "c", "d", "e"],
+                "string_data": ["a", "b", "c", "d", "e"]
             }
         )
         df.reindex(columns=["bool_data", "int_data", "string_data"])
@@ -500,7 +500,7 @@ class TestDataFrameAnalytics:
             {"A": 2, "B": None, "C": Decimal("572.00")},
             {"A": 4, "B": None, "C": Decimal("609.00")},
             {"A": 3, "B": None, "C": Decimal("820.00")},
-            {"A": 5, "B": None, "C": Decimal("1223.00")},
+            {"A": 5, "B": None, "C": Decimal("1223.00")}
         ]
 
         df = pd.DataFrame(d)
@@ -570,7 +570,7 @@ class TestDataFrameAnalytics:
     def test_kurt(self):
         index = MultiIndex(
             levels=[["bar"], ["one", "two", "three"], [0, 1]],
-            codes=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1]],
+            codes=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1]]
         )
         df = DataFrame(np.random.randn(6, 3), index=index)
 
@@ -592,8 +592,8 @@ class TestDataFrameAnalytics:
                     "D": ["a"],
                     "E": Categorical(["a"], categories=["a"]),
                     "F": to_datetime(["2000-1-2"]),
-                    "G": to_timedelta(["1 days"]),
-                },
+                    "G": to_timedelta(["1 days"])
+                }
             ),
             (
                 False,
@@ -604,8 +604,8 @@ class TestDataFrameAnalytics:
                     "D": np.array([np.nan], dtype=object),
                     "E": Categorical([np.nan], categories=["a"]),
                     "F": [pd.NaT],
-                    "G": to_timedelta([pd.NaT]),
-                },
+                    "G": to_timedelta([pd.NaT])
+                }
             ),
             (
                 True,
@@ -616,8 +616,8 @@ class TestDataFrameAnalytics:
                     "K": Categorical(["a", np.nan, np.nan, np.nan], categories=["a"]),
                     "L": to_datetime(["2000-1-2", "NaT", "NaT", "NaT"]),
                     "M": to_timedelta(["1 days", "nan", "nan", "nan"]),
-                    "N": [0, 1, 2, 3],
-                },
+                    "N": [0, 1, 2, 3]
+                }
             ),
             (
                 False,
@@ -628,10 +628,10 @@ class TestDataFrameAnalytics:
                     "K": Categorical([np.nan, "a", np.nan, np.nan], categories=["a"]),
                     "L": to_datetime(["NaT", "2000-1-2", "NaT", "NaT"]),
                     "M": to_timedelta(["nan", "1 days", "nan", "nan"]),
-                    "N": [0, 1, 2, 3],
-                },
-            ),
-        ],
+                    "N": [0, 1, 2, 3]
+                }
+            )
+        ]
     )
     def test_mode_dropna(self, dropna, expected):
 
@@ -650,7 +650,7 @@ class TestDataFrameAnalytics:
                 "K": Categorical(["a", np.nan, "a", np.nan]),
                 "L": to_datetime(["2000-1-2", "2000-1-2", "NaT", "NaT"]),
                 "M": to_timedelta(["1 days", "nan", "1 days", "nan"]),
-                "N": np.arange(4, dtype="int64"),
+                "N": np.arange(4, dtype="int64")
             }
         )
 
@@ -676,7 +676,7 @@ class TestDataFrameAnalytics:
             dict(
                 A=date_range("2012-1-1", periods=3, freq="D"),
                 B=date_range("2012-1-2", periods=3, freq="D"),
-                C=Timestamp("20120101") - timedelta(minutes=5, seconds=5),
+                C=Timestamp("20120101") - timedelta(minutes=5, seconds=5)
             )
         )
 
@@ -721,9 +721,9 @@ class TestDataFrameAnalytics:
                 "foo",
                 1,
                 1.0,
-                Timestamp("20130101"),
+                Timestamp("20130101")
             ],
-            index=mixed.columns,
+            index=mixed.columns
         )
         tm.assert_series_equal(result, expected)
 
@@ -747,7 +747,7 @@ class TestDataFrameAnalytics:
         df = DataFrame(
             {
                 "time": date_range("20130102", periods=5),
-                "time2": date_range("20130105", periods=5),
+                "time2": date_range("20130105", periods=5)
             }
         )
         df["off1"] = df["time2"] - df["time"]
@@ -871,7 +871,7 @@ class TestDataFrameAnalytics:
                 "A": np.arange(3),
                 "B": pd.date_range("2016-01-01", periods=3),
                 "C": pd.timedelta_range("1D", periods=3),
-                "D": pd.period_range("2016", periods=3, freq="A"),
+                "D": pd.period_range("2016", periods=3, freq="A")
             }
         )
         result = df.mean(numeric_only=True)
@@ -889,7 +889,7 @@ class TestDataFrameAnalytics:
             {
                 "A": np.arange(3),
                 "B": pd.date_range("2016-01-01", periods=3),
-                "C": pd.timedelta_range("1D", periods=3),
+                "C": pd.timedelta_range("1D", periods=3)
             }
         )
 
@@ -974,9 +974,9 @@ class TestDataFrameAnalytics:
             {
                 "A": [True, False, False],
                 "B": [True, True, False],
-                "C": [True, True, True],
+                "C": [True, True, True]
             },
-            index=["a", "b", "c"],
+            index=["a", "b", "c"]
         )
         result = df[["A", "B"]].any(1)
         expected = Series([True, True, False], index=["a", "b", "c"])
@@ -1010,7 +1010,7 @@ class TestDataFrameAnalytics:
             pd.Timestamp("1960-02-15"),
             pd.Timestamp("1960-02-16"),
             pd.NaT,
-            pd.NaT,
+            pd.NaT
         ]
         df = DataFrame({"A": float_data, "B": datetime_data})
 
@@ -1034,7 +1034,7 @@ class TestDataFrameAnalytics:
                 "col1": [1, 2, 3],
                 "col2": [4, 5, 6],
                 "col3": [None, None, None],
-                "col4": [False, False, True],
+                "col4": [False, False, True]
             }
         )
 
@@ -1125,9 +1125,9 @@ class TestDataFrameAnalytics:
                 },
                 True,
                 # In 1.13.3 and 1.14 np.all(df) returns a Timedelta here
-                marks=[td.skip_if_np_lt("1.15")],
-            ),
-        ],
+                marks=[td.skip_if_np_lt("1.15")]
+            )
+        ]
     )
     def test_any_all_np_func(self, func, data, expected):
         # GH 19976
@@ -1155,7 +1155,7 @@ class TestDataFrameAnalytics:
             {"A": 1},
             index=MultiIndex.from_product(
                 [["A", "B"], ["a", "b"]], names=["out", "in"]
-            ),
+            )
         )
         xpr = "Must specify 'axis' when aggregating by level."
         with pytest.raises(ValueError, match=xpr):
@@ -1293,7 +1293,7 @@ class TestDataFrameReductions:
 
     @pytest.mark.parametrize(
         "initial",
-        ["2018-10-08 13:36:45+00:00", "2018-10-08 13:36:45+03:00"],  # Non-UTC timezone
+        ["2018-10-08 13:36:45+00:00", "2018-10-08 13:36:45+03:00"]  # Non-UTC timezone
     )
     @pytest.mark.parametrize("method", ["min", "max"])
     def test_preserve_timezone(self, initial: str, method):

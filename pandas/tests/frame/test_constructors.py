@@ -30,7 +30,7 @@ from pandas import (
     Timedelta,
     Timestamp,
     date_range,
-    isna,
+    isna
 )
 import pandas._testing as tm
 from pandas.arrays import IntervalArray, PeriodArray, SparseArray
@@ -45,7 +45,7 @@ MIXED_INT_DTYPES = [
     "int8",
     "int16",
     "int32",
-    "int64",
+    "int64"
 ]
 
 
@@ -78,8 +78,8 @@ class TestDataFrameConstructors:
             lambda: DataFrame(data=()),
             lambda: DataFrame(data=[]),
             lambda: DataFrame(data=(_ for _ in [])),
-            lambda: DataFrame(data=range(0)),
-        ],
+            lambda: DataFrame(data=range(0))
+        ]
     )
     def test_empty_constructor(self, constructor):
         expected = DataFrame()
@@ -93,8 +93,8 @@ class TestDataFrameConstructors:
         [
             ([[]], RangeIndex(1), RangeIndex(0)),
             ([[], []], RangeIndex(2), RangeIndex(0)),
-            ([(_ for _ in [])], RangeIndex(1), RangeIndex(0)),
-        ],
+            ([(_ for _ in [])], RangeIndex(1), RangeIndex(0))
+        ]
     )
     def test_emptylike_constructor(self, emptylike, expected_index, expected_columns):
         expected = DataFrame(index=expected_index, columns=expected_columns)
@@ -259,7 +259,7 @@ class TestDataFrameConstructors:
             (2685045978526272070, 23),
             (8921811264899370420, 45),
             (17019687244989530680, 270),
-            (9930107427299601010, 273),
+            (9930107427299601010, 273)
         ]
         dtype = [("uid", "u8"), ("score", "u8")]
         data = np.zeros((len(data_scores),), dtype=dtype)
@@ -275,8 +275,8 @@ class TestDataFrameConstructors:
             [2 ** 64 + 1],
             np.array([-(2 ** 63) - 4], dtype=object),
             np.array([-(2 ** 64) - 1]),
-            [-(2 ** 65) - 2],
-        ],
+            [-(2 ** 65) - 2]
+        ]
     )
     def test_constructor_int_overflow(self, values):
         # see gh-18584
@@ -312,13 +312,13 @@ class TestDataFrameConstructors:
         exp = Series(
             np.concatenate([[np.nan] * 5, datetime_series_short.values]),
             index=datetime_series.index,
-            name="col2",
+            name="col2"
         )
         tm.assert_series_equal(exp, frame["col2"])
 
         frame = DataFrame(
             {"col1": datetime_series, "col2": datetime_series_short},
-            columns=["col2", "col3", "col4"],
+            columns=["col2", "col3", "col4"]
         )
 
         assert len(frame) == len(datetime_series_short)
@@ -453,7 +453,7 @@ class TestDataFrameConstructors:
         expected = DataFrame(
             [1, 1],
             index=pd.Int64Index([1, 2], dtype="int64"),
-            columns=MultiIndex(levels=[[1]], codes=[[0]]),
+            columns=MultiIndex(levels=[[1]], codes=[[0]])
         )
         tm.assert_frame_equal(df, expected)
 
@@ -461,7 +461,7 @@ class TestDataFrameConstructors:
         expected = DataFrame(
             [1, 1],
             index=MultiIndex(levels=[[1, 2]], codes=[[0, 1]]),
-            columns=MultiIndex(levels=[[1]], codes=[[0]]),
+            columns=MultiIndex(levels=[[1]], codes=[[0]])
         )
         tm.assert_frame_equal(df, expected)
 
@@ -482,7 +482,7 @@ class TestDataFrameConstructors:
             DataFrame(
                 np.arange(12).reshape((4, 3)),
                 columns=["foo", "bar", "baz"],
-                index=date_range("2000-01-01", periods=3),
+                index=date_range("2000-01-01", periods=3)
             )
 
         arr = np.array([[4, 5, 6]])
@@ -548,7 +548,7 @@ class TestDataFrameConstructors:
         expected = np.array([[4.0, 3.0, 2.0, 1.0]])
         df = DataFrame(
             {"d": [4.0], "c": [3.0], "b": [2.0], "a": [1.0]},
-            columns=["d", "c", "b", "a"],
+            columns=["d", "c", "b", "a"]
         )
         tm.assert_numpy_array_equal(df.values, expected)
 
@@ -568,7 +568,7 @@ class TestDataFrameConstructors:
         # can't cast to float
         test_data = {
             "A": dict(zip(range(20), tm.makeStringIndex(20))),
-            "B": dict(zip(range(15), np.random.randn(15))),
+            "B": dict(zip(range(15), np.random.randn(15)))
         }
         frame = DataFrame(test_data, dtype=float)
         assert len(frame) == 20
@@ -622,13 +622,13 @@ class TestDataFrameConstructors:
                 check_dtype=True,
                 check_index_type=True,
                 check_column_type=True,
-                check_names=True,
+                check_names=True
             )
 
         d = {
             ("a", "a"): {("i", "i"): 0, ("i", "j"): 1, ("j", "i"): 2},
             ("b", "a"): {("i", "i"): 6, ("i", "j"): 5, ("j", "i"): 4},
-            ("b", "c"): {("i", "i"): 7, ("i", "j"): 8, ("j", "i"): 9},
+            ("b", "c"): {("i", "i"): 7, ("i", "j"): 8, ("j", "i"): 9}
         }
         _d = sorted(d.items())
         df = DataFrame(d)
@@ -664,9 +664,9 @@ class TestDataFrameConstructors:
                 {0: 0, 1: None, 2: None, 3: None},
                 {0: None, 1: 2, 2: None, 3: None},
                 {0: None, 1: None, 2: 4, 3: None},
-                {0: None, 1: None, 2: None, 3: 6},
+                {0: None, 1: None, 2: None, 3: 6}
             ],
-            index=[Timestamp(dt) for dt in dates_as_str],
+            index=[Timestamp(dt) for dt in dates_as_str]
         )
 
         result_datetime64 = DataFrame(data_datetime64)
@@ -692,7 +692,7 @@ class TestDataFrameConstructors:
                 {0: 0, 1: None, 2: None, 3: None},
                 {0: None, 1: 2, 2: None, 3: None},
                 {0: None, 1: None, 2: 4, 3: None},
-                {0: None, 1: None, 2: None, 3: 6},
+                {0: None, 1: None, 2: None, 3: 6}
             ],
             index=[Timedelta(td, "D") for td in td_as_int],
         )
@@ -724,9 +724,9 @@ class TestDataFrameConstructors:
             (Interval(left=0, right=5), IntervalDtype("int64")),
             (
                 Timestamp("2011-01-01", tz="US/Eastern"),
-                DatetimeTZDtype(tz="US/Eastern"),
-            ),
-        ],
+                DatetimeTZDtype(tz="US/Eastern")
+            )
+        ]
     )
     def test_constructor_extension_scalar_data(self, data, dtype):
         # GH 34832
@@ -903,7 +903,7 @@ class TestDataFrameConstructors:
             {"A": [np.nan, np.nan], "B": [np.nan, np.nan]},
             columns=["A", "B"],
             index=[1, 2],
-            dtype=float,
+            dtype=float
         )
         tm.assert_frame_equal(result, expected)
         # Check case where mask is hard but no data are masked
@@ -913,7 +913,7 @@ class TestDataFrameConstructors:
             {"A": [1.0, 1.0], "B": [1.0, 1.0]},
             columns=["A", "B"],
             index=[1, 2],
-            dtype=float,
+            dtype=float
         )
         tm.assert_frame_equal(result, expected)
 
@@ -932,12 +932,12 @@ class TestDataFrameConstructors:
         # from GH3479
 
         assert_fr_equal = functools.partial(
-            tm.assert_frame_equal, check_index_type=True, check_column_type=True,
+            tm.assert_frame_equal, check_index_type=True, check_column_type=True
         )
         arrays = [
             ("float", np.array([1.5, 2.0])),
             ("int", np.array([1, 2])),
-            ("str", np.array(["abc", "def"])),
+            ("str", np.array(["abc", "def"]))
         ]
         for name, arr in arrays[:]:
             arrays.append(
@@ -979,8 +979,8 @@ class TestDataFrameConstructors:
             (None, None, ["a", "b"], "int64", np.dtype("int64")),
             (None, list(range(10)), ["a", "b"], int, np.dtype("float64")),
             ({}, None, ["foo", "bar"], None, np.object_),
-            ({"b": 1}, list(range(10)), list("abc"), int, np.dtype("float64")),
-        ],
+            ({"b": 1}, list(range(10)), list("abc"), int, np.dtype("float64"))
+        ]
     )
     def test_constructor_dtype(self, data, index, columns, dtype, expected):
         df = DataFrame(data, index, columns, dtype)
@@ -1043,7 +1043,7 @@ class TestDataFrameConstructors:
         # int cast
         dm = DataFrame(
             {"A": np.ones(10, dtype=int), "B": np.ones(10, dtype=np.float64)},
-            index=np.arange(10),
+            index=np.arange(10)
         )
 
         assert len(dm.columns) == 2
@@ -1192,7 +1192,7 @@ class TestDataFrameConstructors:
             OrderedDict([["a", 1.5], ["d", 6]]),
             OrderedDict(),
             OrderedDict([["a", 1.5], ["b", 3], ["c", 4]]),
-            OrderedDict([["b", 3], ["c", 4], ["d", 6]]),
+            OrderedDict([["b", 3], ["c", 4], ["d", 6]])
         ]
 
         result = DataFrame(data)
@@ -1256,7 +1256,7 @@ class TestDataFrameConstructors:
     def test_constructor_list_of_series(self):
         data = [
             OrderedDict([["a", 1.5], ["b", 3.0], ["c", 4.0]]),
-            OrderedDict([["a", 1.5], ["b", 3.0], ["c", 6.0]]),
+            OrderedDict([["a", 1.5], ["b", 3.0], ["c", 6.0]])
         ]
         sdict = OrderedDict(zip(["x", "y"], data))
         idx = Index(["a", "b", "c"])
@@ -1264,7 +1264,7 @@ class TestDataFrameConstructors:
         # all named
         data2 = [
             Series([1.5, 3, 4], idx, dtype="O", name="x"),
-            Series([1.5, 3, 6], idx, name="y"),
+            Series([1.5, 3, 6], idx, name="y")
         ]
         result = DataFrame(data2)
         expected = DataFrame.from_dict(sdict, orient="index")
@@ -1273,7 +1273,7 @@ class TestDataFrameConstructors:
         # some unnamed
         data2 = [
             Series([1.5, 3, 4], idx, dtype="O", name="x"),
-            Series([1.5, 3, 6], idx),
+            Series([1.5, 3, 6], idx)
         ]
         result = DataFrame(data2)
 
@@ -1288,7 +1288,7 @@ class TestDataFrameConstructors:
             OrderedDict([["a", 1.5], ["d", 6]]),
             OrderedDict(),
             OrderedDict([["a", 1.5], ["b", 3], ["c", 4]]),
-            OrderedDict([["b", 3], ["c", 4], ["d", 6]]),
+            OrderedDict([["b", 3], ["c", 4], ["d", 6]])
         ]
         data = [
             create_series_with_explicit_dtype(d, dtype_if_empty=object) for d in data
@@ -1308,7 +1308,7 @@ class TestDataFrameConstructors:
 
         data = [
             OrderedDict([["a", 1.5], ["b", 3.0], ["c", 4.0]]),
-            OrderedDict([["a", 1.5], ["b", 3.0], ["c", 6.0]]),
+            OrderedDict([["a", 1.5], ["b", 3.0], ["c", 6.0]])
         ]
         sdict = OrderedDict(zip(range(len(data)), data))
 
@@ -1324,7 +1324,7 @@ class TestDataFrameConstructors:
         expected = DataFrame(
             {"b": [0, 1, 2], "a": [0, 1, 2], "c": [0, 1, 2]},
             columns=["b", "a", "c"],
-            index=["0", "1", "2"],
+            index=["0", "1", "2"]
         )
         tm.assert_frame_equal(result, expected)
 
@@ -1389,8 +1389,8 @@ class TestDataFrameConstructors:
             (((), ()), [[], []]),
             (([], []), [[], []]),
             (([1], [2]), [[1], [2]]),  # GH 32776
-            (([1, 2, 3], [4, 5, 6]), [[1, 2, 3], [4, 5, 6]]),
-        ],
+            (([1, 2, 3], [4, 5, 6]), [[1, 2, 3], [4, 5, 6]])
+        ]
     )
     def test_constructor_tuple(self, tuples, lists):
         # GH 25691
@@ -1461,7 +1461,7 @@ class TestDataFrameConstructors:
         data = [
             {"First": 1, "Second": 4, "Third": 7, "Fourth": 10},
             {"Second": 5, "First": 2, "Fourth": 11, "Third": 8},
-            {"Second": 6, "First": 3, "Fourth": 12, "Third": 9, "YYY": 14, "XXX": 13},
+            {"Second": 6, "First": 3, "Fourth": 12, "Third": 9, "YYY": 14, "XXX": 13}
         ]
         expected = DataFrame(
             {
@@ -1470,7 +1470,7 @@ class TestDataFrameConstructors:
                 "Third": [7, 8, 9],
                 "Fourth": [10, 11, 12],
                 "YYY": [None, None, 14],
-                "XXX": [None, None, 13],
+                "XXX": [None, None, 13]
             }
         )
         result = DataFrame(data)
@@ -1494,7 +1494,7 @@ class TestDataFrameConstructors:
             [
                 ("one", OrderedDict([("col_a", "foo1"), ("col_b", "bar1")])),
                 ("two", OrderedDict([("col_a", "foo2"), ("col_b", "bar2")])),
-                ("three", OrderedDict([("col_a", "foo3"), ("col_b", "bar3")])),
+                ("three", OrderedDict([("col_a", "foo3"), ("col_b", "bar3")]))
             ]
         )
         expected = DataFrame.from_dict(a, orient="columns").T
@@ -1508,7 +1508,7 @@ class TestDataFrameConstructors:
         result = DataFrame.from_dict(
             OrderedDict([("A", [1, 2]), ("B", [4, 5])]),
             orient="index",
-            columns=["one", "two"],
+            columns=["one", "two"]
         )
         expected = DataFrame([[1, 2], [4, 5]], index=["A", "B"], columns=["one", "two"])
         tm.assert_frame_equal(result, expected)
@@ -1518,7 +1518,7 @@ class TestDataFrameConstructors:
             DataFrame.from_dict(
                 dict([("A", [1, 2]), ("B", [4, 5])]),
                 orient="columns",
-                columns=["one", "two"],
+                columns=["one", "two"]
             )
         with pytest.raises(ValueError, match=msg):
             DataFrame.from_dict(
@@ -1531,8 +1531,8 @@ class TestDataFrameConstructors:
             ({}, [], "index"),
             ([{("a",): 1}, {("a",): 2}], [("a",)], "columns"),
             ([OrderedDict([(("a",), 1), (("b",), 2)])], [("a",), ("b",)], "columns"),
-            ([{("a", "b"): 1}], [("a", "b")], "columns"),
-        ],
+            ([{("a", "b"): 1}], [("a", "b")], "columns")
+        ]
     )
     def test_constructor_from_dict_tuples(self, data_dict, keys, orient):
         # GH 16769
@@ -1624,15 +1624,15 @@ class TestDataFrameConstructors:
             ("idx1", "idx2", None, None),
             ("idx1", "idx1", "idx2", None),
             ("idx1", "idx2", "idx3", None),
-            (None, None, None, None),
-        ],
+            (None, None, None, None)
+        ]
     )
     def test_constructor_index_names(self, name_in1, name_in2, name_in3, name_out):
         # GH13475
         indices = [
             pd.Index(["a", "b", "c"], name=name_in1),
             pd.Index(["b", "c", "d"], name=name_in2),
-            pd.Index(["c", "d", "e"], name=name_in3),
+            pd.Index(["c", "d", "e"], name=name_in3)
         ]
         series = {
             c: pd.Series([0, 1, 2], index=i) for i, c in zip(indices, ["x", "y", "z"])
@@ -1644,9 +1644,9 @@ class TestDataFrameConstructors:
             {
                 "x": [0, 1, 2, np.nan, np.nan],
                 "y": [np.nan, 0, 1, 2, np.nan],
-                "z": [np.nan, np.nan, 0, 1, 2],
+                "z": [np.nan, np.nan, 0, 1, 2]
             },
-            index=exp_ind,
+            index=exp_ind
         )
 
         tm.assert_frame_equal(result, expected)
@@ -1727,8 +1727,8 @@ class TestDataFrameConstructors:
             DataFrame(
                 np.array([["a", "a"], ["a", "a"]], dtype=object),
                 index=[1, 2],
-                columns=["a", "c"],
-            ),
+                columns=["a", "c"]
+            )
         )
 
         msg = "DataFrame constructor not properly called!"
@@ -1754,16 +1754,16 @@ class TestDataFrameConstructors:
                 "B": "foo",
                 "C": "bar",
                 "D": Timestamp("20010101"),
-                "E": datetime(2001, 1, 2, 0, 0),
+                "E": datetime(2001, 1, 2, 0, 0)
             },
-            index=np.arange(10),
+            index=np.arange(10)
         )
         result = df.dtypes
         expected = Series(
             [np.dtype("int64")]
             + [np.dtype(objectname)] * 2
             + [np.dtype(datetime64name)] * 2,
-            index=list("ABCDE"),
+            index=list("ABCDE")
         )
         tm.assert_series_equal(result, expected)
 
@@ -1775,9 +1775,9 @@ class TestDataFrameConstructors:
                 "b": 2,
                 "c": "foo",
                 floatname: np.array(1.0, dtype=floatname),
-                intname: np.array(1, dtype=intname),
+                intname: np.array(1, dtype=intname)
             },
-            index=np.arange(10),
+            index=np.arange(10)
         )
         result = df.dtypes
         expected = Series(
@@ -1786,7 +1786,7 @@ class TestDataFrameConstructors:
             + [np.dtype("object")]
             + [np.dtype("float64")]
             + [np.dtype(intname)],
-            index=["a", "b", "c", floatname, intname],
+            index=["a", "b", "c", floatname, intname]
         )
         tm.assert_series_equal(result, expected)
 
@@ -1797,9 +1797,9 @@ class TestDataFrameConstructors:
                 "b": 2,
                 "c": "foo",
                 floatname: np.array([1.0] * 10, dtype=floatname),
-                intname: np.array([1] * 10, dtype=intname),
+                intname: np.array([1] * 10, dtype=intname)
             },
-            index=np.arange(10),
+            index=np.arange(10)
         )
         result = df.dtypes
         expected = Series(
@@ -1808,7 +1808,7 @@ class TestDataFrameConstructors:
             + [np.dtype("object")]
             + [np.dtype("float64")]
             + [np.dtype(intname)],
-            index=["a", "b", "c", floatname, intname],
+            index=["a", "b", "c", floatname, intname]
         )
         tm.assert_series_equal(result, expected)
 
@@ -1827,7 +1827,7 @@ class TestDataFrameConstructors:
         result = df.dtypes
         expected = Series(
             [np.dtype("datetime64[ns]"), np.dtype("object")],
-            index=["datetimes", "dates"],
+            index=["datetimes", "dates"]
         )
         tm.assert_series_equal(result, expected)
 
@@ -1890,8 +1890,8 @@ class TestDataFrameConstructors:
             [[None], [np.datetime64("NaT")]],
             [[None], [pd.NaT]],
             [[pd.NaT], [np.datetime64("NaT")]],
-            [[pd.NaT], [None]],
-        ],
+            [[pd.NaT], [None]]
+        ]
     )
     def test_constructor_datetimes_with_nulls(self, arr):
         # gh-15869, GH#11220
@@ -1942,7 +1942,7 @@ class TestDataFrameConstructors:
                 "b": [1.2, 2.3, 5.1, 6.3],
                 "c": list("abcd"),
                 "d": [datetime(2000, 1, 1) for i in range(4)],
-                "e": [1.0, 2, 4.0, 7],
+                "e": [1.0, 2, 4.0, 7]
             }
         )
         result = df.dtypes
@@ -1952,9 +1952,9 @@ class TestDataFrameConstructors:
                 np.dtype("float64"),
                 np.dtype("object"),
                 np.dtype("datetime64[ns]"),
-                np.dtype("float64"),
+                np.dtype("float64")
             ],
-            index=list("abcde"),
+            index=list("abcde")
         )
         tm.assert_series_equal(result, expected)
 
@@ -2059,9 +2059,9 @@ class TestDataFrameConstructors:
         expected = DataFrame(
             {
                 0: Series(list("abc"), dtype="category"),
-                1: Series(list("abd"), dtype="category"),
+                1: Series(list("abd"), dtype="category")
             },
-            columns=[0, 1],
+            columns=[0, 1]
         )
         tm.assert_frame_equal(df, expected)
 
@@ -2150,8 +2150,8 @@ class TestDataFrameConstructors:
                 ("x", np.float64),
                 ("u", np.float32),
                 ("y", np.int64),
-                ("z", np.int32),
-            ],
+                ("z", np.int32)
+            ]
         )
         df = DataFrame.from_records(iter(arr), nrows=2)
         xp = DataFrame(
@@ -2159,7 +2159,7 @@ class TestDataFrameConstructors:
                 "x": np.array([1.0, 3.0], dtype=np.float64),
                 "u": np.array([1.0, 3.0], dtype=np.float32),
                 "y": np.array([2, 4], dtype=np.int64),
-                "z": np.array([2, 4], dtype=np.int32),
+                "z": np.array([2, 4], dtype=np.int32)
             }
         )
         tm.assert_frame_equal(df.reindex_like(xp), xp)
@@ -2237,7 +2237,7 @@ class TestDataFrameConstructors:
             return {
                 "order_id": order_id,
                 "quantity": np.random.randint(1, 10),
-                "price": np.random.randint(1, 10),
+                "price": np.random.randint(1, 10)
             }
 
         documents = [create_dict(i) for i in range(10)]
@@ -2319,7 +2319,7 @@ class TestDataFrameConstructors:
         + tm.COMPLEX_DTYPES
         + tm.DATETIME64_DTYPES
         + tm.TIMEDELTA64_DTYPES
-        + tm.BOOL_DTYPES,
+        + tm.BOOL_DTYPES
     )
     def test_check_dtype_empty_numeric_column(self, dtype):
         # GH24386: Ensure dtypes are set correctly for an empty DataFrame.
@@ -2377,7 +2377,7 @@ class TestDataFrameConstructors:
                 "D": np.array([True, False] * 3, dtype=bool),
                 "E": np.array(np.random.randn(6), dtype=np.float32),
                 "E1": np.array(np.random.randn(6), dtype=np.float32),
-                "F": np.array(np.arange(6), dtype=np.int32),
+                "F": np.array(np.arange(6), dtype=np.int32)
             }
         )
 
@@ -2458,7 +2458,7 @@ class TestDataFrameConstructors:
                 "D": np.array([True, False] * 3, dtype=bool),
                 "E": np.array(np.random.randn(6), dtype=np.float32),
                 "E1": np.array(np.random.randn(6), dtype=np.float32),
-                "F": np.array(np.arange(6), dtype=np.int32),
+                "F": np.array(np.arange(6), dtype=np.int32)
             }
         )
 
@@ -2597,8 +2597,8 @@ class TestDataFrameConstructors:
             Categorical(list("aabbc")),
             SparseArray([1, np.nan, np.nan, np.nan]),
             IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)]),
-            PeriodArray(pd.period_range(start="1/1/2017", end="1/1/2018", freq="M")),
-        ],
+            PeriodArray(pd.period_range(start="1/1/2017", end="1/1/2018", freq="M"))
+        ]
     )
     def test_constructor_with_extension_array(self, extension_arr):
         # GH11363
@@ -2621,14 +2621,14 @@ class TestDataFrameConstructors:
         )
         s2 = Series(
             [2, 152, 2, 242, 150],
-            index=pd.CategoricalIndex(["f", "female", "m", "male", "unknown"]),
+            index=pd.CategoricalIndex(["f", "female", "m", "male", "unknown"])
         )
         result = DataFrame([s1, s2])
         expected = DataFrame(
             np.array(
                 [[np.nan, 39.0, np.nan, 6.0, 4.0], [2.0, 152.0, 2.0, 242.0, 150.0]]
             ),
-            columns=["f", "female", "m", "male", "unknown"],
+            columns=["f", "female", "m", "male", "unknown"]
         )
         tm.assert_frame_equal(result, expected)
 
@@ -2724,7 +2724,7 @@ class TestDataFrameConstructorWithDatetimeTZ:
                 "timestamps": [
                     Timestamp("20130101T10:00:00", tz="US/Eastern"),
                     Timestamp("20130101T10:01:00", tz="US/Eastern"),
-                    Timestamp("20130101T10:02:00", tz="US/Eastern"),
+                    Timestamp("20130101T10:02:00", tz="US/Eastern")
                 ]
             }
         )
@@ -2735,13 +2735,13 @@ class TestDataFrameConstructorWithDatetimeTZ:
         columns = ["Nevada", "Ohio"]
         pop = {
             "Nevada": {2001: 2.4, 2002: 2.9},
-            "Ohio": {2000: 1.5, 2001: 1.7, 2002: 3.6},
+            "Ohio": {2000: 1.5, 2001: 1.7, 2002: 3.6}
         }
         result = DataFrame(pop, index=[2001, 2002, 2003], columns=columns)
         expected = DataFrame(
             [(2.4, 1.7), (2.9, 3.6), (np.nan, np.nan)],
             columns=columns,
-            index=Index([2001, 2002, 2003]),
+            index=Index([2001, 2002, 2003])
         )
         tm.assert_frame_equal(result, expected)
 
@@ -2761,27 +2761,27 @@ class TestDataFrameConstructorWithDatetimeTZ:
                 [
                     Timestamp("2013-01-01 00:00:00"),
                     Timestamp("2013-01-02 00:00:00"),
-                    Timestamp("2013-01-03 00:00:00"),
+                    Timestamp("2013-01-03 00:00:00")
                 ],
                 [
                     Timestamp("2013-01-01 00:00:00-0500", tz="US/Eastern"),
                     pd.NaT,
-                    Timestamp("2013-01-03 00:00:00-0500", tz="US/Eastern"),
+                    Timestamp("2013-01-03 00:00:00-0500", tz="US/Eastern")
                 ],
                 [
                     Timestamp("2013-01-01 00:00:00+0100", tz="CET"),
                     pd.NaT,
-                    Timestamp("2013-01-03 00:00:00+0100", tz="CET"),
-                ],
+                    Timestamp("2013-01-03 00:00:00+0100", tz="CET")
+                ]
             ],
-            dtype=object,
+            dtype=object
         ).T
         res = DataFrame(arr, columns=["A", "B", "C"])
 
         expected_dtypes = [
             "datetime64[ns]",
             "datetime64[ns, US/Eastern]",
-            "datetime64[ns, CET]",
+            "datetime64[ns, CET]"
         ]
         assert (res.dtypes == expected_dtypes).all()
 

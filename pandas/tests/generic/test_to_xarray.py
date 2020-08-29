@@ -27,7 +27,7 @@ class TestDataFrameToXArray:
                 "e": [True, False, True],
                 "f": pd.Categorical(list("abc")),
                 "g": pd.date_range("20130101", periods=3),
-                "h": pd.date_range("20130101", periods=3, tz="US/Eastern"),
+                "h": pd.date_range("20130101", periods=3, tz="US/Eastern")
             }
         )
 
@@ -48,7 +48,7 @@ class TestDataFrameToXArray:
         expected["f"] = expected["f"].astype(object)
         expected.columns.name = None
         tm.assert_frame_equal(
-            result.to_dataframe(), expected,
+            result.to_dataframe(), expected
         )
 
     @td.skip_if_no("xarray", min_version="0.7.0")
@@ -64,7 +64,7 @@ class TestDataFrameToXArray:
                 "e": [True, False, True],
                 "f": pd.Categorical(list("abc")),
                 "g": pd.date_range("20130101", periods=3),
-                "h": pd.date_range("20130101", periods=3, tz="US/Eastern"),
+                "h": pd.date_range("20130101", periods=3, tz="US/Eastern")
             }
         )
 
