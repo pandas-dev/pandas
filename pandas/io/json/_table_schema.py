@@ -22,7 +22,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
-from pandas import DataFrame, Index, MultiIndex
+from pandas import DataFrame, Index, MultiIndex, DatetimeIndex
 import pandas.core.common as com
 
 loads = json.loads
@@ -350,7 +350,9 @@ def parse_table_schema(json, precise_float):
                 for idx in [
                     Index(df[val])
                     if not tz_info.get(val, None)
-                    else Index(df[val]).tz_localize("UTC").tz_convert(tz_info[val])
+                    else DatetimeIndex(df[val])
+                    .tz_localize("UTC")
+                    .tz_convert(tz_info[val])
                     for val in table["schema"]["primaryKey"]
                 ]
             )
