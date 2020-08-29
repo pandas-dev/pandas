@@ -494,12 +494,10 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
             get_sheet_data_header = 0 if header is None else header
             get_sheet_data_skiprows = 0 if skiprows is None else skiprows
             get_sheet_data_nrows = nrows if isinstance(nrows, int) else None
-
             if isinstance(get_sheet_data_header, list) or isinstance(
                 get_sheet_data_skiprows, list
             ):
                 get_sheet_data_nrows = None
-
             data = self.get_sheet_data(
                 sheet,
                 convert_float,
