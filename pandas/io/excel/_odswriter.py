@@ -42,7 +42,7 @@ class _ODSWriter(ExcelWriter):
         sheet_name: Optional[str] = None,
         startrow: int = 0,
         startcol: int = 0,
-        freeze_panes: Optional[List] = None,
+        freeze_panes: Optional[Tuple[int, int]] = None,
     ) -> None:
         """
         Write the frame cells using odf
@@ -215,14 +215,17 @@ class _ODSWriter(ExcelWriter):
         self.book.styles.addElement(odf_style)
         return name
 
-    def _create_freeze_panes(self, sheet_name: str, freeze_panes: List[int]) -> None:
-        """Create freeze panes in the sheet
+    def _create_freeze_panes(
+        self, sheet_name: str, freeze_panes: Tuple[int, int]
+    ) -> None:
+        """
+        Create freeze panes in the sheet.
 
         Parameters
         ----------
         sheet_name : str
             Name of the spreadsheet
-        freeze_panes : list
+        freeze_panes : tuple of (int, int)
             Freeze pane location x and y
         """
         from odf.config import (
