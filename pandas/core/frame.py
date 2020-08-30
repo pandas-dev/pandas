@@ -8182,7 +8182,7 @@ NaN 12.3   33.0
 
         if axis == 1:
             mat = mat.transpose()
-                 
+
         if method == "pearson":
             correl = libalgos.nancorr(mat, minp=min_periods)
         elif method == "spearman":
