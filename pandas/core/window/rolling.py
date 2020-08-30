@@ -383,9 +383,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         """
         obj = self._selected_obj
 
-        from pandas import Series
-
-        return Series(result, obj.index, name=obj.name)
+        return obj._constructor(result, obj.index, name=obj.name)
 
     def _wrap_results(self, results, obj, skipped: List[int]) -> FrameOrSeriesUnion:
         """
