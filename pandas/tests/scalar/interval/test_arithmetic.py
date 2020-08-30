@@ -47,7 +47,6 @@ def test_numeric_interval_add_timedelta_raises(interval, delta):
         delta + interval
 
 
-@pytest.mark.xfail(reason="https://github.com/pandas-dev/pandas/pull/35938")
 def test_timdelta_add_timestamp_interval():
     delta = np.timedelta64(0)
     expected = Interval(Timestamp("2020-01-01"), Timestamp("2020-02-01"))
