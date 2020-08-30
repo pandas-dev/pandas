@@ -123,7 +123,11 @@ _all_methods = [
     (pd.DataFrame, frame_data, operator.methodcaller("sort_index")),
     (pd.DataFrame, frame_data, operator.methodcaller("nlargest", 1, "A")),
     (pd.DataFrame, frame_data, operator.methodcaller("nsmallest", 1, "A")),
-    (pd.DataFrame, frame_mi_data, operator.methodcaller("swaplevel"),),
+    (
+        pd.DataFrame,
+        frame_mi_data,
+        operator.methodcaller("swaplevel"),
+    ),
     pytest.param(
         (
             pd.DataFrame,
@@ -178,7 +182,11 @@ _all_methods = [
         marks=not_implemented_mark,
     ),
     pytest.param(
-        (pd.DataFrame, frame_mi_data, operator.methodcaller("unstack"),),
+        (
+            pd.DataFrame,
+            frame_mi_data,
+            operator.methodcaller("unstack"),
+        ),
         marks=not_implemented_mark,
     ),
     pytest.param(
@@ -234,7 +242,7 @@ _all_methods = [
         marks=[
             not_implemented_mark,
             pytest.mark.filterwarnings("ignore::RuntimeWarning"),
-        ]
+        ],
     ),
     pytest.param(
         (
@@ -522,7 +530,7 @@ _all_methods = [
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("mean")),
         marks=not_implemented_mark,
-    )
+    ),
 ]
 
 
@@ -569,7 +577,7 @@ def test_finalize_called(ndframe_method):
         (pd.DataFrame({"A": [1]}), pd.DataFrame({"A": [1]})),
         (pd.Series([1]), pd.DataFrame({"A": [1]})),
         (pd.DataFrame({"A": [1]}), pd.Series([1])),
-    ]
+    ],
 )
 def test_binops(args, annotate, all_arithmetic_functions):
     # This generates 326 tests... Is that needed?
@@ -712,7 +720,7 @@ def test_datetime_method(method):
         "is_leap_year",
         "daysinmonth",
         "days_in_month",
-    ]
+    ],
 )
 @not_implemented_mark
 def test_datetime_property(attr):
@@ -734,7 +742,8 @@ def test_timedelta_property(attr):
 
 
 @pytest.mark.parametrize(
-    "method", [operator.methodcaller("total_seconds")],
+    "method",
+    [operator.methodcaller("total_seconds")],
 )
 @not_implemented_mark
 def test_timedelta_methods(method):
@@ -756,7 +765,7 @@ def test_timedelta_methods(method):
         operator.methodcaller("rename_categories", {"a": "A", "b": "B"}),
         operator.methodcaller("reorder_categories", ["b", "a"]),
         operator.methodcaller("set_categories", ["A", "B"]),
-    ]
+    ],
 )
 @not_implemented_mark
 def test_categorical_accessor(method):
@@ -781,7 +790,7 @@ def test_categorical_accessor(method):
         lambda x: x.agg(["sum", "count"]),
         lambda x: x.transform(lambda y: y),
         lambda x: x.apply(lambda y: y),
-    ]
+    ],
 )
 @not_implemented_mark
 def test_groupby(obj, method):
