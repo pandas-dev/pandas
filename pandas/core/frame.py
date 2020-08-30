@@ -8116,9 +8116,12 @@ NaN 12.3   33.0
     # ----------------------------------------------------------------------
     # Statistical methods, etc.
 
-    def corr(self, method="pearson", min_periods=1) -> "DataFrame":
+    def corr(self, method="pearson", min_periods=1, axis=0) -> "DataFrame":
         """
         Compute pairwise correlation of columns, excluding NA/null values.
+
+        Pairwise correlation is computed between rows/columns of
+        DataFrame with columns/rows of same DataFrame respectively.
 
         Parameters
         ----------
@@ -8139,6 +8142,10 @@ NaN 12.3   33.0
             Minimum number of observations required per pair of columns
             to have a valid result. Currently only available for Pearson
             and Spearman correlation.
+
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            The axis to use. 0 or 'index' to compute column-wise, 1 or 'columns' for
+            row-wise.
 
         Returns
         -------
@@ -8162,12 +8169,20 @@ NaN 12.3   33.0
               dogs  cats
         dogs   1.0   0.3
         cats   0.3   1.0
+        >>> df.T.corr(method=histogram_intersection, axis=1)
+              dogs  cats
+        dogs   1.0   0.3
+        cats   0.3   1.0  
         """
         numeric_df = self._get_numeric_data()
-        cols = numeric_df.columns
+        axis = self._get_axis_number(axis)
+        cols = self._get_agg_axis(axis)
         idx = cols.copy()
         mat = numeric_df.to_numpy(dtype=float, na_value=np.nan, copy=False)
 
+        if axis==1:
+            mat = mat.transpose()
+            
         if method == "pearson":
             correl = libalgos.nancorr(mat, minp=min_periods)
         elif method == "spearman":

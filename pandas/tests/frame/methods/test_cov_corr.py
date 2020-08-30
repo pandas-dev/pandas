@@ -176,6 +176,13 @@ class TestDataFrameCorr:
         df3.corr()
 
     @td.skip_if_no_scipy
+    @pytest.mark.parametrize("meth", ["pearson", "spearman", "kendall"])
+    def test_corr_axes(self):
+        # https://github.com/pandas-dev/pandas/issues/35002
+        df = pd.DataFrame(np.random.normal(size=(10, 2)))
+        tm.assert_almost_equal(df.corr(axis=0),df.T.corr(axis=1))
+
+    @td.skip_if_no_scipy
     @pytest.mark.parametrize(
         "nullable_column", [pd.array([1, 2, 3]), pd.array([1, 2, None])]
     )
