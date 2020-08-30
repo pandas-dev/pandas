@@ -1,13 +1,21 @@
 # being a bit too dynamic
 from math import ceil
+from typing import TYPE_CHECKING, Tuple
 import warnings
 
 import matplotlib.table
 import matplotlib.ticker as ticker
 import numpy as np
 
+from pandas._typing import FrameOrSeries
+
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+
+from pandas.plotting._matplotlib import compat
+
+if TYPE_CHECKING:
+    from matplotlib.table import Table
 
 
 def format_date_labels(ax, rot):
@@ -19,7 +27,7 @@ def format_date_labels(ax, rot):
     fig.subplots_adjust(bottom=0.2)
 
 
-def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
+def table(ax, data: FrameOrSeries, rowLabels=None, colLabels=None, **kwargs) -> "Table":
     if isinstance(data, ABCSeries):
         data = data.to_frame()
     elif isinstance(data, ABCDataFrame):
@@ -41,7 +49,7 @@ def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
     return table
 
 
-def _get_layout(nplots, layout=None, layout_type="box"):
+def _get_layout(nplots: int, layout=None, layout_type: str = "box") -> Tuple[int, int]:
     if layout is not None:
         if not isinstance(layout, (tuple, list)) or len(layout) != 2:
             raise ValueError("Layout must be a tuple of (rows, columns)")
@@ -90,14 +98,14 @@ def _get_layout(nplots, layout=None, layout_type="box"):
 
 
 def _subplots(
-    naxes=None,
-    sharex=False,
-    sharey=False,
-    squeeze=True,
+    naxes: int,
+    sharex: bool = False,
+    sharey: bool = False,
+    squeeze: bool = True,
     subplot_kw=None,
     ax=None,
     layout=None,
-    layout_type="box",
+    layout_type: str = "box",
     **fig_kw,
 ):
     """
@@ -275,7 +283,7 @@ def _remove_labels_from_axis(axis):
         t.set_visible(False)
 
     # set_visible will not be effective if
-    # minor axis has NullLocator and NullFormattor (default)
+    # minor axis has NullLocator and NullFormatter (default)
     if isinstance(axis.get_minor_locator(), ticker.NullLocator):
         axis.set_minor_locator(ticker.AutoLocator())
     if isinstance(axis.get_minor_formatter(), ticker.NullFormatter):
@@ -288,20 +296,26 @@ def _remove_labels_from_axis(axis):
 
 def _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey):
     if nplots > 1:
+        if compat._mpl_ge_3_2_0():
+            row_num = lambda x: x.get_subplotspec().rowspan.start
+            col_num = lambda x: x.get_subplotspec().colspan.start
+        else:
+            row_num = lambda x: x.rowNum
+            col_num = lambda x: x.colNum
 
         if nrows > 1:
             try:
                 # first find out the ax layout,
                 # so that we can correctly handle 'gaps"
-                layout = np.zeros((nrows + 1, ncols + 1), dtype=np.bool)
+                layout = np.zeros((nrows + 1, ncols + 1), dtype=np.bool_)
                 for ax in axarr:
-                    layout[ax.rowNum, ax.colNum] = ax.get_visible()
+                    layout[row_num(ax), col_num(ax)] = ax.get_visible()
 
                 for ax in axarr:
                     # only the last row of subplots should get x labels -> all
                     # other off layout handles the case that the subplot is
                     # the last in the column, because below is no subplot/gap.
-                    if not layout[ax.rowNum + 1, ax.colNum]:
+                    if not layout[row_num(ax) + 1, col_num(ax)]:
                         continue
                     if sharex or len(ax.get_shared_x_axes().get_siblings(ax)) > 1:
                         _remove_labels_from_axis(ax.xaxis)
@@ -361,7 +375,7 @@ def _get_all_lines(ax):
     return lines
 
 
-def _get_xlim(lines):
+def _get_xlim(lines) -> Tuple[float, float]:
     left, right = np.inf, -np.inf
     for l in lines:
         x = l.get_xdata(orig=False)

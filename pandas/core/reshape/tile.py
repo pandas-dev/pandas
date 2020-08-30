@@ -7,7 +7,7 @@ from pandas._libs import Timedelta, Timestamp
 from pandas._libs.lib import infer_dtype
 
 from pandas.core.dtypes.common import (
-    _NS_DTYPE,
+    DT64NS_DTYPE,
     ensure_int64,
     is_bool_dtype,
     is_categorical_dtype,
@@ -38,6 +38,7 @@ def cut(
     precision: int = 3,
     include_lowest: bool = False,
     duplicates: str = "raise",
+    ordered: bool = True,
 ):
     """
     Bin values into discrete intervals.
@@ -73,7 +74,7 @@ def cut(
         the resulting bins. If False, returns only integer indicators of the
         bins. This affects the type of the output container (see below).
         This argument is ignored when `bins` is an IntervalIndex. If True,
-        raises an error.
+        raises an error. When `ordered=False`, labels must be provided.
     retbins : bool, default False
         Whether to return the bins or not. Useful when bins is provided
         as a scalar.
@@ -85,6 +86,13 @@ def cut(
         If bin edges are not unique, raise ValueError or drop non-uniques.
 
         .. versionadded:: 0.23.0
+    ordered : bool, default True
+        Whether the labels are ordered or not. Applies to returned types
+        Categorical and Series (with Categorical dtype). If True,
+        the resulting categorical will be ordered. If False, the resulting
+        categorical will be unordered (labels must be provided).
+
+        .. versionadded:: 1.1.0
 
     Returns
     -------
@@ -142,8 +150,16 @@ def cut(
 
     >>> pd.cut(np.array([1, 7, 5, 4, 6, 3]),
     ...        3, labels=["bad", "medium", "good"])
-    [bad, good, medium, medium, good, bad]
-    Categories (3, object): [bad < medium < good]
+    ['bad', 'good', 'medium', 'medium', 'good', 'bad']
+    Categories (3, object): ['bad' < 'medium' < 'good']
+
+    ``ordered=False`` will result in unordered categories when labels are passed.
+    This parameter can be used to allow non-unique labels:
+
+    >>> pd.cut(np.array([1, 7, 5, 4, 6, 3]), 3,
+    ...        labels=["B", "A", "B"], ordered=False)
+    ['B', 'B', 'A', 'A', 'B', 'B']
+    Categories (2, object): ['A', 'B']
 
     ``labels=False`` implies you just want the bins back.
 
@@ -171,24 +187,26 @@ def cut(
     ...               index=['a', 'b', 'c', 'd', 'e'])
     >>> pd.cut(s, [0, 2, 4, 6, 8, 10], labels=False, retbins=True, right=False)
     ... # doctest: +ELLIPSIS
-    (a    0.0
-     b    1.0
-     c    2.0
-     d    3.0
-     e    4.0
-     dtype: float64, array([0, 2, 4, 6, 8]))
+    (a    1.0
+     b    2.0
+     c    3.0
+     d    4.0
+     e    NaN
+     dtype: float64,
+     array([ 0,  2,  4,  6,  8, 10]))
 
     Use `drop` optional when bins is not unique
 
     >>> pd.cut(s, [0, 2, 4, 6, 10, 10], labels=False, retbins=True,
     ...        right=False, duplicates='drop')
     ... # doctest: +ELLIPSIS
-    (a    0.0
-     b    1.0
-     c    2.0
+    (a    1.0
+     b    2.0
+     c    3.0
      d    3.0
-     e    3.0
-     dtype: float64, array([0, 2, 4, 6, 8]))
+     e    NaN
+     dtype: float64,
+     array([ 0,  2,  4,  6, 10]))
 
     Passing an IntervalIndex for `bins` results in those categories exactly.
     Notice that values not covered by the IntervalIndex are set to NaN. 0
@@ -197,7 +215,7 @@ def cut(
 
     >>> bins = pd.IntervalIndex.from_tuples([(0, 1), (2, 3), (4, 5)])
     >>> pd.cut([0, 0.5, 1.5, 2.5, 4.5], bins)
-    [NaN, (0, 1], NaN, (2, 3], (4, 5]]
+    [NaN, (0.0, 1.0], NaN, (2.0, 3.0], (4.0, 5.0]]
     Categories (3, interval[int64]): [(0, 1] < (2, 3] < (4, 5]]
     """
     # NOTE: this binning code is changed a bit from histogram for var(x) == 0
@@ -245,7 +263,7 @@ def cut(
 
     else:
         if is_datetime64tz_dtype(bins):
-            bins = np.asarray(bins, dtype=_NS_DTYPE)
+            bins = np.asarray(bins, dtype=DT64NS_DTYPE)
         else:
             bins = np.asarray(bins)
         bins = _convert_bin_to_numeric_type(bins, dtype)
@@ -263,6 +281,7 @@ def cut(
         include_lowest=include_lowest,
         dtype=dtype,
         duplicates=duplicates,
+        ordered=ordered,
     )
 
     return _postprocess_for_cut(fac, bins, retbins, dtype, original)
@@ -286,7 +305,7 @@ def qcut(
     Parameters
     ----------
     x : 1d ndarray or Series
-    q : int or list-like of int
+    q : int or list-like of float
         Number of quantiles. 10 for deciles, 4 for quartiles, etc. Alternately
         array of quantiles, e.g. [0, .25, .5, .75, 1.] for quartiles.
     labels : array or False, default None
@@ -360,7 +379,10 @@ def _bins_to_cuts(
     include_lowest: bool = False,
     dtype=None,
     duplicates: str = "raise",
+    ordered: bool = True,
 ):
+    if not ordered and not labels:
+        raise ValueError("'labels' must be provided if 'ordered = False'")
 
     if duplicates not in ["raise", "drop"]:
         raise ValueError(
@@ -403,16 +425,22 @@ def _bins_to_cuts(
             labels = _format_labels(
                 bins, precision, right=right, include_lowest=include_lowest, dtype=dtype
             )
-
+        elif ordered and len(set(labels)) != len(labels):
+            raise ValueError(
+                "labels must be unique if ordered=True; pass ordered=False for duplicate labels"  # noqa
+            )
         else:
             if len(labels) != len(bins) - 1:
                 raise ValueError(
                     "Bin labels must be one fewer than the number of bin edges"
                 )
-
         if not is_categorical_dtype(labels):
-            labels = Categorical(labels, categories=labels, ordered=True)
-
+            labels = Categorical(
+                labels,
+                categories=labels if len(set(labels)) == len(labels) else None,
+                ordered=ordered,
+            )
+        # TODO: handle mismatch between categorical label order and pandas.cut order.
         np.putmask(ids, na_mask, 0)
         result = algos.take_nd(labels, ids - 1)
 
@@ -433,22 +461,22 @@ def _coerce_to_type(x):
     """
     dtype = None
 
-    if is_datetime64tz_dtype(x):
+    if is_datetime64tz_dtype(x.dtype):
         dtype = x.dtype
-    elif is_datetime64_dtype(x):
+    elif is_datetime64_dtype(x.dtype):
         x = to_datetime(x)
         dtype = np.dtype("datetime64[ns]")
-    elif is_timedelta64_dtype(x):
+    elif is_timedelta64_dtype(x.dtype):
         x = to_timedelta(x)
         dtype = np.dtype("timedelta64[ns]")
-    elif is_bool_dtype(x):
+    elif is_bool_dtype(x.dtype):
         # GH 20303
         x = x.astype(np.int64)
     # To support cut and qcut for IntegerArray we convert to float dtype.
     # Will properly support in the future.
     # https://github.com/pandas-dev/pandas/pull/31290
     # https://github.com/pandas-dev/pandas/issues/31389
-    elif is_extension_array_dtype(x) and is_integer_dtype(x):
+    elif is_extension_array_dtype(x.dtype) and is_integer_dtype(x.dtype):
         x = x.to_numpy(dtype=np.float64, na_value=np.nan)
 
     if dtype is not None:

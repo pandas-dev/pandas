@@ -1,19 +1,24 @@
 """
 Provide basic components for groupby. These definitions
-hold the whitelist of methods that are exposed on the
+hold the allowlist of methods that are exposed on the
 SeriesGroupBy and the DataFrameGroupBy objects.
 """
 import collections
+from typing import List
 
 from pandas.core.dtypes.common import is_list_like, is_scalar
+
+from pandas.core.base import PandasObject
 
 OutputKey = collections.namedtuple("OutputKey", ["label", "position"])
 
 
-class GroupByMixin:
+class GroupByMixin(PandasObject):
     """
     Provide the groupby facilities to the mixed object.
     """
+
+    _attributes: List[str]
 
     def _gotitem(self, key, ndim, subset=None):
         """
@@ -22,7 +27,7 @@ class GroupByMixin:
         Parameters
         ----------
         key : string / list of selections
-        ndim : 1,2
+        ndim : {1, 2}
             requested ndim of result
         subset : object, default None
             subset to act on
@@ -53,7 +58,7 @@ class GroupByMixin:
 # forwarding methods from NDFrames
 plotting_methods = frozenset(["plot", "hist"])
 
-common_apply_whitelist = (
+common_apply_allowlist = (
     frozenset(
         [
             "quantile",
@@ -72,9 +77,9 @@ common_apply_whitelist = (
     | plotting_methods
 )
 
-series_apply_whitelist = (
+series_apply_allowlist = (
     (
-        common_apply_whitelist
+        common_apply_allowlist
         | {
             "nlargest",
             "nsmallest",
@@ -84,13 +89,13 @@ series_apply_whitelist = (
     )
 ) | frozenset(["dtype", "unique"])
 
-dataframe_apply_whitelist = common_apply_whitelist | frozenset(["dtypes", "corrwith"])
+dataframe_apply_allowlist = common_apply_allowlist | frozenset(["dtypes", "corrwith"])
 
 # cythonized transformations or canned "agg+broadcast", which do not
 # require postprocessing of the result by transform.
 cythonized_kernels = frozenset(["cumprod", "cumsum", "shift", "cummin", "cummax"])
 
-cython_cast_blacklist = frozenset(["rank", "count", "size", "idxmin", "idxmax"])
+cython_cast_blocklist = frozenset(["rank", "count", "size", "idxmin", "idxmax"])
 
 # List of aggregation/reduction functions.
 # These map each group to a single numeric value
@@ -98,6 +103,7 @@ reduction_kernels = frozenset(
     [
         "all",
         "any",
+        "corrwith",
         "count",
         "first",
         "idxmax",
@@ -132,7 +138,6 @@ transformation_kernels = frozenset(
     [
         "backfill",
         "bfill",
-        "corrwith",
         "cumcount",
         "cummax",
         "cummin",
@@ -180,9 +185,10 @@ groupby_other_methods = frozenset(
         "tail",
         "take",
         "transform",
+        "sample",
     ]
 )
 # Valid values  of `name` for `groupby.transform(name)`
 # NOTE: do NOT edit this directly. New additions should be inserted
 # into the appropriate list above.
-transform_kernel_whitelist = reduction_kernels | transformation_kernels
+transform_kernel_allowlist = reduction_kernels | transformation_kernels

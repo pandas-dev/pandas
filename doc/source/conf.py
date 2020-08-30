@@ -109,6 +109,7 @@ with open(os.path.join(source_path, "index.rst"), "w") as f:
         )
     )
 autosummary_generate = True if pattern is None else ["index"]
+autodoc_typehints = "none"
 
 # numpydoc
 numpydoc_attributes_as_param_list = False
@@ -195,7 +196,7 @@ pygments_style = "sphinx"
 
 # The theme to use for HTML and HTML Help pages.  Major themes that come with
 # Sphinx are currently 'default' and 'sphinxdoc'.
-html_theme = "pandas_sphinx_theme"
+html_theme = "pydata_sphinx_theme"
 
 # The style sheet to use for HTML and HTML Help pages. A file of that name
 # must exist either in Sphinx' static/ path, or in one of the custom paths
@@ -409,12 +410,13 @@ if pattern is None:
     intersphinx_mapping = {
         "dateutil": ("https://dateutil.readthedocs.io/en/latest/", None),
         "matplotlib": ("https://matplotlib.org/", None),
-        "numpy": ("https://docs.scipy.org/doc/numpy/", None),
+        "numpy": ("https://numpy.org/doc/stable/", None),
         "pandas-gbq": ("https://pandas-gbq.readthedocs.io/en/latest/", None),
         "py": ("https://pylib.readthedocs.io/en/latest/", None),
         "python": ("https://docs.python.org/3/", None),
         "scipy": ("https://docs.scipy.org/doc/scipy/reference/", None),
         "statsmodels": ("https://www.statsmodels.org/devel/", None),
+        "pyarrow": ("https://arrow.apache.org/docs/", None),
     }
 
 # extlinks alias

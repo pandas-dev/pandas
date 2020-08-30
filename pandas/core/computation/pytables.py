@@ -17,6 +17,7 @@ from pandas.core.computation import expr, ops, scope as _scope
 from pandas.core.computation.common import _ensure_decoded
 from pandas.core.computation.expr import BaseExprVisitor
 from pandas.core.computation.ops import UndefinedVariableError, is_term
+from pandas.core.construction import extract_array
 
 from pandas.io.formats.printing import pprint_thing, pprint_thing_encoded
 
@@ -62,7 +63,7 @@ class Term(ops.Term):
             return self.name
 
     # read-only property overwriting read/write property
-    @property  # type: ignore
+    @property  # type: ignore[misc]
     def value(self):
         return self._value
 
@@ -199,10 +200,13 @@ class BinOp(ops.BinOp):
                 v = v.tz_convert("UTC")
             return TermValue(v, v.value, kind)
         elif kind == "timedelta64" or kind == "timedelta":
-            v = Timedelta(v, unit="s").value
+            if isinstance(v, str):
+                v = Timedelta(v).value
+            else:
+                v = Timedelta(v, unit="s").value
             return TermValue(int(v), v, kind)
         elif meta == "category":
-            metadata = com.values_from_object(self.metadata)
+            metadata = extract_array(self.metadata, extract_numpy=True)
             result = metadata.searchsorted(v, side="left")
 
             # result returns 0 if v is first element or if v is not in metadata

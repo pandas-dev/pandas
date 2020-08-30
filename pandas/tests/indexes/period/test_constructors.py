@@ -147,9 +147,9 @@ class TestPeriodIndex:
 
         msg = "freq not specified and cannot be inferred"
         with pytest.raises(ValueError, match=msg):
-            PeriodIndex(idx._ndarray_values)
+            PeriodIndex(idx.asi8)
         with pytest.raises(ValueError, match=msg):
-            PeriodIndex(list(idx._ndarray_values))
+            PeriodIndex(list(idx.asi8))
 
         msg = "'Period' object is not iterable"
         with pytest.raises(TypeError, match=msg):
@@ -327,7 +327,8 @@ class TestPeriodIndex:
         result = idx._simple_new(idx._data, name="p")
         tm.assert_index_equal(result, idx)
 
-        with pytest.raises(AssertionError):
+        msg = "Should be numpy array of type i8"
+        with pytest.raises(AssertionError, match=msg):
             # Need ndarray, not Int64Index
             type(idx._data)._simple_new(idx.astype("i8"), freq=idx.freq)
 
@@ -462,12 +463,6 @@ class TestPeriodIndex:
         assert (i1 == i2).all()
         assert i1.freq == i2.freq
 
-        end_intv = Period("2006-12-31", ("w", 1))
-        i2 = period_range(end=end_intv, periods=10)
-        assert len(i1) == len(i2)
-        assert (i1 == i2).all()
-        assert i1.freq == i2.freq
-
         end_intv = Period("2005-05-01", "B")
         i1 = period_range(start=start, end=end_intv)
 
@@ -488,6 +483,10 @@ class TestPeriodIndex:
         vals = np.array(vals)
         with pytest.raises(IncompatibleFrequency, match=msg):
             PeriodIndex(vals)
+
+        # tuple freq disallowed GH#34703
+        with pytest.raises(TypeError, match="pass as a string instead"):
+            Period("2006-12-31", ("w", 1))
 
     @pytest.mark.parametrize(
         "freq", ["M", "Q", "A", "D", "B", "T", "S", "L", "U", "N", "H"]

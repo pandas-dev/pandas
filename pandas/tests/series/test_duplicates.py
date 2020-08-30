@@ -47,9 +47,9 @@ def test_unique():
 
     # GH 18051
     s = Series(Categorical([]))
-    tm.assert_categorical_equal(s.unique(), Categorical([]), check_dtype=False)
+    tm.assert_categorical_equal(s.unique(), Categorical([]))
     s = Series(Categorical([np.nan]))
-    tm.assert_categorical_equal(s.unique(), Categorical([np.nan]), check_dtype=False)
+    tm.assert_categorical_equal(s.unique(), Categorical([np.nan]))
 
 
 def test_unique_data_ownership():

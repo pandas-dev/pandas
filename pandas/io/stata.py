@@ -11,12 +11,23 @@ https://www.statsmodels.org/devel/
 """
 from collections import abc
 import datetime
-from io import BytesIO, IOBase
+from io import BytesIO
 import os
 from pathlib import Path
 import struct
 import sys
-from typing import Any, AnyStr, BinaryIO, Dict, List, Optional, Sequence, Tuple, Union
+from typing import (
+    Any,
+    AnyStr,
+    BinaryIO,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 import warnings
 
 from dateutil.relativedelta import relativedelta
@@ -24,7 +35,7 @@ import numpy as np
 
 from pandas._libs.lib import infer_dtype
 from pandas._libs.writers import max_len_string_array
-from pandas._typing import FilePathOrBuffer, Label
+from pandas._typing import CompressionOptions, FilePathOrBuffer, Label, StorageOptions
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
@@ -47,11 +58,17 @@ from pandas.core.frame import DataFrame
 from pandas.core.indexes.base import Index
 from pandas.core.series import Series
 
-from pandas.io.common import get_filepath_or_buffer, stringify_path
+from pandas.io.common import (
+    get_compression_method,
+    get_filepath_or_buffer,
+    get_handle,
+    infer_compression,
+    stringify_path,
+)
 
 _version_error = (
     "Version of given Stata file is {version}. pandas supports importing "
-    "versions 104, 105, 108, 111 (Stata 7SE), 113 (Stata 8/9), "
+    "versions 105, 108, 111 (Stata 7SE), 113 (Stata 8/9), "
     "114 (Stata 10/11), 115 (Stata 12), 117 (Stata 13), 118 (Stata 14/15/16),"
     "and 119 (Stata 15/16, over 32,767 variables)."
 )
@@ -89,6 +106,14 @@ _iterator_params = """\
 iterator : bool, default False
     Return StataReader object."""
 
+_reader_notes = """\
+Notes
+-----
+Categorical variables read through an iterator may not have the same
+categories and dtype. This occurs when  a variable stored in a DTA
+file is associated to an incomplete set of value labels that only
+label a strict subset of the values."""
+
 _read_stata_doc = f"""
 Read Stata file into DataFrame.
 
@@ -117,6 +142,8 @@ See Also
 --------
 io.stata.StataReader : Low-level reader for Stata data files.
 DataFrame.to_stata: Export Stata data files.
+
+{_reader_notes}
 
 Examples
 --------
@@ -159,6 +186,8 @@ path_or_buf : path (string), buffer or path object
 {_statafile_processing_params1}
 {_statafile_processing_params2}
 {_chunksize_params}
+
+{_reader_notes}
 """
 
 
@@ -293,7 +322,7 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt) -> Series:
     elif fmt.startswith(("%tC", "tC")):
 
         warnings.warn("Encountered %tC format. Leaving in Stata Internal Format.")
-        conv_dates = Series(dates, dtype=np.object)
+        conv_dates = Series(dates, dtype=object)
         if has_bad_values:
             conv_dates[bad_locs] = NaT
         return conv_dates
@@ -351,15 +380,14 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
 
     def parse_dates_safe(dates, delta=False, year=False, days=False):
         d = {}
-        if is_datetime64_dtype(dates.values):
+        if is_datetime64_dtype(dates.dtype):
             if delta:
                 time_delta = dates - stata_epoch
-                d["delta"] = time_delta.values.astype(np.int64) // 1000  # microseconds
+                d["delta"] = time_delta._values.astype(np.int64) // 1000  # microseconds
             if days or year:
-                # ignore since mypy reports that DatetimeIndex has no year/month
                 date_index = DatetimeIndex(dates)
-                d["year"] = date_index.year  # type: ignore
-                d["month"] = date_index.month  # type: ignore
+                d["year"] = date_index.year
+                d["month"] = date_index.month
             if days:
                 days_in_ns = dates.astype(np.int64) - to_datetime(
                     d["year"], format="%Y"
@@ -368,7 +396,7 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
 
         elif infer_dtype(dates, skipna=False) == "datetime":
             if delta:
-                delta = dates.values - stata_epoch
+                delta = dates._values - stata_epoch
 
                 def f(x: datetime.timedelta) -> float:
                     return US_PER_DAY * x.days + 1000000 * x.seconds + x.microseconds
@@ -377,8 +405,8 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
                 d["delta"] = v(delta)
             if year:
                 year_month = dates.apply(lambda x: 100 * x.year + x.month)
-                d["year"] = year_month.values // 100
-                d["month"] = year_month.values - d["year"] * 100
+                d["year"] = year_month._values // 100
+                d["month"] = year_month._values - d["year"] * 100
             if days:
 
                 def g(x: datetime.datetime) -> int:
@@ -423,7 +451,7 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
         conv_dates = 4 * (d.year - stata_epoch.year) + (d.month - 1) // 3
     elif fmt in ["%th", "th"]:
         d = parse_dates_safe(dates, year=True)
-        conv_dates = 2 * (d.year - stata_epoch.year) + (d.month > 6).astype(np.int)
+        conv_dates = 2 * (d.year - stata_epoch.year) + (d.month > 6).astype(int)
     elif fmt in ["%ty", "ty"]:
         d = parse_dates_safe(dates, year=True)
         conv_dates = d.year
@@ -481,6 +509,21 @@ alphanumerics and underscores, no Stata reserved words)
 """
 
 
+class CategoricalConversionWarning(Warning):
+    pass
+
+
+categorical_conversion_warning = """
+One or more series with value labels are not fully labeled. Reading this
+dataset with an iterator results in categorical variable with different
+categories. This occurs since it is not possible to know all possible values
+until the entire dataset has been read. To avoid this warning, you can either
+read dataset without an interator, or manually convert categorical data by
+``convert_categoricals`` to False and then accessing the variable labels
+through the value_labels method of the reader.
+"""
+
+
 def _cast_to_stata_types(data: DataFrame) -> DataFrame:
     """
     Checks the dtypes of the columns of a pandas DataFrame for
@@ -510,7 +553,7 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
     ws = ""
     #                  original, if small, if large
     conversion_data = (
-        (np.bool, np.int8, np.int8),
+        (np.bool_, np.int8, np.int8),
         (np.uint8, np.int8, np.int16),
         (np.uint16, np.int16, np.int32),
         (np.uint32, np.int32, np.int64),
@@ -628,7 +671,7 @@ class StataValueLabel:
 
     def generate_value_label(self, byteorder: str) -> bytes:
         """
-        Generate the binary representation of the value labals.
+        Generate the binary representation of the value labels.
 
         Parameters
         ----------
@@ -889,8 +932,8 @@ class StataParser:
             98: 251,  # byte
             105: 252,  # int
             108: 253,  # long
-            102: 254  # float
-            # don't know old code for double
+            102: 254,  # float
+            100: 255,  # double
         }
 
         # These missing values are the generic '.' in Stata, and are used
@@ -992,6 +1035,7 @@ class StataReader(StataParser, abc.Iterator):
         columns: Optional[Sequence[str]] = None,
         order_categoricals: bool = True,
         chunksize: Optional[int] = None,
+        storage_options: StorageOptions = None,
     ):
         super().__init__()
         self.col_sizes: List[int] = []
@@ -1007,6 +1051,10 @@ class StataReader(StataParser, abc.Iterator):
         self._order_categoricals = order_categoricals
         self._encoding = ""
         self._chunksize = chunksize
+        if self._chunksize is not None and (
+            not isinstance(chunksize, int) or chunksize <= 0
+        ):
+            raise ValueError("chunksize must be a positive integer when set.")
 
         # State variables for the file
         self._has_string_data = False
@@ -1021,13 +1069,16 @@ class StataReader(StataParser, abc.Iterator):
         self._native_byteorder = _set_endianness(sys.byteorder)
         path_or_buf = stringify_path(path_or_buf)
         if isinstance(path_or_buf, str):
-            path_or_buf, encoding, _, should_close = get_filepath_or_buffer(path_or_buf)
+            path_or_buf, encoding, _, should_close = get_filepath_or_buffer(
+                path_or_buf, storage_options=storage_options
+            )
 
         if isinstance(path_or_buf, (str, bytes)):
             self.path_or_buf = open(path_or_buf, "rb")
-        elif isinstance(path_or_buf, IOBase):
+        elif hasattr(path_or_buf, "read"):
             # Copy to BytesIO, and ensure no encoding
-            contents = path_or_buf.read()
+            pb: Any = path_or_buf
+            contents = pb.read()
             self.path_or_buf = BytesIO(contents)
 
         self._read_header()
@@ -1472,6 +1523,10 @@ the string values returned are correct."""
             self.GSO[str(v_o)] = decoded_va
 
     def __next__(self) -> DataFrame:
+        if self._chunksize is None:
+            raise ValueError(
+                "chunksize must be set to a positive integer to use as an iterator."
+            )
         return self.read(nrows=self._chunksize or 1)
 
     def get_chunk(self, size: Optional[int] = None) -> DataFrame:
@@ -1592,8 +1647,7 @@ the string values returned are correct."""
 
         data = self._insert_strls(data)
 
-        cols_ = np.where(self.dtyplist)[0]
-
+        cols_ = np.where([dtyp is not None for dtyp in self.dtyplist])[0]
         # Convert columns (if needed) to match input type
         ix = data.index
         requires_type_conversion = False
@@ -1672,9 +1726,9 @@ the string values returned are correct."""
                 continue
 
             if convert_missing:  # Replacement follows Stata notation
-                missing_loc = np.nonzero(missing._ndarray_values)[0]
+                missing_loc = np.nonzero(np.asarray(missing))[0]
                 umissing, umissing_loc = np.unique(series[missing], return_inverse=True)
-                replacement = Series(series, dtype=np.object)
+                replacement = Series(series, dtype=object)
                 for j, um in enumerate(umissing):
                     missing_value = StataMissingValue(um)
 
@@ -1737,8 +1791,8 @@ the string values returned are correct."""
 
         return data[columns]
 
-    @staticmethod
     def _do_convert_categoricals(
+        self,
         data: DataFrame,
         value_label_dict: Dict[str, Dict[Union[float, int], str]],
         lbllist: Sequence[str],
@@ -1752,14 +1806,39 @@ the string values returned are correct."""
         for col, label in zip(data, lbllist):
             if label in value_labels:
                 # Explicit call with ordered=True
-                cat_data = Categorical(data[col], ordered=order_categoricals)
-                categories = []
-                for category in cat_data.categories:
-                    if category in value_label_dict[label]:
-                        categories.append(value_label_dict[label][category])
-                    else:
-                        categories.append(category)  # Partially labeled
+                vl = value_label_dict[label]
+                keys = np.array(list(vl.keys()))
+                column = data[col]
+                key_matches = column.isin(keys)
+                if self._chunksize is not None and key_matches.all():
+                    initial_categories = keys
+                    # If all categories are in the keys and we are iterating,
+                    # use the same keys for all chunks. If some are missing
+                    # value labels, then we will fall back to the categories
+                    # varying across chunks.
+                else:
+                    if self._chunksize is not None:
+                        # warn is using an iterator
+                        warnings.warn(
+                            categorical_conversion_warning, CategoricalConversionWarning
+                        )
+                    initial_categories = None
+                cat_data = Categorical(
+                    column, categories=initial_categories, ordered=order_categoricals
+                )
+                if initial_categories is None:
+                    # If None here, then we need to match the cats in the Categorical
+                    categories = []
+                    for category in cat_data.categories:
+                        if category in vl:
+                            categories.append(vl[category])
+                        else:
+                            categories.append(category)
+                else:
+                    # If all cats are matched, we can use the values
+                    categories = list(vl.values())
                 try:
+                    # Try to catch duplicate categories
                     cat_data.categories = categories
                 except ValueError as err:
                     vc = Series(categories).value_counts()
@@ -1831,6 +1910,7 @@ def read_stata(
     order_categoricals: bool = True,
     chunksize: Optional[int] = None,
     iterator: bool = False,
+    storage_options: StorageOptions = None,
 ) -> Union[DataFrame, StataReader]:
 
     reader = StataReader(
@@ -1843,6 +1923,7 @@ def read_stata(
         columns=columns,
         order_categoricals=order_categoricals,
         chunksize=chunksize,
+        storage_options=storage_options,
     )
 
     if iterator or chunksize:
@@ -1855,13 +1936,30 @@ def read_stata(
     return data
 
 
-def _open_file_binary_write(fname: FilePathOrBuffer) -> Tuple[BinaryIO, bool]:
+def _open_file_binary_write(
+    fname: FilePathOrBuffer,
+    compression: CompressionOptions,
+    storage_options: StorageOptions = None,
+) -> Tuple[BinaryIO, bool, CompressionOptions]:
     """
     Open a binary file or no-op if file-like.
 
     Parameters
     ----------
     fname : string path, path object or buffer
+        The file name or buffer.
+    compression : {str, dict, None}
+        The compression method to use.
+
+    storage_options : dict, optional
+        Extra options that make sense for a particular storage connection, e.g.
+        host, port, username, password, etc., if using a URL that will
+        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+        will be raised if providing this argument with a local path or
+        a file-like buffer. See the fsspec and backend storage implementation
+        docs for the set of allowed keys and values
+
+        .. versionadded:: 1.2.0
 
     Returns
     -------
@@ -1872,9 +1970,20 @@ def _open_file_binary_write(fname: FilePathOrBuffer) -> Tuple[BinaryIO, bool]:
     """
     if hasattr(fname, "write"):
         # See https://github.com/python/mypy/issues/1424 for hasattr challenges
-        return fname, False  # type: ignore
+        # error: Incompatible return value type (got "Tuple[Union[str, Path,
+        # IO[Any]], bool, None]", expected "Tuple[BinaryIO, bool, Union[str,
+        # Mapping[str, str], None]]")
+        return fname, False, None  # type: ignore[return-value]
     elif isinstance(fname, (str, Path)):
-        return open(fname, "wb"), True
+        # Extract compression mode as given, if dict
+        compression_typ, compression_args = get_compression_method(compression)
+        compression_typ = infer_compression(fname, compression_typ)
+        compression = dict(compression_args, method=compression_typ)
+        path_or_buf, _, compression, _ = get_filepath_or_buffer(
+            fname, mode="wb", compression=compression, storage_options=storage_options,
+        )
+        f, _ = get_handle(path_or_buf, "wb", compression=compression, is_text=False)
+        return f, True, compression
     else:
         raise TypeError("fname must be a binary file, buffer or path-like.")
 
@@ -1956,7 +2065,7 @@ def _dtype_to_stata_type(dtype: np.dtype, column: Series) -> int:
     if dtype.type == np.object_:  # try to coerce it to the biggest string
         # not memory efficient, what else could we
         # do?
-        itemsize = max_len_string_array(ensure_object(column.values))
+        itemsize = max_len_string_array(ensure_object(column._values))
         return max(itemsize, 1)
     elif dtype == np.float64:
         return 255
@@ -1998,7 +2107,7 @@ def _dtype_to_default_stata_fmt(
         if force_strl:
             return "%9s"
     if dtype.type == np.object_:
-        itemsize = max_len_string_array(ensure_object(column.values))
+        itemsize = max_len_string_array(ensure_object(column._values))
         if itemsize > max_str_len:
             if dta_version >= 117:
                 return "%9s"
@@ -2051,6 +2160,27 @@ class StataWriter(StataParser):
     variable_labels : dict
         Dictionary containing columns as keys and variable labels as values.
         Each label must be 80 characters or smaller.
+    compression : str or dict, default 'infer'
+        For on-the-fly compression of the output dta. If string, specifies
+        compression mode. If dict, value at key 'method' specifies compression
+        mode. Compression mode must be one of {'infer', 'gzip', 'bz2', 'zip',
+        'xz', None}. If compression mode is 'infer' and `fname` is path-like,
+        then detect compression from the following extensions: '.gz', '.bz2',
+        '.zip', or '.xz' (otherwise no compression). If dict and compression
+        mode is one of {'zip', 'gzip', 'bz2'}, or inferred as one of the above,
+        other entries passed as additional compression options.
+
+        .. versionadded:: 1.1.0
+
+    storage_options : dict, optional
+        Extra options that make sense for a particular storage connection, e.g.
+        host, port, username, password, etc., if using a URL that will
+        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+        will be raised if providing this argument with a local path or
+        a file-like buffer. See the fsspec and backend storage implementation
+        docs for the set of allowed keys and values
+
+        .. versionadded:: 1.2.0
 
     Returns
     -------
@@ -2075,7 +2205,12 @@ class StataWriter(StataParser):
     >>> writer = StataWriter('./data_file.dta', data)
     >>> writer.write_file()
 
-    Or with dates
+    Directly write a zip file
+    >>> compression = {"method": "zip", "archive_name": "data_file.dta"}
+    >>> writer = StataWriter('./data_file.zip', data, compression=compression)
+    >>> writer.write_file()
+
+    Save a DataFrame with dates
     >>> from datetime import datetime
     >>> data = pd.DataFrame([[datetime(2000,1,1)]], columns=['date'])
     >>> writer = StataWriter('./date_data_file.dta', data, {'date' : 'tw'})
@@ -2095,6 +2230,8 @@ class StataWriter(StataParser):
         time_stamp: Optional[datetime.datetime] = None,
         data_label: Optional[str] = None,
         variable_labels: Optional[Dict[Label, str]] = None,
+        compression: Union[str, Mapping[str, str], None] = "infer",
+        storage_options: StorageOptions = None,
     ):
         super().__init__()
         self._convert_dates = {} if convert_dates is None else convert_dates
@@ -2103,8 +2240,11 @@ class StataWriter(StataParser):
         self._data_label = data_label
         self._variable_labels = variable_labels
         self._own_file = True
+        self._compression = compression
+        self._output_file: Optional[BinaryIO] = None
         # attach nobs, nvars, data, varlist, typlist
         self._prepare_pandas(data)
+        self.storage_options = storage_options
 
         if byteorder is None:
             byteorder = sys.byteorder
@@ -2133,7 +2273,7 @@ class StataWriter(StataParser):
         Check for categorical columns, retain categorical information for
         Stata file and convert categorical data to int
         """
-        is_cat = [is_categorical_dtype(data[col]) for col in data]
+        is_cat = [is_categorical_dtype(data[col].dtype) for col in data]
         self._is_col_cat = is_cat
         self._value_labels: List[StataValueLabel] = []
         if not any(is_cat):
@@ -2151,7 +2291,7 @@ class StataWriter(StataParser):
                         "It is not possible to export "
                         "int64-based categorical data to Stata."
                     )
-                values = data[col].cat.codes.values.copy()
+                values = data[col].cat.codes._values.copy()
 
                 # Upcast if needed so that correct missing values can be set
                 if values.max() >= get_base_missing_value(dtype):
@@ -2384,13 +2524,18 @@ supported types."""
                 encoded = self.data[col].str.encode(self._encoding)
                 # If larger than _max_string_length do nothing
                 if (
-                    max_len_string_array(ensure_object(encoded.values))
+                    max_len_string_array(ensure_object(encoded._values))
                     <= self._max_string_length
                 ):
                     self.data[col] = encoded
 
     def write_file(self) -> None:
-        self._file, self._own_file = _open_file_binary_write(self._fname)
+        self._file, self._own_file, compression = _open_file_binary_write(
+            self._fname, self._compression, storage_options=self.storage_options
+        )
+        if compression is not None:
+            self._output_file = self._file
+            self._file = BytesIO()
         try:
             self._write_header(data_label=self._data_label, time_stamp=self._time_stamp)
             self._write_map()
@@ -2435,6 +2580,12 @@ supported types."""
         """
         # Some file-like objects might not support flush
         assert self._file is not None
+        if self._output_file is not None:
+            assert isinstance(self._file, BytesIO)
+            bio = self._file
+            bio.seek(0)
+            self._file = self._output_file
+            self._file.write(bio.read())
         try:
             self._file.flush()
         except AttributeError:
@@ -2650,7 +2801,7 @@ def _dtype_to_stata_type_117(dtype: np.dtype, column: Series, force_strl: bool) 
     if dtype.type == np.object_:  # try to coerce it to the biggest string
         # not memory efficient, what else could we
         # do?
-        itemsize = max_len_string_array(ensure_object(column.values))
+        itemsize = max_len_string_array(ensure_object(column._values))
         itemsize = max(itemsize, 1)
         if itemsize <= 2045:
             return itemsize
@@ -2899,6 +3050,17 @@ class StataWriter117(StataWriter):
         Smaller columns can be converted by including the column name.  Using
         StrLs can reduce output file size when strings are longer than 8
         characters, and either frequently repeated or sparse.
+    compression : str or dict, default 'infer'
+        For on-the-fly compression of the output dta. If string, specifies
+        compression mode. If dict, value at key 'method' specifies compression
+        mode. Compression mode must be one of {'infer', 'gzip', 'bz2', 'zip',
+        'xz', None}. If compression mode is 'infer' and `fname` is path-like,
+        then detect compression from the following extensions: '.gz', '.bz2',
+        '.zip', or '.xz' (otherwise no compression). If dict and compression
+        mode is one of {'zip', 'gzip', 'bz2'}, or inferred as one of the above,
+        other entries passed as additional compression options.
+
+        .. versionadded:: 1.1.0
 
     Returns
     -------
@@ -2924,8 +3086,12 @@ class StataWriter117(StataWriter):
     >>> writer = StataWriter117('./data_file.dta', data)
     >>> writer.write_file()
 
-    Or with long strings stored in strl format
+    Directly write a zip file
+    >>> compression = {"method": "zip", "archive_name": "data_file.dta"}
+    >>> writer = StataWriter117('./data_file.zip', data, compression=compression)
+    >>> writer.write_file()
 
+    Or with long strings stored in strl format
     >>> data = pd.DataFrame([['A relatively long string'], [''], ['']],
     ...                     columns=['strls'])
     >>> writer = StataWriter117('./data_file_with_long_strings.dta', data,
@@ -2947,6 +3113,8 @@ class StataWriter117(StataWriter):
         data_label: Optional[str] = None,
         variable_labels: Optional[Dict[Label, str]] = None,
         convert_strl: Optional[Sequence[Label]] = None,
+        compression: Union[str, Mapping[str, str], None] = "infer",
+        storage_options: StorageOptions = None,
     ):
         # Copy to new list since convert_strl might be modified later
         self._convert_strl: List[Label] = []
@@ -2962,6 +3130,8 @@ class StataWriter117(StataWriter):
             time_stamp=time_stamp,
             data_label=data_label,
             variable_labels=variable_labels,
+            compression=compression,
+            storage_options=storage_options,
         )
         self._map: Dict[str, int] = {}
         self._strl_blob = b""
@@ -3282,6 +3452,17 @@ class StataWriterUTF8(StataWriter117):
         The dta version to use. By default, uses the size of data to determine
         the version. 118 is used if data.shape[1] <= 32767, and 119 is used
         for storing larger DataFrames.
+    compression : str or dict, default 'infer'
+        For on-the-fly compression of the output dta. If string, specifies
+        compression mode. If dict, value at key 'method' specifies compression
+        mode. Compression mode must be one of {'infer', 'gzip', 'bz2', 'zip',
+        'xz', None}. If compression mode is 'infer' and `fname` is path-like,
+        then detect compression from the following extensions: '.gz', '.bz2',
+        '.zip', or '.xz' (otherwise no compression). If dict and compression
+        mode is one of {'zip', 'gzip', 'bz2'}, or inferred as one of the above,
+        other entries passed as additional compression options.
+
+        .. versionadded:: 1.1.0
 
     Returns
     -------
@@ -3309,6 +3490,11 @@ class StataWriterUTF8(StataWriter117):
     >>> writer = StataWriterUTF8('./data_file.dta', data)
     >>> writer.write_file()
 
+    Directly write a zip file
+    >>> compression = {"method": "zip", "archive_name": "data_file.dta"}
+    >>> writer = StataWriterUTF8('./data_file.zip', data, compression=compression)
+    >>> writer.write_file()
+
     Or with long strings stored in strl format
 
     >>> data = pd.DataFrame([['ᴀ relatively long ŝtring'], [''], ['']],
@@ -3332,6 +3518,8 @@ class StataWriterUTF8(StataWriter117):
         variable_labels: Optional[Dict[Label, str]] = None,
         convert_strl: Optional[Sequence[Label]] = None,
         version: Optional[int] = None,
+        compression: Union[str, Mapping[str, str], None] = "infer",
+        storage_options: StorageOptions = None,
     ):
         if version is None:
             version = 118 if data.shape[1] <= 32767 else 119
@@ -3353,6 +3541,8 @@ class StataWriterUTF8(StataWriter117):
             data_label=data_label,
             variable_labels=variable_labels,
             convert_strl=convert_strl,
+            compression=compression,
+            storage_options=storage_options,
         )
         # Override version set in StataWriter117 init
         self._dta_version = version

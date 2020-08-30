@@ -31,6 +31,6 @@ class TestToPeriod:
         pts = df.to_period("M", axis=1)
         tm.assert_index_equal(pts.columns, exp.columns.asfreq("M"))
 
-        msg = "No axis named 2 for object type <class 'pandas.core.frame.DataFrame'>"
+        msg = "No axis named 2 for object type DataFrame"
         with pytest.raises(ValueError, match=msg):
             df.to_period(axis=2)

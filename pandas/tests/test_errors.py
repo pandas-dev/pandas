@@ -18,6 +18,7 @@ import pandas as pd  # noqa
         "ParserWarning",
         "MergeError",
         "OptionError",
+        "NumbaUtilError",
     ],
 )
 def test_exception_importable(exc):

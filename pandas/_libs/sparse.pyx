@@ -1,9 +1,18 @@
 import cython
-
 import numpy as np
+
 cimport numpy as cnp
-from numpy cimport (ndarray, uint8_t, int64_t, int32_t, int16_t, int8_t,
-                    float64_t, float32_t)
+from numpy cimport (
+    float32_t,
+    float64_t,
+    int8_t,
+    int16_t,
+    int32_t,
+    int64_t,
+    ndarray,
+    uint8_t,
+)
+
 cnp.import_array()
 
 
@@ -34,18 +43,21 @@ cdef class IntIndex(SparseIndex):
     length : integer
     indices : array-like
         Contains integers corresponding to the indices.
+    check_integrity : bool, default=True
+        Check integrity of the input.
     """
 
     cdef readonly:
         Py_ssize_t length, npoints
         ndarray indices
 
-    def __init__(self, Py_ssize_t length, indices):
+    def __init__(self, Py_ssize_t length, indices, bint check_integrity=True):
         self.length = length
         self.indices = np.ascontiguousarray(indices, dtype=np.int32)
         self.npoints = len(self.indices)
 
-        self.check_integrity()
+        if check_integrity:
+            self.check_integrity()
 
     def __reduce__(self):
         args = (self.length, self.indices)
@@ -91,7 +103,7 @@ cdef class IntIndex(SparseIndex):
         if not monotonic:
             raise ValueError("Indices must be strictly increasing")
 
-    def equals(self, other) -> bool:
+    def equals(self, other: object) -> bool:
         if not isinstance(other, IntIndex):
             return False
 
@@ -387,7 +399,7 @@ cdef class BlockIndex(SparseIndex):
             if blengths[i] == 0:
                 raise ValueError(f'Zero-length block {i}')
 
-    def equals(self, other) -> bool:
+    def equals(self, other: object) -> bool:
         if not isinstance(other, BlockIndex):
             return False
 
@@ -788,4 +800,4 @@ def make_mask_object_ndarray(ndarray[object, ndim=1] arr, object fill_value):
         if value == fill_value and type(value) == type(fill_value):
             mask[i] = 0
 
-    return mask.view(dtype=np.bool)
+    return mask.view(dtype=bool)

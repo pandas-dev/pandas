@@ -4,17 +4,19 @@ Misc tools for implementing data structures
 Note: pandas.core.common is *not* part of the public API.
 """
 
-import collections
-from collections import abc
+from collections import abc, defaultdict
+import contextlib
 from datetime import datetime, timedelta
 from functools import partial
 import inspect
-from typing import Any, Collection, Iterable, Union
+from typing import Any, Collection, Iterable, Iterator, List, Union
+import warnings
 
 import numpy as np
 
 from pandas._libs import lib, tslibs
-from pandas._typing import T
+from pandas._typing import AnyArrayLike, Scalar, T
+from pandas.compat.numpy import _np_version_under1p18
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -23,7 +25,12 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_integer,
 )
-from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCExtensionArray,
+    ABCIndex,
+    ABCIndexClass,
+    ABCSeries,
+)
 from pandas.core.dtypes.inference import _iterable_not_string
 from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
 
@@ -87,9 +94,6 @@ def maybe_box_datetimelike(value, dtype=None):
     return value
 
 
-values_from_object = lib.values_from_object
-
-
 def is_bool_indexer(key: Any) -> bool:
     """
     Check whether `key` is a valid boolean indexer.
@@ -142,13 +146,15 @@ def is_bool_indexer(key: Any) -> bool:
     return False
 
 
-def cast_scalar_indexer(val):
+def cast_scalar_indexer(val, warn_float=False):
     """
     To avoid numpy DeprecationWarnings, cast float to integer where valid.
 
     Parameters
     ----------
     val : scalar
+    warn_float : bool, default False
+        If True, issue deprecation warning for a float indexer.
 
     Returns
     -------
@@ -156,6 +162,13 @@ def cast_scalar_indexer(val):
     """
     # assumes lib.is_scalar(val)
     if lib.is_float(val) and val.is_integer():
+        if warn_float:
+            warnings.warn(
+                "Indexing with a float is deprecated, and will raise an IndexError "
+                "in pandas 2.0. You can manually convert to an integer key instead.",
+                FutureWarning,
+                stacklevel=3,
+            )
         return int(val)
     return val
 
@@ -202,20 +215,12 @@ def count_not_none(*args) -> int:
     return sum(x is not None for x in args)
 
 
-def try_sort(iterable):
-    listed = list(iterable)
-    try:
-        return sorted(listed)
-    except TypeError:
-        return listed
-
-
 def asarray_tuplesafe(values, dtype=None):
 
     if not (isinstance(values, (list, tuple)) or hasattr(values, "__array__")):
         values = list(values)
     elif isinstance(values, ABCIndexClass):
-        return values.values
+        return values._values
 
     if isinstance(values, list) and dtype in [np.object_, object]:
         return construct_1d_object_array_from_listlike(values)
@@ -359,8 +364,6 @@ def standardize_mapping(into):
     """
     Helper function to standardize a supplied mapping.
 
-    .. versionadded:: 0.21.0
-
     Parameters
     ----------
     into : instance or subclass of collections.abc.Mapping
@@ -379,12 +382,12 @@ def standardize_mapping(into):
     Series.to_dict
     """
     if not inspect.isclass(into):
-        if isinstance(into, collections.defaultdict):
-            return partial(collections.defaultdict, into.default_factory)
+        if isinstance(into, defaultdict):
+            return partial(defaultdict, into.default_factory)
         into = type(into)
     if not issubclass(into, abc.Mapping):
         raise TypeError(f"unsupported type: {into}")
-    elif into == collections.defaultdict:
+    elif into == defaultdict:
         raise TypeError("to_dict() only accepts initialized defaultdicts")
     return into
 
@@ -395,18 +398,30 @@ def random_state(state=None):
 
     Parameters
     ----------
-    state : int, np.random.RandomState, None.
-        If receives an int, passes to np.random.RandomState() as seed.
+    state : int, array-like, BitGenerator (NumPy>=1.17), np.random.RandomState, None.
+        If receives an int, array-like, or BitGenerator, passes to
+        np.random.RandomState() as seed.
         If receives an np.random.RandomState object, just returns object.
         If receives `None`, returns np.random.
         If receives anything else, raises an informative ValueError.
+
+        .. versionchanged:: 1.1.0
+
+            array-like and BitGenerator (for NumPy>=1.18) object now passed to
+            np.random.RandomState() as seed
+
         Default None.
 
     Returns
     -------
     np.random.RandomState
+
     """
-    if is_integer(state):
+    if (
+        is_integer(state)
+        or is_array_like(state)
+        or (not _np_version_under1p18 and isinstance(state, np.random.BitGenerator))
+    ):
         return np.random.RandomState(state)
     elif isinstance(state, np.random.RandomState):
         return state
@@ -414,7 +429,10 @@ def random_state(state=None):
         return np.random
     else:
         raise ValueError(
-            "random_state must be an integer, a numpy RandomState, or None"
+            (
+                "random_state must be an integer, array-like, a BitGenerator, "
+                "a numpy RandomState, or None"
+            )
         )
 
 
@@ -470,3 +488,36 @@ def get_rename_function(mapper):
         f = mapper
 
     return f
+
+
+def convert_to_list_like(
+    values: Union[Scalar, Iterable, AnyArrayLike]
+) -> Union[List, AnyArrayLike]:
+    """
+    Convert list-like or scalar input to list-like. List, numpy and pandas array-like
+    inputs are returned unmodified whereas others are converted to list.
+    """
+    if isinstance(values, (list, np.ndarray, ABCIndex, ABCSeries, ABCExtensionArray)):
+        return values
+    elif isinstance(values, abc.Iterable) and not isinstance(values, str):
+        return list(values)
+
+    return [values]
+
+
+@contextlib.contextmanager
+def temp_setattr(obj, attr: str, value) -> Iterator[None]:
+    """Temporarily set attribute on an object.
+
+    Args:
+        obj: Object whose attribute will be modified.
+        attr: Attribute to modify.
+        value: Value to temporarily set attribute to.
+
+    Yields:
+        obj with modified attribute.
+    """
+    old_value = getattr(obj, attr)
+    setattr(obj, attr, value)
+    yield obj
+    setattr(obj, attr, old_value)

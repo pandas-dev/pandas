@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, Series
+from pandas import DataFrame, Series
 import pandas._testing as tm
 
 
@@ -15,7 +15,7 @@ def test_multiindex_get_loc():  # GH7724, GH2646
     with warnings.catch_warnings(record=True):
 
         # test indexing into a multi-index before & past the lexsort depth
-        from numpy.random import randint, choice, randn
+        from numpy.random import choice, randint, randn
 
         cols = ["jim", "joe", "jolie", "joline", "jolia"]
 
@@ -34,12 +34,15 @@ def test_multiindex_get_loc():  # GH7724, GH2646
                 right = df[mask].copy()
 
                 if i + 1 != len(key):  # partial key
-                    right.drop(cols[: i + 1], axis=1, inplace=True)
-                    right.set_index(cols[i + 1 : -1], inplace=True)
+                    return_value = right.drop(cols[: i + 1], axis=1, inplace=True)
+                    assert return_value is None
+                    return_value = right.set_index(cols[i + 1 : -1], inplace=True)
+                    assert return_value is None
                     tm.assert_frame_equal(mi.loc[key[: i + 1]], right)
 
                 else:  # full key
-                    right.set_index(cols[:-1], inplace=True)
+                    return_value = right.set_index(cols[:-1], inplace=True)
+                    assert return_value is None
                     if len(right) == 1:  # single hit
                         right = Series(
                             right["jolia"].values, name=right.index[0], index=["jolia"]
@@ -83,10 +86,3 @@ def test_multiindex_get_loc():  # GH7724, GH2646
                 mi = df.set_index(cols[:-1])
                 assert not mi.index.lexsort_depth < i
                 loop(mi, df, keys)
-
-
-@pytest.mark.slow
-def test_large_mi_dataframe_indexing():
-    # GH10645
-    result = MultiIndex.from_arrays([range(10 ** 6), range(10 ** 6)])
-    assert not (10 ** 6, 0) in result

@@ -70,8 +70,17 @@ class TestDataFrameToDict:
         with pytest.raises(ValueError, match=msg):
             df.to_dict(orient="xinvalid")
 
+    @pytest.mark.parametrize("orient", ["d", "l", "r", "sp", "s", "i"])
+    def test_to_dict_short_orient_warns(self, orient):
+        # GH#32515
+        df = DataFrame({"A": [0, 1]})
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            df.to_dict(orient=orient)
+
     @pytest.mark.parametrize("mapping", [dict, defaultdict(list), OrderedDict])
     def test_to_dict(self, mapping):
+        # orient= should only take the listed options
+        # see GH#32515
         test_data = {"A": {"1": 1, "2": 2}, "B": {"1": "1", "2": "2", "3": "3"}}
 
         # GH#16122
@@ -81,19 +90,19 @@ class TestDataFrameToDict:
             for k2, v2 in v.items():
                 assert v2 == recons_data[k][k2]
 
-        recons_data = DataFrame(test_data).to_dict("l", mapping)
+        recons_data = DataFrame(test_data).to_dict("list", mapping)
 
         for k, v in test_data.items():
             for k2, v2 in v.items():
                 assert v2 == recons_data[k][int(k2) - 1]
 
-        recons_data = DataFrame(test_data).to_dict("s", mapping)
+        recons_data = DataFrame(test_data).to_dict("series", mapping)
 
         for k, v in test_data.items():
             for k2, v2 in v.items():
                 assert v2 == recons_data[k][k2]
 
-        recons_data = DataFrame(test_data).to_dict("sp", mapping)
+        recons_data = DataFrame(test_data).to_dict("split", mapping)
         expected_split = {
             "columns": ["A", "B"],
             "index": ["1", "2", "3"],
@@ -101,7 +110,7 @@ class TestDataFrameToDict:
         }
         tm.assert_dict_equal(recons_data, expected_split)
 
-        recons_data = DataFrame(test_data).to_dict("r", mapping)
+        recons_data = DataFrame(test_data).to_dict("records", mapping)
         expected_records = [
             {"A": 1.0, "B": "1"},
             {"A": 2.0, "B": "2"},
@@ -113,7 +122,7 @@ class TestDataFrameToDict:
             tm.assert_dict_equal(l, r)
 
         # GH#10844
-        recons_data = DataFrame(test_data).to_dict("i")
+        recons_data = DataFrame(test_data).to_dict("index")
 
         for k, v in test_data.items():
             for k2, v2 in v.items():
@@ -121,7 +130,7 @@ class TestDataFrameToDict:
 
         df = DataFrame(test_data)
         df["duped"] = df[df.columns[0]]
-        recons_data = df.to_dict("i")
+        recons_data = df.to_dict("index")
         comp_data = test_data.copy()
         comp_data["duped"] = comp_data[df.columns[0]]
         for k, v in comp_data.items():

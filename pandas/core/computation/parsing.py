@@ -37,7 +37,9 @@ def create_valid_python_identifier(name: str) -> str:
     special_characters_replacements = {
         char: f"_{token.tok_name[tokval]}_"
         # The ignore here is because of a bug in mypy that is resolved in 0.740
-        for char, tokval in tokenize.EXACT_TOKEN_TYPES.items()  # type: ignore
+        for char, tokval in (
+            tokenize.EXACT_TOKEN_TYPES.items()  # type: ignore[attr-defined]
+        )
     }
     special_characters_replacements.update(
         {
@@ -116,7 +118,7 @@ def clean_column_name(name: str) -> str:
 
         If this name was used in the query string (this makes the query call impossible)
         an error will be raised by :func:`tokenize_backtick_quoted_string` instead,
-        which is not catched and propogates to the user level.
+        which is not caught and propagates to the user level.
     """
     try:
         tokenized = tokenize_string(f"`{name}`")

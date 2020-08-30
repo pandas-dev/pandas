@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs import IncompatibleFrequency
+
 from pandas import Series, Timestamp, date_range, isna, notna, offsets
 import pandas._testing as tm
 
@@ -12,7 +14,7 @@ class TestSeriesAsof:
         N = 50
         rng = date_range("1/1/1990", periods=N, freq="53s")
         ts = Series(np.random.randn(N), index=rng)
-        ts[15:30] = np.nan
+        ts.iloc[15:30] = np.nan
         dates = date_range("1/1/1990", periods=N * 3, freq="25s")
 
         result = ts.asof(dates)
@@ -37,8 +39,8 @@ class TestSeriesAsof:
         N = 30
         rng = date_range("1/1/1990", periods=N, freq="53s")
         ts = Series(np.arange(N), index=rng)
-        ts[5:10] = np.NaN
-        ts[15:20] = np.NaN
+        ts.iloc[5:10] = np.NaN
+        ts.iloc[15:20] = np.NaN
 
         val1 = ts.asof(ts.index[7])
         val2 = ts.asof(ts.index[19])
@@ -88,13 +90,13 @@ class TestSeriesAsof:
         tm.assert_series_equal(result, expected)
 
     def test_periodindex(self):
-        from pandas import period_range, PeriodIndex
+        from pandas import PeriodIndex, period_range
 
         # array or list or dates
         N = 50
         rng = period_range("1/1/1990", periods=N, freq="H")
         ts = Series(np.random.randn(N), index=rng)
-        ts[15:30] = np.nan
+        ts.iloc[15:30] = np.nan
         dates = date_range("1/1/1990", periods=N * 3, freq="37min")
 
         result = ts.asof(dates)
@@ -112,8 +114,8 @@ class TestSeriesAsof:
         rs = result[mask]
         assert (rs == ts[lb]).all()
 
-        ts[5:10] = np.nan
-        ts[15:20] = np.nan
+        ts.iloc[5:10] = np.nan
+        ts.iloc[15:20] = np.nan
 
         val1 = ts.asof(ts.index[7])
         val2 = ts.asof(ts.index[19])
@@ -132,6 +134,11 @@ class TestSeriesAsof:
         d = ts.index[0].to_timestamp() - offsets.BDay()
         assert isna(ts.asof(d))
 
+        # Mismatched freq
+        msg = "Input has different freq"
+        with pytest.raises(IncompatibleFrequency, match=msg):
+            ts.asof(rng.asfreq("D"))
+
     def test_errors(self):
 
         s = Series(
@@ -141,14 +148,14 @@ class TestSeriesAsof:
 
         # non-monotonic
         assert not s.index.is_monotonic
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="requires a sorted index"):
             s.asof(s.index[0])
 
         # subset with Series
         N = 10
         rng = date_range("1/1/1990", periods=N, freq="53s")
         s = Series(np.random.randn(N), index=rng)
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="not valid for Series"):
             s.asof(s.index[0], subset="foo")
 
     def test_all_nans(self):

@@ -67,27 +67,28 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         Examples
         --------
         >>> from scipy import sparse
-        >>> A = sparse.coo_matrix(([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])),
-                               shape=(3, 4))
+
+        >>> A = sparse.coo_matrix(
+        ...     ([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])), shape=(3, 4)
+        ... )
         >>> A
         <3x4 sparse matrix of type '<class 'numpy.float64'>'
-                with 3 stored elements in COOrdinate format>
+        with 3 stored elements in COOrdinate format>
+
         >>> A.todense()
-        matrix([[ 0.,  0.,  1.,  2.],
-                [ 3.,  0.,  0.,  0.],
-                [ 0.,  0.,  0.,  0.]])
+        matrix([[0., 0., 1., 2.],
+        [3., 0., 0., 0.],
+        [0., 0., 0., 0.]])
+
         >>> ss = pd.Series.sparse.from_coo(A)
         >>> ss
-        0  2    1
-           3    2
-        1  0    3
-        dtype: float64
-        BlockIndex
-        Block locations: array([0], dtype=int32)
-        Block lengths: array([3], dtype=int32)
+        0  2    1.0
+           3    2.0
+        1  0    3.0
+        dtype: Sparse[float64, nan]
         """
-        from pandas.core.arrays.sparse.scipy_sparse import _coo_to_sparse_series
         from pandas import Series
+        from pandas.core.arrays.sparse.scipy_sparse import _coo_to_sparse_series
 
         result = _coo_to_sparse_series(A, dense_index=dense_index)
         result = Series(result.array, index=result.index, copy=False)
@@ -119,24 +120,49 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         Examples
         --------
         >>> s = pd.Series([3.0, np.nan, 1.0, 3.0, np.nan, np.nan])
-        >>> s.index = pd.MultiIndex.from_tuples([(1, 2, 'a', 0),
-                                                (1, 2, 'a', 1),
-                                                (1, 1, 'b', 0),
-                                                (1, 1, 'b', 1),
-                                                (2, 1, 'b', 0),
-                                                (2, 1, 'b', 1)],
-                                                names=['A', 'B', 'C', 'D'])
+        >>> s.index = pd.MultiIndex.from_tuples(
+        ...     [
+        ...         (1, 2, "a", 0),
+        ...         (1, 2, "a", 1),
+        ...         (1, 1, "b", 0),
+        ...         (1, 1, "b", 1),
+        ...         (2, 1, "b", 0),
+        ...         (2, 1, "b", 1)
+        ...     ],
+        ...     names=["A", "B", "C", "D"],
+        ... )
+        >>> s
+        A  B  C  D
+        1  2  a  0    3.0
+                 1    NaN
+           1  b  0    1.0
+                 1    3.0
+        2  1  b  0    NaN
+                 1    NaN
+        dtype: float64
+
         >>> ss = s.astype("Sparse")
-        >>> A, rows, columns = ss.sparse.to_coo(row_levels=['A', 'B'],
-        ...                                     column_levels=['C', 'D'],
-        ...                                     sort_labels=True)
+        >>> ss
+        A  B  C  D
+        1  2  a  0    3.0
+                 1    NaN
+           1  b  0    1.0
+                 1    3.0
+        2  1  b  0    NaN
+                 1    NaN
+        dtype: Sparse[float64, nan]
+
+        >>> A, rows, columns = ss.sparse.to_coo(
+        ...     row_levels=["A", "B"], column_levels=["C", "D"], sort_labels=True
+        ... )
         >>> A
         <3x4 sparse matrix of type '<class 'numpy.float64'>'
-                with 3 stored elements in COOrdinate format>
+        with 3 stored elements in COOrdinate format>
         >>> A.todense()
-        matrix([[ 0.,  0.,  1.,  3.],
-        [ 3.,  0.,  0.,  0.],
-        [ 0.,  0.,  0.,  0.]])
+        matrix([[0., 0., 1., 3.],
+        [3., 0., 0., 0.],
+        [0., 0., 0., 0.]])
+
         >>> rows
         [(1, 1), (1, 2), (2, 1)]
         >>> columns
@@ -227,15 +253,31 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         1  0.0  1.0  0.0
         2  0.0  0.0  1.0
         """
+        from pandas._libs.sparse import IntIndex
+
         from pandas import DataFrame
 
         data = data.tocsc()
         index, columns = cls._prep_index(data, index, columns)
-        sparrays = [SparseArray.from_spmatrix(data[:, i]) for i in range(data.shape[1])]
-        data = dict(enumerate(sparrays))
-        result = DataFrame(data, index=index)
-        result.columns = columns
-        return result
+        n_rows, n_columns = data.shape
+        # We need to make sure indices are sorted, as we create
+        # IntIndex with no input validation (i.e. check_integrity=False ).
+        # Indices may already be sorted in scipy in which case this adds
+        # a small overhead.
+        data.sort_indices()
+        indices = data.indices
+        indptr = data.indptr
+        array_data = data.data
+        dtype = SparseDtype(array_data.dtype, 0)
+        arrays = []
+        for i in range(n_columns):
+            sl = slice(indptr[i], indptr[i + 1])
+            idx = IntIndex(n_rows, indices[sl], check_integrity=False)
+            arr = SparseArray._simple_new(array_data[sl], idx, dtype)
+            arrays.append(arr)
+        return DataFrame._from_arrays(
+            arrays, columns=columns, index=index, verify_integrity=False
+        )
 
     def to_dense(self):
         """
@@ -313,13 +355,18 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
 
     @staticmethod
     def _prep_index(data, index, columns):
+        from pandas.core.indexes.api import ensure_index
         import pandas.core.indexes.base as ibase
 
         N, K = data.shape
         if index is None:
             index = ibase.default_index(N)
+        else:
+            index = ensure_index(index)
         if columns is None:
             columns = ibase.default_index(K)
+        else:
+            columns = ensure_index(columns)
 
         if len(columns) != K:
             raise ValueError(f"Column length mismatch: {len(columns)} vs. {K}")

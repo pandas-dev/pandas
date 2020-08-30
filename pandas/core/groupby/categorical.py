@@ -4,7 +4,7 @@ from pandas.core.algorithms import unique1d
 from pandas.core.arrays.categorical import (
     Categorical,
     CategoricalDtype,
-    _recode_for_categories,
+    recode_for_categories,
 )
 
 
@@ -51,7 +51,7 @@ def recode_for_groupby(c: Categorical, sort: bool, observed: bool):
 
         # we recode according to the uniques
         categories = c.categories.take(take_codes)
-        codes = _recode_for_categories(c.codes, c.categories, categories)
+        codes = recode_for_categories(c.codes, c.categories, categories)
 
         # return a new categorical that maps our new codes
         # and categories

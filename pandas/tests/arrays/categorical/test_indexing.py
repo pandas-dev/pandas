@@ -85,6 +85,15 @@ class TestCategoricalIndexingWithFactor(TestCategorical):
 
 
 class TestCategoricalIndexing:
+    def test_getitem_slice(self):
+        cat = Categorical(["a", "b", "c", "d", "a", "b", "c"])
+        sliced = cat[3]
+        assert sliced == "d"
+
+        sliced = cat[3:5]
+        expected = Categorical(["d", "a"], categories=["a", "b", "c", "d"])
+        tm.assert_categorical_equal(sliced, expected)
+
     def test_getitem_listlike(self):
 
         # GH 9469
@@ -146,7 +155,7 @@ class TestCategoricalIndexing:
         tm.assert_numpy_array_equal(cat3._codes, exp_arr)
         tm.assert_index_equal(cat3.categories, exp_idx)
 
-    def test_categories_assigments(self):
+    def test_categories_assignments(self):
         s = Categorical(["a", "b", "c", "a"])
         exp = np.array([1, 2, 3, 1], dtype=np.int64)
         s.categories = [1, 2, 3]
@@ -154,7 +163,7 @@ class TestCategoricalIndexing:
         tm.assert_index_equal(s.categories, Index([1, 2, 3]))
 
     @pytest.mark.parametrize("new_categories", [[1, 2, 3, 4], [1, 2]])
-    def test_categories_assigments_wrong_length_raises(self, new_categories):
+    def test_categories_assignments_wrong_length_raises(self, new_categories):
         cat = Categorical(["a", "b", "c", "a"])
         msg = (
             "new categories need to have the same number of items "

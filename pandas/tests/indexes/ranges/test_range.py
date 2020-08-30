@@ -27,10 +27,10 @@ class TestRangeIndex(Numeric):
         ],
         ids=["index_inc", "index_dec"],
     )
-    def indices(self, request):
+    def index(self, request):
         return request.param
 
-    def create_index(self):
+    def create_index(self) -> RangeIndex:
         return RangeIndex(start=0, stop=20, step=2)
 
     def test_can_hold_identifiers(self):
@@ -117,7 +117,8 @@ class TestRangeIndex(Numeric):
         tm.assert_index_equal(result, expected)
         assert result.name == expected.name
 
-        with pytest.raises((IndexError, ValueError)):
+        msg = "index 5 is out of bounds for axis 0 with size 5"
+        with pytest.raises((IndexError, ValueError), match=msg):
             # either depending on numpy version
             result = idx.delete(len(idx))
 
@@ -136,53 +137,68 @@ class TestRangeIndex(Numeric):
         index = self.create_index()
         assert index.dtype == np.int64
 
-    def test_cached_data(self):
-        # GH 26565, GH26617
-        # Calling RangeIndex._data caches an int64 array of the same length at
-        # self._cached_data. This test checks whether _cached_data has been set
+    def test_cache(self):
+        # GH 26565, GH26617, GH35432
+        # This test checks whether _cache has been set.
+        # Calling RangeIndex._cache["_data"] creates an int64 array of the same length
+        # as the RangeIndex and stores it in _cache.
         idx = RangeIndex(0, 100, 10)
 
-        assert idx._cached_data is None
+        assert idx._cache == {}
 
         repr(idx)
-        assert idx._cached_data is None
+        assert idx._cache == {}
 
         str(idx)
-        assert idx._cached_data is None
+        assert idx._cache == {}
 
         idx.get_loc(20)
-        assert idx._cached_data is None
+        assert idx._cache == {}
 
-        90 in idx
-        assert idx._cached_data is None
+        90 in idx  # True
+        assert idx._cache == {}
 
-        91 in idx
-        assert idx._cached_data is None
+        91 in idx  # False
+        assert idx._cache == {}
 
         idx.all()
-        assert idx._cached_data is None
+        assert idx._cache == {}
 
         idx.any()
-        assert idx._cached_data is None
+        assert idx._cache == {}
+
+        for _ in idx:
+            pass
+        assert idx._cache == {}
+
+        idx.format()
+        assert idx._cache == {}
 
         df = pd.DataFrame({"a": range(10)}, index=idx)
 
+        str(df)
+        assert idx._cache == {}
+
         df.loc[50]
-        assert idx._cached_data is None
+        assert idx._cache == {}
 
         with pytest.raises(KeyError, match="51"):
             df.loc[51]
-        assert idx._cached_data is None
+        assert idx._cache == {}
 
         df.loc[10:50]
-        assert idx._cached_data is None
+        assert idx._cache == {}
 
         df.iloc[5:10]
-        assert idx._cached_data is None
+        assert idx._cache == {}
 
-        # actually calling idx._data
+        # idx._cache should contain a _data entry after call to idx._data
+        idx._data
         assert isinstance(idx._data, np.ndarray)
-        assert isinstance(idx._cached_data, np.ndarray)
+        assert idx._data is idx._data  # check cached value is reused
+        assert len(idx._cache) == 4
+        expected = np.arange(0, 100, 10, dtype="int64")
+        tm.assert_numpy_array_equal(idx._cache["_data"], expected)
 
     def test_is_monotonic(self):
         index = RangeIndex(0, 20, 2)
@@ -257,43 +273,6 @@ class TestRangeIndex(Numeric):
 
         assert not index.copy(dtype=object).identical(index.copy(dtype="int64"))
 
-    def test_get_indexer(self):
-        index = self.create_index()
-        target = RangeIndex(10)
-        indexer = index.get_indexer(target)
-        expected = np.array([0, -1, 1, -1, 2, -1, 3, -1, 4, -1], dtype=np.intp)
-        tm.assert_numpy_array_equal(indexer, expected)
-
-    def test_get_indexer_pad(self):
-        index = self.create_index()
-        target = RangeIndex(10)
-        indexer = index.get_indexer(target, method="pad")
-        expected = np.array([0, 0, 1, 1, 2, 2, 3, 3, 4, 4], dtype=np.intp)
-        tm.assert_numpy_array_equal(indexer, expected)
-
-    def test_get_indexer_backfill(self):
-        index = self.create_index()
-        target = RangeIndex(10)
-        indexer = index.get_indexer(target, method="backfill")
-        expected = np.array([0, 1, 1, 2, 2, 3, 3, 4, 4, 5], dtype=np.intp)
-        tm.assert_numpy_array_equal(indexer, expected)
-
-    def test_get_indexer_limit(self):
-        # GH 28631
-        idx = RangeIndex(4)
-        target = RangeIndex(6)
-        result = idx.get_indexer(target, method="pad", limit=1)
-        expected = np.array([0, 1, 2, 3, 3, -1], dtype=np.intp)
-        tm.assert_numpy_array_equal(result, expected)
-
-    @pytest.mark.parametrize("stop", [0, -1, -2])
-    def test_get_indexer_decreasing(self, stop):
-        # GH 28678
-        index = RangeIndex(7, stop, -3)
-        result = index.get_indexer(range(9))
-        expected = np.array([-1, 2, -1, -1, 1, -1, -1, 0, -1], dtype=np.intp)
-        tm.assert_numpy_array_equal(result, expected)
-
     def test_nbytes(self):
 
         # memory savings vs int index
@@ -304,14 +283,19 @@ class TestRangeIndex(Numeric):
         i2 = RangeIndex(0, 10)
         assert i.nbytes == i2.nbytes
 
-    def test_cant_or_shouldnt_cast(self):
-        # can't
-        with pytest.raises(TypeError):
-            RangeIndex("foo", "bar", "baz")
-
-        # shouldn't
-        with pytest.raises(TypeError):
-            RangeIndex("0", "1", "2")
+    @pytest.mark.parametrize(
+        "start,stop,step",
+        [
+            # can't
+            ("foo", "bar", "baz"),
+            # shouldn't
+            ("0", "1", "2"),
+        ],
+    )
+    def test_cant_or_shouldnt_cast(self, start, stop, step):
+        msg = f"Wrong type {type(start)} for value {start}"
+        with pytest.raises(TypeError, match=msg):
+            RangeIndex(start, stop, step)
 
     def test_view_index(self):
         index = self.create_index()
@@ -321,41 +305,6 @@ class TestRangeIndex(Numeric):
         index = self.create_index()
         result = index.astype("O")
         assert result.dtype == np.object_
-
-    def test_take_preserve_name(self):
-        index = RangeIndex(1, 5, name="foo")
-        taken = index.take([3, 0, 1])
-        assert index.name == taken.name
-
-    def test_take_fill_value(self):
-        # GH 12631
-        idx = pd.RangeIndex(1, 4, name="xxx")
-        result = idx.take(np.array([1, 0, -1]))
-        expected = pd.Int64Index([2, 1, 3], name="xxx")
-        tm.assert_index_equal(result, expected)
-
-        # fill_value
-        msg = "Unable to fill values because RangeIndex cannot contain NA"
-        with pytest.raises(ValueError, match=msg):
-            idx.take(np.array([1, 0, -1]), fill_value=True)
-
-        # allow_fill=False
-        result = idx.take(np.array([1, 0, -1]), allow_fill=False, fill_value=True)
-        expected = pd.Int64Index([2, 1, 3], name="xxx")
-        tm.assert_index_equal(result, expected)
-
-        msg = "Unable to fill values because RangeIndex cannot contain NA"
-        with pytest.raises(ValueError, match=msg):
-            idx.take(np.array([1, 0, -2]), fill_value=True)
-        with pytest.raises(ValueError, match=msg):
-            idx.take(np.array([1, 0, -5]), fill_value=True)
-
-        with pytest.raises(IndexError):
-            idx.take(np.array([1, -5]))
-
-    def test_print_unicode_columns(self):
-        df = pd.DataFrame({"\u05d0": [1, 2, 3], "\u05d1": [4, 5, 6], "c": [7, 8, 9]})
-        repr(df.columns)  # should not raise UnicodeDecodeError
 
     def test_repr_roundtrip(self):
         index = self.create_index()
@@ -390,9 +339,9 @@ class TestRangeIndex(Numeric):
         result = a - fidx
         tm.assert_index_equal(result, expected)
 
-    def test_has_duplicates(self, indices):
-        assert indices.is_unique
-        assert not indices.has_duplicates
+    def test_has_duplicates(self, index):
+        assert index.is_unique
+        assert not index.has_duplicates
 
     def test_extended_gcd(self):
         index = self.create_index()
@@ -572,3 +521,9 @@ class TestRangeIndex(Numeric):
             idx.get_loc("a")
 
         assert "_engine" not in idx._cache
+
+    def test_format_empty(self):
+        # GH35712
+        empty_idx = self._holder(0)
+        assert empty_idx.format() == []
+        assert empty_idx.format(name=True) == [""]

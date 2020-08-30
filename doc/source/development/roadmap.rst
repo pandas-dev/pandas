@@ -22,8 +22,8 @@ See :ref:`roadmap.evolution` for proposing changes to this document.
 Extensibility
 -------------
 
-Pandas :ref:`extending.extension-types` allow for extending NumPy types with custom
-data types and array storage. Pandas uses extension types internally, and provides
+pandas :ref:`extending.extension-types` allow for extending NumPy types with custom
+data types and array storage. pandas uses extension types internally, and provides
 an interface for 3rd-party libraries to define their own custom data types.
 
 Many parts of pandas still unintentionally convert data to a NumPy array.
@@ -53,6 +53,32 @@ need to implement certain operations expected by pandas users (for example
 the algorithm used in, ``Series.str.upper``). That work may be done outside of
 pandas.
 
+Consistent missing value handling
+---------------------------------
+
+Currently, pandas handles missing data differently for different data types. We
+use different types to indicate that a value is missing (``np.nan`` for
+floating-point data, ``np.nan`` or ``None`` for object-dtype data -- typically
+strings or booleans -- with missing values, and ``pd.NaT`` for datetimelike
+data). Integer data cannot store missing data or are cast to float. In addition,
+pandas 1.0 introduced a new missing value sentinel, ``pd.NA``, which is being
+used for the experimental nullable integer, boolean, and string data types.
+
+These different missing values have different behaviors in user-facing
+operations. Specifically, we introduced different semantics for the nullable
+data types for certain operations (e.g. propagating in comparison operations
+instead of comparing as False).
+
+Long term, we want to introduce consistent missing data handling for all data
+types. This includes consistent behavior in all operations (indexing, arithmetic
+operations, comparisons, etc.). We want to eventually make the new semantics the
+default.
+
+This has been discussed at
+`github #28095 <https://github.com/pandas-dev/pandas/issues/28095>`__ (and
+linked issues), and described in more detail in this
+`design doc <https://hackmd.io/@jorisvandenbossche/Sk0wMeAmB>`__.
+
 Apache Arrow interoperability
 -----------------------------
 
@@ -71,7 +97,7 @@ Block manager rewrite
 We'd like to replace pandas current internal data structures (a collection of
 1 or 2-D arrays) with a simpler collection of 1-D arrays.
 
-Pandas internal data model is quite complex. A DataFrame is made up of
+pandas internal data model is quite complex. A DataFrame is made up of
 one or more 2-dimensional "blocks", with one or more blocks per dtype. This
 collection of 2-D arrays is managed by the BlockManager.
 
@@ -132,7 +158,7 @@ Some specific goals include
 Performance monitoring
 ----------------------
 
-Pandas uses `airspeed velocity <https://asv.readthedocs.io/en/stable/>`__ to
+pandas uses `airspeed velocity <https://asv.readthedocs.io/en/stable/>`__ to
 monitor for performance regressions. ASV itself is a fabulous tool, but requires
 some additional work to be integrated into an open source project's workflow.
 
@@ -152,10 +178,10 @@ We'd like to fund improvements and maintenance of these tools to
 
 .. _roadmap.evolution:
 
-Roadmap Evolution
+Roadmap evolution
 -----------------
 
-Pandas continues to evolve. The direction is primarily determined by community
+pandas continues to evolve. The direction is primarily determined by community
 interest. Everyone is welcome to review existing items on the roadmap and
 to propose a new item.
 

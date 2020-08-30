@@ -158,9 +158,9 @@ class DataFrameStringIndexing:
 class DataFrameNumericIndexing:
     def setup(self):
         self.idx_dupe = np.array(range(30)) * 99
-        self.df = DataFrame(np.random.randn(10000, 5))
+        self.df = DataFrame(np.random.randn(100000, 5))
         self.df_dup = concat([self.df, 2 * self.df, 3 * self.df])
-        self.bool_indexer = [True] * 5000 + [False] * 5000
+        self.bool_indexer = [True] * 50000 + [False] * 50000
 
     def time_iloc_dups(self):
         self.df_dup.iloc[self.idx_dupe]
@@ -306,6 +306,31 @@ class GetItemSingleColumn:
 
     def time_frame_getitem_single_column_int(self):
         self.df_int_col[0]
+
+
+class IndexSingleRow:
+    params = [True, False]
+    param_names = ["unique_cols"]
+
+    def setup(self, unique_cols):
+        arr = np.arange(10 ** 7).reshape(-1, 10)
+        df = DataFrame(arr)
+        dtypes = ["u1", "u2", "u4", "u8", "i1", "i2", "i4", "i8", "f8", "f4"]
+        for i, d in enumerate(dtypes):
+            df[i] = df[i].astype(d)
+
+        if not unique_cols:
+            # GH#33032 single-row lookups with non-unique columns were
+            #  15x slower than with unique columns
+            df.columns = ["A", "A"] + list(df.columns[2:])
+
+        self.df = df
+
+    def time_iloc_row(self, unique_cols):
+        self.df.iloc[10000]
+
+    def time_loc_row(self, unique_cols):
+        self.df.loc[10000]
 
 
 class AssignTimeseriesIndex:
