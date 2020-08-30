@@ -438,7 +438,7 @@ class ExtensionArray:
     # Additional Methods
     # ------------------------------------------------------------------------
 
-    def astype(self, dtype, copy, errors):
+    def astype(self, dtype, copy, errors="raise"):
         """
         Cast to a NumPy array with 'dtype'.
 
