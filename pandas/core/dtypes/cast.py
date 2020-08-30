@@ -595,7 +595,7 @@ def maybe_promote(dtype, fill_value=np.nan):
     return dtype, fill_value
 
 
-def maybe_astype(values, dtype, copy, errors):
+def maybe_astype(values, dtype, copy, errors="raise"):
     try:
         result = np.array(values, dtype=dtype, copy=copy)
     except (ValueError, TypeError):
