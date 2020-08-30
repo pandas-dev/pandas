@@ -8118,10 +8118,12 @@ NaN 12.3   33.0
 
     def corr(self, method="pearson", min_periods=1, axis=0) -> "DataFrame":
         """
-        Compute pairwise correlation of columns, excluding NA/null values.
+        Compute pairwise correlation of rows or columns, excluding NA/null values.
 
-        Pairwise correlation is computed between rows/columns of
-        DataFrame with columns/rows of same DataFrame respectively.
+        Pairwise correlation is computed between rows or columns of
+        a DataFrame. Returned Dataframe is a Correlation matrix between 
+        pairwise rows or columns. Both NA and null values are automatically 
+        excluded from the calculation.
 
         Parameters
         ----------
