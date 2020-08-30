@@ -25,7 +25,7 @@ pandas is well suited for many different kinds of data:
     need not be labeled at all to be placed into a pandas data structure
 
 The two primary data structures of pandas, :class:`Series` (1-dimensional)
-and :class:`DataFrame` (2-dimensional) handle the vast majority of typical use
+and :class:`DataFrame` (2-dimensional), handle the vast majority of typical use
 cases in finance, statistics, social science, and many areas of
 engineering. For R users, :class:`DataFrame` provides everything that R's
 ``data.frame`` provides and much more. pandas is built on top of `NumPy
