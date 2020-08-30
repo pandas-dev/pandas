@@ -21,6 +21,13 @@ class Numeric(Base):
         key = idx[0]
         assert idx._can_hold_identifiers_and_holds_name(key) is False
 
+    def test_format(self):
+        # GH35439
+        idx = self.create_index()
+        max_width = max(len(str(x)) for x in idx)
+        expected = [str(x).ljust(max_width) for x in idx]
+        assert idx.format() == expected
+
     def test_numeric_compat(self):
         pass  # override Base method
 
@@ -387,7 +394,7 @@ class NumericInt(Numeric):
         same_values_different_type = Index(i, dtype=object)
         assert not i.identical(same_values_different_type)
 
-        i = index.copy(dtype=object)
+        i = index.astype(dtype=object)
         i = i.rename("foo")
         same_values = Index(i, dtype=object)
         assert same_values.identical(i)
@@ -395,7 +402,7 @@ class NumericInt(Numeric):
         assert not i.identical(index)
         assert Index(same_values, name="foo", dtype=object).identical(i)
 
-        assert not index.copy(dtype=object).identical(index.copy(dtype=self._dtype))
+        assert not index.astype(dtype=object).identical(index.astype(dtype=self._dtype))
 
     def test_union_noncomparable(self):
         # corner case, non-Int64Index

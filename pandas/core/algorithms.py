@@ -10,7 +10,7 @@ from warnings import catch_warnings, simplefilter, warn
 import numpy as np
 
 from pandas._libs import Timestamp, algos, hashtable as htable, iNaT, lib
-from pandas._typing import AnyArrayLike, ArrayLike, DtypeObj
+from pandas._typing import AnyArrayLike, ArrayLike, DtypeObj, FrameOrSeriesUnion
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.cast import (
@@ -58,7 +58,7 @@ from pandas.core.construction import array, extract_array
 from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
-    from pandas import Series
+    from pandas import DataFrame, Series
 
 _shared_docs: Dict[str, str] = {}
 
@@ -427,7 +427,8 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     if is_categorical_dtype(comps):
         # TODO(extension)
         # handle categoricals
-        return comps.isin(values)
+        # error: "ExtensionArray" has no attribute "isin"  [attr-defined]
+        return comps.isin(values)  # type: ignore[attr-defined]
 
     comps, dtype = _ensure_data(comps)
     values, _ = _ensure_data(values, dtype=dtype)
@@ -461,7 +462,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
 
 
 def _factorize_array(
-    values, na_sentinel: int = -1, size_hint=None, na_value=None, mask=None,
+    values, na_sentinel: int = -1, size_hint=None, na_value=None, mask=None
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Factorize an array-like to codes and uniques.
@@ -1096,6 +1097,9 @@ class SelectN:
         if self.keep not in ("first", "last", "all"):
             raise ValueError('keep must be either "first", "last" or "all"')
 
+    def compute(self, method: str) -> FrameOrSeriesUnion:
+        raise NotImplementedError
+
     def nlargest(self):
         return self.compute("nlargest")
 
@@ -1128,7 +1132,7 @@ class SelectNSeries(SelectN):
     nordered : Series
     """
 
-    def compute(self, method):
+    def compute(self, method: str) -> "Series":
 
         n = self.n
         dtype = self.obj.dtype
@@ -1202,7 +1206,7 @@ class SelectNFrame(SelectN):
         columns = list(columns)
         self.columns = columns
 
-    def compute(self, method):
+    def compute(self, method: str) -> "DataFrame":
 
         from pandas import Int64Index
 
