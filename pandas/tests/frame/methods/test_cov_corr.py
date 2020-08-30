@@ -176,11 +176,13 @@ class TestDataFrameCorr:
         df3.corr()
 
     @td.skip_if_no_scipy
-    def test_corr_axes(self):
+    @pytest.mark.parametrize("meth", ["pearson", "spearman"])
+    def test_corr_axes(self, meth):
         # https://github.com/pandas-dev/pandas/issues/35002
         df = pd.DataFrame(np.random.normal(size=(10, 2)))
-        for meth in ["pearson", "kendall", "spearman"]:
-            tm.assert_frame_equal(df.T.corr(meth, axis=1), df.corr(meth, axis=0))
+        expected = df.T.corr(meth, axis=0)
+        result = df.corr(meth, axis=1)
+        tm.assert_frame_equal(result, expected)
 
     @td.skip_if_no_scipy
     @pytest.mark.parametrize(

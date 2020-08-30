@@ -8120,11 +8120,6 @@ NaN 12.3   33.0
         """
         Compute pairwise correlation of rows or columns, excluding NA/null values.
 
-        Pairwise correlation is computed between rows or columns of
-        a DataFrame. Returned Dataframe is a Correlation matrix between
-        pairwise rows or columns. Both NA and null values are automatically
-        excluded from the calculation.
-
         Parameters
         ----------
         method : {'pearson', 'kendall', 'spearman'} or callable
@@ -8171,10 +8166,12 @@ NaN 12.3   33.0
               dogs  cats
         dogs   1.0   0.3
         cats   0.3   1.0
-        >>> df.T.corr(method=histogram_intersection, axis=1)
-              dogs  cats
-        dogs   1.0   0.3
-        cats   0.3   1.0
+        >>> df.corr(method=histogram_intersection, axis=1)
+            0    1    2    3
+        0  1.0  0.3  0.2  0.3
+        1  0.3  1.0  0.0  0.1
+        2  0.2  0.0  1.0  0.2
+        3  0.3  0.1  0.2  1.0
         """
         numeric_df = self._get_numeric_data()
         axis = numeric_df._get_axis_number(axis)
