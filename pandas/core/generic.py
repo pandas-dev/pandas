@@ -10863,8 +10863,8 @@ Returns
 
 Notes
 -----
-Note that the default divisor (normalization) is different to numpy, 
-which by default normalizes by N (equivalent to ddof=0). To have the same 
+Note that the default divisor (normalization) is different to numpy,
+which by default normalizes by N (equivalent to ddof=0). To have the same
 behaviour as numpy, use ddof=0.\n"""
 
 _bool_doc = """
