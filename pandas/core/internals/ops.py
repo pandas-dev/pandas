@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 
 BlockPairInfo = namedtuple(
-    "BlockPairInfo", ["lvals", "rvals", "locs", "left_ea", "right_ea", "rblk"],
+    "BlockPairInfo", ["lvals", "rvals", "locs", "left_ea", "right_ea", "rblk"]
 )
 
 
