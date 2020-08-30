@@ -425,7 +425,7 @@ class IntegerArray(BaseMaskedArray):
     def _coerce_to_array(self, value) -> Tuple[np.ndarray, np.ndarray]:
         return coerce_to_array(value, dtype=self.dtype)
 
-    def astype(self, dtype, copy: bool = True) -> ArrayLike:
+    def astype(self, dtype, copy: bool = True, errors: str = "raise") -> ArrayLike:
         """
         Cast to a NumPy array or ExtensionArray with 'dtype'.
 
@@ -437,6 +437,9 @@ class IntegerArray(BaseMaskedArray):
             Whether to copy the data, even if not necessary. If False,
             a copy is made only if the old dtype does not match the
             new dtype.
+        errors : str, {'raise', 'ignore'}, default 'ignore'
+            - ``raise`` : allow exceptions to be raised
+            - ``ignore`` : suppress exceptions. On error return original object
 
         Returns
         -------
@@ -477,7 +480,15 @@ class IntegerArray(BaseMaskedArray):
         else:
             na_value = lib.no_default
 
-        return self.to_numpy(dtype=dtype, na_value=na_value, copy=False)
+        try:
+            result = self.to_numpy(dtype=dtype, na_value=na_value, copy=False)
+        except (ValueError, TypeError):
+            if errors == "ignore":
+                result = self
+            else:
+                raise
+
+        return result
 
     def _values_for_argsort(self) -> np.ndarray:
         """

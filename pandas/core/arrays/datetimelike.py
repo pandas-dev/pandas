@@ -30,6 +30,7 @@ from pandas.errors import AbstractMethodError, NullFrequencyError, PerformanceWa
 from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_fillna_kwargs
 
+from pandas.core.dtypes.cast import maybe_astype
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64_any_dtype,
@@ -622,7 +623,7 @@ class DatetimeLikeArrayMixin(
         # DatetimeArray and TimedeltaArray
         pass
 
-    def astype(self, dtype, copy=True):
+    def astype(self, dtype, copy: bool = True, errors: str = "raise"):
         # Some notes on cases we don't have to handle here in the base class:
         #   1. PeriodArray.astype handles period -> period
         #   2. DatetimeArray.astype handles conversion between tz.
@@ -655,13 +656,17 @@ class DatetimeLikeArrayMixin(
         ) or is_float_dtype(dtype):
             # disallow conversion between datetime/timedelta,
             # and conversions for any datetimelike to float
-            msg = f"Cannot cast {type(self).__name__} to dtype {dtype}"
-            raise TypeError(msg)
+            if errors == "ignore":
+                return self
+            else:
+                msg = f"Cannot cast {type(self).__name__} to dtype {dtype}"
+                raise TypeError(msg)
         elif is_categorical_dtype(dtype):
             arr_cls = dtype.construct_array_type()
             return arr_cls(self, dtype=dtype)
         else:
-            return np.asarray(self, dtype=dtype)
+            result = maybe_astype(values=self, dtype=dtype, copy=copy, errors=errors)
+            return result
 
     def view(self, dtype=None):
         if dtype is None or dtype is self.dtype:

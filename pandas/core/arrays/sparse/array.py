@@ -1006,7 +1006,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         return cls(data, sparse_index=sp_index, fill_value=fill_value)
 
-    def astype(self, dtype=None, copy=True):
+    def astype(self, dtype=None, copy: bool = True, errors: str = "raise"):
         """
         Change the dtype of a SparseArray.
 
@@ -1024,6 +1024,10 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         copy : bool, default True
             Whether to ensure a copy is made, even if not necessary.
+
+        errors : str, {'raise', 'ignore'}, default 'ignore'
+            - ``raise`` : allow exceptions to be raised
+            - ``ignore`` : suppress exceptions. On error return original object
 
         Returns
         -------
@@ -1063,7 +1067,13 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         IntIndex
         Indices: array([2, 3], dtype=int32)
         """
-        dtype = self.dtype.update_dtype(dtype)
+        try:
+            dtype = self.dtype.update_dtype(dtype)
+        except ValueError:
+            if errors == "ignore":
+                return self
+            else:
+                raise
         subtype = dtype._subtype_with_str
         # TODO copy=False is broken for astype_nansafe with int -> float, so cannot
         # passthrough copy keyword: https://github.com/pandas-dev/pandas/issues/34456

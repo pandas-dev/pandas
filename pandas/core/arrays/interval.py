@@ -661,7 +661,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def dtype(self):
         return IntervalDtype(self.left.dtype)
 
-    def astype(self, dtype, copy=True):
+    def astype(self, dtype, copy: bool = True, errors: str = "raise"):
         """
         Cast to an ExtensionArray or NumPy array with dtype 'dtype'.
 
@@ -674,6 +674,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             Whether to copy the data, even if not necessary. If False,
             a copy is made only if the old dtype does not match the
             new dtype.
+        errors : str, {'raise', 'ignore'}, default 'ignore'
+            - ``raise`` : allow exceptions to be raised
+            - ``ignore`` : suppress exceptions. On error return original object
 
         Returns
         -------
@@ -694,10 +697,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 new_left = self.left.astype(dtype.subtype)
                 new_right = self.right.astype(dtype.subtype)
             except TypeError as err:
-                msg = (
-                    f"Cannot convert {self.dtype} to {dtype}; subtypes are incompatible"
-                )
-                raise TypeError(msg) from err
+                if errors == "ignore":
+                    new_left = self.left
+                    new_right = self.right
+                else:
+                    msg = f"Cannot convert {self.dtype} to {dtype}; subtypes are incompatible"
+                    raise TypeError(msg) from err
             return self._shallow_copy(new_left, new_right)
         elif is_categorical_dtype(dtype):
             return Categorical(np.asarray(self))
@@ -708,8 +713,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         try:
             return np.asarray(self).astype(dtype, copy=copy)
         except (TypeError, ValueError) as err:
-            msg = f"Cannot cast {type(self).__name__} to dtype {dtype}"
-            raise TypeError(msg) from err
+            if errors == "ignore":
+                return self
+            else:
+                msg = f"Cannot cast {type(self).__name__} to dtype {dtype}"
+                raise TypeError(msg) from err
 
     @classmethod
     def _concat_same_type(cls, to_concat):

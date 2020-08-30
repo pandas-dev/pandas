@@ -17,6 +17,7 @@ from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 
 from pandas.core.dtypes.cast import (
     coerce_indexer_dtype,
+    maybe_astype,
     maybe_cast_to_extension_array,
     maybe_infer_to_datetimelike,
 )
@@ -450,7 +451,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         # Defer to CategoricalFormatter's formatter.
         return None
 
-    def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
+    def astype(
+        self, dtype: Dtype, copy: bool = True, errors: str = "raise"
+    ) -> ArrayLike:
         """
         Coerce this type to another dtype
 
@@ -461,6 +464,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             By default, astype always returns a newly allocated object.
             If copy is set to False and dtype is categorical, the original
             object is returned.
+        errors : str, {'raise', 'ignore'}, default 'ignore'
+            - ``raise`` : allow exceptions to be raised
+            - ``ignore`` : suppress exceptions. On error return original object
         """
         if is_categorical_dtype(dtype):
             dtype = cast(Union[str, CategoricalDtype], dtype)
@@ -475,7 +481,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             return array(self, dtype=dtype, copy=copy)
         if is_integer_dtype(dtype) and self.isna().any():
             raise ValueError("Cannot convert float NaN to integer")
-        return np.array(self, dtype=dtype, copy=copy)
+
+        values = maybe_astype(values=self, dtype=dtype, copy=copy, errors=errors)
+        return values
 
     @cache_readonly
     def itemsize(self) -> int:

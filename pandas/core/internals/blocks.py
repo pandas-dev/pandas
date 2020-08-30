@@ -580,13 +580,7 @@ class Block(PandasObject):
 
         # force the copy here
         if self.is_extension:
-            try:
-                values = self.values.astype(dtype)
-            except (ValueError, TypeError):
-                if errors == "ignore":
-                    values = self.values
-                else:
-                    raise
+            values = self.values.astype(dtype, errors=errors)
         else:
             if issubclass(dtype.type, str):
 

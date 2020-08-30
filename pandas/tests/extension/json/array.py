@@ -158,7 +158,7 @@ class JSONArray(ExtensionArray):
     def copy(self):
         return type(self)(self.data[:])
 
-    def astype(self, dtype, copy=True):
+    def astype(self, dtype, copy: bool = True, errors: str = "raise"):
         # NumPy has issues when all the dicts are the same length.
         # np.array([UserDict(...), UserDict(...)]) fails,
         # but np.array([{...}, {...}]) works, so cast.

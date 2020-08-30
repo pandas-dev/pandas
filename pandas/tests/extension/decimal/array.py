@@ -130,12 +130,12 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
     def copy(self):
         return type(self)(self._data.copy())
 
-    def astype(self, dtype, copy=True):
+    def astype(self, dtype, copy: bool = True, errors: str = "raise"):
         dtype = pandas_dtype(dtype)
         if isinstance(dtype, type(self.dtype)):
             return type(self)(self._data, context=dtype.context)
 
-        return super().astype(dtype, copy=copy)
+        return super().astype(dtype, copy=copy, errors=errors)
 
     def __setitem__(self, key, value):
         if pd.api.types.is_list_like(value):
