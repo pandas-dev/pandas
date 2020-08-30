@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, List, Tuple
 
 import pandas._libs.json as json
 
@@ -10,7 +10,7 @@ class _XlsxStyler:
     # Map from openpyxl-oriented styles to flatter xlsxwriter representation
     # Ordering necessary for both determinism and because some are keyed by
     # prefixes of others.
-    STYLE_MAPPING: Dict[str, list] = {
+    STYLE_MAPPING: Dict[str, List[Tuple[Tuple[str, ...], str]]] = {
         "font": [
             (("name",), "font_name"),
             (("sz",), "font_size"),
