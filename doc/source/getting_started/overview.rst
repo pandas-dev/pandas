@@ -72,7 +72,7 @@ Some other notes
    extensively tweaked in `Cython <https://cython.org>`__ code. However, as with
    anything else generalization usually sacrifices performance. So if you focus
    on one feature for your application you may be able to create a faster
-  -specialized tool.
+   specialized tool.
 
  - pandas is a dependency of `statsmodels
    <https://www.statsmodels.org/stable/index.html>`__, making it an important part of the
