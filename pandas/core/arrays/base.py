@@ -1168,6 +1168,10 @@ class ExtensionOpsMixin:
     """
 
     @classmethod
+    def _create_arithmetic_method(cls, op):
+        raise AbstractMethodError(cls)
+
+    @classmethod
     def _add_arithmetic_ops(cls):
         cls.__add__ = cls._create_arithmetic_method(operator.add)
         cls.__radd__ = cls._create_arithmetic_method(ops.radd)
@@ -1187,6 +1191,10 @@ class ExtensionOpsMixin:
         cls.__rdivmod__ = cls._create_arithmetic_method(ops.rdivmod)
 
     @classmethod
+    def _create_comparison_method(cls, op):
+        raise AbstractMethodError(cls)
+
+    @classmethod
     def _add_comparison_ops(cls):
         cls.__eq__ = cls._create_comparison_method(operator.eq)
         cls.__ne__ = cls._create_comparison_method(operator.ne)
@@ -1194,6 +1202,10 @@ class ExtensionOpsMixin:
         cls.__gt__ = cls._create_comparison_method(operator.gt)
         cls.__le__ = cls._create_comparison_method(operator.le)
         cls.__ge__ = cls._create_comparison_method(operator.ge)
+
+    @classmethod
+    def _create_logical_method(cls, op):
+        raise AbstractMethodError(cls)
 
     @classmethod
     def _add_logical_ops(cls):
