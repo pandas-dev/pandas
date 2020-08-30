@@ -2600,7 +2600,7 @@ class DataFrame(NDFrame):
              1   column_2  1000000 non-null  object
              2   column_3  1000000 non-null  object
             dtypes: object(3)
-            memory usage: 188.8 MB"""
+            memory usage: 165.9 MB"""
         ),
         see_also_sub=(
             """
@@ -6609,6 +6609,8 @@ NaN 12.3   33.0
             duplicate values for one index/column pair.
         DataFrame.unstack : Pivot based on the index values instead of a
             column.
+        wide_to_long : Wide panel to long format. Less flexible but more
+            user-friendly than melt.
 
         Notes
         -----
@@ -6763,6 +6765,10 @@ NaN 12.3   33.0
         --------
         DataFrame.pivot : Pivot without aggregation that can handle
             non-numeric data.
+        DataFrame.melt: Unpivot a DataFrame from wide to long format,
+            optionally leaving identifiers set.
+        wide_to_long : Wide panel to long format. Less flexible but more
+            user-friendly than melt.
 
         Examples
         --------
@@ -8641,13 +8647,11 @@ NaN 12.3   33.0
                     return op(values, axis=1, skipna=skipna, **kwds)
 
             # After possibly _get_data and transposing, we are now in the
-            #  simple case where we can use BlockManager._reduce
+            #  simple case where we can use BlockManager.reduce
             res = df._mgr.reduce(blk_func)
-            assert isinstance(res, dict)
-            if len(res):
-                assert len(res) == max(list(res.keys())) + 1, res.keys()
-            out = df._constructor_sliced(res, index=range(len(res)), dtype=out_dtype)
-            out.index = df.columns
+            out = df._constructor(res,).iloc[0].rename(None)
+            if out_dtype is not None:
+                out = out.astype(out_dtype)
             if axis == 0 and is_object_dtype(out.dtype):
                 out[:] = coerce_to_dtypes(out.values, df.dtypes)
             return out
@@ -9302,7 +9306,6 @@ NaN 12.3   33.0
 
 
 DataFrame._add_numeric_operations()
-DataFrame._add_series_or_dataframe_operations()
 
 ops.add_flex_arithmetic_methods(DataFrame)
 ops.add_special_arithmetic_methods(DataFrame)
