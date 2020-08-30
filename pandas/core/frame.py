@@ -8144,6 +8144,8 @@ NaN 12.3   33.0
             The axis to use. 0 or 'index' to compute column-wise, 1 or 'columns' for
             row-wise.
 
+            .. versionadded:: 1.2.0
+
         Returns
         -------
         DataFrame
