@@ -101,7 +101,7 @@ fashion.
 
 Also, we would like sensible default behaviors for the common API functions
 which take into account the typical orientation of time series and
-cross-sectional data sets. When using the N-dimensional array(ndarrays) to store 2- and 3-dimensional
+cross-sectional data sets. When using the N-dimensional array (ndarrays) to store 2- and 3-dimensional
 data, a burden is placed on the user to consider the orientation of the data
 set when writing functions; axes are considered more or less equivalent (except
 when C- or Fortran-contiguousness matters for performance). In pandas, the axes
