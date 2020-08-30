@@ -9318,7 +9318,6 @@ NaN 12.3   33.0
 
 
 DataFrame._add_numeric_operations()
-DataFrame._add_series_or_dataframe_operations()
 
 ops.add_flex_arithmetic_methods(DataFrame)
 ops.add_special_arithmetic_methods(DataFrame)

@@ -353,7 +353,7 @@ class BlockManager(PandasObject):
         assert self.ndim == 2
 
         res_blocks: List[Block] = []
-        for i, blk in enumerate(self.blocks):
+        for blk in self.blocks:
             try:
                 nbs = blk.reduce(func)
             except TypeError:
@@ -520,7 +520,7 @@ class BlockManager(PandasObject):
             values = values.take(indexer)
 
         return SingleBlockManager(
-            make_block(values, ndim=1, placement=np.arange(len(values))), axes[0],
+            make_block(values, ndim=1, placement=np.arange(len(values))), axes[0]
         )
 
     def isna(self, func) -> "BlockManager":
@@ -548,9 +548,7 @@ class BlockManager(PandasObject):
     def setitem(self, indexer, value) -> "BlockManager":
         return self.apply("setitem", indexer=indexer, value=value)
 
-    def putmask(
-        self, mask, new, align: bool = True, axis: int = 0,
-    ):
+    def putmask(self, mask, new, align: bool = True, axis: int = 0):
         transpose = self.ndim == 2
 
         if align:
@@ -761,7 +759,7 @@ class BlockManager(PandasObject):
         indexer = np.sort(np.concatenate([b.mgr_locs.as_array for b in blocks]))
         inv_indexer = lib.get_reverse_indexer(indexer, self.shape[0])
 
-        new_blocks = []
+        new_blocks: List[Block] = []
         for b in blocks:
             b = b.copy(deep=copy)
             b.mgr_locs = inv_indexer[b.mgr_locs.indexer]
@@ -1956,7 +1954,7 @@ def _compare_or_regex_search(
     """
 
     def _check_comparison_types(
-        result: Union[ArrayLike, bool], a: ArrayLike, b: Union[Scalar, Pattern],
+        result: Union[ArrayLike, bool], a: ArrayLike, b: Union[Scalar, Pattern]
     ):
         """
         Raises an error if the two arrays (a,b) cannot be compared.

@@ -80,7 +80,7 @@ FormattersType = Union[
 FloatFormatType = Union[str, Callable, "EngFormatter"]
 ColspaceType = Mapping[Label, Union[str, int]]
 ColspaceArgType = Union[
-    str, int, Sequence[Union[str, int]], Mapping[Label, Union[str, int]],
+    str, int, Sequence[Union[str, int]], Mapping[Label, Union[str, int]]
 ]
 
 common_docstring = """
@@ -741,7 +741,7 @@ class DataFrameFormatter(TableFormatter):
             for i, c in enumerate(frame):
                 fmt_values = self._format_col(i)
                 fmt_values = _make_fixed_width(
-                    fmt_values, self.justify, minimum=col_space.get(c, 0), adj=self.adj,
+                    fmt_values, self.justify, minimum=col_space.get(c, 0), adj=self.adj
                 )
                 stringified.append(fmt_values)
         else:
@@ -1069,7 +1069,7 @@ class DataFrameFormatter(TableFormatter):
         fmt_index = [
             tuple(
                 _make_fixed_width(
-                    list(x), justify="left", minimum=col_space.get("", 0), adj=self.adj,
+                    list(x), justify="left", minimum=col_space.get("", 0), adj=self.adj
                 )
             )
             for x in fmt_index
