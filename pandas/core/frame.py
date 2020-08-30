@@ -8177,8 +8177,8 @@ NaN 12.3   33.0
         cats   0.3   1.0
         """
         numeric_df = self._get_numeric_data()
-        axis = self._get_axis_number(axis)
-        cols = self._get_agg_axis(axis)
+        axis = numeric_df._get_axis_number(axis)
+        cols = numeric_df._get_agg_axis(axis)
         idx = cols.copy()
         mat = numeric_df.to_numpy(dtype=float, na_value=np.nan, copy=False)
 
