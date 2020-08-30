@@ -103,8 +103,6 @@ if TYPE_CHECKING:
     from pandas import RangeIndex, Series
 
 
-str_ = str
-
 __all__ = ["Index"]
 
 _unsortable_types = frozenset(("mixed", "mixed-integer"))
@@ -4930,7 +4928,7 @@ class Index(IndexOpsMixin, PandasObject):
         start: Optional[Label] = None,
         end: Optional[Label] = None,
         step: Optional[int] = None,
-        kind: Optional[str_] = None,
+        kind: Optional[str_t] = None,
     ) -> slice:
         """
         Compute the slice indexer for input labels and step.
