@@ -384,7 +384,7 @@ class TestDataFrameReshape:
                 pd.MultiIndex.from_tuples(
                     [("d", "a"), ("d", "b"), ("e", "a"), ("e", "b")],
                     names=[None, ("A", "a")],
-                )
+                ),
             ),
             (
                 (("A", "a"), "B"),
@@ -402,9 +402,9 @@ class TestDataFrameReshape:
                         ("e", "b", 2),
                     ],
                     names=[None, ("A", "a"), "B"],
-                )
-            )
-        ]
+                ),
+            ),
+        ],
     )
     def test_unstack_mixed_type_name_in_multiindex(
         self, unstack_idx, expected_values, expected_index, expected_columns
@@ -417,7 +417,9 @@ class TestDataFrameReshape:
         result = df.unstack(unstack_idx)
 
         expected = pd.DataFrame(
-            expected_values, columns=expected_columns, index=expected_index,
+            expected_values,
+            columns=expected_columns,
+            index=expected_index,
         )
         tm.assert_frame_equal(result, expected)
 
@@ -650,7 +652,7 @@ class TestDataFrameReshape:
             [np.dtype("int64")] * 4,
             index=pd.MultiIndex.from_arrays(
                 [["C", "C", "D", "D"], [1, 2, 1, 2]], names=(None, "B")
-            )
+            ),
         )
         tm.assert_series_equal(result, expected)
 
@@ -663,7 +665,7 @@ class TestDataFrameReshape:
             [np.dtype("float64")] * 2 + [np.dtype("int64")] * 2,
             index=pd.MultiIndex.from_arrays(
                 [["C", "C", "D", "D"], [1, 2, 1, 2]], names=(None, "B")
-            )
+            ),
         )
         tm.assert_series_equal(result, expected)
         df2["D"] = "foo"
@@ -673,7 +675,7 @@ class TestDataFrameReshape:
             [np.dtype("float64")] * 2 + [np.dtype("object")] * 2,
             index=pd.MultiIndex.from_arrays(
                 [["C", "C", "D", "D"], [1, 2, 1, 2]], names=(None, "B")
-            )
+            ),
         )
         tm.assert_series_equal(result, expected)
 
@@ -786,7 +788,7 @@ class TestDataFrameReshape:
             index=pd.MultiIndex.from_tuples(
                 [[0, 0, 1, 0, 0, 0, 1]],
                 names=["i1", "i2", "i3", "i4", "i5", "i6", "i7"],
-            )
+            ),
         )
         result = df.unstack(["i2", "i3", "i4", "i5", "i6", "i7"])
         expected = pd.DataFrame(
@@ -807,8 +809,9 @@ class TestDataFrameReshape:
                 [["B", "C"], ["B", "D"]], names=["c1", "c2"]
             ),
             index=pd.MultiIndex.from_tuples(
-                [[10, 20, 30], [10, 20, 40]], names=["i1", "i2", "i3"],
-            )
+                [[10, 20, 30], [10, 20, 40]],
+                names=["i1", "i2", "i3"],
+            ),
         )
         assert df.unstack(["i2", "i1"]).columns.names[-2:] == ["i2", "i1"]
 
@@ -825,7 +828,7 @@ class TestDataFrameReshape:
                     ["m2", "A5", 111],
                 ],
                 names=["i1", "i2", "i3"],
-            )
+            ),
         )
         result = df.unstack(["i3", "i2"])
         expected = df.unstack(["i3"]).unstack(["i2"])
@@ -900,7 +903,7 @@ class TestDataFrameReshape:
                     53,
                     60,
                     51,
-                ]
+                ],
             }
         )
 
@@ -1155,7 +1158,7 @@ class TestDataFrameReshape:
             ([0, 0, 1, 1], pd.MultiIndex.from_product([[1, 2], ["a", "b"]])),
             ([0, 0, 2, 3], pd.MultiIndex.from_product([[1, 2], ["a", "b"]])),
             ([0, 1, 2, 3], pd.MultiIndex.from_product([[1, 2], ["a", "b"]])),
-        ]
+        ],
     )
     def test_stack_multi_columns_non_unique_index(self, index, columns):
         # GH-28301
@@ -1203,7 +1206,7 @@ class TestDataFrameReshape:
             [[3, 1, 2, 0]],
             columns=pd.MultiIndex.from_tuples(
                 [("c", "A"), ("c", "B"), ("d", "A"), ("d", "B")], names=["baz", "foo"]
-            )
+            ),
         )
         expected.index.name = "bar"
 
@@ -1252,7 +1255,7 @@ def test_unstack_timezone_aware_values():
             levels=[["timestamp", "c"], ["b"]],
             codes=[[0, 1], [0, 0]],
             names=[None, "b"],
-        )
+        ),
     )
     tm.assert_frame_equal(result, expected)
 
@@ -1268,7 +1271,7 @@ def test_stack_timezone_aware_values():
         ts,
         index=pd.MultiIndex(
             levels=[["a", "b", "c"], ["A"]], codes=[[0, 1, 2], [0, 0, 0]]
-        )
+        ),
     )
     tm.assert_series_equal(result, expected)
 
@@ -1299,6 +1302,6 @@ def test_unstacking_multi_index_df():
                 ("score", "male", True, 0),
             ],
             names=[None, "gender", "employed", "kids"],
-        )
+        ),
     )
     tm.assert_frame_equal(result, expected)
