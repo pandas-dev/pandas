@@ -8172,7 +8172,7 @@ NaN 12.3   33.0
         >>> df.T.corr(method=histogram_intersection, axis=1)
               dogs  cats
         dogs   1.0   0.3
-        cats   0.3   1.0  
+        cats   0.3   1.0
         """
         numeric_df = self._get_numeric_data()
         axis = self._get_axis_number(axis)
@@ -8180,9 +8180,9 @@ NaN 12.3   33.0
         idx = cols.copy()
         mat = numeric_df.to_numpy(dtype=float, na_value=np.nan, copy=False)
 
-        if axis==1:
+        if axis == 1:
             mat = mat.transpose()
-            
+                 
         if method == "pearson":
             correl = libalgos.nancorr(mat, minp=min_periods)
         elif method == "spearman":
