@@ -377,23 +377,15 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
         return values
 
-    def _wrap_result(self, result, block=None, obj=None):
+    def _wrap_result(self, result: np.ndarray) -> "Series":
         """
-        Wrap a single result.
+        Wrap a single 1D result.
         """
-        if obj is None:
-            obj = self._selected_obj
-        index = obj.index
+        obj = self._selected_obj
 
-        if isinstance(result, np.ndarray):
+        from pandas import Series
 
-            if result.ndim == 1:
-                from pandas import Series
-
-                return Series(result, index, name=obj.name)
-
-            return type(obj)(result, index=index, columns=block.columns)
-        return result
+        return Series(result, obj.index, name=obj.name)
 
     def _wrap_results(self, results, obj, skipped: List[int]) -> FrameOrSeriesUnion:
         """
@@ -454,7 +446,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                 # insert at the end
                 result[name] = extra_col
 
-    def _center_window(self, result, window) -> np.ndarray:
+    def _center_window(self, result: np.ndarray, window) -> np.ndarray:
         """
         Center the result in the window.
         """
@@ -513,7 +505,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         Series version of _apply_blockwise
         """
         _, obj = self._create_blocks(self._selected_obj)
-        values = obj.values
 
         try:
             values = self._prep_values(obj.values)
@@ -535,7 +526,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
         # This isn't quite blockwise, since `blocks` is actually a collection
         #  of homogenenous DataFrames.
-        blocks, obj = self._create_blocks(self._selected_obj)
+        _, obj = self._create_blocks(self._selected_obj)
         mgr = obj._mgr
 
         def hfunc(bvalues: ArrayLike) -> ArrayLike:
