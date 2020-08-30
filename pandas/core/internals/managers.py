@@ -334,7 +334,7 @@ class BlockManager(PandasObject):
         # If 2D, we assume that we're operating column-wise
         assert self.ndim == 2
 
-        res_blocks = []
+        res_blocks: List[Block] = []
         for blk in self.blocks:
             nbs = blk.reduce(func)
             res_blocks.extend(nbs)
@@ -728,7 +728,7 @@ class BlockManager(PandasObject):
         indexer = np.sort(np.concatenate([b.mgr_locs.as_array for b in blocks]))
         inv_indexer = lib.get_reverse_indexer(indexer, self.shape[0])
 
-        new_blocks = []
+        new_blocks: List[Block] = []
         for b in blocks:
             b = b.copy(deep=copy)
             b.mgr_locs = inv_indexer[b.mgr_locs.indexer]
