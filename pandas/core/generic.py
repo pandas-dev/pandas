@@ -2898,15 +2898,20 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             multirow = config.get_option("display.latex.multirow")
 
         if is_list_like(formatters) and not isinstance(formatters, dict):
-            formatter_elems_is_str = all(isinstance(elem, str) for elem in formatters)
-            formatter_elems_is_lambda = all(callable(elem) for elem in formatters)
-            if formatter_elems_is_str:
+            formatter_elems_type = all(
+                isinstance(elem, str) or callable(elem) for elem in formatters
+            )
+            if formatter_elems_type:
                 formatters = [
                     (lambda style: lambda x: "{0:{1}}".format(x, style))(style)
+                    if isinstance(style, str)
+                    else style
                     for style in formatters
                 ]
-            elif not formatter_elems_is_lambda:
-                raise ValueError("Formatters elements should be strings")
+            else:
+                raise ValueError(
+                    "Formatters elements should be f-strings or callable functions"
+                )
 
         formatter = DataFrameFormatter(
             self,

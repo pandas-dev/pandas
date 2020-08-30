@@ -141,7 +141,7 @@ index: 2 &    2016-03 & [ 3.0] & 0x3 &   -False- \\
         data = [[1, 2, 3], [4, 5, 6], [7, 8, 9.001]]
         df = DataFrame(data, columns=["a", "b", "c"], index=["foo", "bar", "foobar"])
 
-        result = df.to_latex(formatters=["d", ".2f", ".3f"])
+        result = df.to_latex(formatters=["d", ".2f", lambda x: f"{x:.3f}"])
         expected = r"""\begin{tabular}{lrrr}
 \toprule
 {} & a &    b &     c \\
