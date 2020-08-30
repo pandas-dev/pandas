@@ -240,5 +240,14 @@ def box_with_array(request):
     return request.param
 
 
+@pytest.fixture(params=[pd.Index, pd.Series, tm.to_array, np.array, list], ids=id_func)
+def box_extension_array(request):
+    """
+    Fixture to test behavior for Index, Series, pandas Array, numpy Array and list
+    classes
+    """
+    return request.param
+
+
 # alias so we can use the same fixture for multiple parameters in a test
 box_with_array2 = box_with_array

@@ -3,6 +3,7 @@ import operator
 import numpy as np
 import pytest
 
+from pandas import Series
 import pandas._testing as tm
 from pandas.core.ops.array_ops import comparison_op, na_logical_op
 
@@ -34,3 +35,20 @@ def test_object_comparison_2d():
     right.flags.writeable = False
     result = comparison_op(left, right, operator.ne)
     tm.assert_numpy_array_equal(result, ~expected)
+
+
+@pytest.mark.parametrize(
+    "data, expected",
+    [
+        ([0, 1, 2], [0, 2, 4]),
+        ([0.0, 1.0, 2.0], [0.0, 2.0, 4.0]),
+        (["a", "b", "c"], ["aa", "bb", "cc"]),
+    ],
+)
+def test_extension_array_add(box_extension_array, data, expected):
+    # GH22606 Verify operators with Extension Array and list-likes
+    ser = Series(data)
+    results = ser + box_extension_array(data)
+
+    expected = Series(expected)
+    tm.assert_series_equal(results, expected)
