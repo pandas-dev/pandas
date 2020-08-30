@@ -701,7 +701,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                     new_left = self.left
                     new_right = self.right
                 else:
-                    msg = f"Cannot convert {self.dtype} to {dtype}; subtypes are incompatible"
+                    msg = (
+                        f"Cannot convert {self.dtype} to {dtype}; "
+                        "subtypes are incompatible"
+                    )
                     raise TypeError(msg) from err
             return self._shallow_copy(new_left, new_right)
         elif is_categorical_dtype(dtype):
