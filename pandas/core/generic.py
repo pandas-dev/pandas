@@ -10859,7 +10859,13 @@ numeric_only : bool, default None
 
 Returns
 -------
-%(name1)s or %(name2)s (if level specified)\n"""
+%(name1)s or %(name2)s (if level specified)
+
+Notes
+-----
+Note that the default divisor (normalization) is different to numpy, 
+which by default normalizes by N (equivalent to ddof=0). To have the same 
+behaviour as numpy, use ddof=0.\n"""
 
 _bool_doc = """
 %(desc)s
