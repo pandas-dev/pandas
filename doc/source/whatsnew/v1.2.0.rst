@@ -54,7 +54,7 @@ For example:
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - :class:`Index` with object dtype supports division and multiplication (:issue:`34160`)
-- :meth:`DataFrame.corr` now allows ``axis`` argument. Set to 0 by default(correlation among columns) (:issue:`35002`)
+- :meth:`DataFrame.corr` now allows an ``axis`` argument, set to 0 by default (correlation among columns) (:issue:`35002`)
 -
 
 .. _whatsnew_120.api_breaking.python:
