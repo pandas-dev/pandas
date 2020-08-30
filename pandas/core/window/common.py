@@ -7,9 +7,9 @@ import numpy as np
 
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
-from pandas.core.generic import _shared_docs
 from pandas.core.groupby.base import GroupByMixin
 from pandas.core.indexes.api import MultiIndex
+from pandas.core.shared_docs import _shared_docs
 
 _shared_docs = dict(**_shared_docs)
 _doc_template = """
