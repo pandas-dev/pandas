@@ -8121,8 +8121,8 @@ NaN 12.3   33.0
         Compute pairwise correlation of rows or columns, excluding NA/null values.
 
         Pairwise correlation is computed between rows or columns of
-        a DataFrame. Returned Dataframe is a Correlation matrix between 
-        pairwise rows or columns. Both NA and null values are automatically 
+        a DataFrame. Returned Dataframe is a Correlation matrix between
+        pairwise rows or columns. Both NA and null values are automatically
         excluded from the calculation.
 
         Parameters
