@@ -1077,7 +1077,7 @@ b  2""",
                 tuple(args), kwargs, func, engine_kwargs
             )
         result = numba_agg_func(
-            sorted_data, sorted_index, starts, ends, len(group_keys), len(data.columns),
+            sorted_data, sorted_index, starts, ends, len(group_keys), len(data.columns)
         )
         if cache_key not in NUMBA_FUNC_CACHE:
             NUMBA_FUNC_CACHE[cache_key] = numba_agg_func
@@ -1595,8 +1595,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
     def first(self, numeric_only: bool = False, min_count: int = -1):
         def first_compat(obj: FrameOrSeries, axis: int = 0):
             def first(x: Series):
-                """Helper function for first item that isn't NA.
-                """
+                """Helper function for first item that isn't NA."""
                 x = x.array[notna(x.array)]
                 if len(x) == 0:
                     return np.nan
@@ -1620,8 +1619,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
     def last(self, numeric_only: bool = False, min_count: int = -1):
         def last_compat(obj: FrameOrSeries, axis: int = 0):
             def last(x: Series):
-                """Helper function for last item that isn't NA.
-                """
+                """Helper function for last item that isn't NA."""
                 x = x.array[notna(x.array)]
                 if len(x) == 0:
                     return np.nan
