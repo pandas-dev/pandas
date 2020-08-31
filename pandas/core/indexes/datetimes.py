@@ -75,7 +75,7 @@ def _new_DatetimeIndex(cls, d):
     + [
         method
         for method in DatetimeArray._datetimelike_methods
-        if method not in ("tz_localize",)
+        if method not in ("tz_localize", "tz_convert")
     ],
     DatetimeArray,
     wrap=True,
@@ -227,6 +227,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     # --------------------------------------------------------------------
     # methods that dispatch to array and wrap result in DatetimeIndex
+
+    @doc(DatetimeArray.tz_convert)
+    def tz_convert(self, tz) -> "DatetimeIndex":
+        arr = self._data.tz_convert(tz)
+        return type(self)._simple_new(arr, name=self.name)
 
     @doc(DatetimeArray.tz_localize)
     def tz_localize(
