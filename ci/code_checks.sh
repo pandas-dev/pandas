@@ -121,7 +121,7 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
 
     # Imports - Check formatting using isort see setup.cfg for settings
     MSG='Check import format using isort' ; echo $MSG
-    ISORT_CMD="isort --quiet --check-only pandas asv_bench scripts"
+    ISORT_CMD="isort --quiet --check-only pandas asv_bench scripts web"
     if [[ "$GITHUB_ACTIONS" == "true" ]]; then
         eval $ISORT_CMD | awk '{print "##[error]" $0}'; RET=$(($RET + ${PIPESTATUS[0]}))
     else
@@ -229,6 +229,11 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     MSG='Check for use of comment-based annotation syntax' ; echo $MSG
     invgrep -R --include="*.py" -P '# type: (?!ignore)' pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    # https://github.com/python/mypy/issues/7384
+    # MSG='Check for missing error codes with # type: ignore' ; echo $MSG
+    # invgrep -R --include="*.py" -P '# type: ignore(?!\[)' pandas
+    # RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for use of foo.__class__ instead of type(foo)' ; echo $MSG
     invgrep -R --include=*.{py,pyx} '\.__class__' pandas

@@ -1817,7 +1817,7 @@ class TestPivotTable:
             ["A", "B", "C"], categories=["A", "B", "C"], ordered=False, name="C1"
         )
         expected_columns = pd.Index(["a", "b"], name="C2")
-        expected_data = np.array([[1.0, np.nan], [1.0, np.nan], [np.nan, 2.0]])
+        expected_data = np.array([[1, 0], [1, 0], [0, 2]], dtype=np.int64)
         expected = pd.DataFrame(
             expected_data, index=expected_index, columns=expected_columns
         )
@@ -1851,18 +1851,19 @@ class TestPivotTable:
             values="Sales",
             index="Month",
             columns="Year",
-            dropna=observed,
+            observed=observed,
             aggfunc="sum",
         )
         expected_columns = pd.Int64Index([2013, 2014], name="Year")
         expected_index = pd.CategoricalIndex(
-            ["January"], categories=months, ordered=False, name="Month"
+            months, categories=months, ordered=False, name="Month"
         )
+        expected_data = [[320, 120]] + [[0, 0]] * 11
         expected = pd.DataFrame(
-            [[320, 120]], index=expected_index, columns=expected_columns
+            expected_data, index=expected_index, columns=expected_columns
         )
-        if not observed:
-            result = result.dropna().astype(np.int64)
+        if observed:
+            expected = expected.loc[["January"]]
 
         tm.assert_frame_equal(result, expected)
 

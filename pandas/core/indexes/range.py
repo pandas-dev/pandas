@@ -1,7 +1,7 @@
 from datetime import timedelta
 import operator
 from sys import getsizeof
-from typing import Any
+from typing import Any, List
 import warnings
 
 import numpy as np
@@ -82,7 +82,7 @@ class RangeIndex(Int64Index):
     # Constructors
 
     def __new__(
-        cls, start=None, stop=None, step=None, dtype=None, copy=False, name=None,
+        cls, start=None, stop=None, step=None, dtype=None, copy=False, name=None
     ):
 
         cls._validate_dtype(dtype)
@@ -186,6 +186,15 @@ class RangeIndex(Int64Index):
     def _format_data(self, name=None):
         # we are formatting thru the attributes
         return None
+
+    def _format_with_header(self, header: List[str], na_rep: str = "NaN") -> List[str]:
+        if not len(self._range):
+            return header
+        first_val_str = str(self._range[0])
+        last_val_str = str(self._range[-1])
+        max_length = max(len(first_val_str), len(last_val_str))
+
+        return header + [f"{x:<{max_length}}" for x in self._range]
 
     # --------------------------------------------------------------------
     _deprecation_message = (
@@ -373,6 +382,10 @@ class RangeIndex(Int64Index):
     def tolist(self):
         return list(self._range)
 
+    @doc(Int64Index.__iter__)
+    def __iter__(self):
+        yield from self._range
+
     @doc(Int64Index._shallow_copy)
     def _shallow_copy(self, values=None, name: Label = no_default):
         name = self.name if name is no_default else name
@@ -385,11 +398,19 @@ class RangeIndex(Int64Index):
             return Int64Index._simple_new(values, name=name)
 
     @doc(Int64Index.copy)
-    def copy(self, name=None, deep=False, dtype=None, **kwargs):
-        self._validate_dtype(dtype)
-        if name is None:
-            name = self.name
-        return self.from_range(self._range, name=name)
+    def copy(self, name=None, deep=False, dtype=None, names=None):
+        name = self._validate_names(name=name, names=names, deep=deep)[0]
+        new_index = self._shallow_copy(name=name)
+
+        if dtype:
+            warnings.warn(
+                "parameter dtype is deprecated and will be removed in a future "
+                "version. Use the astype method instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            new_index = new_index.astype(dtype)
+        return new_index
 
     def _minmax(self, meth: str):
         no_steps = len(self) - 1
@@ -432,7 +453,7 @@ class RangeIndex(Int64Index):
         else:
             return np.arange(len(self) - 1, -1, -1)
 
-    def equals(self, other) -> bool:
+    def equals(self, other: object) -> bool:
         """
         Determines if two Index objects contain the same elements.
         """

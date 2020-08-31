@@ -31,7 +31,7 @@ def _make_flex_doc(op_name, typ):
         base_doc = _flex_doc_SERIES
         if op_desc["reverse"]:
             base_doc += _see_also_reverse_SERIES.format(
-                reverse=op_desc["reverse"], see_also_desc=op_desc["see_also_desc"],
+                reverse=op_desc["reverse"], see_also_desc=op_desc["see_also_desc"]
             )
         doc_no_examples = base_doc.format(
             desc=op_desc["desc"],
