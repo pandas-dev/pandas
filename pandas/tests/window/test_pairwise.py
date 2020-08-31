@@ -195,7 +195,7 @@ class TestPairwise:
 
         columns = MultiIndex.from_product([list("ab"), list("xy"), list("AB")])
         index = range(3)
-        df = DataFrame(np.arange(24).reshape(3, 8), index=index, columns=columns,)
+        df = DataFrame(np.arange(24).reshape(3, 8), index=index, columns=columns)
 
         result = df.ewm(alpha=0.1).cov()
 

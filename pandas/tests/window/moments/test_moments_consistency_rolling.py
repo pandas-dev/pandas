@@ -95,7 +95,7 @@ def test_rolling_apply_consistency(
 
     with warnings.catch_warnings():
         warnings.filterwarnings(
-            "ignore", message=".*(empty slice|0 for slice).*", category=RuntimeWarning,
+            "ignore", message=".*(empty slice|0 for slice).*", category=RuntimeWarning
         )
         # test consistency between rolling_xyz() and either (a)
         # rolling_apply of Series.xyz(), or (b) rolling_apply of
@@ -107,7 +107,7 @@ def test_rolling_apply_consistency(
             functions = no_nan_functions + base_functions
         for (f, require_min_periods, name) in functions:
             rolling_f = getattr(
-                x.rolling(window=window, center=center, min_periods=min_periods), name,
+                x.rolling(window=window, center=center, min_periods=min_periods), name
             )
 
             if (
@@ -492,7 +492,7 @@ def test_moment_functions_zero_length_pairwise():
     df2["a"] = df2["a"].astype("float64")
 
     df1_expected = DataFrame(
-        index=pd.MultiIndex.from_product([df1.index, df1.columns]), columns=Index([]),
+        index=pd.MultiIndex.from_product([df1.index, df1.columns]), columns=Index([])
     )
     df2_expected = DataFrame(
         index=pd.MultiIndex.from_product(
@@ -635,7 +635,7 @@ def test_rolling_consistency(consistency_data, window, min_periods, center):
     # with empty/0-length Series/DataFrames
     with warnings.catch_warnings():
         warnings.filterwarnings(
-            "ignore", message=".*(empty slice|0 for slice).*", category=RuntimeWarning,
+            "ignore", message=".*(empty slice|0 for slice).*", category=RuntimeWarning
         )
 
         # test consistency between different rolling_* moments
