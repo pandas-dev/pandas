@@ -25,7 +25,7 @@ class _ODSWriter(ExcelWriter):
 
         super().__init__(path, mode=mode, **engine_kwargs)
 
-        self.book: OpenDocumentSpreadsheet = OpenDocumentSpreadsheet()
+        self.book = OpenDocumentSpreadsheet()
         self._style_dict: Dict[str, str] = {}
 
     def save(self) -> None:
