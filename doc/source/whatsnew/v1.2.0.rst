@@ -49,6 +49,45 @@ For example:
    buffer = io.BytesIO()
    data.to_csv(buffer, mode="w+b", encoding="utf-8", compression="gzip")
 
+Arithmetic with Timestamp and Timedelta-based Intervals
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Arithmetic can now be performed on :class:`Interval`s having their left and right
+ends as :class:`Timestamp`s or :class:`Timedelta`s, like what would be possible
+if the ends were numeric (:issue:`35908`).
+Before this change, it could be performed in an indirect way like this:
+
+.. ipython:: python
+
+   interval = pd.Interval(pd.Timestamp("1900-01-01"), pd.Timestamp("1900-01-02"))
+   pd.Interval(
+      interval.left - pd.Timestamp("1900-01-01"),
+      interval.right - pd.Timstamp("1900-01-01")
+   )
+
+Now, this can be performed by directly using arithmetic operators (`-` or `+`):
+
+.. ipython:: python
+
+   interval = pd.Interval(pd.Timestamp("1900-01-01"), pd.Timestamp("1900-01-02"))
+   interval - pd.Timestamp("1900-01-01")
+
+This is valid for addition using `+`, and also when the ends are :class:`Timedelta`s. 
+Intervals having ends as Timestamps can also get "added to" or get "subtracted from",
+with :class:`Timedelta`s.
+
+Example:
+
+.. ipython:: python
+
+   interval = pd.Interval(pd.Timestamp("1900-01-01"), pd.Timestamp("1900-01-02"))
+   interval + pd.Timedelta("1 days 00:00:00")
+   interval - pd.Timedelta("1 days 00:00:00")
+
+However, it should be noted that :class:`Timestamp`s cannot be added, and a :class:`Timestamp`
+cannot be subtracted from a :class:`Timedelta`. Performing these would result in a
+:class:`TypeError`.
+
 .. _whatsnew_120.enhancements.other:
 
 Other enhancements

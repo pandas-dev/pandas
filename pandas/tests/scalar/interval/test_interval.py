@@ -184,6 +184,184 @@ class TestInterval:
         with pytest.raises(TypeError, match=msg):
             interval - "foo"
 
+    def test_math_sub_interval_timestamp_timestamp(self, closed):
+        # Tests for interval of timestamp - timestamp
+        interval = Interval(
+            Timestamp("1900-01-01"), Timestamp("1900-01-02"), closed=closed
+        )
+        expected = Interval(
+            Timedelta("0 days 00:00:00"), Timedelta("1 days 00:00:00"), closed=closed
+        )
+
+        result = interval - Timestamp("1900-01-01")
+        assert result == expected
+
+        expected = Interval(
+            interval.left - Timestamp("1900-01-01"),
+            interval.right - Timestamp("1900-01-01"),
+            closed=closed,
+        )
+        assert result == expected
+
+        result = interval
+        result -= Timestamp("1900-01-01")
+
+        expected = Interval(
+            Timedelta("0 days 00:00:00"), Timedelta("1 days 00:00:00"), closed=closed
+        )
+        assert result == expected
+
+        expected = Interval(
+            interval.left - Timestamp("1900-01-01"),
+            interval.right - Timestamp("1900-01-01"),
+            closed=closed,
+        )
+        assert result == expected
+
+    def test_math_sub_interval_timestamp_timedelta(self, closed):
+        # Tests for interval of timestamps - timedelta
+        interval = Interval(
+            Timestamp("1900-01-01"), Timestamp("1900-01-02"), closed=closed
+        )
+        expected = Interval(
+            Timestamp("1899-12-31"), Timestamp("1900-01-01"), closed=closed
+        )
+
+        result = interval - Timedelta("1 days 00:00:00")
+        assert result == expected
+
+        expected = Interval(
+            interval.left - Timedelta("1 days 00:00:00"),
+            interval.right - Timedelta("1 days 00:00:00"),
+            closed=closed,
+        )
+        assert result == expected
+
+        result = interval
+        result -= Timedelta("1 days 00:00:00")
+
+        expected = Interval(
+            Timestamp("1899-12-31"), Timestamp("1900-01-01"), closed=closed
+        )
+        assert result == expected
+
+        expected = Interval(
+            interval.left - Timedelta("1 days 00:00:00"),
+            interval.right - Timedelta("1 days 00:00:00"),
+            closed=closed,
+        )
+        assert result == expected
+
+    def test_math_add_interval_timestamp_timedelta(self, closed):
+        interval = Interval(
+            Timestamp("1900-01-01"), Timestamp("1900-01-02"), closed=closed
+        )
+        expected = Interval(
+            Timestamp("1900-01-02"), Timestamp("1900-01-03"), closed=closed
+        )
+
+        result = interval + Timedelta("1 days 00:00:00")
+        assert result == expected
+
+        result = interval
+        result += Timedelta("1 days 00:00:00")
+        assert result == expected
+
+        expected = Interval(
+            interval.left + Timedelta("1 days 00:00:00"),
+            interval.right + Timedelta("1 days 00:00:00"),
+            closed=closed,
+        )
+
+        result = interval + Timedelta("1 days 00:00:00")
+        assert result == expected
+
+        result = interval
+        result += Timedelta("1 days 00:00:00")
+        assert result == expected
+
+    def test_math_add_interval_timedelta_timedelta(self, closed):
+        interval = Interval(
+            Timedelta("1 days 00:00:00"), Timedelta("2 days 00:00:00"), closed=closed
+        )
+        expected = Interval(
+            Timedelta("4 days 01:00:00"), Timedelta("5 days 01:00:00"), closed=closed
+        )
+
+        result = interval + Timedelta("3 days 01:00:00")
+        assert result == expected
+
+        result = interval
+        result += Timedelta("3 days 01:00:00")
+        assert result == expected
+
+        expected = Interval(
+            interval.left + Timedelta("3 days 01:00:00"),
+            interval.right + Timedelta("3 days 01:00:00"),
+            closed=closed,
+        )
+
+        result = interval + Timedelta("3 days 01:00:00")
+        assert result == expected
+
+        result = interval
+        result += Timedelta("3 days 01:00:00")
+        assert result == expected
+
+    def test_sub_interval_imedelta_timedelta(self, closed):
+        interval = Interval(
+            Timedelta("1 days 00:00:00"), Timedelta("2 days 00:00:00"), closed=closed
+        )
+        expected = Interval(
+            Timedelta("-3 days +23:00:00"),
+            Timedelta("-2 days +23:00:00"),
+            closed=closed,
+        )
+
+        result = interval - Timedelta("3 days 01:00:00")
+        assert result == expected
+
+        result = interval
+        result -= Timedelta("3 days 01:00:00")
+        assert result == expected
+
+        expected = Interval(
+            interval.left - Timedelta("3 days 01:00:00"),
+            interval.right - Timedelta("3 days 01:00:00"),
+            closed=closed,
+        )
+
+        result = interval - Timedelta("3 days 01:00:00")
+        assert result == expected
+
+        result = interval
+        result -= Timedelta("3 days 01:00:00")
+        assert result == expected
+
+    def test_math_add_interval_timestamp_timestamp(self, closed):
+        interval = Interval(
+            Timestamp("1900-01-01"), Timestamp("1900-01-02"), closed=closed
+        )
+
+        msg = r"unsupported operand type\(s\) for \+"
+        with pytest.raises(TypeError, match=msg):
+            interval = interval + Timestamp("2002-01-08")
+
+        with pytest.raises(TypeError, match=msg):
+            interval += Timestamp("2002-01-08")
+
+    def test_math_sub_interval_timedelta_timestamp(self, closed):
+        interval = Interval(
+            Timedelta("1 days 00:00:00"), Timedelta("3 days 00:00:00"), closed=closed
+        )
+
+        msg = r"unsupported operand type\(s\) for \-"
+        with pytest.raises(TypeError, match=msg):
+            interval = interval - Timestamp("1900-01-01")
+
+        with pytest.raises(TypeError, match=msg):
+            interval -= Timestamp("1900-01-01")
+
     def test_math_mult(self, closed):
         interval = Interval(0, 1, closed=closed)
         expected = Interval(0, 2, closed=closed)

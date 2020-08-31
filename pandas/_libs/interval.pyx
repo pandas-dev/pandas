@@ -395,6 +395,8 @@ cdef class Interval(IntervalMixin):
             isinstance(y, numbers.Number)
             or PyDelta_Check(y)
             or is_timedelta64_object(y)
+            or isinstance(y, _Timestamp)
+            or isinstance(y, _Timedelta)
         ):
             return Interval(self.left + y, self.right + y, closed=self.closed)
         elif (
@@ -413,6 +415,8 @@ cdef class Interval(IntervalMixin):
             isinstance(y, numbers.Number)
             or PyDelta_Check(y)
             or is_timedelta64_object(y)
+            or isinstance(y, _Timestamp)
+            or isinstance(y, _Timedelta)
         ):
             return Interval(self.left - y, self.right - y, closed=self.closed)
         return NotImplemented
