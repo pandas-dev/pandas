@@ -615,9 +615,12 @@ Apart from :meth:`Series.min`, :meth:`Series.max` and :meth:`Series.mode`, the
 following operations are possible with categorical data:
 
 ``Series`` methods like :meth:`Series.value_counts` will use all categories,
-even if some categories are not present in the data:
+even if some categories are not present in the data, though this default is
+deprecated and will be changed in a future release. It is recommended to use
+the `observed` keyword explicitly:
 
 .. ipython:: python
+    :okwarning:
 
     s = pd.Series(pd.Categorical(["a", "b", "c", "c"], categories=["c", "a", "b", "d"]))
     s.value_counts()
@@ -625,6 +628,7 @@ even if some categories are not present in the data:
 ``DataFrame`` methods like :meth:`DataFrame.sum` also show "unused" categories.
 
 .. ipython:: python
+    :okwarning:
 
     columns = pd.Categorical(
         ["One", "One", "Two"], categories=["One", "Two", "Three"], ordered=True
@@ -638,6 +642,7 @@ even if some categories are not present in the data:
 Groupby will also show "unused" categories:
 
 .. ipython:: python
+    :okwarning:
 
     cats = pd.Categorical(
         ["a", "b", "b", "b", "c", "c", "c"], categories=["a", "b", "c", "d"]
@@ -659,6 +664,7 @@ Groupby will also show "unused" categories:
 Pivot tables:
 
 .. ipython:: python
+    :okwarning:
 
     raw_cat = pd.Categorical(["a", "a", "b", "b"], categories=["a", "b", "c"])
     df = pd.DataFrame({"A": raw_cat, "B": ["c", "d", "c", "d"], "values": [1, 2, 3, 4]})
@@ -676,6 +682,7 @@ Getting
 
 If the slicing operation returns either a ``DataFrame`` or a column of type
 ``Series``, the ``category`` dtype is preserved.
+    :okwarning:
 
 .. ipython:: python
 

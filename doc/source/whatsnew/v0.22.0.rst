@@ -118,6 +118,7 @@ instead of ``NaN``.
 *pandas 0.22*
 
 .. ipython:: python
+    :okwarning:
 
    grouper = pd.Categorical(["a", "a"], categories=["a", "b"])
    pd.Series([1, 2]).groupby(grouper).sum()

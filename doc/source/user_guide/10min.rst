@@ -705,6 +705,7 @@ Sorting is per order in the categories, not lexical order.
 Grouping by a categorical column also shows empty categories.
 
 .. ipython:: python
+    :okwarning:
 
     df.groupby("grade").size()
 

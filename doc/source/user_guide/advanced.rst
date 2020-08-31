@@ -808,6 +808,7 @@ order is ``cab``).
 Groupby operations on the index will preserve the index nature as well.
 
 .. ipython:: python
+    :okwarning:
 
    df2.groupby(level=0).sum()
    df2.groupby(level=0).sum().index

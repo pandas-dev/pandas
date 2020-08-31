@@ -291,6 +291,7 @@ In previous versions, ``.groupby(..., sort=False)`` would fail with a ``ValueErr
 **New behavior**:
 
 .. ipython:: python
+    :okwarning:
 
    df[df.chromosomes != '1'].groupby('chromosomes', sort=False).sum()
 
