@@ -714,7 +714,7 @@ class TestGrouping:
         ):
             df.groupby(["x", "y"])
 
-        with pytest.warns(None) as any_warnings:
+        with tm.assert_produces_warning(None) as any_warnings:
             df.groupby(["x", "y"], observed=True)
             df.groupby(["x", "y"], observed=False)
         assert len(any_warnings) == 0
