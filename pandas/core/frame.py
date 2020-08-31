@@ -5891,17 +5891,22 @@ DataFrame
     The resulting index will be a MultiIndex with 'self' and 'other'
     stacked alternately at the inner level.
 
+Raises
+------
+ValueError
+    * When `errors='raise'` and both DataFrames don't have identical labels.
+
 See Also
 --------
 Series.compare : Compare with another Series and show differences.
+DataFrame.equals : Test whether two objects contain the same elements.
 
 Notes
 -----
 Matching NaNs will not appear as a difference.
 
-Can only compare identically-labeled DataFrame objects,
-this means DataFrames with the same shape and
-identical row, column labels.
+Can only compare identically-labeled DataFrame objects, 
+this means DataFrames with the same shape and identical row, column labels.
 
 Examples
 --------
