@@ -64,21 +64,10 @@ so something like this will work:
    interval = pd.Interval(pd.Timestamp("1900-01-01"), pd.Timestamp("1900-01-02"))
    interval - pd.Timestamp("1900-01-01")
 
-This is valid for addition using `+`, and also when the ends are :class:`Timedelta` s.
-Intervals having ends as Timestamps can also get "added to" or get "subtracted from",
-with :class:`Timedelta` s.
+This works when endpoints are :class:`Timestamp` s or :class:`Timedelta` s.
 
-Example:
-
-.. ipython:: python
-
-   interval = pd.Interval(pd.Timestamp("1900-01-01"), pd.Timestamp("1900-01-02"))
-   interval + pd.Timedelta("1 days 00:00:00")
-   interval - pd.Timedelta("1 days 00:00:00")
-
-However, it should be noted that :class:`Timestamp` s cannot be added, and a :class:`Timestamp`
-cannot be subtracted from a :class:`Timedelta`. Performing these would result in a
-:class:`TypeError`.
+However, it should be noted that adding :class:`Timestamp` s , and subtracting :class:`Timestamp`
+from a :class:`Timedelta` is illegal.
 
 .. _whatsnew_120.enhancements.other:
 
