@@ -7380,6 +7380,15 @@ NaN 12.3   33.0
     min   1.0  2.0
     sum  12.0  NaN
 
+    Aggregate different functions over the columns and rename the index of the resulting
+    DataFrame.
+
+    >>> df.agg(x=('A', max), y=('B', 'min'), z=('C', np.mean))
+         A    B    C
+    x  7.0  NaN  NaN
+    y  NaN  2.0  NaN
+    z  NaN  NaN  6.0
+
     Aggregate over the columns.
 
     >>> df.agg("mean", axis="columns")
