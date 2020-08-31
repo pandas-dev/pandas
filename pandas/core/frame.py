@@ -5935,7 +5935,7 @@ DataFrame
 Raises
 ------
 ValueError
-    * When `errors='raise'` and both DataFrames don't have identical labels.
+    * When both DataFrames don't have identical labels or shape.
 
 See Also
 --------
