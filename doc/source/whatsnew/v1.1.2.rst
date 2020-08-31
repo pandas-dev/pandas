@@ -15,6 +15,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Regression in :meth:`DatetimeIndex.intersection` incorrectly raising ``AssertionError`` when intersecting against a list (:issue:`35876`)
+- Fix regression in updating a column inplace (e.g. using ``df['col'].fillna(.., inplace=True)``) (:issue:`35731`)
 - Performance regression for :meth:`RangeIndex.format` (:issue:`35712`)
 -
 
