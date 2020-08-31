@@ -20,6 +20,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     AnyStr,
+    Callable,
     Dict,
     FrozenSet,
     Hashable,
@@ -8116,7 +8117,11 @@ NaN 12.3   33.0
     # ----------------------------------------------------------------------
     # Statistical methods, etc.
 
-    def corr(self, method="pearson", min_periods=1, axis=0) -> "DataFrame":
+    def corr(
+        self,
+        method: Union[str, Callable[[np.ndarray, np.ndarray], np.float64]]="pearson",
+        min_periods: Optional[int]=1, axis: Union[str, int]=0
+    ) -> "DataFrame":
         """
         Compute pairwise correlation of rows or columns, excluding NA/null values.
 
