@@ -8671,13 +8671,7 @@ NaN 12.3   33.0
             # After possibly _get_data and transposing, we are now in the
             #  simple case where we can use BlockManager.reduce
             res = df._mgr.reduce(blk_func)
-            out = (
-                df._constructor(
-                    res,
-                )
-                .iloc[0]
-                .rename(None)
-            )
+            out = df._constructor(res,).iloc[0].rename(None)
             if out_dtype is not None:
                 out = out.astype(out_dtype)
             if axis == 0 and is_object_dtype(out.dtype):
