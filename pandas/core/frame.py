@@ -8119,8 +8119,8 @@ NaN 12.3   33.0
 
     def corr(
         self,
-        method: Union[str, Callable[[np.ndarray, np.ndarray], np.float64]]="pearson",
-        min_periods: Optional[int]=1, axis: Union[str, int]=0
+        method: Union[str, Callable[[np.ndarray, np.ndarray], np.float64]] = "pearson",
+        min_periods: Optional[int] = 1, axis: Union[str, int] = 0
     ) -> "DataFrame":
         """
         Compute pairwise correlation of rows or columns, excluding NA/null values.
