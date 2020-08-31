@@ -2091,14 +2091,7 @@ def test_group_on_two_row_multiindex_returns_one_tuple_key():
             ),
         ),
         (Series, "level", "a"),
-        pytest.param(
-            Series,
-            "as_index",
-            False,
-            marks=pytest.mark.xfail(
-                reason="GH 35443: Returns a DataFrameGroupBy", strict=False,
-            ),
-        ),
+        (Series, "as_index", False),
         (Series, "sort", False),
         (Series, "group_keys", False),
         (Series, "squeeze", True),
