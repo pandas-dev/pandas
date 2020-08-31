@@ -644,3 +644,17 @@ def test_to_dict_of_blocks_item_cache():
     assert df.loc[0, "b"] == "foo"
 
     assert df["b"] is ser
+
+
+def test_update_inplace_sets_valid_block_values():
+    # https://github.com/pandas-dev/pandas/issues/33457
+    df = pd.DataFrame({"a": pd.Series([1, 2, None], dtype="category")})
+
+    # inplace update of a single column
+    df["a"].fillna(1, inplace=True)
+
+    # check we havent put a Series into any block.values
+    assert isinstance(df._mgr.blocks[0].values, pd.Categorical)
+
+    # smoketest for OP bug from GH#35731
+    assert df.isnull().sum().sum() == 0
