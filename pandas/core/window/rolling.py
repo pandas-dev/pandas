@@ -22,7 +22,7 @@ import numpy as np
 
 from pandas._libs.tslibs import BaseOffset, to_offset
 import pandas._libs.window.aggregations as window_aggregations
-from pandas._typing import ArrayLike, Axis, FrameOrSeriesUnion, Label
+from pandas._typing import ArrayLike, Axis, FrameOrSeries, FrameOrSeriesUnion, Label
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
@@ -159,7 +159,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
     def __init__(
         self,
-        obj: FrameOrSeriesUnion,
+        obj: FrameOrSeries,
         window=None,
         min_periods: Optional[int] = None,
         center: bool = False,
@@ -2117,7 +2117,7 @@ class Rolling(_Rolling_and_Expanding):
     @Substitution(name="rolling")
     @Appender(_shared_docs["apply"])
     def apply(
-        self, func, raw=False, engine=None, engine_kwargs=None, args=None, kwargs=None,
+        self, func, raw=False, engine=None, engine_kwargs=None, args=None, kwargs=None
     ):
         return super().apply(
             func,

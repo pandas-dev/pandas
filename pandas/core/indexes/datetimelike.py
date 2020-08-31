@@ -1,7 +1,7 @@
 """
 Base and utility classes for tseries type pandas objects.
 """
-from datetime import datetime
+from datetime import datetime, tzinfo
 from typing import Any, List, Optional, TypeVar, Union, cast
 
 import numpy as np
@@ -81,9 +81,7 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
     DatetimeLikeArrayMixin,
     cache=True,
 )
-@inherit_names(
-    ["mean", "asi8", "freq", "freqstr", "_box_func"], DatetimeLikeArrayMixin,
-)
+@inherit_names(["mean", "asi8", "freq", "freqstr", "_box_func"], DatetimeLikeArrayMixin)
 class DatetimeIndexOpsMixin(ExtensionIndex):
     """
     Common ops mixin to support a unified interface datetimelike Index.
@@ -631,6 +629,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
     Mixin class for methods shared by DatetimeIndex and TimedeltaIndex,
     but not PeriodIndex
     """
+
+    tz: Optional[tzinfo]
 
     # Compat for frequency inference, see GH#23789
     _is_monotonic_increasing = Index.is_monotonic_increasing

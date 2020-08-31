@@ -648,25 +648,15 @@ def test_to_dict_of_blocks_item_cache():
     assert df["b"] is ser
 
 
-def test_fillna_sets_valid_block_values():
-    # GH#35731 fillna call was setting Block.values to a Series
-    df = pd.DataFrame(
-        {
-            "a": pd.Series([np.nan, 2.0, 3.0, 1.0]).astype("category"),
-            "b": pd.Series(["A", "A", "B", "C"]).astype("category"),
-            "c": pd.Series(["D", "E", "E", np.nan]).astype("category"),
-        }
-    )
-    cats = df["a"].cat.categories.tolist()
-    # append new category
-    cats.append(0.0)
-    df["a"] = df["a"].astype(pd.CategoricalDtype(categories=cats, ordered=False))
+def test_update_inplace_sets_valid_block_values():
+    # https://github.com/pandas-dev/pandas/issues/33457
+    df = pd.DataFrame({"a": pd.Series([1, 2, None], dtype="category")})
 
-    # fillna with that new category
-    df["a"].fillna(0, inplace=True)
+    # inplace update of a single column
+    df["a"].fillna(1, inplace=True)
 
     # check we havent put a Series into any block.values
-    assert all(isinstance(blk.values, pd.Categorical) for blk in df._mgr.blocks)
+    assert isinstance(df._mgr.blocks[0].values, pd.Categorical)
 
     # smoketest for OP bug from GH#35731
-    df.isnull().sum()
+    assert df.isnull().sum().sum() == 0

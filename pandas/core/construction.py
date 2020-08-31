@@ -514,9 +514,7 @@ def sanitize_array(
     return subarr
 
 
-def _try_cast(
-    arr, dtype: Optional[DtypeObj], copy: bool, raise_cast_failure: bool,
-):
+def _try_cast(arr, dtype: Optional[DtypeObj], copy: bool, raise_cast_failure: bool):
     """
     Convert input to numpy ndarray and optionally cast to a given dtype.
 
