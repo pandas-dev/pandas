@@ -5788,7 +5788,7 @@ class DataFrame(NDFrame):
                   population    GDP alpha-2
         Tuvalu         11300     38      TV
         Anguilla       11300    311      AI
-        Iceland       337000  17036	     IS
+        Iceland       337000  17036      IS
 
         When using ``keep='last'``, ties are resolved in reverse order:
 
@@ -8120,7 +8120,8 @@ NaN 12.3   33.0
     def corr(
         self,
         method: Union[str, Callable[[np.ndarray, np.ndarray], np.float64]] = "pearson",
-        min_periods: Optional[int] = 1, axis: Union[str, int] = 0
+        min_periods: Optional[int] = 1,
+        axis: Union[str, int] = 0,
     ) -> "DataFrame":
         """
         Compute pairwise correlation of rows or columns, excluding NA/null values.
@@ -8670,7 +8671,13 @@ NaN 12.3   33.0
             # After possibly _get_data and transposing, we are now in the
             #  simple case where we can use BlockManager.reduce
             res = df._mgr.reduce(blk_func)
-            out = df._constructor(res,).iloc[0].rename(None)
+            out = (
+                df._constructor(
+                    res,
+                )
+                .iloc[0]
+                .rename(None)
+            )
             if out_dtype is not None:
                 out = out.astype(out_dtype)
             if axis == 0 and is_object_dtype(out.dtype):
