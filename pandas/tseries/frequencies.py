@@ -548,7 +548,7 @@ def is_superperiod(source, target) -> bool:
 
 
 def _maybe_coerce_freq(code) -> str:
-    """ we might need to coerce a code to a rule_code
+    """we might need to coerce a code to a rule_code
     and uppercase it
 
     Parameters

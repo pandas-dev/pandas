@@ -73,7 +73,7 @@ def test_ewma_nan_handling():
         (s1, True, True, [(1.0 - alpha), np.nan, 1.0]),
         (s1, False, False, [(1.0 - alpha) ** 2, np.nan, alpha]),
         (s1, False, True, [(1.0 - alpha), np.nan, alpha]),
-        (s2, True, False, [np.nan, (1.0 - alpha) ** 3, np.nan, np.nan, 1.0, np.nan],),
+        (s2, True, False, [np.nan, (1.0 - alpha) ** 3, np.nan, np.nan, 1.0, np.nan]),
         (s2, True, True, [np.nan, (1.0 - alpha), np.nan, np.nan, 1.0, np.nan]),
         (
             s2,
@@ -95,7 +95,7 @@ def test_ewma_nan_handling():
                 alpha * ((1.0 - alpha) ** 2 + alpha),
             ],
         ),
-        (s3, False, True, [(1.0 - alpha) ** 2, np.nan, (1.0 - alpha) * alpha, alpha],),
+        (s3, False, True, [(1.0 - alpha) ** 2, np.nan, (1.0 - alpha) * alpha, alpha]),
     ]:
         expected = simple_wma(s, Series(w))
         result = s.ewm(com=com, adjust=adjust, ignore_na=ignore_na).mean()

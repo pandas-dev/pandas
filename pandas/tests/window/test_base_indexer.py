@@ -88,8 +88,8 @@ def test_win_type_not_implemented():
 @pytest.mark.parametrize(
     "func,np_func,expected,np_kwargs",
     [
-        ("count", len, [3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 2.0, np.nan], {},),
-        ("min", np.min, [0.0, 1.0, 2.0, 3.0, 4.0, 6.0, 6.0, 7.0, 8.0, np.nan], {},),
+        ("count", len, [3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 2.0, np.nan], {}),
+        ("min", np.min, [0.0, 1.0, 2.0, 3.0, 4.0, 6.0, 6.0, 7.0, 8.0, np.nan], {}),
         (
             "max",
             np.max,
@@ -204,7 +204,7 @@ def test_rolling_forward_skewness(constructor):
 @pytest.mark.parametrize(
     "func,expected",
     [
-        ("cov", [2.0, 2.0, 2.0, 97.0, 2.0, -93.0, 2.0, 2.0, np.nan, np.nan],),
+        ("cov", [2.0, 2.0, 2.0, 97.0, 2.0, -93.0, 2.0, 2.0, np.nan, np.nan]),
         (
             "corr",
             [
