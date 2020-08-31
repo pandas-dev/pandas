@@ -358,6 +358,11 @@ cdef class Interval(IntervalMixin):
             self_tuple = (self.left, self.right, self.closed)
             other_tuple = (other.left, other.right, other.closed)
             return PyObject_RichCompare(self_tuple, other_tuple, op)
+        elif util.is_array(other):
+            return np.array(
+                [PyObject_RichCompare(self, x, op) for x in other],
+                dtype=bool,
+            )
 
         return NotImplemented
 

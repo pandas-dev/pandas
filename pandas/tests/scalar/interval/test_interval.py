@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import Interval, Period, Timedelta, Timestamp
+import pandas._testing as tm
 import pandas.core.common as com
 
 
@@ -267,3 +268,11 @@ class TestInterval:
             msg = "left and right must have the same time zone"
         with pytest.raises(error, match=msg):
             Interval(left, right)
+
+    def test_equality_comparison_broadcasts_over_array(self):
+        # https://github.com/pandas-dev/pandas/issues/35931
+        interval = Interval(0, 1)
+        arr = np.array([interval, interval])
+        result = interval == arr
+        expected = np.array([True, True])
+        tm.assert_numpy_array_equal(result, expected)
