@@ -55,14 +55,9 @@ Arithmetic with Timestamp and Timedelta-based Intervals
 Arithmetic can now be performed on :class:`Interval` s having their left and right
 ends as :class:`Timestamp` s or :class:`Timedelta` s, like what would be possible
 if the ends were numeric (:issue:`35908`).
-Before this change, it could be performed in an indirect way like this:
 
-.. ipython:: python
-
-   interval = pd.Interval(pd.Timestamp("1900-01-01"), pd.Timestamp("1900-01-02"))
-   pd.Interval(interval.left - pd.Timestamp("1900-01-01"), interval.right - pd.Timstamp("1900-01-01"))
-
-Now, this can be performed by directly using arithmetic operators (`-` or `+`):
+Arithmetic can be performed by directly using arithmetic operators (`-` or `+`),
+so something like this will work:
 
 .. ipython:: python
 
