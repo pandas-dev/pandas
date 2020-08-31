@@ -22,7 +22,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
-from pandas import DataFrame, DatetimeIndex, Index, MultiIndex
+from pandas import DataFrame
 import pandas.core.common as com
 
 loads = json.loads
