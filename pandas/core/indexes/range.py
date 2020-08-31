@@ -1,7 +1,7 @@
 from datetime import timedelta
 import operator
 from sys import getsizeof
-from typing import Any
+from typing import Any, List
 import warnings
 
 import numpy as np
@@ -82,7 +82,7 @@ class RangeIndex(Int64Index):
     # Constructors
 
     def __new__(
-        cls, start=None, stop=None, step=None, dtype=None, copy=False, name=None,
+        cls, start=None, stop=None, step=None, dtype=None, copy=False, name=None
     ):
 
         cls._validate_dtype(dtype)
@@ -186,6 +186,15 @@ class RangeIndex(Int64Index):
     def _format_data(self, name=None):
         # we are formatting thru the attributes
         return None
+
+    def _format_with_header(self, header: List[str], na_rep: str = "NaN") -> List[str]:
+        if not len(self._range):
+            return header
+        first_val_str = str(self._range[0])
+        last_val_str = str(self._range[-1])
+        max_length = max(len(first_val_str), len(last_val_str))
+
+        return header + [f"{x:<{max_length}}" for x in self._range]
 
     # --------------------------------------------------------------------
     _deprecation_message = (
