@@ -53,7 +53,11 @@ Arithmetic with Timestamp and Timedelta-based Intervals
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Arithmetic can now be performed on :class:`Interval` s having their left and right
+<<<<<<< HEAD
 ends as :class:`Timestamp` s or :class:`Timedelta` s, like what would be possible
+=======
+ends as :class:`Timestamp`s or :class:`Timedelta` s, like what would be possible
+>>>>>>> ed767523218bb742a30692b9761727c17f9c4e00
 if the ends were numeric (:issue:`35908`).
 Before this change, it could be performed in an indirect way like this:
 
