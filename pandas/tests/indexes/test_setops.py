@@ -48,12 +48,8 @@ def test_union_different_types(index, index_fixture2):
 
     # Union with a non-unique, non-monotonic index raises error
     # This applies to the boolean index
-    print(idx1)
-    print(idx2)
     idx1 = idx1.sort_values()
     idx2 = idx2.sort_values()
-    print(idx1)
-    print(idx2)
 
     assert idx1.union(idx2).dtype == np.dtype("O")
     assert idx2.union(idx1).dtype == np.dtype("O")
