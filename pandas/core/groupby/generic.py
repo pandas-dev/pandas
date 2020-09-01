@@ -1233,7 +1233,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     # unique
                     if self.squeeze:
                         applied_index = self._selected_obj._get_axis(self.axis)
-                        singular_series = len(values) == 1 and applied_index.nlevels == 1
+                        singular_series = (
+                            len(values) == 1 and applied_index.nlevels == 1
+                        )
 
                         # assign the name to this series
                         if singular_series:
