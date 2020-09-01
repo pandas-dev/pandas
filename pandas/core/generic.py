@@ -6,7 +6,6 @@ import json
 import operator
 import pickle
 import re
-from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -101,17 +100,22 @@ from pandas.core.internals import BlockManager
 from pandas.core.missing import find_valid_index
 from pandas.core.ops import _align_method_FRAME
 from pandas.core.shared_docs import _shared_docs
+from pandas.core.window import Expanding, ExponentialMovingWindow, Rolling, Window
 
 from pandas.io.formats import format as fmt
 from pandas.io.formats.format import DataFrameFormatter, format_percentiles
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
+    from pandas._libs.tslibs import BaseOffset
+
     from pandas.core.resample import Resampler
     from pandas.core.series import Series  # noqa: F401
+    from pandas.core.window.indexers import BaseIndexer
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
+_shared_docs = {**_shared_docs}
 _shared_doc_kwargs = dict(
     axes="keywords for axes",
     klass="Series/DataFrame",
@@ -315,17 +319,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     @property
     def _AXIS_NUMBERS(self) -> Dict[str, int]:
         """.. deprecated:: 1.1.0"""
-        warnings.warn(
-            "_AXIS_NUMBERS has been deprecated.", FutureWarning, stacklevel=3,
-        )
+        warnings.warn("_AXIS_NUMBERS has been deprecated.", FutureWarning, stacklevel=3)
         return {"index": 0}
 
     @property
     def _AXIS_NAMES(self) -> Dict[int, str]:
         """.. deprecated:: 1.1.0"""
-        warnings.warn(
-            "_AXIS_NAMES has been deprecated.", FutureWarning, stacklevel=3,
-        )
+        warnings.warn("_AXIS_NAMES has been deprecated.", FutureWarning, stacklevel=3)
         return {0: "index"}
 
     def _construct_axes_dict(self, axes=None, **kwargs):
@@ -391,7 +391,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return m - axis
         return axis
 
-    def _get_axis_resolvers(self, axis: str) -> Dict[str, ABCSeries]:
+    def _get_axis_resolvers(self, axis: str) -> Dict[str, Union["Series", MultiIndex]]:
         # index or columns
         axis_index = getattr(self, axis)
         d = dict()
@@ -421,10 +421,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         d[axis] = dindex
         return d
 
-    def _get_index_resolvers(self) -> Dict[str, ABCSeries]:
+    def _get_index_resolvers(self) -> Dict[str, Union["Series", MultiIndex]]:
         from pandas.core.computation.parsing import clean_column_name
 
-        d: Dict[str, ABCSeries] = {}
+        d: Dict[str, Union["Series", MultiIndex]] = {}
         for axis_name in self._AXIS_ORDERS:
             d.update(self._get_axis_resolvers(axis_name))
 
@@ -4707,14 +4707,15 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return self.reindex(**{name: [r for r in items if r in labels]})
         elif like:
 
-            def f(x):
+            def f(x) -> bool:
+                assert like is not None  # needed for mypy
                 return like in ensure_str(x)
 
             values = labels.map(f)
             return self.loc(axis=axis)[values]
         elif regex:
 
-            def f(x):
+            def f(x) -> bool:
                 return matcher.search(ensure_str(x)) is not None
 
             matcher = re.compile(regex)
@@ -5128,50 +5129,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ...    .pipe(g, arg1=a)
         ...    .pipe((func, 'arg2'), arg1=a, arg3=c)
         ...  )  # doctest: +SKIP
-    """
-        return com.pipe(self, func, *args, **kwargs)
-
-    _shared_docs["aggregate"] = dedent(
         """
-        Aggregate using one or more operations over the specified axis.
-        {versionadded}
-        Parameters
-        ----------
-        func : function, str, list or dict
-            Function to use for aggregating the data. If a function, must either
-            work when passed a {klass} or when passed to {klass}.apply.
-
-            Accepted combinations are:
-
-            - function
-            - string function name
-            - list of functions and/or function names, e.g. ``[np.sum, 'mean']``
-            - dict of axis labels -> functions, function names or list of such.
-        {axis}
-        *args
-            Positional arguments to pass to `func`.
-        **kwargs
-            Keyword arguments to pass to `func`.
-
-        Returns
-        -------
-        scalar, Series or DataFrame
-
-            The return can be:
-
-            * scalar : when Series.agg is called with single function
-            * Series : when DataFrame.agg is called with a single function
-            * DataFrame : when DataFrame.agg is called with several functions
-
-            Return scalar, Series or DataFrame.
-        {see_also}
-        Notes
-        -----
-        `agg` is an alias for `aggregate`. Use the alias.
-
-        A passed user-defined-function will be passed a Series for evaluation.
-        {examples}"""
-    )
+        return com.pipe(self, func, *args, **kwargs)
 
     # ----------------------------------------------------------------------
     # Attribute access
@@ -5627,7 +5586,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         else:
             # else, only a single dtype is given
-            new_data = self._mgr.astype(dtype=dtype, copy=copy, errors=errors,)
+            new_data = self._mgr.astype(dtype=dtype, copy=copy, errors=errors)
             return self._constructor(new_data).__finalize__(self, method="astype")
 
         # GH 33113: handle empty frame or series
@@ -6517,7 +6476,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         3     b
         4     b
         dtype: object
-    """
+        """
         if not (
             is_scalar(to_replace)
             or is_re_compilable(to_replace)
@@ -6557,7 +6516,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 regex = True
 
             items = list(to_replace.items())
-            keys, values = zip(*items) if items else ([], [])
+            if items:
+                keys, values = zip(*items)
+            else:
+                keys, values = ([], [])
 
             are_mappings = [is_dict_like(v) for v in values]
 
@@ -6893,7 +6855,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         obj = self.T if should_transpose else self
 
         if obj.empty:
-            return self
+            return self.copy()
 
         if method not in fillna_methods:
             axis = self._info_axis_number
@@ -7449,77 +7411,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         return result
 
-    _shared_docs[
-        "groupby"
-    ] = """
-        Group %(klass)s using a mapper or by a Series of columns.
-
-        A groupby operation involves some combination of splitting the
-        object, applying a function, and combining the results. This can be
-        used to group large amounts of data and compute operations on these
-        groups.
-
-        Parameters
-        ----------
-        by : mapping, function, label, or list of labels
-            Used to determine the groups for the groupby.
-            If ``by`` is a function, it's called on each value of the object's
-            index. If a dict or Series is passed, the Series or dict VALUES
-            will be used to determine the groups (the Series' values are first
-            aligned; see ``.align()`` method). If an ndarray is passed, the
-            values are used as-is determine the groups. A label or list of
-            labels may be passed to group by the columns in ``self``. Notice
-            that a tuple is interpreted as a (single) key.
-        axis : {0 or 'index', 1 or 'columns'}, default 0
-            Split along rows (0) or columns (1).
-        level : int, level name, or sequence of such, default None
-            If the axis is a MultiIndex (hierarchical), group by a particular
-            level or levels.
-        as_index : bool, default True
-            For aggregated output, return object with group labels as the
-            index. Only relevant for DataFrame input. as_index=False is
-            effectively "SQL-style" grouped output.
-        sort : bool, default True
-            Sort group keys. Get better performance by turning this off.
-            Note this does not influence the order of observations within each
-            group. Groupby preserves the order of rows within each group.
-        group_keys : bool, default True
-            When calling apply, add group keys to index to identify pieces.
-        squeeze : bool, default False
-            Reduce the dimensionality of the return type if possible,
-            otherwise return a consistent type.
-
-            .. deprecated:: 1.1.0
-
-        observed : bool, default False
-            This only applies if any of the groupers are Categoricals.
-            If True: only show observed values for categorical groupers.
-            If False: show all values for categorical groupers.
-
-            .. versionadded:: 0.23.0
-        dropna : bool, default True
-            If True, and if group keys contain NA values, NA values together
-            with row/column will be dropped.
-            If False, NA values will also be treated as the key in groups
-
-            .. versionadded:: 1.1.0
-
-        Returns
-        -------
-        %(klass)sGroupBy
-            Returns a groupby object that contains information about the groups.
-
-        See Also
-        --------
-        resample : Convenience method for frequency conversion and resampling
-            of time series.
-
-        Notes
-        -----
-        See the `user guide
-        <https://pandas.pydata.org/pandas-docs/stable/groupby.html>`_ for more.
-        """
-
     def asfreq(
         self: FrameOrSeries,
         freq,
@@ -7769,7 +7660,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             raise TypeError("Index must be DatetimeIndex")
 
         indexer = index.indexer_between_time(
-            start_time, end_time, include_start=include_start, include_end=include_end,
+            start_time, end_time, include_start=include_start, include_end=include_end
         )
         return self._take_with_is_copy(indexer, axis=axis)
 
@@ -8428,35 +8319,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         return ranker(data)
 
-    _shared_docs[
-        "compare"
-    ] = """
-        Compare to another %(klass)s and show the differences.
-
-        .. versionadded:: 1.1.0
-
-        Parameters
-        ----------
-        other : %(klass)s
-            Object to compare with.
-
-        align_axis : {0 or 'index', 1 or 'columns'}, default 1
-            Determine which axis to align the comparison on.
-
-            * 0, or 'index' : Resulting differences are stacked vertically
-                with rows drawn alternately from self and other.
-            * 1, or 'columns' : Resulting differences are aligned horizontally
-                with columns drawn alternately from self and other.
-
-        keep_shape : bool, default False
-            If true, all rows and columns are kept.
-            Otherwise, only the ones with different values are kept.
-
-        keep_equal : bool, default False
-            If true, the result keeps values that are equal.
-            Otherwise, equal values are shown as NaNs.
-        """
-
     @Appender(_shared_docs["compare"] % _shared_doc_kwargs)
     def compare(
         self,
@@ -8936,7 +8798,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             self._check_inplace_setting(other)
             new_data = self._mgr.putmask(
-                mask=cond, new=other, align=align, axis=block_axis,
+                mask=cond, new=other, align=align, axis=block_axis
             )
             result = self._constructor(new_data)
             return self._update_inplace(result)
@@ -10586,45 +10448,21 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             examples=_min_examples,
         )
 
-    @classmethod
-    def _add_series_or_dataframe_operations(cls):
-        """
-        Add the series or dataframe only operations to the cls; evaluate
-        the doc strings again.
-        """
-        from pandas.core.window import (
-            Expanding,
-            ExponentialMovingWindow,
-            Rolling,
-            Window,
-        )
+    @doc(Rolling)
+    def rolling(
+        self,
+        window: "Union[int, timedelta, BaseOffset, BaseIndexer]",
+        min_periods: Optional[int] = None,
+        center: bool_t = False,
+        win_type: Optional[str] = None,
+        on: Optional[str] = None,
+        axis: Axis = 0,
+        closed: Optional[str] = None,
+    ):
+        axis = self._get_axis_number(axis)
 
-        @doc(Rolling)
-        def rolling(
-            self,
-            window,
-            min_periods=None,
-            center=False,
-            win_type=None,
-            on=None,
-            axis=0,
-            closed=None,
-        ):
-            axis = self._get_axis_number(axis)
-
-            if win_type is not None:
-                return Window(
-                    self,
-                    window=window,
-                    min_periods=min_periods,
-                    center=center,
-                    win_type=win_type,
-                    on=on,
-                    axis=axis,
-                    closed=closed,
-                )
-
-            return Rolling(
+        if win_type is not None:
+            return Window(
                 self,
                 window=window,
                 min_periods=min_periods,
@@ -10635,53 +10473,59 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 closed=closed,
             )
 
-        cls.rolling = rolling
-
-        @doc(Expanding)
-        def expanding(self, min_periods=1, center=None, axis=0):
-            axis = self._get_axis_number(axis)
-            if center is not None:
-                warnings.warn(
-                    "The `center` argument on `expanding` "
-                    "will be removed in the future",
-                    FutureWarning,
-                    stacklevel=2,
-                )
-            else:
-                center = False
-
-            return Expanding(self, min_periods=min_periods, center=center, axis=axis)
-
-        cls.expanding = expanding
-
-        @doc(ExponentialMovingWindow)
-        def ewm(
+        return Rolling(
             self,
-            com=None,
-            span=None,
-            halflife=None,
-            alpha=None,
-            min_periods=0,
-            adjust=True,
-            ignore_na=False,
-            axis=0,
-            times=None,
-        ):
-            axis = self._get_axis_number(axis)
-            return ExponentialMovingWindow(
-                self,
-                com=com,
-                span=span,
-                halflife=halflife,
-                alpha=alpha,
-                min_periods=min_periods,
-                adjust=adjust,
-                ignore_na=ignore_na,
-                axis=axis,
-                times=times,
-            )
+            window=window,
+            min_periods=min_periods,
+            center=center,
+            win_type=win_type,
+            on=on,
+            axis=axis,
+            closed=closed,
+        )
 
-        cls.ewm = ewm
+    @doc(Expanding)
+    def expanding(
+        self, min_periods: int = 1, center: Optional[bool_t] = None, axis: Axis = 0
+    ) -> Expanding:
+        axis = self._get_axis_number(axis)
+        if center is not None:
+            warnings.warn(
+                "The `center` argument on `expanding` will be removed in the future",
+                FutureWarning,
+                stacklevel=2,
+            )
+        else:
+            center = False
+
+        return Expanding(self, min_periods=min_periods, center=center, axis=axis)
+
+    @doc(ExponentialMovingWindow)
+    def ewm(
+        self,
+        com: Optional[float] = None,
+        span: Optional[float] = None,
+        halflife: Optional[Union[float, TimedeltaConvertibleTypes]] = None,
+        alpha: Optional[float] = None,
+        min_periods: int = 0,
+        adjust: bool_t = True,
+        ignore_na: bool_t = False,
+        axis: Axis = 0,
+        times: Optional[Union[str, np.ndarray, FrameOrSeries]] = None,
+    ) -> ExponentialMovingWindow:
+        axis = self._get_axis_number(axis)
+        return ExponentialMovingWindow(
+            self,
+            com=com,
+            span=span,
+            halflife=halflife,
+            alpha=alpha,
+            min_periods=min_periods,
+            adjust=adjust,
+            ignore_na=ignore_na,
+            axis=axis,
+            times=times,
+        )
 
     @doc(klass=_shared_doc_kwargs["klass"], axis="")
     def transform(self, func, *args, **kwargs):
@@ -10700,7 +10544,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             - function
             - string function name
-            - list of functions and/or function names, e.g. ``[np.exp. 'sqrt']``
+            - list of functions and/or function names, e.g. ``[np.exp, 'sqrt']``
             - dict of axis labels -> functions, function names or list of such.
         {axis}
         *args

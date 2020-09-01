@@ -182,10 +182,10 @@ class SetopCheck:
 )
 @inherit_names(["set_closed", "to_tuples"], IntervalArray, wrap=True)
 @inherit_names(
-    ["__array__", "overlaps", "contains", "left", "right", "length"], IntervalArray,
+    ["__array__", "overlaps", "contains", "left", "right", "length"], IntervalArray
 )
 @inherit_names(
-    ["is_non_overlapping_monotonic", "mid", "closed"], IntervalArray, cache=True,
+    ["is_non_overlapping_monotonic", "mid", "closed"], IntervalArray, cache=True
 )
 class IntervalIndex(IntervalMixin, ExtensionIndex):
     _typ = "intervalindex"
@@ -948,7 +948,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     # Rendering Methods
     # __repr__ associated methods are based on MultiIndex
 
-    def _format_with_header(self, header, na_rep="NaN") -> List[str]:
+    def _format_with_header(self, header: List[str], na_rep: str = "NaN") -> List[str]:
         return header + list(self._format_native_types(na_rep=na_rep))
 
     def _format_native_types(self, na_rep="NaN", quoting=None, **kwargs):
