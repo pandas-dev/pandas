@@ -13,7 +13,7 @@ This is not a direct copy/paste of the original file.  Changes are:
     - edited strings split by black to adhere to pandas style conventions
     - AsyncContextManager is defined without `exec`
     - python2-style super usages are updated
-    - foo.__class__ replaced with type(foo)
+    - replace foo[dot]__class__ with type(foo)
     - Change a comment-syntax annotation in a docstring to newer syntax
 """
 
