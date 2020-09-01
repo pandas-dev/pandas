@@ -5935,7 +5935,7 @@ DataFrame
 Raises
 ------
 ValueError
-    * When both DataFrames don't have identical labels or shape.
+    When the two DataFrames don't have identical labels or shape.
 
 See Also
 --------
@@ -5946,8 +5946,8 @@ Notes
 -----
 Matching NaNs will not appear as a difference.
 
-Can only compare identically-labeled DataFrame objects,
-this means DataFrames with the same shape and identical row, column labels.
+Can only compare identically-labeled 
+(i.e. same shape, identical row and column labels) DataFrames
 
 Examples
 --------
