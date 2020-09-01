@@ -340,17 +340,13 @@ class CSVFormatter:
             self._save_chunk(start_i, end_i)
 
     def _save_chunk(self, start_i: int, end_i: int) -> None:
-        data_index = self.data_index
-
         # create the data for a chunk
         slicer = slice(start_i, end_i)
 
         df = self.obj.iloc[slicer]
-        blocks = df._mgr.blocks
 
-        for i in range(len(blocks)):
-            b = blocks[i]
-            d = b.to_native_types(
+        for block in df._mgr.blocks:
+            d = block.to_native_types(
                 na_rep=self.na_rep,
                 float_format=self.float_format,
                 decimal=self.decimal,
@@ -358,11 +354,11 @@ class CSVFormatter:
                 quoting=self.quoting,
             )
 
-            for col_loc, col in zip(b.mgr_locs, d):
+            for col_loc, col in zip(block.mgr_locs, d):
                 # self.data is a preallocated list
                 self.data[col_loc] = col
 
-        ix = data_index.to_native_types(
+        ix = self.data_index.to_native_types(
             slicer=slicer,
             na_rep=self.na_rep,
             float_format=self.float_format,
