@@ -80,7 +80,11 @@ cdef class IndexEngine:
             values = self._get_index_values()
 
             self._check_type(val)
-            loc = _bin_search(values, val)  # .searchsorted(val, side='left')
+            try:
+                loc = _bin_search(values, val)  # .searchsorted(val, side='left')
+            except TypeError:
+                # GH#35788 e.g. val=None with float64 values
+                raise KeyError(val)
             if loc >= len(values):
                 raise KeyError(val)
             if values[loc] != val:
