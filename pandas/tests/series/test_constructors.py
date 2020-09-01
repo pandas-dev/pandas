@@ -1464,3 +1464,9 @@ class TestSeriesConstructors:
         arr = pd.arrays.SparseArray(values, dtype=dtype)
         expected = pd.Series(arr)
         tm.assert_series_equal(result, expected)
+
+    def test_construction_from_ordered_set(self):
+        # https://github.com/pandas-dev/pandas/issues/36044
+        result = Series({"a": 1, "b": 2}.keys())
+        expected = Series(["a", "b"])
+        tm.assert_series_equal(result, expected)
