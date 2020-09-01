@@ -682,6 +682,7 @@ class TestSeriesDatetimeValues:
             [[pd.NaT], [[np.NaN, np.NaN, np.NaN]]],
             [["2019-12-31", "2019-12-29"], [[2020, 1, 2], [2019, 52, 7]]],
             [["2010-01-01", pd.NaT], [[2009, 53, 5], [np.NaN, np.NaN, np.NaN]]],
+            [["2016-01-08"], [[2016, 1, 5]]] # incorrect iso_year when year starts late, see GH#36032
         ],
     )
     def test_isocalendar(self, input_series, expected_output):
