@@ -460,9 +460,7 @@ def register_option(
     path = key.split(".")
 
     for k in path:
-        # NOTE: tokenize.Name is not a public constant
-        # error: Module has no attribute "Name"  [attr-defined]
-        if not re.match("^" + tokenize.Name + "$", k):  # type: ignore[attr-defined]
+        if not re.match("^" + tokenize.Name + "$", k):
             raise ValueError(f"{k} is not a valid identifier")
         if keyword.iskeyword(k):
             raise ValueError(f"{k} is a python keyword")
