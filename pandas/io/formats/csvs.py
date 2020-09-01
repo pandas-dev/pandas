@@ -83,12 +83,7 @@ class CSVFormatter:
         self.errors = errors
         self.compression = infer_compression(self.path_or_buf, compression)
         self.quoting = quoting or csvlib.QUOTE_MINIMAL
-
-        if self.quoting == csvlib.QUOTE_NONE:
-            # prevents crash in _csv
-            quotechar = None
         self.quotechar = quotechar
-
         self.doublequote = doublequote
         self.escapechar = escapechar
         self.line_terminator = line_terminator or os.linesep
@@ -115,6 +110,16 @@ class CSVFormatter:
         self.nlevels = getattr(self.data_index, "nlevels", 1)
         if not index:
             self.nlevels = 0
+
+    @property
+    def quotechar(self):
+        if self.quoting != csvlib.QUOTE_NONE:
+            # prevents crash in _csv
+            return self._quotechar
+
+    @quotechar.setter
+    def quotechar(self, quotechar):
+        self._quotechar = quotechar
 
     @property
     def has_mi_columns(self):
