@@ -310,13 +310,11 @@ class CSVFormatter:
                 _fh.close()
 
     def _save(self) -> None:
-        self._save_header()
+        if self._need_to_save_header:
+            self._save_header()
         self._save_body()
 
     def _save_header(self):
-        if not self._need_to_save_header:
-            return
-
         if any(self.encoded_labels):
             self.writer.writerow(self.encoded_labels)
         else:
