@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from pandas.core.dtypes.common import is_integer, is_list_like
@@ -11,6 +13,9 @@ from pandas.plotting._matplotlib.tools import (
     flatten_axes,
     set_ticks_props,
 )
+
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
 
 
 class HistPlot(LinePlot):
@@ -94,7 +99,7 @@ class HistPlot(LinePlot):
         kwds["bins"] = self.bins
         return kwds
 
-    def _post_plot_logic(self, ax, data):
+    def _post_plot_logic(self, ax: "Axes", data):
         if self.orientation == "horizontal":
             ax.set_xlabel("Frequency")
         else:
