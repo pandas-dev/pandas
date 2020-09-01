@@ -1,5 +1,5 @@
 import random
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
+from typing import TYPE_CHECKING, Dict, List, Optional, Set
 
 import matplotlib.lines as mlines
 import matplotlib.patches as patches
@@ -146,7 +146,7 @@ def radviz(
     if ax is None:
         ax = plt.gca(xlim=[-1, 1], ylim=[-1, 1])
 
-    to_plot: Dict[Label, List[List[Any]]] = {}
+    to_plot: Dict[Label, List[List]] = {}
     colors = _get_standard_colors(
         num_colors=len(classes), colormap=colormap, color_type="random", color=color
     )
