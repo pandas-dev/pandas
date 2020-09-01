@@ -8,6 +8,7 @@ Similar to its R counterpart, data.frame, except providing automatic data
 alignment and a host of useful data manipulation methods having to do with the
 labeling information
 """
+from __future__ import annotations
 
 import collections
 from collections import abc
@@ -885,7 +886,7 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
 
     @property
-    def style(self) -> "Styler":
+    def style(self) -> Styler:
         """
         Returns a Styler object.
 
@@ -6530,7 +6531,7 @@ NaN 12.3   33.0
         squeeze: bool = no_default,
         observed: bool = False,
         dropna: bool = True,
-    ) -> "DataFrameGroupBy":
+    ) -> DataFrameGroupBy:
         from pandas.core.groupby.generic import DataFrameGroupBy
 
         if squeeze is not no_default:
