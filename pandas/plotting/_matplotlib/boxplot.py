@@ -1,4 +1,5 @@
 from collections import namedtuple
+from typing import TYPE_CHECKING
 import warnings
 
 from matplotlib.artist import setp
@@ -13,6 +14,9 @@ from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.core import LinePlot, MPLPlot
 from pandas.plotting._matplotlib.style import _get_standard_colors
 from pandas.plotting._matplotlib.tools import _flatten, _subplots
+
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
 
 
 class BoxPlot(LinePlot):
@@ -150,7 +154,7 @@ class BoxPlot(LinePlot):
                 labels = [pprint_thing(key) for key in range(len(labels))]
             self._set_ticklabels(ax, labels)
 
-    def _set_ticklabels(self, ax, labels):
+    def _set_ticklabels(self, ax: "Axes", labels):
         if self.orientation == "vertical":
             ax.set_xticklabels(labels)
         else:
@@ -292,7 +296,7 @@ def boxplot(
         if not kwds.get("capprops"):
             setp(bp["caps"], color=colors[3], alpha=1)
 
-    def plot_group(keys, values, ax):
+    def plot_group(keys, values, ax: "Axes"):
         keys = [pprint_thing(x) for x in keys]
         values = [np.asarray(remove_na_arraylike(v), dtype=object) for v in values]
         bp = ax.boxplot(values, **kwds)
