@@ -9,7 +9,7 @@ import contextlib
 from datetime import datetime, timedelta
 from functools import partial
 import inspect
-from typing import Any, Collection, Iterable, Iterator, List, Union
+from typing import Any, Collection, Iterable, Iterator, List, Union, cast
 import warnings
 
 import numpy as np
@@ -277,6 +277,11 @@ def maybe_iterable_to_list(obj: Union[Iterable[T], T]) -> Union[Collection[T], T
     """
     if isinstance(obj, abc.Iterable) and not isinstance(obj, abc.Sized):
         return list(obj)
+    # error: Incompatible return value type (got
+    # "Union[pandas.core.common.<subclass of "Iterable" and "Sized">,
+    # pandas.core.common.<subclass of "Iterable" and "Sized">1, T]", expected
+    # "Union[Collection[T], T]")  [return-value]
+    obj = cast(Collection, obj)
     return obj
 
 
