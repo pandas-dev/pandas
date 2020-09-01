@@ -281,7 +281,8 @@ ExtensionArray
 
 Other
 ^^^^^
--
+
+- Removed ``private_key`` and ``verbose`` from :func:`pandas.read_gbq` (:issue:`34654` :issue: `30200`)
 -
 
 .. ---------------------------------------------------------------------------
