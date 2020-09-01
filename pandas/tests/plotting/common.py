@@ -14,13 +14,12 @@ from pandas import DataFrame, Series
 import pandas._testing as tm
 
 
-"""
-This is a common base class used for various plotting tests
-"""
-
-
 @td.skip_if_no_mpl
 class TestPlotBase:
+    """
+    This is a common base class used for various plotting tests
+    """
+
     def setup_method(self, method):
 
         import matplotlib as mpl
