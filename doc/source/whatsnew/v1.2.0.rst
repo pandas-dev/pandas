@@ -275,7 +275,7 @@ Sparse
 ExtensionArray
 ^^^^^^^^^^^^^^
 
--
+- Bug in :meth:`Dataframe.replace` not working for ``regex=True`` and ``dtype='string'`` Now working as expected (:issue:`35977`)
 -
 
 
