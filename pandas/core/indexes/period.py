@@ -504,7 +504,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
             try:
                 asdt, reso = parse_time_string(key, self.freq)
-            except DateParseError as err:
+            except (ValueError, DateParseError) as err:
                 # A string with invalid format
                 raise KeyError(f"Cannot interpret '{key}' as period") from err
 
