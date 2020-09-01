@@ -40,7 +40,7 @@ else:
     from typing import GenericMeta, TypingMeta
 OLD_GENERICS = False
 try:
-    from typing import _type_vars, _next_in_mro, _type_check
+    from typing import _next_in_mro, _type_check, _type_vars
 except ImportError:
     OLD_GENERICS = True
 try:
@@ -993,25 +993,25 @@ elif hasattr(contextlib, "AbstractAsyncContextManager"):
 
     __all__.append("AsyncContextManager")
 
+else:
 
-class AsyncContextManager(typing.Generic[T_co]):
-    __slots__ = ()
+    class AsyncContextManager(typing.Generic[T_co]):
+        __slots__ = ()
 
-    async def __aenter__(self):
-        return self
+        async def __aenter__(self):
+            return self
 
-    @abc.abstractmethod
-    async def __aexit__(self, exc_type, exc_value, traceback):
-        return None
+        @abc.abstractmethod
+        async def __aexit__(self, exc_type, exc_value, traceback):
+            return None
 
-    @classmethod
-    def __subclasshook__(cls, C):
-        if cls is AsyncContextManager:
-            return _check_methods_in_mro(C, "__aenter__", "__aexit__")
-        return NotImplemented
+        @classmethod
+        def __subclasshook__(cls, C):
+            if cls is AsyncContextManager:
+                return _check_methods_in_mro(C, "__aenter__", "__aexit__")
+            return NotImplemented
 
-
-__all__.append("AsyncContextManager")
+    __all__.append("AsyncContextManager")
 
 
 if hasattr(typing, "DefaultDict"):
@@ -1597,7 +1597,7 @@ elif HAVE_PROTOCOLS and not PEP_560:
 
 
 elif PEP_560:
-    from typing import _type_check, _GenericAlias, _collect_type_vars  # noqa
+    from typing import _collect_type_vars, _GenericAlias, _type_check  # noqa
 
     class _ProtocolMeta(abc.ABCMeta):
         # This metaclass is a bit unfortunate and exists only because of the lack
