@@ -377,9 +377,8 @@ Numba as an argument
 ~~~~~~~~~~~~~~~~~~~~
 
 Additionally, we can leverage the power of `Numba <https://numba.pydata.org/>`__
-by calling it as an argument in :meth:`~Rolling.apply`. See `Computation tools
-<https://pandas.pydata.org/pandas-docs/stable/user_guide/computation.html#rolling-apply>`__
-for an extensive example.
+by calling it as an argument in :meth:`~Rolling.apply`. See :ref:`Computation tools
+<stats.rolling_apply>` for an extensive example.
 
 Vectorize
 ~~~~~~~~~
