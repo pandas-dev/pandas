@@ -215,6 +215,8 @@ na_filter : bool, default True
     Detect missing value markers (empty strings and the value of na_values). In
     data without any NAs, passing na_filter=False can improve the performance
     of reading a large file.
+verbose : bool, default False
+    Indicate number of NA values placed in non-numeric columns.
 skip_blank_lines : bool, default True
     If True, skip over blank lines rather than interpreting as NaN values.
 parse_dates : bool or list of int or names or list of lists or dict, \
@@ -500,6 +502,7 @@ _parser_defaults = {
     "usecols": None,
     # 'iterator': False,
     "chunksize": None,
+    "verbose": False,
     "encoding": None,
     "squeeze": False,
     "compression": None,
@@ -1766,7 +1769,7 @@ class ParserBase:
         return index
 
     def _convert_to_ndarrays(
-        self, dct, na_values, na_fvalues, converters=None, dtypes=None
+        self, dct, na_values, na_fvalues, verbose=False, converters=None, dtypes=None
     ):
         result = {}
         for c, values in dct.items():
@@ -1836,7 +1839,7 @@ class ParserBase:
                     cvals = self._cast_types(cvals, cast_type, c)
 
             result[c] = cvals
-            if na_count:
+            if verbose and na_count:
                 print(f"Filled {na_count} NA values in column {c!s}")
         return result
 
@@ -1964,10 +1967,6 @@ class ParserBase:
 
 
 class CParserWrapper(ParserBase):
-    """
-
-    """
-
     def __init__(self, src, **kwds):
         self.kwds = kwds
         kwds = kwds.copy()
@@ -2357,6 +2356,7 @@ class PythonParser(ParserBase):
         if "has_index_names" in kwds:
             self.has_index_names = kwds["has_index_names"]
 
+        self.verbose = kwds["verbose"]
         self.converters = kwds["converters"]
 
         self.dtype = kwds["dtype"]
@@ -2641,6 +2641,7 @@ class PythonParser(ParserBase):
             data,
             clean_na_values,
             clean_na_fvalues,
+            self.verbose,
             clean_conv,
             clean_dtypes,
         )
