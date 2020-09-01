@@ -242,6 +242,10 @@ class CSVFormatter:
             for _fh in handles:
                 _fh.close()
 
+    def _save(self) -> None:
+        self._save_header()
+        self._save_body()
+
     def _save_header(self):
         writer = self.writer
         obj = self.obj
@@ -321,10 +325,6 @@ class CSVFormatter:
             if encoded_labels and set(encoded_labels) != {""}:
                 encoded_labels.extend([""] * len(columns))
                 writer.writerow(encoded_labels)
-
-    def _save(self) -> None:
-        self._save_header()
-        self._save_body()
 
     def _save_body(self) -> None:
         nrows = len(self.data_index)
