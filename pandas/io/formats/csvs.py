@@ -60,9 +60,6 @@ class CSVFormatter:
         if path_or_buf is None:
             path_or_buf = StringIO()
 
-        # Extract compression mode as given, if dict
-        compression, self.compression_args = get_compression_method(compression)
-
         self.path_or_buf, _, _, self.should_close = get_filepath_or_buffer(
             path_or_buf,
             encoding=encoding,
@@ -81,7 +78,7 @@ class CSVFormatter:
         self.mode = mode
         self.encoding = encoding or "utf-8"
         self.errors = errors
-        self.compression = infer_compression(self.path_or_buf, compression)
+        self.compression = compression
         self.quoting = quoting or csvlib.QUOTE_MINIMAL
         self.quotechar = quotechar
         self.doublequote = doublequote
@@ -182,13 +179,20 @@ class CSVFormatter:
         else:
             return 0
 
-    def save(self) -> None:
-        """
-        Create the writer & save.
-        """
+    @property
+    def compression(self):
+        return self._compression
+
+    @compression.setter
+    def compression(self, compression):
+        # Extract compression mode as given, if dict
+        compression, self.compression_args = get_compression_method(compression)
+
+        compression = infer_compression(self.path_or_buf, compression)
+
         # GH21227 internal compression is not used for non-binary handles.
         if (
-            self.compression
+            compression
             and hasattr(self.path_or_buf, "write")
             and "b" not in self.mode
         ):
@@ -197,8 +201,14 @@ class CSVFormatter:
                 RuntimeWarning,
                 stacklevel=2,
             )
-            self.compression = None
+            compression = None
 
+        self._compression = compression
+
+    def save(self) -> None:
+        """
+        Create the writer & save.
+        """
         # get a handle or wrap an existing handle to take care of 1) compression and
         # 2) text -> byte conversion
         f, handles = get_handle(
