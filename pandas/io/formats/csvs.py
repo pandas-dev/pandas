@@ -89,27 +89,11 @@ class CSVFormatter:
         self.line_terminator = line_terminator or os.linesep
         self.date_format = date_format
         self.cols = cols
+        self.chunksize = chunksize
 
         # preallocate data 2d list
         ncols = self.obj.shape[-1]
         self.data = [None] * ncols
-
-        self.chunksize = chunksize
-
-        self.data_index = obj.index
-        if (
-            isinstance(self.data_index, (ABCDatetimeIndex, ABCPeriodIndex))
-            and date_format is not None
-        ):
-            from pandas import Index
-
-            self.data_index = Index(
-                [x.strftime(date_format) if notna(x) else "" for x in self.data_index]
-            )
-
-        self.nlevels = getattr(self.data_index, "nlevels", 1)
-        if not index:
-            self.nlevels = 0
 
     @property
     def quotechar(self):
@@ -173,6 +157,30 @@ class CSVFormatter:
         if chunksize is None:
             chunksize = (100000 // (len(self.cols) or 1)) or 1
         self._chunksize = int(chunksize)
+
+    @property
+    def data_index(self):
+        data_index = self.obj.index
+        if (
+            isinstance(data_index, (ABCDatetimeIndex, ABCPeriodIndex))
+            and self.date_format is not None
+        ):
+            from pandas import Index
+
+            data_index = Index(
+                [
+                    x.strftime(self.date_format) if notna(x) else ""
+                    for x in self.data_index
+                ]
+            )
+        return data_index
+
+    @property
+    def nlevels(self):
+        if self.index:
+            return getattr(self.data_index, "nlevels", 1)
+        else:
+            return 0
 
     def save(self) -> None:
         """
