@@ -204,6 +204,7 @@ You will need `Build Tools for Visual Studio 2017
 	You DO NOT need to install Visual Studio 2019.
 	You only need "Build Tools for Visual Studio 2019" found by
 	scrolling down to "All downloads" -> "Tools for Visual Studio 2019".
+	In the installer, select the "C++ build tools" workload.
 
 **Mac OS**
 
