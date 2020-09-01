@@ -334,7 +334,7 @@ class BlockManager(PandasObject):
         # If 2D, we assume that we're operating column-wise
         assert self.ndim == 2
 
-        res_blocks = []
+        res_blocks: List[Block] = []
         for blk in self.blocks:
             nbs = blk.reduce(func)
             res_blocks.extend(nbs)
@@ -728,7 +728,7 @@ class BlockManager(PandasObject):
         indexer = np.sort(np.concatenate([b.mgr_locs.as_array for b in blocks]))
         inv_indexer = lib.get_reverse_indexer(indexer, self.shape[0])
 
-        new_blocks = []
+        new_blocks: List[Block] = []
         for b in blocks:
             b = b.copy(deep=copy)
             b.mgr_locs = inv_indexer[b.mgr_locs.indexer]
@@ -1025,6 +1025,7 @@ class BlockManager(PandasObject):
         Set new item in-place. Does not consolidate. Adds new Block if not
         contained in the current set of items
         """
+        value = extract_array(value, extract_numpy=True)
         # FIXME: refactor, clearly separate broadcasting & zip-like assignment
         #        can prob also fix the various if tests for sparse/categorical
         if self._blklocs is None and self.ndim > 1:

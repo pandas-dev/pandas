@@ -45,3 +45,15 @@ def test_numeric_interval_add_timedelta_raises(interval, delta):
 
     with pytest.raises((TypeError, ValueError), match=msg):
         delta + interval
+
+
+@pytest.mark.parametrize("klass", [timedelta, np.timedelta64, Timedelta])
+def test_timdelta_add_timestamp_interval(klass):
+    delta = klass(0)
+    expected = Interval(Timestamp("2020-01-01"), Timestamp("2020-02-01"))
+
+    result = delta + expected
+    assert result == expected
+
+    result = expected + delta
+    assert result == expected
