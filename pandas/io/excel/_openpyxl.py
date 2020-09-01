@@ -40,7 +40,7 @@ class _OpenpyxlWriter(ExcelWriter):
         self.book.save(self.path)
 
     @classmethod
-    def _convert_to_style_kwargs(cls, style_dict: dict) -> Dict[str, StyleObject]:
+    def _convert_to_style_kwargs(cls, style_dict: dict):
         """
         Convert a style_dict to a set of kwargs suitable for initializing
         or updating-on-copy an openpyxl v2 style object.
