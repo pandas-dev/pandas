@@ -2,39 +2,47 @@ import collections
 
 import cython
 
-from cpython.object cimport Py_NE, Py_EQ, PyObject_RichCompare
+from cpython.object cimport Py_EQ, Py_NE, PyObject_RichCompare
 
 import numpy as np
+
 cimport numpy as cnp
 from numpy cimport int64_t, ndarray
+
 cnp.import_array()
 
-from cpython.datetime cimport (timedelta,
-                               PyDateTime_Check, PyDelta_Check,
-                               PyDateTime_IMPORT)
+from cpython.datetime cimport (
+    PyDateTime_Check,
+    PyDateTime_IMPORT,
+    PyDelta_Check,
+    timedelta,
+)
+
 PyDateTime_IMPORT
 
 
 cimport pandas._libs.tslibs.util as util
-from pandas._libs.tslibs.util cimport (
-    is_timedelta64_object, is_datetime64_object, is_integer_object,
-    is_float_object, is_array
-)
-
 from pandas._libs.tslibs.base cimport ABCTimestamp
-
 from pandas._libs.tslibs.conversion cimport cast_from_unit
-
-from pandas._libs.tslibs.np_datetime cimport (
-    cmp_scalar, td64_to_tdstruct, pandas_timedeltastruct)
-
 from pandas._libs.tslibs.nattype cimport (
-    checknull_with_nat,
     NPY_NAT,
     c_NaT as NaT,
     c_nat_strings as nat_strings,
+    checknull_with_nat,
+)
+from pandas._libs.tslibs.np_datetime cimport (
+    cmp_scalar,
+    pandas_timedeltastruct,
+    td64_to_tdstruct,
 )
 from pandas._libs.tslibs.offsets cimport is_tick_object
+from pandas._libs.tslibs.util cimport (
+    is_array,
+    is_datetime64_object,
+    is_float_object,
+    is_integer_object,
+    is_timedelta64_object,
+)
 
 # ----------------------------------------------------------------------
 # Constants
@@ -160,7 +168,7 @@ cpdef int64_t delta_to_nanoseconds(delta) except? -1:
     raise TypeError(type(delta))
 
 
-cdef convert_to_timedelta64(object ts, object unit):
+cdef convert_to_timedelta64(object ts, str unit):
     """
     Convert an incoming object to a timedelta64 if possible.
     Before calling, unit must be standardized to avoid repeated unit conversion
@@ -218,7 +226,7 @@ cdef convert_to_timedelta64(object ts, object unit):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def array_to_timedelta64(object[:] values, unit=None, errors='raise'):
+def array_to_timedelta64(object[:] values, str unit=None, str errors="raise"):
     """
     Convert an ndarray to an array of timedeltas. If errors == 'coerce',
     coerce non-convertible objects to NaT. Otherwise, raise.
@@ -470,7 +478,7 @@ cdef inline timedelta_from_spec(object number, object frac, object unit):
     return cast_from_unit(float(n), unit)
 
 
-cpdef inline str parse_timedelta_unit(object unit):
+cpdef inline str parse_timedelta_unit(str unit):
     """
     Parameters
     ----------

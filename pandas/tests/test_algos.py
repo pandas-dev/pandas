@@ -6,7 +6,8 @@ import numpy as np
 from numpy.random import RandomState
 import pytest
 
-from pandas._libs import algos as libalgos, groupby as libgroupby, hashtable as ht
+from pandas._libs import algos as libalgos, hashtable as ht
+from pandas._libs.groupby import group_var_float32, group_var_float64
 from pandas.compat.numpy import np_array_datetime64_compat
 import pandas.util._test_decorators as td
 
@@ -248,6 +249,19 @@ class TestFactorize:
         expected_uniques = np.array(["a", "c", "b"], dtype=object)
 
         codes, uniques = algos.factorize(data)
+        tm.assert_numpy_array_equal(codes, expected_codes)
+        tm.assert_numpy_array_equal(uniques, expected_uniques)
+
+    def test_datetime64_factorize(self, writable):
+        # GH35650 Verify whether read-only datetime64 array can be factorized
+        data = np.array([np.datetime64("2020-01-01T00:00:00.000")])
+        data.setflags(write=writable)
+        expected_codes = np.array([0], dtype=np.int64)
+        expected_uniques = np.array(
+            ["2020-01-01T00:00:00.000000000"], dtype="datetime64[ns]"
+        )
+
+        codes, uniques = pd.factorize(data)
         tm.assert_numpy_array_equal(codes, expected_codes)
         tm.assert_numpy_array_equal(uniques, expected_uniques)
 
@@ -1493,7 +1507,7 @@ class GroupVarTestMixin:
 class TestGroupVarFloat64(GroupVarTestMixin):
     __test__ = True
 
-    algo = staticmethod(libgroupby.group_var_float64)
+    algo = staticmethod(group_var_float64)
     dtype = np.float64
     rtol = 1e-5
 
@@ -1516,7 +1530,7 @@ class TestGroupVarFloat64(GroupVarTestMixin):
 class TestGroupVarFloat32(GroupVarTestMixin):
     __test__ = True
 
-    algo = staticmethod(libgroupby.group_var_float32)
+    algo = staticmethod(group_var_float32)
     dtype = np.float32
     rtol = 1e-2
 

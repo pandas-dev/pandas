@@ -237,7 +237,6 @@ class Grouper:
             #   core/groupby/grouper.py::Grouper
             # raising these warnings from TimeGrouper directly would fail the test:
             #   tests/resample/test_deprecated.py::test_deprecating_on_loffset_and_base
-
             # hacky way to set the stacklevel: if cls is TimeGrouper it means
             # that the call comes from a pandas internal call of resample,
             # otherwise it comes from pd.Grouper
@@ -569,7 +568,9 @@ class Grouping:
     @cache_readonly
     def result_index(self) -> Index:
         if self.all_grouper is not None:
-            return recode_from_groupby(self.all_grouper, self.sort, self.group_index)
+            group_idx = self.group_index
+            assert isinstance(group_idx, CategoricalIndex)  # set in __init__
+            return recode_from_groupby(self.all_grouper, self.sort, group_idx)
         return self.group_index
 
     @property
@@ -608,7 +609,7 @@ def get_grouper(
     mutated: bool = False,
     validate: bool = True,
     dropna: bool = True,
-) -> "Tuple[ops.BaseGrouper, List[Hashable], FrameOrSeries]":
+) -> Tuple["ops.BaseGrouper", List[Hashable], FrameOrSeries]:
     """
     Create and return a BaseGrouper, which is an internal
     mapping of how to create the grouper indexers.

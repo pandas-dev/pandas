@@ -15,6 +15,7 @@ from pandas._libs import lib
 from pandas._libs.tslibs import IncompatibleFrequency, OutOfBoundsDatetime
 from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj
 
+from pandas.core.dtypes.base import ExtensionDtype, registry
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
     construct_1d_ndarray_preserving_na,
@@ -34,9 +35,9 @@ from pandas.core.dtypes.common import (
     is_iterator,
     is_list_like,
     is_object_dtype,
+    is_sparse,
     is_timedelta64_ns_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype, registry
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndexClass,
@@ -48,9 +49,9 @@ from pandas.core.dtypes.missing import isna
 import pandas.core.common as com
 
 if TYPE_CHECKING:
-    from pandas.core.series import Series  # noqa: F401
-    from pandas.core.indexes.api import Index  # noqa: F401
     from pandas.core.arrays import ExtensionArray  # noqa: F401
+    from pandas.core.indexes.api import Index  # noqa: F401
+    from pandas.core.series import Series  # noqa: F401
 
 
 def array(
@@ -255,14 +256,14 @@ def array(
     ValueError: Cannot pass scalar '1' to 'pandas.array'.
     """
     from pandas.core.arrays import (
-        period_array,
         BooleanArray,
+        DatetimeArray,
         IntegerArray,
         IntervalArray,
         PandasArray,
-        DatetimeArray,
-        TimedeltaArray,
         StringArray,
+        TimedeltaArray,
+        period_array,
     )
 
     if lib.is_scalar(data):
@@ -513,9 +514,7 @@ def sanitize_array(
     return subarr
 
 
-def _try_cast(
-    arr, dtype: Optional[DtypeObj], copy: bool, raise_cast_failure: bool,
-):
+def _try_cast(arr, dtype: Optional[DtypeObj], copy: bool, raise_cast_failure: bool):
     """
     Convert input to numpy ndarray and optionally cast to a given dtype.
 
@@ -535,9 +534,10 @@ def _try_cast(
         if maybe_castable(arr) and not copy and dtype is None:
             return arr
 
-    if isinstance(dtype, ExtensionDtype) and dtype.kind != "M":
+    if isinstance(dtype, ExtensionDtype) and (dtype.kind != "M" or is_sparse(dtype)):
         # create an extension array from its dtype
-        # DatetimeTZ case needs to go through maybe_cast_to_datetime
+        # DatetimeTZ case needs to go through maybe_cast_to_datetime but
+        # SparseDtype does not
         array_type = dtype.construct_array_type()._from_sequence
         subarr = array_type(arr, dtype=dtype, copy=copy)
         return subarr

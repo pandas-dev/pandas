@@ -45,6 +45,8 @@ class NumericIndex(Index):
     This is an abstract class.
     """
 
+    _default_dtype: np.dtype
+
     _is_numeric_dtype = True
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None):
@@ -400,28 +402,6 @@ class Float64Index(NumericIndex):
         )
         return formatter.get_result_as_array()
 
-    def equals(self, other) -> bool:
-        """
-        Determines if two Index objects contain the same elements.
-        """
-        if self is other:
-            return True
-
-        if not isinstance(other, Index):
-            return False
-
-        # need to compare nans locations and make sure that they are the same
-        # since nans don't compare equal this is a bit tricky
-        try:
-            if not isinstance(other, Float64Index):
-                other = self._constructor(other)
-            if not is_dtype_equal(self.dtype, other.dtype) or self.shape != other.shape:
-                return False
-            left, right = self._values, other._values
-            return ((left == right) | (self._isnan & other._isnan)).all()
-        except (TypeError, ValueError):
-            return False
-
     def __contains__(self, other: Any) -> bool:
         hash(other)
         if super().__contains__(other):
@@ -458,7 +438,7 @@ class Float64Index(NumericIndex):
     def _is_compatible_with_other(self, other) -> bool:
         return super()._is_compatible_with_other(other) or all(
             isinstance(
-                obj, (ABCInt64Index, ABCFloat64Index, ABCUInt64Index, ABCRangeIndex),
+                obj, (ABCInt64Index, ABCFloat64Index, ABCUInt64Index, ABCRangeIndex)
             )
             for obj in [self, other]
         )

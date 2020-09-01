@@ -1,15 +1,15 @@
 from collections import abc
 import functools
-from io import StringIO
+from io import BytesIO, StringIO
 from itertools import islice
 import os
-from typing import Any, Callable, Optional, Type
+from typing import IO, Any, Callable, List, Optional, Type
 
 import numpy as np
 
 import pandas._libs.json as json
 from pandas._libs.tslibs import iNaT
-from pandas._typing import JSONSerializable
+from pandas._typing import CompressionOptions, JSONSerializable, StorageOptions
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import deprecate_kwarg, deprecate_nonkeyword_arguments
 
@@ -19,7 +19,12 @@ from pandas import DataFrame, MultiIndex, Series, isna, to_datetime
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.reshape.concat import concat
 
-from pandas.io.common import get_filepath_or_buffer, get_handle, infer_compression
+from pandas.io.common import (
+    get_compression_method,
+    get_filepath_or_buffer,
+    get_handle,
+    infer_compression,
+)
 from pandas.io.json._normalize import convert_to_line_delimits
 from pandas.io.json._table_schema import build_table_schema, parse_table_schema
 from pandas.io.parsers import _validate_integer
@@ -41,9 +46,10 @@ def to_json(
     date_unit: str = "ms",
     default_handler: Optional[Callable[[Any], JSONSerializable]] = None,
     lines: bool = False,
-    compression: Optional[str] = "infer",
+    compression: CompressionOptions = "infer",
     index: bool = True,
     indent: int = 0,
+    storage_options: StorageOptions = None,
 ):
 
     if not index and orient not in ["split", "table"]:
@@ -52,8 +58,11 @@ def to_json(
         )
 
     if path_or_buf is not None:
-        path_or_buf, _, _, _ = get_filepath_or_buffer(
-            path_or_buf, compression=compression, mode="w"
+        path_or_buf, _, _, should_close = get_filepath_or_buffer(
+            path_or_buf,
+            compression=compression,
+            mode="wt",
+            storage_options=storage_options,
         )
 
     if lines and orient != "records":
@@ -97,6 +106,8 @@ def to_json(
         return s
     else:
         path_or_buf.write(s)
+        if should_close:
+            path_or_buf.close()
 
 
 class Writer:
@@ -115,7 +126,8 @@ class Writer:
         self.obj = obj
 
         if orient is None:
-            orient = self._default_orient  # type: ignore
+            # error: "Writer" has no attribute "_default_orient"
+            orient = self._default_orient  # type: ignore[attr-defined]
 
         self.orient = orient
         self.date_format = date_format
@@ -362,8 +374,9 @@ def read_json(
     encoding=None,
     lines: bool = False,
     chunksize: Optional[int] = None,
-    compression="infer",
+    compression: CompressionOptions = "infer",
     nrows: Optional[int] = None,
+    storage_options: StorageOptions = None,
 ):
     """
     Convert a JSON string to pandas object.
@@ -509,6 +522,16 @@ def read_json(
 
         .. versionadded:: 1.1
 
+    storage_options : dict, optional
+        Extra options that make sense for a particular storage connection, e.g.
+        host, port, username, password, etc., if using a URL that will
+        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+        will be raised if providing this argument with a local path or
+        a file-like buffer. See the fsspec and backend storage implementation
+        docs for the set of allowed keys and values
+
+        .. versionadded:: 1.2.0
+
     Returns
     -------
     Series or DataFrame
@@ -589,9 +612,14 @@ def read_json(
     if encoding is None:
         encoding = "utf-8"
 
-    compression = infer_compression(path_or_buf, compression)
+    compression_method, compression = get_compression_method(compression)
+    compression_method = infer_compression(path_or_buf, compression_method)
+    compression = dict(compression, method=compression_method)
     filepath_or_buffer, _, compression, should_close = get_filepath_or_buffer(
-        path_or_buf, encoding=encoding, compression=compression
+        path_or_buf,
+        encoding=encoding,
+        compression=compression,
+        storage_options=storage_options,
     )
 
     json_reader = JsonReader(
@@ -646,9 +674,12 @@ class JsonReader(abc.Iterator):
         encoding,
         lines: bool,
         chunksize: Optional[int],
-        compression,
+        compression: CompressionOptions,
         nrows: Optional[int],
     ):
+
+        compression_method, compression = get_compression_method(compression)
+        compression = dict(compression, method=compression_method)
 
         self.orient = orient
         self.typ = typ
@@ -666,6 +697,7 @@ class JsonReader(abc.Iterator):
         self.nrows_seen = 0
         self.should_close = False
         self.nrows = nrows
+        self.file_handles: List[IO] = []
 
         if self.chunksize is not None:
             self.chunksize = _validate_integer("chunksize", self.chunksize, 1)
@@ -714,8 +746,8 @@ class JsonReader(abc.Iterator):
             except (TypeError, ValueError):
                 pass
 
-        if exists or self.compression is not None:
-            data, _ = get_handle(
+        if exists or self.compression["method"] is not None:
+            data, self.file_handles = get_handle(
                 filepath_or_buffer,
                 "r",
                 encoding=self.encoding,
@@ -724,14 +756,18 @@ class JsonReader(abc.Iterator):
             self.should_close = True
             self.open_stream = data
 
+        if isinstance(data, BytesIO):
+            data = data.getvalue().decode()
+
         return data
 
     def _combine_lines(self, lines) -> str:
         """
         Combines a list of JSON objects into one JSON object.
         """
-        lines = filter(None, map(lambda x: x.strip(), lines))
-        return "[" + ",".join(lines) + "]"
+        return (
+            f'[{",".join((line for line in (line.strip() for line in lines) if line))}]'
+        )
 
     def read(self):
         """
@@ -792,6 +828,8 @@ class JsonReader(abc.Iterator):
                 self.open_stream.close()
             except (IOError, AttributeError):
                 pass
+        for file_handle in self.file_handles:
+            file_handle.close()
 
     def __next__(self):
         if self.nrows:
