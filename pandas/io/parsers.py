@@ -615,7 +615,6 @@ def read_csv(
     else:
         kwds = dict()
 
-
     # Alias sep -> delimiter.
     if delimiter is None:
         delimiter = sep
