@@ -79,61 +79,20 @@ class CSVFormatter:
         self.index = index
         self.index_label = index_label
         self.mode = mode
-        if encoding is None:
-            encoding = "utf-8"
-        self.encoding = encoding
+        self.encoding = encoding or "utf-8"
         self.errors = errors
         self.compression = infer_compression(self.path_or_buf, compression)
+        self.quoting = quoting or csvlib.QUOTE_MINIMAL
 
-        if quoting is None:
-            quoting = csvlib.QUOTE_MINIMAL
-        self.quoting = quoting
-
-        if quoting == csvlib.QUOTE_NONE:
+        if self.quoting == csvlib.QUOTE_NONE:
             # prevents crash in _csv
             quotechar = None
         self.quotechar = quotechar
 
         self.doublequote = doublequote
         self.escapechar = escapechar
-
         self.line_terminator = line_terminator or os.linesep
-
         self.date_format = date_format
-
-        self.has_mi_columns = isinstance(obj.columns, ABCMultiIndex)
-
-        # validate mi options
-        if self.has_mi_columns:
-            if cols is not None:
-                raise TypeError("cannot specify cols with a MultiIndex on the columns")
-
-        if cols is not None:
-            if isinstance(cols, ABCIndexClass):
-                cols = cols.to_native_types(
-                    na_rep=na_rep,
-                    float_format=float_format,
-                    date_format=date_format,
-                    quoting=self.quoting,
-                )
-            else:
-                cols = list(cols)
-            self.obj = self.obj.loc[:, cols]
-
-        # update columns to include possible multiplicity of dupes
-        # and make sure sure cols is just a list of labels
-        cols = self.obj.columns
-        if isinstance(cols, ABCIndexClass):
-            cols = cols.to_native_types(
-                na_rep=na_rep,
-                float_format=float_format,
-                date_format=date_format,
-                quoting=self.quoting,
-            )
-        else:
-            cols = list(cols)
-
-        # save it
         self.cols = cols
 
         # preallocate data 2d list
@@ -158,6 +117,49 @@ class CSVFormatter:
         self.nlevels = getattr(self.data_index, "nlevels", 1)
         if not index:
             self.nlevels = 0
+
+    @property
+    def has_mi_columns(self):
+        return isinstance(self.obj.columns, ABCMultiIndex)
+
+    @property
+    def cols(self):
+        return self._cols
+
+    @cols.setter
+    def cols(self, cols):
+        # validate mi options
+        if self.has_mi_columns:
+            if cols is not None:
+                msg = "cannot specify cols with a MultiIndex on the columns"
+                raise TypeError(msg)
+
+        if cols is not None:
+            if isinstance(cols, ABCIndexClass):
+                cols = cols.to_native_types(
+                    na_rep=self.na_rep,
+                    float_format=self.float_format,
+                    date_format=self.date_format,
+                    quoting=self.quoting,
+                )
+            else:
+                cols = list(cols)
+            self.obj = self.obj.loc[:, cols]
+
+        # update columns to include possible multiplicity of dupes
+        # and make sure sure cols is just a list of labels
+        cols = self.obj.columns
+        if isinstance(cols, ABCIndexClass):
+            cols = cols.to_native_types(
+                na_rep=self.na_rep,
+                float_format=self.float_format,
+                date_format=self.date_format,
+                quoting=self.quoting,
+            )
+        else:
+            cols = list(cols)
+
+        self._cols = cols
 
     def save(self) -> None:
         """
