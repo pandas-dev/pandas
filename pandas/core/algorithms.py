@@ -627,6 +627,11 @@ def factorize(
     values, it can be achieved by setting ``na_sentinel=None``.
 
     >>> values = np.array([1, 2, 1, np.nan])
+    >>> codes, uniques = pd.factorize(values)  # default
+    >>> codes
+    array([0, 1, 0, -1])
+    >>> uniques
+    array([1., 2.])
     >>> codes, uniques = pd.factorize(values, na_sentinel=None)
     >>> codes
     array([0, 1, 0, 2])
