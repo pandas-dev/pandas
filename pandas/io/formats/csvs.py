@@ -317,18 +317,11 @@ class CSVFormatter:
         if not self._need_to_save_header:
             return
 
-        writer = self.writer
-        obj = self.obj
-        index_label = self.index_label
-        cols = self.cols
-        has_mi_columns = self.has_mi_columns
-        header = self.header
-
         if any(self.encoded_labels):
-            writer.writerow(self.encoded_labels)
+            self.writer.writerow(self.encoded_labels)
         else:
             # write out the mi
-            columns = obj.columns
+            columns = self.obj.columns
 
             # write out the names for each level, then ALL of the values for
             # each level
@@ -341,18 +334,18 @@ class CSVFormatter:
                     # name is the first column
                     col_line.append(columns.names[i])
 
-                    if isinstance(index_label, list) and len(index_label) > 1:
-                        col_line.extend([""] * (len(index_label) - 1))
+                    if isinstance(self.index_label, list) and len(self.index_label) > 1:
+                        col_line.extend([""] * (len(self.index_label) - 1))
 
                 col_line.extend(columns._get_level_values(i))
 
-                writer.writerow(col_line)
+                self.writer.writerow(col_line)
 
             # Write out the index line if it's not empty.
             # Otherwise, we will print out an extraneous
             # blank line between the mi and the data rows.
             if self.encoded_labels and set(self.encoded_labels) != {""}:
-                writer.writerow([""] * len(columns))
+                self.writer.writerow([""] * len(columns))
 
     def _save_body(self) -> None:
         nrows = len(self.data_index)
