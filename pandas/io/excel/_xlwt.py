@@ -1,9 +1,12 @@
-from typing import Dict
+from typing import TYPE_CHECKING, Dict
 
 import pandas._libs.json as json
 
 from pandas.io.excel._base import ExcelWriter
 from pandas.io.excel._util import _validate_freeze_panes
+
+if TYPE_CHECKING:
+    from xlwt import XFStyle
 
 
 class _XlwtWriter(ExcelWriter):
@@ -36,7 +39,6 @@ class _XlwtWriter(ExcelWriter):
     def write_cells(
         self, cells, sheet_name=None, startrow=0, startcol=0, freeze_panes=None
     ):
-        from xlwt import XFStyle
 
         sheet_name = self._get_sheet_name(sheet_name)
 
