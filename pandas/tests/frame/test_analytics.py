@@ -112,7 +112,15 @@ def assert_stat_op_calc(
     if opname in ["sum", "prod"]:
         expected = frame.apply(skipna_wrapper, axis=1)
         tm.assert_series_equal(
+<<<<<<< HEAD
             result1, expected, check_dtype=False, rtol=rtol, atol=atol
+=======
+            result1,
+            expected,
+            check_dtype=False,
+            rtol=rtol,
+            atol=atol,
+>>>>>>> c34ed0ebf1599a6ea21cf94846e4c7a8bb72a298
         )
 
     # check dtypes

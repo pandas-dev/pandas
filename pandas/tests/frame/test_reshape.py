@@ -809,7 +809,12 @@ class TestDataFrameReshape:
                 [["B", "C"], ["B", "D"]], names=["c1", "c2"]
             ),
             index=pd.MultiIndex.from_tuples(
+<<<<<<< HEAD
                 [[10, 20, 30], [10, 20, 40]], names=["i1", "i2", "i3"]
+=======
+                [[10, 20, 30], [10, 20, 40]],
+                names=["i1", "i2", "i3"],
+>>>>>>> c34ed0ebf1599a6ea21cf94846e4c7a8bb72a298
             ),
         )
         assert df.unstack(["i2", "i1"]).columns.names[-2:] == ["i2", "i1"]

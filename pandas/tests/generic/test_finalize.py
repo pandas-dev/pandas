@@ -741,7 +741,14 @@ def test_timedelta_property(attr):
     assert result.attrs == {"a": 1}
 
 
+<<<<<<< HEAD
 @pytest.mark.parametrize("method", [operator.methodcaller("total_seconds")])
+=======
+@pytest.mark.parametrize(
+    "method",
+    [operator.methodcaller("total_seconds")],
+)
+>>>>>>> c34ed0ebf1599a6ea21cf94846e4c7a8bb72a298
 @not_implemented_mark
 def test_timedelta_methods(method):
     s = pd.Series(pd.timedelta_range("2000", periods=4))

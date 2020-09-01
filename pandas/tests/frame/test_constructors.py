@@ -932,7 +932,13 @@ class TestDataFrameConstructors:
         # from GH3479
 
         assert_fr_equal = functools.partial(
+<<<<<<< HEAD
             tm.assert_frame_equal, check_index_type=True, check_column_type=True
+=======
+            tm.assert_frame_equal,
+            check_index_type=True,
+            check_column_type=True,
+>>>>>>> c34ed0ebf1599a6ea21cf94846e4c7a8bb72a298
         )
         arrays = [
             ("float", np.array([1.5, 2.0])),
