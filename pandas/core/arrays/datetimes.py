@@ -1951,7 +1951,7 @@ def sequence_to_dt64ns(
             )
             try:
                 tz = _maybe_infer_tz(tz, inferred_tz)
-            except TypeError as e:
+            except TypeError:
                 #  two timezones: convert to intended from base UTC repr
                 data = tzconversion.tz_convert_from_utc(data.view("i8"), tz)
                 data = data.view(DT64NS_DTYPE)

@@ -5,9 +5,9 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs import conversion, timezones
-import pandas._testing as tm
 
-from pandas import Timestamp, DataFrame, date_range
+from pandas import DataFrame, Timestamp, date_range
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize("tz_name", list(pytz.common_timezones))
