@@ -82,7 +82,7 @@ class BaseGrouper:
     def __init__(
         self,
         axis: Index,
-        groupings: "Sequence[grouper.Grouping]",
+        groupings: Sequence["grouper.Grouping"],
         sort: bool = True,
         group_keys: bool = True,
         mutated: bool = False,
