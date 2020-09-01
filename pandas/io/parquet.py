@@ -128,7 +128,7 @@ class PyArrowImpl(BaseImpl):
             self.api.parquet.write_table(table, path, compression=compression, **kwargs)
 
     def read(
-        self, path, columns=None, storage_options: StorageOptions = None, **kwargs,
+        self, path, columns=None, storage_options: StorageOptions = None, **kwargs
     ):
         if is_fsspec_url(path) and "filesystem" not in kwargs:
             import_optional_dependency("fsspec")
@@ -218,7 +218,7 @@ class FastParquetImpl(BaseImpl):
             )
 
     def read(
-        self, path, columns=None, storage_options: StorageOptions = None, **kwargs,
+        self, path, columns=None, storage_options: StorageOptions = None, **kwargs
     ):
         if is_fsspec_url(path):
             fsspec = import_optional_dependency("fsspec")
