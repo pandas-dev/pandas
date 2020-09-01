@@ -3354,21 +3354,22 @@ class TestDataFramePlots(TestPlotBase):
                 assert len(ax.lines) == len(labels)
 
     @pytest.mark.parametrize(
-        "subplots",
+        "subplots, expected_msg",
         [
-            "a",  # iterable of non-iterable
-            (1,),  # iterable of non-iterable
-            ("a",),  # iterable of strings
+            (123, "subplots should be a bool or an iterable"),
+            ("a", "each entry should be a list/tuple"),  # iterable of non-iterable
+            ((1,), "each entry should be a list/tuple"),  # iterable of non-iterable
+            (("a",), "each entry should be a list/tuple"),  # iterable of strings
         ],
     )
-    def test_group_subplot_bad_input(self, subplots):
+    def test_group_subplot_bad_input(self, subplots, expected_msg):
         # Make sure error is raised when subplots is not a properly
         # formatted iterable. Only iterables of iterables are permitted, and
         # entries should not be strings.
         d = {"a": np.arange(10), "b": np.arange(10)}
         df = pd.DataFrame(d)
 
-        with pytest.raises(ValueError, match="each entry should be a list/tuple"):
+        with pytest.raises(ValueError, match=expected_msg):
             df.plot(subplots=subplots)
 
     def test_group_subplot_invalid_column_name(self):
