@@ -121,6 +121,7 @@ Other enhancements
 - :meth:`Rolling.mean()` and :meth:`Rolling.sum()` use Kahan summation to calculate the mean to avoid numerical problems (:issue:`10319`, :issue:`11645`, :issue:`13254`, :issue:`32761`, :issue:`36031`)
 - :meth:`to_json` now implements timezones parsing for when orient structure is `table`.
 - :meth:`read_json` now implements timezones parsing for when orient structure is `table`.
+- :meth:`astype` now attempts to convert to `datetime64[ns, tz]` directly from `object` with inferred timezone from string (:issue:`35973`).
 -
 
 .. _whatsnew_120.api_breaking.python:
