@@ -3,6 +3,7 @@ import itertools
 import operator
 import re
 from typing import (
+    Any,
     DefaultDict,
     Dict,
     List,
@@ -600,8 +601,12 @@ class BlockManager(PandasObject):
         return self.apply("replace", value=value, **kwargs)
 
     def replace_list(
-        self, src_list, dest_list, inplace: bool = False, regex: bool = False
-    ) -> "BlockManager":
+        self: T,
+        src_list: List[Any],
+        dest_list: List[Any],
+        inplace: bool = False,
+        regex: bool = False,
+    ) -> T:
         """ do a list replace """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
@@ -625,34 +630,14 @@ class BlockManager(PandasObject):
 
         masks = [comp(s, mask, regex) for s in src_list]
 
-        result_blocks = []
-        src_len = len(src_list) - 1
-        for blk in self.blocks:
-
-            # its possible to get multiple result blocks here
-            # replace ALWAYS will return a list
-            rb = [blk if inplace else blk.copy()]
-            for i, (s, d) in enumerate(zip(src_list, dest_list)):
-                new_rb: List[Block] = []
-                for b in rb:
-                    m = masks[i][b.mgr_locs.indexer]
-                    convert = i == src_len  # only convert once at the end
-                    result = b._replace_coerce(
-                        mask=m,
-                        to_replace=s,
-                        value=d,
-                        inplace=inplace,
-                        convert=convert,
-                        regex=regex,
-                    )
-                    if m.any() or convert:
-                        new_rb = _extend_blocks(result, new_rb)
-                    else:
-                        new_rb.append(b)
-                rb = new_rb
-            result_blocks.extend(rb)
-
-        bm = type(self).from_blocks(result_blocks, self.axes)
+        bm = self.apply(
+            "_replace_list",
+            src_list=src_list,
+            dest_list=dest_list,
+            masks=masks,
+            inplace=inplace,
+            regex=regex,
+        )
         bm._consolidate_inplace()
         return bm
 
