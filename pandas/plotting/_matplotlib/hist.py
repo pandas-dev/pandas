@@ -6,7 +6,11 @@ from pandas.core.dtypes.missing import isna, remove_na_arraylike
 
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.core import LinePlot, MPLPlot
-from pandas.plotting._matplotlib.tools import _flatten, _set_ticks_props, _subplots
+from pandas.plotting._matplotlib.tools import (
+    create_subplots,
+    flatten_axes,
+    set_ticks_props,
+)
 
 
 class HistPlot(LinePlot):
@@ -193,11 +197,11 @@ def _grouped_plot(
         grouped = grouped[column]
 
     naxes = len(grouped)
-    fig, axes = _subplots(
+    fig, axes = create_subplots(
         naxes=naxes, figsize=figsize, sharex=sharex, sharey=sharey, ax=ax, layout=layout
     )
 
-    _axes = _flatten(axes)
+    _axes = flatten_axes(axes)
 
     for i, (key, group) in enumerate(grouped):
         ax = _axes[i]
@@ -281,7 +285,7 @@ def _grouped_hist(
         rot=rot,
     )
 
-    _set_ticks_props(
+    set_ticks_props(
         axes, xlabelsize=xlabelsize, xrot=xrot, ylabelsize=ylabelsize, yrot=yrot
     )
 
@@ -332,7 +336,7 @@ def hist_series(
         ax.grid(grid)
         axes = np.array([ax])
 
-        _set_ticks_props(
+        set_ticks_props(
             axes, xlabelsize=xlabelsize, xrot=xrot, ylabelsize=ylabelsize, yrot=yrot
         )
 
@@ -414,7 +418,7 @@ def hist_frame(
     if naxes == 0:
         raise ValueError("hist method requires numerical columns, nothing to plot.")
 
-    fig, axes = _subplots(
+    fig, axes = create_subplots(
         naxes=naxes,
         ax=ax,
         squeeze=False,
@@ -423,7 +427,7 @@ def hist_frame(
         figsize=figsize,
         layout=layout,
     )
-    _axes = _flatten(axes)
+    _axes = flatten_axes(axes)
 
     can_set_label = "label" not in kwds
 
@@ -437,7 +441,7 @@ def hist_frame(
         if legend:
             ax.legend()
 
-    _set_ticks_props(
+    set_ticks_props(
         axes, xlabelsize=xlabelsize, xrot=xrot, ylabelsize=ylabelsize, yrot=yrot
     )
     fig.subplots_adjust(wspace=0.3, hspace=0.3)
