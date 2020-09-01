@@ -11,6 +11,10 @@ This is not a direct copy/paste of the original file.  Changes are:
     - ran `black`
     - ran `isort`
     - edited strings split by black to adhere to pandas style conventions
+    - AsyncContextManager is defined without `exec`
+    - `super(Parent, self)` is replaced with `super()`
+    - foo.__class__ replaced with type(foo)
+    - Change a comment-syntax annotation in a docstring to newer syntax
 """
 
 # These are used by Protocol implementation
@@ -988,9 +992,8 @@ elif hasattr(contextlib, "AbstractAsyncContextManager"):
         __slots__ = ()
 
     __all__.append("AsyncContextManager")
-elif sys.version_info[:2] >= (3, 5):
-    exec(
-        """
+
+
 class AsyncContextManager(typing.Generic[T_co]):
     __slots__ = ()
 
@@ -1007,9 +1010,8 @@ class AsyncContextManager(typing.Generic[T_co]):
             return _check_methods_in_mro(C, "__aenter__", "__aexit__")
         return NotImplemented
 
-__all__.append('AsyncContextManager')
-"""
-    )
+
+__all__.append("AsyncContextManager")
 
 
 if hasattr(typing, "DefaultDict"):
@@ -1180,7 +1182,7 @@ else:
             name_by_id(42)          # Fails type check
             name_by_id(UserId(42))  # OK
 
-            num = UserId(5) + 1     # type: int
+            num: int = UserId(5) + 1
         """
 
         def new_type(x):
@@ -1360,12 +1362,8 @@ elif HAVE_PROTOCOLS and not PEP_560:
                 if any(isinstance(b, GenericMeta) and b is not Generic for b in bases):
                     bases = tuple(b for b in bases if b is not Generic)
                 namespace.update({"__origin__": origin, "__extra__": extra})
-                self = super(GenericMeta, cls).__new__(
-                    cls, name, bases, namespace, _root=True
-                )
-                super(GenericMeta, self).__setattr__(
-                    "_gorg", self if not origin else _gorg(origin)
-                )
+                self = super().__new__(cls, name, bases, namespace, _root=True)
+                super().__setattr__("_gorg", self if not origin else _gorg(origin))
                 self.__parameters__ = tvars
                 self.__args__ = (
                     tuple(
@@ -1383,9 +1381,7 @@ elif HAVE_PROTOCOLS and not PEP_560:
                     self._abc_cache = origin._abc_cache
                 if hasattr(self, "_subs_tree"):
                     self.__tree_hash__ = (
-                        hash(self._subs_tree())
-                        if origin
-                        else super(GenericMeta, self).__hash__()
+                        hash(self._subs_tree()) if origin else super().__hash__()
                     )
                 return self
 
@@ -1453,7 +1449,7 @@ elif HAVE_PROTOCOLS and not PEP_560:
             if (
                 not getattr(self, "_is_protocol", False)
                 or _is_callable_members_only(self)
-            ) and issubclass(instance.__class__, self):
+            ) and issubclass(type(instance), self):
                 return True
             if self._is_protocol:
                 if all(
@@ -1465,7 +1461,7 @@ elif HAVE_PROTOCOLS and not PEP_560:
                     for attr in _get_protocol_attrs(self)
                 ):
                     return True
-            return super(GenericMeta, self).__instancecheck__(instance)
+            return super().__instancecheck__(instance)
 
         def __subclasscheck__(self, cls):
             if self.__origin__ is not None:
@@ -1496,11 +1492,11 @@ elif HAVE_PROTOCOLS and not PEP_560:
                     "functools",
                     "typing",
                 ]:
-                    return super(GenericMeta, self).__subclasscheck__(cls)
+                    return super().__subclasscheck__(cls)
                 raise TypeError(
                     "Protocols with non-method members don't support issubclass()"
                 )
-            return super(GenericMeta, self).__subclasscheck__(cls)
+            return super().__subclasscheck__(cls)
 
         if not OLD_GENERICS:
 
@@ -1540,7 +1536,7 @@ elif HAVE_PROTOCOLS and not PEP_560:
                     args = params
 
                 prepend = (self,) if self.__origin__ is None else ()
-                return self.__class__(
+                return type(self)(
                     self.__name__,
                     prepend + self.__bases__,
                     _no_slots_copy(self.__dict__),
@@ -1612,7 +1608,7 @@ elif PEP_560:
             if (
                 not getattr(cls, "_is_protocol", False)
                 or _is_callable_members_only(cls)
-            ) and issubclass(instance.__class__, cls):
+            ) and issubclass(type(instance), cls):
                 return True
             if cls._is_protocol:
                 if all(
@@ -1952,7 +1948,7 @@ else:
             # Subclasses and instances of TypedDict return actual dictionaries
             # via _dict_new.
             ns["__new__"] = _typeddict_new if name == "TypedDict" else _dict_new
-            tp_dict = super(_TypedDictMeta, cls).__new__(cls, name, (dict,), ns)
+            tp_dict = super().__new__(cls, name, (dict,), ns)
 
             annotations = {}
             own_annotations = ns.get("__annotations__", {})
@@ -2243,7 +2239,7 @@ elif HAVE_ANNOTATED:
                 msg = "Annotated[t, ...]: t must be a type."
                 tp = typing._type_check(params[0], msg)
                 metadata = tuple(params[1:])
-            return self.__class__(
+            return type(self)(
                 self.__name__,
                 self.__bases__,
                 _no_slots_copy(self.__dict__),
