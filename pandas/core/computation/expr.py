@@ -6,7 +6,7 @@ import ast
 from functools import partial, reduce
 from keyword import iskeyword
 import tokenize
-from typing import Callable, Optional, Set, Tuple, Type, TypeVar
+from typing import Callable, Dict, Optional, Set, Tuple, Type, TypeVar
 
 import numpy as np
 
@@ -364,7 +364,7 @@ class BaseExprVisitor(ast.NodeVisitor):
 
     unary_ops = _unary_ops_syms
     unary_op_nodes = "UAdd", "USub", "Invert", "Not"
-    unary_op_nodes_map = dict(zip(unary_ops, unary_op_nodes))
+    unary_op_nodes_map: Dict[str, str] = dict(zip(list(unary_ops), unary_op_nodes))
 
     rewrite_map = {
         ast.Eq: ast.In,
