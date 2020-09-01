@@ -73,7 +73,7 @@ def test_constructor_with_timedelta_window(window):
     # GH 15440
     n = 10
     df = DataFrame(
-        {"value": np.arange(n)}, index=pd.date_range("2015-12-24", periods=n, freq="D"),
+        {"value": np.arange(n)}, index=pd.date_range("2015-12-24", periods=n, freq="D")
     )
     expected_data = np.append([0.0, 1.0], np.arange(3.0, 27.0, 3))
 
@@ -92,7 +92,7 @@ def test_constructor_timedelta_window_and_minperiods(window, raw):
     # GH 15305
     n = 10
     df = DataFrame(
-        {"value": np.arange(n)}, index=pd.date_range("2017-08-08", periods=n, freq="D"),
+        {"value": np.arange(n)}, index=pd.date_range("2017-08-08", periods=n, freq="D")
     )
     expected = DataFrame(
         {"value": np.append([np.NaN, 1.0], np.arange(3.0, 27.0, 3))},
@@ -153,7 +153,7 @@ def test_closed_one_entry(func):
 def test_closed_one_entry_groupby(func):
     # GH24718
     ser = pd.DataFrame(
-        data={"A": [1, 1, 2], "B": [3, 2, 1]}, index=pd.date_range("2000", periods=3),
+        data={"A": [1, 1, 2], "B": [3, 2, 1]}, index=pd.date_range("2000", periods=3)
     )
     result = getattr(
         ser.groupby("A", sort=False)["B"].rolling("10D", closed="left"), func
@@ -182,7 +182,7 @@ def test_closed_one_entry_groupby(func):
 def test_closed_min_max_datetime(input_dtype, func, closed, expected):
     # see gh-21704
     ser = pd.Series(
-        data=np.arange(10).astype(input_dtype), index=pd.date_range("2000", periods=10),
+        data=np.arange(10).astype(input_dtype), index=pd.date_range("2000", periods=10)
     )
 
     result = getattr(ser.rolling("3D", closed=closed), func)()
