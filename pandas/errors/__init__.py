@@ -206,7 +206,7 @@ class DuplicateLabelError(ValueError):
     """
     Error raised when an operation would introduce duplicate labels.
 
-    .. versionadded:: 1.1.0
+    .. versionadded:: 1.2.0
 
     Examples
     --------

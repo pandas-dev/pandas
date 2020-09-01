@@ -1,3 +1,5 @@
+import pytest
+
 import pandas as pd
 
 
@@ -24,3 +26,23 @@ class TestFlags:
         assert a == "<Flags(allows_duplicate_labels=True)>"
         a = repr(pd.DataFrame({"A"}).set_flags(allows_duplicate_labels=False).flags)
         assert a == "<Flags(allows_duplicate_labels=False)>"
+
+    def test_obj_ref(self):
+        df = pd.DataFrame()
+        flags = df.flags
+        del df
+        with pytest.raises(ValueError, match="object has been deleted"):
+            flags.allows_duplicate_labels = True
+
+    def test_getitem(self):
+        df = pd.DataFrame()
+        flags = df.flags
+        assert flags["allows_duplicate_labels"] is True
+        flags["allows_duplicate_labels"] = False
+        assert flags["allows_duplicate_labels"] is False
+
+        with pytest.raises(KeyError):
+            flags["a"]
+
+        with pytest.raises(ValueError):
+            flags["a"] = 10

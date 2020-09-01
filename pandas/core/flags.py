@@ -85,7 +85,7 @@ class Flags:
         value = bool(value)
         obj = self._obj()
         if obj is None:
-            raise ValueError("This flags object has been deleted.")
+            raise ValueError("This flag's object has been deleted.")
 
         if not value:
             for ax in obj.axes:

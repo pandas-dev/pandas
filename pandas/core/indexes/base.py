@@ -484,8 +484,19 @@ class Index(IndexOpsMixin, PandasObject):
         return type(self)
 
     def _maybe_check_unique(self):
+        """
+        Check that an Index has no duplicates.
+
+        This is typically only called via
+        `NDFrame.flags.allows_duplicate_labels.setter` when it's set to
+        True (duplicates aren't allowed).
+
+        Raises
+        ------
+        DuplicateLabelError
+            When the index is not unique.
+        """
         if not self.is_unique:
-            # TODO: position, value, not too large.
             msg = """Index has duplicates."""
             duplicates = self._format_duplicate_message()
             msg += "\n{}".format(duplicates)
@@ -493,6 +504,21 @@ class Index(IndexOpsMixin, PandasObject):
             raise DuplicateLabelError(msg)
 
     def _format_duplicate_message(self):
+        """
+        Construct the DataFrame for a DuplicateLabelError.
+
+        This returns a DataFrame indicating the labels and positions
+        of duplicates in an index. This should only be called when it's
+        already known that duplicates are present.
+
+        Examples
+        --------
+        >>> idx = pd.Index(['a', 'b', 'a'])
+        >>> idx._format_duplicate_message()
+            positions
+        label
+        a        [0, 2]
+        """
         from pandas import Series
 
         duplicates = self[self.duplicated(keep="first")].unique()
