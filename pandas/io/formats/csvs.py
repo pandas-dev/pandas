@@ -93,6 +93,32 @@ class CSVFormatter:
         self.data = [None] * ncols
 
     @property
+    def index_label(self):
+        return self._index_label
+
+    @index_label.setter
+    def index_label(self, index_label):
+        if index_label is None:
+            self._index_label = self._get_index_label_from_obj()
+        elif not isinstance(
+            index_label, (list, tuple, np.ndarray, ABCIndexClass)
+        ):
+            # given a string for a DF with Index
+            self._index_label = [index_label]
+
+    def _get_index_label_from_obj(self):
+        if isinstance(self.obj.index, ABCMultiIndex):
+            return self._get_index_label_multiindex()
+        return self._get_index_label_regular()
+
+    def _get_index_label_multiindex(self):
+        return  [name or "" for name in self.obj.index.names]
+
+    def _get_index_label_regular(self):
+        index_label = self.obj.index.name
+        return [""] if index_label is None else [index_label]
+
+    @property
     def quotechar(self):
         if self.quoting != csvlib.QUOTE_NONE:
             # prevents crash in _csv
@@ -268,6 +294,7 @@ class CSVFormatter:
         has_aliases = isinstance(header, (tuple, list, np.ndarray, ABCIndexClass))
         if not (has_aliases or self.header):
             return
+
         if has_aliases:
             if len(header) != len(cols):
                 raise ValueError(
@@ -279,30 +306,7 @@ class CSVFormatter:
             write_cols = cols
 
         if self.index:
-            # should write something for index label
-            if index_label is not False:
-                if index_label is None:
-                    if isinstance(obj.index, ABCMultiIndex):
-                        index_label = []
-                        for i, name in enumerate(obj.index.names):
-                            if name is None:
-                                name = ""
-                            index_label.append(name)
-                    else:
-                        index_label = obj.index.name
-                        if index_label is None:
-                            index_label = [""]
-                        else:
-                            index_label = [index_label]
-                elif not isinstance(
-                    index_label, (list, tuple, np.ndarray, ABCIndexClass)
-                ):
-                    # given a string for a DF with Index
-                    index_label = [index_label]
-
-                encoded_labels = list(index_label)
-            else:
-                encoded_labels = []
+            encoded_labels = list(index_label)
 
         if not has_mi_columns or has_aliases:
             encoded_labels += list(write_cols)
