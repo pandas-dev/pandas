@@ -99,9 +99,7 @@ class CSVFormatter:
         ncols = self.obj.shape[-1]
         self.data = [None] * ncols
 
-        if chunksize is None:
-            chunksize = (100000 // (len(self.cols) or 1)) or 1
-        self.chunksize = int(chunksize)
+        self.chunksize = chunksize
 
         self.data_index = obj.index
         if (
@@ -160,6 +158,16 @@ class CSVFormatter:
             cols = list(cols)
 
         self._cols = cols
+
+    @property
+    def chunksize(self):
+        return self._chunksize
+
+    @chunksize.setter
+    def chunksize(self, chunksize):
+        if chunksize is None:
+            chunksize = (100000 // (len(self.cols) or 1)) or 1
+        self._chunksize = int(chunksize)
 
     def save(self) -> None:
         """
