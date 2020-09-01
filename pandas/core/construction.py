@@ -439,6 +439,7 @@ def sanitize_array(
 
     elif isinstance(data, (list, tuple, abc.Set)) and len(data) > 0:
         if isinstance(data, set):
+            # Raise only for unordered sets, e.g., not for dict_keys
             raise TypeError("Set type is unordered")
         data = list(data)
 
