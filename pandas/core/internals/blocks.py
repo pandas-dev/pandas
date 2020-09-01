@@ -1917,6 +1917,7 @@ class ExtensionBlock(Block):
         when regex is required ObjectBlock replace method is called
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
+        regex = validate_bool_kwarg(regex, "regex")
         if regex:
             dtype = self.values.dtype
             blocks = self.astype(object)
@@ -1925,6 +1926,7 @@ class ExtensionBlock(Block):
                     b.astype(dtype)
                     for b in blocks.replace(to_replace, value, inplace, regex, convert)
                 ]
+            blocks.replace(to_replace, value, inplace, regex, convert)
             return blocks.astype(dtype)
         else:
             return super().replace(to_replace, value, inplace, regex, convert)
