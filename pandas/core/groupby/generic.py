@@ -1206,7 +1206,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             key_index = self.grouper.result_index if self.as_index else None
 
             if isinstance(first_not_none, Series):
-
                 # this is to silence a DeprecationWarning
                 # TODO: Remove when default dtype of empty Series is object
                 kwargs = first_not_none._construct_axes_dict()
@@ -1218,16 +1217,26 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
             v = values[0]
 
-            if isinstance(v, (np.ndarray, Index, Series)) or not self.as_index:
+            if not isinstance(v, (np.ndarray, Index, Series)) and self.as_index:
+                # values are not series or array-like but scalars
+                # self._selection_name not passed through to Series as the
+                # result should not take the name of original selection
+                # of columns
+                return self.obj._constructor_sliced(values, index=key_index)
+
+            else:
                 if isinstance(v, Series):
-                    applied_index = self._selected_obj._get_axis(self.axis)
                     all_indexed_same = all_indexes_same((x.index for x in values))
-                    singular_series = len(values) == 1 and applied_index.nlevels == 1
 
                     # GH3596
                     # provide a reduction (Frame -> Series) if groups are
                     # unique
                     if self.squeeze:
+                        applied_index = self._selected_obj._get_axis(self.axis)
+                        singular_series = (
+                            len(values) == 1 and applied_index.nlevels == 1
+                        )
+
                         # assign the name to this series
                         if singular_series:
                             values[0].name = keys[0]
@@ -1252,18 +1261,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     if not all_indexed_same:
                         # GH 8467
                         return self._concat_objects(keys, values, not_indexed_same=True)
-
-                    # GH6124 if the list of Series have a consistent name,
-                    # then propagate that name to the result.
-                    index = v.index.copy()
-                    if index.name is None:
-                        # Only propagate the series name to the result
-                        # if all series have a consistent name.  If the
-                        # series do not have a consistent name, do
-                        # nothing.
-                        names = {v.name for v in values}
-                        if len(names) == 1:
-                            index.name = list(names)[0]
 
                     # Combine values
                     # vstack+constructor is faster than concat and handles MI-columns
@@ -1312,13 +1309,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     self._insert_inaxis_grouper_inplace(result)
 
                 return self._reindex_output(result)
-
-            # values are not series or array-like but scalars
-            else:
-                # self._selection_name not passed through to Series as the
-                # result should not take the name of original selection
-                # of columns
-                return self.obj._constructor_sliced(values, index=key_index)
 
     def _transform_general(
         self, func, *args, engine="cython", engine_kwargs=None, **kwargs
