@@ -327,16 +327,13 @@ class CSVFormatter:
 
         nrows = len(self.data_index)
 
-        # write in chunksize bites
-        chunksize = self.chunksize
-        chunks = int(nrows / chunksize) + 1
+        chunks = int(nrows / self.chunksize) + 1
 
         for i in range(chunks):
-            start_i = i * chunksize
-            end_i = min((i + 1) * chunksize, nrows)
+            start_i = i * self.chunksize
+            end_i = min(start_i + self.chunksize, nrows)
             if start_i >= end_i:
                 break
-
             self._save_chunk(start_i, end_i)
 
     def _save_chunk(self, start_i: int, end_i: int) -> None:
