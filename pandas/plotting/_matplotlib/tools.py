@@ -1,18 +1,27 @@
 # being a bit too dynamic
 from math import ceil
+from typing import TYPE_CHECKING, Iterable, List, Sequence, Tuple, Union
 import warnings
 
 import matplotlib.table
 import matplotlib.ticker as ticker
 import numpy as np
 
+from pandas._typing import FrameOrSeries
+
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 
 from pandas.plotting._matplotlib import compat
 
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
+    from matplotlib.axis import Axis
+    from matplotlib.lines import Line2D  # noqa:F401
+    from matplotlib.table import Table
 
-def format_date_labels(ax, rot):
+
+def format_date_labels(ax: "Axes", rot):
     # mini version of autofmt_xdate
     for label in ax.get_xticklabels():
         label.set_ha("right")
@@ -21,7 +30,7 @@ def format_date_labels(ax, rot):
     fig.subplots_adjust(bottom=0.2)
 
 
-def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
+def table(ax, data: FrameOrSeries, rowLabels=None, colLabels=None, **kwargs) -> "Table":
     if isinstance(data, ABCSeries):
         data = data.to_frame()
     elif isinstance(data, ABCDataFrame):
@@ -43,7 +52,7 @@ def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
     return table
 
 
-def _get_layout(nplots, layout=None, layout_type="box"):
+def _get_layout(nplots: int, layout=None, layout_type: str = "box") -> Tuple[int, int]:
     if layout is not None:
         if not isinstance(layout, (tuple, list)) or len(layout) != 2:
             raise ValueError("Layout must be a tuple of (rows, columns)")
@@ -92,14 +101,14 @@ def _get_layout(nplots, layout=None, layout_type="box"):
 
 
 def _subplots(
-    naxes=None,
-    sharex=False,
-    sharey=False,
-    squeeze=True,
+    naxes: int,
+    sharex: bool = False,
+    sharey: bool = False,
+    squeeze: bool = True,
     subplot_kw=None,
     ax=None,
     layout=None,
-    layout_type="box",
+    layout_type: str = "box",
     **fig_kw,
 ):
     """
@@ -272,7 +281,7 @@ def _subplots(
     return fig, axes
 
 
-def _remove_labels_from_axis(axis):
+def _remove_labels_from_axis(axis: "Axis"):
     for t in axis.get_majorticklabels():
         t.set_visible(False)
 
@@ -288,7 +297,15 @@ def _remove_labels_from_axis(axis):
     axis.get_label().set_visible(False)
 
 
-def _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey):
+def _handle_shared_axes(
+    axarr: Iterable["Axes"],
+    nplots: int,
+    naxes: int,
+    nrows: int,
+    ncols: int,
+    sharex: bool,
+    sharey: bool,
+):
     if nplots > 1:
         if compat._mpl_ge_3_2_0():
             row_num = lambda x: x.get_subplotspec().rowspan.start
@@ -334,7 +351,7 @@ def _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey):
                     _remove_labels_from_axis(ax.yaxis)
 
 
-def _flatten(axes):
+def _flatten(axes: Union["Axes", Sequence["Axes"]]) -> Sequence["Axes"]:
     if not is_list_like(axes):
         return np.array([axes])
     elif isinstance(axes, (np.ndarray, ABCIndexClass)):
@@ -342,7 +359,13 @@ def _flatten(axes):
     return np.array(axes)
 
 
-def _set_ticks_props(axes, xlabelsize=None, xrot=None, ylabelsize=None, yrot=None):
+def _set_ticks_props(
+    axes: Union["Axes", Sequence["Axes"]],
+    xlabelsize=None,
+    xrot=None,
+    ylabelsize=None,
+    yrot=None,
+):
     import matplotlib.pyplot as plt
 
     for ax in _flatten(axes):
@@ -357,7 +380,7 @@ def _set_ticks_props(axes, xlabelsize=None, xrot=None, ylabelsize=None, yrot=Non
     return axes
 
 
-def _get_all_lines(ax):
+def _get_all_lines(ax: "Axes") -> List["Line2D"]:
     lines = ax.get_lines()
 
     if hasattr(ax, "right_ax"):
@@ -369,7 +392,7 @@ def _get_all_lines(ax):
     return lines
 
 
-def _get_xlim(lines):
+def _get_xlim(lines: Iterable["Line2D"]) -> Tuple[float, float]:
     left, right = np.inf, -np.inf
     for l in lines:
         x = l.get_xdata(orig=False)

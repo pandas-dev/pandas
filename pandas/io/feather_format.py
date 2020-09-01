@@ -1,5 +1,6 @@
 """ feather-format compat """
 
+from pandas._typing import StorageOptions
 from pandas.compat._optional import import_optional_dependency
 
 from pandas import DataFrame, Int64Index, RangeIndex
@@ -7,7 +8,7 @@ from pandas import DataFrame, Int64Index, RangeIndex
 from pandas.io.common import get_filepath_or_buffer
 
 
-def to_feather(df: DataFrame, path, storage_options=None, **kwargs):
+def to_feather(df: DataFrame, path, storage_options: StorageOptions = None, **kwargs):
     """
     Write a DataFrame to the binary Feather format.
 
@@ -15,14 +16,13 @@ def to_feather(df: DataFrame, path, storage_options=None, **kwargs):
     ----------
     df : DataFrame
     path : string file path, or file-like object
-
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection, e.g.
         host, port, username, password, etc., if using a URL that will
         be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
         will be raised if providing this argument with a local path or
         a file-like buffer. See the fsspec and backend storage implementation
-        docs for the set of allowed keys and values
+        docs for the set of allowed keys and values.
 
         .. versionadded:: 1.2.0
 
@@ -77,7 +77,9 @@ def to_feather(df: DataFrame, path, storage_options=None, **kwargs):
     feather.write_feather(df, path, **kwargs)
 
 
-def read_feather(path, columns=None, use_threads: bool = True, storage_options=None):
+def read_feather(
+    path, columns=None, use_threads: bool = True, storage_options: StorageOptions = None
+):
     """
     Load a feather-format object from the file path.
 
@@ -103,6 +105,15 @@ def read_feather(path, columns=None, use_threads: bool = True, storage_options=N
         Whether to parallelize reading using multiple threads.
 
        .. versionadded:: 0.24.0
+    storage_options : dict, optional
+        Extra options that make sense for a particular storage connection, e.g.
+        host, port, username, password, etc., if using a URL that will
+        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+        will be raised if providing this argument with a local path or
+        a file-like buffer. See the fsspec and backend storage implementation
+        docs for the set of allowed keys and values.
+
+        .. versionadded:: 1.2.0
 
     Returns
     -------
