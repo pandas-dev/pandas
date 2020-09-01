@@ -1,7 +1,6 @@
 from typing import TYPE_CHECKING, Dict, List, Optional
 
 import numpy as np
-from openpyxl.cell.cell import TYPE_BOOL, TYPE_ERROR, TYPE_NUMERIC
 
 from pandas._typing import FilePathOrBuffer, Scalar, StorageOptions
 from pandas.compat._optional import import_optional_dependency
@@ -487,6 +486,8 @@ class _OpenpyxlReader(_BaseExcelReader):
         return self.book.worksheets[index]
 
     def _convert_cell(self, cell, convert_float: bool) -> Scalar:
+
+        from openpyxl.cell.cell import TYPE_BOOL, TYPE_ERROR, TYPE_NUMERIC
 
         if cell.is_date:
             return cell.value
