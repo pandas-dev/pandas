@@ -231,6 +231,37 @@ class CSVFormatter:
 
         self._compression = compression
 
+    @property
+    def _has_aliases(self):
+        return isinstance(self.header, (tuple, list, np.ndarray, ABCIndexClass))
+
+    @property
+    def _need_to_save_header(self):
+        return self._has_aliases or self.header
+
+    @property
+    def write_cols(self):
+        if self._has_aliases:
+            if len(self.header) != len(self.cols):
+                msg = f"Writing {len(self.cols)} cols but got {len(self.header)} aliases"
+                raise ValueError(msg)
+            else:
+                return self.header
+        else:
+            return self.cols
+
+    @property
+    def encoded_labels(self):
+        encoded_labels = []
+
+        if self.index:
+            encoded_labels = list(self.index_label)
+
+        if not self.has_mi_columns or self._has_aliases:
+            encoded_labels += list(self.write_cols)
+
+        return encoded_labels
+
     def save(self) -> None:
         """
         Create the writer & save.
@@ -283,34 +314,18 @@ class CSVFormatter:
         self._save_body()
 
     def _save_header(self):
+        if not self._need_to_save_header:
+            return
+
         writer = self.writer
         obj = self.obj
         index_label = self.index_label
         cols = self.cols
         has_mi_columns = self.has_mi_columns
         header = self.header
-        encoded_labels: List[str] = []
 
-        has_aliases = isinstance(header, (tuple, list, np.ndarray, ABCIndexClass))
-        if not (has_aliases or self.header):
-            return
-
-        if has_aliases:
-            if len(header) != len(cols):
-                raise ValueError(
-                    f"Writing {len(cols)} cols but got {len(header)} aliases"
-                )
-            else:
-                write_cols = header
-        else:
-            write_cols = cols
-
-        if self.index:
-            encoded_labels = list(index_label)
-
-        if not has_mi_columns or has_aliases:
-            encoded_labels += list(write_cols)
-            writer.writerow(encoded_labels)
+        if any(self.encoded_labels):
+            writer.writerow(self.encoded_labels)
         else:
             # write out the mi
             columns = obj.columns
@@ -336,9 +351,8 @@ class CSVFormatter:
             # Write out the index line if it's not empty.
             # Otherwise, we will print out an extraneous
             # blank line between the mi and the data rows.
-            if encoded_labels and set(encoded_labels) != {""}:
-                encoded_labels.extend([""] * len(columns))
-                writer.writerow(encoded_labels)
+            if self.encoded_labels and set(self.encoded_labels) != {""}:
+                writer.writerow([""] * len(columns))
 
     def _save_body(self) -> None:
         nrows = len(self.data_index)
