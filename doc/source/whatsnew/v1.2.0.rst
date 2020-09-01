@@ -255,6 +255,8 @@ Groupby/resample/rolling
 - Bug when combining methods :meth:`DataFrame.groupby` with :meth:`DataFrame.resample` and :meth:`DataFrame.interpolate` raising an ``TypeError`` (:issue:`35325`)
 - Bug in :meth:`DataFrameGroupBy.apply` where a non-nuisance grouping column would be dropped from the output columns if another groupby method was called before ``.apply()`` (:issue:`34656`)
 - Bug in :meth:`DataFrameGroupby.apply` would drop a :class:`CategoricalIndex` when grouped on. (:issue:`35792`)
+- Bug when subsetting columns on a :class:`~pandas.core.groupby.DataFrameGroupBy` (e.g. ``df.groupby('a')[['b']])``) would reset the attributes ``axis``, ``dropna``, ``group_keys``, ``level``, ``mutated``, ``sort``, and ``squeeze`` to their default values. (:issue:`9959`)
+-
 
 Reshaping
 ^^^^^^^^^
