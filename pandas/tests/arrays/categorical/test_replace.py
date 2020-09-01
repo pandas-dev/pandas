@@ -49,3 +49,51 @@ def test_replace(to_replace, value, expected, flip_categories):
     tm.assert_series_equal(
         expected, s, check_category_order=False,
     )
+
+
+@pytest.mark.parametrize(
+    "to_replace,value,input_data,expected_data",
+    [
+        (r"^\s*$", pd.NA, ["d", "ee", "f", ""], ["d", "ee", "f", pd.NA]),
+        (r"e{2}", "replace", ["d", "ee", "f", ""], ["d", "replace", "f", ""]),
+        (r"f", "replace", ["d", "ee", "f", ""], ["d", "ee", "replace", ""]),
+    ],
+)
+def test_replace_regex_inplace(to_replace, value, input_data, expected_data):
+    # GH35977
+    input_df = pd.DataFrame({"col1": input_data}, dtype="string")
+    expected_df = pd.DataFrame({"col1": expected_data}, dtype="string")
+    input_df.replace(to_replace, value, inplace=True, regex=True)
+    tm.assert_frame_equal(expected_df, input_df)
+
+
+@pytest.mark.parametrize(
+    "to_replace,value,input_data,expected_data",
+    [
+        (r"^\s*$", pd.NA, ["d", "ee", "f", ""], ["d", "ee", "f", pd.NA]),
+        (r"e{2}", "replace", ["d", "ee", "f", ""], ["d", "replace", "f", ""]),
+        (r"f", "replace", ["d", "ee", "f", ""], ["d", "ee", "replace", ""]),
+    ],
+)
+def test_replace_regex(to_replace, value, input_data, expected_data):
+    # GH35977
+    input_df = pd.DataFrame({"col1": input_data}, dtype="string")
+    expected_df = pd.DataFrame({"col1": expected_data}, dtype="string")
+    input_df = input_df.replace(to_replace, value, inplace=False, regex=True)
+    tm.assert_frame_equal(expected_df, input_df)
+
+
+@pytest.mark.parametrize(
+    "to_replace,value,input_data,expected_data",
+    [
+        ("", pd.NA, ["d", "ee", "f", ""], ["d", "ee", "f", pd.NA]),
+        ("ee", "replace", ["d", "ee", "f", ""], ["d", "replace", "f", ""]),
+        ("f", "replace", ["d", "ee", "f", ""], ["d", "ee", "replace", ""]),
+    ],
+)
+def test_replace_string(to_replace, value, input_data, expected_data):
+    # GH35977
+    input_df = pd.DataFrame({"col1": input_data}, dtype="string")
+    expected_df = pd.DataFrame({"col1": expected_data}, dtype="string")
+    input_df = input_df.replace(to_replace, value, inplace=False, regex=False)
+    tm.assert_frame_equal(expected_df, input_df)

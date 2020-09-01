@@ -1904,6 +1904,31 @@ class ExtensionBlock(Block):
         ]
         return blocks, mask
 
+    def replace(
+        self,
+        to_replace,
+        value,
+        inplace: bool = False,
+        regex: bool = False,
+        convert: bool = True,
+    ):
+        """
+        replace the to_replace value with value, regex is not supported by super class
+        when regex is required ObjectBlock replace method is called
+        """
+        inplace = validate_bool_kwarg(inplace, "inplace")
+        if regex:
+            dtype = self.values.dtype
+            blocks = self.astype(object)
+            if not inplace:
+                return [
+                    b.astype(dtype)
+                    for b in blocks.replace(to_replace, value, inplace, regex, convert)
+                ]
+            return blocks.astype(dtype)
+        else:
+            return super().replace(to_replace, value, inplace, regex, convert)
+
 
 class ObjectValuesExtensionBlock(ExtensionBlock):
     """
