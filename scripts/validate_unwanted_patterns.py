@@ -18,6 +18,25 @@ import token
 import tokenize
 from typing import IO, Callable, FrozenSet, Iterable, List, Set, Tuple
 
+PRIVATE_IMPORTS_TO_IGNORE: Set[str] = {
+    "_extension_array_shared_docs",
+    "_index_shared_docs",
+    "_merge_doc",
+    "_shared_docs",
+    "_new_Index",
+    "_new_PeriodIndex",
+    "_doc_template",
+    "_interval_shared_docs",
+    "_apply_docs",
+    "_arith_doc_FRAME",
+    "_flex_comp_doc_FRAME",
+    "_make_flex_doc",
+    "_op_descriptions",
+    "_pipe_template",
+    "_testing",
+    "_test_decorators",
+}
+
 
 def _get_literal_string_prefix_len(token_string: str) -> int:
     """
@@ -162,6 +181,36 @@ def private_function_across_module(file_obj: IO[str]) -> Iterable[Tuple[int, str
 
         if module_name in imported_modules and function_name.startswith("_"):
             yield (node.lineno, f"Private function '{module_name}.{function_name}'")
+
+
+def private_import_across_module(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
+    """
+    Checking that a private function is not imported across modules.
+    Parameters
+    ----------
+    file_obj : IO
+        File-like object containing the Python code to validate.
+    Yields
+    ------
+    line_number : int
+        Line number of import statement, that imports the private function.
+    msg : str
+        Explenation of the error.
+    """
+    contents = file_obj.read()
+    tree = ast.parse(contents)
+
+    for node in ast.walk(tree):
+        if not (isinstance(node, ast.Import) or isinstance(node, ast.ImportFrom)):
+            continue
+
+        for module in node.names:
+            module_name = module.name.split(".")[-1]
+            if module_name in PRIVATE_IMPORTS_TO_IGNORE:
+                continue
+
+            if module_name.startswith("_"):
+                yield (node.lineno, f"Import of internal function {repr(module_name)}")
 
 
 def strings_to_concatenate(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
@@ -419,6 +468,7 @@ if __name__ == "__main__":
     available_validation_types: List[str] = [
         "bare_pytest_raises",
         "private_function_across_module",
+        "private_import_across_module",
         "strings_to_concatenate",
         "strings_with_wrong_placed_whitespace",
     ]
@@ -444,12 +494,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--included-file-extensions",
         default="py,pyx,pxd,pxi",
-        help="Coma seperated file extensions to check.",
+        help="Comma seperated file extensions to check.",
     )
     parser.add_argument(
         "--excluded-file-paths",
         default="asv_bench/env",
-        help="Comma separated file extensions to check.",
+        help="Comma separated file paths to exclude.",
     )
 
     args = parser.parse_args()
