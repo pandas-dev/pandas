@@ -5946,7 +5946,7 @@ Notes
 -----
 Matching NaNs will not appear as a difference.
 
-Can only compare identically-labeled 
+Can only compare identically-labeled
 (i.e. same shape, identical row and column labels) DataFrames
 
 Examples
