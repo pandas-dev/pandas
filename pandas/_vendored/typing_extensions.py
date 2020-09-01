@@ -12,7 +12,7 @@ This is not a direct copy/paste of the original file.  Changes are:
     - ran `isort`
     - edited strings split by black to adhere to pandas style conventions
     - AsyncContextManager is defined without `exec`
-    - `super(Parent, self)` is replaced with `super()`
+    - python2-style super usages are updated
     - foo.__class__ replaced with type(foo)
     - Change a comment-syntax annotation in a docstring to newer syntax
 """
@@ -2146,7 +2146,7 @@ elif PEP_560:
         present.
 
         BEWARE -- the behavior of globalns and localns is counterintuitive
-        (unless you are familiar with how eval() and exec() work).  The
+        (unless you are familiar with how eval and exec work).  The
         search order is locals first, then globals.
 
         - If no dict arguments are passed, an attempt is made to use the
