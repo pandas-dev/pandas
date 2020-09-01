@@ -6179,7 +6179,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self,
         to_replace=None,
         value=None,
-        inplace: bool = False,
+        inplace: bool_t = False,
         limit: Optional[int] = None,
         regex=False,
         method="pad",
