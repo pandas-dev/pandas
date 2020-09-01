@@ -50,6 +50,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_object_dtype,
     is_scalar,
+    is_sparse,
     is_string_dtype,
     is_timedelta64_dtype,
     is_timedelta64_ns_dtype,
@@ -916,7 +917,7 @@ def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
         dtype = pandas_dtype(dtype)
 
     if issubclass(dtype.type, str):
-        return lib.astype_str(arr.ravel(), skipna=skipna).reshape(arr.shape)
+        return lib.ensure_string_array(arr.ravel(), skipna=skipna).reshape(arr.shape)
 
     elif is_datetime64_dtype(arr):
         if is_object_dtype(dtype):
@@ -1244,6 +1245,7 @@ def maybe_infer_to_datetimelike(value, convert_dates: bool = False):
             # if so coerce to a DatetimeIndex; if they are not the same,
             # then these stay as object dtype, xref GH19671
             from pandas._libs.tslibs import conversion
+
             from pandas import DatetimeIndex
 
             try:
@@ -1303,8 +1305,8 @@ def maybe_cast_to_datetime(value, dtype, errors: str = "raise"):
     try to cast the array/value to a datetimelike dtype, converting float
     nan to iNaT
     """
-    from pandas.core.tools.timedeltas import to_timedelta
     from pandas.core.tools.datetimes import to_datetime
+    from pandas.core.tools.timedeltas import to_timedelta
 
     if dtype is not None:
         if isinstance(dtype, str):
@@ -1322,7 +1324,9 @@ def maybe_cast_to_datetime(value, dtype, errors: str = "raise"):
                 f"Please pass in '{dtype.name}[ns]' instead."
             )
 
-            if is_datetime64 and not is_dtype_equal(dtype, DT64NS_DTYPE):
+            if is_datetime64 and not is_dtype_equal(
+                getattr(dtype, "subtype", dtype), DT64NS_DTYPE
+            ):
 
                 # pandas supports dtype whose granularity is less than [ns]
                 # e.g., [ps], [fs], [as]
@@ -1354,7 +1358,7 @@ def maybe_cast_to_datetime(value, dtype, errors: str = "raise"):
             if is_scalar(value):
                 if value == iNaT or isna(value):
                     value = iNaT
-            else:
+            elif not is_sparse(value):
                 value = np.array(value, copy=False)
 
                 # have a scalar array-like (e.g. NaT)
@@ -1607,19 +1611,11 @@ def construct_1d_ndarray_preserving_na(
     >>> construct_1d_ndarray_preserving_na([1.0, 2.0, None], dtype=np.dtype('str'))
     array(['1.0', '2.0', None], dtype=object)
     """
-    subarr = np.array(values, dtype=dtype, copy=copy)
 
     if dtype is not None and dtype.kind == "U":
-        # GH-21083
-        # We can't just return np.array(subarr, dtype='str') since
-        # NumPy will convert the non-string objects into strings
-        # Including NA values. Se we have to go
-        # string -> object -> update NA, which requires an
-        # additional pass over the data.
-        na_values = isna(values)
-        subarr2 = subarr.astype(object)
-        subarr2[na_values] = np.asarray(values, dtype=object)[na_values]
-        subarr = subarr2
+        subarr = lib.ensure_string_array(values, convert_na_value=False, copy=copy)
+    else:
+        subarr = np.array(values, dtype=dtype, copy=copy)
 
     return subarr
 

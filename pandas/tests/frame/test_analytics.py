@@ -86,11 +86,7 @@ def assert_stat_op_calc(
         result0 = f(axis=0, skipna=False)
         result1 = f(axis=1, skipna=False)
         tm.assert_series_equal(
-            result0,
-            frame.apply(wrapper),
-            check_dtype=check_dtype,
-            rtol=rtol,
-            atol=atol,
+            result0, frame.apply(wrapper), check_dtype=check_dtype, rtol=rtol, atol=atol
         )
         # HACK: win32
         tm.assert_series_equal(
@@ -116,7 +112,7 @@ def assert_stat_op_calc(
     if opname in ["sum", "prod"]:
         expected = frame.apply(skipna_wrapper, axis=1)
         tm.assert_series_equal(
-            result1, expected, check_dtype=False, rtol=rtol, atol=atol,
+            result1, expected, check_dtype=False, rtol=rtol, atol=atol
         )
 
     # check dtypes
@@ -287,7 +283,7 @@ class TestDataFrameAnalytics:
         assert_stat_op_api("median", float_frame, float_string_frame)
 
         try:
-            from scipy.stats import skew, kurtosis  # noqa:F401
+            from scipy.stats import kurtosis, skew  # noqa:F401
 
             assert_stat_op_api("skew", float_frame, float_string_frame)
             assert_stat_op_api("kurt", float_frame, float_string_frame)
@@ -370,7 +366,7 @@ class TestDataFrameAnalytics:
         )
 
         try:
-            from scipy import skew, kurtosis  # noqa:F401
+            from scipy import kurtosis, skew  # noqa:F401
 
             assert_stat_op_calc("skew", skewness, float_frame_with_na)
             assert_stat_op_calc("kurt", kurt, float_frame_with_na)

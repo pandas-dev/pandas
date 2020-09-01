@@ -72,7 +72,7 @@ from pandas.io.common import stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
 
 if TYPE_CHECKING:
-    from pandas import Series, DataFrame, Categorical
+    from pandas import Categorical, DataFrame, Series
 
 FormattersType = Union[
     List[Callable], Tuple[Callable, ...], Mapping[Union[str, int], Callable]
@@ -80,7 +80,7 @@ FormattersType = Union[
 FloatFormatType = Union[str, Callable, "EngFormatter"]
 ColspaceType = Mapping[Label, Union[str, int]]
 ColspaceArgType = Union[
-    str, int, Sequence[Union[str, int]], Mapping[Label, Union[str, int]],
+    str, int, Sequence[Union[str, int]], Mapping[Label, Union[str, int]]
 ]
 
 common_docstring = """
@@ -741,7 +741,7 @@ class DataFrameFormatter(TableFormatter):
             for i, c in enumerate(frame):
                 fmt_values = self._format_col(i)
                 fmt_values = _make_fixed_width(
-                    fmt_values, self.justify, minimum=col_space.get(c, 0), adj=self.adj,
+                    fmt_values, self.justify, minimum=col_space.get(c, 0), adj=self.adj
                 )
                 stringified.append(fmt_values)
         else:
@@ -931,6 +931,7 @@ class DataFrameFormatter(TableFormatter):
         multirow: bool = False,
         caption: Optional[str] = None,
         label: Optional[str] = None,
+        position: Optional[str] = None,
     ) -> Optional[str]:
         """
         Render a DataFrame to a LaTeX tabular/longtable environment output.
@@ -946,6 +947,7 @@ class DataFrameFormatter(TableFormatter):
             multirow=multirow,
             caption=caption,
             label=label,
+            position=position,
         ).get_result(buf=buf, encoding=encoding)
 
     def _format_col(self, i: int) -> List[str]:
@@ -1067,7 +1069,7 @@ class DataFrameFormatter(TableFormatter):
         fmt_index = [
             tuple(
                 _make_fixed_width(
-                    list(x), justify="left", minimum=col_space.get("", 0), adj=self.adj,
+                    list(x), justify="left", minimum=col_space.get("", 0), adj=self.adj
                 )
             )
             for x in fmt_index

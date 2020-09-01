@@ -13,7 +13,6 @@ import pandas as pd
 from pandas import DataFrame, Series
 import pandas._testing as tm
 
-
 """
 This is a common base class used for various plotting tests
 """
@@ -24,6 +23,7 @@ class TestPlotBase:
     def setup_method(self, method):
 
         import matplotlib as mpl
+
         from pandas.plotting._matplotlib import compat
 
         mpl.rcdefaults()
@@ -187,8 +187,8 @@ class TestPlotBase:
             Series used for color grouping key
             used for andrew_curves, parallel_coordinates, radviz test
         """
+        from matplotlib.collections import Collection, LineCollection, PolyCollection
         from matplotlib.lines import Line2D
-        from matplotlib.collections import Collection, PolyCollection, LineCollection
 
         conv = self.colorconverter
         if linecolors is not None:

@@ -520,7 +520,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         -------
         Categorical
         """
-        from pandas import Index, to_numeric, to_datetime, to_timedelta
+        from pandas import Index, to_datetime, to_numeric, to_timedelta
 
         cats = Index(inferred_categories)
         known_categories = (
@@ -1403,7 +1403,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         --------
         Series.value_counts
         """
-        from pandas import Series, CategoricalIndex
+        from pandas import CategoricalIndex, Series
 
         code, cat = self._codes, self.categories
         ncat, mask = len(cat), 0 <= code
@@ -1505,7 +1505,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         return super().argsort(ascending=ascending, kind=kind, **kwargs)
 
     def sort_values(
-        self, inplace: bool = False, ascending: bool = True, na_position: str = "last",
+        self, inplace: bool = False, ascending: bool = True, na_position: str = "last"
     ):
         """
         Sort the Categorical by category value returning a new
@@ -2242,7 +2242,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             original.categories.take(uniques), dtype=original.dtype
         )
 
-    def equals(self, other):
+    def equals(self, other: object) -> bool:
         """
         Returns True if categorical arrays are equal.
 
@@ -2254,7 +2254,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         -------
         bool
         """
-        if self.is_dtype_equal(other):
+        if not isinstance(other, Categorical):
+            return False
+        elif self.is_dtype_equal(other):
             if self.categories.equals(other.categories):
                 # fastpath to avoid re-coding
                 other_codes = other._codes

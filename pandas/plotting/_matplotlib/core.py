@@ -1,6 +1,6 @@
 from collections import Counter, Iterable
 import re
-from typing import List, Optional, Sequence, Union
+from typing import TYPE_CHECKING, List, Optional, Sequence, Union
 import warnings
 
 from matplotlib.artist import Artist
@@ -43,6 +43,9 @@ from pandas.plotting._matplotlib.tools import (
     format_date_labels,
     table,
 )
+
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
 
 
 class MPLPlot:
@@ -1235,10 +1238,10 @@ class LinePlot(MPLPlot):
         return lines
 
     @classmethod
-    def _ts_plot(cls, ax, x, data, style=None, **kwds):
+    def _ts_plot(cls, ax: "Axes", x, data, style=None, **kwds):
         from pandas.plotting._matplotlib.timeseries import (
-            _maybe_resample,
             _decorate_axes,
+            _maybe_resample,
             format_dateaxis,
         )
 

@@ -1,39 +1,51 @@
-import cython
-
 import operator
 import re
 import time
 from typing import Any
 import warnings
-from cpython.datetime cimport (PyDateTime_IMPORT,
-                               PyDateTime_Check,
-                               PyDate_Check,
-                               PyDelta_Check,
-                               datetime, timedelta, date,
-                               time as dt_time)
+
+import cython
+
+from cpython.datetime cimport (
+    PyDate_Check,
+    PyDateTime_Check,
+    PyDateTime_IMPORT,
+    PyDelta_Check,
+    date,
+    datetime,
+    time as dt_time,
+    timedelta,
+)
+
 PyDateTime_IMPORT
 
-from dateutil.relativedelta import relativedelta
 from dateutil.easter import easter
-
+from dateutil.relativedelta import relativedelta
 import numpy as np
+
 cimport numpy as cnp
 from numpy cimport int64_t, ndarray
+
 cnp.import_array()
 
 # TODO: formalize having _libs.properties "above" tslibs in the dependency structure
+
 from pandas._libs.properties import cache_readonly
 
 from pandas._libs.tslibs cimport util
 from pandas._libs.tslibs.util cimport (
-    is_integer_object,
     is_datetime64_object,
     is_float_object,
+    is_integer_object,
 )
 
 from pandas._libs.tslibs.ccalendar import (
-    MONTH_ALIASES, MONTH_TO_CAL_NUM, weekday_to_int, int_to_weekday,
+    MONTH_ALIASES,
+    MONTH_TO_CAL_NUM,
+    int_to_weekday,
+    weekday_to_int,
 )
+
 from pandas._libs.tslibs.ccalendar cimport (
     DAY_NANOS,
     dayofweek,
@@ -47,17 +59,20 @@ from pandas._libs.tslibs.conversion cimport (
 )
 from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
 from pandas._libs.tslibs.np_datetime cimport (
-    npy_datetimestruct,
-    dtstruct_to_dt64,
     dt64_to_dtstruct,
+    dtstruct_to_dt64,
+    npy_datetimestruct,
     pydate_to_dtstruct,
 )
 from pandas._libs.tslibs.tzconversion cimport tz_convert_from_utc_single
 
 from .dtypes cimport PeriodDtypeCode
 from .timedeltas cimport delta_to_nanoseconds
+
 from .timedeltas import Timedelta
+
 from .timestamps cimport _Timestamp
+
 from .timestamps import Timestamp
 
 # ---------------------------------------------------------------------
@@ -973,13 +988,6 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 raise AssertionError("Unexpected key `_offset`")
             state["_offset"] = state.pop("offset")
             state["kwds"]["offset"] = state["_offset"]
-
-        if "_offset" in state and not isinstance(state["_offset"], timedelta):
-            # relativedelta, we need to populate using its kwds
-            offset = state["_offset"]
-            odict = offset.__dict__
-            kwds = {key: odict[key] for key in odict if odict[key]}
-            state.update(kwds)
 
         self.n = state.pop("n")
         self.normalize = state.pop("normalize")
@@ -3697,7 +3705,7 @@ cdef inline void _shift_months(const int64_t[:] dtindex,
     """See shift_months.__doc__"""
     cdef:
         Py_ssize_t i
-        int months_to_roll, compare_day
+        int months_to_roll
         npy_datetimestruct dts
 
     for i in range(count):
@@ -3707,10 +3715,8 @@ cdef inline void _shift_months(const int64_t[:] dtindex,
 
         dt64_to_dtstruct(dtindex[i], &dts)
         months_to_roll = months
-        compare_day = get_day_of_month(&dts, day_opt)
 
-        months_to_roll = roll_convention(dts.day, months_to_roll,
-                                         compare_day)
+        months_to_roll = _roll_qtrday(&dts, months_to_roll, 0, day_opt)
 
         dts.year = year_add_months(dts, months_to_roll)
         dts.month = month_add_months(dts, months_to_roll)
