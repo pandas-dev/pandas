@@ -97,24 +97,22 @@ class CSVFormatter:
         return self._index_label
 
     @index_label.setter
-    def index_label(self, index_label):
+    def index_label(self, index_label) -> None:
         if index_label is None:
             self._index_label = self._get_index_label_from_obj()
-        elif not isinstance(
-            index_label, (list, tuple, np.ndarray, ABCIndexClass)
-        ):
+        elif not isinstance(index_label, (list, tuple, np.ndarray, ABCIndexClass)):
             # given a string for a DF with Index
             self._index_label = [index_label]
 
-    def _get_index_label_from_obj(self):
+    def _get_index_label_from_obj(self) -> List[str]:
         if isinstance(self.obj.index, ABCMultiIndex):
             return self._get_index_label_multiindex()
         return self._get_index_label_regular()
 
-    def _get_index_label_multiindex(self):
-        return  [name or "" for name in self.obj.index.names]
+    def _get_index_label_multiindex(self) -> List[str]:
+        return [name or "" for name in self.obj.index.names]
 
-    def _get_index_label_regular(self):
+    def _get_index_label_regular(self) -> List[str]:
         index_label = self.obj.index.name
         return [""] if index_label is None else [index_label]
 
@@ -217,11 +215,7 @@ class CSVFormatter:
         compression = infer_compression(self.path_or_buf, compression)
 
         # GH21227 internal compression is not used for non-binary handles.
-        if (
-            compression
-            and hasattr(self.path_or_buf, "write")
-            and "b" not in self.mode
-        ):
+        if compression and hasattr(self.path_or_buf, "write") and "b" not in self.mode:
             warnings.warn(
                 "compression has no effect when passing a non-binary object as input.",
                 RuntimeWarning,
@@ -243,16 +237,17 @@ class CSVFormatter:
     def write_cols(self):
         if self._has_aliases:
             if len(self.header) != len(self.cols):
-                msg = f"Writing {len(self.cols)} cols but got {len(self.header)} aliases"
-                raise ValueError(msg)
+                raise ValueError(
+                    f"Writing {len(self.cols)} cols but got {len(self.header)} aliases"
+                )
             else:
                 return self.header
         else:
             return self.cols
 
     @property
-    def encoded_labels(self):
-        encoded_labels = []
+    def encoded_labels(self) -> List[str]:
+        encoded_labels: List[str] = []
 
         if self.index:
             encoded_labels = list(self.index_label)
@@ -314,14 +309,14 @@ class CSVFormatter:
             self._save_header()
         self._save_body()
 
-    def _save_header(self):
+    def _save_header(self) -> None:
         if any(self.encoded_labels):
             self.writer.writerow(self.encoded_labels)
         else:
             for row in self._get_header_rows():
                 self.writer.writerow(row)
 
-    def _get_header_rows(self):
+    def _get_header_rows(self) -> List[List[str]]:
         rows = []
 
         # write out the mi
