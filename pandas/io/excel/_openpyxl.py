@@ -1,4 +1,4 @@
-from typing import List
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
@@ -22,53 +22,22 @@ class _OpenpyxlWriter(ExcelWriter):
         if self.mode == "a":  # Load from existing workbook
             from openpyxl import load_workbook
 
-            book = load_workbook(self.path)
-            self.book = book
+            self.book = load_workbook(self.path)
         else:
             # Create workbook object with default optimized_write=True.
             self.book = Workbook()
 
             if self.book.worksheets:
-                try:
-                    self.book.remove(self.book.worksheets[0])
-                except AttributeError:
-
-                    # compat - for openpyxl <= 2.4
-                    self.book.remove_sheet(self.book.worksheets[0])
+                self.book.remove(self.book.worksheets[0])
 
     def save(self):
         """
         Save workbook to disk.
         """
-        return self.book.save(self.path)
+        self.book.save(self.path)
 
     @classmethod
-    def _convert_to_style(cls, style_dict):
-        """
-        Converts a style_dict to an openpyxl style object.
-
-        Parameters
-        ----------
-        style_dict : style dictionary to convert
-        """
-        from openpyxl.style import Style
-
-        xls_style = Style()
-        for key, value in style_dict.items():
-            for nk, nv in value.items():
-                if key == "borders":
-                    (
-                        xls_style.borders.__getattribute__(nk).__setattr__(
-                            "border_style", nv
-                        )
-                    )
-                else:
-                    xls_style.__getattribute__(key).__setattr__(nk, nv)
-
-        return xls_style
-
-    @classmethod
-    def _convert_to_style_kwargs(cls, style_dict):
+    def _convert_to_style_kwargs(cls, style_dict: dict) -> Dict[str, Any]:
         """
         Convert a style_dict to a set of kwargs suitable for initializing
         or updating-on-copy an openpyxl v2 style object.
@@ -93,7 +62,7 @@ class _OpenpyxlWriter(ExcelWriter):
         """
         _style_key_map = {"borders": "border"}
 
-        style_kwargs = {}
+        style_kwargs: Dict[str, Any] = {}
         for k, v in style_dict.items():
             if k in _style_key_map:
                 k = _style_key_map[k]
@@ -404,7 +373,7 @@ class _OpenpyxlWriter(ExcelWriter):
         # Write the frame cells using openpyxl.
         sheet_name = self._get_sheet_name(sheet_name)
 
-        _style_cache = {}
+        _style_cache: Dict[str, Dict[str, Any]] = {}
 
         if sheet_name in self.sheets:
             wks = self.sheets[sheet_name]
@@ -426,7 +395,7 @@ class _OpenpyxlWriter(ExcelWriter):
             if fmt:
                 xcell.number_format = fmt
 
-            style_kwargs = {}
+            style_kwargs: Optional[Dict[str, Any]] = {}
             if cell.style:
                 key = str(cell.style)
                 style_kwargs = _style_cache.get(key)
@@ -515,16 +484,17 @@ class _OpenpyxlReader(_BaseExcelReader):
 
     def _convert_cell(self, cell, convert_float: bool) -> Scalar:
 
-        # TODO: replace with openpyxl constants
+        from openpyxl.cell.cell import TYPE_BOOL, TYPE_ERROR, TYPE_NUMERIC
+
         if cell.is_date:
             return cell.value
-        elif cell.data_type == "e":
+        elif cell.data_type == TYPE_ERROR:
             return np.nan
-        elif cell.data_type == "b":
+        elif cell.data_type == TYPE_BOOL:
             return bool(cell.value)
         elif cell.value is None:
             return ""  # compat with xlrd
-        elif cell.data_type == "n":
+        elif cell.data_type == TYPE_NUMERIC:
             # GH5394
             if convert_float:
                 val = int(cell.value)
