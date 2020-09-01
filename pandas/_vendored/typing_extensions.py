@@ -5,6 +5,12 @@ https://raw.githubusercontent.com/python/typing/master/typing_extensions/src_py3
 on 2020-08-30.
 
 typing_extensions is distributed under the Python Software Foundation License.
+
+This is not a direct copy/paste of the original file.  Changes are:
+    - this docstring
+    - ran `black`
+    - ran `isort`
+    - edited strings split by black to adhere to pandas style conventions
 """
 
 # These are used by Protocol implementation
@@ -1316,8 +1322,8 @@ elif HAVE_PROTOCOLS and not PEP_560:
                         ):
                             if gvars is not None:
                                 raise TypeError(
-                                    "Cannot inherit from Generic[...] or"
-                                    " Protocol[...] multiple times."
+                                    "Cannot inherit from Generic[...] or "
+                                    "Protocol[...] multiple times."
                                 )
                             gvars = base.__parameters__
                     if gvars is None:
@@ -1404,8 +1410,8 @@ elif HAVE_PROTOCOLS and not PEP_560:
                         and base.__origin__ is Generic
                     ):
                         raise TypeError(
-                            "Protocols can only inherit from other"
-                            " protocols, got %r" % base
+                            "Protocols can only inherit from other "
+                            "protocols, got %r" % base
                         )
 
                 def _no_init(self, *args, **kwargs):
@@ -1479,8 +1485,8 @@ elif HAVE_PROTOCOLS and not PEP_560:
                 ]:
                     return False
                 raise TypeError(
-                    "Instance and class checks can only be used with"
-                    " @runtime protocols"
+                    "Instance and class checks can only be used with "
+                    "@runtime protocols"
                 )
             if self.__dict__.get(
                 "_is_runtime_protocol", None
@@ -1492,7 +1498,7 @@ elif HAVE_PROTOCOLS and not PEP_560:
                 ]:
                     return super(GenericMeta, self).__subclasscheck__(cls)
                 raise TypeError(
-                    "Protocols with non-method members" " don't support issubclass()"
+                    "Protocols with non-method members don't support issubclass()"
                 )
             return super(GenericMeta, self).__subclasscheck__(cls)
 
@@ -1680,8 +1686,8 @@ elif PEP_560:
                     while isinstance(params[i], TypeVar):
                         i += 1
                     raise TypeError(
-                        "Parameters to Protocol[...] must all be type variables."
-                        " Parameter {} is {}".format(i + 1, params[i])
+                        "Parameters to Protocol[...] must all be type variables. "
+                        "Parameter {} is {}".format(i + 1, params[i])
                     )
                 if len(set(params)) != len(params):
                     raise TypeError("Parameters to Protocol[...] must all be unique")
@@ -1717,8 +1723,8 @@ elif PEP_560:
                         )
                         if gvars is not None:
                             raise TypeError(
-                                "Cannot inherit from Generic[...]"
-                                " and/or Protocol[...] multiple types."
+                                "Cannot inherit from Generic[...] "
+                                "and/or Protocol[...] multiple types."
                             )
                         gvars = base.__parameters__
                 if gvars is None:
@@ -1730,8 +1736,8 @@ elif PEP_560:
                         s_vars = ", ".join(str(t) for t in tvars if t not in gvarset)
                         s_args = ", ".join(str(g) for g in gvars)
                         raise TypeError(
-                            "Some type variables ({}) are"
-                            " not listed in {}[{}]".format(s_vars, the_base, s_args)
+                            "Some type variables ({}) are "
+                            "not listed in {}[{}]".format(s_vars, the_base, s_args)
                         )
                     tvars = gvars
             cls.__parameters__ = tuple(tvars)
@@ -1748,15 +1754,15 @@ elif PEP_560:
                     if sys._getframe(2).f_globals["__name__"] in ["abc", "functools"]:
                         return NotImplemented
                     raise TypeError(
-                        "Instance and class checks can only be used with"
-                        " @runtime protocols"
+                        "Instance and class checks can only be used with "
+                        "@runtime protocols"
                     )
                 if not _is_callable_members_only(cls):
                     if sys._getframe(2).f_globals["__name__"] in ["abc", "functools"]:
                         return NotImplemented
                     raise TypeError(
-                        "Protocols with non-method members"
-                        " don't support issubclass()"
+                        "Protocols with non-method members "
+                        "don't support issubclass()"
                     )
                 if not isinstance(other, type):
                     # Same error as for issubclass(1, int)
@@ -1796,8 +1802,8 @@ elif PEP_560:
                     and base._is_protocol
                 ):
                     raise TypeError(
-                        "Protocols can only inherit from other"
-                        " protocols, got %r" % base
+                        "Protocols can only inherit from other "
+                        "protocols, got %r" % base
                     )
 
             def _no_init(self, *args, **kwargs):
@@ -1821,8 +1827,8 @@ elif HAVE_PROTOCOLS:
         """
         if not isinstance(cls, _ProtocolMeta) or not cls._is_protocol:
             raise TypeError(
-                "@runtime_checkable can be only applied to protocol classes,"
-                " got %r" % cls
+                "@runtime_checkable can be only applied to protocol classes, "
+                "got %r" % cls
             )
         cls._is_runtime_protocol = True
         return cls
@@ -1921,7 +1927,7 @@ else:
             fields = kwargs
         elif kwargs:
             raise TypeError(
-                "TypedDict takes either a dict or keyword arguments," " but not both"
+                "TypedDict takes either a dict or keyword arguments, but not both"
             )
 
         ns = {"__annotations__": dict(fields), "__total__": total}
@@ -1934,7 +1940,7 @@ else:
         return _TypedDictMeta(typename, (), ns)
 
     _typeddict_new.__text_signature__ = (
-        "($cls, _typename, _fields=None," " /, *, total=True, **kwargs)"
+        "($cls, _typename, _fields=None, /, *, total=True, **kwargs)"
     )
 
     class _TypedDictMeta(type):
