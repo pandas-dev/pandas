@@ -1398,7 +1398,7 @@ class IndexOpsMixin:
             """
         ),
     )
-    def factorize(self, sort=False, na_sentinel=-1):
+    def factorize(self, sort: bool = False, na_sentinel: Optional[int] = -1):
         return algorithms.factorize(self, sort=sort, na_sentinel=na_sentinel)
 
     _shared_docs[
