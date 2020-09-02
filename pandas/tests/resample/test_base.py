@@ -195,14 +195,17 @@ def test_resample_empty_dtypes(index, dtype, resample_method):
 
 
 @all_ts
-def test_apply_to_empty_series(empty_series_dti):
+@pytest.mark.parametrize("freq", ["M", "D", "H"])
+def test_apply_to_empty_series(empty_series_dti, freq):
     # GH 14313
     s = empty_series_dti
-    for freq in ["M", "D", "H"]:
-        result = s.resample(freq).apply(lambda x: 1)
-        expected = s.resample(freq).apply(np.sum)
 
-        tm.assert_series_equal(result, expected, check_dtype=False)
+    result = s.resample(freq).apply(lambda x: 1)
+    expected = s.resample(freq).apply(np.sum)
+
+    assert result.index.dtype == expected.index.dtype
+
+    tm.assert_series_equal(result, expected, check_dtype=False)
 
 
 @all_ts

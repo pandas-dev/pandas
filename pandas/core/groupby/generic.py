@@ -282,27 +282,8 @@ class SeriesGroupBy(GroupBy[Series]):
                     #  see see test_groupby.test_basic
                     result = self._aggregate_maybe_named(func, *args, **kwargs)
 
-            index = Index(sorted(result), name=self.grouper.names[0])
-            if isinstance(index, (DatetimeIndex, TimedeltaIndex)):
-                # TODO: do we _always_ want to do this?
-                #  shouldnt this be done later in eg _wrap_aggregated_output?
-                index = index._with_freq("infer")
-
-                result_index = self.grouper.result_index
-
-                if (
-                    result_index.dtype == index.dtype
-                    and result_index.freq is not None
-                    and index.freq is None
-                ):
-                    # TODO: will dtype equality always hold?
-                    if len(index) == 1:
-                        index.freq = result_index.freq
-
-                    elif len(index) == 2:
-                        if index[0] + result_index.freq == index[1]:
-                            # infer_freq doesn't handle length-2 indexes
-                            index.freq = result_index.freq
+            index = self.grouper.result_index
+            assert index.name == self.grouper.names[0]
 
             ret = create_series_with_explicit_dtype(
                 result, index=index, dtype_if_empty=object
