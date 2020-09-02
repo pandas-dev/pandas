@@ -632,6 +632,7 @@ def factorize(
     array([ 0,  1,  0, -1])
     >>> uniques
     array([1., 2.])
+
     >>> codes, uniques = pd.factorize(values, na_sentinel=None)
     >>> codes
     array([0, 1, 0, 2])
