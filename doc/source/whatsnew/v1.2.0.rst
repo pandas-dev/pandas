@@ -176,7 +176,8 @@ Datetimelike
 - Bug in :attr:`DatetimeArray.date` where a ``ValueError`` would be raised with a read-only backing array (:issue:`33530`)
 - Bug in ``NaT`` comparisons failing to raise ``TypeError`` on invalid inequality comparisons (:issue:`35046`)
 - Bug in :class:`DateOffset` where attributes reconstructed from pickle files differ from original objects when input values exceed normal ranges (e.g months=12) (:issue:`34511`)
--
+- Bug in :meth:`DatetimeIndex.get_slice_bound` where ``datetime.date`` objects were not accepted or naive :class:`Timestamp` with a tz-aware :class:`DatetimeIndex` (:issue:`35690`)
+- Bug in :meth:`DatetimeIndex.slice_locs` where ``datetime.date`` objects were not accepted (:issue:`34077`)
 
 Timedelta
 ^^^^^^^^^
