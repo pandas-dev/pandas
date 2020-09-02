@@ -585,8 +585,13 @@ class Grouping:
                 codes = self.grouper.codes_info
                 uniques = self.grouper.result_index
             else:
+                # GH35667, replace dropna=False with na_sentinel=None
+                if not self.dropna:
+                    na_sentinel = None
+                else:
+                    na_sentinel = -1
                 codes, uniques = algorithms.factorize(
-                    self.grouper, sort=self.sort, dropna=self.dropna
+                    self.grouper, sort=self.sort, na_sentinel=na_sentinel
                 )
                 uniques = Index(uniques, name=self.name)
             self._codes = codes
