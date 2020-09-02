@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import collections
 from datetime import timedelta
 import functools
@@ -110,7 +112,7 @@ if TYPE_CHECKING:
     from pandas._libs.tslibs import BaseOffset
 
     from pandas.core.resample import Resampler
-    from pandas.core.series import Series  # noqa: F401
+    from pandas.core.series import Series
     from pandas.core.window.indexers import BaseIndexer
 
 # goal is to be able to define the docs close to function, while still being
@@ -391,7 +393,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return m - axis
         return axis
 
-    def _get_axis_resolvers(self, axis: str) -> Dict[str, Union["Series", MultiIndex]]:
+    def _get_axis_resolvers(self, axis: str) -> Dict[str, Union[Series, MultiIndex]]:
         # index or columns
         axis_index = getattr(self, axis)
         d = dict()
@@ -421,10 +423,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         d[axis] = dindex
         return d
 
-    def _get_index_resolvers(self) -> Dict[str, Union["Series", MultiIndex]]:
+    def _get_index_resolvers(self) -> Dict[str, Union[Series, MultiIndex]]:
         from pandas.core.computation.parsing import clean_column_name
 
-        d: Dict[str, Union["Series", MultiIndex]] = {}
+        d: Dict[str, Union[Series, MultiIndex]] = {}
         for axis_name in self._AXIS_ORDERS:
             d.update(self._get_axis_resolvers(axis_name))
 
@@ -660,7 +662,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         result = self.set_axis(new_labels, axis=axis, inplace=False)
         return result
 
-    def pop(self, item: Label) -> Union["Series", Any]:
+    def pop(self, item: Label) -> Union[Series, Any]:
         result = self[item]
         del self[item]
         if self.ndim == 2:
@@ -3315,6 +3317,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 if len(self) == len(ref):
                     # otherwise, either self or ref has swapped in new arrays
                     ref._maybe_cache_changed(cacher[0], self)
+                else:
+                    # GH#33675 we have swapped in a new array, so parent
+                    #  reference to self is now invalid
+                    ref._item_cache.pop(cacher[0], None)
 
         if verify_is_copy:
             self._check_setitem_copy(stacklevel=5, t="referant")
@@ -6179,8 +6185,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self,
         to_replace=None,
         value=None,
-        inplace=False,
-        limit=None,
+        inplace: bool_t = False,
+        limit: Optional[int] = None,
         regex=False,
         method="pad",
     ):
@@ -6256,7 +6262,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             If True, in place. Note: this will modify any
             other views on this object (e.g. a column from a DataFrame).
             Returns the caller if this is True.
-        limit : int, default None
+        limit : int or None, default None
             Maximum size gap to forward or backward fill.
         regex : bool or same types as `to_replace`, default False
             Whether to interpret `to_replace` and/or `value` as regular
@@ -6490,7 +6496,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         if not is_bool(regex) and to_replace is not None:
-            raise AssertionError("'to_replace' must be 'None' if 'regex' is not a bool")
+            raise ValueError("'to_replace' must be 'None' if 'regex' is not a bool")
 
         if value is None:
             # passing a single value that is scalar like
@@ -6550,12 +6556,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             # need a non-zero len on all axes
             if not self.size:
-                return self
+                if inplace:
+                    return
+                return self.copy()
 
             if is_dict_like(to_replace):
                 if is_dict_like(value):  # {'A' : NA} -> {'A' : 0}
                     # Note: Checking below for `in foo.keys()` instead of
-                    #  `in foo`is needed for when we have a Series and not dict
+                    #  `in foo` is needed for when we have a Series and not dict
                     mapping = {
                         col: (to_replace[col], value[col])
                         for col in to_replace.keys()
@@ -7678,7 +7686,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         level=None,
         origin: Union[str, TimestampConvertibleTypes] = "start_day",
         offset: Optional[TimedeltaConvertibleTypes] = None,
-    ) -> "Resampler":
+    ) -> Resampler:
         """
         Resample time-series data.
 
@@ -10451,7 +10459,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     @doc(Rolling)
     def rolling(
         self,
-        window: "Union[int, timedelta, BaseOffset, BaseIndexer]",
+        window: Union[int, timedelta, BaseOffset, BaseIndexer],
         min_periods: Optional[int] = None,
         center: bool_t = False,
         win_type: Optional[str] = None,
@@ -11499,6 +11507,14 @@ def _make_logical_function(
                     "Option bool_only is not implemented with option level."
                 )
             return self._agg_by_level(name, axis=axis, level=level, skipna=skipna)
+
+        if self.ndim > 1 and axis is None:
+            # Reduce along one dimension then the other, to simplify DataFrame._reduce
+            res = logical_func(
+                self, axis=0, bool_only=bool_only, skipna=skipna, **kwargs
+            )
+            return logical_func(res, skipna=skipna, **kwargs)
+
         return self._reduce(
             func,
             name=name,
