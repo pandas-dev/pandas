@@ -52,35 +52,25 @@ def test_replace(to_replace, value, expected, flip_categories):
 
 
 @pytest.mark.parametrize(
-    "to_replace,value,input_data,expected_data",
+    "to_replace,value,input_data,expected_data,inplace",
     [
-        (r"^\s*$", pd.NA, ["d", "ee", "f", ""], ["d", "ee", "f", pd.NA]),
-        (r"e{2}", "replace", ["d", "ee", "f", ""], ["d", "replace", "f", ""]),
-        (r"f", "replace", ["d", "ee", "f", ""], ["d", "ee", "replace", ""]),
+        (r"^\s*$", pd.NA, ["d", "ee", "f", ""], ["d", "ee", "f", pd.NA], False),
+        (r"e{2}", "replace", ["d", "ee", "f", ""], ["d", "replace", "f", ""], False),
+        (r"f", "replace", ["d", "ee", "f", ""], ["d", "ee", "replace", ""], False),
+        (r"^\s*$", pd.NA, ["d", "ee", "f", ""], ["d", "ee", "f", pd.NA], True),
+        (r"e{2}", "replace", ["d", "ee", "f", ""], ["d", "replace", "f", ""], True),
+        (r"f", "replace", ["d", "ee", "f", ""], ["d", "ee", "replace", ""], True),
     ],
 )
-def test_replace_regex_inplace(to_replace, value, input_data, expected_data):
+def test_replace_regex(to_replace, value, input_data, expected_data, inplace):
     # GH35977
     input_df = pd.DataFrame({"col1": input_data}, dtype="string")
     expected_df = pd.DataFrame({"col1": expected_data}, dtype="string")
-    input_df.replace(to_replace, value, inplace=True, regex=True)
-    tm.assert_frame_equal(expected_df, input_df)
-
-
-@pytest.mark.parametrize(
-    "to_replace,value,input_data,expected_data",
-    [
-        (r"^\s*$", pd.NA, ["d", "ee", "f", ""], ["d", "ee", "f", pd.NA]),
-        (r"e{2}", "replace", ["d", "ee", "f", ""], ["d", "replace", "f", ""]),
-        (r"f", "replace", ["d", "ee", "f", ""], ["d", "ee", "replace", ""]),
-    ],
-)
-def test_replace_regex(to_replace, value, input_data, expected_data):
-    # GH35977
-    input_df = pd.DataFrame({"col1": input_data}, dtype="string")
-    expected_df = pd.DataFrame({"col1": expected_data}, dtype="string")
-    input_df = input_df.replace(to_replace, value, inplace=False, regex=True)
-    tm.assert_frame_equal(expected_df, input_df)
+    converted = input_df.replace(to_replace, value, inplace=inplace, regex=True)
+    if inplace:
+        tm.assert_frame_equal(expected_df, input_df)
+    else:
+        tm.assert_frame_equal(expected_df, converted)
 
 
 @pytest.mark.parametrize(
