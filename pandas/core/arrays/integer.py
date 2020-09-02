@@ -653,10 +653,25 @@ class IntegerArray(BaseMaskedArray):
 
         name = f"__{op.__name__}__"
         return set_function_name(integer_arithmetic_method, name, cls)
+    
+    @classmethod
+    def _create_unary_method(cls, op):
+        op_name = op.__name__
+
+        @unpack_zerodim_and_defer(op.__name__)
+        def unary_arithmetic_method(self):
+            mask = self._mask
+            with np.errstate(all="ignore"):
+                result = op(self._data)
+            return self._maybe_mask_result(result, mask, None, op_name)
+
+        name = f"__{op.__name__}__"
+        return set_function_name(unary_arithmetic_method, name, cls)
 
 
 IntegerArray._add_arithmetic_ops()
 IntegerArray._add_comparison_ops()
+IntegerArray._add_unary_ops()
 
 
 _dtype_docstring = """

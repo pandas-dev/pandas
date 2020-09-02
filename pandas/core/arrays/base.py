@@ -1172,6 +1172,15 @@ class ExtensionOpsMixin:
         raise AbstractMethodError(cls)
 
     @classmethod
+    def _create_unary_method(cls, op):
+        raise AbstractMethodError(cls)
+
+    @classmethod
+    def _add_unary_ops(cls):
+        cls.__pos__ = cls._create_unary_method(operator.pos)
+        cls.__neg__ = cls._create_unary_method(operator.neg)
+
+    @classmethod
     def _add_arithmetic_ops(cls):
         cls.__add__ = cls._create_arithmetic_method(operator.add)
         cls.__radd__ = cls._create_arithmetic_method(ops.radd)
@@ -1244,7 +1253,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
     """
 
     @classmethod
-    def _create_method(cls, op, coerce_to_dtype=True, result_dtype=None):
+    def _create_method(cls, op, coerce_to_dtype=True, result_dtype=None, unary=False):
         """
         A class method that returns a method that will correspond to an
         operator for an ExtensionArray subclass, by dispatching to the
@@ -1282,6 +1291,23 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
         for addition, that will be based on the operator implementation
         of the underlying elements of the ExtensionArray
         """
+
+        def _unaryop(self):
+            res = [op(a) for a in self]
+            def _maybe_convert(arr):
+                if coerce_to_dtype:
+                    # https://github.com/pandas-dev/pandas/issues/22850
+                    # We catch all regular exceptions here, and fall back
+                    # to an ndarray.
+                    res = maybe_cast_to_extension_array(type(self), arr)
+                    if not isinstance(res, type(self)):
+                        # exception raised in _from_sequence; ensure we have ndarray
+                        res = np.asarray(arr)
+                else:
+                    res = np.asarray(arr, dtype=result_dtype)
+                return res
+
+            return _maybe_convert(res)
 
         def _binop(self, other):
             def convert_values(param):
@@ -1322,6 +1348,8 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
             return _maybe_convert(res)
 
         op_name = f"__{op.__name__}__"
+        if unary:
+            return set_function_name(_unaryop, op_name, cls)
         return set_function_name(_binop, op_name, cls)
 
     @classmethod
@@ -1331,3 +1359,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
     @classmethod
     def _create_comparison_method(cls, op):
         return cls._create_method(op, coerce_to_dtype=False, result_dtype=bool)
+
+    @classmethod
+    def _create_unary_method(cls, op):
+        return cls._create_method(op, unary=True)

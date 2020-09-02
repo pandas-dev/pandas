@@ -48,7 +48,10 @@ def _unpack_zerodim_and_defer(method, name: str):
     is_cmp = name.strip("__") in {"eq", "ne", "lt", "le", "gt", "ge"}
 
     @wraps(method)
-    def new_method(self, other):
+    def new_method(self, other=None):
+
+        if other is None:
+            return method(self)
 
         if is_cmp and isinstance(self, ABCIndexClass) and isinstance(other, ABCSeries):
             # For comparison ops, Index does *not* defer to Series
