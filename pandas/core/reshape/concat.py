@@ -620,16 +620,18 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
         codes_list = []
 
         # things are potentially different sizes, so compute the exact codes
-        # for each level and pass those to MultiIndex.from_arrays.
+        # for each level and pass those to MultiIndex.from_arrays
+
         for hlevel, level in zip(zipped, levels):
             to_concat = []
             for key, index in zip(hlevel, indexes):
+                # Find matching codes, include matching nan values as equal.
                 mask = (isna(level) & isna(key)) | (level == key)
                 if not mask.any():
                     raise ValueError(f"Key {key} not in level {level}")
                 i = np.nonzero(mask)[0][0]
-                to_concat.append(np.repeat(i, len(index)))
 
+                to_concat.append(np.repeat(i, len(index)))
             codes_list.append(np.concatenate(to_concat))
 
         concat_index = _concat_indexes(indexes)
