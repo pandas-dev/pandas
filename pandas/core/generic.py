@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import collections
 from datetime import timedelta
 import functools
@@ -110,7 +112,7 @@ if TYPE_CHECKING:
     from pandas._libs.tslibs import BaseOffset
 
     from pandas.core.resample import Resampler
-    from pandas.core.series import Series  # noqa: F401
+    from pandas.core.series import Series
     from pandas.core.window.indexers import BaseIndexer
 
 # goal is to be able to define the docs close to function, while still being
@@ -391,7 +393,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return m - axis
         return axis
 
-    def _get_axis_resolvers(self, axis: str) -> Dict[str, Union["Series", MultiIndex]]:
+    def _get_axis_resolvers(self, axis: str) -> Dict[str, Union[Series, MultiIndex]]:
         # index or columns
         axis_index = getattr(self, axis)
         d = dict()
@@ -421,10 +423,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         d[axis] = dindex
         return d
 
-    def _get_index_resolvers(self) -> Dict[str, Union["Series", MultiIndex]]:
+    def _get_index_resolvers(self) -> Dict[str, Union[Series, MultiIndex]]:
         from pandas.core.computation.parsing import clean_column_name
 
-        d: Dict[str, Union["Series", MultiIndex]] = {}
+        d: Dict[str, Union[Series, MultiIndex]] = {}
         for axis_name in self._AXIS_ORDERS:
             d.update(self._get_axis_resolvers(axis_name))
 
@@ -660,7 +662,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         result = self.set_axis(new_labels, axis=axis, inplace=False)
         return result
 
-    def pop(self, item: Label) -> Union["Series", Any]:
+    def pop(self, item: Label) -> Union[Series, Any]:
         result = self[item]
         del self[item]
         if self.ndim == 2:
@@ -7684,7 +7686,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         level=None,
         origin: Union[str, TimestampConvertibleTypes] = "start_day",
         offset: Optional[TimedeltaConvertibleTypes] = None,
-    ) -> "Resampler":
+    ) -> Resampler:
         """
         Resample time-series data.
 
@@ -10457,7 +10459,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     @doc(Rolling)
     def rolling(
         self,
-        window: "Union[int, timedelta, BaseOffset, BaseIndexer]",
+        window: Union[int, timedelta, BaseOffset, BaseIndexer],
         min_periods: Optional[int] = None,
         center: bool_t = False,
         win_type: Optional[str] = None,
