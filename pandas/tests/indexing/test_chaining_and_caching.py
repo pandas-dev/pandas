@@ -81,6 +81,21 @@ class TestCaching:
         tm.assert_frame_equal(out, expected)
         tm.assert_series_equal(out["A"], expected["A"])
 
+    def test_altering_series_clears_parent_cache(self):
+        # GH #33675
+        df = pd.DataFrame([[1, 2], [3, 4]], index=["a", "b"], columns=["A", "B"])
+        ser = df["A"]
+
+        assert "A" in df._item_cache
+
+        # Adding a new entry to ser swaps in a new array, so "A" needs to
+        #  be removed from df._item_cache
+        ser["c"] = 5
+        assert len(ser) == 3
+        assert "A" not in df._item_cache
+        assert df["A"] is not ser
+        assert len(df["A"]) == 2
+
 
 class TestChaining:
     def test_setitem_chained_setfault(self):
