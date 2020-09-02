@@ -168,6 +168,7 @@ class TestPeriodIndexAsType:
         assert res.freq == exp.freq
 
     def test_astype_tz_conversion_roundtrip(self):
+        # GH 35973
         vals = {
             "timezones": date_range(
                 "2020-08-30", freq="d", periods=2, tz="Europe/London"
