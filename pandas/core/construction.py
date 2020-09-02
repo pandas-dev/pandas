@@ -4,6 +4,7 @@ and Index.__new__.
 
 These should not depend on core.internals.
 """
+from __future__ import annotations
 
 from collections import abc
 from typing import TYPE_CHECKING, Any, Optional, Sequence, Union, cast
@@ -49,16 +50,14 @@ from pandas.core.dtypes.missing import isna
 import pandas.core.common as com
 
 if TYPE_CHECKING:
-    from pandas.core.arrays import ExtensionArray  # noqa: F401
-    from pandas.core.indexes.api import Index  # noqa: F401
-    from pandas.core.series import Series  # noqa: F401
+    from pandas import ExtensionArray, Index, Series
 
 
 def array(
     data: Union[Sequence[object], AnyArrayLike],
     dtype: Optional[Dtype] = None,
     copy: bool = True,
-) -> "ExtensionArray":
+) -> ExtensionArray:
     """
     Create an array.
 
@@ -389,7 +388,7 @@ def extract_array(obj, extract_numpy: bool = False):
 
 def sanitize_array(
     data,
-    index: Optional["Index"],
+    index: Optional[Index],
     dtype: Optional[DtypeObj] = None,
     copy: bool = False,
     raise_cast_failure: bool = False,
@@ -594,13 +593,13 @@ def is_empty_data(data: Any) -> bool:
 
 def create_series_with_explicit_dtype(
     data: Any = None,
-    index: Optional[Union[ArrayLike, "Index"]] = None,
+    index: Optional[Union[ArrayLike, Index]] = None,
     dtype: Optional[Dtype] = None,
     name: Optional[str] = None,
     copy: bool = False,
     fastpath: bool = False,
     dtype_if_empty: Dtype = object,
-) -> "Series":
+) -> Series:
     """
     Helper to pass an explicit dtype when instantiating an empty Series.
 

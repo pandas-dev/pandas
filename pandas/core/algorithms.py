@@ -2,6 +2,8 @@
 Generic data algorithms. This module is experimental at the moment and not
 intended for public consumption
 """
+from __future__ import annotations
+
 import operator
 from textwrap import dedent
 from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union
@@ -707,7 +709,7 @@ def value_counts(
     normalize: bool = False,
     bins=None,
     dropna: bool = True,
-) -> "Series":
+) -> Series:
     """
     Compute a histogram of the counts of non-null values.
 
@@ -849,7 +851,7 @@ def duplicated(values, keep="first") -> np.ndarray:
     return f(values, keep=keep)
 
 
-def mode(values, dropna: bool = True) -> "Series":
+def mode(values, dropna: bool = True) -> Series:
     """
     Returns the mode(s) of an array.
 
@@ -1161,7 +1163,7 @@ class SelectNSeries(SelectN):
     nordered : Series
     """
 
-    def compute(self, method: str) -> "Series":
+    def compute(self, method: str) -> Series:
 
         n = self.n
         dtype = self.obj.dtype
@@ -1235,7 +1237,7 @@ class SelectNFrame(SelectN):
         columns = list(columns)
         self.columns = columns
 
-    def compute(self, method: str) -> "DataFrame":
+    def compute(self, method: str) -> DataFrame:
 
         from pandas import Int64Index
 
