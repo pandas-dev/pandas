@@ -21,20 +21,23 @@ from typing import IO, Callable, FrozenSet, Iterable, List, Set, Tuple
 PRIVATE_IMPORTS_TO_IGNORE: Set[str] = {
     "_extension_array_shared_docs",
     "_index_shared_docs",
+    "_interval_shared_docs",
     "_merge_doc",
     "_shared_docs",
+    "_apply_docs",
     "_new_Index",
     "_new_PeriodIndex",
     "_doc_template",
-    "_interval_shared_docs",
-    "_apply_docs",
+    "_agg_template",
+    "_pipe_template",
+    "_transform_template",
     "_arith_doc_FRAME",
     "_flex_comp_doc_FRAME",
     "_make_flex_doc",
     "_op_descriptions",
-    "_pipe_template",
     "_testing",
     "_test_decorators",
+    "__version__",  # check np.__version__ in compat.numpy.function
 }
 
 
