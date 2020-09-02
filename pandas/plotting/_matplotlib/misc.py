@@ -10,8 +10,8 @@ from pandas._typing import Label
 from pandas.core.dtypes.missing import notna
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._matplotlib.style import _get_standard_colors
-from pandas.plotting._matplotlib.tools import _set_ticks_props, _subplots
+from pandas.plotting._matplotlib.style import get_standard_colors
+from pandas.plotting._matplotlib.tools import create_subplots, set_ticks_props
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -36,7 +36,7 @@ def scatter_matrix(
     df = frame._get_numeric_data()
     n = df.columns.size
     naxes = n * n
-    fig, axes = _subplots(naxes=naxes, figsize=figsize, ax=ax, squeeze=False)
+    fig, axes = create_subplots(naxes=naxes, figsize=figsize, ax=ax, squeeze=False)
 
     # no gaps between subplots
     fig.subplots_adjust(wspace=0, hspace=0)
@@ -112,7 +112,7 @@ def scatter_matrix(
             locs = locs.astype(int)
         axes[0][0].yaxis.set_ticklabels(locs)
 
-    _set_ticks_props(axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
+    set_ticks_props(axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
 
     return axes
 
@@ -147,7 +147,7 @@ def radviz(
         ax = plt.gca(xlim=[-1, 1], ylim=[-1, 1])
 
     to_plot: Dict[Label, List[List]] = {}
-    colors = _get_standard_colors(
+    colors = get_standard_colors(
         num_colors=len(classes), colormap=colormap, color_type="random", color=color
     )
 
@@ -255,7 +255,7 @@ def andrews_curves(
     t = np.linspace(-np.pi, np.pi, samples)
     used_legends: Set[str] = set()
 
-    color_values = _get_standard_colors(
+    color_values = get_standard_colors(
         num_colors=len(classes), colormap=colormap, color_type="random", color=color
     )
     colors = dict(zip(classes, color_values))
@@ -382,7 +382,7 @@ def parallel_coordinates(
     if ax is None:
         ax = plt.gca()
 
-    color_values = _get_standard_colors(
+    color_values = get_standard_colors(
         num_colors=len(classes), colormap=colormap, color_type="random", color=color
     )
 
