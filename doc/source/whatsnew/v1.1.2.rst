@@ -35,6 +35,14 @@ Bug fixes
 
 .. ---------------------------------------------------------------------------
 
+.. _whatsnew_112.other:
+
+Other
+~~~~~
+- :meth:`factorize` now supports ``na_sentinel=None`` to include NaN in the uniques of the values and remove ``dropna`` keyword which was unintentionally exposed to public facing API in 1.1 version from :meth:`factorize`(:issue:`35667`)
+
+.. ---------------------------------------------------------------------------
+
 .. _whatsnew_112.contributors:
 
 Contributors
