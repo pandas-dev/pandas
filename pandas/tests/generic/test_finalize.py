@@ -123,11 +123,7 @@ _all_methods = [
     (pd.DataFrame, frame_data, operator.methodcaller("sort_index")),
     (pd.DataFrame, frame_data, operator.methodcaller("nlargest", 1, "A")),
     (pd.DataFrame, frame_data, operator.methodcaller("nsmallest", 1, "A")),
-    (
-        pd.DataFrame,
-        frame_mi_data,
-        operator.methodcaller("swaplevel"),
-    ),
+    (pd.DataFrame, frame_mi_data, operator.methodcaller("swaplevel")),
     pytest.param(
         (
             pd.DataFrame,
@@ -182,11 +178,7 @@ _all_methods = [
         marks=not_implemented_mark,
     ),
     pytest.param(
-        (
-            pd.DataFrame,
-            frame_mi_data,
-            operator.methodcaller("unstack"),
-        ),
+        (pd.DataFrame, frame_mi_data, operator.methodcaller("unstack")),
         marks=not_implemented_mark,
     ),
     pytest.param(
