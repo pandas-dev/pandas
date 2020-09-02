@@ -6179,8 +6179,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self,
         to_replace=None,
         value=None,
-        inplace=False,
-        limit=None,
+        inplace: bool_t = False,
+        limit: Optional[int] = None,
         regex=False,
         method="pad",
     ):
@@ -6256,7 +6256,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             If True, in place. Note: this will modify any
             other views on this object (e.g. a column from a DataFrame).
             Returns the caller if this is True.
-        limit : int, default None
+        limit : int or None, default None
             Maximum size gap to forward or backward fill.
         regex : bool or same types as `to_replace`, default False
             Whether to interpret `to_replace` and/or `value` as regular
@@ -6490,7 +6490,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         if not is_bool(regex) and to_replace is not None:
-            raise AssertionError("'to_replace' must be 'None' if 'regex' is not a bool")
+            raise ValueError("'to_replace' must be 'None' if 'regex' is not a bool")
 
         if value is None:
             # passing a single value that is scalar like
@@ -6550,12 +6550,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             # need a non-zero len on all axes
             if not self.size:
-                return self
+                if inplace:
+                    return
+                return self.copy()
 
             if is_dict_like(to_replace):
                 if is_dict_like(value):  # {'A' : NA} -> {'A' : 0}
                     # Note: Checking below for `in foo.keys()` instead of
-                    #  `in foo`is needed for when we have a Series and not dict
+                    #  `in foo` is needed for when we have a Series and not dict
                     mapping = {
                         col: (to_replace[col], value[col])
                         for col in to_replace.keys()
