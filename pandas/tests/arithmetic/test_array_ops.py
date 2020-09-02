@@ -38,17 +38,12 @@ def test_object_comparison_2d():
 
 
 @pytest.mark.parametrize(
-    "data, expected",
-    [
-        ([0, 1, 2], [0, 2, 4]),
-        ([0.0, 1.0, 2.0], [0.0, 2.0, 4.0]),
-        (["a", "b", "c"], ["aa", "bb", "cc"]),
-    ],
+    "data, expected", [([0, 1, 2], [0, 2, 4])],
 )
-def test_extension_array_add(box_extension_array, data, expected):
+def test_extension_array_add(box_1d_array, data, expected):
     # GH22606 Verify operators with Extension Array and list-likes
-    ser = Series(data)
-    results = ser + box_extension_array(data)
+    ser = Series(data, dtype="Int64")
+    results = ser + box_1d_array(data)
 
-    expected = Series(expected)
+    expected = Series(expected, dtype="Int64")
     tm.assert_series_equal(results, expected)
