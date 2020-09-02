@@ -282,7 +282,7 @@ ExtensionArray
 
 Other
 ^^^^^
--
+- Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` incorrectly raising ``AssertionError`` instead of ``ValueError`` when invalid parameter combinations are passed (:issue:`36045`)
 -
 
 .. ---------------------------------------------------------------------------
