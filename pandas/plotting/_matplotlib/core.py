@@ -66,16 +66,6 @@ class MPLPlot:
     _layout_type = "vertical"
     _default_rot = 0
     orientation: Optional[str] = None
-    _pop_attributes = [
-        "label",
-        "style",
-        "mark_right",
-        "stacked",
-    ]
-    _attr_defaults = {
-        "mark_right": True,
-        "stacked": False,
-    }
 
     def __init__(
         self,
@@ -165,9 +155,10 @@ class MPLPlot:
         self.logx = kwds.pop("logx", False)
         self.logy = kwds.pop("logy", False)
         self.loglog = kwds.pop("loglog", False)
-        for attr in self._pop_attributes:
-            value = kwds.pop(attr, self._attr_defaults.get(attr, None))
-            setattr(self, attr, value)
+        self.label = kwds.pop("label", None)
+        self.style = kwds.pop("style", None)
+        self.mark_right = kwds.pop("mark_right", True)
+        self.stacked = kwds.pop("stacked", False)
 
         self.ax = ax
         self.fig = fig
