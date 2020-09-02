@@ -123,7 +123,7 @@ _all_methods = [
     (pd.DataFrame, frame_data, operator.methodcaller("sort_index")),
     (pd.DataFrame, frame_data, operator.methodcaller("nlargest", 1, "A")),
     (pd.DataFrame, frame_data, operator.methodcaller("nsmallest", 1, "A")),
-    (pd.DataFrame, frame_mi_data, operator.methodcaller("swaplevel"),),
+    (pd.DataFrame, frame_mi_data, operator.methodcaller("swaplevel")),
     pytest.param(
         (
             pd.DataFrame,
@@ -178,7 +178,7 @@ _all_methods = [
         marks=not_implemented_mark,
     ),
     pytest.param(
-        (pd.DataFrame, frame_mi_data, operator.methodcaller("unstack"),),
+        (pd.DataFrame, frame_mi_data, operator.methodcaller("unstack")),
         marks=not_implemented_mark,
     ),
     pytest.param(
@@ -317,7 +317,7 @@ _all_methods = [
         marks=not_implemented_mark,
     ),
     pytest.param(
-        (pd.Series, ([1, 2],), operator.methodcaller("squeeze")),
+        (pd.Series, ([1, 2],), operator.methodcaller("squeeze"))
         # marks=not_implemented_mark,
     ),
     (pd.Series, ([1, 2],), operator.methodcaller("rename_axis", index="a")),
@@ -733,9 +733,7 @@ def test_timedelta_property(attr):
     assert result.attrs == {"a": 1}
 
 
-@pytest.mark.parametrize(
-    "method", [operator.methodcaller("total_seconds")],
-)
+@pytest.mark.parametrize("method", [operator.methodcaller("total_seconds")])
 @not_implemented_mark
 def test_timedelta_methods(method):
     s = pd.Series(pd.timedelta_range("2000", periods=4))
