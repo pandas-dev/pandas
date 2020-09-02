@@ -241,7 +241,7 @@ def box_with_array(request):
 
 
 @pytest.fixture(params=[pd.Index, pd.Series, tm.to_array, np.array, list], ids=id_func)
-def box_extension_array(request):
+def box_1d_array(request):
     """
     Fixture to test behavior for Index, Series, pandas Array, numpy Array and list
     classes
