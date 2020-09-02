@@ -1292,22 +1292,23 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
         of the underlying elements of the ExtensionArray
         """
 
+        def _maybe_convert(self, arr):
+            if coerce_to_dtype:
+                # https://github.com/pandas-dev/pandas/issues/22850
+                # We catch all regular exceptions here, and fall back
+                # to an ndarray.
+                res = maybe_cast_to_extension_array(type(self), arr)
+                if not isinstance(res, type(self)):
+                    # exception raised in _from_sequence; ensure we have ndarray
+                    res = np.asarray(arr)
+            else:
+                res = np.asarray(arr, dtype=result_dtype)
+            return res
+
         def _unaryop(self):
             res = [op(a) for a in self]
-            def _maybe_convert(arr):
-                if coerce_to_dtype:
-                    # https://github.com/pandas-dev/pandas/issues/22850
-                    # We catch all regular exceptions here, and fall back
-                    # to an ndarray.
-                    res = maybe_cast_to_extension_array(type(self), arr)
-                    if not isinstance(res, type(self)):
-                        # exception raised in _from_sequence; ensure we have ndarray
-                        res = np.asarray(arr)
-                else:
-                    res = np.asarray(arr, dtype=result_dtype)
-                return res
 
-            return _maybe_convert(res)
+            return _maybe_convert(self, res)
 
         def _binop(self, other):
             def convert_values(param):
@@ -1328,24 +1329,11 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
             # a TypeError should be raised
             res = [op(a, b) for (a, b) in zip(lvalues, rvalues)]
 
-            def _maybe_convert(arr):
-                if coerce_to_dtype:
-                    # https://github.com/pandas-dev/pandas/issues/22850
-                    # We catch all regular exceptions here, and fall back
-                    # to an ndarray.
-                    res = maybe_cast_to_extension_array(type(self), arr)
-                    if not isinstance(res, type(self)):
-                        # exception raised in _from_sequence; ensure we have ndarray
-                        res = np.asarray(arr)
-                else:
-                    res = np.asarray(arr, dtype=result_dtype)
-                return res
-
             if op.__name__ in {"divmod", "rdivmod"}:
                 a, b = zip(*res)
-                return _maybe_convert(a), _maybe_convert(b)
+                return _maybe_convert(self, a), _maybe_convert(self, b)
 
-            return _maybe_convert(res)
+            return _maybe_convert(self, res)
 
         op_name = f"__{op.__name__}__"
         if unary:

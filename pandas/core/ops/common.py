@@ -46,11 +46,12 @@ def _unpack_zerodim_and_defer(method, name: str):
     method
     """
     is_cmp = name.strip("__") in {"eq", "ne", "lt", "le", "gt", "ge"}
+    is_unary = name.strip("__") in {'neg', 'pos'}
 
     @wraps(method)
     def new_method(self, other=None):
 
-        if other is None:
+        if is_unary:
             return method(self)
 
         if is_cmp and isinstance(self, ABCIndexClass) and isinstance(other, ABCSeries):
