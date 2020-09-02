@@ -1014,7 +1014,7 @@ class DataFrame(NDFrame):
             s = klass(v, index=columns, name=k)
             yield k, s
 
-    def itertuples(self, index=True, name="Pandas"):
+    def itertuples(self, index: bool = True, name: Optional[str] = "Pandas"):
         """
         Iterate over DataFrame rows as namedtuples.
 
@@ -1088,7 +1088,11 @@ class DataFrame(NDFrame):
         arrays.extend(self.iloc[:, k] for k in range(len(self.columns)))
 
         if name is not None:
-            itertuple = collections.namedtuple(name, fields, rename=True)
+            # https://github.com/python/mypy/issues/9046
+            # error: namedtuple() expects a string literal as the first argument
+            itertuple = collections.namedtuple(  # type: ignore[misc]
+                name, fields, rename=True
+            )
             return map(itertuple._make, zip(*arrays))
 
         # fallback to regular tuples
@@ -4591,7 +4595,7 @@ class DataFrame(NDFrame):
             frame = self.copy()
 
         arrays = []
-        names = []
+        names: List[Label] = []
         if append:
             names = list(self.index.names)
             if isinstance(self.index, MultiIndex):
@@ -7376,6 +7380,15 @@ NaN 12.3   33.0
     min   1.0  2.0
     sum  12.0  NaN
 
+    Aggregate different functions over the columns and rename the index of the resulting
+    DataFrame.
+
+    >>> df.agg(x=('A', max), y=('B', 'min'), z=('C', np.mean))
+         A    B    C
+    x  7.0  NaN  NaN
+    y  NaN  2.0  NaN
+    z  NaN  NaN  6.0
+
     Aggregate over the columns.
 
     >>> df.agg("mean", axis="columns")
@@ -7415,6 +7428,12 @@ NaN 12.3   33.0
         if relabeling:
             # This is to keep the order to columns occurrence unchanged, and also
             # keep the order of new columns occurrence unchanged
+
+            # For the return values of reconstruct_func, if relabeling is
+            # False, columns and order will be None.
+            assert columns is not None
+            assert order is not None
+
             result_in_dict = relabel_result(result, func, columns, order)
             result = DataFrame(result_in_dict, index=columns)
 
