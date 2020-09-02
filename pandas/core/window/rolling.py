@@ -22,7 +22,7 @@ import numpy as np
 
 from pandas._libs.tslibs import BaseOffset, to_offset
 import pandas._libs.window.aggregations as window_aggregations
-from pandas._typing import ArrayLike, Axis, FrameOrSeriesUnion, Label
+from pandas._typing import ArrayLike, Axis, FrameOrSeries, FrameOrSeriesUnion
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
@@ -44,6 +44,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCTimedeltaIndex,
 )
+from pandas.core.dtypes.missing import notna
 
 from pandas.core.base import DataError, PandasObject, SelectionMixin, ShallowMixin
 import pandas.core.common as com
@@ -159,7 +160,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
     def __init__(
         self,
-        obj: FrameOrSeriesUnion,
+        obj: FrameOrSeries,
         window=None,
         min_periods: Optional[int] = None,
         center: bool = False,
@@ -377,57 +378,13 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
         return values
 
-    def _wrap_result(self, result, block=None, obj=None):
+    def _wrap_result(self, result: np.ndarray) -> "Series":
         """
-        Wrap a single result.
+        Wrap a single 1D result.
         """
-        if obj is None:
-            obj = self._selected_obj
-        index = obj.index
+        obj = self._selected_obj
 
-        if isinstance(result, np.ndarray):
-
-            if result.ndim == 1:
-                from pandas import Series
-
-                return Series(result, index, name=obj.name)
-
-            return type(obj)(result, index=index, columns=block.columns)
-        return result
-
-    def _wrap_results(self, results, obj, skipped: List[int]) -> FrameOrSeriesUnion:
-        """
-        Wrap the results.
-
-        Parameters
-        ----------
-        results : list of ndarrays
-        obj : conformed data (may be resampled)
-        skipped: List[int]
-            Indices of blocks that are skipped.
-        """
-        from pandas import Series, concat
-
-        if obj.ndim == 1:
-            if not results:
-                raise DataError("No numeric types to aggregate")
-            assert len(results) == 1
-            return Series(results[0], index=obj.index, name=obj.name)
-
-        exclude: List[Label] = []
-        orig_blocks = list(obj._to_dict_of_blocks(copy=False).values())
-        for i in skipped:
-            exclude.extend(orig_blocks[i].columns)
-
-        columns = [c for c in self._selected_obj.columns if c not in exclude]
-        if not columns and not len(results) and exclude:
-            raise DataError("No numeric types to aggregate")
-        elif not len(results):
-            return obj.astype("float64")
-
-        df = concat(results, axis=1).reindex(columns=columns, copy=False)
-        self._insert_on_column(df, obj)
-        return df
+        return obj._constructor(result, obj.index, name=obj.name)
 
     def _insert_on_column(self, result: "DataFrame", obj: "DataFrame"):
         # if we have an 'on' column we want to put it back into
@@ -454,7 +411,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                 # insert at the end
                 result[name] = extra_col
 
-    def _center_window(self, result, window) -> np.ndarray:
+    def _center_window(self, result: np.ndarray, window) -> np.ndarray:
         """
         Center the result in the window.
         """
@@ -513,7 +470,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         Series version of _apply_blockwise
         """
         _, obj = self._create_blocks(self._selected_obj)
-        values = obj.values
 
         try:
             values = self._prep_values(obj.values)
@@ -1312,21 +1268,29 @@ class _Rolling_and_Expanding(_Rolling):
         # implementations shouldn't end up here
         assert not isinstance(self.window, BaseIndexer)
 
-        blocks, obj = self._create_blocks(self._selected_obj)
-        results = []
-        for b in blocks:
-            result = b.notna().astype(int)
+        _, obj = self._create_blocks(self._selected_obj)
+
+        def hfunc(values: np.ndarray) -> np.ndarray:
+            result = notna(values)
+            result = result.astype(int)
+            frame = type(obj)(result.T)
             result = self._constructor(
-                result,
+                frame,
                 window=self._get_window(),
                 min_periods=self.min_periods or 0,
                 center=self.center,
                 axis=self.axis,
                 closed=self.closed,
             ).sum()
-            results.append(result)
+            return result.values.T
 
-        return self._wrap_results(results, obj, skipped=[])
+        new_mgr = obj._mgr.apply(hfunc)
+        out = obj._constructor(new_mgr)
+        if obj.ndim == 1:
+            out.name = obj.name
+        else:
+            self._insert_on_column(out, obj)
+        return out
 
     _shared_docs["apply"] = dedent(
         r"""
@@ -2104,7 +2068,7 @@ class Rolling(_Rolling_and_Expanding):
     @Substitution(name="rolling")
     @Appender(_shared_docs["apply"])
     def apply(
-        self, func, raw=False, engine=None, engine_kwargs=None, args=None, kwargs=None,
+        self, func, raw=False, engine=None, engine_kwargs=None, args=None, kwargs=None
     ):
         return super().apply(
             func,
