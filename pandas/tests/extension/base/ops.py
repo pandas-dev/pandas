@@ -187,7 +187,7 @@ class BaseUnaryOpsTests(BaseOpsUtil):
         expected = pd.Series(~data, name="name")
         self.assert_series_equal(result, expected)
 
-    def test_negate(self, data):
+    def test_neg(self, data):
         s = pd.Series(data, name="name")
         result = -s
         expected = pd.Series(-data, name="name")

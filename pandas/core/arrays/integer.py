@@ -659,14 +659,14 @@ class IntegerArray(BaseMaskedArray):
         op_name = op.__name__
 
         @unpack_zerodim_and_defer(op.__name__)
-        def unary_arithmetic_method(self):
+        def integer_unary_method(self):
             mask = self._mask
             with np.errstate(all="ignore"):
                 result = op(self._data)
             return self._maybe_mask_result(result, mask, None, op_name)
 
         name = f"__{op.__name__}__"
-        return set_function_name(unary_arithmetic_method, name, cls)
+        return set_function_name(integer_unary_method, name, cls)
 
 
 IntegerArray._add_arithmetic_ops()
