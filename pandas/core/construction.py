@@ -437,7 +437,7 @@ def sanitize_array(
             subarr = subarr.copy()
         return subarr
 
-    elif isinstance(data, (list, tuple, abc.Set)) and len(data) > 0:
+    elif isinstance(data, (list, tuple, abc.Set, abc.ValuesView)) and len(data) > 0:
         if isinstance(data, set):
             # Raise only for unordered sets, e.g., not for dict_keys
             raise TypeError("Set type is unordered")
