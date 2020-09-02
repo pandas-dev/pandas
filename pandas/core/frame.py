@@ -8617,14 +8617,11 @@ NaN 12.3   33.0
             cols = self.columns[~dtype_is_dt]
             self = self[cols]
 
-        if axis is None and filter_type == "bool":
-            labels = None
-            constructor = None
-        else:
-            # TODO: Make other agg func handle axis=None properly
-            axis = self._get_axis_number(axis)
-            labels = self._get_agg_axis(axis)
-            constructor = self._constructor
+        # TODO: Make other agg func handle axis=None properly
+        axis = self._get_axis_number(axis)
+        labels = self._get_agg_axis(axis)
+        constructor = self._constructor
+        assert axis in [0, 1]
 
         def func(values):
             if is_extension_array_dtype(values.dtype):
@@ -8632,7 +8629,7 @@ NaN 12.3   33.0
             else:
                 return op(values, axis=axis, skipna=skipna, **kwds)
 
-        def _get_data(axis_matters):
+        def _get_data(axis_matters: bool) -> "DataFrame":
             if filter_type is None:
                 data = self._get_numeric_data()
             elif filter_type == "bool":
@@ -8649,7 +8646,7 @@ NaN 12.3   33.0
                 raise NotImplementedError(msg)
             return data
 
-        if numeric_only is not None and axis in [0, 1]:
+        if numeric_only is not None:
             df = self
             if numeric_only is True:
                 df = _get_data(axis_matters=True)
@@ -8674,6 +8671,8 @@ NaN 12.3   33.0
             if axis == 0 and is_object_dtype(out.dtype):
                 out[:] = coerce_to_dtypes(out.values, df.dtypes)
             return out
+
+        assert numeric_only is None
 
         if not self._is_homogeneous_type or self._mgr.any_extension_types:
             # try to avoid self.values call
@@ -8702,40 +8701,24 @@ NaN 12.3   33.0
                     result = result.iloc[0].rename(None)
                 return result
 
-        if numeric_only is None:
-            data = self
-            values = data.values
+        data = self
+        values = data.values
 
-            try:
-                result = func(values)
-
-            except TypeError:
-                # e.g. in nanops trying to convert strs to float
-
-                # TODO: why doesnt axis matter here?
-                data = _get_data(axis_matters=False)
-                labels = data._get_agg_axis(axis)
-
-                values = data.values
-                with np.errstate(all="ignore"):
-                    result = func(values)
-
-        else:
-            if numeric_only:
-                data = _get_data(axis_matters=True)
-                labels = data._get_agg_axis(axis)
-
-                values = data.values
-            else:
-                data = self
-                values = data.values
+        try:
             result = func(values)
 
-        if filter_type == "bool" and is_object_dtype(values) and axis is None:
-            # work around https://github.com/numpy/numpy/issues/10489
-            # TODO: can we de-duplicate parts of this with the next blocK?
-            result = np.bool_(result)
-        elif hasattr(result, "dtype") and is_object_dtype(result.dtype):
+        except TypeError:
+            # e.g. in nanops trying to convert strs to float
+
+            # TODO: why doesnt axis matter here?
+            data = _get_data(axis_matters=False)
+            labels = data._get_agg_axis(axis)
+
+            values = data.values
+            with np.errstate(all="ignore"):
+                result = func(values)
+
+        if is_object_dtype(result.dtype):
             try:
                 if filter_type is None:
                     result = result.astype(np.float64)
