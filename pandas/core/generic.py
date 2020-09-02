@@ -3315,6 +3315,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 if len(self) == len(ref):
                     # otherwise, either self or ref has swapped in new arrays
                     ref._maybe_cache_changed(cacher[0], self)
+                else:
+                    # GH#33675 we have swapped in a new array, so parent
+                    #  reference to self is now invalid
+                    ref._item_cache.pop(cacher[0], None)
 
         if verify_is_copy:
             self._check_setitem_copy(stacklevel=5, t="referant")
