@@ -944,7 +944,7 @@ class TestIsin:
     @pytest.mark.xfail(reason="problem related with issue #34125")
     def test_isin_nan_df_string_search(self):
         """Comparing df with nan value (np.nan,2) with a string at isin() ("NaN")
-        -> should not match values because np.nan is not equal str NaN """
+        -> should not match values because np.nan is not equal str NaN"""
         df = pd.DataFrame({"values": [np.nan, 2]})
         result = df.isin(["NaN"])
         expected_false = pd.DataFrame({"values": [False, False]})
