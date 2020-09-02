@@ -349,7 +349,7 @@ class TestDataFramePlots(TestPlotBase):
         title_list = [ax.get_title() for sublist in plot for ax in sublist]
         assert title_list == title[:3] + [""]
 
-    def testget_standard_colors_random_seed(self):
+    def test_get_standard_colors_random_seed(self):
         # GH17525
         df = DataFrame(np.zeros((10, 10)))
 
@@ -367,7 +367,7 @@ class TestDataFramePlots(TestPlotBase):
         color2 = get_standard_colors(1, color_type="random")
         assert color1 == color2
 
-    def testget_standard_colors_default_num_colors(self):
+    def test_get_standard_colors_default_num_colors(self):
         from pandas.plotting._matplotlib.style import get_standard_colors
 
         # Make sure the default color_types returns the specified amount
@@ -394,7 +394,7 @@ class TestDataFramePlots(TestPlotBase):
         colors = [rect.get_facecolor() for rect in ax.get_children()[0:3]]
         assert all(color == colors[0] for color in colors)
 
-    def testget_standard_colors_no_appending(self):
+    def test_get_standard_colors_no_appending(self):
         # GH20726
 
         # Make sure not to add more colors so that matplotlib can cycle
