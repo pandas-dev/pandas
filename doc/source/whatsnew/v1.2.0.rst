@@ -109,7 +109,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | numba           | 0.46.0          |         |
 +-----------------+-----------------+---------+
-| openpyxl        | 2.5.7           |         |
+| openpyxl        | 2.6.0           |    X    |
 +-----------------+-----------------+---------+
 | pyarrow         | 0.15.0          |    X    |
 +-----------------+-----------------+---------+
@@ -217,6 +217,7 @@ Interval
 
 Indexing
 ^^^^^^^^
+- Bug in :meth:`PeriodIndex.get_loc` incorrectly raising ``ValueError`` on non-datelike strings instead of ``KeyError``, causing similar errors in :meth:`Series.__geitem__`, :meth:`Series.__contains__`, and :meth:`Series.loc.__getitem__` (:issue:`34240`)
 - Bug in :meth:`DataFrame.iloc.__setitem__` creating a new array instead of overwriting ``Categorical`` values in-place (:issue:`35417`)
 -
 -
@@ -255,6 +256,8 @@ Groupby/resample/rolling
 - Bug when combining methods :meth:`DataFrame.groupby` with :meth:`DataFrame.resample` and :meth:`DataFrame.interpolate` raising an ``TypeError`` (:issue:`35325`)
 - Bug in :meth:`DataFrameGroupBy.apply` where a non-nuisance grouping column would be dropped from the output columns if another groupby method was called before ``.apply()`` (:issue:`34656`)
 - Bug in :meth:`DataFrameGroupby.apply` would drop a :class:`CategoricalIndex` when grouped on. (:issue:`35792`)
+- Bug when subsetting columns on a :class:`~pandas.core.groupby.DataFrameGroupBy` (e.g. ``df.groupby('a')[['b']])``) would reset the attributes ``axis``, ``dropna``, ``group_keys``, ``level``, ``mutated``, ``sort``, and ``squeeze`` to their default values. (:issue:`9959`)
+-
 
 Reshaping
 ^^^^^^^^^

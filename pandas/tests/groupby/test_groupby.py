@@ -2069,3 +2069,45 @@ def test_group_on_two_row_multiindex_returns_one_tuple_key():
     assert len(result) == 1
     key = (1, 2)
     assert (result[key] == expected[key]).all()
+
+
+@pytest.mark.parametrize(
+    "klass, attr, value",
+    [
+        (DataFrame, "axis", 1),
+        (DataFrame, "level", "a"),
+        (DataFrame, "as_index", False),
+        (DataFrame, "sort", False),
+        (DataFrame, "group_keys", False),
+        (DataFrame, "squeeze", True),
+        (DataFrame, "observed", True),
+        (DataFrame, "dropna", False),
+        pytest.param(
+            Series,
+            "axis",
+            1,
+            marks=pytest.mark.xfail(
+                reason="GH 35443: Attribute currently not passed on to series"
+            ),
+        ),
+        (Series, "level", "a"),
+        (Series, "as_index", False),
+        (Series, "sort", False),
+        (Series, "group_keys", False),
+        (Series, "squeeze", True),
+        (Series, "observed", True),
+        (Series, "dropna", False),
+    ],
+)
+@pytest.mark.filterwarnings(
+    "ignore:The `squeeze` parameter is deprecated:FutureWarning"
+)
+def test_subsetting_columns_keeps_attrs(klass, attr, value):
+    # GH 9959 - When subsetting columns, don't drop attributes
+    df = pd.DataFrame({"a": [1], "b": [2], "c": [3]})
+    if attr != "axis":
+        df = df.set_index("a")
+
+    expected = df.groupby("a", **{attr: value})
+    result = expected[["b"]] if klass is DataFrame else expected["b"]
+    assert getattr(result, attr) == getattr(expected, attr)
