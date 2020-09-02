@@ -98,16 +98,20 @@ class CSVFormatter:
 
     @index_label.setter
     def index_label(self, index_label) -> None:
-        if index_label is None:
-            self._index_label = self._get_index_label_from_obj()
-        elif not isinstance(index_label, (list, tuple, np.ndarray, ABCIndexClass)):
-            # given a string for a DF with Index
-            self._index_label = [index_label]
+        # should write something for index label
+        if index_label is not False:
+            if index_label is None:
+                index_label = self._get_index_label_from_obj()
+            elif not isinstance(index_label, (list, tuple, np.ndarray, ABCIndexClass)):
+                # given a string for a DF with Index
+                index_label = [index_label]
+        self._index_label = index_label
 
     def _get_index_label_from_obj(self) -> List[str]:
         if isinstance(self.obj.index, ABCMultiIndex):
             return self._get_index_label_multiindex()
-        return self._get_index_label_regular()
+        else:
+            return self._get_index_label_regular()
 
     def _get_index_label_multiindex(self) -> List[str]:
         return [name or "" for name in self.obj.index.names]
@@ -189,10 +193,7 @@ class CSVFormatter:
             from pandas import Index
 
             data_index = Index(
-                [
-                    x.strftime(self.date_format) if notna(x) else ""
-                    for x in self.data_index
-                ]
+                [x.strftime(self.date_format) if notna(x) else "" for x in data_index]
             )
         return data_index
 
@@ -249,7 +250,7 @@ class CSVFormatter:
     def encoded_labels(self) -> List[str]:
         encoded_labels: List[str] = []
 
-        if self.index:
+        if self.index and self.index_label:
             encoded_labels = list(self.index_label)
 
         if not self.has_mi_columns or self._has_aliases:
