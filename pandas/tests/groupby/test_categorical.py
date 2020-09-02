@@ -17,7 +17,7 @@ import pandas._testing as tm
 
 
 def cartesian_product_for_groupers(result, args, names, fill_value=np.NaN):
-    """ Reindex to a cartesian production for the groupers,
+    """Reindex to a cartesian production for the groupers,
     preserving the nature (Categorical) of each grouper
     """
 
