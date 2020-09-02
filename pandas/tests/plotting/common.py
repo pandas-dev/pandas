@@ -13,13 +13,13 @@ import pandas as pd
 from pandas import DataFrame, Series
 import pandas._testing as tm
 
-"""
-This is a common base class used for various plotting tests
-"""
-
 
 @td.skip_if_no_mpl
 class TestPlotBase:
+    """
+    This is a common base class used for various plotting tests
+    """
+
     def setup_method(self, method):
 
         import matplotlib as mpl
@@ -330,7 +330,7 @@ class TestPlotBase:
         figsize : tuple
             expected figsize. default is matplotlib default
         """
-        from pandas.plotting._matplotlib.tools import _flatten
+        from pandas.plotting._matplotlib.tools import flatten_axes
 
         if figsize is None:
             figsize = self.default_figsize
@@ -343,7 +343,7 @@ class TestPlotBase:
                 assert len(ax.get_children()) > 0
 
         if layout is not None:
-            result = self._get_axes_layout(_flatten(axes))
+            result = self._get_axes_layout(flatten_axes(axes))
             assert result == layout
 
         tm.assert_numpy_array_equal(
@@ -370,9 +370,9 @@ class TestPlotBase:
         axes : matplotlib Axes object, or its list-like
 
         """
-        from pandas.plotting._matplotlib.tools import _flatten
+        from pandas.plotting._matplotlib.tools import flatten_axes
 
-        axes = _flatten(axes)
+        axes = flatten_axes(axes)
         axes = [ax for ax in axes if ax.get_visible()]
         return axes
 

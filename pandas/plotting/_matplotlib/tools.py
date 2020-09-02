@@ -100,7 +100,7 @@ def _get_layout(nplots: int, layout=None, layout_type: str = "box") -> Tuple[int
 # copied from matplotlib/pyplot.py and modified for pandas.plotting
 
 
-def _subplots(
+def create_subplots(
     naxes: int,
     sharex: bool = False,
     sharey: bool = False,
@@ -194,7 +194,7 @@ def _subplots(
         fig = plt.figure(**fig_kw)
     else:
         if is_list_like(ax):
-            ax = _flatten(ax)
+            ax = flatten_axes(ax)
             if layout is not None:
                 warnings.warn(
                     "When passing multiple axes, layout keyword is ignored", UserWarning
@@ -221,7 +221,7 @@ def _subplots(
             if squeeze:
                 return fig, ax
             else:
-                return fig, _flatten(ax)
+                return fig, flatten_axes(ax)
         else:
             warnings.warn(
                 "To output multiple subplots, the figure containing "
@@ -264,7 +264,7 @@ def _subplots(
         for ax in axarr[naxes:]:
             ax.set_visible(False)
 
-    _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey)
+    handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey)
 
     if squeeze:
         # Reshape the array to have the final desired dimension (nrow,ncol),
@@ -297,7 +297,7 @@ def _remove_labels_from_axis(axis: "Axis"):
     axis.get_label().set_visible(False)
 
 
-def _handle_shared_axes(
+def handle_shared_axes(
     axarr: Iterable["Axes"],
     nplots: int,
     naxes: int,
@@ -351,7 +351,7 @@ def _handle_shared_axes(
                     _remove_labels_from_axis(ax.yaxis)
 
 
-def _flatten(axes: Union["Axes", Sequence["Axes"]]) -> Sequence["Axes"]:
+def flatten_axes(axes: Union["Axes", Sequence["Axes"]]) -> Sequence["Axes"]:
     if not is_list_like(axes):
         return np.array([axes])
     elif isinstance(axes, (np.ndarray, ABCIndexClass)):
@@ -359,7 +359,7 @@ def _flatten(axes: Union["Axes", Sequence["Axes"]]) -> Sequence["Axes"]:
     return np.array(axes)
 
 
-def _set_ticks_props(
+def set_ticks_props(
     axes: Union["Axes", Sequence["Axes"]],
     xlabelsize=None,
     xrot=None,
@@ -368,7 +368,7 @@ def _set_ticks_props(
 ):
     import matplotlib.pyplot as plt
 
-    for ax in _flatten(axes):
+    for ax in flatten_axes(axes):
         if xlabelsize is not None:
             plt.setp(ax.get_xticklabels(), fontsize=xlabelsize)
         if xrot is not None:
@@ -380,7 +380,7 @@ def _set_ticks_props(
     return axes
 
 
-def _get_all_lines(ax: "Axes") -> List["Line2D"]:
+def get_all_lines(ax: "Axes") -> List["Line2D"]:
     lines = ax.get_lines()
 
     if hasattr(ax, "right_ax"):
@@ -392,7 +392,7 @@ def _get_all_lines(ax: "Axes") -> List["Line2D"]:
     return lines
 
 
-def _get_xlim(lines: Iterable["Line2D"]) -> Tuple[float, float]:
+def get_xlim(lines: Iterable["Line2D"]) -> Tuple[float, float]:
     left, right = np.inf, -np.inf
     for l in lines:
         x = l.get_xdata(orig=False)
