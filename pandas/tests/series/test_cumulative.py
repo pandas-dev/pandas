@@ -17,7 +17,7 @@ import pandas._testing as tm
 def _check_accum_op(name, series, check_dtype=True):
     func = getattr(np, name)
     tm.assert_numpy_array_equal(
-        func(series).values, func(np.array(series)), check_dtype=check_dtype,
+        func(series).values, func(np.array(series)), check_dtype=check_dtype
     )
 
     # with missing values
