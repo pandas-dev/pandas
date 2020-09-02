@@ -525,9 +525,8 @@ def _factorize_array(
 def factorize(
     values,
     sort: bool = False,
-    na_sentinel: int = -1,
+    na_sentinel: Optional[int] = -1,
     size_hint: Optional[int] = None,
-    dropna: bool = True,
 ) -> Tuple[np.ndarray, Union[np.ndarray, ABCIndex]]:
     """
     Encode the object as an enumerated type or categorical variable.
@@ -540,8 +539,11 @@ def factorize(
     Parameters
     ----------
     {values}{sort}
-    na_sentinel : int, default -1
-        Value to mark "not found".
+    na_sentinel : int or None, default -1
+        Value to mark "not found". If None, will not drop the NaN
+        from the uniques of the values.
+
+        .. versionchanged:: 1.1.2
     {size_hint}\
 
     Returns
@@ -619,6 +621,22 @@ def factorize(
     array([0, 0, 1]...)
     >>> uniques
     Index(['a', 'c'], dtype='object')
+
+    If NaN is in the values, and we want to include NaN in the uniques of the
+    values, it can be achieved by setting ``na_sentinel=None``.
+
+    >>> values = np.array([1, 2, 1, np.nan])
+    >>> codes, uniques = pd.factorize(values)  # default: na_sentinel=-1
+    >>> codes
+    array([ 0,  1,  0, -1])
+    >>> uniques
+    array([1., 2.])
+
+    >>> codes, uniques = pd.factorize(values, na_sentinel=None)
+    >>> codes
+    array([0, 1, 0, 2])
+    >>> uniques
+    array([ 1.,  2., nan])
     """
     # Implementation notes: This method is responsible for 3 things
     # 1.) coercing data to array-like (ndarray, Index, extension array)
@@ -631,6 +649,13 @@ def factorize(
 
     values = _ensure_arraylike(values)
     original = values
+
+    # GH35667, if na_sentinel=None, we will not dropna NaNs from the uniques
+    # of values, assign na_sentinel=-1 to replace code value for NaN.
+    dropna = True
+    if na_sentinel is None:
+        na_sentinel = -1
+        dropna = False
 
     if is_extension_array_dtype(values.dtype):
         values = extract_array(values)

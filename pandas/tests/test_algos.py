@@ -326,73 +326,47 @@ class TestFactorize:
             tm.assert_extension_array_equal(uniques, expected_uniques)
 
     @pytest.mark.parametrize(
-        "data, dropna, expected_codes, expected_uniques",
+        "data, expected_codes, expected_uniques",
         [
             (
                 ["a", None, "b", "a"],
-                True,
-                np.array([0, -1, 1, 0], dtype=np.dtype("intp")),
-                np.array(["a", "b"], dtype=object),
-            ),
-            (
-                ["a", np.nan, "b", "a"],
-                True,
-                np.array([0, -1, 1, 0], dtype=np.dtype("intp")),
-                np.array(["a", "b"], dtype=object),
-            ),
-            (
-                ["a", None, "b", "a"],
-                False,
                 np.array([0, 2, 1, 0], dtype=np.dtype("intp")),
                 np.array(["a", "b", np.nan], dtype=object),
             ),
             (
                 ["a", np.nan, "b", "a"],
-                False,
                 np.array([0, 2, 1, 0], dtype=np.dtype("intp")),
                 np.array(["a", "b", np.nan], dtype=object),
             ),
         ],
     )
-    def test_object_factorize_dropna(
-        self, data, dropna, expected_codes, expected_uniques
+    def test_object_factorize_na_sentinel_none(
+        self, data, expected_codes, expected_uniques
     ):
-        codes, uniques = algos.factorize(data, dropna=dropna)
+        codes, uniques = algos.factorize(data, na_sentinel=None)
 
         tm.assert_numpy_array_equal(uniques, expected_uniques)
         tm.assert_numpy_array_equal(codes, expected_codes)
 
     @pytest.mark.parametrize(
-        "data, dropna, expected_codes, expected_uniques",
+        "data, expected_codes, expected_uniques",
         [
             (
                 [1, None, 1, 2],
-                True,
-                np.array([0, -1, 0, 1], dtype=np.dtype("intp")),
-                np.array([1, 2], dtype="O"),
-            ),
-            (
-                [1, np.nan, 1, 2],
-                True,
-                np.array([0, -1, 0, 1], dtype=np.dtype("intp")),
-                np.array([1, 2], dtype=np.float64),
-            ),
-            (
-                [1, None, 1, 2],
-                False,
                 np.array([0, 2, 0, 1], dtype=np.dtype("intp")),
                 np.array([1, 2, np.nan], dtype="O"),
             ),
             (
                 [1, np.nan, 1, 2],
-                False,
                 np.array([0, 2, 0, 1], dtype=np.dtype("intp")),
                 np.array([1, 2, np.nan], dtype=np.float64),
             ),
         ],
     )
-    def test_int_factorize_dropna(self, data, dropna, expected_codes, expected_uniques):
-        codes, uniques = algos.factorize(data, dropna=dropna)
+    def test_int_factorize_na_sentinel_none(
+        self, data, expected_codes, expected_uniques
+    ):
+        codes, uniques = algos.factorize(data, na_sentinel=None)
 
         tm.assert_numpy_array_equal(uniques, expected_uniques)
         tm.assert_numpy_array_equal(codes, expected_codes)
