@@ -181,6 +181,10 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
         self.check_opname(s, op_name, other)
 
 
+class TestUnaryOps(base.BaseUnaryOpsTests):
+    pass
+
+
 class TestInterface(base.BaseInterfaceTests):
     pass
 
