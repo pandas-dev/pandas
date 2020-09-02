@@ -939,7 +939,7 @@ def assert_categorical_equal(
     if check_category_order:
         assert_index_equal(left.categories, right.categories, obj=f"{obj}.categories")
         assert_numpy_array_equal(
-            left.codes, right.codes, check_dtype=check_dtype, obj=f"{obj}.codes",
+            left.codes, right.codes, check_dtype=check_dtype, obj=f"{obj}.codes"
         )
     else:
         try:
@@ -948,9 +948,7 @@ def assert_categorical_equal(
         except TypeError:
             # e.g. '<' not supported between instances of 'int' and 'str'
             lc, rc = left.categories, right.categories
-        assert_index_equal(
-            lc, rc, obj=f"{obj}.categories",
-        )
+        assert_index_equal(lc, rc, obj=f"{obj}.categories")
         assert_index_equal(
             left.categories.take(left.codes),
             right.categories.take(right.codes),
@@ -1092,7 +1090,7 @@ def assert_numpy_array_equal(
         if err_msg is None:
             if left.shape != right.shape:
                 raise_assert_detail(
-                    obj, f"{obj} shapes are different", left.shape, right.shape,
+                    obj, f"{obj} shapes are different", left.shape, right.shape
                 )
 
             diff = 0
@@ -1377,12 +1375,18 @@ def assert_series_equal(
         )
     elif is_extension_array_dtype(left.dtype) and is_extension_array_dtype(right.dtype):
         assert_extension_array_equal(
-            left._values, right._values, index_values=np.asarray(left.index)
+            left._values,
+            right._values,
+            check_dtype=check_dtype,
+            index_values=np.asarray(left.index),
         )
     elif needs_i8_conversion(left.dtype) or needs_i8_conversion(right.dtype):
         # DatetimeArray or TimedeltaArray
         assert_extension_array_equal(
-            left._values, right._values, index_values=np.asarray(left.index)
+            left._values,
+            right._values,
+            check_dtype=check_dtype,
+            index_values=np.asarray(left.index),
         )
     else:
         _testing.assert_almost_equal(
@@ -1553,7 +1557,7 @@ def assert_frame_equal(
     # shape comparison
     if left.shape != right.shape:
         raise_assert_detail(
-            obj, f"{obj} shape mismatch", f"{repr(left.shape)}", f"{repr(right.shape)}",
+            obj, f"{obj} shape mismatch", f"{repr(left.shape)}", f"{repr(right.shape)}"
         )
 
     if check_like:
@@ -2878,7 +2882,7 @@ def convert_rows_list_to_csv_str(rows_list: List[str]):
     return expected
 
 
-def external_error_raised(expected_exception: Type[Exception],) -> ContextManager:
+def external_error_raised(expected_exception: Type[Exception]) -> ContextManager:
     """
     Helper function to mark pytest.raises that have an external error message.
 

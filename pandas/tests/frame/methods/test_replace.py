@@ -1573,3 +1573,18 @@ class TestDataFrameReplace:
         result = input_df.replace({"a": "z", "obj1": "obj9", "cat1": "catX"})
 
         tm.assert_frame_equal(result, expected)
+
+    def test_replace_with_compiled_regex(self):
+        # https://github.com/pandas-dev/pandas/issues/35680
+        df = pd.DataFrame(["a", "b", "c"])
+        regex = re.compile("^a$")
+        result = df.replace({regex: "z"}, regex=True)
+        expected = pd.DataFrame(["z", "b", "c"])
+        tm.assert_frame_equal(result, expected)
+
+    def test_replace_intervals(self):
+        # https://github.com/pandas-dev/pandas/issues/35931
+        df = pd.DataFrame({"a": [pd.Interval(0, 1), pd.Interval(0, 1)]})
+        result = df.replace({"a": {pd.Interval(0, 1): "x"}})
+        expected = pd.DataFrame({"a": ["x", "x"]})
+        tm.assert_frame_equal(result, expected)
