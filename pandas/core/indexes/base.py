@@ -10,6 +10,8 @@ from typing import (
     Hashable,
     List,
     Optional,
+    Sequence,
+    TypeVar,
     Union,
 )
 import warnings
@@ -22,7 +24,7 @@ from pandas._libs.lib import is_datetime_array, no_default
 from pandas._libs.tslibs import OutOfBoundsDatetime, Timestamp
 from pandas._libs.tslibs.period import IncompatibleFrequency
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas._typing import DtypeObj, Label
+from pandas._typing import AnyArrayLike, Dtype, DtypeObj, Label
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import InvalidIndexError
@@ -98,7 +100,7 @@ from pandas.io.formats.printing import (
 )
 
 if TYPE_CHECKING:
-    from pandas import Series
+    from pandas import RangeIndex, Series
 
 
 __all__ = ["Index"]
@@ -186,6 +188,9 @@ def _new_Index(cls, d):
             d["codes"] = d.pop("labels")
 
     return cls.__new__(cls, **d)
+
+
+_IndexT = TypeVar("_IndexT", bound="Index")
 
 
 class Index(IndexOpsMixin, PandasObject):
@@ -787,7 +792,13 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Copying Methods
 
-    def copy(self, name=None, deep=False, dtype=None, names=None):
+    def copy(
+        self: _IndexT,
+        name: Optional[Label] = None,
+        deep: bool = False,
+        dtype: Optional[Dtype] = None,
+        names: Optional[Sequence[Label]] = None,
+    ) -> _IndexT:
         """
         Make a copy of this object.
 
@@ -949,10 +960,9 @@ class Index(IndexOpsMixin, PandasObject):
             # could have nans
             mask = isna(values)
             if mask.any():
-                result = np.array(result)
-                result[mask] = na_rep
-                # error: "List[str]" has no attribute "tolist"
-                result = result.tolist()  # type: ignore[attr-defined]
+                result_arr = np.array(result)
+                result_arr[mask] = na_rep
+                result = result_arr.tolist()
         else:
             result = trim_front(format_array(values, None, justify="left"))
         return header + result
@@ -4913,7 +4923,13 @@ class Index(IndexOpsMixin, PandasObject):
         # overridden in DatetimeIndex, TimedeltaIndex and PeriodIndex
         raise NotImplementedError
 
-    def slice_indexer(self, start=None, end=None, step=None, kind=None):
+    def slice_indexer(
+        self,
+        start: Optional[Label] = None,
+        end: Optional[Label] = None,
+        step: Optional[int] = None,
+        kind: Optional[str_t] = None,
+    ) -> slice:
         """
         Compute the slice indexer for input labels and step.
 
@@ -5513,7 +5529,9 @@ def ensure_index_from_sequences(sequences, names=None):
         return MultiIndex.from_arrays(sequences, names=names)
 
 
-def ensure_index(index_like, copy: bool = False):
+def ensure_index(
+    index_like: Union[AnyArrayLike, Sequence], copy: bool = False
+) -> Index:
     """
     Ensure that we have an index from some index-like object.
 
@@ -5549,7 +5567,18 @@ def ensure_index(index_like, copy: bool = False):
             index_like = index_like.copy()
         return index_like
     if hasattr(index_like, "name"):
-        return Index(index_like, name=index_like.name, copy=copy)
+        # https://github.com/python/mypy/issues/1424
+        # error: Item "ExtensionArray" of "Union[ExtensionArray,
+        # Sequence[Any]]" has no attribute "name"  [union-attr]
+        # error: Item "Sequence[Any]" of "Union[ExtensionArray, Sequence[Any]]"
+        # has no attribute "name"  [union-attr]
+        # error: "Sequence[Any]" has no attribute "name"  [attr-defined]
+        # error: Item "Sequence[Any]" of "Union[Series, Sequence[Any]]" has no
+        # attribute "name"  [union-attr]
+        # error: Item "Sequence[Any]" of "Union[Any, Sequence[Any]]" has no
+        # attribute "name"  [union-attr]
+        name = index_like.name  # type: ignore[union-attr, attr-defined]
+        return Index(index_like, name=name, copy=copy)
 
     if is_iterator(index_like):
         index_like = list(index_like)
@@ -5604,7 +5633,7 @@ def _validate_join_method(method: str):
         raise ValueError(f"do not recognize join method {method}")
 
 
-def default_index(n):
+def default_index(n: int) -> "RangeIndex":
     from pandas.core.indexes.range import RangeIndex
 
     return RangeIndex(0, n, name=None)
