@@ -3,6 +3,7 @@ import pytest
 
 from pandas import (
     CategoricalIndex,
+    DataFrame,
     DatetimeIndex,
     Index,
     Int64Index,
@@ -11,6 +12,7 @@ from pandas import (
     PeriodIndex,
     Timedelta,
     UInt64Index,
+    date_range,
     period_range,
 )
 import pandas._testing as tm
@@ -164,3 +166,23 @@ class TestPeriodIndexAsType:
         res = pi.astype("datetime64[ns, US/Eastern]", how="end")
         tm.assert_index_equal(res, exp)
         assert res.freq == exp.freq
+
+    def test_astype_tz_conversion_roundtrip(self):
+        vals = {
+            "timezones": date_range(
+                "2020-08-30", freq="d", periods=2, tz="Europe/London"
+            )
+        }
+        df = DataFrame(vals)
+
+        # test UTC inferred object to specified tz
+        result = df.astype({"timezones": "datetime64[ns, UTC]"})  # convert tz to UTC
+        result = df.astype({"timezones": "object"})  # convert to string
+        result = df.astype({"timezones": "datetime64[ns, Europe/London]"})
+        tm.assert_frame_equal(df, result)
+
+        # test non-UTC inferred_tz to specified tz
+        result = df.astype({"timezones": "datetime64[ns, Europe/Berlin]"})
+        result = df.astype({"timezones": "object"})  # convert to string
+        result = df.astype({"timezones": "datetime64[ns, Europe/London]"})
+        tm.assert_frame_equal(df, result)

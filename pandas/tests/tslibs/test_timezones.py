@@ -6,8 +6,7 @@ import pytz
 
 from pandas._libs.tslibs import conversion, timezones
 
-from pandas import DataFrame, Timestamp, date_range
-import pandas._testing as tm
+from pandas import Timestamp
 
 
 @pytest.mark.parametrize("tz_name", list(pytz.common_timezones))
@@ -119,22 +118,3 @@ def test_maybe_get_tz_invalid_types():
     msg = "<class 'pandas._libs.tslibs.timestamps.Timestamp'>"
     with pytest.raises(TypeError, match=msg):
         timezones.maybe_get_tz(Timestamp.now("UTC"))
-
-
-def test_astype_tz_conversion_roundtrip():
-    vals = {
-        "timezones": date_range("2020-08-30", freq="d", periods=2, tz="Europe/London")
-    }
-    df = DataFrame(vals)
-
-    # test UTC inferred object to specified tz
-    result = df.astype({"timezones": "datetime64[ns, UTC]"})  # convert tz to UTC
-    result = df.astype({"timezones": "object"})  # convert to string
-    result = df.astype({"timezones": "datetime64[ns, Europe/London]"})
-    tm.assert_frame_equal(df, result)
-
-    # test non-UTC inferred_tz to specified tz
-    result = df.astype({"timezones": "datetime64[ns, Europe/Berlin]"})
-    result = df.astype({"timezones": "object"})  # convert to string
-    result = df.astype({"timezones": "datetime64[ns, Europe/London]"})
-    tm.assert_frame_equal(df, result)
