@@ -653,7 +653,7 @@ class IntegerArray(BaseMaskedArray):
 
         name = f"__{op.__name__}__"
         return set_function_name(integer_arithmetic_method, name, cls)
-    
+
     @classmethod
     def _create_unary_method(cls, op):
         op_name = op.__name__

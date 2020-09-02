@@ -46,7 +46,7 @@ def _unpack_zerodim_and_defer(method, name: str):
     method
     """
     is_cmp = name.strip("__") in {"eq", "ne", "lt", "le", "gt", "ge"}
-    is_unary = name.strip("__") in {'neg', 'pos'}
+    is_unary = name.strip("__") in {"neg", "pos"}
 
     @wraps(method)
     def new_method(self, other=None):
