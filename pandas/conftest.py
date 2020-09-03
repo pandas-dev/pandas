@@ -451,12 +451,11 @@ def index_with_missing(request):
         vals = ind.tolist()
         vals[0] = tuple([None]) + vals[0][1:]
         vals[-1] = tuple([None]) + vals[-1][1:]
-        ind = MultiIndex.from_tuples(vals)
+        return MultiIndex.from_tuples(vals)
     else:
         vals[0] = None
         vals[-1] = None
-        ind = type(ind)(vals)
-    return ind
+        return type(ind)(vals)
 
 
 # ----------------------------------------------------------------
