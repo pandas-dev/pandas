@@ -17,7 +17,9 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     ExtensionArray that is backed by a single NumPy ndarray.
     """
 
-    _ndarray: np.ndarray
+    @property
+    def _ndarray(self) -> np.ndarray:
+        raise AbstractMethodError(self)
 
     def _from_backing_data(self: _T, arr: np.ndarray) -> _T:
         """

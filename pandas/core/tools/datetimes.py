@@ -550,7 +550,8 @@ def _adjust_to_origin(arg, origin, unit):
 
 
 @overload
-def to_datetime(
+# error: Overloaded function signatures 1 and 3 overlap with incompatible return types
+def to_datetime(  # type: ignore[misc]
     arg: DatetimeScalar,
     errors: str = ...,
     dayfirst: bool = ...,
@@ -567,7 +568,8 @@ def to_datetime(
 
 
 @overload
-def to_datetime(
+# error: Overloaded function signatures 2 and 3 overlap with incompatible return types
+def to_datetime(  # type: ignore[misc]
     arg: "Series",
     errors: str = ...,
     dayfirst: bool = ...,
@@ -585,7 +587,7 @@ def to_datetime(
 
 @overload
 def to_datetime(
-    arg: Union[List, Tuple],
+    arg: Union[List, Tuple, ArrayLike],
     errors: str = ...,
     dayfirst: bool = ...,
     yearfirst: bool = ...,
