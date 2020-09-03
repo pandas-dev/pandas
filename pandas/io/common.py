@@ -165,11 +165,16 @@ def is_fsspec_url(url: FilePathOrBuffer) -> bool:
     )
 
 
-def get_filepath_or_buffer(  # type: ignore[assignment]
+# https://github.com/python/mypy/issues/8708
+# error: Incompatible default for argument "encoding" (default has type "None",
+# argument has type "str")
+# error: Incompatible default for argument "mode" (default has type "None",
+# argument has type "str")
+def get_filepath_or_buffer(
     filepath_or_buffer: FilePathOrBuffer,
-    encoding: EncodingVar = None,
+    encoding: EncodingVar = None,  # type: ignore[assignment]
     compression: CompressionOptions = None,
-    mode: ModeVar = None,
+    mode: ModeVar = None,  # type: ignore[assignment]
     storage_options: StorageOptions = None,
 ) -> IOargs[ModeVar, EncodingVar]:
     """
