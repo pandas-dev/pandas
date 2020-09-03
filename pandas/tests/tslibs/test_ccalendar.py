@@ -55,8 +55,8 @@ def test_dt_correct_iso_8601_year_week_and_day(input_date_tuple, expected_iso_tu
 
 @given(
     st.datetimes(
-        min_value=pd.Timestamp.min.to_pydatetime(),
-        max_value=pd.Timestamp.max.to_pydatetime(),
+        min_value=pd.Timestamp.min.to_pydatetime(warn=False),
+        max_value=pd.Timestamp.max.to_pydatetime(warn=False),
     )
 )
 def test_isocalendar(dt):
