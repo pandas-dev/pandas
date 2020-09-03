@@ -489,8 +489,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         if self._selected_obj.ndim == 1:
             return self._apply_series(homogeneous_func)
 
-        # This isn't quite blockwise, since `blocks` is actually a collection
-        #  of homogenenous DataFrames.
         _, obj = self._create_blocks(self._selected_obj)
         mgr = obj._mgr
 
@@ -500,25 +498,14 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             res_values = homogeneous_func(values)
             return getattr(res_values, "T", res_values)
 
-        skipped: List[int] = []
-        res_blocks: List["Block"] = []
-        for i, blk in enumerate(mgr.blocks):
-            try:
-                nbs = blk.apply(hfunc)
+        new_mgr = mgr.apply(hfunc, ignore_failures=True)
+        out = obj._constructor(new_mgr)
 
-            except (TypeError, NotImplementedError):
-                skipped.append(i)
-                continue
-
-            res_blocks.extend(nbs)
-
-        if not len(res_blocks) and skipped:
+        if out.shape[1] == 0 and obj.shape[1] > 0:
             raise DataError("No numeric types to aggregate")
-        elif not len(res_blocks):
+        elif out.shape[1] == 0:
             return obj.astype("float64")
 
-        new_mgr = mgr._combine(res_blocks)
-        out = obj._constructor(new_mgr)
         self._insert_on_column(out, obj)
         return out
 

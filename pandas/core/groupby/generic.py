@@ -1035,8 +1035,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if numeric_only:
             data = data.get_numeric_data(copy=False)
 
-        agg_blocks: List["Block"] = []
-
         no_result = object()
 
         def cast_agg_result(result, values: ArrayLike, how: str) -> ArrayLike:
@@ -1118,23 +1116,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             res_values = cast_agg_result(result, bvalues, how)
             return res_values
 
-        for i, block in enumerate(data.blocks):
-            try:
-                nbs = block.apply(blk_func)
-            except (NotImplementedError, TypeError):
-                # TypeError -> we may have an exception in trying to aggregate
-                #  continue and exclude the block
-                # NotImplementedError -> "ohlc" with wrong dtype
-                pass
-            else:
-                agg_blocks.extend(nbs)
+        # TypeError -> we may have an exception in trying to aggregate
+        #  continue and exclude the block
+        # NotImplementedError -> "ohlc" with wrong dtype
+        new_mgr = data.apply(blk_func, ignore_failures=True)
 
-        if not agg_blocks:
+        if not len(new_mgr):
             raise DataError("No numeric types to aggregate")
 
-        # reset the locs in the blocks to correspond to our
-        # current ordering
-        new_mgr = data._combine(agg_blocks)
         return new_mgr
 
     def _aggregate_frame(self, func, *args, **kwargs) -> DataFrame:
