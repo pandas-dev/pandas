@@ -244,7 +244,7 @@ class XportReader(ReaderBase, abc.Iterator):
     __doc__ = _xport_reader_doc
 
     def __init__(
-        self, filepath_or_buffer, index=None, encoding="ISO-8859-1", chunksize=None,
+        self, filepath_or_buffer, index=None, encoding="ISO-8859-1", chunksize=None
     ):
 
         self._encoding = encoding
