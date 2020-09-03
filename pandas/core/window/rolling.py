@@ -462,7 +462,9 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         if isinstance(self.window, BaseIndexer):
             return self.window
         if self.is_freq_type:
-            return VariableWindowIndexer(index_array=self._on.asi8, window_size=window)
+            return VariableWindowIndexer(
+                index_array=self._on.asi8, window_size=window, center=self.center
+            )
         return FixedWindowIndexer(window_size=window)
 
     def _apply_series(self, homogeneous_func: Callable[..., ArrayLike]) -> "Series":
@@ -470,7 +472,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         Series version of _apply_blockwise
         """
         _, obj = self._create_blocks(self._selected_obj)
-
         try:
             values = self._prep_values(obj.values)
         except (TypeError, NotImplementedError) as err:
@@ -567,7 +568,14 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             if values.size == 0:
                 return values.copy()
 
-            offset = calculate_center_offset(window) if center else 0
+            offset = (
+                calculate_center_offset(window)
+                if center
+                and not isinstance(
+                    self._get_window_indexer(window), VariableWindowIndexer
+                )
+                else 0
+            )
             additional_nans = np.array([np.nan] * offset)
 
             if not is_weighted:
@@ -610,7 +618,9 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             if use_numba_cache:
                 NUMBA_FUNC_CACHE[(kwargs["original_func"], "rolling_apply")] = func
 
-            if center:
+            if center and not isinstance(
+                self._get_window_indexer(window), VariableWindowIndexer
+            ):
                 result = self._center_window(result, window)
 
             return result
@@ -1963,15 +1973,13 @@ class Rolling(_Rolling_and_Expanding):
         if (self.obj.empty or self.is_datetimelike) and isinstance(
             self.window, (str, BaseOffset, timedelta)
         ):
-
             self._validate_monotonic()
             freq = self._validate_freq()
 
-            # we don't allow center
-            if self.center:
+            # we don't allow center for offset based windows
+            if self.center and self.obj.empty:
                 raise NotImplementedError(
-                    "center is not implemented for "
-                    "datetimelike and offset based windows"
+                    "center is not implemented for " "offset based windows"
                 )
 
             # this will raise ValueError on non-fixed freqs
