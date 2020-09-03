@@ -595,18 +595,6 @@ def maybe_promote(dtype, fill_value=np.nan):
     return dtype, fill_value
 
 
-def maybe_astype(values, dtype, copy, errors):
-    try:
-        result = np.array(values, dtype=dtype, copy=copy)
-    except (ValueError, TypeError):
-        if errors == "ignore":
-            result = values
-        else:
-            raise
-
-    return result
-
-
 def _ensure_dtype_type(value, dtype):
     """
     Ensure that the given value is an instance of the given dtype.

@@ -11,7 +11,6 @@ from pandas import (
     Interval,
     IntervalDtype,
     NaT,
-    Period,
     Series,
     Timedelta,
     Timestamp,
@@ -574,8 +573,6 @@ class TestAstype:
             Series(["x", "y", "z"], dtype="string"),
             Series(["x", "y", "z"], dtype="category"),
             Series(3 * [Timestamp("2020-01-01")]),
-            Series(3 * [Timedelta(0)]),
-            Series(3 * [Period("2020")]),
             Series(3 * [Interval(0, 1)]),
         ],
     )

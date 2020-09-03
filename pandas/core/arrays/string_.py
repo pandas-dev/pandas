@@ -262,7 +262,7 @@ class StringArray(PandasArray):
         # TODO: validate dtype
         return super().fillna(value, method, limit)
 
-    def astype(self, dtype, copy: bool = True, errors: str = "raise"):
+    def astype(self, dtype, copy=True):
         dtype = pandas_dtype(dtype)
         if isinstance(dtype, StringDtype):
             if copy:
@@ -275,7 +275,7 @@ class StringArray(PandasArray):
             values = arr.astype(dtype.numpy_dtype)
             return IntegerArray(values, mask, copy=False)
 
-        return super().astype(dtype, copy, errors=errors)
+        return super().astype(dtype, copy)
 
     def _reduce(self, name: str, skipna: bool = True, **kwargs):
         if name in ["min", "max"]:

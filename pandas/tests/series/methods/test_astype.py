@@ -1,6 +1,6 @@
 import pytest
 
-from pandas import Interval, Period, Series, Timedelta, Timestamp, date_range
+from pandas import Interval, Series, Timestamp, date_range
 import pandas._testing as tm
 
 
@@ -32,8 +32,6 @@ class TestAstype:
             Series(["x", "y", "z"], dtype="string"),
             Series(["x", "y", "z"], dtype="category"),
             Series(3 * [Timestamp("2020-01-01")]),
-            Series(3 * [Timedelta(0)]),
-            Series(3 * [Period("2020")]),
             Series(3 * [Interval(0, 1)]),
         ],
     )

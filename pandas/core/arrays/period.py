@@ -573,14 +573,14 @@ class PeriodArray(PeriodMixin, dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
     # ------------------------------------------------------------------
 
-    def astype(self, dtype, copy: bool = True, errors: str = "raise"):
+    def astype(self, dtype, copy: bool = True):
         # We handle Period[T] -> Period[U]
         # Our parent handles everything else.
         dtype = pandas_dtype(dtype)
 
         if is_period_dtype(dtype):
             return self.asfreq(dtype.freq)
-        return super().astype(dtype, copy=copy, errors=errors)
+        return super().astype(dtype, copy=copy)
 
     # ------------------------------------------------------------------
     # Arithmetic Methods

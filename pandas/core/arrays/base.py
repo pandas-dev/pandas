@@ -19,7 +19,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_fillna_kwargs
 
-from pandas.core.dtypes.cast import maybe_astype, maybe_cast_to_extension_array
+from pandas.core.dtypes.cast import maybe_cast_to_extension_array
 from pandas.core.dtypes.common import (
     is_array_like,
     is_dtype_equal,
@@ -438,7 +438,7 @@ class ExtensionArray:
     # Additional Methods
     # ------------------------------------------------------------------------
 
-    def astype(self, dtype, copy, errors="raise"):
+    def astype(self, dtype, copy=True):
         """
         Cast to a NumPy array with 'dtype'.
 
@@ -450,9 +450,6 @@ class ExtensionArray:
             Whether to copy the data, even if not necessary. If False,
             a copy is made only if the old dtype does not match the
             new dtype.
-        errors : str, {'raise', 'ignore'}, default 'ignore'
-            - ``raise`` : allow exceptions to be raised
-            - ``ignore`` : suppress exceptions. On error return original object
 
         Returns
         -------
@@ -465,8 +462,7 @@ class ExtensionArray:
         if isinstance(dtype, StringDtype):  # allow conversion to StringArrays
             return dtype.construct_array_type()._from_sequence(self, copy=False)
 
-        values = maybe_astype(values=self, dtype=dtype, copy=copy, errors=errors)
-        return values
+        return np.array(self, dtype=dtype, copy=copy)
 
     def isna(self) -> ArrayLike:
         """

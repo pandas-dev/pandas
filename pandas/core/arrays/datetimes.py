@@ -569,7 +569,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
             for v in converted:
                 yield v
 
-    def astype(self, dtype, copy: bool = True, errors: str = "raise"):
+    def astype(self, dtype, copy=True):
         # We handle
         #   --> datetime
         #   --> period
@@ -596,7 +596,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
             return self
         elif is_period_dtype(dtype):
             return self.to_period(freq=dtype.freq)
-        return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy, errors=errors)
+        return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy)
 
     # -----------------------------------------------------------------
     # Rendering Methods

@@ -9,7 +9,6 @@ from pandas._typing import ArrayLike
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 
-from pandas.core.dtypes.cast import maybe_astype
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_extension_array_dtype,
@@ -346,7 +345,7 @@ class BooleanArray(BaseMaskedArray):
     def _coerce_to_array(self, value) -> Tuple[np.ndarray, np.ndarray]:
         return coerce_to_array(value)
 
-    def astype(self, dtype, copy: bool = True, errors: str = "raise") -> ArrayLike:
+    def astype(self, dtype, copy: bool = True) -> ArrayLike:
         """
         Cast to a NumPy array or ExtensionArray with 'dtype'.
 
@@ -358,9 +357,6 @@ class BooleanArray(BaseMaskedArray):
             Whether to copy the data, even if not necessary. If False,
             a copy is made only if the old dtype does not match the
             new dtype.
-        errors : str, {'raise', 'ignore'}, default 'ignore'
-            - ``raise`` : allow exceptions to be raised
-            - ``ignore`` : suppress exceptions. On error return original object
 
         Returns
         -------
@@ -392,14 +388,9 @@ class BooleanArray(BaseMaskedArray):
         if is_extension_array_dtype(dtype) and is_integer_dtype(dtype):
             from pandas.core.arrays import IntegerArray
 
-            result = maybe_astype(
-                values=self._data, dtype=dtype.numpy_dtype, copy=copy, errors=errors
+            return IntegerArray(
+                self._data.astype(dtype.numpy_dtype), self._mask.copy(), copy=False
             )
-
-            if result is self._data:
-                return self
-            else:
-                return IntegerArray(result, self._mask.copy(), copy=False)
         # for integer, error if there are missing values
         if is_integer_dtype(dtype):
             if self._hasna:
@@ -410,15 +401,7 @@ class BooleanArray(BaseMaskedArray):
         if is_float_dtype(dtype):
             na_value = np.nan
         # coerce
-        try:
-            result = self.to_numpy(dtype=dtype, na_value=na_value, copy=False)
-        except (ValueError, TypeError):
-            if errors == "ignore":
-                result = self
-            else:
-                raise
-
-        return result
+        return self.to_numpy(dtype=dtype, na_value=na_value, copy=False)
 
     def _values_for_argsort(self) -> np.ndarray:
         """
