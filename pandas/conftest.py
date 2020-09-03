@@ -444,7 +444,7 @@ def index_with_missing(request):
     """
     if request.param in ["int", "uint", "range", "empty", "repeats"]:
         pytest.xfail("missing values not supported")
-    ind = indices_dict[request.param].copy()
+    ind = indices_dict[request.param].copy(deep=True)
     vals = ind.values
     if type(vals[0]) == tuple:
         # For setting missing values in the top level of MultiIndex
