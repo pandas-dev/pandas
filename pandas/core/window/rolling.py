@@ -1966,7 +1966,7 @@ class Rolling(_Rolling_and_Expanding):
             # we don't allow center for offset based windows
             if self.center and self.obj.empty:
                 raise NotImplementedError(
-                    "center is not implemented for " "offset based windows"
+                    "center is not implemented for offset based windows"
                 )
 
             # this will raise ValueError on non-fixed freqs
