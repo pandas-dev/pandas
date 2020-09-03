@@ -30,9 +30,9 @@ Bug fixes
 - Bug in :meth:`DataFrame.eval` with ``object`` dtype column binary operations (:issue:`35794`)
 - Bug in :class:`Series` constructor raising a ``TypeError`` when constructing sparse datetime64 dtypes (:issue:`35762`)
 - Bug in :meth:`DataFrame.apply` with ``result_type="reduce"`` returning with incorrect index (:issue:`35683`)
-- Bug in :meth:`DateTimeIndex.format` and :meth:`PeriodIndex.format` with ``name=True`` setting the first item to ``"None"`` where it should bw ``""`` (:issue:`35712`)
+- Bug in :meth:`DateTimeIndex.format` and :meth:`PeriodIndex.format` with ``name=True`` setting the first item to ``"None"`` where it should be ``""`` (:issue:`35712`)
 - Bug in :meth:`Float64Index.__contains__` incorrectly raising ``TypeError`` instead of returning ``False`` (:issue:`35788`)
-- Bug in :class:`DataFrame` indexing returning an incorrect :class:`Series` in some cases when the series has been altered and a cache not invalidated (:issue:`36051`)
+- Bug in :class:`DataFrame` indexing returning an incorrect :class:`Series` in some cases when the series has been altered and a cache not invalidated (:issue:`33675`)
 
 .. ---------------------------------------------------------------------------
 
@@ -40,7 +40,7 @@ Bug fixes
 
 Other
 ~~~~~
-- :meth:`factorize` now supports ``na_sentinel=None`` to include NaN in the uniques of the values and remove ``dropna`` keyword which was unintentionally exposed to public facing API in 1.1 version from :meth:`factorize`(:issue:`35667`)
+- :meth:`factorize` now supports ``na_sentinel=None`` to include NaN in the uniques of the values and remove ``dropna`` keyword which was unintentionally exposed to public facing API in 1.1 version from :meth:`factorize` (:issue:`35667`)
 
 .. ---------------------------------------------------------------------------
 
