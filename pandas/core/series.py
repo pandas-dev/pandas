@@ -201,7 +201,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # Constructors
 
     def __init__(
-        self, data=None, index=None, dtype=None, name=None, copy=False, fastpath=False
+        self, data=None, index=None, dtype=None, name=None, copy=False, fastpath=False,
     ):
 
         if (
@@ -211,7 +211,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             and copy is False
         ):
             # GH#33357 called with just the SingleBlockManager
-            NDFrame.__init__(self, data)
+            NDFrame.__init__(
+                self, data,
+            )
             self.name = name
             return
 
@@ -330,7 +332,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
                 data = SingleBlockManager.from_array(data, index)
 
-        generic.NDFrame.__init__(self, data)
+        generic.NDFrame.__init__(
+            self, data,
+        )
         self.name = name
         self._set_axis(0, index, fastpath=True)
 
@@ -962,12 +966,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # If key is contained, would have returned by now
         indexer, new_index = self.index.get_loc_level(key)
         return self._constructor(self._values[indexer], index=new_index).__finalize__(
-            self,
+            self
         )
 
     def _get_values(self, indexer):
         try:
-            return self._constructor(self._mgr.get_slice(indexer)).__finalize__(self,)
+            return self._constructor(self._mgr.get_slice(indexer)).__finalize__(self)
         except ValueError:
             # mpl compat if we look up e.g. ser[:, np.newaxis];
             #  see tests.series.timeseries.test_mpl_compat_hack
@@ -5000,7 +5004,6 @@ Keep all original rows and also all original values
 
 
 Series._add_numeric_operations()
-Series._add_series_or_dataframe_operations()
 
 # Add arithmetic!
 ops.add_flex_arithmetic_methods(Series)

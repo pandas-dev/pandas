@@ -4,16 +4,21 @@ hold the allowlist of methods that are exposed on the
 SeriesGroupBy and the DataFrameGroupBy objects.
 """
 import collections
+from typing import List
 
 from pandas.core.dtypes.common import is_list_like, is_scalar
+
+from pandas.core.base import PandasObject
 
 OutputKey = collections.namedtuple("OutputKey", ["label", "position"])
 
 
-class GroupByMixin:
+class GroupByMixin(PandasObject):
     """
     Provide the groupby facilities to the mixed object.
     """
+
+    _attributes: List[str]
 
     def _gotitem(self, key, ndim, subset=None):
         """
@@ -22,7 +27,7 @@ class GroupByMixin:
         Parameters
         ----------
         key : string / list of selections
-        ndim : 1,2
+        ndim : {1, 2}
             requested ndim of result
         subset : object, default None
             subset to act on
