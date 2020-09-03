@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from pandas.errors import PerformanceWarning
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, read_csv
@@ -2057,6 +2058,7 @@ def test_groups_repr_truncates(max_seq_items, expected):
         assert result == expected
 
 
+@td.skip_if_no("lxml")
 def test_groupby_repr():
     """
     All groups and all rows in a group are shown in html output.
@@ -2080,6 +2082,7 @@ def test_groupby_repr():
         tm.assert_frame_equal(dfs_from_html[k], df_group)
 
 
+@td.skip_if_no("lxml")
 def test_groupby_repr_truncated_group():
     """
     In the groups not all rows are shown in html output.
@@ -2113,6 +2116,7 @@ def test_groupby_repr_truncated_group():
         )
 
 
+@td.skip_if_no("lxml")
 def test_groupby_repr_not_all_groups():
     """
     Not all groups are shown in html output.
