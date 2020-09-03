@@ -212,6 +212,7 @@ Performance improvements
 
 Bug fixes
 ~~~~~~~~~
+- Bug in :meth:`Series.to_string` adding a leading space when ``index=False`` (:issue:`24980`)
 
 
 Categorical
