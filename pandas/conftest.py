@@ -444,6 +444,8 @@ def index_with_missing(request):
     """
     if request.param in ["int", "uint", "range", "empty", "repeats"]:
         pytest.xfail("missing values not supported")
+    # GH 35538. Use deep copy to avoid illusive bug on np-dev
+    # Azure pipeline that writes into indices_dict despite copy
     ind = indices_dict[request.param].copy(deep=True)
     vals = ind.values
     if type(vals[0]) == tuple:
