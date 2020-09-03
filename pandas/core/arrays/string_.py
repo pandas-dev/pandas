@@ -1,7 +1,9 @@
 import operator
-from typing import TYPE_CHECKING, Type, Union
+from typing import TYPE_CHECKING, Any, Type, Union
 
 import numpy as np
+
+from pandas._config import get_option
 
 from pandas._libs import lib, missing as libmissing
 
@@ -50,17 +52,83 @@ class StringDtype(ExtensionDtype):
     StringDtype
     """
 
-    name = "string"
-
     #: StringDtype.na_value uses pandas.NA
     na_value = libmissing.NA
+    _metadata = ("storage",)
+
+    def __init__(self, storage=None):
+        if storage is None:
+            storage = get_option("mode.string_storage")
+        if storage not in {"python", "pyarrow"}:
+            raise ValueError(
+                f"Storage must be 'python' or 'pyarrow'. Got {storage} instead."
+            )
+        self.storage = storage
+
+    @property
+    def name(self):
+        return f"StringDtype[{self.storage}]"
 
     @property
     def type(self) -> Type[str]:
         return str
 
     @classmethod
-    def construct_array_type(cls) -> Type["StringArray"]:
+    def construct_from_string(cls, string):
+        """
+        Construct a StringDtype from a string.
+
+        Parameters
+        ----------
+        string : str
+            The type of the name. The storage type will be taking from `string`.
+            Valid options and their storage types are
+
+            ========================== ==============
+            string                     result storage
+            ========================== ==============
+            ``'string'``               global default
+            ``'string[python]'``       python
+            ``'StringDtype[python]'``  python
+            ``'string[pyarrow]'``      pyarrow
+            ``'StringDtype[pyarrow]'`` pyarrow
+            ========================== =============
+
+        Returns
+        -------
+        StringDtype
+
+        Raise
+        -----
+        TypeError
+            If the string is not a valid option.
+
+        """
+        if not isinstance(string, str):
+            raise TypeError(
+                f"'construct_from_string' expects a string, got {type(string)}"
+            )
+        if string == "string":
+            # TODO: use global default
+            return cls()
+        elif string in {"string[python]", "StringDtype[python]"}:
+            return cls(storage="python")
+        elif string in {"string[pyarrow]", "StringDtype[pyarrow]"}:
+            return cls(storage="pyarrow")
+        else:
+            raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
+
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, str) and other == "string":
+            return True
+        return super().__eq__(other)
+
+    def __hash__(self) -> int:
+        # custom __eq__ so have to override __hash__
+        return super().__hash__()
+
+    # XXX: this is a classmethod, but we need to know the storage type.
+    def construct_array_type(self) -> Type["StringArray"]:
         """
         Return the array type associated with this dtype.
 
@@ -68,10 +136,15 @@ class StringDtype(ExtensionDtype):
         -------
         type
         """
-        return StringArray
+        from .string_arrow import ArrowStringArray
 
-    def __repr__(self) -> str:
-        return "StringDtype"
+        if self.storage == "python":
+            return StringArray
+        else:
+            return ArrowStringArray
+
+    def __repr__(self):
+        return self.name
 
     def __from_arrow__(
         self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]
@@ -80,6 +153,7 @@ class StringDtype(ExtensionDtype):
         Construct StringArray from pyarrow Array/ChunkedArray.
         """
         import pyarrow  # noqa: F811
+        from .string_arrow import ArrowStringArray
 
         if isinstance(array, pyarrow.Array):
             chunks = [array]
@@ -93,7 +167,7 @@ class StringDtype(ExtensionDtype):
             str_arr = StringArray._from_sequence(np.array(arr))
             results.append(str_arr)
 
-        return StringArray._concat_same_type(results)
+        return ArrowStringArray._concat_same_type(results)
 
 
 class StringArray(PandasArray):
