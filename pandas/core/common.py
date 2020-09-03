@@ -4,6 +4,8 @@ Misc tools for implementing data structures
 Note: pandas.core.common is *not* part of the public API.
 """
 
+from __future__ import annotations
+
 from collections import abc, defaultdict
 import contextlib
 from datetime import datetime, timedelta

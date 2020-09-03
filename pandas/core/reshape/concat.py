@@ -2,6 +2,8 @@
 Concat routines.
 """
 
+from __future__ import annotations
+
 from collections import abc
 from typing import TYPE_CHECKING, Iterable, List, Mapping, Union, overload
 

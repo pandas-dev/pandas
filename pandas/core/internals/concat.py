@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import defaultdict
 import copy
 from typing import Dict, List

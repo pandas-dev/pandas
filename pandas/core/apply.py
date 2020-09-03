@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import abc
 import inspect
 from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional, Tuple, Type, Union

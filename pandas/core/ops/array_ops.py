@@ -2,6 +2,8 @@
 Functions for arithmetic and comparison operations on NumPy arrays and
 ExtensionArrays.
 """
+from __future__ import annotations
+
 from datetime import timedelta
 from functools import partial
 import operator

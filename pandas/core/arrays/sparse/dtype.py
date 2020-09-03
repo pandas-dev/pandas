@@ -1,5 +1,7 @@
 """Sparse Dtype"""
 
+from __future__ import annotations
+
 import re
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Type
 import warnings

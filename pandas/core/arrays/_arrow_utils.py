@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from distutils.version import LooseVersion
 import json
 

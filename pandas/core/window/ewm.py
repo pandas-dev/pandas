@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from functools import partial
 from textwrap import dedent

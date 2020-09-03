@@ -6,6 +6,8 @@ An interface for extending pandas with custom arrays.
    This is an experimental API and subject to breaking changes
    without warning.
 """
+from __future__ import annotations
+
 import operator
 from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union, cast
 

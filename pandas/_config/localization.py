@@ -3,6 +3,8 @@ Helpers for configuring locale settings.
 
 Name `localization` is chosen to avoid overlap with builtin `locale` module.
 """
+from __future__ import annotations
+
 from contextlib import contextmanager
 import locale
 import re

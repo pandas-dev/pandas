@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import date, datetime, time, timedelta, tzinfo
 import operator
 from typing import Optional

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import distutils.version
 import importlib
 import types

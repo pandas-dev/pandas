@@ -1,6 +1,8 @@
 """
 Shared methods for Index subclasses backed by ExtensionArray.
 """
+from __future__ import annotations
+
 from typing import List
 
 import numpy as np

@@ -1,4 +1,6 @@
 """ define the IntervalIndex """
+from __future__ import annotations
+
 from operator import le, lt
 import textwrap
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union, cast

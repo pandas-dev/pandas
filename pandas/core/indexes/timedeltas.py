@@ -1,5 +1,7 @@
 """ implement the TimedeltaIndex """
 
+from __future__ import annotations
+
 from pandas._libs import index as libindex, lib
 from pandas._libs.tslibs import Timedelta, to_offset
 from pandas._typing import DtypeObj, Label

@@ -47,6 +47,7 @@ Implementation
   which can save developers some typing, see the docstring.
 
 """
+from __future__ import annotations
 
 from collections import namedtuple
 from contextlib import ContextDecorator, contextmanager

@@ -2,6 +2,8 @@
 Operator classes for eval.
 """
 
+from __future__ import annotations
+
 from datetime import datetime
 from distutils.version import LooseVersion
 from functools import partial

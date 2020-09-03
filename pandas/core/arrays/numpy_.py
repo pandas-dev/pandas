@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numbers
 from typing import Optional, Tuple, Type, Union
 

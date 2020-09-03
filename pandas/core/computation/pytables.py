@@ -1,5 +1,7 @@
 """ manage PyTables query interface via Expressions """
 
+from __future__ import annotations
+
 import ast
 from functools import partial
 from typing import Any, Dict, Optional, Tuple

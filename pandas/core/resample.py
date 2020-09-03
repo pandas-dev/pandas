@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import copy
 from datetime import timedelta
 from textwrap import dedent

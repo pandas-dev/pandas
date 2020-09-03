@@ -2,6 +2,8 @@
 :func:`~pandas.eval` parsers.
 """
 
+from __future__ import annotations
+
 import ast
 from functools import partial, reduce
 from keyword import iskeyword

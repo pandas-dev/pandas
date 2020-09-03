@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime, timedelta
 import operator
 from typing import Any, Callable, Optional, Sequence, Tuple, Type, TypeVar, Union, cast

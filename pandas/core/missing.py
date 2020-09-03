@@ -2,6 +2,8 @@
 Routines for filling missing data.
 """
 
+from __future__ import annotations
+
 from typing import Any, List, Optional, Set, Union
 
 import numpy as np

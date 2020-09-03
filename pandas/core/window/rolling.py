@@ -2,6 +2,8 @@
 Provide a generic structure to support window functions,
 similar to how we have a Groupby object.
 """
+from __future__ import annotations
+
 from datetime import timedelta
 from functools import partial
 import inspect

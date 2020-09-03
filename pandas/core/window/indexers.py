@@ -1,4 +1,6 @@
 """Indexer objects for computing start/end window bounds for rolling operations"""
+from __future__ import annotations
+
 from datetime import timedelta
 from typing import Dict, Optional, Tuple, Type
 

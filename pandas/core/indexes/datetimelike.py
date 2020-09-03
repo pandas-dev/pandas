@@ -1,6 +1,8 @@
 """
 Base and utility classes for tseries type pandas objects.
 """
+from __future__ import annotations
+
 from datetime import datetime, tzinfo
 from typing import Any, List, Optional, TypeVar, Union, cast
 

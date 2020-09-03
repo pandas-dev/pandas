@@ -2,6 +2,7 @@
 aggregation.py contains utility functions to handle multiple named and lambda
 kwarg aggregations in groupby and DataFrame/Series aggregation
 """
+from __future__ import annotations
 
 from collections import defaultdict
 from functools import partial

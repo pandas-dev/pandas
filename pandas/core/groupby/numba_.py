@@ -1,4 +1,6 @@
 """Common utilities for Numba operations with groupby ops"""
+from __future__ import annotations
+
 import inspect
 from typing import Any, Callable, Dict, Optional, Tuple
 

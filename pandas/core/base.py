@@ -2,6 +2,8 @@
 Base and utility classes for pandas objects.
 """
 
+from __future__ import annotations
+
 import builtins
 import textwrap
 from typing import Any, Dict, FrozenSet, List, Optional, Union

@@ -1,6 +1,8 @@
 """
 SparseArray data structure
 """
+from __future__ import annotations
+
 from collections import abc
 import numbers
 import operator

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Dict
 
 _shared_docs: Dict[str, str] = dict()

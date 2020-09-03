@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import ChainMap, MutableMapping, TypeVar, cast
 
 _KT = TypeVar("_KT")

@@ -6,6 +6,8 @@ operations, primarily in cython. These classes (BaseGrouper and BinGrouper)
 are contained *in* the SeriesGroupBy and DataFrameGroupBy objects.
 """
 
+from __future__ import annotations
+
 import collections
 from typing import List, Optional, Sequence, Tuple, Type
 

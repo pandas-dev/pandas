@@ -2,6 +2,8 @@
 transforms.py is for shape-preserving functions.
 """
 
+from __future__ import annotations
+
 import numpy as np
 
 from pandas.core.dtypes.common import ensure_platform_int

@@ -2,6 +2,8 @@
 Top level ``eval`` module.
 """
 
+from __future__ import annotations
+
 import tokenize
 from typing import Optional
 import warnings

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from copy import copy as copy_func
 from datetime import datetime
 import operator

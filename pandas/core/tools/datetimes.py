@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import abc
 from datetime import datetime
 from functools import partial

@@ -2,6 +2,8 @@
 Core eval alignment algorithms.
 """
 
+from __future__ import annotations
+
 from functools import partial, wraps
 from typing import Dict, Optional, Sequence, Tuple, Type, Union
 import warnings
