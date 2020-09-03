@@ -13,7 +13,7 @@ import numpy as np
 
 from pandas._libs import Timedelta, hashtable as libhashtable, lib
 import pandas._libs.join as libjoin
-from pandas._typing import ArrayLike, FrameOrSeries
+from pandas._typing import ArrayLikeUnion, FrameOrSeries
 from pandas.errors import MergeError
 from pandas.util._decorators import Appender, Substitution
 
@@ -1869,7 +1869,7 @@ def _right_outer_join(x, y, max_groups):
 
 
 def _factorize_keys(
-    lk: ArrayLike, rk: ArrayLike, sort: bool = True, how: str = "inner"
+    lk: ArrayLikeUnion, rk: ArrayLikeUnion, sort: bool = True, how: str = "inner"
 ) -> Tuple[np.array, np.array, int]:
     """
     Encode left and right keys as enumerated types.

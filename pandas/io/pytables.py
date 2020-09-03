@@ -16,7 +16,7 @@ from pandas._config import config, get_option
 
 from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslibs import timezones
-from pandas._typing import ArrayLike, FrameOrSeries, Label
+from pandas._typing import AnyArrayLikeUnion, ArrayLike, FrameOrSeries, Label
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
 from pandas.errors import PerformanceWarning
@@ -5076,7 +5076,7 @@ def _dtype_to_kind(dtype_str: str) -> str:
     return kind
 
 
-def _get_data_and_dtype_name(data: ArrayLike):
+def _get_data_and_dtype_name(data: AnyArrayLikeUnion):
     """
     Convert the passed data into a storable form and a dtype string.
     """

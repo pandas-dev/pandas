@@ -40,7 +40,9 @@ if TYPE_CHECKING:
 # array-like
 
 AnyArrayLike = TypeVar("AnyArrayLike", "ExtensionArray", "Index", "Series", np.ndarray)
+AnyArrayLikeUnion = Union["ExtensionArray", "Index", "Series", np.ndarray]
 ArrayLike = TypeVar("ArrayLike", "ExtensionArray", np.ndarray)
+ArrayLikeUnion = Union["ExtensionArray", np.ndarray]
 
 # scalars
 
