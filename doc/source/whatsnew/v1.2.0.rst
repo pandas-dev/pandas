@@ -136,6 +136,8 @@ If installed, we now require:
 +-----------------+-----------------+----------+---------+
 | pytest (dev)    | 5.0.1           |          |    X    |
 +-----------------+-----------------+----------+---------+
+| mypy (dev)      | 0.782           |          |    X    |
++-----------------+-----------------+----------+---------+
 
 For `optional libraries <https://dev.pandas.io/docs/install.html#dependencies>`_ the general recommendation is to use the latest version.
 The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
