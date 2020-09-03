@@ -168,7 +168,7 @@ jobs:
     - name: Update numpy using wheel from nightly
       run: |
         source activate pandas-dev
-        pip install --extra-index-url https://pypi.anaconda.org/scipy-wheels-nightly/simple --pre numpy
+        pip install -U --extra-index-url https://pypi.anaconda.org/scipy-wheels-nightly/simple --pre numpy
         conda list
     - name: Remove pandas
       run: |
