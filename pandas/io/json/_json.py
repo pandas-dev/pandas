@@ -58,12 +58,14 @@ def to_json(
         )
 
     if path_or_buf is not None:
-        path_or_buf, _, _, should_close = get_filepath_or_buffer(
+        ioargs = get_filepath_or_buffer(
             path_or_buf,
             compression=compression,
             mode="wt",
             storage_options=storage_options,
         )
+        path_or_buf = ioargs.filepath_or_buffer
+        should_close = ioargs.should_close
 
     if lines and orient != "records":
         raise ValueError("'lines' keyword only valid when 'orient' is records")
@@ -102,6 +104,8 @@ def to_json(
             fh.write(s)
         finally:
             fh.close()
+        for handle in handles:
+            handle.close()
     elif path_or_buf is None:
         return s
     else:
@@ -615,7 +619,7 @@ def read_json(
     compression_method, compression = get_compression_method(compression)
     compression_method = infer_compression(path_or_buf, compression_method)
     compression = dict(compression, method=compression_method)
-    filepath_or_buffer, _, compression, should_close = get_filepath_or_buffer(
+    ioargs = get_filepath_or_buffer(
         path_or_buf,
         encoding=encoding,
         compression=compression,
@@ -623,7 +627,7 @@ def read_json(
     )
 
     json_reader = JsonReader(
-        filepath_or_buffer,
+        ioargs.filepath_or_buffer,
         orient=orient,
         typ=typ,
         dtype=dtype,
@@ -633,10 +637,10 @@ def read_json(
         numpy=numpy,
         precise_float=precise_float,
         date_unit=date_unit,
-        encoding=encoding,
+        encoding=ioargs.encoding,
         lines=lines,
         chunksize=chunksize,
-        compression=compression,
+        compression=ioargs.compression,
         nrows=nrows,
     )
 
@@ -644,8 +648,9 @@ def read_json(
         return json_reader
 
     result = json_reader.read()
-    if should_close:
-        filepath_or_buffer.close()
+    if ioargs.should_close:
+        assert not isinstance(ioargs.filepath_or_buffer, str)
+        ioargs.filepath_or_buffer.close()
 
     return result
 

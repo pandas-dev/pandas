@@ -219,10 +219,10 @@ class TestSeriesConvertDtypes:
                 pd.to_datetime(["2020-01-14 10:00", "2020-01-15 11:11"]),
                 object,
                 {
-                    ((True,), (True, False), (True, False), (True, False),): np.dtype(
+                    ((True,), (True, False), (True, False), (True, False)): np.dtype(
                         "datetime64[ns]"
                     ),
-                    ((False,), (True, False), (True, False), (True, False),): np.dtype(
+                    ((False,), (True, False), (True, False), (True, False)): np.dtype(
                         "O"
                     ),
                 },
