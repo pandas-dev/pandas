@@ -171,12 +171,12 @@ class PandasArray(
         if copy:
             values = values.copy()
 
-        self._ndarr = values
+        self._data = values
         self._dtype = PandasDtype(values.dtype)
 
     @property
     def _ndarray(self) -> np.ndarray:
-        return self._ndarr
+        return self._data
 
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy: bool = False) -> "PandasArray":
