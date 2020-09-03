@@ -4,6 +4,7 @@ import collections
 from datetime import timedelta
 import functools
 import gc
+from io import StringIO
 import json
 import operator
 import pickle
@@ -3357,6 +3358,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         formatter.save()
 
         if path_or_buf is None:
+            assert isinstance(formatter.path_or_buf, StringIO)
             return formatter.path_or_buf.getvalue()
 
         return None
