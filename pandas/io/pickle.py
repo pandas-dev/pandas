@@ -86,15 +86,18 @@ def to_pickle(
     >>> import os
     >>> os.remove("./dummy.pkl")
     """
-    fp_or_buf, _, compression, should_close = get_filepath_or_buffer(
+    ioargs = get_filepath_or_buffer(
         filepath_or_buffer,
         compression=compression,
         mode="wb",
         storage_options=storage_options,
     )
-    if not isinstance(fp_or_buf, str) and compression == "infer":
+    compression = ioargs.compression
+    if not isinstance(ioargs.filepath_or_buffer, str) and compression == "infer":
         compression = None
-    f, fh = get_handle(fp_or_buf, "wb", compression=compression, is_text=False)
+    f, fh = get_handle(
+        ioargs.filepath_or_buffer, "wb", compression=compression, is_text=False
+    )
     if protocol < 0:
         protocol = pickle.HIGHEST_PROTOCOL
     try:
@@ -105,9 +108,10 @@ def to_pickle(
             f.close()
         for _f in fh:
             _f.close()
-        if should_close:
+        if ioargs.should_close:
+            assert not isinstance(ioargs.filepath_or_buffer, str)
             try:
-                fp_or_buf.close()
+                ioargs.filepath_or_buffer.close()
             except ValueError:
                 pass
 
@@ -189,12 +193,15 @@ def read_pickle(
     >>> import os
     >>> os.remove("./dummy.pkl")
     """
-    fp_or_buf, _, compression, should_close = get_filepath_or_buffer(
+    ioargs = get_filepath_or_buffer(
         filepath_or_buffer, compression=compression, storage_options=storage_options
     )
-    if not isinstance(fp_or_buf, str) and compression == "infer":
+    compression = ioargs.compression
+    if not isinstance(ioargs.filepath_or_buffer, str) and compression == "infer":
         compression = None
-    f, fh = get_handle(fp_or_buf, "rb", compression=compression, is_text=False)
+    f, fh = get_handle(
+        ioargs.filepath_or_buffer, "rb", compression=compression, is_text=False
+    )
 
     # 1) try standard library Pickle
     # 2) try pickle_compat (older pandas version) to handle subclass changes
@@ -222,8 +229,9 @@ def read_pickle(
             f.close()
         for _f in fh:
             _f.close()
-        if should_close:
+        if ioargs.should_close:
+            assert not isinstance(ioargs.filepath_or_buffer, str)
             try:
-                fp_or_buf.close()
+                ioargs.filepath_or_buffer.close()
             except ValueError:
                 pass
