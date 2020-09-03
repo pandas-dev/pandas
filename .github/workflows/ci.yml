@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: master
+    branches: numpy-types
   pull_request:
     branches:
       - master
