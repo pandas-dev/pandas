@@ -352,9 +352,9 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
         if is_url(filepath_or_buffer):
             filepath_or_buffer = BytesIO(urlopen(filepath_or_buffer).read())
         elif not isinstance(filepath_or_buffer, (ExcelFile, self._workbook_class)):
-            filepath_or_buffer, _, _, _ = get_filepath_or_buffer(
+            filepath_or_buffer = get_filepath_or_buffer(
                 filepath_or_buffer, storage_options=storage_options
-            )
+            ).filepath_or_buffer
 
         if isinstance(filepath_or_buffer, self._workbook_class):
             self.book = filepath_or_buffer
@@ -653,7 +653,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         return object.__new__(cls)
 
     # declare external properties you can count on
-    book = None
     curr_sheet = None
     path = None
 
