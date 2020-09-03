@@ -179,6 +179,10 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --include="*.py" -E "super\(\w*, (self|cls)\)" pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Check for use of builtin filter function' ; echo $MSG
+    invgrep -R --include="*.py" -P '(?<!def)[\(\s]filter\(' pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     # Check for the following code in testing: `np.testing` and `np.array_equal`
     MSG='Check for invalid testing' ; echo $MSG
     invgrep -r -E --include '*.py' --exclude testing.py '(numpy|np)(\.testing|\.array_equal)' pandas/tests/
