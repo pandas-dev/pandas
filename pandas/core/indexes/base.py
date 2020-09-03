@@ -27,7 +27,7 @@ from pandas._libs.tslibs.timezones import tz_compare
 from pandas._typing import AnyArrayLike, Dtype, DtypeObj, Label
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
-from pandas.errors import InvalidIndexError
+from pandas.errors import DuplicateLabelError, InvalidIndexError
 from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
 
 from pandas.core.dtypes import concat as _concat
@@ -487,6 +487,52 @@ class Index(IndexOpsMixin, PandasObject):
     @cache_readonly
     def _constructor(self):
         return type(self)
+
+    def _maybe_check_unique(self):
+        """
+        Check that an Index has no duplicates.
+
+        This is typically only called via
+        `NDFrame.flags.allows_duplicate_labels.setter` when it's set to
+        True (duplicates aren't allowed).
+
+        Raises
+        ------
+        DuplicateLabelError
+            When the index is not unique.
+        """
+        if not self.is_unique:
+            msg = """Index has duplicates."""
+            duplicates = self._format_duplicate_message()
+            msg += "\n{}".format(duplicates)
+
+            raise DuplicateLabelError(msg)
+
+    def _format_duplicate_message(self):
+        """
+        Construct the DataFrame for a DuplicateLabelError.
+
+        This returns a DataFrame indicating the labels and positions
+        of duplicates in an index. This should only be called when it's
+        already known that duplicates are present.
+
+        Examples
+        --------
+        >>> idx = pd.Index(['a', 'b', 'a'])
+        >>> idx._format_duplicate_message()
+            positions
+        label
+        a        [0, 2]
+        """
+        from pandas import Series
+
+        duplicates = self[self.duplicated(keep="first")].unique()
+        assert len(duplicates)
+
+        out = Series(np.arange(len(self))).groupby(self).agg(list)[duplicates]
+        if self.nlevels == 1:
+            out = out.rename_axis("label")
+        return out.to_frame(name="positions")
 
     # --------------------------------------------------------------------
     # Index Internals Methods
