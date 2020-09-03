@@ -62,7 +62,6 @@ import pandas.core.algorithms as algos
 from pandas.core.array_algos.replace import compare_or_regex_search
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays import (
-    BooleanArray,
     Categorical,
     DatetimeArray,
     ExtensionArray,
@@ -2924,11 +2923,11 @@ def _extract_bool_array(mask: ArrayLike) -> np.ndarray:
     """
     If we have a SparseArray or BooleanArray, convert it to ndarray[bool].
     """
-    if isinstance(mask, BooleanArray):
-        mask = mask.to_numpy(dtype=bool, na_value=False)
-    elif isinstance(mask, ExtensionArray):
+    if isinstance(mask, ExtensionArray):
         # We could have BooleanArray, Sparse[bool], ...
-        mask = np.asarray(mask, dtype=np.bool_)
+        #  Except for BooleanArray, this is equivalent to just
+        #  np.asarray(mask, dtype=bool)
+        mask = mask.to_numpy(dtype=bool, na_value=False)
 
     assert isinstance(mask, np.ndarray), type(mask)
     assert mask.dtype == bool, mask.dtype

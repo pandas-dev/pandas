@@ -77,7 +77,7 @@ def compare_or_regex_search(
         # GH#29553 avoid deprecation warnings from numpy
         return np.zeros(a.shape, dtype=bool)
 
-    elif is_datetimelike_v_numeric(a, b) or is_numeric_v_string_like(a, b):
+    elif is_datetimelike_v_numeric(a, b):
         # GH#29553 avoid deprecation warnings from numpy
         _check_comparison_types(False, a, b)
         return False
