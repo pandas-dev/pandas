@@ -153,7 +153,6 @@ class PandasArray(
     # pandas internals, which turns off things like block consolidation.
     _typ = "npy_extension"
     __array_priority__ = 1000
-    _ndarray: np.ndarray
 
     # ------------------------------------------------------------------------
     # Constructors
@@ -172,8 +171,12 @@ class PandasArray(
         if copy:
             values = values.copy()
 
-        self._ndarray = values
+        self._values = values
         self._dtype = PandasDtype(values.dtype)
+
+    @property
+    def _ndarray(self) -> np.ndarray:
+        return self._values
 
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy: bool = False) -> "PandasArray":
