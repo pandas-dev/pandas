@@ -32,18 +32,18 @@ The next example gives an idea of what a docstring looks like:
         Parameters
         ----------
         num1 : int
-            First number to add
+            First number to add.
         num2 : int
-            Second number to add
+            Second number to add.
 
         Returns
         -------
         int
-            The sum of `num1` and `num2`
+            The sum of `num1` and `num2`.
 
         See Also
         --------
-        subtract : Subtract one integer from another
+        subtract : Subtract one integer from another.
 
         Examples
         --------
