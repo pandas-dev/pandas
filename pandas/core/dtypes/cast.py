@@ -1488,7 +1488,7 @@ def find_common_type(types: List[DtypeObj]) -> DtypeObj:
     if has_bools:
         for t in types:
             if is_integer_dtype(t) or is_float_dtype(t) or is_complex_dtype(t):
-                return object
+                return np.dtype("object")
 
     return np.find_common_type(types, [])
 
@@ -1550,7 +1550,7 @@ def construct_1d_arraylike_from_scalar(
         elif isinstance(dtype, np.dtype) and dtype.kind in ("U", "S"):
             # we need to coerce to object dtype to avoid
             # to allow numpy to take our string as a scalar value
-            dtype = object
+            dtype = np.dtype("object")
             if not isna(value):
                 value = ensure_str(value)
 
