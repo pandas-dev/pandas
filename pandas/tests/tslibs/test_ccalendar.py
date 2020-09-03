@@ -4,8 +4,9 @@ from hypothesis import given, strategies as st
 import numpy as np
 import pytest
 
-import pandas as pd
 from pandas._libs.tslibs import ccalendar
+
+import pandas as pd
 
 
 @pytest.mark.parametrize(
