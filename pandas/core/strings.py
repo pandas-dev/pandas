@@ -901,8 +901,10 @@ def _result_dtype(arr):
     # workaround #27953
     # ideally we just pass `dtype=arr.dtype` unconditionally, but this fails
     # when the list of values is empty.
-    if arr.dtype.name == "string":
-        return "string"
+    from pandas.core.arrays.string_ import StringDtype
+
+    if isinstance(arr.dtype.name, StringDtype):
+        return arr.dtype.name
     else:
         return object
 
@@ -2097,9 +2099,11 @@ class StringMethods(NoNewAttributesMixin):
     """
 
     def __init__(self, data):
+        from pandas.core.arrays.string_ import StringDtype
+
         self._inferred_dtype = self._validate(data)
         self._is_categorical = is_categorical_dtype(data.dtype)
-        self._is_string = data.dtype.name == "string"
+        self._is_string = isinstance(data.dtype, StringDtype)
 
         # ._values.categories works for both Series/Index
         self._parent = data._values.categories if self._is_categorical else data

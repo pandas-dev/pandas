@@ -4,13 +4,13 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas.core.arrays.string_arrow import ArrowStringArray, ArrowStringDtype
+from pandas.core.arrays.string_arrow import ArrowStringArray
 from pandas.tests.extension import base
 
 
 @pytest.fixture
 def dtype():
-    return ArrowStringDtype()
+    return pd.StringDtype(storage="pyarrow")
 
 
 @pytest.fixture
@@ -62,64 +62,89 @@ class TestConstructors(base.BaseConstructorsTests):
     pass
 
 
-#  class TestReshaping(base.BaseReshapingTests):
-#     pass
+class TestReshaping(base.BaseReshapingTests):
+    pass
 
 
 class TestGetitem(base.BaseGetitemTests):
-    pass
+    @pytest.mark.xfail(
+        reason="pyarrow.lib.ArrowNotImplementedError: Function "
+        "fill_null has no kernel matching input types "
+        "(array[string], scalar[string])"
+    )
+    def test_take_non_na_fill_value(self, data_missing):
+        super().test_take_non_na_fill_value(data_missing)
+
+    @pytest.mark.xfail(
+        reason="pyarrow.lib.ArrowNotImplementedError: Function fill_null has no "
+        "kernel matching input types (array[string], scalar[string])"
+    )
+    def test_reindex_non_na_fill_value(self, data_missing):
+        super().test_reindex_non_na_fill_value(self, data_missing)
 
 
 class TestSetitem(base.BaseSetitemTests):
+    @pytest.mark.xfail(reason="TODO")
+    def test_setitem_preserves_views(self, data):
+        # Unclear where the issue is (pyarrow getitem, our getitem, our slice)
+        # and what to do here.
+        super().test_setitem_preserves_views(data)
+
+
+class TestMissing(base.BaseMissingTests):
     pass
 
 
-# class TestMissing(base.BaseMissingTests):
-#     pass
+class TestNoReduce(base.BaseNoReduceTests):
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna):
+        op_name = all_numeric_reductions
+
+        if op_name in ["min", "max"]:
+            return None
+
+        s = pd.Series(data)
+        with pytest.raises(TypeError):
+            getattr(s, op_name)(skipna=skipna)
 
 
-# class TestNoReduce(base.BaseNoReduceTests):
-#     @pytest.mark.parametrize("skipna", [True, False])
-#     def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna):
-#         op_name = all_numeric_reductions
-#
-#         if op_name in ["min", "max"]:
-#             return None
-#
-#         s = pd.Series(data)
-#         with pytest.raises(TypeError):
-#             getattr(s, op_name)(skipna=skipna)
+class TestMethods(base.BaseMethodsTests):
+    @pytest.mark.skip(reason="returns nullable")
+    def test_value_counts(self, all_data, dropna):
+        return super().test_value_counts(all_data, dropna)
 
 
-# class TestMethods(base.BaseMethodsTests):
-#     @pytest.mark.skip(reason="returns nullable")
-#     def test_value_counts(self, all_data, dropna):
-#         return super().test_value_counts(all_data, dropna)
+class TestCasting(base.BaseCastingTests):
+    pass
 
 
-# class TestCasting(base.BaseCastingTests):
-#     pass
+class TestComparisonOps(base.BaseComparisonOpsTests):
+    def _compare_other(self, s, data, op_name, other):
+        if op_name not in {"__eq__", "__ne__"}:
+            pytest.skip(f"{op_name} is not implemented.")
+        result = getattr(s, op_name)(other)
+        expected = getattr(s.astype(object), op_name)(other).astype("boolean")
+        self.assert_series_equal(result, expected)
+
+    def test_compare_scalar(self, data, all_compare_operators):
+        op_name = all_compare_operators
+        s = pd.Series(data)
+        self._compare_other(s, data, op_name, "abc")
+
+    def test_compare_array(self, data, all_compare_operators):
+        op_name = all_compare_operators
+        s = pd.Series(data)
+        other = pd.Series([data[0]] * len(data), dtype=data.dtype)
+        self._compare_other(s, data, op_name, other)
 
 
-# class TestComparisonOps(base.BaseComparisonOpsTests):
-#     def _compare_other(self, s, data, op_name, other):
-#         result = getattr(s, op_name)(other)
-#         expected = getattr(s.astype(object), op_name)(other).astype("boolean")
-#         self.assert_series_equal(result, expected)
-
-#     def test_compare_scalar(self, data, all_compare_operators):
-#         op_name = all_compare_operators
-#         s = pd.Series(data)
-#         self._compare_other(s, data, op_name, "abc")
+class TestParsing(base.BaseParsingTests):
+    pass
 
 
-# class TestParsing(base.BaseParsingTests):
-#     pass
+class TestPrinting(base.BasePrintingTests):
+    pass
 
 
-# class TestPrinting(base.BasePrintingTests):
-#     pass
-
-
-# class TestGroupBy(base.BaseGroupbyTests):
-#     pass
+class TestGroupBy(base.BaseGroupbyTests):
+    pass

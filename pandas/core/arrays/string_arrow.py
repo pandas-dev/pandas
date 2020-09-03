@@ -1,5 +1,5 @@
 from collections.abc import Iterable
-from typing import Any, Optional, Sequence, Tuple, Type, Union
+from typing import Any, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import pyarrow as pa
@@ -8,18 +8,19 @@ import pyarrow.compute as pc
 from pandas._libs import missing as libmissing
 from pandas._typing import ArrayLike
 
-from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.dtypes import register_extension_dtype
+from pandas.core.dtypes.missing import isna
 
-import pandas as pd
 from pandas.api.types import (
     is_array_like,
     is_bool_dtype,
+    is_int64_dtype,
     is_integer,
     is_integer_dtype,
     is_scalar,
 )
+from pandas.core.algorithms import factorize
 from pandas.core.arrays.base import ExtensionArray
+from pandas.core.arrays.string_ import StringDtype
 from pandas.core.indexers import check_array_indexer
 
 
@@ -29,89 +30,6 @@ def _as_pandas_scalar(arrow_scalar: pa.Scalar) -> Optional[str]:
         return libmissing.NA
     else:
         return scalar
-
-
-@register_extension_dtype
-class ArrowStringDtype(ExtensionDtype):
-    """
-    Extension dtype for string data in a ``pyarrow.ChunkedArray``.
-
-    .. versionadded:: 1.1.0
-
-    .. warning::
-
-       ArrowStringDtype is considered experimental. The implementation and
-       parts of the API may change without warning.
-
-    Attributes
-    ----------
-    None
-
-    Methods
-    -------
-    None
-
-    Examples
-    --------
-    >>> pd.ArrowStringDtype()
-    ArrowStringDtype
-    """
-
-    name = "arrow_string"
-
-    #: StringDtype.na_value uses pandas.NA
-    na_value = libmissing.NA
-
-    @property
-    def type(self) -> Type[str]:
-        return str
-
-    @classmethod
-    def construct_array_type(cls) -> Type["ArrowStringArray"]:
-        """
-        Return the array type associated with this dtype.
-
-        Returns
-        -------
-        type
-        """
-        return ArrowStringArray
-
-    def __hash__(self) -> int:
-        return hash("ArrowStringDtype")
-
-    def __repr__(self) -> str:
-        return "ArrowStringDtype"
-
-    def __from_arrow__(
-        self, array: Union["pa.Array", "pa.ChunkedArray"]
-    ) -> "ArrowStringArray":
-        """
-        Construct StringArray from pyarrow Array/ChunkedArray.
-        """
-        return ArrowStringArray(array)
-
-    def __eq__(self, other) -> bool:
-        """Check whether 'other' is equal to self.
-
-        By default, 'other' is considered equal if
-        * it's a string matching 'self.name'.
-        * it's an instance of this type.
-
-        Parameters
-        ----------
-        other : Any
-
-        Returns
-        -------
-        bool
-        """
-        if isinstance(other, ArrowStringDtype):
-            return True
-        elif isinstance(other, str) and other == "arrow_string":
-            return True
-        else:
-            return False
 
 
 class ArrowStringArray(ExtensionArray):
@@ -165,19 +83,20 @@ class ArrowStringArray(ExtensionArray):
             self.data = values
         else:
             raise ValueError(f"Unsupported type '{type(values)}' for ArrowStringArray")
+        self._dtype = StringDtype(storage="pyarrow")
 
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         # TODO(ARROW-9407): Accept pd.NA in Arrow
-        scalars_corrected = [None if pd.isna(x) else x for x in scalars]
+        scalars_corrected = [None if isna(x) else x for x in scalars]
         return cls(pa.array(scalars_corrected, type=pa.string()))
 
     @property
-    def dtype(self) -> ArrowStringDtype:
+    def dtype(self) -> StringDtype:
         """
-        An instance of 'ArrowStringDtype'.
+        An instance of 'StringDtype'.
         """
-        return ArrowStringDtype()
+        return self._dtype
 
     def __array__(self, *args, **kwargs) -> "np.ndarray":
         """Correctly construct numpy arrays when passed to `np.asarray()`."""
@@ -276,15 +195,6 @@ class ArrowStringArray(ExtensionArray):
         else:
             return _as_pandas_scalar(value)
 
-    def fillna(self, value=None, method=None, limit=None):
-        raise NotImplementedError("fillna")
-
-    def _reduce(self, name, skipna=True, **kwargs):
-        if name in ["min", "max"]:
-            return getattr(self, name)(skipna=skipna)
-
-        raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
-
     @property
     def nbytes(self) -> int:
         """
@@ -320,7 +230,9 @@ class ArrowStringArray(ExtensionArray):
         """
         Return for `self == other` (element-wise equality).
         """
-        if isinstance(other, (pd.Series, pd.DataFrame, pd.Index)):
+        from pandas import array, Series, DataFrame, Index
+
+        if isinstance(other, (Series, DataFrame, Index)):
             return NotImplemented
         if isinstance(other, ArrowStringArray):
             result = pc.equal(self.data, other.data)
@@ -330,7 +242,7 @@ class ArrowStringArray(ExtensionArray):
             raise NotImplementedError("Neither scalar nor ArrowStringArray")
 
         # TODO(ARROW-9429): Add a .to_numpy() to ChunkedArray
-        return pd.array(result.to_pandas().values)
+        return array(result.to_pandas().values, dtype="boolean")
 
     def __setitem__(self, key, value):
         # type: (Union[int, np.ndarray], Any) -> None
@@ -357,9 +269,9 @@ class ArrowStringArray(ExtensionArray):
         key = check_array_indexer(self, key)
 
         if is_integer(key):
-            if not pd.api.types.is_scalar(value):
+            if not is_scalar(value):
                 raise ValueError("Must pass scalars with scalar indexer")
-            elif pd.isna(value):
+            elif isna(value):
                 value = None
             elif not isinstance(value, str):
                 raise ValueError("Scalar must be NA or str")
@@ -386,7 +298,7 @@ class ArrowStringArray(ExtensionArray):
                 # TODO(ARROW-9431): Directly support setitem(integers)
                 key_array = np.asanyarray(key)
 
-            if pd.api.types.is_scalar(value):
+            if is_scalar(value):
                 value = np.broadcast_to(value, len(key_array))
             else:
                 value = np.asarray(value)
@@ -461,15 +373,20 @@ class ArrowStringArray(ExtensionArray):
 
         if len(self.data) == 0 and (indices_array >= 0).any():
             raise IndexError("cannot do a non-empty take")
-        if indices_array.max() >= len(self.data):
+        if len(indices_array) > 0 and indices_array.max() >= len(self.data):
             raise IndexError("out of bounds value in 'indices'.")
 
         if allow_fill:
             if (indices_array < 0).any():
+                if indices_array.min() < -1:
+                    raise ValueError(
+                        "'indicies' contains negative values other "
+                        "-1 with 'allow_fill=True."
+                    )
                 # TODO(ARROW-9433): Treat negative indices as NULL
                 indices_array = pa.array(indices_array, mask=indices_array < 0)
                 result = self.data.take(indices_array)
-                if pd.isna(fill_value):
+                if isna(fill_value):
                     return type(self)(result)
                 return type(self)(pc.fill_null(result, pa.scalar(fill_value)))
             else:
@@ -482,3 +399,38 @@ class ArrowStringArray(ExtensionArray):
                 indices_array = np.copy(indices_array)
                 indices_array[indices_array < 0] += len(self.data)
             return type(self)(self.data.take(indices_array))
+
+    def value_counts(self, dropna=True):
+        from pandas import Series
+
+        if dropna:
+            na = self.isna()
+            self = self[~na]
+        counts = self.data.value_counts()
+        return Series(counts.field(1), counts.field(0))
+
+    def factorize(self, na_sentinel: int = -1) -> Tuple[np.ndarray, "ExtensionArray"]:
+        # see https://github.com/xhochy/fletcher/blob/master/fletcher/base.py
+        # doesn't handle dictionary types.
+        if self.data.num_chunks == 1:
+            encoded = self.data.chunk(0).dictionary_encode()
+            indices = encoded.indices.to_pandas()
+            if indices.dtype.kind == "f":
+                indices[np.isnan(indices)] = na_sentinel
+                indices = indices.astype(int)
+            if not is_int64_dtype(indices):
+                indices = indices.astype(np.int64)
+            return indices.values, type(self)(encoded.dictionary)
+        else:
+            np_array = self.data.to_pandas().values
+            return factorize(np_array, na_sentinel=na_sentinel)
+
+    @classmethod
+    def _concat_same_type(
+        cls, to_concat: Sequence["ArrowStringArray"]
+    ) -> "ArrowStringArray":
+        return cls(
+            pa.chunked_array(
+                [array for ea in to_concat for array in ea.data.iterchunks()]
+            )
+        )
