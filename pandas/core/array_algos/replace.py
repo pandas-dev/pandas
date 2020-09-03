@@ -14,6 +14,7 @@ from pandas.core.dtypes.common import (
     is_numeric_v_string_like,
     is_scalar,
 )
+from pandas.core.dtypes.missing import isna
 
 
 def compare_or_regex_search(
