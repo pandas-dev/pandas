@@ -146,6 +146,7 @@ jobs:
   numpy-types:
     name: Numpy Type Annotations
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
     - name: Update for build environment
       run: |
