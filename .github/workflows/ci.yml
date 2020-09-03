@@ -142,3 +142,40 @@ jobs:
     - name: Upload dev docs
       run: rsync -az --delete doc/build/html/ docs@${{ secrets.server_ip }}:/usr/share/nginx/pandas/pandas-docs/dev
       if: github.event_name == 'push'
+
+  numpy-types:
+    name: Numpy Type Annotations
+    runs-on: ubuntu-latest
+    steps:
+    - name: Update for build environment
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential
+        sudo apt-get clean
+    - name: Setting conda path
+      run: echo ::add-path::$CONDA/bin
+    - name: Update conda
+      run: |
+        conda config --set quiet true --set always_yes true
+        conda update -n base -c defaults conda
+        conda list
+    - name: Checkout pandas
+      uses: actions/checkout@v2
+    - name: Update conda environment
+      run: |
+        conda env update -n pandas-dev --file=environment.yml
+        conda list
+    - name: Update numpy using wheel from nightly
+      run: |
+        source activate pandas-dev
+        pip install --extra-index-url https://pypi.anaconda.org/scipy-wheels-nightly/simple --pre numpy
+        conda list
+    - name: Remove pandas
+      run: |
+        source activate pandas-dev
+        conda uninstall -y --force pandas || true
+        conda list
+    - name: Typing validation
+      run: |
+        source activate pandas-dev
+        ci/code_checks.sh typing
