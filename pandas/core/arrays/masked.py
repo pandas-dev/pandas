@@ -125,6 +125,12 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
     def __invert__(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
         return type(self)(~self._data, self._mask)
 
+    def __neg__(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
+        return type(self)(-self._data, self._mask)
+
+    def __pos__(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
+        return type(self)(+self._data, self._mask)
+
     def to_numpy(
         self, dtype=None, copy: bool = False, na_value: Scalar = lib.no_default
     ) -> np.ndarray:

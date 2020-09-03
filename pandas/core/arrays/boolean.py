@@ -736,6 +736,9 @@ class BooleanArray(BaseMaskedArray):
         name = f"__{op_name}__"
         return set_function_name(boolean_arithmetic_method, name, cls)
 
+    def __neg__(self):
+        return self.__invert__()
+
 
 BooleanArray._add_logical_ops()
 BooleanArray._add_comparison_ops()
