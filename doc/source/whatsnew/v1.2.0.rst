@@ -13,6 +13,53 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+.. _whatsnew_120.duplicate_labels:
+
+Optionally disallow duplicate labels
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:class:`Series` and :class:`DataFrame` can now be created with ``allows_duplicate_labels=False`` flag to
+control whether the index or columns can contain duplicate labels (:issue:`28394`). This can be used to
+prevent accidental introduction of duplicate labels, which can affect downstream operations.
+
+By default, duplicates continue to be allowed
+
+.. ipython:: python
+
+   pd.Series([1, 2], index=['a', 'a'])
+
+.. ipython:: python
+   :okexcept:
+
+   pd.Series([1, 2], index=['a', 'a']).set_flags(allows_duplicate_labels=False)
+
+Pandas will propagate the ``allows_duplicate_labels`` property through many operations.
+
+.. ipython:: python
+   :okexcept:
+
+   a = (
+       pd.Series([1, 2], index=['a', 'b'])
+         .set_flags(allows_duplicate_labels=False)
+   )
+   a
+   # An operation introducing duplicates
+   a.reindex(['a', 'b', 'a'])
+
+.. warning::
+
+   This is an experimental feature. Currently, many methods fail to
+   propagate the ``allows_duplicate_labels`` value. In future versions
+   it is expected that every method taking or returning one or more
+   DataFrame or Series objects will propagate ``allows_duplicate_labels``.
+
+See :ref:`duplicates` for more.
+
+The ``allows_duplicate_labels`` flag is stored in the new :attr:`DataFrame.flags`
+attribute. This stores global attributes that apply to the *pandas object*. This
+differs from :attr:`DataFrame.attrs`, which stores information that applies to
+the dataset.
+
 Passing arguments to fsspec backends
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -53,6 +100,8 @@ For example:
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+
+- Added :meth:`~DataFrame.set_flags` for setting table-wide flags on a ``Series`` or ``DataFrame`` (:issue:`28394`)
 - :class:`Index` with object dtype supports division and multiplication (:issue:`34160`)
 -
 -
