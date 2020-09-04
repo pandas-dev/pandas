@@ -468,10 +468,9 @@ class DatetimeLikeArrayMixin(
 
     def _from_backing_data(self: _T, arr: np.ndarray) -> _T:
         # Note: we do not retain `freq`
+        # error: Too many arguments for "NDArrayBackedExtensionArray"
         # error: Unexpected keyword argument "dtype" for "NDArrayBackedExtensionArray"
-        # TODO: add my error code
-        # https://github.com/python/mypy/issues/7384
-        return type(self)(arr, dtype=self.dtype)  # type: ignore
+        return type(self)(arr, dtype=self.dtype)  # type: ignore[call-arg]
 
     # ------------------------------------------------------------------
 

@@ -98,8 +98,10 @@ def recode_from_groupby(
     """
     # we re-order to the original category orderings
     if sort:
-        return ci.set_categories(c.categories)  # type: ignore [attr-defined]
+        # error: "CategoricalIndex" has no attribute "set_categories"
+        return ci.set_categories(c.categories)  # type: ignore[attr-defined]
 
     # we are not sorting, so add unobserved to the end
     new_cats = c.categories[~c.categories.isin(ci.categories)]
-    return ci.add_categories(new_cats)  # type: ignore [attr-defined]
+    # error: "CategoricalIndex" has no attribute "add_categories"
+    return ci.add_categories(new_cats)  # type: ignore[attr-defined]
