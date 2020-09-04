@@ -1363,7 +1363,6 @@ class TestAsOfMerge:
         tm.assert_frame_equal(result, expected)
 
 
-
 @pytest.mark.parametrize(
     "kwargs",
     [
