@@ -40,6 +40,17 @@ class BaseMaskedDtype(ExtensionDtype):
     def numpy_dtype(self) -> np.dtype:
         raise AbstractMethodError
 
+    @classmethod
+    def construct_array_type(cls) -> Type["BaseMaskedArray"]:
+        """
+        Return the array type associated with this dtype.
+
+        Returns
+        -------
+        type
+        """
+        raise NotImplementedError
+
 
 class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
     """
@@ -115,7 +126,7 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
         return type(self)(~self._data, self._mask)
 
     def to_numpy(
-        self, dtype=None, copy: bool = False, na_value: Scalar = lib.no_default,
+        self, dtype=None, copy: bool = False, na_value: Scalar = lib.no_default
     ) -> np.ndarray:
         """
         Convert to a NumPy Array.

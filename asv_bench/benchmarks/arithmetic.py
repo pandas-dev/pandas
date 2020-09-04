@@ -466,7 +466,7 @@ class ApplyIndex:
         self.rng = rng
 
     def time_apply_index(self, offset):
-        offset.apply_index(self.rng)
+        self.rng + offset
 
 
 class BinaryOpsMultiIndex:

@@ -150,7 +150,7 @@ def _sparse_array_op(
             # to make template simple, cast here
             left_sp_values = left.sp_values.view(np.uint8)
             right_sp_values = right.sp_values.view(np.uint8)
-            result_dtype = np.bool
+            result_dtype = bool
         else:
             opname = f"sparse_{name}_{dtype}"
             left_sp_values = left.sp_values
@@ -183,7 +183,7 @@ def _wrap_result(name, data, sparse_index, fill_value, dtype=None):
         name = name[2:-2]
 
     if name in ("eq", "ne", "lt", "gt", "le", "ge"):
-        dtype = np.bool
+        dtype = bool
 
     fill_value = lib.item_from_zerodim(fill_value)
 
@@ -234,7 +234,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         3. ``data.dtype.fill_value`` if `fill_value` is None and `dtype`
            is not a ``SparseDtype`` and `data` is a ``SparseArray``.
 
-    kind : {'int', 'block'}, default 'int'
+    kind : {'integer', 'block'}, default 'integer'
         The type of storage for sparse locations.
 
         * 'block': Stores a `block` and `block_length` for each
@@ -862,23 +862,25 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             else:
                 raise IndexError("cannot do a non-empty take from an empty axes.")
 
+        # sp_indexer may be -1 for two reasons
+        # 1.) we took for an index of -1 (new)
+        # 2.) we took a value that was self.fill_value (old)
         sp_indexer = self.sp_index.lookup_array(indices)
+        new_fill_indices = indices == -1
+        old_fill_indices = (sp_indexer == -1) & ~new_fill_indices
 
-        if self.sp_index.npoints == 0:
-            # Avoid taking from the empty self.sp_values
+        if self.sp_index.npoints == 0 and old_fill_indices.all():
+            # We've looked up all valid points on an all-sparse array.
             taken = np.full(
-                sp_indexer.shape,
-                fill_value=fill_value,
-                dtype=np.result_type(type(fill_value)),
+                sp_indexer.shape, fill_value=self.fill_value, dtype=self.dtype.subtype
             )
+
+        elif self.sp_index.npoints == 0:
+            # Avoid taking from the empty self.sp_values
+            _dtype = np.result_type(self.dtype.subtype, type(fill_value))
+            taken = np.full(sp_indexer.shape, fill_value=fill_value, dtype=_dtype)
         else:
             taken = self.sp_values.take(sp_indexer)
-
-            # sp_indexer may be -1 for two reasons
-            # 1.) we took for an index of -1 (new)
-            # 2.) we took a value that was self.fill_value (old)
-            new_fill_indices = indices == -1
-            old_fill_indices = (sp_indexer == -1) & ~new_fill_indices
 
             # Fill in two steps.
             # Old fill values
@@ -1063,7 +1065,9 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         """
         dtype = self.dtype.update_dtype(dtype)
         subtype = dtype._subtype_with_str
-        sp_values = astype_nansafe(self.sp_values, subtype, copy=copy)
+        # TODO copy=False is broken for astype_nansafe with int -> float, so cannot
+        # passthrough copy keyword: https://github.com/pandas-dev/pandas/issues/34456
+        sp_values = astype_nansafe(self.sp_values, subtype, copy=True)
         if sp_values is self.sp_values and copy:
             sp_values = sp_values.copy()
 
@@ -1160,7 +1164,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     # Reductions
     # ------------------------------------------------------------------------
 
-    def _reduce(self, name, skipna=True, **kwargs):
+    def _reduce(self, name: str, skipna: bool = True, **kwargs):
         method = getattr(self, name, None)
 
         if method is None:

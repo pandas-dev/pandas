@@ -368,7 +368,7 @@ def test_empty_pass_dtype(all_parsers):
     result = parser.read_csv(StringIO(data), dtype={"one": "u1"})
 
     expected = DataFrame(
-        {"one": np.empty(0, dtype="u1"), "two": np.empty(0, dtype=np.object)},
+        {"one": np.empty(0, dtype="u1"), "two": np.empty(0, dtype=object)},
         index=Index([], dtype=object),
     )
     tm.assert_frame_equal(result, expected)
@@ -399,7 +399,7 @@ def test_empty_with_multi_index_pass_dtype(all_parsers):
     exp_idx = MultiIndex.from_arrays(
         [np.empty(0, dtype="u1"), np.empty(0, dtype=np.float64)], names=["one", "two"]
     )
-    expected = DataFrame({"three": np.empty(0, dtype=np.object)}, index=exp_idx)
+    expected = DataFrame({"three": np.empty(0, dtype=object)}, index=exp_idx)
     tm.assert_frame_equal(result, expected)
 
 
@@ -561,9 +561,13 @@ def test_boolean_dtype(all_parsers):
             "True",
             "TRUE",
             "true",
+            "1",
+            "1.0",
             "False",
             "FALSE",
             "false",
+            "0",
+            "0.0",
             "NaN",
             "nan",
             "NA",
@@ -576,7 +580,23 @@ def test_boolean_dtype(all_parsers):
     expected = pd.DataFrame(
         {
             "a": pd.array(
-                [True, True, True, False, False, False, None, None, None, None, None],
+                [
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    False,
+                    False,
+                    False,
+                    False,
+                    False,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                ],
                 dtype="boolean",
             )
         }

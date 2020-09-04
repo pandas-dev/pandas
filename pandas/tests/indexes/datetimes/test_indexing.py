@@ -1,12 +1,13 @@
-from datetime import datetime, time, timedelta
+from datetime import date, datetime, time, timedelta
 
 import numpy as np
 import pytest
 
+from pandas.errors import InvalidIndexError
+
 import pandas as pd
-from pandas import DatetimeIndex, Index, Timestamp, date_range, notna
+from pandas import DatetimeIndex, Index, Timestamp, bdate_range, date_range, notna
 import pandas._testing as tm
-from pandas.core.indexes.base import InvalidIndexError
 
 from pandas.tseries.offsets import BDay, CDay
 
@@ -94,7 +95,7 @@ class TestGetItem:
 
     def test_dti_business_getitem_matplotlib_hackaround(self):
         rng = pd.bdate_range(START, END)
-        with tm.assert_produces_warning(DeprecationWarning):
+        with tm.assert_produces_warning(FutureWarning):
             # GH#30588 multi-dimensional indexing deprecated
             values = rng[:, None]
         expected = rng.values[:, None]
@@ -121,7 +122,7 @@ class TestGetItem:
 
     def test_dti_custom_getitem_matplotlib_hackaround(self):
         rng = pd.bdate_range(START, END, freq="C")
-        with tm.assert_produces_warning(DeprecationWarning):
+        with tm.assert_produces_warning(FutureWarning):
             # GH#30588 multi-dimensional indexing deprecated
             values = rng[:, None]
         expected = rng.values[:, None]
@@ -470,6 +471,16 @@ class TestGetLoc:
         with pytest.raises(NotImplementedError, match=msg):
             idx.get_loc(time(12, 30), method="pad")
 
+    def test_get_loc_time_nat(self):
+        # GH#35114
+        # Case where key's total microseconds happens to match iNaT % 1e6 // 1000
+        tic = time(minute=12, second=43, microsecond=145224)
+        dti = pd.DatetimeIndex([pd.NaT])
+
+        loc = dti.get_loc(tic)
+        expected = np.array([], dtype=np.intp)
+        tm.assert_numpy_array_equal(loc, expected)
+
     def test_get_loc_tz_aware(self):
         # https://github.com/pandas-dev/pandas/issues/32140
         dti = pd.date_range(
@@ -575,6 +586,38 @@ class TestGetIndexer:
         with pytest.raises(ValueError, match="abbreviation w/o a number"):
             idx.get_indexer(idx[[0]], method="nearest", tolerance="foo")
 
+    @pytest.mark.parametrize(
+        "target",
+        [
+            [date(2020, 1, 1), pd.Timestamp("2020-01-02")],
+            [pd.Timestamp("2020-01-01"), date(2020, 1, 2)],
+        ],
+    )
+    def test_get_indexer_mixed_dtypes(self, target):
+        # https://github.com/pandas-dev/pandas/issues/33741
+        values = pd.DatetimeIndex(
+            [pd.Timestamp("2020-01-01"), pd.Timestamp("2020-01-02")]
+        )
+        result = values.get_indexer(target)
+        expected = np.array([0, 1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "target, positions",
+        [
+            ([date(9999, 1, 1), pd.Timestamp("2020-01-01")], [-1, 0]),
+            ([pd.Timestamp("2020-01-01"), date(9999, 1, 1)], [0, -1]),
+            ([date(9999, 1, 1), date(9999, 1, 1)], [-1, -1]),
+        ],
+    )
+    def test_get_indexer_out_of_bounds_date(self, target, positions):
+        values = pd.DatetimeIndex(
+            [pd.Timestamp("2020-01-01"), pd.Timestamp("2020-01-02")]
+        )
+        result = values.get_indexer(target)
+        expected = np.array(positions, dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
 
 class TestMaybeCastSliceBound:
     def test_maybe_cast_slice_bounds_empty(self):
@@ -622,3 +665,43 @@ class TestDatetimeIndex:
         with tm.assert_produces_warning(FutureWarning):
             result = dti.get_value(ser, key.to_datetime64())
         assert result == 7
+
+
+class TestGetSliceBounds:
+    @pytest.mark.parametrize("box", [date, datetime, Timestamp])
+    @pytest.mark.parametrize("kind", ["getitem", "loc", None])
+    @pytest.mark.parametrize("side, expected", [("left", 4), ("right", 5)])
+    def test_get_slice_bounds_datetime_within(
+        self, box, kind, side, expected, tz_aware_fixture
+    ):
+        # GH 35690
+        index = bdate_range("2000-01-03", "2000-02-11").tz_localize(tz_aware_fixture)
+        result = index.get_slice_bound(
+            box(year=2000, month=1, day=7), kind=kind, side=side
+        )
+        assert result == expected
+
+    @pytest.mark.parametrize("box", [date, datetime, Timestamp])
+    @pytest.mark.parametrize("kind", ["getitem", "loc", None])
+    @pytest.mark.parametrize("side", ["left", "right"])
+    @pytest.mark.parametrize("year, expected", [(1999, 0), (2020, 30)])
+    def test_get_slice_bounds_datetime_outside(
+        self, box, kind, side, year, expected, tz_aware_fixture
+    ):
+        # GH 35690
+        index = bdate_range("2000-01-03", "2000-02-11").tz_localize(tz_aware_fixture)
+        result = index.get_slice_bound(
+            box(year=year, month=1, day=7), kind=kind, side=side
+        )
+        assert result == expected
+
+    @pytest.mark.parametrize("box", [date, datetime, Timestamp])
+    @pytest.mark.parametrize("kind", ["getitem", "loc", None])
+    def test_slice_datetime_locs(self, box, kind, tz_aware_fixture):
+        # GH 34077
+        index = DatetimeIndex(["2010-01-01", "2010-01-03"]).tz_localize(
+            tz_aware_fixture
+        )
+        result = index.slice_locs(box(2010, 1, 1), box(2010, 1, 2))
+        expected = (0, 1)
+        assert result == expected

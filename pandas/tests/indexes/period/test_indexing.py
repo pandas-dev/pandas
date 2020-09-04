@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import period as libperiod
+from pandas.errors import InvalidIndexError
 
 import pandas as pd
 from pandas import (
@@ -19,7 +20,6 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
-from pandas.core.indexes.base import InvalidIndexError
 
 
 class TestGetItem:
@@ -359,6 +359,22 @@ class TestGetLoc:
                 ],
             )
 
+    def test_get_loc_invalid_string_raises_keyerror(self):
+        # GH#34240
+        pi = pd.period_range("2000", periods=3, name="A")
+        with pytest.raises(KeyError, match="A"):
+            pi.get_loc("A")
+
+        ser = pd.Series([1, 2, 3], index=pi)
+        with pytest.raises(KeyError, match="A"):
+            ser.loc["A"]
+
+        with pytest.raises(KeyError, match="A"):
+            ser["A"]
+
+        assert "A" not in ser
+        assert "A" not in pi
+
 
 class TestGetIndexer:
     def test_get_indexer(self):
@@ -692,6 +708,12 @@ class TestGetValue:
         with tm.assert_produces_warning(FutureWarning):
             result2 = idx2.get_value(input2, p1)
         tm.assert_series_equal(result2, expected2)
+
+    def test_loc_str(self):
+        # https://github.com/pandas-dev/pandas/issues/33964
+        index = pd.period_range(start="2000", periods=20, freq="B")
+        series = pd.Series(range(20), index=index)
+        assert series.loc["2000-01-14"] == 9
 
     @pytest.mark.parametrize("freq", ["H", "D"])
     def test_get_value_datetime_hourly(self, freq):

@@ -112,7 +112,7 @@ dtypes = dict(
     period=PeriodDtype("D"),
     integer=np.dtype(np.int64),
     float=np.dtype(np.float64),
-    object=np.dtype(np.object),
+    object=np.dtype(object),
     category=com.pandas_dtype("category"),
 )
 
@@ -547,7 +547,7 @@ def test_is_bool_dtype():
     assert not com.is_bool_dtype(pd.Index(["a", "b"]))
 
     assert com.is_bool_dtype(bool)
-    assert com.is_bool_dtype(np.bool)
+    assert com.is_bool_dtype(np.bool_)
     assert com.is_bool_dtype(np.array([True, False]))
     assert com.is_bool_dtype(pd.Index([True, False]))
 
@@ -615,7 +615,8 @@ def test_is_complex_dtype():
     assert not com.is_complex_dtype(pd.Series([1, 2]))
     assert not com.is_complex_dtype(np.array(["a", "b"]))
 
-    assert com.is_complex_dtype(np.complex)
+    assert com.is_complex_dtype(np.complex_)
+    assert com.is_complex_dtype(complex)
     assert com.is_complex_dtype(np.array([1 + 1j, 5]))
 
 
@@ -745,3 +746,13 @@ def test_astype_object_preserves_datetime_na(from_type):
     result = astype_nansafe(arr, dtype="object")
 
     assert isna(result)[0]
+
+
+def test_validate_allhashable():
+    assert com.validate_all_hashable(1, "a") is None
+
+    with pytest.raises(TypeError, match="All elements must be hashable"):
+        com.validate_all_hashable([])
+
+    with pytest.raises(TypeError, match="list must be a hashable type"):
+        com.validate_all_hashable([], error_name="list")

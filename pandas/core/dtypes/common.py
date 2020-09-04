@@ -9,15 +9,15 @@ import numpy as np
 
 from pandas._libs import Interval, Period, algos
 from pandas._libs.tslibs import conversion
-from pandas._typing import ArrayLike, DtypeObj
+from pandas._typing import ArrayLike, DtypeObj, Optional
 
+from pandas.core.dtypes.base import registry
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
     IntervalDtype,
     PeriodDtype,
-    registry,
 )
 from pandas.core.dtypes.generic import ABCCategorical, ABCIndexClass
 from pandas.core.dtypes.inference import (  # noqa:F401
@@ -108,7 +108,7 @@ def ensure_str(value: Union[bytes, Any]) -> str:
     return value
 
 
-def ensure_int_or_float(arr: ArrayLike, copy: bool = False) -> np.array:
+def ensure_int_or_float(arr: ArrayLike, copy: bool = False) -> np.ndarray:
     """
     Ensure that an dtype array of some integer dtype
     has an int64 dtype if possible.
@@ -136,11 +136,13 @@ def ensure_int_or_float(arr: ArrayLike, copy: bool = False) -> np.array:
     """
     # TODO: GH27506 potential bug with ExtensionArrays
     try:
-        return arr.astype("int64", copy=copy, casting="safe")  # type: ignore
+        # error: Unexpected keyword argument "casting" for "astype"
+        return arr.astype("int64", copy=copy, casting="safe")  # type: ignore[call-arg]
     except TypeError:
         pass
     try:
-        return arr.astype("uint64", copy=copy, casting="safe")  # type: ignore
+        # error: Unexpected keyword argument "casting" for "astype"
+        return arr.astype("uint64", copy=copy, casting="safe")  # type: ignore[call-arg]
     except TypeError:
         if is_extension_array_dtype(arr.dtype):
             return arr.to_numpy(dtype="float64", na_value=np.nan)
@@ -1354,7 +1356,7 @@ def is_bool_dtype(arr_or_dtype) -> bool:
     False
     >>> is_bool_dtype(bool)
     True
-    >>> is_bool_dtype(np.bool)
+    >>> is_bool_dtype(np.bool_)
     True
     >>> is_bool_dtype(np.array(['a', 'b']))
     False
@@ -1386,8 +1388,7 @@ def is_bool_dtype(arr_or_dtype) -> bool:
         # guess this
         return arr_or_dtype.is_object and arr_or_dtype.inferred_type == "boolean"
     elif is_extension_array_dtype(arr_or_dtype):
-        dtype = getattr(arr_or_dtype, "dtype", arr_or_dtype)
-        return dtype._is_boolean
+        return getattr(arr_or_dtype, "dtype", arr_or_dtype)._is_boolean
 
     return issubclass(dtype.type, np.bool_)
 
@@ -1526,7 +1527,7 @@ def is_complex_dtype(arr_or_dtype) -> bool:
     False
     >>> is_complex_dtype(int)
     False
-    >>> is_complex_dtype(np.complex)
+    >>> is_complex_dtype(np.complex_)
     True
     >>> is_complex_dtype(np.array(['a', 'b']))
     False
@@ -1728,6 +1729,32 @@ def _validate_date_like_dtype(dtype) -> None:
             f"{repr(dtype.name)} is too specific of a frequency, "
             f"try passing {repr(dtype.type.__name__)}"
         )
+
+
+def validate_all_hashable(*args, error_name: Optional[str] = None) -> None:
+    """
+    Return None if all args are hashable, else raise a TypeError.
+
+    Parameters
+    ----------
+    *args
+        Arguments to validate.
+    error_name : str, optional
+        The name to use if error
+
+    Raises
+    ------
+    TypeError : If an argument is not hashable
+
+    Returns
+    -------
+    None
+    """
+    if not all(is_hashable(arg) for arg in args):
+        if error_name:
+            raise TypeError(f"{error_name} must be a hashable type")
+        else:
+            raise TypeError("All elements must be hashable")
 
 
 def pandas_dtype(dtype) -> DtypeObj:

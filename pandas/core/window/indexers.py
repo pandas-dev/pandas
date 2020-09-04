@@ -1,10 +1,15 @@
 """Indexer objects for computing start/end window bounds for rolling operations"""
-from typing import Dict, Optional, Tuple, Type, Union
+from datetime import timedelta
+from typing import Dict, Optional, Tuple, Type
 
 import numpy as np
 
 from pandas._libs.window.indexers import calculate_variable_window_bounds
 from pandas.util._decorators import Appender
+
+from pandas.core.dtypes.common import ensure_platform_int
+
+from pandas.tseries.offsets import Nano
 
 get_window_bounds_doc = """
 Computes the bounds of a window.
@@ -35,7 +40,7 @@ class BaseIndexer:
     """Base class for window bounds calculations."""
 
     def __init__(
-        self, index_array: Optional[np.ndarray] = None, window_size: int = 0, **kwargs,
+        self, index_array: Optional[np.ndarray] = None, window_size: int = 0, **kwargs
     ):
         """
         Parameters
@@ -100,8 +105,90 @@ class VariableWindowIndexer(BaseIndexer):
     ) -> Tuple[np.ndarray, np.ndarray]:
 
         return calculate_variable_window_bounds(
-            num_values, self.window_size, min_periods, center, closed, self.index_array,
+            num_values, self.window_size, min_periods, center, closed, self.index_array
         )
+
+
+class VariableOffsetWindowIndexer(BaseIndexer):
+    """Calculate window boundaries based on a non-fixed offset such as a BusinessDay"""
+
+    def __init__(
+        self,
+        index_array: Optional[np.ndarray] = None,
+        window_size: int = 0,
+        index=None,
+        offset=None,
+        **kwargs,
+    ):
+        super().__init__(index_array, window_size, **kwargs)
+        self.index = index
+        self.offset = offset
+
+    @Appender(get_window_bounds_doc)
+    def get_window_bounds(
+        self,
+        num_values: int = 0,
+        min_periods: Optional[int] = None,
+        center: Optional[bool] = None,
+        closed: Optional[str] = None,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+
+        # if windows is variable, default is 'right', otherwise default is 'both'
+        if closed is None:
+            closed = "right" if self.index is not None else "both"
+
+        right_closed = closed in ["right", "both"]
+        left_closed = closed in ["left", "both"]
+
+        if self.index[num_values - 1] < self.index[0]:
+            index_growth_sign = -1
+        else:
+            index_growth_sign = 1
+
+        start = np.empty(num_values, dtype="int64")
+        start.fill(-1)
+        end = np.empty(num_values, dtype="int64")
+        end.fill(-1)
+
+        start[0] = 0
+
+        # right endpoint is closed
+        if right_closed:
+            end[0] = 1
+        # right endpoint is open
+        else:
+            end[0] = 0
+
+        # start is start of slice interval (including)
+        # end is end of slice interval (not including)
+        for i in range(1, num_values):
+            end_bound = self.index[i]
+            start_bound = self.index[i] - index_growth_sign * self.offset
+
+            # left endpoint is closed
+            if left_closed:
+                start_bound -= Nano(1)
+
+            # advance the start bound until we are
+            # within the constraint
+            start[i] = i
+            for j in range(start[i - 1], i):
+                if (self.index[j] - start_bound) * index_growth_sign > timedelta(0):
+                    start[i] = j
+                    break
+
+            # end bound is previous end
+            # or current index
+            if (self.index[end[i - 1]] - end_bound) * index_growth_sign <= timedelta(0):
+                end[i] = i + 1
+            else:
+                end[i] = end[i - 1]
+
+            # right endpoint is open
+            if not right_closed:
+                end[i] -= 1
+
+        return start, end
 
 
 class ExpandingIndexer(BaseIndexer):
@@ -180,7 +267,8 @@ class GroupbyRollingIndexer(BaseIndexer):
         index_array: Optional[np.ndarray],
         window_size: int,
         groupby_indicies: Dict,
-        rolling_indexer: Union[Type[FixedWindowIndexer], Type[VariableWindowIndexer]],
+        rolling_indexer: Type[BaseIndexer],
+        indexer_kwargs: Optional[Dict],
         **kwargs,
     ):
         """
@@ -191,7 +279,10 @@ class GroupbyRollingIndexer(BaseIndexer):
         """
         self.groupby_indicies = groupby_indicies
         self.rolling_indexer = rolling_indexer
-        super().__init__(index_array, window_size, **kwargs)
+        self.indexer_kwargs = indexer_kwargs or {}
+        super().__init__(
+            index_array, self.indexer_kwargs.pop("window_size", window_size), **kwargs
+        )
 
     @Appender(get_window_bounds_doc)
     def get_window_bounds(
@@ -207,29 +298,39 @@ class GroupbyRollingIndexer(BaseIndexer):
         start_arrays = []
         end_arrays = []
         window_indicies_start = 0
-        for key, indicies in self.groupby_indicies.items():
+        for key, indices in self.groupby_indicies.items():
             if self.index_array is not None:
-                index_array = self.index_array.take(indicies)
+                index_array = self.index_array.take(ensure_platform_int(indices))
             else:
                 index_array = self.index_array
             indexer = self.rolling_indexer(
-                index_array=index_array, window_size=self.window_size,
+                index_array=index_array,
+                window_size=self.window_size,
+                **self.indexer_kwargs,
             )
             start, end = indexer.get_window_bounds(
-                len(indicies), min_periods, center, closed
+                len(indices), min_periods, center, closed
             )
+            start = start.astype(np.int64)
+            end = end.astype(np.int64)
             # Cannot use groupby_indicies as they might not be monotonic with the object
             # we're rolling over
             window_indicies = np.arange(
-                window_indicies_start,
-                window_indicies_start + len(indicies),
-                dtype=np.int64,
+                window_indicies_start, window_indicies_start + len(indices)
             )
-            window_indicies_start += len(indicies)
+            window_indicies_start += len(indices)
             # Extend as we'll be slicing window like [start, end)
-            window_indicies = np.append(window_indicies, [window_indicies[-1] + 1])
-            start_arrays.append(window_indicies.take(start))
-            end_arrays.append(window_indicies.take(end))
+            window_indicies = np.append(
+                window_indicies, [window_indicies[-1] + 1]
+            ).astype(np.int64)
+            start_arrays.append(window_indicies.take(ensure_platform_int(start)))
+            end_arrays.append(window_indicies.take(ensure_platform_int(end)))
         start = np.concatenate(start_arrays)
         end = np.concatenate(end_arrays)
+        # GH 35552: Need to adjust start and end based on the nans appended to values
+        # when center=True
+        if num_values > len(start):
+            offset = num_values - len(start)
+            start = np.concatenate([start, np.array([end[-1]] * offset)])
+            end = np.concatenate([end, np.array([end[-1]] * offset)])
         return start, end

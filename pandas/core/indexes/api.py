@@ -2,11 +2,11 @@ import textwrap
 from typing import List, Set
 
 from pandas._libs import NaT, lib
+from pandas.errors import InvalidIndexError
 
 import pandas.core.common as com
 from pandas.core.indexes.base import (
     Index,
-    InvalidIndexError,
     _new_Index,
     ensure_index,
     ensure_index_from_sequences,
@@ -218,9 +218,8 @@ def union_indexes(indexes, sort=True) -> Index:
             return result
     elif kind == "array":
         index = indexes[0]
-        for other in indexes[1:]:
-            if not index.equals(other):
-                return _unique_indices(indexes)
+        if not all(index.equals(other) for other in indexes[1:]):
+            index = _unique_indices(indexes)
 
         name = get_consensus_names(indexes)[0]
         if name != index.name:
@@ -298,15 +297,16 @@ def all_indexes_same(indexes):
 
     Parameters
     ----------
-    indexes : list of Index objects
+    indexes : iterable of Index objects
 
     Returns
     -------
     bool
         True if all indexes contain the same elements, False otherwise.
     """
-    first = indexes[0]
-    for index in indexes[1:]:
+    itr = iter(indexes)
+    first = next(itr)
+    for index in itr:
         if not first.equals(index):
             return False
     return True

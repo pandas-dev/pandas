@@ -443,9 +443,8 @@ Faceting, created by ``DataFrame.boxplot`` with the ``by``
 keyword, will affect the output type as well:
 
 ================ ======= ==========================
-``return_type=`` Faceted Output type
----------------- ------- --------------------------
-
+``return_type``  Faceted Output type
+================ ======= ==========================
 ``None``         No      axes
 ``None``         Yes     2-D ndarray of axes
 ``'axes'``       No      axes
@@ -669,6 +668,7 @@ A ``ValueError`` will be raised if there are any negative values in your data.
    plt.figure()
 
 .. ipython:: python
+   :okwarning:
 
    series = pd.Series(3 * np.random.rand(4),
                       index=['a', 'b', 'c', 'd'], name='series')
@@ -743,6 +743,7 @@ If you pass values whose sum total is less than 1.0, matplotlib draws a semicirc
    plt.figure()
 
 .. ipython:: python
+   :okwarning:
 
    series = pd.Series([0.1] * 4, index=['a', 'b', 'c', 'd'], name='series2')
 
@@ -821,7 +822,7 @@ You can create a scatter plot matrix using the
    df = pd.DataFrame(np.random.randn(1000, 4), columns=['a', 'b', 'c', 'd'])
 
    @savefig scatter_matrix_kde.png
-   scatter_matrix(df, alpha=0.2, figsize=(6, 6), diagonal='kde')
+   scatter_matrix(df, alpha=0.2, figsize=(6, 6), diagonal='kde');
 
 .. ipython:: python
    :suppress:
@@ -865,7 +866,7 @@ for more information. By coloring these curves differently for each class
 it is possible to visualize data clustering. Curves belonging to samples
 of the same class will usually be closer together and form larger structures.
 
-**Note**: The "Iris" dataset is available `here <https://raw.github.com/pandas-dev/pandas/master/pandas/tests/data/iris.csv>`__.
+**Note**: The "Iris" dataset is available `here <https://raw.github.com/pandas-dev/pandas/master/pandas/tests/io/data/csv/iris.csv>`__.
 
 .. ipython:: python
 
@@ -1025,7 +1026,7 @@ be colored differently.
 See the R package `Radviz <https://cran.r-project.org/package=Radviz/>`__
 for more information.
 
-**Note**: The "Iris" dataset is available `here <https://raw.github.com/pandas-dev/pandas/master/pandas/tests/data/iris.csv>`__.
+**Note**: The "Iris" dataset is available `here <https://raw.github.com/pandas-dev/pandas/master/pandas/tests/io/data/csv/iris.csv>`__.
 
 .. ipython:: python
 
@@ -1108,6 +1109,34 @@ shown by default.
    :suppress:
 
    plt.close('all')
+
+
+Controlling the labels
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 1.1.0
+
+You may set the ``xlabel`` and ``ylabel`` arguments to give the plot custom labels
+for x and y axis. By default, pandas will pick up index name as xlabel, while leaving
+it empty for ylabel.
+
+.. ipython:: python
+   :suppress:
+
+   plt.figure()
+
+.. ipython:: python
+
+   df.plot()
+
+   @savefig plot_xlabel_ylabel.png
+   df.plot(xlabel="new x", ylabel="new y")
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
 
 Scales
 ~~~~~~
@@ -1332,7 +1361,7 @@ otherwise you will see a warning.
 
 .. ipython:: python
 
-   fig, axes = plt.subplots(4, 4, figsize=(6, 6))
+   fig, axes = plt.subplots(4, 4, figsize=(9, 9))
    plt.subplots_adjust(wspace=0.5, hspace=0.5)
    target1 = [axes[0][0], axes[1][1], axes[2][2], axes[3][3]]
    target2 = [axes[3][0], axes[2][1], axes[1][2], axes[0][3]]
@@ -1369,6 +1398,7 @@ Another option is passing an ``ax`` argument to :meth:`Series.plot` to plot on a
 .. ipython:: python
 
    fig, axes = plt.subplots(nrows=2, ncols=2)
+   plt.subplots_adjust(wspace=0.2, hspace=0.5)
    df['A'].plot(ax=axes[0, 0]);
    axes[0, 0].set_title('A');
    df['B'].plot(ax=axes[0, 1]);
@@ -1397,7 +1427,7 @@ Horizontal and vertical error bars can be supplied to the ``xerr`` and ``yerr`` 
 * As a ``str`` indicating which of the columns of plotting :class:`DataFrame` contain the error values.
 * As raw values (``list``, ``tuple``, or ``np.ndarray``). Must be the same length as the plotting :class:`DataFrame`/:class:`Series`.
 
-Asymmetrical error bars are also supported, however raw error values must be provided in this case. For a ``M`` length :class:`Series`, a ``Mx2`` array should be provided indicating lower and upper (or left and right) errors. For a ``MxN`` :class:`DataFrame`, asymmetrical errors should be in a ``Mx2xN`` array.
+Asymmetrical error bars are also supported, however raw error values must be provided in this case. For a ``N`` length :class:`Series`, a ``2xN`` array should be provided indicating lower and upper (or left and right) errors. For a ``MxN`` :class:`DataFrame`, asymmetrical errors should be in a ``Mx2xN`` array.
 
 Here is an example of one way to easily plot group means with standard deviations from the raw data.
 
@@ -1423,7 +1453,7 @@ Here is an example of one way to easily plot group means with standard deviation
    # Plot
    fig, ax = plt.subplots()
    @savefig errorbar_example.png
-   means.plot.bar(yerr=errors, ax=ax, capsize=4)
+   means.plot.bar(yerr=errors, ax=ax, capsize=4, rot=0)
 
 .. ipython:: python
    :suppress:
@@ -1444,9 +1474,9 @@ Plotting with matplotlib table is now supported in  :meth:`DataFrame.plot` and :
 
 .. ipython:: python
 
-   fig, ax = plt.subplots(1, 1)
+   fig, ax = plt.subplots(1, 1, figsize=(7, 6.5))
    df = pd.DataFrame(np.random.rand(5, 3), columns=['a', 'b', 'c'])
-   ax.get_xaxis().set_visible(False)   # Hide Ticks
+   ax.xaxis.tick_top()  # Display x-axis ticks on top.
 
    @savefig line_plot_table_true.png
    df.plot(table=True, ax=ax)
@@ -1463,8 +1493,9 @@ as seen in the example below.
 
 .. ipython:: python
 
-   fig, ax = plt.subplots(1, 1)
-   ax.get_xaxis().set_visible(False)   # Hide Ticks
+   fig, ax = plt.subplots(1, 1, figsize=(7, 6.75))
+   ax.xaxis.tick_top()  # Display x-axis ticks on top.
+
    @savefig line_plot_table_data.png
    df.plot(table=np.round(df.T, 2), ax=ax)
 
@@ -1683,4 +1714,4 @@ to generate the plots. Some libraries implementing a backend for pandas are list
 on the ecosystem :ref:`ecosystem.visualization` page.
 
 Developers guide can be found at
-https://dev.pandas.io/docs/development/extending.html#plotting-backends
+https://pandas.pydata.org/docs/dev/development/extending.html#plotting-backends
