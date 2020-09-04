@@ -194,8 +194,7 @@ class TestSparseArray:
 
     @pytest.mark.parametrize("format", ["coo", "csc", "csr"])
     @pytest.mark.parametrize(
-        "size",
-        [pytest.param(0, marks=td.skip_if_np_lt("1.16", reason="NumPy-11383")), 10],
+        "size", [0, 10],
     )
     @td.skip_if_no_scipy
     def test_from_spmatrix(self, size, format):
@@ -904,7 +903,6 @@ class TestSparseArrayAnalytics:
             ([1.0, 2.0, 1.0], 1.0, 0.0),
         ],
     )
-    @td.skip_if_np_lt("1.15")  # prior didn't dispatch
     def test_numpy_all(self, data, pos, neg):
         # GH 17570
         out = np.all(SparseArray(data))
@@ -956,7 +954,6 @@ class TestSparseArrayAnalytics:
             ([0.0, 2.0, 0.0], 2.0, 0.0),
         ],
     )
-    @td.skip_if_np_lt("1.15")  # prior didn't dispatch
     def test_numpy_any(self, data, pos, neg):
         # GH 17570
         out = np.any(SparseArray(data))
