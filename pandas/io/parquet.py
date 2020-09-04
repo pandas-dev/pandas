@@ -175,6 +175,11 @@ class PyArrowImpl(BaseImpl):
                     self.api.string(): pd.StringDtype(),
                 }
                 to_pandas_kwargs["types_mapper"] = mapping.get
+            else:
+                raise ValueError(
+                    "'use_nullable_dtypes=True' is only supported for pyarrow >= 0.16"
+                    f" ({self.api.__version__} is installed"
+                )
 
         result = self.api.parquet.read_table(
             path, columns=columns, filesystem=fs, **kwargs

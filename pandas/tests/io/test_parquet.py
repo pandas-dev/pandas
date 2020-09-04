@@ -712,7 +712,9 @@ class TestParquetPyArrow(Base):
         table = pyarrow.table(
             {
                 "a": pyarrow.array([1, 2, 3, None], "int64"),
-                "b": pyarrow.array(["a", "b", "c", None]),
+                "b": pyarrow.array([1, 2, 3, None], "uint8"),
+                "c": pyarrow.array(["a", "b", "c", None]),
+                "d": pyarrow.array([True, False, True, None]),
             }
         )
         with tm.ensure_clean() as path:
@@ -725,7 +727,9 @@ class TestParquetPyArrow(Base):
         expected = pd.DataFrame(
             {
                 "a": pd.array([1, 2, 3, None], dtype="Int64"),
-                "b": pd.array(["a", "b", "c", None], dtype="string"),
+                "b": pd.array([1, 2, 3, None], dtype="UInt8"),
+                "c": pd.array(["a", "b", "c", None], dtype="string"),
+                "d": pd.array([True, False, True, None], dtype="boolean"),
             }
         )
         tm.assert_frame_equal(result2, expected)
