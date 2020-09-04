@@ -5,7 +5,7 @@ from typing import Any, DefaultDict, Dict, List, Optional, Tuple, Union
 import pandas._libs.json as json
 
 from pandas.io.excel._base import ExcelWriter
-from pandas.io.excel._util import _validate_freeze_panes
+from pandas.io.excel._util import validate_freeze_panes
 from pandas.io.formats.excel import ExcelCell
 
 
@@ -59,7 +59,7 @@ class _ODSWriter(ExcelWriter):
             wks = Table(name=sheet_name)
             self.sheets[sheet_name] = wks
 
-        if _validate_freeze_panes(freeze_panes):
+        if validate_freeze_panes(freeze_panes):
             assert freeze_panes is not None
             self._create_freeze_panes(sheet_name, freeze_panes)
 
