@@ -56,7 +56,7 @@ def test_numba_vs_cython(jit, pandas_obj, nogil, parallel, nopython):
         func = numba.jit(func)
 
     data = DataFrame(
-        {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1],
+        {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1]
     )
     engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
     grouped = data.groupby(0)
@@ -89,7 +89,7 @@ def test_cache(jit, pandas_obj, nogil, parallel, nopython):
         func_2 = numba.jit(func_2)
 
     data = DataFrame(
-        {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1],
+        {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1]
     )
     engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
     grouped = data.groupby(0)
@@ -120,7 +120,7 @@ def test_use_global_config():
         return values + 1
 
     data = DataFrame(
-        {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1],
+        {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1]
     )
     grouped = data.groupby(0)
     expected = grouped.transform(func_1, engine="numba")

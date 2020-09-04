@@ -291,12 +291,6 @@ cdef class Interval(IntervalMixin):
     True
     >>> year_2017.length
     Timedelta('365 days 00:00:00')
-
-    And also you can create string intervals
-
-    >>> volume_1 = pd.Interval('Ant', 'Dog', closed='both')
-    >>> 'Bee' in volume_1
-    True
     """
     _typ = "interval"
     __array_priority__ = 1000
