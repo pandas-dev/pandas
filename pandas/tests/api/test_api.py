@@ -61,6 +61,7 @@ class TestPDApi(Base):
         "ExcelFile",
         "ExcelWriter",
         "Float64Index",
+        "Flags",
         "Grouper",
         "HDFStore",
         "Index",

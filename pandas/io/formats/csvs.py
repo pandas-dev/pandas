@@ -60,25 +60,39 @@ class CSVFormatter:
         if path_or_buf is None:
             path_or_buf = StringIO()
 
-        self.path_or_buf, _, _, self.should_close = get_filepath_or_buffer(
+        # Extract compression mode as given, if dict
+        compression, self.compression_args = get_compression_method(compression)
+        self.compression = infer_compression(path_or_buf, compression)
+
+        ioargs = get_filepath_or_buffer(
             path_or_buf,
             encoding=encoding,
-            compression=compression,
+            compression=self.compression,
             mode=mode,
             storage_options=storage_options,
         )
+        self.path_or_buf = ioargs.filepath_or_buffer
+        self.should_close = ioargs.should_close
+        self.mode = ioargs.mode
+
+        # GH21227 internal compression is not used for non-binary handles.
+        if compression and hasattr(self.path_or_buf, "write") and "b" not in self.mode:
+            warnings.warn(
+                "compression has no effect when passing a non-binary object as input.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+            compression = None
+
         self.sep = sep
         self.na_rep = na_rep
         self.float_format = float_format
         self.decimal = decimal
-
         self.header = header
         self.index = index
         self.index_label = index_label
-        self.mode = mode
         self.encoding = encoding or "utf-8"
         self.errors = errors
-        self.compression = compression
         self.quoting = quoting or csvlib.QUOTE_MINIMAL
         self.quotechar = quotechar
         self.doublequote = doublequote
@@ -203,28 +217,6 @@ class CSVFormatter:
             return getattr(self.data_index, "nlevels", 1)
         else:
             return 0
-
-    @property
-    def compression(self):
-        return self._compression
-
-    @compression.setter
-    def compression(self, compression):
-        # Extract compression mode as given, if dict
-        compression, self.compression_args = get_compression_method(compression)
-
-        compression = infer_compression(self.path_or_buf, compression)
-
-        # GH21227 internal compression is not used for non-binary handles.
-        if compression and hasattr(self.path_or_buf, "write") and "b" not in self.mode:
-            warnings.warn(
-                "compression has no effect when passing a non-binary object as input.",
-                RuntimeWarning,
-                stacklevel=2,
-            )
-            compression = None
-
-        self._compression = compression
 
     @property
     def _has_aliases(self):

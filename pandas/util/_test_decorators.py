@@ -31,7 +31,7 @@ from typing import Callable, Optional
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_32bit, is_platform_windows
+from pandas.compat import IS64, is_platform_windows
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import _np_version
 
@@ -180,7 +180,7 @@ skip_if_no_mpl = pytest.mark.skipif(
     _skip_if_no_mpl(), reason="Missing matplotlib dependency"
 )
 skip_if_mpl = pytest.mark.skipif(not _skip_if_no_mpl(), reason="matplotlib is present")
-skip_if_32bit = pytest.mark.skipif(is_platform_32bit(), reason="skipping for 32 bit")
+skip_if_32bit = pytest.mark.skipif(not IS64, reason="skipping for 32 bit")
 skip_if_windows = pytest.mark.skipif(is_platform_windows(), reason="Running on Windows")
 skip_if_windows_python_3 = pytest.mark.skipif(
     is_platform_windows(), reason="not used on win32"
