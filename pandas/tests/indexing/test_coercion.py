@@ -5,7 +5,7 @@ from typing import Dict, List
 import numpy as np
 import pytest
 
-import pandas.compat as compat
+from pandas.compat import IS64, is_platform_windows
 
 import pandas as pd
 import pandas._testing as tm
@@ -1041,7 +1041,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
             from_key == "complex128" and to_key in ("int64", "float64")
         ):
 
-            if compat.is_platform_32bit() or compat.is_platform_windows():
+            if not IS64 or is_platform_windows():
                 pytest.skip(f"32-bit platform buggy: {from_key} -> {to_key}")
 
             # Expected: do not downcast by replacement
