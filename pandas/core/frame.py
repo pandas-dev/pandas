@@ -448,7 +448,7 @@ class DataFrame(NDFrame):
         copy: bool = False,
         # TODO setting default to "array" for testing purposes (the actual default
         # needs to stay "block" initially of course for backwards compatibility)
-        manager: str = "array",
+        manager: Optional[str] = None,
     ):
         if data is None:
             data = {}
@@ -567,11 +567,16 @@ class DataFrame(NDFrame):
                     values, index, columns, dtype=values.dtype, copy=False
                 )
 
+        if manager is None:
+            manager = get_option("mode.data_manager")
+
         if manager == "array" and not isinstance(mgr, ArrayManager):
             # TODO proper initialization
             df = DataFrame(mgr, manager="block")
             arrays = [arr.copy() for arr in df._iter_column_arrays()]
             mgr = ArrayManager(arrays, [mgr.axes[1], mgr.axes[0]])
+        # TODO check for case of manager="block" but mgr is ArrayManager
+
         NDFrame.__init__(self, mgr)
 
     # ----------------------------------------------------------------------
