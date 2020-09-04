@@ -76,7 +76,7 @@ class _PyxlsbReader(_BaseExcelReader):
         skiprows_nrows: int,
         nrows: Optional[int],
     ) -> List[List[Scalar]]:
-        data = []
+        data: List[List[Scalar]] = []
         for n, r in enumerate(sheet.rows(sparse=False)):
             data.append([self._convert_cell(c, convert_float) for c in r])
             if isinstance(nrows, int) and n > header_nrows + skiprows_nrows + nrows + 1:
