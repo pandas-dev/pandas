@@ -190,7 +190,7 @@ class SetopCheck:
 class IntervalIndex(IntervalMixin, ExtensionIndex):
     _typ = "intervalindex"
     _comparables = ["name"]
-    _attributes = ["name"]
+    _attributes = ["name", "closed"]
 
     # we would like our indexing holder to defer to us
     _defer_to_indexing = True
