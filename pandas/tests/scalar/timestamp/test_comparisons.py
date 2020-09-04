@@ -133,6 +133,24 @@ class TestTimestampComparison:
         assert val != np.float64(1)
         assert val != np.int64(1)
 
+    @pytest.mark.parametrize("tz", [None, "US/Pacific"])
+    def test_compare_date(self, tz):
+        ts = Timestamp.now(tz)
+        dt = ts.to_pydatetime().date()
+
+        for left, right in [(ts, dt), (dt, ts)]:
+            assert not left == right
+            assert left != right
+
+            with pytest.raises(TypeError):
+                left < right
+            with pytest.raises(TypeError):
+                left <= right
+            with pytest.raises(TypeError):
+                left > right
+            with pytest.raises(TypeError):
+                left >= right
+
     def test_cant_compare_tz_naive_w_aware(self, utc_fixture):
         # see GH#1404
         a = Timestamp("3/12/2012")

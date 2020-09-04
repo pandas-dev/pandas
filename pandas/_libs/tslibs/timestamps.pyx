@@ -15,14 +15,15 @@ from numpy cimport int8_t, int64_t, ndarray, uint8_t
 
 cnp.import_array()
 
-from cpython.datetime cimport (  # alias bc `tzinfo` is a kwarg below
+from cpython.datetime cimport (
     PyDateTime_Check,
+    PyDate_Check,
     PyDateTime_IMPORT,
     PyDelta_Check,
     PyTZInfo_Check,
     datetime,
     time,
-    tzinfo as tzinfo_type,
+    tzinfo as tzinfo_type,  # alias bc `tzinfo` is a kwarg below
 )
 from cpython.object cimport Py_EQ, Py_NE, PyObject_RichCompare, PyObject_RichCompareBool
 
@@ -274,6 +275,17 @@ cdef class _Timestamp(ABCTimestamp):
             elif op == Py_EQ:
                 return np.zeros(other.shape, dtype=np.bool_)
             return NotImplemented
+
+        elif PyDate_Check(other):
+            # returning NotImplemented defers to the `date` implementation
+            #  which incorrectly drops tz and normalizes to midnight
+            #  before comparing
+            # We follow the stdlib datetime behavior of never being equal
+            if op == Py_NE:
+                return True
+            elif op == Py_EQ:
+                return False
+            raise TypeError("Cannot compare Timestamp with datetime.date object")
 
         else:
             return NotImplemented
