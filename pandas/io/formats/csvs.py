@@ -106,10 +106,6 @@ class CSVFormatter:
         self.cols = cols
         self.chunksize = chunksize
 
-        # preallocate data 2d list
-        ncols = self.obj.shape[-1]
-        self.data = [None] * ncols
-
     @property
     def index_label(self):
         return self._index_label
@@ -345,6 +341,9 @@ class CSVFormatter:
             self._save_chunk(start_i, end_i)
 
     def _save_chunk(self, start_i: int, end_i: int) -> None:
+        ncols = self.obj.shape[-1]
+        data = [None] * ncols
+
         # create the data for a chunk
         slicer = slice(start_i, end_i)
 
@@ -360,8 +359,7 @@ class CSVFormatter:
             )
 
             for col_loc, col in zip(block.mgr_locs, d):
-                # self.data is a preallocated list
-                self.data[col_loc] = col
+                data[col_loc] = col
 
         ix = self.data_index.to_native_types(
             slicer=slicer,
@@ -372,4 +370,4 @@ class CSVFormatter:
             quoting=self.quoting,
         )
 
-        libwriters.write_csv_rows(self.data, ix, self.nlevels, self.cols, self.writer)
+        libwriters.write_csv_rows(data, ix, self.nlevels, self.cols, self.writer)
