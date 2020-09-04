@@ -656,7 +656,7 @@ class MPLPlot:
             if style is not None:
                 args = (x, y, style)
             else:
-                args = (x, y)  # type:ignore[assignment]
+                args = (x, y)  # type: ignore[assignment]
             return ax.plot(*args, **kwds)
 
     def _get_index_name(self) -> Optional[str]:

@@ -374,7 +374,11 @@ def get_compression_method(
     if isinstance(compression, Mapping):
         compression_args = dict(compression)
         try:
-            compression_method = compression_args.pop("method")  # type: ignore
+            # error: Incompatible types in assignment (expression has type
+            # "Union[str, int, None]", variable has type "Optional[str]")
+            compression_method = compression_args.pop(  # type: ignore[assignment]
+                "method"
+            )
         except KeyError as err:
             raise ValueError("If mapping, compression must have key 'method'") from err
     else:
