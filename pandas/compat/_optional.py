@@ -33,6 +33,32 @@ VERSIONS = {
     "numba": "0.46.0",
 }
 
+INSTALL_MAPPING = {
+    "bs4": "beautifulsoup4",
+    "bottleneck": "Bottleneck",
+    "fsspec": "fsspec",
+    "botocore": "botocore",
+    "fastparquet": "fastparquet",
+    "gcsfs": "gcsfs",
+    "lxml.etree": "lxml",
+    "matplotlib": "matplotlib",
+    "numexpr": "numexpr",
+    "odf": "odfpy",
+    "openpyxl": "openpyxl",
+    "pandas_gbq": "pandas-gbq",
+    "pyarrow": "pyarrow",
+    "pytest": "pytest",
+    "pyxlsb": "pyxlsb",
+    "scipy": "scipy",
+    "sqlalchemy": "SQLAlchemy",
+    "tables": "tables",
+    "tabulate": "tabulate",
+    "xarray": "xarray",
+    "xlrd": "xlrd",
+    "numba": "numba",
+    "jinja2": "Jinja2"
+}
+
 
 def _get_version(module: types.ModuleType) -> str:
     version = getattr(module, "__version__", None)
@@ -82,9 +108,13 @@ def import_optional_dependency(
         is False, or when the package's version is too old and `on_version`
         is ``'warn'``.
     """
+
+    package_name = INSTALL_MAPPING.get(name)
+    install_name = package_name if package_name is not None else name
+
     msg = (
-        f"Missing optional dependency '{name}'. {extra} "
-        f"Use pip or conda to install {name}."
+        f"Missing optional dependency '{install_name}'. {extra} "
+        f"Use pip or conda to install {install_name}."
     )
     try:
         module = importlib.import_module(name)
