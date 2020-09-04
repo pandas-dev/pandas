@@ -23,7 +23,7 @@ def register_writer(klass):
     _writers[engine_name] = klass
 
 
-def _get_default_writer(ext):
+def get_default_writer(ext):
     """
     Return the default writer for the given extension.
 
@@ -123,7 +123,7 @@ def _range2cols(areas: str) -> List[int]:
     return cols
 
 
-def _maybe_convert_usecols(usecols):
+def maybe_convert_usecols(usecols):
     """
     Convert `usecols` into a compatible format for parsing in `parsers.py`.
 
@@ -152,7 +152,7 @@ def _maybe_convert_usecols(usecols):
     return usecols
 
 
-def _validate_freeze_panes(freeze_panes):
+def validate_freeze_panes(freeze_panes):
     if freeze_panes is not None:
         if len(freeze_panes) == 2 and all(
             isinstance(item, int) for item in freeze_panes
@@ -169,15 +169,7 @@ def _validate_freeze_panes(freeze_panes):
     return False
 
 
-def _trim_excel_header(row):
-    # trim header row so auto-index inference works
-    # xlrd uses '' , openpyxl None
-    while len(row) > 0 and (row[0] == "" or row[0] is None):
-        row = row[1:]
-    return row
-
-
-def _fill_mi_header(row, control_row):
+def fill_mi_header(row, control_row):
     """
     Forward fill blank entries in row but only inside the same parent index.
 
@@ -210,7 +202,7 @@ def _fill_mi_header(row, control_row):
     return row, control_row
 
 
-def _pop_header_name(row, index_col):
+def pop_header_name(row, index_col):
     """
     Pop the header name for MultiIndex parsing.
 

@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Dict
 import pandas._libs.json as json
 
 from pandas.io.excel._base import ExcelWriter
-from pandas.io.excel._util import _validate_freeze_panes
+from pandas.io.excel._util import validate_freeze_panes
 
 if TYPE_CHECKING:
     from xlwt import XFStyle
@@ -48,7 +48,7 @@ class _XlwtWriter(ExcelWriter):
             wks = self.book.add_sheet(sheet_name)
             self.sheets[sheet_name] = wks
 
-        if _validate_freeze_panes(freeze_panes):
+        if validate_freeze_panes(freeze_panes):
             wks.set_panes_frozen(True)
             wks.set_horz_split_pos(freeze_panes[0])
             wks.set_vert_split_pos(freeze_panes[1])
