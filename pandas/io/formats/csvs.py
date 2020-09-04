@@ -162,12 +162,7 @@ class CSVFormatter:
 
         if cols is not None:
             if isinstance(cols, ABCIndexClass):
-                cols = cols.to_native_types(
-                    na_rep=self.na_rep,
-                    float_format=self.float_format,
-                    date_format=self.date_format,
-                    quoting=self.quoting,
-                )
+                cols = self._convert_to_native_types(cols)
             else:
                 cols = list(cols)
             self.obj = self.obj.loc[:, cols]
@@ -176,16 +171,21 @@ class CSVFormatter:
         # and make sure sure cols is just a list of labels
         cols = self.obj.columns
         if isinstance(cols, ABCIndexClass):
-            cols = cols.to_native_types(
-                na_rep=self.na_rep,
-                float_format=self.float_format,
-                date_format=self.date_format,
-                quoting=self.quoting,
-            )
+            cols = self._convert_to_native_types(cols)
         else:
             cols = list(cols)
 
         self._cols = cols
+
+    def _convert_to_native_types(self, arg, **kwargs):
+        return arg.to_native_types(
+            na_rep=self.na_rep,
+            float_format=self.float_format,
+            date_format=self.date_format,
+            quoting=self.quoting,
+            decimal=self.decimal,
+            **kwargs,
+        )
 
     @property
     def chunksize(self):
@@ -350,24 +350,10 @@ class CSVFormatter:
         df = self.obj.iloc[slicer]
 
         for block in df._mgr.blocks:
-            d = block.to_native_types(
-                na_rep=self.na_rep,
-                float_format=self.float_format,
-                decimal=self.decimal,
-                date_format=self.date_format,
-                quoting=self.quoting,
-            )
+            d = self._convert_to_native_types(block)
 
             for col_loc, col in zip(block.mgr_locs, d):
                 data[col_loc] = col
 
-        ix = self.data_index.to_native_types(
-            slicer=slicer,
-            na_rep=self.na_rep,
-            float_format=self.float_format,
-            decimal=self.decimal,
-            date_format=self.date_format,
-            quoting=self.quoting,
-        )
-
+        ix = self._convert_to_native_types(self.data_index, slicer=slicer)
         libwriters.write_csv_rows(data, ix, self.nlevels, self.cols, self.writer)
