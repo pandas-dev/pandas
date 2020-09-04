@@ -3534,6 +3534,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         nv.validate_take(tuple(), kwargs)
 
+        self._consolidate_inplace()
+
         new_data = self._mgr.take(
             indices, axis=self._get_block_manager_axis(axis), verify=True
         )
