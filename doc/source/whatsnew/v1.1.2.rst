@@ -18,7 +18,7 @@ Fixed regressions
 - Fix regression in updating a column inplace (e.g. using ``df['col'].fillna(.., inplace=True)``) (:issue:`35731`)
 - Performance regression for :meth:`RangeIndex.format` (:issue:`35712`)
 - Regression in :meth:`DataFrame.replace` where a ``TypeError`` would be raised when attempting to replace elements of type :class:`Interval` (:issue:`35931`)
--
+- Fixed regression in :meth:`DataFrameGroupBy.agg` where a ``ValueError: buffer source array is read-only`` would be raised when the underlying array is read-only (:issue:`36014`)
 
 
 .. ---------------------------------------------------------------------------
