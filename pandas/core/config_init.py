@@ -6,9 +6,11 @@ is invoked inside specific modules, they will not be registered until that
 module is imported, which may or may not be a problem.
 
 If you need to make sure options are available even before a certain
-module is imported, register them here rather then in the module.
+module is imported, register them here rather than in the module.
 
 """
+import warnings
+
 import pandas._config.config as cf
 from pandas._config.config import (
     is_bool,
@@ -50,6 +52,20 @@ def use_numexpr_cb(key):
     expressions.set_use_numexpr(cf.get_option(key))
 
 
+use_numba_doc = """
+: bool
+    Use the numba engine option for select operations if it is installed,
+    the default is False
+    Valid values: False,True
+"""
+
+
+def use_numba_cb(key):
+    from pandas.core.util import numba_
+
+    numba_.set_use_numba(cf.get_option(key))
+
+
 with cf.config_prefix("compute"):
     cf.register_option(
         "use_bottleneck",
@@ -60,6 +76,9 @@ with cf.config_prefix("compute"):
     )
     cf.register_option(
         "use_numexpr", True, use_numexpr_doc, validator=is_bool, cb=use_numexpr_cb
+    )
+    cf.register_option(
+        "use_numba", False, use_numba_doc, validator=is_bool, cb=use_numba_cb
     )
 #
 # options from the "display" namespace
@@ -308,7 +327,7 @@ def is_terminal() -> bool:
     """
     try:
         # error: Name 'get_ipython' is not defined
-        ip = get_ipython()  # type: ignore
+        ip = get_ipython()  # type: ignore[name-defined]
     except NameError:  # assume standard Python interpreter in a terminal
         return True
     else:
@@ -341,8 +360,25 @@ with cf.config_prefix("display"):
         validator=is_instance_factory([type(None), int]),
     )
     cf.register_option("max_categories", 8, pc_max_categories_doc, validator=is_int)
+
+    def _deprecate_negative_int_max_colwidth(key):
+        value = cf.get_option(key)
+        if value is not None and value < 0:
+            warnings.warn(
+                "Passing a negative integer is deprecated in version 1.0 and "
+                "will not be supported in future version. Instead, use None "
+                "to not limit the column width.",
+                FutureWarning,
+                stacklevel=4,
+            )
+
     cf.register_option(
-        "max_colwidth", 50, max_colwidth_doc, validator=is_nonnegative_int
+        # TODO(2.0): change `validator=is_nonnegative_int` see GH#31569
+        "max_colwidth",
+        50,
+        max_colwidth_doc,
+        validator=is_instance_factory([type(None), int]),
+        cb=_deprecate_negative_int_max_colwidth,
     )
     if is_terminal():
         max_cols = 0  # automatically determine optimal number of columns
@@ -534,6 +570,7 @@ writer_engine_doc = """
 _xls_options = ["xlwt"]
 _xlsm_options = ["openpyxl"]
 _xlsx_options = ["openpyxl", "xlsxwriter"]
+_ods_options = ["odf"]
 
 
 with cf.config_prefix("io.excel.xls"):
@@ -562,6 +599,15 @@ with cf.config_prefix("io.excel.xlsx"):
     )
 
 
+with cf.config_prefix("io.excel.ods"):
+    cf.register_option(
+        "writer",
+        "auto",
+        writer_engine_doc.format(ext="ods", others=", ".join(_ods_options)),
+        validator=str,
+    )
+
+
 # Set up the io.parquet specific configuration.
 parquet_engine_doc = """
 : string
@@ -585,7 +631,7 @@ plotting_backend_doc = """
 : str
     The plotting backend to use. The default value is "matplotlib", the
     backend provided with pandas. Other backends can be specified by
-    prodiving the name of the module that implements the backend.
+    providing the name of the module that implements the backend.
 """
 
 
@@ -616,8 +662,10 @@ register_converter_doc = """
 
 
 def register_converter_cb(key):
-    from pandas.plotting import register_matplotlib_converters
-    from pandas.plotting import deregister_matplotlib_converters
+    from pandas.plotting import (
+        deregister_matplotlib_converters,
+        register_matplotlib_converters,
+    )
 
     if cf.get_option(key):
         register_matplotlib_converters()

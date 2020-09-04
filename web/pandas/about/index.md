@@ -2,8 +2,8 @@
 
 ## History of development
 
-In 2008, _pandas_ development began at [AQR Capital Management](http://www.aqr.com).
-By the end of 2009 it had been [open sourced](http://en.wikipedia.org/wiki/Open_source),
+In 2008, _pandas_ development began at [AQR Capital Management](https://www.aqr.com).
+By the end of 2009 it had been [open sourced](https://en.wikipedia.org/wiki/Open_source),
 and is actively supported today by a community of like-minded individuals around the world who
 contribute their valuable time and energy to help make open source _pandas_
 possible. Thank you to [all of our contributors](team.html).

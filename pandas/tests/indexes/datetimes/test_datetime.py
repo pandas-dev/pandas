@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 
 import dateutil
 import numpy as np
@@ -12,22 +12,54 @@ randn = np.random.randn
 
 
 class TestDatetimeIndex:
-    def test_roundtrip_pickle_with_tz(self):
-
-        # GH 8367
-        # round-trip of timezone
-        index = date_range("20130101", periods=3, tz="US/Eastern", name="foo")
-        unpickled = tm.round_trip_pickle(index)
-        tm.assert_index_equal(index, unpickled)
-
     def test_reindex_preserves_tz_if_target_is_empty_list_or_array(self):
         # GH7774
         index = date_range("20130101", periods=3, tz="US/Eastern")
         assert str(index.reindex([])[0].tz) == "US/Eastern"
         assert str(index.reindex(np.array([]))[0].tz) == "US/Eastern"
 
+    def test_reindex_with_same_tz(self):
+        # GH 32740
+        rng_a = date_range("2010-01-01", "2010-01-02", periods=24, tz="utc")
+        rng_b = date_range("2010-01-01", "2010-01-02", periods=23, tz="utc")
+        result1, result2 = rng_a.reindex(
+            rng_b, method="nearest", tolerance=timedelta(seconds=20)
+        )
+        expected_list1 = [
+            "2010-01-01 00:00:00",
+            "2010-01-01 01:05:27.272727272",
+            "2010-01-01 02:10:54.545454545",
+            "2010-01-01 03:16:21.818181818",
+            "2010-01-01 04:21:49.090909090",
+            "2010-01-01 05:27:16.363636363",
+            "2010-01-01 06:32:43.636363636",
+            "2010-01-01 07:38:10.909090909",
+            "2010-01-01 08:43:38.181818181",
+            "2010-01-01 09:49:05.454545454",
+            "2010-01-01 10:54:32.727272727",
+            "2010-01-01 12:00:00",
+            "2010-01-01 13:05:27.272727272",
+            "2010-01-01 14:10:54.545454545",
+            "2010-01-01 15:16:21.818181818",
+            "2010-01-01 16:21:49.090909090",
+            "2010-01-01 17:27:16.363636363",
+            "2010-01-01 18:32:43.636363636",
+            "2010-01-01 19:38:10.909090909",
+            "2010-01-01 20:43:38.181818181",
+            "2010-01-01 21:49:05.454545454",
+            "2010-01-01 22:54:32.727272727",
+            "2010-01-02 00:00:00",
+        ]
+        expected1 = DatetimeIndex(
+            expected_list1, dtype="datetime64[ns, UTC]", freq=None,
+        )
+        expected2 = np.array([0] + [-1] * 21 + [23], dtype=np.dtype("intp"))
+        tm.assert_index_equal(result1, expected1)
+        tm.assert_numpy_array_equal(result2, expected2)
+
     def test_time_loc(self):  # GH8667
         from datetime import time
+
         from pandas._libs.index import _SIZE_CUTOFF
 
         ns = _SIZE_CUTOFF + np.array([-100, 100], dtype=np.int64)
@@ -86,13 +118,6 @@ class TestDatetimeIndex:
         expected = DatetimeIndex(dates, freq="WOM-1SAT")
         tm.assert_index_equal(result, expected)
 
-    def test_hash_error(self):
-        index = date_range("20010101", periods=10)
-        with pytest.raises(
-            TypeError, match=f"unhashable type: '{type(index).__name__}'"
-        ):
-            hash(index)
-
     def test_stringified_slice_with_tz(self):
         # GH#2658
         start = "2013-01-07"
@@ -100,32 +125,12 @@ class TestDatetimeIndex:
         df = DataFrame(np.arange(10), index=idx)
         df["2013-01-14 23:44:34.437768-05:00":]  # no exception here
 
-    def test_append_join_nondatetimeindex(self):
+    def test_append_nondatetimeindex(self):
         rng = date_range("1/1/2000", periods=10)
         idx = Index(["a", "b", "c", "d"])
 
         result = rng.append(idx)
         assert isinstance(result[0], Timestamp)
-
-        # it works
-        rng.join(idx, how="outer")
-
-    def test_map(self):
-        rng = date_range("1/1/2000", periods=10)
-
-        f = lambda x: x.strftime("%Y%m%d")
-        result = rng.map(f)
-        exp = Index([f(x) for x in rng], dtype="<U8")
-        tm.assert_index_equal(result, exp)
-
-    def test_map_fallthrough(self, capsys):
-        # GH#22067, check we don't get warnings about silently ignored errors
-        dti = date_range("2017-01-01", "2018-01-01", freq="B")
-
-        dti.map(lambda x: pd.Period(year=x.year, month=x.month, freq="M"))
-
-        captured = capsys.readouterr()
-        assert captured.err == ""
 
     def test_iteration_preserves_tz(self):
         # see gh-8890
@@ -210,14 +215,6 @@ class TestDatetimeIndex:
         assert ordered[::-1].is_monotonic
         tm.assert_numpy_array_equal(dexer, np.array([0, 2, 1], dtype=np.intp))
 
-    def test_map_bug_1677(self):
-        index = DatetimeIndex(["2012-04-25 09:30:00.393000"])
-        f = index.asof
-
-        result = index.map(f)
-        expected = Index([f(index[0])])
-        tm.assert_index_equal(result, expected)
-
     def test_groupby_function_tuple_1677(self):
         df = DataFrame(np.random.rand(100), index=date_range("1/1/2000", periods=100))
         monthly_group = df.groupby(lambda x: (x.year, x.month))
@@ -246,25 +243,6 @@ class TestDatetimeIndex:
             index.isin([index[2], 5]), np.array([False, False, True, False])
         )
 
-    def test_does_not_convert_mixed_integer(self):
-        df = tm.makeCustomDataframe(
-            10,
-            10,
-            data_gen_f=lambda *args, **kwargs: randn(),
-            r_idx_type="i",
-            c_idx_type="dt",
-        )
-        cols = df.columns.join(df.index, how="outer")
-        joined = cols.join(df.columns)
-        assert cols.dtype == np.dtype("O")
-        assert cols.dtype == joined.dtype
-        tm.assert_numpy_array_equal(cols.values, joined.values)
-
-    def test_join_self(self, join_type):
-        index = date_range("1/1/2000", periods=10)
-        joined = index.join(index, how=join_type)
-        assert index is joined
-
     def assert_index_parameters(self, index):
         assert index.freq == "40960N"
         assert index.inferred_freq == "40960N"
@@ -281,20 +259,6 @@ class TestDatetimeIndex:
 
         new_index = pd.date_range(start=index[0], end=index[-1], freq=index.freq)
         self.assert_index_parameters(new_index)
-
-    def test_join_with_period_index(self, join_type):
-        df = tm.makeCustomDataframe(
-            10,
-            10,
-            data_gen_f=lambda *args: np.random.randint(2),
-            c_idx_type="p",
-            r_idx_type="dt",
-        )
-        s = df.iloc[:5, 0]
-
-        expected = df.columns.astype("O").join(s.index, how=join_type)
-        result = df.columns.join(s.index, how=join_type)
-        tm.assert_index_equal(expected, result)
 
     def test_factorize(self):
         idx1 = DatetimeIndex(
@@ -354,7 +318,8 @@ class TestDatetimeIndex:
         for obj in [idx, pd.Series(idx)]:
             arr, res = obj.factorize()
             tm.assert_numpy_array_equal(arr, exp_arr)
-            tm.assert_index_equal(res, base)
+            expected = base._with_freq(None)
+            tm.assert_index_equal(res, expected)
 
     def test_factorize_dst(self):
         # GH 13750
@@ -432,14 +397,9 @@ class TestDatetimeIndex:
         expected = DataFrame(idx, index=idx)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("name", [None, "name"])
-    def test_index_map(self, name):
-        # see GH20990
-        count = 6
-        index = pd.date_range("2018-01-01", periods=count, freq="M", name=name).map(
-            lambda x: (x.year, x.month)
-        )
-        exp_index = pd.MultiIndex.from_product(
-            ((2018,), range(1, 7)), names=[name, name]
-        )
-        tm.assert_index_equal(index, exp_index)
+    def test_split_non_utc(self):
+        # GH 14042
+        indices = pd.date_range("2016-01-01 00:00:00+0200", freq="S", periods=10)
+        result = np.split(indices, indices_or_sections=[])[0]
+        expected = indices._with_freq(None)
+        tm.assert_index_equal(result, expected)

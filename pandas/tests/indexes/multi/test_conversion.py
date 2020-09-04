@@ -2,14 +2,8 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, date_range
+from pandas import DataFrame, MultiIndex
 import pandas._testing as tm
-
-
-def test_tolist(idx):
-    result = idx.tolist()
-    exp = list(idx.values)
-    assert result == exp
 
 
 def test_to_numpy(idx):
@@ -127,58 +121,6 @@ def test_to_frame_resulting_column_order():
     )
     result = mi.to_frame().columns.tolist()
     assert result == expected
-
-
-def test_roundtrip_pickle_with_tz():
-    return  # FIXME: this can't be right?
-
-    # GH 8367
-    # round-trip of timezone
-    index = MultiIndex.from_product(
-        [[1, 2], ["a", "b"], date_range("20130101", periods=3, tz="US/Eastern")],
-        names=["one", "two", "three"],
-    )
-    unpickled = tm.round_trip_pickle(index)
-    assert index.equal_levels(unpickled)
-
-
-def test_pickle(indices):
-    return  # FIXME: this can't be right?
-
-    unpickled = tm.round_trip_pickle(indices)
-    assert indices.equals(unpickled)
-    original_name, indices.name = indices.name, "foo"
-    unpickled = tm.round_trip_pickle(indices)
-    assert indices.equals(unpickled)
-    indices.name = original_name
-
-
-def test_to_series(idx):
-    # assert that we are creating a copy of the index
-
-    s = idx.to_series()
-    assert s.values is not idx.values
-    assert s.index is not idx
-    assert s.name == idx.name
-
-
-def test_to_series_with_arguments(idx):
-    # GH18699
-
-    # index kwarg
-    s = idx.to_series(index=idx)
-
-    assert s.values is not idx.values
-    assert s.index is idx
-    assert s.name == idx.name
-
-    # name kwarg
-    idx = idx
-    s = idx.to_series(name="__test")
-
-    assert s.values is not idx.values
-    assert s.index is not idx
-    assert s.name != idx.name
 
 
 def test_to_flat_index(idx):

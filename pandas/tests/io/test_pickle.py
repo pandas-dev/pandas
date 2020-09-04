@@ -60,9 +60,7 @@ def compare_element(result, expected, typ, version=None):
             assert result == expected
             assert result.freq == expected.freq
     else:
-        comparator = getattr(
-            tm, "assert_{typ}_equal".format(typ=typ), tm.assert_almost_equal
-        )
+        comparator = getattr(tm, f"assert_{typ}_equal", tm.assert_almost_equal)
         comparator(result, expected)
 
 
@@ -77,7 +75,7 @@ def compare(data, vf, version):
 
             # use a specific comparator
             # if available
-            comparator = "compare_{typ}_{dt}".format(typ=typ, dt=dt)
+            comparator = f"compare_{typ}_{dt}"
 
             comparator = m.get(comparator, m["compare_element"])
             comparator(result, expected, typ, version)
@@ -185,6 +183,15 @@ def test_round_trip_current(current_pickle_data):
                     result = python_unpickler(path)
                     compare_element(result, expected, typ)
 
+                    # and the same for file objects (GH 35679)
+                    with open(path, mode="wb") as handle:
+                        writer(expected, path)
+                        handle.seek(0)  # shouldn't close file handle
+                    with open(path, mode="rb") as handle:
+                        result = pd.read_pickle(handle)
+                        handle.seek(0)  # shouldn't close file handle
+                    compare_element(result, expected, typ)
+
 
 def test_pickle_path_pathlib():
     df = tm.makeDataFrame()
@@ -233,7 +240,7 @@ def test_legacy_sparse_warning(datapath):
 
 @pytest.fixture
 def get_random_path():
-    return "__{}__.pickle".format(tm.rands(10))
+    return f"__{tm.rands(10)}__.pickle"
 
 
 class TestCompression:
@@ -261,7 +268,7 @@ class TestCompression:
         elif compression == "xz":
             f = _get_lzma_file(lzma)(dest_path, "w")
         else:
-            msg = "Unrecognized compression type: {}".format(compression)
+            msg = f"Unrecognized compression type: {compression}"
             raise ValueError(msg)
 
         if compression != "zip":
@@ -383,14 +390,23 @@ class TestProtocol:
             tm.assert_frame_equal(df, df2)
 
 
-def test_unicode_decode_error(datapath):
+@pytest.mark.parametrize(
+    ["pickle_file", "excols"],
+    [
+        ("test_py27.pkl", pd.Index(["a", "b", "c"])),
+        (
+            "test_mi_py27.pkl",
+            pd.MultiIndex.from_arrays([["a", "b", "c"], ["A", "B", "C"]]),
+        ),
+    ],
+)
+def test_unicode_decode_error(datapath, pickle_file, excols):
     # pickle file written with py27, should be readable without raising
-    #  UnicodeDecodeError, see GH#28645
-    path = datapath("io", "data", "pickle", "test_py27.pkl")
+    #  UnicodeDecodeError, see GH#28645 and GH#31988
+    path = datapath("io", "data", "pickle", pickle_file)
     df = pd.read_pickle(path)
 
     # just test the columns are correct since the values are random
-    excols = pd.Index(["a", "b", "c"])
     tm.assert_index_equal(df.columns, excols)
 
 
@@ -448,42 +464,10 @@ def test_pickle_generalurl_read(monkeypatch, mockurl):
         tm.assert_frame_equal(df, result)
 
 
-@td.skip_if_no("gcsfs")
-@pytest.mark.parametrize("mockurl", ["gs://gcs.com", "gcs://gcs.com"])
-def test_pickle_gcsurl_roundtrip(monkeypatch, mockurl):
-    with tm.ensure_clean() as path:
-
-        class MockGCSFileSystem:
-            def __init__(self, *args, **kwargs):
-                pass
-
-            def open(self, *args):
-                mode = args[1] or None
-                f = open(path, mode)
-                return f
-
-        monkeypatch.setattr("gcsfs.GCSFileSystem", MockGCSFileSystem)
-        df = tm.makeDataFrame()
-        df.to_pickle(mockurl)
-        result = pd.read_pickle(mockurl)
-        tm.assert_frame_equal(df, result)
-
-
-@td.skip_if_no("s3fs")
-@pytest.mark.parametrize("mockurl", ["s3://s3.com", "s3n://s3.com", "s3a://s3.com"])
-def test_pickle_s3url_roundtrip(monkeypatch, mockurl):
-    with tm.ensure_clean() as path:
-
-        class MockS3FileSystem:
-            def __init__(self, *args, **kwargs):
-                pass
-
-            def open(self, *args):
-                mode = args[1] or None
-                f = open(path, mode)
-                return f
-
-        monkeypatch.setattr("s3fs.S3FileSystem", MockS3FileSystem)
+@td.skip_if_no("fsspec")
+def test_pickle_fsspec_roundtrip():
+    with tm.ensure_clean():
+        mockurl = "memory://afile"
         df = tm.makeDataFrame()
         df.to_pickle(mockurl)
         result = pd.read_pickle(mockurl)

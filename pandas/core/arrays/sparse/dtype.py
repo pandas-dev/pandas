@@ -1,23 +1,28 @@
 """Sparse Dtype"""
 
 import re
-from typing import Any, Tuple
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Type
+import warnings
 
 import numpy as np
 
-from pandas._typing import Dtype
+from pandas._typing import Dtype, DtypeObj
+from pandas.errors import PerformanceWarning
 
-from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.base import ExtensionDtype, register_extension_dtype
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     is_bool_dtype,
+    is_extension_array_dtype,
     is_object_dtype,
     is_scalar,
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
+
+if TYPE_CHECKING:
+    from pandas.core.arrays.sparse.array import SparseArray  # noqa: F401
 
 
 @register_extension_dtype
@@ -137,11 +142,11 @@ class SparseDtype(ExtensionDtype):
         return isna(self.fill_value)
 
     @property
-    def _is_numeric(self):
+    def _is_numeric(self) -> bool:
         return not is_object_dtype(self.subtype)
 
     @property
-    def _is_boolean(self):
+    def _is_boolean(self) -> bool:
         return is_bool_dtype(self.subtype)
 
     @property
@@ -161,13 +166,13 @@ class SparseDtype(ExtensionDtype):
 
     @property
     def name(self):
-        return f"Sparse[{self.subtype.name}, {self.fill_value}]"
+        return f"Sparse[{self.subtype.name}, {repr(self.fill_value)}]"
 
     def __repr__(self) -> str:
         return self.name
 
     @classmethod
-    def construct_array_type(cls):
+    def construct_array_type(cls) -> Type["SparseArray"]:
         """
         Return the array type associated with this dtype.
 
@@ -175,12 +180,12 @@ class SparseDtype(ExtensionDtype):
         -------
         type
         """
-        from pandas.core.arrays.sparse.array import SparseArray
+        from pandas.core.arrays.sparse.array import SparseArray  # noqa: F811
 
         return SparseArray
 
     @classmethod
-    def construct_from_string(cls, string):
+    def construct_from_string(cls, string: str) -> "SparseDtype":
         """
         Construct a SparseDtype from a string form.
 
@@ -206,12 +211,16 @@ class SparseDtype(ExtensionDtype):
         -------
         SparseDtype
         """
+        if not isinstance(string, str):
+            raise TypeError(
+                f"'construct_from_string' expects a string, got {type(string)}"
+            )
         msg = f"Cannot construct a 'SparseDtype' from '{string}'"
         if string.startswith("Sparse"):
             try:
                 sub_type, has_fill_value = cls._parse_subtype(string)
-            except ValueError:
-                raise TypeError(msg)
+            except ValueError as err:
+                raise TypeError(msg) from err
             else:
                 result = SparseDtype(sub_type)
                 msg = (
@@ -262,7 +271,7 @@ class SparseDtype(ExtensionDtype):
         return subtype, has_fill_value
 
     @classmethod
-    def is_dtype(cls, dtype):
+    def is_dtype(cls, dtype: object) -> bool:
         dtype = getattr(dtype, "dtype", dtype)
         if isinstance(dtype, str) and dtype.startswith("Sparse"):
             sub_type, _ = cls._parse_subtype(dtype)
@@ -313,6 +322,9 @@ class SparseDtype(ExtensionDtype):
         dtype = pandas_dtype(dtype)
 
         if not isinstance(dtype, cls):
+            if is_extension_array_dtype(dtype):
+                raise TypeError("sparse arrays of extension dtypes not supported")
+
             fill_value = astype_nansafe(np.array(self.fill_value), dtype).item()
             dtype = cls(dtype, fill_value=fill_value)
 
@@ -329,7 +341,6 @@ class SparseDtype(ExtensionDtype):
 
         Returns
         -------
-
         >>> SparseDtype(int, 1)._subtype_with_str
         dtype('int64')
 
@@ -341,8 +352,34 @@ class SparseDtype(ExtensionDtype):
         dtype('O')
 
         >>> dtype._subtype_with_str
-        str
+        <class 'str'>
         """
         if isinstance(self.fill_value, str):
             return type(self.fill_value)
         return self.subtype
+
+    def _get_common_dtype(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
+        # TODO for now only handle SparseDtypes and numpy dtypes => extend
+        # with other compatibtle extension dtypes
+        if any(
+            isinstance(x, ExtensionDtype) and not isinstance(x, SparseDtype)
+            for x in dtypes
+        ):
+            return None
+
+        fill_values = [x.fill_value for x in dtypes if isinstance(x, SparseDtype)]
+        fill_value = fill_values[0]
+
+        # np.nan isn't a singleton, so we may end up with multiple
+        # NaNs here, so we ignore tha all NA case too.
+        if not (len(set(fill_values)) == 1 or isna(fill_values).all()):
+            warnings.warn(
+                "Concatenating sparse arrays with multiple fill "
+                f"values: '{fill_values}'. Picking the first and "
+                "converting the rest.",
+                PerformanceWarning,
+                stacklevel=6,
+            )
+
+        np_dtypes = [x.subtype if isinstance(x, SparseDtype) else x for x in dtypes]
+        return SparseDtype(np.find_common_type(np_dtypes, []), fill_value=fill_value)

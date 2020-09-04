@@ -54,6 +54,8 @@ class TestDataFrameToCSV:
             float_frame.to_csv(path, index=False)
 
             # test roundtrip
+            # freq does not roundtrip
+            datetime_frame.index = datetime_frame.index._with_freq(None)
             datetime_frame.to_csv(path)
             recons = self.read_csv(path)
             tm.assert_frame_equal(datetime_frame, recons)
@@ -250,9 +252,7 @@ class TestDataFrameToCSV:
             df.to_csv(pth, chunksize=chunksize)
 
             recons = self.read_csv(pth)._convert(datetime=True, coerce=True)
-            tm.assert_frame_equal(
-                df, recons, check_names=False, check_less_precise=True
-            )
+            tm.assert_frame_equal(df, recons, check_names=False)
 
     @pytest.mark.slow
     def test_to_csv_moar(self):
@@ -354,9 +354,7 @@ class TestDataFrameToCSV:
                     recons.columns = np.array(recons.columns, dtype=c_dtype)
                     df.columns = np.array(df.columns, dtype=c_dtype)
 
-            tm.assert_frame_equal(
-                df, recons, check_names=False, check_less_precise=True
-            )
+            tm.assert_frame_equal(df, recons, check_names=False)
 
         N = 100
         chunksize = 1000
@@ -572,7 +570,8 @@ class TestDataFrameToCSV:
             from_df.to_csv(path, index=False, header=["X", "Y"])
             recons = self.read_csv(path)
 
-            recons.reset_index(inplace=True)
+            return_value = recons.reset_index(inplace=True)
+            assert return_value is None
             tm.assert_frame_equal(to_df, recons)
 
     def test_to_csv_multiindex(self, float_frame, datetime_frame):
@@ -687,7 +686,7 @@ class TestDataFrameToCSV:
             df.to_csv(path)
 
             for i in [6, 7]:
-                msg = "len of {i}, but only 5 lines in file".format(i=i)
+                msg = f"len of {i}, but only 5 lines in file"
                 with pytest.raises(ParserError, match=msg):
                     read_csv(path, header=list(range(i)), index_col=0)
 
@@ -744,7 +743,7 @@ class TestDataFrameToCSV:
 
     def test_to_csv_mixed(self):
         def create_cols(name):
-            return ["{name}{i:03d}".format(name=name, i=i) for i in range(5)]
+            return [f"{name}{i:03d}" for i in range(5)]
 
         df_float = DataFrame(
             np.random.randn(100, 5), dtype="float64", columns=create_cols("float")
@@ -761,7 +760,7 @@ class TestDataFrameToCSV:
         )
 
         # add in some nans
-        df_float.loc[30:50, 1:3] = np.nan
+        df_float.iloc[30:50, 1:3] = np.nan
 
         # ## this is a bug in read_csv right now ####
         # df_dt.loc[30:50,1:3] = np.nan
@@ -773,8 +772,8 @@ class TestDataFrameToCSV:
         for n, dtype in [
             ("float", np.float64),
             ("int", np.int64),
-            ("bool", np.bool),
-            ("object", np.object),
+            ("bool", np.bool_),
+            ("object", object),
         ]:
             for c in create_cols(n):
                 dtypes[c] = dtype
@@ -1161,6 +1160,7 @@ class TestDataFrameToCSV:
             )
 
             for i in [times, times + pd.Timedelta("10s")]:
+                i = i._with_freq(None)  # freq is not preserved by read_csv
                 time_range = np.array(range(len(i)), dtype="int64")
                 df = DataFrame({"A": time_range}, index=i)
                 df.to_csv(path, index=True)
@@ -1174,6 +1174,8 @@ class TestDataFrameToCSV:
 
         # GH11619
         idx = pd.date_range("2015-01-01", "2015-12-31", freq="H", tz="Europe/Paris")
+        idx = idx._with_freq(None)  # freq does not round-trip
+        idx._data._freq = None  # otherwise there is trouble on unpickle
         df = DataFrame({"values": 1, "idx": idx}, index=idx)
         with tm.ensure_clean("csv_date_format_with_dst") as path:
             df.to_csv(path, index=True)
@@ -1356,3 +1358,12 @@ class TestDataFrameToCSV:
                 result = f.read().decode("utf-8")
 
         assert result == expected
+
+    def test_to_csv_numpy_16_bug(self):
+        frame = DataFrame({"a": date_range("1/1/2000", periods=10)})
+
+        buf = StringIO()
+        frame.to_csv(buf)
+
+        result = buf.getvalue()
+        assert "2000-01-01" in result

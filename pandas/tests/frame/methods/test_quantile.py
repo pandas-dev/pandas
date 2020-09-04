@@ -7,14 +7,29 @@ import pandas._testing as tm
 
 
 class TestDataFrameQuantile:
-    def test_quantile_sparse(self):
+    @pytest.mark.parametrize(
+        "df,expected",
+        [
+            [
+                pd.DataFrame(
+                    {
+                        0: pd.Series(pd.arrays.SparseArray([1, 2])),
+                        1: pd.Series(pd.arrays.SparseArray([3, 4])),
+                    }
+                ),
+                pd.Series([1.5, 3.5], name=0.5),
+            ],
+            [
+                pd.DataFrame(pd.Series([0.0, None, 1.0, 2.0], dtype="Sparse[float]")),
+                pd.Series([1.0], name=0.5),
+            ],
+        ],
+    )
+    def test_quantile_sparse(self, df, expected):
         # GH#17198
-        s = pd.Series(pd.arrays.SparseArray([1, 2]))
-        s1 = pd.Series(pd.arrays.SparseArray([3, 4]))
-        df = pd.DataFrame({0: s, 1: s1})
+        # GH#24600
         result = df.quantile()
 
-        expected = pd.Series([1.5, 3.5], name=0.5)
         tm.assert_series_equal(result, expected)
 
     def test_quantile(self, datetime_frame):
@@ -59,6 +74,20 @@ class TestDataFrameQuantile:
         expected = Series([3.0, 4.0], index=[0, 1], name=0.5)
         tm.assert_series_equal(result, expected)
 
+    def test_quantile_date_range(self):
+        # GH 2460
+
+        dti = pd.date_range("2016-01-01", periods=3, tz="US/Pacific")
+        ser = pd.Series(dti)
+        df = pd.DataFrame(ser)
+
+        result = df.quantile(numeric_only=False)
+        expected = pd.Series(
+            ["2016-01-02 00:00:00"], name=0.5, dtype="datetime64[ns, US/Pacific]"
+        )
+
+        tm.assert_series_equal(result, expected)
+
     def test_quantile_axis_mixed(self):
 
         # mixed on axis=1
@@ -75,7 +104,8 @@ class TestDataFrameQuantile:
         tm.assert_series_equal(result, expected)
 
         # must raise
-        with pytest.raises(TypeError):
+        msg = "'<' not supported between instances of 'Timestamp' and 'float'"
+        with pytest.raises(TypeError, match=msg):
             df.quantile(0.5, axis=1, numeric_only=False)
 
     def test_quantile_axis_parameter(self):
@@ -99,13 +129,10 @@ class TestDataFrameQuantile:
         result = df.quantile(0.5, axis="columns")
         tm.assert_series_equal(result, expected)
 
-        msg = "No axis named -1 for object type <class 'pandas.core.frame.DataFrame'>"
+        msg = "No axis named -1 for object type DataFrame"
         with pytest.raises(ValueError, match=msg):
             df.quantile(0.1, axis=-1)
-        msg = (
-            "No axis named column for object type "
-            "<class 'pandas.core.frame.DataFrame'>"
-        )
+        msg = "No axis named column for object type DataFrame"
         with pytest.raises(ValueError, match=msg):
             df.quantile(0.1, axis="column")
 

@@ -220,7 +220,8 @@ def test_metadata_immutable(idx):
 def test_level_setting_resets_attributes():
     ind = pd.MultiIndex.from_arrays([["A", "A", "B", "B", "B"], [1, 2, 1, 2, 3]])
     assert ind.is_monotonic
-    ind.set_levels([["A", "B"], [1, 3, 2]], inplace=True)
+    with tm.assert_produces_warning(FutureWarning):
+        ind.set_levels([["A", "B"], [1, 3, 2]], inplace=True)
     # if this fails, probably didn't reset the cache correctly.
     assert not ind.is_monotonic
 
@@ -248,25 +249,6 @@ def test_rangeindex_fallback_coercion_bug():
     result = df.index.get_level_values("buzz")
     expected = pd.Int64Index(np.tile(np.arange(10), 10), name="buzz")
     tm.assert_index_equal(result, expected)
-
-
-def test_hash_error(indices):
-    index = indices
-    with pytest.raises(TypeError, match=f"unhashable type: '{type(index).__name__}'"):
-        hash(indices)
-
-
-def test_mutability(indices):
-    if not len(indices):
-        return
-    msg = "Index does not support mutable operations"
-    with pytest.raises(TypeError, match=msg):
-        indices[0] = indices[0]
-
-
-def test_wrong_number_names(indices):
-    with pytest.raises(ValueError, match="^Length"):
-        indices.names = ["apple", "banana", "carrot"]
 
 
 def test_memory_usage(idx):

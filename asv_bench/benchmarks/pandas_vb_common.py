@@ -33,7 +33,7 @@ numeric_dtypes = [
     np.uint8,
 ]
 datetime_dtypes = [np.datetime64, np.timedelta64]
-string_dtypes = [np.object]
+string_dtypes = [object]
 try:
     extension_dtypes = [
         pd.Int8Dtype,
@@ -56,7 +56,7 @@ except AttributeError:
 def setup(*args, **kwargs):
     # This function just needs to be imported into each benchmark file to
     # set up the random seed before each function.
-    # http://asv.readthedocs.io/en/latest/writing_benchmarks.html
+    # https://asv.readthedocs.io/en/latest/writing_benchmarks.html
     np.random.seed(1234)
 
 

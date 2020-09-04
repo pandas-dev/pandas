@@ -260,7 +260,7 @@ def test_fwf_regression():
     # Turns out "T060" is parsable as a datetime slice!
     tz_list = [1, 10, 20, 30, 60, 80, 100]
     widths = [16] + [8] * len(tz_list)
-    names = ["SST"] + ["T{z:03d}".format(z=z) for z in tz_list[1:]]
+    names = ["SST"] + [f"T{z:03d}" for z in tz_list[1:]]
 
     data = """  2009164202000   9.5403  9.4105  8.6571  7.8372  6.0612  5.8843  5.5192
 2009164203000   9.5435  9.2010  8.6167  7.8176  6.0804  5.8728  5.4869

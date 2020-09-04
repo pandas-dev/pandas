@@ -1,7 +1,5 @@
 from pandas._libs.tslibs.util cimport *
 
-from cython cimport Py_ssize_t
-
 cimport numpy as cnp
 from numpy cimport ndarray
 
@@ -51,49 +49,3 @@ cdef inline void set_array_not_contiguous(ndarray ao) nogil:
     PyArray_CLEARFLAGS(ao,
                        (NPY_ARRAY_C_CONTIGUOUS | NPY_ARRAY_F_CONTIGUOUS))
 
-
-cdef inline Py_ssize_t validate_indexer(ndarray arr, object loc) except -1:
-    """
-    Cast the given indexer `loc` to an integer.  If it is negative, i.e. a
-    python-style indexing-from-the-end indexer, translate it to a
-    from-the-front indexer.  Raise if this is not possible.
-
-    Parameters
-    ----------
-    arr : ndarray
-    loc : object
-
-    Returns
-    -------
-    idx : Py_ssize_t
-
-    Raises
-    ------
-    IndexError
-    """
-    cdef:
-        Py_ssize_t idx, size
-        int casted
-
-    if is_float_object(loc):
-        casted = int(loc)
-        if casted == loc:
-            loc = casted
-
-    idx = <Py_ssize_t>loc
-    size = cnp.PyArray_SIZE(arr)
-
-    if idx < 0 and size > 0:
-        idx += size
-    if idx >= size or size == 0 or idx < 0:
-        raise IndexError('index out of bounds')
-
-    return idx
-
-
-cdef inline object get_value_at(ndarray arr, object loc):
-    cdef:
-        Py_ssize_t i
-
-    i = validate_indexer(arr, loc)
-    return arr[i]

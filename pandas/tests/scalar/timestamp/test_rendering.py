@@ -17,7 +17,7 @@ class TestTimestampRendering:
     )
     def test_repr(self, date, freq, tz):
         # avoid to match with timezone name
-        freq_repr = "'{0}'".format(freq)
+        freq_repr = f"'{freq}'"
         if tz.startswith("dateutil"):
             tz_repr = tz.replace("dateutil", "")
         else:
@@ -85,3 +85,13 @@ class TestTimestampRendering:
          {'w': {'a': Timestamp('2011-01-01 00:00:00')}}],
  'foo': 1}"""
         assert result == expected
+
+    def test_to_timestamp_repr_is_code(self):
+        zs = [
+            Timestamp("99-04-17 00:00:00", tz="UTC"),
+            Timestamp("2001-04-17 00:00:00", tz="UTC"),
+            Timestamp("2001-04-17 00:00:00", tz="America/Los_Angeles"),
+            Timestamp("2001-04-17 00:00:00", tz=None),
+        ]
+        for z in zs:
+            assert eval(repr(z)) == z

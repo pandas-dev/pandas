@@ -5,7 +5,8 @@ _VT = TypeVar("_VT")
 
 
 class DeepChainMap(ChainMap[_KT, _VT]):
-    """Variant of ChainMap that allows direct updates to inner scopes.
+    """
+    Variant of ChainMap that allows direct updates to inner scopes.
 
     Only works when all passed mapping are mutable.
     """

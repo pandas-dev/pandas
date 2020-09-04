@@ -5,9 +5,61 @@ import numpy as np
 import pytest
 
 from pandas import Timestamp
+import pandas._testing as tm
 
 
 class TestTimestampComparison:
+    def test_comparison_dt64_ndarray(self):
+        ts = Timestamp.now()
+        ts2 = Timestamp("2019-04-05")
+        arr = np.array([[ts.asm8, ts2.asm8]], dtype="M8[ns]")
+
+        result = ts == arr
+        expected = np.array([[True, False]], dtype=bool)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = arr == ts
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = ts != arr
+        tm.assert_numpy_array_equal(result, ~expected)
+
+        result = arr != ts
+        tm.assert_numpy_array_equal(result, ~expected)
+
+        result = ts2 < arr
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = arr < ts2
+        tm.assert_numpy_array_equal(result, np.array([[False, False]], dtype=bool))
+
+        result = ts2 <= arr
+        tm.assert_numpy_array_equal(result, np.array([[True, True]], dtype=bool))
+
+        result = arr <= ts2
+        tm.assert_numpy_array_equal(result, ~expected)
+
+        result = ts >= arr
+        tm.assert_numpy_array_equal(result, np.array([[True, True]], dtype=bool))
+
+        result = arr >= ts
+        tm.assert_numpy_array_equal(result, np.array([[True, False]], dtype=bool))
+
+    @pytest.mark.parametrize("reverse", [True, False])
+    def test_comparison_dt64_ndarray_tzaware(self, reverse, all_compare_operators):
+        op = getattr(operator, all_compare_operators.strip("__"))
+
+        ts = Timestamp.now("UTC")
+        arr = np.array([ts.asm8, ts.asm8], dtype="M8[ns]")
+
+        left, right = ts, arr
+        if reverse:
+            left, right = arr, ts
+
+        msg = "Cannot compare tz-naive and tz-aware timestamps"
+        with pytest.raises(TypeError, match=msg):
+            op(left, right)
+
     def test_comparison_object_array(self):
         # GH#15183
         ts = Timestamp("2011-01-03 00:00:00-0500", tz="US/Eastern")
@@ -28,7 +80,8 @@ class TestTimestampComparison:
 
         # tzaware mismatch
         arr = np.array([naive], dtype=object)
-        with pytest.raises(TypeError):
+        msg = "Cannot compare tz-naive and tz-aware timestamps"
+        with pytest.raises(TypeError, match=msg):
             arr < ts
 
     def test_comparison(self):
@@ -85,30 +138,31 @@ class TestTimestampComparison:
         a = Timestamp("3/12/2012")
         b = Timestamp("3/12/2012", tz=utc_fixture)
 
-        with pytest.raises(TypeError):
+        msg = "Cannot compare tz-naive and tz-aware timestamps"
+        with pytest.raises(TypeError, match=msg):
             a == b
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             a != b
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             a < b
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             a <= b
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             a > b
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             a >= b
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             b == a
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             b != a
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             b < a
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             b <= a
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             b > a
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             b >= a
 
         assert not a == b.to_pydatetime()
@@ -157,9 +211,9 @@ class TestTimestampComparison:
         assert arr.ndim == 0
 
         result = arr < ts
-        assert result is True
+        assert result is np.bool_(True)
         result = arr > ts
-        assert result is False
+        assert result is np.bool_(False)
 
 
 def test_rich_comparison_with_unsupported_type():

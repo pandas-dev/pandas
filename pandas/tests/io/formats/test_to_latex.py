@@ -117,10 +117,10 @@ Index: Index([], dtype='object') \\
 
         formatters = {
             "datetime64": lambda x: x.strftime("%Y-%m"),
-            "float": lambda x: "[{x: 4.1f}]".format(x=x),
-            "int": lambda x: "0x{x:x}".format(x=x),
-            "object": lambda x: "-{x!s}-".format(x=x),
-            "__index__": lambda x: "index: {x}".format(x=x),
+            "float": lambda x: f"[{x: 4.1f}]",
+            "int": lambda x: f"0x{x:x}",
+            "object": lambda x: f"-{x!s}-",
+            "__index__": lambda x: f"index: {x}",
         }
         result = df.to_latex(formatters=dict(formatters))
 
@@ -555,7 +555,8 @@ b &       b &     b \\
         result_cl = df.to_latex(longtable=True, caption=the_caption, label=the_label)
 
         expected_cl = r"""\begin{longtable}{lrl}
-\caption{a table in a \texttt{longtable} environment}\label{tab:longtable}\\
+\caption{a table in a \texttt{longtable} environment}
+\label{tab:longtable}\\
 \toprule
 {} &  a &   b \\
 \midrule
@@ -572,6 +573,54 @@ b &       b &     b \\
 \end{longtable}
 """
         assert result_cl == expected_cl
+
+    def test_to_latex_position(self):
+        the_position = "h"
+
+        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+
+        # test when only the position is provided
+        result_p = df.to_latex(position=the_position)
+
+        expected_p = r"""\begin{table}[h]
+\centering
+\begin{tabular}{lrl}
+\toprule
+{} &  a &   b \\
+\midrule
+0 &  1 &  b1 \\
+1 &  2 &  b2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+"""
+        assert result_p == expected_p
+
+    def test_to_latex_longtable_position(self):
+        the_position = "t"
+
+        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+
+        # test when only the position is provided
+        result_p = df.to_latex(longtable=True, position=the_position)
+
+        expected_p = r"""\begin{longtable}[t]{lrl}
+\toprule
+{} &  a &   b \\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r}{{Continued on next page}} \\
+\midrule
+\endfoot
+
+\bottomrule
+\endlastfoot
+0 &  1 &  b1 \\
+1 &  2 &  b2 \\
+\end{longtable}
+"""
+        assert result_p == expected_p
 
     def test_to_latex_escape_special_chars(self):
         special_characters = ["&", "%", "$", "#", "_", "{", "}", "~", "^", "\\"]
@@ -664,7 +713,8 @@ AA &  BB \\
 
         assert withoutescape_result == withoutescape_expected
 
-        with pytest.raises(ValueError):
+        msg = "Writing 2 cols but got 1 aliases"
+        with pytest.raises(ValueError, match=msg):
             df.to_latex(header=["A"])
 
     def test_to_latex_decimal(self, float_frame):
@@ -744,9 +794,7 @@ AA &  BB \\
 
         idx_names = tuple(n or "{}" for n in names)
         idx_names_row = (
-            "{idx_names[0]} & {idx_names[1]} &    &    &    &    \\\\\n".format(
-                idx_names=idx_names
-            )
+            f"{idx_names[0]} & {idx_names[1]} &    &    &    &    \\\\\n"
             if (0 in axes and any(names))
             else ""
         )

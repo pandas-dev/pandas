@@ -31,11 +31,6 @@ class TestSparseArrayArithmetics:
 
     def _check_numeric_ops(self, a, b, a_dense, b_dense, mix, op):
         with np.errstate(invalid="ignore", divide="ignore"):
-            if op in [operator.floordiv, ops.rfloordiv]:
-                # FIXME: GH#13843
-                if self._base == pd.Series and a.dtype.subtype == np.dtype("int64"):
-                    pytest.xfail("Not defined/working.  See GH#13843")
-
             if mix:
                 result = op(a, b_dense).to_dense()
             else:
@@ -58,7 +53,7 @@ class TestSparseArrayArithmetics:
     def _check_bool_result(self, res):
         assert isinstance(res, self._klass)
         assert isinstance(res.dtype, SparseDtype)
-        assert res.dtype.subtype == np.bool
+        assert res.dtype.subtype == np.bool_
         assert isinstance(res.fill_value, bool)
 
     def _check_comparison_ops(self, a, b, a_dense, b_dense):
@@ -311,22 +306,22 @@ class TestSparseArrayArithmetics:
     def test_bool_same_index(self, kind, fill_value):
         # GH 14000
         # when sp_index are the same
-        values = self._base([True, False, True, True], dtype=np.bool)
-        rvalues = self._base([True, False, True, True], dtype=np.bool)
+        values = self._base([True, False, True, True], dtype=np.bool_)
+        rvalues = self._base([True, False, True, True], dtype=np.bool_)
 
-        a = self._klass(values, kind=kind, dtype=np.bool, fill_value=fill_value)
-        b = self._klass(rvalues, kind=kind, dtype=np.bool, fill_value=fill_value)
+        a = self._klass(values, kind=kind, dtype=np.bool_, fill_value=fill_value)
+        b = self._klass(rvalues, kind=kind, dtype=np.bool_, fill_value=fill_value)
         self._check_logical_ops(a, b, values, rvalues)
 
     @pytest.mark.parametrize("fill_value", [True, False, np.nan])
     def test_bool_array_logical(self, kind, fill_value):
         # GH 14000
         # when sp_index are the same
-        values = self._base([True, False, True, False, True, True], dtype=np.bool)
-        rvalues = self._base([True, False, False, True, False, True], dtype=np.bool)
+        values = self._base([True, False, True, False, True, True], dtype=np.bool_)
+        rvalues = self._base([True, False, False, True, False, True], dtype=np.bool_)
 
-        a = self._klass(values, kind=kind, dtype=np.bool, fill_value=fill_value)
-        b = self._klass(rvalues, kind=kind, dtype=np.bool, fill_value=fill_value)
+        a = self._klass(values, kind=kind, dtype=np.bool_, fill_value=fill_value)
+        b = self._klass(rvalues, kind=kind, dtype=np.bool_, fill_value=fill_value)
         self._check_logical_ops(a, b, values, rvalues)
 
     def test_mixed_array_float_int(self, kind, mix, all_arithmetic_functions):
@@ -387,6 +382,14 @@ class TestSparseArrayArithmetics:
         b = self._klass(rvalues, kind=kind, fill_value=2)
         assert b.dtype == SparseDtype(rdtype, fill_value=2)
         self._check_comparison_ops(a, b, values, rvalues)
+
+    def test_xor(self):
+        s = SparseArray([True, True, False, False])
+        t = SparseArray([True, False, True, False])
+        result = s ^ t
+        sp_index = pd.core.arrays.sparse.IntIndex(4, np.array([0, 1, 2], dtype="int32"))
+        expected = SparseArray([False, True, True], sparse_index=sp_index)
+        tm.assert_sp_array_equal(result, expected)
 
 
 @pytest.mark.parametrize("op", [operator.eq, operator.add])
@@ -467,6 +470,14 @@ def test_invert(fill_value):
     result = ~sparray
     expected = SparseArray(~arr, fill_value=not fill_value)
     tm.assert_sp_array_equal(result, expected)
+
+    result = ~pd.Series(sparray)
+    expected = pd.Series(expected)
+    tm.assert_series_equal(result, expected)
+
+    result = ~pd.DataFrame({"A": sparray})
+    expected = pd.DataFrame({"A": expected})
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("fill_value", [0, np.nan])

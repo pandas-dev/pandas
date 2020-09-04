@@ -1,4 +1,5 @@
-"""Rudimentary Apache Arrow-backed ExtensionArray.
+"""
+Rudimentary Apache Arrow-backed ExtensionArray.
 
 At the moment, just a boolean array / type is implemented.
 Eventually, we'll want to parametrize the type and support
@@ -7,6 +8,8 @@ current implementation is not efficient.
 """
 import copy
 import itertools
+import operator
+from typing import Type
 
 import numpy as np
 import pyarrow as pa
@@ -29,14 +32,7 @@ class ArrowBoolDtype(ExtensionDtype):
     na_value = pa.NULL
 
     @classmethod
-    def construct_from_string(cls, string):
-        if string == cls.name:
-            return cls()
-        else:
-            raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
-
-    @classmethod
-    def construct_array_type(cls):
+    def construct_array_type(cls) -> Type["ArrowBoolArray"]:
         """
         Return the array type associated with this dtype.
 
@@ -46,7 +42,8 @@ class ArrowBoolDtype(ExtensionDtype):
         """
         return ArrowBoolArray
 
-    def _is_boolean(self):
+    @property
+    def _is_boolean(self) -> bool:
         return True
 
 
@@ -59,14 +56,7 @@ class ArrowStringDtype(ExtensionDtype):
     na_value = pa.NULL
 
     @classmethod
-    def construct_from_string(cls, string):
-        if string == cls.name:
-            return cls()
-        else:
-            raise TypeError(f"Cannot construct a '{cls}' from '{string}'")
-
-    @classmethod
-    def construct_array_type(cls):
+    def construct_array_type(cls) -> Type["ArrowStringArray"]:
         """
         Return the array type associated with this dtype.
 
@@ -117,6 +107,27 @@ class ArrowExtensionArray(ExtensionArray):
     def dtype(self):
         return self._dtype
 
+    def _boolean_op(self, other, op):
+        if not isinstance(other, type(self)):
+            raise NotImplementedError()
+
+        result = op(np.array(self._data), np.array(other._data))
+        return ArrowBoolArray(
+            pa.chunked_array([pa.array(result, mask=pd.isna(self._data.to_pandas()))])
+        )
+
+    def __eq__(self, other):
+        if not isinstance(other, type(self)):
+            return False
+
+        return self._boolean_op(other, operator.eq)
+
+    def __and__(self, other):
+        return self._boolean_op(other, operator.and_)
+
+    def __or__(self, other):
+        return self._boolean_op(other, operator.or_)
+
     @property
     def nbytes(self):
         return sum(
@@ -151,23 +162,25 @@ class ArrowExtensionArray(ExtensionArray):
     def __invert__(self):
         return type(self).from_scalars(~self._data.to_pandas())
 
-    def _reduce(self, method, skipna=True, **kwargs):
+    def _reduce(self, name: str, skipna: bool = True, **kwargs):
         if skipna:
             arr = self[~self.isna()]
         else:
             arr = self
 
         try:
-            op = getattr(arr, method)
-        except AttributeError:
-            raise TypeError
+            op = getattr(arr, name)
+        except AttributeError as err:
+            raise TypeError from err
         return op(**kwargs)
 
     def any(self, axis=0, out=None):
-        return self._data.to_pandas().any()
+        # Explicitly return a plain bool to reproduce GH-34660
+        return bool(self._data.to_pandas().any())
 
     def all(self, axis=0, out=None):
-        return self._data.to_pandas().all()
+        # Explicitly return a plain bool to reproduce GH-34660
+        return bool(self._data.to_pandas().all())
 
 
 class ArrowBoolArray(ArrowExtensionArray):

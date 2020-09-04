@@ -30,6 +30,7 @@ def read_gbq(
     configuration: Optional[Dict[str, Any]] = None,
     credentials=None,
     use_bqstorage_api: Optional[bool] = None,
+    max_results: Optional[int] = None,
     private_key=None,
     verbose=None,
     progress_bar_type: Optional[str] = None,
@@ -64,9 +65,9 @@ def read_gbq(
         when getting user credentials.
 
         .. _local webserver flow:
-            http://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_local_server
+            https://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_local_server
         .. _console flow:
-            http://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_console
+            https://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_console
 
         *New in version 0.2.0 of pandas-gbq*.
     dialect : str, default 'legacy'
@@ -125,6 +126,13 @@ def read_gbq(
         ``fastavro`` packages.
 
         .. versionadded:: 0.25.0
+    max_results : int, optional
+        If set, limit the maximum number of rows to fetch from the query
+        results.
+
+        *New in version 0.12.0 of pandas-gbq*.
+
+        .. versionadded:: 1.1.0
     progress_bar_type : Optional, str
         If set, use the `tqdm <https://tqdm.github.io/>`__ library to
         display a progress bar while the data downloads. Install the
@@ -162,14 +170,15 @@ def read_gbq(
     """
     pandas_gbq = _try_import()
 
-    kwargs: Dict[str, Union[str, bool]] = {}
+    kwargs: Dict[str, Union[str, bool, int, None]] = {}
 
     # START: new kwargs.  Don't populate unless explicitly set.
     if use_bqstorage_api is not None:
         kwargs["use_bqstorage_api"] = use_bqstorage_api
+    if max_results is not None:
+        kwargs["max_results"] = max_results
 
-    if progress_bar_type is not None:
-        kwargs["progress_bar_type"] = progress_bar_type
+    kwargs["progress_bar_type"] = progress_bar_type
     # END: new kwargs
 
     return pandas_gbq.read_gbq(

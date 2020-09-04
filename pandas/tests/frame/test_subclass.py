@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
 import pandas._testing as tm
@@ -163,12 +165,14 @@ class TestDataFrameSubclassing:
 
         # frame + series
         res1, res2 = df.align(s, axis=0)
-        exp1 = pd.DataFrame(
+        exp1 = tm.SubclassedDataFrame(
             {"a": [1, np.nan, 3, np.nan, 5], "b": [1, np.nan, 3, np.nan, 5]},
             index=list("ABCDE"),
         )
         # name is lost when
-        exp2 = pd.Series([1, 2, np.nan, 4, np.nan], index=list("ABCDE"), name="x")
+        exp2 = tm.SubclassedSeries(
+            [1, 2, np.nan, 4, np.nan], index=list("ABCDE"), name="x"
+        )
 
         assert isinstance(res1, tm.SubclassedDataFrame)
         tm.assert_frame_equal(res1, exp1)
@@ -557,3 +561,146 @@ class TestDataFrameSubclassing:
         result = df.apply(lambda x: [1, 2, 3], axis=1)
         assert not isinstance(result, tm.SubclassedDataFrame)
         tm.assert_series_equal(result, expected)
+
+    def test_subclassed_reductions(self, all_reductions):
+        # GH 25596
+
+        df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
+        result = getattr(df, all_reductions)()
+        assert isinstance(result, tm.SubclassedSeries)
+
+    def test_subclassed_count(self):
+
+        df = tm.SubclassedDataFrame(
+            {
+                "Person": ["John", "Myla", "Lewis", "John", "Myla"],
+                "Age": [24.0, np.nan, 21.0, 33, 26],
+                "Single": [False, True, True, True, False],
+            }
+        )
+        result = df.count()
+        assert isinstance(result, tm.SubclassedSeries)
+
+        df = tm.SubclassedDataFrame({"A": [1, 0, 3], "B": [0, 5, 6], "C": [7, 8, 0]})
+        result = df.count()
+        assert isinstance(result, tm.SubclassedSeries)
+
+        df = tm.SubclassedDataFrame(
+            [[10, 11, 12, 13], [20, 21, 22, 23], [30, 31, 32, 33], [40, 41, 42, 43]],
+            index=MultiIndex.from_tuples(
+                list(zip(list("AABB"), list("cdcd"))), names=["aaa", "ccc"]
+            ),
+            columns=MultiIndex.from_tuples(
+                list(zip(list("WWXX"), list("yzyz"))), names=["www", "yyy"]
+            ),
+        )
+        result = df.count(level=1)
+        assert isinstance(result, tm.SubclassedDataFrame)
+
+        df = tm.SubclassedDataFrame()
+        result = df.count()
+        assert isinstance(result, tm.SubclassedSeries)
+
+    def test_isin(self):
+
+        df = tm.SubclassedDataFrame(
+            {"num_legs": [2, 4], "num_wings": [2, 0]}, index=["falcon", "dog"]
+        )
+        result = df.isin([0, 2])
+        assert isinstance(result, tm.SubclassedDataFrame)
+
+    def test_duplicated(self):
+
+        df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
+        result = df.duplicated()
+        assert isinstance(result, tm.SubclassedSeries)
+
+        df = tm.SubclassedDataFrame()
+        result = df.duplicated()
+        assert isinstance(result, tm.SubclassedSeries)
+
+    @pytest.mark.parametrize("idx_method", ["idxmax", "idxmin"])
+    def test_idx(self, idx_method):
+
+        df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
+        result = getattr(df, idx_method)()
+        assert isinstance(result, tm.SubclassedSeries)
+
+    def test_dot(self):
+
+        df = tm.SubclassedDataFrame([[0, 1, -2, -1], [1, 1, 1, 1]])
+        s = tm.SubclassedSeries([1, 1, 2, 1])
+        result = df.dot(s)
+        assert isinstance(result, tm.SubclassedSeries)
+
+        df = tm.SubclassedDataFrame([[0, 1, -2, -1], [1, 1, 1, 1]])
+        s = tm.SubclassedDataFrame([1, 1, 2, 1])
+        result = df.dot(s)
+        assert isinstance(result, tm.SubclassedDataFrame)
+
+    def test_memory_usage(self):
+
+        df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
+        result = df.memory_usage()
+        assert isinstance(result, tm.SubclassedSeries)
+
+        result = df.memory_usage(index=False)
+        assert isinstance(result, tm.SubclassedSeries)
+
+    @td.skip_if_no_scipy
+    def test_corrwith(self):
+        index = ["a", "b", "c", "d", "e"]
+        columns = ["one", "two", "three", "four"]
+        df1 = tm.SubclassedDataFrame(
+            np.random.randn(5, 4), index=index, columns=columns
+        )
+        df2 = tm.SubclassedDataFrame(
+            np.random.randn(4, 4), index=index[:4], columns=columns
+        )
+        correls = df1.corrwith(df2, axis=1, drop=True, method="kendall")
+
+        assert isinstance(correls, (tm.SubclassedSeries))
+
+    def test_asof(self):
+
+        N = 3
+        rng = pd.date_range("1/1/1990", periods=N, freq="53s")
+        df = tm.SubclassedDataFrame(
+            {
+                "A": [np.nan, np.nan, np.nan],
+                "B": [np.nan, np.nan, np.nan],
+                "C": [np.nan, np.nan, np.nan],
+            },
+            index=rng,
+        )
+
+        result = df.asof(rng[-2:])
+        assert isinstance(result, tm.SubclassedDataFrame)
+
+        result = df.asof(rng[-2])
+        assert isinstance(result, tm.SubclassedSeries)
+
+        result = df.asof("1989-12-31")
+        assert isinstance(result, tm.SubclassedSeries)
+
+    def test_idxmin_preserves_subclass(self):
+        # GH 28330
+
+        df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
+        result = df.idxmin()
+        assert isinstance(result, tm.SubclassedSeries)
+
+    def test_idxmax_preserves_subclass(self):
+        # GH 28330
+
+        df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
+        result = df.idxmax()
+        assert isinstance(result, tm.SubclassedSeries)
+
+    def test_equals_subclass(self):
+        # https://github.com/pandas-dev/pandas/pull/34402
+        # allow subclass in both directions
+        df1 = pd.DataFrame({"a": [1, 2, 3]})
+        df2 = tm.SubclassedDataFrame({"a": [1, 2, 3]})
+        assert df1.equals(df2)
+        assert df2.equals(df1)

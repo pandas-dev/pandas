@@ -38,6 +38,7 @@ class LatexFormatter(TableFormatter):
         multirow: bool = False,
         caption: Optional[str] = None,
         label: Optional[str] = None,
+        position: Optional[str] = None,
     ):
         self.fmt = formatter
         self.frame = self.fmt.frame
@@ -50,19 +51,20 @@ class LatexFormatter(TableFormatter):
         self.caption = caption
         self.label = label
         self.escape = self.fmt.escape
+        self.position = position
+        self._table_float = any(p is not None for p in (caption, label, position))
 
     def write_result(self, buf: IO[str]) -> None:
         """
         Render a DataFrame to a LaTeX tabular, longtable, or table/tabular
         environment output.
         """
-
         # string representation of the columns
         if len(self.frame.columns) == 0 or len(self.frame.index) == 0:
-            info_line = "Empty {name}\nColumns: {col}\nIndex: {idx}".format(
-                name=type(self.frame).__name__,
-                col=self.frame.columns,
-                idx=self.frame.index,
+            info_line = (
+                f"Empty {type(self.frame).__name__}\n"
+                f"Columns: {self.frame.columns}\n"
+                f"Index: {self.frame.index}"
             )
             strcols = [[info_line]]
         else:
@@ -119,10 +121,7 @@ class LatexFormatter(TableFormatter):
         else:
             column_format = self.column_format
 
-        if self.longtable:
-            self._write_longtable_begin(buf, column_format)
-        else:
-            self._write_tabular_begin(buf, column_format)
+        self._write_tabular_begin(buf, column_format)
 
         buf.write("\\toprule\n")
 
@@ -141,8 +140,8 @@ class LatexFormatter(TableFormatter):
                     buf.write("\\endhead\n")
                     buf.write("\\midrule\n")
                     buf.write(
-                        "\\multicolumn{{{n}}}{{r}}{{{{Continued on next "
-                        "page}}}} \\\\\n".format(n=len(row))
+                        f"\\multicolumn{{{len(row)}}}{{r}}"
+                        "{{Continued on next page}} \\\\\n"
                     )
                     buf.write("\\midrule\n")
                     buf.write("\\endfoot\n\n")
@@ -172,7 +171,7 @@ class LatexFormatter(TableFormatter):
             if self.bold_rows and self.fmt.index:
                 # bold row labels
                 crow = [
-                    "\\textbf{{{x}}}".format(x=x)
+                    f"\\textbf{{{x}}}"
                     if j < ilevels and x.strip() not in ["", "{}"]
                     else x
                     for j, x in enumerate(crow)
@@ -188,10 +187,7 @@ class LatexFormatter(TableFormatter):
             if self.multirow and i < len(strrows) - 1:
                 self._print_cline(buf, i, len(strcols))
 
-        if self.longtable:
-            self._write_longtable_end(buf)
-        else:
-            self._write_tabular_end(buf)
+        self._write_tabular_end(buf)
 
     def _format_multicolumn(self, row: List[str], ilevels: int) -> List[str]:
         r"""
@@ -211,9 +207,8 @@ class LatexFormatter(TableFormatter):
             # write multicolumn if needed
             if ncol > 1:
                 row2.append(
-                    "\\multicolumn{{{ncol:d}}}{{{fmt:s}}}{{{txt:s}}}".format(
-                        ncol=ncol, fmt=self.multicolumn_format, txt=coltext.strip()
-                    )
+                    f"\\multicolumn{{{ncol:d}}}{{{self.multicolumn_format}}}"
+                    f"{{{coltext.strip()}}}"
                 )
             # don't modify where not needed
             else:
@@ -256,9 +251,7 @@ class LatexFormatter(TableFormatter):
                         break
                 if nrow > 1:
                     # overwrite non-multirow entry
-                    row[j] = "\\multirow{{{nrow:d}}}{{*}}{{{row:s}}}".format(
-                        nrow=nrow, row=row[j].strip()
-                    )
+                    row[j] = f"\\multirow{{{nrow:d}}}{{*}}{{{row[j].strip()}}}"
                     # save when to end the current block with \cline
                     self.clinebuf.append([i + nrow - 1, j + 1])
         return row
@@ -269,7 +262,7 @@ class LatexFormatter(TableFormatter):
         """
         for cl in self.clinebuf:
             if cl[0] == i:
-                buf.write("\\cline{{{cl:d}-{icol:d}}}\n".format(cl=cl[1], icol=icol))
+                buf.write(f"\\cline{{{cl[1]:d}-{icol:d}}}\n")
         # remove entries that have been written to buffer
         self.clinebuf = [x for x in self.clinebuf if x[0] != i]
 
@@ -288,24 +281,44 @@ class LatexFormatter(TableFormatter):
             <https://en.wikibooks.org/wiki/LaTeX/Tables>`__ e.g 'rcl'
             for 3 columns
         """
-        if self.caption is not None or self.label is not None:
-            # then write output in a nested table/tabular environment
+        if self._table_float:
+            # then write output in a nested table/tabular or longtable environment
             if self.caption is None:
                 caption_ = ""
             else:
-                caption_ = "\n\\caption{{{}}}".format(self.caption)
+                caption_ = f"\n\\caption{{{self.caption}}}"
 
             if self.label is None:
                 label_ = ""
             else:
-                label_ = "\n\\label{{{}}}".format(self.label)
+                label_ = f"\n\\label{{{self.label}}}"
 
-            buf.write("\\begin{{table}}\n\\centering{}{}\n".format(caption_, label_))
+            if self.position is None:
+                position_ = ""
+            else:
+                position_ = f"[{self.position}]"
+
+            if self.longtable:
+                table_ = f"\\begin{{longtable}}{position_}{{{column_format}}}"
+                tabular_ = "\n"
+            else:
+                table_ = f"\\begin{{table}}{position_}\n\\centering"
+                tabular_ = f"\n\\begin{{tabular}}{{{column_format}}}\n"
+
+            if self.longtable and (self.caption is not None or self.label is not None):
+                # a double-backslash is required at the end of the line
+                # as discussed here:
+                # https://tex.stackexchange.com/questions/219138
+                backlash_ = "\\\\"
+            else:
+                backlash_ = ""
+            buf.write(f"{table_}{caption_}{label_}{backlash_}{tabular_}")
         else:
-            # then write output only in a tabular environment
-            pass
-
-        buf.write("\\begin{{tabular}}{{{fmt}}}\n".format(fmt=column_format))
+            if self.longtable:
+                tabletype_ = "longtable"
+            else:
+                tabletype_ = "tabular"
+            buf.write(f"\\begin{{{tabletype_}}}{{{column_format}}}\n")
 
     def _write_tabular_end(self, buf):
         """
@@ -319,58 +332,12 @@ class LatexFormatter(TableFormatter):
             a string.
 
         """
-        buf.write("\\bottomrule\n")
-        buf.write("\\end{tabular}\n")
-        if self.caption is not None or self.label is not None:
-            buf.write("\\end{table}\n")
+        if self.longtable:
+            buf.write("\\end{longtable}\n")
         else:
-            pass
-
-    def _write_longtable_begin(self, buf, column_format: str):
-        """
-        Write the beginning of a longtable environment including caption and
-        label if provided by user.
-
-        Parameters
-        ----------
-        buf : string or file handle
-            File path or object. If not specified, the result is returned as
-            a string.
-        column_format : str
-            The columns format as specified in `LaTeX table format
-            <https://en.wikibooks.org/wiki/LaTeX/Tables>`__ e.g 'rcl'
-            for 3 columns
-        """
-        buf.write("\\begin{{longtable}}{{{fmt}}}\n".format(fmt=column_format))
-
-        if self.caption is not None or self.label is not None:
-            if self.caption is None:
-                pass
+            buf.write("\\bottomrule\n")
+            buf.write("\\end{tabular}\n")
+            if self._table_float:
+                buf.write("\\end{table}\n")
             else:
-                buf.write("\\caption{{{}}}".format(self.caption))
-
-            if self.label is None:
                 pass
-            else:
-                buf.write("\\label{{{}}}".format(self.label))
-
-            # a double-backslash is required at the end of the line
-            # as discussed here:
-            # https://tex.stackexchange.com/questions/219138
-            buf.write("\\\\\n")
-        else:
-            pass
-
-    @staticmethod
-    def _write_longtable_end(buf):
-        """
-        Write the end of a longtable environment.
-
-        Parameters
-        ----------
-        buf : string or file handle
-            File path or object. If not specified, the result is returned as
-            a string.
-
-        """
-        buf.write("\\end{longtable}\n")

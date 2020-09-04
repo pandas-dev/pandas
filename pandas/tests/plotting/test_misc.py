@@ -1,5 +1,3 @@
-# coding: utf-8
-
 """ Test cases for misc plot functions """
 
 import numpy as np
@@ -56,7 +54,7 @@ def test_get_accessor_args():
     assert x is None
     assert y is None
     assert kind == "line"
-    assert len(kwargs) == 22
+    assert len(kwargs) == 24
 
 
 @td.skip_if_no_mpl
@@ -98,13 +96,17 @@ class TestSeriesPlots(TestPlotBase):
 class TestDataFramePlots(TestPlotBase):
     @td.skip_if_no_scipy
     def test_scatter_matrix_axis(self):
+        from pandas.plotting._matplotlib.compat import _mpl_ge_3_0_0
+
         scatter_matrix = plotting.scatter_matrix
 
         with tm.RNGContext(42):
             df = DataFrame(randn(100, 3))
 
         # we are plotting multiples on a sub-plot
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(
+            UserWarning, raise_on_extra_warnings=_mpl_ge_3_0_0()
+        ):
             axes = _check_plot_works(
                 scatter_matrix, filterwarnings="always", frame=df, range_padding=0.1
             )
@@ -129,8 +131,9 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_andrews_curves(self, iris):
-        from pandas.plotting import andrews_curves
         from matplotlib import cm
+
+        from pandas.plotting import andrews_curves
 
         df = iris
 
@@ -204,8 +207,9 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_parallel_coordinates(self, iris):
-        from pandas.plotting import parallel_coordinates
         from matplotlib import cm
+
+        from pandas.plotting import parallel_coordinates
 
         df = iris
 
@@ -277,8 +281,9 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_radviz(self, iris):
-        from pandas.plotting import radviz
         from matplotlib import cm
+
+        from pandas.plotting import radviz
 
         df = iris
         _check_plot_works(radviz, frame=df, class_column="Name")
@@ -348,7 +353,7 @@ class TestDataFramePlots(TestPlotBase):
         # GH17525
         df = DataFrame(np.zeros((10, 10)))
 
-        # Make sure that the random seed isn't reset by _get_standard_colors
+        # Make sure that the random seed isn't reset by get_standard_colors
         plotting.parallel_coordinates(df, 0)
         rand1 = random.random()
         plotting.parallel_coordinates(df, 0)
@@ -356,19 +361,19 @@ class TestDataFramePlots(TestPlotBase):
         assert rand1 != rand2
 
         # Make sure it produces the same colors every time it's called
-        from pandas.plotting._matplotlib.style import _get_standard_colors
+        from pandas.plotting._matplotlib.style import get_standard_colors
 
-        color1 = _get_standard_colors(1, color_type="random")
-        color2 = _get_standard_colors(1, color_type="random")
+        color1 = get_standard_colors(1, color_type="random")
+        color2 = get_standard_colors(1, color_type="random")
         assert color1 == color2
 
     def test_get_standard_colors_default_num_colors(self):
-        from pandas.plotting._matplotlib.style import _get_standard_colors
+        from pandas.plotting._matplotlib.style import get_standard_colors
 
         # Make sure the default color_types returns the specified amount
-        color1 = _get_standard_colors(1, color_type="default")
-        color2 = _get_standard_colors(9, color_type="default")
-        color3 = _get_standard_colors(20, color_type="default")
+        color1 = get_standard_colors(1, color_type="default")
+        color2 = get_standard_colors(9, color_type="default")
+        color3 = get_standard_colors(20, color_type="default")
         assert len(color1) == 1
         assert len(color2) == 9
         assert len(color3) == 20
@@ -395,10 +400,11 @@ class TestDataFramePlots(TestPlotBase):
         # Make sure not to add more colors so that matplotlib can cycle
         # correctly.
         from matplotlib import cm
-        from pandas.plotting._matplotlib.style import _get_standard_colors
+
+        from pandas.plotting._matplotlib.style import get_standard_colors
 
         color_before = cm.gnuplot(range(5))
-        color_after = _get_standard_colors(1, color=color_before)
+        color_after = get_standard_colors(1, color=color_before)
         assert len(color_after) == len(color_before)
 
         df = DataFrame(np.random.randn(48, 4), columns=list("ABCD"))
@@ -406,3 +412,24 @@ class TestDataFramePlots(TestPlotBase):
         color_list = cm.gnuplot(np.linspace(0, 1, 16))
         p = df.A.plot.bar(figsize=(16, 7), color=color_list)
         assert p.patches[1].get_facecolor() == p.patches[17].get_facecolor()
+
+    @pytest.mark.slow
+    def test_dictionary_color(self):
+        # issue-8193
+        # Test plot color dictionary format
+        data_files = ["a", "b"]
+
+        expected = [(0.5, 0.24, 0.6), (0.3, 0.7, 0.7)]
+
+        df1 = DataFrame(np.random.rand(2, 2), columns=data_files)
+        dic_color = {"b": (0.3, 0.7, 0.7), "a": (0.5, 0.24, 0.6)}
+
+        # Bar color test
+        ax = df1.plot(kind="bar", color=dic_color)
+        colors = [rect.get_facecolor()[0:-1] for rect in ax.get_children()[0:3:2]]
+        assert all(color == expected[index] for index, color in enumerate(colors))
+
+        # Line color test
+        ax = df1.plot(kind="line", color=dic_color)
+        colors = [rect.get_color() for rect in ax.get_lines()[0:2]]
+        assert all(color == expected[index] for index, color in enumerate(colors))

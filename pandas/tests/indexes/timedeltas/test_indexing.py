@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import re
 
 import numpy as np
 import pytest
@@ -16,6 +17,11 @@ class TestGetItem:
         result = idx[...]
         assert result.equals(idx)
         assert result is not idx
+
+    def test_getitem_slice_keeps_name(self):
+        # GH#4226
+        tdi = timedelta_range("1d", "5d", freq="H", name="timebucket")
+        assert tdi[1:].name == tdi.name
 
     def test_getitem(self):
         idx1 = timedelta_range("1 day", "31 day", freq="D", name="idx")
@@ -48,20 +54,100 @@ class TestGetItem:
 
     @pytest.mark.parametrize(
         "key",
-        [pd.Timestamp("1970-01-01"), pd.Timestamp("1970-01-02"), datetime(1970, 1, 1)],
+        [
+            pd.Timestamp("1970-01-01"),
+            pd.Timestamp("1970-01-02"),
+            datetime(1970, 1, 1),
+            pd.Timestamp("1970-01-03").to_datetime64(),
+            # non-matching NA values
+            np.datetime64("NaT"),
+        ],
     )
     def test_timestamp_invalid_key(self, key):
         # GH#20464
         tdi = pd.timedelta_range(0, periods=10)
-        with pytest.raises(TypeError):
+        with pytest.raises(KeyError, match=re.escape(repr(key))):
             tdi.get_loc(key)
 
 
+class TestGetLoc:
+    def test_get_loc(self):
+        idx = pd.to_timedelta(["0 days", "1 days", "2 days"])
+
+        for method in [None, "pad", "backfill", "nearest"]:
+            assert idx.get_loc(idx[1], method) == 1
+            assert idx.get_loc(idx[1].to_pytimedelta(), method) == 1
+            assert idx.get_loc(str(idx[1]), method) == 1
+
+        assert idx.get_loc(idx[1], "pad", tolerance=Timedelta(0)) == 1
+        assert idx.get_loc(idx[1], "pad", tolerance=np.timedelta64(0, "s")) == 1
+        assert idx.get_loc(idx[1], "pad", tolerance=timedelta(0)) == 1
+
+        with pytest.raises(ValueError, match="unit abbreviation w/o a number"):
+            idx.get_loc(idx[1], method="nearest", tolerance="foo")
+
+        with pytest.raises(ValueError, match="tolerance size must match"):
+            idx.get_loc(
+                idx[1],
+                method="nearest",
+                tolerance=[
+                    Timedelta(0).to_timedelta64(),
+                    Timedelta(0).to_timedelta64(),
+                ],
+            )
+
+        for method, loc in [("pad", 1), ("backfill", 2), ("nearest", 1)]:
+            assert idx.get_loc("1 day 1 hour", method) == loc
+
+        # GH 16909
+        assert idx.get_loc(idx[1].to_timedelta64()) == 1
+
+        # GH 16896
+        assert idx.get_loc("0 days") == 0
+
+    def test_get_loc_nat(self):
+        tidx = TimedeltaIndex(["1 days 01:00:00", "NaT", "2 days 01:00:00"])
+
+        assert tidx.get_loc(pd.NaT) == 1
+        assert tidx.get_loc(None) == 1
+        assert tidx.get_loc(float("nan")) == 1
+        assert tidx.get_loc(np.nan) == 1
+
+
+class TestGetIndexer:
+    def test_get_indexer(self):
+        idx = pd.to_timedelta(["0 days", "1 days", "2 days"])
+        tm.assert_numpy_array_equal(
+            idx.get_indexer(idx), np.array([0, 1, 2], dtype=np.intp)
+        )
+
+        target = pd.to_timedelta(["-1 hour", "12 hours", "1 day 1 hour"])
+        tm.assert_numpy_array_equal(
+            idx.get_indexer(target, "pad"), np.array([-1, 0, 1], dtype=np.intp)
+        )
+        tm.assert_numpy_array_equal(
+            idx.get_indexer(target, "backfill"), np.array([0, 1, 2], dtype=np.intp)
+        )
+        tm.assert_numpy_array_equal(
+            idx.get_indexer(target, "nearest"), np.array([0, 1, 1], dtype=np.intp)
+        )
+
+        res = idx.get_indexer(target, "nearest", tolerance=Timedelta("1 hour"))
+        tm.assert_numpy_array_equal(res, np.array([0, -1, 1], dtype=np.intp))
+
+
 class TestWhere:
+    def test_where_doesnt_retain_freq(self):
+        tdi = timedelta_range("1 day", periods=3, freq="D", name="idx")
+        cond = [True, True, False]
+        expected = TimedeltaIndex([tdi[0], tdi[1], tdi[0]], freq=None, name="idx")
+
+        result = tdi.where(cond, tdi[::-1])
+        tm.assert_index_equal(result, expected)
+
     def test_where_invalid_dtypes(self):
         tdi = timedelta_range("1 day", periods=3, freq="D", name="idx")
 
-        i2 = tdi.copy()
         i2 = Index([pd.NaT, pd.NaT] + tdi[2:].tolist())
 
         with pytest.raises(TypeError, match="Where requires matching dtype"):
@@ -72,6 +158,19 @@ class TestWhere:
 
         with pytest.raises(TypeError, match="Where requires matching dtype"):
             tdi.where(notna(i2), (i2 + pd.Timestamp.now()).to_period("D"))
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            # non-matching scalar
+            tdi.where(notna(i2), pd.Timestamp.now())
+
+    def test_where_mismatched_nat(self):
+        tdi = timedelta_range("1 day", periods=3, freq="D", name="idx")
+        cond = np.array([True, False, False])
+
+        msg = "Where requires matching dtype"
+        with pytest.raises(TypeError, match=msg):
+            # wrong-dtyped NaT
+            tdi.where(cond, np.datetime64("NaT", "ns"))
 
 
 class TestTake:
@@ -168,217 +267,6 @@ class TestTake:
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
-        with pytest.raises(IndexError):
+        msg = "index -5 is out of bounds for (axis 0 with )?size 3"
+        with pytest.raises(IndexError, match=msg):
             idx.take(np.array([1, -5]))
-
-
-class TestTimedeltaIndex:
-    def test_insert_empty(self):
-        # Corner case inserting with length zero doesnt raise IndexError
-        idx = timedelta_range("1 Day", periods=3)
-        td = idx[0]
-
-        idx[:0].insert(0, td)
-        idx[:0].insert(1, td)
-        idx[:0].insert(-1, td)
-
-    def test_insert(self):
-
-        idx = TimedeltaIndex(["4day", "1day", "2day"], name="idx")
-
-        result = idx.insert(2, timedelta(days=5))
-        exp = TimedeltaIndex(["4day", "1day", "5day", "2day"], name="idx")
-        tm.assert_index_equal(result, exp)
-
-        # insertion of non-datetime should coerce to object index
-        result = idx.insert(1, "inserted")
-        expected = Index(
-            [Timedelta("4day"), "inserted", Timedelta("1day"), Timedelta("2day")],
-            name="idx",
-        )
-        assert not isinstance(result, TimedeltaIndex)
-        tm.assert_index_equal(result, expected)
-        assert result.name == expected.name
-
-        idx = timedelta_range("1day 00:00:01", periods=3, freq="s", name="idx")
-
-        # preserve freq
-        expected_0 = TimedeltaIndex(
-            ["1day", "1day 00:00:01", "1day 00:00:02", "1day 00:00:03"],
-            name="idx",
-            freq="s",
-        )
-        expected_3 = TimedeltaIndex(
-            ["1day 00:00:01", "1day 00:00:02", "1day 00:00:03", "1day 00:00:04"],
-            name="idx",
-            freq="s",
-        )
-
-        # reset freq to None
-        expected_1_nofreq = TimedeltaIndex(
-            ["1day 00:00:01", "1day 00:00:01", "1day 00:00:02", "1day 00:00:03"],
-            name="idx",
-            freq=None,
-        )
-        expected_3_nofreq = TimedeltaIndex(
-            ["1day 00:00:01", "1day 00:00:02", "1day 00:00:03", "1day 00:00:05"],
-            name="idx",
-            freq=None,
-        )
-
-        cases = [
-            (0, Timedelta("1day"), expected_0),
-            (-3, Timedelta("1day"), expected_0),
-            (3, Timedelta("1day 00:00:04"), expected_3),
-            (1, Timedelta("1day 00:00:01"), expected_1_nofreq),
-            (3, Timedelta("1day 00:00:05"), expected_3_nofreq),
-        ]
-
-        for n, d, expected in cases:
-            result = idx.insert(n, d)
-            tm.assert_index_equal(result, expected)
-            assert result.name == expected.name
-            assert result.freq == expected.freq
-
-    @pytest.mark.parametrize(
-        "null", [None, np.nan, np.timedelta64("NaT"), pd.NaT, pd.NA]
-    )
-    def test_insert_nat(self, null):
-        # GH 18295 (test missing)
-        idx = timedelta_range("1day", "3day")
-        result = idx.insert(1, null)
-        expected = TimedeltaIndex(["1day", pd.NaT, "2day", "3day"])
-        tm.assert_index_equal(result, expected)
-
-    def test_insert_invalid_na(self):
-        idx = TimedeltaIndex(["4day", "1day", "2day"], name="idx")
-        with pytest.raises(TypeError, match="incompatible label"):
-            idx.insert(0, np.datetime64("NaT"))
-
-    def test_insert_dont_cast_strings(self):
-        # To match DatetimeIndex and PeriodIndex behavior, dont try to
-        #  parse strings to Timedelta
-        idx = timedelta_range("1day", "3day")
-
-        result = idx.insert(0, "1 Day")
-        assert result.dtype == object
-        assert result[0] == "1 Day"
-
-    def test_delete(self):
-        idx = timedelta_range(start="1 Days", periods=5, freq="D", name="idx")
-
-        # preserve freq
-        expected_0 = timedelta_range(start="2 Days", periods=4, freq="D", name="idx")
-        expected_4 = timedelta_range(start="1 Days", periods=4, freq="D", name="idx")
-
-        # reset freq to None
-        expected_1 = TimedeltaIndex(
-            ["1 day", "3 day", "4 day", "5 day"], freq=None, name="idx"
-        )
-
-        cases = {
-            0: expected_0,
-            -5: expected_0,
-            -1: expected_4,
-            4: expected_4,
-            1: expected_1,
-        }
-        for n, expected in cases.items():
-            result = idx.delete(n)
-            tm.assert_index_equal(result, expected)
-            assert result.name == expected.name
-            assert result.freq == expected.freq
-
-        with pytest.raises((IndexError, ValueError)):
-            # either depending on numpy version
-            idx.delete(5)
-
-    def test_delete_slice(self):
-        idx = timedelta_range(start="1 days", periods=10, freq="D", name="idx")
-
-        # preserve freq
-        expected_0_2 = timedelta_range(start="4 days", periods=7, freq="D", name="idx")
-        expected_7_9 = timedelta_range(start="1 days", periods=7, freq="D", name="idx")
-
-        # reset freq to None
-        expected_3_5 = TimedeltaIndex(
-            ["1 d", "2 d", "3 d", "7 d", "8 d", "9 d", "10d"], freq=None, name="idx"
-        )
-
-        cases = {
-            (0, 1, 2): expected_0_2,
-            (7, 8, 9): expected_7_9,
-            (3, 4, 5): expected_3_5,
-        }
-        for n, expected in cases.items():
-            result = idx.delete(n)
-            tm.assert_index_equal(result, expected)
-            assert result.name == expected.name
-            assert result.freq == expected.freq
-
-            result = idx.delete(slice(n[0], n[-1] + 1))
-            tm.assert_index_equal(result, expected)
-            assert result.name == expected.name
-            assert result.freq == expected.freq
-
-    def test_get_loc(self):
-        idx = pd.to_timedelta(["0 days", "1 days", "2 days"])
-
-        for method in [None, "pad", "backfill", "nearest"]:
-            assert idx.get_loc(idx[1], method) == 1
-            assert idx.get_loc(idx[1].to_pytimedelta(), method) == 1
-            assert idx.get_loc(str(idx[1]), method) == 1
-
-        assert idx.get_loc(idx[1], "pad", tolerance=Timedelta(0)) == 1
-        assert idx.get_loc(idx[1], "pad", tolerance=np.timedelta64(0, "s")) == 1
-        assert idx.get_loc(idx[1], "pad", tolerance=timedelta(0)) == 1
-
-        with pytest.raises(ValueError, match="unit abbreviation w/o a number"):
-            idx.get_loc(idx[1], method="nearest", tolerance="foo")
-
-        with pytest.raises(ValueError, match="tolerance size must match"):
-            idx.get_loc(
-                idx[1],
-                method="nearest",
-                tolerance=[
-                    Timedelta(0).to_timedelta64(),
-                    Timedelta(0).to_timedelta64(),
-                ],
-            )
-
-        for method, loc in [("pad", 1), ("backfill", 2), ("nearest", 1)]:
-            assert idx.get_loc("1 day 1 hour", method) == loc
-
-        # GH 16909
-        assert idx.get_loc(idx[1].to_timedelta64()) == 1
-
-        # GH 16896
-        assert idx.get_loc("0 days") == 0
-
-    def test_get_loc_nat(self):
-        tidx = TimedeltaIndex(["1 days 01:00:00", "NaT", "2 days 01:00:00"])
-
-        assert tidx.get_loc(pd.NaT) == 1
-        assert tidx.get_loc(None) == 1
-        assert tidx.get_loc(float("nan")) == 1
-        assert tidx.get_loc(np.nan) == 1
-
-    def test_get_indexer(self):
-        idx = pd.to_timedelta(["0 days", "1 days", "2 days"])
-        tm.assert_numpy_array_equal(
-            idx.get_indexer(idx), np.array([0, 1, 2], dtype=np.intp)
-        )
-
-        target = pd.to_timedelta(["-1 hour", "12 hours", "1 day 1 hour"])
-        tm.assert_numpy_array_equal(
-            idx.get_indexer(target, "pad"), np.array([-1, 0, 1], dtype=np.intp)
-        )
-        tm.assert_numpy_array_equal(
-            idx.get_indexer(target, "backfill"), np.array([0, 1, 2], dtype=np.intp)
-        )
-        tm.assert_numpy_array_equal(
-            idx.get_indexer(target, "nearest"), np.array([0, 1, 1], dtype=np.intp)
-        )
-
-        res = idx.get_indexer(target, "nearest", tolerance=Timedelta("1 hour"))
-        tm.assert_numpy_array_equal(res, np.array([0, -1, 1], dtype=np.intp))

@@ -179,7 +179,7 @@ One could hard code:
 Selection
 ---------
 
-DataFrames
+Dataframes
 **********
 
 The :ref:`indexing <indexing>` docs.
@@ -219,8 +219,8 @@ There are 2 explicit slicing methods, with a third general case
    df.loc['bar':'kar']  # Label
 
    # Generic
-   df.iloc[0:3]
-   df.loc['bar':'kar']
+   df[0:3]
+   df['bar':'kar']
 
 Ambiguity arises when an index consists of integers with a non-zero start or non-unit increment.
 
@@ -290,7 +290,7 @@ Notice the same results, with the exception of the index.
 
 .. _cookbook.multi_index:
 
-MultiIndexing
+Multiindexing
 -------------
 
 The :ref:`multindexing <advanced.hierarchical>` docs.
@@ -765,7 +765,7 @@ Timeseries
 <https://stackoverflow.com/questions/13893227/vectorized-look-up-of-values-in-pandas-dataframe>`__
 
 `Aggregation and plotting time series
-<http://nipunbatra.github.io/2015/06/timeseries/>`__
+<https://nipunbatra.github.io/blog/visualisation/2013/05/01/aggregation-timeseries.html>`__
 
 Turn a matrix with hours in columns and days in rows into a continuous row sequence in the form of a time series.
 `How to rearrange a Python pandas DataFrame?
@@ -794,8 +794,7 @@ The :ref:`Resample <timeseries.resampling>` docs.
 `Time grouping with some missing values
 <https://stackoverflow.com/questions/33637312/pandas-grouper-by-frequency-with-completeness-requirement>`__
 
-`Valid frequency arguments to Grouper
-<https://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__
+Valid frequency arguments to Grouper :ref:`Timeseries <timeseries.offset_aliases>`
 
 `Grouping using a MultiIndex
 <https://stackoverflow.com/questions/41483763/pandas-timegrouper-on-multiindex>`__
@@ -914,7 +913,7 @@ The :ref:`Plotting <visualization>` docs.
    @savefig quartile_boxplot.png
    df.boxplot(column='price', by='quartiles')
 
-Data In/Out
+Data in/out
 -----------
 
 `Performance comparison of SQL vs HDF5
@@ -927,7 +926,7 @@ CSV
 
 The :ref:`CSV <io.read_csv_table>` docs
 
-`read_csv in action <http://wesmckinney.com/blog/update-on-upcoming-pandas-v0-10-new-file-parser-other-performance-wins/>`__
+`read_csv in action <https://wesmckinney.com/blog/update-on-upcoming-pandas-v0-10-new-file-parser-other-performance-wins/>`__
 
 `appending to a csv
 <https://stackoverflow.com/questions/17134942/pandas-dataframe-output-end-of-csv>`__
@@ -951,7 +950,7 @@ using that handle to read.
 <https://stackoverflow.com/questions/15555005/get-inferred-dataframe-types-iteratively-using-chunksize>`__
 
 `Dealing with bad lines
-<http://github.com/pandas-dev/pandas/issues/2886>`__
+<https://github.com/pandas-dev/pandas/issues/2886>`__
 
 `Dealing with bad lines II
 <http://nipunbatra.github.io/2013/06/reading-unclean-data-csv-using-pandas/>`__
@@ -1082,7 +1081,7 @@ The :ref:`Excel <io.excel>` docs
 <https://stackoverflow.com/questions/15588713/sheets-of-excel-workbook-from-a-url-into-a-pandas-dataframe>`__
 
 `Modifying formatting in XlsxWriter output
-<http://pbpython.com/improve-pandas-excel-output.html>`__
+<https://pbpython.com/improve-pandas-excel-output.html>`__
 
 .. _cookbook.html:
 
@@ -1103,7 +1102,7 @@ The :ref:`HDFStores <io.hdf5>` docs
 <https://stackoverflow.com/questions/13926089/selecting-columns-from-pandas-hdfstore-table>`__
 
 `Managing heterogeneous data using a linked multiple table hierarchy
-<http://github.com/pandas-dev/pandas/issues/3032>`__
+<https://github.com/pandas-dev/pandas/issues/3032>`__
 
 `Merging on-disk tables with millions of rows
 <https://stackoverflow.com/questions/14614512/merging-two-tables-with-millions-of-rows-in-python/14617925#14617925>`__
@@ -1165,6 +1164,25 @@ Storing Attributes to a group node
    :suppress:
 
    store.close()
+   os.remove('test.h5')
+
+You can create or load a HDFStore in-memory  by passing the ``driver``
+parameter to PyTables. Changes are only written to disk when the HDFStore
+is closed.
+
+.. ipython:: python
+
+   store = pd.HDFStore('test.h5', 'w', diver='H5FD_CORE')
+
+   df = pd.DataFrame(np.random.randn(8, 3))
+   store['test'] = df
+
+   # only after closing the store, data is written to disk:
+   store.close()
+
+.. ipython:: python
+   :suppress:
+
    os.remove('test.h5')
 
 .. _cookbook.binary:
@@ -1236,7 +1254,7 @@ Computation
 -----------
 
 `Numerical integration (sample-based) of a time series
-<http://nbviewer.ipython.org/5720498>`__
+<https://nbviewer.ipython.org/5720498>`__
 
 Correlation
 ***********
@@ -1284,7 +1302,7 @@ Timedeltas
 The :ref:`Timedeltas <timedeltas.timedeltas>` docs.
 
 `Using timedeltas
-<http://github.com/pandas-dev/pandas/pull/2899>`__
+<https://github.com/pandas-dev/pandas/pull/2899>`__
 
 .. ipython:: python
 
@@ -1333,33 +1351,6 @@ Values can be set to NaT using np.nan, similar to datetime
 
    y[1] = np.nan
    y
-
-Aliasing axis names
--------------------
-
-To globally provide aliases for axis names, one can define these 2 functions:
-
-.. ipython:: python
-
-   def set_axis_alias(cls, axis, alias):
-       if axis not in cls._AXIS_NUMBERS:
-           raise Exception("invalid axis [%s] for alias [%s]" % (axis, alias))
-       cls._AXIS_ALIASES[alias] = axis
-
-.. ipython:: python
-
-   def clear_axis_alias(cls, axis, alias):
-       if axis not in cls._AXIS_NUMBERS:
-           raise Exception("invalid axis [%s] for alias [%s]" % (axis, alias))
-       cls._AXIS_ALIASES.pop(alias, None)
-
-.. ipython:: python
-
-   set_axis_alias(pd.DataFrame, 'columns', 'myaxis2')
-   df2 = pd.DataFrame(np.random.randn(3, 2), columns=['c1', 'c2'],
-                      index=['i1', 'i2', 'i3'])
-   df2.sum(axis='myaxis2')
-   clear_axis_alias(pd.DataFrame, 'columns', 'myaxis2')
 
 Creating example data
 ---------------------

@@ -6,8 +6,11 @@ import string
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import _np_version_under1p17
+
 import pandas as pd
 from pandas import Series, Timestamp
+import pandas._testing as tm
 from pandas.core import ops
 import pandas.core.common as com
 
@@ -59,8 +62,31 @@ def test_random_state():
     # check with no arg random state
     assert com.random_state() is np.random
 
+    # check array-like
+    # GH32503
+    state_arr_like = npr.randint(0, 2 ** 31, size=624, dtype="uint32")
+    assert (
+        com.random_state(state_arr_like).uniform()
+        == npr.RandomState(state_arr_like).uniform()
+    )
+
+    # Check BitGenerators
+    # GH32503
+    if not _np_version_under1p17:
+        assert (
+            com.random_state(npr.MT19937(3)).uniform()
+            == npr.RandomState(npr.MT19937(3)).uniform()
+        )
+        assert (
+            com.random_state(npr.PCG64(11)).uniform()
+            == npr.RandomState(npr.PCG64(11)).uniform()
+        )
+
     # Error for floats or strings
-    msg = "random_state must be an integer, a numpy RandomState, or None"
+    msg = (
+        "random_state must be an integer, array-like, a BitGenerator, "
+        "a numpy RandomState, or None"
+    )
     with pytest.raises(ValueError, match=msg):
         com.random_state("test")
 
@@ -132,3 +158,12 @@ def test_version_tag():
         raise ValueError(
             "No git tags exist, please sync tags between upstream and your repo"
         )
+
+
+@pytest.mark.parametrize(
+    "obj", [(obj,) for obj in pd.__dict__.values() if callable(obj)]
+)
+def test_serializable(obj):
+    # GH 35611
+    unpickled = tm.round_trip_pickle(obj)
+    assert type(obj) == type(unpickled)

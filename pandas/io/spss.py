@@ -20,7 +20,7 @@ def read_spss(
 
     Parameters
     ----------
-    path : string or Path
+    path : str or Path
         File path.
     usecols : list-like, optional
         Return a subset of the columns. If None, return all columns.

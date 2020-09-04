@@ -1,3 +1,5 @@
+from typing import Dict, List, Tuple
+
 import pandas._libs.json as json
 
 from pandas.io.excel._base import ExcelWriter
@@ -8,7 +10,7 @@ class _XlsxStyler:
     # Map from openpyxl-oriented styles to flatter xlsxwriter representation
     # Ordering necessary for both determinism and because some are keyed by
     # prefixes of others.
-    STYLE_MAPPING = {
+    STYLE_MAPPING: Dict[str, List[Tuple[Tuple[str, ...], str]]] = {
         "font": [
             (("name",), "font_name"),
             (("sz",), "font_size"),
@@ -85,7 +87,6 @@ class _XlsxStyler:
         style_dict : style dictionary to convert
         num_format_str : optional number format string
         """
-
         # Create a XlsxWriter format object.
         props = {}
 
@@ -171,7 +172,7 @@ class _XlsxWriter(ExcelWriter):
         **engine_kwargs,
     ):
         # Use the xlsxwriter module as the Excel writer.
-        import xlsxwriter
+        from xlsxwriter import Workbook
 
         if mode == "a":
             raise ValueError("Append mode is not supported with xlsxwriter!")
@@ -185,13 +186,12 @@ class _XlsxWriter(ExcelWriter):
             **engine_kwargs,
         )
 
-        self.book = xlsxwriter.Workbook(path, **engine_kwargs)
+        self.book = Workbook(path, **engine_kwargs)
 
     def save(self):
         """
         Save workbook to disk.
         """
-
         return self.book.close()
 
     def write_cells(

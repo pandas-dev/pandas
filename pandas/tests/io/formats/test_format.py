@@ -19,6 +19,7 @@ import pytest
 import pytz
 
 from pandas.compat import is_platform_32bit, is_platform_windows
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -239,6 +240,15 @@ class TestDataFrameFormatting:
         with option_context("display.max_colwidth", max_len + 2):
             assert "..." not in repr(df)
 
+    def test_repr_deprecation_negative_int(self):
+        # FIXME: remove in future version after deprecation cycle
+        # Non-regression test for:
+        # https://github.com/pandas-dev/pandas/issues/31532
+        width = get_option("display.max_colwidth")
+        with tm.assert_produces_warning(FutureWarning):
+            set_option("display.max_colwidth", -1)
+        set_option("display.max_colwidth", width)
+
     def test_repr_chop_threshold(self):
         df = DataFrame([[0.1, 0.5], [0.5, -0.1]])
         pd.reset_option("display.chop_threshold")  # default None
@@ -296,7 +306,7 @@ class TestDataFrameFormatting:
         assert printing.pprint_thing({1}) == "{1}"
 
     def test_repr_is_valid_construction_code(self):
-        # for the case of Index, where the repr is traditional rather then
+        # for the case of Index, where the repr is traditional rather than
         # stylized
         idx = Index(["a", "b"])
         res = eval("pd." + repr(idx))
@@ -1038,6 +1048,33 @@ class TestDataFrameFormatting:
         no_header = df.to_string(col_space=20, header=False)
         assert len(with_header_row1) == len(no_header)
 
+    def test_to_string_with_column_specific_col_space_raises(self):
+        df = DataFrame(np.random.random(size=(3, 3)), columns=["a", "b", "c"])
+
+        msg = (
+            "Col_space length\\(\\d+\\) should match "
+            "DataFrame number of columns\\(\\d+\\)"
+        )
+        with pytest.raises(ValueError, match=msg):
+            df.to_string(col_space=[30, 40])
+
+        with pytest.raises(ValueError, match=msg):
+            df.to_string(col_space=[30, 40, 50, 60])
+
+        msg = "unknown column"
+        with pytest.raises(ValueError, match=msg):
+            df.to_string(col_space={"a": "foo", "b": 23, "d": 34})
+
+    def test_to_string_with_column_specific_col_space(self):
+        df = DataFrame(np.random.random(size=(3, 3)), columns=["a", "b", "c"])
+
+        result = df.to_string(col_space={"a": 10, "b": 11, "c": 12})
+        # 3 separating space + each col_space for (id, a, b, c)
+        assert len(result.split("\n")[1]) == (3 + 1 + 10 + 11 + 12)
+
+        result = df.to_string(col_space=[10, 11, 12])
+        assert len(result.split("\n")[1]) == (3 + 1 + 10 + 11 + 12)
+
     def test_to_string_truncate_indices(self):
         for index in [
             tm.makeStringIndex,
@@ -1499,7 +1536,8 @@ class TestDataFrameFormatting:
 
         assert df_s == expected
 
-        with pytest.raises(ValueError):
+        msg = "Writing 2 cols but got 1 aliases"
+        with pytest.raises(ValueError, match=msg):
             df.to_string(header=["X"])
 
     def test_to_string_no_index(self):
@@ -2103,6 +2141,15 @@ c  10  11  12  13  14\
         val = df.to_string()
         assert "'a': 1" in val
         assert "'b': 2" in val
+
+    def test_categorical_columns(self):
+        # GH35439
+        data = [[4, 2], [3, 2], [4, 3]]
+        cols = ["aaaaaaaaa", "b"]
+        df = pd.DataFrame(data, columns=cols)
+        df_cat_cols = pd.DataFrame(data, columns=pd.CategoricalIndex(cols))
+
+        assert df.to_string() == df_cat_cols.to_string()
 
     def test_period(self):
         # GH 12615
@@ -2800,6 +2847,63 @@ class TestSeriesFormatting:
         assert res == exp
 
 
+class TestGenericArrayFormatter:
+    def test_1d_array(self):
+        # GenericArrayFormatter is used on types for which there isn't a dedicated
+        # formatter. np.bool_ is one of those types.
+        obj = fmt.GenericArrayFormatter(np.array([True, False]))
+        res = obj.get_result()
+        assert len(res) == 2
+        # Results should be right-justified.
+        assert res[0] == "  True"
+        assert res[1] == " False"
+
+    def test_2d_array(self):
+        obj = fmt.GenericArrayFormatter(np.array([[True, False], [False, True]]))
+        res = obj.get_result()
+        assert len(res) == 2
+        assert res[0] == " [True, False]"
+        assert res[1] == " [False, True]"
+
+    def test_3d_array(self):
+        obj = fmt.GenericArrayFormatter(
+            np.array([[[True, True], [False, False]], [[False, True], [True, False]]])
+        )
+        res = obj.get_result()
+        assert len(res) == 2
+        assert res[0] == " [[True, True], [False, False]]"
+        assert res[1] == " [[False, True], [True, False]]"
+
+    def test_2d_extension_type(self):
+        # GH 33770
+
+        # Define a stub extension type with just enough code to run Series.__repr__()
+        class DtypeStub(pd.api.extensions.ExtensionDtype):
+            @property
+            def type(self):
+                return np.ndarray
+
+            @property
+            def name(self):
+                return "DtypeStub"
+
+        class ExtTypeStub(pd.api.extensions.ExtensionArray):
+            def __len__(self):
+                return 2
+
+            def __getitem__(self, ix):
+                return [ix == 1, ix == 0]
+
+            @property
+            def dtype(self):
+                return DtypeStub()
+
+        series = pd.Series(ExtTypeStub())
+        res = repr(series)  # This line crashed before #33770 was fixed.
+        expected = "0    [False  True]\n" + "1    [ True False]\n" + "dtype: DtypeStub"
+        assert res == expected
+
+
 def _three_digit_exp():
     return f"{1.7e8:.4g}" == "1.7e+008"
 
@@ -2815,6 +2919,15 @@ class TestFloatArrayFormatter:
         result = obj.get_result()
         assert result[0] == " 12.0"
         assert result[1] == "  0.0"
+
+    def test_output_display_precision_trailing_zeroes(self):
+        # Issue #20359: trimming zeros while there is no decimal point
+
+        # Happens when display precision is set to zero
+        with pd.option_context("display.precision", 0):
+            s = pd.Series([840.0, 4200.0])
+            expected_output = "0     840\n1    4200\ndtype: float64"
+            assert str(s) == expected_output
 
     def test_output_significant_digits(self):
         # Issue #9764
@@ -2993,13 +3106,13 @@ class TestTimedelta64Formatter:
     def test_subdays(self):
         y = pd.to_timedelta(list(range(5)) + [pd.NaT], unit="s")
         result = fmt.Timedelta64Formatter(y, box=True).get_result()
-        assert result[0].strip() == "'00:00:00'"
-        assert result[1].strip() == "'00:00:01'"
+        assert result[0].strip() == "'0 days 00:00:00'"
+        assert result[1].strip() == "'0 days 00:00:01'"
 
     def test_subdays_neg(self):
         y = pd.to_timedelta(list(range(5)) + [pd.NaT], unit="s")
         result = fmt.Timedelta64Formatter(-y, box=True).get_result()
-        assert result[0].strip() == "'00:00:00'"
+        assert result[0].strip() == "'0 days 00:00:00'"
         assert result[1].strip() == "'-1 days +23:59:59'"
 
     def test_zero(self):
@@ -3226,6 +3339,7 @@ def test_format_percentiles_integer_idx():
     assert result == expected
 
 
+@td.check_file_leaks
 def test_repr_html_ipython_config(ip):
     code = textwrap.dedent(
         """\

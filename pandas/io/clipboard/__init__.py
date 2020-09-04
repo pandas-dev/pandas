@@ -126,7 +126,7 @@ def init_osx_pyobjc_clipboard():
         board.setData_forType_(newData, AppKit.NSStringPboardType)
 
     def paste_osx_pyobjc():
-        "Returns contents of clipboard"
+        """Returns contents of clipboard"""
         board = AppKit.NSPasteboard.generalPasteboard()
         content = board.stringForType_(AppKit.NSStringPboardType)
         return content
@@ -311,17 +311,17 @@ def init_windows_clipboard():
     global HGLOBAL, LPVOID, DWORD, LPCSTR, INT
     global HWND, HINSTANCE, HMENU, BOOL, UINT, HANDLE
     from ctypes.wintypes import (
-        HGLOBAL,
-        LPVOID,
+        BOOL,
         DWORD,
-        LPCSTR,
-        INT,
-        HWND,
+        HANDLE,
+        HGLOBAL,
         HINSTANCE,
         HMENU,
-        BOOL,
+        HWND,
+        INT,
+        LPCSTR,
+        LPVOID,
         UINT,
-        HANDLE,
     )
 
     windll = ctypes.windll
@@ -494,13 +494,12 @@ def init_wsl_clipboard():
 
 
 # Automatic detection of clipboard mechanisms
-# and importing is done in deteremine_clipboard():
+# and importing is done in determine_clipboard():
 def determine_clipboard():
     """
     Determine the OS/platform and set the copy() and paste() functions
     accordingly.
     """
-
     global Foundation, AppKit, qtpy, PyQt4, PyQt5
 
     # Setup for the CYGWIN platform:
@@ -529,8 +528,8 @@ def determine_clipboard():
     # Setup for the MAC OS X platform:
     if os.name == "mac" or platform.system() == "Darwin":
         try:
-            import Foundation  # check if pyobjc is installed
             import AppKit
+            import Foundation  # check if pyobjc is installed
         except ImportError:
             return init_osx_pbcopy_clipboard()
         else:

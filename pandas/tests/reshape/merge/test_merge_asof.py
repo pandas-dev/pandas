@@ -35,7 +35,6 @@ class TestAsOfMerge:
 
     def test_examples1(self):
         """ doc-string examples """
-
         left = pd.DataFrame({"a": [1, 5, 10], "left_val": ["a", "b", "c"]})
         right = pd.DataFrame({"a": [1, 2, 3, 6, 7], "right_val": [1, 2, 3, 6, 7]})
 
@@ -48,7 +47,6 @@ class TestAsOfMerge:
 
     def test_examples2(self):
         """ doc-string examples """
-
         trades = pd.DataFrame(
             {
                 "time": pd.to_datetime(
@@ -1198,7 +1196,7 @@ class TestAsOfMerge:
     @pytest.mark.parametrize("side", ["left", "right"])
     def test_merge_on_nans(self, func, side):
         # GH 23189
-        msg = "Merge keys contain null values on {} side".format(side)
+        msg = f"Merge keys contain null values on {side} side"
         nulls = func([1.0, 5.0, np.nan])
         non_nulls = func([1.0, 5.0, 10.0])
         df_null = pd.DataFrame({"a": nulls, "left_val": ["a", "b", "c"]})
@@ -1339,5 +1337,27 @@ class TestAsOfMerge:
                 "xyz": [np.nan, 0.9, 0.8, 0.7, 0.6],
             },
             index=pd.Index([0, 1, 2, 3, 4]),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_left_index_right_index_tolerance(self):
+        # https://github.com/pandas-dev/pandas/issues/35558
+        dr1 = pd.date_range(
+            start="1/1/2020", end="1/20/2020", freq="2D"
+        ) + pd.Timedelta(seconds=0.4)
+        dr2 = pd.date_range(start="1/1/2020", end="2/1/2020")
+
+        df1 = pd.DataFrame({"val1": "foo"}, index=pd.DatetimeIndex(dr1))
+        df2 = pd.DataFrame({"val2": "bar"}, index=pd.DatetimeIndex(dr2))
+
+        expected = pd.DataFrame(
+            {"val1": "foo", "val2": "bar"}, index=pd.DatetimeIndex(dr1)
+        )
+        result = pd.merge_asof(
+            df1,
+            df2,
+            left_index=True,
+            right_index=True,
+            tolerance=pd.Timedelta(seconds=0.5),
         )
         tm.assert_frame_equal(result, expected)

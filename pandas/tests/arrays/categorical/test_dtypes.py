@@ -92,22 +92,20 @@ class TestCategoricalDtypes:
         result = Categorical(["foo", "bar", "baz"])
         assert result.codes.dtype == "int8"
 
-        result = Categorical(["foo{i:05d}".format(i=i) for i in range(400)])
+        result = Categorical([f"foo{i:05d}" for i in range(400)])
         assert result.codes.dtype == "int16"
 
-        result = Categorical(["foo{i:05d}".format(i=i) for i in range(40000)])
+        result = Categorical([f"foo{i:05d}" for i in range(40000)])
         assert result.codes.dtype == "int32"
 
         # adding cats
         result = Categorical(["foo", "bar", "baz"])
         assert result.codes.dtype == "int8"
-        result = result.add_categories(["foo{i:05d}".format(i=i) for i in range(400)])
+        result = result.add_categories([f"foo{i:05d}" for i in range(400)])
         assert result.codes.dtype == "int16"
 
         # removing cats
-        result = result.remove_categories(
-            ["foo{i:05d}".format(i=i) for i in range(300)]
-        )
+        result = result.remove_categories([f"foo{i:05d}" for i in range(300)])
         assert result.codes.dtype == "int8"
 
     @pytest.mark.parametrize("ordered", [True, False])
@@ -129,11 +127,11 @@ class TestCategoricalDtypes:
         tm.assert_numpy_array_equal(result, expected)
 
         result = cat.astype(int)
-        expected = np.array(cat, dtype=np.int)
+        expected = np.array(cat, dtype=int)
         tm.assert_numpy_array_equal(result, expected)
 
         result = cat.astype(float)
-        expected = np.array(cat, dtype=np.float)
+        expected = np.array(cat, dtype=float)
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize("dtype_ordered", [True, False])

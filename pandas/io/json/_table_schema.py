@@ -1,11 +1,13 @@
 """
 Table Schema builders
 
-http://specs.frictionlessdata.io/json-table-schema/
+https://specs.frictionlessdata.io/json-table-schema/
 """
+from typing import TYPE_CHECKING, Any, Dict, Optional, cast
 import warnings
 
 import pandas._libs.json as json
+from pandas._typing import DtypeObj, FrameOrSeries, JSONSerializable
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -23,20 +25,23 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas import DataFrame
 import pandas.core.common as com
 
+if TYPE_CHECKING:
+    from pandas.core.indexes.multi import MultiIndex  # noqa: F401
+
 loads = json.loads
 
 
-def as_json_table_type(x):
+def as_json_table_type(x: DtypeObj) -> str:
     """
     Convert a NumPy / pandas type to its corresponding json_table.
 
     Parameters
     ----------
-    x : array or dtype
+    x : np.dtype or ExtensionDtype
 
     Returns
     -------
-    t : str
+    str
         the Table Schema data types
 
     Notes
@@ -96,30 +101,27 @@ def set_default_names(data):
     return data
 
 
-def convert_pandas_type_to_json_field(arr, dtype=None):
-    dtype = dtype or arr.dtype
+def convert_pandas_type_to_json_field(arr):
+    dtype = arr.dtype
     if arr.name is None:
         name = "values"
     else:
         name = arr.name
-    field = {"name": name, "type": as_json_table_type(dtype)}
+    field: Dict[str, JSONSerializable] = {
+        "name": name,
+        "type": as_json_table_type(dtype),
+    }
 
-    if is_categorical_dtype(arr):
-        if hasattr(arr, "categories"):
-            cats = arr.categories
-            ordered = arr.ordered
-        else:
-            cats = arr.cat.categories
-            ordered = arr.cat.ordered
+    if is_categorical_dtype(dtype):
+        cats = dtype.categories
+        ordered = dtype.ordered
+
         field["constraints"] = {"enum": list(cats)}
         field["ordered"] = ordered
-    elif is_period_dtype(arr):
-        field["freq"] = arr.freqstr
-    elif is_datetime64tz_dtype(arr):
-        if hasattr(arr, "dt"):
-            field["tz"] = arr.dt.tz.zone
-        else:
-            field["tz"] = arr.tz.zone
+    elif is_period_dtype(dtype):
+        field["freq"] = dtype.freq.freqstr
+    elif is_datetime64tz_dtype(dtype):
+        field["tz"] = dtype.tz.zone
     return field
 
 
@@ -187,7 +189,12 @@ def convert_json_field_to_pandas_type(field):
     raise ValueError(f"Unsupported or invalid field type: {typ}")
 
 
-def build_table_schema(data, index=True, primary_key=None, version=True):
+def build_table_schema(
+    data: FrameOrSeries,
+    index: bool = True,
+    primary_key: Optional[bool] = None,
+    version: bool = True,
+) -> Dict[str, JSONSerializable]:
     """
     Create a Table schema from ``data``.
 
@@ -210,7 +217,9 @@ def build_table_schema(data, index=True, primary_key=None, version=True):
 
     Notes
     -----
-    See `_as_json_table_type` for conversion types.
+    See `Table Schema
+    <https://pandas.pydata.org/docs/user_guide/io.html#table-schema>`__ for
+    conversion types.
     Timedeltas as converted to ISO8601 duration format with
     9 decimal places after the seconds field for nanosecond precision.
 
@@ -236,11 +245,12 @@ def build_table_schema(data, index=True, primary_key=None, version=True):
     if index is True:
         data = set_default_names(data)
 
-    schema = {}
+    schema: Dict[str, Any] = {}
     fields = []
 
     if index:
         if data.index.nlevels > 1:
+            data.index = cast("MultiIndex", data.index)
             for level, name in zip(data.index.levels, data.index.names):
                 new_field = convert_pandas_type_to_json_field(level)
                 new_field["name"] = name

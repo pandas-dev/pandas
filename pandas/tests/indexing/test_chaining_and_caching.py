@@ -81,6 +81,21 @@ class TestCaching:
         tm.assert_frame_equal(out, expected)
         tm.assert_series_equal(out["A"], expected["A"])
 
+    def test_altering_series_clears_parent_cache(self):
+        # GH #33675
+        df = pd.DataFrame([[1, 2], [3, 4]], index=["a", "b"], columns=["A", "B"])
+        ser = df["A"]
+
+        assert "A" in df._item_cache
+
+        # Adding a new entry to ser swaps in a new array, so "A" needs to
+        #  be removed from df._item_cache
+        ser["c"] = 5
+        assert len(ser) == 3
+        assert "A" not in df._item_cache
+        assert df["A"] is not ser
+        assert len(df["A"]) == 2
+
 
 class TestChaining:
     def test_setitem_chained_setfault(self):
@@ -346,20 +361,17 @@ class TestChaining:
         # GH6394
         # Regression in chained getitem indexing with embedded list-like from
         # 0.12
-        def check(result, expected):
-            tm.assert_numpy_array_equal(result, expected)
-            assert isinstance(result, np.ndarray)
 
         df = DataFrame({"A": 5 * [np.zeros(3)], "B": 5 * [np.ones(3)]})
         expected = df["A"].iloc[2]
         result = df.loc[2, "A"]
-        check(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
         result2 = df.iloc[2]["A"]
-        check(result2, expected)
+        tm.assert_numpy_array_equal(result2, expected)
         result3 = df["A"].loc[2]
-        check(result3, expected)
+        tm.assert_numpy_array_equal(result3, expected)
         result4 = df["A"].iloc[2]
-        check(result4, expected)
+        tm.assert_numpy_array_equal(result4, expected)
 
     def test_cache_updating(self):
         # GH 4939, make sure to update the cache on setitem
@@ -378,9 +390,6 @@ class TestChaining:
         )
         df["f"] = 0
         df.f.values[3] = 1
-
-        # TODO(wesm): unused?
-        # y = df.iloc[np.arange(2, len(df))]
 
         df.f.values[3] = 2
         expected = DataFrame(

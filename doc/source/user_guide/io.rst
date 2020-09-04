@@ -28,7 +28,7 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     binary;`HDF5 Format <https://support.hdfgroup.org/HDF5/whatishdf5.html>`__;:ref:`read_hdf<io.hdf5>`;:ref:`to_hdf<io.hdf5>`
     binary;`Feather Format <https://github.com/wesm/feather>`__;:ref:`read_feather<io.feather>`;:ref:`to_feather<io.feather>`
     binary;`Parquet Format <https://parquet.apache.org/>`__;:ref:`read_parquet<io.parquet>`;:ref:`to_parquet<io.parquet>`
-    binary;`ORC Format <//https://orc.apache.org/>`__;:ref:`read_orc<io.orc>`;
+    binary;`ORC Format <https://orc.apache.org/>`__;:ref:`read_orc<io.orc>`;
     binary;`Msgpack <https://msgpack.org/index.html>`__;:ref:`read_msgpack<io.msgpack>`;:ref:`to_msgpack<io.msgpack>`
     binary;`Stata <https://en.wikipedia.org/wiki/Stata>`__;:ref:`read_stata<io.stata_reader>`;:ref:`to_stata<io.stata_writer>`
     binary;`SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__;:ref:`read_sas<io.sas_reader>`;
@@ -41,8 +41,7 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
 
 .. note::
    For examples that use the ``StringIO`` class, make sure you import it
-   according to your Python version, i.e. ``from StringIO import StringIO`` for
-   Python 2 and ``from io import StringIO`` for Python 3.
+   with ``from io import StringIO`` for Python 3.
 
 .. _io.read_csv_table:
 
@@ -110,6 +109,11 @@ index_col : int, str, sequence of int / str, or False, default ``None``
   Note: ``index_col=False`` can be used to force pandas to *not* use the first
   column as the index, e.g. when you have a malformed file with delimiters at
   the end of each line.
+
+  The default value of ``None`` instructs pandas to guess. If the number of
+  fields in the column header row is equal to the number of fields in the body
+  of the data file, then a default index is used.  If it is one larger, then
+  the first field is used as an index.
 usecols : list-like or callable, default ``None``
   Return a subset of the columns. If list-like, all elements must either
   be positional (i.e. integer indices into the document columns) or strings
@@ -281,14 +285,21 @@ chunksize : int, default ``None``
 Quoting, compression, and file format
 +++++++++++++++++++++++++++++++++++++
 
-compression : {``'infer'``, ``'gzip'``, ``'bz2'``, ``'zip'``, ``'xz'``, ``None``}, default ``'infer'``
+compression : {``'infer'``, ``'gzip'``, ``'bz2'``, ``'zip'``, ``'xz'``, ``None``, ``dict``}, default ``'infer'``
   For on-the-fly decompression of on-disk data. If 'infer', then use gzip,
-  bz2, zip, or xz if filepath_or_buffer is a string ending in '.gz', '.bz2',
+  bz2, zip, or xz if ``filepath_or_buffer`` is path-like ending in '.gz', '.bz2',
   '.zip', or '.xz', respectively, and no decompression otherwise. If using 'zip',
   the ZIP file must contain only one data file to be read in.
-  Set to ``None`` for no decompression.
+  Set to ``None`` for no decompression. Can also be a dict with key ``'method'``
+  set to one of {``'zip'``, ``'gzip'``, ``'bz2'``} and other key-value pairs are
+  forwarded to ``zipfile.ZipFile``, ``gzip.GzipFile``, or ``bz2.BZ2File``.
+  As an example, the following could be passed for faster compression and to
+  create a reproducible gzip archive:
+  ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
 
   .. versionchanged:: 0.24.0 'infer' option added and set to default.
+  .. versionchanged:: 1.1.0 dict option extended to support ``gzip`` and ``bz2``.
+  .. versionchanged:: 1.2.0 Previous versions forwarded dict entries for 'gzip' to `gzip.open`.
 thousands : str, default ``None``
   Thousands separator.
 decimal : str, default ``'.'``
@@ -461,8 +472,6 @@ specification:
 .. ipython:: python
 
    pd.read_csv(StringIO(data), dtype={'col1': 'category'}).dtypes
-
-.. versionadded:: 0.21.0
 
 Specifying ``dtype='category'`` will result in an unordered ``Categorical``
 whose ``categories`` are the unique values observed in the data. For more
@@ -912,16 +921,6 @@ data columns:
    significantly faster, ~20x has been observed.
 
 
-.. note::
-
-   When passing a dict as the `parse_dates` argument, the order of
-   the columns prepended is not guaranteed, because `dict` objects do not impose
-   an ordering on their keys. On Python 2.7+ you may use `collections.OrderedDict`
-   instead of a regular `dict` if this matters to you. Because of this, when using a
-   dict for 'parse_dates' in conjunction with the `index_col` argument, it's best to
-   specify `index_col` as a column label rather then as an index on the resulting frame.
-
-
 Date parsing functions
 ++++++++++++++++++++++
 
@@ -1067,6 +1066,23 @@ DD/MM/YYYY instead. For convenience, a ``dayfirst`` keyword is provided:
 
    pd.read_csv('tmp.csv', parse_dates=[0])
    pd.read_csv('tmp.csv', dayfirst=True, parse_dates=[0])
+
+Writing CSVs to binary file objects
++++++++++++++++++++++++++++++++++++
+
+.. versionadded:: 1.2.0
+
+``df.to_csv(..., mode="w+b")`` allows writing a CSV to a file object
+opened binary mode. For this to work, it is necessary that ``mode``
+contains a "b":
+
+.. ipython:: python
+
+   import io
+
+   data = pd.DataFrame([0, 1, 2])
+   buffer = io.BytesIO()
+   data.to_csv(buffer, mode="w+b", encoding="utf-8", compression="gzip")
 
 .. _io.float_precision:
 
@@ -1636,29 +1652,72 @@ options include:
 Specifying any of the above options will produce a ``ParserWarning`` unless the
 python engine is selected explicitly using ``engine='python'``.
 
-Reading remote files
-''''''''''''''''''''
+.. _io.remote:
 
-You can pass in a URL to a CSV file:
+Reading/writing remote files
+''''''''''''''''''''''''''''
+
+You can pass in a URL to read or write remote files to many of Pandas' IO
+functions - the following example shows reading a CSV file:
 
 .. code-block:: python
 
    df = pd.read_csv('https://download.bls.gov/pub/time.series/cu/cu.item',
                     sep='\t')
 
-S3 URLs are handled as well but require installing the `S3Fs
+All URLs which are not local files or HTTP(s) are handled by
+`fsspec`_, if installed, and its various filesystem implementations
+(including Amazon S3, Google Cloud, SSH, FTP, webHDFS...).
+Some of these implementations will require additional packages to be
+installed, for example
+S3 URLs require the `s3fs
 <https://pypi.org/project/s3fs/>`_ library:
 
 .. code-block:: python
 
-   df = pd.read_csv('s3://pandas-test/tips.csv')
+   df = pd.read_json('s3://pandas-test/adatafile.json')
 
-If your S3 bucket requires credentials you will need to set them as environment
-variables or in the ``~/.aws/credentials`` config file, refer to the `S3Fs
-documentation on credentials
-<https://s3fs.readthedocs.io/en/latest/#credentials>`_.
+When dealing with remote storage systems, you might need
+extra configuration with environment variables or config files in
+special locations. For example, to access data in your S3 bucket,
+you will need to define credentials in one of the several ways listed in
+the `S3Fs documentation
+<https://s3fs.readthedocs.io/en/latest/#credentials>`_. The same is true
+for several of the storage backends, and you should follow the links
+at `fsimpl1`_ for implementations built into ``fsspec`` and `fsimpl2`_
+for those not included in the main ``fsspec``
+distribution.
 
+You can also pass parameters directly to the backend driver. For example,
+if you do *not* have S3 credentials, you can still access public data by
+specifying an anonymous connection, such as
 
+.. versionadded:: 1.2.0
+
+.. code-block:: python
+
+   pd.read_csv("s3://ncei-wcsd-archive/data/processed/SH1305/18kHz/SaKe2013"
+               "-D20130523-T080854_to_SaKe2013-D20130523-T085643.csv",
+               storage_options={"anon": True})
+
+``fsspec`` also allows complex URLs, for accessing data in compressed
+archives, local caching of files, and more. To locally cache the above
+example, you would modify the call to
+
+.. code-block:: python
+
+   pd.read_csv("simplecache::s3://ncei-wcsd-archive/data/processed/SH1305/18kHz/"
+               "SaKe2013-D20130523-T080854_to_SaKe2013-D20130523-T085643.csv",
+               storage_options={"s3": {"anon": True}})
+
+where we specify that the "anon" parameter is meant for the "s3" part of
+the implementation, not to the caching implementation. Note that this caches to a temporary
+directory for the duration of the session only, but you can also specify
+a permanent store.
+
+.. _fsspec: https://filesystem-spec.readthedocs.io/en/latest/
+.. _fsimpl1: https://filesystem-spec.readthedocs.io/en/latest/api.html#built-in-implementations
+.. _fsimpl2: https://filesystem-spec.readthedocs.io/en/latest/api.html#other-known-implementations
 
 Writing out data
 ''''''''''''''''
@@ -1888,7 +1947,7 @@ Fallback behavior
 If the JSON serializer cannot handle the container contents directly it will
 fall back in the following manner:
 
-* if the dtype is unsupported (e.g. ``np.complex``) then the ``default_handler``, if provided, will be called
+* if the dtype is unsupported (e.g. ``np.complex_``) then the ``default_handler``, if provided, will be called
   for each value, otherwise an exception is raised.
 
 * if an object is unsupported it will attempt the following:
@@ -2182,8 +2241,6 @@ Line delimited json
 pandas is able to read and write line-delimited json files that are common in data processing pipelines
 using Hadoop or Spark.
 
-.. versionadded:: 0.21.0
-
 For line-delimited json files, pandas can also return an iterator which reads in ``chunksize`` lines at a time. This can be useful for large files or to read from a stream.
 
 .. ipython:: python
@@ -2453,7 +2510,7 @@ Specify a number of rows to skip:
 
    dfs = pd.read_html(url, skiprows=0)
 
-Specify a number of rows to skip using a list (``xrange`` (Python 2 only) works
+Specify a number of rows to skip using a list (``range`` works
 as well):
 
 .. code-block:: python
@@ -3124,11 +3181,7 @@ Pandas supports writing Excel files to buffer-like objects such as ``StringIO`` 
 
 .. code-block:: python
 
-   # Safe import for either Python 2.x or 3.x
-   try:
-       from io import BytesIO
-   except ImportError:
-       from cStringIO import StringIO as BytesIO
+   from io import BytesIO
 
    bio = BytesIO()
 
@@ -3361,6 +3414,12 @@ The compression type can be an explicit parameter or be inferred from the file e
 If 'infer', then use ``gzip``, ``bz2``, ``zip``, or ``xz`` if filename ends in ``'.gz'``, ``'.bz2'``, ``'.zip'``, or
 ``'.xz'``, respectively.
 
+The compression parameter can also be a ``dict`` in order to pass options to the
+compression protocol. It must have a ``'method'`` key set to the name
+of the compression protocol, which must be one of
+{``'zip'``, ``'gzip'``, ``'bz2'``}. All other key-value pairs are passed to
+the underlying compression library.
+
 .. ipython:: python
 
    df = pd.DataFrame({
@@ -3396,6 +3455,15 @@ The default is to 'infer':
    df["A"].to_pickle("s1.pkl.bz2")
    rt = pd.read_pickle("s1.pkl.bz2")
    rt
+
+Passing options to the compression protocol in order to speed up compression:
+
+.. ipython:: python
+
+   df.to_pickle(
+       "data.pkl.gz",
+       compression={"method": "gzip", 'compresslevel': 1}
+   )
 
 .. ipython:: python
    :suppress:
@@ -3436,10 +3504,11 @@ for some advanced strategies
 
 .. warning::
 
-   pandas requires ``PyTables`` >= 3.0.0.
-   There is a indexing bug in ``PyTables`` < 3.2 which may appear when querying stores using an index.
-   If you see a subset of results being returned, upgrade to ``PyTables`` >= 3.2.
-   Stores created previously will need to be rewritten using the updated version.
+   Pandas uses PyTables for reading and writing HDF5 files, which allows
+   serializing object-dtype data with pickle. Loading pickled data received from
+   untrusted sources can be unsafe.
+
+   See: https://docs.python.org/3/library/pickle.html for more.
 
 .. ipython:: python
    :suppress:
@@ -3830,7 +3899,7 @@ The right-hand side of the sub-expression (after a comparison operator) can be:
    .. code-block:: ipython
 
       string = "HolyMoly'"
-      store.select('df', 'index == %s' % string)
+      store.select('df', f'index == {string}')
 
    The latter will **not** work and will raise a ``SyntaxError``.Note that
    there's a single quote followed by a double quote in the ``string``
@@ -4262,12 +4331,12 @@ control compression: ``complevel`` and ``complib``.
   - `lzo <https://www.oberhumer.com/opensource/lzo/>`_: Fast
     compression and decompression.
   - `bzip2 <http://bzip.org/>`_: Good compression rates.
-  - `blosc <http://www.blosc.org/>`_: Fast compression and
+  - `blosc <https://www.blosc.org/>`_: Fast compression and
     decompression.
 
     Support for alternative blosc compressors:
 
-    - `blosc:blosclz <http://www.blosc.org/>`_ This is the
+    - `blosc:blosclz <https://www.blosc.org/>`_ This is the
       default compressor for ``blosc``
     - `blosc:lz4
       <https://fastcompression.blogspot.dk/p/lz4.html>`_:
@@ -4597,17 +4666,15 @@ frames efficient, and to make sharing data across data analysis languages easy.
 Feather is designed to faithfully serialize and de-serialize DataFrames, supporting all of the pandas
 dtypes, including extension dtypes such as categorical and datetime with tz.
 
-Several caveats.
+Several caveats:
 
-* This is a newer library, and the format, though stable, is not guaranteed to be backward compatible
-  to the earlier versions.
 * The format will NOT write an ``Index``, or ``MultiIndex`` for the
   ``DataFrame`` and will raise an error if a non-default one is provided. You
   can ``.reset_index()`` to store the index or ``.reset_index(drop=True)`` to
   ignore it.
 * Duplicate column names and non-string columns names are not supported
-* Non supported types include ``Period`` and actual Python object types. These will raise a helpful error message
-  on an attempt at serialization.
+* Actual Python objects in object dtype columns are not supported. These will
+  raise a helpful error message on an attempt at serialization.
 
 See the `Full Documentation <https://github.com/wesm/feather>`__.
 
@@ -4660,8 +4727,6 @@ Read from a feather file.
 
 Parquet
 -------
-
-.. versionadded:: 0.21.0
 
 `Apache Parquet <https://parquet.apache.org/>`__ provides a partitioned binary columnar serialization for data frames. It is designed to
 make reading and writing data frames efficient, and to make sharing data across data analysis
@@ -4832,7 +4897,7 @@ ORC
 
 .. versionadded:: 1.0.0
 
-Similar to the :ref:`parquet <io.parquet>` format, the `ORC Format <//https://orc.apache.org/>`__ is a binary columnar serialization
+Similar to the :ref:`parquet <io.parquet>` format, the `ORC Format <https://orc.apache.org/>`__ is a binary columnar serialization
 for data frames. It is designed to make reading data frames efficient. Pandas provides *only* a reader for the
 ORC format, :func:`~pandas.read_orc`. This requires the `pyarrow <https://arrow.apache.org/docs/python/>`__ library.
 
@@ -5020,8 +5085,8 @@ Possible values are:
   This usually provides better performance for analytic databases
   like *Presto* and *Redshift*, but has worse performance for
   traditional SQL backend if the table contains many columns.
-  For more information check the SQLAlchemy `documention
-  <http://docs.sqlalchemy.org/en/latest/core/dml.html#sqlalchemy.sql.expression.Insert.values.params.*args>`__.
+  For more information check the SQLAlchemy `documentation
+  <https://docs.sqlalchemy.org/en/latest/core/dml.html#sqlalchemy.sql.expression.Insert.values.params.*args>`__.
 - callable with signature ``(pd_table, conn, keys, data_iter)``:
   This can be used to implement a more performant insertion method based on
   specific backend dialect features.
