@@ -651,7 +651,7 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, 
         If False, scalar belongs to pandas extension types is inferred as
         object
     """
-    dtype = np.dtype(object)
+    dtype: DtypeObj = np.dtype(object)
 
     # a 1-element ndarray
     if isinstance(val, np.ndarray):
