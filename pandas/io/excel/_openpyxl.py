@@ -1,8 +1,8 @@
-from typing import TYPE_CHECKING, Dict, List, Optional, Sequence
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 import numpy as np
 
-from pandas._typing import FilePathOrBuffer, Scalar, StorageOptions, Union
+from pandas._typing import FilePathOrBuffer, Scalar, StorageOptions
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.io.excel._base import ExcelWriter, _BaseExcelReader
@@ -512,12 +512,14 @@ class _OpenpyxlReader(_BaseExcelReader):
         self,
         sheet,
         convert_float: bool,
-        header: Optional[Union[int, Sequence[int]]],
-        skiprows: Optional[Union[int, Sequence[int]]],
+        header_nrows: int,
+        skiprows_nrows: int,
         nrows: Optional[int],
     ) -> List[List[Scalar]]:
         data: List[List[Scalar]] = []
-        for row in sheet.rows:
+        for n, row in enumerate(sheet.rows):
             data.append([self._convert_cell(cell, convert_float) for cell in row])
+            if isinstance(nrows, int) and n > header_nrows + skiprows_nrows + nrows + 1:
+                break
 
         return data

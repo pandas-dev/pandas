@@ -3,7 +3,7 @@ import datetime
 from io import BufferedIOBase, BytesIO, RawIOBase
 import os
 from textwrap import fill
-from typing import Any, List, Mapping, Optional, Sequence, Union
+from typing import Any, List, Mapping, Optional, Union
 
 from pandas._config import config
 
@@ -401,8 +401,8 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
         self,
         sheet,
         convert_float: bool,
-        header: Optional[Union[int, Sequence[int]]],
-        skiprows: Optional[Union[int, Sequence[int]]],
+        header_nrows: int,
+        skiprows_nrows: int,
         nrows: Optional[int],
     ) -> List[List[Scalar]]:
         pass
@@ -460,7 +460,22 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
             else:  # assume an integer if not a string
                 sheet = self.get_sheet_by_index(asheetname)
 
-            data = self.get_sheet_data(sheet, convert_float, header, skiprows, nrows,)
+            if isinstance(header, int):
+                header_nrows = header
+            elif header is None:
+                header_nrows = 0
+            else:
+                header_nrows = max(header)
+            if isinstance(skiprows, int):
+                skiprows_nrows = skiprows
+            elif skiprows is None:
+                skiprows_nrows = 0
+            else:
+                skiprows_nrows = len(skiprows)
+
+            data = self.get_sheet_data(
+                sheet, convert_float, header_nrows, skiprows_nrows, nrows
+            )
             usecols = _maybe_convert_usecols(usecols)
 
             if not data:

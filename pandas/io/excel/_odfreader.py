@@ -1,8 +1,8 @@
-from typing import List, Optional, Sequence, cast
+from typing import List, Optional, cast
 
 import numpy as np
 
-from pandas._typing import FilePathOrBuffer, Scalar, StorageOptions, Union
+from pandas._typing import FilePathOrBuffer, Scalar, StorageOptions
 from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
@@ -75,8 +75,8 @@ class _ODFReader(_BaseExcelReader):
         self,
         sheet,
         convert_float: bool,
-        header: Optional[Union[int, Sequence[int]]],
-        skiprows: Optional[Union[int, Sequence[int]]],
+        header_nrows: int,
+        skiprows_nrows: int,
         nrows: Optional[int],
     ) -> List[List[Scalar]]:
         """
@@ -94,8 +94,8 @@ class _ODFReader(_BaseExcelReader):
 
         table: List[List[Scalar]] = []
 
-        if nrows is not None and isinstance(header, int) and isinstance(skiprows, int):
-            sheet_rows = sheet_rows[: header + skiprows + nrows + 1]
+        if isinstance(nrows, int):
+            sheet_rows = sheet_rows[: header_nrows + skiprows_nrows + nrows + 1]
         for i, sheet_row in enumerate(sheet_rows):
             sheet_cells = [x for x in sheet_row.childNodes if x.qname in cell_names]
             empty_cells = 0

@@ -1,9 +1,9 @@
 from datetime import time
-from typing import List, Optional, Sequence
+from typing import List, Optional
 
 import numpy as np
 
-from pandas._typing import Scalar, StorageOptions, Union
+from pandas._typing import Scalar, StorageOptions
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.io.excel._base import _BaseExcelReader
@@ -54,8 +54,8 @@ class _XlrdReader(_BaseExcelReader):
         self,
         sheet,
         convert_float: bool,
-        header: Optional[Union[int, Sequence[int]]],
-        skiprows: Optional[Union[int, Sequence[int]]],
+        header_nrows: int,
+        skiprows_nrows: int,
         nrows: Optional[int],
     ) -> List[List[Scalar]]:
         from xlrd import (
@@ -110,20 +110,8 @@ class _XlrdReader(_BaseExcelReader):
 
         sheet_nrows = sheet.nrows
 
-        if isinstance(header, int):
-            gsdheader = header
-        elif header is None:
-            gsdheader = 0
-        else:
-            gsdheader = max(header)
-        if isinstance(skiprows, int):
-            gsdskiprows = skiprows
-        elif skiprows is None:
-            gsdskiprows = 0
-        else:
-            gsdskiprows = max(skiprows)
         if isinstance(nrows, int):
-            sheet_nrows = min(gsdheader + gsdskiprows + nrows + 1, sheet_nrows)
+            sheet_nrows = min(header_nrows + skiprows_nrows + nrows + 1, sheet_nrows)
 
         for i in range(sheet_nrows):
             row = [
