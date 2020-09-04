@@ -141,7 +141,7 @@ class TestSeriesDropDuplicates:
     def test_drop_duplicates_categorical_bool(self, ordered):
         tc = Series(
             Categorical(
-                [True, False, True, False], categories=[True, False], ordered=ordered,
+                [True, False, True, False], categories=[True, False], ordered=ordered
             )
         )
 

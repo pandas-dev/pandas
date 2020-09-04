@@ -3,6 +3,7 @@ import itertools
 import operator
 import re
 from typing import (
+    Any,
     DefaultDict,
     Dict,
     List,
@@ -53,8 +54,8 @@ from pandas.core.internals.blocks import (
     DatetimeTZBlock,
     ExtensionBlock,
     ObjectValuesExtensionBlock,
-    _extend_blocks,
     _safe_reshape,
+    extend_blocks,
     get_block_type,
     make_block,
 )
@@ -405,7 +406,7 @@ class BlockManager(PandasObject):
                 if not ignore_failures:
                     raise
                 continue
-            result_blocks = _extend_blocks(applied, result_blocks)
+            result_blocks = extend_blocks(applied, result_blocks)
 
         if ignore_failures:
             return self._combine(result_blocks)
@@ -618,8 +619,12 @@ class BlockManager(PandasObject):
         return self.apply("replace", value=value, **kwargs)
 
     def replace_list(
-        self, src_list, dest_list, inplace: bool = False, regex: bool = False
-    ) -> "BlockManager":
+        self: T,
+        src_list: List[Any],
+        dest_list: List[Any],
+        inplace: bool = False,
+        regex: bool = False,
+    ) -> T:
         """ do a list replace """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
@@ -643,34 +648,14 @@ class BlockManager(PandasObject):
 
         masks = [comp(s, mask, regex) for s in src_list]
 
-        result_blocks = []
-        src_len = len(src_list) - 1
-        for blk in self.blocks:
-
-            # its possible to get multiple result blocks here
-            # replace ALWAYS will return a list
-            rb = [blk if inplace else blk.copy()]
-            for i, (s, d) in enumerate(zip(src_list, dest_list)):
-                new_rb: List[Block] = []
-                for b in rb:
-                    m = masks[i][b.mgr_locs.indexer]
-                    convert = i == src_len  # only convert once at the end
-                    result = b._replace_coerce(
-                        mask=m,
-                        to_replace=s,
-                        value=d,
-                        inplace=inplace,
-                        convert=convert,
-                        regex=regex,
-                    )
-                    if m.any() or convert:
-                        new_rb = _extend_blocks(result, new_rb)
-                    else:
-                        new_rb.append(b)
-                rb = new_rb
-            result_blocks.extend(rb)
-
-        bm = type(self).from_blocks(result_blocks, self.axes)
+        bm = self.apply(
+            "_replace_list",
+            src_list=src_list,
+            dest_list=dest_list,
+            masks=masks,
+            inplace=inplace,
+            regex=regex,
+        )
         bm._consolidate_inplace()
         return bm
 
@@ -1043,6 +1028,7 @@ class BlockManager(PandasObject):
         Set new item in-place. Does not consolidate. Adds new Block if not
         contained in the current set of items
         """
+        value = extract_array(value, extract_numpy=True)
         # FIXME: refactor, clearly separate broadcasting & zip-like assignment
         #        can prob also fix the various if tests for sparse/categorical
         if self._blklocs is None and self.ndim > 1:
@@ -1882,7 +1868,7 @@ def _consolidate(blocks):
         merged_blocks = _merge_blocks(
             list(group_blocks), dtype=dtype, can_consolidate=_can_consolidate
         )
-        new_blocks = _extend_blocks(merged_blocks, new_blocks)
+        new_blocks = extend_blocks(merged_blocks, new_blocks)
     return new_blocks
 
 
