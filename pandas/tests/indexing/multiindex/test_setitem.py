@@ -226,7 +226,7 @@ class TestMultiIndexSetItem:
             columns=col_names,
         )
         df = df.set_index(index_cols).sort_index()
-        grp = df.groupby(level=index_cols[:4])
+        grp = df.groupby(level=index_cols[:4], dropna=False)
         df["new_col"] = np.nan
 
         f_index = np.arange(5)
