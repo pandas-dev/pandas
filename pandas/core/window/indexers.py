@@ -86,6 +86,8 @@ class FixedWindowIndexer(BaseIndexer):
         end = np.arange(1 + offset, num_values + 1 + offset)
         start = end - self.window_size
         
+        # end is exclusive, whereas start is inclusive
+        # thus the bounds for end should be 1 greater than the bounds for start
         end = np.clip(end, 1, num_values)
         start = np.clip(start, 0, num_values - 1)
 
