@@ -206,6 +206,7 @@ Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Performance improvement in :meth:`GroupBy.agg` with the ``numba`` engine (:issue:`35759`)
+- Performance improvement in `read_excel` for when ``nrows`` is much smaller than the length of the file (:issue:`33281`).
 -
 
 .. ---------------------------------------------------------------------------
