@@ -8,6 +8,7 @@ import pytest
 
 from pandas._libs import algos as libalgos, hashtable as ht
 from pandas._libs.groupby import group_var_float32, group_var_float64
+from pandas.compat import IS64
 from pandas.compat.numpy import np_array_datetime64_compat
 import pandas.util._test_decorators as td
 
@@ -29,7 +30,6 @@ from pandas import (
     IntervalIndex,
     Series,
     Timestamp,
-    compat,
 )
 import pandas._testing as tm
 import pandas.core.algorithms as algos
@@ -1137,7 +1137,7 @@ class TestValueCounts:
         )
 
         # 32-bit linux has a different ordering
-        if not compat.is_platform_32bit():
+        if IS64:
             result = Series([10.3, 5.0, 5.0, None]).value_counts(dropna=False)
             expected = Series([2, 1, 1], index=[5.0, 10.3, np.nan])
             tm.assert_series_equal(result, expected)
@@ -1170,7 +1170,7 @@ class TestValueCounts:
         result = algos.value_counts(arr)
 
         # 32-bit linux has a different ordering
-        if not compat.is_platform_32bit():
+        if IS64:
             tm.assert_series_equal(result, expected)
 
 

@@ -9,7 +9,7 @@ import sys
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_32bit, is_platform_windows
+from pandas.compat import IS64, is_platform_windows
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -154,7 +154,7 @@ class TestPandasContainer:
         expected = int_frame
         if (
             numpy
-            and (is_platform_32bit() or is_platform_windows())
+            and (not IS64 or is_platform_windows())
             and not dtype
             and orient != "split"
         ):
@@ -361,9 +361,7 @@ class TestPandasContainer:
         result = read_json(df.to_json(), dtype=dtype)
         assert np.isnan(result.iloc[0, 2])
 
-    @pytest.mark.skipif(
-        is_platform_32bit(), reason="not compliant on 32-bit, xref #15865"
-    )
+    @pytest.mark.skipif(not IS64, reason="not compliant on 32-bit, xref #15865")
     @pytest.mark.parametrize(
         "value,precision,expected_val",
         [
