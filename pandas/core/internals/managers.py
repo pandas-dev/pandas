@@ -3,6 +3,7 @@ import itertools
 import operator
 import re
 from typing import (
+    Any,
     DefaultDict,
     Dict,
     List,
@@ -53,8 +54,8 @@ from pandas.core.internals.blocks import (
     DatetimeTZBlock,
     ExtensionBlock,
     ObjectValuesExtensionBlock,
-    _extend_blocks,
     _safe_reshape,
+    extend_blocks,
     get_block_type,
     make_block,
 )
@@ -334,7 +335,7 @@ class BlockManager(PandasObject):
         # If 2D, we assume that we're operating column-wise
         assert self.ndim == 2
 
-        res_blocks = []
+        res_blocks: List[Block] = []
         for blk in self.blocks:
             nbs = blk.reduce(func)
             res_blocks.extend(nbs)
@@ -349,7 +350,13 @@ class BlockManager(PandasObject):
         """
         return operate_blockwise(self, other, array_op)
 
-    def apply(self: T, f, align_keys=None, **kwargs) -> T:
+    def apply(
+        self: T,
+        f,
+        align_keys: Optional[List[str]] = None,
+        ignore_failures: bool = False,
+        **kwargs,
+    ) -> T:
         """
         Iterate over the blocks, collect and create a new BlockManager.
 
@@ -357,6 +364,10 @@ class BlockManager(PandasObject):
         ----------
         f : str or callable
             Name of the Block method to apply.
+        align_keys: List[str] or None, default None
+        ignore_failures: bool, default False
+        **kwargs
+            Keywords to pass to `f`
 
         Returns
         -------
@@ -386,11 +397,19 @@ class BlockManager(PandasObject):
                         # otherwise we have an ndarray
                         kwargs[k] = obj[b.mgr_locs.indexer]
 
-            if callable(f):
-                applied = b.apply(f, **kwargs)
-            else:
-                applied = getattr(b, f)(**kwargs)
-            result_blocks = _extend_blocks(applied, result_blocks)
+            try:
+                if callable(f):
+                    applied = b.apply(f, **kwargs)
+                else:
+                    applied = getattr(b, f)(**kwargs)
+            except (TypeError, NotImplementedError):
+                if not ignore_failures:
+                    raise
+                continue
+            result_blocks = extend_blocks(applied, result_blocks)
+
+        if ignore_failures:
+            return self._combine(result_blocks)
 
         if len(result_blocks) == 0:
             return self.make_empty(self.axes)
@@ -491,7 +510,7 @@ class BlockManager(PandasObject):
             values = values.take(indexer)
 
         return SingleBlockManager(
-            make_block(values, ndim=1, placement=np.arange(len(values))), axes[0],
+            make_block(values, ndim=1, placement=np.arange(len(values))), axes[0]
         )
 
     def isna(self, func) -> "BlockManager":
@@ -519,9 +538,7 @@ class BlockManager(PandasObject):
     def setitem(self, indexer, value) -> "BlockManager":
         return self.apply("setitem", indexer=indexer, value=value)
 
-    def putmask(
-        self, mask, new, align: bool = True, axis: int = 0,
-    ):
+    def putmask(self, mask, new, align: bool = True, axis: int = 0):
         transpose = self.ndim == 2
 
         if align:
@@ -602,8 +619,12 @@ class BlockManager(PandasObject):
         return self.apply("replace", value=value, **kwargs)
 
     def replace_list(
-        self, src_list, dest_list, inplace: bool = False, regex: bool = False
-    ) -> "BlockManager":
+        self: T,
+        src_list: List[Any],
+        dest_list: List[Any],
+        inplace: bool = False,
+        regex: bool = False,
+    ) -> T:
         """ do a list replace """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
@@ -627,34 +648,14 @@ class BlockManager(PandasObject):
 
         masks = [comp(s, mask, regex) for s in src_list]
 
-        result_blocks = []
-        src_len = len(src_list) - 1
-        for blk in self.blocks:
-
-            # its possible to get multiple result blocks here
-            # replace ALWAYS will return a list
-            rb = [blk if inplace else blk.copy()]
-            for i, (s, d) in enumerate(zip(src_list, dest_list)):
-                new_rb: List[Block] = []
-                for b in rb:
-                    m = masks[i][b.mgr_locs.indexer]
-                    convert = i == src_len  # only convert once at the end
-                    result = b._replace_coerce(
-                        mask=m,
-                        to_replace=s,
-                        value=d,
-                        inplace=inplace,
-                        convert=convert,
-                        regex=regex,
-                    )
-                    if m.any() or convert:
-                        new_rb = _extend_blocks(result, new_rb)
-                    else:
-                        new_rb.append(b)
-                rb = new_rb
-            result_blocks.extend(rb)
-
-        bm = type(self).from_blocks(result_blocks, self.axes)
+        bm = self.apply(
+            "_replace_list",
+            src_list=src_list,
+            dest_list=dest_list,
+            masks=masks,
+            inplace=inplace,
+            regex=regex,
+        )
         bm._consolidate_inplace()
         return bm
 
@@ -721,7 +722,7 @@ class BlockManager(PandasObject):
         self._consolidate_inplace()
         return self._combine([b for b in self.blocks if b.is_numeric], copy)
 
-    def _combine(self, blocks: List[Block], copy: bool = True) -> "BlockManager":
+    def _combine(self: T, blocks: List[Block], copy: bool = True) -> T:
         """ return a new manager with the blocks """
         if len(blocks) == 0:
             return self.make_empty()
@@ -730,7 +731,7 @@ class BlockManager(PandasObject):
         indexer = np.sort(np.concatenate([b.mgr_locs.as_array for b in blocks]))
         inv_indexer = lib.get_reverse_indexer(indexer, self.shape[0])
 
-        new_blocks = []
+        new_blocks: List[Block] = []
         for b in blocks:
             b = b.copy(deep=copy)
             b.mgr_locs = inv_indexer[b.mgr_locs.indexer]
@@ -1027,6 +1028,7 @@ class BlockManager(PandasObject):
         Set new item in-place. Does not consolidate. Adds new Block if not
         contained in the current set of items
         """
+        value = extract_array(value, extract_numpy=True)
         # FIXME: refactor, clearly separate broadcasting & zip-like assignment
         #        can prob also fix the various if tests for sparse/categorical
         if self._blklocs is None and self.ndim > 1:
@@ -1866,7 +1868,7 @@ def _consolidate(blocks):
         merged_blocks = _merge_blocks(
             list(group_blocks), dtype=dtype, can_consolidate=_can_consolidate
         )
-        new_blocks = _extend_blocks(merged_blocks, new_blocks)
+        new_blocks = extend_blocks(merged_blocks, new_blocks)
     return new_blocks
 
 
@@ -1923,7 +1925,7 @@ def _compare_or_regex_search(
     """
 
     def _check_comparison_types(
-        result: Union[ArrayLike, bool], a: ArrayLike, b: Union[Scalar, Pattern],
+        result: Union[ArrayLike, bool], a: ArrayLike, b: Union[Scalar, Pattern]
     ):
         """
         Raises an error if the two arrays (a,b) cannot be compared.

@@ -45,6 +45,8 @@ class NumericIndex(Index):
     This is an abstract class.
     """
 
+    _default_dtype: np.dtype
+
     _is_numeric_dtype = True
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None):
@@ -436,7 +438,7 @@ class Float64Index(NumericIndex):
     def _is_compatible_with_other(self, other) -> bool:
         return super()._is_compatible_with_other(other) or all(
             isinstance(
-                obj, (ABCInt64Index, ABCFloat64Index, ABCUInt64Index, ABCRangeIndex),
+                obj, (ABCInt64Index, ABCFloat64Index, ABCUInt64Index, ABCRangeIndex)
             )
             for obj in [self, other]
         )
