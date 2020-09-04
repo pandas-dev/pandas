@@ -691,10 +691,14 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
             result.set_axis(index, axis=self.axis, inplace=True)
             result = result.sort_index(axis=self.axis)
 
-        result_idx, obj_idx = result.index, self.obj._get_axis(self.axis)
-        intersection = result_idx.intersection(obj_idx)
-        indexer = obj_idx if intersection.empty else intersection
-        result.set_axis(indexer, axis=self.axis, inplace=True)
+        if (
+            self.dropna
+            and self.axis == 0
+            and len(result.index) < len(self._selected_obj.index)
+        ):
+            result.index = self._selected_obj.index[result.index.asi8]
+        else:
+            result.set_axis(self.obj._get_axis(self.axis), axis=self.axis, inplace=True)
         return result
 
     def _dir_additions(self):

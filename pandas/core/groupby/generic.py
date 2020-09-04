@@ -540,23 +540,14 @@ class SeriesGroupBy(GroupBy[Series]):
             if isinstance(res, (ABCDataFrame, ABCSeries)):
                 res = res._values
 
-            indexer = self._get_index(name) if self.dropna else group.index
-            results.append(klass(res, index=indexer))
+            results.append(klass(res, index=group.index))
 
         # check for empty "results" to avoid concat ValueError
         if results:
             from pandas.core.reshape.concat import concat
 
             concatenated = concat(results)
-
-            if self.dropna:
-                result = concatenated.sort_index()
-                if len(result.index) < len(self._selected_obj.index):
-                    result.index = self._selected_obj.index[result.index.asi8]
-                else:
-                    result.index = self._selected_obj.index
-            else:
-                result = self._set_result_index_ordered(concatenated)
+            result = self._set_result_index_ordered(concatenated)
         else:
             result = self.obj._constructor(dtype=np.float64)
         # we will only try to coerce the result type if
@@ -1345,8 +1336,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 if cache_key not in NUMBA_FUNC_CACHE:
                     NUMBA_FUNC_CACHE[cache_key] = numba_func
                 # Return the result as a DataFrame for concatenation later
-                indexer = self._get_index(name) if self.dropna else group.index
-                res = self.obj._constructor(res, index=indexer, columns=group.columns)
+                res = self.obj._constructor(
+                    res, index=group.index, columns=group.columns
+                )
             else:
                 # Try slow path and fast path.
                 try:

@@ -87,6 +87,7 @@ class BaseGrouper:
         group_keys: bool = True,
         mutated: bool = False,
         indexer: Optional[np.ndarray] = None,
+        dropna: bool = False,
     ):
         assert isinstance(axis, Index), axis
 
@@ -97,6 +98,7 @@ class BaseGrouper:
         self.group_keys = group_keys
         self.mutated = mutated
         self.indexer = indexer
+        self.dropna = dropna
 
     @property
     def groupings(self) -> List["grouper.Grouping"]:
@@ -124,8 +126,12 @@ class BaseGrouper:
         """
         splitter = self._get_splitter(data, axis=axis)
         keys = self._get_group_keys()
-        for key, (i, group) in zip(keys, splitter):
-            yield key, group
+        if self.dropna:
+            for key, (i, group) in zip(keys, splitter):
+                yield key, group.dropna()
+        else:
+            for key, (i, group) in zip(keys, splitter):
+                yield key, group
 
     def _get_splitter(self, data: FrameOrSeries, axis: int = 0) -> "DataSplitter":
         comp_ids, _, ngroups = self.group_info
