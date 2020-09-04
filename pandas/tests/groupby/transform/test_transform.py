@@ -148,7 +148,6 @@ def test_transform_broadcast(tsframe, ts):
         for col in tsframe:
             assert_fp_equal(res[col], agged[col])
 
-    print(pd.isna(tsframe))
     # group columns
     grouped = tsframe.groupby({"A": 0, "B": 0, "C": 1, "D": 1}, axis=1, dropna=False)
     result = grouped.transform(np.mean)
@@ -182,7 +181,7 @@ def test_transform_axis(tsframe):
     tm.assert_frame_equal(result, expected)
 
     ts = ts.T
-    grouped = ts.groupby(lambda x: x.weekday(), axis=1)
+    grouped = ts.groupby(lambda x: x.weekday(), axis=1, dropna=False)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: (x.T - x.mean(1)).T)
     tm.assert_frame_equal(result, expected)
@@ -195,7 +194,7 @@ def test_transform_axis(tsframe):
     tm.assert_frame_equal(result, expected)
 
     ts = ts.T
-    grouped = ts.groupby(lambda x: x.weekday(), axis=1)
+    grouped = ts.groupby(lambda x: x.weekday(), axis=1, dropna=False)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: (x.T - x.mean(1)).T)
     tm.assert_frame_equal(result, expected)
