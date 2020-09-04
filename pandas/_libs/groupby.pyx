@@ -483,8 +483,7 @@ def _group_add(complexfloating_t[:, :] out,
         complexfloating_t val, count
         complexfloating_t[:, :] sumx
         int64_t[:, :] nobs
-        Py_ssize_t len_values = len(values)
-        Py_ssize_t len_labels = len(labels)
+        Py_ssize_t len_values = len(values), len_labels = len(labels)
 
     if len_values != len_labels:
         raise ValueError("len(index) != len(labels)")
@@ -543,8 +542,7 @@ def _group_prod(floating[:, :] out,
         floating val, count
         floating[:, :] prodx
         int64_t[:, :] nobs
-        Py_ssize_t len_values = len(values)
-        Py_ssize_t len_labels = len(labels)
+        Py_ssize_t len_values = len(values), len_labels = len(labels)
 
     if len_values != len_labels:
         raise ValueError("len(index) != len(labels)")
@@ -595,8 +593,7 @@ def _group_var(floating[:, :] out,
         floating val, ct, oldmean
         floating[:, :] mean
         int64_t[:, :] nobs
-        Py_ssize_t len_values = len(values)
-        Py_ssize_t len_labels = len(labels)
+        Py_ssize_t len_values = len(values), len_labels = len(labels)
 
     assert min_count == -1, "'min_count' only used in add and prod"
 
@@ -653,8 +650,7 @@ def _group_mean(floating[:, :] out,
         floating val, count
         floating[:, :] sumx
         int64_t[:, :] nobs
-        Py_ssize_t len_values = len(values)
-        Py_ssize_t len_labels = len(labels)
+        Py_ssize_t len_values = len(values), len_labels = len(labels)
 
     assert min_count == -1, "'min_count' only used in add and prod"
 
