@@ -20,6 +20,7 @@ Fixed regressions
 - Regression in :meth:`DataFrame.replace` where a ``TypeError`` would be raised when attempting to replace elements of type :class:`Interval` (:issue:`35931`)
 -
 
+
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_112.bug_fixes:
