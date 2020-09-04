@@ -494,9 +494,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
         Variable algorithms do not use window while fixed do.
         """
-        if self.is_freq_type or isinstance(self.window, BaseIndexer):
-            return self._get_roll_func(f"{func}_variable")
-        return partial(self._get_roll_func(f"{func}_fixed"), win=self._get_window())
+        return self._get_roll_func(f"{func}_variable")
 
     def _get_window_indexer(self, window: int) -> BaseIndexer:
         """
@@ -611,13 +609,9 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             if values.size == 0:
                 return values.copy()
 
-            offset = calculate_center_offset(window) if center else 0
-            additional_nans = np.array([np.nan] * offset)
-
             if not is_weighted:
 
                 def calc(x):
-                    x = np.concatenate((x, additional_nans))
                     if not isinstance(self.window, BaseIndexer):
                         min_periods = calculate_min_periods(
                             window, self.min_periods, len(x), require_min_periods, floor
@@ -653,9 +647,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
             if use_numba_cache:
                 NUMBA_FUNC_CACHE[(kwargs["original_func"], "rolling_apply")] = func
-
-            if center:
-                result = self._center_window(result, window)
 
             return result
 
