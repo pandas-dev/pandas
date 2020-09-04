@@ -56,7 +56,7 @@ from pandas.core.dtypes.generic import (
     ABCPandasArray,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import _isna_compat, is_valid_nat_for_dtype, isna
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, isna_compat
 
 import pandas.core.algorithms as algos
 from pandas.core.array_algos.transforms import shift
@@ -487,7 +487,7 @@ class Block(PandasObject):
         ):
             return blocks
 
-        return _extend_blocks([b.downcast(downcast) for b in blocks])
+        return extend_blocks([b.downcast(downcast) for b in blocks])
 
     def downcast(self, dtypes=None):
         """ try to downcast each item to the dict of dtypes if present """
@@ -2474,7 +2474,7 @@ class ObjectBlock(Block):
             return blocks
 
         # split and convert the blocks
-        return _extend_blocks([b.convert(datetime=True, numeric=False) for b in blocks])
+        return extend_blocks([b.convert(datetime=True, numeric=False) for b in blocks])
 
     def _can_hold_element(self, element: Any) -> bool:
         return True
@@ -2503,7 +2503,7 @@ class ObjectBlock(Block):
                     result = b._replace_single(
                         to_rep, v, inplace=inplace, regex=regex, convert=convert
                     )
-                    result_blocks = _extend_blocks(result, result_blocks)
+                    result_blocks = extend_blocks(result, result_blocks)
                 blocks = result_blocks
             return result_blocks
 
@@ -2514,7 +2514,7 @@ class ObjectBlock(Block):
                     result = b._replace_single(
                         to_rep, value, inplace=inplace, regex=regex, convert=convert
                     )
-                    result_blocks = _extend_blocks(result, result_blocks)
+                    result_blocks = extend_blocks(result, result_blocks)
                 blocks = result_blocks
             return result_blocks
 
@@ -2769,7 +2769,7 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None):
 # -----------------------------------------------------------------
 
 
-def _extend_blocks(result, blocks=None):
+def extend_blocks(result, blocks=None):
     """ return a new extended blocks, given the result """
     if blocks is None:
         blocks = []
@@ -2860,7 +2860,7 @@ def _putmask_smart(v: np.ndarray, mask: np.ndarray, n) -> np.ndarray:
     else:
         # make sure that we have a nullable type
         # if we have nulls
-        if not _isna_compat(v, nn[0]):
+        if not isna_compat(v, nn[0]):
             pass
         elif not (is_float_dtype(nn.dtype) or is_integer_dtype(nn.dtype)):
             # only compare integers/floats

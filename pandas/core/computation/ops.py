@@ -15,7 +15,7 @@ from pandas._libs.tslibs import Timestamp
 from pandas.core.dtypes.common import is_list_like, is_scalar
 
 import pandas.core.common as com
-from pandas.core.computation.common import _ensure_decoded, result_type_many
+from pandas.core.computation.common import ensure_decoded, result_type_many
 from pandas.core.computation.scope import _DEFAULT_GLOBALS
 
 from pandas.io.formats.printing import pprint_thing, pprint_thing_encoded
@@ -466,7 +466,7 @@ class BinOp(Op):
             v = rhs.value
             if isinstance(v, (int, float)):
                 v = stringify(v)
-            v = Timestamp(_ensure_decoded(v))
+            v = Timestamp(ensure_decoded(v))
             if v.tz is not None:
                 v = v.tz_convert("UTC")
             self.rhs.update(v)
@@ -475,7 +475,7 @@ class BinOp(Op):
             v = lhs.value
             if isinstance(v, (int, float)):
                 v = stringify(v)
-            v = Timestamp(_ensure_decoded(v))
+            v = Timestamp(ensure_decoded(v))
             if v.tz is not None:
                 v = v.tz_convert("UTC")
             self.lhs.update(v)

@@ -5,7 +5,7 @@ import numpy as np
 from pandas._config import get_option
 
 
-def _ensure_decoded(s):
+def ensure_decoded(s):
     """
     If we have bytes, decode them to unicode.
     """

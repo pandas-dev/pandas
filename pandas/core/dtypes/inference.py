@@ -68,7 +68,7 @@ def is_number(obj) -> bool:
     return isinstance(obj, (Number, np.number))
 
 
-def _iterable_not_string(obj) -> bool:
+def iterable_not_string(obj) -> bool:
     """
     Check if the object is an iterable but not a string.
 
@@ -83,11 +83,11 @@ def _iterable_not_string(obj) -> bool:
 
     Examples
     --------
-    >>> _iterable_not_string([1, 2, 3])
+    >>> iterable_not_string([1, 2, 3])
     True
-    >>> _iterable_not_string("foo")
+    >>> iterable_not_string("foo")
     False
-    >>> _iterable_not_string(1)
+    >>> iterable_not_string(1)
     False
     """
     return isinstance(obj, abc.Iterable) and not isinstance(obj, str)
