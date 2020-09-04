@@ -56,6 +56,7 @@ class CSVFormatter:
         storage_options: StorageOptions = None,
     ):
         self.obj = obj
+        self.encoding = encoding or "utf-8"
 
         if path_or_buf is None:
             path_or_buf = StringIO()
@@ -66,7 +67,7 @@ class CSVFormatter:
 
         ioargs = get_filepath_or_buffer(
             path_or_buf,
-            encoding=encoding,
+            encoding=self.encoding,
             compression=self.compression,
             mode=mode,
             storage_options=storage_options,
@@ -76,13 +77,17 @@ class CSVFormatter:
         self.mode = ioargs.mode
 
         # GH21227 internal compression is not used for non-binary handles.
-        if compression and hasattr(self.path_or_buf, "write") and "b" not in self.mode:
+        if (
+            self.compression
+            and hasattr(self.path_or_buf, "write")
+            and "b" not in self.mode
+        ):
             warnings.warn(
                 "compression has no effect when passing a non-binary object as input.",
                 RuntimeWarning,
                 stacklevel=2,
             )
-            compression = None
+            self.compression = None
 
         self.sep = sep
         self.na_rep = na_rep
@@ -91,7 +96,6 @@ class CSVFormatter:
         self.header = header
         self.index = index
         self.index_label = index_label
-        self.encoding = encoding or "utf-8"
         self.errors = errors
         self.quoting = quoting or csvlib.QUOTE_MINIMAL
         self.quotechar = quotechar
