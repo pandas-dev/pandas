@@ -4,7 +4,7 @@ import numpy as np
 
 from pandas._config.config import option_context
 
-from pandas._libs.indexing import _NDFrameIndexerBase
+from pandas._libs.indexing import NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
 from pandas.errors import AbstractMethodError, InvalidIndexError
 from pandas.util._decorators import doc
@@ -22,7 +22,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCDataFrame, ABCMultiIndex, ABCSeries
-from pandas.core.dtypes.missing import _infer_fill_value, isna
+from pandas.core.dtypes.missing import infer_fill_value, isna
 
 import pandas.core.common as com
 from pandas.core.construction import array as pd_array
@@ -583,7 +583,7 @@ class IndexingMixin:
         return _iAtIndexer("iat", self)
 
 
-class _LocationIndexer(_NDFrameIndexerBase):
+class _LocationIndexer(NDFrameIndexerBase):
     _valid_types: str
     axis = None
 
@@ -1604,7 +1604,7 @@ class _iLocIndexer(_LocationIndexer):
                             return
 
                         # add a new item with the dtype setup
-                        self.obj[key] = _infer_fill_value(value)
+                        self.obj[key] = infer_fill_value(value)
 
                         new_indexer = convert_from_missing_indexer_tuple(
                             indexer, self.obj.axes
@@ -2017,7 +2017,7 @@ class _iLocIndexer(_LocationIndexer):
         raise ValueError("Incompatible indexer with DataFrame")
 
 
-class _ScalarAccessIndexer(_NDFrameIndexerBase):
+class _ScalarAccessIndexer(NDFrameIndexerBase):
     """
     Access scalars quickly.
     """

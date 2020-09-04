@@ -1475,7 +1475,7 @@ class Datetime64Formatter(GenericArrayFormatter):
 
         fmt_values = format_array_from_datetime(
             values.asi8.ravel(),
-            format=_get_format_datetime64_from_values(values, self.date_format),
+            format=get_format_datetime64_from_values(values, self.date_format),
             na_rep=self.nat_rep,
         ).reshape(values.shape)
         return fmt_values.tolist()
@@ -1638,7 +1638,7 @@ def _get_format_datetime64(
         return lambda x, tz=None: _format_datetime64(x, tz=tz, nat_rep=nat_rep)
 
 
-def _get_format_datetime64_from_values(
+def get_format_datetime64_from_values(
     values: Union[np.ndarray, DatetimeArray, DatetimeIndex], date_format: Optional[str]
 ) -> Optional[str]:
     """ given values and a date_format, return a string format """
@@ -1679,13 +1679,13 @@ class Timedelta64Formatter(GenericArrayFormatter):
         self.box = box
 
     def _format_strings(self) -> List[str]:
-        formatter = self.formatter or _get_format_timedelta64(
+        formatter = self.formatter or get_format_timedelta64(
             self.values, nat_rep=self.nat_rep, box=self.box
         )
         return [formatter(x) for x in self.values]
 
 
-def _get_format_timedelta64(
+def get_format_timedelta64(
     values: Union[np.ndarray, TimedeltaIndex, TimedeltaArray],
     nat_rep: str = "NaT",
     box: bool = False,

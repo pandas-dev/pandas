@@ -31,7 +31,7 @@ from pandas.core.dtypes.generic import (
     ABCIndexClass,
     ABCSeries,
 )
-from pandas.core.dtypes.inference import _iterable_not_string
+from pandas.core.dtypes.inference import iterable_not_string
 from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
 
 
@@ -61,7 +61,7 @@ def flatten(l):
     flattened : generator
     """
     for el in l:
-        if _iterable_not_string(el):
+        if iterable_not_string(el):
             for s in flatten(el):
                 yield s
         else:

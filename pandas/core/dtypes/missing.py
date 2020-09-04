@@ -338,7 +338,7 @@ def notna(obj):
 notnull = notna
 
 
-def _isna_compat(arr, fill_value=np.nan) -> bool:
+def isna_compat(arr, fill_value=np.nan) -> bool:
     """
     Parameters
     ----------
@@ -496,7 +496,7 @@ def array_equals(left: ArrayLike, right: ArrayLike) -> bool:
         return array_equivalent(left, right, dtype_equal=True)
 
 
-def _infer_fill_value(val):
+def infer_fill_value(val):
     """
     infer the fill value for the nan/NaT from the provided
     scalar/ndarray/list-like if we are a NaT, return the correct dtyped
@@ -516,11 +516,11 @@ def _infer_fill_value(val):
     return np.nan
 
 
-def _maybe_fill(arr, fill_value=np.nan):
+def maybe_fill(arr, fill_value=np.nan):
     """
     if we have a compatible fill_value and arr dtype, then fill
     """
-    if _isna_compat(arr, fill_value):
+    if isna_compat(arr, fill_value):
         arr.fill(fill_value)
     return arr
 

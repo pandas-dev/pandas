@@ -54,8 +54,8 @@ from pandas.core.internals.blocks import (
     DatetimeTZBlock,
     ExtensionBlock,
     ObjectValuesExtensionBlock,
-    _extend_blocks,
     _safe_reshape,
+    extend_blocks,
     get_block_type,
     make_block,
 )
@@ -406,7 +406,7 @@ class BlockManager(PandasObject):
                 if not ignore_failures:
                     raise
                 continue
-            result_blocks = _extend_blocks(applied, result_blocks)
+            result_blocks = extend_blocks(applied, result_blocks)
 
         if ignore_failures:
             return self._combine(result_blocks)
@@ -1868,7 +1868,7 @@ def _consolidate(blocks):
         merged_blocks = _merge_blocks(
             list(group_blocks), dtype=dtype, can_consolidate=_can_consolidate
         )
-        new_blocks = _extend_blocks(merged_blocks, new_blocks)
+        new_blocks = extend_blocks(merged_blocks, new_blocks)
     return new_blocks
 
 
