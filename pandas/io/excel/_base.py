@@ -407,37 +407,6 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
     ) -> List[List[Scalar]]:
         pass
 
-    def should_skip_row(
-        self,
-        index: int,
-        header: Optional[Union[int, Sequence[int]]],
-        skiprows: Optional[Union[int, Sequence[int]]],
-        nrows: Optional[int],
-    ) -> bool:
-        """
-        Determines whether row should be skipped.
-
-        Parameters
-        ----------
-        index : int
-            Index of row.
-        header : int, list of int
-            Rows used as column labels.
-        skiprows : int, list of int
-            Rows to skip at the begining.
-        nrows : int
-            Number of rows to parse.
-
-        Returns
-        -------
-        bool
-            Determines if row should be skipped.
-        """
-        if nrows is not None and isinstance(header, int) and isinstance(skiprows, int):
-            if index < header + skiprows - 1:
-                return True
-        return False
-
     def parse(
         self,
         sheet_name=0,
@@ -491,20 +460,7 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
             else:  # assume an integer if not a string
                 sheet = self.get_sheet_by_index(asheetname)
 
-            get_sheet_data_header = 0 if header is None else header
-            get_sheet_data_skiprows = 0 if skiprows is None else skiprows
-            get_sheet_data_nrows = nrows if isinstance(nrows, int) else None
-            if isinstance(get_sheet_data_header, list) or isinstance(
-                get_sheet_data_skiprows, list
-            ):
-                get_sheet_data_nrows = None
-            data = self.get_sheet_data(
-                sheet,
-                convert_float,
-                get_sheet_data_header,
-                get_sheet_data_skiprows,
-                get_sheet_data_nrows,
-            )
+            data = self.get_sheet_data(sheet, convert_float, header, skiprows, nrows,)
             usecols = _maybe_convert_usecols(usecols)
 
             if not data:

@@ -109,13 +109,23 @@ class _XlrdReader(_BaseExcelReader):
         data: List[List[Scalar]] = []
 
         sheet_nrows = sheet.nrows
-        if nrows is not None and isinstance(header, int) and isinstance(skiprows, int):
-            sheet_nrows = min(header + skiprows + nrows + 1, sheet_nrows)
+
+        if isinstance(header, int):
+            gsdheader = header
+        elif header is None:
+            gsdheader = 0
+        else:
+            gsdheader = max(header)
+        if isinstance(skiprows, int):
+            gsdskiprows = skiprows
+        elif skiprows is None:
+            gsdskiprows = 0
+        else:
+            gsdskiprows = max(skiprows)
+        if isinstance(nrows, int):
+            sheet_nrows = min(gsdheader + gsdskiprows + nrows + 1, sheet_nrows)
 
         for i in range(sheet_nrows):
-            if self.should_skip_row(i, header, skiprows, nrows):
-                data.append([])
-                continue
             row = [
                 _parse_cell(value, typ)
                 for value, typ in zip(sheet.row_values(i), sheet.row_types(i))

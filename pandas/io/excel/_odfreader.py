@@ -97,9 +97,6 @@ class _ODFReader(_BaseExcelReader):
         if nrows is not None and isinstance(header, int) and isinstance(skiprows, int):
             sheet_rows = sheet_rows[: header + skiprows + nrows + 1]
         for i, sheet_row in enumerate(sheet_rows):
-            if self.should_skip_row(i, header, skiprows, nrows):
-                table.append([])
-                continue
             sheet_cells = [x for x in sheet_row.childNodes if x.qname in cell_names]
             empty_cells = 0
             table_row: List[Scalar] = []
