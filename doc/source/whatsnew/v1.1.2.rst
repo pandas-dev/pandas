@@ -17,6 +17,7 @@ Fixed regressions
 - Regression in :meth:`DatetimeIndex.intersection` incorrectly raising ``AssertionError`` when intersecting against a list (:issue:`35876`)
 - Fix regression in updating a column inplace (e.g. using ``df['col'].fillna(.., inplace=True)``) (:issue:`35731`)
 - Performance regression for :meth:`RangeIndex.format` (:issue:`35712`)
+- Fix regression in invalid cache after an indexing operation; this can manifest when setting which does not update the data (:issue:`35521`)
 - Regression in :meth:`DataFrame.replace` where a ``TypeError`` would be raised when attempting to replace elements of type :class:`Interval` (:issue:`35931`)
 - Fix regression in pickle roundtrip of the ``closed`` attribute of :class:`IntervalIndex` (:issue:`35658`)
 - Fixed regression in :meth:`DataFrameGroupBy.agg` where a ``ValueError: buffer source array is read-only`` would be raised when the underlying array is read-only (:issue:`36014`)
