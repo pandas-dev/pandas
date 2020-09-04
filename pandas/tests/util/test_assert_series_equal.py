@@ -281,3 +281,26 @@ def test_series_equal_series_type():
 
     with pytest.raises(AssertionError, match="Series classes are different"):
         tm.assert_series_equal(s3, s1, check_series_type=True)
+
+
+def test_series_equal_exact_for_nonnumeric():
+    # https://github.com/pandas-dev/pandas/issues/35446
+    s1 = Series(["a", "b"])
+    s2 = Series(["a", "b"])
+    s3 = Series(["b", "a"])
+
+    tm.assert_series_equal(s1, s2, check_exact=True)
+    tm.assert_series_equal(s2, s1, check_exact=True)
+
+    with pytest.raises(AssertionError):
+        tm.assert_series_equal(s1, s3, check_exact=True)
+    with pytest.raises(AssertionError):
+        tm.assert_series_equal(s3, s1, check_exact=True)
+
+
+@pytest.mark.parametrize("right_dtype", ["Int32", "int64"])
+def test_assert_series_equal_ignore_extension_dtype_mismatch(right_dtype):
+    # https://github.com/pandas-dev/pandas/issues/35715
+    left = pd.Series([1, 2, 3], dtype="Int64")
+    right = pd.Series([1, 2, 3], dtype=right_dtype)
+    tm.assert_series_equal(left, right, check_dtype=False)

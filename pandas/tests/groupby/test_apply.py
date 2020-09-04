@@ -873,13 +873,14 @@ def test_apply_multi_level_name(category):
     b = [1, 2] * 5
     if category:
         b = pd.Categorical(b, categories=[1, 2, 3])
+        expected_index = pd.CategoricalIndex([1, 2], categories=[1, 2, 3], name="B")
+    else:
+        expected_index = pd.Index([1, 2], name="B")
     df = pd.DataFrame(
         {"A": np.arange(10), "B": b, "C": list(range(10)), "D": list(range(10))}
     ).set_index(["A", "B"])
     result = df.groupby("B").apply(lambda x: x.sum())
-    expected = pd.DataFrame(
-        {"C": [20, 25], "D": [20, 25]}, index=pd.Index([1, 2], name="B")
-    )
+    expected = pd.DataFrame({"C": [20, 25], "D": [20, 25]}, index=expected_index)
     tm.assert_frame_equal(result, expected)
     assert df.index.names == ["A", "B"]
 
@@ -1069,6 +1070,35 @@ def test_apply_with_timezones_aware():
     result2 = df2.groupby("x", group_keys=False).apply(lambda df: df[["x", "y"]].copy())
 
     tm.assert_frame_equal(result1, result2)
+
+
+def test_apply_is_unchanged_when_other_methods_are_called_first(reduction_func):
+    # GH #34656
+    # GH #34271
+    df = DataFrame(
+        {
+            "a": [99, 99, 99, 88, 88, 88],
+            "b": [1, 2, 3, 4, 5, 6],
+            "c": [10, 20, 30, 40, 50, 60],
+        }
+    )
+
+    expected = pd.DataFrame(
+        {"a": [264, 297], "b": [15, 6], "c": [150, 60]},
+        index=pd.Index([88, 99], name="a"),
+    )
+
+    # Check output when no other methods are called before .apply()
+    grp = df.groupby(by="a")
+    result = grp.apply(sum)
+    tm.assert_frame_equal(result, expected)
+
+    # Check output when another method is called before .apply()
+    grp = df.groupby(by="a")
+    args = {"nth": [0], "corrwith": [df]}.get(reduction_func, [])
+    _ = getattr(grp, reduction_func)(*args)
+    result = grp.apply(sum)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_apply_with_date_in_multiindex_does_not_convert_to_timestamp():

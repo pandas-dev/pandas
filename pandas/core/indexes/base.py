@@ -58,6 +58,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     is_unsigned_integer_dtype,
     pandas_dtype,
+    validate_all_hashable,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
@@ -574,7 +575,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def __array_wrap__(self, result, context=None):
         """
-        Gets called after a ufunc.
+        Gets called after a ufunc and other functions.
         """
         result = lib.item_from_zerodim(result)
         if is_bool_dtype(result) or lib.is_scalar(result) or np.ndim(result) > 1:
@@ -799,6 +800,9 @@ class Index(IndexOpsMixin, PandasObject):
         deep : bool, default False
         dtype : numpy dtype or pandas type, optional
             Set dtype for new object.
+
+            .. deprecated:: 1.2.0
+                use ``astype`` method instead.
         names : list-like, optional
             Kept for compatibility with MultiIndex. Should not be used.
 
@@ -812,15 +816,19 @@ class Index(IndexOpsMixin, PandasObject):
         In most cases, there should be no functional difference from using
         ``deep``, but if ``deep`` is passed it will attempt to deepcopy.
         """
+        name = self._validate_names(name=name, names=names, deep=deep)[0]
         if deep:
-            new_index = self._shallow_copy(self._data.copy())
+            new_index = self._shallow_copy(self._data.copy(), name=name)
         else:
-            new_index = self._shallow_copy()
-
-        names = self._validate_names(name=name, names=names, deep=deep)
-        new_index = new_index.set_names(names)
+            new_index = self._shallow_copy(name=name)
 
         if dtype:
+            warnings.warn(
+                "parameter dtype is deprecated and will be removed in a future "
+                "version. Use the astype method instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
             new_index = new_index.astype(dtype)
         return new_index
 
@@ -925,7 +933,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._format_with_header(header, na_rep=na_rep)
 
-    def _format_with_header(self, header, na_rep="NaN") -> List[str_t]:
+    def _format_with_header(
+        self, header: List[str_t], na_rep: str_t = "NaN"
+    ) -> List[str_t]:
         from pandas.io.formats.format import format_array
 
         values = self._values
@@ -1186,7 +1196,7 @@ class Index(IndexOpsMixin, PandasObject):
         maybe_extract_name(value, None, type(self))
         self._name = value
 
-    def _validate_names(self, name=None, names=None, deep: bool = False):
+    def _validate_names(self, name=None, names=None, deep: bool = False) -> List[Label]:
         """
         Handles the quirks of having a singular 'name' parameter for general
         Index and plural 'names' parameter for MultiIndex.
@@ -1196,15 +1206,25 @@ class Index(IndexOpsMixin, PandasObject):
         if names is not None and name is not None:
             raise TypeError("Can only provide one of `names` and `name`")
         elif names is None and name is None:
-            return deepcopy(self.names) if deep else self.names
+            new_names = deepcopy(self.names) if deep else self.names
         elif names is not None:
             if not is_list_like(names):
                 raise TypeError("Must pass list-like as `names`.")
-            return names
+            new_names = names
+        elif not is_list_like(name):
+            new_names = [name]
         else:
-            if not is_list_like(name):
-                return [name]
-            return name
+            new_names = name
+
+        if len(new_names) != len(self.names):
+            raise ValueError(
+                f"Length of new names must be {len(self.names)}, got {len(new_names)}"
+            )
+
+        # All items in 'new_names' need to be hashable
+        validate_all_hashable(*new_names, error_name=f"{type(self).__name__}.name")
+
+        return new_names
 
     def _get_names(self):
         return FrozenList((self.name,))
@@ -1232,9 +1252,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         # GH 20527
         # All items in 'name' need to be hashable:
-        for name in values:
-            if not is_hashable(name):
-                raise TypeError(f"{type(self).__name__}.name must be a hashable type")
+        validate_all_hashable(*values, error_name=f"{type(self).__name__}.name")
+
         self._name = values[0]
 
     names = property(fset=_set_names, fget=_get_names)
@@ -3522,10 +3541,7 @@ class Index(IndexOpsMixin, PandasObject):
         if not overlap:
             raise ValueError("cannot join with no overlapping index names")
 
-        self_is_mi = isinstance(self, ABCMultiIndex)
-        other_is_mi = isinstance(other, ABCMultiIndex)
-
-        if self_is_mi and other_is_mi:
+        if isinstance(self, MultiIndex) and isinstance(other, MultiIndex):
 
             # Drop the non-matching levels from left and right respectively
             ldrop_names = list(self_names - overlap)
@@ -3571,7 +3587,7 @@ class Index(IndexOpsMixin, PandasObject):
         # Case where only one index is multi
         # make the indices into mi's that match
         flip_order = False
-        if self_is_mi:
+        if isinstance(self, MultiIndex):
             self, other = other, self
             flip_order = True
             # flip if join method is right or left
@@ -4168,7 +4184,7 @@ class Index(IndexOpsMixin, PandasObject):
             # coerces to object
             return self.astype(object).putmask(mask, value)
 
-    def equals(self, other: Any) -> bool:
+    def equals(self, other: object) -> bool:
         """
         Determine if two Index object are equal.
 

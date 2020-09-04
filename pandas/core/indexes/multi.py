@@ -243,7 +243,6 @@ class MultiIndex(Index):
     _comparables = ["names"]
     rename = Index.set_names
 
-    _tuples = None
     sortorder: Optional[int]
 
     # --------------------------------------------------------------------
@@ -634,16 +633,9 @@ class MultiIndex(Index):
 
     # --------------------------------------------------------------------
 
-    @property
+    @cache_readonly
     def _values(self):
         # We override here, since our parent uses _data, which we don't use.
-        return self.values
-
-    @property
-    def values(self):
-        if self._tuples is not None:
-            return self._tuples
-
         values = []
 
         for i in range(self.nlevels):
@@ -657,8 +649,12 @@ class MultiIndex(Index):
             vals = np.array(vals, copy=False)
             values.append(vals)
 
-        self._tuples = lib.fast_zip(values)
-        return self._tuples
+        arr = lib.fast_zip(values)
+        return arr
+
+    @property
+    def values(self):
+        return self._values
 
     @property
     def array(self):
@@ -737,10 +733,9 @@ class MultiIndex(Index):
         if any(names):
             self._set_names(names)
 
-        self._tuples = None
         self._reset_cache()
 
-    def set_levels(self, levels, level=None, inplace=False, verify_integrity=True):
+    def set_levels(self, levels, level=None, inplace=None, verify_integrity=True):
         """
         Set new levels on MultiIndex. Defaults to returning new index.
 
@@ -752,6 +747,8 @@ class MultiIndex(Index):
             Level(s) to set (None for all levels).
         inplace : bool
             If True, mutates in place.
+
+            .. deprecated:: 1.2.0
         verify_integrity : bool, default True
             If True, checks that levels and codes are compatible.
 
@@ -822,6 +819,15 @@ class MultiIndex(Index):
         >>> idx.set_levels([['a', 'b', 'c'], [1, 2, 3, 4]], level=[0, 1]).levels
         FrozenList([['a', 'b', 'c'], [1, 2, 3, 4]])
         """
+        if inplace is not None:
+            warnings.warn(
+                "inplace is deprecated and will be removed in a future version.",
+                FutureWarning,
+                stacklevel=2,
+            )
+        else:
+            inplace = False
+
         if is_list_like(levels) and not isinstance(levels, Index):
             levels = list(levels)
 
@@ -895,10 +901,9 @@ class MultiIndex(Index):
 
         self._codes = new_codes
 
-        self._tuples = None
         self._reset_cache()
 
-    def set_codes(self, codes, level=None, inplace=False, verify_integrity=True):
+    def set_codes(self, codes, level=None, inplace=None, verify_integrity=True):
         """
         Set new codes on MultiIndex. Defaults to returning new index.
 
@@ -914,6 +919,8 @@ class MultiIndex(Index):
             Level(s) to set (None for all levels).
         inplace : bool
             If True, mutates in place.
+
+            .. deprecated:: 1.2.0
         verify_integrity : bool (default True)
             If True, checks that levels and codes are compatible.
 
@@ -958,6 +965,15 @@ class MultiIndex(Index):
                     (1, 'two')],
                    names=['foo', 'bar'])
         """
+        if inplace is not None:
+            warnings.warn(
+                "inplace is deprecated and will be removed in a future version.",
+                FutureWarning,
+                stacklevel=2,
+            )
+        else:
+            inplace = False
+
         if level is not None and not is_list_like(level):
             if not is_list_like(codes):
                 raise TypeError("Codes must be list-like")
@@ -1014,7 +1030,6 @@ class MultiIndex(Index):
         name=lib.no_default,
         levels=None,
         codes=None,
-        dtype=None,
         sortorder=None,
         names=lib.no_default,
         _set_identity: bool = True,
@@ -1025,7 +1040,7 @@ class MultiIndex(Index):
             names = name if name is not lib.no_default else self.names
 
         if values is not None:
-            assert levels is None and codes is None and dtype is None
+            assert levels is None and codes is None
             return MultiIndex.from_tuples(values, sortorder=sortorder, names=names)
 
         levels = levels if levels is not None else self.levels
@@ -1034,7 +1049,6 @@ class MultiIndex(Index):
         result = MultiIndex(
             levels=levels,
             codes=codes,
-            dtype=dtype,
             sortorder=sortorder,
             names=names,
             verify_integrity=False,
@@ -1076,6 +1090,8 @@ class MultiIndex(Index):
         ----------
         names : sequence, optional
         dtype : numpy dtype or pandas type, optional
+
+            .. deprecated:: 1.2.0
         levels : sequence, optional
         codes : sequence, optional
         deep : bool, default False
@@ -1101,14 +1117,23 @@ class MultiIndex(Index):
             if codes is None:
                 codes = deepcopy(self.codes)
 
-        return self._shallow_copy(
+        new_index = self._shallow_copy(
             levels=levels,
             codes=codes,
             names=names,
-            dtype=dtype,
             sortorder=self.sortorder,
             _set_identity=_set_identity,
         )
+
+        if dtype:
+            warnings.warn(
+                "parameter dtype is deprecated and will be removed in a future "
+                "version. Use the astype method instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            new_index = new_index.astype(dtype)
+        return new_index
 
     def __array__(self, dtype=None) -> np.ndarray:
         """ the array interface, return my values """
@@ -3205,7 +3230,7 @@ class MultiIndex(Index):
             verify_integrity=False,
         )
 
-    def equals(self, other) -> bool:
+    def equals(self, other: object) -> bool:
         """
         Determines if two MultiIndex objects have the same labeling information
         (the levels themselves do not necessarily have to be the same)
@@ -3248,11 +3273,10 @@ class MultiIndex(Index):
                 np.asarray(other.levels[i]._values), other_codes, allow_fill=False
             )
 
-            # since we use NaT both datetime64 and timedelta64
-            # we can have a situation where a level is typed say
-            # timedelta64 in self (IOW it has other values than NaT)
-            # but types datetime64 in other (where its all NaT)
-            # but these are equivalent
+            # since we use NaT both datetime64 and timedelta64 we can have a
+            # situation where a level is typed say timedelta64 in self (IOW it
+            # has other values than NaT) but types datetime64 in other (where
+            # its all NaT) but these are equivalent
             if len(self_values) == 0 and len(other_values) == 0:
                 continue
 

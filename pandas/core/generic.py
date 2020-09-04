@@ -6,7 +6,6 @@ import json
 import operator
 import pickle
 import re
-from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -22,6 +21,7 @@ from typing import (
     Tuple,
     Type,
     Union,
+    cast,
 )
 import warnings
 import weakref
@@ -34,12 +34,14 @@ from pandas._libs import lib
 from pandas._libs.tslibs import Tick, Timestamp, to_offset
 from pandas._typing import (
     Axis,
+    CompressionOptions,
     FilePathOrBuffer,
     FrameOrSeries,
     JSONSerializable,
     Label,
     Level,
     Renamer,
+    StorageOptions,
     TimedeltaConvertibleTypes,
     TimestampConvertibleTypes,
     ValueKeyFunc,
@@ -98,17 +100,22 @@ from pandas.core.internals import BlockManager
 from pandas.core.missing import find_valid_index
 from pandas.core.ops import _align_method_FRAME
 from pandas.core.shared_docs import _shared_docs
+from pandas.core.window import Expanding, ExponentialMovingWindow, Rolling, Window
 
 from pandas.io.formats import format as fmt
 from pandas.io.formats.format import DataFrameFormatter, format_percentiles
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
+    from pandas._libs.tslibs import BaseOffset
+
     from pandas.core.resample import Resampler
     from pandas.core.series import Series  # noqa: F401
+    from pandas.core.window.indexers import BaseIndexer
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
+_shared_docs = {**_shared_docs}
 _shared_doc_kwargs = dict(
     axes="keywords for axes",
     klass="Series/DataFrame",
@@ -312,17 +319,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     @property
     def _AXIS_NUMBERS(self) -> Dict[str, int]:
         """.. deprecated:: 1.1.0"""
-        warnings.warn(
-            "_AXIS_NUMBERS has been deprecated.", FutureWarning, stacklevel=3,
-        )
+        warnings.warn("_AXIS_NUMBERS has been deprecated.", FutureWarning, stacklevel=3)
         return {"index": 0}
 
     @property
     def _AXIS_NAMES(self) -> Dict[int, str]:
         """.. deprecated:: 1.1.0"""
-        warnings.warn(
-            "_AXIS_NAMES has been deprecated.", FutureWarning, stacklevel=3,
-        )
+        warnings.warn("_AXIS_NAMES has been deprecated.", FutureWarning, stacklevel=3)
         return {0: "index"}
 
     def _construct_axes_dict(self, axes=None, **kwargs):
@@ -388,7 +391,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return m - axis
         return axis
 
-    def _get_axis_resolvers(self, axis: str) -> Dict[str, ABCSeries]:
+    def _get_axis_resolvers(self, axis: str) -> Dict[str, Union["Series", MultiIndex]]:
         # index or columns
         axis_index = getattr(self, axis)
         d = dict()
@@ -418,10 +421,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         d[axis] = dindex
         return d
 
-    def _get_index_resolvers(self) -> Dict[str, ABCSeries]:
+    def _get_index_resolvers(self) -> Dict[str, Union["Series", MultiIndex]]:
         from pandas.core.computation.parsing import clean_column_name
 
-        d: Dict[str, ABCSeries] = {}
+        d: Dict[str, Union["Series", MultiIndex]] = {}
         for axis_name in self._AXIS_ORDERS:
             d.update(self._get_axis_resolvers(axis_name))
 
@@ -1195,15 +1198,17 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             self._get_axis(a).equals(other._get_axis(a)) for a in self._AXIS_ORDERS
         )
 
-    def equals(self, other):
+    def equals(self, other: object) -> bool:
         """
         Test whether two objects contain the same elements.
 
         This function allows two Series or DataFrames to be compared against
         each other to see if they have the same shape and elements. NaNs in
-        the same location are considered equal. The column headers do not
-        need to have the same type, but the elements within the columns must
-        be the same dtype.
+        the same location are considered equal.
+
+        The row/column index do not need to have the same type, as long
+        as the values are considered equal. Corresponding columns must be of
+        the same dtype.
 
         Parameters
         ----------
@@ -1231,13 +1236,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             DataFrames.
         numpy.array_equal : Return True if two arrays have the same shape
             and elements, False otherwise.
-
-        Notes
-        -----
-        This function requires that the elements have the same dtype as their
-        respective elements in the other Series or DataFrame. However, the
-        column labels do not need to have the same type, as long as they are
-        still considered equal.
 
         Examples
         --------
@@ -1280,6 +1278,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         if not (isinstance(other, type(self)) or isinstance(self, type(other))):
             return False
+        other = cast(NDFrame, other)
         return self._mgr.equals(other._mgr)
 
     # -------------------------------------------------------------------------
@@ -1777,7 +1776,28 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def __array__(self, dtype=None) -> np.ndarray:
         return np.asarray(self._values, dtype=dtype)
 
-    def __array_wrap__(self, result, context=None):
+    def __array_wrap__(
+        self,
+        result: np.ndarray,
+        context: Optional[Tuple[Callable, Tuple[Any, ...], int]] = None,
+    ):
+        """
+        Gets called after a ufunc and other functions.
+
+        Parameters
+        ----------
+        result: np.ndarray
+            The result of the ufunc or other function called on the NumPy array
+            returned by __array__
+        context: tuple of (func, tuple, int)
+            This parameter is returned by ufuncs as a 3-element tuple: (name of the
+            ufunc, arguments of the ufunc, domain of the ufunc), but is not set by
+            other numpy functions.q
+
+        Notes
+        -----
+        Series implements __array_ufunc_ so this not called for ufunc on Series.
+        """
         result = lib.item_from_zerodim(result)
         if is_scalar(result):
             # e.g. we get here with np.ptp(series)
@@ -2039,9 +2059,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         date_unit: str = "ms",
         default_handler: Optional[Callable[[Any], JSONSerializable]] = None,
         lines: bool_t = False,
-        compression: Optional[str] = "infer",
+        compression: CompressionOptions = "infer",
         index: bool_t = True,
         indent: Optional[int] = None,
+        storage_options: StorageOptions = None,
     ) -> Optional[str]:
         """
         Convert the object to a JSON string.
@@ -2124,6 +2145,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
            Length of whitespace used to indent each record.
 
            .. versionadded:: 1.0.0
+
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc., if using a URL that will
+            be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+            will be raised if providing this argument with a local path or
+            a file-like buffer. See the fsspec and backend storage implementation
+            docs for the set of allowed keys and values
+
+            .. versionadded:: 1.2.0
 
         Returns
         -------
@@ -2303,6 +2334,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             compression=compression,
             index=index,
             indent=indent,
+            storage_options=storage_options,
         )
 
     def to_hdf(
@@ -2615,8 +2647,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def to_pickle(
         self,
         path,
-        compression: Optional[str] = "infer",
+        compression: CompressionOptions = "infer",
         protocol: int = pickle.HIGHEST_PROTOCOL,
+        storage_options: StorageOptions = None,
     ) -> None:
         """
         Pickle (serialize) object to file.
@@ -2636,6 +2669,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             parameter is equivalent to setting its value to HIGHEST_PROTOCOL.
 
             .. [1] https://docs.python.org/3/library/pickle.html.
+
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc., if using a URL that will
+            be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+            will be raised if providing this argument with a local path or
+            a file-like buffer. See the fsspec and backend storage implementation
+            docs for the set of allowed keys and values
+
+            .. versionadded:: 1.2.0
 
         See Also
         --------
@@ -2670,7 +2713,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         from pandas.io.pickle import to_pickle
 
-        to_pickle(self, path, compression=compression, protocol=protocol)
+        to_pickle(
+            self,
+            path,
+            compression=compression,
+            protocol=protocol,
+            storage_options=storage_options,
+        )
 
     def to_clipboard(
         self, excel: bool_t = True, sep: Optional[str] = None, **kwargs
@@ -2840,6 +2889,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         multirow=None,
         caption=None,
         label=None,
+        position=None,
     ):
         r"""
         Render object to a LaTeX tabular, longtable, or nested table/tabular.
@@ -2925,6 +2975,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             This is used with ``\ref{}`` in the main ``.tex`` file.
 
             .. versionadded:: 1.0.0
+        position : str, optional
+            The LaTeX positional argument for tables, to be placed after
+            ``\begin{}`` in the output.
         %(returns)s
         See Also
         --------
@@ -2986,6 +3039,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             multirow=multirow,
             caption=caption,
             label=label,
+            position=position,
         )
 
     def to_csv(
@@ -3000,7 +3054,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         index_label: Optional[Union[bool_t, str, Sequence[Label]]] = None,
         mode: str = "w",
         encoding: Optional[str] = None,
-        compression: Optional[Union[str, Mapping[str, str]]] = "infer",
+        compression: CompressionOptions = "infer",
         quoting: Optional[int] = None,
         quotechar: str = '"',
         line_terminator: Optional[str] = None,
@@ -3010,6 +3064,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         escapechar: Optional[str] = None,
         decimal: Optional[str] = ".",
         errors: str = "strict",
+        storage_options: StorageOptions = None,
     ) -> Optional[str]:
         r"""
         Write object to a comma-separated values (csv) file.
@@ -3088,7 +3143,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             .. versionchanged:: 1.2.0
 
-                Compression is supported for non-binary file objects.
+                Compression is supported for binary file objects.
+
+            .. versionchanged:: 1.2.0
+
+                Previous versions forwarded dict entries for 'gzip' to
+                `gzip.open` instead of `gzip.GzipFile` which prevented
+                setting `mtime`.
 
         quoting : optional constant from csv module
             Defaults to csv.QUOTE_MINIMAL. If you have set a `float_format`
@@ -3120,6 +3181,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             of options.
 
             .. versionadded:: 1.1.0
+
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc., if using a URL that will
+            be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+            will be raised if providing this argument with a local path or
+            a file-like buffer. See the fsspec and backend storage implementation
+            docs for the set of allowed keys and values
+
+            .. versionadded:: 1.2.0
 
         Returns
         -------
@@ -3173,6 +3244,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             doublequote=doublequote,
             escapechar=escapechar,
             decimal=decimal,
+            storage_options=storage_options,
         )
         formatter.save()
 
@@ -3487,7 +3559,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         index = self.index
         if isinstance(index, MultiIndex):
-            loc, new_index = self.index.get_loc_level(key, drop_level=drop_level)
+            try:
+                loc, new_index = self.index.get_loc_level(key, drop_level=drop_level)
+            except TypeError as e:
+                raise TypeError(f"Expected label or tuple of labels, got {key}") from e
         else:
             loc = self.index.get_loc(key)
 
@@ -4632,14 +4707,15 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return self.reindex(**{name: [r for r in items if r in labels]})
         elif like:
 
-            def f(x):
+            def f(x) -> bool:
+                assert like is not None  # needed for mypy
                 return like in ensure_str(x)
 
             values = labels.map(f)
             return self.loc(axis=axis)[values]
         elif regex:
 
-            def f(x):
+            def f(x) -> bool:
                 return matcher.search(ensure_str(x)) is not None
 
             matcher = re.compile(regex)
@@ -5053,50 +5129,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ...    .pipe(g, arg1=a)
         ...    .pipe((func, 'arg2'), arg1=a, arg3=c)
         ...  )  # doctest: +SKIP
-    """
-        return com.pipe(self, func, *args, **kwargs)
-
-    _shared_docs["aggregate"] = dedent(
         """
-        Aggregate using one or more operations over the specified axis.
-        {versionadded}
-        Parameters
-        ----------
-        func : function, str, list or dict
-            Function to use for aggregating the data. If a function, must either
-            work when passed a {klass} or when passed to {klass}.apply.
-
-            Accepted combinations are:
-
-            - function
-            - string function name
-            - list of functions and/or function names, e.g. ``[np.sum, 'mean']``
-            - dict of axis labels -> functions, function names or list of such.
-        {axis}
-        *args
-            Positional arguments to pass to `func`.
-        **kwargs
-            Keyword arguments to pass to `func`.
-
-        Returns
-        -------
-        scalar, Series or DataFrame
-
-            The return can be:
-
-            * scalar : when Series.agg is called with single function
-            * Series : when DataFrame.agg is called with a single function
-            * DataFrame : when DataFrame.agg is called with several functions
-
-            Return scalar, Series or DataFrame.
-        {see_also}
-        Notes
-        -----
-        `agg` is an alias for `aggregate`. Use the alias.
-
-        A passed user-defined-function will be passed a Series for evaluation.
-        {examples}"""
-    )
+        return com.pipe(self, func, *args, **kwargs)
 
     # ----------------------------------------------------------------------
     # Attribute access
@@ -5552,7 +5586,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         else:
             # else, only a single dtype is given
-            new_data = self._mgr.astype(dtype=dtype, copy=copy, errors=errors,)
+            new_data = self._mgr.astype(dtype=dtype, copy=copy, errors=errors)
             return self._constructor(new_data).__finalize__(self, method="astype")
 
         # GH 33113: handle empty frame or series
@@ -6442,7 +6476,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         3     b
         4     b
         dtype: object
-    """
+        """
         if not (
             is_scalar(to_replace)
             or is_re_compilable(to_replace)
@@ -6482,7 +6516,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 regex = True
 
             items = list(to_replace.items())
-            keys, values = zip(*items) if items else ([], [])
+            if items:
+                keys, values = zip(*items)
+            else:
+                keys, values = ([], [])
 
             are_mappings = [is_dict_like(v) for v in values]
 
@@ -6816,6 +6853,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         should_transpose = axis == 1 and method not in fillna_methods
 
         obj = self.T if should_transpose else self
+
+        if obj.empty:
+            return self.copy()
 
         if method not in fillna_methods:
             axis = self._info_axis_number
@@ -7701,7 +7741,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             raise TypeError("Index must be DatetimeIndex")
 
         indexer = index.indexer_between_time(
-            start_time, end_time, include_start=include_start, include_end=include_end,
+            start_time, end_time, include_start=include_start, include_end=include_end
         )
         return self._take_with_is_copy(indexer, axis=axis)
 
@@ -8368,35 +8408,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         return ranker(data)
 
-    _shared_docs[
-        "compare"
-    ] = """
-        Compare to another %(klass)s and show the differences.
-
-        .. versionadded:: 1.1.0
-
-        Parameters
-        ----------
-        other : %(klass)s
-            Object to compare with.
-
-        align_axis : {0 or 'index', 1 or 'columns'}, default 1
-            Determine which axis to align the comparison on.
-
-            * 0, or 'index' : Resulting differences are stacked vertically
-                with rows drawn alternately from self and other.
-            * 1, or 'columns' : Resulting differences are aligned horizontally
-                with columns drawn alternately from self and other.
-
-        keep_shape : bool, default False
-            If true, all rows and columns are kept.
-            Otherwise, only the ones with different values are kept.
-
-        keep_equal : bool, default False
-            If true, the result keeps values that are equal.
-            Otherwise, equal values are shown as NaNs.
-        """
-
     @Appender(_shared_docs["compare"] % _shared_doc_kwargs)
     def compare(
         self,
@@ -8876,7 +8887,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             self._check_inplace_setting(other)
             new_data = self._mgr.putmask(
-                mask=cond, new=other, align=align, axis=block_axis,
+                mask=cond, new=other, align=align, axis=block_axis
             )
             result = self._constructor(new_data)
             return self._update_inplace(result)
@@ -10526,45 +10537,21 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             examples=_min_examples,
         )
 
-    @classmethod
-    def _add_series_or_dataframe_operations(cls):
-        """
-        Add the series or dataframe only operations to the cls; evaluate
-        the doc strings again.
-        """
-        from pandas.core.window import (
-            Expanding,
-            ExponentialMovingWindow,
-            Rolling,
-            Window,
-        )
+    @doc(Rolling)
+    def rolling(
+        self,
+        window: "Union[int, timedelta, BaseOffset, BaseIndexer]",
+        min_periods: Optional[int] = None,
+        center: bool_t = False,
+        win_type: Optional[str] = None,
+        on: Optional[str] = None,
+        axis: Axis = 0,
+        closed: Optional[str] = None,
+    ):
+        axis = self._get_axis_number(axis)
 
-        @doc(Rolling)
-        def rolling(
-            self,
-            window,
-            min_periods=None,
-            center=False,
-            win_type=None,
-            on=None,
-            axis=0,
-            closed=None,
-        ):
-            axis = self._get_axis_number(axis)
-
-            if win_type is not None:
-                return Window(
-                    self,
-                    window=window,
-                    min_periods=min_periods,
-                    center=center,
-                    win_type=win_type,
-                    on=on,
-                    axis=axis,
-                    closed=closed,
-                )
-
-            return Rolling(
+        if win_type is not None:
+            return Window(
                 self,
                 window=window,
                 min_periods=min_periods,
@@ -10575,53 +10562,59 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 closed=closed,
             )
 
-        cls.rolling = rolling
-
-        @doc(Expanding)
-        def expanding(self, min_periods=1, center=None, axis=0):
-            axis = self._get_axis_number(axis)
-            if center is not None:
-                warnings.warn(
-                    "The `center` argument on `expanding` "
-                    "will be removed in the future",
-                    FutureWarning,
-                    stacklevel=2,
-                )
-            else:
-                center = False
-
-            return Expanding(self, min_periods=min_periods, center=center, axis=axis)
-
-        cls.expanding = expanding
-
-        @doc(ExponentialMovingWindow)
-        def ewm(
+        return Rolling(
             self,
-            com=None,
-            span=None,
-            halflife=None,
-            alpha=None,
-            min_periods=0,
-            adjust=True,
-            ignore_na=False,
-            axis=0,
-            times=None,
-        ):
-            axis = self._get_axis_number(axis)
-            return ExponentialMovingWindow(
-                self,
-                com=com,
-                span=span,
-                halflife=halflife,
-                alpha=alpha,
-                min_periods=min_periods,
-                adjust=adjust,
-                ignore_na=ignore_na,
-                axis=axis,
-                times=times,
-            )
+            window=window,
+            min_periods=min_periods,
+            center=center,
+            win_type=win_type,
+            on=on,
+            axis=axis,
+            closed=closed,
+        )
 
-        cls.ewm = ewm
+    @doc(Expanding)
+    def expanding(
+        self, min_periods: int = 1, center: Optional[bool_t] = None, axis: Axis = 0
+    ) -> Expanding:
+        axis = self._get_axis_number(axis)
+        if center is not None:
+            warnings.warn(
+                "The `center` argument on `expanding` will be removed in the future",
+                FutureWarning,
+                stacklevel=2,
+            )
+        else:
+            center = False
+
+        return Expanding(self, min_periods=min_periods, center=center, axis=axis)
+
+    @doc(ExponentialMovingWindow)
+    def ewm(
+        self,
+        com: Optional[float] = None,
+        span: Optional[float] = None,
+        halflife: Optional[Union[float, TimedeltaConvertibleTypes]] = None,
+        alpha: Optional[float] = None,
+        min_periods: int = 0,
+        adjust: bool_t = True,
+        ignore_na: bool_t = False,
+        axis: Axis = 0,
+        times: Optional[Union[str, np.ndarray, FrameOrSeries]] = None,
+    ) -> ExponentialMovingWindow:
+        axis = self._get_axis_number(axis)
+        return ExponentialMovingWindow(
+            self,
+            com=com,
+            span=span,
+            halflife=halflife,
+            alpha=alpha,
+            min_periods=min_periods,
+            adjust=adjust,
+            ignore_na=ignore_na,
+            axis=axis,
+            times=times,
+        )
 
     @doc(klass=_shared_doc_kwargs["klass"], axis="")
     def transform(self, func, *args, **kwargs):
@@ -10640,7 +10633,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             - function
             - string function name
-            - list of functions and/or function names, e.g. ``[np.exp. 'sqrt']``
+            - list of functions and/or function names, e.g. ``[np.exp, 'sqrt']``
             - dict of axis labels -> functions, function names or list of such.
         {axis}
         *args
