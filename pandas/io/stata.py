@@ -1980,7 +1980,7 @@ def _open_file_binary_write(
         compression_typ = infer_compression(fname, compression_typ)
         compression = dict(compression_args, method=compression_typ)
         ioargs = get_filepath_or_buffer(
-            fname, mode="wb", compression=compression, storage_options=storage_options,
+            fname, mode="wb", compression=compression, storage_options=storage_options
         )
         f, _ = get_handle(
             ioargs.filepath_or_buffer,
