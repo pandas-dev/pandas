@@ -77,7 +77,7 @@ from pandas.core.groupby.groupby import (
 from pandas.core.groupby.numba_ import generate_numba_func, split_for_numba
 from pandas.core.indexes.api import Index, MultiIndex, all_indexes_same
 import pandas.core.indexes.base as ibase
-from pandas.core.internals import BlockManager, make_block
+from pandas.core.internals import BlockManager
 from pandas.core.series import Series
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE, maybe_use_numba
 
@@ -1750,20 +1750,24 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ids, _, ngroups = self.grouper.group_info
         mask = ids != -1
 
-        # TODO(2DEA): reshape would not be necessary with 2D EAs
-        vals = ((mask & ~isna(blk.values).reshape(blk.shape)) for blk in data.blocks)
-        locs = (blk.mgr_locs for blk in data.blocks)
+        def hfunc(bvalues: ArrayLike) -> ArrayLike:
+            # TODO(2DEA): reshape would not be necessary with 2D EAs
+            if bvalues.ndim == 1:
+                # EA
+                masked = mask & ~isna(bvalues).reshape(1, -1)
+            else:
+                masked = mask & ~isna(bvalues)
 
-        counted = (
-            lib.count_level_2d(x, labels=ids, max_bin=ngroups, axis=1) for x in vals
-        )
-        blocks = [make_block(val, placement=loc) for val, loc in zip(counted, locs)]
+            counted = lib.count_level_2d(masked, labels=ids, max_bin=ngroups, axis=1)
+            return counted
+
+        new_mgr = data.apply(hfunc)
 
         # If we are grouping on categoricals we want unobserved categories to
         # return zero, rather than the default of NaN which the reindexing in
         # _wrap_agged_blocks() returns. GH 35028
         with com.temp_setattr(self, "observed", True):
-            result = self._wrap_agged_blocks(blocks, items=data.items)
+            result = self._wrap_agged_blocks(new_mgr.blocks, items=data.items)
 
         return self._reindex_output(result, fill_value=0)
 
