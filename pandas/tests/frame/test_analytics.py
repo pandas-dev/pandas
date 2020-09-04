@@ -1108,10 +1108,10 @@ class TestDataFrameAnalytics:
                 True,
                 marks=[td.skip_if_np_lt("1.15")],
             ),
-            (np.all, {"A": pd.Series([0, 1], dtype="category")}, False),
-            (np.any, {"A": pd.Series([0, 1], dtype="category")}, True),
+            (np.all, {"A": pd.Series([0, 1], dtype="category")}, True),
+            (np.any, {"A": pd.Series([0, 1], dtype="category")}, False),
             (np.all, {"A": pd.Series([1, 2], dtype="category")}, True),
-            (np.any, {"A": pd.Series([1, 2], dtype="category")}, True),
+            (np.any, {"A": pd.Series([1, 2], dtype="category")}, False),
             # Mix GH#21484
             pytest.param(
                 np.all,
