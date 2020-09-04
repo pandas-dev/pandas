@@ -108,7 +108,7 @@ def ensure_str(value: Union[bytes, Any]) -> str:
     return value
 
 
-def ensure_int_or_float(arr: ArrayLike, copy: bool = False) -> np.array:
+def ensure_int_or_float(arr: ArrayLike, copy: bool = False) -> np.ndarray:
     """
     Ensure that an dtype array of some integer dtype
     has an int64 dtype if possible.
@@ -1388,8 +1388,7 @@ def is_bool_dtype(arr_or_dtype) -> bool:
         # guess this
         return arr_or_dtype.is_object and arr_or_dtype.inferred_type == "boolean"
     elif is_extension_array_dtype(arr_or_dtype):
-        dtype = getattr(arr_or_dtype, "dtype", arr_or_dtype)
-        return dtype._is_boolean
+        return getattr(arr_or_dtype, "dtype", arr_or_dtype)._is_boolean
 
     return issubclass(dtype.type, np.bool_)
 
