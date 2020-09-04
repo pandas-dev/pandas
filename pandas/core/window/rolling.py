@@ -635,7 +635,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             else:
 
                 def calc(x):
-                    x = np.concatenate((x, additional_nans))
                     return func(x, window, self.min_periods)
 
             with np.errstate(all="ignore"):
