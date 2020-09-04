@@ -1326,6 +1326,13 @@ class BlockManager(PandasObject):
                     ]
                     return blocks
                 else:
+                    warnings.warn(
+                        "In a future version, indexing along columns will "
+                        "always return a view, never a copy.  "
+                        "To restore the previous behavior, use result.copy() "
+                        "instead of result",
+                        FutureWarning,
+                    )
                     return [
                         blk.take_nd(
                             slobj,
@@ -1388,6 +1395,13 @@ class BlockManager(PandasObject):
                             nb = blk.getitem_block([i], new_mgr_locs=ml)
                             blocks.append(nb)
                     else:
+                        warnings.warn(
+                            "In a future version, indexing along columns will "
+                            "always return a view, never a copy.  "
+                            "To restore the previous behavior, use result.copy() "
+                            "instead of result",
+                            FutureWarning,
+                        )
                         nb = blk.take_nd(taker, axis=0, new_mgr_locs=mgr_locs)
                         blocks.append(nb)
 
