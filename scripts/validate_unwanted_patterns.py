@@ -35,6 +35,8 @@ PRIVATE_IMPORTS_TO_IGNORE: Set[str] = {
     "_flex_comp_doc_FRAME",
     "_make_flex_doc",
     "_op_descriptions",
+    "_test_parse_iso8601",
+    "_json_normalize",  # TODO: remove after deprecation is enforced
     "_testing",
     "_test_decorators",
     "__version__",  # check np.__version__ in compat.numpy.function
