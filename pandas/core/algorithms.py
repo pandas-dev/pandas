@@ -2,6 +2,8 @@
 Generic data algorithms. This module is experimental at the moment and not
 intended for public consumption
 """
+from __future__ import annotations
+
 import operator
 from textwrap import dedent
 from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union
@@ -10,7 +12,7 @@ from warnings import catch_warnings, simplefilter, warn
 import numpy as np
 
 from pandas._libs import Timestamp, algos, hashtable as htable, iNaT, lib
-from pandas._typing import AnyArrayLike, ArrayLike, DtypeObj
+from pandas._typing import AnyArrayLike, ArrayLike, DtypeObj, FrameOrSeriesUnion
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.cast import (
@@ -58,7 +60,7 @@ from pandas.core.construction import array, extract_array
 from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
-    from pandas import Series
+    from pandas import DataFrame, Series
 
 _shared_docs: Dict[str, str] = {}
 
@@ -462,7 +464,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
 
 
 def _factorize_array(
-    values, na_sentinel: int = -1, size_hint=None, na_value=None, mask=None,
+    values, na_sentinel: int = -1, size_hint=None, na_value=None, mask=None
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Factorize an array-like to codes and uniques.
@@ -526,9 +528,8 @@ def _factorize_array(
 def factorize(
     values,
     sort: bool = False,
-    na_sentinel: int = -1,
+    na_sentinel: Optional[int] = -1,
     size_hint: Optional[int] = None,
-    dropna: bool = True,
 ) -> Tuple[np.ndarray, Union[np.ndarray, ABCIndex]]:
     """
     Encode the object as an enumerated type or categorical variable.
@@ -541,8 +542,11 @@ def factorize(
     Parameters
     ----------
     {values}{sort}
-    na_sentinel : int, default -1
-        Value to mark "not found".
+    na_sentinel : int or None, default -1
+        Value to mark "not found". If None, will not drop the NaN
+        from the uniques of the values.
+
+        .. versionchanged:: 1.1.2
     {size_hint}\
 
     Returns
@@ -620,6 +624,22 @@ def factorize(
     array([0, 0, 1]...)
     >>> uniques
     Index(['a', 'c'], dtype='object')
+
+    If NaN is in the values, and we want to include NaN in the uniques of the
+    values, it can be achieved by setting ``na_sentinel=None``.
+
+    >>> values = np.array([1, 2, 1, np.nan])
+    >>> codes, uniques = pd.factorize(values)  # default: na_sentinel=-1
+    >>> codes
+    array([ 0,  1,  0, -1])
+    >>> uniques
+    array([1., 2.])
+
+    >>> codes, uniques = pd.factorize(values, na_sentinel=None)
+    >>> codes
+    array([0, 1, 0, 2])
+    >>> uniques
+    array([ 1.,  2., nan])
     """
     # Implementation notes: This method is responsible for 3 things
     # 1.) coercing data to array-like (ndarray, Index, extension array)
@@ -632,6 +652,13 @@ def factorize(
 
     values = _ensure_arraylike(values)
     original = values
+
+    # GH35667, if na_sentinel=None, we will not dropna NaNs from the uniques
+    # of values, assign na_sentinel=-1 to replace code value for NaN.
+    dropna = True
+    if na_sentinel is None:
+        na_sentinel = -1
+        dropna = False
 
     if is_extension_array_dtype(values.dtype):
         values = extract_array(values)
@@ -682,7 +709,7 @@ def value_counts(
     normalize: bool = False,
     bins=None,
     dropna: bool = True,
-) -> "Series":
+) -> Series:
     """
     Compute a histogram of the counts of non-null values.
 
@@ -824,7 +851,7 @@ def duplicated(values, keep="first") -> np.ndarray:
     return f(values, keep=keep)
 
 
-def mode(values, dropna: bool = True) -> "Series":
+def mode(values, dropna: bool = True) -> Series:
     """
     Returns the mode(s) of an array.
 
@@ -1101,6 +1128,9 @@ class SelectN:
         if self.keep not in ("first", "last", "all"):
             raise ValueError('keep must be either "first", "last" or "all"')
 
+    def compute(self, method: str) -> FrameOrSeriesUnion:
+        raise NotImplementedError
+
     def nlargest(self):
         return self.compute("nlargest")
 
@@ -1133,7 +1163,7 @@ class SelectNSeries(SelectN):
     nordered : Series
     """
 
-    def compute(self, method):
+    def compute(self, method: str) -> Series:
 
         n = self.n
         dtype = self.obj.dtype
@@ -1207,7 +1237,7 @@ class SelectNFrame(SelectN):
         columns = list(columns)
         self.columns = columns
 
-    def compute(self, method):
+    def compute(self, method: str) -> DataFrame:
 
         from pandas import Int64Index
 
