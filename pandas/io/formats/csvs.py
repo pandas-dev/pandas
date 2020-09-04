@@ -311,26 +311,18 @@ class CSVFormatter:
         self._save_body()
 
     def _save_header(self) -> None:
-        if any(self.encoded_labels):
+        if not self.has_mi_columns or self._has_aliases:
             self.writer.writerow(self.encoded_labels)
         else:
-            for row in self._get_header_rows():
+            for row in self._generate_multiindex_header_rows():
                 self.writer.writerow(row)
 
-    def _get_header_rows(self) -> List[List[str]]:
-        rows = []
-
-        # write out the mi
+    def _generate_multiindex_header_rows(self):
         columns = self.obj.columns
-
-        # write out the names for each level, then ALL of the values for
-        # each level
         for i in range(columns.nlevels):
-
             # we need at least 1 index column to write our col names
             col_line = []
             if self.index:
-
                 # name is the first column
                 col_line.append(columns.names[i])
 
@@ -338,15 +330,13 @@ class CSVFormatter:
                     col_line.extend([""] * (len(self.index_label) - 1))
 
             col_line.extend(columns._get_level_values(i))
-            rows.append(col_line)
+            yield col_line
 
         # Write out the index line if it's not empty.
         # Otherwise, we will print out an extraneous
         # blank line between the mi and the data rows.
         if self.encoded_labels and set(self.encoded_labels) != {""}:
-            rows.append([""] * len(columns))
-
-        return rows
+            yield self.encoded_labels + [""] * len(columns)
 
     def _save_body(self) -> None:
         nrows = len(self.data_index)
