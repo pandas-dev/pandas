@@ -1,3 +1,5 @@
+from typing import List
+
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import is_integer, is_list_like
@@ -56,7 +58,7 @@ def get_writer(engine_name):
         raise ValueError(f"No Excel writer '{engine_name}'") from err
 
 
-def _excel2num(x):
+def _excel2num(x: str) -> int:
     """
     Convert Excel column name like 'AB' to 0-based column index.
 
@@ -88,7 +90,7 @@ def _excel2num(x):
     return index - 1
 
 
-def _range2cols(areas):
+def _range2cols(areas: str) -> List[int]:
     """
     Convert comma separated list of column names and ranges to indices.
 
@@ -109,12 +111,12 @@ def _range2cols(areas):
     >>> _range2cols('A,C,Z:AB')
     [0, 2, 25, 26, 27]
     """
-    cols = []
+    cols: List[int] = []
 
     for rng in areas.split(","):
         if ":" in rng:
-            rng = rng.split(":")
-            cols.extend(range(_excel2num(rng[0]), _excel2num(rng[1]) + 1))
+            rngs = rng.split(":")
+            cols.extend(range(_excel2num(rngs[0]), _excel2num(rngs[1]) + 1))
         else:
             cols.append(_excel2num(rng))
 
