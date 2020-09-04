@@ -287,16 +287,19 @@ Quoting, compression, and file format
 
 compression : {``'infer'``, ``'gzip'``, ``'bz2'``, ``'zip'``, ``'xz'``, ``None``, ``dict``}, default ``'infer'``
   For on-the-fly decompression of on-disk data. If 'infer', then use gzip,
-  bz2, zip, or xz if filepath_or_buffer is a string ending in '.gz', '.bz2',
+  bz2, zip, or xz if ``filepath_or_buffer`` is path-like ending in '.gz', '.bz2',
   '.zip', or '.xz', respectively, and no decompression otherwise. If using 'zip',
   the ZIP file must contain only one data file to be read in.
   Set to ``None`` for no decompression. Can also be a dict with key ``'method'``
-  set to one of {``'zip'``, ``'gzip'``, ``'bz2'``}, and other keys set to
-  compression settings. As an example, the following could be passed for
-  faster compression: ``compression={'method': 'gzip', 'compresslevel': 1}``.
+  set to one of {``'zip'``, ``'gzip'``, ``'bz2'``} and other key-value pairs are
+  forwarded to ``zipfile.ZipFile``, ``gzip.GzipFile``, or ``bz2.BZ2File``.
+  As an example, the following could be passed for faster compression and to
+  create a reproducible gzip archive:
+  ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
 
   .. versionchanged:: 0.24.0 'infer' option added and set to default.
   .. versionchanged:: 1.1.0 dict option extended to support ``gzip`` and ``bz2``.
+  .. versionchanged:: 1.2.0 Previous versions forwarded dict entries for 'gzip' to `gzip.open`.
 thousands : str, default ``None``
   Thousands separator.
 decimal : str, default ``'.'``

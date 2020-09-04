@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 import pytest
 
@@ -395,6 +397,29 @@ class TestSeriesReplace:
         with pytest.raises(TypeError, match=msg):
             series.replace(lambda x: x.strip())
 
+    @pytest.mark.parametrize("frame", [False, True])
+    def test_replace_nonbool_regex(self, frame):
+        obj = pd.Series(["a", "b", "c "])
+        if frame:
+            obj = obj.to_frame()
+
+        msg = "'to_replace' must be 'None' if 'regex' is not a bool"
+        with pytest.raises(ValueError, match=msg):
+            obj.replace(to_replace=["a"], regex="foo")
+
+    @pytest.mark.parametrize("frame", [False, True])
+    def test_replace_empty_copy(self, frame):
+        obj = pd.Series([], dtype=np.float64)
+        if frame:
+            obj = obj.to_frame()
+
+        res = obj.replace(4, 5, inplace=True)
+        assert res is None
+
+        res = obj.replace(4, 5, inplace=False)
+        tm.assert_equal(res, obj)
+        assert res is not obj
+
     def test_replace_only_one_dictlike_arg(self):
         # GH#33340
 
@@ -415,3 +440,11 @@ class TestSeriesReplace:
         # https://github.com/pandas-dev/pandas/issues/34530
         ser = pd.Series(pd.array([1, 2, 3], dtype="Int64"))
         ser.replace("", "")  # no exception
+
+    def test_replace_with_compiled_regex(self):
+        # https://github.com/pandas-dev/pandas/issues/35680
+        s = pd.Series(["a", "b", "c"])
+        regex = re.compile("^a$")
+        result = s.replace({regex: "z"}, regex=True)
+        expected = pd.Series(["z", "b", "c"])
+        tm.assert_series_equal(result, expected)
