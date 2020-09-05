@@ -660,3 +660,12 @@ class TestPartialSetting:
         expected = Series(rng, index=rng)
 
         tm.assert_series_equal(result, expected)
+
+    def test_index_name_empty(self):
+        # GH 31368
+        df = pd.DataFrame({}, index=pd.RangeIndex(0, name="df_index"))
+        series = pd.Series(1.23, index=pd.RangeIndex(4, name="series_index"))
+
+        df["series"] = series
+
+        tm.assert_equal(df.index.name, "df_index")
