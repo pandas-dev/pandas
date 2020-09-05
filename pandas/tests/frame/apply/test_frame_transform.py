@@ -12,6 +12,7 @@ from pandas.tests.frame.common import zip_frames
 
 
 def test_transform(axis, float_frame):
+    # GH 35964
     other_axis = 1 if axis in {0, "index"} else 0
 
     with np.errstate(all="ignore"):
@@ -50,6 +51,7 @@ def test_transform(axis, float_frame):
 
 @pytest.mark.parametrize("use_apply", [True, False])
 def test_transform_udf(axis, float_frame, use_apply):
+    # GH 35964
     # transform uses UDF either via apply or passing the entire DataFrame
     def func(x):
         # transform is using apply iff x is not a DataFrame
@@ -73,6 +75,7 @@ def test_transform_method_name(method):
 
 
 def test_transform_and_agg_err(axis, float_frame):
+    # GH 35964
     # cannot both transform and agg
     msg = "Function did not transform"
     with pytest.raises(ValueError, match=msg):
@@ -93,6 +96,7 @@ def test_agg_dict_nested_renaming_depr():
 
 
 def test_transform_reducer_raises(all_reductions):
+    # GH 35964
     op = all_reductions
     df = DataFrame({"A": [1, 2, 3]})
     msg = "Function did not transform"
@@ -110,6 +114,7 @@ def test_transform_reducer_raises(all_reductions):
 # https://github.com/python/mypy/issues/5492
 @pytest.mark.parametrize("op", [*transformation_kernels, lambda x: x + 1])
 def test_transform_bad_dtype(op):
+    # GH 35964
     df = DataFrame({"A": 3 * [object]})  # DataFrame that will fail on most transforms
     if op in ("backfill", "shift", "pad", "bfill", "ffill"):
         pytest.xfail("Transform function works on any datatype")
@@ -126,6 +131,7 @@ def test_transform_bad_dtype(op):
 
 @pytest.mark.parametrize("op", transformation_kernels)
 def test_transform_multi_dtypes(op):
+    # GH 35964
     df = DataFrame({"A": ["a", "b", "c"], "B": [1, 2, 3]})
 
     # Determine which columns op will work on
@@ -153,6 +159,7 @@ def test_transform_multi_dtypes(op):
 
 @pytest.mark.parametrize("use_apply", [True, False])
 def test_transform_passes_args(use_apply):
+    # GH 35964
     # transform uses UDF either via apply or passing the entire DataFrame
     expected_args = [1, 2]
     expected_kwargs = {"c": 3}
@@ -170,6 +177,7 @@ def test_transform_passes_args(use_apply):
 
 
 def test_transform_missing_columns(axis):
+    # GH 35964
     df = DataFrame({"A": [1, 2], "B": [3, 4]})
     match = re.escape("Column(s) ['C'] do not exist")
     with pytest.raises(SpecificationError, match=match):

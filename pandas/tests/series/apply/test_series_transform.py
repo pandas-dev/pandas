@@ -8,6 +8,7 @@ from pandas.core.groupby.base import transformation_kernels
 
 
 def test_transform(string_series):
+    # GH 35964
     with np.errstate(all="ignore"):
         # transforming functions
         f_sqrt = np.sqrt(string_series)
@@ -43,6 +44,7 @@ def test_transform(string_series):
 
 
 def test_transform_udf(axis, string_series):
+    # GH 35964
     # via apply
     def func(x):
         if isinstance(x, Series):
@@ -65,6 +67,7 @@ def test_transform_udf(axis, string_series):
 
 
 def test_transform_wont_agg(string_series):
+    # GH 35964
     # we are trying to transform with an aggregator
     msg = "Function did not transform"
     with pytest.raises(ValueError, match=msg):
@@ -85,6 +88,7 @@ def test_transform_none_to_type():
 
 
 def test_transform_reducer_raises(all_reductions):
+    # GH 35964
     op = all_reductions
     s = Series([1, 2, 3])
     msg = "Function did not transform"
@@ -102,6 +106,7 @@ def test_transform_reducer_raises(all_reductions):
 # https://github.com/python/mypy/issues/5492
 @pytest.mark.parametrize("op", [*transformation_kernels, lambda x: x + 1])
 def test_transform_bad_dtype(op):
+    # GH 35964
     s = Series(3 * [object])  # Series that will fail on most transforms
     if op in ("backfill", "shift", "pad", "bfill", "ffill"):
         pytest.xfail("Transform function works on any datatype")
@@ -118,6 +123,7 @@ def test_transform_bad_dtype(op):
 
 @pytest.mark.parametrize("use_apply", [True, False])
 def test_transform_passes_args(use_apply):
+    # GH 35964
     # transform uses UDF either via apply or passing the entire Series
     expected_args = [1, 2]
     expected_kwargs = {"c": 3}
@@ -135,12 +141,14 @@ def test_transform_passes_args(use_apply):
 
 
 def test_transform_axis_1_raises():
+    # GH 35964
     msg = "No axis named 1 for object type Series"
     with pytest.raises(ValueError, match=msg):
         Series([1]).transform("sum", axis=1)
 
 
 def test_transform_nested_renamer():
+    # GH 35964
     match = "nested renamer is not supported"
     with pytest.raises(SpecificationError, match=match):
         Series([1]).transform({"A": {"B": ["sum"]}})
