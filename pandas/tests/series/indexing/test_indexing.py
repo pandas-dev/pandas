@@ -1,6 +1,7 @@
 """ test get/set & misc """
 
 from datetime import timedelta
+import re
 
 import numpy as np
 import pytest
@@ -942,3 +943,26 @@ def test_slice_with_negative_step(index):
         for key2 in [keystr2, box(keystr2)]:
             assert_slices_equivalent(SLC[key2:key:-1], SLC[13:8:-1])
             assert_slices_equivalent(SLC[key:key2:-1], SLC[0:0:-1])
+
+
+def test_tuple_index():
+    # GH 35534 - Selecting values when a Series has an Index of tuples
+    s = pd.Series([1, 2], index=[("a",), ("b",)])
+    assert s[("a",)] == 1
+    assert s[("b",)] == 2
+    s[("b",)] = 3
+    assert s[("b",)] == 3
+    with pytest.raises(KeyError, match="('c',)"):
+        s[("c",)]
+
+
+def test_frozenset_index():
+    # GH35747 - Selecting values when a Series has an Index of frozenset
+    idx0, idx1 = frozenset("a"), frozenset("b")
+    s = pd.Series([1, 2], index=[idx0, idx1])
+    assert s[idx0] == 1
+    assert s[idx1] == 2
+    s[idx1] = 3
+    assert s[idx1] == 3
+    with pytest.raises(KeyError, match=re.escape("frozenset({'c'})")):
+        s[frozenset("c")]

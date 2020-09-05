@@ -887,21 +887,20 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         elif key_is_scalar:
             return self._get_value(key)
 
-        if (
-            isinstance(key, tuple)
-            and is_hashable(key)
-            and isinstance(self.index, MultiIndex)
-        ):
+        # if isinstance(key, tuple) and is_hashable(key):
+        if not is_iterator(key) and is_hashable(key):
             # Otherwise index.get_value will raise InvalidIndexError
-            try:
-                result = self._get_value(key)
+            if isinstance(self.index, MultiIndex):
+                try:
+                    result = self._get_value(key)
+                    return result
 
-                return result
-
-            except KeyError:
-                # We still have the corner case where this tuple is a key
-                #  in the first level of our MultiIndex
-                return self._get_values_tuple(key)
+                except KeyError:
+                    # We still have the corner case where this tuple is a key
+                    #  in the first level of our MultiIndex
+                    return self._get_values_tuple(key)
+            else:
+                return self._get_value(key)
 
         if is_iterator(key):
             key = list(key)
