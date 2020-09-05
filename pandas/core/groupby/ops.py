@@ -608,7 +608,7 @@ class BaseGrouper:
 
         return result
 
-    def agg_series(self, obj: Series, func: F, *args, **kwargs):
+    def agg_series(self, obj: Series, func: F):
         # Caller is responsible for checking ngroups != 0
         assert self.ngroups != 0
 
@@ -660,7 +660,7 @@ class BaseGrouper:
         result, counts = grouper.get_result()
         return result, counts
 
-    def _aggregate_series_pure_python(self, obj: Series, func: F, *args, **kwargs):
+    def _aggregate_series_pure_python(self, obj: Series, func: F):
         group_index, _, ngroups = self.group_info
 
         counts = np.zeros(ngroups, dtype=int)
@@ -669,7 +669,7 @@ class BaseGrouper:
         splitter = get_splitter(obj, group_index, ngroups, axis=0)
 
         for label, group in splitter:
-            res = func(group, *args, **kwargs)
+            res = func(group)
 
             if result is None:
                 if isinstance(res, (Series, Index, np.ndarray)):
@@ -846,7 +846,7 @@ class BinGrouper(BaseGrouper):
             for lvl, name in zip(self.levels, self.names)
         ]
 
-    def agg_series(self, obj: Series, func: F, *args, **kwargs):
+    def agg_series(self, obj: Series, func: F):
         # Caller is responsible for checking ngroups != 0
         assert self.ngroups != 0
         assert len(self.bins) > 0  # otherwise we'd get IndexError in get_result
