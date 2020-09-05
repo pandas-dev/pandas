@@ -32,7 +32,6 @@ from typing import (
 
 import numpy as np
 
-from pandas._config import get_option
 from pandas._config.config import option_context
 
 from pandas._libs import Timestamp, lib
@@ -553,7 +552,6 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
 
     def _repr_html_(self) -> str:
         return repr_html_groupby(self)
-
 
     def _assure_grouper(self):
         """
