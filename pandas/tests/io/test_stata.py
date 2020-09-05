@@ -1153,7 +1153,7 @@ class TestStata:
             from_frame = parsed.iloc[pos : pos + chunksize, :].copy()
             from_frame = self._convert_categorical(from_frame)
             tm.assert_frame_equal(
-                from_frame, chunk, check_dtype=False, check_datetimelike_compat=True,
+                from_frame, chunk, check_dtype=False, check_datetimelike_compat=True
             )
 
             pos += chunksize
@@ -1251,7 +1251,7 @@ class TestStata:
             from_frame = parsed.iloc[pos : pos + chunksize, :].copy()
             from_frame = self._convert_categorical(from_frame)
             tm.assert_frame_equal(
-                from_frame, chunk, check_dtype=False, check_datetimelike_compat=True,
+                from_frame, chunk, check_dtype=False, check_datetimelike_compat=True
             )
 
             pos += chunksize
