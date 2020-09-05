@@ -741,18 +741,18 @@ def test_raise_invalid_sortorder():
 
     with pytest.raises(ValueError, match=r".* sortorder 2 with lexsort_depth 1.*"):
         MultiIndex(
-            levels=levels, codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 2, 1]], sortorder=2,
+            levels=levels, codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 2, 1]], sortorder=2
         )
 
     with pytest.raises(ValueError, match=r".* sortorder 1 with lexsort_depth 0.*"):
         MultiIndex(
-            levels=levels, codes=[[0, 0, 1, 0, 1, 1], [0, 1, 0, 2, 2, 1]], sortorder=1,
+            levels=levels, codes=[[0, 0, 1, 0, 1, 1], [0, 1, 0, 2, 2, 1]], sortorder=1
         )
 
 
 def test_datetimeindex():
     idx1 = pd.DatetimeIndex(
-        ["2013-04-01 9:00", "2013-04-02 9:00", "2013-04-03 9:00"] * 2, tz="Asia/Tokyo",
+        ["2013-04-01 9:00", "2013-04-02 9:00", "2013-04-03 9:00"] * 2, tz="Asia/Tokyo"
     )
     idx2 = pd.date_range("2010/01/01", periods=6, freq="M", tz="US/Eastern")
     idx = MultiIndex.from_arrays([idx1, idx2])

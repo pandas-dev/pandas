@@ -87,7 +87,7 @@ class TestSetitemCoercion(CoercionBase):
         # tm.assert_series_equal(temp, expected_series)
 
     @pytest.mark.parametrize(
-        "val,exp_dtype", [(1, object), (1.1, object), (1 + 1j, object), (True, object)],
+        "val,exp_dtype", [(1, object), (1.1, object), (1 + 1j, object), (True, object)]
     )
     def test_setitem_series_object(self, val, exp_dtype):
         obj = pd.Series(list("abcd"))

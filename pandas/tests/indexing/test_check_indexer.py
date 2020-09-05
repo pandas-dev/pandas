@@ -32,7 +32,7 @@ def test_valid_input(indexer, expected):
 
 
 @pytest.mark.parametrize(
-    "indexer", [[True, False, None], pd.array([True, False, None], dtype="boolean")],
+    "indexer", [[True, False, None], pd.array([True, False, None], dtype="boolean")]
 )
 def test_boolean_na_returns_indexer(indexer):
     # https://github.com/pandas-dev/pandas/issues/31503
@@ -61,7 +61,7 @@ def test_bool_raise_length(indexer):
 
 
 @pytest.mark.parametrize(
-    "indexer", [[0, 1, None], pd.array([0, 1, pd.NA], dtype="Int64")],
+    "indexer", [[0, 1, None], pd.array([0, 1, pd.NA], dtype="Int64")]
 )
 def test_int_raise_missing_values(indexer):
     array = np.array([1, 2, 3])
@@ -89,9 +89,7 @@ def test_raise_invalid_array_dtypes(indexer):
         check_array_indexer(array, indexer)
 
 
-@pytest.mark.parametrize(
-    "indexer", [None, Ellipsis, slice(0, 3), (None,)],
-)
+@pytest.mark.parametrize("indexer", [None, Ellipsis, slice(0, 3), (None,)])
 def test_pass_through_non_array_likes(indexer):
     array = np.array([1, 2, 3])
 
