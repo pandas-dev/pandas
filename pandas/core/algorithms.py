@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import operator
 from textwrap import dedent
-from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union, cast
 from warnings import catch_warnings, simplefilter, warn
 
 import numpy as np
@@ -60,7 +60,7 @@ from pandas.core.construction import array, extract_array
 from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Series
+    from pandas import Categorical, DataFrame, Series
 
 _shared_docs: Dict[str, str] = {}
 
@@ -429,8 +429,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     if is_categorical_dtype(comps):
         # TODO(extension)
         # handle categoricals
-        # error: "ExtensionArray" has no attribute "isin"  [attr-defined]
-        return comps.isin(values)  # type: ignore[attr-defined]
+        return cast("Categorical", comps).isin(values)
 
     comps, dtype = _ensure_data(comps)
     values, _ = _ensure_data(values, dtype=dtype)
