@@ -1,7 +1,5 @@
 from typing import List
 
-from pandas._typing import Axis
-
 from pandas import DataFrame, concat
 
 
