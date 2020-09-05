@@ -8681,6 +8681,17 @@ NaN 12.3   33.0
 
         assert numeric_only is None
 
+        def reduce_columnwise(self, func):
+            from pandas.core.apply import frame_apply
+
+            opa = frame_apply(
+                self, func=func, result_type="expand", ignore_failures=True
+            )
+            result = opa.get_result()
+            if result.ndim == self.ndim and len(result):
+                result = result.iloc[0].rename(None)
+            return result
+
         if not self._is_homogeneous_type or self._mgr.any_extension_types:
             # try to avoid self.values call
 
@@ -8698,15 +8709,7 @@ NaN 12.3   33.0
                 # numeric_only and yet we have tried a
                 # column-by-column reduction, where we have mixed type.
                 # So let's just do what we can
-                from pandas.core.apply import frame_apply
-
-                opa = frame_apply(
-                    self, func=func, result_type="expand", ignore_failures=True
-                )
-                result = opa.get_result()
-                if result.ndim == self.ndim:
-                    result = result.iloc[0].rename(None)
-                return result
+                return reduce_columnwise(self, func)
 
         data = self
         values = data.values
@@ -8738,6 +8741,30 @@ NaN 12.3   33.0
 
         if constructor is not None:
             result = self._constructor_sliced(result, index=labels)
+
+        check_func = (
+            lambda x: is_extension_array_dtype(x)
+            or is_object_dtype(x)
+            or needs_i8_conversion(x)
+        )
+        msg = (
+            "In a future version, DataFrame reduction operations with "
+            "ExtensionDtype or ObjectDtype will be performed column-wise. "
+            "To keep the old behavior, explicitly cast columns to bool/numeric "
+            "dtypes."
+        )
+        if axis == 0:
+            if self.dtypes.apply(check_func).any():
+                v2 = reduce_columnwise(self, func)
+                if type(v2) != type(result) or not v2.equals(result):
+                    warnings.warn(msg, FutureWarning)
+        else:
+            if self.dtypes.apply(check_func).any():
+                v1 = reduce_columnwise(self.T, func)
+                v2 = reduce_columnwise(_get_data(True).T, func)
+                if not (v1.equals(v2) and result.equals(v2)):
+                    warnings.warn(msg, FutureWarning)
+
         return result
 
     def nunique(self, axis=0, dropna=True) -> Series:
