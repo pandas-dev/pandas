@@ -2330,7 +2330,7 @@ class DataCol(IndexCol):
         # error: "ExtensionDtype" has no attribute "itemsize"
         itemsize = dtype.itemsize  # type: ignore[attr-defined]
 
-        shape: Tuple[int, ...] = values.shape
+        shape = values.shape
         if values.ndim == 1:
             # EA, use block shape pretending it is 2D
             # TODO(EA2D): not necessary with 2D EAs
@@ -2386,7 +2386,7 @@ class DataCol(IndexCol):
         return _tables().Int64Col(shape=shape[0])
 
     @property
-    def shape(self) -> Optional[Tuple[int, ...]]:
+    def shape(self):
         return getattr(self.data, "shape", None)
 
     @property
@@ -2612,11 +2612,12 @@ class Fixed:
     def __repr__(self) -> str:
         """ return a pretty representation of myself """
         self.infer_axes()
-        shape = self.shape
-        if shape is not None:
-            shape_repr = ",".join(pprint_thing(x) for x in shape)
-            shape_repr = f"[{shape_repr}]"
-            return f"{self.pandas_type:12.12} (shape->{shape_repr})"
+        s = self.shape
+        if s is not None:
+            if isinstance(s, (list, tuple)):
+                jshape = ",".join(pprint_thing(x) for x in s)
+                s = f"[{jshape}]"
+            return f"{self.pandas_type:12.12} (shape->{s})"
         return self.pandas_type
 
     def set_object_info(self):
@@ -2629,8 +2630,8 @@ class Fixed:
         return new_self
 
     @property
-    def shape(self) -> Optional[Tuple[int, ...]]:
-        return (self.nrows,)
+    def shape(self):
+        return self.nrows
 
     @property
     def pathname(self):
@@ -3075,7 +3076,7 @@ class SeriesFixed(GenericFixed):
     name: Label
 
     @property
-    def shape(self) -> Optional[Tuple[int]]:
+    def shape(self):
         try:
             return (len(self.group.values),)
         except (TypeError, AttributeError):
@@ -3106,7 +3107,7 @@ class BlockManagerFixed(GenericFixed):
     nblocks: int
 
     @property
-    def shape(self) -> Optional[Tuple[int, ...]]:
+    def shape(self):
         try:
             ndim = self.ndim
 
@@ -3122,13 +3123,13 @@ class BlockManagerFixed(GenericFixed):
             node = self.group.block0_values
             shape = getattr(node, "shape", None)
             if shape is not None:
-                shape_list = list(shape[0 : (ndim - 1)])
+                shape = list(shape[0 : (ndim - 1)])
             else:
-                shape_list = []
+                shape = []
 
-            shape_list.append(items)
+            shape.append(items)
 
-            return tuple(shape)
+            return shape
         except AttributeError:
             return None
 
