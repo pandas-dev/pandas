@@ -75,9 +75,7 @@ def test_unstack_tuplename_in_multiindex():
 
     expected = pd.DataFrame(
         [[1, 1, 1], [1, 1, 1], [1, 1, 1]],
-        columns=pd.MultiIndex.from_tuples(
-            [("a",), ("b",), ("c",)], names=[("A", "a")],
-        ),
+        columns=pd.MultiIndex.from_tuples([("a",), ("b",), ("c",)], names=[("A", "a")]),
         index=pd.Index([1, 2, 3], name=("B", "b")),
     )
     tm.assert_frame_equal(result, expected)
@@ -115,7 +113,7 @@ def test_unstack_mixed_type_name_in_multiindex(
     result = ser.unstack(unstack_idx)
 
     expected = pd.DataFrame(
-        expected_values, columns=expected_columns, index=expected_index,
+        expected_values, columns=expected_columns, index=expected_index
     )
     tm.assert_frame_equal(result, expected)
 

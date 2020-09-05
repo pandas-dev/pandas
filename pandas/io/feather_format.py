@@ -16,14 +16,13 @@ def to_feather(df: DataFrame, path, storage_options: StorageOptions = None, **kw
     ----------
     df : DataFrame
     path : string file path, or file-like object
-
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection, e.g.
         host, port, username, password, etc., if using a URL that will
         be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
         will be raised if providing this argument with a local path or
         a file-like buffer. See the fsspec and backend storage implementation
-        docs for the set of allowed keys and values
+        docs for the set of allowed keys and values.
 
         .. versionadded:: 1.2.0
 
@@ -35,9 +34,7 @@ def to_feather(df: DataFrame, path, storage_options: StorageOptions = None, **kw
     import_optional_dependency("pyarrow")
     from pyarrow import feather
 
-    path, _, _, should_close = get_filepath_or_buffer(
-        path, mode="wb", storage_options=storage_options
-    )
+    ioargs = get_filepath_or_buffer(path, mode="wb", storage_options=storage_options)
 
     if not isinstance(df, DataFrame):
         raise ValueError("feather only support IO with DataFrames")
@@ -75,7 +72,11 @@ def to_feather(df: DataFrame, path, storage_options: StorageOptions = None, **kw
     if df.columns.inferred_type not in valid_types:
         raise ValueError("feather must have string column names")
 
-    feather.write_feather(df, path, **kwargs)
+    feather.write_feather(df, ioargs.filepath_or_buffer, **kwargs)
+
+    if ioargs.should_close:
+        assert not isinstance(ioargs.filepath_or_buffer, str)
+        ioargs.filepath_or_buffer.close()
 
 
 def read_feather(
@@ -106,6 +107,15 @@ def read_feather(
         Whether to parallelize reading using multiple threads.
 
        .. versionadded:: 0.24.0
+    storage_options : dict, optional
+        Extra options that make sense for a particular storage connection, e.g.
+        host, port, username, password, etc., if using a URL that will
+        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+        will be raised if providing this argument with a local path or
+        a file-like buffer. See the fsspec and backend storage implementation
+        docs for the set of allowed keys and values.
+
+        .. versionadded:: 1.2.0
 
     Returns
     -------
@@ -114,14 +124,15 @@ def read_feather(
     import_optional_dependency("pyarrow")
     from pyarrow import feather
 
-    path, _, _, should_close = get_filepath_or_buffer(
-        path, storage_options=storage_options
+    ioargs = get_filepath_or_buffer(path, storage_options=storage_options)
+
+    df = feather.read_feather(
+        ioargs.filepath_or_buffer, columns=columns, use_threads=bool(use_threads)
     )
 
-    df = feather.read_feather(path, columns=columns, use_threads=bool(use_threads))
-
     # s3fs only validates the credentials when the file is closed.
-    if should_close:
-        path.close()
+    if ioargs.should_close:
+        assert not isinstance(ioargs.filepath_or_buffer, str)
+        ioargs.filepath_or_buffer.close()
 
     return df

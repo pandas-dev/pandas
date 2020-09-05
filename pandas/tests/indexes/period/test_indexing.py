@@ -359,6 +359,22 @@ class TestGetLoc:
                 ],
             )
 
+    def test_get_loc_invalid_string_raises_keyerror(self):
+        # GH#34240
+        pi = pd.period_range("2000", periods=3, name="A")
+        with pytest.raises(KeyError, match="A"):
+            pi.get_loc("A")
+
+        ser = pd.Series([1, 2, 3], index=pi)
+        with pytest.raises(KeyError, match="A"):
+            ser.loc["A"]
+
+        with pytest.raises(KeyError, match="A"):
+            ser["A"]
+
+        assert "A" not in ser
+        assert "A" not in pi
+
 
 class TestGetIndexer:
     def test_get_indexer(self):

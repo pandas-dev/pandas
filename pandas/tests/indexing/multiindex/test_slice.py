@@ -6,7 +6,7 @@ from pandas.errors import UnsortedIndexError
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp
 import pandas._testing as tm
-from pandas.core.indexing import _non_reducing_slice
+from pandas.core.indexing import non_reducing_slice
 from pandas.tests.indexing.common import _mklbl
 
 
@@ -739,7 +739,7 @@ class TestMultiIndexSlicers:
         df = pd.DataFrame(dic, index=[0, 1])
         idx = pd.IndexSlice
         slice_ = idx[:, idx["b", "d"]]
-        tslice_ = _non_reducing_slice(slice_)
+        tslice_ = non_reducing_slice(slice_)
 
         result = df.loc[tslice_]
         expected = pd.DataFrame({("b", "d"): [4, 1]})
