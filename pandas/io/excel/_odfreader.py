@@ -28,7 +28,27 @@ class _ODFReader(_BaseExcelReader):
         storage_options: StorageOptions = None,
     ):
         import_optional_dependency("odf")
+        self._monkeypatch_odf_element_str()
         super().__init__(filepath_or_buffer, storage_options=storage_options)
+
+    def _monkeypatch_odf_element_str(self):
+        from odf.element import Element
+        from odf.namespaces import TEXTNS
+        from odf.text import S
+
+        text_s = S().qname
+
+        def element_str(self):
+            value = []
+            for c in self.childNodes:
+                if isinstance(c, Element) and c.qname == text_s:
+                    spaces = int(c.attributes.get((TEXTNS, "c"), 1))
+                    value.append(" " * spaces)
+                else:
+                    value.append(str(c))
+            return "".join(value)
+    
+        Element.__str__ = element_str
 
     @property
     def _workbook_class(self):
@@ -178,7 +198,7 @@ class _ODFReader(_BaseExcelReader):
             cell_value = cell.attributes.get((OFFICENS, "value"))
             return float(cell_value)
         elif cell_type == "string":
-            return self._get_cell_string_value(cell)
+            return str(cell)
         elif cell_type == "currency":
             cell_value = cell.attributes.get((OFFICENS, "value"))
             return float(cell_value)
@@ -192,27 +212,3 @@ class _ODFReader(_BaseExcelReader):
         else:
             raise ValueError(f"Unrecognized type {cell_type}")
 
-    def _get_cell_string_value(self, cell) -> str:
-        """
-        Find and decode OpenDocument text:s tags that represent
-        a run length encoded sequence of space characters.
-        """
-        from odf.element import Element, Text
-        from odf.namespaces import TEXTNS
-        from odf.text import P, S
-
-        text_p = P().qname
-        text_s = S().qname
-
-        p = cell.childNodes[0]
-
-        value = []
-        if p.qname == text_p:
-            for k, fragment in enumerate(p.childNodes):
-                if isinstance(fragment, Text):
-                    value.append(fragment.data)
-                elif isinstance(fragment, Element):
-                    if fragment.qname == text_s:
-                        spaces = int(fragment.attributes.get((TEXTNS, "c"), 1))
-                    value.append(" " * spaces)
-        return "".join(value)
