@@ -15,6 +15,7 @@ from pandas._typing import (
     CompressionOptions,
     FilePathOrBuffer,
     IndexLabel,
+    Label,
     StorageOptions,
 )
 
@@ -44,7 +45,7 @@ class CSVFormatter:
         sep: str = ",",
         na_rep: str = "",
         float_format: Optional[str] = None,
-        cols=None,
+        cols: Optional[Sequence[Label]] = None,
         header: Union[bool, Sequence[Hashable]] = True,
         index: bool = True,
         index_label: IndexLabel = None,
@@ -55,7 +56,7 @@ class CSVFormatter:
         quoting: Optional[int] = None,
         line_terminator="\n",
         chunksize: Optional[int] = None,
-        quotechar='"',
+        quotechar: Optional[str] = '"',
         date_format: Optional[str] = None,
         doublequote: bool = True,
         escapechar: Optional[str] = None,
@@ -141,18 +142,19 @@ class CSVFormatter:
         return [""] if index_label is None else [index_label]
 
     @property
-    def quotechar(self):
+    def quotechar(self) -> Optional[str]:
         if self.quoting != csvlib.QUOTE_NONE:
             # prevents crash in _csv
             return self._quotechar
+        return None
 
     @quotechar.setter
-    def quotechar(self, quotechar):
+    def quotechar(self, quotechar: Optional[str]) -> None:
         self._quotechar = quotechar
 
     @property
-    def has_mi_columns(self):
-        return isinstance(self.obj.columns, ABCMultiIndex)
+    def has_mi_columns(self) -> bool:
+        return bool(isinstance(self.obj.columns, ABCMultiIndex))
 
     @property
     def cols(self):
@@ -178,7 +180,6 @@ class CSVFormatter:
         cols = self.obj.columns
         if isinstance(cols, ABCIndexClass):
             cols = cols.to_native_types(**self._number_format)
-
         else:
             cols = list(cols)
 
@@ -229,8 +230,8 @@ class CSVFormatter:
         return isinstance(self.header, (tuple, list, np.ndarray, ABCIndexClass))
 
     @property
-    def _need_to_save_header(self):
-        return self._has_aliases or self.header
+    def _need_to_save_header(self) -> bool:
+        return bool(self._has_aliases or self.header)
 
     @property
     def write_cols(self):
