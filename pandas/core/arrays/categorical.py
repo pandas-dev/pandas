@@ -280,6 +280,19 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
     ['a', 'b', 'c', 'a', 'b', 'c']
     Categories (3, object): ['a', 'b', 'c']
 
+    Missing values are not included as a category.
+
+    >>> c = pd.Categorical([1, 2, 3, 1, 2, 3, np.nan])
+    >>> c
+    [1, 2, 3, 1, 2, 3, NaN]
+    Categories (3, int64): [1, 2, 3]
+
+    However, their presence is indicated in the `codes` attribute
+    by code `-1`.
+
+    >>> c.codes
+    array([ 0,  1,  2,  0,  1,  2, -1], dtype=int8)
+
     Ordered `Categoricals` can be sorted according to the custom order
     of the categories and can have a min and max value.
 
