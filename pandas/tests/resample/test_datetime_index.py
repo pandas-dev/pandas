@@ -124,7 +124,7 @@ def test_resample_integerarray():
 
     result = ts.resample("3T").mean()
     expected = Series(
-        [1, 4, 7], index=pd.date_range("1/1/2000", periods=3, freq="3T"), dtype="Int64",
+        [1, 4, 7], index=pd.date_range("1/1/2000", periods=3, freq="3T"), dtype="Int64"
     )
     tm.assert_series_equal(result, expected)
 
@@ -764,7 +764,7 @@ def test_resample_origin():
 
 
 @pytest.mark.parametrize(
-    "origin", ["invalid_value", "epch", "startday", "startt", "2000-30-30", object()],
+    "origin", ["invalid_value", "epch", "startday", "startt", "2000-30-30", object()]
 )
 def test_resample_bad_origin(origin):
     rng = date_range("2000-01-01 00:00:00", "2000-01-01 02:00", freq="s")
@@ -777,9 +777,7 @@ def test_resample_bad_origin(origin):
         ts.resample("5min", origin=origin)
 
 
-@pytest.mark.parametrize(
-    "offset", ["invalid_value", "12dayys", "2000-30-30", object()],
-)
+@pytest.mark.parametrize("offset", ["invalid_value", "12dayys", "2000-30-30", object()])
 def test_resample_bad_offset(offset):
     rng = date_range("2000-01-01 00:00:00", "2000-01-01 02:00", freq="s")
     ts = Series(np.random.randn(len(rng)), index=rng)
@@ -1595,7 +1593,7 @@ def test_downsample_dst_at_midnight():
         "America/Havana", ambiguous=True
     )
     dti = pd.DatetimeIndex(dti, freq="D")
-    expected = DataFrame([7.5, 28.0, 44.5], index=dti,)
+    expected = DataFrame([7.5, 28.0, 44.5], index=dti)
     tm.assert_frame_equal(result, expected)
 
 
