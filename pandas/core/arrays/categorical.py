@@ -2316,7 +2316,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
 
         return union_categoricals(to_concat)
 
-    def isin(self, values):
+    def isin(self, values) -> np.ndarray:
         """
         Check whether `values` are contained in Categorical.
 

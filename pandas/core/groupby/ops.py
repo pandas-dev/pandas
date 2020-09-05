@@ -37,7 +37,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.missing import _maybe_fill, isna
+from pandas.core.dtypes.missing import isna, maybe_fill
 
 import pandas.core.algorithms as algorithms
 from pandas.core.base import SelectionMixin
@@ -524,13 +524,11 @@ class BaseGrouper:
         codes, _, _ = self.group_info
 
         if kind == "aggregate":
-            result = _maybe_fill(
-                np.empty(out_shape, dtype=out_dtype), fill_value=np.nan
-            )
+            result = maybe_fill(np.empty(out_shape, dtype=out_dtype), fill_value=np.nan)
             counts = np.zeros(self.ngroups, dtype=np.int64)
             result = self._aggregate(result, counts, values, codes, func, min_count)
         elif kind == "transform":
-            result = _maybe_fill(
+            result = maybe_fill(
                 np.empty_like(values, dtype=out_dtype), fill_value=np.nan
             )
 
@@ -603,7 +601,7 @@ class BaseGrouper:
 
         return result
 
-    def agg_series(self, obj: Series, func: F, *args, **kwargs):
+    def agg_series(self, obj: Series, func: F):
         # Caller is responsible for checking ngroups != 0
         assert self.ngroups != 0
 
@@ -651,7 +649,7 @@ class BaseGrouper:
         result, counts = grouper.get_result()
         return result, counts
 
-    def _aggregate_series_pure_python(self, obj: Series, func: F, *args, **kwargs):
+    def _aggregate_series_pure_python(self, obj: Series, func: F):
         group_index, _, ngroups = self.group_info
 
         counts = np.zeros(ngroups, dtype=int)
@@ -660,7 +658,7 @@ class BaseGrouper:
         splitter = get_splitter(obj, group_index, ngroups, axis=0)
 
         for label, group in splitter:
-            res = func(group, *args, **kwargs)
+            res = func(group)
 
             if result is None:
                 if isinstance(res, (Series, Index, np.ndarray)):
@@ -837,7 +835,7 @@ class BinGrouper(BaseGrouper):
             for lvl, name in zip(self.levels, self.names)
         ]
 
-    def agg_series(self, obj: Series, func: F, *args, **kwargs):
+    def agg_series(self, obj: Series, func: F):
         # Caller is responsible for checking ngroups != 0
         assert self.ngroups != 0
         assert len(self.bins) > 0  # otherwise we'd get IndexError in get_result

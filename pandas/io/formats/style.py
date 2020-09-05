@@ -36,7 +36,7 @@ from pandas.api.types import is_dict_like, is_list_like
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
+from pandas.core.indexing import maybe_numeric_slice, non_reducing_slice
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
 
@@ -475,7 +475,7 @@ class Styler:
             row_locs = range(len(self.data))
             col_locs = range(len(self.data.columns))
         else:
-            subset = _non_reducing_slice(subset)
+            subset = non_reducing_slice(subset)
             if len(subset) == 1:
                 subset = subset, self.data.columns
 
@@ -633,7 +633,7 @@ class Styler:
         **kwargs,
     ) -> "Styler":
         subset = slice(None) if subset is None else subset
-        subset = _non_reducing_slice(subset)
+        subset = non_reducing_slice(subset)
         data = self.data.loc[subset]
         if axis is not None:
             result = data.apply(func, axis=axis, result_type="expand", **kwargs)
@@ -725,7 +725,7 @@ class Styler:
         func = partial(func, **kwargs)  # applymap doesn't take kwargs?
         if subset is None:
             subset = pd.IndexSlice[:]
-        subset = _non_reducing_slice(subset)
+        subset = non_reducing_slice(subset)
         result = self.data.loc[subset].applymap(func)
         self._update_ctx(result)
         return self
@@ -985,7 +985,7 @@ class Styler:
         -------
         self : Styler
         """
-        subset = _non_reducing_slice(subset)
+        subset = non_reducing_slice(subset)
         hidden_df = self.data.loc[subset]
         self.hidden_columns = self.columns.get_indexer_for(hidden_df.columns)
         return self
@@ -1087,8 +1087,8 @@ class Styler:
         of the data is extended by ``low * (x.max() - x.min())`` and ``high *
         (x.max() - x.min())`` before normalizing.
         """
-        subset = _maybe_numeric_slice(self.data, subset)
-        subset = _non_reducing_slice(subset)
+        subset = maybe_numeric_slice(self.data, subset)
+        subset = non_reducing_slice(subset)
         self.apply(
             self._background_gradient,
             cmap=cmap,
@@ -1322,8 +1322,8 @@ class Styler:
                 "(eg: color=['#d65f5f', '#5fba7d'])"
             )
 
-        subset = _maybe_numeric_slice(self.data, subset)
-        subset = _non_reducing_slice(subset)
+        subset = maybe_numeric_slice(self.data, subset)
+        subset = non_reducing_slice(subset)
         self.apply(
             self._bar,
             subset=subset,
@@ -1390,7 +1390,7 @@ class Styler:
         axis: Optional[Axis] = None,
         max_: bool = True,
     ) -> "Styler":
-        subset = _non_reducing_slice(_maybe_numeric_slice(self.data, subset))
+        subset = non_reducing_slice(maybe_numeric_slice(self.data, subset))
         self.apply(
             self._highlight_extrema, color=color, axis=axis, subset=subset, max_=max_
         )
