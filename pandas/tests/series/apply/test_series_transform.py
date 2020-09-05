@@ -8,37 +8,38 @@ from pandas.core.groupby.base import transformation_kernels
 
 
 def test_transform(string_series):
-    # transforming functions
-    f_sqrt = np.sqrt(string_series)
-    f_abs = np.abs(string_series)
+    with np.errstate(all="ignore"):
+        # transforming functions
+        f_sqrt = np.sqrt(string_series)
+        f_abs = np.abs(string_series)
 
-    # ufunc
-    result = string_series.transform(np.sqrt)
-    expected = f_sqrt.copy()
-    tm.assert_series_equal(result, expected)
+        # ufunc
+        result = string_series.transform(np.sqrt)
+        expected = f_sqrt.copy()
+        tm.assert_series_equal(result, expected)
 
-    # list-like
-    result = string_series.transform([np.sqrt])
-    expected = f_sqrt.to_frame().copy()
-    expected.columns = ["sqrt"]
-    tm.assert_frame_equal(result, expected)
+        # list-like
+        result = string_series.transform([np.sqrt])
+        expected = f_sqrt.to_frame().copy()
+        expected.columns = ["sqrt"]
+        tm.assert_frame_equal(result, expected)
 
-    result = string_series.transform(["sqrt"])
-    tm.assert_frame_equal(result, expected)
+        result = string_series.transform(["sqrt"])
+        tm.assert_frame_equal(result, expected)
 
-    # multiple items in list
-    # these are in the order as if we are applying both functions per
-    # series and then concatting
-    result = string_series.transform(["sqrt", "abs"])
-    expected = concat([f_sqrt, f_abs], axis=1)
-    expected.columns = ["sqrt", "abs"]
-    tm.assert_frame_equal(result, expected)
+        # multiple items in list
+        # these are in the order as if we are applying both functions per
+        # series and then concatting
+        result = string_series.transform(["sqrt", "abs"])
+        expected = concat([f_sqrt, f_abs], axis=1)
+        expected.columns = ["sqrt", "abs"]
+        tm.assert_frame_equal(result, expected)
 
-    # dict, provide renaming
-    expected = concat([f_sqrt, f_abs], axis=1)
-    expected.columns = ["foo", "bar"]
-    result = string_series.transform({"foo": np.sqrt, "bar": np.abs})
-    tm.assert_frame_equal(result, expected)
+        # dict, provide renaming
+        expected = concat([f_sqrt, f_abs], axis=1)
+        expected.columns = ["foo", "bar"]
+        result = string_series.transform({"foo": np.sqrt, "bar": np.abs})
+        tm.assert_frame_equal(result, expected)
 
 
 def test_transform_udf(axis, string_series):
