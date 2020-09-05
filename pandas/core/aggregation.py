@@ -388,12 +388,12 @@ def validate_func_kwargs(
 
 
 def transform(
-    obj: FrameOrSeriesUnion,
+    obj: FrameOrSeries,
     func: Union[str, List, Dict, Callable],
     axis: int,
     *args,
     **kwargs,
-) -> FrameOrSeriesUnion:
+) -> FrameOrSeries:
     """
     Transform a DataFrame or Series
 
