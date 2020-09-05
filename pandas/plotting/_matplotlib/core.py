@@ -29,7 +29,7 @@ from pandas.core.dtypes.missing import isna, notna
 import pandas.core.common as com
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._matplotlib.compat import _mpl_ge_3_0_0
+from pandas.plotting._matplotlib.compat import mpl_ge_3_0_0
 from pandas.plotting._matplotlib.converter import register_pandas_matplotlib_converters
 from pandas.plotting._matplotlib.style import get_standard_colors
 from pandas.plotting._matplotlib.timeseries import (
@@ -944,7 +944,7 @@ class PlanePlot(MPLPlot):
         img = ax.collections[-1]
         cbar = self.fig.colorbar(img, ax=ax, **kwds)
 
-        if _mpl_ge_3_0_0():
+        if mpl_ge_3_0_0():
             # The workaround below is no longer necessary.
             return
 

@@ -2725,6 +2725,8 @@ class MultiIndex(Index):
                 "currently supported for MultiIndex"
             )
 
+        hash(key)
+
         def _maybe_to_slice(loc):
             """convert integer indexer to boolean mask or slice if possible"""
             if not isinstance(loc, np.ndarray) or loc.dtype != "int64":
@@ -2739,8 +2741,7 @@ class MultiIndex(Index):
             mask[loc] = True
             return mask
 
-        if not isinstance(key, (tuple, list)):
-            # not including list here breaks some indexing, xref #30892
+        if not isinstance(key, tuple):
             loc = self._get_level_indexer(key, level=0)
             return _maybe_to_slice(loc)
 
