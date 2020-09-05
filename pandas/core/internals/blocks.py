@@ -390,7 +390,7 @@ class Block(PandasObject):
 
         mask = isna(self.values)
         if limit is not None:
-            limit = libalgos._validate_limit(None, limit=limit)
+            limit = libalgos.validate_limit(None, limit=limit)
             mask[mask.cumsum(self.ndim - 1) > limit] = False
 
         if not self._can_hold_na:
