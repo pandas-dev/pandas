@@ -438,7 +438,12 @@ def sanitize_array(
             subarr = subarr.copy()
         return subarr
 
-    elif isinstance(data, (list, tuple)) and len(data) > 0:
+    elif isinstance(data, (list, tuple, abc.Set, abc.ValuesView)) and len(data) > 0:
+        if isinstance(data, set):
+            # Raise only for unordered sets, e.g., not for dict_keys
+            raise TypeError("Set type is unordered")
+        data = list(data)
+
         if dtype is not None:
             subarr = _try_cast(data, dtype, copy, raise_cast_failure)
         else:
@@ -450,8 +455,6 @@ def sanitize_array(
         # GH#16804
         arr = np.arange(data.start, data.stop, data.step, dtype="int64")
         subarr = _try_cast(arr, dtype, copy, raise_cast_failure)
-    elif isinstance(data, abc.Set):
-        raise TypeError("Set type is unordered")
     elif lib.is_scalar(data) and index is not None and dtype is not None:
         data = maybe_cast_to_datetime(data, dtype)
         if not lib.is_scalar(data):

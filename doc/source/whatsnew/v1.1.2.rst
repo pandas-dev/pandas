@@ -35,6 +35,7 @@ Bug fixes
 - Bug in :meth:`DataFrame.apply` with ``result_type="reduce"`` returning with incorrect index (:issue:`35683`)
 - Bug in :meth:`DateTimeIndex.format` and :meth:`PeriodIndex.format` with ``name=True`` setting the first item to ``"None"`` where it should be ``""`` (:issue:`35712`)
 - Bug in :meth:`Float64Index.__contains__` incorrectly raising ``TypeError`` instead of returning ``False`` (:issue:`35788`)
+- Bug in :class:`Series` constructor incorrectly raising a ``TypeError`` when passed an ordered set (:issue:`36044`)
 - Bug in :meth:`Series.dt.isocalendar` and :meth:`DatetimeIndex.isocalendar` that returned incorrect year for certain dates (:issue:`36032`)
 - Bug in :class:`DataFrame` indexing returning an incorrect :class:`Series` in some cases when the series has been altered and a cache not invalidated (:issue:`33675`)
 - Bug in :meth:`DataFrame.corr` causing subsequent indexing lookups to be incorrect (:issue:`35882`)
