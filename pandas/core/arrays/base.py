@@ -405,7 +405,7 @@ class ExtensionArray:
         raise AbstractMethodError(self)
 
     @property
-    def shape(self) -> Tuple[int, ...]:
+    def shape(self) -> Tuple[int]:
         """
         Return a tuple of the array dimensions.
         """

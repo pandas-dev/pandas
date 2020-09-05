@@ -11,6 +11,7 @@ from typing import (
     List,
     Optional,
     Sequence,
+    Tuple,
     TypeVar,
     Union,
 )
@@ -5520,7 +5521,7 @@ class Index(IndexOpsMixin, PandasObject):
         cls.any = make_invalid_op("any")
 
     @property
-    def shape(self):
+    def shape(self) -> Tuple[int, ...]:
         """
         Return a tuple of the shape of the underlying data.
         """

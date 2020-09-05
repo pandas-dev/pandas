@@ -1299,7 +1299,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             setattr(self, k, v)
 
     @property
-    def nbytes(self):
+    def nbytes(self) -> int:
         return self._codes.nbytes + self.dtype.categories.values.nbytes
 
     def memory_usage(self, deep=False):

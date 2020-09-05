@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import inspect
 import re
-from typing import TYPE_CHECKING, Any, List, Optional
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple
 import warnings
 
 import numpy as np
@@ -309,7 +309,7 @@ class Block(PandasObject):
         return type(self)._simple_new(new_values, new_mgr_locs, self.ndim)
 
     @property
-    def shape(self):
+    def shape(self) -> Tuple[int, ...]:
         return self.values.shape
 
     @property
@@ -1625,10 +1625,10 @@ class ExtensionBlock(Block):
             raise AssertionError("block.size != values.size")
 
     @property
-    def shape(self):
+    def shape(self) -> Tuple[int, ...]:
         # TODO(EA2D): override unnecessary with 2D EAs
         if self.ndim == 1:
-            return ((len(self.values)),)
+            return (len(self.values),)
         return (len(self.mgr_locs), len(self.values))
 
     def iget(self, col):

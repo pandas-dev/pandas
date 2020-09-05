@@ -4,7 +4,7 @@ Base and utility classes for pandas objects.
 
 import builtins
 import textwrap
-from typing import Any, Dict, FrozenSet, List, Optional, Union
+from typing import Any, Dict, FrozenSet, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -624,7 +624,7 @@ class IndexOpsMixin:
     )
 
     @property
-    def shape(self):
+    def shape(self) -> Tuple[int, ...]:
         """
         Return a tuple of the shape of the underlying data.
         """

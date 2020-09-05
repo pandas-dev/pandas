@@ -678,7 +678,7 @@ class MultiIndex(Index):
         )
 
     @property
-    def shape(self):
+    def shape(self) -> Tuple[int]:
         """
         Return a tuple of the shape of the underlying data.
         """

@@ -68,7 +68,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     # TODO: make this a cache_readonly; for that to work we need to remove
     #  the _index_data kludge in libreduction
     @property
-    def shape(self) -> Tuple[int, ...]:
+    def shape(self) -> Tuple[int]:
         return self._ndarray.shape
 
     def __len__(self) -> int:
