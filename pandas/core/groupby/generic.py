@@ -1084,6 +1084,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     assert how == "ohlc"
                     raise
 
+                # We get here with a) EADtypes and b) object dtype
                 obj: Union[Series, DataFrame]
                 # call our grouper again with only this block
                 if isinstance(bvalues, ExtensionArray):
