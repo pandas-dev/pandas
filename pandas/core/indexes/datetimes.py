@@ -596,6 +596,10 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         if isinstance(key, self._data._recognized_scalars):
             # needed to localize naive datetimes
+            try:
+                self._data._assert_tzawareness_compat(key)
+            except TypeError as err:
+                raise KeyError(key) from err
             key = self._maybe_cast_for_get_loc(key)
 
         elif isinstance(key, str):
@@ -654,6 +658,10 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -------
         label : object
 
+        Raises
+        ------
+        TypeError : indexing timezone-aware DatetimeIndex with tz-naive datetime
+
         Notes
         -----
         Value of `side` parameter should be validated in caller.
@@ -677,6 +685,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             if self._is_strictly_monotonic_decreasing and len(self) > 1:
                 return upper if side == "left" else lower
             return lower if side == "left" else upper
+        elif isinstance(label, (self._data._recognized_scalars, date)):
+            self._data._assert_tzawareness_compat(label)
         return self._maybe_cast_for_get_loc(label)
 
     def _get_string_slice(self, key: str, use_lhs: bool = True, use_rhs: bool = True):
