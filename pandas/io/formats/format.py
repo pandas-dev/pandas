@@ -1990,3 +1990,27 @@ def buffer_put_lines(buf: IO[str], lines: List[str]) -> None:
     if any(isinstance(x, str) for x in lines):
         lines = [str(x) for x in lines]
     buf.write("\n".join(lines))
+
+
+def repr_html_groupby(group_obj):
+    max_groups = get_option("display.max_groups")
+    max_rows = max(
+        1, get_option("display.max_rows") // min(max_groups, group_obj.ngroups)
+    )
+    group_names = list(group_obj.groups.keys())
+    truncated = max_groups < group_obj.ngroups
+    if truncated:
+        n_start = (max_groups + 1) // 2
+        n_end = max_groups - n_start
+        group_names = group_names[:n_start] + group_names[-n_end:]
+    repr_html_list = list()
+    for group_name in group_names:
+        group = group_obj.get_group(group_name)
+        if not hasattr(group, "to_html"):
+            group = group.to_frame()
+        repr_html_list.append(
+            f"<H3>Group Key: {group_name}<H3/>\n{group.to_html(max_rows=max_rows)}"
+        )
+    if truncated:
+        repr_html_list.insert(max_groups // 2, "<H3>...<H3/>")
+    return "\n".join(repr_html_list)

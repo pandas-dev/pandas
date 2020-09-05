@@ -68,6 +68,8 @@ from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 
+from pandas.io.formats.format import repr_html_groupby
+
 _common_see_also = """
         See Also
         --------
@@ -550,27 +552,8 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         return object.__repr__(self)
 
     def _repr_html_(self) -> str:
-        max_groups = get_option("display.max_groups")
-        max_rows = max(
-            1, get_option("display.max_rows") // min(max_groups, self.ngroups)
-        )
-        group_names = list(self.groups.keys())
-        truncated = max_groups < self.ngroups
-        if truncated:
-            n_start = (max_groups + 1) // 2
-            n_end = max_groups - n_start
-            group_names = group_names[:n_start] + group_names[-n_end:]
-        repr_html_list = list()
-        for group_name in group_names:
-            group = self.get_group(group_name)
-            if not hasattr(group, "to_html"):
-                group = group.to_frame()
-            repr_html_list.append(
-                f"<H3>Group Key: {group_name}<H3/>\n{group.to_html(max_rows=max_rows)}"
-            )
-        if truncated:
-            repr_html_list.insert(max_groups // 2, "<H3>...<H3/>")
-        return "\n".join(repr_html_list)
+        return repr_html_groupby(self)
+
 
     def _assure_grouper(self):
         """
