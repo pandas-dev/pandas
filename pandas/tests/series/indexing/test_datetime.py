@@ -1,3 +1,6 @@
+"""
+Also test support for datetime64[ns] in Series / DataFrame
+"""
 from datetime import datetime, timedelta
 import re
 
@@ -10,11 +13,6 @@ import pandas._libs.index as _index
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex, NaT, Series, Timestamp, date_range
 import pandas._testing as tm
-
-
-"""
-Also test support for datetime64[ns] in Series / DataFrame
-"""
 
 
 def test_fancy_getitem():
