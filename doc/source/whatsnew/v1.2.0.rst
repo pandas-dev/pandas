@@ -301,7 +301,7 @@ Plotting
 ^^^^^^^^
 
 - Bug in :meth:`DataFrame.plot` where a marker letter in the ``style`` keyword sometimes causes a ``ValueError`` (:issue:`21003`)
--
+- meth:`DataFrame.plot` and meth:`Series.plot` raise ``UserWarning`` about usage of FixedFormatter and FixedLocator (:issue:`35684` and :issue:`35945`)
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
