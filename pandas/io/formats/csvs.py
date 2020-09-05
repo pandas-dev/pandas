@@ -168,7 +168,7 @@ class CSVFormatter:
 
         if cols is not None:
             if isinstance(cols, ABCIndexClass):
-                cols = self._convert_to_native_types(cols)
+                cols = cols.to_native_types(**self._number_format)
             else:
                 cols = list(cols)
             self.obj = self.obj.loc[:, cols]
@@ -177,20 +177,22 @@ class CSVFormatter:
         # and make sure sure cols is just a list of labels
         cols = self.obj.columns
         if isinstance(cols, ABCIndexClass):
-            cols = self._convert_to_native_types(cols)
+            cols = cols.to_native_types(**self._number_format)
+
         else:
             cols = list(cols)
 
         self._cols = cols
 
-    def _convert_to_native_types(self, arg, **kwargs):
-        return arg.to_native_types(
+    @property
+    def _number_format(self) -> dict:
+        """Dictionary used for storing number formatting settings."""
+        return dict(
             na_rep=self.na_rep,
             float_format=self.float_format,
             date_format=self.date_format,
             quoting=self.quoting,
             decimal=self.decimal,
-            **kwargs,
         )
 
     @property
@@ -354,10 +356,10 @@ class CSVFormatter:
         df = self.obj.iloc[slicer]
 
         for block in df._mgr.blocks:
-            d = self._convert_to_native_types(block)
+            d = block.to_native_types(**self._number_format)
 
             for col_loc, col in zip(block.mgr_locs, d):
                 data[col_loc] = col
 
-        ix = self._convert_to_native_types(self.data_index, slicer=slicer)
+        ix = self.data_index.to_native_types(slicer=slicer, **self._number_format)
         libwriters.write_csv_rows(data, ix, self.nlevels, self.cols, self.writer)
