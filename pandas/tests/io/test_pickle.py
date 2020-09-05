@@ -14,7 +14,9 @@ import bz2
 import datetime
 import glob
 import gzip
+import io
 import os
+from pathlib import Path
 import pickle
 import shutil
 from warnings import catch_warnings, simplefilter
@@ -486,3 +488,30 @@ def test_read_pickle_with_subclass():
 
     tm.assert_series_equal(result[0], expected[0])
     assert isinstance(result[1], MyTz)
+
+
+def test_pickle_binary_object_compression(compression):
+    """
+    Read/write from binary file-objects w/wo compression.
+
+    GH 26237, GH 29054, and GH 29570
+    """
+    df = tm.makeDataFrame()
+
+    # reference for compression
+    with tm.ensure_clean() as path:
+        df.to_pickle(path, compression=compression)
+        reference = Path(path).read_bytes()
+
+    # write
+    buffer = io.BytesIO()
+    df.to_pickle(buffer, compression=compression)
+    buffer.seek(0)
+
+    # gzip  and zip safe the filename: cannot compare the compressed content
+    assert buffer.getvalue() == reference or compression in ("gzip", "zip")
+
+    # read
+    read_df = pd.read_pickle(buffer, compression=compression)
+    buffer.seek(0)
+    tm.assert_frame_equal(df, read_df)
