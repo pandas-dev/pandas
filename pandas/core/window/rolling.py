@@ -633,8 +633,11 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                     return func(x, start, end, min_periods)
 
             else:
+                offset = calculate_center_offset(window) if center else 0	
+                additional_nans = np.array([np.nan] * offset)
 
                 def calc(x):
+                    x = np.concatenate((x, additional_nans))
                     return func(x, window, self.min_periods)
 
             with np.errstate(all="ignore"):
@@ -646,6 +649,9 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
             if use_numba_cache:
                 NUMBA_FUNC_CACHE[(kwargs["original_func"], "rolling_apply")] = func
+            
+            if center and is_weighted:	
+                result = self._center_window(result, window)
 
             return result
 
@@ -1429,7 +1435,8 @@ class _Rolling_and_Expanding(_Rolling):
             # Cython apply functions handle center, so don't need to use
             # _apply's center handling
             window = self._get_window()
-            offset = calculate_center_offset(window) if self.center else 0
+
+            offset = calculate_center_offset(window) if self.center and self.win_type else 0
             apply_func = self._generate_cython_apply_func(
                 args, kwargs, raw, offset, func
             )
