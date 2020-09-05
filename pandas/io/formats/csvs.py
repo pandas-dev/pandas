@@ -112,7 +112,7 @@ class CSVFormatter:
         self.line_terminator = line_terminator or os.linesep
         self.date_format = date_format
         self.cols = cols
-        self.chunksize = chunksize
+        self.chunksize = chunksize  # type: ignore[assignment]
 
     @property
     def index_label(self) -> IndexLabel:
@@ -197,13 +197,14 @@ class CSVFormatter:
         )
 
     @property
-    def chunksize(self):
+    def chunksize(self) -> int:
         return self._chunksize
 
     @chunksize.setter
-    def chunksize(self, chunksize):
+    def chunksize(self, chunksize: Optional[int]) -> None:
         if chunksize is None:
             chunksize = (100000 // (len(self.cols) or 1)) or 1
+        assert chunksize is not None
         self._chunksize = int(chunksize)
 
     @property
