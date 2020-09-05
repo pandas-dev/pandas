@@ -205,15 +205,25 @@ class TestDataFramePlots(TestPlotBase):
         with pytest.raises(ValueError):
             df.plot(color=["red", "black"], style=["k-", "r--"])
 
-    @pytest.mark.parametrize("color", ["green", ["yellow", "red", "green", "blue"]])
-    def test_color_and_marker(self, color):
+    @pytest.mark.parametrize(
+        "color, expected",
+        [
+            ("green", ["green"] * 4),
+            (["yellow", "red", "green", "blue"], ["yellow", "red", "green", "blue"]),
+        ],
+    )
+    def test_color_and_marker(self, color, expected):
         # GH 21003
         df = DataFrame(np.random.random((7, 4)))
         ax = df.plot(color=color, style="d--")
-        green_line = ax.lines[2]
-        assert green_line.get_color() == "green"
-        assert green_line.get_marker() == "d"
-        assert green_line.get_linestyle() == "--"
+
+        # check colors
+        result = [i.get_color() for i in ax.lines]
+        assert result == expected
+
+        # check markers and linestyles
+        assert all(i.get_linestyle() == "--" for i in ax.lines)
+        assert all(i.get_marker() == "d" for i in ax.lines)
 
     def test_nonnumeric_exclude(self):
         df = DataFrame({"A": ["x", "y", "z"], "B": [1, 2, 3]})
