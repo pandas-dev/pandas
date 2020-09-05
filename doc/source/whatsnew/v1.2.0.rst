@@ -299,7 +299,7 @@ I/O
 Plotting
 ^^^^^^^^
 
--
+- Bug in :meth:`DataFrame.plot` where a marker letter in the ``style`` keyword sometimes causes a ``ValueError`` (:issue:`21003`)
 -
 
 Groupby/resample/rolling
