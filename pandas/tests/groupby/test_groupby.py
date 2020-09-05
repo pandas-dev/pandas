@@ -2134,3 +2134,24 @@ def test_groupby_column_index_name_lost_fill_funcs(func):
     result = getattr(df_grouped, func)().columns
     expected = pd.Index(["a", "b"], name="idx")
     tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", ["max", "min"])
+def test_groupby_rolling_index_changed(func):
+    ds = pd.Series(
+        [1, 2, 2],
+        index=pd.MultiIndex.from_tuples(
+            [("a", "x"), ("a", "y"), ("c", "z")], names=["1", "2"]
+        ),
+        name="a",
+    )
+
+    result = getattr(ds.groupby(ds).rolling(2), func)()
+    expected = pd.Series(
+        [np.nan, np.nan, 2.0],
+        index=pd.MultiIndex.from_tuples(
+            [(1, "a", "x"), (2, "a", "y"), (2, "c", "z")], names=["a", "1", "2"]
+        ),
+        name="a",
+    )
+    tm.assert_series_equal(result, expected)
