@@ -188,19 +188,18 @@ class ArrayManager(DataManager):
         return output
 
     def _verify_integrity(self) -> None:
-        pass
-        # TODO
-        # mgr_shape = self.shape
-        # tot_items = sum(len(x.mgr_locs) for x in self.blocks)
-        # for block in self.blocks:
-        #     if block._verify_integrity and block.shape[1:] != mgr_shape[1:]:
-        #         raise construction_error(tot_items, block.shape[1:], self.axes)
-        # if len(self.items) != tot_items:
-        #     raise AssertionError(
-        #         "Number of manager items must equal union of "
-        #         f"block items\n# manager items: {len(self.items)}, # "
-        #         f"tot_items: {tot_items}"
-        #     )
+        n_rows, n_columns = self.shape_proper
+        if not len(self.arrays) == n_columns:
+            raise ValueError(
+                "Number of passed arrays must equal the size of the column Index: "
+                f"{len(self.arrays)} arrays vs {n_columns} columns."
+            )
+        for array in self.arrays:
+            if not len(array) == n_rows:
+                raise ValueError(
+                    "Passed arrays should have the same length as the rows Index: "
+                    f"{len(array)} vs {n_rows} rows"
+                )
 
     def reduce(self: T, func) -> T:
         # TODO this still fails because `func` assumes to work on 2D arrays
@@ -256,6 +255,21 @@ class ArrayManager(DataManager):
 
         return type(self)(result_arrays, self._axes)
 
+    def apply_with_block(self: T, f, align_keys=None, **kwargs) -> T:
+
+        result_arrays = []
+
+        for array in self.arrays:
+            block = make_block(np.atleast_2d(array), placement=slice(0, 1, 1), ndim=2)
+            applied = getattr(block, f)(**kwargs)
+            while isinstance(applied, list):
+                # ObjectBlock gives double nested result?, some functions give no list
+                applied = applied[0]
+            applied_array = applied.values[0, :]
+            result_arrays.append(applied_array)
+
+        return type(self)(result_arrays, self._axes)
+
     def isna(self, func) -> "BlockManager":
         return self.apply("apply", func=func)
 
@@ -283,7 +297,51 @@ class ArrayManager(DataManager):
         assert np.ndim(value) == 0, value
         # TODO "replace" is right now implemented on the blocks, we should move
         # it to general array algos so it can be reused here
-        return self.apply("replace", value=value, **kwargs)
+        return self.apply_with_block("replace", value=value, **kwargs)
+
+    def replace_list(
+        self: T,
+        src_list: List[Any],
+        dest_list: List[Any],
+        inplace: bool = False,
+        regex: bool = False,
+    ) -> T:
+        """ do a list replace """
+        inplace = validate_bool_kwarg(inplace, "inplace")
+
+        return self.apply_with_block(
+            "_replace_list",
+            src_list=src_list,
+            dest_list=dest_list,
+            inplace=inplace,
+            regex=regex,
+        )
+
+    def diff(self, n: int, axis: int) -> "ArrayManager":
+        return self.apply_with_block("diff", n=n, axis=axis)
+
+    def interpolate(self, **kwargs) -> "ArrayManager":
+        return self.apply_with_block("interpolate", **kwargs)
+
+    def downcast(self) -> "ArrayManager":
+        return self.apply_with_block("downcast")
+
+    def convert(
+        self,
+        copy: bool = True,
+        datetime: bool = True,
+        numeric: bool = True,
+        timedelta: bool = True,
+        coerce: bool = False,
+    ) -> "ArrayManager":
+        return self.apply_with_block(
+            "convert",
+            copy=copy,
+            datetime=datetime,
+            numeric=numeric,
+            timedelta=timedelta,
+            coerce=coerce,
+        )
 
     def operate_blockwise(self, other: "ArrayManager", array_op) -> "ArrayManager":
         """
@@ -319,9 +377,11 @@ class ArrayManager(DataManager):
         else:
             new_axes = list(self._axes)
 
-        res = self.apply("copy")  # , deep=deep)
-        res._axes = new_axes
-        return res
+        if deep:
+            new_arrays = [arr.copy() for arr in self.arrays]
+        else:
+            new_arrays = self.arrays
+        return type(self)(new_arrays, new_axes)
 
     def astype(
         self, dtype, copy: bool = False, errors: str = "raise"

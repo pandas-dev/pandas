@@ -484,7 +484,7 @@ with cf.config_prefix("mode"):
     )
     cf.register_option(
         "data_manager",
-        "block",
+        "array",
         "internal manager type",
         validator=is_one_of_factory(["block", "array"]),
     )
