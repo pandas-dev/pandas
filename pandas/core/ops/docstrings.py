@@ -611,7 +611,7 @@ Get {desc} of dataframe and other, element-wise (binary operator `{op_name}`).
 Among flexible wrappers (`eq`, `ne`, `le`, `lt`, `ge`, `gt`) to comparison
 operators.
 
-Equivalent to `==`, `=!`, `<=`, `<`, `>=`, `>` with support to choose axis
+Equivalent to `==`, `!=`, `<=`, `<`, `>=`, `>` with support to choose axis
 (rows or columns) and level for comparison.
 
 Parameters

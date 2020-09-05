@@ -32,14 +32,14 @@ import pandas.core.common as com
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.compat import _mpl_ge_3_0_0
 from pandas.plotting._matplotlib.converter import register_pandas_matplotlib_converters
-from pandas.plotting._matplotlib.style import _get_standard_colors
+from pandas.plotting._matplotlib.style import get_standard_colors
 from pandas.plotting._matplotlib.tools import (
-    _flatten,
-    _get_all_lines,
-    _get_xlim,
-    _handle_shared_axes,
-    _subplots,
+    create_subplots,
+    flatten_axes,
     format_date_labels,
+    get_all_lines,
+    get_xlim,
+    handle_shared_axes,
     table,
 )
 
@@ -66,16 +66,6 @@ class MPLPlot:
     _layout_type = "vertical"
     _default_rot = 0
     orientation: Optional[str] = None
-    _pop_attributes = [
-        "label",
-        "style",
-        "mark_right",
-        "stacked",
-    ]
-    _attr_defaults = {
-        "mark_right": True,
-        "stacked": False,
-    }
 
     def __init__(
         self,
@@ -165,9 +155,10 @@ class MPLPlot:
         self.logx = kwds.pop("logx", False)
         self.logy = kwds.pop("logy", False)
         self.loglog = kwds.pop("loglog", False)
-        for attr in self._pop_attributes:
-            value = kwds.pop(attr, self._attr_defaults.get(attr, None))
-            setattr(self, attr, value)
+        self.label = kwds.pop("label", None)
+        self.style = kwds.pop("style", None)
+        self.mark_right = kwds.pop("mark_right", True)
+        self.stacked = kwds.pop("stacked", False)
 
         self.ax = ax
         self.fig = fig
@@ -315,7 +306,7 @@ class MPLPlot:
 
     def _setup_subplots(self):
         if self.subplots:
-            fig, axes = _subplots(
+            fig, axes = create_subplots(
                 naxes=self.nseries,
                 sharex=self.sharex,
                 sharey=self.sharey,
@@ -334,7 +325,7 @@ class MPLPlot:
                     fig.set_size_inches(self.figsize)
                 axes = self.ax
 
-        axes = _flatten(axes)
+        axes = flatten_axes(axes)
 
         valid_log = {False, True, "sym", None}
         input_log = {self.logx, self.logy, self.loglog}
@@ -466,7 +457,7 @@ class MPLPlot:
         if len(self.axes) > 0:
             all_axes = self._get_subplots()
             nrows, ncols = self._get_axes_layout()
-            _handle_shared_axes(
+            handle_shared_axes(
                 axarr=all_axes,
                 nplots=len(all_axes),
                 naxes=nrows * ncols,
@@ -665,7 +656,7 @@ class MPLPlot:
             if style is not None:
                 args = (x, y, style)
             else:
-                args = (x, y)  # type:ignore[assignment]
+                args = (x, y)  # type: ignore[assignment]
             return ax.plot(*args, **kwds)
 
     def _get_index_name(self) -> Optional[str]:
@@ -753,7 +744,7 @@ class MPLPlot:
         if num_colors is None:
             num_colors = self.nseries
 
-        return _get_standard_colors(
+        return get_standard_colors(
             num_colors=num_colors,
             colormap=self.colormap,
             color=self.kwds.get(color_kwds),
@@ -1132,8 +1123,8 @@ class LinePlot(MPLPlot):
 
                 # reset of xlim should be used for ts data
                 # TODO: GH28021, should find a way to change view limit on xaxis
-                lines = _get_all_lines(ax)
-                left, right = _get_xlim(lines)
+                lines = get_all_lines(ax)
+                left, right = get_xlim(lines)
                 ax.set_xlim(left, right)
 
     @classmethod
