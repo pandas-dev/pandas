@@ -572,7 +572,7 @@ class TestAstype:
         [
             Series(["x", "y", "z"], dtype="string"),
             Series(["x", "y", "z"], dtype="category"),
-            Series(3 * [Timestamp("2020-01-01")]),
+            Series(3 * [Timestamp("2020-01-01", tz="UTC")]),
             Series(3 * [Interval(0, 1)]),
         ],
     )
