@@ -204,13 +204,12 @@ class TestDataFramePlots(TestPlotBase):
         # if there is a color symbol in the style strings:
         with pytest.raises(ValueError):
             df.plot(color=["red", "black"], style=["k-", "r--"])
-            # k for black, r for red
 
     @pytest.mark.parametrize("color", ["green", ["yellow", "red", "green", "blue"]])
     def test_color_and_marker(self, color):
         # GH 21003
         df = DataFrame(np.random.random((7, 4)))
-        ax = df.plot(color=color, style="d--")  # d for diamond
+        ax = df.plot(color=color, style="d--")
         green_line = ax.lines[2]
         assert green_line.get_color() == "green"
         assert green_line.get_marker() == "d"

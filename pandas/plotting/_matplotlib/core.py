@@ -208,7 +208,6 @@ class MPLPlot:
         self._validate_color_args()
 
     def _validate_color_args(self):
-
         if (
             "color" in self.kwds
             and self.nseries == 1
