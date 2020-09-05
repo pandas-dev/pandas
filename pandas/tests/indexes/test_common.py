@@ -402,9 +402,11 @@ class TestCommon:
 
 @pytest.mark.parametrize("na_position", [None, "middle"])
 def test_sort_values_invalid_na_position(index_with_missing, na_position):
-
     if type(index_with_missing) in [DatetimeIndex, PeriodIndex, TimedeltaIndex]:
-        pytest.xfail("stable descending order sort not implemented")
+        # datetime-like indices will get na_position kwarg as part of
+        # synchronizing duplicate-sorting behavior, because we currently expect
+        # them, other indices, and Series to sort differently (xref 35922)
+        pytest.xfail("sort_values does not support na_position kwarg")
     elif type(index_with_missing) in [CategoricalIndex, MultiIndex]:
         pytest.xfail("missing value sorting order not defined for index type")
 
@@ -421,7 +423,10 @@ def test_sort_values_with_missing(index_with_missing, na_position):
     # sort non-missing and place missing according to na_position
 
     if type(index_with_missing) in [DatetimeIndex, PeriodIndex, TimedeltaIndex]:
-        pytest.xfail("stable descending order sort not implemented")
+        # datetime-like indices will get na_position kwarg as part of
+        # synchronizing duplicate-sorting behavior, because we currently expect
+        # them, other indices, and Series to sort differently (xref 35922)
+        pytest.xfail("sort_values does not support na_position kwarg")
     elif type(index_with_missing) in [CategoricalIndex, MultiIndex]:
         pytest.xfail("missing value sorting order not defined for index type")
     missing_count = np.sum(index_with_missing.isna())
