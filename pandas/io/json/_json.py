@@ -19,12 +19,7 @@ from pandas import DataFrame, MultiIndex, Series, isna, to_datetime
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.reshape.concat import concat
 
-from pandas.io.common import (
-    get_compression_method,
-    get_filepath_or_buffer,
-    get_handle,
-    infer_compression,
-)
+from pandas.io.common import get_compression_method, get_filepath_or_buffer, get_handle
 from pandas.io.json._normalize import convert_to_line_delimits
 from pandas.io.json._table_schema import build_table_schema, parse_table_schema
 from pandas.io.parsers import _validate_integer
@@ -66,6 +61,7 @@ def to_json(
         )
         path_or_buf = ioargs.filepath_or_buffer
         should_close = ioargs.should_close
+        compression = ioargs.compression
 
     if lines and orient != "records":
         raise ValueError("'lines' keyword only valid when 'orient' is records")
@@ -616,9 +612,6 @@ def read_json(
     if encoding is None:
         encoding = "utf-8"
 
-    compression_method, compression = get_compression_method(compression)
-    compression_method = infer_compression(path_or_buf, compression_method)
-    compression = dict(compression, method=compression_method)
     ioargs = get_filepath_or_buffer(
         path_or_buf,
         encoding=encoding,
