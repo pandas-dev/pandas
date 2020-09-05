@@ -6,7 +6,6 @@ import csv as csvlib
 from io import StringIO, TextIOWrapper
 import os
 from typing import Generator, Hashable, List, Optional, Sequence, Union
-import warnings
 
 import numpy as np
 
@@ -59,6 +58,7 @@ class CSVFormatter:
         storage_options: StorageOptions = None,
     ):
         self.obj = obj
+
         self.encoding = encoding or "utf-8"
 
         if path_or_buf is None:
@@ -71,24 +71,12 @@ class CSVFormatter:
             mode=mode,
             storage_options=storage_options,
         )
+
         self.compression = ioargs.compression.pop("method")
         self.compression_args = ioargs.compression
         self.path_or_buf = ioargs.filepath_or_buffer
         self.should_close = ioargs.should_close
         self.mode = ioargs.mode
-
-        # GH21227 internal compression is not used for non-binary handles.
-        if (
-            self.compression
-            and hasattr(self.path_or_buf, "write")
-            and "b" not in self.mode
-        ):
-            warnings.warn(
-                "compression has no effect when passing a non-binary object as input.",
-                RuntimeWarning,
-                stacklevel=2,
-            )
-            self.compression = None
 
         self.sep = sep
         self.na_rep = na_rep
