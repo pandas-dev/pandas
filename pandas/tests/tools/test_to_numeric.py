@@ -649,3 +649,10 @@ def test_failure_to_convert_uint64_string_to_NaN():
     ser = Series([32, 64, np.nan])
     result = to_numeric(pd.Series(["32", "64", "uint64"]), errors="coerce")
     tm.assert_series_equal(result, ser)
+
+
+def test_precision():
+    # GH 31364
+    result = to_numeric("243.164")
+
+    assert result == 243.164
