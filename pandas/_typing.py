@@ -63,7 +63,7 @@ Timezone = Union[str, tzinfo]
 # other
 
 Dtype = Union[
-    "ExtensionDtype", str, np.dtype, Type[Union[str, float, int, complex, bool]]
+    "ExtensionDtype", str, np.dtype, Type[Union[str, float, int, complex, bool, object]]
 ]
 DtypeObj = Union[np.dtype, "ExtensionDtype"]
 FilePathOrBuffer = Union[str, Path, IO[AnyStr], IOBase]
@@ -118,7 +118,7 @@ StorageOptions = Optional[Dict[str, Any]]
 
 
 # compression keywords and compression
-CompressionDict = Mapping[str, Optional[Union[str, int, bool]]]
+CompressionDict = Dict[str, Any]
 CompressionOptions = Optional[Union[str, CompressionDict]]
 
 
@@ -140,6 +140,6 @@ class IOargs(Generic[ModeVar, EncodingVar]):
 
     filepath_or_buffer: FileOrBuffer
     encoding: EncodingVar
-    compression: CompressionOptions
+    compression: CompressionDict
     should_close: bool
     mode: Union[ModeVar, str]
