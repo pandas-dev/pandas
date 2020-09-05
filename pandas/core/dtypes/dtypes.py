@@ -30,12 +30,13 @@ from pandas.core.dtypes.inference import is_bool, is_list_like
 
 if TYPE_CHECKING:
     import pyarrow  # noqa: F401
+
+    from pandas import Categorical  # noqa: F401
     from pandas.core.arrays import (  # noqa: F401
+        DatetimeArray,
         IntervalArray,
         PeriodArray,
-        DatetimeArray,
     )
-    from pandas import Categorical  # noqa: F401
 
 str_type = str
 
@@ -391,12 +392,13 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     @staticmethod
     def _hash_categories(categories, ordered: Ordered = True) -> int:
+        from pandas.core.dtypes.common import DT64NS_DTYPE, is_datetime64tz_dtype
+
         from pandas.core.util.hashing import (
+            combine_hash_arrays,
             hash_array,
-            _combine_hash_arrays,
             hash_tuples,
         )
-        from pandas.core.dtypes.common import is_datetime64tz_dtype, DT64NS_DTYPE
 
         if len(categories) and isinstance(categories[0], tuple):
             # assumes if any individual category is a tuple, then all our. ATM
@@ -425,7 +427,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             )
         else:
             cat_array = [cat_array]
-        hashed = _combine_hash_arrays(iter(cat_array), num_items=len(cat_array))
+        hashed = combine_hash_arrays(iter(cat_array), num_items=len(cat_array))
         return np.bitwise_xor.reduce(hashed)
 
     @classmethod
@@ -633,7 +635,8 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
     def __init__(self, unit: Union[str_type, "DatetimeTZDtype"] = "ns", tz=None):
         if isinstance(unit, DatetimeTZDtype):
-            unit, tz = unit.unit, unit.tz  # type: ignore
+            # error: "str" has no attribute "tz"
+            unit, tz = unit.unit, unit.tz  # type: ignore[attr-defined]
 
         if unit != "ns":
             if isinstance(unit, str) and tz is None:
@@ -939,6 +942,7 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
         Construct PeriodArray from pyarrow Array/ChunkedArray.
         """
         import pyarrow  # noqa: F811
+
         from pandas.core.arrays import PeriodArray
         from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
 
@@ -1136,6 +1140,7 @@ class IntervalDtype(PandasExtensionDtype):
         Construct IntervalArray from pyarrow Array/ChunkedArray.
         """
         import pyarrow  # noqa: F811
+
         from pandas.core.arrays import IntervalArray
 
         if isinstance(array, pyarrow.Array):

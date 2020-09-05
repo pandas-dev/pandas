@@ -536,6 +536,12 @@ class TestPeriodIndex(DatetimeLike):
         with pytest.raises(KeyError, match=msg):
             df.loc[key]
 
+    def test_format_empty(self):
+        # GH35712
+        empty_idx = self._holder([], freq="A")
+        assert empty_idx.format() == []
+        assert empty_idx.format(name=True) == [""]
+
 
 def test_maybe_convert_timedelta():
     pi = PeriodIndex(["2000", "2001"], freq="D")
