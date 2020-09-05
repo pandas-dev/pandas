@@ -832,6 +832,16 @@ class ArrayManager(DataManager):
         values.fill(fill_value)
         return values
 
+    def to_native_types(self, **kwargs):
+        result_arrays = []
+
+        for i, array in enumerate(self.arrays):
+            block = make_block(np.atleast_2d(array), placement=slice(0, 1, 1), ndim=2)
+            res = block.to_native_types(**kwargs)
+            result_arrays.append(res[0, :])
+
+        return result_arrays
+
     # TODO
     # equals
     # unstack

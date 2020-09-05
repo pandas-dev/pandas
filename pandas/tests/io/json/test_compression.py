@@ -5,9 +5,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 import pandas._testing as tm
 
-pytestmark = pytest.mark.skipif(
-    pd.get_option("mode.data_manager") == "array", reason="JSON C code relies on Blocks"
-)
+pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 def test_compression_roundtrip(compression):

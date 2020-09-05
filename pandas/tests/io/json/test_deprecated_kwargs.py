@@ -2,16 +2,14 @@
 Tests for the deprecated keyword arguments for `read_json`.
 """
 
-import pytest
+import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
 
 from pandas.io.json import read_json
 
-pytestmark = pytest.mark.skipif(
-    pd.get_option("mode.data_manager") == "array", reason="JSON C code relies on Blocks"
-)
+pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 def test_deprecated_kwargs():

@@ -31,6 +31,8 @@ from typing import Callable, Optional
 import numpy as np
 import pytest
 
+from pandas._config import get_option
+
 from pandas.compat import IS64, is_platform_windows
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import _np_version
@@ -277,3 +279,8 @@ def async_mark():
         async_mark = pytest.mark.skip(reason="Missing dependency pytest-asyncio")
 
     return async_mark
+
+
+skip_array_manager_not_yet_implemented = pytest.mark.skipif(
+    get_option("mode.data_manager") == "array", reason="JSON C code relies on Blocks"
+)

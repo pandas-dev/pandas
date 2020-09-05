@@ -3,15 +3,15 @@ from pathlib import Path
 
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import DataFrame, read_json
 import pandas._testing as tm
 
 from pandas.io.json._json import JsonReader
 
-pytestmark = pytest.mark.skipif(
-    pd.get_option("mode.data_manager") == "array", reason="JSON C code relies on Blocks"
-)
+pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 @pytest.fixture
