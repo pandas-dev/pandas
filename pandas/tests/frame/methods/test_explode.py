@@ -172,3 +172,11 @@ def test_ignore_index():
         {"id": [0, 0, 10, 10], "values": list("abcd")}, index=[0, 1, 2, 3]
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_explode_sets():
+    # https://github.com/pandas-dev/pandas/issues/35614
+    df = pd.DataFrame({"a": [{"x", "y"}], "b": [1]}, index=[1])
+    result = df.explode(column="a").sort_values(by="a")
+    expected = pd.DataFrame({"a": ["x", "y"], "b": [1, 1]}, index=[1, 1])
+    tm.assert_frame_equal(result, expected)
