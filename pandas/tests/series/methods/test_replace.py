@@ -218,8 +218,9 @@ class TestSeriesReplace:
 
     def test_replace_with_dict_with_bool_keys(self):
         s = pd.Series([True, False, True])
-        with pytest.raises(TypeError, match="Cannot compare types .+"):
-            s.replace({"asdf": "asdb", True: "yes"})
+        result = s.replace({"asdf": "asdb", True: "yes"})
+        expected = pd.Series(["yes", False, "yes"])
+        tm.assert_series_equal(result, expected)
 
     def test_replace2(self):
         N = 100

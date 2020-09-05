@@ -11,7 +11,7 @@ import pandas._libs.internals as libinternals
 from pandas._libs.internals import BlockPlacement
 from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas._typing import ArrayLike
+from pandas._typing import ArrayLike, Scalar
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -59,6 +59,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, isna_compat
 
 import pandas.core.algorithms as algos
+from pandas.core.array_algos.replace import compare_or_regex_search
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays import (
     Categorical,
@@ -792,7 +793,6 @@ class Block(PandasObject):
         self,
         src_list: List[Any],
         dest_list: List[Any],
-        masks: List[np.ndarray],
         inplace: bool = False,
         regex: bool = False,
     ) -> List["Block"]:
@@ -801,11 +801,28 @@ class Block(PandasObject):
         """
         src_len = len(src_list) - 1
 
+        def comp(s: Scalar, mask: np.ndarray, regex: bool = False) -> np.ndarray:
+            """
+            Generate a bool array by perform an equality check, or perform
+            an element-wise regular expression matching
+            """
+            if isna(s):
+                return ~mask
+
+            s = com.maybe_box_datetimelike(s)
+            return compare_or_regex_search(self.values, s, regex, mask)
+
+        # Calculate the mask once, prior to the call of comp
+        # in order to avoid repeating the same computations
+        mask = ~isna(self.values)
+
+        masks = [comp(s, mask, regex) for s in src_list]
+
         rb = [self if inplace else self.copy()]
         for i, (src, dest) in enumerate(zip(src_list, dest_list)):
             new_rb: List["Block"] = []
             for blk in rb:
-                m = masks[i][blk.mgr_locs.indexer]
+                m = masks[i]
                 convert = i == src_len  # only convert once at the end
                 result = blk._replace_coerce(
                     mask=m,
@@ -2908,7 +2925,9 @@ def _extract_bool_array(mask: ArrayLike) -> np.ndarray:
     """
     if isinstance(mask, ExtensionArray):
         # We could have BooleanArray, Sparse[bool], ...
-        mask = np.asarray(mask, dtype=np.bool_)
+        #  Except for BooleanArray, this is equivalent to just
+        #  np.asarray(mask, dtype=bool)
+        mask = mask.to_numpy(dtype=bool, na_value=False)
 
     assert isinstance(mask, np.ndarray), type(mask)
     assert mask.dtype == bool, mask.dtype
