@@ -63,12 +63,7 @@ from pandas.core.indexes.api import (
 from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
 
-from pandas.io.common import (
-    get_filepath_or_buffer,
-    get_handle,
-    infer_compression,
-    validate_header_arg,
-)
+from pandas.io.common import get_filepath_or_buffer, get_handle, validate_header_arg
 from pandas.io.date_converters import generic_parser
 
 # BOM character (byte order mark)
@@ -424,9 +419,7 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     if encoding is not None:
         encoding = re.sub("_", "-", encoding).lower()
         kwds["encoding"] = encoding
-
     compression = kwds.get("compression", "infer")
-    compression = infer_compression(filepath_or_buffer, compression)
 
     # TODO: get_filepath_or_buffer could return
     # Union[FilePathOrBuffer, s3fs.S3File, gcsfs.GCSFile]
@@ -1975,6 +1968,10 @@ class CParserWrapper(ParserBase):
         ParserBase.__init__(self, kwds)
 
         encoding = kwds.get("encoding")
+
+        # parsers.TextReader doesn't support compression dicts
+        if isinstance(kwds.get("compression"), dict):
+            kwds["compression"] = kwds["compression"]["method"]
 
         if kwds.get("compression") is None and encoding:
             if isinstance(src, str):
