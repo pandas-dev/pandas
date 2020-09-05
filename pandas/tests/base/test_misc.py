@@ -99,7 +99,7 @@ def test_ndarray_compat_properties(index_or_series_obj):
         assert getattr(obj, p, None) is not None
 
     # deprecated properties
-    for p in ["flags", "strides", "itemsize", "base", "data"]:
+    for p in ["strides", "itemsize", "base", "data"]:
         assert not hasattr(obj, p)
 
     msg = "can only convert an array of size 1 to a Python scalar"
@@ -116,6 +116,7 @@ def test_ndarray_compat_properties(index_or_series_obj):
 @pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
 def test_memory_usage(index_or_series_obj):
     obj = index_or_series_obj
+
     res = obj.memory_usage()
     res_deep = obj.memory_usage(deep=True)
 
@@ -173,8 +174,7 @@ def test_searchsorted(index_or_series_obj):
     assert 0 <= index <= len(obj)
 
 
-def test_access_by_position(indices):
-    index = indices
+def test_access_by_position(index):
 
     if len(index) == 0:
         pytest.skip("Test doesn't make sense on empty data")

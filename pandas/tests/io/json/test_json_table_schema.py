@@ -1,6 +1,7 @@
 """Tests for Table Schema integration."""
 from collections import OrderedDict
 import json
+import sys
 
 import numpy as np
 import pytest
@@ -100,21 +101,19 @@ class TestBuildSchema:
 
 
 class TestTableSchemaType:
-    @pytest.mark.parametrize("int_type", [np.int, np.int16, np.int32, np.int64])
+    @pytest.mark.parametrize("int_type", [int, np.int16, np.int32, np.int64])
     def test_as_json_table_type_int_data(self, int_type):
         int_data = [1, 2, 3]
         assert as_json_table_type(np.array(int_data, dtype=int_type).dtype) == "integer"
 
-    @pytest.mark.parametrize(
-        "float_type", [np.float, np.float16, np.float32, np.float64]
-    )
+    @pytest.mark.parametrize("float_type", [float, np.float16, np.float32, np.float64])
     def test_as_json_table_type_float_data(self, float_type):
         float_data = [1.0, 2.0, 3.0]
         assert (
             as_json_table_type(np.array(float_data, dtype=float_type).dtype) == "number"
         )
 
-    @pytest.mark.parametrize("bool_type", [bool, np.bool])
+    @pytest.mark.parametrize("bool_type", [bool, np.bool_])
     def test_as_json_table_type_bool_data(self, bool_type):
         bool_data = [True, False]
         assert (
@@ -154,17 +153,15 @@ class TestTableSchemaType:
     # ------
     # dtypes
     # ------
-    @pytest.mark.parametrize("int_dtype", [np.int, np.int16, np.int32, np.int64])
+    @pytest.mark.parametrize("int_dtype", [int, np.int16, np.int32, np.int64])
     def test_as_json_table_type_int_dtypes(self, int_dtype):
         assert as_json_table_type(int_dtype) == "integer"
 
-    @pytest.mark.parametrize(
-        "float_dtype", [np.float, np.float16, np.float32, np.float64]
-    )
+    @pytest.mark.parametrize("float_dtype", [float, np.float16, np.float32, np.float64])
     def test_as_json_table_type_float_dtypes(self, float_dtype):
         assert as_json_table_type(float_dtype) == "number"
 
-    @pytest.mark.parametrize("bool_dtype", [bool, np.bool])
+    @pytest.mark.parametrize("bool_dtype", [bool, np.bool_])
     def test_as_json_table_type_bool_dtypes(self, bool_dtype):
         assert as_json_table_type(bool_dtype) == "boolean"
 
@@ -259,6 +256,9 @@ class TestTableOrient:
         tm.assert_frame_equal(result1, df)
         tm.assert_frame_equal(result2, df)
 
+    @pytest.mark.filterwarnings(
+        "ignore:an integer is required (got type float)*:DeprecationWarning"
+    )
     def test_to_json(self):
         df = self.df.copy()
         df.index.name = "idx"
@@ -435,6 +435,9 @@ class TestTableOrient:
 
         assert result == expected
 
+    @pytest.mark.filterwarnings(
+        "ignore:an integer is required (got type float)*:DeprecationWarning"
+    )
     def test_date_format_raises(self):
         with pytest.raises(ValueError):
             self.df.to_json(orient="table", date_format="epoch")
@@ -675,6 +678,7 @@ class TestTableOrientReader:
             {"bools": [True, False, False, True]},
         ],
     )
+    @pytest.mark.skipif(sys.version_info[:3] == (3, 7, 0), reason="GH-35309")
     def test_read_json_table_orient(self, index_nm, vals, recwarn):
         df = DataFrame(vals, index=pd.Index(range(4), name=index_nm))
         out = df.to_json(orient="table")

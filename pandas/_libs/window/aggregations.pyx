@@ -2,13 +2,15 @@
 
 import cython
 from cython import Py_ssize_t
+
+from libc.stdlib cimport free, malloc
 from libcpp.deque cimport deque
 
-from libc.stdlib cimport malloc, free
-
 import numpy as np
+
 cimport numpy as cnp
-from numpy cimport ndarray, int64_t, float64_t, float32_t
+from numpy cimport float32_t, float64_t, int64_t, ndarray, uint8_t
+
 cnp.import_array()
 
 
@@ -21,6 +23,7 @@ cdef extern from "src/headers/cmath" namespace "std":
 from pandas._libs.algos import is_monotonic
 
 from pandas._libs.util cimport numeric
+
 
 cdef extern from "../src/skiplist.h":
     ctypedef struct node_t:
@@ -1377,17 +1380,11 @@ def roll_generic_fixed(object obj,
                 output[i] = NaN
 
         # remaining full-length windows
-        buf = <float64_t *>arr.data
-        bufarr = np.empty(win, dtype=float)
-        oldbuf = <float64_t *>bufarr.data
-        for i in range((win - offset), (N - offset)):
-            buf = buf + 1
-            bufarr.data = <char *>buf
+        for j, i in enumerate(range((win - offset), (N - offset)), 1):
             if counts[i] >= minp:
-                output[i] = func(bufarr, *args, **kwargs)
+                output[i] = func(arr[j:j + win], *args, **kwargs)
             else:
                 output[i] = NaN
-        bufarr.data = <char *>oldbuf
 
         # truncated windows at the end
         for i in range(int_max(N - offset, 0), N):
@@ -1758,8 +1755,53 @@ def roll_weighted_var(float64_t[:] values, float64_t[:] weights,
 # ----------------------------------------------------------------------
 # Exponentially weighted moving average
 
+def ewma_time(ndarray[float64_t] vals, int minp, ndarray[int64_t] times,
+              int64_t halflife):
+    """
+    Compute exponentially-weighted moving average using halflife and time
+    distances.
 
-def ewma(float64_t[:] vals, float64_t com, int adjust, bint ignore_na, int minp):
+    Parameters
+    ----------
+    vals : ndarray[float_64]
+    minp : int
+    times : ndarray[int64]
+    halflife : int64
+
+    Returns
+    -------
+    ndarray
+    """
+    cdef:
+        Py_ssize_t i, num_not_nan = 0, N = len(vals)
+        bint is_not_nan
+        float64_t last_result
+        ndarray[uint8_t] mask = np.zeros(N, dtype=np.uint8)
+        ndarray[float64_t] weights, observations, output = np.empty(N, dtype=np.float64)
+
+    if N == 0:
+        return output
+
+    last_result = vals[0]
+
+    for i in range(N):
+        is_not_nan = vals[i] == vals[i]
+        num_not_nan += is_not_nan
+        if is_not_nan:
+            mask[i] = 1
+            weights = 0.5 ** ((times[i] - times[mask.view(np.bool_)]) / halflife)
+            observations = vals[mask.view(np.bool_)]
+            last_result = np.sum(weights * observations) / np.sum(weights)
+
+        if num_not_nan >= minp:
+            output[i] = last_result
+        else:
+            output[i] = NaN
+
+    return output
+
+
+def ewma(float64_t[:] vals, float64_t com, bint adjust, bint ignore_na, int minp):
     """
     Compute exponentially-weighted moving average using center-of-mass.
 
@@ -1767,9 +1809,9 @@ def ewma(float64_t[:] vals, float64_t com, int adjust, bint ignore_na, int minp)
     ----------
     vals : ndarray (float64 type)
     com : float64
-    adjust: int
-    ignore_na: bool
-    minp: int
+    adjust : int
+    ignore_na : bool
+    minp : int
 
     Returns
     -------
@@ -1777,16 +1819,13 @@ def ewma(float64_t[:] vals, float64_t com, int adjust, bint ignore_na, int minp)
     """
 
     cdef:
-        Py_ssize_t N = len(vals)
+        Py_ssize_t i, nobs, N = len(vals)
         ndarray[float64_t] output = np.empty(N, dtype=float)
         float64_t alpha, old_wt_factor, new_wt, weighted_avg, old_wt, cur
-        Py_ssize_t i, nobs
         bint is_observation
 
     if N == 0:
         return output
-
-    minp = max(minp, 1)
 
     alpha = 1. / (1. + com)
     old_wt_factor = 1. - alpha
@@ -1831,7 +1870,7 @@ def ewma(float64_t[:] vals, float64_t com, int adjust, bint ignore_na, int minp)
 
 
 def ewmcov(float64_t[:] input_x, float64_t[:] input_y,
-           float64_t com, int adjust, bint ignore_na, int minp, int bias):
+           float64_t com, bint adjust, bint ignore_na, int minp, bint bias):
     """
     Compute exponentially-weighted moving variance using center-of-mass.
 
@@ -1840,10 +1879,10 @@ def ewmcov(float64_t[:] input_x, float64_t[:] input_y,
     input_x : ndarray (float64 type)
     input_y : ndarray (float64 type)
     com : float64
-    adjust: int
-    ignore_na: bool
-    minp: int
-    bias: int
+    adjust : int
+    ignore_na : bool
+    minp : int
+    bias : int
 
     Returns
     -------
@@ -1851,11 +1890,10 @@ def ewmcov(float64_t[:] input_x, float64_t[:] input_y,
     """
 
     cdef:
-        Py_ssize_t N = len(input_x), M = len(input_y)
+        Py_ssize_t i, nobs, N = len(input_x), M = len(input_y)
         float64_t alpha, old_wt_factor, new_wt, mean_x, mean_y, cov
         float64_t sum_wt, sum_wt2, old_wt, cur_x, cur_y, old_mean_x, old_mean_y
         float64_t numerator, denominator
-        Py_ssize_t i, nobs
         ndarray[float64_t] output
         bint is_observation
 
@@ -1865,8 +1903,6 @@ def ewmcov(float64_t[:] input_x, float64_t[:] input_y,
     output = np.empty(N, dtype=float)
     if N == 0:
         return output
-
-    minp = max(minp, 1)
 
     alpha = 1. / (1. + com)
     old_wt_factor = 1. - alpha

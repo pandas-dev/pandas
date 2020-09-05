@@ -13,6 +13,14 @@ when we use Cython and Numba on a test function operating row-wise on the
 ``DataFrame``. Using :func:`pandas.eval` we will speed up a sum by an order of
 ~2.
 
+.. note::
+
+   In addition to following the steps in this tutorial, users interested in enhancing
+   performance are highly encouraged to install the
+   :ref:`recommended dependencies<install.recommended_dependencies>` for pandas.
+   These dependencies are often not installed by default, but will offer speed
+   improvements if present.
+
 .. _enhancingperf.cython:
 
 Cython (writing C extensions for pandas)
@@ -364,6 +372,13 @@ nicer interface by passing/returning pandas objects.
    1000 loops, best of 3: 798 us per loop
 
 In this example, using Numba was faster than Cython.
+
+Numba as an argument
+~~~~~~~~~~~~~~~~~~~~
+
+Additionally, we can leverage the power of `Numba <https://numba.pydata.org/>`__
+by calling it as an argument in :meth:`~Rolling.apply`. See :ref:`Computation tools
+<stats.rolling_apply>` for an extensive example.
 
 Vectorize
 ~~~~~~~~~

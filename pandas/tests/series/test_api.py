@@ -5,6 +5,7 @@ import warnings
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
 from pandas.util._test_decorators import async_mark
 
 import pandas as pd
@@ -179,7 +180,8 @@ class TestSeriesMisc:
 
     def test_sparse_accessor_updates_on_inplace(self):
         s = pd.Series([1, 1, 2, 3], dtype="Sparse[int]")
-        s.drop([0, 1], inplace=True)
+        return_value = s.drop([0, 1], inplace=True)
+        assert return_value is None
         assert s.sparse.density == 1.0
 
     def test_tab_completion(self):
@@ -459,7 +461,8 @@ class TestSeriesMisc:
 
     def test_str_accessor_updates_on_inplace(self):
         s = pd.Series(list("abc"))
-        s.drop([0], inplace=True)
+        return_value = s.drop([0], inplace=True)
+        assert return_value is None
         assert len(s.str.lower()) == 2
 
     def test_str_attribute(self):
@@ -484,6 +487,7 @@ class TestSeriesMisc:
             assert not full_series.empty
 
     @async_mark()
+    @td.check_file_leaks
     async def test_tab_complete_warning(self, ip):
         # https://github.com/pandas-dev/pandas/issues/16409
         pytest.importorskip("IPython", minversion="6.0.0")
@@ -520,6 +524,32 @@ class TestSeriesMisc:
         result = s + 1
         assert result.attrs == {"version": 1}
 
+    @pytest.mark.parametrize("allows_duplicate_labels", [True, False, None])
+    def test_set_flags(self, allows_duplicate_labels):
+        df = pd.Series([1, 2])
+        result = df.set_flags(allows_duplicate_labels=allows_duplicate_labels)
+        if allows_duplicate_labels is None:
+            # We don't update when it's not provided
+            assert result.flags.allows_duplicate_labels is True
+        else:
+            assert result.flags.allows_duplicate_labels is allows_duplicate_labels
+
+        # We made a copy
+        assert df is not result
+        # We didn't mutate df
+        assert df.flags.allows_duplicate_labels is True
+
+        # But we didn't copy data
+        result.iloc[0] = 0
+        assert df.iloc[0] == 0
+
+        # Now we do copy.
+        result = df.set_flags(
+            copy=True, allows_duplicate_labels=allows_duplicate_labels
+        )
+        result.iloc[0] = 10
+        assert df.iloc[0] == 0
+
 
 class TestCategoricalSeries:
     @pytest.mark.parametrize(
@@ -548,7 +578,8 @@ class TestCategoricalSeries:
         assert not s.cat.ordered, False
 
         exp = Categorical(["a", "b", np.nan, "a"], categories=["b", "a"])
-        s.cat.set_categories(["b", "a"], inplace=True)
+        return_value = s.cat.set_categories(["b", "a"], inplace=True)
+        assert return_value is None
         tm.assert_categorical_equal(s.values, exp)
 
         res = s.cat.set_categories(["b", "a"])
@@ -579,8 +610,10 @@ class TestCategoricalSeries:
 
     def test_cat_accessor_updates_on_inplace(self):
         s = Series(list("abc")).astype("category")
-        s.drop(0, inplace=True)
-        s.cat.remove_unused_categories(inplace=True)
+        return_value = s.drop(0, inplace=True)
+        assert return_value is None
+        return_value = s.cat.remove_unused_categories(inplace=True)
+        assert return_value is None
         assert len(s.cat.categories) == 2
 
     def test_categorical_delegations(self):
@@ -614,7 +647,8 @@ class TestCategoricalSeries:
         assert s.cat.ordered
         s = s.cat.as_unordered()
         assert not s.cat.ordered
-        s.cat.as_ordered(inplace=True)
+        return_value = s.cat.as_ordered(inplace=True)
+        assert return_value is None
         assert s.cat.ordered
 
         # reorder

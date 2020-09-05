@@ -443,9 +443,8 @@ Faceting, created by ``DataFrame.boxplot`` with the ``by``
 keyword, will affect the output type as well:
 
 ================ ======= ==========================
-``return_type=`` Faceted Output type
----------------- ------- --------------------------
-
+``return_type``  Faceted Output type
+================ ======= ==========================
 ``None``         No      axes
 ``None``         Yes     2-D ndarray of axes
 ``'axes'``       No      axes
@@ -669,6 +668,7 @@ A ``ValueError`` will be raised if there are any negative values in your data.
    plt.figure()
 
 .. ipython:: python
+   :okwarning:
 
    series = pd.Series(3 * np.random.rand(4),
                       index=['a', 'b', 'c', 'd'], name='series')
@@ -743,6 +743,7 @@ If you pass values whose sum total is less than 1.0, matplotlib draws a semicirc
    plt.figure()
 
 .. ipython:: python
+   :okwarning:
 
    series = pd.Series([0.1] * 4, index=['a', 'b', 'c', 'd'], name='series2')
 
@@ -1109,6 +1110,34 @@ shown by default.
 
    plt.close('all')
 
+
+Controlling the labels
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 1.1.0
+
+You may set the ``xlabel`` and ``ylabel`` arguments to give the plot custom labels
+for x and y axis. By default, pandas will pick up index name as xlabel, while leaving
+it empty for ylabel.
+
+.. ipython:: python
+   :suppress:
+
+   plt.figure()
+
+.. ipython:: python
+
+   df.plot()
+
+   @savefig plot_xlabel_ylabel.png
+   df.plot(xlabel="new x", ylabel="new y")
+
+.. ipython:: python
+   :suppress:
+
+   plt.close('all')
+
+
 Scales
 ~~~~~~
 
@@ -1398,7 +1427,7 @@ Horizontal and vertical error bars can be supplied to the ``xerr`` and ``yerr`` 
 * As a ``str`` indicating which of the columns of plotting :class:`DataFrame` contain the error values.
 * As raw values (``list``, ``tuple``, or ``np.ndarray``). Must be the same length as the plotting :class:`DataFrame`/:class:`Series`.
 
-Asymmetrical error bars are also supported, however raw error values must be provided in this case. For a ``M`` length :class:`Series`, a ``Mx2`` array should be provided indicating lower and upper (or left and right) errors. For a ``MxN`` :class:`DataFrame`, asymmetrical errors should be in a ``Mx2xN`` array.
+Asymmetrical error bars are also supported, however raw error values must be provided in this case. For a ``N`` length :class:`Series`, a ``2xN`` array should be provided indicating lower and upper (or left and right) errors. For a ``MxN`` :class:`DataFrame`, asymmetrical errors should be in a ``Mx2xN`` array.
 
 Here is an example of one way to easily plot group means with standard deviations from the raw data.
 
@@ -1424,7 +1453,7 @@ Here is an example of one way to easily plot group means with standard deviation
    # Plot
    fig, ax = plt.subplots()
    @savefig errorbar_example.png
-   means.plot.bar(yerr=errors, ax=ax, capsize=4)
+   means.plot.bar(yerr=errors, ax=ax, capsize=4, rot=0)
 
 .. ipython:: python
    :suppress:
@@ -1445,9 +1474,9 @@ Plotting with matplotlib table is now supported in  :meth:`DataFrame.plot` and :
 
 .. ipython:: python
 
-   fig, ax = plt.subplots(1, 1)
+   fig, ax = plt.subplots(1, 1, figsize=(7, 6.5))
    df = pd.DataFrame(np.random.rand(5, 3), columns=['a', 'b', 'c'])
-   ax.get_xaxis().set_visible(False)   # Hide Ticks
+   ax.xaxis.tick_top()  # Display x-axis ticks on top.
 
    @savefig line_plot_table_true.png
    df.plot(table=True, ax=ax)
@@ -1464,8 +1493,9 @@ as seen in the example below.
 
 .. ipython:: python
 
-   fig, ax = plt.subplots(1, 1)
-   ax.get_xaxis().set_visible(False)   # Hide Ticks
+   fig, ax = plt.subplots(1, 1, figsize=(7, 6.75))
+   ax.xaxis.tick_top()  # Display x-axis ticks on top.
+
    @savefig line_plot_table_data.png
    df.plot(table=np.round(df.T, 2), ax=ax)
 
