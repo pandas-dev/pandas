@@ -136,6 +136,8 @@ If installed, we now require:
 +-----------------+-----------------+----------+---------+
 | pytest (dev)    | 5.0.1           |          |    X    |
 +-----------------+-----------------+----------+---------+
+| mypy (dev)      | 0.782           |          |    X    |
++-----------------+-----------------+----------+---------+
 
 For `optional libraries <https://dev.pandas.io/docs/install.html#dependencies>`_ the general recommendation is to use the latest version.
 The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
@@ -212,8 +214,6 @@ Performance improvements
 
 Bug fixes
 ~~~~~~~~~
-- Bug in :meth:`Series.to_string` adding a leading space when ``index=False`` (:issue:`24980`)
-
 
 Categorical
 ^^^^^^^^^^^
@@ -255,7 +255,7 @@ Conversion
 
 Strings
 ^^^^^^^
-
+- Bug in :meth:`Series.to_string` adding a leading space when ``index=False`` (:issue:`24980`)
 -
 -
 
@@ -310,6 +310,8 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupby.apply` would drop a :class:`CategoricalIndex` when grouped on. (:issue:`35792`)
 - Bug when subsetting columns on a :class:`~pandas.core.groupby.DataFrameGroupBy` (e.g. ``df.groupby('a')[['b']])``) would reset the attributes ``axis``, ``dropna``, ``group_keys``, ``level``, ``mutated``, ``sort``, and ``squeeze`` to their default values. (:issue:`9959`)
 - Bug in :meth:`DataFrameGroupby.tshift` failing to raise ``ValueError`` when a frequency cannot be inferred for the index of a group (:issue:`35937`)
+- Bug in :meth:`DataFrame.groupby` does not always maintain column index name for ``any``, ``all``, ``bfill``, ``ffill``, ``shift`` (:issue:`29764`)
+- Bug in :meth:`DataFrameGroupBy.apply` raising error with ``np.nan`` group(s) when ``dropna=False`` (:issue:`35889`)
 -
 
 Reshaping
@@ -336,6 +338,7 @@ ExtensionArray
 Other
 ^^^^^
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` incorrectly raising ``AssertionError`` instead of ``ValueError`` when invalid parameter combinations are passed (:issue:`36045`)
+- Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` with numeric values and string ``to_replace`` (:issue:`34789`)
 -
 
 .. ---------------------------------------------------------------------------

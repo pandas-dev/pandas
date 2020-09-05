@@ -335,7 +335,7 @@ def array(
     return result
 
 
-def extract_array(obj, extract_numpy: bool = False):
+def extract_array(obj: AnyArrayLike, extract_numpy: bool = False) -> ArrayLike:
     """
     Extract the ndarray or ExtensionArray from a Series or Index.
 
@@ -383,7 +383,9 @@ def extract_array(obj, extract_numpy: bool = False):
     if extract_numpy and isinstance(obj, ABCPandasArray):
         obj = obj.to_numpy()
 
-    return obj
+    # error: Incompatible return value type (got "Index", expected "ExtensionArray")
+    # error: Incompatible return value type (got "Series", expected "ExtensionArray")
+    return obj  # type: ignore[return-value]
 
 
 def sanitize_array(
