@@ -246,9 +246,7 @@ def test_groupby_dropna_multi_index_dataframe_agg(dropna, tuples, outputs):
         (pd.Period("2020-01-01"), pd.Period("2020-02-01")),
     ],
 )
-@pytest.mark.parametrize(
-    "dropna, values", [(True, [12, 3]), (False, [12, 3, 6],)],
-)
+@pytest.mark.parametrize("dropna, values", [(True, [12, 3]), (False, [12, 3, 6])])
 def test_groupby_dropna_datetime_like_data(
     dropna, values, datetime1, datetime2, unique_nulls_fixture, unique_nulls_fixture2
 ):
