@@ -11,7 +11,6 @@ from typing import (
     List,
     Optional,
     Sequence,
-    Tuple,
     TypeVar,
     Union,
 )
@@ -25,7 +24,7 @@ from pandas._libs.lib import is_datetime_array, no_default
 from pandas._libs.tslibs import OutOfBoundsDatetime, Timestamp
 from pandas._libs.tslibs.period import IncompatibleFrequency
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas._typing import AnyArrayLike, Dtype, DtypeObj, Label
+from pandas._typing import AnyArrayLike, Dtype, DtypeObj, Label, Shape
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import DuplicateLabelError, InvalidIndexError
@@ -5521,7 +5520,7 @@ class Index(IndexOpsMixin, PandasObject):
         cls.any = make_invalid_op("any")
 
     @property
-    def shape(self) -> Tuple[int, ...]:
+    def shape(self) -> Shape:
         """
         Return a tuple of the shape of the underlying data.
         """

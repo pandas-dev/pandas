@@ -19,7 +19,7 @@ from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, index as libindex, lib
 from pandas._libs.hashtable import duplicated_int64
-from pandas._typing import AnyArrayLike, Label, Scalar
+from pandas._typing import AnyArrayLike, Label, Scalar, Shape1D
 from pandas.compat.numpy import function as nv
 from pandas.errors import InvalidIndexError, PerformanceWarning, UnsortedIndexError
 from pandas.util._decorators import Appender, cache_readonly, doc
@@ -678,7 +678,7 @@ class MultiIndex(Index):
         )
 
     @property
-    def shape(self) -> Tuple[int]:
+    def shape(self) -> Shape1D:
         """
         Return a tuple of the shape of the underlying data.
         """

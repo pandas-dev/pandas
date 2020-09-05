@@ -44,6 +44,7 @@ from pandas._typing import (
     Label,
     Level,
     Renamer,
+    Shape,
     StorageOptions,
     TimedeltaConvertibleTypes,
     TimestampConvertibleTypes,
@@ -557,11 +558,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return getattr(self, self._stat_axis_name)
 
     @property
-    def shape(self) -> Tuple[int, ...]:
+    def shape(self) -> Shape:
         """
         Return a tuple of axis dimensions
         """
-        return tuple(len(self._get_axis(a)) for a in self._AXIS_ORDERS)
+        result = tuple(len(self._get_axis(a)) for a in self._AXIS_ORDERS)
+        # len(_AXIS_ORDERS) is 1 for Series, 2 for DataFrame
+        return cast(Shape, result)
 
     @property
     def axes(self) -> List[Index]:

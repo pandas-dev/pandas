@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import inspect
 import re
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, List, Optional
 import warnings
 
 import numpy as np
@@ -11,7 +11,7 @@ import pandas._libs.internals as libinternals
 from pandas._libs.internals import BlockPlacement
 from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas._typing import ArrayLike, Scalar
+from pandas._typing import ArrayLike, Scalar, Shape
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -309,7 +309,7 @@ class Block(PandasObject):
         return type(self)._simple_new(new_values, new_mgr_locs, self.ndim)
 
     @property
-    def shape(self) -> Tuple[int, ...]:
+    def shape(self) -> Shape:
         return self.values.shape
 
     @property
@@ -1625,7 +1625,7 @@ class ExtensionBlock(Block):
             raise AssertionError("block.size != values.size")
 
     @property
-    def shape(self) -> Tuple[int, ...]:
+    def shape(self) -> Shape:
         # TODO(EA2D): override unnecessary with 2D EAs
         if self.ndim == 1:
             return (len(self.values),)

@@ -15,6 +15,7 @@ from typing import (
     List,
     Mapping,
     Optional,
+    Tuple,
     Type,
     TypeVar,
     Union,
@@ -86,6 +87,9 @@ Level = Union[Label, int]
 Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
 Axes = Collection
+Shape1D = Tuple[int]
+Shape2D = Tuple[int, int]
+Shape = Union[Shape1D, Shape2D]
 
 # For functions like rename that convert one label to another
 Renamer = Union[Mapping[Label, Any], Callable[[Label], Label]]

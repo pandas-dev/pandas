@@ -56,6 +56,7 @@ from pandas._typing import (
     Label,
     Level,
     Renamer,
+    Shape2D,
     StorageOptions,
     ValueKeyFunc,
 )
@@ -586,7 +587,7 @@ class DataFrame(NDFrame):
         return [self.index, self.columns]
 
     @property
-    def shape(self) -> Tuple[int, int]:
+    def shape(self) -> Shape2D:
         """
         Return a tuple representing the dimensionality of the DataFrame.
 

@@ -7,16 +7,16 @@ from typing import (
     List,
     Optional,
     Sequence,
-    Tuple,
     TypeVar,
     Union,
+    cast,
 )
 import warnings
 
 import numpy as np
 
 from pandas._libs import internals as libinternals, lib
-from pandas._typing import ArrayLike, DtypeObj, Label
+from pandas._typing import ArrayLike, DtypeObj, Label, Shape
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -128,8 +128,9 @@ class BlockManager(PandasObject):
         axes: Sequence[Index],
         do_integrity_check: bool = True,
     ):
+        assert len(axes) == 2
         self.axes = [ensure_index(ax) for ax in axes]
-        self.blocks: Tuple[Block, ...] = tuple(blocks)
+        self.blocks = tuple(blocks)
 
         for block in blocks:
             if self.ndim != block.ndim:
@@ -203,8 +204,10 @@ class BlockManager(PandasObject):
     __bool__ = __nonzero__
 
     @property
-    def shape(self) -> Tuple[int, ...]:
-        return tuple(len(ax) for ax in self.axes)
+    def shape(self) -> Shape:
+        result = tuple(len(ax) for ax in self.axes)
+        # len(self.axis)==2 for BlockManager, 1 for SingleBlockManager
+        return cast(Shape, result)
 
     @property
     def ndim(self) -> int:

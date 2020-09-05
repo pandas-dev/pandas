@@ -4,11 +4,12 @@ Base and utility classes for pandas objects.
 
 import builtins
 import textwrap
-from typing import Any, Dict, FrozenSet, List, Optional, Tuple, Union
+from typing import Any, Dict, FrozenSet, List, Optional, Union
 
 import numpy as np
 
 import pandas._libs.lib as lib
+from pandas._typing import Shape
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -624,7 +625,7 @@ class IndexOpsMixin:
     )
 
     @property
-    def shape(self) -> Tuple[int, ...]:
+    def shape(self) -> Shape:
         """
         Return a tuple of the shape of the underlying data.
         """
