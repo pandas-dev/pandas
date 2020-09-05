@@ -5,7 +5,7 @@ Module for formatting output data into CSV files.
 import csv as csvlib
 from io import StringIO, TextIOWrapper
 import os
-from typing import Generator, Hashable, List, Optional, Sequence, Union
+from typing import Hashable, Iterator, List, Optional, Sequence, Union
 
 import numpy as np
 
@@ -300,7 +300,7 @@ class CSVFormatter:
             for row in self._generate_multiindex_header_rows():
                 self.writer.writerow(row)
 
-    def _generate_multiindex_header_rows(self) -> Generator[List[str], None, None]:
+    def _generate_multiindex_header_rows(self) -> Iterator[List[str]]:
         columns = self.obj.columns
         for i in range(columns.nlevels):
             # we need at least 1 index column to write our col names
