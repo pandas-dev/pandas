@@ -307,7 +307,7 @@ def handle_shared_axes(
     sharey: bool,
 ):
     if nplots > 1:
-        if compat._mpl_ge_3_2_0():
+        if compat.mpl_ge_3_2_0():
             row_num = lambda x: x.get_subplotspec().rowspan.start
             col_num = lambda x: x.get_subplotspec().colspan.start
         else:

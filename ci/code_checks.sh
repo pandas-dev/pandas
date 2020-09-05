@@ -116,6 +116,14 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     fi
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Check for use of private module attribute access' ; echo $MSG
+    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
+        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored --format="##[error]{source_path}:{line_number}:{msg}" pandas/
+    else
+        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored pandas/
+    fi
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     echo "isort --version-number"
     isort --version-number
 
