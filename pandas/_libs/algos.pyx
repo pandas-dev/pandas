@@ -412,7 +412,7 @@ ctypedef fused algos_t:
     uint8_t
 
 
-def _validate_limit(nobs: int, limit=None) -> int:
+def validate_limit(nobs: int, limit=None) -> int:
     """
     Check that the `limit` argument is a positive integer.
 
@@ -452,7 +452,7 @@ def pad(ndarray[algos_t] old, ndarray[algos_t] new, limit=None):
     indexer = np.empty(nright, dtype=np.int64)
     indexer[:] = -1
 
-    lim = _validate_limit(nright, limit)
+    lim = validate_limit(nright, limit)
 
     if nleft == 0 or nright == 0 or new[nright - 1] < old[0]:
         return indexer
@@ -509,7 +509,7 @@ def pad_inplace(algos_t[:] values, const uint8_t[:] mask, limit=None):
     if N == 0:
         return
 
-    lim = _validate_limit(N, limit)
+    lim = validate_limit(N, limit)
 
     val = values[0]
     for i in range(N):
@@ -537,7 +537,7 @@ def pad_2d_inplace(algos_t[:, :] values, const uint8_t[:, :] mask, limit=None):
     if N == 0:
         return
 
-    lim = _validate_limit(N, limit)
+    lim = validate_limit(N, limit)
 
     for j in range(K):
         fill_count = 0
@@ -593,7 +593,7 @@ def backfill(ndarray[algos_t] old, ndarray[algos_t] new, limit=None) -> ndarray:
     indexer = np.empty(nright, dtype=np.int64)
     indexer[:] = -1
 
-    lim = _validate_limit(nright, limit)
+    lim = validate_limit(nright, limit)
 
     if nleft == 0 or nright == 0 or new[0] > old[nleft - 1]:
         return indexer
@@ -651,7 +651,7 @@ def backfill_inplace(algos_t[:] values, const uint8_t[:] mask, limit=None):
     if N == 0:
         return
 
-    lim = _validate_limit(N, limit)
+    lim = validate_limit(N, limit)
 
     val = values[N - 1]
     for i in range(N - 1, -1, -1):
@@ -681,7 +681,7 @@ def backfill_2d_inplace(algos_t[:, :] values,
     if N == 0:
         return
 
-    lim = _validate_limit(N, limit)
+    lim = validate_limit(N, limit)
 
     for j in range(K):
         fill_count = 0

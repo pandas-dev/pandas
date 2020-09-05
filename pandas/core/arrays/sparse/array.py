@@ -735,7 +735,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         """
         from pandas import Index, Series
 
-        keys, counts = algos._value_counts_arraylike(self.sp_values, dropna=dropna)
+        keys, counts = algos.value_counts_arraylike(self.sp_values, dropna=dropna)
         fcounts = self.sp_index.ngaps
         if fcounts > 0:
             if self._null_fill_value and dropna:
