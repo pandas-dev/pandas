@@ -448,7 +448,7 @@ def index_with_missing(request):
     # Azure pipeline that writes into indices_dict despite copy
     ind = indices_dict[request.param].copy(deep=True)
     vals = ind.values
-    if type(vals[0]) == tuple:
+    if request.param in ["tuples", "mi-with-dt64tz-level", "multi"]:
         # For setting missing values in the top level of MultiIndex
         vals = ind.tolist()
         vals[0] = tuple([None]) + vals[0][1:]
