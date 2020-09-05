@@ -1574,6 +1574,7 @@ class TestDataFramePlots(TestPlotBase):
             ax.xaxis.get_ticklocs(), np.arange(1, len(numeric_cols) + 1)
         )
         assert len(ax.lines) == self.bp_n_objects * len(numeric_cols)
+        tm.close()
 
         axes = series.plot.box(rot=40)
         self._check_ticks_props(axes, xrot=40, yrot=0)
@@ -2418,8 +2419,8 @@ class TestDataFramePlots(TestPlotBase):
         assert result[expected][0].get_color() == "C1"
 
     def test_default_color_cycle(self):
-        import matplotlib.pyplot as plt
         import cycler
+        import matplotlib.pyplot as plt
 
         colors = list("rgbk")
         plt.rcParams["axes.prop_cycle"] = cycler.cycler("color", colors)
@@ -2806,10 +2807,12 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.plot, table=True)
         _check_plot_works(df.plot, table=df)
 
-        ax = df.plot()
-        assert len(ax.tables) == 0
-        plotting.table(ax, df.T)
-        assert len(ax.tables) == 1
+        # GH 35945 UserWarning
+        with tm.assert_produces_warning(None):
+            ax = df.plot()
+            assert len(ax.tables) == 0
+            plotting.table(ax, df.T)
+            assert len(ax.tables) == 1
 
     def test_errorbar_scatter(self):
         df = DataFrame(np.random.randn(5, 2), index=range(5), columns=["x", "y"])
@@ -2963,8 +2966,8 @@ class TestDataFramePlots(TestPlotBase):
     @td.skip_if_no_scipy
     def test_memory_leak(self):
         """ Check that every plot type gets properly collected. """
-        import weakref
         import gc
+        import weakref
 
         results = {}
         for kind in plotting.PlotAccessor._all_kinds:
@@ -3042,8 +3045,8 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.slow
     def test_df_gridspec_patterns(self):
         # GH 10819
-        import matplotlib.pyplot as plt
         import matplotlib.gridspec as gridspec
+        import matplotlib.pyplot as plt
 
         ts = Series(np.random.randn(10), index=date_range("1/1/2000", periods=10))
 
@@ -3432,9 +3435,9 @@ class TestDataFramePlots(TestPlotBase):
 
 
 def _generate_4_axes_via_gridspec():
-    import matplotlib.pyplot as plt
     import matplotlib as mpl
     import matplotlib.gridspec  # noqa
+    import matplotlib.pyplot as plt
 
     gs = mpl.gridspec.GridSpec(2, 2)
     ax_tl = plt.subplot(gs[0, 0])

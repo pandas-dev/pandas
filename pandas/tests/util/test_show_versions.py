@@ -21,6 +21,11 @@ import pandas as pd
     # pandas_datareader
     "ignore:pandas.util.testing is deprecated:FutureWarning"
 )
+@pytest.mark.filterwarnings(
+    # https://github.com/pandas-dev/pandas/issues/35252
+    "ignore:Distutils:UserWarning"
+)
+@pytest.mark.filterwarnings("ignore:Setuptools is replacing distutils:UserWarning")
 def test_show_versions(capsys):
     # gh-32041
     pd.show_versions()

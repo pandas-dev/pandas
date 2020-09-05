@@ -29,7 +29,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops
 from pandas.core.algorithms import checked_add_with_arr
-from pandas.core.arrays import datetimelike as dtl
+from pandas.core.arrays import IntegerArray, datetimelike as dtl
 from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
 from pandas.core.construction import extract_array
@@ -379,14 +379,14 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     # Rendering Methods
 
     def _formatter(self, boxed=False):
-        from pandas.io.formats.format import _get_format_timedelta64
+        from pandas.io.formats.format import get_format_timedelta64
 
-        return _get_format_timedelta64(self, box=True)
+        return get_format_timedelta64(self, box=True)
 
     def _format_native_types(self, na_rep="NaT", date_format=None, **kwargs):
-        from pandas.io.formats.format import _get_format_timedelta64
+        from pandas.io.formats.format import get_format_timedelta64
 
-        formatter = _get_format_timedelta64(self._data, na_rep)
+        formatter = get_format_timedelta64(self._data, na_rep)
         return np.array([formatter(x) for x in self._data.ravel()]).reshape(self.shape)
 
     # ----------------------------------------------------------------
@@ -628,7 +628,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             result = self.asi8 // other.asi8
             mask = self._isnan | other._isnan
             if mask.any():
-                result = result.astype(np.int64)
+                result = result.astype(np.float64)
                 result[mask] = np.nan
             return result
 
@@ -921,6 +921,8 @@ def sequence_to_td64ns(data, copy=False, unit=None, errors="raise"):
     elif isinstance(data, (ABCTimedeltaIndex, TimedeltaArray)):
         inferred_freq = data.freq
         data = data._data
+    elif isinstance(data, IntegerArray):
+        data = data.to_numpy("int64", na_value=tslibs.iNaT)
 
     # Convert whatever we have into timedelta64[ns] dtype
     if is_object_dtype(data.dtype) or is_string_dtype(data.dtype):

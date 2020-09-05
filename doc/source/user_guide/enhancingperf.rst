@@ -373,6 +373,13 @@ nicer interface by passing/returning pandas objects.
 
 In this example, using Numba was faster than Cython.
 
+Numba as an argument
+~~~~~~~~~~~~~~~~~~~~
+
+Additionally, we can leverage the power of `Numba <https://numba.pydata.org/>`__
+by calling it as an argument in :meth:`~Rolling.apply`. See :ref:`Computation tools
+<stats.rolling_apply>` for an extensive example.
+
 Vectorize
 ~~~~~~~~~
 
