@@ -56,7 +56,7 @@ INSTALL_MAPPING = {
     "xarray": "xarray",
     "xlrd": "xlrd",
     "numba": "numba",
-    "jinja2": "Jinja2"
+    "jinja2": "Jinja2",
 }
 
 
