@@ -43,7 +43,9 @@ def test_object_comparison_2d():
 def test_extension_array_add(box_1d_array, data, expected):
     # GH22606 Verify operators with Extension Array and list-likes
     ser = Series(data, dtype="Int64")
-    results = ser + box_1d_array(data)
+    left = ser + box_1d_array(data)
+    right = box_1d_array(data) + ser
 
     expected = Series(expected, dtype="Int64")
-    tm.assert_series_equal(results, expected)
+    tm.assert_series_equal(left, expected)
+    tm.assert_series_equal(right, expected)
