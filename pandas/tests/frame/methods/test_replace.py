@@ -1131,8 +1131,19 @@ class TestDataFrameReplace:
 
     def test_replace_with_dict_with_bool_keys(self):
         df = DataFrame({0: [True, False], 1: [False, True]})
-        with pytest.raises(TypeError, match="Cannot compare types .+"):
-            df.replace({"asdf": "asdb", True: "yes"})
+        result = df.replace({"asdf": "asdb", True: "yes"})
+        expected = DataFrame({0: ["yes", False], 1: [False, "yes"]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_replace_dict_strings_vs_ints(self):
+        # GH#34789
+        df = pd.DataFrame({"Y0": [1, 2], "Y1": [3, 4]})
+        result = df.replace({"replace_string": "test"})
+
+        tm.assert_frame_equal(result, df)
+
+        result = df["Y0"].replace({"replace_string": "test"})
+        tm.assert_series_equal(result, df["Y0"])
 
     def test_replace_truthy(self):
         df = DataFrame({"a": [True, True]})
