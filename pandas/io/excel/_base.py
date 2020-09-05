@@ -24,11 +24,11 @@ from pandas.io.common import (
     validate_header_arg,
 )
 from pandas.io.excel._util import (
-    _fill_mi_header,
-    _get_default_writer,
-    _maybe_convert_usecols,
-    _pop_header_name,
+    fill_mi_header,
+    get_default_writer,
     get_writer,
+    maybe_convert_usecols,
+    pop_header_name,
 )
 from pandas.io.parsers import TextParser
 
@@ -352,9 +352,9 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
         if is_url(filepath_or_buffer):
             filepath_or_buffer = BytesIO(urlopen(filepath_or_buffer).read())
         elif not isinstance(filepath_or_buffer, (ExcelFile, self._workbook_class)):
-            filepath_or_buffer, _, _, _ = get_filepath_or_buffer(
+            filepath_or_buffer = get_filepath_or_buffer(
                 filepath_or_buffer, storage_options=storage_options
-            )
+            ).filepath_or_buffer
 
         if isinstance(filepath_or_buffer, self._workbook_class):
             self.book = filepath_or_buffer
@@ -454,7 +454,7 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
                 sheet = self.get_sheet_by_index(asheetname)
 
             data = self.get_sheet_data(sheet, convert_float)
-            usecols = _maybe_convert_usecols(usecols)
+            usecols = maybe_convert_usecols(usecols)
 
             if not data:
                 output[asheetname] = DataFrame()
@@ -473,10 +473,10 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
                     if is_integer(skiprows):
                         row += skiprows
 
-                    data[row], control_row = _fill_mi_header(data[row], control_row)
+                    data[row], control_row = fill_mi_header(data[row], control_row)
 
                     if index_col is not None:
-                        header_name, _ = _pop_header_name(data[row], index_col)
+                        header_name, _ = pop_header_name(data[row], index_col)
                         header_names.append(header_name)
 
             if is_list_like(index_col):
@@ -645,7 +645,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
                 try:
                     engine = config.get_option(f"io.excel.{ext}.writer")
                     if engine == "auto":
-                        engine = _get_default_writer(ext)
+                        engine = get_default_writer(ext)
                 except KeyError as err:
                     raise ValueError(f"No engine for filetype: '{ext}'") from err
             cls = get_writer(engine)
@@ -653,7 +653,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         return object.__new__(cls)
 
     # declare external properties you can count on
-    book = None
     curr_sheet = None
     path = None
 

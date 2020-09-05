@@ -10,6 +10,7 @@ from typing import (
     Callable,
     DefaultDict,
     Dict,
+    Iterable,
     List,
     Optional,
     Sequence,
@@ -17,7 +18,7 @@ from typing import (
     Union,
 )
 
-from pandas._typing import AggFuncType, Label
+from pandas._typing import AggFuncType, FrameOrSeries, Label
 
 from pandas.core.dtypes.common import is_dict_like, is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
@@ -25,7 +26,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.base import SpecificationError
 import pandas.core.common as com
 from pandas.core.indexes.api import Index
-from pandas.core.series import FrameOrSeriesUnion
+from pandas.core.series import Series
 
 
 def reconstruct_func(
@@ -277,12 +278,13 @@ def maybe_mangle_lambdas(agg_spec: Any) -> Any:
 
 
 def relabel_result(
-    result: FrameOrSeriesUnion,
+    result: FrameOrSeries,
     func: Dict[str, List[Union[Callable, str]]],
-    columns: Tuple,
-    order: List[int],
-) -> Dict[Label, ABCSeries]:
-    """Internal function to reorder result if relabelling is True for
+    columns: Iterable[Label],
+    order: Iterable[int],
+) -> Dict[Label, Series]:
+    """
+    Internal function to reorder result if relabelling is True for
     dataframe.agg, and return the reordered result in dict.
 
     Parameters:
@@ -307,10 +309,10 @@ def relabel_result(
     reordered_indexes = [
         pair[0] for pair in sorted(zip(columns, order), key=lambda t: t[1])
     ]
-    reordered_result_in_dict: Dict[Label, ABCSeries] = {}
+    reordered_result_in_dict: Dict[Label, Series] = {}
     idx = 0
 
-    reorder_mask = not isinstance(result, ABCSeries) and len(result.columns) > 1
+    reorder_mask = not isinstance(result, Series) and len(result.columns) > 1
     for col, fun in func.items():
         s = result[col].dropna()
 
