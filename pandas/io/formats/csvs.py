@@ -11,7 +11,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import writers as libwriters
-from pandas._typing import CompressionOptions, FilePathOrBuffer, StorageOptions
+from pandas._typing import CompressionOptions, FilePathOrBuffer, Label, StorageOptions
 
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
@@ -30,7 +30,7 @@ from pandas.io.common import (
     infer_compression,
 )
 
-IndexLabel = Optional[Union[bool, str, Sequence[Hashable]]]
+IndexLabel = Optional[Union[bool, str, Sequence[Label]]]
 
 
 class CSVFormatter:
