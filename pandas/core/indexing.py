@@ -2291,7 +2291,7 @@ def need_slice(obj) -> bool:
     )
 
 
-def _non_reducing_slice(slice_):
+def non_reducing_slice(slice_):
     """
     Ensure that a slice doesn't reduce to a Series or Scalar.
 
@@ -2330,7 +2330,7 @@ def _non_reducing_slice(slice_):
     return tuple(slice_)
 
 
-def _maybe_numeric_slice(df, slice_, include_bool=False):
+def maybe_numeric_slice(df, slice_, include_bool: bool = False):
     """
     Want nice defaults for background_gradient that don't break
     with non-numeric data. But if slice_ is passed go with that.
