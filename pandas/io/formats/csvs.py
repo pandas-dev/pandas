@@ -222,14 +222,14 @@ class CSVFormatter:
         return data_index
 
     @property
-    def nlevels(self):
+    def nlevels(self) -> int:
         if self.index:
             return getattr(self.data_index, "nlevels", 1)
         else:
             return 0
 
     @property
-    def _has_aliases(self):
+    def _has_aliases(self) -> bool:
         return isinstance(self.header, (tuple, list, np.ndarray, ABCIndexClass))
 
     @property
