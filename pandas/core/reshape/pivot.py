@@ -12,7 +12,7 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import Label
+from pandas._typing import FrameOrSeriesUnion, Label
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
@@ -200,7 +200,7 @@ def pivot_table(
 
 
 def _add_margins(
-    table: Union["Series", "DataFrame"],
+    table: FrameOrSeriesUnion,
     data,
     values,
     rows,
