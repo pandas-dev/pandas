@@ -103,6 +103,7 @@ Other enhancements
 
 - Added :meth:`~DataFrame.set_flags` for setting table-wide flags on a ``Series`` or ``DataFrame`` (:issue:`28394`)
 - :class:`Index` with object dtype supports division and multiplication (:issue:`34160`)
+- :meth:`DataFrame.plot` will now allow the ``subplots`` parameter to be a list of iterables specifying column groups, so that columns may be grouped together in the same subplot (:issue:`29688`).
 -
 -
 

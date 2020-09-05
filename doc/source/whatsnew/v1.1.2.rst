@@ -43,7 +43,6 @@ Bug fixes
 Other
 ~~~~~
 - :meth:`factorize` now supports ``na_sentinel=None`` to include NaN in the uniques of the values and remove ``dropna`` keyword which was unintentionally exposed to public facing API in 1.1 version from :meth:`factorize` (:issue:`35667`)
-- :meth:`DataFrame.plot` will now allow the ``subplots`` parameter to be a list of iterables specifying column groups, so that columns may be grouped together in the same subplot (:issue:`29688`).
 
 .. ---------------------------------------------------------------------------
 
