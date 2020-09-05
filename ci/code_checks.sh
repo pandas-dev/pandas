@@ -230,6 +230,9 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --include=*.{py,pyx} '!r}' pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    # -------------------------------------------------------------------------
+    # Type annotations
+
     MSG='Check for use of comment-based annotation syntax' ; echo $MSG
     invgrep -R --include="*.py" -P '# type: (?!ignore)' pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
@@ -238,6 +241,11 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --include="*.py" -P '# type:\s?ignore(?!\[)' pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Check for use of Union[Series, DataFrame] instead of FrameOrSeriesUnion alias' ; echo $MSG
+    invgrep -R --include="*.py" --exclude=_typing.py -E 'Union\[.*(Series.*DataFrame|DataFrame.*Series).*\]' pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    # -------------------------------------------------------------------------
     MSG='Check for use of foo.__class__ instead of type(foo)' ; echo $MSG
     invgrep -R --include=*.{py,pyx} '\.__class__' pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
