@@ -5,7 +5,7 @@ Module for formatting output data into CSV files.
 import csv as csvlib
 from io import StringIO, TextIOWrapper
 import os
-from typing import Hashable, List, Optional, Sequence, Union
+from typing import Generator, Hashable, List, Optional, Sequence, Union
 import warnings
 
 import numpy as np
@@ -21,12 +21,16 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import notna
 
+from pandas.core.indexes.api import Index
+
 from pandas.io.common import (
     get_compression_method,
     get_filepath_or_buffer,
     get_handle,
     infer_compression,
 )
+
+IndexLabel = Optional[Union[bool, str, Sequence[Hashable]]]
 
 
 class CSVFormatter:
@@ -40,7 +44,7 @@ class CSVFormatter:
         cols=None,
         header: Union[bool, Sequence[Hashable]] = True,
         index: bool = True,
-        index_label: Optional[Union[bool, Hashable, Sequence[Hashable]]] = None,
+        index_label: IndexLabel = None,
         mode: str = "w",
         encoding: Optional[str] = None,
         errors: str = "strict",
@@ -107,30 +111,32 @@ class CSVFormatter:
         self.chunksize = chunksize
 
     @property
-    def index_label(self):
+    def index_label(self) -> IndexLabel:
         return self._index_label
 
     @index_label.setter
-    def index_label(self, index_label) -> None:
-        # should write something for index label
-        if index_label is not False:
-            if index_label is None:
-                index_label = self._get_index_label_from_obj()
-            elif not isinstance(index_label, (list, tuple, np.ndarray, ABCIndexClass)):
-                # given a string for a DF with Index
-                index_label = [index_label]
+    def index_label(self, index_label: IndexLabel) -> None:
+        if index_label is False:
+            self._index_label = index_label
+            return
+
+        if index_label is None:
+            index_label = self._get_index_label_from_obj()
+        elif not isinstance(index_label, (list, tuple, np.ndarray, ABCIndexClass)):
+            # given a string for a DF with Index
+            index_label = [index_label]
         self._index_label = index_label
 
-    def _get_index_label_from_obj(self) -> List[str]:
+    def _get_index_label_from_obj(self):
         if isinstance(self.obj.index, ABCMultiIndex):
             return self._get_index_label_multiindex()
         else:
             return self._get_index_label_flat()
 
-    def _get_index_label_multiindex(self) -> List[str]:
+    def _get_index_label_multiindex(self):
         return [name or "" for name in self.obj.index.names]
 
-    def _get_index_label_flat(self) -> List[str]:
+    def _get_index_label_flat(self):
         index_label = self.obj.index.name
         return [""] if index_label is None else [index_label]
 
@@ -198,14 +204,12 @@ class CSVFormatter:
         self._chunksize = int(chunksize)
 
     @property
-    def data_index(self):
+    def data_index(self) -> Index:
         data_index = self.obj.index
         if (
             isinstance(data_index, (ABCDatetimeIndex, ABCPeriodIndex))
             and self.date_format is not None
         ):
-            from pandas import Index
-
             data_index = Index(
                 [x.strftime(self.date_format) if notna(x) else "" for x in data_index]
             )
@@ -239,7 +243,7 @@ class CSVFormatter:
             return self.cols
 
     @property
-    def encoded_labels(self) -> List[str]:
+    def encoded_labels(self):
         encoded_labels: List[str] = []
 
         if self.index and self.index_label:
@@ -309,7 +313,7 @@ class CSVFormatter:
             for row in self._generate_multiindex_header_rows():
                 self.writer.writerow(row)
 
-    def _generate_multiindex_header_rows(self):
+    def _generate_multiindex_header_rows(self) -> Generator[List[str], None, None]:
         columns = self.obj.columns
         for i in range(columns.nlevels):
             # we need at least 1 index column to write our col names
