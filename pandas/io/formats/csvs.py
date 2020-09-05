@@ -326,21 +326,18 @@ class CSVFormatter:
         slicer = slice(start_i, end_i)
 
         df = self.obj.iloc[slicer]
-        blocks = df._mgr.blocks
+        mgr = df._mgr
 
-        for i in range(len(blocks)):
-            b = blocks[i]
-            d = b.to_native_types(
-                na_rep=self.na_rep,
-                float_format=self.float_format,
-                decimal=self.decimal,
-                date_format=self.date_format,
-                quoting=self.quoting,
-            )
-
-            for col_loc, col in zip(b.mgr_locs, d):
-                # self.data is a preallocated list
-                self.data[col_loc] = col
+        res = mgr.apply(
+            "to_native_types",
+            na_rep=self.na_rep,
+            float_format=self.float_format,
+            decimal=self.decimal,
+            date_format=self.date_format,
+            quoting=self.quoting,
+        )
+        for i in range(len(res.items)):
+            self.data[i] = res.iget_values(i)
 
         ix = data_index.to_native_types(
             slicer=slicer,
