@@ -116,15 +116,12 @@ class CSVFormatter:
 
     @index_label.setter
     def index_label(self, index_label: IndexLabel) -> None:
-        if index_label is False:
-            self._index_label = index_label
-            return
-
-        if index_label is None:
-            index_label = self._get_index_label_from_obj()
-        elif not isinstance(index_label, (list, tuple, np.ndarray, ABCIndexClass)):
-            # given a string for a DF with Index
-            index_label = [index_label]
+        if index_label is not False:
+            if index_label is None:
+                index_label = self._get_index_label_from_obj()
+            elif not isinstance(index_label, (list, tuple, np.ndarray, ABCIndexClass)):
+                # given a string for a DF with Index
+                index_label = [index_label]
         self._index_label = index_label
 
     def _get_index_label_from_obj(self):
