@@ -1,7 +1,7 @@
 """ define the IntervalIndex """
 from operator import le, lt
 import textwrap
-from typing import Any, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union, cast
 
 import numpy as np
 
@@ -55,6 +55,9 @@ from pandas.core.indexes.extension import ExtensionIndex, inherit_names
 from pandas.core.indexes.multi import MultiIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 from pandas.core.ops import get_op_result_name
+
+if TYPE_CHECKING:
+    from pandas import CategoricalIndex
 
 _VALID_CLOSED = {"left", "right", "both", "neither"}
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -182,15 +185,15 @@ class SetopCheck:
 )
 @inherit_names(["set_closed", "to_tuples"], IntervalArray, wrap=True)
 @inherit_names(
-    ["__array__", "overlaps", "contains", "left", "right", "length"], IntervalArray,
+    ["__array__", "overlaps", "contains", "left", "right", "length"], IntervalArray
 )
 @inherit_names(
-    ["is_non_overlapping_monotonic", "mid", "closed"], IntervalArray, cache=True,
+    ["is_non_overlapping_monotonic", "mid", "closed"], IntervalArray, cache=True
 )
 class IntervalIndex(IntervalMixin, ExtensionIndex):
     _typ = "intervalindex"
     _comparables = ["name"]
-    _attributes = ["name"]
+    _attributes = ["name", "closed"]
 
     # we would like our indexing holder to defer to us
     _defer_to_indexing = True
@@ -786,6 +789,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             right_indexer = self.right.get_indexer(target_as_index.right)
             indexer = np.where(left_indexer == right_indexer, left_indexer, -1)
         elif is_categorical_dtype(target_as_index.dtype):
+            target_as_index = cast("CategoricalIndex", target_as_index)
             # get an indexer for unique categories then propagate to codes via take_1d
             categories_indexer = self.get_indexer(target_as_index.categories)
             indexer = take_1d(categories_indexer, target_as_index.codes, fill_value=-1)
