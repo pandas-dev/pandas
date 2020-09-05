@@ -11,7 +11,7 @@ import pandas.core.common as com
 
 
 def get_standard_colors(
-    num_colors=None, colormap=None, color_type: str = "default", color=None
+    num_colors: int, colormap=None, color_type: str = "default", color=None
 ):
     import matplotlib.pyplot as plt
 

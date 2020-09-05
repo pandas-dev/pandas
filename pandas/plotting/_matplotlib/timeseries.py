@@ -32,7 +32,7 @@ if TYPE_CHECKING:
 # Plotting functions and monkey patches
 
 
-def _maybe_resample(series: "Series", ax: "Axes", kwargs):
+def maybe_resample(series: "Series", ax: "Axes", kwargs):
     # resample against axes freq if necessary
     freq, ax_freq = _get_freq(ax, series)
 
@@ -105,7 +105,7 @@ def _replot_ax(ax: "Axes", freq, kwargs):
     ax._plot_data = []
     ax.clear()
 
-    _decorate_axes(ax, freq, kwargs)
+    decorate_axes(ax, freq, kwargs)
 
     lines = []
     labels = []
@@ -128,7 +128,7 @@ def _replot_ax(ax: "Axes", freq, kwargs):
     return lines, labels
 
 
-def _decorate_axes(ax: "Axes", freq, kwargs):
+def decorate_axes(ax: "Axes", freq, kwargs):
     """Initialize axes for time-series plotting"""
     if not hasattr(ax, "_plot_data"):
         ax._plot_data = []
@@ -193,7 +193,7 @@ def _get_freq(ax: "Axes", series: "Series"):
     return freq, ax_freq
 
 
-def _use_dynamic_x(ax: "Axes", data: FrameOrSeriesUnion) -> bool:
+def use_dynamic_x(ax: "Axes", data: FrameOrSeriesUnion) -> bool:
     freq = _get_index_freq(data.index)
     ax_freq = _get_ax_freq(ax)
 
@@ -235,7 +235,7 @@ def _get_index_freq(index: "Index") -> Optional[BaseOffset]:
     return freq
 
 
-def _maybe_convert_index(ax: "Axes", data):
+def maybe_convert_index(ax: "Axes", data):
     # tsplot converts automatically, but don't want to convert index
     # over and over for DataFrames
     if isinstance(data.index, (ABCDatetimeIndex, ABCPeriodIndex)):
