@@ -4081,17 +4081,9 @@ Keep all original rows and also all original values
         axis=_shared_doc_kwargs["axis"],
     )
     def transform(self, func, axis=0, *args, **kwargs):
-        # Validate the axis parameter
-        self._get_axis_number(axis)
+        from pandas.core.aggregation import transform
 
-        if isinstance(func, list):
-            func = {com.get_callable_name(v) or v: v for v in func}
-        elif isinstance(func, dict):
-            if any(isinstance(v, dict) for v in func.values()):
-                raise base.SpecificationError("nested renamer is not supported")
-
-        result = self._transform(func, *args, **kwargs)
-        return result
+        return transform(self, func, axis, *args, **kwargs)
 
     def apply(self, func, convert_dtype=True, args=(), **kwds):
         """

@@ -113,9 +113,9 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
-from pandas.core import algorithms, base, common as com, nanops, ops
+from pandas.core import algorithms, common as com, nanops, ops
 from pandas.core.accessor import CachedAccessor
-from pandas.core.aggregation import reconstruct_func, relabel_result
+from pandas.core.aggregation import reconstruct_func, relabel_result, transform
 from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin as DatetimeLikeArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
@@ -7437,22 +7437,8 @@ NaN 12.3   33.0
         axis=_shared_doc_kwargs["axis"],
     )
     def transform(self, func, axis=0, *args, **kwargs) -> "DataFrame":
-        axis = self._get_axis_number(axis)
-        if axis == 1:
-            return self.T.transform(func, *args, **kwargs).T
-
-        if isinstance(func, list):
-            func = {col: func for col in self}
-        elif isinstance(func, dict):
-            cols = sorted(set(func.keys()) - set(self.columns))
-            if len(cols) > 0:
-                raise base.SpecificationError(f"Column(s) {cols} do not exist")
-            if any(isinstance(v, dict) for v in func.values()):
-                # GH 15931 - deprecation of renaming keys
-                raise base.SpecificationError("nested renamer is not supported")
-
-        result = self._transform(func, *args, **kwargs)
-
+        result = transform(self, func, axis, *args, **kwargs)
+        assert isinstance(result, DataFrame)
         return result
 
     def apply(self, func, axis=0, raw=False, result_type=None, args=(), **kwds):
