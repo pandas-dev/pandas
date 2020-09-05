@@ -1992,7 +1992,19 @@ def buffer_put_lines(buf: IO[str], lines: List[str]) -> None:
     buf.write("\n".join(lines))
 
 
-def repr_html_groupby(group_obj):
+def repr_html_groupby(group_obj) -> str:
+    """
+    Create a HTML representation for a grouped dataframe or series.
+
+    Parameters
+    ----------
+    group_obj : [DataFrameGroupBy, SeriesGroupBy]
+        A grouped dataframe or a series of a grouped dataframe.
+    Returns
+    -------
+    str :
+        HTML representation of the input object.
+    """
     max_groups = get_option("display.max_groups")
     max_rows = max(
         1, get_option("display.max_rows") // min(max_groups, group_obj.ngroups)
