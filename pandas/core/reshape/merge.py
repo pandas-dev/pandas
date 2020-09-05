@@ -886,10 +886,7 @@ class _MergeOperation:
             if self.right_index:
                 if len(self.left) > 0:
                     join_index = self._create_join_index(
-                        self.left.index,
-                        self.right.index,
-                        left_indexer,
-                        how="right",
+                        self.left.index, self.right.index, left_indexer, how="right",
                     )
                 else:
                     join_index = self.right.index.take(right_indexer)
@@ -897,18 +894,12 @@ class _MergeOperation:
             elif self.left_index:
                 if self.how == "asof":
                     join_index = self._create_join_index(
-                        self.left.index,
-                        self.right.index,
-                        left_indexer,
-                        how="left",
+                        self.left.index, self.right.index, left_indexer, how="left",
                     )
 
                 elif len(self.right) > 0:
                     join_index = self._create_join_index(
-                        self.right.index,
-                        self.left.index,
-                        right_indexer,
-                        how="left",
+                        self.right.index, self.left.index, right_indexer, how="left",
                     )
                 else:
                     join_index = self.left.index.take(left_indexer)
@@ -921,11 +912,7 @@ class _MergeOperation:
         return join_index, left_indexer, right_indexer
 
     def _create_join_index(
-        self,
-        index: Index,
-        other_index: Index,
-        indexer,
-        how: str = "left",
+        self, index: Index, other_index: Index, indexer, how: str = "left",
     ):
         """
         Create a join index by rearranging one index to match another
