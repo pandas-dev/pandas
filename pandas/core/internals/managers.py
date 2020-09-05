@@ -691,7 +691,6 @@ class BlockManager(PandasObject):
         copy : bool, default False
             Whether to copy the blocks
         """
-        self._consolidate_inplace()
         return self._combine([b for b in self.blocks if b.is_numeric], copy)
 
     def _combine(self: T, blocks: List[Block], copy: bool = True) -> T:
