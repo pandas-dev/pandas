@@ -214,23 +214,34 @@ class ArrayManager(DataManager):
         new_mgr = type(self)(res_arrays, [index, self.items])
         return new_mgr
 
-    def apply(self: T, f, align_keys=None, **kwargs) -> T:
+    def apply(
+        self: T,
+        f,
+        align_keys: Optional[List[str]] = None,
+        ignore_failures: bool = False,
+        **kwargs,
+    ) -> T:
         """
-        Iterate over the blocks, collect and create a new BlockManager.
+        Iterate over the arrays, collect and create a new ArrayManager.
 
         Parameters
         ----------
         f : str or callable
-            Name of the Block method to apply.
+            Name of the Array method to apply.
+        align_keys: List[str] or None, default None
+        ignore_failures: bool, default False
+        **kwargs
+            Keywords to pass to `f`
 
         Returns
         -------
-        BlockManager
+        ArrayManager
         """
         assert "filter" not in kwargs
 
         align_keys = align_keys or []
-        result_arrays: List[ExtensionArray] = []
+        result_arrays: List[np.ndarray] = []
+        result_indices: List[int] = []
         # fillna: Series/DataFrame is responsible for making sure value is aligned
 
         aligned_args = {k: kwargs[k] for k in align_keys}
@@ -238,28 +249,68 @@ class ArrayManager(DataManager):
         if f == "apply":
             f = kwargs.pop("func")
 
-        for a in self.arrays:
+        for i, arr in enumerate(self.arrays):
 
             if aligned_args:
-                # TODO
-                raise NotImplementedError
 
-            if callable(f):
-                applied = f(a, **kwargs)
-            else:
-                applied = getattr(a, f)(**kwargs)
+                for k, obj in aligned_args.items():
+                    if isinstance(obj, (ABCSeries, ABCDataFrame)):
+                        # The caller is responsible for ensuring that
+                        #  obj.axes[-1].equals(self.items)
+                        if obj.ndim == 1:
+                            kwargs[k] = obj.iloc[i]
+                        else:
+                            kwargs[k] = obj.iloc[:, i]._values
+                    else:
+                        # otherwise we have an ndarray
+                        kwargs[k] = obj[i]
+
+            try:
+                if callable(f):
+                    applied = f(arr, **kwargs)
+                else:
+                    applied = getattr(arr, f)(**kwargs)
+            except (TypeError, NotImplementedError):
+                if not ignore_failures:
+                    raise
+                continue
             result_arrays.append(applied)
+            result_indices.append(i)
+
+        if ignore_failures:
+            # TODO copy?
+            new_axes = [self._axes[0], self._axes[1][result_indices]]
+        else:
+            new_axes = self._axes
 
         if len(result_arrays) == 0:
-            return self.make_empty(self._axes)
+            return self.make_empty(new_axes)
 
-        return type(self)(result_arrays, self._axes)
+        return type(self)(result_arrays, new_axes)
 
     def apply_with_block(self: T, f, align_keys=None, **kwargs) -> T:
 
+        align_keys = align_keys or []
+        aligned_args = {k: kwargs[k] for k in align_keys}
+
         result_arrays = []
 
-        for array in self.arrays:
+        for i, array in enumerate(self.arrays):
+
+            if aligned_args:
+
+                for k, obj in aligned_args.items():
+                    if isinstance(obj, (ABCSeries, ABCDataFrame)):
+                        # The caller is responsible for ensuring that
+                        #  obj.axes[-1].equals(self.items)
+                        if obj.ndim == 1:
+                            kwargs[k] = obj.iloc[[i]]
+                        else:
+                            kwargs[k] = obj.iloc[:, [i]]._values
+                    else:
+                        # otherwise we have an ndarray
+                        kwargs[k] = obj[[i]]
+
             block = make_block(np.atleast_2d(array), placement=slice(0, 1, 1), ndim=2)
             applied = getattr(block, f)(**kwargs)
             while isinstance(applied, list):
@@ -283,7 +334,7 @@ class ArrayManager(DataManager):
             align_keys = ["cond"]
             other = extract_array(other, extract_numpy=True)
 
-        return self.apply(
+        return self.apply_with_block(
             "where",
             align_keys=align_keys,
             other=other,
@@ -291,6 +342,25 @@ class ArrayManager(DataManager):
             errors=errors,
             try_cast=try_cast,
             axis=axis,
+        )
+
+    def putmask(self, mask, new, align: bool = True, axis: int = 0):
+        transpose = self.ndim == 2
+
+        if align:
+            align_keys = ["new", "mask"]
+        else:
+            align_keys = ["mask"]
+            new = extract_array(new, extract_numpy=True)
+
+        return self.apply_with_block(
+            "putmask",
+            align_keys=align_keys,
+            mask=mask,
+            new=new,
+            inplace=True,
+            axis=axis,
+            transpose=transpose,
         )
 
     def replace(self, value, **kwargs) -> "ArrayManager":
@@ -322,6 +392,15 @@ class ArrayManager(DataManager):
 
     def interpolate(self, **kwargs) -> "ArrayManager":
         return self.apply_with_block("interpolate", **kwargs)
+
+    def shift(self, periods: int, axis: int, fill_value) -> "ArrayManager":
+        if axis == 0 and self.ndim == 2:
+            # TODO column-wise shift
+            raise NotImplementedError
+
+        return self.apply_with_block(
+            "shift", periods=periods, axis=axis, fill_value=fill_value
+        )
 
     def downcast(self) -> "ArrayManager":
         return self.apply_with_block("downcast")
@@ -730,6 +809,7 @@ class ArrayManager(DataManager):
     # TODO
     # unstack
     # to_dict
+    # quantile
 
 
 class BlockManager(DataManager):
