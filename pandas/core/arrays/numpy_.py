@@ -94,8 +94,7 @@ class PandasDtype(ExtensionDtype):
             raise TypeError(msg) from err
         return cls(dtype)
 
-    @classmethod
-    def construct_array_type(cls) -> Type["PandasArray"]:
+    def construct_array_type(self) -> Type["PandasArray"]:
         """
         Return the array type associated with this dtype.
 

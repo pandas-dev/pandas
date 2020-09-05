@@ -40,8 +40,7 @@ class BaseMaskedDtype(ExtensionDtype):
     def numpy_dtype(self) -> np.dtype:
         raise AbstractMethodError
 
-    @classmethod
-    def construct_array_type(cls) -> Type["BaseMaskedArray"]:
+    def construct_array_type(self) -> Type["BaseMaskedArray"]:
         """
         Return the array type associated with this dtype.
 

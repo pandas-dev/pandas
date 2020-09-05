@@ -171,8 +171,7 @@ class SparseDtype(ExtensionDtype):
     def __repr__(self) -> str:
         return self.name
 
-    @classmethod
-    def construct_array_type(cls) -> Type["SparseArray"]:
+    def construct_array_type(self) -> Type["SparseArray"]:
         """
         Return the array type associated with this dtype.
 

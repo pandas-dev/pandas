@@ -80,8 +80,7 @@ class _IntegerDtype(BaseMaskedDtype):
         """ Return the number of bytes in this dtype """
         return self.numpy_dtype.itemsize
 
-    @classmethod
-    def construct_array_type(cls) -> Type["IntegerArray"]:
+    def construct_array_type(self) -> Type["IntegerArray"]:
         """
         Return the array type associated with this dtype.
 

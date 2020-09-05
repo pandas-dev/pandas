@@ -430,8 +430,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         hashed = _combine_hash_arrays(iter(cat_array), num_items=len(cat_array))
         return np.bitwise_xor.reduce(hashed)
 
-    @classmethod
-    def construct_array_type(cls) -> Type["Categorical"]:
+    def construct_array_type(self) -> Type["Categorical"]:
         """
         Return the array type associated with this dtype.
 
@@ -679,8 +678,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         """
         return self._tz
 
-    @classmethod
-    def construct_array_type(cls) -> Type["DatetimeArray"]:
+    def construct_array_type(self) -> Type["DatetimeArray"]:
         """
         Return the array type associated with this dtype.
 
@@ -922,8 +920,7 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
                 return False
         return super().is_dtype(dtype)
 
-    @classmethod
-    def construct_array_type(cls) -> Type["PeriodArray"]:
+    def construct_array_type(self) -> Type["PeriodArray"]:
         """
         Return the array type associated with this dtype.
 
@@ -1047,8 +1044,7 @@ class IntervalDtype(PandasExtensionDtype):
         """
         return self._subtype
 
-    @classmethod
-    def construct_array_type(cls) -> Type["IntervalArray"]:
+    def construct_array_type(self) -> Type["IntervalArray"]:
         """
         Return the array type associated with this dtype.
 

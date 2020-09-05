@@ -31,8 +31,7 @@ class ArrowBoolDtype(ExtensionDtype):
     name = "arrow_bool"
     na_value = pa.NULL
 
-    @classmethod
-    def construct_array_type(cls) -> Type["ArrowBoolArray"]:
+    def construct_array_type(self) -> Type["ArrowBoolArray"]:
         """
         Return the array type associated with this dtype.
 
@@ -55,8 +54,7 @@ class ArrowStringDtype(ExtensionDtype):
     name = "arrow_string"
     na_value = pa.NULL
 
-    @classmethod
-    def construct_array_type(cls) -> Type["ArrowStringArray"]:
+    def construct_array_type(self) -> Type["ArrowStringArray"]:
         """
         Return the array type associated with this dtype.
 

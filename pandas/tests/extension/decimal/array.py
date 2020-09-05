@@ -28,8 +28,7 @@ class DecimalDtype(ExtensionDtype):
     def __repr__(self) -> str:
         return f"DecimalDtype(context={self.context})"
 
-    @classmethod
-    def construct_array_type(cls) -> Type["DecimalArray"]:
+    def construct_array_type(self) -> Type["DecimalArray"]:
         """
         Return the array type associated with this dtype.
 

@@ -32,8 +32,7 @@ class JSONDtype(ExtensionDtype):
     name = "json"
     na_value: Mapping[str, Any] = UserDict()
 
-    @classmethod
-    def construct_array_type(cls) -> Type["JSONArray"]:
+    def construct_array_type(self) -> Type["JSONArray"]:
         """
         Return the array type associated with this dtype.
 

@@ -70,8 +70,7 @@ class BooleanDtype(BaseMaskedDtype):
     def numpy_dtype(self) -> np.dtype:
         return np.dtype("bool")
 
-    @classmethod
-    def construct_array_type(cls) -> Type["BooleanArray"]:
+    def construct_array_type(self) -> Type["BooleanArray"]:
         """
         Return the array type associated with this dtype.
 

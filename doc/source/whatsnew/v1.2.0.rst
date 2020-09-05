@@ -57,6 +57,13 @@ Other enhancements
 -
 -
 
+.. _whatsnew_120.api_breaking.experimental:
+
+Changes to experimental APIs
+----------------------------
+
+- :meth:`pandas.api.extensions.ExtensionDtype.construct_array_type` has changed from a classmethod to a regular method to support one dtype being used for multiple arrays. To migrate, change your definition to a regular method and ensure that your method is called on instances rather than the class (:issue:`36126`).
+
 .. _whatsnew_120.api_breaking.python:
 
 Increased minimum version for Python
