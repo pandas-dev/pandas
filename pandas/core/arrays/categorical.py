@@ -1505,7 +1505,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         return super().argsort(ascending=ascending, kind=kind, **kwargs)
 
     def sort_values(
-        self, inplace: bool = False, ascending: bool = True, na_position: str = "last",
+        self, inplace: bool = False, ascending: bool = True, na_position: str = "last"
     ):
         """
         Sort the Categorical by category value returning a new
@@ -2316,7 +2316,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
 
         return union_categoricals(to_concat)
 
-    def isin(self, values):
+    def isin(self, values) -> np.ndarray:
         """
         Check whether `values` are contained in Categorical.
 

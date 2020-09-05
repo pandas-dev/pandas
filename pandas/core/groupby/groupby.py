@@ -459,7 +459,7 @@ class GroupByPlot(PandasObject):
 
 
 @contextmanager
-def _group_selection_context(groupby):
+def _group_selection_context(groupby: "_GroupBy"):
     """
     Set / reset the _group_selection_context.
     """
@@ -489,7 +489,7 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         keys: Optional[_KeysArgType] = None,
         axis: int = 0,
         level=None,
-        grouper: "Optional[ops.BaseGrouper]" = None,
+        grouper: Optional["ops.BaseGrouper"] = None,
         exclusions=None,
         selection=None,
         as_index: bool = True,
@@ -734,7 +734,7 @@ b  2""",
 
     plot = property(GroupByPlot)
 
-    def _make_wrapper(self, name):
+    def _make_wrapper(self, name: str) -> Callable:
         assert name in self._apply_allowlist
 
         with _group_selection_context(self):
@@ -1012,6 +1012,8 @@ b  2""",
                     # raised in _get_cython_function, in some cases can
                     #  be trimmed by implementing cython funcs for more dtypes
                     pass
+                else:
+                    raise
 
             # apply a non-cython aggregation
             result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
@@ -1077,7 +1079,7 @@ b  2""",
                 tuple(args), kwargs, func, engine_kwargs
             )
         result = numba_agg_func(
-            sorted_data, sorted_index, starts, ends, len(group_keys), len(data.columns),
+            sorted_data, sorted_index, starts, ends, len(group_keys), len(data.columns)
         )
         if cache_key not in NUMBA_FUNC_CACHE:
             NUMBA_FUNC_CACHE[cache_key] = numba_agg_func
@@ -1595,8 +1597,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
     def first(self, numeric_only: bool = False, min_count: int = -1):
         def first_compat(obj: FrameOrSeries, axis: int = 0):
             def first(x: Series):
-                """Helper function for first item that isn't NA.
-                """
+                """Helper function for first item that isn't NA."""
                 x = x.array[notna(x.array)]
                 if len(x) == 0:
                     return np.nan
@@ -1620,8 +1621,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
     def last(self, numeric_only: bool = False, min_count: int = -1):
         def last_compat(obj: FrameOrSeries, axis: int = 0):
             def last(x: Series):
-                """Helper function for last item that isn't NA.
-                """
+                """Helper function for last item that isn't NA."""
                 x = x.array[notna(x.array)]
                 if len(x) == 0:
                     return np.nan
