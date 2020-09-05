@@ -62,7 +62,7 @@ Timezone = Union[str, tzinfo]
 # other
 
 Dtype = Union[
-    "ExtensionDtype", str, np.dtype, Type[Union[str, float, int, complex, bool]]
+    "ExtensionDtype", str, np.dtype, Type[Union[str, float, int, complex, bool, object]]
 ]
 DtypeObj = Union[np.dtype, "ExtensionDtype"]
 FilePathOrBuffer = Union[str, Path, IO[AnyStr], IOBase]
