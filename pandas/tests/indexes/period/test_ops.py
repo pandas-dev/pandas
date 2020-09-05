@@ -332,7 +332,7 @@ class TestPeriodIndexOps:
             idx.freq = pd.offsets.Day()
 
 
-@pytest.mark.xfail(reason="PeriodIndex.sort_values currently unstable")
+@pytest.mark.xfail(reason="PeriodIndex.sort_values currently unstable (GH 35922)")
 def test_order_incompat():
     # GH 35584. The new implementation of sort_values for Index.sort_values
     # is stable when sorting in descending order. PeriodIndex.sort_values
