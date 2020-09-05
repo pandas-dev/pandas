@@ -3,10 +3,15 @@ import json
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas import DataFrame, Index, Series, json_normalize
 import pandas._testing as tm
 
 from pandas.io.json._normalize import nested_to_record
+
+pytestmark = pytest.mark.skipif(
+    pd.get_option("mode.data_manager") == "array", reason="JSON C code relies on Blocks"
+)
 
 
 @pytest.fixture

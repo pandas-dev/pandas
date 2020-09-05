@@ -20,6 +20,10 @@ from pandas.io.json._table_schema import (
     set_default_names,
 )
 
+pytestmark = pytest.mark.skipif(
+    pd.get_option("mode.data_manager") == "array", reason="JSON C code relies on Blocks"
+)
+
 
 class TestBuildSchema:
     def setup_method(self, method):

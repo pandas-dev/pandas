@@ -16,6 +16,11 @@ import pandas as pd
 from pandas import DataFrame, DatetimeIndex, Series, Timestamp, compat, read_json
 import pandas._testing as tm
 
+pytestmark = pytest.mark.skipif(
+    pd.get_option("mode.data_manager") == "array", reason="JSON C code relies on Blocks"
+)
+
+
 _seriesd = tm.getSeriesData()
 
 _frame = DataFrame(_seriesd)
