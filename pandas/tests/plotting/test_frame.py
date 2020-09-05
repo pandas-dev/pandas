@@ -51,7 +51,7 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.xfail(reason="Waiting for PR 34334", strict=True)
     @pytest.mark.slow
     def test_plot(self):
-        from pandas.plotting._matplotlib.compat import _mpl_ge_3_1_0
+        from pandas.plotting._matplotlib.compat import mpl_ge_3_1_0
 
         df = self.tdf
         _check_plot_works(df.plot, grid=False)
@@ -69,7 +69,7 @@ class TestDataFramePlots(TestPlotBase):
         self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
         df = DataFrame({"x": [1, 2], "y": [3, 4]})
-        if _mpl_ge_3_1_0():
+        if mpl_ge_3_1_0():
             msg = "'Line2D' object has no property 'blarg'"
         else:
             msg = "Unknown property blarg"
