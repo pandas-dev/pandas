@@ -70,10 +70,10 @@ from pandas.core.indexes.timedeltas import TimedeltaIndex
 
 from pandas.io.common import stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
+from pandas.core.groupby import DataFrameGroupBy, SeriesGroupBy
 
 if TYPE_CHECKING:
     from pandas import Categorical, DataFrame, Series
-    from pandas.core.groupby import DataFrameGroupBy, SeriesGroupBy
 
 FormattersType = Union[
     List[Callable], Tuple[Callable, ...], Mapping[Union[str, int], Callable]
