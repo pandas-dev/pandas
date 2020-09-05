@@ -73,6 +73,7 @@ from pandas.io.formats.printing import adjoin, justify, pprint_thing
 
 if TYPE_CHECKING:
     from pandas import Categorical, DataFrame, Series
+    from pandas.core.groupby import DataFrameGroupBy, SeriesGroupBy
 
 FormattersType = Union[
     List[Callable], Tuple[Callable, ...], Mapping[Union[str, int], Callable]
@@ -1992,7 +1993,7 @@ def buffer_put_lines(buf: IO[str], lines: List[str]) -> None:
     buf.write("\n".join(lines))
 
 
-def repr_html_groupby(group_obj) -> str:
+def repr_html_groupby(group_obj: Union[DataFrameGroupBy, SeriesGroupBy]) -> str:
     """
     Create a HTML representation for a grouped dataframe or series.
 
