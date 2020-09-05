@@ -77,7 +77,7 @@ from pandas.core.groupby.groupby import (
 from pandas.core.groupby.numba_ import generate_numba_func, split_for_numba
 from pandas.core.indexes.api import Index, MultiIndex, all_indexes_same
 import pandas.core.indexes.base as ibase
-from pandas.core.internals import BlockManager, make_block
+from pandas.core.internals import BlockManager
 from pandas.core.series import Series
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE, maybe_use_numba
 
@@ -308,7 +308,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
             arg = zip(columns, arg)
 
-        results: Dict[base.OutputKey, Union[Series, DataFrame]] = {}
+        results: Dict[base.OutputKey, FrameOrSeriesUnion] = {}
         for idx, (name, func) in enumerate(arg):
             obj = self
 
@@ -332,7 +332,7 @@ class SeriesGroupBy(GroupBy[Series]):
         self,
         output: Mapping[base.OutputKey, Union[Series, np.ndarray]],
         index: Optional[Index],
-    ) -> Union[Series, DataFrame]:
+    ) -> FrameOrSeriesUnion:
         """
         Wraps the output of a SeriesGroupBy operation into the expected result.
 
@@ -355,7 +355,7 @@ class SeriesGroupBy(GroupBy[Series]):
         indexed_output = {key.position: val for key, val in output.items()}
         columns = Index(key.label for key in output)
 
-        result: Union[Series, DataFrame]
+        result: FrameOrSeriesUnion
         if len(output) > 1:
             result = self.obj._constructor_expanddim(indexed_output, index=index)
             result.columns = columns
@@ -373,7 +373,7 @@ class SeriesGroupBy(GroupBy[Series]):
         self,
         output: Mapping[base.OutputKey, Union[Series, np.ndarray]],
         index: Optional[Index],
-    ) -> Union[Series, DataFrame]:
+    ) -> FrameOrSeriesUnion:
         """
         Wraps the output of a SeriesGroupBy aggregation into the expected result.
 
@@ -1035,8 +1035,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if numeric_only:
             data = data.get_numeric_data(copy=False)
 
-        agg_blocks: List["Block"] = []
-
         no_result = object()
 
         def cast_agg_result(result, values: ArrayLike, how: str) -> ArrayLike:
@@ -1086,7 +1084,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     assert how == "ohlc"
                     raise
 
-                obj: Union[Series, DataFrame]
+                # We get here with a) EADtypes and b) object dtype
+                obj: FrameOrSeriesUnion
                 # call our grouper again with only this block
                 if isinstance(bvalues, ExtensionArray):
                     # TODO(EA2D): special case not needed with 2D EAs
@@ -1118,23 +1117,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             res_values = cast_agg_result(result, bvalues, how)
             return res_values
 
-        for i, block in enumerate(data.blocks):
-            try:
-                nbs = block.apply(blk_func)
-            except (NotImplementedError, TypeError):
-                # TypeError -> we may have an exception in trying to aggregate
-                #  continue and exclude the block
-                # NotImplementedError -> "ohlc" with wrong dtype
-                pass
-            else:
-                agg_blocks.extend(nbs)
+        # TypeError -> we may have an exception in trying to aggregate
+        #  continue and exclude the block
+        # NotImplementedError -> "ohlc" with wrong dtype
+        new_mgr = data.apply(blk_func, ignore_failures=True)
 
-        if not agg_blocks:
+        if not len(new_mgr):
             raise DataError("No numeric types to aggregate")
 
-        # reset the locs in the blocks to correspond to our
-        # current ordering
-        new_mgr = data._combine(agg_blocks)
         return new_mgr
 
     def _aggregate_frame(self, func, *args, **kwargs) -> DataFrame:
@@ -1705,6 +1695,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
         indexed_output = {key.position: val for key, val in output.items()}
         columns = Index(key.label for key in output)
+        columns.name = self.obj.columns.name
 
         result = self.obj._constructor(indexed_output)
         result.columns = columns
@@ -1761,20 +1752,24 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ids, _, ngroups = self.grouper.group_info
         mask = ids != -1
 
-        # TODO(2DEA): reshape would not be necessary with 2D EAs
-        vals = ((mask & ~isna(blk.values).reshape(blk.shape)) for blk in data.blocks)
-        locs = (blk.mgr_locs for blk in data.blocks)
+        def hfunc(bvalues: ArrayLike) -> ArrayLike:
+            # TODO(2DEA): reshape would not be necessary with 2D EAs
+            if bvalues.ndim == 1:
+                # EA
+                masked = mask & ~isna(bvalues).reshape(1, -1)
+            else:
+                masked = mask & ~isna(bvalues)
 
-        counted = (
-            lib.count_level_2d(x, labels=ids, max_bin=ngroups, axis=1) for x in vals
-        )
-        blocks = [make_block(val, placement=loc) for val, loc in zip(counted, locs)]
+            counted = lib.count_level_2d(masked, labels=ids, max_bin=ngroups, axis=1)
+            return counted
+
+        new_mgr = data.apply(hfunc)
 
         # If we are grouping on categoricals we want unobserved categories to
         # return zero, rather than the default of NaN which the reindexing in
         # _wrap_agged_blocks() returns. GH 35028
         with com.temp_setattr(self, "observed", True):
-            result = self._wrap_agged_blocks(blocks, items=data.items)
+            result = self._wrap_agged_blocks(new_mgr.blocks, items=data.items)
 
         return self._reindex_output(result, fill_value=0)
 

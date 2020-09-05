@@ -164,9 +164,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     index : array-like or Index (1d)
         Values must be hashable and have the same length as `data`.
         Non-unique index values are allowed. Will default to
-        RangeIndex (0, 1, 2, ..., n) if not provided. If both a dict and index
-        sequence are used, the index will override the keys found in the
-        dict.
+        RangeIndex (0, 1, 2, ..., n) if not provided. If data is dict-like
+        and index is None, then the values in the index are used to
+        reindex the Series after it is created using the keys in the data.
     dtype : str, numpy.dtype, or ExtensionDtype, optional
         Data type for the output Series. If not specified, this will be
         inferred from `data`.
@@ -201,7 +201,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # Constructors
 
     def __init__(
-        self, data=None, index=None, dtype=None, name=None, copy=False, fastpath=False
+        self, data=None, index=None, dtype=None, name=None, copy=False, fastpath=False,
     ):
 
         if (
@@ -211,7 +211,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             and copy is False
         ):
             # GH#33357 called with just the SingleBlockManager
-            NDFrame.__init__(self, data)
+            NDFrame.__init__(
+                self, data,
+            )
             self.name = name
             return
 
@@ -330,7 +332,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
                 data = SingleBlockManager.from_array(data, index)
 
-        generic.NDFrame.__init__(self, data)
+        generic.NDFrame.__init__(
+            self, data,
+        )
         self.name = name
         self._set_axis(0, index, fastpath=True)
 
