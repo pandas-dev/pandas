@@ -1129,7 +1129,7 @@ def format_array(
     space
     justify
     decimal
-    leading_space : bool, optional
+    leading_space : bool, optional, default True
         Whether the array should be formatted with a leading space.
         When an array as a column of a Series or DataFrame, we do want
         the leading space to pad between columns.
