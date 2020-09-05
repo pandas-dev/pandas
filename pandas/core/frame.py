@@ -27,7 +27,6 @@ from typing import (
     Iterable,
     Iterator,
     List,
-    Mapping,
     Optional,
     Sequence,
     Set,
@@ -49,6 +48,7 @@ from pandas._typing import (
     ArrayLike,
     Axes,
     Axis,
+    CompressionOptions,
     Dtype,
     FilePathOrBuffer,
     FrameOrSeriesUnion,
@@ -2062,7 +2062,7 @@ class DataFrame(NDFrame):
         variable_labels: Optional[Dict[Label, str]] = None,
         version: Optional[int] = 114,
         convert_strl: Optional[Sequence[Label]] = None,
-        compression: Union[str, Mapping[str, str], None] = "infer",
+        compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
     ) -> None:
         """

@@ -205,11 +205,13 @@ def get_filepath_or_buffer(
     """
     filepath_or_buffer = stringify_path(filepath_or_buffer)
 
+    # handle compression dict
+    compression_method, compression = get_compression_method(compression)
+    compression_method = infer_compression(filepath_or_buffer, compression_method)
+    compression = dict(compression, method=compression_method)
+
     # bz2 and xz do not write the byte order mark for utf-16 and utf-32
     # print a warning when writing such files
-    compression_method = infer_compression(
-        filepath_or_buffer, get_compression_method(compression)[0]
-    )
     if (
         mode
         and "w" in mode
@@ -238,7 +240,7 @@ def get_filepath_or_buffer(
         content_encoding = req.headers.get("Content-Encoding", None)
         if content_encoding == "gzip":
             # Override compression based on Content-Encoding header
-            compression = "gzip"
+            compression = {"method": "gzip"}
         reader = BytesIO(req.read())
         req.close()
         return IOargs(
@@ -374,11 +376,7 @@ def get_compression_method(
     if isinstance(compression, Mapping):
         compression_args = dict(compression)
         try:
-            # error: Incompatible types in assignment (expression has type
-            # "Union[str, int, None]", variable has type "Optional[str]")
-            compression_method = compression_args.pop(  # type: ignore[assignment]
-                "method"
-            )
+            compression_method = compression_args.pop("method")
         except KeyError as err:
             raise ValueError("If mapping, compression must have key 'method'") from err
     else:
@@ -652,12 +650,8 @@ class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore[misc]
         super().__init__(file, mode, **kwargs_zip)  # type: ignore[arg-type]
 
     def write(self, data):
-        archive_name = self.filename
-        if self.archive_name is not None:
-            archive_name = self.archive_name
-        if archive_name is None:
-            # ZipFile needs a non-empty string
-            archive_name = "zip"
+        # ZipFile needs a non-empty string
+        archive_name = self.archive_name or self.filename or "zip"
         super().writestr(archive_name, data)
 
     @property
