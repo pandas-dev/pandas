@@ -33,29 +33,16 @@ VERSIONS = {
     "numba": "0.46.0",
 }
 
+# A mapping from import name to package name (on PyPI) for packages where
+# these two names are different.
+
 INSTALL_MAPPING = {
     "bs4": "beautifulsoup4",
     "bottleneck": "Bottleneck",
-    "fsspec": "fsspec",
-    "botocore": "botocore",
-    "fastparquet": "fastparquet",
-    "gcsfs": "gcsfs",
     "lxml.etree": "lxml",
-    "matplotlib": "matplotlib",
-    "numexpr": "numexpr",
     "odf": "odfpy",
-    "openpyxl": "openpyxl",
     "pandas_gbq": "pandas-gbq",
-    "pyarrow": "pyarrow",
-    "pytest": "pytest",
-    "pyxlsb": "pyxlsb",
-    "scipy": "scipy",
     "sqlalchemy": "SQLAlchemy",
-    "tables": "tables",
-    "tabulate": "tabulate",
-    "xarray": "xarray",
-    "xlrd": "xlrd",
-    "numba": "numba",
     "jinja2": "Jinja2",
 }
 
