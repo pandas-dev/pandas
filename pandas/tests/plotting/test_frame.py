@@ -2796,10 +2796,12 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.plot, table=True)
         _check_plot_works(df.plot, table=df)
 
-        ax = df.plot()
-        assert len(ax.tables) == 0
-        plotting.table(ax, df.T)
-        assert len(ax.tables) == 1
+        # GH 35945 UserWarning
+        with tm.assert_produces_warning(None):
+            ax = df.plot()
+            assert len(ax.tables) == 0
+            plotting.table(ax, df.T)
+            assert len(ax.tables) == 1
 
     def test_errorbar_scatter(self):
         df = DataFrame(np.random.randn(5, 2), index=range(5), columns=["x", "y"])
