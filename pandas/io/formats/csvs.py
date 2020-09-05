@@ -111,7 +111,7 @@ class CSVFormatter:
         self.escapechar = escapechar
         self.line_terminator = line_terminator or os.linesep
         self.date_format = date_format
-        self.cols = cols
+        self.cols = cols  # type: ignore[assignment]
         self.chunksize = chunksize  # type: ignore[assignment]
 
     @property
@@ -157,11 +157,14 @@ class CSVFormatter:
         return bool(isinstance(self.obj.columns, ABCMultiIndex))
 
     @property
-    def cols(self):
+    def cols(self) -> Sequence[Label]:
         return self._cols
 
     @cols.setter
-    def cols(self, cols):
+    def cols(self, cols: Optional[Sequence[Label]]) -> None:
+        self._cols = self._refine_cols(cols)
+
+    def _refine_cols(self, cols: Optional[Sequence[Label]]) -> Sequence[Label]:
         # validate mi options
         if self.has_mi_columns:
             if cols is not None:
@@ -179,11 +182,10 @@ class CSVFormatter:
         # and make sure sure cols is just a list of labels
         cols = self.obj.columns
         if isinstance(cols, ABCIndexClass):
-            cols = cols.to_native_types(**self._number_format)
+            return cols.to_native_types(**self._number_format)
         else:
-            cols = list(cols)
-
-        self._cols = cols
+            assert isinstance(cols, Sequence)
+            return list(cols)
 
     @property
     def _number_format(self) -> dict:
