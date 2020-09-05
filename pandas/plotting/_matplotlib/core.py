@@ -33,6 +33,13 @@ from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.compat import _mpl_ge_3_0_0
 from pandas.plotting._matplotlib.converter import register_pandas_matplotlib_converters
 from pandas.plotting._matplotlib.style import get_standard_colors
+from pandas.plotting._matplotlib.timeseries import (
+    decorate_axes,
+    format_dateaxis,
+    maybe_convert_index,
+    maybe_resample,
+    use_dynamic_x,
+)
 from pandas.plotting._matplotlib.tools import (
     create_subplots,
     flatten_axes,
@@ -1074,15 +1081,11 @@ class LinePlot(MPLPlot):
         return not self.x_compat and self.use_index and self._use_dynamic_x()
 
     def _use_dynamic_x(self):
-        from pandas.plotting._matplotlib.timeseries import _use_dynamic_x
-
-        return _use_dynamic_x(self._get_ax(0), self.data)
+        return use_dynamic_x(self._get_ax(0), self.data)
 
     def _make_plot(self):
         if self._is_ts_plot():
-            from pandas.plotting._matplotlib.timeseries import _maybe_convert_index
-
-            data = _maybe_convert_index(self._get_ax(0), self.data)
+            data = maybe_convert_index(self._get_ax(0), self.data)
 
             x = data.index  # dummy, not used
             plotf = self._ts_plot
@@ -1142,24 +1145,18 @@ class LinePlot(MPLPlot):
 
     @classmethod
     def _ts_plot(cls, ax: "Axes", x, data, style=None, **kwds):
-        from pandas.plotting._matplotlib.timeseries import (
-            _decorate_axes,
-            _maybe_resample,
-            format_dateaxis,
-        )
-
         # accept x to be consistent with normal plot func,
         # x is not passed to tsplot as it uses data.index as x coordinate
         # column_num must be in kwds for stacking purpose
-        freq, data = _maybe_resample(data, ax, kwds)
+        freq, data = maybe_resample(data, ax, kwds)
 
         # Set ax with freq info
-        _decorate_axes(ax, freq, kwds)
+        decorate_axes(ax, freq, kwds)
         # digging deeper
         if hasattr(ax, "left_ax"):
-            _decorate_axes(ax.left_ax, freq, kwds)
+            decorate_axes(ax.left_ax, freq, kwds)
         if hasattr(ax, "right_ax"):
-            _decorate_axes(ax.right_ax, freq, kwds)
+            decorate_axes(ax.right_ax, freq, kwds)
         ax._plot_data.append((data, cls._kind, kwds))
 
         lines = cls._plot(ax, data.index, data.values, style=style, **kwds)

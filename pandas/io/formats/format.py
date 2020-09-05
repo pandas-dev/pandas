@@ -1626,7 +1626,7 @@ def _format_datetime64_dateonly(
         return x._date_repr
 
 
-def _get_format_datetime64(
+def get_format_datetime64(
     is_dates_only: bool, nat_rep: str = "NaT", date_format: None = None
 ) -> Callable:
 
@@ -1658,7 +1658,7 @@ class Datetime64TZFormatter(Datetime64Formatter):
         """ we by definition have a TZ """
         values = self.values.astype(object)
         is_dates_only = _is_dates_only(values)
-        formatter = self.formatter or _get_format_datetime64(
+        formatter = self.formatter or get_format_datetime64(
             is_dates_only, date_format=self.date_format
         )
         fmt_values = [formatter(x) for x in values]
