@@ -364,7 +364,7 @@ class BaseExprVisitor(ast.NodeVisitor):
 
     unary_ops = _unary_ops_syms
     unary_op_nodes = "UAdd", "USub", "Invert", "Not"
-    unary_op_nodes_map = dict(zip(unary_ops, unary_op_nodes))
+    unary_op_nodes_map = {k: v for k, v in zip(unary_ops, unary_op_nodes)}
 
     rewrite_map = {
         ast.Eq: ast.In,
