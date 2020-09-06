@@ -437,6 +437,29 @@ def index(request):
 index_fixture2 = index
 
 
+@pytest.fixture(params=indices_dict.keys())
+def index_with_missing(request):
+    """
+    Fixture for indices with missing values
+    """
+    if request.param in ["int", "uint", "range", "empty", "repeats"]:
+        pytest.xfail("missing values not supported")
+    # GH 35538. Use deep copy to avoid illusive bug on np-dev
+    # Azure pipeline that writes into indices_dict despite copy
+    ind = indices_dict[request.param].copy(deep=True)
+    vals = ind.values
+    if request.param in ["tuples", "mi-with-dt64tz-level", "multi"]:
+        # For setting missing values in the top level of MultiIndex
+        vals = ind.tolist()
+        vals[0] = tuple([None]) + vals[0][1:]
+        vals[-1] = tuple([None]) + vals[-1][1:]
+        return MultiIndex.from_tuples(vals)
+    else:
+        vals[0] = None
+        vals[-1] = None
+        return type(ind)(vals)
+
+
 # ----------------------------------------------------------------
 # Series'
 # ----------------------------------------------------------------
