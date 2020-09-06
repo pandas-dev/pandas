@@ -10,7 +10,7 @@ from pandas._config import get_option
 from pandas._libs import lib
 import pandas._libs.missing as libmissing
 from pandas._libs.tslibs import NaT, iNaT
-from pandas._typing import DtypeObj
+from pandas._typing import ArrayLike, DtypeObj
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
@@ -338,7 +338,7 @@ def notna(obj):
 notnull = notna
 
 
-def _isna_compat(arr, fill_value=np.nan) -> bool:
+def isna_compat(arr, fill_value=np.nan) -> bool:
     """
     Parameters
     ----------
@@ -484,7 +484,19 @@ def _array_equivalent_object(left, right, strict_nan):
     return True
 
 
-def _infer_fill_value(val):
+def array_equals(left: ArrayLike, right: ArrayLike) -> bool:
+    """
+    ExtensionArray-compatible implementation of array_equivalent.
+    """
+    if not is_dtype_equal(left.dtype, right.dtype):
+        return False
+    elif isinstance(left, ABCExtensionArray):
+        return left.equals(right)
+    else:
+        return array_equivalent(left, right, dtype_equal=True)
+
+
+def infer_fill_value(val):
     """
     infer the fill value for the nan/NaT from the provided
     scalar/ndarray/list-like if we are a NaT, return the correct dtyped
@@ -504,11 +516,11 @@ def _infer_fill_value(val):
     return np.nan
 
 
-def _maybe_fill(arr, fill_value=np.nan):
+def maybe_fill(arr, fill_value=np.nan):
     """
     if we have a compatible fill_value and arr dtype, then fill
     """
-    if _isna_compat(arr, fill_value):
+    if isna_compat(arr, fill_value):
         arr.fill(fill_value)
     return arr
 
