@@ -56,7 +56,7 @@ from pandas._libs.missing cimport checknull
 
 
 cdef int64_t NPY_NAT = util.get_nat()
-_SIZE_HINT_LIMIT = (1 << 20) + 7
+SIZE_HINT_LIMIT = (1 << 20) + 7
 
 
 cdef Py_ssize_t _INIT_VEC_CAP = 128
@@ -176,7 +176,7 @@ def unique_label_indices(const int64_t[:] labels):
         ndarray[int64_t, ndim=1] arr
         Int64VectorData *ud = idx.data
 
-    kh_resize_int64(table, min(n, _SIZE_HINT_LIMIT))
+    kh_resize_int64(table, min(n, SIZE_HINT_LIMIT))
 
     with nogil:
         for i in range(n):
