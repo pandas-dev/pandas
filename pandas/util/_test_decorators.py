@@ -35,7 +35,7 @@ from pandas.compat import IS64, is_platform_windows
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import _np_version
 
-from pandas.core.computation.expressions import _NUMEXPR_INSTALLED, _USE_NUMEXPR
+from pandas.core.computation.expressions import _USE_NUMEXPR, NUMEXPR_INSTALLED
 
 
 def safe_import(mod_name: str, min_version: Optional[str] = None):
@@ -196,7 +196,7 @@ skip_if_no_scipy = pytest.mark.skipif(
 )
 skip_if_no_ne = pytest.mark.skipif(
     not _USE_NUMEXPR,
-    reason=f"numexpr enabled->{_USE_NUMEXPR}, installed->{_NUMEXPR_INSTALLED}",
+    reason=f"numexpr enabled->{_USE_NUMEXPR}, installed->{NUMEXPR_INSTALLED}",
 )
 
 

@@ -25,7 +25,7 @@ from pandas._config.localization import (  # noqa:F401
 from pandas._libs.lib import no_default
 import pandas._libs.testing as _testing
 from pandas._typing import Dtype, FilePathOrBuffer, FrameOrSeries
-from pandas.compat import _get_lzma_file, _import_lzma
+from pandas.compat import get_lzma_file, import_lzma
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -70,7 +70,7 @@ from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 from pandas.io.common import urlopen
 from pandas.io.formats.printing import pprint_thing
 
-lzma = _import_lzma()
+lzma = import_lzma()
 
 _N = 30
 _K = 4
@@ -243,7 +243,7 @@ def decompress_file(path, compression):
     elif compression == "bz2":
         f = bz2.BZ2File(path, "rb")
     elif compression == "xz":
-        f = _get_lzma_file(lzma)(path, "rb")
+        f = get_lzma_file(lzma)(path, "rb")
     elif compression == "zip":
         zip_file = zipfile.ZipFile(path)
         zip_names = zip_file.namelist()
@@ -288,7 +288,7 @@ def write_to_compressed(compression, path, data, dest="test"):
     elif compression == "bz2":
         compress_method = bz2.BZ2File
     elif compression == "xz":
-        compress_method = _get_lzma_file(lzma)
+        compress_method = get_lzma_file(lzma)
     else:
         raise ValueError(f"Unrecognized compression type: {compression}")
 

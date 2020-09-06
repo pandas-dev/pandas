@@ -5,7 +5,7 @@ import numpy as np
 from pandas._typing import FilePathOrBuffer, Scalar, StorageOptions
 from pandas.compat._optional import import_optional_dependency
 
-from pandas.io.excel._base import ExcelWriter, _BaseExcelReader
+from pandas.io.excel._base import BaseExcelReader, ExcelWriter
 from pandas.io.excel._util import validate_freeze_panes
 
 if TYPE_CHECKING:
@@ -438,7 +438,7 @@ class _OpenpyxlWriter(ExcelWriter):
                                 setattr(xcell, k, v)
 
 
-class _OpenpyxlReader(_BaseExcelReader):
+class _OpenpyxlReader(BaseExcelReader):
     def __init__(
         self,
         filepath_or_buffer: FilePathOrBuffer,

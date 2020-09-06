@@ -18,7 +18,7 @@ import pandas as pd
 from pandas import DataFrame, Series, compat, date_range
 import pandas._testing as tm
 from pandas.core.computation import pytables
-from pandas.core.computation.check import _NUMEXPR_VERSION
+from pandas.core.computation.check import NUMEXPR_VERSION
 from pandas.core.computation.engines import NumExprClobberingError, _engines
 import pandas.core.computation.expr as expr
 from pandas.core.computation.expr import (
@@ -26,7 +26,7 @@ from pandas.core.computation.expr import (
     PandasExprVisitor,
     PythonExprVisitor,
 )
-from pandas.core.computation.expressions import _NUMEXPR_INSTALLED, _USE_NUMEXPR
+from pandas.core.computation.expressions import _USE_NUMEXPR, NUMEXPR_INSTALLED
 from pandas.core.computation.ops import (
     _arith_ops_syms,
     _binary_math_ops,
@@ -43,7 +43,7 @@ from pandas.core.computation.ops import (
             marks=pytest.mark.skipif(
                 engine == "numexpr" and not _USE_NUMEXPR,
                 reason=f"numexpr enabled->{_USE_NUMEXPR}, "
-                f"installed->{_NUMEXPR_INSTALLED}",
+                f"installed->{NUMEXPR_INSTALLED}",
             ),
         )
         for engine in _engines
@@ -60,15 +60,15 @@ def parser(request):
 
 @pytest.fixture
 def ne_lt_2_6_9():
-    if _NUMEXPR_INSTALLED and _NUMEXPR_VERSION >= LooseVersion("2.6.9"):
+    if NUMEXPR_INSTALLED and NUMEXPR_VERSION >= LooseVersion("2.6.9"):
         pytest.skip("numexpr is >= 2.6.9")
     return "numexpr"
 
 
 @pytest.fixture
 def unary_fns_for_ne():
-    if _NUMEXPR_INSTALLED:
-        if _NUMEXPR_VERSION >= LooseVersion("2.6.9"):
+    if NUMEXPR_INSTALLED:
+        if NUMEXPR_VERSION >= LooseVersion("2.6.9"):
             return _unary_math_ops
         else:
             return tuple(x for x in _unary_math_ops if x not in ("floor", "ceil"))

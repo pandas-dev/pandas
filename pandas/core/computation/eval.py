@@ -38,10 +38,10 @@ def _check_engine(engine: Optional[str]) -> str:
     str
         Engine name.
     """
-    from pandas.core.computation.check import _NUMEXPR_INSTALLED
+    from pandas.core.computation.check import NUMEXPR_INSTALLED
 
     if engine is None:
-        engine = "numexpr" if _NUMEXPR_INSTALLED else "python"
+        engine = "numexpr" if NUMEXPR_INSTALLED else "python"
 
     if engine not in _engines:
         valid_engines = list(_engines.keys())
@@ -53,7 +53,7 @@ def _check_engine(engine: Optional[str]) -> str:
     # that won't necessarily be import-able)
     # Could potentially be done on engine instantiation
     if engine == "numexpr":
-        if not _NUMEXPR_INSTALLED:
+        if not NUMEXPR_INSTALLED:
             raise ImportError(
                 "'numexpr' is not installed or an unsupported version. Cannot use "
                 "engine='numexpr' for query/eval if 'numexpr' is not installed"

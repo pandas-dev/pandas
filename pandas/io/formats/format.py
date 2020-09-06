@@ -256,7 +256,7 @@ class SeriesFormatter:
             float_format = get_option("display.float_format")
         self.float_format = float_format
         self.dtype = dtype
-        self.adj = _get_adjustment()
+        self.adj = get_adjustment()
 
         self._chk_truncate()
 
@@ -439,7 +439,7 @@ class EastAsianTextAdjustment(TextAdjustment):
             return [x.rjust(_get_pad(x)) for x in texts]
 
 
-def _get_adjustment() -> TextAdjustment:
+def get_adjustment() -> TextAdjustment:
     use_east_asian_width = get_option("display.unicode.east_asian_width")
     if use_east_asian_width:
         return EastAsianTextAdjustment()
@@ -628,7 +628,7 @@ class DataFrameFormatter(TableFormatter):
             self.columns = frame.columns
 
         self._chk_truncate()
-        self.adj = _get_adjustment()
+        self.adj = get_adjustment()
 
     def _chk_truncate(self) -> None:
         """
@@ -1735,7 +1735,7 @@ def _make_fixed_width(
         return strings
 
     if adj is None:
-        adj = _get_adjustment()
+        adj = get_adjustment()
 
     max_len = max(adj.len(x) for x in strings)
 
