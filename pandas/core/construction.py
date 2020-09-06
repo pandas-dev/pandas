@@ -472,7 +472,12 @@ def sanitize_array(
 
             # figure out the dtype from the value (upcast if necessary)
             if dtype is None:
-                dtype, value = infer_dtype_from_scalar(value, pandas_dtype=True)
+                dtype, new_value = infer_dtype_from_scalar(value, pandas_dtype=True)
+
+                # infer_dtype_from_scalar converts periods to their ordinal values
+                # which we do not want here
+                if not lib.is_period(value):
+                    value = new_value
             else:
                 # need to possibly convert the value here
                 value = maybe_cast_to_datetime(value, dtype)
