@@ -2138,6 +2138,7 @@ def test_groupby_column_index_name_lost_fill_funcs(func):
 
 @pytest.mark.parametrize("func", ["max", "min"])
 def test_groupby_rolling_index_changed(func):
+    # GH: #36018 nlevels of MultiIndex changed
     ds = pd.Series(
         [1, 2, 2],
         index=pd.MultiIndex.from_tuples(
