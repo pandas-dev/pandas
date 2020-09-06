@@ -136,6 +136,46 @@ def test_rolling_apply_consistency(
                 tm.assert_equal(rolling_f_result, rolling_apply_f_result)
 
 
+@pytest.mark.slow
+@pytest.mark.parametrize(
+    "window,min_periods,center", list(_rolling_consistency_cases())
+)
+def test_rolling_groupby(
+    base_functions, window, min_periods, center
+):
+    base_df = DataFrame({'group': 'A', 'data': randn(20)})
+
+    b_df = base_df.copy()
+    b_df['group'] = 'B'
+
+    grp_df = pd.concat([base_df, b_df]).groupby('group')
+
+    for (f, require_min_periods, name) in base_functions:
+        if (
+            require_min_periods
+            and (min_periods is not None)
+            and (min_periods < require_min_periods)
+        ):
+            continue
+
+        base_rolling_f = getattr(
+            base_df[['data']].rolling(window=window, center=center, min_periods=min_periods), name
+        )
+
+        grp_rolling_f = getattr(
+            grp_df[['data']].rolling(window=window, center=center, min_periods=min_periods), name
+        )
+
+        base_result = base_rolling_f().reset_index(drop=True)
+        grp_result = grp_rolling_f().reset_index()
+
+        a_result = grp_result[grp_result['group'] == 'A'][['data']].reset_index(drop=True)
+        b_result = grp_result[grp_result['group'] == 'B'][['data']].reset_index(drop=True)
+
+        tm.assert_frame_equal(base_result, a_result)
+        tm.assert_frame_equal(base_result, b_result)
+
+
 @pytest.mark.parametrize("window", range(7))
 def test_rolling_corr_with_zero_variance(window):
     # GH 18430
