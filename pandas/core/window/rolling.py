@@ -2218,12 +2218,10 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         result_index_data = []
         for key, values in self._groupby.grouper.indices.items():
             for value in values:
-                data = [key] if not is_list_like(key) else [*key]
-                if is_list_like(grouped_object_index[value]):
-                    grouped_object_index_value = [*grouped_object_index[value]]
-                else:
-                    grouped_object_index_value = [grouped_object_index[value]]
-                data.extend(grouped_object_index_value)
+                data = [
+                    *com.maybe_make_list(key),
+                    *com.maybe_make_list(grouped_object_index[value]),
+                ]
                 result_index_data.append(tuple(data))
 
         result_index = MultiIndex.from_tuples(
