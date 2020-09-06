@@ -38,11 +38,11 @@ class TestAstype:
     @pytest.mark.parametrize("errors", ["raise", "ignore"])
     def test_astype_ignores_errors_for_extension_dtypes(self, values, errors):
         # https://github.com/pandas-dev/pandas/issues/35471
-        expected = values
         if errors == "ignore":
+            expected = values
             result = expected.astype(float, errors="ignore")
             tm.assert_series_equal(result, expected)
         else:
             msg = "(Cannot cast)|(could not convert)"
             with pytest.raises((ValueError, TypeError), match=msg):
-                expected.astype(float, errors=errors)
+                values.astype(float, errors=errors)
