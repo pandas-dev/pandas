@@ -171,6 +171,8 @@ class Styler:
         self.cell_ids = cell_ids
         self.na_rep = na_rep
 
+        self.cell_context: Dict = {}
+
         # display_funcs maps (row, col) -> formatting function
 
         def default_display_func(x):
@@ -262,7 +264,7 @@ class Styler:
         idx_lengths = _get_level_lengths(self.index)
         col_lengths = _get_level_lengths(self.columns, hidden_columns)
 
-        cell_context = dict()
+        cell_context = self.cell_context
 
         n_rlvls = self.data.index.nlevels
         n_clvls = self.data.columns.nlevels
@@ -497,6 +499,49 @@ class Styler:
             locs = product(*(row_locs, col_locs))
             for i, j in locs:
                 self._display_funcs[(i, j)] = formatter
+        return self
+
+    def set_data_classes(self, classes: DataFrame) -> "Styler":
+        """
+        Add string based CSS class names to data cells that will appear in the
+        `Styler` HTML result.
+
+        Parameters
+        ----------
+        classes : DataFrame
+            DataFrame containing strings that will be translated to CSS classes. Empty
+            strings, None, or NaN values will be ignored. DataFrame must have
+            identical rows and columns to the underlying `Styler` data.
+
+        Returns
+        -------
+        self : Styler
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(data=[[1, 2, 3], [4, 5, 6]], columns=['A', 'B', 'C'])
+        >>> classes = pd.DataFrame([
+        ...     ['min-num red', '', 'blue'],
+        ...     ['red', None, 'blue max-num']
+        ... ], index=df.index, columns=df.columns)
+        >>> df.style.set_data_classes(classes)
+        """
+        if not (
+            self.columns.equals(classes.columns) and self.index.equals(classes.index)
+        ):
+            raise ValueError(
+                "CSS classes DataFrame must have identical column and index labelling "
+                "to underlying."
+            )
+
+        mask = (classes.isna()) | (classes.eq(""))
+        self.cell_context["data"] = {
+            r: {c: [classes.iloc[r, c]]}
+            for r, rn in enumerate(classes.index)
+            for c, cn in enumerate(classes.columns)
+            if not mask.iloc[r, c]
+        }
+
         return self
 
     def render(self, **kwargs) -> str:

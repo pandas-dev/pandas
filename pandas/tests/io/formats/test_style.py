@@ -1691,6 +1691,19 @@ class TestStyler:
         s = styler.render()  # render twice to ensure ctx is not updated
         assert s.find('<td  class="data row0 col0" >') != -1
 
+    def test_set_data_classes(self):
+        df = pd.DataFrame(data=[[0, 1], [2, 3]])
+        classes = pd.DataFrame(
+            data=[["test-class", ""], [np.nan, None]],
+            columns=df.columns,
+            index=df.index,
+        )
+        s = Styler(df, uuid="_", cell_ids=False).set_data_classes(classes).render()
+        assert '<td  class="data row0 col0 test-class" >0</td>' in s
+        assert '<td  class="data row0 col1" >1</td>' in s
+        assert '<td  class="data row1 col0" >2</td>' in s
+        assert '<td  class="data row1 col1" >3</td>' in s
+
 
 @td.skip_if_no_mpl
 class TestStylerMatplotlibDep:
