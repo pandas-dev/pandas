@@ -88,7 +88,7 @@ from pandas.core.indexes.frozen import FrozenList
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
 from pandas.core.ops.invalid import make_invalid_op
-from pandas.core.sorting import ensure_key_mapped
+from pandas.core.sorting import ensure_key_mapped, nargsort
 from pandas.core.strings import StringMethods
 
 from pandas.io.formats.printing import (
@@ -4443,7 +4443,11 @@ class Index(IndexOpsMixin, PandasObject):
         return result
 
     def sort_values(
-        self, return_indexer=False, ascending=True, key: Optional[Callable] = None
+        self,
+        return_indexer=False,
+        ascending=True,
+        na_position: str_t = "last",
+        key: Optional[Callable] = None,
     ):
         """
         Return a sorted copy of the index.
@@ -4457,6 +4461,12 @@ class Index(IndexOpsMixin, PandasObject):
             Should the indices that would sort the index be returned.
         ascending : bool, default True
             Should the index values be sorted in an ascending order.
+        na_position : {'first' or 'last'}, default 'last'
+            Argument 'first' puts NaNs at the beginning, 'last' puts NaNs at
+            the end.
+
+            .. versionadded:: 1.2.0
+
         key : callable, optional
             If not None, apply the key function to the index values
             before sorting. This is similar to the `key` argument in the
@@ -4497,9 +4507,16 @@ class Index(IndexOpsMixin, PandasObject):
         """
         idx = ensure_key_mapped(self, key)
 
-        _as = idx.argsort()
-        if not ascending:
-            _as = _as[::-1]
+        # GH 35584. Sort missing values according to na_position kwarg
+        # ignore na_position for MutiIndex
+        if not isinstance(self, ABCMultiIndex):
+            _as = nargsort(
+                items=idx, ascending=ascending, na_position=na_position, key=key
+            )
+        else:
+            _as = idx.argsort()
+            if not ascending:
+                _as = _as[::-1]
 
         sorted_index = self.take(_as)
 
