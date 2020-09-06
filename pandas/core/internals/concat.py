@@ -23,7 +23,7 @@ from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import DatetimeArray, ExtensionArray
 from pandas.core.internals.blocks import make_block
 from pandas.core.internals.managers import BlockManager
 
@@ -334,9 +334,13 @@ def _concatenate_join_units(join_units, concat_axis, copy):
         # the non-EA values are 2D arrays with shape (1, n)
         to_concat = [t if isinstance(t, ExtensionArray) else t[0, :] for t in to_concat]
         concat_values = concat_compat(to_concat, axis=0)
-        if not isinstance(concat_values, ExtensionArray):
+        if not isinstance(concat_values, ExtensionArray) or (
+            isinstance(concat_values, DatetimeArray) and concat_values.tz is None
+        ):
             # if the result of concat is not an EA but an ndarray, reshape to
             # 2D to put it a non-EA Block
+            # special case DatetimeArray, which *is* an EA, but is put in a
+            # consolidated 2D block
             concat_values = np.atleast_2d(concat_values)
     else:
         concat_values = concat_compat(to_concat, axis=concat_axis,)
