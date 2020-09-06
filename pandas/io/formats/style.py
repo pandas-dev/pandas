@@ -654,6 +654,7 @@ class Styler:
         Returns None.
         """
         self.ctx.clear()
+        self.cell_context = {}
         self._todo = []
 
     def _compute(self):
