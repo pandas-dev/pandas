@@ -395,7 +395,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         from pandas.core.dtypes.common import DT64NS_DTYPE, is_datetime64tz_dtype
 
         from pandas.core.util.hashing import (
-            _combine_hash_arrays,
+            combine_hash_arrays,
             hash_array,
             hash_tuples,
         )
@@ -427,7 +427,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             )
         else:
             cat_array = [cat_array]
-        hashed = _combine_hash_arrays(iter(cat_array), num_items=len(cat_array))
+        hashed = combine_hash_arrays(iter(cat_array), num_items=len(cat_array))
         return np.bitwise_xor.reduce(hashed)
 
     @classmethod

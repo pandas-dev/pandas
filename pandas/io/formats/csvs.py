@@ -21,12 +21,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import notna
 
-from pandas.io.common import (
-    get_compression_method,
-    get_filepath_or_buffer,
-    get_handle,
-    infer_compression,
-)
+from pandas.io.common import get_filepath_or_buffer, get_handle
 
 
 class CSVFormatter:
@@ -60,16 +55,19 @@ class CSVFormatter:
         if path_or_buf is None:
             path_or_buf = StringIO()
 
-        # Extract compression mode as given, if dict
-        compression, self.compression_args = get_compression_method(compression)
-
-        self.path_or_buf, _, _, self.should_close = get_filepath_or_buffer(
+        ioargs = get_filepath_or_buffer(
             path_or_buf,
             encoding=encoding,
             compression=compression,
             mode=mode,
             storage_options=storage_options,
         )
+        self.compression = ioargs.compression.pop("method")
+        self.compression_args = ioargs.compression
+        self.path_or_buf = ioargs.filepath_or_buffer
+        self.should_close = ioargs.should_close
+        self.mode = ioargs.mode
+
         self.sep = sep
         self.na_rep = na_rep
         self.float_format = float_format
@@ -78,12 +76,10 @@ class CSVFormatter:
         self.header = header
         self.index = index
         self.index_label = index_label
-        self.mode = mode
         if encoding is None:
             encoding = "utf-8"
         self.encoding = encoding
         self.errors = errors
-        self.compression = infer_compression(self.path_or_buf, compression)
 
         if quoting is None:
             quoting = csvlib.QUOTE_MINIMAL

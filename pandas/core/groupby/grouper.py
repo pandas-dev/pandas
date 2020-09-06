@@ -393,7 +393,7 @@ class Grouping:
     ----------
     index : Index
     grouper :
-    obj Union[DataFrame, Series]:
+    obj : DataFrame or Series
     name : Label
     level :
     observed : bool, default False
@@ -568,7 +568,9 @@ class Grouping:
     @cache_readonly
     def result_index(self) -> Index:
         if self.all_grouper is not None:
-            return recode_from_groupby(self.all_grouper, self.sort, self.group_index)
+            group_idx = self.group_index
+            assert isinstance(group_idx, CategoricalIndex)  # set in __init__
+            return recode_from_groupby(self.all_grouper, self.sort, group_idx)
         return self.group_index
 
     @property
@@ -585,8 +587,13 @@ class Grouping:
                 codes = self.grouper.codes_info
                 uniques = self.grouper.result_index
             else:
+                # GH35667, replace dropna=False with na_sentinel=None
+                if not self.dropna:
+                    na_sentinel = None
+                else:
+                    na_sentinel = -1
                 codes, uniques = algorithms.factorize(
-                    self.grouper, sort=self.sort, dropna=self.dropna
+                    self.grouper, sort=self.sort, na_sentinel=na_sentinel
                 )
                 uniques = Index(uniques, name=self.name)
             self._codes = codes
@@ -607,7 +614,7 @@ def get_grouper(
     mutated: bool = False,
     validate: bool = True,
     dropna: bool = True,
-) -> "Tuple[ops.BaseGrouper, List[Hashable], FrameOrSeries]":
+) -> Tuple["ops.BaseGrouper", List[Hashable], FrameOrSeries]:
     """
     Create and return a BaseGrouper, which is an internal
     mapping of how to create the grouper indexers.
@@ -753,9 +760,9 @@ def get_grouper(
             return False
         try:
             return gpr is obj[gpr.name]
-        except (KeyError, IndexError, ValueError):
-            # TODO: ValueError: Given date string not likely a datetime.
-            # should be KeyError?
+        except (KeyError, IndexError):
+            # IndexError reached in e.g. test_skip_group_keys when we pass
+            #  lambda here
             return False
 
     for i, (gpr, level) in enumerate(zip(keys, levels)):
