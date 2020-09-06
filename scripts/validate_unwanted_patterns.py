@@ -30,6 +30,8 @@ PRIVATE_IMPORTS_TO_IGNORE: Set[str] = {
     "_doc_template",
     "_agg_template",
     "_pipe_template",
+    "_get_version",
+    "__main__",
     "_transform_template",
     "_arith_doc_FRAME",
     "_flex_comp_doc_FRAME",
