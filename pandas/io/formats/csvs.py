@@ -5,7 +5,7 @@ Module for formatting output data into CSV files.
 import csv as csvlib
 from io import StringIO, TextIOWrapper
 import os
-from typing import Hashable, Iterator, List, Optional, Sequence, Union
+from typing import Any, Dict, Hashable, Iterator, List, Optional, Sequence, Union
 
 import numpy as np
 
@@ -169,7 +169,7 @@ class CSVFormatter:
             return list(cols)
 
     @property
-    def _number_format(self) -> dict:
+    def _number_format(self) -> Dict[str, Any]:
         """Dictionary used for storing number formatting settings."""
         return dict(
             na_rep=self.na_rep,
