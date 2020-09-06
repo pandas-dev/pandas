@@ -2,15 +2,18 @@ from copy import copy
 
 from cython import Py_ssize_t
 
-from libc.stdlib cimport malloc, free
+from libc.stdlib cimport free, malloc
 
 import numpy as np
+
 cimport numpy as cnp
-from numpy cimport ndarray, int64_t
+from numpy cimport int64_t, ndarray
+
 cnp.import_array()
 
 from pandas._libs cimport util
-from pandas._libs.lib import maybe_convert_objects, is_scalar
+
+from pandas._libs.lib import is_scalar, maybe_convert_objects
 
 
 cdef _check_result_array(object obj, Py_ssize_t cnt):
@@ -50,6 +53,7 @@ cdef class _BaseGrouper:
             # to a 1-d ndarray like datetime / timedelta / period.
             object.__setattr__(cached_ityp, '_index_data', islider.buf)
             cached_ityp._engine.clear_mapping()
+            cached_ityp._cache.clear()  # e.g. inferred_freq must go
             object.__setattr__(cached_typ._mgr._block, 'values', vslider.buf)
             object.__setattr__(cached_typ._mgr._block, 'mgr_locs',
                                slice(len(vslider.buf)))
@@ -68,6 +72,7 @@ cdef class _BaseGrouper:
             object res
 
         cached_ityp._engine.clear_mapping()
+        cached_ityp._cache.clear()  # e.g. inferred_freq must go
         res = self.f(cached_typ)
         res = _extract_result(res)
         if not initialized:
@@ -452,6 +457,7 @@ cdef class BlockSlider:
 
         object.__setattr__(self.index, '_index_data', self.idx_slider.buf)
         self.index._engine.clear_mapping()
+        self.index._cache.clear()  # e.g. inferred_freq must go
 
     cdef reset(self):
         cdef:
