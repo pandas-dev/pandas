@@ -393,14 +393,16 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                 # insert at the end
                 result[name] = extra_col
 
-    def calculate_center_offset(self, window, center) -> int:
+    def calculate_center_offset(self, window, center: bool) -> int:
         """
         Calculate an offset necessary to have the window label to be centered.
 
         Parameters
         ----------
-        window: ndarray or int
+        window : ndarray or int
             window weights or window
+        center : bool
+            Set the labels at the center of the window.
 
         Returns
         -------
@@ -561,11 +563,11 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             if values.size == 0:
                 return values.copy()
 
-            offset = (
-                self.calculate_center_offset(window, center=center)
-                if func_type in ["fixed", "weighted"]
-                else 0
-            )
+            if func_type in ["fixed", "weighted"]:
+                offset = self.calculate_center_offset(window, center)
+            else:
+                offset = 0
+
             additional_nans = np.array([np.nan] * offset)
 
             if not is_weighted:
@@ -1417,7 +1419,7 @@ class _Rolling_and_Expanding(_Rolling):
             # _apply's center handling
             window = self._get_window()
 
-            offset = self.calculate_center_offset(window, center=self.center)
+            offset = self.calculate_center_offset(window, self.center)
             apply_func = self._generate_cython_apply_func(
                 args, kwargs, raw, offset, func
             )
@@ -2295,14 +2297,16 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         obj = obj.take(groupby_order)
         return super()._create_blocks(obj)
 
-    def calculate_center_offset(self, window, center) -> int:
+    def calculate_center_offset(self, window, center: bool) -> int:
         """
         Calculate an offset necessary to have the window label to be centered.
 
         Parameters
         ----------
-        window: ndarray or int
+        window : ndarray or int
             window weights or window
+        center : bool
+            Set the labels at the center of the window.
 
         Returns
         -------
