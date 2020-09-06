@@ -256,7 +256,7 @@ class SeriesFormatter:
             float_format = get_option("display.float_format")
         self.float_format = float_format
         self.dtype = dtype
-        self.adj = _get_adjustment()
+        self.adj = get_adjustment()
 
         self._chk_truncate()
 
@@ -345,6 +345,7 @@ class SeriesFormatter:
             None,
             float_format=self.float_format,
             na_rep=self.na_rep,
+            leading_space=self.index,
         )
 
     def to_string(self) -> str:
@@ -439,7 +440,7 @@ class EastAsianTextAdjustment(TextAdjustment):
             return [x.rjust(_get_pad(x)) for x in texts]
 
 
-def _get_adjustment() -> TextAdjustment:
+def get_adjustment() -> TextAdjustment:
     use_east_asian_width = get_option("display.unicode.east_asian_width")
     if use_east_asian_width:
         return EastAsianTextAdjustment()
@@ -628,7 +629,7 @@ class DataFrameFormatter(TableFormatter):
             self.columns = frame.columns
 
         self._chk_truncate()
-        self.adj = _get_adjustment()
+        self.adj = get_adjustment()
 
     def _chk_truncate(self) -> None:
         """
@@ -960,6 +961,7 @@ class DataFrameFormatter(TableFormatter):
             na_rep=self.na_rep,
             space=self.col_space.get(frame.columns[i]),
             decimal=self.decimal,
+            leading_space=self.index,
         )
 
     def to_html(
@@ -1111,7 +1113,7 @@ def format_array(
     space: Optional[Union[str, int]] = None,
     justify: str = "right",
     decimal: str = ".",
-    leading_space: Optional[bool] = None,
+    leading_space: Optional[bool] = True,
     quoting: Optional[int] = None,
 ) -> List[str]:
     """
@@ -1127,7 +1129,7 @@ def format_array(
     space
     justify
     decimal
-    leading_space : bool, optional
+    leading_space : bool, optional, default True
         Whether the array should be formatted with a leading space.
         When an array as a column of a Series or DataFrame, we do want
         the leading space to pad between columns.
@@ -1194,7 +1196,7 @@ class GenericArrayFormatter:
         decimal: str = ".",
         quoting: Optional[int] = None,
         fixed_width: bool = True,
-        leading_space: Optional[bool] = None,
+        leading_space: Optional[bool] = True,
     ):
         self.values = values
         self.digits = digits
@@ -1395,9 +1397,11 @@ class FloatArrayFormatter(GenericArrayFormatter):
         float_format: Optional[FloatFormatType]
         if self.float_format is None:
             if self.fixed_width:
-                float_format = partial(
-                    "{value: .{digits:d}f}".format, digits=self.digits
-                )
+                if self.leading_space is True:
+                    fmt_str = "{value: .{digits:d}f}"
+                else:
+                    fmt_str = "{value:.{digits:d}f}"
+                float_format = partial(fmt_str.format, digits=self.digits)
             else:
                 float_format = self.float_format
         else:
@@ -1429,7 +1433,11 @@ class FloatArrayFormatter(GenericArrayFormatter):
             ).any()
 
         if has_small_values or (too_long and has_large_values):
-            float_format = partial("{value: .{digits:d}e}".format, digits=self.digits)
+            if self.leading_space is True:
+                fmt_str = "{value: .{digits:d}e}"
+            else:
+                fmt_str = "{value:.{digits:d}e}"
+            float_format = partial(fmt_str.format, digits=self.digits)
             formatted_values = format_values_with(float_format)
 
         return formatted_values
@@ -1444,7 +1452,11 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
 class IntArrayFormatter(GenericArrayFormatter):
     def _format_strings(self) -> List[str]:
-        formatter = self.formatter or (lambda x: f"{x: d}")
+        if self.leading_space is False:
+            formatter_str = lambda x: f"{x:d}".format(x=x)
+        else:
+            formatter_str = lambda x: f"{x: d}".format(x=x)
+        formatter = self.formatter or formatter_str
         fmt_values = [formatter(x) for x in self.values]
         return fmt_values
 
@@ -1624,7 +1636,7 @@ def _format_datetime64_dateonly(
         return x._date_repr
 
 
-def _get_format_datetime64(
+def get_format_datetime64(
     is_dates_only: bool, nat_rep: str = "NaT", date_format: None = None
 ) -> Callable:
 
@@ -1656,7 +1668,7 @@ class Datetime64TZFormatter(Datetime64Formatter):
         """ we by definition have a TZ """
         values = self.values.astype(object)
         is_dates_only = _is_dates_only(values)
-        formatter = self.formatter or _get_format_datetime64(
+        formatter = self.formatter or get_format_datetime64(
             is_dates_only, date_format=self.date_format
         )
         fmt_values = [formatter(x) for x in values]
@@ -1733,7 +1745,7 @@ def _make_fixed_width(
         return strings
 
     if adj is None:
-        adj = _get_adjustment()
+        adj = get_adjustment()
 
     max_len = max(adj.len(x) for x in strings)
 
