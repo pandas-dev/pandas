@@ -94,9 +94,9 @@ class TestMethods(base.BaseMethodsTests):
     def test_value_counts(self, all_data, dropna):
         return super().test_value_counts(all_data, dropna)
 
-
-class TestCasting(base.BaseCastingTests):
-    pass
+#
+# class TestCasting(base.BaseCastingTests):
+#    pass
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
