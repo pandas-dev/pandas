@@ -70,7 +70,7 @@ Further, operations among the scalars yield another scalar ``Timedelta``.
    pd.Timedelta(pd.offsets.Day(2)) + pd.Timedelta(pd.offsets.Second(2)) +\
        pd.Timedelta('00:00:00.000123')
 
-To_timedelta
+to_timedelta
 ~~~~~~~~~~~~
 
 Using the top-level ``pd.to_timedelta``, you can convert a scalar, array, list,

@@ -141,12 +141,13 @@ CAPITALIZATION_EXCEPTIONS = {
     "False",
     "Styler",
     "os",
-    "Cython"
+    "Cython",
     "Numba",
     "MultiIndexes",
     "CSV",
     "OpenDocument",
-    "msgpack"
+    "msgpack",
+    "ix",
 }
 
 CAP_EXCEPTIONS_DICT = {word.lower(): word for word in CAPITALIZATION_EXCEPTIONS}

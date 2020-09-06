@@ -573,7 +573,7 @@ without using a temporary variable.
 
 .. _indexing.deprecate_ix:
 
-Ix indexer is deprecated
+ix indexer is deprecated
 ------------------------
 
 .. warning::
@@ -1625,7 +1625,7 @@ Missing values
    idx2
    idx2.fillna(pd.Timestamp('2011-01-02'))
 
-Set / reset Index
+Set / reset index
 -----------------
 
 Occasionally you will load or create a data set into a DataFrame and want to
@@ -1634,7 +1634,7 @@ ways.
 
 .. _indexing.set_index:
 
-Set an Index
+Set an index
 ~~~~~~~~~~~~
 
 DataFrame has a :meth:`~DataFrame.set_index` method which takes a column name
@@ -1675,7 +1675,7 @@ the index in-place (without creating a new object):
    data.set_index(['a', 'b'], inplace=True)
    data
 
-Reset the Index
+Reset the index
 ~~~~~~~~~~~~~~~
 
 As a convenience, there is a new function on DataFrame called
@@ -1703,7 +1703,7 @@ You can use the ``level`` keyword to remove only a portion of the index:
 ``reset_index`` takes an optional parameter ``drop`` which if true simply
 discards the index, instead of putting index values in the DataFrame's columns.
 
-Adding an ad hoc Index
+Adding an ad hoc index
 ~~~~~~~~~~~~~~~~~~~~~~
 
 If you create an index yourself, you can just assign it to the ``index`` field:
