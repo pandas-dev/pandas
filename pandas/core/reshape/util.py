@@ -40,11 +40,11 @@ def cartesian_product(X):
     cumprodX = np.cumproduct(lenX)
 
     a = np.roll(cumprodX, 1)
-    
+
     msg = "Product space too large to allocate arrays!"
     if np.any(cumprodX < 0):
         raise ValueError(msg)
-    
+
     a[0] = 1
 
     if cumprodX[-1] != 0:
