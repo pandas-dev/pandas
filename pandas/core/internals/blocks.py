@@ -1678,7 +1678,7 @@ class ExtensionBlock(Block):
         if isinstance(new, (np.ndarray, ExtensionArray)) and len(new) == len(mask):
             new = new[mask]
 
-        mask = _safe_reshape(mask, new_values.shape)
+        mask = safe_reshape(mask, new_values.shape)
 
         new_values[mask] = new
         return [self.make_block(values=new_values)]
@@ -2820,7 +2820,7 @@ def _block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
     return values
 
 
-def _safe_reshape(arr, new_shape):
+def safe_reshape(arr, new_shape):
     """
     If possible, reshape `arr` to have shape `new_shape`,
     with a couple of exceptions (see gh-13012):

@@ -462,7 +462,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     return f(comps, values)
 
 
-def _factorize_array(
+def factorize_array(
     values, na_sentinel: int = -1, size_hint=None, na_value=None, mask=None
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
@@ -671,7 +671,7 @@ def factorize(
         else:
             na_value = None
 
-        codes, uniques = _factorize_array(
+        codes, uniques = factorize_array(
             values, na_sentinel=na_sentinel, size_hint=size_hint, na_value=na_value
         )
 

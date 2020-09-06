@@ -12,16 +12,16 @@ import pandas.core.computation.expr as expr
 def test_compat():
     # test we have compat with our version of nu
 
-    from pandas.core.computation.check import _NUMEXPR_INSTALLED
+    from pandas.core.computation.check import NUMEXPR_INSTALLED
 
     try:
         import numexpr as ne
 
         ver = ne.__version__
         if LooseVersion(ver) < LooseVersion(VERSIONS["numexpr"]):
-            assert not _NUMEXPR_INSTALLED
+            assert not NUMEXPR_INSTALLED
         else:
-            assert _NUMEXPR_INSTALLED
+            assert NUMEXPR_INSTALLED
     except ImportError:
         pytest.skip("not testing numexpr version compat")
 

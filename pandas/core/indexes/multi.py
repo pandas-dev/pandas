@@ -1342,9 +1342,9 @@ class MultiIndex(Index):
             )
 
         if adjoin:
-            from pandas.io.formats.format import _get_adjustment
+            from pandas.io.formats.format import get_adjustment
 
-            adj = _get_adjustment()
+            adj = get_adjustment()
             return adj.adjoin(space, *result_levels).split("\n")
         else:
             return result_levels

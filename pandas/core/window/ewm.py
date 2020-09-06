@@ -15,7 +15,7 @@ from pandas.core.dtypes.common import is_datetime64_ns_dtype
 
 import pandas.core.common as common
 from pandas.core.window.common import _doc_template, _shared_docs, zsqrt
-from pandas.core.window.rolling import _flex_binary_moment, _Rolling
+from pandas.core.window.rolling import _Rolling, flex_binary_moment
 
 _bias_template = """
         Parameters
@@ -416,7 +416,7 @@ class ExponentialMovingWindow(_Rolling):
             )
             return X._wrap_result(cov)
 
-        return _flex_binary_moment(
+        return flex_binary_moment(
             self._selected_obj, other._selected_obj, _get_cov, pairwise=bool(pairwise)
         )
 
@@ -470,6 +470,6 @@ class ExponentialMovingWindow(_Rolling):
                 corr = cov / zsqrt(x_var * y_var)
             return X._wrap_result(corr)
 
-        return _flex_binary_moment(
+        return flex_binary_moment(
             self._selected_obj, other._selected_obj, _get_corr, pairwise=bool(pairwise)
         )

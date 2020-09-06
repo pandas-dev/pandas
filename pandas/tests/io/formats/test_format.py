@@ -226,7 +226,7 @@ class TestDataFrameFormatting:
             r = repr(df)
             r = r[r.find("\n") + 1 :]
 
-            adj = fmt._get_adjustment()
+            adj = fmt.get_adjustment()
 
             for line, value in zip(r.split("\n"), df["B"]):
                 if adj.len(value) + 1 > max_len:
