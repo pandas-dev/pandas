@@ -175,6 +175,14 @@ class AttributesMixin:
         """
         raise AbstractMethodError(self)
 
+    @classmethod
+    def _rebox_native(cls, value: int) -> Union[int, np.datetime64, np.timedelta64]:
+        """
+        Box an integer unboxed via _unbox_scalar into the native type for
+        the underlying ndarray.
+        """
+        raise AbstractMethodError(cls)
+
     def _unbox_scalar(self, value: DTScalarOrNaT) -> int:
         """
         Unbox the integer value of a scalar `value`.
@@ -464,7 +472,9 @@ class DatetimeLikeArrayMixin(
 
     def _from_backing_data(self: _T, arr: np.ndarray) -> _T:
         # Note: we do not retain `freq`
-        return type(self)._simple_new(arr, dtype=self.dtype)
+        return type(self)._simple_new(  # type: ignore[attr-defined]
+            arr, dtype=self.dtype
+        )
 
     # ------------------------------------------------------------------
 
@@ -717,7 +727,7 @@ class DatetimeLikeArrayMixin(
 
         Returns
         -------
-        fill_value : np.int64
+        fill_value : np.int64, np.datetime64, or np.timedelta64
 
         Raises
         ------
@@ -732,12 +742,7 @@ class DatetimeLikeArrayMixin(
         except TypeError as err:
             raise ValueError(msg) from err
         rv = self._unbox(fill_value)
-        if self.dtype.kind == "M":
-            return np.int64(rv).view("M8[ns]")
-        elif self.dtype.kind == "m":
-            return np.int64(rv).view("m8[ns]")
-        else:
-            return rv
+        return self._rebox_native(rv)
 
     def _validate_shift_value(self, fill_value):
         # TODO(2.0): once this deprecation is enforced, use _validate_fill_value
