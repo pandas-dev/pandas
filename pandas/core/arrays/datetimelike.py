@@ -462,7 +462,6 @@ class DatetimeLikeArrayMixin(
     #  kludge in libreduction
     @property
     def _ndarray(self) -> np.ndarray:
-        # NB: A bunch of Interval tests fail if we use ._data
         return self._data
 
     def _from_backing_data(self: _T, arr: np.ndarray) -> _T:
