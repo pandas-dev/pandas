@@ -448,7 +448,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             )
         return window_func
 
-    def _get_cython_func_type(self, func: str) -> Callable:
+    def _get_cython_func_type(self, func: str) -> Tuple[Callable[..., Any], str]:
         """
         Return a variable or fixed cython function type.
 
@@ -2315,7 +2315,7 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
             window = len(window)
         return int((window - 1) / 2.0)
 
-    def _get_cython_func_type(self, func: str) -> Callable:
+    def _get_cython_func_type(self, func: str) -> Tuple[Callable[..., Any], str]:
         """
         Return the cython function type.
 
