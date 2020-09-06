@@ -463,13 +463,11 @@ class DatetimeLikeArrayMixin(
     @property
     def _ndarray(self) -> np.ndarray:
         # NB: A bunch of Interval tests fail if we use ._data
-        return self.asi8
+        return self._data
 
     def _from_backing_data(self: _T, arr: np.ndarray) -> _T:
         # Note: we do not retain `freq`
-        # error: Too many arguments for "NDArrayBackedExtensionArray"
-        # error: Unexpected keyword argument "dtype" for "NDArrayBackedExtensionArray"
-        return type(self)(arr, dtype=self.dtype)  # type: ignore[call-arg]
+        return type(self)._simple_new(arr, dtype=self.dtype)
 
     # ------------------------------------------------------------------
 
@@ -736,7 +734,13 @@ class DatetimeLikeArrayMixin(
             fill_value = self._validate_scalar(fill_value, msg)
         except TypeError as err:
             raise ValueError(msg) from err
-        return self._unbox(fill_value)
+        rv = self._unbox(fill_value)
+        if self.dtype.kind == "M":
+            return np.int64(rv).view("M8[ns]")
+        elif self.dtype.kind == "m":
+            return np.int64(rv).view("m8[ns]")
+        else:
+            return rv
 
     def _validate_shift_value(self, fill_value):
         # TODO(2.0): once this deprecation is enforced, use _validate_fill_value
