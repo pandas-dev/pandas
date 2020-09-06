@@ -1199,9 +1199,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             # this is to silence a DeprecationWarning
             # TODO: Remove when default dtype of empty Series is object
             kwargs = first_not_none._construct_axes_dict()
-            backup = create_series_with_explicit_dtype(
-                dtype_if_empty=object, **kwargs
-            )
+            backup = create_series_with_explicit_dtype(dtype_if_empty=object, **kwargs)
 
             values = [x if (x is not None) else backup for x in values]
 
@@ -1222,9 +1220,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             # unique
             if self.squeeze:
                 applied_index = self._selected_obj._get_axis(self.axis)
-                singular_series = (
-                    len(values) == 1 and applied_index.nlevels == 1
-                )
+                singular_series = len(values) == 1 and applied_index.nlevels == 1
 
                 # assign the name to this series
                 if singular_series:
@@ -1268,15 +1264,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 columns = key_index
                 stacked_values = stacked_values.T
 
-            result = self.obj._constructor(
-                stacked_values, index=index, columns=columns
-            )
+            result = self.obj._constructor(stacked_values, index=index, columns=columns)
 
         elif not self.as_index:
             # We add grouping column below, so create a frame here
-            result = DataFrame(
-                values, index=key_index, columns=[self._selection]
-            )
+            result = DataFrame(values, index=key_index, columns=[self._selection])
         else:
             # GH#1738: values is list of arrays of unequal lengths
             #  fall through to the outer else clause
