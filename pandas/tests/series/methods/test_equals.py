@@ -31,9 +31,8 @@ def test_equals_list_array():
     s2 = s1.copy()
     assert s1.equals(s2)
 
-    # TODO: Series equals should also work between single value and list
-    # s1[1] = 9
-    # assert not s1.equals(s2)
+    s1[1] = 9
+    assert not s1.equals(s2)
 
 
 def test_equals_false_negative():

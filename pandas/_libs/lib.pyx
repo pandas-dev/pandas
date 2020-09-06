@@ -581,6 +581,13 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
                     return False
             elif (x is C_NA) ^ (y is C_NA):
                 return False
+            # Only compare scalars to scalars and arrays to arrays
+            elif cnp.PyArray_IsAnyScalar(x) != cnp.PyArray_IsAnyScalar(y):
+                return False
+            # Check if arrays have the same type
+            elif not (cnp.PyArray_IsPythonScalar(x) or cnp.PyArray_IsPythonScalar(y)) \
+            and not (isinstance(x, type(y)) or isinstance(y, type(x))):
+                return False
             elif not (PyObject_RichCompareBool(x, y, Py_EQ) or
                       (x is None or is_nan(x)) and (y is None or is_nan(y))):
                 return False
