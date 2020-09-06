@@ -150,7 +150,6 @@ def concat_compat(to_concat, axis: int = 0):
     if any_ea:
         # we ignore axis here, as internally concatting with EAs is always
         # for axis=0
-        # assert axis == 0
         if not single_dtype:
             target_dtype = find_common_type([x.dtype for x in to_concat])
             to_concat = [_cast_to_common_type(arr, target_dtype) for arr in to_concat]
