@@ -171,9 +171,11 @@ class Styler:
         self.cell_ids = cell_ids
         self.na_rep = na_rep
 
-        self.tooltip_styles: List[Dict[str, object]] = []  # VERSION ADDED 1.X
-        self.tooltip_class = None
-        self.tooltip_class_styles = None
+        self.tooltip_styles: List[Dict[str, object]] = []
+        self.tooltip_class: str = ""
+        self.tooltip_class_styles: List[
+            Union[Dict[str, str], Dict[str, List[Tuple[str, str]]]]
+        ] = []
         self.set_tooltip_class(name="pd-t", properties=None)
 
         # display_funcs maps (row, col) -> formatting function
@@ -810,7 +812,7 @@ class Styler:
             lambda val: value if cond(val) else other, subset=subset, **kwargs
         )
 
-    def set_tooltips(self, ttips: DataFrame):
+    def set_tooltips(self, ttips: DataFrame) -> "Styler":
         """
         Add string based tooltips that will appear in the `Styler` HTML result.
 
@@ -834,49 +836,63 @@ class Styler:
         Tooltips are not designed to be efficient, and can add large amounts of
         additional HTML for larger tables, since they also require that `cell_ids`
         is forced to `True`.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(data=[[0, 1], [2, 3]])
+        >>> ttips = pd.DataFrame(
+        ...    data=[["Min", ""], [np.nan, "Max"]], columns=df.columns, index=df.index
+        ... )
+        >>> s = Styler(df, uuid="_").set_tooltips(ttips).render()
         """
         if not (self.columns.equals(ttips.columns) and self.index.equals(ttips.index)):
-            raise AttributeError(
+            raise ValueError(
                 "Tooltips DataFrame must have identical column and index labelling "
                 "to underlying."
             )
 
-        self.cell_ids = True  # tooltips only work with individual cell_ids
-        self.tooltip_styles = []
-        for i, rn in enumerate(ttips.index):
-            for j, cn in enumerate(ttips.columns):
-                if ttips.iloc[i, j] in [np.nan, "", None]:
-                    continue
-                else:
-                    # add pseudo-class and pseudo-elements to css to create tips
-                    self.tooltip_styles.extend(
-                        [
-                            {
-                                "selector": "#T_"
-                                + self.uuid
-                                + "row"
-                                + str(i)
-                                + "_col"
-                                + str(j)
-                                + f":hover .{self.tooltip_class}",
-                                "props": [("visibility", "visible")],
-                            },
-                            {
-                                "selector": "#T_"
-                                + self.uuid
-                                + "row"
-                                + str(i)
-                                + "_col"
-                                + str(j)
-                                + f" .{self.tooltip_class}::after",
-                                "props": [("content", f'"{str(ttips.iloc[i, j])}"')],
-                            },
-                        ]
-                    )
+        if not self.cell_ids:
+            # tooltips not optimised for individual cell check.
+            raise NotImplementedError(
+                "Tooltips can only render with 'cell_ids' is True."
+            )
+
+        mask = (ttips.isna()) | (ttips.eq(""))
+        self.tooltip_styles = [
+            d
+            for sublist in [
+                [
+                    {
+                        "selector": "#T_"
+                        + self.uuid
+                        + "row"
+                        + str(i)
+                        + "_col"
+                        + str(j)
+                        + f":hover .{self.tooltip_class}",
+                        "props": [("visibility", "visible")],
+                    },
+                    {
+                        "selector": "#T_"
+                        + self.uuid
+                        + "row"
+                        + str(i)
+                        + "_col"
+                        + str(j)
+                        + f" .{self.tooltip_class}::after",
+                        "props": [("content", f'"{str(ttips.iloc[i, j])}"')],
+                    },
+                ]
+                for i, rn in enumerate(ttips.index)
+                for j, cn in enumerate(ttips.columns)
+                if not mask.iloc[i, j]
+            ]
+            for d in sublist
+        ]
 
         return self
 
-    def set_tooltip_class(self, name="pd-t", properties=None):
+    def set_tooltip_class(self, name="pd-t", properties=None) -> "Styler":
         """
         Method to set the name and properties of the class for creating tooltips on
         hover.
