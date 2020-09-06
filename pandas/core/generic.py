@@ -40,6 +40,7 @@ from pandas._typing import (
     CompressionOptions,
     FilePathOrBuffer,
     FrameOrSeries,
+    IndexKeyFunc,
     JSONSerializable,
     Label,
     Level,
@@ -68,6 +69,7 @@ from pandas.util._validators import (
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_object,
+    ensure_platform_int,
     ensure_str,
     is_bool,
     is_bool_dtype,
@@ -96,6 +98,7 @@ from pandas.core.base import PandasObject, SelectionMixin
 import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.flags import Flags
+from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import Index, MultiIndex, RangeIndex, ensure_index
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import Period, PeriodIndex
@@ -104,6 +107,7 @@ from pandas.core.internals import BlockManager
 from pandas.core.missing import find_valid_index
 from pandas.core.ops import _align_method_FRAME
 from pandas.core.shared_docs import _shared_docs
+from pandas.core.sorting import ensure_key_mapped
 from pandas.core.window import Expanding, ExponentialMovingWindow, Rolling, Window
 
 from pandas.io.formats import format as fmt
@@ -4417,6 +4421,95 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         5    C     4     3    F
         """
         raise AbstractMethodError(self)
+
+    def sort_index(
+        self,
+        axis=0,
+        level=None,
+        ascending: bool_t = True,
+        inplace: bool_t = False,
+        kind: str = "quicksort",
+        na_position: str = "last",
+        sort_remaining: bool_t = True,
+        ignore_index: bool_t = False,
+        key: IndexKeyFunc = None,
+    ):
+
+        inplace = validate_bool_kwarg(inplace, "inplace")
+
+        is_dataframe = isinstance(self, ABCDataFrame)
+        if is_dataframe:
+            axis = self._get_axis_number(axis)
+            labels = self._get_axis(axis)
+            labels = ensure_key_mapped(labels, key, levels=level)
+            labels = labels._sort_levels_monotonic()
+            target = labels
+        else:
+            _ = self._get_axis_number(axis)
+            index = ensure_key_mapped(self.index, key, levels=level)
+            target = index
+
+        if level is not None:
+            new_index, indexer = target.sortlevel(
+                level, ascending=ascending, sort_remaining=sort_remaining
+            )
+
+        elif isinstance(target, MultiIndex):
+            from pandas.core.sorting import lexsort_indexer
+
+            if not is_dataframe:
+                target = target._sort_levels_monotonic()
+
+            indexer = lexsort_indexer(
+                target._get_codes_for_sorting(),
+                orders=ascending,
+                na_position=na_position,
+            )
+
+        else:
+            from pandas.core.sorting import nargsort
+
+            # Check monotonic-ness before sort an index
+            # GH11080
+            if (ascending and target.is_monotonic_increasing) or (
+                not ascending and target.is_monotonic_decreasing
+            ):
+                if inplace:
+                    return
+                else:
+                    return self.copy()
+
+            indexer = nargsort(
+                target, kind=kind, ascending=ascending, na_position=na_position
+            )
+
+        if is_dataframe:
+            baxis = self._get_block_manager_axis(axis)
+            new_data = self._mgr.take(indexer, axis=baxis, verify=False)
+
+            # reconstruct axis if needed
+            new_data.axes[baxis] = new_data.axes[baxis]._sort_levels_monotonic()
+
+            if ignore_index:
+                new_data.axes[1] = ibase.default_index(len(indexer))
+
+            result = self._constructor(new_data)
+
+        else:
+            indexer = ensure_platform_int(indexer)
+            new_index = self.index.take(indexer)
+            new_index = new_index._sort_levels_monotonic()
+
+            new_values = self._values.take(indexer)
+            result = self._constructor(new_values, index=new_index)
+
+            if ignore_index:
+                result.index = ibase.default_index(len(result))
+
+        if inplace:
+            return self._update_inplace(result)
+        else:
+            return result.__finalize__(self, method="sort_index")
 
     @doc(
         klass=_shared_doc_kwargs["klass"],
