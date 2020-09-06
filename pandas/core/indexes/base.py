@@ -3270,9 +3270,13 @@ class Index(IndexOpsMixin, PandasObject):
         """
         # trying to reindex on an axis with duplicates
         if not self.is_unique and len(indexer):
-            raise ValueError("""cannot reindex from a duplicate axis
-        (this usually occurs when trying to join / assign
-        to a column when the index contains duplicate values).""")
+        msg = (
+            """cannot reindex from a duplicate axis
+            (this usually occurs when trying to join / assign
+            to a column when the index contains duplicate values)."""
+        )
+        
+            raise ValueError(msg)
 
     def reindex(self, target, method=None, level=None, limit=None, tolerance=None):
         """
