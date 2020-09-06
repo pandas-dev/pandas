@@ -3534,6 +3534,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         nv.validate_take(tuple(), kwargs)
 
+        self._consolidate_inplace()
+
         new_data = self._mgr.take(
             indices, axis=self._get_block_manager_axis(axis), verify=True
         )
@@ -6558,20 +6560,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         0   new  abc
         1   new  new
         2  bait  xyz
-
-        Note that when replacing multiple ``bool`` or ``datetime64`` objects,
-        the data types in the `to_replace` parameter must match the data
-        type of the value being replaced:
-
-        >>> df = pd.DataFrame({{'A': [True, False, True],
-        ...                    'B': [False, True, False]}})
-        >>> df.replace({{'a string': 'new value', True: False}})  # raises
-        Traceback (most recent call last):
-            ...
-        TypeError: Cannot compare types 'ndarray(dtype=bool)' and 'str'
-
-        This raises a ``TypeError`` because one of the ``dict`` keys is not of
-        the correct type for replacement.
 
         Compare the behavior of ``s.replace({{'a': None}})`` and
         ``s.replace('a', None)`` to understand the peculiarities
@@ -10832,7 +10820,12 @@ numeric_only : bool, default None
 
 Returns
 -------
-%(name1)s or %(name2)s (if level specified)\n"""
+%(name1)s or %(name2)s (if level specified)
+
+Notes
+-----
+To have the same behaviour as `numpy.std`, use `ddof=0` (instead of the
+default `ddof=1`)\n"""
 
 _bool_doc = """
 %(desc)s
