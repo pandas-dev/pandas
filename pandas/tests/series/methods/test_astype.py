@@ -40,7 +40,7 @@ class TestAstype:
         # https://github.com/pandas-dev/pandas/issues/35471
         if errors == "ignore":
             expected = values
-            result = expected.astype(float, errors="ignore")
+            result = values.astype(float, errors="ignore")
             tm.assert_series_equal(result, expected)
         else:
             msg = "(Cannot cast)|(could not convert)"
