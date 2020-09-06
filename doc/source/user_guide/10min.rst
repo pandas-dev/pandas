@@ -592,7 +592,7 @@ We can produce pivot tables from this data very easily:
    pd.pivot_table(df, values='D', index=['A', 'B'], columns=['C'])
 
 
-Time Series
+Time series
 -----------
 
 pandas has simple, powerful, and efficient functionality for performing
