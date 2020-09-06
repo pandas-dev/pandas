@@ -1232,8 +1232,8 @@ class LinePlot(MPLPlot):
         if self._need_to_set_index:
             xticks = ax.get_xticks()
             xticklabels = [get_label(x) for x in xticks]
-            ax.set_xticklabels(xticklabels)
             ax.xaxis.set_major_locator(FixedLocator(xticks))
+            ax.set_xticklabels(xticklabels)
 
         condition = (
             not self._use_dynamic_x()
