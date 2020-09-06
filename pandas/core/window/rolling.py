@@ -435,7 +435,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             else:
                 # insert at the end
                 result[name] = extra_col
-    
+
     def calculate_center_offset(self, window, center) -> int:
         """
         Calculate an offset necessary to have the window label to be centered.
@@ -499,7 +499,10 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         """
         if self.is_freq_type or isinstance(self.window, BaseIndexer):
             return self._get_roll_func(f"{func}_variable"), "variable"
-        return partial(self._get_roll_func(f"{func}_fixed"), win=self._get_window()), "fixed"
+        return (
+            partial(self._get_roll_func(f"{func}_fixed"), win=self._get_window()),
+            "fixed",
+        )
 
     def _get_window_indexer(self, window: int) -> BaseIndexer:
         """
@@ -614,8 +617,12 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
             if values.size == 0:
                 return values.copy()
-            
-            offset = self.calculate_center_offset(window, center=center) if func_type in ["fixed", "weighted"] else 0
+
+            offset = (
+                self.calculate_center_offset(window, center=center)
+                if func_type in ["fixed", "weighted"]
+                else 0
+            )
             additional_nans = np.array([np.nan] * offset)
 
             if not is_weighted:
@@ -657,7 +664,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
             if use_numba_cache:
                 NUMBA_FUNC_CACHE[(kwargs["original_func"], "rolling_apply")] = func
-            
+
             if func_type in ["fixed", "weighted"]:
                 result = self._center_window(result, window, center)
 
@@ -1245,7 +1252,12 @@ class Window(_Window):
         window_func = self._get_roll_func("roll_weighted_sum")
         window_func = get_weighted_roll_func(window_func)
         return self._apply(
-            window_func, center=self.center, is_weighted=True, name="sum", func_type="weighted", **kwargs
+            window_func,
+            center=self.center,
+            is_weighted=True,
+            name="sum",
+            func_type="weighted",
+            **kwargs,
         )
 
     @Substitution(name="window")
@@ -1255,7 +1267,12 @@ class Window(_Window):
         window_func = self._get_roll_func("roll_weighted_mean")
         window_func = get_weighted_roll_func(window_func)
         return self._apply(
-            window_func, center=self.center, is_weighted=True, name="mean", func_type="weighted", **kwargs
+            window_func,
+            center=self.center,
+            is_weighted=True,
+            name="mean",
+            func_type="weighted",
+            **kwargs,
         )
 
     @Substitution(name="window", versionadded="\n.. versionadded:: 1.0.0\n")
@@ -1266,7 +1283,12 @@ class Window(_Window):
         window_func = get_weighted_roll_func(window_func)
         kwargs.pop("name", None)
         return self._apply(
-            window_func, center=self.center, is_weighted=True, name="var", func_type="weighted", **kwargs
+            window_func,
+            center=self.center,
+            is_weighted=True,
+            name="var",
+            func_type="weighted",
+            **kwargs,
         )
 
     @Substitution(name="window", versionadded="\n.. versionadded:: 1.0.0\n")
@@ -1471,12 +1493,7 @@ class _Rolling_and_Expanding(_Rolling):
         cython_func, _ = self._get_cython_func_type("roll_generic")
 
         window_func = partial(
-            cython_func,
-            args=args,
-            kwargs=kwargs,
-            raw=raw,
-            offset=offset,
-            func=func,
+            cython_func, args=args, kwargs=kwargs, raw=raw, offset=offset, func=func,
         )
 
         def apply_func(values, begin, end, min_periods, raw=raw):
@@ -1491,7 +1508,12 @@ class _Rolling_and_Expanding(_Rolling):
         window_func, func_type = self._get_cython_func_type("roll_sum")
         kwargs.pop("floor", None)
         return self._apply(
-            window_func, center=self.center, floor=0, name="sum", func_type=func_type, **kwargs
+            window_func,
+            center=self.center,
+            floor=0,
+            name="sum",
+            func_type=func_type,
+            **kwargs,
         )
 
     _shared_docs["max"] = dedent(
@@ -1508,7 +1530,9 @@ class _Rolling_and_Expanding(_Rolling):
     def max(self, *args, **kwargs):
         nv.validate_window_func("max", args, kwargs)
         window_func, func_type = self._get_cython_func_type("roll_max")
-        return self._apply(window_func, center=self.center, name="max", func_type=func_type, **kwargs)
+        return self._apply(
+            window_func, center=self.center, name="max", func_type=func_type, **kwargs
+        )
 
     _shared_docs["min"] = dedent(
         """
@@ -1550,12 +1574,16 @@ class _Rolling_and_Expanding(_Rolling):
     def min(self, *args, **kwargs):
         nv.validate_window_func("min", args, kwargs)
         window_func, func_type = self._get_cython_func_type("roll_min")
-        return self._apply(window_func, center=self.center, name="min", func_type=func_type, **kwargs)
+        return self._apply(
+            window_func, center=self.center, name="min", func_type=func_type, **kwargs
+        )
 
     def mean(self, *args, **kwargs):
         nv.validate_window_func("mean", args, kwargs)
         window_func, func_type = self._get_cython_func_type("roll_mean")
-        return self._apply(window_func, center=self.center, name="mean", func_type=func_type, **kwargs)
+        return self._apply(
+            window_func, center=self.center, name="mean", func_type=func_type, **kwargs
+        )
 
     _shared_docs["median"] = dedent(
         """
@@ -1775,7 +1803,13 @@ class _Rolling_and_Expanding(_Rolling):
         # Pass through for groupby.rolling
         kwargs["quantile"] = quantile
         kwargs["interpolation"] = interpolation
-        return self._apply(window_func, center=self.center, name="quantile", func_type=func_type, **kwargs)
+        return self._apply(
+            window_func,
+            center=self.center,
+            name="quantile",
+            func_type=func_type,
+            **kwargs,
+        )
 
     _shared_docs[
         "cov"
@@ -2309,7 +2343,7 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         ).astype(np.int64)
         obj = obj.take(groupby_order)
         return super()._create_blocks(obj)
-    
+
     def calculate_center_offset(self, window, center) -> int:
         """
         Calculate an offset necessary to have the window label to be centered.
