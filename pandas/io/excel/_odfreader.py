@@ -47,7 +47,7 @@ class _ODFReader(BaseExcelReader):
                 else:
                     value.append(str(c))
             return "".join(value)
-    
+
         Element.__str__ = element_str
 
     @property
@@ -211,4 +211,3 @@ class _ODFReader(BaseExcelReader):
             return result.time()
         else:
             raise ValueError(f"Unrecognized type {cell_type}")
-
