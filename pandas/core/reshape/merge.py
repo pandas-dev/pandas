@@ -912,7 +912,7 @@ class _MergeOperation:
         return join_index, left_indexer, right_indexer
 
     def _create_join_index(
-        self, index: Index, other_index: Index, indexer, how: str = "left",
+        self, index: Index, other_index: Index, indexer, how: str,
     ):
         """
         Create a join index by rearranging one index to match another

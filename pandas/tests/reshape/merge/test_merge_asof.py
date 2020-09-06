@@ -1323,7 +1323,9 @@ class TestAsOfMerge:
                 "from_date": index[1:],
                 "abc": [2.46] * 3 + [2.19],
             },
-            index=index[1:],
+            index=pd.date_range(
+                "2019-10-01 00:30:00", freq="30min", periods=4, tz="UTC"
+            ),
         )
         tm.assert_frame_equal(result, expected)
 
