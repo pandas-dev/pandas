@@ -6,7 +6,7 @@ from pandas._typing import FilePathOrBuffer, Scalar, StorageOptions
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.io.excel._base import ExcelWriter, _BaseExcelReader
-from pandas.io.excel._util import _validate_freeze_panes
+from pandas.io.excel._util import validate_freeze_panes
 
 if TYPE_CHECKING:
     from openpyxl.descriptors.serialisable import Serialisable
@@ -385,7 +385,7 @@ class _OpenpyxlWriter(ExcelWriter):
             wks.title = sheet_name
             self.sheets[sheet_name] = wks
 
-        if _validate_freeze_panes(freeze_panes):
+        if validate_freeze_panes(freeze_panes):
             wks.freeze_panes = wks.cell(
                 row=freeze_panes[0] + 1, column=freeze_panes[1] + 1
             )
