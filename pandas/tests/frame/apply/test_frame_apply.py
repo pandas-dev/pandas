@@ -1,7 +1,6 @@
 from collections import OrderedDict
 from datetime import datetime
 from itertools import chain
-import operator
 import warnings
 
 import numpy as np
@@ -14,6 +13,7 @@ from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range, notna
 import pandas._testing as tm
 from pandas.core.apply import frame_apply
 from pandas.core.base import SpecificationError
+from pandas.tests.frame.common import zip_frames
 
 
 @pytest.fixture
@@ -1058,25 +1058,6 @@ class TestInferOutputShape:
         tm.assert_frame_equal(result, expected)
 
 
-def zip_frames(frames, axis=1):
-    """
-    take a list of frames, zip them together under the
-    assumption that these all have the first frames' index/columns.
-
-    Returns
-    -------
-    new_frame : DataFrame
-    """
-    if axis == 1:
-        columns = frames[0].columns
-        zipped = [f.loc[:, c] for c in columns for f in frames]
-        return pd.concat(zipped, axis=1)
-    else:
-        index = frames[0].index
-        zipped = [f.loc[i, :] for i in index for f in frames]
-        return pd.DataFrame(zipped)
-
-
 class TestDataFrameAggregate:
     def test_agg_transform(self, axis, float_frame):
         other_axis = 1 if axis in {0, "index"} else 0
@@ -1087,14 +1068,8 @@ class TestDataFrameAggregate:
             f_sqrt = np.sqrt(float_frame)
 
             # ufunc
-            result = float_frame.transform(np.sqrt, axis=axis)
             expected = f_sqrt.copy()
-            tm.assert_frame_equal(result, expected)
-
             result = float_frame.apply(np.sqrt, axis=axis)
-            tm.assert_frame_equal(result, expected)
-
-            result = float_frame.transform(np.sqrt, axis=axis)
             tm.assert_frame_equal(result, expected)
 
             # list-like
@@ -1108,9 +1083,6 @@ class TestDataFrameAggregate:
                 expected.index = pd.MultiIndex.from_product(
                     [float_frame.index, ["sqrt"]]
                 )
-            tm.assert_frame_equal(result, expected)
-
-            result = float_frame.transform([np.sqrt], axis=axis)
             tm.assert_frame_equal(result, expected)
 
             # multiple items in list
@@ -1128,37 +1100,18 @@ class TestDataFrameAggregate:
                 )
             tm.assert_frame_equal(result, expected)
 
-            result = float_frame.transform([np.abs, "sqrt"], axis=axis)
-            tm.assert_frame_equal(result, expected)
-
     def test_transform_and_agg_err(self, axis, float_frame):
         # cannot both transform and agg
-        msg = "transforms cannot produce aggregated results"
-        with pytest.raises(ValueError, match=msg):
-            float_frame.transform(["max", "min"], axis=axis)
-
         msg = "cannot combine transform and aggregation operations"
         with pytest.raises(ValueError, match=msg):
             with np.errstate(all="ignore"):
                 float_frame.agg(["max", "sqrt"], axis=axis)
-
-        with pytest.raises(ValueError, match=msg):
-            with np.errstate(all="ignore"):
-                float_frame.transform(["max", "sqrt"], axis=axis)
 
         df = pd.DataFrame({"A": range(5), "B": 5})
 
         def f():
             with np.errstate(all="ignore"):
                 df.agg({"A": ["abs", "sum"], "B": ["mean", "max"]}, axis=axis)
-
-    @pytest.mark.parametrize("method", ["abs", "shift", "pct_change", "cumsum", "rank"])
-    def test_transform_method_name(self, method):
-        # GH 19760
-        df = pd.DataFrame({"A": [-1, 2]})
-        result = df.transform(method)
-        expected = operator.methodcaller(method)(df)
-        tm.assert_frame_equal(result, expected)
 
     def test_demo(self):
         # demonstration tests
