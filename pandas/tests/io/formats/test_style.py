@@ -1692,6 +1692,7 @@ class TestStyler:
         assert s.find('<td  class="data row0 col0" >') != -1
 
     def test_set_data_classes(self):
+        # GH 36159
         df = pd.DataFrame(data=[[0, 1], [2, 3]])
         classes = pd.DataFrame(
             data=[["test-class", ""], [np.nan, None]],
