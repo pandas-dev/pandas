@@ -1191,8 +1191,6 @@ ExtensionArray
 - Bug where :class:`DataFrame` column set to scalar extension type was considered an object type rather than the extension type (:issue:`34832`)
 - Fixed bug in :meth:`IntegerArray.astype` to correctly copy the mask as well (:issue:`34931`).
 
-
-
 Other
 ^^^^^
 
