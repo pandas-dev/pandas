@@ -351,7 +351,7 @@ class TableBuilderAbstract(ABC):
         """End of the environment."""
 
 
-class TableBuilder(TableBuilderAbstract):
+class GenericTableBuilder(TableBuilderAbstract):
     """Table builder producing string representation of LaTeX table."""
 
     @property
@@ -422,8 +422,36 @@ class TableBuilder(TableBuilderAbstract):
             raise ValueError(msg)
 
 
-class LongTableBuilder(TableBuilder):
-    """Concrete table builder for longtable."""
+class LongTableBuilder(GenericTableBuilder):
+    """Concrete table builder for longtable.
+
+    >>> from pandas import DataFrame
+    >>> from pandas.io.formats import format as fmt
+    >>> df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+    >>> formatter = fmt.DataFrameFormatter(df)
+    >>> builder = LongTableBuilder(formatter, caption='caption', label='lab',
+    ...                            column_format='lrl')
+    >>> table = builder.get_result()
+    >>> print(table)
+    \\begin{longtable}{lrl}
+    \\caption{caption}
+    \\label{lab}\\\\
+    \\toprule
+    {} &  a &   b \\\\
+    \\midrule
+    \\endhead
+    \\midrule
+    \\multicolumn{3}{r}{{Continued on next page}} \\\\
+    \\midrule
+    \\endfoot
+    <BLANKLINE>
+    \\bottomrule
+    \\endlastfoot
+    0 &  1 &  b1 \\\\
+    1 &  2 &  b2 \\\\
+    \\end{longtable}
+    <BLANKLINE>
+    """
 
     @property
     def env_begin(self) -> str:
@@ -470,8 +498,32 @@ class LongTableBuilder(TableBuilder):
         return "\\end{longtable}"
 
 
-class RegularTableBuilder(TableBuilder):
-    """Concrete table builder for regular table."""
+class RegularTableBuilder(GenericTableBuilder):
+    """Concrete table builder for regular table.
+
+    >>> from pandas import DataFrame
+    >>> from pandas.io.formats import format as fmt
+    >>> df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+    >>> formatter = fmt.DataFrameFormatter(df)
+    >>> builder = RegularTableBuilder(formatter, caption='caption', label='lab',
+    ...                               column_format='lrc')
+    >>> table = builder.get_result()
+    >>> print(table)
+    \\begin{table}
+    \\centering
+    \\caption{caption}
+    \\label{lab}
+    \\begin{tabular}{lrc}
+    \\toprule
+    {} &  a &   b \\\\
+    \\midrule
+    0 &  1 &  b1 \\\\
+    1 &  2 &  b2 \\\\
+    \\bottomrule
+    \\end{tabular}
+    \\end{table}
+    <BLANKLINE>
+    """
 
     @property
     def env_begin(self) -> str:
@@ -493,8 +545,26 @@ class RegularTableBuilder(TableBuilder):
         return "\n".join(["\\end{tabular}", "\\end{table}"])
 
 
-class TabularBuilder(TableBuilder):
-    """Concrete table builder for tabular environment."""
+class TabularBuilder(GenericTableBuilder):
+    """Concrete table builder for tabular environment.
+
+    >>> from pandas import DataFrame
+    >>> from pandas.io.formats import format as fmt
+    >>> df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+    >>> formatter = fmt.DataFrameFormatter(df)
+    >>> builder = TabularBuilder(formatter, column_format='lrc')
+    >>> table = builder.get_result()
+    >>> print(table)
+    \\begin{tabular}{lrc}
+    \\toprule
+    {} &  a &   b \\\\
+    \\midrule
+    0 &  1 &  b1 \\\\
+    1 &  2 &  b2 \\\\
+    \\bottomrule
+    \\end{tabular}
+    <BLANKLINE>
+    """
 
     @property
     def env_begin(self) -> str:
@@ -661,3 +731,9 @@ def _convert_to_bold(crow: List[str], ilevels: int) -> List[str]:
         f"\\textbf{{{x}}}" if j < ilevels and x.strip() not in ["", "{}"] else x
         for j, x in enumerate(crow)
     ]
+
+
+if __name__ == "__main__":
+    import doctest
+
+    doctest.testmod()
