@@ -50,10 +50,10 @@ class TestToLatex:
         withoutindex_result = df.to_latex(index=False)
         withoutindex_expected = r"""\begin{tabular}{rl}
 \toprule
- a &   b \\
+ a &  b \\
 \midrule
- 1 &  b1 \\
- 2 &  b2 \\
+ 1 & b1 \\
+ 2 & b2 \\
 \bottomrule
 \end{tabular}
 """
@@ -413,7 +413,7 @@ b &       b &     b \\
         withoutindex_result = df.to_latex(index=False, longtable=True)
         withoutindex_expected = r"""\begin{longtable}{rl}
 \toprule
- a &   b \\
+ a &  b \\
 \midrule
 \endhead
 \midrule
@@ -423,8 +423,8 @@ b &       b &     b \\
 
 \bottomrule
 \endlastfoot
- 1 &  b1 \\
- 2 &  b2 \\
+ 1 & b1 \\
+ 2 & b2 \\
 \end{longtable}
 """
 
@@ -663,8 +663,8 @@ b &       b &     b \\
         withoutindex_result = df.to_latex(index=False, header=False)
         withoutindex_expected = r"""\begin{tabular}{rl}
 \toprule
- 1 &  b1 \\
- 2 &  b2 \\
+1 & b1 \\
+2 & b2 \\
 \bottomrule
 \end{tabular}
 """
@@ -690,10 +690,10 @@ b &       b &     b \\
         withoutindex_result = df.to_latex(header=["AA", "BB"], index=False)
         withoutindex_expected = r"""\begin{tabular}{rl}
 \toprule
-AA &  BB \\
+AA & BB \\
 \midrule
- 1 &  b1 \\
- 2 &  b2 \\
+ 1 & b1 \\
+ 2 & b2 \\
 \bottomrule
 \end{tabular}
 """
