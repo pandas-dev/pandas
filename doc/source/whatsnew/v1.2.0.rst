@@ -255,7 +255,7 @@ Conversion
 
 Strings
 ^^^^^^^
-- Bug in :meth:`Series.to_string` adding a leading space when ``index=False`` (:issue:`24980`)
+- Bug in :meth:`Series.to_string`, :meth:`DataFrame.to_string`, and :meth:`DataFrame.to_latex` adding a leading space when ``index=False`` (:issue:`24980`)
 -
 -
 
