@@ -86,11 +86,7 @@ def assert_stat_op_calc(
         result0 = f(axis=0, skipna=False)
         result1 = f(axis=1, skipna=False)
         tm.assert_series_equal(
-            result0,
-            frame.apply(wrapper),
-            check_dtype=check_dtype,
-            rtol=rtol,
-            atol=atol,
+            result0, frame.apply(wrapper), check_dtype=check_dtype, rtol=rtol, atol=atol
         )
         # HACK: win32
         tm.assert_series_equal(
@@ -116,7 +112,7 @@ def assert_stat_op_calc(
     if opname in ["sum", "prod"]:
         expected = frame.apply(skipna_wrapper, axis=1)
         tm.assert_series_equal(
-            result1, expected, check_dtype=False, rtol=rtol, atol=atol,
+            result1, expected, check_dtype=False, rtol=rtol, atol=atol
         )
 
     # check dtypes
@@ -1064,54 +1060,14 @@ class TestDataFrameAnalytics:
             (np.any, {"A": pd.Series([0.0, 1.0], dtype="float")}, True),
             (np.all, {"A": pd.Series([0, 1], dtype=int)}, False),
             (np.any, {"A": pd.Series([0, 1], dtype=int)}, True),
-            pytest.param(
-                np.all,
-                {"A": pd.Series([0, 1], dtype="M8[ns]")},
-                False,
-                marks=[td.skip_if_np_lt("1.15")],
-            ),
-            pytest.param(
-                np.any,
-                {"A": pd.Series([0, 1], dtype="M8[ns]")},
-                True,
-                marks=[td.skip_if_np_lt("1.15")],
-            ),
-            pytest.param(
-                np.all,
-                {"A": pd.Series([1, 2], dtype="M8[ns]")},
-                True,
-                marks=[td.skip_if_np_lt("1.15")],
-            ),
-            pytest.param(
-                np.any,
-                {"A": pd.Series([1, 2], dtype="M8[ns]")},
-                True,
-                marks=[td.skip_if_np_lt("1.15")],
-            ),
-            pytest.param(
-                np.all,
-                {"A": pd.Series([0, 1], dtype="m8[ns]")},
-                False,
-                marks=[td.skip_if_np_lt("1.15")],
-            ),
-            pytest.param(
-                np.any,
-                {"A": pd.Series([0, 1], dtype="m8[ns]")},
-                True,
-                marks=[td.skip_if_np_lt("1.15")],
-            ),
-            pytest.param(
-                np.all,
-                {"A": pd.Series([1, 2], dtype="m8[ns]")},
-                True,
-                marks=[td.skip_if_np_lt("1.15")],
-            ),
-            pytest.param(
-                np.any,
-                {"A": pd.Series([1, 2], dtype="m8[ns]")},
-                True,
-                marks=[td.skip_if_np_lt("1.15")],
-            ),
+            pytest.param(np.all, {"A": pd.Series([0, 1], dtype="M8[ns]")}, False,),
+            pytest.param(np.any, {"A": pd.Series([0, 1], dtype="M8[ns]")}, True,),
+            pytest.param(np.all, {"A": pd.Series([1, 2], dtype="M8[ns]")}, True,),
+            pytest.param(np.any, {"A": pd.Series([1, 2], dtype="M8[ns]")}, True,),
+            pytest.param(np.all, {"A": pd.Series([0, 1], dtype="m8[ns]")}, False,),
+            pytest.param(np.any, {"A": pd.Series([0, 1], dtype="m8[ns]")}, True,),
+            pytest.param(np.all, {"A": pd.Series([1, 2], dtype="m8[ns]")}, True,),
+            pytest.param(np.any, {"A": pd.Series([1, 2], dtype="m8[ns]")}, True,),
             (np.all, {"A": pd.Series([0, 1], dtype="category")}, False),
             (np.any, {"A": pd.Series([0, 1], dtype="category")}, True),
             (np.all, {"A": pd.Series([1, 2], dtype="category")}, True),
@@ -1124,8 +1080,6 @@ class TestDataFrameAnalytics:
                     "B": pd.Series([10, 20], dtype="m8[ns]"),
                 },
                 True,
-                # In 1.13.3 and 1.14 np.all(df) returns a Timedelta here
-                marks=[td.skip_if_np_lt("1.15")],
             ),
         ],
     )
