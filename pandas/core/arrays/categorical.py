@@ -44,8 +44,7 @@ from pandas.core import ops
 from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algorithms
 from pandas.core.algorithms import _get_data_algo, factorize, take_1d, unique1d
-from pandas.core.array_algos.transforms import shift
-from pandas.core.arrays._mixins import _T, NDArrayBackedExtensionArray
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.base import (
     ExtensionArray,
     NoNewAttributesMixin,
@@ -1193,35 +1192,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
     __le__ = _cat_compare_op(operator.le)
     __ge__ = _cat_compare_op(operator.ge)
 
-    def shift(self, periods, fill_value=None):
-        """
-        Shift Categorical by desired number of periods.
-
-        Parameters
-        ----------
-        periods : int
-            Number of periods to move, can be positive or negative
-        fill_value : object, optional
-            The scalar value to use for newly introduced missing values.
-
-            .. versionadded:: 0.24.0
-
-        Returns
-        -------
-        shifted : Categorical
-        """
-        # since categoricals always have ndim == 1, an axis parameter
-        # doesn't make any sense here.
-        codes = self.codes
-        if codes.ndim > 1:
-            raise NotImplementedError("Categorical with ndim > 1.")
-
-        fill_value = self._validate_fill_value(fill_value)
-
-        codes = shift(codes, periods, axis=0, fill_value=fill_value)
-
-        return self._constructor(codes, dtype=self.dtype, fastpath=True)
-
     def _validate_fill_value(self, fill_value):
         """
         Convert a user-facing fill_value to a representation to use with our
@@ -1382,20 +1352,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         return ~self.isna()
 
     notnull = notna
-
-    def dropna(self):
-        """
-        Return the Categorical without null values.
-
-        Missing values (-1 in .codes) are detected.
-
-        Returns
-        -------
-        valid : Categorical
-        """
-        result = self[self.notna()]
-
-        return result
 
     def value_counts(self, dropna=True):
         """
@@ -1749,81 +1705,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
 
         return self._constructor(codes, dtype=self.dtype, fastpath=True)
 
-    def take(self: _T, indexer, allow_fill: bool = False, fill_value=None) -> _T:
-        """
-        Take elements from the Categorical.
-
-        Parameters
-        ----------
-        indexer : sequence of int
-            The indices in `self` to take. The meaning of negative values in
-            `indexer` depends on the value of `allow_fill`.
-        allow_fill : bool, default False
-            How to handle negative values in `indexer`.
-
-            * False: negative values in `indices` indicate positional indices
-              from the right. This is similar to
-              :func:`numpy.take`.
-
-            * True: negative values in `indices` indicate missing values
-              (the default). These values are set to `fill_value`. Any other
-              other negative values raise a ``ValueError``.
-
-            .. versionchanged:: 1.0.0
-
-               Default value changed from ``True`` to ``False``.
-
-        fill_value : object
-            The value to use for `indices` that are missing (-1), when
-            ``allow_fill=True``. This should be the category, i.e. a value
-            in ``self.categories``, not a code.
-
-        Returns
-        -------
-        Categorical
-            This Categorical will have the same categories and ordered as
-            `self`.
-
-        See Also
-        --------
-        Series.take : Similar method for Series.
-        numpy.ndarray.take : Similar method for NumPy arrays.
-
-        Examples
-        --------
-        >>> cat = pd.Categorical(['a', 'a', 'b'])
-        >>> cat
-        ['a', 'a', 'b']
-        Categories (2, object): ['a', 'b']
-
-        Specify ``allow_fill==False`` to have negative indices mean indexing
-        from the right.
-
-        >>> cat.take([0, -1, -2], allow_fill=False)
-        ['a', 'b', 'a']
-        Categories (2, object): ['a', 'b']
-
-        With ``allow_fill=True``, indices equal to ``-1`` mean "missing"
-        values that should be filled with the `fill_value`, which is
-        ``np.nan`` by default.
-
-        >>> cat.take([0, -1, -1], allow_fill=True)
-        ['a', NaN, NaN]
-        Categories (2, object): ['a', 'b']
-
-        The fill value can be specified.
-
-        >>> cat.take([0, -1, -1], allow_fill=True, fill_value='a')
-        ['a', 'a', 'a']
-        Categories (2, object): ['a', 'b']
-
-        Specifying a fill value that's not in ``self.categories``
-        will raise a ``ValueError``.
-        """
-        return NDArrayBackedExtensionArray.take(
-            self, indexer, allow_fill=allow_fill, fill_value=fill_value
-        )
-
     # ------------------------------------------------------------------
     # NDArrayBackedExtensionArray compat
 
@@ -1860,6 +1741,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             return self.isna().any()
 
         return contains(self, key, container=self._codes)
+
+    # ------------------------------------------------------------------
+    # Rendering Methods
 
     def _tidy_repr(self, max_vals=10, footer=True) -> str:
         """
@@ -1958,6 +1842,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             result = f"[], {msg}"
 
         return result
+
+    # ------------------------------------------------------------------
 
     def _maybe_coerce_indexer(self, indexer):
         """
