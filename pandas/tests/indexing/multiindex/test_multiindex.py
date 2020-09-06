@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 import pandas._libs.index as _index
 from pandas.errors import PerformanceWarning
@@ -83,3 +84,10 @@ class TestMultiIndexBasic:
         df3 = df.copy(deep=True)
         df3.loc[[(dti[0], "a")], "c2"] = 1.0
         tm.assert_frame_equal(df3, expected)
+
+    def test_multiindex_get_loc_list_raises(self):
+        # https://github.com/pandas-dev/pandas/issues/35878
+        idx = pd.MultiIndex.from_tuples([("a", 1), ("b", 2)])
+        msg = "unhashable type"
+        with pytest.raises(TypeError, match=msg):
+            idx.get_loc([])
