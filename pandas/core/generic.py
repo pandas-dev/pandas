@@ -2634,7 +2634,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             `index` is True, then the index names are used.
             A sequence should be given if the DataFrame uses MultiIndex.
         chunksize : int, optional
-            Specify the number of rows in each batch to be written at a time.
+            If batching is enabled via `method`, specify the number of rows in
+            each batch to be written at a time.
             By default, all rows will be written at once.
         dtype : dict or scalar, optional
             Specifying the datatype for columns. If a dictionary is used, the
