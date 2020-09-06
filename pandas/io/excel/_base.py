@@ -346,7 +346,7 @@ def read_excel(
     )
 
 
-class _BaseExcelReader(metaclass=abc.ABCMeta):
+class BaseExcelReader(metaclass=abc.ABCMeta):
     def __init__(self, filepath_or_buffer, storage_options: StorageOptions = None):
         # If filepath_or_buffer is a url, load the data into a BytesIO
         if is_url(filepath_or_buffer):
