@@ -499,6 +499,17 @@ class TestReaders:
         )
         tm.assert_frame_equal(actual, expected)
 
+    def test_read_excel_ods_nested_xml(self, read_ext):
+        # see gh-35802
+        engine = pd.read_excel.keywords["engine"]
+        if engine != "odf":
+            pytest.skip(f"Skipped for engine: {engine}")
+        basename = "test_nested"
+
+        actual = pd.read_excel(basename + read_ext)
+        expected = DataFrame({"COLUMN": ["Test (1)"]})
+        tm.assert_frame_equal(actual, expected)
+
     def test_reading_all_sheets(self, read_ext):
         # Test reading all sheet names by setting sheet_name to None,
         # Ensure a dict is returned.
