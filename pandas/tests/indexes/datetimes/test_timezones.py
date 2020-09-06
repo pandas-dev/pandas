@@ -799,7 +799,7 @@ class TestDatetimeIndexTimezones:
 
     @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
     def test_dti_tz_constructors(self, tzstr):
-        """ Test different DatetimeIndex constructions with timezone
+        """Test different DatetimeIndex constructions with timezone
         Follow-up of GH#4229
         """
         arr = ["11/10/2005 08:00:00", "11/10/2005 09:00:00"]
