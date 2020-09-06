@@ -299,8 +299,7 @@ class TableBuilderAbstract(ABC):
         self.label = label
         self.position = position
 
-    @property
-    def product(self) -> str:
+    def get_result(self) -> str:
         """String representation of LaTeX table."""
         elements = [
             self.env_begin,
@@ -554,7 +553,7 @@ class LatexFormatter(TableFormatter):
         Render a DataFrame to a LaTeX tabular, longtable, or table/tabular
         environment output.
         """
-        table_string = self.builder.product
+        table_string = self.builder.get_result()
         buf.write(table_string)
 
     @property
