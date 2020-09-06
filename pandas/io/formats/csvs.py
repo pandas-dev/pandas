@@ -218,8 +218,9 @@ class CSVFormatter:
         return bool(self._has_aliases or self.header)
 
     @property
-    def write_cols(self):
+    def write_cols(self) -> Sequence[Label]:
         if self._has_aliases:
+            assert not isinstance(self.header, bool)
             if len(self.header) != len(self.cols):
                 raise ValueError(
                     f"Writing {len(self.cols)} cols but got {len(self.header)} aliases"
@@ -230,10 +231,11 @@ class CSVFormatter:
             return self.cols
 
     @property
-    def encoded_labels(self):
-        encoded_labels: List[str] = []
+    def encoded_labels(self) -> List[Label]:
+        encoded_labels: List[Label] = []
 
         if self.index and self.index_label:
+            assert isinstance(self.index_label, Sequence)
             encoded_labels = list(self.index_label)
 
         if not self.has_mi_columns or self._has_aliases:
@@ -300,7 +302,7 @@ class CSVFormatter:
             for row in self._generate_multiindex_header_rows():
                 self.writer.writerow(row)
 
-    def _generate_multiindex_header_rows(self) -> Iterator[List[str]]:
+    def _generate_multiindex_header_rows(self) -> Iterator[List[Label]]:
         columns = self.obj.columns
         for i in range(columns.nlevels):
             # we need at least 1 index column to write our col names
