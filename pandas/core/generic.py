@@ -4461,7 +4461,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 target = target._sort_levels_monotonic()
 
             indexer = lexsort_indexer(
-                target._get_codes_for_sorting(),
+                target._get_codes_for_sorting(),  # type: ignore[attr-defined]
                 orders=ascending,
                 na_position=na_position,
             )
@@ -4501,7 +4501,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             new_index = new_index._sort_levels_monotonic()
 
             new_values = self._values.take(indexer)
-            result = self._constructor(new_values, index=new_index)
+            result = self._constructor(
+                new_values, index=new_index  # type: ignore[call-arg]
+            )
 
             if ignore_index:
                 result.index = ibase.default_index(len(result))
