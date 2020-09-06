@@ -41,7 +41,7 @@ class RowStringConverter(ABC):
         self.multirow = multirow
         self.clinebuf: List[List[int]] = []
         self.strcols = self._get_strcols()
-        self.strrows: List[List[str]] = list(zip(*self.strcols))  # type: ignore
+        self.strrows: List[List[str]] = list(zip(*self.strcols))  # type: ignore[arg-type]
 
     def get_strrow(self, row_num: int) -> str:
         """Get string representation of the row."""
@@ -610,7 +610,7 @@ class LatexFormatter(TableFormatter):
         self.fmt = formatter
         self.frame = self.fmt.frame
         self.longtable = longtable
-        self.column_format = column_format  # type: ignore
+        self.column_format = column_format  # type: ignore[assignment]
         self.multicolumn = multicolumn
         self.multicolumn_format = multicolumn_format
         self.multirow = multirow
