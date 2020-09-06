@@ -909,7 +909,7 @@ The merged result:
 
 .. _merging.join.index:
 
-Joining on index
+Joining on Index
 ~~~~~~~~~~~~~~~~
 
 :meth:`DataFrame.join` is a convenient method for combining the columns of two
@@ -990,7 +990,7 @@ indexes:
           labels=['left', 'right'], vertical=False);
    plt.close('all');
 
-Joining key columns on an index
+Joining key columns on an Index
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 :meth:`~DataFrame.join` takes an optional ``on`` argument which may be a column
@@ -1195,7 +1195,7 @@ done using the following code.
 
 .. _merging.merge_on_columns_and_levels:
 
-Merging on a combination of columns and index levels
+Merging on a combination of columns and Index levels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. versionadded:: 0.23

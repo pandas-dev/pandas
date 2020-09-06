@@ -3,7 +3,7 @@
 {{ header }}
 
 ********************************
-Frequently Asked Questions (FAQ)
+Frequently asked questions (FAQ)
 ********************************
 
 .. _df-memory-usage:
@@ -128,7 +128,7 @@ To evaluate single-element pandas objects in a boolean context, use the method
    pd.DataFrame([[True]]).bool()
    pd.DataFrame([[False]]).bool()
 
-Bitwise boolean
+Bitwise Boolean
 ~~~~~~~~~~~~~~~
 
 Bitwise boolean operators like ``==`` and ``!=`` return a boolean ``Series``,
@@ -171,7 +171,7 @@ To test for membership in the values, use the method :meth:`~pandas.Series.isin`
 For ``DataFrames``, likewise, ``in`` applies to the column axis,
 testing for membership in the list of column names.
 
-``NaN``, Integer ``NA`` values and ``NA`` type promotions
+``NaN``, integer ``NA`` values and ``NA`` type promotions
 ---------------------------------------------------------
 
 Choice of ``NA`` representation

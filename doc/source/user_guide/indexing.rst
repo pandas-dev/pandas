@@ -573,7 +573,7 @@ without using a temporary variable.
 
 .. _indexing.deprecate_ix:
 
-IX indexer is deprecated
+Ix indexer is deprecated
 ------------------------
 
 .. warning::
@@ -1003,7 +1003,7 @@ To select a row where each column meets its own criterion:
 
 .. _indexing.where_mask:
 
-The :meth:`~pandas.DataFrame.where` Method and Masking
+The :meth:`~pandas.DataFrame.where` method and masking
 ------------------------------------------------------
 
 Selecting values from a Series with a boolean vector generally returns a
@@ -1126,7 +1126,7 @@ Mask
 
 .. _indexing.query:
 
-The :meth:`~pandas.DataFrame.query` Method
+The :meth:`~pandas.DataFrame.query` method
 ------------------------------------------
 
 :class:`~pandas.DataFrame` objects have a :meth:`~pandas.DataFrame.query`
@@ -1625,7 +1625,7 @@ Missing values
    idx2
    idx2.fillna(pd.Timestamp('2011-01-02'))
 
-Set / reset index
+Set / reset Index
 -----------------
 
 Occasionally you will load or create a data set into a DataFrame and want to
@@ -1634,7 +1634,7 @@ ways.
 
 .. _indexing.set_index:
 
-Set an index
+Set an Index
 ~~~~~~~~~~~~
 
 DataFrame has a :meth:`~DataFrame.set_index` method which takes a column name
@@ -1675,7 +1675,7 @@ the index in-place (without creating a new object):
    data.set_index(['a', 'b'], inplace=True)
    data
 
-Reset the index
+Reset the Index
 ~~~~~~~~~~~~~~~
 
 As a convenience, there is a new function on DataFrame called
@@ -1703,7 +1703,7 @@ You can use the ``level`` keyword to remove only a portion of the index:
 ``reset_index`` takes an optional parameter ``drop`` which if true simply
 discards the index, instead of putting index values in the DataFrame's columns.
 
-Adding an ad hoc index
+Adding an ad hoc Index
 ~~~~~~~~~~~~~~~~~~~~~~
 
 If you create an index yourself, you can just assign it to the ``index`` field:

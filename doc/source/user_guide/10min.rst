@@ -428,7 +428,7 @@ See more at :ref:`Histogramming and Discretization <basics.discretization>`.
    s
    s.value_counts()
 
-String Methods
+String methods
 ~~~~~~~~~~~~~~
 
 Series is equipped with a set of string processing methods in the `str`
@@ -592,7 +592,7 @@ We can produce pivot tables from this data very easily:
    pd.pivot_table(df, values='D', index=['A', 'B'], columns=['C'])
 
 
-Time series
+Time Series
 -----------
 
 pandas has simple, powerful, and efficient functionality for performing
