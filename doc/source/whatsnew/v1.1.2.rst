@@ -34,6 +34,7 @@ Bug fixes
 - Bug in :meth:`DataFrame.eval` with ``object`` dtype column binary operations (:issue:`35794`)
 - Bug in :class:`Series` constructor raising a ``TypeError`` when constructing sparse datetime64 dtypes (:issue:`35762`)
 - Bug in :meth:`DataFrame.apply` with ``result_type="reduce"`` returning with incorrect index (:issue:`35683`)
+- Bug in :meth:`Series.astype` and :meth:`DataFrame.astype` not respecting the ``errors`` argument when set to ``"ignore"`` for extension dtypes (:issue:`35471`)
 - Bug in :meth:`DateTimeIndex.format` and :meth:`PeriodIndex.format` with ``name=True`` setting the first item to ``"None"`` where it should be ``""`` (:issue:`35712`)
 - Bug in :meth:`Float64Index.__contains__` incorrectly raising ``TypeError`` instead of returning ``False`` (:issue:`35788`)
 - Bug in :class:`Series` constructor incorrectly raising a ``TypeError`` when passed an ordered set (:issue:`36044`)
