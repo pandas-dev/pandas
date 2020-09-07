@@ -601,15 +601,34 @@ class TabularBuilder(GenericTableBuilder):
 
 
 class LatexFormatter(TableFormatter):
-    """
+    r"""
     Used to render a DataFrame to a LaTeX tabular/longtable environment output.
 
     Parameters
     ----------
     formatter : `DataFrameFormatter`
+    longtable : bool, default False
+        Use longtable environment.
     column_format : str, default None
         The columns format as specified in `LaTeX table format
         <https://en.wikibooks.org/wiki/LaTeX/Tables>`__ e.g 'rcl' for 3 columns
+    multicolumn : bool, default False
+        Use \multicolumn to enhance MultiIndex columns.
+    multicolumn_format : str, default 'l'
+        The alignment for multicolumns, similar to `column_format`
+    multirow : bool, default False
+        Use \multirow to enhance MultiIndex rows.
+    caption : str, optional
+        Full caption.
+        Caption macro is to be rendered as ``\caption{caption}``.
+    short_caption : str, optional
+        Short caption.
+        Caption macro is to be rendered as ``\caption[short_caption]{caption}``.
+    label : str, optional
+        The LaTeX label to be placed inside ``\label{}`` in the output.
+    position : str, optional
+        The LaTeX positional argument for tables, to be placed after
+        ``\begin{}`` in the output.
 
     See Also
     --------
