@@ -1362,6 +1362,18 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     @Appender(_transform_template)
     def transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
 
+        if maybe_use_numba(engine):
+            if not callable(func):
+                raise NotImplementedError(
+                    "Numba engine can only be used with a single function."
+                )
+            with _group_selection_context(self):
+                data = self._selected_obj
+            result, index = self._transform_with_numba(
+                data, func, *args, engine_kwargs=engine_kwargs, **kwargs
+            )
+            return self.obj._constructor(result, index=index, columns=data.columns)
+
         # optimized transforms
         func = self._get_cython_func(func) or func
 
