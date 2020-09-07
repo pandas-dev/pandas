@@ -667,5 +667,8 @@ class TestPartialSetting:
         series = pd.Series(1.23, index=pd.RangeIndex(4, name="series_index"))
 
         df["series"] = series
+        expected = pd.DataFrame(
+            {"series": [1.23] * 4}, index=pd.RangeIndex(4, name="df_index")
+        )
 
-        tm.assert_equal(df.index.name, "df_index")
+        tm.assert_frame_equal(df, expected)
