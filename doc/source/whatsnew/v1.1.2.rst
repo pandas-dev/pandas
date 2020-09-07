@@ -1,6 +1,6 @@
 .. _whatsnew_112:
 
-What's new in 1.1.2 (??)
+What's new in 1.1.2 (September 8, 2020)
 ------------------------
 
 These are the changes in pandas 1.1.2. See :ref:`release` for a full changelog
@@ -23,7 +23,6 @@ Fixed regressions
 - Regression in :meth:`DataFrame.replace` where a ``TypeError`` would be raised when attempting to replace elements of type :class:`Interval` (:issue:`35931`)
 - Fix regression in pickle roundtrip of the ``closed`` attribute of :class:`IntervalIndex` (:issue:`35658`)
 - Fixed regression in :meth:`DataFrameGroupBy.agg` where a ``ValueError: buffer source array is read-only`` would be raised when the underlying array is read-only (:issue:`36014`)
--
 
 .. ---------------------------------------------------------------------------
 
