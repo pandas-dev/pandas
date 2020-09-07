@@ -1,11 +1,12 @@
 import cython
 from cython import Py_ssize_t
 
-from libc.stdlib cimport malloc, free
-from libc.string cimport memmove
 from libc.math cimport fabs, sqrt
+from libc.stdlib cimport free, malloc
+from libc.string cimport memmove
 
 import numpy as np
+
 cimport numpy as cnp
 from numpy cimport (
     NPY_FLOAT32,
@@ -31,12 +32,11 @@ from numpy cimport (
     uint32_t,
     uint64_t,
 )
+
 cnp.import_array()
 
 
 cimport pandas._libs.util as util
-from pandas._libs.util cimport numeric, get_nat
-
 from pandas._libs.khash cimport (
     kh_destroy_int64,
     kh_get_int64,
@@ -46,7 +46,7 @@ from pandas._libs.khash cimport (
     kh_resize_int64,
     khiter_t,
 )
-
+from pandas._libs.util cimport get_nat, numeric
 
 import pandas._libs.missing as missing
 
@@ -412,7 +412,7 @@ ctypedef fused algos_t:
     uint8_t
 
 
-def _validate_limit(nobs: int, limit=None) -> int:
+def validate_limit(nobs: int, limit=None) -> int:
     """
     Check that the `limit` argument is a positive integer.
 
@@ -452,7 +452,7 @@ def pad(ndarray[algos_t] old, ndarray[algos_t] new, limit=None):
     indexer = np.empty(nright, dtype=np.int64)
     indexer[:] = -1
 
-    lim = _validate_limit(nright, limit)
+    lim = validate_limit(nright, limit)
 
     if nleft == 0 or nright == 0 or new[nright - 1] < old[0]:
         return indexer
@@ -509,7 +509,7 @@ def pad_inplace(algos_t[:] values, const uint8_t[:] mask, limit=None):
     if N == 0:
         return
 
-    lim = _validate_limit(N, limit)
+    lim = validate_limit(N, limit)
 
     val = values[0]
     for i in range(N):
@@ -537,7 +537,7 @@ def pad_2d_inplace(algos_t[:, :] values, const uint8_t[:, :] mask, limit=None):
     if N == 0:
         return
 
-    lim = _validate_limit(N, limit)
+    lim = validate_limit(N, limit)
 
     for j in range(K):
         fill_count = 0
@@ -593,7 +593,7 @@ def backfill(ndarray[algos_t] old, ndarray[algos_t] new, limit=None) -> ndarray:
     indexer = np.empty(nright, dtype=np.int64)
     indexer[:] = -1
 
-    lim = _validate_limit(nright, limit)
+    lim = validate_limit(nright, limit)
 
     if nleft == 0 or nright == 0 or new[0] > old[nleft - 1]:
         return indexer
@@ -651,7 +651,7 @@ def backfill_inplace(algos_t[:] values, const uint8_t[:] mask, limit=None):
     if N == 0:
         return
 
-    lim = _validate_limit(N, limit)
+    lim = validate_limit(N, limit)
 
     val = values[N - 1]
     for i in range(N - 1, -1, -1):
@@ -681,7 +681,7 @@ def backfill_2d_inplace(algos_t[:, :] values,
     if N == 0:
         return
 
-    lim = _validate_limit(N, limit)
+    lim = validate_limit(N, limit)
 
     for j in range(K):
         fill_count = 0
@@ -1200,14 +1200,15 @@ ctypedef fused out_t:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def diff_2d(
-    diff_t[:, :] arr,
-    out_t[:, :] out,
+    ndarray[diff_t, ndim=2] arr,  # TODO(cython 3) update to "const diff_t[:, :] arr"
+    ndarray[out_t, ndim=2] out,
     Py_ssize_t periods,
     int axis,
 ):
     cdef:
         Py_ssize_t i, j, sx, sy, start, stop
-        bint f_contig = arr.is_f_contig()
+        bint f_contig = arr.flags.f_contiguous
+        # bint f_contig = arr.is_f_contig()  # TODO(cython 3)
 
     # Disable for unsupported dtype combinations,
     #  see https://github.com/cython/cython/issues/2646

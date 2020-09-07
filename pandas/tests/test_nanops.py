@@ -285,7 +285,7 @@ class TestnanopsDataFrame:
 
     def test_nanmean(self, skipna):
         self.check_funs(
-            nanops.nanmean, np.mean, skipna, allow_obj=False, allow_date=False,
+            nanops.nanmean, np.mean, skipna, allow_obj=False, allow_date=False
         )
 
     def test_nanmean_overflow(self):
@@ -782,27 +782,27 @@ class TestNanvarFixedValues:
     def test_nanvar_all_finite(self):
         samples = self.samples
         actual_variance = nanops.nanvar(samples)
-        tm.assert_almost_equal(actual_variance, self.variance, check_less_precise=2)
+        tm.assert_almost_equal(actual_variance, self.variance, rtol=1e-2)
 
     def test_nanvar_nans(self):
         samples = np.nan * np.ones(2 * self.samples.shape[0])
         samples[::2] = self.samples
 
         actual_variance = nanops.nanvar(samples, skipna=True)
-        tm.assert_almost_equal(actual_variance, self.variance, check_less_precise=2)
+        tm.assert_almost_equal(actual_variance, self.variance, rtol=1e-2)
 
         actual_variance = nanops.nanvar(samples, skipna=False)
-        tm.assert_almost_equal(actual_variance, np.nan, check_less_precise=2)
+        tm.assert_almost_equal(actual_variance, np.nan, rtol=1e-2)
 
     def test_nanstd_nans(self):
         samples = np.nan * np.ones(2 * self.samples.shape[0])
         samples[::2] = self.samples
 
         actual_std = nanops.nanstd(samples, skipna=True)
-        tm.assert_almost_equal(actual_std, self.variance ** 0.5, check_less_precise=2)
+        tm.assert_almost_equal(actual_std, self.variance ** 0.5, rtol=1e-2)
 
         actual_std = nanops.nanvar(samples, skipna=False)
-        tm.assert_almost_equal(actual_std, np.nan, check_less_precise=2)
+        tm.assert_almost_equal(actual_std, np.nan, rtol=1e-2)
 
     def test_nanvar_axis(self):
         # Generate some sample data.
@@ -812,7 +812,7 @@ class TestNanvarFixedValues:
 
         actual_variance = nanops.nanvar(samples, axis=1)
         tm.assert_almost_equal(
-            actual_variance, np.array([self.variance, 1.0 / 12]), check_less_precise=2
+            actual_variance, np.array([self.variance, 1.0 / 12]), rtol=1e-2
         )
 
     def test_nanvar_ddof(self):
@@ -826,15 +826,13 @@ class TestNanvarFixedValues:
 
         # The unbiased estimate.
         var = 1.0 / 12
-        tm.assert_almost_equal(variance_1, var, check_less_precise=2)
+        tm.assert_almost_equal(variance_1, var, rtol=1e-2)
 
         # The underestimated variance.
-        tm.assert_almost_equal(variance_0, (n - 1.0) / n * var, check_less_precise=2)
+        tm.assert_almost_equal(variance_0, (n - 1.0) / n * var, rtol=1e-2)
 
         # The overestimated variance.
-        tm.assert_almost_equal(
-            variance_2, (n - 1.0) / (n - 2.0) * var, check_less_precise=2
-        )
+        tm.assert_almost_equal(variance_2, (n - 1.0) / (n - 2.0) * var, rtol=1e-2)
 
     def test_ground_truth(self):
         # Test against values that were precomputed with Numpy.

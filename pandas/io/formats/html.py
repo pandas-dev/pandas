@@ -53,8 +53,11 @@ class HTMLFormatter(TableFormatter):
         self.border = border
         self.table_id = self.fmt.table_id
         self.render_links = self.fmt.render_links
-        if isinstance(self.fmt.col_space, int):
-            self.fmt.col_space = f"{self.fmt.col_space}px"
+
+        self.col_space = {
+            column: f"{value}px" if isinstance(value, int) else value
+            for column, value in self.fmt.col_space.items()
+        }
 
     @property
     def show_row_idx_names(self) -> bool:
@@ -83,8 +86,9 @@ class HTMLFormatter(TableFormatter):
         return self.columns
 
     # https://github.com/python/mypy/issues/1237
+    # error: Signature of "is_truncated" incompatible with supertype "TableFormatter"
     @property
-    def is_truncated(self) -> bool:  # type: ignore
+    def is_truncated(self) -> bool:  # type: ignore[override]
         return self.fmt.is_truncated
 
     @property
@@ -120,9 +124,11 @@ class HTMLFormatter(TableFormatter):
         -------
         A written <th> cell.
         """
-        if header and self.fmt.col_space is not None:
+        col_space = self.col_space.get(s, None)
+
+        if header and col_space is not None:
             tags = tags or ""
-            tags += f'style="min-width: {self.fmt.col_space};"'
+            tags += f'style="min-width: {col_space};"'
 
         self._write_cell(s, kind="th", indent=indent, tags=tags)
 
@@ -437,6 +443,7 @@ class HTMLFormatter(TableFormatter):
         frame = self.fmt.tr_frame
         nrows = len(frame)
 
+        assert isinstance(frame.index, MultiIndex)
         idx_values = frame.index.format(sparsify=False, adjoin=False, names=False)
         idx_values = list(zip(*idx_values))
 

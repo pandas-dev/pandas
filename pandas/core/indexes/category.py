@@ -20,7 +20,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype, notna
 
 from pandas.core import accessor
 from pandas.core.algorithms import take_1d
@@ -290,7 +290,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
         return other
 
-    def equals(self, other) -> bool:
+    def equals(self, other: object) -> bool:
         """
         Determine if two CategoricalIndex objects contain the same elements.
 
@@ -346,6 +346,15 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         if len(self) > max_seq_items:
             attrs.append(("length", len(self)))
         return attrs
+
+    def _format_with_header(self, header: List[str], na_rep: str = "NaN") -> List[str]:
+        from pandas.io.formats.printing import pprint_thing
+
+        result = [
+            pprint_thing(x, escape_chars=("\t", "\r", "\n")) if notna(x) else na_rep
+            for x in self._values
+        ]
+        return header + result
 
     # --------------------------------------------------------------------
 
@@ -725,15 +734,10 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         ValueError if the item is not in the categories
 
         """
-        code = self.categories.get_indexer([item])
-        if (code == -1) and not (is_scalar(item) and isna(item)):
-            raise TypeError(
-                "cannot insert an item into a CategoricalIndex "
-                "that is not already an existing category"
-            )
+        code = self._data._validate_insert_value(item)
 
         codes = self.codes
-        codes = np.concatenate((codes[:loc], code, codes[loc:]))
+        codes = np.concatenate((codes[:loc], [code], codes[loc:]))
         return self._create_from_codes(codes)
 
     def _concat(self, to_concat, name):
@@ -761,6 +765,4 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         return self._create_from_codes(joined, name=name)
 
 
-CategoricalIndex._add_numeric_methods_add_sub_disabled()
-CategoricalIndex._add_numeric_methods_disabled()
 CategoricalIndex._add_logical_methods_disabled()

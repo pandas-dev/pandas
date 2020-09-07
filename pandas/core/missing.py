@@ -2,6 +2,8 @@
 Routines for filling missing data.
 """
 
+from typing import Any, List, Optional, Set, Union
+
 import numpy as np
 
 from pandas._libs import algos, lib
@@ -92,30 +94,37 @@ def clean_fill_method(method, allow_nearest=False):
     return method
 
 
-def clean_interp_method(method, **kwargs):
+# interpolation methods that dispatch to np.interp
+
+NP_METHODS = ["linear", "time", "index", "values"]
+
+# interpolation methods that dispatch to _interpolate_scipy_wrapper
+
+SP_METHODS = [
+    "nearest",
+    "zero",
+    "slinear",
+    "quadratic",
+    "cubic",
+    "barycentric",
+    "krogh",
+    "spline",
+    "polynomial",
+    "from_derivatives",
+    "piecewise_polynomial",
+    "pchip",
+    "akima",
+    "cubicspline",
+]
+
+
+def clean_interp_method(method: str, **kwargs) -> str:
     order = kwargs.get("order")
-    valid = [
-        "linear",
-        "time",
-        "index",
-        "values",
-        "nearest",
-        "zero",
-        "slinear",
-        "quadratic",
-        "cubic",
-        "barycentric",
-        "polynomial",
-        "krogh",
-        "piecewise_polynomial",
-        "pchip",
-        "akima",
-        "spline",
-        "from_derivatives",
-        "cubicspline",
-    ]
+
     if method in ("spline", "polynomial") and order is None:
         raise ValueError("You must specify the order of the spline or polynomial.")
+
+    valid = NP_METHODS + SP_METHODS
     if method not in valid:
         raise ValueError(f"method must be one of {valid}. Got '{method}' instead.")
 
@@ -160,15 +169,15 @@ def find_valid_index(values, how: str):
 
 
 def interpolate_1d(
-    xvalues,
-    yvalues,
-    method="linear",
-    limit=None,
-    limit_direction="forward",
-    limit_area=None,
-    fill_value=None,
-    bounds_error=False,
-    order=None,
+    xvalues: np.ndarray,
+    yvalues: np.ndarray,
+    method: Optional[str] = "linear",
+    limit: Optional[int] = None,
+    limit_direction: str = "forward",
+    limit_area: Optional[str] = None,
+    fill_value: Optional[Any] = None,
+    bounds_error: bool = False,
+    order: Optional[int] = None,
     **kwargs,
 ):
     """
@@ -178,8 +187,6 @@ def interpolate_1d(
     Bounds_error is currently hardcoded to False since non-scipy ones don't
     take it as an argument.
     """
-    # Treat the original, non-scipy methods first.
-
     invalid = isna(yvalues)
     valid = ~invalid
 
@@ -221,7 +228,7 @@ def interpolate_1d(
             )
 
     # default limit is unlimited GH #16282
-    limit = algos._validate_limit(nobs=None, limit=limit)
+    limit = algos.validate_limit(nobs=None, limit=limit)
 
     # These are sets of index pointers to invalid values... i.e. {0, 1, etc...
     all_nans = set(np.flatnonzero(invalid))
@@ -238,6 +245,7 @@ def interpolate_1d(
     # are more than'limit' away from the prior non-NaN.
 
     # set preserve_nans based on direction using _interp_limit
+    preserve_nans: Union[List, Set]
     if limit_direction == "forward":
         preserve_nans = start_nans | set(_interp_limit(invalid, limit, 0))
     elif limit_direction == "backward":
@@ -258,50 +266,32 @@ def interpolate_1d(
     # sort preserve_nans and covert to list
     preserve_nans = sorted(preserve_nans)
 
-    xvalues = getattr(xvalues, "values", xvalues)
     yvalues = getattr(yvalues, "values", yvalues)
     result = yvalues.copy()
 
-    if method in ["linear", "time", "index", "values"]:
+    # xvalues to pass to NumPy/SciPy
+
+    xvalues = getattr(xvalues, "values", xvalues)
+    if method == "linear":
+        inds = xvalues
+    else:
+        inds = np.asarray(xvalues)
+
+        # hack for DatetimeIndex, #1646
+        if needs_i8_conversion(inds.dtype):
+            inds = inds.view(np.int64)
+
         if method in ("values", "index"):
-            inds = np.asarray(xvalues)
-            # hack for DatetimeIndex, #1646
-            if needs_i8_conversion(inds.dtype):
-                inds = inds.view(np.int64)
             if inds.dtype == np.object_:
                 inds = lib.maybe_convert_objects(inds)
-        else:
-            inds = xvalues
+
+    if method in NP_METHODS:
         # np.interp requires sorted X values, #21037
         indexer = np.argsort(inds[valid])
         result[invalid] = np.interp(
             inds[invalid], inds[valid][indexer], yvalues[valid][indexer]
         )
-        result[preserve_nans] = np.nan
-        return result
-
-    sp_methods = [
-        "nearest",
-        "zero",
-        "slinear",
-        "quadratic",
-        "cubic",
-        "barycentric",
-        "krogh",
-        "spline",
-        "polynomial",
-        "from_derivatives",
-        "piecewise_polynomial",
-        "pchip",
-        "akima",
-        "cubicspline",
-    ]
-
-    if method in sp_methods:
-        inds = np.asarray(xvalues)
-        # hack for DatetimeIndex, #1646
-        if issubclass(inds.dtype.type, np.datetime64):
-            inds = inds.view(np.int64)
+    else:
         result[invalid] = _interpolate_scipy_wrapper(
             inds[valid],
             yvalues[valid],
@@ -312,8 +302,9 @@ def interpolate_1d(
             order=order,
             **kwargs,
         )
-        result[preserve_nans] = np.nan
-        return result
+
+    result[preserve_nans] = np.nan
+    return result
 
 
 def _interpolate_scipy_wrapper(

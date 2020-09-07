@@ -349,11 +349,10 @@ class TestIndexReductions:
 
         msg = "|".join(
             [
-                "reduction operation '{op}' not allowed for this dtype",
-                r"cannot perform {op} with type timedelta64\[ns\]",
+                f"reduction operation '{opname}' not allowed for this dtype",
+                rf"cannot perform {opname} with type timedelta64\[ns\]",
             ]
         )
-        msg = msg.format(op=opname)
 
         with pytest.raises(TypeError, match=msg):
             getattr(td, opname)()

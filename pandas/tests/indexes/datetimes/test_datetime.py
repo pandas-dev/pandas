@@ -51,7 +51,7 @@ class TestDatetimeIndex:
             "2010-01-02 00:00:00",
         ]
         expected1 = DatetimeIndex(
-            expected_list1, dtype="datetime64[ns, UTC]", freq=None,
+            expected_list1, dtype="datetime64[ns, UTC]", freq=None
         )
         expected2 = np.array([0] + [-1] * 21 + [23], dtype=np.dtype("intp"))
         tm.assert_index_equal(result1, expected1)
@@ -59,6 +59,7 @@ class TestDatetimeIndex:
 
     def test_time_loc(self):  # GH8667
         from datetime import time
+
         from pandas._libs.index import _SIZE_CUTOFF
 
         ns = _SIZE_CUTOFF + np.array([-100, 100], dtype=np.int64)

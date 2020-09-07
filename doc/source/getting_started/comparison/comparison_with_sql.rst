@@ -25,7 +25,7 @@ structure.
 .. ipython:: python
 
     url = ('https://raw.github.com/pandas-dev'
-           '/pandas/master/pandas/tests/data/tips.csv')
+           '/pandas/master/pandas/tests/io/data/csv/tips.csv')
     tips = pd.read_csv(url)
     tips.head()
 

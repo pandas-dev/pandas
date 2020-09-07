@@ -73,7 +73,7 @@ def test_constructor_with_timedelta_window(window):
     # GH 15440
     n = 10
     df = DataFrame(
-        {"value": np.arange(n)}, index=pd.date_range("2015-12-24", periods=n, freq="D"),
+        {"value": np.arange(n)}, index=pd.date_range("2015-12-24", periods=n, freq="D")
     )
     expected_data = np.append([0.0, 1.0], np.arange(3.0, 27.0, 3))
 
@@ -92,7 +92,7 @@ def test_constructor_timedelta_window_and_minperiods(window, raw):
     # GH 15305
     n = 10
     df = DataFrame(
-        {"value": np.arange(n)}, index=pd.date_range("2017-08-08", periods=n, freq="D"),
+        {"value": np.arange(n)}, index=pd.date_range("2017-08-08", periods=n, freq="D")
     )
     expected = DataFrame(
         {"value": np.append([np.NaN, 1.0], np.arange(3.0, 27.0, 3))},
@@ -153,7 +153,7 @@ def test_closed_one_entry(func):
 def test_closed_one_entry_groupby(func):
     # GH24718
     ser = pd.DataFrame(
-        data={"A": [1, 1, 2], "B": [3, 2, 1]}, index=pd.date_range("2000", periods=3),
+        data={"A": [1, 1, 2], "B": [3, 2, 1]}, index=pd.date_range("2000", periods=3)
     )
     result = getattr(
         ser.groupby("A", sort=False)["B"].rolling("10D", closed="left"), func
@@ -182,7 +182,7 @@ def test_closed_one_entry_groupby(func):
 def test_closed_min_max_datetime(input_dtype, func, closed, expected):
     # see gh-21704
     ser = pd.Series(
-        data=np.arange(10).astype(input_dtype), index=pd.date_range("2000", periods=10),
+        data=np.arange(10).astype(input_dtype), index=pd.date_range("2000", periods=10)
     )
 
     result = getattr(ser.rolling("3D", closed=closed), func)()
@@ -663,3 +663,36 @@ def test_iter_rolling_datetime(expected, expected_index, window):
 
     for (expected, actual) in zip(expected, ser.rolling(window)):
         tm.assert_series_equal(actual, expected)
+
+
+@pytest.mark.parametrize(
+    "grouping,_index",
+    [
+        (
+            {"level": 0},
+            pd.MultiIndex.from_tuples(
+                [(0, 0), (0, 0), (1, 1), (1, 1), (1, 1)], names=[None, None]
+            ),
+        ),
+        (
+            {"by": "X"},
+            pd.MultiIndex.from_tuples(
+                [(0, 0), (1, 0), (2, 1), (3, 1), (4, 1)], names=["X", None]
+            ),
+        ),
+    ],
+)
+def test_rolling_positional_argument(grouping, _index, raw):
+    # GH 34605
+
+    def scaled_sum(*args):
+        if len(args) < 2:
+            raise ValueError("The function needs two arguments")
+        array, scale = args
+        return array.sum() / scale
+
+    df = DataFrame(data={"X": range(5)}, index=[0, 0, 1, 1, 1])
+
+    expected = DataFrame(data={"X": [0.0, 0.5, 1.0, 1.5, 2.0]}, index=_index)
+    result = df.groupby(**grouping).rolling(1).apply(scaled_sum, raw=raw, args=(2,))
+    tm.assert_frame_equal(result, expected)

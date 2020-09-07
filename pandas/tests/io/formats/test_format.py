@@ -18,7 +18,8 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas.compat import is_platform_32bit, is_platform_windows
+from pandas.compat import IS64, is_platform_windows
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -40,7 +41,7 @@ import pandas._testing as tm
 import pandas.io.formats.format as fmt
 import pandas.io.formats.printing as printing
 
-use_32bit_repr = is_platform_windows() or is_platform_32bit()
+use_32bit_repr = is_platform_windows() or not IS64
 
 
 @pytest.fixture(params=["string", "pathlike", "buffer"])
@@ -225,7 +226,7 @@ class TestDataFrameFormatting:
             r = repr(df)
             r = r[r.find("\n") + 1 :]
 
-            adj = fmt._get_adjustment()
+            adj = fmt.get_adjustment()
 
             for line, value in zip(r.split("\n"), df["B"]):
                 if adj.len(value) + 1 > max_len:
@@ -1047,6 +1048,33 @@ class TestDataFrameFormatting:
         no_header = df.to_string(col_space=20, header=False)
         assert len(with_header_row1) == len(no_header)
 
+    def test_to_string_with_column_specific_col_space_raises(self):
+        df = DataFrame(np.random.random(size=(3, 3)), columns=["a", "b", "c"])
+
+        msg = (
+            "Col_space length\\(\\d+\\) should match "
+            "DataFrame number of columns\\(\\d+\\)"
+        )
+        with pytest.raises(ValueError, match=msg):
+            df.to_string(col_space=[30, 40])
+
+        with pytest.raises(ValueError, match=msg):
+            df.to_string(col_space=[30, 40, 50, 60])
+
+        msg = "unknown column"
+        with pytest.raises(ValueError, match=msg):
+            df.to_string(col_space={"a": "foo", "b": 23, "d": 34})
+
+    def test_to_string_with_column_specific_col_space(self):
+        df = DataFrame(np.random.random(size=(3, 3)), columns=["a", "b", "c"])
+
+        result = df.to_string(col_space={"a": 10, "b": 11, "c": 12})
+        # 3 separating space + each col_space for (id, a, b, c)
+        assert len(result.split("\n")[1]) == (3 + 1 + 10 + 11 + 12)
+
+        result = df.to_string(col_space=[10, 11, 12])
+        assert len(result.split("\n")[1]) == (3 + 1 + 10 + 11 + 12)
+
     def test_to_string_truncate_indices(self):
         for index in [
             tm.makeStringIndex,
@@ -1518,11 +1546,11 @@ class TestDataFrameFormatting:
 
         df_s = df.to_string(index=False)
         # Leading space is expected for positive numbers.
-        expected = "  x   y    z\n 11  33  AAA\n 22 -44     "
+        expected = " x   y   z\n11  33 AAA\n22 -44    "
         assert df_s == expected
 
         df_s = df[["y", "x", "z"]].to_string(index=False)
-        expected = "  y   x    z\n 33  11  AAA\n-44  22     "
+        expected = "  y  x   z\n 33 11 AAA\n-44 22    "
         assert df_s == expected
 
     def test_to_string_line_width_no_index(self):
@@ -1537,7 +1565,7 @@ class TestDataFrameFormatting:
         df = DataFrame({"x": [11, 22, 33], "y": [4, 5, 6]})
 
         df_s = df.to_string(line_width=1, index=False)
-        expected = "  x  \\\n 11   \n 22   \n 33   \n\n y  \n 4  \n 5  \n 6  "
+        expected = " x  \\\n11   \n22   \n33   \n\n y  \n 4  \n 5  \n 6  "
 
         assert df_s == expected
 
@@ -2114,6 +2142,15 @@ c  10  11  12  13  14\
         assert "'a': 1" in val
         assert "'b': 2" in val
 
+    def test_categorical_columns(self):
+        # GH35439
+        data = [[4, 2], [3, 2], [4, 3]]
+        cols = ["aaaaaaaaa", "b"]
+        df = pd.DataFrame(data, columns=cols)
+        df_cat_cols = pd.DataFrame(data, columns=pd.CategoricalIndex(cols))
+
+        assert df.to_string() == df_cat_cols.to_string()
+
     def test_period(self):
         # GH 12615
         df = pd.DataFrame(
@@ -2232,7 +2269,7 @@ class TestSeriesFormatting:
         # GH 11729 Test index=False option
         s = Series([1, 2, 3, 4])
         result = s.to_string(index=False)
-        expected = " 1\n" + " 2\n" + " 3\n" + " 4"
+        expected = "1\n" + "2\n" + "3\n" + "4"
         assert result == expected
 
     def test_unicode_name_in_footer(self):
@@ -2813,7 +2850,7 @@ class TestSeriesFormatting:
 class TestGenericArrayFormatter:
     def test_1d_array(self):
         # GenericArrayFormatter is used on types for which there isn't a dedicated
-        # formatter. np.bool is one of those types.
+        # formatter. np.bool_ is one of those types.
         obj = fmt.GenericArrayFormatter(np.array([True, False]))
         res = obj.get_result()
         assert len(res) == 2
@@ -2882,6 +2919,15 @@ class TestFloatArrayFormatter:
         result = obj.get_result()
         assert result[0] == " 12.0"
         assert result[1] == "  0.0"
+
+    def test_output_display_precision_trailing_zeroes(self):
+        # Issue #20359: trimming zeros while there is no decimal point
+
+        # Happens when display precision is set to zero
+        with pd.option_context("display.precision", 0):
+            s = pd.Series([840.0, 4200.0])
+            expected_output = "0     840\n1    4200\ndtype: float64"
+            assert str(s) == expected_output
 
     def test_output_significant_digits(self):
         # Issue #9764
@@ -3293,6 +3339,7 @@ def test_format_percentiles_integer_idx():
     assert result == expected
 
 
+@td.check_file_leaks
 def test_repr_html_ipython_config(ip):
     code = textwrap.dedent(
         """\
@@ -3344,3 +3391,37 @@ def test_filepath_or_buffer_bad_arg_raises(float_frame, method):
     msg = "buf is not a file name and it has no write method"
     with pytest.raises(TypeError, match=msg):
         getattr(float_frame, method)(buf=object())
+
+
+@pytest.mark.parametrize(
+    "input_array, expected",
+    [
+        ("a", "a"),
+        (["a", "b"], "a\nb"),
+        ([1, "a"], "1\na"),
+        (1, "1"),
+        ([0, -1], " 0\n-1"),
+        (1.0, "1.0"),
+        ([" a", " b"], " a\n b"),
+        ([".1", "1"], ".1\n 1"),
+        (["10", "-10"], " 10\n-10"),
+    ],
+)
+def test_format_remove_leading_space_series(input_array, expected):
+    # GH: 24980
+    s = pd.Series(input_array).to_string(index=False)
+    assert s == expected
+
+
+@pytest.mark.parametrize(
+    "input_array, expected",
+    [
+        ({"A": ["a"]}, "A\na"),
+        ({"A": ["a", "b"], "B": ["c", "dd"]}, "A  B\na  c\nb dd"),
+        ({"A": ["a", 1], "B": ["aa", 1]}, "A  B\na aa\n1  1"),
+    ],
+)
+def test_format_remove_leading_space_dataframe(input_array, expected):
+    # GH: 24980
+    df = pd.DataFrame(input_array).to_string(index=False)
+    assert df == expected

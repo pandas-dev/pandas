@@ -6,14 +6,14 @@ import copy
 import datetime
 from functools import partial
 import string
-from typing import TYPE_CHECKING, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Optional, Tuple
 import warnings
 
 import numpy as np
 
 from pandas._libs import Timedelta, hashtable as libhashtable, lib
 import pandas._libs.join as libjoin
-from pandas._typing import ArrayLike, FrameOrSeries
+from pandas._typing import ArrayLike, FrameOrSeries, FrameOrSeriesUnion
 from pandas.errors import MergeError
 from pandas.util._decorators import Appender, Substitution
 
@@ -51,7 +51,7 @@ from pandas.core.internals import concatenate_block_managers
 from pandas.core.sorting import is_int64_overflow_possible
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Series  # noqa:F401
+    from pandas import DataFrame  # noqa:F401
 
 
 @Substitution("\nleft : DataFrame")
@@ -194,7 +194,7 @@ def merge_ordered(
         left DataFrame.
     fill_method : {'ffill', None}, default None
         Interpolation method for data.
-    suffixes : Sequence, default is ("_x", "_y")
+    suffixes : list-like, default is ("_x", "_y")
         A length-2 sequence where each element is optionally a string
         indicating the suffix to add to overlapping column names in
         `left` and `right` respectively. Pass a value of `None` instead
@@ -575,8 +575,8 @@ class _MergeOperation:
 
     def __init__(
         self,
-        left: Union["Series", "DataFrame"],
-        right: Union["Series", "DataFrame"],
+        left: FrameOrSeriesUnion,
+        right: FrameOrSeriesUnion,
         how: str = "inner",
         on=None,
         left_on=None,
@@ -667,10 +667,8 @@ class _MergeOperation:
 
         join_index, left_indexer, right_indexer = self._get_join_info()
 
-        lsuf, rsuf = self.suffixes
-
         llabels, rlabels = _items_overlap_with_suffix(
-            self.left._info_axis, lsuf, self.right._info_axis, rsuf
+            self.left._info_axis, self.right._info_axis, self.suffixes
         )
 
         lindexers = {1: left_indexer} if left_indexer is not None else {}
@@ -1481,10 +1479,8 @@ class _OrderedMerge(_MergeOperation):
     def get_result(self):
         join_index, left_indexer, right_indexer = self._get_join_info()
 
-        lsuf, rsuf = self.suffixes
-
         llabels, rlabels = _items_overlap_with_suffix(
-            self.left._info_axis, lsuf, self.right._info_axis, rsuf
+            self.left._info_axis, self.right._info_axis, self.suffixes
         )
 
         if self.fill_method == "ffill":
@@ -1668,7 +1664,7 @@ class _AsOfMerge(_OrderedMerge):
 
             msg = (
                 f"incompatible tolerance {self.tolerance}, must be compat "
-                f"with type {repr(lk.dtype)}"
+                f"with type {repr(lt.dtype)}"
             )
 
             if needs_i8_conversion(lt):
@@ -1871,7 +1867,7 @@ def _right_outer_join(x, y, max_groups):
 
 def _factorize_keys(
     lk: ArrayLike, rk: ArrayLike, sort: bool = True, how: str = "inner"
-) -> Tuple[np.array, np.array, int]:
+) -> Tuple[np.ndarray, np.ndarray, int]:
     """
     Encode left and right keys as enumerated types.
 
@@ -2013,8 +2009,11 @@ def _sort_labels(uniques: np.ndarray, left, right):
 def _get_join_keys(llab, rlab, shape, sort: bool):
 
     # how many levels can be done without overflow
-    pred = lambda i: not is_int64_overflow_possible(shape[:i])
-    nlev = next(filter(pred, range(len(shape), 0, -1)))
+    nlev = next(
+        lev
+        for lev in range(len(shape), 0, -1)
+        if not is_int64_overflow_possible(shape[:lev])
+    )
 
     # get keys for the first `nlev` levels
     stride = np.prod(shape[1:nlev], dtype="i8")
@@ -2064,16 +2063,29 @@ def _validate_operand(obj: FrameOrSeries) -> "DataFrame":
         )
 
 
-def _items_overlap_with_suffix(left: Index, lsuffix, right: Index, rsuffix):
+def _items_overlap_with_suffix(left: Index, right: Index, suffixes: Tuple[str, str]):
     """
+    Suffixes type validation.
+
     If two indices overlap, add suffixes to overlapping entries.
 
     If corresponding suffix is empty, the entry is simply converted to string.
 
     """
+    if not is_list_like(suffixes, allow_sets=False):
+        warnings.warn(
+            f"Passing 'suffixes' as a {type(suffixes)}, is not supported and may give "
+            "unexpected results. Provide 'suffixes' as a tuple instead. In the "
+            "future a 'TypeError' will be raised.",
+            FutureWarning,
+            stacklevel=4,
+        )
+
     to_rename = left.intersection(right)
     if len(to_rename) == 0:
         return left, right
+
+    lsuffix, rsuffix = suffixes
 
     if not lsuffix and not rsuffix:
         raise ValueError(f"columns overlap but no suffix specified: {to_rename}")
