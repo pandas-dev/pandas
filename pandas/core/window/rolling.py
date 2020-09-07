@@ -2211,17 +2211,17 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         # Compose MultiIndex result from grouping levels then rolling level
         # Aggregate the MultiIndex data as tuples then the level names
         grouped_object_index = self.obj.index
-        grouped_index_name = [grouped_object_index.name]
+        grouped_index_name = [*grouped_object_index.names]
         groupby_keys = [grouping.name for grouping in self._groupby.grouper._groupings]
         result_index_names = groupby_keys + grouped_index_name
 
         result_index_data = []
         for key, values in self._groupby.grouper.indices.items():
             for value in values:
-                if not is_list_like(key):
-                    data = [key, grouped_object_index[value]]
-                else:
-                    data = [*key, grouped_object_index[value]]
+                data = [
+                    *com.maybe_make_list(key),
+                    *com.maybe_make_list(grouped_object_index[value]),
+                ]
                 result_index_data.append(tuple(data))
 
         result_index = MultiIndex.from_tuples(
