@@ -229,7 +229,7 @@ class TestSlicing:
 
                     # Frame should return slice as well
                     with tm.assert_produces_warning(FutureWarning):
-                        # GH#???? deprecated this indexing
+                        # GH#36179 deprecated this indexing
                         result = df[ts_string]
                     expected = df[theslice]
                     tm.assert_frame_equal(result, expected)
