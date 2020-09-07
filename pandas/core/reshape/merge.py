@@ -888,11 +888,10 @@ class _MergeOperation:
             if self.right_index:
                 if len(self.left) > 0:
                     join_index = self._create_join_index(
-                        self.left.index,
                         self.right.index,
-                        left_indexer,
+                        self.left.index,
                         right_indexer,
-                        how="right",
+                        how="left",
                     )
                 else:
                     join_index = self.right.index.take(right_indexer)
@@ -900,11 +899,10 @@ class _MergeOperation:
             elif self.left_index:
                 if len(self.right) > 0:
                     join_index = self._create_join_index(
-                        self.right.index,
                         self.left.index,
-                        right_indexer,
+                        self.right.index,
                         left_indexer,
-                        how="left",
+                        how="right",
                     )
                 else:
                     join_index = self.left.index.take(left_indexer)
@@ -921,7 +919,6 @@ class _MergeOperation:
         index: Index,
         other_index: Index,
         indexer,
-        other_indexer,
         how: str = "left",
     ):
         """
@@ -932,30 +929,22 @@ class _MergeOperation:
         index: Index being rearranged
         other_index: Index used to supply values not found in index
         indexer: how to rearrange index
-        other_indexer: how to rearrange the index in case of self.how from how or outer.
         how: replacement is only necessary if indexer based on other_index
 
         Returns
         -------
         join_index
         """
-        if self.how in (how, "outer") and not isinstance(index, MultiIndex):
+        if self.how in (how, "outer") and not isinstance(other_index, MultiIndex):
             # if final index requires values in other_index but not target
             # index, indexer may hold missing (-1) values, causing Index.take
             # to take the final value in target index. So, we set the last
             # element to be the desired fill value. We do not use allow_fill
             # and fill_value because it throws a ValueError on integer indices
-            mask = other_indexer == -1
+            mask = indexer == -1
             if np.any(mask):
-                fill_value = na_value_for_dtype(other_index.dtype, compat=False)
-                if isinstance(other_index, MultiIndex):
-                    fill_index = MultiIndex.from_tuples(
-                        [[fill_value] * other_index.nlevels]
-                    )
-                else:
-                    fill_index = Index([fill_value])
-                other_index = other_index.append(fill_index)
-            return other_index.take(other_indexer)
+                fill_value = na_value_for_dtype(index.dtype, compat=False)
+                index = index.append(Index([fill_value]))
         return index.take(indexer)
 
     def _get_merge_keys(self):
