@@ -4,7 +4,7 @@ import pytest
 from pandas.errors import NumbaUtilError
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, compat, date_range
+from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range
 import pandas._testing as tm
 
 
@@ -142,7 +142,6 @@ def test_invalid_kwargs_nopython():
 
 
 @pytest.mark.parametrize("args_kwargs", [[None, {"par": 10}], [(10,), None]])
-@pytest.mark.xfail(not compat.IS64, reason="GH-35294")
 def test_rolling_apply_args_kwargs(args_kwargs):
     # GH 33433
     def foo(x, par):

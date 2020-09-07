@@ -1449,3 +1449,28 @@ class TestSeriesConstructors:
         result = Series("M", index=[1, 2, 3], dtype="string")
         expected = pd.Series(["M", "M", "M"], index=[1, 2, 3], dtype="string")
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "values",
+        [
+            [np.datetime64("2012-01-01"), np.datetime64("2013-01-01")],
+            ["2012-01-01", "2013-01-01"],
+        ],
+    )
+    def test_constructor_sparse_datetime64(self, values):
+        # https://github.com/pandas-dev/pandas/issues/35762
+        dtype = pd.SparseDtype("datetime64[ns]")
+        result = pd.Series(values, dtype=dtype)
+        arr = pd.arrays.SparseArray(values, dtype=dtype)
+        expected = pd.Series(arr)
+        tm.assert_series_equal(result, expected)
+
+    def test_construction_from_ordered_collection(self):
+        # https://github.com/pandas-dev/pandas/issues/36044
+        result = Series({"a": 1, "b": 2}.keys())
+        expected = Series(["a", "b"])
+        tm.assert_series_equal(result, expected)
+
+        result = Series({"a": 1, "b": 2}.values())
+        expected = Series([1, 2])
+        tm.assert_series_equal(result, expected)

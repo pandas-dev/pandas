@@ -234,7 +234,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         3. ``data.dtype.fill_value`` if `fill_value` is None and `dtype`
            is not a ``SparseDtype`` and `data` is a ``SparseArray``.
 
-    kind : {'int', 'block'}, default 'int'
+    kind : {'integer', 'block'}, default 'integer'
         The type of storage for sparse locations.
 
         * 'block': Stores a `block` and `block_length` for each
@@ -735,7 +735,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         """
         from pandas import Index, Series
 
-        keys, counts = algos._value_counts_arraylike(self.sp_values, dropna=dropna)
+        keys, counts = algos.value_counts_arraylike(self.sp_values, dropna=dropna)
         fcounts = self.sp_index.ngaps
         if fcounts > 0:
             if self._null_fill_value and dropna:

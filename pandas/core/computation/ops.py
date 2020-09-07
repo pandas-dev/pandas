@@ -15,7 +15,7 @@ from pandas._libs.tslibs import Timestamp
 from pandas.core.dtypes.common import is_list_like, is_scalar
 
 import pandas.core.common as com
-from pandas.core.computation.common import _ensure_decoded, result_type_many
+from pandas.core.computation.common import ensure_decoded, result_type_many
 from pandas.core.computation.scope import _DEFAULT_GLOBALS
 
 from pandas.io.formats.printing import pprint_thing, pprint_thing_encoded
@@ -466,7 +466,7 @@ class BinOp(Op):
             v = rhs.value
             if isinstance(v, (int, float)):
                 v = stringify(v)
-            v = Timestamp(_ensure_decoded(v))
+            v = Timestamp(ensure_decoded(v))
             if v.tz is not None:
                 v = v.tz_convert("UTC")
             self.rhs.update(v)
@@ -475,19 +475,27 @@ class BinOp(Op):
             v = lhs.value
             if isinstance(v, (int, float)):
                 v = stringify(v)
-            v = Timestamp(_ensure_decoded(v))
+            v = Timestamp(ensure_decoded(v))
             if v.tz is not None:
                 v = v.tz_convert("UTC")
             self.lhs.update(v)
 
     def _disallow_scalar_only_bool_ops(self):
+        rhs = self.rhs
+        lhs = self.lhs
+
+        # GH#24883 unwrap dtype if necessary to ensure we have a type object
+        rhs_rt = rhs.return_type
+        rhs_rt = getattr(rhs_rt, "type", rhs_rt)
+        lhs_rt = lhs.return_type
+        lhs_rt = getattr(lhs_rt, "type", lhs_rt)
         if (
-            (self.lhs.is_scalar or self.rhs.is_scalar)
+            (lhs.is_scalar or rhs.is_scalar)
             and self.op in _bool_ops_dict
             and (
                 not (
-                    issubclass(self.rhs.return_type, (bool, np.bool_))
-                    and issubclass(self.lhs.return_type, (bool, np.bool_))
+                    issubclass(rhs_rt, (bool, np.bool_))
+                    and issubclass(lhs_rt, (bool, np.bool_))
                 )
             )
         ):
@@ -592,11 +600,11 @@ class MathCall(Op):
 
 class FuncNode:
     def __init__(self, name: str):
-        from pandas.core.computation.check import _NUMEXPR_INSTALLED, _NUMEXPR_VERSION
+        from pandas.core.computation.check import NUMEXPR_INSTALLED, NUMEXPR_VERSION
 
         if name not in _mathops or (
-            _NUMEXPR_INSTALLED
-            and _NUMEXPR_VERSION < LooseVersion("2.6.9")
+            NUMEXPR_INSTALLED
+            and NUMEXPR_VERSION < LooseVersion("2.6.9")
             and name in ("floor", "ceil")
         ):
             raise ValueError(f'"{name}" is not a supported function')

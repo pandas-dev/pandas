@@ -10,6 +10,8 @@ from typing import (
     Hashable,
     List,
     Optional,
+    Sequence,
+    TypeVar,
     Union,
 )
 import warnings
@@ -22,10 +24,10 @@ from pandas._libs.lib import is_datetime_array, no_default
 from pandas._libs.tslibs import OutOfBoundsDatetime, Timestamp
 from pandas._libs.tslibs.period import IncompatibleFrequency
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas._typing import DtypeObj, Label
+from pandas._typing import AnyArrayLike, Dtype, DtypeObj, Label
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
-from pandas.errors import InvalidIndexError
+from pandas.errors import DuplicateLabelError, InvalidIndexError
 from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
 
 from pandas.core.dtypes import concat as _concat
@@ -86,7 +88,7 @@ from pandas.core.indexes.frozen import FrozenList
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
 from pandas.core.ops.invalid import make_invalid_op
-from pandas.core.sorting import ensure_key_mapped
+from pandas.core.sorting import ensure_key_mapped, nargsort
 from pandas.core.strings import StringMethods
 
 from pandas.io.formats.printing import (
@@ -98,7 +100,7 @@ from pandas.io.formats.printing import (
 )
 
 if TYPE_CHECKING:
-    from pandas import Series
+    from pandas import RangeIndex, Series
 
 
 __all__ = ["Index"]
@@ -186,6 +188,9 @@ def _new_Index(cls, d):
             d["codes"] = d.pop("labels")
 
     return cls.__new__(cls, **d)
+
+
+_IndexT = TypeVar("_IndexT", bound="Index")
 
 
 class Index(IndexOpsMixin, PandasObject):
@@ -482,6 +487,52 @@ class Index(IndexOpsMixin, PandasObject):
     @cache_readonly
     def _constructor(self):
         return type(self)
+
+    def _maybe_check_unique(self):
+        """
+        Check that an Index has no duplicates.
+
+        This is typically only called via
+        `NDFrame.flags.allows_duplicate_labels.setter` when it's set to
+        True (duplicates aren't allowed).
+
+        Raises
+        ------
+        DuplicateLabelError
+            When the index is not unique.
+        """
+        if not self.is_unique:
+            msg = """Index has duplicates."""
+            duplicates = self._format_duplicate_message()
+            msg += "\n{}".format(duplicates)
+
+            raise DuplicateLabelError(msg)
+
+    def _format_duplicate_message(self):
+        """
+        Construct the DataFrame for a DuplicateLabelError.
+
+        This returns a DataFrame indicating the labels and positions
+        of duplicates in an index. This should only be called when it's
+        already known that duplicates are present.
+
+        Examples
+        --------
+        >>> idx = pd.Index(['a', 'b', 'a'])
+        >>> idx._format_duplicate_message()
+            positions
+        label
+        a        [0, 2]
+        """
+        from pandas import Series
+
+        duplicates = self[self.duplicated(keep="first")].unique()
+        assert len(duplicates)
+
+        out = Series(np.arange(len(self))).groupby(self).agg(list)[duplicates]
+        if self.nlevels == 1:
+            out = out.rename_axis("label")
+        return out.to_frame(name="positions")
 
     # --------------------------------------------------------------------
     # Index Internals Methods
@@ -787,7 +838,13 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Copying Methods
 
-    def copy(self, name=None, deep=False, dtype=None, names=None):
+    def copy(
+        self: _IndexT,
+        name: Optional[Label] = None,
+        deep: bool = False,
+        dtype: Optional[Dtype] = None,
+        names: Optional[Sequence[Label]] = None,
+    ) -> _IndexT:
         """
         Make a copy of this object.
 
@@ -800,6 +857,9 @@ class Index(IndexOpsMixin, PandasObject):
         deep : bool, default False
         dtype : numpy dtype or pandas type, optional
             Set dtype for new object.
+
+            .. deprecated:: 1.2.0
+                use ``astype`` method instead.
         names : list-like, optional
             Kept for compatibility with MultiIndex. Should not be used.
 
@@ -820,6 +880,12 @@ class Index(IndexOpsMixin, PandasObject):
             new_index = self._shallow_copy(name=name)
 
         if dtype:
+            warnings.warn(
+                "parameter dtype is deprecated and will be removed in a future "
+                "version. Use the astype method instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
             new_index = new_index.astype(dtype)
         return new_index
 
@@ -924,7 +990,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._format_with_header(header, na_rep=na_rep)
 
-    def _format_with_header(self, header, na_rep="NaN") -> List[str_t]:
+    def _format_with_header(
+        self, header: List[str_t], na_rep: str_t = "NaN"
+    ) -> List[str_t]:
         from pandas.io.formats.format import format_array
 
         values = self._values
@@ -938,10 +1006,9 @@ class Index(IndexOpsMixin, PandasObject):
             # could have nans
             mask = isna(values)
             if mask.any():
-                result = np.array(result)
-                result[mask] = na_rep
-                # error: "List[str]" has no attribute "tolist"
-                result = result.tolist()  # type: ignore[attr-defined]
+                result_arr = np.array(result)
+                result_arr[mask] = na_rep
+                result = result_arr.tolist()
         else:
             result = trim_front(format_array(values, None, justify="left"))
         return header + result
@@ -3530,10 +3597,7 @@ class Index(IndexOpsMixin, PandasObject):
         if not overlap:
             raise ValueError("cannot join with no overlapping index names")
 
-        self_is_mi = isinstance(self, ABCMultiIndex)
-        other_is_mi = isinstance(other, ABCMultiIndex)
-
-        if self_is_mi and other_is_mi:
+        if isinstance(self, MultiIndex) and isinstance(other, MultiIndex):
 
             # Drop the non-matching levels from left and right respectively
             ldrop_names = list(self_names - overlap)
@@ -3579,7 +3643,7 @@ class Index(IndexOpsMixin, PandasObject):
         # Case where only one index is multi
         # make the indices into mi's that match
         flip_order = False
-        if self_is_mi:
+        if isinstance(self, MultiIndex):
             self, other = other, self
             flip_order = True
             # flip if join method is right or left
@@ -4379,7 +4443,11 @@ class Index(IndexOpsMixin, PandasObject):
         return result
 
     def sort_values(
-        self, return_indexer=False, ascending=True, key: Optional[Callable] = None
+        self,
+        return_indexer=False,
+        ascending=True,
+        na_position: str_t = "last",
+        key: Optional[Callable] = None,
     ):
         """
         Return a sorted copy of the index.
@@ -4393,6 +4461,12 @@ class Index(IndexOpsMixin, PandasObject):
             Should the indices that would sort the index be returned.
         ascending : bool, default True
             Should the index values be sorted in an ascending order.
+        na_position : {'first' or 'last'}, default 'last'
+            Argument 'first' puts NaNs at the beginning, 'last' puts NaNs at
+            the end.
+
+            .. versionadded:: 1.2.0
+
         key : callable, optional
             If not None, apply the key function to the index values
             before sorting. This is similar to the `key` argument in the
@@ -4433,9 +4507,16 @@ class Index(IndexOpsMixin, PandasObject):
         """
         idx = ensure_key_mapped(self, key)
 
-        _as = idx.argsort()
-        if not ascending:
-            _as = _as[::-1]
+        # GH 35584. Sort missing values according to na_position kwarg
+        # ignore na_position for MutiIndex
+        if not isinstance(self, ABCMultiIndex):
+            _as = nargsort(
+                items=idx, ascending=ascending, na_position=na_position, key=key
+            )
+        else:
+            _as = idx.argsort()
+            if not ascending:
+                _as = _as[::-1]
 
         sorted_index = self.take(_as)
 
@@ -4905,7 +4986,13 @@ class Index(IndexOpsMixin, PandasObject):
         # overridden in DatetimeIndex, TimedeltaIndex and PeriodIndex
         raise NotImplementedError
 
-    def slice_indexer(self, start=None, end=None, step=None, kind=None):
+    def slice_indexer(
+        self,
+        start: Optional[Label] = None,
+        end: Optional[Label] = None,
+        step: Optional[int] = None,
+        kind: Optional[str_t] = None,
+    ) -> slice:
         """
         Compute the slice indexer for input labels and step.
 
@@ -5505,7 +5592,9 @@ def ensure_index_from_sequences(sequences, names=None):
         return MultiIndex.from_arrays(sequences, names=names)
 
 
-def ensure_index(index_like, copy: bool = False):
+def ensure_index(
+    index_like: Union[AnyArrayLike, Sequence], copy: bool = False
+) -> Index:
     """
     Ensure that we have an index from some index-like object.
 
@@ -5541,7 +5630,18 @@ def ensure_index(index_like, copy: bool = False):
             index_like = index_like.copy()
         return index_like
     if hasattr(index_like, "name"):
-        return Index(index_like, name=index_like.name, copy=copy)
+        # https://github.com/python/mypy/issues/1424
+        # error: Item "ExtensionArray" of "Union[ExtensionArray,
+        # Sequence[Any]]" has no attribute "name"  [union-attr]
+        # error: Item "Sequence[Any]" of "Union[ExtensionArray, Sequence[Any]]"
+        # has no attribute "name"  [union-attr]
+        # error: "Sequence[Any]" has no attribute "name"  [attr-defined]
+        # error: Item "Sequence[Any]" of "Union[Series, Sequence[Any]]" has no
+        # attribute "name"  [union-attr]
+        # error: Item "Sequence[Any]" of "Union[Any, Sequence[Any]]" has no
+        # attribute "name"  [union-attr]
+        name = index_like.name  # type: ignore[union-attr, attr-defined]
+        return Index(index_like, name=name, copy=copy)
 
     if is_iterator(index_like):
         index_like = list(index_like)
@@ -5596,7 +5696,7 @@ def _validate_join_method(method: str):
         raise ValueError(f"do not recognize join method {method}")
 
 
-def default_index(n):
+def default_index(n: int) -> "RangeIndex":
     from pandas.core.indexes.range import RangeIndex
 
     return RangeIndex(0, n, name=None)
