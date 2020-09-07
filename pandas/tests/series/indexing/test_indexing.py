@@ -1,7 +1,6 @@
 """ test get/set & misc """
 
 from datetime import timedelta
-import re
 
 import numpy as np
 import pytest
