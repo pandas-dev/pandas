@@ -221,7 +221,7 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
         expected = pd.DataFrame(
             {
                 "A": data_missing._from_sequence([fill_value, fill_value], dtype=dtype),
-                "B": [1, 2],
+                "B": [1, 2]
             }
         )
 
@@ -240,7 +240,7 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         expected = pd.Series(
             SparseArray(
                 [a <= b for (a, b) in zip(list(orig_data1), list(orig_data2))],
-                fill_value=False,
+                fill_value=False
             )
         )
         self.assert_series_equal(result, expected)
@@ -317,7 +317,7 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         assert result._sparse_values[0] != result._sparse_values[1]
 
     @pytest.mark.parametrize(
-        "method", ["argmax", "argmin"],
+        "method", ["argmax", "argmin"]
     )
     def test_argmin_argmax_all_na(self, method, data, na_value):
         # overriding because Sparse[int64, 0] cannot handle na_value
@@ -403,7 +403,7 @@ class TestComparisonOps(BaseSparseTests, base.BaseComparisonOpsTests):
             expected = pd.Series(
                 SparseArray(
                     op(np.asarray(data), np.asarray(other)),
-                    fill_value=result.values.fill_value,
+                    fill_value=result.values.fill_value
                 )
             )
 

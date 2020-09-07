@@ -24,8 +24,8 @@ import pandas._testing as tm
         ([1, 4], [5, 2], [5, 2, 3], True),
         # check_categorical sorts categories, which crashes on mixed dtypes
         (3, "4", [1, 2, "4"], False),
-        ([1, 2, "3"], "5", ["5", "5", 3], True),
-    ],
+        ([1, 2, "3"], "5", ["5", "5", 3], True)
+    ]
 )
 def test_replace(to_replace, value, expected, flip_categories):
     # GH 31720
@@ -44,8 +44,8 @@ def test_replace(to_replace, value, expected, flip_categories):
         expected = pd.Series(np.asarray(expected))
 
     tm.assert_series_equal(
-        expected, result, check_category_order=False,
+        expected, result, check_category_order=False
     )
     tm.assert_series_equal(
-        expected, s, check_category_order=False,
+        expected, s, check_category_order=False
     )

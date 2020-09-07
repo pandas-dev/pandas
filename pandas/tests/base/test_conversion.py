@@ -13,7 +13,7 @@ from pandas.core.arrays import (
     PandasArray,
     PeriodArray,
     SparseArray,
-    TimedeltaArray,
+    TimedeltaArray
 )
 
 
@@ -34,7 +34,7 @@ class TestToIterable:
         ("float64", float),
         ("datetime64[ns]", Timestamp),
         ("datetime64[ns, US/Eastern]", Timestamp),
-        ("timedelta64[ns]", Timedelta),
+        ("timedelta64[ns]", Timedelta)
     ]
 
     @pytest.mark.parametrize("dtype, rdtype", dtypes)
@@ -44,9 +44,9 @@ class TestToIterable:
             lambda x: x.tolist(),
             lambda x: x.to_list(),
             lambda x: list(x),
-            lambda x: list(x.__iter__()),
+            lambda x: list(x.__iter__())
         ],
-        ids=["tolist", "to_list", "list", "iter"],
+        ids=["tolist", "to_list", "list", "iter"]
     )
     def test_iterable(self, index_or_series, method, dtype, rdtype):
         # gh-10904
@@ -63,8 +63,8 @@ class TestToIterable:
             ("object", object, "a"),
             ("object", int, 1),
             ("category", object, "a"),
-            ("category", int, 1),
-        ],
+            ("category", int, 1)
+        ]
     )
     @pytest.mark.parametrize(
         "method",
@@ -72,9 +72,9 @@ class TestToIterable:
             lambda x: x.tolist(),
             lambda x: x.to_list(),
             lambda x: list(x),
-            lambda x: list(x.__iter__()),
+            lambda x: list(x.__iter__())
         ],
-        ids=["tolist", "to_list", "list", "iter"],
+        ids=["tolist", "to_list", "list", "iter"]
     )
     def test_iterable_object_and_category(
         self, index_or_series, method, dtype, rdtype, obj
@@ -118,9 +118,9 @@ class TestToIterable:
             lambda x: x.tolist(),
             lambda x: x.to_list(),
             lambda x: list(x),
-            lambda x: list(x.__iter__()),
+            lambda x: list(x.__iter__())
         ],
-        ids=["tolist", "to_list", "list", "iter"],
+        ids=["tolist", "to_list", "list", "iter"]
     )
     def test_categorial_datetimelike(self, method):
         i = CategoricalIndex([Timestamp("1999-12-31"), Timestamp("2000-12-31")])
@@ -139,7 +139,7 @@ class TestToIterable:
 
         vals = [
             Timestamp("2011-01-01", tz="US/Eastern"),
-            Timestamp("2011-01-02", tz="US/Eastern"),
+            Timestamp("2011-01-02", tz="US/Eastern")
         ]
         s = Series(vals)
 
@@ -176,14 +176,14 @@ class TestToIterable:
         (
             pd.DatetimeIndex(["2017", "2018"], tz="US/Central"),
             DatetimeArray,
-            "datetime64[ns, US/Central]",
+            "datetime64[ns, US/Central]"
         ),
         (
             pd.PeriodIndex([2018, 2019], freq="A"),
             PeriodArray,
-            pd.core.dtypes.dtypes.PeriodDtype("A-DEC"),
+            pd.core.dtypes.dtypes.PeriodDtype("A-DEC")
         ),
-        (pd.IntervalIndex.from_breaks([0, 1, 2]), IntervalArray, "interval",),
+        (pd.IntervalIndex.from_breaks([0, 1, 2]), IntervalArray, "interval"),
         # This test is currently failing for datetime64[ns] and timedelta64[ns].
         # The NumPy type system is sufficient for representing these types, so
         # we just use NumPy for Series / DataFrame columns of these types (so
@@ -197,15 +197,15 @@ class TestToIterable:
             pd.DatetimeIndex(["2017", "2018"]),
             np.ndarray,
             "datetime64[ns]",
-            marks=[pytest.mark.xfail(reason="datetime _values", strict=True)],
+            marks=[pytest.mark.xfail(reason="datetime _values", strict=True)]
         ),
         pytest.param(
             pd.TimedeltaIndex([10 ** 10]),
             np.ndarray,
             "m8[ns]",
-            marks=[pytest.mark.xfail(reason="timedelta _values", strict=True)],
-        ),
-    ],
+            marks=[pytest.mark.xfail(reason="timedelta _values", strict=True)]
+        )
+    ]
 )
 def test_values_consistent(array, expected_type, dtype):
     l_values = pd.Series(array)._values
@@ -250,11 +250,11 @@ def test_numpy_array_all_dtypes(any_numpy_dtype):
                 np.array(
                     ["2000-01-01T12:00:00", "2000-01-02T12:00:00"], dtype="M8[ns]"
                 ),
-                dtype=DatetimeTZDtype(tz="US/Central"),
+                dtype=DatetimeTZDtype(tz="US/Central")
             ),
-            "_data",
-        ),
-    ],
+            "_data"
+        )
+    ]
 )
 def test_array(array, attr, index_or_series):
     box = index_or_series
@@ -283,21 +283,21 @@ def test_array_multiindex_raises():
         (pd.Categorical(["a", "b"]), np.array(["a", "b"], dtype=object)),
         (
             pd.core.arrays.period_array(["2000", "2001"], freq="D"),
-            np.array([pd.Period("2000", freq="D"), pd.Period("2001", freq="D")]),
+            np.array([pd.Period("2000", freq="D"), pd.Period("2001", freq="D")])
         ),
         (
             pd.core.arrays.integer_array([0, np.nan]),
-            np.array([0, pd.NA], dtype=object),
+            np.array([0, pd.NA], dtype=object)
         ),
         (
             IntervalArray.from_breaks([0, 1, 2]),
-            np.array([pd.Interval(0, 1), pd.Interval(1, 2)], dtype=object),
+            np.array([pd.Interval(0, 1), pd.Interval(1, 2)], dtype=object)
         ),
         (SparseArray([0, 1]), np.array([0, 1], dtype=np.int64)),
         # tz-naive datetime
         (
             DatetimeArray(np.array(["2000", "2001"], dtype="M8[ns]")),
-            np.array(["2000", "2001"], dtype="M8[ns]"),
+            np.array(["2000", "2001"], dtype="M8[ns]")
         ),
         # tz-aware stays tz`-aware
         (
@@ -305,21 +305,21 @@ def test_array_multiindex_raises():
                 np.array(
                     ["2000-01-01T06:00:00", "2000-01-02T06:00:00"], dtype="M8[ns]"
                 ),
-                dtype=DatetimeTZDtype(tz="US/Central"),
+                dtype=DatetimeTZDtype(tz="US/Central")
             ),
             np.array(
                 [
                     pd.Timestamp("2000-01-01", tz="US/Central"),
-                    pd.Timestamp("2000-01-02", tz="US/Central"),
+                    pd.Timestamp("2000-01-02", tz="US/Central")
                 ]
-            ),
+            )
         ),
         # Timedelta
         (
             TimedeltaArray(np.array([0, 3600000000000], dtype="i8"), freq="H"),
-            np.array([0, 3600000000000], dtype="m8[ns]"),
-        ),
-    ],
+            np.array([0, 3600000000000], dtype="m8[ns]")
+        )
+    ]
 )
 def test_to_numpy(array, expected, index_or_series):
     box = index_or_series
@@ -383,9 +383,9 @@ def test_to_numpy_dtype(as_series):
             [pd.Timestamp("2000"), pd.Timestamp("2000"), pd.NaT],
             None,
             pd.Timestamp("2000"),
-            [np.datetime64("2000-01-01T00:00:00.000000000")] * 3,
-        ),
-    ],
+            [np.datetime64("2000-01-01T00:00:00.000000000")] * 3
+        )
+    ]
 )
 def test_to_numpy_na_value_numpy_dtype(
     index_or_series, values, dtype, na_value, expected
@@ -414,8 +414,8 @@ def test_to_numpy_kwargs_raises():
     [
         {"a": [1, 2, 3], "b": [1, 2, None]},
         {"a": np.array([1, 2, 3]), "b": np.array([1, 2, np.nan])},
-        {"a": pd.array([1, 2, 3]), "b": pd.array([1, 2, None])},
-    ],
+        {"a": pd.array([1, 2, 3]), "b": pd.array([1, 2, None])}
+    ]
 )
 @pytest.mark.parametrize("dtype, na_value", [(float, np.nan), (object, None)])
 def test_to_numpy_dataframe_na_value(data, dtype, na_value):
@@ -431,13 +431,13 @@ def test_to_numpy_dataframe_na_value(data, dtype, na_value):
     [
         (
             {"a": pd.array([1, 2, None])},
-            np.array([[1.0], [2.0], [np.nan]], dtype=float),
+            np.array([[1.0], [2.0], [np.nan]], dtype=float)
         ),
         (
             {"a": [1, 2, 3], "b": [1, 2, 3]},
-            np.array([[1, 1], [2, 2], [3, 3]], dtype=float),
-        ),
-    ],
+            np.array([[1, 1], [2, 2], [3, 3]], dtype=float)
+        )
+    ]
 )
 def test_to_numpy_dataframe_single_block(data, expected):
     # https://github.com/pandas-dev/pandas/issues/33820

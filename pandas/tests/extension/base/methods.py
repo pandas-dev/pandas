@@ -93,7 +93,7 @@ class BaseMethodsTests(BaseExtensionTests):
         assert data_missing_for_sorting.argmin() == 2
 
     @pytest.mark.parametrize(
-        "method", ["argmax", "argmin"],
+        "method", ["argmax", "argmin"]
     )
     def test_argmin_argmax_empty_array(self, method, data):
         # GH 24382
@@ -102,7 +102,7 @@ class BaseMethodsTests(BaseExtensionTests):
             getattr(data[:0], method)()
 
     @pytest.mark.parametrize(
-        "method", ["argmax", "argmin"],
+        "method", ["argmax", "argmin"]
     )
     def test_argmin_argmax_all_na(self, method, data, na_value):
         # all missing with skipna=True is the same as emtpy
@@ -115,8 +115,8 @@ class BaseMethodsTests(BaseExtensionTests):
         "na_position, expected",
         [
             ("last", np.array([2, 0, 1], dtype=np.dtype("intp"))),
-            ("first", np.array([1, 2, 0], dtype=np.dtype("intp"))),
-        ],
+            ("first", np.array([1, 2, 0], dtype=np.dtype("intp")))
+        ]
     )
     def test_nargsort(self, data_missing_for_sorting, na_position, expected):
         # GH 25439
@@ -267,7 +267,7 @@ class BaseMethodsTests(BaseExtensionTests):
     @pytest.mark.parametrize("frame", [True, False])
     @pytest.mark.parametrize(
         "periods, indices",
-        [(-2, [2, 3, 4, -1, -1]), (0, [0, 1, 2, 3, 4]), (2, [-1, -1, 0, 1, 2])],
+        [(-2, [2, 3, 4, -1, -1]), (0, [0, 1, 2, 3, 4]), (2, [-1, -1, 0, 1, 2])]
     )
     def test_container_shift(self, data, frame, periods, indices):
         # https://github.com/pandas-dev/pandas/issues/22386
@@ -322,7 +322,7 @@ class BaseMethodsTests(BaseExtensionTests):
 
     @pytest.mark.parametrize(
         "periods, indices",
-        [[-4, [-1, -1]], [-1, [1, -1]], [0, [0, 1]], [1, [-1, 0]], [4, [-1, -1]]],
+        [[-4, [-1, -1]], [-1, [1, -1]], [0, [0, 1]], [1, [-1, 0]], [4, [-1, -1]]]
     )
     def test_shift_non_empty_array(self, data, periods, indices):
         # https://github.com/pandas-dev/pandas/issues/23911
@@ -450,8 +450,8 @@ class BaseMethodsTests(BaseExtensionTests):
             (2, dict(axis=1), ValueError, "'axis"),
             (-1, dict(), ValueError, "negative"),
             ([1, 2], dict(), ValueError, "shape"),
-            (2, dict(foo="bar"), TypeError, "'foo'"),
-        ],
+            (2, dict(foo="bar"), TypeError, "'foo'")
+        ]
     )
     def test_repeat_raises(self, data, repeats, kwargs, error, msg, use_numpy):
         with pytest.raises(error, match=msg):
