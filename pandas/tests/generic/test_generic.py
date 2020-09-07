@@ -887,3 +887,13 @@ class TestNDFrame:
         obj = box(dtype=object)
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             obj._AXIS_NUMBERS
+
+    @pytest.mark.parametrize("as_frame", [True, False])
+    def test_flags_identity(self, as_frame):
+        s = pd.Series([1, 2])
+        if as_frame:
+            s = s.to_frame()
+
+        assert s.flags is s.flags
+        s2 = s.copy()
+        assert s2.flags is not s.flags

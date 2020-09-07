@@ -676,7 +676,7 @@ def test_ops_not_as_index(reduction_func):
     if reduction_func in ("corrwith",):
         pytest.skip("Test not applicable")
 
-    if reduction_func in ("nth", "ngroup",):
+    if reduction_func in ("nth", "ngroup"):
         pytest.skip("Skip until behavior is determined (GH #5755)")
 
     df = DataFrame(np.random.randint(0, 5, size=(100, 2)), columns=["a", "b"])
@@ -2111,3 +2111,26 @@ def test_subsetting_columns_keeps_attrs(klass, attr, value):
     expected = df.groupby("a", **{attr: value})
     result = expected[["b"]] if klass is DataFrame else expected["b"]
     assert getattr(result, attr) == getattr(expected, attr)
+
+
+@pytest.mark.parametrize("func", ["sum", "any", "shift"])
+def test_groupby_column_index_name_lost(func):
+    # GH: 29764 groupby loses index sometimes
+    expected = pd.Index(["a"], name="idx")
+    df = pd.DataFrame([[1]], columns=expected)
+    df_grouped = df.groupby([1])
+    result = getattr(df_grouped, func)().columns
+    tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", ["ffill", "bfill"])
+def test_groupby_column_index_name_lost_fill_funcs(func):
+    # GH: 29764 groupby loses index sometimes
+    df = pd.DataFrame(
+        [[1, 1.0, -1.0], [1, np.nan, np.nan], [1, 2.0, -2.0]],
+        columns=pd.Index(["type", "a", "b"], name="idx"),
+    )
+    df_grouped = df.groupby(["type"])[["a", "b"]]
+    result = getattr(df_grouped, func)().columns
+    expected = pd.Index(["a", "b"], name="idx")
+    tm.assert_index_equal(result, expected)

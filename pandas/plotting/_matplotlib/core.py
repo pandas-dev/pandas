@@ -1,4 +1,3 @@
-import re
 from typing import TYPE_CHECKING, List, Optional, Tuple
 import warnings
 
@@ -30,22 +29,38 @@ from pandas.core.dtypes.missing import isna, notna
 import pandas.core.common as com
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._matplotlib.compat import _mpl_ge_3_0_0
+from pandas.plotting._matplotlib.compat import mpl_ge_3_0_0
 from pandas.plotting._matplotlib.converter import register_pandas_matplotlib_converters
-from pandas.plotting._matplotlib.style import _get_standard_colors
+from pandas.plotting._matplotlib.style import get_standard_colors
+from pandas.plotting._matplotlib.timeseries import (
+    decorate_axes,
+    format_dateaxis,
+    maybe_convert_index,
+    maybe_resample,
+    use_dynamic_x,
+)
 from pandas.plotting._matplotlib.tools import (
-    _flatten,
-    _get_all_lines,
-    _get_xlim,
-    _handle_shared_axes,
-    _subplots,
+    create_subplots,
+    flatten_axes,
     format_date_labels,
+    get_all_lines,
+    get_xlim,
+    handle_shared_axes,
     table,
 )
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from matplotlib.axis import Axis
+
+
+def _color_in_style(style: str) -> bool:
+    """
+    Check if there is a color letter in the style string.
+    """
+    from matplotlib.colors import BASE_COLORS
+
+    return not set(BASE_COLORS).isdisjoint(style)
 
 
 class MPLPlot:
@@ -66,16 +81,6 @@ class MPLPlot:
     _layout_type = "vertical"
     _default_rot = 0
     orientation: Optional[str] = None
-    _pop_attributes = [
-        "label",
-        "style",
-        "mark_right",
-        "stacked",
-    ]
-    _attr_defaults = {
-        "mark_right": True,
-        "stacked": False,
-    }
 
     def __init__(
         self,
@@ -165,9 +170,10 @@ class MPLPlot:
         self.logx = kwds.pop("logx", False)
         self.logy = kwds.pop("logy", False)
         self.loglog = kwds.pop("loglog", False)
-        for attr in self._pop_attributes:
-            value = kwds.pop(attr, self._attr_defaults.get(attr, None))
-            setattr(self, attr, value)
+        self.label = kwds.pop("label", None)
+        self.style = kwds.pop("style", None)
+        self.mark_right = kwds.pop("mark_right", True)
+        self.stacked = kwds.pop("stacked", False)
 
         self.ax = ax
         self.fig = fig
@@ -202,8 +208,6 @@ class MPLPlot:
         self._validate_color_args()
 
     def _validate_color_args(self):
-        import matplotlib.colors
-
         if (
             "color" in self.kwds
             and self.nseries == 1
@@ -235,13 +239,12 @@ class MPLPlot:
                 styles = [self.style]
             # need only a single match
             for s in styles:
-                for char in s:
-                    if char in matplotlib.colors.BASE_COLORS:
-                        raise ValueError(
-                            "Cannot pass 'style' string with a color symbol and "
-                            "'color' keyword argument. Please use one or the other or "
-                            "pass 'style' without a color symbol"
-                        )
+                if _color_in_style(s):
+                    raise ValueError(
+                        "Cannot pass 'style' string with a color symbol and "
+                        "'color' keyword argument. Please use one or the "
+                        "other or pass 'style' without a color symbol"
+                    )
 
     def _iter_data(self, data=None, keep_index=False, fillna=None):
         if data is None:
@@ -315,7 +318,7 @@ class MPLPlot:
 
     def _setup_subplots(self):
         if self.subplots:
-            fig, axes = _subplots(
+            fig, axes = create_subplots(
                 naxes=self.nseries,
                 sharex=self.sharex,
                 sharey=self.sharey,
@@ -334,7 +337,7 @@ class MPLPlot:
                     fig.set_size_inches(self.figsize)
                 axes = self.ax
 
-        axes = _flatten(axes)
+        axes = flatten_axes(axes)
 
         valid_log = {False, True, "sym", None}
         input_log = {self.logx, self.logy, self.loglog}
@@ -466,7 +469,7 @@ class MPLPlot:
         if len(self.axes) > 0:
             all_axes = self._get_subplots()
             nrows, ncols = self._get_axes_layout()
-            _handle_shared_axes(
+            handle_shared_axes(
                 axarr=all_axes,
                 nplots=len(all_axes),
                 naxes=nrows * ncols,
@@ -665,7 +668,7 @@ class MPLPlot:
             if style is not None:
                 args = (x, y, style)
             else:
-                args = (x, y)  # type:ignore[assignment]
+                args = (x, y)  # type: ignore[assignment]
             return ax.plot(*args, **kwds)
 
     def _get_index_name(self) -> Optional[str]:
@@ -741,7 +744,7 @@ class MPLPlot:
                 style = self.style
 
         has_color = "color" in kwds or self.colormap is not None
-        nocolor_style = style is None or re.match("[a-z]+", style) is None
+        nocolor_style = style is None or not _color_in_style(style)
         if (has_color or self.subplots) and nocolor_style:
             if isinstance(colors, dict):
                 kwds["color"] = colors[label]
@@ -753,7 +756,7 @@ class MPLPlot:
         if num_colors is None:
             num_colors = self.nseries
 
-        return _get_standard_colors(
+        return get_standard_colors(
             num_colors=num_colors,
             colormap=self.colormap,
             color=self.kwds.get(color_kwds),
@@ -941,7 +944,7 @@ class PlanePlot(MPLPlot):
         img = ax.collections[-1]
         cbar = self.fig.colorbar(img, ax=ax, **kwds)
 
-        if _mpl_ge_3_0_0():
+        if mpl_ge_3_0_0():
             # The workaround below is no longer necessary.
             return
 
@@ -1083,15 +1086,11 @@ class LinePlot(MPLPlot):
         return not self.x_compat and self.use_index and self._use_dynamic_x()
 
     def _use_dynamic_x(self):
-        from pandas.plotting._matplotlib.timeseries import _use_dynamic_x
-
-        return _use_dynamic_x(self._get_ax(0), self.data)
+        return use_dynamic_x(self._get_ax(0), self.data)
 
     def _make_plot(self):
         if self._is_ts_plot():
-            from pandas.plotting._matplotlib.timeseries import _maybe_convert_index
-
-            data = _maybe_convert_index(self._get_ax(0), self.data)
+            data = maybe_convert_index(self._get_ax(0), self.data)
 
             x = data.index  # dummy, not used
             plotf = self._ts_plot
@@ -1132,8 +1131,8 @@ class LinePlot(MPLPlot):
 
                 # reset of xlim should be used for ts data
                 # TODO: GH28021, should find a way to change view limit on xaxis
-                lines = _get_all_lines(ax)
-                left, right = _get_xlim(lines)
+                lines = get_all_lines(ax)
+                left, right = get_xlim(lines)
                 ax.set_xlim(left, right)
 
     @classmethod
@@ -1151,24 +1150,18 @@ class LinePlot(MPLPlot):
 
     @classmethod
     def _ts_plot(cls, ax: "Axes", x, data, style=None, **kwds):
-        from pandas.plotting._matplotlib.timeseries import (
-            _decorate_axes,
-            _maybe_resample,
-            format_dateaxis,
-        )
-
         # accept x to be consistent with normal plot func,
         # x is not passed to tsplot as it uses data.index as x coordinate
         # column_num must be in kwds for stacking purpose
-        freq, data = _maybe_resample(data, ax, kwds)
+        freq, data = maybe_resample(data, ax, kwds)
 
         # Set ax with freq info
-        _decorate_axes(ax, freq, kwds)
+        decorate_axes(ax, freq, kwds)
         # digging deeper
         if hasattr(ax, "left_ax"):
-            _decorate_axes(ax.left_ax, freq, kwds)
+            decorate_axes(ax.left_ax, freq, kwds)
         if hasattr(ax, "right_ax"):
-            _decorate_axes(ax.right_ax, freq, kwds)
+            decorate_axes(ax.right_ax, freq, kwds)
         ax._plot_data.append((data, cls._kind, kwds))
 
         lines = cls._plot(ax, data.index, data.values, style=style, **kwds)
@@ -1235,8 +1228,8 @@ class LinePlot(MPLPlot):
         if self._need_to_set_index:
             xticks = ax.get_xticks()
             xticklabels = [get_label(x) for x in xticks]
-            ax.set_xticklabels(xticklabels)
             ax.xaxis.set_major_locator(FixedLocator(xticks))
+            ax.set_xticklabels(xticklabels)
 
         condition = (
             not self._use_dynamic_x()
