@@ -350,6 +350,7 @@ def test_median_duplicate_columns():
 
 
 def test_resample_different_result_with_agg():
+    # GH: 35275 and 33548
     data = pd.DataFrame(
         {
             "cat": ["cat1", "cat1", "cat2", "cat1", "cat2", "cat1", "cat2", "cat1"],
@@ -391,6 +392,7 @@ def test_resample_different_result_with_agg():
 
 
 def test_resample_agg_different_results_on_keyword():
+    # GH: 27343
     df = pd.DataFrame.from_records(
         {
             "ref": ["a", "a", "a", "b", "b"],
