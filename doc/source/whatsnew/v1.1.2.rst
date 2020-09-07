@@ -41,6 +41,7 @@ Bug fixes
 - Bug in :meth:`Series.dt.isocalendar` and :meth:`DatetimeIndex.isocalendar` that returned incorrect year for certain dates (:issue:`36032`)
 - Bug in :class:`DataFrame` indexing returning an incorrect :class:`Series` in some cases when the series has been altered and a cache not invalidated (:issue:`33675`)
 - Bug in :meth:`DataFrame.corr` causing subsequent indexing lookups to be incorrect (:issue:`35882`)
+- Bug in :meth:`import_optional_dependency` returning incorrect package names in cases where package name is different from import name (:issue:`35948`)
 
 .. ---------------------------------------------------------------------------
 
