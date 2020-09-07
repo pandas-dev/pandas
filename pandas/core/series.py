@@ -922,7 +922,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 "Indexing a Series with DataFrame is not "
                 "supported, use the appropriate DataFrame column"
             )
-        elif isinstance(key, tuple) and isinstance(self.index, MultiIndex):
+        elif isinstance(key, tuple):
             return self._get_values_tuple(key)
 
         elif not is_list_like(key):
@@ -958,7 +958,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return result
 
         if not isinstance(self.index, MultiIndex):
-            raise ValueError("Can only tuple-index with a MultiIndex")
+            raise ValueError("key of type tuple not found and not a MultiIndex")
 
         # If key is contained, would have returned by now
         indexer, new_index = self.index.get_loc_level(key)
@@ -1014,7 +1014,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         except TypeError as e:
             if isinstance(key, tuple) and not isinstance(self.index, MultiIndex):
-                raise ValueError("Can only tuple-index with a MultiIndex") from e
+                raise ValueError(
+                    "key of type tuple not found and not a MultiIndex"
+                ) from e
 
             if com.is_bool_indexer(key):
                 key = check_bool_indexer(self.index, key)
