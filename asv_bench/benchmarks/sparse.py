@@ -71,7 +71,7 @@ class ToCoo:
         s.index = MultiIndex.from_product([range(10)] * 4)
         self.ss = s.astype("Sparse")
 
-    def timesparse_series_to_coo(self):
+    def time_sparse_series_to_coo(self):
         self.ss.sparse.to_coo(row_levels=[0, 1], column_levels=[2, 3], sort_labels=True)
 
 
