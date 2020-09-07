@@ -1183,6 +1183,18 @@ def test_groupby_dtype_inference_empty():
     tm.assert_frame_equal(result, expected, by_blocks=True)
 
 
+def test_groupby_unit64_float_conversion():
+    #  GH: 30859 groupby converts unit64 to floats sometimes
+    df = pd.DataFrame({"first": [1], "second": [1], "value": [16148277970000000000]})
+    result = df.groupby(["first", "second"])["value"].max()
+    expected = pd.Series(
+        [16148277970000000000],
+        pd.MultiIndex.from_product([[1], [1]], names=["first", "second"]),
+        name="value",
+    )
+    tm.assert_series_equal(result, expected)
+
+
 def test_groupby_list_infer_array_like(df):
     result = df.groupby(list(df["A"])).mean()
     expected = df.groupby(df["A"]).mean()

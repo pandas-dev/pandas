@@ -253,6 +253,10 @@ class PeriodArray(PeriodMixin, dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     # -----------------------------------------------------------------
     # DatetimeLike Interface
 
+    @classmethod
+    def _rebox_native(cls, value: int) -> np.int64:
+        return np.int64(value)
+
     def _unbox_scalar(self, value: Union[Period, NaTType]) -> int:
         if value is NaT:
             return value.value
