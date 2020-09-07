@@ -20,9 +20,9 @@ del hard_dependencies, dependency, missing_dependencies
 
 # numpy compat
 from pandas.compat.numpy import (
-    _np_version_under1p17,
-    _np_version_under1p18,
-    _is_numpy_dev,
+    is_numpy_dev as _is_numpy_dev,
+    np_version_under1p17 as _np_version_under1p17,
+    np_version_under1p18 as _np_version_under1p18,
 )
 
 try:
@@ -37,148 +37,134 @@ except ImportError as e:  # pragma: no cover
     ) from e
 
 from pandas._config import (
-    get_option,
-    set_option,
-    reset_option,
     describe_option,
+    get_option,
     option_context,
     options,
+    reset_option,
+    set_option,
 )
+
+from pandas.util._print_versions import show_versions
+from pandas.util._tester import test
+
+import pandas.api
+import pandas.arrays
+from pandas.core.arrays.sparse import SparseDtype
+from pandas.core.computation.api import eval
 
 # let init-time option registration happen
 import pandas.core.config_init
+from pandas.core.reshape.api import (
+    concat,
+    crosstab,
+    cut,
+    get_dummies,
+    lreshape,
+    melt,
+    merge,
+    merge_asof,
+    merge_ordered,
+    pivot,
+    pivot_table,
+    qcut,
+    wide_to_long,
+)
+import pandas.testing
 
-from pandas.core.api import (
-    # dtype
+from pandas.io.json import _json_normalize as json_normalize
+from pandas.tseries import offsets
+from pandas.tseries.api import infer_freq
+
+# use the closest tagged version if possible
+from ._version import get_versions
+
+from pandas.core.api import (  # dtype; missing; indexes; tseries; conversion; misc
+    NA,
+    BooleanDtype,
+    Categorical,
+    CategoricalDtype,
+    CategoricalIndex,
+    DataFrame,
+    DateOffset,
+    DatetimeIndex,
+    DatetimeTZDtype,
+    Flags,
+    Float64Index,
+    Grouper,
+    Index,
+    IndexSlice,
     Int8Dtype,
     Int16Dtype,
     Int32Dtype,
     Int64Dtype,
+    Int64Index,
+    Interval,
+    IntervalDtype,
+    IntervalIndex,
+    MultiIndex,
+    NamedAgg,
+    NaT,
+    Period,
+    PeriodDtype,
+    PeriodIndex,
+    RangeIndex,
+    Series,
+    StringDtype,
+    Timedelta,
+    TimedeltaIndex,
+    Timestamp,
     UInt8Dtype,
     UInt16Dtype,
     UInt32Dtype,
     UInt64Dtype,
-    CategoricalDtype,
-    PeriodDtype,
-    IntervalDtype,
-    DatetimeTZDtype,
-    StringDtype,
-    BooleanDtype,
-    # missing
-    NA,
+    UInt64Index,
+    array,
+    bdate_range,
+    date_range,
+    factorize,
+    interval_range,
     isna,
     isnull,
     notna,
     notnull,
-    # indexes
-    Index,
-    CategoricalIndex,
-    Int64Index,
-    UInt64Index,
-    RangeIndex,
-    Float64Index,
-    MultiIndex,
-    IntervalIndex,
-    TimedeltaIndex,
-    DatetimeIndex,
-    PeriodIndex,
-    IndexSlice,
-    # tseries
-    NaT,
-    Period,
     period_range,
-    Timedelta,
+    set_eng_float_format,
     timedelta_range,
-    Timestamp,
-    date_range,
-    bdate_range,
-    Interval,
-    interval_range,
-    DateOffset,
-    # conversion
-    to_numeric,
     to_datetime,
+    to_numeric,
     to_timedelta,
-    # misc
-    Flags,
-    Grouper,
-    factorize,
     unique,
     value_counts,
-    NamedAgg,
-    array,
-    Categorical,
-    set_eng_float_format,
-    Series,
-    DataFrame,
 )
 
-from pandas.core.arrays.sparse import SparseDtype
 
-from pandas.tseries.api import infer_freq
-from pandas.tseries import offsets
-
-from pandas.core.computation.api import eval
-
-from pandas.core.reshape.api import (
-    concat,
-    lreshape,
-    melt,
-    wide_to_long,
-    merge,
-    merge_asof,
-    merge_ordered,
-    crosstab,
-    pivot,
-    pivot_table,
-    get_dummies,
-    cut,
-    qcut,
-)
-
-import pandas.api
-from pandas.util._print_versions import show_versions
-
-from pandas.io.api import (
-    # excel
+from pandas.io.api import (  # excel; parsers; pickle; pytables; sql; misc
     ExcelFile,
     ExcelWriter,
-    read_excel,
-    # parsers
-    read_csv,
-    read_fwf,
-    read_table,
-    # pickle
-    read_pickle,
-    to_pickle,
-    # pytables
     HDFStore,
+    read_clipboard,
+    read_csv,
+    read_excel,
+    read_feather,
+    read_fwf,
+    read_gbq,
     read_hdf,
-    # sql
+    read_html,
+    read_json,
+    read_orc,
+    read_parquet,
+    read_pickle,
+    read_sas,
+    read_spss,
     read_sql,
     read_sql_query,
     read_sql_table,
-    # misc
-    read_clipboard,
-    read_parquet,
-    read_orc,
-    read_feather,
-    read_gbq,
-    read_html,
-    read_json,
     read_stata,
-    read_sas,
-    read_spss,
+    read_table,
+    to_pickle,
 )
 
-from pandas.io.json import _json_normalize as json_normalize
-
-from pandas.util._tester import test
-import pandas.testing
-import pandas.arrays
-
-# use the closest tagged version if possible
-from ._version import get_versions
 
 v = get_versions()
 __version__ = v.get("closest-tag", v["version"])

@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import NaT, Timedelta, Timestamp, _is_numpy_dev, compat, offsets
+from pandas import NaT, Timedelta, Timestamp, compat, is_numpy_dev, offsets
 import pandas._testing as tm
 from pandas.core import ops
 
@@ -426,7 +426,7 @@ class TestTimedeltaMultiplicationDivision:
                 np.float64("NaN"),
                 marks=pytest.mark.xfail(
                     # Works on numpy dev only in python 3.9
-                    _is_numpy_dev and not compat.PY39,
+                    is_numpy_dev and not compat.PY39,
                     raises=RuntimeWarning,
                     reason="https://github.com/pandas-dev/pandas/issues/31992",
                 ),
