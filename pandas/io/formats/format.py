@@ -939,17 +939,18 @@ class DataFrameFormatter(TableFormatter):
         """
         from pandas.io.formats.latex import LatexFormatter
 
-        return LatexFormatter(
+        latex_formatter = LatexFormatter(
             self,
-            column_format=column_format,
             longtable=longtable,
+            column_format=column_format,
             multicolumn=multicolumn,
             multicolumn_format=multicolumn_format,
             multirow=multirow,
             caption=caption,
             label=label,
             position=position,
-        ).get_result(buf=buf, encoding=encoding)
+        )
+        return latex_formatter.get_result(buf=buf, encoding=encoding)
 
     def _format_col(self, i: int) -> List[str]:
         frame = self.tr_frame
