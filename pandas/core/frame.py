@@ -5257,7 +5257,7 @@ class DataFrame(NDFrame):
         4     True
         dtype: bool
         """
-        from pandas._libs.hashtable import _SIZE_HINT_LIMIT, duplicated_int64
+        from pandas._libs.hashtable import SIZE_HINT_LIMIT, duplicated_int64
 
         from pandas.core.sorting import get_group_index
 
@@ -5266,7 +5266,7 @@ class DataFrame(NDFrame):
 
         def f(vals):
             labels, shape = algorithms.factorize(
-                vals, size_hint=min(len(self), _SIZE_HINT_LIMIT)
+                vals, size_hint=min(len(self), SIZE_HINT_LIMIT)
             )
             return labels.astype("i8", copy=False), len(shape)
 
@@ -7091,10 +7091,11 @@ NaN 12.3   33.0
 
         Notes
         -----
-        This routine will explode list-likes including lists, tuples,
+        This routine will explode list-likes including lists, tuples, sets,
         Series, and np.ndarray. The result dtype of the subset rows will
-        be object. Scalars will be returned unchanged. Empty list-likes will
-        result in a np.nan for that row.
+        be object. Scalars will be returned unchanged, and empty list-likes will
+        result in a np.nan for that row. In addition, the ordering of rows in the
+        output will be non-deterministic when exploding sets.
 
         Examples
         --------
