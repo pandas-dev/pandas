@@ -546,6 +546,15 @@ class DatetimeLikeArrayMixin(
                 return self._box_func(result)
             return self._simple_new(result, dtype=self.dtype)
 
+        key = self._validate_getitem_key(key)
+        result = self._ndarray[key]
+        if lib.is_scalar(result):
+            return self._box_func(result)
+
+        freq = self._get_getitem_freq(key)
+        return self._simple_new(result, dtype=self.dtype, freq=freq)
+
+    def _validate_getitem_key(self, key):
         if com.is_bool_indexer(key):
             # first convert to boolean, because check_array_indexer doesn't
             # allow object dtype
@@ -560,12 +569,7 @@ class DatetimeLikeArrayMixin(
             pass
         else:
             key = check_array_indexer(self, key)
-
-        freq = self._get_getitem_freq(key)
-        result = self._ndarray[key]
-        if lib.is_scalar(result):
-            return self._box_func(result)
-        return self._simple_new(result, dtype=self.dtype, freq=freq)
+        return key
 
     def _get_getitem_freq(self, key):
         """
