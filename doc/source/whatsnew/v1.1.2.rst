@@ -23,6 +23,7 @@ Fixed regressions
 - Regression in :meth:`DataFrame.replace` where a ``TypeError`` would be raised when attempting to replace elements of type :class:`Interval` (:issue:`35931`)
 - Fix regression in pickle roundtrip of the ``closed`` attribute of :class:`IntervalIndex` (:issue:`35658`)
 - Fixed regression in :meth:`DataFrameGroupBy.agg` where a ``ValueError: buffer source array is read-only`` would be raised when the underlying array is read-only (:issue:`36014`)
+- Fixed regression in :meth:`Series.groupby.rolling` number of levels of :class:`MultiIndex` in input was compressed to one (:issue:`36018`)
 -
 
 .. ---------------------------------------------------------------------------
