@@ -27,7 +27,7 @@ from pandas._typing import DatetimeLikeScalar, DtypeObj
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError, NullFrequencyError, PerformanceWarning
-from pandas.util._decorators import Appender, Substitution
+from pandas.util._decorators import Appender, Substitution, cache_readonly
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.common import (
@@ -54,9 +54,8 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core import missing, nanops, ops
 from pandas.core.algorithms import checked_add_with_arr, unique1d, value_counts
-from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays._mixins import _T, NDArrayBackedExtensionArray
-from pandas.core.arrays.base import ExtensionArray, ExtensionOpsMixin
+from pandas.core.arrays.base import ExtensionOpsMixin
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array
 from pandas.core.indexers import check_array_indexer
@@ -467,18 +466,15 @@ class DatetimeLikeArrayMixin(
     # ------------------------------------------------------------------
     # NDArrayBackedExtensionArray compat
 
-    # TODO: make this a cache_readonly; need to get around _index_data
-    #  kludge in libreduction
-    @property
+    @cache_readonly
     def _ndarray(self) -> np.ndarray:
-        # NB: A bunch of Interval tests fail if we use ._data
-        return self.asi8
+        return self._data
 
     def _from_backing_data(self: _T, arr: np.ndarray) -> _T:
         # Note: we do not retain `freq`
-        # error: Too many arguments for "NDArrayBackedExtensionArray"
-        # error: Unexpected keyword argument "dtype" for "NDArrayBackedExtensionArray"
-        return type(self)(arr, dtype=self.dtype)  # type: ignore[call-arg]
+        return type(self)._simple_new(  # type: ignore[attr-defined]
+            arr, dtype=self.dtype
+        )
 
     # ------------------------------------------------------------------
 
@@ -535,7 +531,7 @@ class DatetimeLikeArrayMixin(
         # used for Timedelta/DatetimeArray, overwritten by PeriodArray
         if is_object_dtype(dtype):
             return np.array(list(self), dtype=object)
-        return self._data
+        return self._ndarray
 
     def __getitem__(self, key):
         """
@@ -545,7 +541,7 @@ class DatetimeLikeArrayMixin(
 
         if lib.is_integer(key):
             # fast-path
-            result = self._data[key]
+            result = self._ndarray[key]
             if self.ndim == 1:
                 return self._box_func(result)
             return self._simple_new(result, dtype=self.dtype)
@@ -566,7 +562,7 @@ class DatetimeLikeArrayMixin(
             key = check_array_indexer(self, key)
 
         freq = self._get_getitem_freq(key)
-        result = self._data[key]
+        result = self._ndarray[key]
         if lib.is_scalar(result):
             return self._box_func(result)
         return self._simple_new(result, dtype=self.dtype, freq=freq)
@@ -621,7 +617,7 @@ class DatetimeLikeArrayMixin(
 
         value = self._validate_setitem_value(value)
         key = check_array_indexer(self, key)
-        self._data[key] = value
+        self._ndarray[key] = value
         self._maybe_clear_freq()
 
     def _maybe_clear_freq(self):
@@ -672,25 +668,18 @@ class DatetimeLikeArrayMixin(
 
     def view(self, dtype=None):
         if dtype is None or dtype is self.dtype:
-            return type(self)(self._data, dtype=self.dtype)
-        return self._data.view(dtype=dtype)
+            return type(self)(self._ndarray, dtype=self.dtype)
+        return self._ndarray.view(dtype=dtype)
 
     # ------------------------------------------------------------------
     # ExtensionArray Interface
 
     @classmethod
     def _concat_same_type(cls, to_concat, axis: int = 0):
-
-        # do not pass tz to set because tzlocal cannot be hashed
-        dtypes = {str(x.dtype) for x in to_concat}
-        if len(dtypes) != 1:
-            raise ValueError("to_concat must have the same dtype (tz)", dtypes)
+        new_obj = super()._concat_same_type(to_concat, axis)
 
         obj = to_concat[0]
         dtype = obj.dtype
-
-        i8values = [x.asi8 for x in to_concat]
-        values = np.concatenate(i8values, axis=axis)
 
         new_freq = None
         if is_period_dtype(dtype):
@@ -705,11 +694,13 @@ class DatetimeLikeArrayMixin(
                 if all(pair[0][-1] + obj.freq == pair[1][0] for pair in pairs):
                     new_freq = obj.freq
 
-        return cls._simple_new(values, dtype=dtype, freq=new_freq)
+        new_obj._freq = new_freq
+        return new_obj
 
     def copy(self: DatetimeLikeArrayT) -> DatetimeLikeArrayT:
-        values = self.asi8.copy()
-        return type(self)._simple_new(values, dtype=self.dtype, freq=self.freq)
+        new_obj = super().copy()
+        new_obj._freq = self.freq
+        return new_obj
 
     def _values_for_factorize(self):
         return self.asi8, iNaT
@@ -719,15 +710,7 @@ class DatetimeLikeArrayMixin(
         return cls(values, dtype=original.dtype)
 
     def _values_for_argsort(self):
-        return self._data
-
-    @Appender(ExtensionArray.shift.__doc__)
-    def shift(self, periods=1, fill_value=None, axis=0):
-
-        fill_value = self._validate_shift_value(fill_value)
-        new_values = shift(self._data, periods, axis, fill_value)
-
-        return type(self)._simple_new(new_values, dtype=self.dtype)
+        return self._ndarray
 
     # ------------------------------------------------------------------
     # Validation Methods
@@ -744,7 +727,7 @@ class DatetimeLikeArrayMixin(
 
         Returns
         -------
-        fill_value : np.int64
+        fill_value : np.int64, np.datetime64, or np.timedelta64
 
         Raises
         ------
@@ -758,7 +741,8 @@ class DatetimeLikeArrayMixin(
             fill_value = self._validate_scalar(fill_value, msg)
         except TypeError as err:
             raise ValueError(msg) from err
-        return self._unbox(fill_value)
+        rv = self._unbox(fill_value)
+        return self._rebox_native(rv)
 
     def _validate_shift_value(self, fill_value):
         # TODO(2.0): once this deprecation is enforced, use _validate_fill_value
@@ -972,9 +956,9 @@ class DatetimeLikeArrayMixin(
         from pandas import Index, Series
 
         if dropna:
-            values = self[~self.isna()]._data
+            values = self[~self.isna()]._ndarray
         else:
-            values = self._data
+            values = self._ndarray
 
         cls = type(self)
 
@@ -1065,9 +1049,9 @@ class DatetimeLikeArrayMixin(
                 else:
                     func = missing.backfill_1d
 
-                values = self._data
+                values = self._ndarray
                 if not is_period_dtype(self.dtype):
-                    # For PeriodArray self._data is i8, which gets copied
+                    # For PeriodArray self._ndarray is i8, which gets copied
                     #  by `func`.  Otherwise we need to make a copy manually
                     # to avoid modifying `self` in-place.
                     values = values.copy()
