@@ -1601,14 +1601,8 @@ class TestDataFrameReplace:
         tm.assert_frame_equal(result, expected)
 
     def test_replace_unicode(self):
-        columns_values_map = {
-            'positive': {
-                '正面': 1,
-                '中立': 1,
-                '负面': 0
-            }
-        }
-        df1 = pd.DataFrame({'positive': np.ones(3)})
+        columns_values_map = {"positive": {"正面": 1, "中立": 1, "负面": 0}}
+        df1 = pd.DataFrame({"positive": np.ones(3)})
         result = df1.replace(columns_values_map)
-        expected = pd.DataFrame({'positive': np.ones(3)})
+        expected = pd.DataFrame({"positive": np.ones(3)})
         tm.assert_frame_equal(result, expected)
