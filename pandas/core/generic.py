@@ -8816,8 +8816,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             cond = self._constructor(cond, **self._construct_axes_dict())
 
         # make sure we are boolean
-        fill_value = bool(inplace)
-        cond = cond.fillna(fill_value)
+        cond = cond.fillna(False)
 
         msg = "Boolean array expected for the condition, not {dtype}"
 
@@ -8834,7 +8833,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             # GH#21947 we have an empty DataFrame/Series, could be object-dtype
             cond = cond.astype(bool)
 
-        cond = -cond if inplace else cond
+        cond = ~cond if inplace else cond
 
         # try to align with other
         try_quick = True
@@ -9094,8 +9093,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         cond = com.apply_if_callable(cond, self)
 
         # see gh-21891
-        if not hasattr(cond, "__invert__"):
+        if not hasattr(cond, "__array__"):
             cond = np.array(cond)
+
+        cond[isna(cond)] = False
+        cond = cond.astype(bool, copy=False)
 
         return self.where(
             ~cond,

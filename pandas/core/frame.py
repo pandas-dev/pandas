@@ -3122,6 +3122,8 @@ class DataFrame(NDFrame):
 
         self._check_inplace_setting(value)
         self._check_setitem_copy()
+        if not self._indexed_same(key):
+            key = key.reindex_like(self).fillna(False)
         self._where(-key, value, inplace=True)
 
     def _iset_item(self, loc: int, value):

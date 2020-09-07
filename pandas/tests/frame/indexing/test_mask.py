@@ -3,8 +3,9 @@ Tests for DataFrame.mask; tests DataFrame.where as a side-effect.
 """
 
 import numpy as np
+import pytest
 
-from pandas import DataFrame, isna
+from pandas import DataFrame, Series, isna
 import pandas._testing as tm
 
 
@@ -82,4 +83,19 @@ class TestDataFrameMask:
         mask = isna(df)
         expected = bools.astype(float).mask(mask)
         result = bools.mask(mask)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("inplace", [True, False])
+    def test_mask_nullable_boolean(self, inplace):
+        # https://github.com/pandas-dev/pandas/issues/35429
+        df = DataFrame([1, 2, 3])
+        mask = Series([True, False, None], dtype="boolean")
+        expected = DataFrame([999, 2, 3])
+
+        if inplace:
+            result = df.copy()
+            result.mask(mask, 999, inplace=True)
+        else:
+            result = df.mask(mask, 999, inplace=False)
+
         tm.assert_frame_equal(result, expected)

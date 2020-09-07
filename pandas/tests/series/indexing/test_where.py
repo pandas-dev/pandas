@@ -452,3 +452,19 @@ def test_where_empty_series_and_empty_cond_having_non_bool_dtypes():
     ser = Series([], dtype=float)
     result = ser.where([])
     tm.assert_series_equal(result, ser)
+
+
+@pytest.mark.parametrize("inplace", [True, False])
+def test_where_nullable_boolean_mask(inplace):
+    # https://github.com/pandas-dev/pandas/issues/35429
+    ser = Series([1, 2, 3])
+    mask = Series([True, False, None], dtype="boolean")
+    expected = Series([1, 999, 999])
+
+    if inplace:
+        result = ser.copy()
+        result.where(mask, 999, inplace=True)
+    else:
+        result = ser.where(mask, 999, inplace=False)
+
+    tm.assert_series_equal(result, expected)

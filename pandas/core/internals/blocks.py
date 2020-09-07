@@ -2933,7 +2933,8 @@ def _extract_bool_array(mask: ArrayLike) -> np.ndarray:
         #  Except for BooleanArray, this is equivalent to just
         #  np.asarray(mask, dtype=bool)
         mask = mask.to_numpy(dtype=bool, na_value=False)
+    else:
+        assert isinstance(mask, np.ndarray), type(mask)
+        mask = mask.astype(bool, copy=False)
 
-    assert isinstance(mask, np.ndarray), type(mask)
-    assert mask.dtype == bool, mask.dtype
     return mask

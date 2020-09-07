@@ -159,7 +159,7 @@ class TestDataFrameIndexingWhere:
 
         def _check_set(df, cond, check_dtypes=True):
             dfi = df.copy()
-            econd = cond.reindex_like(df).fillna(True)
+            econd = cond.reindex_like(df).fillna(False)
             expected = dfi.mask(~econd)
 
             return_value = dfi.where(cond, np.nan, inplace=True)
@@ -169,7 +169,7 @@ class TestDataFrameIndexingWhere:
             # dtypes (and confirm upcasts)x
             if check_dtypes:
                 for k, v in df.dtypes.items():
-                    if issubclass(v.type, np.integer) and not cond[k].all():
+                    if issubclass(v.type, np.integer) and not econd[k].all():
                         v = np.dtype("float64")
                     assert dfi[k].dtype == v
 
@@ -642,3 +642,18 @@ class TestDataFrameIndexingWhere:
         expected = Series(A, name="A")
 
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("inplace", [True, False])
+    def test_where_nullable_boolean_mask(self, inplace):
+        # https://github.com/pandas-dev/pandas/issues/35429
+        df = DataFrame([1, 2, 3])
+        mask = Series([True, False, None], dtype="boolean")
+        expected = DataFrame([1, 999, 999])
+
+        if inplace:
+            result = df.copy()
+            result.where(mask, 999, inplace=True)
+        else:
+            result = df.where(mask, 999, inplace=False)
+
+        tm.assert_frame_equal(result, expected)
