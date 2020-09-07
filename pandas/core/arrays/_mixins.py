@@ -4,9 +4,10 @@ import numpy as np
 
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import cache_readonly, doc
 
-from pandas.core.algorithms import take, unique
+from pandas.core.algorithms import searchsorted, take, unique
+from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays.base import ExtensionArray
 
 _T = TypeVar("_T", bound="NDArrayBackedExtensionArray")
@@ -120,3 +121,31 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     def unique(self: _T) -> _T:
         new_data = unique(self._ndarray)
         return self._from_backing_data(new_data)
+
+    @classmethod
+    @doc(ExtensionArray._concat_same_type)
+    def _concat_same_type(cls, to_concat, axis: int = 0):
+        dtypes = {str(x.dtype) for x in to_concat}
+        if len(dtypes) != 1:
+            raise ValueError("to_concat must have the same dtype (tz)", dtypes)
+
+        new_values = [x._ndarray for x in to_concat]
+        new_values = np.concatenate(new_values, axis=axis)
+        return to_concat[0]._from_backing_data(new_values)
+
+    @doc(ExtensionArray.searchsorted)
+    def searchsorted(self, value, side="left", sorter=None):
+        return searchsorted(self._ndarray, value, side=side, sorter=sorter)
+
+    @doc(ExtensionArray.shift)
+    def shift(self, periods=1, fill_value=None, axis=0):
+
+        fill_value = self._validate_shift_value(fill_value)
+        new_values = shift(self._ndarray, periods, axis, fill_value)
+
+        return self._from_backing_data(new_values)
+
+    def _validate_shift_value(self, fill_value):
+        # TODO: after deprecation in datetimelikearraymixin is enforced,
+        #  we can remove this and ust validate_fill_value directly
+        return self._validate_fill_value(fill_value)
