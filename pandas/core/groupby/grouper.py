@@ -339,10 +339,10 @@ class Grouper:
                 obj, ABCSeries
             ):
                 # In some cases the self._grouper may be sorted differently than obj.
-                # self.obj has the right order with the old index in the first go around.
-                # We align the index from obj with the self.obj index to select the correct
-                # values. Additionally we have to sort obj.index correctly to aggregate
-                # correctly.
+                # self.obj has the right order with the old index in the first go
+                # around. We align the index from obj with the self.obj index to
+                # select the correct values. Additionally we have to sort
+                # obj.index correctly to aggregate correctly.
                 if not hasattr(self, "_index_mapping"):
                     self._index_mapping = DataFrame(
                         self.obj.index, columns=["index"]
