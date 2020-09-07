@@ -347,3 +347,65 @@ def test_median_duplicate_columns():
     result = df.resample("5s").median()
     expected.columns = result.columns
     tm.assert_frame_equal(result, expected)
+
+
+def test_resample_different_result_with_agg():
+    data = pd.DataFrame(
+        {
+            "cat": ["cat1", "cat1", "cat2", "cat1", "cat2", "cat1", "cat2", "cat1"],
+            "num": [5, 20, 22, 3, 4, 30, 10, 50],
+            "date": [
+                "2019-2-1",
+                "2018-02-03",
+                "2020-3-11",
+                "2019-2-2",
+                "2019-2-2",
+                "2018-12-4",
+                "2020-3-11",
+                "2020-12-12",
+            ],
+        }
+    )
+    data["date"] = pd.to_datetime(data["date"])
+
+    resampled = data.groupby("cat").resample("Y", on="date")
+
+    index = pd.MultiIndex.from_tuples(
+        [
+            ("cat1", "2018-12-31"),
+            ("cat1", "2019-12-31"),
+            ("cat1", "2020-12-31"),
+            ("cat2", "2019-12-31"),
+            ("cat2", "2020-12-31"),
+        ],
+        names=["cat", "date"],
+    )
+    index = index.set_levels([index.levels[0], pd.to_datetime(index.levels[1])])
+    expected = DataFrame([25, 4, 50, 4, 16], columns=pd.Index(["num"]), index=index)
+    result = resampled.agg({"num": "mean"})
+    tm.assert_frame_equal(result, expected)
+    result = resampled["num"].mean()
+    tm.assert_series_equal(result, expected["num"])
+    result = resampled.mean()
+    tm.assert_frame_equal(result, expected)
+
+
+def test_resample_agg_different_results_on_keyword():
+    df = pd.DataFrame.from_records(
+        {
+            "ref": ["a", "a", "a", "b", "b"],
+            "time": [
+                "2014-12-31",
+                "2015-12-31",
+                "2016-12-31",
+                "2012-12-31",
+                "2014-12-31",
+            ],
+            "value": 5 * [1],
+        }
+    )
+    df["time"] = pd.to_datetime(df["time"])
+
+    expected = df.set_index("time").groupby("ref").resample(rule="M")["value"].sum()
+    result = df.groupby("ref").resample(rule="M", on="time")["value"].sum()
+    tm.assert_series_equal(result, expected)

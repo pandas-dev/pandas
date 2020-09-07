@@ -338,6 +338,20 @@ class Grouper:
             if getattr(self.grouper, "name", None) == key and isinstance(
                 obj, ABCSeries
             ):
+                # In some cases the self._grouper may be sorted differently than obj.
+                # self.obj has the right order with the old index in the first go around.
+                # We align the index from obj with the self.obj index to select the correct
+                # values. Additionally we have to sort obj.index correctly to aggregate
+                # correctly.
+                if not hasattr(self, "_index_mapping"):
+                    self._index_mapping = DataFrame(
+                        self.obj.index, columns=["index"]
+                    ).sort_values(by="index")
+                obj.sort_index(inplace=True)
+                obj.index = self._index_mapping.loc[
+                    self._index_mapping["index"].isin(obj.index)
+                ].index
+                obj.sort_index(inplace=True)
                 ax = self._grouper.take(obj.index)
             else:
                 if key not in obj._info_axis:
