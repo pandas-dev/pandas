@@ -922,7 +922,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 "Indexing a Series with DataFrame is not "
                 "supported, use the appropriate DataFrame column"
             )
-        elif isinstance(key, tuple):
+        elif isinstance(key, tuple) and isinstance(self.index, MultiIndex):
             return self._get_values_tuple(key)
 
         elif not is_list_like(key):
