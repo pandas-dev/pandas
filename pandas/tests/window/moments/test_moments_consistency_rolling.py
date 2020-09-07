@@ -10,7 +10,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex, Index, Series
 import pandas._testing as tm
-from pandas.core.window.common import _flex_binary_moment
+from pandas.core.window.common import flex_binary_moment
 from pandas.tests.window.common import (
     check_pairwise_moment,
     moments_consistency_cov_data,
@@ -150,7 +150,7 @@ def test_flex_binary_moment():
     # don't blow the stack
     msg = "arguments to moment function must be of type np.ndarray/Series/DataFrame"
     with pytest.raises(TypeError, match=msg):
-        _flex_binary_moment(5, 6, None)
+        flex_binary_moment(5, 6, None)
 
 
 def test_corr_sanity():
