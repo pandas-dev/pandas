@@ -1048,7 +1048,7 @@ that is itself a series, and possibly upcast the result to a DataFrame:
    the output as well as set the indices.
 
 
-Numba Accelerated Routines
+Numba accelerated routines
 --------------------------
 
 .. versionadded:: 1.1
@@ -1510,7 +1510,7 @@ introduction <categorical>` and the
 
     dfg.groupby(["A", [0, 0, 0, 1, 1]]).ngroup()
 
-Groupby by indexer to 'resample' data
+GroupBy by indexer to 'resample' data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Resampling produces new hypothetical samples (resamples) from already existing observed data or from a model that generates data. These new samples are similar to the pre-existing samples.

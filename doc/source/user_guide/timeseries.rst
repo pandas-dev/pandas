@@ -381,7 +381,7 @@ We subtract the epoch (midnight at January 1, 1970 UTC) and then floor divide by
 
 .. _timeseries.origin:
 
-Using the ``origin`` Parameter
+Using the ``origin`` parameter
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Using the ``origin`` parameter, one can specify an alternative starting point for creation

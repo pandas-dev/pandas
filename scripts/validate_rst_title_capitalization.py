@@ -148,6 +148,9 @@ CAPITALIZATION_EXCEPTIONS = {
     "OpenDocument",
     "msgpack",
     "ix",
+    "SparseArray",
+    "PandasObject",
+    "dtype",
 }
 
 CAP_EXCEPTIONS_DICT = {word.lower(): word for word in CAPITALIZATION_EXCEPTIONS}

@@ -1,7 +1,7 @@
 .. _duplicates:
 
 ****************
-Duplicate Labels
+Duplicate labels
 ****************
 
 :class:`Index` objects are not required to be unique; you can have duplicate row
@@ -20,7 +20,7 @@ detect them if they do.
    import pandas as pd
    import numpy as np
 
-Consequences of Duplicate Labels
+Consequences of duplicate labels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Some pandas methods (:meth:`Series.reindex` for example) just don't work with
@@ -64,7 +64,7 @@ This applies to row labels as well
    df2.loc['b', 'A']  # a scalar
    df2.loc['a', 'A']  # a Series
 
-Duplicate Label Detection
+Duplicate label detection
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You can check whether an :class:`Index` (storing the row or column labels) is
@@ -105,7 +105,7 @@ with the same label.
 
 .. _duplicates.disallow:
 
-Disallowing Duplicate Labels
+Disallowing duplicate labels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. versionadded:: 1.2.0
@@ -189,7 +189,7 @@ labels or performing an operation that introduces duplicate labels on a ``Series
 This error message contains the labels that are duplicated, and the numeric positions
 of all the duplicates (including the "original") in the ``Series`` or ``DataFrame``
 
-Duplicate Label Propagation
+Duplicate label propagation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In general, disallowing duplicates is "sticky". It's preserved through

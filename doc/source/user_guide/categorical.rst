@@ -1055,7 +1055,7 @@ an ``object`` dtype is a constant times the length of the data.
       s.astype('category').nbytes
 
 
-`Categorical` is not a `numpy` array
+`Categorical` is not a `NumPy` array
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Currently, categorical data and the underlying ``Categorical`` is implemented as a Python
