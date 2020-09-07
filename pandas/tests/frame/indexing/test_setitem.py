@@ -11,7 +11,7 @@ from pandas import (
     Period,
     Series,
     Timestamp,
-    date_range
+    date_range,
 )
 import pandas._testing as tm
 from pandas.core.arrays import SparseArray
@@ -23,12 +23,12 @@ class TestDataFrameSetItem:
         # GH 7432
         df = DataFrame(
             {"bar": [1, 2, 3], "baz": ["d", "e", "f"]},
-            index=Index(["a", "b", "c"], name="foo")
+            index=Index(["a", "b", "c"], name="foo"),
         )
         ser = Series(
             ["g", "h", "i", "j"],
             index=Index(["a", "b", "c", "a"], name="foo"),
-            name="fiz"
+            name="fiz",
         )
         msg = "cannot reindex from a duplicate axis"
         with pytest.raises(ValueError, match=msg):
@@ -66,7 +66,7 @@ class TestDataFrameSetItem:
         result = df.dtypes
         expected = Series(
             [np.dtype("float64")] * 5 + [np.dtype("float32")],
-            index=["foo", "c", "bar", "b", "a", "x"]
+            index=["foo", "c", "bar", "b", "a", "x"],
         )
         tm.assert_series_equal(result, expected)
 
@@ -75,7 +75,7 @@ class TestDataFrameSetItem:
         result = df.dtypes
         expected = Series(
             [np.dtype("float64")] * 4 + [np.dtype("float32")] * 2,
-            index=["foo", "c", "bar", "b", "a", "x"]
+            index=["foo", "c", "bar", "b", "a", "x"],
         )
         tm.assert_series_equal(result, expected)
 
@@ -83,7 +83,7 @@ class TestDataFrameSetItem:
         result = df.dtypes
         expected = Series(
             [np.dtype("float64")] * 4 + [np.dtype("float32")] * 2 + [np.dtype("int32")],
-            index=["foo", "c", "bar", "b", "a", "x", "y"]
+            index=["foo", "c", "bar", "b", "a", "x", "y"],
         )
         tm.assert_series_equal(result, expected)
 
@@ -147,22 +147,18 @@ class TestDataFrameSetItem:
             {
                 "a": Series([0, 1, 2], dtype="int64"),
                 "b": Series([1, 2, 3], dtype=float),
-                "c": Series([1, 2, 3], dtype=float)
+                "c": Series([1, 2, 3], dtype=float),
             }
         )
         df = DataFrame(
             {
                 "a": Series([], dtype="int64"),
                 "b": Series([], dtype=float),
-                "c": Series([], dtype=float)
+                "c": Series([], dtype=float),
             }
         )
         for idx, b in enumerate([1, 2, 3]):
-            df.loc[df.shape[0]] = {
-                "a": int(idx),
-                "b": float(b),
-                "c": float(b)
-            }
+            df.loc[df.shape[0]] = {"a": int(idx), "b": float(b), "c": float(b)}
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize(
@@ -173,8 +169,8 @@ class TestDataFrameSetItem:
             (
                 Timestamp("2011-01-01", tz="US/Eastern"),
                 DatetimeTZDtype(tz="US/Eastern"),
-            )
-        ]
+            ),
+        ],
     )
     def test_setitem_extension_types(self, obj, dtype):
         # GH: 34832

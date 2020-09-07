@@ -129,8 +129,8 @@ class TestTimedeltaArray:
         [
             pd.Timedelta(seconds=1),
             pd.Timedelta(seconds=1).to_timedelta64(),
-            pd.Timedelta(seconds=1).to_pytimedelta()
-        ]
+            pd.Timedelta(seconds=1).to_pytimedelta(),
+        ],
     )
     def test_setitem_objects(self, obj):
         # make sure we accept timedelta64 and timedelta in addition to Timedelta
@@ -151,8 +151,8 @@ class TestTimedeltaArray:
             "invalid",
             np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9,
             (np.arange(10) * 24 * 3600 * 10 ** 9).view("datetime64[ns]"),
-            pd.Timestamp.now().to_period("D")
-        ]
+            pd.Timestamp.now().to_period("D"),
+        ],
     )
     @pytest.mark.parametrize("index", [True, False])
     def test_searchsorted_invalid_types(self, other, index):
@@ -164,7 +164,7 @@ class TestTimedeltaArray:
         msg = "|".join(
             [
                 "searchsorted requires compatible dtype or scalar",
-                "Unexpected type for 'value'"
+                "Unexpected type for 'value'",
             ]
         )
         with pytest.raises(TypeError, match=msg):

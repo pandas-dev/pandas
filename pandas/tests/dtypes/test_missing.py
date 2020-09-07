@@ -17,7 +17,7 @@ from pandas.core.dtypes.missing import (
     isnull,
     na_value_for_dtype,
     notna,
-    notnull
+    notnull,
 )
 
 import pandas as pd
@@ -56,7 +56,7 @@ def test_notna_notnull(notna_f):
             tm.makeStringSeries(),
             tm.makeObjectSeries(),
             tm.makeTimeSeries(),
-            tm.makePeriodSeries()
+            tm.makePeriodSeries(),
         ]:
             assert isinstance(notna_f(s), Series)
 
@@ -99,7 +99,7 @@ class TestIsNA:
             tm.makeStringSeries(),
             tm.makeObjectSeries(),
             tm.makeTimeSeries(),
-            tm.makePeriodSeries()
+            tm.makePeriodSeries(),
         ]:
             assert isinstance(isna_f(s), Series)
 
@@ -107,7 +107,7 @@ class TestIsNA:
         for df in [
             tm.makeTimeDataFrame(),
             tm.makePeriodFrame(),
-            tm.makeMixedDataFrame()
+            tm.makeMixedDataFrame(),
         ]:
             result = isna_f(df)
             expected = df.apply(isna_f)
@@ -151,7 +151,7 @@ class TestIsNA:
                 NaT,
                 np.datetime64("NaT"),
                 np.timedelta64("NaT"),
-                np.datetime64("NaT", "s")
+                np.datetime64("NaT", "s"),
             ]
         )
         result = isna(arr)
@@ -208,13 +208,13 @@ class TestIsNA:
             (np.array([1, 1 + 0j, np.nan, 3]), np.array([False, False, True, False])),
             (
                 np.array([1, 1 + 0j, np.nan, 3], dtype=object),
-                np.array([False, False, True, False])
+                np.array([False, False, True, False]),
             ),
             (
                 np.array([1, 1 + 0j, np.nan, 3]).astype(object),
-                np.array([False, False, True, False])
-            )
-        ]
+                np.array([False, False, True, False]),
+            ),
+        ],
     )
     def test_complex(self, value, expected):
         result = isna(value)
@@ -238,7 +238,7 @@ class TestIsNA:
             "datetime64[s]",
             "datetime64[ms]",
             "datetime64[us]",
-            "datetime64[ns]"
+            "datetime64[ns]",
         ]:
             values = idx.values.astype(dtype)
 
@@ -269,7 +269,7 @@ class TestIsNA:
             "timedelta64[s]",
             "timedelta64[ms]",
             "timedelta64[us]",
-            "timedelta64[ns]"
+            "timedelta64[ns]",
         ]:
             values = idx.values.astype(dtype)
 
@@ -308,33 +308,33 @@ def test_array_equivalent(dtype_equal):
     assert array_equivalent(
         np.array([np.nan, 1, np.nan]),
         np.array([np.nan, 1, np.nan]),
-        dtype_equal=dtype_equal
+        dtype_equal=dtype_equal,
     )
     assert array_equivalent(
         np.array([np.nan, None], dtype="object"),
         np.array([np.nan, None], dtype="object"),
-        dtype_equal=dtype_equal
+        dtype_equal=dtype_equal,
     )
     # Check the handling of nested arrays in array_equivalent_object
     assert array_equivalent(
         np.array([np.array([np.nan, None], dtype="object"), None], dtype="object"),
         np.array([np.array([np.nan, None], dtype="object"), None], dtype="object"),
-        dtype_equal=dtype_equal
+        dtype_equal=dtype_equal,
     )
     assert array_equivalent(
         np.array([np.nan, 1 + 1j], dtype="complex"),
         np.array([np.nan, 1 + 1j], dtype="complex"),
-        dtype_equal=dtype_equal
+        dtype_equal=dtype_equal,
     )
     assert not array_equivalent(
         np.array([np.nan, 1 + 1j], dtype="complex"),
         np.array([np.nan, 1 + 2j], dtype="complex"),
-        dtype_equal=dtype_equal
+        dtype_equal=dtype_equal,
     )
     assert not array_equivalent(
         np.array([np.nan, 1, np.nan]),
         np.array([np.nan, 2, np.nan]),
-        dtype_equal=dtype_equal
+        dtype_equal=dtype_equal,
     )
     assert not array_equivalent(
         np.array(["a", "b", "c", "d"]), np.array(["e", "e"]), dtype_equal=dtype_equal
@@ -354,22 +354,22 @@ def test_array_equivalent(dtype_equal):
     assert array_equivalent(
         TimedeltaIndex([0, np.nan]),
         TimedeltaIndex([0, np.nan]),
-        dtype_equal=dtype_equal
+        dtype_equal=dtype_equal,
     )
     assert not array_equivalent(
         TimedeltaIndex([0, np.nan]),
         TimedeltaIndex([1, np.nan]),
-        dtype_equal=dtype_equal
+        dtype_equal=dtype_equal,
     )
     assert array_equivalent(
         DatetimeIndex([0, np.nan], tz="US/Eastern"),
         DatetimeIndex([0, np.nan], tz="US/Eastern"),
-        dtype_equal=dtype_equal
+        dtype_equal=dtype_equal,
     )
     assert not array_equivalent(
         DatetimeIndex([0, np.nan], tz="US/Eastern"),
         DatetimeIndex([1, np.nan], tz="US/Eastern"),
-        dtype_equal=dtype_equal
+        dtype_equal=dtype_equal,
     )
     # The rest are not dtype_equal
     assert not array_equivalent(
@@ -377,7 +377,7 @@ def test_array_equivalent(dtype_equal):
     )
     assert not array_equivalent(
         DatetimeIndex([0, np.nan], tz="CET"),
-        DatetimeIndex([0, np.nan], tz="US/Eastern")
+        DatetimeIndex([0, np.nan], tz="US/Eastern"),
     )
 
     assert not array_equivalent(DatetimeIndex([0, np.nan]), TimedeltaIndex([0, np.nan]))
@@ -399,8 +399,8 @@ def test_array_equivalent_different_dtype_but_equal():
         (now.to_pydatetime(), utcnow),
         (now, utcnow),
         (now.to_datetime64(), utcnow.to_pydatetime()),
-        (now.to_pydatetime(), utcnow.to_pydatetime())
-    ]
+        (now.to_pydatetime(), utcnow.to_pydatetime()),
+    ],
 )
 def test_array_equivalent_tzawareness(lvalue, rvalue):
     # we shouldn't raise if comparing tzaware and tznaive datetimes
@@ -479,8 +479,8 @@ def test_array_equivalent_nested():
         # Object
         ("O", np.nan),
         # Interval
-        (IntervalDtype(), np.nan)
-    ]
+        (IntervalDtype(), np.nan),
+    ],
 )
 def test_na_value_for_dtype(dtype, na_value):
     result = na_value_for_dtype(dtype)
@@ -550,7 +550,7 @@ na_vals = (
         np.complex64(np.nan),
         np.complex128(np.nan),
         np.datetime64("NaT"),
-        np.timedelta64("NaT")
+        np.timedelta64("NaT"),
     ]
     + [np.datetime64("NaT", unit) for unit in m8_units]
     + [np.timedelta64("NaT", unit) for unit in m8_units]
@@ -562,13 +562,13 @@ inf_vals = [
     complex("inf"),
     complex("-inf"),
     np.inf,
-    np.NINF
+    np.NINF,
 ]
 
 int_na_vals = [
     # Values that match iNaT, which we treat as null in specific cases
     np.int64(NaT.value),
-    int(NaT.value)
+    int(NaT.value),
 ]
 
 sometimes_na_vals = [Decimal("NaN")]
@@ -578,7 +578,7 @@ never_na_vals = [
     -0.0,
     np.float64("-0.0"),
     -0j,
-    np.complex64(-0j)
+    np.complex64(-0j),
 ]
 
 
