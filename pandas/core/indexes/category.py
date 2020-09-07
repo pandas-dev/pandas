@@ -433,11 +433,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         """ convert to object if we are a categorical """
         return self.astype("object")
 
-    def _maybe_cast_indexer(self, key):
-        code = self.categories.get_loc(key)
-        code = self.codes.dtype.type(code)
-        return code
-
     @doc(Index.where)
     def where(self, cond, other=None):
         # TODO: Investigate an alternative implementation with
@@ -537,6 +532,14 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
         return new_target, indexer, new_indexer
 
+    # --------------------------------------------------------------------
+    # Indexing Methods
+
+    def _maybe_cast_indexer(self, key):
+        code = self.categories.get_loc(key)
+        code = self.codes.dtype.type(code)
+        return code
+
     @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
         method = missing.clean_reindex_fill_method(method)
@@ -619,6 +622,15 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
     def _convert_index_indexer(self, keyarr):
         return self._shallow_copy(keyarr)
 
+    @doc(Index._maybe_cast_slice_bound)
+    def _maybe_cast_slice_bound(self, label, side, kind):
+        if kind == "loc":
+            return label
+
+        return super()._maybe_cast_slice_bound(label, side, kind)
+
+    # --------------------------------------------------------------------
+
     def take_nd(self, *args, **kwargs):
         """Alias for `take`"""
         warnings.warn(
@@ -627,13 +639,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
             stacklevel=2,
         )
         return self.take(*args, **kwargs)
-
-    @doc(Index._maybe_cast_slice_bound)
-    def _maybe_cast_slice_bound(self, label, side, kind):
-        if kind == "loc":
-            return label
-
-        return super()._maybe_cast_slice_bound(label, side, kind)
 
     def map(self, mapper):
         """

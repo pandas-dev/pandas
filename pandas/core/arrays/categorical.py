@@ -394,56 +394,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         self._codes = coerce_indexer_dtype(codes, dtype.categories)
 
     @property
-    def categories(self):
-        """
-        The categories of this categorical.
-
-        Setting assigns new values to each category (effectively a rename of
-        each individual category).
-
-        The assigned value has to be a list-like object. All items must be
-        unique and the number of items in the new categories must be the same
-        as the number of items in the old categories.
-
-        Assigning to `categories` is a inplace operation!
-
-        Raises
-        ------
-        ValueError
-            If the new categories do not validate as categories or if the
-            number of new categories is unequal the number of old categories
-
-        See Also
-        --------
-        rename_categories : Rename categories.
-        reorder_categories : Reorder categories.
-        add_categories : Add new categories.
-        remove_categories : Remove the specified categories.
-        remove_unused_categories : Remove categories which are not used.
-        set_categories : Set the categories to the specified ones.
-        """
-        return self.dtype.categories
-
-    @categories.setter
-    def categories(self, categories):
-        new_dtype = CategoricalDtype(categories, ordered=self.ordered)
-        if self.dtype.categories is not None and len(self.dtype.categories) != len(
-            new_dtype.categories
-        ):
-            raise ValueError(
-                "new categories need to have the same number of "
-                "items as the old categories!"
-            )
-        self._dtype = new_dtype
-
-    @property
-    def ordered(self) -> Ordered:
-        """
-        Whether the categories have an ordered relationship.
-        """
-        return self.dtype.ordered
-
-    @property
     def dtype(self) -> CategoricalDtype:
         """
         The :class:`~pandas.api.types.CategoricalDtype` for this instance.
@@ -457,10 +407,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         return Categorical(scalars, dtype=dtype)
-
-    def _formatter(self, boxed=False):
-        # Defer to CategoricalFormatter's formatter.
-        return None
 
     def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
         """
@@ -639,6 +585,59 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             raise ValueError("codes need to be between -1 and len(categories)-1")
 
         return cls(codes, dtype=dtype, fastpath=True)
+
+    # ------------------------------------------------------------------
+    # Categories/Codes/Ordered
+
+    @property
+    def categories(self):
+        """
+        The categories of this categorical.
+
+        Setting assigns new values to each category (effectively a rename of
+        each individual category).
+
+        The assigned value has to be a list-like object. All items must be
+        unique and the number of items in the new categories must be the same
+        as the number of items in the old categories.
+
+        Assigning to `categories` is a inplace operation!
+
+        Raises
+        ------
+        ValueError
+            If the new categories do not validate as categories or if the
+            number of new categories is unequal the number of old categories
+
+        See Also
+        --------
+        rename_categories : Rename categories.
+        reorder_categories : Reorder categories.
+        add_categories : Add new categories.
+        remove_categories : Remove the specified categories.
+        remove_unused_categories : Remove categories which are not used.
+        set_categories : Set the categories to the specified ones.
+        """
+        return self.dtype.categories
+
+    @categories.setter
+    def categories(self, categories):
+        new_dtype = CategoricalDtype(categories, ordered=self.ordered)
+        if self.dtype.categories is not None and len(self.dtype.categories) != len(
+            new_dtype.categories
+        ):
+            raise ValueError(
+                "new categories need to have the same number of "
+                "items as the old categories!"
+            )
+        self._dtype = new_dtype
+
+    @property
+    def ordered(self) -> Ordered:
+        """
+        Whether the categories have an ordered relationship.
+        """
+        return self.dtype.ordered
 
     @property
     def codes(self) -> np.ndarray:
@@ -1104,6 +1103,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         if not inplace:
             return cat
 
+    # ------------------------------------------------------------------
+
     def map(self, mapper):
         """
         Map categories using input correspondence (dict, Series, or function).
@@ -1192,6 +1193,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
     __le__ = _cat_compare_op(operator.le)
     __ge__ = _cat_compare_op(operator.ge)
 
+    # -------------------------------------------------------------
+    # Validators; ideally these can be de-duplicated
+
     def _validate_insert_value(self, value) -> int:
         code = self.categories.get_indexer([value])
         if (code == -1) and not (is_scalar(value) and isna(value)):
@@ -1240,6 +1244,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
                 "in this Categorical's categories"
             )
         return fill_value
+
+    # -------------------------------------------------------------
 
     def __array__(self, dtype=None) -> np.ndarray:
         """
@@ -1758,6 +1764,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
     # ------------------------------------------------------------------
     # Rendering Methods
 
+    def _formatter(self, boxed=False):
+        # Defer to CategoricalFormatter's formatter.
+        return None
+
     def _tidy_repr(self, max_vals=10, footer=True) -> str:
         """
         a short repr displaying only max_vals and an optional (but default
@@ -1987,7 +1997,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         result = dict(zip(categories, _result))
         return result
 
-    # reduction ops #
+    # ------------------------------------------------------------------
+    # Reductions
+
     def _reduce(self, name: str, skipna: bool = True, **kwargs):
         func = getattr(self, name, None)
         if func is None:
@@ -2090,6 +2102,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         codes = sorted(htable.mode_int64(ensure_int64(codes), dropna))
         return self._constructor(values=codes, dtype=self.dtype, fastpath=True)
 
+    # ------------------------------------------------------------------
+    # ExtensionArray Interface
+
     def unique(self):
         """
         Return the ``Categorical`` which ``categories`` and ``codes`` are
@@ -2179,6 +2194,18 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             return np.array_equal(self._codes, other_codes)
         return False
 
+    @property
+    def _can_hold_na(self):
+        return True
+
+    @classmethod
+    def _concat_same_type(self, to_concat):
+        from pandas.core.dtypes.concat import union_categoricals
+
+        return union_categoricals(to_concat)
+
+    # ------------------------------------------------------------------
+
     def is_dtype_equal(self, other):
         """
         Returns True if categoricals are the same dtype
@@ -2216,17 +2243,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         result.index.name = "categories"
 
         return result
-
-    # Implement the ExtensionArray interface
-    @property
-    def _can_hold_na(self):
-        return True
-
-    @classmethod
-    def _concat_same_type(self, to_concat):
-        from pandas.core.dtypes.concat import union_categoricals
-
-        return union_categoricals(to_concat)
 
     def isin(self, values) -> np.ndarray:
         """
