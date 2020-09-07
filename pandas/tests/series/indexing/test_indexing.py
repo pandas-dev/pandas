@@ -952,8 +952,6 @@ def test_tuple_index():
     assert s[("b",)] == 2
     s[("b",)] = 3
     assert s[("b",)] == 3
-    with pytest.raises(KeyError, match="('c',)"):
-        s[("c",)]
 
 
 def test_frozenset_index():
@@ -964,5 +962,3 @@ def test_frozenset_index():
     assert s[idx1] == 2
     s[idx1] = 3
     assert s[idx1] == 3
-    with pytest.raises(KeyError, match=re.escape("frozenset({'c'})")):
-        s[frozenset("c")]
