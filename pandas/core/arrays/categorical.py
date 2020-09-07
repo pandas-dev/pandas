@@ -1192,6 +1192,26 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
     __le__ = _cat_compare_op(operator.le)
     __ge__ = _cat_compare_op(operator.ge)
 
+    def _validate_insert_value(self, value) -> int:
+        code = self.categories.get_indexer([value])
+        if (code == -1) and not (is_scalar(value) and isna(value)):
+            raise TypeError(
+                "cannot insert an item into a CategoricalIndex "
+                "that is not already an existing category"
+            )
+        return code[0]
+
+    def _validate_searchsorted_value(self, value):
+        # searchsorted is very performance sensitive. By converting codes
+        # to same dtype as self.codes, we get much faster performance.
+        if is_scalar(value):
+            codes = self.categories.get_loc(value)
+            codes = self.codes.dtype.type(codes)
+        else:
+            locs = [self.categories.get_loc(x) for x in value]
+            codes = np.array(locs, dtype=self.codes.dtype)
+        return codes
+
     def _validate_fill_value(self, fill_value):
         """
         Convert a user-facing fill_value to a representation to use with our
@@ -1299,15 +1319,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
 
     @doc(_shared_docs["searchsorted"], klass="Categorical")
     def searchsorted(self, value, side="left", sorter=None):
-        # searchsorted is very performance sensitive. By converting codes
-        # to same dtype as self.codes, we get much faster performance.
-        if is_scalar(value):
-            codes = self.categories.get_loc(value)
-            codes = self.codes.dtype.type(codes)
-        else:
-            locs = [self.categories.get_loc(x) for x in value]
-            codes = np.array(locs, dtype=self.codes.dtype)
-        return self.codes.searchsorted(codes, side=side, sorter=sorter)
+        value = self._validate_searchsorted_value(value)
+        return self.codes.searchsorted(value, side=side, sorter=sorter)
 
     def isna(self):
         """
