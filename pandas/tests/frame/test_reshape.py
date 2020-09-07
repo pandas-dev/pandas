@@ -1273,6 +1273,18 @@ def test_stack_timezone_aware_values():
     tm.assert_series_equal(result, expected)
 
 
+def test_stack_empty_frame():
+    tm.assert_series_equal(
+        DataFrame().stack(), Series(index=MultiIndex([[], []], [[], []]))
+    )
+    tm.assert_series_equal(
+        DataFrame().stack(dropna=True), Series(index=MultiIndex([[], []], [[], []]))
+    )
+    tm.assert_frame_equal(
+        DataFrame().stack().unstack(), DataFrame()
+    )
+
+
 def test_unstacking_multi_index_df():
     # see gh-30740
     df = DataFrame(
