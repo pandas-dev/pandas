@@ -1275,14 +1275,12 @@ def test_stack_timezone_aware_values():
 
 def test_stack_empty_frame():
     tm.assert_series_equal(
-        DataFrame().stack(), Series(index=MultiIndex([[], []], [[], []]))
+        DataFrame().stack(), Series(index=MultiIndex([[], []], [[], []]), dtype=object)
     )
     tm.assert_series_equal(
-        DataFrame().stack(dropna=True), Series(index=MultiIndex([[], []], [[], []]))
+        DataFrame().stack(dropna=True), Series(index=MultiIndex([[], []], [[], []]), dtype=object)
     )
-    tm.assert_frame_equal(
-        DataFrame().stack().unstack(), DataFrame()
-    )
+    tm.assert_frame_equal(DataFrame().stack().unstack(), DataFrame())
 
 
 def test_unstacking_multi_index_df():
