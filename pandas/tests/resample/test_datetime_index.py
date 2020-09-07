@@ -2,7 +2,6 @@ from datetime import datetime
 from functools import partial
 from io import StringIO
 
-from dateutil.tz import tzlocal
 import numpy as np
 import pytest
 import pytz
@@ -125,7 +124,7 @@ def test_resample_integerarray():
 
     result = ts.resample("3T").mean()
     expected = Series(
-        [1, 4, 7], index=pd.date_range("1/1/2000", periods=3, freq="3T"), dtype="Int64",
+        [1, 4, 7], index=pd.date_range("1/1/2000", periods=3, freq="3T"), dtype="Int64"
     )
     tm.assert_series_equal(result, expected)
 
@@ -477,30 +476,11 @@ def test_upsample_with_limit():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("freq", ["Y", "10M", "5D", "10H", "5Min", "10S"])
+@pytest.mark.parametrize("freq", ["5D", "10H", "5Min", "10S"])
 @pytest.mark.parametrize("rule", ["Y", "3M", "15D", "30H", "15Min", "30S"])
 def test_nearest_upsample_with_limit(tz_aware_fixture, freq, rule):
     # GH 33939
-    tz = tz_aware_fixture
-    if str(tz) == "tzlocal()" and rule == "30S" and freq in ["Y", "10M"]:
-        # GH#34413 separate these so we can mark as slow, see
-        #  test_nearest_upsample_with_limit_tzlocal
-        return
     rng = date_range("1/1/2000", periods=3, freq=freq, tz=tz_aware_fixture)
-    ts = Series(np.random.randn(len(rng)), rng)
-
-    result = ts.resample(rule).nearest(limit=2)
-    expected = ts.reindex(result.index, method="nearest", limit=2)
-    tm.assert_series_equal(result, expected)
-
-
-@pytest.mark.slow
-@pytest.mark.parametrize("freq", ["Y", "10M"])
-def test_nearest_upsample_with_limit_tzlocal(freq):
-    # GH#33939, GH#34413 split off from test_nearest_upsample_with_limit
-    rule = "30S"
-    tz = tzlocal()
-    rng = date_range("1/1/2000", periods=3, freq=freq, tz=tz)
     ts = Series(np.random.randn(len(rng)), rng)
 
     result = ts.resample(rule).nearest(limit=2)
@@ -784,7 +764,7 @@ def test_resample_origin():
 
 
 @pytest.mark.parametrize(
-    "origin", ["invalid_value", "epch", "startday", "startt", "2000-30-30", object()],
+    "origin", ["invalid_value", "epch", "startday", "startt", "2000-30-30", object()]
 )
 def test_resample_bad_origin(origin):
     rng = date_range("2000-01-01 00:00:00", "2000-01-01 02:00", freq="s")
@@ -797,9 +777,7 @@ def test_resample_bad_origin(origin):
         ts.resample("5min", origin=origin)
 
 
-@pytest.mark.parametrize(
-    "offset", ["invalid_value", "12dayys", "2000-30-30", object()],
-)
+@pytest.mark.parametrize("offset", ["invalid_value", "12dayys", "2000-30-30", object()])
 def test_resample_bad_offset(offset):
     rng = date_range("2000-01-01 00:00:00", "2000-01-01 02:00", freq="s")
     ts = Series(np.random.randn(len(rng)), index=rng)
@@ -1087,7 +1065,7 @@ def test_resample_anchored_intraday(simple_date_range_series):
     tm.assert_frame_equal(result, expected)
 
     result = df.resample("M", closed="left").mean()
-    exp = df.tshift(1, freq="D").resample("M", kind="period").mean()
+    exp = df.shift(1, freq="D").resample("M", kind="period").mean()
     exp = exp.to_timestamp(how="end")
 
     exp.index = exp.index + Timedelta(1, "ns") - Timedelta(1, "D")
@@ -1106,7 +1084,7 @@ def test_resample_anchored_intraday(simple_date_range_series):
     tm.assert_frame_equal(result, expected)
 
     result = df.resample("Q", closed="left").mean()
-    expected = df.tshift(1, freq="D").resample("Q", kind="period", closed="left").mean()
+    expected = df.shift(1, freq="D").resample("Q", kind="period", closed="left").mean()
     expected = expected.to_timestamp(how="end")
     expected.index += Timedelta(1, "ns") - Timedelta(1, "D")
     expected.index._data.freq = "Q"
@@ -1615,7 +1593,7 @@ def test_downsample_dst_at_midnight():
         "America/Havana", ambiguous=True
     )
     dti = pd.DatetimeIndex(dti, freq="D")
-    expected = DataFrame([7.5, 28.0, 44.5], index=dti,)
+    expected = DataFrame([7.5, 28.0, 44.5], index=dti)
     tm.assert_frame_equal(result, expected)
 
 

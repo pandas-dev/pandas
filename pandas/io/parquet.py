@@ -1,19 +1,15 @@
 """ parquet compat """
 
-from typing import Any, Dict, Optional
+from typing import Any, AnyStr, Dict, List, Optional
 from warnings import catch_warnings
 
+from pandas._typing import FilePathOrBuffer, StorageOptions
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
 
 from pandas import DataFrame, get_option
 
-from pandas.io.common import (
-    get_filepath_or_buffer,
-    get_fs_for_path,
-    is_gcs_url,
-    is_s3_url,
-)
+from pandas.io.common import get_filepath_or_buffer, is_fsspec_url, stringify_path
 
 
 def get_engine(engine: str) -> "BaseImpl":
@@ -90,23 +86,36 @@ class PyArrowImpl(BaseImpl):
     def write(
         self,
         df: DataFrame,
-        path,
-        compression="snappy",
+        path: FilePathOrBuffer[AnyStr],
+        compression: Optional[str] = "snappy",
         index: Optional[bool] = None,
-        partition_cols=None,
+        storage_options: StorageOptions = None,
+        partition_cols: Optional[List[str]] = None,
         **kwargs,
     ):
         self.validate_dataframe(df)
-        file_obj_or_path, _, _, should_close = get_filepath_or_buffer(path, mode="wb")
 
         from_pandas_kwargs: Dict[str, Any] = {"schema": kwargs.pop("schema", None)}
         if index is not None:
             from_pandas_kwargs["preserve_index"] = index
 
         table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
-        # write_to_dataset does not support a file-like object when
-        # a directory path is used, so just pass the path string.
+
+        if is_fsspec_url(path) and "filesystem" not in kwargs:
+            # make fsspec instance, which pyarrow will use to open paths
+            import_optional_dependency("fsspec")
+            import fsspec.core
+
+            fs, path = fsspec.core.url_to_fs(path, **(storage_options or {}))
+            kwargs["filesystem"] = fs
+        else:
+            if storage_options:
+                raise ValueError(
+                    "storage_options passed with file object or non-fsspec file path"
+                )
+            path = stringify_path(path)
         if partition_cols is not None:
+            # writes to multiple files under the given path
             self.api.parquet.write_to_dataset(
                 table,
                 path,
@@ -115,18 +124,39 @@ class PyArrowImpl(BaseImpl):
                 **kwargs,
             )
         else:
-            self.api.parquet.write_table(
-                table, file_obj_or_path, compression=compression, **kwargs
-            )
-        if should_close:
-            file_obj_or_path.close()
+            # write to single output file
+            self.api.parquet.write_table(table, path, compression=compression, **kwargs)
 
-    def read(self, path, columns=None, **kwargs):
-        parquet_ds = self.api.parquet.ParquetDataset(
-            path, filesystem=get_fs_for_path(path), **kwargs
-        )
-        kwargs["columns"] = columns
-        result = parquet_ds.read_pandas(**kwargs).to_pandas()
+    def read(
+        self, path, columns=None, storage_options: StorageOptions = None, **kwargs
+    ):
+        if is_fsspec_url(path) and "filesystem" not in kwargs:
+            import_optional_dependency("fsspec")
+            import fsspec.core
+
+            fs, path = fsspec.core.url_to_fs(path, **(storage_options or {}))
+            should_close = False
+        else:
+            if storage_options:
+                raise ValueError(
+                    "storage_options passed with buffer or non-fsspec filepath"
+                )
+            fs = kwargs.pop("filesystem", None)
+            should_close = False
+            path = stringify_path(path)
+
+        if not fs:
+            ioargs = get_filepath_or_buffer(path)
+            path = ioargs.filepath_or_buffer
+            should_close = ioargs.should_close
+
+        kwargs["use_pandas_metadata"] = True
+        result = self.api.parquet.read_table(
+            path, columns=columns, filesystem=fs, **kwargs
+        ).to_pandas()
+        if should_close:
+            path.close()
+
         return result
 
 
@@ -146,6 +176,7 @@ class FastParquetImpl(BaseImpl):
         compression="snappy",
         index=None,
         partition_cols=None,
+        storage_options: StorageOptions = None,
         **kwargs,
     ):
         self.validate_dataframe(df)
@@ -164,15 +195,19 @@ class FastParquetImpl(BaseImpl):
         if partition_cols is not None:
             kwargs["file_scheme"] = "hive"
 
-        if is_s3_url(path) or is_gcs_url(path):
-            # if path is s3:// or gs:// we need to open the file in 'wb' mode.
-            # TODO: Support 'ab'
+        if is_fsspec_url(path):
+            fsspec = import_optional_dependency("fsspec")
 
-            path, _, _, _ = get_filepath_or_buffer(path, mode="wb")
-            # And pass the opened file to the fastparquet internal impl.
-            kwargs["open_with"] = lambda path, _: path
+            # if filesystem is provided by fsspec, file must be opened in 'wb' mode.
+            kwargs["open_with"] = lambda path, _: fsspec.open(
+                path, "wb", **(storage_options or {})
+            ).open()
         else:
-            path, _, _, _ = get_filepath_or_buffer(path)
+            if storage_options:
+                raise ValueError(
+                    "storage_options passed with file object or non-fsspec file path"
+                )
+            path = get_filepath_or_buffer(path).filepath_or_buffer
 
         with catch_warnings(record=True):
             self.api.write(
@@ -184,20 +219,18 @@ class FastParquetImpl(BaseImpl):
                 **kwargs,
             )
 
-    def read(self, path, columns=None, **kwargs):
-        if is_s3_url(path):
-            from pandas.io.s3 import get_file_and_filesystem
+    def read(
+        self, path, columns=None, storage_options: StorageOptions = None, **kwargs
+    ):
+        if is_fsspec_url(path):
+            fsspec = import_optional_dependency("fsspec")
 
-            # When path is s3:// an S3File is returned.
-            # We need to retain the original path(str) while also
-            # pass the S3File().open function to fastparquet impl.
-            s3, filesystem = get_file_and_filesystem(path)
-            try:
-                parquet_file = self.api.ParquetFile(path, open_with=filesystem.open)
-            finally:
-                s3.close()
+            open_with = lambda path, _: fsspec.open(
+                path, "rb", **(storage_options or {})
+            ).open()
+            parquet_file = self.api.ParquetFile(path, open_with=open_with)
         else:
-            path, _, _, _ = get_filepath_or_buffer(path)
+            path = get_filepath_or_buffer(path).filepath_or_buffer
             parquet_file = self.api.ParquetFile(path)
 
         return parquet_file.to_pandas(columns=columns, **kwargs)
@@ -205,11 +238,12 @@ class FastParquetImpl(BaseImpl):
 
 def to_parquet(
     df: DataFrame,
-    path,
+    path: FilePathOrBuffer[AnyStr],
     engine: str = "auto",
-    compression="snappy",
+    compression: Optional[str] = "snappy",
     index: Optional[bool] = None,
-    partition_cols=None,
+    storage_options: StorageOptions = None,
+    partition_cols: Optional[List[str]] = None,
     **kwargs,
 ):
     """
@@ -218,9 +252,12 @@ def to_parquet(
     Parameters
     ----------
     df : DataFrame
-    path : str
-        File path or Root Directory path. Will be used as Root Directory path
-        while writing a partitioned dataset.
+    path : str or file-like object
+        If a string, it will be used as Root Directory path
+        when writing a partitioned dataset. By file-like object,
+        we refer to objects with a write() method, such as a file handler
+        (e.g. via builtin open function) or io.BytesIO. The engine
+        fastparquet does not accept file-like objects.
 
         .. versionchanged:: 0.24.0
 
@@ -243,10 +280,21 @@ def to_parquet(
         .. versionadded:: 0.24.0
 
     partition_cols : str or list, optional, default None
-        Column names by which to partition the dataset
-        Columns are partitioned in the order they are given
+        Column names by which to partition the dataset.
+        Columns are partitioned in the order they are given.
+        Must be None if path is not a string.
 
         .. versionadded:: 0.24.0
+
+    storage_options : dict, optional
+        Extra options that make sense for a particular storage connection, e.g.
+        host, port, username, password, etc., if using a URL that will
+        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+        will be raised if providing this argument with a local path or
+        a file-like buffer. See the fsspec and backend storage implementation
+        docs for the set of allowed keys and values
+
+        .. versionadded:: 1.2.0
 
     kwargs
         Additional keyword arguments passed to the engine
@@ -260,6 +308,7 @@ def to_parquet(
         compression=compression,
         index=index,
         partition_cols=partition_cols,
+        storage_options=storage_options,
         **kwargs,
     )
 

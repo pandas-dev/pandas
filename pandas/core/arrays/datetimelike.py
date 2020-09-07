@@ -7,10 +7,12 @@ import numpy as np
 
 from pandas._libs import algos, lib
 from pandas._libs.tslibs import (
+    BaseOffset,
     NaT,
     NaTType,
     Period,
     Resolution,
+    Tick,
     Timestamp,
     delta_to_nanoseconds,
     iNaT,
@@ -52,9 +54,8 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core import missing, nanops, ops
 from pandas.core.algorithms import checked_add_with_arr, unique1d, value_counts
-from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays._mixins import _T, NDArrayBackedExtensionArray
-from pandas.core.arrays.base import ExtensionArray, ExtensionOpsMixin
+from pandas.core.arrays.base import ExtensionOpsMixin
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array
 from pandas.core.indexers import check_array_indexer
@@ -62,7 +63,6 @@ from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.ops.invalid import invalid_comparison, make_invalid_op
 
 from pandas.tseries import frequencies
-from pandas.tseries.offsets import DateOffset, Tick
 
 DTScalarOrNaT = Union[DatetimeLikeScalar, NaTType]
 
@@ -421,7 +421,7 @@ default 'raise'
         if freq is None:
             # Always valid
             pass
-        elif len(self) == 0 and isinstance(freq, DateOffset):
+        elif len(self) == 0 and isinstance(freq, BaseOffset):
             # Always valid.  In the TimedeltaArray case, we assume this
             #  is a Tick offset.
             pass
@@ -467,7 +467,9 @@ class DatetimeLikeArrayMixin(
 
     def _from_backing_data(self: _T, arr: np.ndarray) -> _T:
         # Note: we do not retain `freq`
-        return type(self)(arr, dtype=self.dtype)  # type: ignore
+        # error: Too many arguments for "NDArrayBackedExtensionArray"
+        # error: Unexpected keyword argument "dtype" for "NDArrayBackedExtensionArray"
+        return type(self)(arr, dtype=self.dtype)  # type: ignore[call-arg]
 
     # ------------------------------------------------------------------
 
@@ -669,17 +671,10 @@ class DatetimeLikeArrayMixin(
 
     @classmethod
     def _concat_same_type(cls, to_concat, axis: int = 0):
-
-        # do not pass tz to set because tzlocal cannot be hashed
-        dtypes = {str(x.dtype) for x in to_concat}
-        if len(dtypes) != 1:
-            raise ValueError("to_concat must have the same dtype (tz)", dtypes)
+        new_obj = super()._concat_same_type(to_concat, axis)
 
         obj = to_concat[0]
         dtype = obj.dtype
-
-        i8values = [x.asi8 for x in to_concat]
-        values = np.concatenate(i8values, axis=axis)
 
         new_freq = None
         if is_period_dtype(dtype):
@@ -694,11 +689,13 @@ class DatetimeLikeArrayMixin(
                 if all(pair[0][-1] + obj.freq == pair[1][0] for pair in pairs):
                     new_freq = obj.freq
 
-        return cls._simple_new(values, dtype=dtype, freq=new_freq)
+        new_obj._freq = new_freq
+        return new_obj
 
     def copy(self: DatetimeLikeArrayT) -> DatetimeLikeArrayT:
-        values = self.asi8.copy()
-        return type(self)._simple_new(values, dtype=self.dtype, freq=self.freq)
+        new_obj = super().copy()
+        new_obj._freq = self.freq
+        return new_obj
 
     def _values_for_factorize(self):
         return self.asi8, iNaT
@@ -709,14 +706,6 @@ class DatetimeLikeArrayMixin(
 
     def _values_for_argsort(self):
         return self._data
-
-    @Appender(ExtensionArray.shift.__doc__)
-    def shift(self, periods=1, fill_value=None, axis=0):
-
-        fill_value = self._validate_shift_value(fill_value)
-        new_values = shift(self._data, periods, axis, fill_value)
-
-        return type(self)._simple_new(new_values, dtype=self.dtype)
 
     # ------------------------------------------------------------------
     # Validation Methods
@@ -776,15 +765,19 @@ class DatetimeLikeArrayMixin(
 
         return self._unbox(fill_value)
 
-    def _validate_scalar(self, value, msg: str, cast_str: bool = False):
+    def _validate_scalar(
+        self, value, msg: Optional[str] = None, cast_str: bool = False
+    ):
         """
         Validate that the input value can be cast to our scalar_type.
 
         Parameters
         ----------
         value : object
-        msg : str
+        msg : str, optional.
             Message to raise in TypeError on invalid input.
+            If not provided, `value` is cast to a str and used
+            as the message.
         cast_str : bool, default False
             Whether to try to parse string input to scalar_type.
 
@@ -804,9 +797,12 @@ class DatetimeLikeArrayMixin(
             value = NaT
 
         elif isinstance(value, self._recognized_scalars):
-            value = self._scalar_type(value)  # type: ignore
+            # error: Too many arguments for "object"  [call-arg]
+            value = self._scalar_type(value)  # type: ignore[call-arg]
 
         else:
+            if msg is None:
+                msg = str(value)
             raise TypeError(msg)
 
         return value
@@ -952,7 +948,7 @@ class DatetimeLikeArrayMixin(
         -------
         Series
         """
-        from pandas import Series, Index
+        from pandas import Index, Series
 
         if dropna:
             values = self[~self.isna()]._data
@@ -1122,7 +1118,8 @@ class DatetimeLikeArrayMixin(
         """
         Returns day, hour, minute, second, millisecond or microsecond
         """
-        return self._resolution_obj.attrname  # type: ignore
+        # error: Item "None" of "Optional[Any]" has no attribute "attrname"
+        return self._resolution_obj.attrname  # type: ignore[union-attr]
 
     @classmethod
     def _validate_frequency(cls, index, freq, **kwargs):
@@ -1392,7 +1389,7 @@ class DatetimeLikeArrayMixin(
             result = self._add_nat()
         elif isinstance(other, (Tick, timedelta, np.timedelta64)):
             result = self._add_timedeltalike_scalar(other)
-        elif isinstance(other, DateOffset):
+        elif isinstance(other, BaseOffset):
             # specifically _not_ a Tick
             result = self._add_offset(other)
         elif isinstance(other, (datetime, np.datetime64)):
@@ -1448,7 +1445,7 @@ class DatetimeLikeArrayMixin(
             result = self._sub_nat()
         elif isinstance(other, (Tick, timedelta, np.timedelta64)):
             result = self._add_timedeltalike_scalar(-other)
-        elif isinstance(other, DateOffset):
+        elif isinstance(other, BaseOffset):
             # specifically _not_ a Tick
             result = self._add_offset(-other)
         elif isinstance(other, (datetime, np.datetime64)):
@@ -1545,7 +1542,7 @@ class DatetimeLikeArrayMixin(
     # --------------------------------------------------------------
     # Reductions
 
-    def _reduce(self, name, axis=0, skipna=True, **kwargs):
+    def _reduce(self, name: str, skipna: bool = True, **kwargs):
         op = getattr(self, name, None)
         if op:
             return op(skipna=skipna, **kwargs)
@@ -1772,7 +1769,7 @@ def maybe_infer_freq(freq):
         Whether we should inherit the freq of passed data.
     """
     freq_infer = False
-    if not isinstance(freq, DateOffset):
+    if not isinstance(freq, BaseOffset):
         # if a passed freq is None, don't infer automatically
         if freq != "infer":
             freq = to_offset(freq)

@@ -6,18 +6,17 @@ import sys
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import to_offset
+from pandas._libs.tslibs import BaseOffset, to_offset
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Index, NaT, Series, isna
 import pandas._testing as tm
-from pandas.core.indexes.datetimes import bdate_range, date_range
+from pandas.core.indexes.datetimes import DatetimeIndex, bdate_range, date_range
 from pandas.core.indexes.period import Period, PeriodIndex, period_range
 from pandas.core.indexes.timedeltas import timedelta_range
-from pandas.core.resample import DatetimeIndex
 from pandas.tests.plotting.common import TestPlotBase
 
-from pandas.tseries.offsets import DateOffset, WeekOfMonth
+from pandas.tseries.offsets import WeekOfMonth
 
 
 @td.skip_if_no_mpl
@@ -332,7 +331,7 @@ class TestTSPlot(TestPlotBase):
         bts = tm.makeTimeSeries(5).asfreq(freq)
         _, ax = self.plt.subplots()
         bts.plot(ax=ax)
-        assert ax.get_lines()[0].get_xydata()[0, 0] == bts.index[0].toordinal()
+
         idx = ax.get_lines()[0].get_xdata()
         msg = "freq not specified and cannot be inferred"
         with pytest.raises(ValueError, match=msg):
@@ -1280,6 +1279,8 @@ class TestTSPlot(TestPlotBase):
     @pytest.mark.slow
     def test_irregular_ts_shared_ax_xlim(self):
         # GH 2960
+        from pandas.plotting._matplotlib.converter import DatetimeConverter
+
         ts = tm.makeTimeSeries()[:20]
         ts_irregular = ts[[1, 4, 5, 6, 8, 9, 10, 12, 13, 14, 15, 17, 18]]
 
@@ -1290,8 +1291,8 @@ class TestTSPlot(TestPlotBase):
 
         # check that axis limits are correct
         left, right = ax.get_xlim()
-        assert left <= ts_irregular.index.min().toordinal()
-        assert right >= ts_irregular.index.max().toordinal()
+        assert left <= DatetimeConverter.convert(ts_irregular.index.min(), "", ax)
+        assert right >= DatetimeConverter.convert(ts_irregular.index.max(), "", ax)
 
     @pytest.mark.slow
     def test_secondary_y_non_ts_xlim(self):
@@ -1346,6 +1347,8 @@ class TestTSPlot(TestPlotBase):
     @pytest.mark.slow
     def test_secondary_y_irregular_ts_xlim(self):
         # GH 3490 - irregular-timeseries with secondary y
+        from pandas.plotting._matplotlib.converter import DatetimeConverter
+
         ts = tm.makeTimeSeries()[:20]
         ts_irregular = ts[[1, 4, 5, 6, 8, 9, 10, 12, 13, 14, 15, 17, 18]]
 
@@ -1357,8 +1360,8 @@ class TestTSPlot(TestPlotBase):
         ts_irregular[:5].plot(ax=ax)
 
         left, right = ax.get_xlim()
-        assert left <= ts_irregular.index.min().toordinal()
-        assert right >= ts_irregular.index.max().toordinal()
+        assert left <= DatetimeConverter.convert(ts_irregular.index.min(), "", ax)
+        assert right >= DatetimeConverter.convert(ts_irregular.index.max(), "", ax)
 
     def test_plot_outofbounds_datetime(self):
         # 2579 - checking this does not raise
@@ -1509,7 +1512,7 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
         ax = kwargs.pop("ax", plt.gca())
         if series is not None:
             dfreq = series.index.freq
-            if isinstance(dfreq, DateOffset):
+            if isinstance(dfreq, BaseOffset):
                 dfreq = dfreq.rule_code
             if orig_axfreq is None:
                 assert ax.freq == dfreq

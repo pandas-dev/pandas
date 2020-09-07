@@ -5,22 +5,8 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays import ExtensionArray, integer_array
+from pandas.core.arrays import integer_array
 import pandas.core.ops as ops
-
-
-# TODO need to use existing utility function or move this somewhere central
-def get_op_from_name(op_name):
-    short_opname = op_name.strip("_")
-    try:
-        op = getattr(operator, short_opname)
-    except AttributeError:
-        # Assume it is the reverse operator
-        rop = getattr(operator, short_opname[1:])
-        op = lambda x, y: rop(y, x)
-
-    return op
-
 
 # Basic test for the arithmetic array ops
 # -----------------------------------------------------------------------------
@@ -151,55 +137,6 @@ def test_rpow_one_to_na():
     tm.assert_numpy_array_equal(result, expected)
 
 
-# Test equivalence of scalars, numpy arrays with array ops
-# -----------------------------------------------------------------------------
-
-
-def test_array_scalar_like_equivalence(data, all_arithmetic_operators):
-    op = get_op_from_name(all_arithmetic_operators)
-
-    scalar = 2
-    scalar_array = pd.array([2] * len(data), dtype=data.dtype)
-
-    # TODO also add len-1 array (np.array([2], dtype=data.dtype.numpy_dtype))
-    for scalar in [2, data.dtype.type(2)]:
-        result = op(data, scalar)
-        expected = op(data, scalar_array)
-        if isinstance(expected, ExtensionArray):
-            tm.assert_extension_array_equal(result, expected)
-        else:
-            # TODO div still gives float ndarray -> remove this once we have Float EA
-            tm.assert_numpy_array_equal(result, expected)
-
-
-def test_array_NA(data, all_arithmetic_operators):
-    if "truediv" in all_arithmetic_operators:
-        pytest.skip("division with pd.NA raises")
-    op = get_op_from_name(all_arithmetic_operators)
-
-    scalar = pd.NA
-    scalar_array = pd.array([pd.NA] * len(data), dtype=data.dtype)
-
-    result = op(data, scalar)
-    expected = op(data, scalar_array)
-    tm.assert_extension_array_equal(result, expected)
-
-
-def test_numpy_array_equivalence(data, all_arithmetic_operators):
-    op = get_op_from_name(all_arithmetic_operators)
-
-    numpy_array = np.array([2] * len(data), dtype=data.dtype.numpy_dtype)
-    pd_array = pd.array(numpy_array, dtype=data.dtype)
-
-    result = op(data, numpy_array)
-    expected = op(data, pd_array)
-    if isinstance(expected, ExtensionArray):
-        tm.assert_extension_array_equal(result, expected)
-    else:
-        # TODO div still gives float ndarray -> remove this once we have Float EA
-        tm.assert_numpy_array_equal(result, expected)
-
-
 @pytest.mark.parametrize("other", [0, 0.5])
 def test_numpy_zero_dim_ndarray(other):
     arr = integer_array([1, None, 2])
@@ -208,53 +145,7 @@ def test_numpy_zero_dim_ndarray(other):
     tm.assert_equal(result, expected)
 
 
-# Test equivalence with Series and DataFrame ops
-# -----------------------------------------------------------------------------
-
-
-def test_frame(data, all_arithmetic_operators):
-    op = get_op_from_name(all_arithmetic_operators)
-
-    # DataFrame with scalar
-    df = pd.DataFrame({"A": data})
-    scalar = 2
-
-    result = op(df, scalar)
-    expected = pd.DataFrame({"A": op(data, scalar)})
-    tm.assert_frame_equal(result, expected)
-
-
-def test_series(data, all_arithmetic_operators):
-    op = get_op_from_name(all_arithmetic_operators)
-
-    s = pd.Series(data)
-
-    # Series with scalar
-    scalar = 2
-    result = op(s, scalar)
-    expected = pd.Series(op(data, scalar))
-    tm.assert_series_equal(result, expected)
-
-    # Series with np.ndarray
-    other = np.ones(len(data), dtype=data.dtype.type)
-    result = op(s, other)
-    expected = pd.Series(op(data, other))
-    tm.assert_series_equal(result, expected)
-
-    # Series with pd.array
-    other = pd.array(np.ones(len(data)), dtype=data.dtype)
-    result = op(s, other)
-    expected = pd.Series(op(data, other))
-    tm.assert_series_equal(result, expected)
-
-    # Series with Series
-    other = pd.Series(np.ones(len(data)), dtype=data.dtype)
-    result = op(s, other)
-    expected = pd.Series(op(data, other.array))
-    tm.assert_series_equal(result, expected)
-
-
-# Test generic charachteristics / errors
+# Test generic characteristics / errors
 # -----------------------------------------------------------------------------
 
 
@@ -291,35 +182,6 @@ def test_error_invalid_values(data, all_arithmetic_operators):
             ops(pd.Series(pd.date_range("20180101", periods=len(s))))
 
 
-def test_error_invalid_object(data, all_arithmetic_operators):
-
-    op = all_arithmetic_operators
-    opa = getattr(data, op)
-
-    # 2d -> return NotImplemented
-    result = opa(pd.DataFrame({"A": data}))
-    assert result is NotImplemented
-
-    msg = r"can only perform ops with 1-d structures"
-    with pytest.raises(NotImplementedError, match=msg):
-        opa(np.arange(len(data)).reshape(-1, len(data)))
-
-
-def test_error_len_mismatch(all_arithmetic_operators):
-    # operating with a list-like with non-matching length raises
-    op = get_op_from_name(all_arithmetic_operators)
-
-    data = pd.array([1, 2, 3], dtype="Int64")
-
-    for other in [[1, 2], np.array([1.0, 2.0])]:
-        with pytest.raises(ValueError, match="Lengths must match"):
-            op(data, other)
-
-        s = pd.Series(data)
-        with pytest.raises(ValueError, match="Lengths must match"):
-            op(s, other)
-
-
 # Various
 # -----------------------------------------------------------------------------
 
@@ -328,7 +190,7 @@ def test_error_len_mismatch(all_arithmetic_operators):
 
 
 def test_arith_coerce_scalar(data, all_arithmetic_operators):
-    op = get_op_from_name(all_arithmetic_operators)
+    op = tm.get_op_from_name(all_arithmetic_operators)
     s = pd.Series(data)
     other = 0.01
 
@@ -345,7 +207,7 @@ def test_arith_coerce_scalar(data, all_arithmetic_operators):
 def test_arithmetic_conversion(all_arithmetic_operators, other):
     # if we have a float operand we should have a float result
     # if that is equal to an integer
-    op = get_op_from_name(all_arithmetic_operators)
+    op = tm.get_op_from_name(all_arithmetic_operators)
 
     s = pd.Series([1, 2, 3], dtype="Int64")
     result = op(s, other)

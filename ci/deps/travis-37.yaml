@@ -13,14 +13,15 @@ dependencies:
 
   # pandas dependencies
   - botocore>=1.11
+  - fsspec>=0.7.4
   - numpy
   - python-dateutil
   - nomkl
   - pyarrow
   - pytz
-  - s3fs
+  - s3fs>=0.4.0
+  - moto>=1.3.14
+  - flask
   - tabulate
   - pyreadstat
   - pip
-  - pip:
-    - moto

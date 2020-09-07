@@ -167,10 +167,9 @@ _is_str = _is_type(str)
 
 # partition all AST nodes
 _all_nodes = frozenset(
-    filter(
-        lambda x: isinstance(x, type) and issubclass(x, ast.AST),
-        (getattr(ast, node) for node in dir(ast)),
-    )
+    node
+    for node in (getattr(ast, name) for name in dir(ast))
+    if isinstance(node, type) and issubclass(node, ast.AST)
 )
 
 
@@ -365,7 +364,7 @@ class BaseExprVisitor(ast.NodeVisitor):
 
     unary_ops = _unary_ops_syms
     unary_op_nodes = "UAdd", "USub", "Invert", "Not"
-    unary_op_nodes_map = dict(zip(unary_ops, unary_op_nodes))
+    unary_op_nodes_map = {k: v for k, v in zip(unary_ops, unary_op_nodes)}
 
     rewrite_map = {
         ast.Eq: ast.In,

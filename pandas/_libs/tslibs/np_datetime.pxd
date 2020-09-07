@@ -63,6 +63,7 @@ cdef void td64_to_tdstruct(int64_t td64, pandas_timedeltastruct* out) nogil
 
 cdef int64_t pydatetime_to_dt64(datetime val, npy_datetimestruct *dts)
 cdef int64_t pydate_to_dt64(date val, npy_datetimestruct *dts)
+cdef void pydate_to_dtstruct(date val, npy_datetimestruct *dts)
 
 cdef npy_datetime get_datetime64_value(object obj) nogil
 cdef npy_timedelta get_timedelta64_value(object obj) nogil

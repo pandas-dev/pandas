@@ -10,8 +10,8 @@ from pandas.core.dtypes.common import is_list_like
 import pandas.core.common as com
 
 
-def _get_standard_colors(
-    num_colors=None, colormap=None, color_type="default", color=None
+def get_standard_colors(
+    num_colors: int, colormap=None, color_type: str = "default", color=None
 ):
     import matplotlib.pyplot as plt
 
