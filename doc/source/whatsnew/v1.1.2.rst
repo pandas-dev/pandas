@@ -24,6 +24,8 @@ Fixed regressions
 - Fix regression in pickle roundtrip of the ``closed`` attribute of :class:`IntervalIndex` (:issue:`35658`)
 - Fixed regression in :meth:`DataFrameGroupBy.agg` where a ``ValueError: buffer source array is read-only`` would be raised when the underlying array is read-only (:issue:`36014`)
 - Fixed regression in :meth:`DataFrame.mask` and :meth:`DataFrame.where` raising an ``AseertionError`` when using a nullable boolean mask (:issue:`35429`)
+- Fixed regression in :meth:`Series.groupby.rolling` number of levels of :class:`MultiIndex` in input was compressed to one (:issue:`36018`)
+-
 
 .. ---------------------------------------------------------------------------
 
@@ -50,6 +52,7 @@ Bug fixes
 Other
 ~~~~~
 - :meth:`factorize` now supports ``na_sentinel=None`` to include NaN in the uniques of the values and remove ``dropna`` keyword which was unintentionally exposed to public facing API in 1.1 version from :meth:`factorize` (:issue:`35667`)
+- :meth:`DataFrame.plot` and meth:`Series.plot` raise ``UserWarning`` about usage of FixedFormatter and FixedLocator (:issue:`35684` and :issue:`35945`)
 
 .. ---------------------------------------------------------------------------
 
