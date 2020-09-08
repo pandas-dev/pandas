@@ -475,7 +475,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
     # -----------------------------------------------------------------
     # Descriptive Properties
 
-    def _box_func(self, x):
+    def _box_func(self, x) -> Union[Timestamp, NaT]:
         return Timestamp(x, freq=self.freq, tz=self.tz)
 
     @property

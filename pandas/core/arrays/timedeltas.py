@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import List
+from typing import List, Union
 
 import numpy as np
 
@@ -108,7 +108,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     # Note: ndim must be defined to ensure NaT.__richcmp(TimedeltaArray)
     #  operates pointwise.
 
-    def _box_func(self, x):
+    def _box_func(self, x) -> Union[Timedelta, NaT]:
         return Timedelta(x, unit="ns")
 
     @property
