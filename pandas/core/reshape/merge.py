@@ -1350,7 +1350,7 @@ def _get_join_indexers(
     return join_func(lkey, rkey, count, **kwargs)
 
 
-def _restore_dropped_levels_multijoin(
+def restore_dropped_levels_multijoin(
     left: MultiIndex,
     right: MultiIndex,
     dropped_level_names,

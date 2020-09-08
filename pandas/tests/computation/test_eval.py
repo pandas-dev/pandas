@@ -26,12 +26,12 @@ from pandas.core.computation.expr import (
     PandasExprVisitor,
     PythonExprVisitor,
 )
-from pandas.core.computation.expressions import _USE_NUMEXPR, NUMEXPR_INSTALLED
+from pandas.core.computation.expressions import NUMEXPR_INSTALLED, USE_NUMEXPR
 from pandas.core.computation.ops import (
-    _arith_ops_syms,
+    ARITH_OPS_SYMS,
+    SPECIAL_CASE_ARITH_OPS_SYMS,
     _binary_math_ops,
     _binary_ops_dict,
-    _special_case_arith_ops_syms,
     _unary_math_ops,
 )
 
@@ -41,8 +41,8 @@ from pandas.core.computation.ops import (
         pytest.param(
             engine,
             marks=pytest.mark.skipif(
-                engine == "numexpr" and not _USE_NUMEXPR,
-                reason=f"numexpr enabled->{_USE_NUMEXPR}, "
+                engine == "numexpr" and not USE_NUMEXPR,
+                reason=f"numexpr enabled->{USE_NUMEXPR}, "
                 f"installed->{NUMEXPR_INSTALLED}",
             ),
         )
@@ -114,7 +114,7 @@ def _is_py3_complex_incompat(result, expected):
     return isinstance(expected, (complex, np.complexfloating)) and np.isnan(result)
 
 
-_good_arith_ops = set(_arith_ops_syms).difference(_special_case_arith_ops_syms)
+_good_arith_ops = set(ARITH_OPS_SYMS).difference(SPECIAL_CASE_ARITH_OPS_SYMS)
 
 
 @td.skip_if_no_ne
@@ -158,10 +158,10 @@ class TestEvalNumexprPandas:
         self.rhses = self.pandas_rhses + self.scalar_rhses
 
     def setup_ops(self):
-        self.cmp_ops = expr._cmp_ops_syms
+        self.cmp_ops = expr.CMP_OPS_SYMS
         self.cmp2_ops = self.cmp_ops[::-1]
-        self.bin_ops = expr._bool_ops_syms
-        self.special_case_ops = _special_case_arith_ops_syms
+        self.bin_ops = expr.BOOL_OPS_SYMS
+        self.special_case_ops = SPECIAL_CASE_ARITH_OPS_SYMS
         self.arith_ops = _good_arith_ops
         self.unary_ops = "-", "~", "not "
 
@@ -774,10 +774,10 @@ class TestEvalNumexprPython(TestEvalNumexprPandas):
         cls.parser = "python"
 
     def setup_ops(self):
-        self.cmp_ops = [op for op in expr._cmp_ops_syms if op not in ("in", "not in")]
+        self.cmp_ops = [op for op in expr.CMP_OPS_SYMS if op not in ("in", "not in")]
         self.cmp2_ops = self.cmp_ops[::-1]
-        self.bin_ops = [op for op in expr._bool_ops_syms if op not in ("and", "or")]
-        self.special_case_ops = _special_case_arith_ops_syms
+        self.bin_ops = [op for op in expr.BOOL_OPS_SYMS if op not in ("and", "or")]
+        self.special_case_ops = SPECIAL_CASE_ARITH_OPS_SYMS
         self.arith_ops = _good_arith_ops
         self.unary_ops = "+", "-", "~"
 
@@ -1135,7 +1135,7 @@ class TestOperationsNumExprPandas:
     def setup_class(cls):
         cls.engine = "numexpr"
         cls.parser = "pandas"
-        cls.arith_ops = expr._arith_ops_syms + expr._cmp_ops_syms
+        cls.arith_ops = expr.ARITH_OPS_SYMS + expr.CMP_OPS_SYMS
 
     @classmethod
     def teardown_class(cls):
@@ -1177,7 +1177,7 @@ class TestOperationsNumExprPandas:
                 assert y == expec
 
     def test_simple_bool_ops(self):
-        for op, lhs, rhs in product(expr._bool_ops_syms, (True, False), (True, False)):
+        for op, lhs, rhs in product(expr.BOOL_OPS_SYMS, (True, False), (True, False)):
             ex = f"{lhs} {op} {rhs}"
             res = self.eval(ex)
             exp = eval(ex)
@@ -1185,7 +1185,7 @@ class TestOperationsNumExprPandas:
 
     def test_bool_ops_with_constants(self):
         for op, lhs, rhs in product(
-            expr._bool_ops_syms, ("True", "False"), ("True", "False")
+            expr.BOOL_OPS_SYMS, ("True", "False"), ("True", "False")
         ):
             ex = f"{lhs} {op} {rhs}"
             res = self.eval(ex)
@@ -1637,7 +1637,7 @@ class TestOperationsNumExprPython(TestOperationsNumExprPandas):
         cls.parser = "python"
         cls.arith_ops = [
             op
-            for op in expr._arith_ops_syms + expr._cmp_ops_syms
+            for op in expr.ARITH_OPS_SYMS + expr.CMP_OPS_SYMS
             if op not in ("in", "not in")
         ]
 
@@ -1697,7 +1697,7 @@ class TestOperationsNumExprPython(TestOperationsNumExprPandas):
 
     def test_bool_ops_with_constants(self):
         for op, lhs, rhs in product(
-            expr._bool_ops_syms, ("True", "False"), ("True", "False")
+            expr.BOOL_OPS_SYMS, ("True", "False"), ("True", "False")
         ):
             ex = f"{lhs} {op} {rhs}"
             if op in ("and", "or"):
@@ -1710,7 +1710,7 @@ class TestOperationsNumExprPython(TestOperationsNumExprPandas):
                 assert res == exp
 
     def test_simple_bool_ops(self):
-        for op, lhs, rhs in product(expr._bool_ops_syms, (True, False), (True, False)):
+        for op, lhs, rhs in product(expr.BOOL_OPS_SYMS, (True, False), (True, False)):
             ex = f"lhs {op} rhs"
             if op in ("and", "or"):
                 msg = "'BoolOp' nodes are not implemented"
@@ -1729,7 +1729,7 @@ class TestOperationsPythonPython(TestOperationsNumExprPython):
         cls.engine = cls.parser = "python"
         cls.arith_ops = [
             op
-            for op in expr._arith_ops_syms + expr._cmp_ops_syms
+            for op in expr.ARITH_OPS_SYMS + expr.CMP_OPS_SYMS
             if op not in ("in", "not in")
         ]
 
@@ -1740,7 +1740,7 @@ class TestOperationsPythonPandas(TestOperationsNumExprPandas):
         super().setup_class()
         cls.engine = "python"
         cls.parser = "pandas"
-        cls.arith_ops = expr._arith_ops_syms + expr._cmp_ops_syms
+        cls.arith_ops = expr.ARITH_OPS_SYMS + expr.CMP_OPS_SYMS
 
 
 @td.skip_if_no_ne
@@ -2020,7 +2020,7 @@ def test_equals_various(other):
     df = DataFrame({"A": ["a", "b", "c"]})
     result = df.eval(f"A == {other}")
     expected = Series([False, False, False], name="A")
-    if _USE_NUMEXPR:
+    if USE_NUMEXPR:
         # https://github.com/pandas-dev/pandas/issues/10239
         # lose name with numexpr engine. Remove when that's fixed.
         expected.name = None

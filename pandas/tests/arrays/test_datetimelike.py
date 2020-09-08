@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import OutOfBoundsDatetime
-from pandas.compat.numpy import _np_version_under1p18
+from pandas.compat.numpy import np_version_under1p18
 
 import pandas as pd
 import pandas._testing as tm
@@ -960,7 +960,7 @@ def test_invalid_nat_setitem_array(array, non_casting_nats):
     ],
 )
 def test_to_numpy_extra(array):
-    if _np_version_under1p18:
+    if np_version_under1p18:
         # np.isnan(NaT) raises, so use pandas'
         isnan = pd.isna
     else:
