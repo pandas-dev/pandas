@@ -478,7 +478,7 @@ cdef class TextReader:
             self.parser.double_converter = round_trip
         elif float_precision == "legacy":
             self.parser.double_converter = xstrtod
-        else: # float_precision == "high" or float_precision is None:
+        else:  # float_precision == "high" or float_precision is None:
             self.parser.double_converter = precise_xstrtod
 
         if isinstance(dtype, dict):
