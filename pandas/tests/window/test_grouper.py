@@ -393,3 +393,15 @@ class TestGrouperGrouping:
             name="a",
         )
         tm.assert_series_equal(result, expected)
+
+    def test_groupby_rolling_empty_frame(self):
+        # GH 36197
+        expected = pd.DataFrame({"s1": []})
+        result = expected.groupby("s1").rolling(window=1).sum()
+        expected.index = pd.MultiIndex.from_tuples([], names=["s1", None])
+        tm.assert_frame_equal(result, expected)
+
+        expected = pd.DataFrame({"s1": [], "s2": []})
+        result = expected.groupby(["s1", "s2"]).rolling(window=1).sum()
+        expected.index = pd.MultiIndex.from_tuples([], names=["s1", "s2", None])
+        tm.assert_frame_equal(result, expected)
