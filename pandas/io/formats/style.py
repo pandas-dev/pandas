@@ -171,7 +171,7 @@ class Styler:
         self.cell_ids = cell_ids
         self.na_rep = na_rep
 
-        self.cell_context: Dict = {}
+        self.cell_context: Dict[str, Any] = {}
 
         # display_funcs maps (row, col) -> formatting function
 
