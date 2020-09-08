@@ -54,8 +54,8 @@ from pandas.core.util.numba_ import NUMBA_FUNC_CACHE, maybe_use_numba
 from pandas.core.window.common import (
     WindowGroupByMixin,
     _doc_template,
-    _flex_binary_moment,
     _shared_docs,
+    flex_binary_moment,
     zsqrt,
 )
 from pandas.core.window.indexers import (
@@ -1774,7 +1774,7 @@ class _Rolling_and_Expanding(_Rolling):
             bias_adj = count / (count - ddof)
             return (mean(X * Y) - mean(X) * mean(Y)) * bias_adj
 
-        return _flex_binary_moment(
+        return flex_binary_moment(
             self._selected_obj, other._selected_obj, _get_cov, pairwise=bool(pairwise)
         )
 
@@ -1913,7 +1913,7 @@ class _Rolling_and_Expanding(_Rolling):
 
             return a.cov(b, **kwargs) / (a.std(**kwargs) * b.std(**kwargs))
 
-        return _flex_binary_moment(
+        return flex_binary_moment(
             self._selected_obj, other._selected_obj, _get_corr, pairwise=bool(pairwise)
         )
 
@@ -2211,17 +2211,17 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         # Compose MultiIndex result from grouping levels then rolling level
         # Aggregate the MultiIndex data as tuples then the level names
         grouped_object_index = self.obj.index
-        grouped_index_name = [grouped_object_index.name]
+        grouped_index_name = [*grouped_object_index.names]
         groupby_keys = [grouping.name for grouping in self._groupby.grouper._groupings]
         result_index_names = groupby_keys + grouped_index_name
 
         result_index_data = []
         for key, values in self._groupby.grouper.indices.items():
             for value in values:
-                if not is_list_like(key):
-                    data = [key, grouped_object_index[value]]
-                else:
-                    data = [*key, grouped_object_index[value]]
+                data = [
+                    *com.maybe_make_list(key),
+                    *com.maybe_make_list(grouped_object_index[value]),
+                ]
                 result_index_data.append(tuple(data))
 
         result_index = MultiIndex.from_tuples(
@@ -2240,10 +2240,12 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         """
         # Ensure the object we're rolling over is monotonically sorted relative
         # to the groups
-        groupby_order = np.concatenate(
-            list(self._groupby.grouper.indices.values())
-        ).astype(np.int64)
-        obj = obj.take(groupby_order)
+        # GH 36197
+        if not obj.empty:
+            groupby_order = np.concatenate(
+                list(self._groupby.grouper.indices.values())
+            ).astype(np.int64)
+            obj = obj.take(groupby_order)
         return super()._create_blocks(obj)
 
     def _get_cython_func_type(self, func: str) -> Callable:

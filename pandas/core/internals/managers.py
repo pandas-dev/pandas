@@ -47,10 +47,10 @@ from pandas.core.internals.blocks import (
     DatetimeTZBlock,
     ExtensionBlock,
     ObjectValuesExtensionBlock,
-    _safe_reshape,
     extend_blocks,
     get_block_type,
     make_block,
+    safe_reshape,
 )
 from pandas.core.internals.ops import blockwise_all, operate_blockwise
 
@@ -691,7 +691,6 @@ class BlockManager(PandasObject):
         copy : bool, default False
             Whether to copy the blocks
         """
-        self._consolidate_inplace()
         return self._combine([b for b in self.blocks if b.is_numeric], copy)
 
     def _combine(self: T, blocks: List[Block], copy: bool = True) -> T:
@@ -1016,7 +1015,7 @@ class BlockManager(PandasObject):
 
         else:
             if value.ndim == self.ndim - 1:
-                value = _safe_reshape(value, (1,) + value.shape)
+                value = safe_reshape(value, (1,) + value.shape)
 
                 def value_getitem(placement):
                     return value
@@ -1139,7 +1138,7 @@ class BlockManager(PandasObject):
 
         if value.ndim == self.ndim - 1 and not is_extension_array_dtype(value.dtype):
             # TODO(EA2D): special case not needed with 2D EAs
-            value = _safe_reshape(value, (1,) + value.shape)
+            value = safe_reshape(value, (1,) + value.shape)
 
         block = make_block(values=value, ndim=self.ndim, placement=slice(loc, loc + 1))
 

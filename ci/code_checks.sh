@@ -116,6 +116,14 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     fi
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Check for use of private module attribute access' ; echo $MSG
+    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
+        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored --format="##[error]{source_path}:{line_number}:{msg}" pandas/
+    else
+        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored pandas/
+    fi
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     echo "isort --version-number"
     isort --version-number
 
@@ -230,6 +238,9 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --include=*.{py,pyx} '!r}' pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    # -------------------------------------------------------------------------
+    # Type annotations
+
     MSG='Check for use of comment-based annotation syntax' ; echo $MSG
     invgrep -R --include="*.py" -P '# type: (?!ignore)' pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
@@ -238,6 +249,11 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --include="*.py" -P '# type:\s?ignore(?!\[)' pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Check for use of Union[Series, DataFrame] instead of FrameOrSeriesUnion alias' ; echo $MSG
+    invgrep -R --include="*.py" --exclude=_typing.py -E 'Union\[.*(Series.*DataFrame|DataFrame.*Series).*\]' pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    # -------------------------------------------------------------------------
     MSG='Check for use of foo.__class__ instead of type(foo)' ; echo $MSG
     invgrep -R --include=*.{py,pyx} '\.__class__' pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"

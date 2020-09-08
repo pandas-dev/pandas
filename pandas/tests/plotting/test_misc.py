@@ -96,7 +96,7 @@ class TestSeriesPlots(TestPlotBase):
 class TestDataFramePlots(TestPlotBase):
     @td.skip_if_no_scipy
     def test_scatter_matrix_axis(self):
-        from pandas.plotting._matplotlib.compat import _mpl_ge_3_0_0
+        from pandas.plotting._matplotlib.compat import mpl_ge_3_0_0
 
         scatter_matrix = plotting.scatter_matrix
 
@@ -105,7 +105,7 @@ class TestDataFramePlots(TestPlotBase):
 
         # we are plotting multiples on a sub-plot
         with tm.assert_produces_warning(
-            UserWarning, raise_on_extra_warnings=_mpl_ge_3_0_0()
+            UserWarning, raise_on_extra_warnings=mpl_ge_3_0_0()
         ):
             axes = _check_plot_works(
                 scatter_matrix, filterwarnings="always", frame=df, range_padding=0.1
