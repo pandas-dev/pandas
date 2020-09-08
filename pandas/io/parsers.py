@@ -589,7 +589,7 @@ def read_csv(
     delim_whitespace=False,
     low_memory=_c_parser_defaults["low_memory"],
     memory_map=False,
-    float_precision=None,
+    float_precision="high",
     storage_options: StorageOptions = None,
 ):
     # gh-23761
@@ -747,7 +747,7 @@ def read_table(
     delim_whitespace=False,
     low_memory=_c_parser_defaults["low_memory"],
     memory_map=False,
-    float_precision=None,
+    float_precision="high",
 ):
     return read_csv(**locals())
 
