@@ -1,23 +1,33 @@
 import operator
-from typing import TYPE_CHECKING, Any, Type, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, Type, Union
 
 import numpy as np
 
 from pandas._config import get_option
 
 from pandas._libs import lib, missing as libmissing
+from pandas._typing import ArrayLike, Dtype
 
 from pandas.core.dtypes.base import ExtensionDtype, register_extension_dtype
-from pandas.core.dtypes.common import pandas_dtype
-from pandas.core.dtypes.inference import is_array_like
+from pandas.core.dtypes.common import (
+    is_array_like,
+    is_bool_dtype,
+    is_integer_dtype,
+    is_object_dtype,
+    is_string_dtype,
+    pandas_dtype,
+)
 
 from pandas import compat
 from pandas.core import ops
+from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import IntegerArray, PandasArray
+from pandas.core.arrays.boolean import BooleanDtype
 from pandas.core.arrays.integer import _IntegerDtype
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import isna
+from pandas.core.strings.base import BaseStringArrayMethods
 
 if TYPE_CHECKING:
     import pyarrow  # noqa: F401
@@ -168,6 +178,86 @@ class StringDtype(ExtensionDtype):
             results.append(str_arr)
 
         return ArrowStringArray._concat_same_type(results)
+
+
+def _map_stringarray(
+    func: Callable[[str], Any],
+    arr: "StringArray",
+    na_value: Any = libmissing.NA,
+    dtype: Dtype = StringDtype(),
+) -> ArrayLike:
+    """
+    Map a callable over valid elements of a StringArray.
+
+    Parameters
+    ----------
+    func : Callable[[str], Any]
+        Apply to each valid element.
+    arr : StringArray
+    na_value : Any
+        The value to use for missing values. By default, this is
+        the original value (NA).
+    dtype : Dtype
+        The result dtype to use. Specifying this avoids an intermediate
+        object-dtype allocation.
+
+    Returns
+    -------
+    ArrayLike
+        An ExtensionArray for integer or string dtypes, otherwise
+        an ndarray.
+
+    """
+    from pandas.arrays import BooleanArray, IntegerArray, StringArray
+
+    mask = isna(arr)
+
+    assert isinstance(arr, StringArray)
+    arr = np.asarray(arr)
+    if na_value is None:
+        na_value = libmissing.NA
+
+    if is_integer_dtype(dtype) or is_bool_dtype(dtype):
+        constructor: Union[Type[IntegerArray], Type[BooleanArray]]
+        if is_integer_dtype(dtype):
+            constructor = IntegerArray
+        else:
+            constructor = BooleanArray
+
+        na_value_is_na = isna(na_value)
+        if na_value_is_na:
+            na_value = 1
+        result = lib.map_infer_mask(
+            arr,
+            func,
+            mask.view("uint8"),
+            convert=False,
+            na_value=na_value,
+            dtype=np.dtype(dtype),
+        )
+
+        if not na_value_is_na:
+            mask[:] = False
+
+        return constructor(result, mask)
+
+    elif is_string_dtype(dtype) and not is_object_dtype(dtype):
+        # i.e. StringDtype
+        result = lib.map_infer_mask(
+            arr, func, mask.view("uint8"), convert=False, na_value=na_value
+        )
+        return StringArray(result)
+    else:
+        # This is when the result type is object. We reach this when
+        # -> We know the result type is truly object (e.g. .encode returns bytes
+        #    or .findall returns a list).
+        # -> We don't know the result type. E.g. `.get` can return anything.
+        return lib.map_infer_mask(arr, func, mask.view("uint8"))
+
+
+class StringArrayMethods(BaseStringArrayMethods):
+    def _map(self, f, na_result=libmissing.NA, dtype=StringDtype()):
+        return _map_stringarray(f, self._array, na_result, dtype)
 
 
 class StringArray(PandasArray):
@@ -417,6 +507,7 @@ class StringArray(PandasArray):
         cls.__rmul__ = cls._create_arithmetic_method(ops.rmul)
 
     _create_comparison_method = _create_arithmetic_method
+    _str = CachedAccessor("str", StringArrayMethods)
 
 
 StringArray._add_arithmetic_ops()

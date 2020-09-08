@@ -1,0 +1,1 @@
+from .accessor import StringMethods

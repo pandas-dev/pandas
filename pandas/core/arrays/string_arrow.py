@@ -18,6 +18,7 @@ from pandas.api.types import (
     is_integer_dtype,
     is_scalar,
 )
+from pandas.core.accessor import CachedAccessor
 from pandas.core.algorithms import factorize
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.string_ import StringDtype
@@ -30,6 +31,17 @@ def _as_pandas_scalar(arrow_scalar: pa.Scalar) -> Optional[str]:
         return libmissing.NA
     else:
         return scalar
+
+
+class ArrowStringMethods:
+    def __init__(self, arr):
+        self._data = arr
+
+    def upper(self):
+        import pyarrow.compute as pc
+
+        result = pc.utf8_upper(self._data.data)
+        return ArrowStringArray(result)
 
 
 class ArrowStringArray(ExtensionArray):
@@ -434,3 +446,5 @@ class ArrowStringArray(ExtensionArray):
                 [array for ea in to_concat for array in ea.data.iterchunks()]
             )
         )
+
+    str = CachedAccessor("str", ArrowStringMethods)
