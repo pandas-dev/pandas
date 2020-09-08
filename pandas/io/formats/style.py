@@ -327,7 +327,7 @@ class Styler:
                     colspan = col_lengths.get((r, c), 0)
                     if colspan > 1:
                         es["attributes"] = [
-                            format_attr({"key": "colspan", "value": colspan})
+                            format_attr({"key": "colspan", "value": f'"{colspan}"'})
                         ]
                     row_es.append(es)
                 head.append(row_es)
