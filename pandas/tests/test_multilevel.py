@@ -1697,7 +1697,6 @@ Thur,Lunch,Yes,51.51,17"""
         result = df2.rename_axis([("c", "ii")]).reset_index(col_level=1, col_fill="C")
         tm.assert_frame_equal(result, expected)
 
-
     def test_set_index_period(self):
         # GH 6631
         df = DataFrame(np.random.random(6))
