@@ -8,6 +8,7 @@ import pytest
 
 from pandas._libs import algos as libalgos, hashtable as ht
 from pandas._libs.groupby import group_var_float32, group_var_float64
+from pandas.compat import IS64
 from pandas.compat.numpy import np_array_datetime64_compat
 import pandas.util._test_decorators as td
 
@@ -29,7 +30,6 @@ from pandas import (
     IntervalIndex,
     Series,
     Timestamp,
-    compat,
 )
 import pandas._testing as tm
 import pandas.core.algorithms as algos
@@ -256,7 +256,7 @@ class TestFactorize:
         # GH35650 Verify whether read-only datetime64 array can be factorized
         data = np.array([np.datetime64("2020-01-01T00:00:00.000")])
         data.setflags(write=writable)
-        expected_codes = np.array([0], dtype=np.int64)
+        expected_codes = np.array([0], dtype=np.intp)
         expected_uniques = np.array(
             ["2020-01-01T00:00:00.000000000"], dtype="datetime64[ns]"
         )
@@ -303,7 +303,7 @@ class TestFactorize:
         ],
     )
     def test_parametrized_factorize_na_value(self, data, na_value):
-        codes, uniques = algos._factorize_array(data, na_value=na_value)
+        codes, uniques = algos.factorize_array(data, na_value=na_value)
         expected_uniques = data[[1, 3]]
         expected_codes = np.array([-1, 0, -1, 1], dtype=np.intp)
         tm.assert_numpy_array_equal(codes, expected_codes)
@@ -1137,7 +1137,7 @@ class TestValueCounts:
         )
 
         # 32-bit linux has a different ordering
-        if not compat.is_platform_32bit():
+        if IS64:
             result = Series([10.3, 5.0, 5.0, None]).value_counts(dropna=False)
             expected = Series([2, 1, 1], index=[5.0, 10.3, np.nan])
             tm.assert_series_equal(result, expected)
@@ -1170,7 +1170,7 @@ class TestValueCounts:
         result = algos.value_counts(arr)
 
         # 32-bit linux has a different ordering
-        if not compat.is_platform_32bit():
+        if IS64:
             tm.assert_series_equal(result, expected)
 
 

@@ -446,6 +446,10 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
     # -----------------------------------------------------------------
     # DatetimeLike Interface
 
+    @classmethod
+    def _rebox_native(cls, value: int) -> np.datetime64:
+        return np.int64(value).view("M8[ns]")
+
     def _unbox_scalar(self, value):
         if not isinstance(value, self._scalar_type) and value is not NaT:
             raise ValueError("'value' should be a Timestamp.")
@@ -602,9 +606,9 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
     # Rendering Methods
 
     def _format_native_types(self, na_rep="NaT", date_format=None, **kwargs):
-        from pandas.io.formats.format import _get_format_datetime64_from_values
+        from pandas.io.formats.format import get_format_datetime64_from_values
 
-        fmt = _get_format_datetime64_from_values(self, date_format)
+        fmt = get_format_datetime64_from_values(self, date_format)
 
         return tslib.format_array_from_datetime(
             self.asi8.ravel(), tz=self.tz, format=fmt, na_rep=na_rep
