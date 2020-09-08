@@ -91,7 +91,11 @@ class Resampler(_GroupBy, ShallowMixin):
         self.grouper = None
 
         if self.groupby is not None:
-            self.groupby._set_grouper(self._convert_obj(obj), sort=True, group_indices=kwargs.get("group_indices"))
+            self.groupby._set_grouper(
+                self._convert_obj(obj),
+                sort=True,
+                group_indices=kwargs.get("group_indices"),
+            )
 
     def __str__(self) -> str:
         """
@@ -980,7 +984,9 @@ class _GroupByMixin(GroupByMixin):
         """
 
         def func(x):
-            x = self._shallow_copy(x, groupby=self.groupby, group_indices=self._groupby.indices)
+            x = self._shallow_copy(
+                x, groupby=self.groupby, group_indices=self._groupby.indices
+            )
 
             if isinstance(f, str):
                 return getattr(x, f)(**kwargs)

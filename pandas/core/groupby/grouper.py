@@ -311,7 +311,9 @@ class Grouper:
         )
         return self.binner, self.grouper, self.obj
 
-    def _set_grouper(self, obj: FrameOrSeries, sort: bool = False, group_indices: Dict = None):
+    def _set_grouper(
+        self, obj: FrameOrSeries, sort: bool = False, group_indices: Dict = None
+    ):
         """
         given an object and the specifications, setup the internal grouper
         for this particular specification
