@@ -43,6 +43,7 @@ Bug fixes
 - Bug in :class:`DataFrame` indexing returning an incorrect :class:`Series` in some cases when the series has been altered and a cache not invalidated (:issue:`33675`)
 - Bug in :meth:`DataFrame.corr` causing subsequent indexing lookups to be incorrect (:issue:`35882`)
 - Bug in :meth:`import_optional_dependency` returning incorrect package names in cases where package name is different from import name (:issue:`35948`)
+- Bug when setting empty :class:`DataFrame` column to a :class:`Series` in preserving name of index in frame (:issue:`31368`)
 
 .. ---------------------------------------------------------------------------
 
