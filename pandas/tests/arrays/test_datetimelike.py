@@ -241,10 +241,15 @@ class SharedTests:
         expected = np.array([2, 3], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
-        # Following numpy convention, NaT goes at the beginning
-        #  (unlike NaN which goes at the end)
+        # GH#29884 match numpy convention on whether NaT goes
+        #  at the end or the beginning
         result = arr.searchsorted(pd.NaT)
-        assert result == 0
+        if _np_version_under1p18 or self.array_cls is PeriodArray:
+            # Following numpy convention, NaT goes at the beginning
+            #  (unlike NaN which goes at the end)
+            assert result == 0
+        else:
+            assert result == 10
 
     def test_getitem_2d(self, arr1d):
         # 2d slicing on a 1D array

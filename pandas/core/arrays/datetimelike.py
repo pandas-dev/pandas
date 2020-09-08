@@ -862,7 +862,8 @@ class DatetimeLikeArrayMixin(
             # TODO: cast_str?  we accept it for scalar
             value = self._validate_listlike(value, "searchsorted")
 
-        return self._unbox(value)
+        rv = self._unbox(value)
+        return self._rebox_native(rv)
 
     def _validate_setitem_value(self, value):
         msg = (
@@ -941,9 +942,7 @@ class DatetimeLikeArrayMixin(
             Array of insertion points with the same shape as `value`.
         """
         value = self._validate_searchsorted_value(value)
-
-        # TODO: Use datetime64 semantics for sorting, xref GH#29844
-        return self.asi8.searchsorted(value, side=side, sorter=sorter)
+        return self._data.searchsorted(value, side=side, sorter=sorter)
 
     def value_counts(self, dropna=False):
         """
