@@ -651,7 +651,7 @@ class LatexFormatter(TableFormatter):
         self.fmt = formatter
         self.frame = self.fmt.frame
         self.longtable = longtable
-        self.column_format = column_format  # type: ignore[assignment]
+        self.column_format = column_format
         self.multicolumn = multicolumn
         self.multicolumn_format = multicolumn_format
         self.multirow = multirow
