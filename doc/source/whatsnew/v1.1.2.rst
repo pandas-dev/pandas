@@ -23,6 +23,8 @@ Fixed regressions
 - Regression in :meth:`DataFrame.replace` where a ``TypeError`` would be raised when attempting to replace elements of type :class:`Interval` (:issue:`35931`)
 - Fix regression in pickle roundtrip of the ``closed`` attribute of :class:`IntervalIndex` (:issue:`35658`)
 - Fixed regression in :meth:`DataFrameGroupBy.agg` where a ``ValueError: buffer source array is read-only`` would be raised when the underlying array is read-only (:issue:`36014`)
+- Fixed regression in :meth:`Series.groupby.rolling` number of levels of :class:`MultiIndex` in input was compressed to one (:issue:`36018`)
+- Fixed regression in :class:`DataFrameGroupBy` on an empty :class:`DataFrame` (:issue:`36197`)
 
 .. ---------------------------------------------------------------------------
 
@@ -40,6 +42,7 @@ Bug fixes
 - Bug in :meth:`Series.dt.isocalendar` and :meth:`DatetimeIndex.isocalendar` that returned incorrect year for certain dates (:issue:`36032`)
 - Bug in :class:`DataFrame` indexing returning an incorrect :class:`Series` in some cases when the series has been altered and a cache not invalidated (:issue:`33675`)
 - Bug in :meth:`DataFrame.corr` causing subsequent indexing lookups to be incorrect (:issue:`35882`)
+- Bug in :meth:`import_optional_dependency` returning incorrect package names in cases where package name is different from import name (:issue:`35948`)
 
 .. ---------------------------------------------------------------------------
 
@@ -48,6 +51,7 @@ Bug fixes
 Other
 ~~~~~
 - :meth:`factorize` now supports ``na_sentinel=None`` to include NaN in the uniques of the values and remove ``dropna`` keyword which was unintentionally exposed to public facing API in 1.1 version from :meth:`factorize` (:issue:`35667`)
+- :meth:`DataFrame.plot` and :meth:`Series.plot` raise ``UserWarning`` about usage of ``FixedFormatter`` and ``FixedLocator`` (:issue:`35684` and :issue:`35945`)
 
 .. ---------------------------------------------------------------------------
 
