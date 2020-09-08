@@ -119,15 +119,7 @@ def _cat_compare_op(op):
                     ret[mask] = False
                 return ret
             else:
-                if opname == "__eq__":
-                    return np.zeros(len(self), dtype=bool)
-                elif opname == "__ne__":
-                    return np.ones(len(self), dtype=bool)
-                else:
-                    raise TypeError(
-                        f"Cannot compare a Categorical for op {opname} with a "
-                        "scalar, which is not a category."
-                    )
+                return ops.invalid_comparison(self, other, op)
         else:
             # allow categorical vs object dtype array comparisons for equality
             # these are only positional comparisons
