@@ -145,74 +145,82 @@ class Writer:
         raise AbstractMethodError(self)
 
     def write(self):
-        return self._write(
-            self.obj,
-            self.orient,
-            self.double_precision,
-            self.ensure_ascii,
-            self.date_unit,
-            self.date_format == "iso",
-            self.default_handler,
-            self.indent,
-        )
-
-    def _write(
-        self,
-        obj,
-        orient: Optional[str],
-        double_precision: int,
-        ensure_ascii: bool,
-        date_unit: str,
-        iso_dates: bool,
-        default_handler: Optional[Callable[[Any], JSONSerializable]],
-        indent: int,
-    ):
+        iso_dates = self.date_format == "iso"
         return dumps(
-            obj,
-            orient=orient,
-            double_precision=double_precision,
-            ensure_ascii=ensure_ascii,
-            date_unit=date_unit,
+            self.obj,
+            orient=self.orient,
+            double_precision=self.double_precision,
+            ensure_ascii=self.ensure_ascii,
+            date_unit=self.date_unit,
             iso_dates=iso_dates,
-            default_handler=default_handler,
-            indent=indent,
+            default_handler=self.default_handler,
+            indent=self.indent,
         )
 
 
 class SeriesWriter(Writer):
     _default_orient = "index"
 
+    def __init__(
+        self,
+        obj,
+        orient: Optional[str],
+        date_format: str,
+        double_precision: int,
+        ensure_ascii: bool,
+        date_unit: str,
+        index: bool,
+        default_handler: Optional[Callable[[Any], JSONSerializable]] = None,
+        indent: int = 0,
+    ):
+        super().__init__(
+            obj,
+            orient,
+            date_format,
+            double_precision,
+            ensure_ascii,
+            date_unit,
+            index,
+            default_handler=default_handler,
+            indent=indent,
+        )
+        if not index and orient == "split":
+            self.obj = {"name": obj.name, "data": obj.values}
+
     def _format_axes(self):
         if not self.obj.index.is_unique and self.orient == "index":
             raise ValueError(f"Series index must be unique for orient='{self.orient}'")
 
-    def _write(
-        self,
-        obj,
-        orient: Optional[str],
-        double_precision: int,
-        ensure_ascii: bool,
-        date_unit: str,
-        iso_dates: bool,
-        default_handler: Optional[Callable[[Any], JSONSerializable]],
-        indent: int,
-    ):
-        if not self.index and orient == "split":
-            obj = {"name": obj.name, "data": obj.values}
-        return super()._write(
-            obj,
-            orient,
-            double_precision,
-            ensure_ascii,
-            date_unit,
-            iso_dates,
-            default_handler,
-            indent,
-        )
-
 
 class FrameWriter(Writer):
     _default_orient = "columns"
+
+    def __init__(
+        self,
+        obj,
+        orient: Optional[str],
+        date_format: str,
+        double_precision: int,
+        ensure_ascii: bool,
+        date_unit: str,
+        index: bool,
+        default_handler: Optional[Callable[[Any], JSONSerializable]] = None,
+        indent: int = 0,
+    ):
+        super().__init__(
+            obj,
+            orient,
+            date_format,
+            double_precision,
+            ensure_ascii,
+            date_unit,
+            index,
+            default_handler=default_handler,
+            indent=indent,
+        )
+        if not index and orient == "split":
+            self.obj = obj.to_dict(orient="split")
+            del self.obj["index"]
 
     def _format_axes(self):
         """
@@ -230,31 +238,6 @@ class FrameWriter(Writer):
             raise ValueError(
                 f"DataFrame columns must be unique for orient='{self.orient}'."
             )
-
-    def _write(
-        self,
-        obj,
-        orient: Optional[str],
-        double_precision: int,
-        ensure_ascii: bool,
-        date_unit: str,
-        iso_dates: bool,
-        default_handler: Optional[Callable[[Any], JSONSerializable]],
-        indent: int,
-    ):
-        if not self.index and orient == "split":
-            obj = obj.to_dict(orient="split")
-            del obj["index"]
-        return super()._write(
-            obj,
-            orient,
-            double_precision,
-            ensure_ascii,
-            date_unit,
-            iso_dates,
-            default_handler,
-            indent,
-        )
 
 
 class JSONTableWriter(FrameWriter):
@@ -330,30 +313,7 @@ class JSONTableWriter(FrameWriter):
         self.orient = "records"
         self.index = index
 
-    def _write(
-        self,
-        obj,
-        orient,
-        double_precision,
-        ensure_ascii,
-        date_unit,
-        iso_dates,
-        default_handler,
-        indent,
-    ):
-        table_obj = {"schema": self.schema, "data": obj}
-        serialized = super()._write(
-            table_obj,
-            orient,
-            double_precision,
-            ensure_ascii,
-            date_unit,
-            iso_dates,
-            default_handler,
-            indent,
-        )
-
-        return serialized
+        self.obj = {"schema": self.schema, "data": self.obj}
 
 
 @deprecate_kwarg(old_arg_name="numpy", new_arg_name=None)
