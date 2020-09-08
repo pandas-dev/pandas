@@ -4422,6 +4422,38 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         raise AbstractMethodError(self)
 
+    def _get_indexer(
+        self, target, level, ascending, kind, na_position, sort_remaining, key
+    ):
+        target = ensure_key_mapped(target, key, levels=level)
+        target = target._sort_levels_monotonic()
+
+        if level is not None:
+            _, indexer = target.sortlevel(
+                level, ascending=ascending, sort_remaining=sort_remaining
+            )
+        elif isinstance(target, MultiIndex):
+            from pandas.core.sorting import lexsort_indexer
+
+            indexer = lexsort_indexer(
+                target._get_codes_for_sorting(),
+                orders=ascending,
+                na_position=na_position,
+            )
+        else:
+            from pandas.core.sorting import nargsort
+
+            # Check monotonic-ness before sort an index (GH 11080)
+            if (ascending and target.is_monotonic_increasing) or (
+                not ascending and target.is_monotonic_decreasing
+            ):
+                return None
+
+            indexer = nargsort(
+                target, kind=kind, ascending=ascending, na_position=na_position
+            )
+        return indexer
+
     def sort_index(
         self,
         axis=0,
@@ -4437,40 +4469,17 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         axis = self._get_axis_number(axis)
-        target = self._get_axis(axis) if isinstance(self, ABCDataFrame) else self.index
-        target = ensure_key_mapped(target, key, levels=level)
-        target = target._sort_levels_monotonic()
+        target = self._get_axis(axis)
 
-        if level is not None:
-            new_index, indexer = target.sortlevel(
-                level, ascending=ascending, sort_remaining=sort_remaining
-            )
+        indexer = self._get_indexer(
+            target, level, ascending, kind, na_position, sort_remaining, key
+        )
 
-        elif isinstance(target, MultiIndex):
-            from pandas.core.sorting import lexsort_indexer
-
-            indexer = lexsort_indexer(
-                target._get_codes_for_sorting(),
-                orders=ascending,
-                na_position=na_position,
-            )
-
-        else:
-            from pandas.core.sorting import nargsort
-
-            # Check monotonic-ness before sort an index
-            # GH11080
-            if (ascending and target.is_monotonic_increasing) or (
-                not ascending and target.is_monotonic_decreasing
-            ):
-                if inplace:
-                    return
-                else:
-                    return self.copy()
-
-            indexer = nargsort(
-                target, kind=kind, ascending=ascending, na_position=na_position
-            )
+        if indexer is None:
+            if inplace:
+                return
+            else:
+                return self.copy()
 
         if isinstance(self, ABCDataFrame):
             baxis = self._get_block_manager_axis(axis)
