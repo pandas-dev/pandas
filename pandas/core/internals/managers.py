@@ -871,6 +871,7 @@ class BlockManager(PandasObject):
         -------
         values : a dict of dtype -> BlockManager
         """
+
         bd: Dict[str, List[Block]] = {}
         for b in self.blocks:
             bd.setdefault(str(b.dtype), []).append(b)
