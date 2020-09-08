@@ -5,6 +5,7 @@ import warnings
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
 from pandas.util._test_decorators import async_mark
 
 import pandas as pd
@@ -486,6 +487,7 @@ class TestSeriesMisc:
             assert not full_series.empty
 
     @async_mark()
+    @td.check_file_leaks
     async def test_tab_complete_warning(self, ip):
         # https://github.com/pandas-dev/pandas/issues/16409
         pytest.importorskip("IPython", minversion="6.0.0")
@@ -521,6 +523,32 @@ class TestSeriesMisc:
         s.attrs["version"] = 1
         result = s + 1
         assert result.attrs == {"version": 1}
+
+    @pytest.mark.parametrize("allows_duplicate_labels", [True, False, None])
+    def test_set_flags(self, allows_duplicate_labels):
+        df = pd.Series([1, 2])
+        result = df.set_flags(allows_duplicate_labels=allows_duplicate_labels)
+        if allows_duplicate_labels is None:
+            # We don't update when it's not provided
+            assert result.flags.allows_duplicate_labels is True
+        else:
+            assert result.flags.allows_duplicate_labels is allows_duplicate_labels
+
+        # We made a copy
+        assert df is not result
+        # We didn't mutate df
+        assert df.flags.allows_duplicate_labels is True
+
+        # But we didn't copy data
+        result.iloc[0] = 0
+        assert df.iloc[0] == 0
+
+        # Now we do copy.
+        result = df.set_flags(
+            copy=True, allows_duplicate_labels=allows_duplicate_labels
+        )
+        result.iloc[0] = 10
+        assert df.iloc[0] == 0
 
 
 class TestCategoricalSeries:

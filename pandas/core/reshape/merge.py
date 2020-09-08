@@ -6,14 +6,14 @@ import copy
 import datetime
 from functools import partial
 import string
-from typing import TYPE_CHECKING, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Optional, Tuple
 import warnings
 
 import numpy as np
 
 from pandas._libs import Timedelta, hashtable as libhashtable, lib
 import pandas._libs.join as libjoin
-from pandas._typing import ArrayLike, FrameOrSeries
+from pandas._typing import ArrayLike, FrameOrSeries, FrameOrSeriesUnion
 from pandas.errors import MergeError
 from pandas.util._decorators import Appender, Substitution
 
@@ -51,7 +51,7 @@ from pandas.core.internals import concatenate_block_managers
 from pandas.core.sorting import is_int64_overflow_possible
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Series  # noqa:F401
+    from pandas import DataFrame  # noqa:F401
 
 
 @Substitution("\nleft : DataFrame")
@@ -575,8 +575,8 @@ class _MergeOperation:
 
     def __init__(
         self,
-        left: Union["Series", "DataFrame"],
-        right: Union["Series", "DataFrame"],
+        left: FrameOrSeriesUnion,
+        right: FrameOrSeriesUnion,
         how: str = "inner",
         on=None,
         left_on=None,
@@ -1667,7 +1667,7 @@ class _AsOfMerge(_OrderedMerge):
 
             msg = (
                 f"incompatible tolerance {self.tolerance}, must be compat "
-                f"with type {repr(lk.dtype)}"
+                f"with type {repr(lt.dtype)}"
             )
 
             if needs_i8_conversion(lt):
@@ -1870,7 +1870,7 @@ def _right_outer_join(x, y, max_groups):
 
 def _factorize_keys(
     lk: ArrayLike, rk: ArrayLike, sort: bool = True, how: str = "inner"
-) -> Tuple[np.array, np.array, int]:
+) -> Tuple[np.ndarray, np.ndarray, int]:
     """
     Encode left and right keys as enumerated types.
 
@@ -2012,8 +2012,11 @@ def _sort_labels(uniques: np.ndarray, left, right):
 def _get_join_keys(llab, rlab, shape, sort: bool):
 
     # how many levels can be done without overflow
-    pred = lambda i: not is_int64_overflow_possible(shape[:i])
-    nlev = next(filter(pred, range(len(shape), 0, -1)))
+    nlev = next(
+        lev
+        for lev in range(len(shape), 0, -1)
+        if not is_int64_overflow_possible(shape[:lev])
+    )
 
     # get keys for the first `nlev` levels
     stride = np.prod(shape[1:nlev], dtype="i8")

@@ -274,7 +274,7 @@ html5lib                  1.0.1              HTML parser for read_html (see :ref
 lxml                      4.3.0              HTML parser for read_html (see :ref:`note <optional_html>`)
 matplotlib                2.2.3              Visualization
 numba                     0.46.0             Alternative execution engine for rolling operations
-openpyxl                  2.5.7              Reading / writing for xlsx files
+openpyxl                  2.6.0              Reading / writing for xlsx files
 pandas-gbq                0.12.0             Google Big Query access
 psycopg2                  2.7                PostgreSQL engine for sqlalchemy
 pyarrow                   0.15.0             Parquet, ORC, and feather reading / writing
@@ -287,7 +287,7 @@ s3fs                      0.4.0              Amazon S3 access
 tabulate                  0.8.3              Printing in Markdown-friendly format (see `tabulate`_)
 xarray                    0.12.0             pandas-like API for N-dimensional data
 xclip                                        Clipboard I/O on linux
-xlrd                      1.1.0              Excel reading
+xlrd                      1.2.0              Excel reading
 xlwt                      1.3.0              Excel writing
 xsel                                         Clipboard I/O on linux
 zlib                                         Compression for HDF5

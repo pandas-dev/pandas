@@ -96,7 +96,7 @@ class TestSeriesPlots(TestPlotBase):
 class TestDataFramePlots(TestPlotBase):
     @td.skip_if_no_scipy
     def test_scatter_matrix_axis(self):
-        from pandas.plotting._matplotlib.compat import _mpl_ge_3_0_0
+        from pandas.plotting._matplotlib.compat import mpl_ge_3_0_0
 
         scatter_matrix = plotting.scatter_matrix
 
@@ -105,7 +105,7 @@ class TestDataFramePlots(TestPlotBase):
 
         # we are plotting multiples on a sub-plot
         with tm.assert_produces_warning(
-            UserWarning, raise_on_extra_warnings=_mpl_ge_3_0_0()
+            UserWarning, raise_on_extra_warnings=mpl_ge_3_0_0()
         ):
             axes = _check_plot_works(
                 scatter_matrix, filterwarnings="always", frame=df, range_padding=0.1
@@ -353,7 +353,7 @@ class TestDataFramePlots(TestPlotBase):
         # GH17525
         df = DataFrame(np.zeros((10, 10)))
 
-        # Make sure that the random seed isn't reset by _get_standard_colors
+        # Make sure that the random seed isn't reset by get_standard_colors
         plotting.parallel_coordinates(df, 0)
         rand1 = random.random()
         plotting.parallel_coordinates(df, 0)
@@ -361,19 +361,19 @@ class TestDataFramePlots(TestPlotBase):
         assert rand1 != rand2
 
         # Make sure it produces the same colors every time it's called
-        from pandas.plotting._matplotlib.style import _get_standard_colors
+        from pandas.plotting._matplotlib.style import get_standard_colors
 
-        color1 = _get_standard_colors(1, color_type="random")
-        color2 = _get_standard_colors(1, color_type="random")
+        color1 = get_standard_colors(1, color_type="random")
+        color2 = get_standard_colors(1, color_type="random")
         assert color1 == color2
 
     def test_get_standard_colors_default_num_colors(self):
-        from pandas.plotting._matplotlib.style import _get_standard_colors
+        from pandas.plotting._matplotlib.style import get_standard_colors
 
         # Make sure the default color_types returns the specified amount
-        color1 = _get_standard_colors(1, color_type="default")
-        color2 = _get_standard_colors(9, color_type="default")
-        color3 = _get_standard_colors(20, color_type="default")
+        color1 = get_standard_colors(1, color_type="default")
+        color2 = get_standard_colors(9, color_type="default")
+        color3 = get_standard_colors(20, color_type="default")
         assert len(color1) == 1
         assert len(color2) == 9
         assert len(color3) == 20
@@ -401,10 +401,10 @@ class TestDataFramePlots(TestPlotBase):
         # correctly.
         from matplotlib import cm
 
-        from pandas.plotting._matplotlib.style import _get_standard_colors
+        from pandas.plotting._matplotlib.style import get_standard_colors
 
         color_before = cm.gnuplot(range(5))
-        color_after = _get_standard_colors(1, color=color_before)
+        color_after = get_standard_colors(1, color=color_before)
         assert len(color_after) == len(color_before)
 
         df = DataFrame(np.random.randn(48, 4), columns=list("ABCD"))

@@ -318,3 +318,33 @@ def test_reset_index_dtypes_on_empty_frame_with_multiindex(array, dtype):
     result = DataFrame(index=idx)[:0].reset_index().dtypes
     expected = Series({"level_0": np.int64, "level_1": np.float64, "level_2": dtype})
     tm.assert_series_equal(result, expected)
+
+
+def test_reset_index_empty_frame_with_datetime64_multiindex():
+    # https://github.com/pandas-dev/pandas/issues/35606
+    idx = MultiIndex(
+        levels=[[pd.Timestamp("2020-07-20 00:00:00")], [3, 4]],
+        codes=[[], []],
+        names=["a", "b"],
+    )
+    df = DataFrame(index=idx, columns=["c", "d"])
+    result = df.reset_index()
+    expected = DataFrame(
+        columns=list("abcd"), index=RangeIndex(start=0, stop=0, step=1)
+    )
+    expected["a"] = expected["a"].astype("datetime64[ns]")
+    expected["b"] = expected["b"].astype("int64")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_reset_index_empty_frame_with_datetime64_multiindex_from_groupby():
+    # https://github.com/pandas-dev/pandas/issues/35657
+    df = DataFrame(dict(c1=[10.0], c2=["a"], c3=pd.to_datetime("2020-01-01")))
+    df = df.head(0).groupby(["c2", "c3"])[["c1"]].sum()
+    result = df.reset_index()
+    expected = DataFrame(
+        columns=["c2", "c3", "c1"], index=RangeIndex(start=0, stop=0, step=1)
+    )
+    expected["c3"] = expected["c3"].astype("datetime64[ns]")
+    expected["c1"] = expected["c1"].astype("float64")
+    tm.assert_frame_equal(result, expected)

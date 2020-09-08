@@ -271,6 +271,10 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     # ----------------------------------------------------------------
     # DatetimeLike Interface
 
+    @classmethod
+    def _rebox_native(cls, value: int) -> np.timedelta64:
+        return np.int64(value).view("m8[ns]")
+
     def _unbox_scalar(self, value):
         if not isinstance(value, self._scalar_type) and value is not NaT:
             raise ValueError("'value' should be a Timedelta.")
@@ -379,14 +383,14 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     # Rendering Methods
 
     def _formatter(self, boxed=False):
-        from pandas.io.formats.format import _get_format_timedelta64
+        from pandas.io.formats.format import get_format_timedelta64
 
-        return _get_format_timedelta64(self, box=True)
+        return get_format_timedelta64(self, box=True)
 
     def _format_native_types(self, na_rep="NaT", date_format=None, **kwargs):
-        from pandas.io.formats.format import _get_format_timedelta64
+        from pandas.io.formats.format import get_format_timedelta64
 
-        formatter = _get_format_timedelta64(self._data, na_rep)
+        formatter = get_format_timedelta64(self._data, na_rep)
         return np.array([formatter(x) for x in self._data.ravel()]).reshape(self.shape)
 
     # ----------------------------------------------------------------
