@@ -26,10 +26,11 @@ import pandas._testing as tm
         "from_derivatives",
         "pchip",
         "akima",
+        "cubicspline",
     ]
 )
 def nontemporal_method(request):
-    """ Fixture that returns an (method name, required kwargs) pair.
+    """Fixture that returns an (method name, required kwargs) pair.
 
     This fixture does not include method 'time' as a parameterization; that
     method requires a Series with a DatetimeIndex, and is generally tested
@@ -55,10 +56,11 @@ def nontemporal_method(request):
         "from_derivatives",
         "pchip",
         "akima",
+        "cubicspline",
     ]
 )
 def interp_methods_ind(request):
-    """ Fixture that returns a (method name, required kwargs) pair to
+    """Fixture that returns a (method name, required kwargs) pair to
     be tested for various Index types.
 
     This fixture does not include methods - 'time', 'index', 'nearest',
@@ -98,6 +100,22 @@ class TestSeriesInterpolateData:
             non_ts.interpolate(method="time")
 
     @td.skip_if_no_scipy
+    def test_interpolate_cubicspline(self):
+
+        ser = Series([10, 11, 12, 13])
+
+        expected = Series(
+            [11.00, 11.25, 11.50, 11.75, 12.00, 12.25, 12.50, 12.75, 13.00],
+            index=Index([1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0]),
+        )
+        # interpolate at new_index
+        new_index = ser.index.union(Index([1.25, 1.5, 1.75, 2.25, 2.5, 2.75])).astype(
+            float
+        )
+        result = ser.reindex(new_index).interpolate(method="cubicspline")[1:3]
+        tm.assert_series_equal(result, expected)
+
+    @td.skip_if_no_scipy
     def test_interpolate_pchip(self):
 
         ser = Series(np.sort(np.random.uniform(size=100)))
@@ -115,15 +133,26 @@ class TestSeriesInterpolateData:
 
         ser = Series([10, 11, 12, 13])
 
+        # interpolate at new_index where `der` is zero
         expected = Series(
             [11.00, 11.25, 11.50, 11.75, 12.00, 12.25, 12.50, 12.75, 13.00],
             index=Index([1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0]),
         )
-        # interpolate at new_index
         new_index = ser.index.union(Index([1.25, 1.5, 1.75, 2.25, 2.5, 2.75])).astype(
             float
         )
         interp_s = ser.reindex(new_index).interpolate(method="akima")
+        tm.assert_series_equal(interp_s[1:3], expected)
+
+        # interpolate at new_index where `der` is a non-zero int
+        expected = Series(
+            [11.0, 1.0, 1.0, 1.0, 12.0, 1.0, 1.0, 1.0, 13.0],
+            index=Index([1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0]),
+        )
+        new_index = ser.index.union(Index([1.25, 1.5, 1.75, 2.25, 2.5, 2.75])).astype(
+            float
+        )
+        interp_s = ser.reindex(new_index).interpolate(method="akima", der=1)
         tm.assert_series_equal(interp_s[1:3], expected)
 
     @td.skip_if_no_scipy
@@ -399,6 +428,27 @@ class TestSeriesInterpolateData:
         msg = r"Invalid limit_area: expecting one of \['inside', 'outside'\], got abc"
         with pytest.raises(ValueError, match=msg):
             s.interpolate(method="linear", limit_area="abc")
+
+    @pytest.mark.parametrize(
+        "method, limit_direction, expected",
+        [
+            ("pad", "backward", "forward"),
+            ("ffill", "backward", "forward"),
+            ("backfill", "forward", "backward"),
+            ("bfill", "forward", "backward"),
+            ("pad", "both", "forward"),
+            ("ffill", "both", "forward"),
+            ("backfill", "both", "backward"),
+            ("bfill", "both", "backward"),
+        ],
+    )
+    def test_interp_limit_direction_raises(self, method, limit_direction, expected):
+        # https://github.com/pandas-dev/pandas/pull/34746
+        s = Series([1, 2, 3])
+
+        msg = f"`limit_direction` must be '{expected}' for method `{method}`"
+        with pytest.raises(ValueError, match=msg):
+            s.interpolate(method=method, limit_direction=limit_direction)
 
     def test_interp_limit_direction(self):
         # These tests are for issue #9218 -- fill NaNs in both directions.

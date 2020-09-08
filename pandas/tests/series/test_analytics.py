@@ -3,8 +3,6 @@ import operator
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import DataFrame, Series
 import pandas._testing as tm
@@ -16,38 +14,6 @@ class TestSeriesAnalytics:
         result = s.prod()
 
         assert not isinstance(result, Series)
-
-    def test_dot(self):
-        a = Series(np.random.randn(4), index=["p", "q", "r", "s"])
-        b = DataFrame(
-            np.random.randn(3, 4), index=["1", "2", "3"], columns=["p", "q", "r", "s"]
-        ).T
-
-        result = a.dot(b)
-        expected = Series(np.dot(a.values, b.values), index=["1", "2", "3"])
-        tm.assert_series_equal(result, expected)
-
-        # Check index alignment
-        b2 = b.reindex(index=reversed(b.index))
-        result = a.dot(b)
-        tm.assert_series_equal(result, expected)
-
-        # Check ndarray argument
-        result = a.dot(b.values)
-        assert np.all(result == expected.values)
-        tm.assert_almost_equal(a.dot(b["2"].values), expected["2"])
-
-        # Check series argument
-        tm.assert_almost_equal(a.dot(b["1"]), expected["1"])
-        tm.assert_almost_equal(a.dot(b2["1"]), expected["1"])
-
-        msg = r"Dot product shape mismatch, \(4,\) vs \(3,\)"
-        # exception raised is of type Exception
-        with pytest.raises(Exception, match=msg):
-            a.dot(a.values[:3])
-        msg = "matrices are not aligned"
-        with pytest.raises(ValueError, match=msg):
-            a.dot(b.T)
 
     def test_matmul(self):
         # matmul test is for GH #10259
@@ -162,7 +128,6 @@ class TestSeriesAnalytics:
 
     @pytest.mark.parametrize("func", [np.any, np.all])
     @pytest.mark.parametrize("kwargs", [dict(keepdims=True), dict(out=object())])
-    @td.skip_if_np_lt("1.15")
     def test_validate_any_all_out_keepdims_raises(self, kwargs, func):
         s = pd.Series([1, 2])
         param = list(kwargs)[0]
@@ -176,7 +141,6 @@ class TestSeriesAnalytics:
         with pytest.raises(ValueError, match=msg):
             func(s, **kwargs)
 
-    @td.skip_if_np_lt("1.15")
     def test_validate_sum_initial(self):
         s = pd.Series([1, 2])
         msg = (
@@ -199,7 +163,6 @@ class TestSeriesAnalytics:
             # method instead of the ufunc.
             s.median(overwrite_input=True)
 
-    @td.skip_if_np_lt("1.15")
     def test_validate_stat_keepdims(self):
         s = pd.Series([1, 2])
         msg = (

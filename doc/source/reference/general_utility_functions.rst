@@ -35,9 +35,16 @@ Exceptions and warnings
 .. autosummary::
    :toctree: api/
 
+   errors.AccessorRegistrationWarning
    errors.DtypeWarning
+   errors.DuplicateLabelError
    errors.EmptyDataError
+   errors.InvalidIndexError
+   errors.MergeError
+   errors.NullFrequencyError
+   errors.NumbaUtilError
    errors.OutOfBoundsDatetime
+   errors.OutOfBoundsTimedelta
    errors.ParserError
    errors.ParserWarning
    errors.PerformanceWarning

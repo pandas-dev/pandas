@@ -36,14 +36,14 @@ from pandas.api.types import is_dict_like, is_list_like
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
+from pandas.core.indexing import maybe_numeric_slice, non_reducing_slice
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
 
 
 try:
-    import matplotlib.pyplot as plt
     from matplotlib import colors
+    import matplotlib.pyplot as plt
 
     has_mpl = True
 except ImportError:
@@ -124,7 +124,7 @@ class Styler:
     * Column label cells include
       * ``col_heading``
       * ``col<n>`` where `n` is the numeric position of the column
-      * ``evel<k>`` where `k` is the level in a MultiIndex
+      * ``level<k>`` where `k` is the level in a MultiIndex
 
     * Blank cells include ``blank``
     * Data cells include ``data``
@@ -390,16 +390,16 @@ class Styler:
                     "is_visible": (c not in hidden_columns),
                 }
                 # only add an id if the cell has a style
-                if self.cell_ids or not (len(ctx[r, c]) == 1 and ctx[r, c][0] == ""):
-                    row_dict["id"] = "_".join(cs[1:])
-                row_es.append(row_dict)
                 props = []
-                for x in ctx[r, c]:
-                    # have to handle empty styles like ['']
-                    if x.count(":"):
-                        props.append(tuple(x.split(":")))
-                    else:
-                        props.append(("", ""))
+                if self.cell_ids or (r, c) in ctx:
+                    row_dict["id"] = "_".join(cs[1:])
+                    for x in ctx[r, c]:
+                        # have to handle empty styles like ['']
+                        if x.count(":"):
+                            props.append(tuple(x.split(":")))
+                        else:
+                            props.append(("", ""))
+                row_es.append(row_dict)
                 cellstyle_map[tuple(props)].append(f"row{r}_col{c}")
             body.append(row_es)
 
@@ -475,7 +475,7 @@ class Styler:
             row_locs = range(len(self.data))
             col_locs = range(len(self.data.columns))
         else:
-            subset = _non_reducing_slice(subset)
+            subset = non_reducing_slice(subset)
             if len(subset) == 1:
                 subset = subset, self.data.columns
 
@@ -542,7 +542,7 @@ class Styler:
         d = self._translate()
         # filter out empty styles, every cell will have a class
         # but the list of props may just be [['', '']].
-        # so we have the neested anys below
+        # so we have the nested anys below
         trimmed = [x for x in d["cellstyle"] if any(any(y) for y in x["props"])]
         d["cellstyle"] = trimmed
         d.update(kwargs)
@@ -561,11 +561,19 @@ class Styler:
             Whitespace shouldn't matter and the final trailing ';' shouldn't
             matter.
         """
-        for row_label, v in attrs.iterrows():
-            for col_label, col in v.items():
-                i = self.index.get_indexer([row_label])[0]
-                j = self.columns.get_indexer([col_label])[0]
-                for pair in col.rstrip(";").split(";"):
+        coli = {k: i for i, k in enumerate(self.columns)}
+        rowi = {k: i for i, k in enumerate(self.index)}
+        for jj in range(len(attrs.columns)):
+            cn = attrs.columns[jj]
+            j = coli[cn]
+            for rn, c in attrs[[cn]].itertuples():
+                if not c:
+                    continue
+                c = c.rstrip(";")
+                if not c:
+                    continue
+                i = rowi[rn]
+                for pair in c.split(";"):
                     self.ctx[(i, j)].append(pair)
 
     def _copy(self, deepcopy: bool = False) -> "Styler":
@@ -625,7 +633,7 @@ class Styler:
         **kwargs,
     ) -> "Styler":
         subset = slice(None) if subset is None else subset
-        subset = _non_reducing_slice(subset)
+        subset = non_reducing_slice(subset)
         data = self.data.loc[subset]
         if axis is not None:
             result = data.apply(func, axis=axis, result_type="expand", **kwargs)
@@ -717,7 +725,7 @@ class Styler:
         func = partial(func, **kwargs)  # applymap doesn't take kwargs?
         if subset is None:
             subset = pd.IndexSlice[:]
-        subset = _non_reducing_slice(subset)
+        subset = non_reducing_slice(subset)
         result = self.data.loc[subset].applymap(func)
         self._update_ctx(result)
         return self
@@ -977,7 +985,7 @@ class Styler:
         -------
         self : Styler
         """
-        subset = _non_reducing_slice(subset)
+        subset = non_reducing_slice(subset)
         hidden_df = self.data.loc[subset]
         self.hidden_columns = self.columns.get_indexer_for(hidden_df.columns)
         return self
@@ -1079,8 +1087,8 @@ class Styler:
         of the data is extended by ``low * (x.max() - x.min())`` and ``high *
         (x.max() - x.min())`` before normalizing.
         """
-        subset = _maybe_numeric_slice(self.data, subset)
-        subset = _non_reducing_slice(subset)
+        subset = maybe_numeric_slice(self.data, subset)
+        subset = non_reducing_slice(subset)
         self.apply(
             self._background_gradient,
             cmap=cmap,
@@ -1314,8 +1322,8 @@ class Styler:
                 "(eg: color=['#d65f5f', '#5fba7d'])"
             )
 
-        subset = _maybe_numeric_slice(self.data, subset)
-        subset = _non_reducing_slice(subset)
+        subset = maybe_numeric_slice(self.data, subset)
+        subset = non_reducing_slice(subset)
         self.apply(
             self._bar,
             subset=subset,
@@ -1382,7 +1390,7 @@ class Styler:
         axis: Optional[Axis] = None,
         max_: bool = True,
     ) -> "Styler":
-        subset = _non_reducing_slice(_maybe_numeric_slice(self.data, subset))
+        subset = non_reducing_slice(maybe_numeric_slice(self.data, subset))
         self.apply(
             self._highlight_extrema, color=color, axis=axis, subset=subset, max_=max_
         )
@@ -1524,7 +1532,10 @@ def _get_level_lengths(index, hidden_elements=None):
 
     Result is a dictionary of (level, initial_position): span
     """
-    levels = index.format(sparsify=lib.no_default, adjoin=False, names=False)
+    if isinstance(index, pd.MultiIndex):
+        levels = index.format(sparsify=lib.no_default, adjoin=False)
+    else:
+        levels = index.format()
 
     if hidden_elements is None:
         hidden_elements = []

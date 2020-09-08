@@ -45,6 +45,8 @@ class NumericIndex(Index):
     This is an abstract class.
     """
 
+    _default_dtype: np.dtype
+
     _is_numeric_dtype = True
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None):
@@ -95,12 +97,17 @@ class NumericIndex(Index):
                 f"Incorrect `dtype` passed: expected {expected}, received {dtype}"
             )
 
+    # ----------------------------------------------------------------
+    # Indexing Methods
+
     @doc(Index._maybe_cast_slice_bound)
     def _maybe_cast_slice_bound(self, label, side, kind):
         assert kind in ["loc", "getitem", None]
 
         # we will try to coerce to integers
         return self._maybe_cast_indexer(label)
+
+    # ----------------------------------------------------------------
 
     @doc(Index._shallow_copy)
     def _shallow_copy(self, values=None, name: Label = lib.no_default):
@@ -146,10 +153,6 @@ class NumericIndex(Index):
         truncation (e.g. float to int).
         """
         pass
-
-    def _concat_same_dtype(self, indexes, name):
-        result = type(indexes[0])(np.concatenate([x._values for x in indexes]))
-        return result.rename(name)
 
     @property
     def is_all_dates(self) -> bool:
@@ -295,6 +298,9 @@ class UInt64Index(IntegerIndex):
     _engine_type = libindex.UInt64Engine
     _default_dtype = np.dtype(np.uint64)
 
+    # ----------------------------------------------------------------
+    # Indexing Methods
+
     @doc(Index._convert_arr_indexer)
     def _convert_arr_indexer(self, keyarr):
         # Cast the indexer to uint64 if possible so that the values returned
@@ -315,6 +321,8 @@ class UInt64Index(IntegerIndex):
         if keyarr.is_integer():
             return keyarr.astype(np.uint64)
         return keyarr
+
+    # ----------------------------------------------------------------
 
     def _wrap_joined_index(self, joined, other):
         name = get_op_result_name(self, other)
@@ -376,7 +384,7 @@ class Float64Index(NumericIndex):
     # Indexing Methods
 
     @doc(Index._should_fallback_to_positional)
-    def _should_fallback_to_positional(self):
+    def _should_fallback_to_positional(self) -> bool:
         return False
 
     @doc(Index._convert_slice_indexer)
@@ -386,6 +394,22 @@ class Float64Index(NumericIndex):
         # We always treat __getitem__ slicing as label-based
         # translate to locations
         return self.slice_indexer(key.start, key.stop, key.step, kind=kind)
+
+    @doc(Index.get_loc)
+    def get_loc(self, key, method=None, tolerance=None):
+        if is_bool(key):
+            # Catch this to avoid accidentally casting to 1.0
+            raise KeyError(key)
+
+        if is_float(key) and np.isnan(key):
+            nan_idxs = self._nan_idxs
+            if not len(nan_idxs):
+                raise KeyError(key)
+            elif len(nan_idxs) == 1:
+                return nan_idxs[0]
+            return nan_idxs
+
+        return super().get_loc(key, method=method, tolerance=tolerance)
 
     # ----------------------------------------------------------------
 
@@ -404,50 +428,12 @@ class Float64Index(NumericIndex):
         )
         return formatter.get_result_as_array()
 
-    def equals(self, other) -> bool:
-        """
-        Determines if two Index objects contain the same elements.
-        """
-        if self is other:
-            return True
-
-        if not isinstance(other, Index):
-            return False
-
-        # need to compare nans locations and make sure that they are the same
-        # since nans don't compare equal this is a bit tricky
-        try:
-            if not isinstance(other, Float64Index):
-                other = self._constructor(other)
-            if not is_dtype_equal(self.dtype, other.dtype) or self.shape != other.shape:
-                return False
-            left, right = self._values, other._values
-            return ((left == right) | (self._isnan & other._isnan)).all()
-        except (TypeError, ValueError):
-            return False
-
     def __contains__(self, other: Any) -> bool:
         hash(other)
         if super().__contains__(other):
             return True
 
         return is_float(other) and np.isnan(other) and self.hasnans
-
-    @doc(Index.get_loc)
-    def get_loc(self, key, method=None, tolerance=None):
-        if is_bool(key):
-            # Catch this to avoid accidentally casting to 1.0
-            raise KeyError(key)
-
-        if is_float(key) and np.isnan(key):
-            nan_idxs = self._nan_idxs
-            if not len(nan_idxs):
-                raise KeyError(key)
-            elif len(nan_idxs) == 1:
-                return nan_idxs[0]
-            return nan_idxs
-
-        return super().get_loc(key, method=method, tolerance=tolerance)
 
     @cache_readonly
     def is_unique(self) -> bool:
@@ -462,7 +448,7 @@ class Float64Index(NumericIndex):
     def _is_compatible_with_other(self, other) -> bool:
         return super()._is_compatible_with_other(other) or all(
             isinstance(
-                obj, (ABCInt64Index, ABCFloat64Index, ABCUInt64Index, ABCRangeIndex),
+                obj, (ABCInt64Index, ABCFloat64Index, ABCUInt64Index, ABCRangeIndex)
             )
             for obj in [self, other]
         )
