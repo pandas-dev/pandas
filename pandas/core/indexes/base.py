@@ -3660,7 +3660,7 @@ class Index(IndexOpsMixin, PandasObject):
         return result
 
     def _join_non_unique(self, other, how="left", return_indexers=False):
-        from pandas.core.reshape.merge import _get_join_indexers
+        from pandas.core.reshape.merge import get_join_indexers
 
         # We only get here if dtypes match
         assert self.dtype == other.dtype
@@ -3668,7 +3668,7 @@ class Index(IndexOpsMixin, PandasObject):
         lvalues = self._get_engine_target()
         rvalues = other._get_engine_target()
 
-        left_idx, right_idx = _get_join_indexers(
+        left_idx, right_idx = get_join_indexers(
             [lvalues], [rvalues], how=how, sort=True
         )
 
