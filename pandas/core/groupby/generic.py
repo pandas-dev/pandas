@@ -489,6 +489,19 @@ class SeriesGroupBy(GroupBy[Series]):
     @Substitution(klass="Series")
     @Appender(_transform_template)
     def transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
+
+        if maybe_use_numba(engine):
+            if not callable(func):
+                raise NotImplementedError(
+                    "Numba engine can only be used with a single function."
+                )
+            with _group_selection_context(self):
+                data = self._selected_obj
+            result, index = self._aggregate_with_numba(
+                data.to_frame(), func, *args, engine_kwargs=engine_kwargs, **kwargs
+            )
+            return self.obj._constructor(result.ravel(), index=index, name=data.name)
+
         func = self._get_cython_func(func) or func
 
         if not isinstance(func, str):

@@ -226,12 +226,12 @@ def generate_numba_transform_func(
         num_groups: int,
         num_columns: int,
     ) -> np.ndarray:
-        result = np.empty((num_groups, num_columns))
+        result = np.empty((len(values), num_columns))
         for i in loop_range(num_groups):
             group_index = index[begin[i] : end[i]]
             for j in loop_range(num_columns):
                 group = values[begin[i] : end[i], j]
-                result[begin[i]: end[i], j] = numba_func(group, group_index, *args)
+                result[begin[i] : end[i], j] = numba_func(group, group_index, *args)
         return result
 
     return group_transform

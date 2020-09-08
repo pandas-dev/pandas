@@ -1057,14 +1057,20 @@ b  2""",
         return self._wrap_aggregated_output(output, index=self.grouper.result_index)
 
     def _transform_with_numba(self, data, func, *args, engine_kwargs=None, **kwargs):
-        """"""
+        """
+        Perform groupby transform routine with the numba engine.
+
+        This routine mimics the data splitting routine of the DataSplitter class
+        to generate the indices of each group in the sorted data and then passes the
+        data and indices into a Numba jitted function.
+        """
         group_keys = self.grouper._get_group_keys()
         labels, _, n_groups = self.grouper.group_info
         sorted_index = get_group_index_sorter(labels, n_groups)
         sorted_labels = algorithms.take_nd(labels, sorted_index, allow_fill=False)
         sorted_data = data.take(sorted_index, axis=self.axis).to_numpy()
         starts, ends = lib.generate_slices(sorted_labels, n_groups)
-        cache_key = (func, "groupby_agg")
+        cache_key = (func, "groupby_transform")
         if cache_key in NUMBA_FUNC_CACHE:
             # Return an already compiled version of roll_apply if available
             numba_transform_func = NUMBA_FUNC_CACHE[cache_key]
@@ -1072,18 +1078,13 @@ b  2""",
             numba_transform_func = numba_.generate_numba_transform_func(
                 tuple(args), kwargs, func, engine_kwargs
             )
-        breakpoint()
         result = numba_transform_func(
             sorted_data, sorted_index, starts, ends, len(group_keys), len(data.columns)
         )
         if cache_key not in NUMBA_FUNC_CACHE:
             NUMBA_FUNC_CACHE[cache_key] = numba_transform_func
 
-        if self.grouper.nkeys > 1:
-            index = MultiIndex.from_tuples(group_keys, names=self.grouper.names)
-        else:
-            index = Index(group_keys, name=self.grouper.names[0])
-        return result, index
+        return result, sorted_index
 
     def _aggregate_with_numba(self, data, func, *args, engine_kwargs=None, **kwargs):
         """
