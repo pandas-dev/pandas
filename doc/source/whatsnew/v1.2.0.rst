@@ -246,7 +246,7 @@ Timezones
 Numeric
 ^^^^^^^
 - Bug in :func:`to_numeric` where float precision was incorrect (:issue:`31364`)
--
+- Bug in :meth:`DataFrame.any` and :meth:`DataFrame.all` with object-dtype columns sometimes returning larger :class:`Series` when operating on a subset of columns (:issue:`34918`)
 
 Conversion
 ^^^^^^^^^^
