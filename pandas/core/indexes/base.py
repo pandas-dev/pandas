@@ -18,6 +18,8 @@ import warnings
 
 import numpy as np
 
+from pandas._vendored.typing_extensions import final
+
 from pandas._libs import algos as libalgos, index as libindex, lib
 import pandas._libs.join as libjoin
 from pandas._libs.lib import is_datetime_array, no_default
@@ -2476,6 +2478,7 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Set Operation Methods
 
+    @final
     def _get_reconciled_name_object(self, other):
         """
         If the result of a set operation will be self,
@@ -2487,6 +2490,7 @@ class Index(IndexOpsMixin, PandasObject):
             return self._shallow_copy(name=name)
         return self
 
+    @final
     def _union_incompatible_dtypes(self, other, sort):
         """
         Casts this and other index to object dtype to allow the formation
@@ -2527,6 +2531,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return type(self) is type(other) and is_dtype_equal(self.dtype, other.dtype)
 
+    @final
     def _validate_sort_keyword(self, sort):
         if sort not in [None, False]:
             raise ValueError(
@@ -2661,6 +2666,7 @@ class Index(IndexOpsMixin, PandasObject):
         # for subclasses
         return self._wrap_setop_result(other, result)
 
+    @final
     def _wrap_setop_result(self, other, result):
         name = get_op_result_name(self, other)
         return self._shallow_copy(result, name=name)
@@ -3064,6 +3070,7 @@ class Index(IndexOpsMixin, PandasObject):
             raise ValueError("list-like tolerance size must match target index size")
         return tolerance
 
+    @final
     def _get_fill_indexer(
         self, target: "Index", method: str_t, limit=None, tolerance=None
     ) -> np.ndarray:
@@ -3083,6 +3090,7 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = self._filter_indexer_tolerance(target_values, indexer, tolerance)
         return indexer
 
+    @final
     def _get_fill_indexer_searchsorted(
         self, target: "Index", method: str_t, limit=None
     ) -> np.ndarray:
@@ -3116,6 +3124,7 @@ class Index(IndexOpsMixin, PandasObject):
             indexer[indexer == len(self)] = -1
         return indexer
 
+    @final
     def _get_nearest_indexer(self, target: "Index", limit, tolerance) -> np.ndarray:
         """
         Get the indexer for the nearest index labels; requires an index with
@@ -3139,6 +3148,7 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = self._filter_indexer_tolerance(target_values, indexer, tolerance)
         return indexer
 
+    @final
     def _filter_indexer_tolerance(
         self,
         target: Union["Index", np.ndarray, ExtensionArray],
@@ -3162,6 +3172,7 @@ class Index(IndexOpsMixin, PandasObject):
         # GH#10331
         return key
 
+    @final
     def _validate_positional_slice(self, key: slice):
         """
         For positional indexing, a slice must have either int or None
@@ -3310,6 +3321,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return None
 
+    @final
     def _invalid_indexer(self, form: str_t, key):
         """
         Consistent invalid indexer message.
@@ -3584,6 +3596,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             return join_index
 
+    @final
     def _join_multi(self, other, how, return_indexers=True):
         from pandas.core.indexes.multi import MultiIndex
         from pandas.core.reshape.merge import _restore_dropped_levels_multijoin
@@ -3659,6 +3672,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return result[0], result[2], result[1]
         return result
 
+    @final
     def _join_non_unique(self, other, how="left", return_indexers=False):
         from pandas.core.reshape.merge import _get_join_indexers
 
@@ -3686,6 +3700,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             return join_index
 
+    @final
     def _join_level(
         self, other, level, how="left", return_indexers=False, keep_order=True
     ):
@@ -3827,6 +3842,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             return join_index
 
+    @final
     def _join_monotonic(self, other, how="left", return_indexers=False):
         # We only get here with matching dtypes
         assert other.dtype == self.dtype
@@ -4009,6 +4025,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     # construction helpers
     @classmethod
+    @final
     def _scalar_data_error(cls, data):
         # We return the TypeError so that we can raise it from the constructor
         #  in order to keep mypy happy
@@ -4018,12 +4035,14 @@ class Index(IndexOpsMixin, PandasObject):
         )
 
     @classmethod
+    @final
     def _string_data_error(cls, data):
         raise TypeError(
             "String dtype not supported, you may need "
             "to explicitly cast to a numeric type"
         )
 
+    @final
     def _coerce_scalar_to_index(self, item):
         """
         We need to coerce a scalar to a compat for our index type.
@@ -4053,6 +4072,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return value
 
+    @final
     def _assert_can_do_op(self, value):
         """
         Check value is valid for scalar op.
@@ -4164,6 +4184,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             return result
 
+    @final
     def _can_hold_identifiers_and_holds_name(self, name) -> bool:
         """
         Faster check for ``name in self`` when we know `name` is a Python
@@ -4777,6 +4798,7 @@ class Index(IndexOpsMixin, PandasObject):
         indexer, _ = self.get_indexer_non_unique(target, **kwargs)
         return indexer
 
+    @final
     def _maybe_promote(self, other: "Index"):
         """
         When dealing with an object-dtype Index and a non-object Index, see
@@ -5051,6 +5073,7 @@ class Index(IndexOpsMixin, PandasObject):
             return com.cast_scalar_indexer(key)
         return key
 
+    @final
     def _validate_indexer(self, form: str_t, key, kind: str_t):
         """
         If we are positional indexer, validate that we have appropriate
