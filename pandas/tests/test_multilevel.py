@@ -1697,6 +1697,23 @@ Thur,Lunch,Yes,51.51,17"""
         result = df2.rename_axis([("c", "ii")]).reset_index(col_level=1, col_fill="C")
         tm.assert_frame_equal(result, expected)
 
+    def test_multilevel_multiple_append(self):
+        #  GH 29699
+        df = pd.DataFrame({"col1": [1, 2, 3], "col2": [11, 12, 13]})
+        df = pd.concat([df], keys=["multi"], names=["level1"], axis=1)
+
+        # catch warning from not specifying sort
+        with tm.assert_produces_warning(RuntimeWarning):
+            for i in range(10):
+                df[i, "colA"] = 10
+                a = pd.DataFrame({"col1": [1, 2, 3], "col2": [11, 12, 13]})
+                a = pd.concat([a], keys=["multi"], names=["level1"], axis=1)
+                df = df.append(a, ignore_index=True)
+
+            result = df["multi"]
+            expected = pd.DataFrame({"col1": [1, 2, 3] * 11, "col2": [11, 12, 13] * 11})
+            tm.assert_frame_equal(result, expected)
+
     def test_set_index_period(self):
         # GH 6631
         df = DataFrame(np.random.random(6))
