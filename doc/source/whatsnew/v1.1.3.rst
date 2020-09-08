@@ -14,6 +14,8 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
+
+- Fixed regression in :meth:`DataFrame.mask` and :meth:`DataFrame.where` raising an ``AssertionError`` when using a nullable boolean mask (:issue:`35429`)
 -
 
 .. ---------------------------------------------------------------------------
