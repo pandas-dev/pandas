@@ -930,8 +930,7 @@ class DataFrameFormatter(TableFormatter):
         multicolumn: bool = False,
         multicolumn_format: Optional[str] = None,
         multirow: bool = False,
-        caption: Optional[str] = None,
-        short_caption: Optional[str] = None,
+        caption: Optional[Union[str, Tuple[str, str]]] = None,
         label: Optional[str] = None,
         position: Optional[str] = None,
     ) -> Optional[str]:
@@ -948,7 +947,6 @@ class DataFrameFormatter(TableFormatter):
             multicolumn_format=multicolumn_format,
             multirow=multirow,
             caption=caption,
-            short_caption=short_caption,
             label=label,
             position=position,
         )

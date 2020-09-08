@@ -2,7 +2,7 @@
 Module for formatting output data in Latex.
 """
 from abc import ABC, abstractmethod
-from typing import IO, Iterator, List, Optional, Type
+from typing import IO, Iterator, List, Optional, Tuple, Type, Union
 
 import numpy as np
 
@@ -618,12 +618,10 @@ class LatexFormatter(TableFormatter):
         The alignment for multicolumns, similar to `column_format`
     multirow : bool, default False
         Use \multirow to enhance MultiIndex rows.
-    caption : str, optional
-        Full caption.
-        Caption macro is to be rendered as ``\caption{caption}``.
-    short_caption : str, optional
-        Short caption.
-        Caption macro is to be rendered as ``\caption[short_caption]{caption}``.
+    caption : str or tuple, optional
+        Tuple (full_caption, short_caption),
+        which results in \caption[short_caption]{full_caption};
+        if a single string is passed, no short caption will be set.
     label : str, optional
         The LaTeX label to be placed inside ``\label{}`` in the output.
     position : str, optional
@@ -643,8 +641,7 @@ class LatexFormatter(TableFormatter):
         multicolumn: bool = False,
         multicolumn_format: Optional[str] = None,
         multirow: bool = False,
-        caption: Optional[str] = None,
-        short_caption: Optional[str] = None,
+        caption: Optional[Union[str, Tuple[str, str]]] = None,
         label: Optional[str] = None,
         position: Optional[str] = None,
     ):
@@ -655,8 +652,7 @@ class LatexFormatter(TableFormatter):
         self.multicolumn = multicolumn
         self.multicolumn_format = multicolumn_format
         self.multirow = multirow
-        self.caption = caption
-        self.short_caption = short_caption
+        self.caption = caption  # type: ignore[assignment]
         self.label = label
         self.position = position
 
@@ -698,7 +694,27 @@ class LatexFormatter(TableFormatter):
         return TabularBuilder
 
     @property
-    def column_format(self) -> str:
+    def caption(self) -> str:
+        return self._caption
+
+    @caption.setter
+    def caption(self, caption: Optional[Union[str, Tuple[str, str]]]) -> None:
+        if caption:
+            if isinstance(caption, str):
+                self._caption = caption
+                self.short_caption = ""
+            else:
+                try:
+                    self._caption, self.short_caption = caption
+                except ValueError as err:
+                    msg = "caption must be either str or tuple of two strings"
+                    raise ValueError(msg) from err
+        else:
+            self._caption = ""
+            self.short_caption = ""
+
+    @property
+    def column_format(self) -> Optional[str]:
         """Column format."""
         return self._column_format
 
