@@ -179,7 +179,7 @@ def generate_numba_transform_func(
     engine_kwargs: Optional[Dict[str, bool]],
 ) -> Callable[[np.ndarray, np.ndarray, np.ndarray, np.ndarray, int, int], np.ndarray]:
     """
-    Generate a numba jitted agg function specified by values from engine_kwargs.
+    Generate a numba jitted transform function specified by values from engine_kwargs.
 
     1. jit the user's function
     2. Return a groupby agg function with the jitted function inline

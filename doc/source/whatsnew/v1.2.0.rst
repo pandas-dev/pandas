@@ -206,7 +206,7 @@ Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Performance improvement in :meth:`GroupBy.agg` with the ``numba`` engine (:issue:`35759`)
--
+- Performance improvement in :meth:`GroupBy.transform` with the ``numba`` engine (:issue:``)
 
 .. ---------------------------------------------------------------------------
 
