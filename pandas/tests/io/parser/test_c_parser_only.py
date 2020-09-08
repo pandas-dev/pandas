@@ -160,7 +160,9 @@ def test_precise_conversion(c_parser_only):
         # 25 decimal digits of precision
         text = f"a\n{num:.25}"
 
-        normal_val = float(parser.read_csv(StringIO(text))["a"][0])
+        normal_val = float(
+            parser.read_csv(StringIO(text), float_precision=None)["a"][0]
+        )
         precise_val = float(
             parser.read_csv(StringIO(text), float_precision="high")["a"][0]
         )
