@@ -1462,6 +1462,22 @@ class TestConcatenate:
         tm.assert_frame_equal(result, exp)
         assert result.index.names == exp.index.names
 
+    def test_concat_multiple_append(self):
+        #  GH 29699
+        df = pd.DataFrame({"col1": [1, 2, 3], "col2": [11, 12, 13]})
+        df = pd.concat([df], keys=["multi"], names=["level1"], axis=1, sort=False)
+
+        # catch warning from not specifying sort
+        for i in range(10):
+            df[i, "colA"] = 10
+            a = pd.DataFrame({"col1": [1, 2, 3], "col2": [11, 12, 13]})
+            a = pd.concat([a], keys=["multi"], names=["level1"], axis=1, sort=False)
+            df = df.append(a, ignore_index=True)
+
+        result = df["multi"]
+        expected = pd.DataFrame({"col1": [1, 2, 3] * 11, "col2": [11, 12, 13] * 11})
+        tm.assert_frame_equal(result, expected)
+
     def test_crossed_dtypes_weird_corner(self):
         columns = ["A", "B", "C", "D"]
         df1 = DataFrame(
