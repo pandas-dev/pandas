@@ -497,7 +497,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 )
             with _group_selection_context(self):
                 data = self._selected_obj
-            result, index = self._aggregate_with_numba(
+            result, index = self._transform_with_numba(
                 data.to_frame(), func, *args, engine_kwargs=engine_kwargs, **kwargs
             )
             return self.obj._constructor(result.ravel(), index=index, name=data.name)
@@ -505,9 +505,7 @@ class SeriesGroupBy(GroupBy[Series]):
         func = self._get_cython_func(func) or func
 
         if not isinstance(func, str):
-            return self._transform_general(
-                func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
-            )
+            return self._transform_general(func, *args, **kwargs)
 
         elif func not in base.transform_kernel_allowlist:
             msg = f"'{func}' is not a valid function name for transform(name)"
@@ -1304,42 +1302,25 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         return self._reindex_output(result)
 
-    def _transform_general(
-        self, func, *args, engine="cython", engine_kwargs=None, **kwargs
-    ):
+    def _transform_general(self, func, *args, **kwargs):
         from pandas.core.reshape.concat import concat
 
         applied = []
         obj = self._obj_with_exclusions
         gen = self.grouper.get_iterator(obj, axis=self.axis)
-        if maybe_use_numba(engine):
-            numba_func, cache_key = generate_numba_func(
-                func, engine_kwargs, kwargs, "groupby_transform"
-            )
-        else:
-            fast_path, slow_path = self._define_paths(func, *args, **kwargs)
+        fast_path, slow_path = self._define_paths(func, *args, **kwargs)
 
         for name, group in gen:
             object.__setattr__(group, "name", name)
 
-            if maybe_use_numba(engine):
-                values, index = split_for_numba(group)
-                res = numba_func(values, index, *args)
-                if cache_key not in NUMBA_FUNC_CACHE:
-                    NUMBA_FUNC_CACHE[cache_key] = numba_func
-                # Return the result as a DataFrame for concatenation later
-                res = self.obj._constructor(
-                    res, index=group.index, columns=group.columns
-                )
-            else:
-                # Try slow path and fast path.
-                try:
-                    path, res = self._choose_path(fast_path, slow_path, group)
-                except TypeError:
-                    return self._transform_item_by_item(obj, fast_path)
-                except ValueError as err:
-                    msg = "transform must return a scalar value for each group"
-                    raise ValueError(msg) from err
+            # Try slow path and fast path.
+            try:
+                path, res = self._choose_path(fast_path, slow_path, group)
+            except TypeError:
+                return self._transform_item_by_item(obj, fast_path)
+            except ValueError as err:
+                msg = "transform must return a scalar value for each group"
+                raise ValueError(msg) from err
 
             if isinstance(res, Series):
 
@@ -1391,9 +1372,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         func = self._get_cython_func(func) or func
 
         if not isinstance(func, str):
-            return self._transform_general(
-                func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
-            )
+            return self._transform_general(func, *args, **kwargs)
 
         elif func not in base.transform_kernel_allowlist:
             msg = f"'{func}' is not a valid function name for transform(name)"
@@ -1419,9 +1398,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             ):
                 return self._transform_fast(result)
 
-        return self._transform_general(
-            func, engine=engine, engine_kwargs=engine_kwargs, *args, **kwargs
-        )
+        return self._transform_general(func, *args, **kwargs)
 
     def _transform_fast(self, result: DataFrame) -> DataFrame:
         """
