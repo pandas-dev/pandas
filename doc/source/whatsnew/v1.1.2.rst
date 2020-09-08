@@ -1,7 +1,7 @@
 .. _whatsnew_112:
 
-What's new in 1.1.2 (??)
-------------------------
+What's new in 1.1.2 (September 8, 2020)
+---------------------------------------
 
 These are the changes in pandas 1.1.2. See :ref:`release` for a full changelog
 including other versions of pandas.
