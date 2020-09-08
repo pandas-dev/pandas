@@ -16,9 +16,7 @@ import os
 import sys
 import token
 import tokenize
-from typing import IO, Callable, FrozenSet, Iterable, List, Tuple
-
-PATHS_TO_IGNORE: Tuple[str, ...] = ("asv_bench/env",)
+from typing import IO, Callable, FrozenSet, Iterable, List, Set, Tuple
 
 
 def _get_literal_string_prefix_len(token_string: str) -> int:
@@ -112,6 +110,58 @@ def bare_pytest_raises(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
                     "Bare pytests raise have been found. "
                     "Please pass in the argument 'match' as well the exception.",
                 )
+
+
+PRIVATE_FUNCTIONS_ALLOWED = {"sys._getframe"}  # no known alternative
+
+
+def private_function_across_module(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
+    """
+    Checking that a private function is not used across modules.
+    Parameters
+    ----------
+    file_obj : IO
+        File-like object containing the Python code to validate.
+    Yields
+    ------
+    line_number : int
+        Line number of the private function that is used across modules.
+    msg : str
+        Explenation of the error.
+    """
+    contents = file_obj.read()
+    tree = ast.parse(contents)
+
+    imported_modules: Set[str] = set()
+
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            for module in node.names:
+                module_fqdn = module.name if module.asname is None else module.asname
+                imported_modules.add(module_fqdn)
+
+        if not isinstance(node, ast.Call):
+            continue
+
+        try:
+            module_name = node.func.value.id
+            function_name = node.func.attr
+        except AttributeError:
+            continue
+
+        # Exception section #
+
+        # (Debatable) Class case
+        if module_name[0].isupper():
+            continue
+        # (Debatable) Dunder methods case
+        elif function_name.startswith("__") and function_name.endswith("__"):
+            continue
+        elif module_name + "." + function_name in PRIVATE_FUNCTIONS_ALLOWED:
+            continue
+
+        if module_name in imported_modules and function_name.startswith("_"):
+            yield (node.lineno, f"Private function '{module_name}.{function_name}'")
 
 
 def strings_to_concatenate(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
@@ -293,6 +343,7 @@ def main(
     source_path: str,
     output_format: str,
     file_extensions_to_check: str,
+    excluded_file_paths: str,
 ) -> bool:
     """
     Main entry point of the script.
@@ -305,6 +356,10 @@ def main(
         Source path representing path to a file/directory.
     output_format : str
         Output format of the error message.
+    file_extensions_to_check : str
+        Coma seperated values of what file extensions to check.
+    excluded_file_paths : str
+        Coma seperated values of what file paths to exclude during the check.
 
     Returns
     -------
@@ -325,6 +380,7 @@ def main(
     FILE_EXTENSIONS_TO_CHECK: FrozenSet[str] = frozenset(
         file_extensions_to_check.split(",")
     )
+    PATHS_TO_IGNORE = frozenset(excluded_file_paths.split(","))
 
     if os.path.isfile(source_path):
         file_path = source_path
@@ -362,6 +418,7 @@ def main(
 if __name__ == "__main__":
     available_validation_types: List[str] = [
         "bare_pytest_raises",
+        "private_function_across_module",
         "strings_to_concatenate",
         "strings_with_wrong_placed_whitespace",
     ]
@@ -389,6 +446,11 @@ if __name__ == "__main__":
         default="py,pyx,pxd,pxi",
         help="Coma seperated file extensions to check.",
     )
+    parser.add_argument(
+        "--excluded-file-paths",
+        default="asv_bench/env",
+        help="Comma separated file extensions to check.",
+    )
 
     args = parser.parse_args()
 
@@ -398,5 +460,6 @@ if __name__ == "__main__":
             source_path=args.path,
             output_format=args.format,
             file_extensions_to_check=args.included_file_extensions,
+            excluded_file_paths=args.excluded_file_paths,
         )
     )

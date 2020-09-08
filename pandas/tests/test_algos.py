@@ -256,7 +256,7 @@ class TestFactorize:
         # GH35650 Verify whether read-only datetime64 array can be factorized
         data = np.array([np.datetime64("2020-01-01T00:00:00.000")])
         data.setflags(write=writable)
-        expected_codes = np.array([0], dtype=np.int64)
+        expected_codes = np.array([0], dtype=np.intp)
         expected_uniques = np.array(
             ["2020-01-01T00:00:00.000000000"], dtype="datetime64[ns]"
         )
@@ -303,7 +303,7 @@ class TestFactorize:
         ],
     )
     def test_parametrized_factorize_na_value(self, data, na_value):
-        codes, uniques = algos._factorize_array(data, na_value=na_value)
+        codes, uniques = algos.factorize_array(data, na_value=na_value)
         expected_uniques = data[[1, 3]]
         expected_codes = np.array([-1, 0, -1, 1], dtype=np.intp)
         tm.assert_numpy_array_equal(codes, expected_codes)
