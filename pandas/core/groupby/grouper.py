@@ -344,11 +344,14 @@ class Grouper:
             if getattr(self.grouper, "name", None) == key and isinstance(
                 obj, ABCSeries
             ):
-                indices = group_indices.get(obj.name)
-                if self._indexer is not None:
-                    ax = self._grouper.take(self._indexer.argsort()).take(indices)
+                if group_indices is None:
+                    ax = self._grouper.take(obj.index)
                 else:
-                    ax = self._grouper.take(indices)
+                    indices = group_indices.get(obj.name)
+                    if self._indexer is not None:
+                        ax = self._grouper.take(self._indexer.argsort()).take(indices)
+                    else:
+                        ax = self._grouper.take(indices)
             else:
                 if key not in obj._info_axis:
                     raise KeyError(f"The grouper name {key} is not found")
