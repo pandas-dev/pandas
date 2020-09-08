@@ -161,7 +161,7 @@ def test_precise_conversion(c_parser_only):
         text = f"a\n{num:.25}"
 
         normal_val = float(
-            parser.read_csv(StringIO(text), float_precision=None)["a"][0]
+            parser.read_csv(StringIO(text), float_precision="legacy")["a"][0]
         )
         precise_val = float(
             parser.read_csv(StringIO(text), float_precision="high")["a"][0]
@@ -610,7 +610,7 @@ def test_unix_style_breaks(c_parser_only):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("float_precision", [None, "high", "round_trip"])
+@pytest.mark.parametrize("float_precision", [None, "legacy", "high", "round_trip"])
 @pytest.mark.parametrize(
     "data,thousands,decimal",
     [
@@ -648,7 +648,7 @@ def test_1000_sep_with_decimal(
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("float_precision", [None, "high", "round_trip"])
+@pytest.mark.parametrize("float_precision", [None, "legacy", "high", "round_trip"])
 @pytest.mark.parametrize(
     "value,expected",
     [
@@ -704,3 +704,18 @@ def test_1000_sep_decimal_float_precision(
     )
     val = df.iloc[0, 0]
     assert val == expected
+
+
+def test_high_is_default(c_parser_only):
+    # GH 17154, 36228
+    parser = c_parser_only
+    s = "foo\n243.164\n"
+    df = parser.read_csv(StringIO(s))
+    df2 = parser.read_csv(StringIO(s), float_precision="high")
+
+    tm.assert_frame_equal(df, df2)
+
+    df3 = parser.read_csv(StringIO(s), float_precision="legacy")
+
+    assert not df.iloc[0, 0] == df3.iloc[0, 0]
+

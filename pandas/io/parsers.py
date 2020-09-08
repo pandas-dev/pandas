@@ -338,9 +338,9 @@ memory_map : bool, default False
     option can improve performance because there is no longer any I/O overhead.
 float_precision : str, optional
     Specifies which converter the C engine should use for floating-point
-    values. The options are `None` for the ordinary converter,
-    `high` for the high-precision converter, and `round_trip` for the
-    round-trip converter.
+    values. The options are `None` or `high` for the ordinary converter,
+    `legacy` for the original lower precision pandas converter, and
+    `round_trip` for the round-trip converter.
 
 Returns
 -------
@@ -589,7 +589,7 @@ def read_csv(
     delim_whitespace=False,
     low_memory=_c_parser_defaults["low_memory"],
     memory_map=False,
-    float_precision="high",
+    float_precision=None,
     storage_options: StorageOptions = None,
 ):
     # gh-23761
@@ -747,7 +747,7 @@ def read_table(
     delim_whitespace=False,
     low_memory=_c_parser_defaults["low_memory"],
     memory_map=False,
-    float_precision="high",
+    float_precision=None,
 ):
     return read_csv(**locals())
 

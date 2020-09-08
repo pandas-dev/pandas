@@ -105,7 +105,9 @@ For the C parsing engine, the methods :meth:`read_csv` and :meth:`read_table` pr
 could read floating point numbers slightly incorrectly with respect to the last bit in precision.
 The option ``floating_precision="high"`` has always been available to avoid this issue.
 Beginning with this version, the default is now to use the more accurate parser by making
-``floating_precision="high"`` the default, with no impact on performance. (:issue:`17154`)
+``floating_precision=None`` correspond to the high precision parser, and the new option
+``floating_precision="legacy"`` to use the legacy parser. The change to using the higher precision
+parser by default should have no impact on performance. (:issue:`17154`)
 
 .. _whatsnew_120.enhancements.other:
 

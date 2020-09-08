@@ -476,10 +476,10 @@ cdef class TextReader:
         if float_precision == "round_trip":
             # see gh-15140
             self.parser.double_converter = round_trip
-        elif float_precision == "high":
-            self.parser.double_converter = precise_xstrtod
-        else:
+        elif float_precision == "legacy":
             self.parser.double_converter = xstrtod
+        else: # float_precision == "high" or float_precision is None:
+            self.parser.double_converter = precise_xstrtod
 
         if isinstance(dtype, dict):
             dtype = {k: pandas_dtype(dtype[k])
