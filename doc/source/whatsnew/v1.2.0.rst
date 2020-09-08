@@ -245,7 +245,7 @@ Timezones
 
 Numeric
 ^^^^^^^
--
+- Bug in :func:`to_numeric` where float precision was incorrect (:issue:`31364`)
 -
 
 Conversion
