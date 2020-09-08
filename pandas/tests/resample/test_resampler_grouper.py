@@ -124,10 +124,12 @@ def test_getitem_multiple():
     tm.assert_series_equal(result, expected)
 
 
-def test_groupby_resample_on_api_with_getitem():
+@pytest.mark.parametrize("index_values", [[0, 1, 2, 3, 4], ["a", "b", "c", "d", "e"]])
+def test_groupby_resample_on_api_with_getitem(index_values):
     # GH 17813
     df = pd.DataFrame(
-        {"id": list("aabbb"), "date": pd.date_range("1-1-2016", periods=5), "data": 1}
+        {"id": list("aabbb"), "date": pd.date_range("1-1-2016", periods=5), "data": 1},
+        index=pd.Index(index_values)
     )
     exp = df.set_index("date").groupby("id").resample("2D")["data"].sum()
     result = df.groupby("id").resample("2D", on="date")["data"].sum()

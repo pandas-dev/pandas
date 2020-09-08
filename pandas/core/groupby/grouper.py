@@ -311,7 +311,7 @@ class Grouper:
         )
         return self.binner, self.grouper, self.obj
 
-    def _set_grouper(self, obj: FrameOrSeries, sort: bool = False, _group_indices: Dict = None):
+    def _set_grouper(self, obj: FrameOrSeries, sort: bool = False, group_indices: Dict = None):
         """
         given an object and the specifications, setup the internal grouper
         for this particular specification
@@ -327,7 +327,7 @@ class Grouper:
         if self.key is not None and self.level is not None:
             raise ValueError("The Grouper cannot specify both a key and a level!")
 
-        # Keep self.grouper value before overriding
+        # Keep self.grouper and self.indexer value before overriding
         if self._grouper is None:
             self._grouper = self.grouper
             self._indexer = self.indexer
@@ -339,24 +339,11 @@ class Grouper:
             if getattr(self.grouper, "name", None) == key and isinstance(
                 obj, ABCSeries
             ):
-                # In some cases the self._grouper may be sorted differently than obj.
-                # self.obj has the right order with the old index in the first go
-                # around. We align the index from obj with the self.obj index to
-                # select the correct values. Additionally we have to sort
-                # obj.index correctly to aggregate correctly.
-                # if not hasattr(self, "_index_mapping"):
-                #     self._index_mapping = DataFrame(
-                #         self.obj.index, columns=["index"]
-                #     ).sort_values(by="index")
-                # from pandas.core.sorting import get_indexer_dict
-                # obj.sort_index(inplace=True)
-                indices = _group_indices.get(obj.name)
-                ax = self._grouper.take(self._indexer.argsort()).take(indices)
-                # obj.index = self._index_mapping.loc[
-                #     self._index_mapping["index"].isin(obj.index)
-                # ].index
-                # obj.sort_index(inplace=True)
-                # ax = self._grouper.take(obj.index)
+                indices = group_indices.get(obj.name)
+                if self._indexer is not None:
+                    ax = self._grouper.take(self._indexer.argsort()).take(indices)
+                else:
+                    ax = self._grouper.take(indices)
             else:
                 if key not in obj._info_axis:
                     raise KeyError(f"The grouper name {key} is not found")
