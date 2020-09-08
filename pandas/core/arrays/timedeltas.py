@@ -4,7 +4,16 @@ from typing import List, Union
 import numpy as np
 
 from pandas._libs import lib, tslibs
-from pandas._libs.tslibs import NaT, Period, Tick, Timedelta, Timestamp, iNaT, to_offset
+from pandas._libs.tslibs import (
+    NaT,
+    NaTType,
+    Period,
+    Tick,
+    Timedelta,
+    Timestamp,
+    iNaT,
+    to_offset,
+)
 from pandas._libs.tslibs.conversion import precision_from_unit
 from pandas._libs.tslibs.fields import get_timedelta_field
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64, parse_timedelta_unit
@@ -108,7 +117,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     # Note: ndim must be defined to ensure NaT.__richcmp(TimedeltaArray)
     #  operates pointwise.
 
-    def _box_func(self, x) -> Union[Timedelta, NaT]:
+    def _box_func(self, x) -> Union[Timedelta, NaTType]:
         return Timedelta(x, unit="ns")
 
     @property

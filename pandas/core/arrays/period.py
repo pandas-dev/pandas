@@ -484,7 +484,7 @@ class PeriodArray(PeriodMixin, dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
             values[self._isnan] = iNaT
         return type(self)(values, freq=self.freq)
 
-    def _box_func(self, x) -> Union[Period, NaT]:
+    def _box_func(self, x) -> Union[Period, NaTType]:
         return Period._from_ordinal(ordinal=x, freq=self.freq)
 
     def asfreq(self, freq=None, how: str = "E") -> "PeriodArray":

@@ -7,6 +7,7 @@ import numpy as np
 from pandas._libs import lib, tslib
 from pandas._libs.tslibs import (
     NaT,
+    NaTType,
     Resolution,
     Timestamp,
     conversion,
@@ -475,7 +476,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
     # -----------------------------------------------------------------
     # Descriptive Properties
 
-    def _box_func(self, x) -> Union[Timestamp, NaT]:
+    def _box_func(self, x) -> Union[Timestamp, NaTType]:
         return Timestamp(x, freq=self.freq, tz=self.tz)
 
     @property
