@@ -509,9 +509,10 @@ class Styler:
         Parameters
         ----------
         classes : DataFrame
-            DataFrame containing strings that will be translated to CSS classes. Empty
-            strings, None, or NaN values will be ignored. DataFrame must have
-            identical rows and columns to the underlying `Styler` data.
+            DataFrame containing strings that will be translated to CSS classes,
+            mapped by identical column and index values that must exist on the
+            underlying `Styler` data. None, NaN values, and empty strings will
+            be ignored and not affect the rendered HTML.
 
         Returns
         -------
@@ -519,24 +520,27 @@ class Styler:
 
         Examples
         --------
-        >>> df = pd.DataFrame(data=[[1, 2, 3], [4, 5, 6]], columns=['A', 'B', 'C'])
+        >>> df = pd.DataFrame(data=[[1, 2, 3], [4, 5, 6]], columns=["A", "B", "C"])
         >>> classes = pd.DataFrame([
-        ...     ['min-num red', '', 'blue'],
-        ...     ['red', None, 'blue max-num']
+        ...     ["min-val red", "", "blue"],
+        ...     ["red", None, "blue max-val"]
         ... ], index=df.index, columns=df.columns)
         >>> df.style.set_data_classes(classes)
+
+        Using `MultiIndex` columns and a `classes` `DataFrame` as a subset of the
+        underlying,
+
+        >>> df = pd.DataFrame([[1,2],[3,4]], index=["a", "b"],
+        ...     columns=[["level0", "level0"], ["level1a", "level1b"]])
+        >>> classes = pd.DataFrame(["min-val"], index=["a"],
+        ...     columns=[["level0"],["level1a"]])
+        >>> df.style.set_data_classes(classes)
         """
-        if not (
-            self.columns.equals(classes.columns) and self.index.equals(classes.index)
-        ):
-            raise ValueError(
-                "CSS classes DataFrame must have identical column and index labelling "
-                "to underlying."
-            )
+        classes = classes.reindex_like(self.data)
 
         mask = (classes.isna()) | (classes.eq(""))
         self.cell_context["data"] = {
-            r: {c: [classes.iloc[r, c]]}
+            r: {c: [str(classes.iloc[r, c])]}
             for r, rn in enumerate(classes.index)
             for c, cn in enumerate(classes.columns)
             if not mask.iloc[r, c]
