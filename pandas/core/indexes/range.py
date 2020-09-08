@@ -338,6 +338,9 @@ class RangeIndex(Int64Index):
             return False
         return key in self._range
 
+    # --------------------------------------------------------------------
+    # Indexing Methods
+
     @doc(Int64Index.get_loc)
     def get_loc(self, key, method=None, tolerance=None):
         if method is None and tolerance is None:
@@ -378,6 +381,8 @@ class RangeIndex(Int64Index):
             # We reversed this range: transform to original locs
             locs[valid] = len(self) - 1 - locs[valid]
         return ensure_platform_int(locs)
+
+    # --------------------------------------------------------------------
 
     def tolist(self):
         return list(self._range)

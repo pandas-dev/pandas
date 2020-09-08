@@ -7,8 +7,10 @@ import operator
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import is_numpy_dev
+
 import pandas as pd
-from pandas import NaT, Timedelta, Timestamp, compat, is_numpy_dev, offsets
+from pandas import NaT, Timedelta, Timestamp, compat, offsets
 import pandas._testing as tm
 from pandas.core import ops
 

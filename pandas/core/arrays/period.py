@@ -253,6 +253,10 @@ class PeriodArray(PeriodMixin, dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     # -----------------------------------------------------------------
     # DatetimeLike Interface
 
+    @classmethod
+    def _rebox_native(cls, value: int) -> np.int64:
+        return np.int64(value)
+
     def _unbox_scalar(self, value: Union[Period, NaTType]) -> int:
         if value is NaT:
             return value.value
@@ -480,9 +484,8 @@ class PeriodArray(PeriodMixin, dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
             values[self._isnan] = iNaT
         return type(self)(values, freq=self.freq)
 
-    @property
-    def _box_func(self):
-        return lambda x: Period._from_ordinal(ordinal=x, freq=self.freq)
+    def _box_func(self, x) -> Union[Period, NaTType]:
+        return Period._from_ordinal(ordinal=x, freq=self.freq)
 
     def asfreq(self, freq=None, how: str = "E") -> "PeriodArray":
         """
