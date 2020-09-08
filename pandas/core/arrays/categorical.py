@@ -1734,6 +1734,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
     def _from_backing_data(self, arr: np.ndarray) -> "Categorical":
         return self._constructor(arr, dtype=self.dtype, fastpath=True)
 
+    def _box_func(self, i: int):
+        if i == -1:
+            return np.NaN
+        return self.categories[i]
+
     # ------------------------------------------------------------------
 
     def take_nd(self, indexer, allow_fill: bool = False, fill_value=None):
@@ -1874,10 +1879,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         """
         if isinstance(key, (int, np.integer)):
             i = self._codes[key]
-            if i == -1:
-                return np.nan
-            else:
-                return self.categories[i]
+            return self._box_func(i)
 
         key = check_array_indexer(self, key)
 

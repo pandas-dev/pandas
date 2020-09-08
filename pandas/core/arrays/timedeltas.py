@@ -108,9 +108,8 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     # Note: ndim must be defined to ensure NaT.__richcmp(TimedeltaArray)
     #  operates pointwise.
 
-    @property
-    def _box_func(self):
-        return lambda x: Timedelta(x, unit="ns")
+    def _box_func(self, x):
+        return Timedelta(x, unit="ns")
 
     @property
     def dtype(self):
