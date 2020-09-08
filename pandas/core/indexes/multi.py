@@ -1337,7 +1337,7 @@ class MultiIndex(Index):
             if sparsify in [False, lib.no_default]:
                 sentinel = sparsify
             # little bit of a kludge job for #1217
-            result_levels = _sparsify(
+            result_levels = sparsify_labels(
                 result_levels, start=int(names), sentinel=sentinel
             )
 
@@ -3692,7 +3692,7 @@ MultiIndex._add_numeric_methods_add_sub_disabled()
 MultiIndex._add_logical_methods_disabled()
 
 
-def _sparsify(label_list, start: int = 0, sentinel=""):
+def sparsify_labels(label_list, start: int = 0, sentinel=""):
     pivoted = list(zip(*label_list))
     k = len(label_list)
 

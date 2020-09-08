@@ -53,7 +53,7 @@ def _raw_hex_id(obj) -> str:
     return "".join(_replacer(x) for x in packed)
 
 
-_DEFAULT_GLOBALS = {
+DEFAULT_GLOBALS = {
     "Timestamp": Timestamp,
     "datetime": datetime.datetime,
     "True": True,
@@ -114,7 +114,7 @@ class Scope:
 
         # shallow copy because we don't want to keep filling this up with what
         # was there before if there are multiple calls to Scope/_ensure_scope
-        self.scope = DeepChainMap(_DEFAULT_GLOBALS.copy())
+        self.scope = DeepChainMap(DEFAULT_GLOBALS.copy())
         self.target = target
 
         if isinstance(local_dict, Scope):
