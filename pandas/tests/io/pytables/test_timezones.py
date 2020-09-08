@@ -110,7 +110,7 @@ def test_append_with_timezones_dateutil(setup_path):
         dti = dti._with_freq(None)  # freq doesnt round-trip
 
         # GH 4098 example
-        df = DataFrame(dict(A=Series(range(3), index=dti,)))
+        df = DataFrame(dict(A=Series(range(3), index=dti)))
 
         _maybe_remove(store, "df")
         store.put("df", df)
@@ -197,7 +197,7 @@ def test_append_with_timezones_pytz(setup_path):
         dti = dti._with_freq(None)  # freq doesnt round-trip
 
         # GH 4098 example
-        df = DataFrame(dict(A=Series(range(3), index=dti,)))
+        df = DataFrame(dict(A=Series(range(3), index=dti)))
 
         _maybe_remove(store, "df")
         store.put("df", df)
