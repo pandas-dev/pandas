@@ -718,4 +718,3 @@ def test_high_is_default(c_parser_only):
     df3 = parser.read_csv(StringIO(s), float_precision="legacy")
 
     assert not df.iloc[0, 0] == df3.iloc[0, 0]
-
