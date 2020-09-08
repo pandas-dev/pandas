@@ -8,7 +8,12 @@ from pandas import DataFrame, Int64Index, RangeIndex
 from pandas.io.common import get_filepath_or_buffer
 
 
-def to_feather(df: DataFrame, path, storage_options: StorageOptions = None, **kwargs):
+def to_feather(
+    df: DataFrame,
+    path: FilePathOrBuffer[AnyStr],
+    storage_options: StorageOptions = None,
+    **kwargs,
+):
     """
     Write a DataFrame to the binary Feather format.
 
