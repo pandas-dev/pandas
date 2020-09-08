@@ -3154,6 +3154,8 @@ class MultiIndex(Index):
 
         return indexer._values
 
+    # --------------------------------------------------------------------
+
     def _reorder_indexer(
         self,
         seq: Tuple[Union[Scalar, Iterable, AnyArrayLike], ...],
