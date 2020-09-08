@@ -312,7 +312,10 @@ class Grouper:
         return self.binner, self.grouper, self.obj
 
     def _set_grouper(
-        self, obj: FrameOrSeries, sort: bool = False, group_indices: Dict = None
+        self,
+        obj: FrameOrSeries,
+        sort: bool = False,
+        group_indices: Optional[Dict] = None,
     ):
         """
         given an object and the specifications, setup the internal grouper
