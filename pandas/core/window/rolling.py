@@ -234,7 +234,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                 f"get_window_bounds"
             )
 
-    def _create_blocks(self, obj: FrameOrSeriesUnion):
+    def _create_data(self, obj: FrameOrSeries) -> FrameOrSeries:
         """
         Split data into blocks & return conformed data.
         """
@@ -242,9 +242,8 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         if self.on is not None and not isinstance(self.on, Index):
             if obj.ndim == 2:
                 obj = obj.reindex(columns=obj.columns.difference([self.on]), copy=False)
-        blocks = obj._to_dict_of_blocks(copy=False).values()
 
-        return blocks, obj
+        return obj
 
     def _gotitem(self, key, ndim, subset=None):
         """
@@ -333,7 +332,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
     def __iter__(self):
         window = self._get_window(win_type=None)
-        _, obj = self._create_blocks(self._selected_obj)
+        obj = self._create_data(self._selected_obj)
         index = self._get_window_indexer(window=window)
 
         start, end = index.get_window_bounds(
@@ -469,7 +468,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         """
         Series version of _apply_blockwise
         """
-        _, obj = self._create_blocks(self._selected_obj)
+        obj = self._create_data(self._selected_obj)
 
         try:
             values = self._prep_values(obj.values)
@@ -489,7 +488,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         if self._selected_obj.ndim == 1:
             return self._apply_series(homogeneous_func)
 
-        _, obj = self._create_blocks(self._selected_obj)
+        obj = self._create_data(self._selected_obj)
         mgr = obj._mgr
 
         def hfunc(bvalues: ArrayLike) -> ArrayLike:
@@ -1268,7 +1267,7 @@ class _Rolling_and_Expanding(_Rolling):
         # implementations shouldn't end up here
         assert not isinstance(self.window, BaseIndexer)
 
-        _, obj = self._create_blocks(self._selected_obj)
+        obj = self._create_data(self._selected_obj)
 
         def hfunc(values: np.ndarray) -> np.ndarray:
             result = notna(values)
@@ -2234,7 +2233,7 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
     def _constructor(self):
         return Rolling
 
-    def _create_blocks(self, obj: FrameOrSeriesUnion):
+    def _create_data(self, obj: FrameOrSeries) -> FrameOrSeries:
         """
         Split data into blocks & return conformed data.
         """
@@ -2246,7 +2245,7 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
                 list(self._groupby.grouper.indices.values())
             ).astype(np.int64)
             obj = obj.take(groupby_order)
-        return super()._create_blocks(obj)
+        return super()._create_data(obj)
 
     def _get_cython_func_type(self, func: str) -> Callable:
         """
