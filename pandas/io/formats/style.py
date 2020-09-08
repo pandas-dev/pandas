@@ -501,10 +501,10 @@ class Styler:
                 self._display_funcs[(i, j)] = formatter
         return self
 
-    def set_data_classes(self, classes: DataFrame) -> "Styler":
+    def set_td_classes(self, classes: DataFrame) -> "Styler":
         """
-        Add string based CSS class names to data cells that will appear in the
-        `Styler` HTML result.
+        Add string based CSS class names to data cells that will appear within the
+        `Styler` HTML result. These classes are added within specified `<td>` elements.
 
         Parameters
         ----------
@@ -525,7 +525,7 @@ class Styler:
         ...     ["min-val red", "", "blue"],
         ...     ["red", None, "blue max-val"]
         ... ], index=df.index, columns=df.columns)
-        >>> df.style.set_data_classes(classes)
+        >>> df.style.set_td_classes(classes)
 
         Using `MultiIndex` columns and a `classes` `DataFrame` as a subset of the
         underlying,
@@ -534,7 +534,24 @@ class Styler:
         ...     columns=[["level0", "level0"], ["level1a", "level1b"]])
         >>> classes = pd.DataFrame(["min-val"], index=["a"],
         ...     columns=[["level0"],["level1a"]])
-        >>> df.style.set_data_classes(classes)
+        >>> df.style.set_td_classes(classes)
+
+        Form of the output with new additional css classes,
+
+        >>> df = pd.DataFrame([[1]])
+        >>> css = pd.DataFrame(["other-class"])
+        >>> s = Styler(df, uuid="_", cell_ids=False).set_td_classes(css)
+        >>> s.hide_index().render()
+        '<style  type="text/css" ></style>'
+        '<table id="T__" >'
+        '  <thead>'
+        '    <tr><th class="col_heading level0 col0" >0</th></tr>'
+        '  </thead>'
+        '  <tbody>'
+        '    <tr><td  class="data row0 col0 other-class" >1</td></tr>'
+        '  </tbody>'
+        '</table>'
+
         """
         classes = classes.reindex_like(self.data)
 

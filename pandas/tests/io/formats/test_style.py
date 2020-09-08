@@ -1699,7 +1699,7 @@ class TestStyler:
             columns=df.columns,
             index=df.index,
         )
-        s = Styler(df, uuid="_", cell_ids=False).set_data_classes(classes).render()
+        s = Styler(df, uuid="_", cell_ids=False).set_td_classes(classes).render()
         assert '<td  class="data row0 col0 test-class" >0</td>' in s
         assert '<td  class="data row0 col1" >1</td>' in s
         assert '<td  class="data row1 col0" >2</td>' in s
