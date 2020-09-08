@@ -23,7 +23,9 @@ class TestDataFrameIndexingDatetimeWithTZ:
         b1 = df._mgr.blocks[1]
         b2 = df._mgr.blocks[2]
         tm.assert_extension_array_equal(b1.values, b2.values)
-        assert id(b1.values._data.base) != id(b2.values._data.base)
+        b1base = b1.values._data.base
+        b2base = b2.values._data.base
+        assert b1base is None or (id(b1base) != id(b2base))
 
         # with nan
         df2 = df.copy()
