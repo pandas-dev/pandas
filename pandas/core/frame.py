@@ -3206,9 +3206,11 @@ class DataFrame(NDFrame):
                     "and a value that cannot be converted to a Series"
                 ) from err
 
-            self._mgr = self._mgr.reindex_axis(
-                value.index.copy(), axis=1, fill_value=np.nan
-            )
+            # GH31368 preserve name of index
+            index_copy = value.index.copy()
+            index_copy.name = self.index.name
+
+            self._mgr = self._mgr.reindex_axis(index_copy, axis=1, fill_value=np.nan)
 
     def _box_col_values(self, values, loc: int) -> Series:
         """
@@ -5257,7 +5259,7 @@ class DataFrame(NDFrame):
         4     True
         dtype: bool
         """
-        from pandas._libs.hashtable import _SIZE_HINT_LIMIT, duplicated_int64
+        from pandas._libs.hashtable import SIZE_HINT_LIMIT, duplicated_int64
 
         from pandas.core.sorting import get_group_index
 
@@ -5266,7 +5268,7 @@ class DataFrame(NDFrame):
 
         def f(vals):
             labels, shape = algorithms.factorize(
-                vals, size_hint=min(len(self), _SIZE_HINT_LIMIT)
+                vals, size_hint=min(len(self), SIZE_HINT_LIMIT)
             )
             return labels.astype("i8", copy=False), len(shape)
 

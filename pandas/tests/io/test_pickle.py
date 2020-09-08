@@ -24,7 +24,7 @@ import zipfile
 
 import pytest
 
-from pandas.compat import _get_lzma_file, _import_lzma, is_platform_little_endian
+from pandas.compat import get_lzma_file, import_lzma, is_platform_little_endian
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -33,7 +33,7 @@ import pandas._testing as tm
 
 from pandas.tseries.offsets import Day, MonthEnd
 
-lzma = _import_lzma()
+lzma = import_lzma()
 
 
 @pytest.fixture(scope="module")
@@ -268,7 +268,7 @@ class TestCompression:
             with zipfile.ZipFile(dest_path, "w", compression=zipfile.ZIP_DEFLATED) as f:
                 f.write(src_path, os.path.basename(src_path))
         elif compression == "xz":
-            f = _get_lzma_file(lzma)(dest_path, "w")
+            f = get_lzma_file(lzma)(dest_path, "w")
         else:
             msg = f"Unrecognized compression type: {compression}"
             raise ValueError(msg)
