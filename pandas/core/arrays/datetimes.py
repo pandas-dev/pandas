@@ -7,6 +7,7 @@ import numpy as np
 from pandas._libs import lib, tslib
 from pandas._libs.tslibs import (
     NaT,
+    NaTType,
     Resolution,
     Timestamp,
     conversion,
@@ -446,6 +447,10 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
     # -----------------------------------------------------------------
     # DatetimeLike Interface
 
+    @classmethod
+    def _rebox_native(cls, value: int) -> np.datetime64:
+        return np.int64(value).view("M8[ns]")
+
     def _unbox_scalar(self, value):
         if not isinstance(value, self._scalar_type) and value is not NaT:
             raise ValueError("'value' should be a Timestamp.")
@@ -471,9 +476,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
     # -----------------------------------------------------------------
     # Descriptive Properties
 
-    @property
-    def _box_func(self):
-        return lambda x: Timestamp(x, freq=self.freq, tz=self.tz)
+    def _box_func(self, x) -> Union[Timestamp, NaTType]:
+        return Timestamp(x, freq=self.freq, tz=self.tz)
 
     @property
     def dtype(self) -> Union[np.dtype, DatetimeTZDtype]:
