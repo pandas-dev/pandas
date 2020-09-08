@@ -3586,7 +3586,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _join_multi(self, other, how, return_indexers=True):
         from pandas.core.indexes.multi import MultiIndex
-        from pandas.core.reshape.merge import _restore_dropped_levels_multijoin
+        from pandas.core.reshape.merge import restore_dropped_levels_multijoin
 
         # figure out join names
         self_names = set(com.not_none(*self.names))
@@ -3622,7 +3622,7 @@ class Index(IndexOpsMixin, PandasObject):
             # common levels, ldrop_names, rdrop_names
             dropped_names = ldrop_names + rdrop_names
 
-            levels, codes, names = _restore_dropped_levels_multijoin(
+            levels, codes, names = restore_dropped_levels_multijoin(
                 self, other, dropped_names, join_idx, lidx, ridx
             )
 
