@@ -325,7 +325,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
             arg = zip(columns, arg)
 
-        results: Dict[base.OutputKey, Union[Series, DataFrame]] = {}
+        results: Dict[base.OutputKey, FrameOrSeriesUnion] = {}
         for idx, (name, func) in enumerate(arg):
             obj = self
 
@@ -349,7 +349,7 @@ class SeriesGroupBy(GroupBy[Series]):
         self,
         output: Mapping[base.OutputKey, Union[Series, np.ndarray]],
         index: Optional[Index],
-    ) -> Union[Series, DataFrame]:
+    ) -> FrameOrSeriesUnion:
         """
         Wraps the output of a SeriesGroupBy operation into the expected result.
 
@@ -372,7 +372,7 @@ class SeriesGroupBy(GroupBy[Series]):
         indexed_output = {key.position: val for key, val in output.items()}
         columns = Index(key.label for key in output)
 
-        result: Union[Series, DataFrame]
+        result: FrameOrSeriesUnion
         if len(output) > 1:
             result = self.obj._constructor_expanddim(indexed_output, index=index)
             result.columns = columns
@@ -390,7 +390,7 @@ class SeriesGroupBy(GroupBy[Series]):
         self,
         output: Mapping[base.OutputKey, Union[Series, np.ndarray]],
         index: Optional[Index],
-    ) -> Union[Series, DataFrame]:
+    ) -> FrameOrSeriesUnion:
         """
         Wraps the output of a SeriesGroupBy aggregation into the expected result.
 
@@ -1121,7 +1121,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     assert how == "ohlc"
                     raise
 
-                obj: Union[Series, DataFrame]
+                # We get here with a) EADtypes and b) object dtype
+                obj: FrameOrSeriesUnion
                 # call our grouper again with only this block
                 if isinstance(bvalues, ExtensionArray):
                     # TODO(EA2D): special case not needed with 2D EAs
@@ -1228,113 +1229,104 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             return self.obj._constructor()
         elif isinstance(first_not_none, DataFrame):
             return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
-        else:
-            key_index = self.grouper.result_index if self.as_index else None
 
-            if isinstance(first_not_none, Series):
-                # this is to silence a DeprecationWarning
-                # TODO: Remove when default dtype of empty Series is object
-                kwargs = first_not_none._construct_axes_dict()
-                backup = create_series_with_explicit_dtype(
-                    dtype_if_empty=object, **kwargs
-                )
+        key_index = self.grouper.result_index if self.as_index else None
 
-                values = [x if (x is not None) else backup for x in values]
+        if isinstance(first_not_none, Series):
+            # this is to silence a DeprecationWarning
+            # TODO: Remove when default dtype of empty Series is object
+            kwargs = first_not_none._construct_axes_dict()
+            backup = create_series_with_explicit_dtype(dtype_if_empty=object, **kwargs)
 
-            v = values[0]
+            values = [x if (x is not None) else backup for x in values]
 
-            if not isinstance(v, (np.ndarray, Index, Series)) and self.as_index:
-                # values are not series or array-like but scalars
-                # self._selection_name not passed through to Series as the
-                # result should not take the name of original selection
-                # of columns
-                return self.obj._constructor_sliced(values, index=key_index)
+        v = values[0]
 
+        if not isinstance(v, (np.ndarray, Index, Series)) and self.as_index:
+            # values are not series or array-like but scalars
+            # self._selection_name not passed through to Series as the
+            # result should not take the name of original selection
+            # of columns
+            return self.obj._constructor_sliced(values, index=key_index)
+
+        if isinstance(v, Series):
+            all_indexed_same = all_indexes_same((x.index for x in values))
+
+            # GH3596
+            # provide a reduction (Frame -> Series) if groups are
+            # unique
+            if self.squeeze:
+                applied_index = self._selected_obj._get_axis(self.axis)
+                singular_series = len(values) == 1 and applied_index.nlevels == 1
+
+                # assign the name to this series
+                if singular_series:
+                    values[0].name = keys[0]
+
+                    # GH2893
+                    # we have series in the values array, we want to
+                    # produce a series:
+                    # if any of the sub-series are not indexed the same
+                    # OR we don't have a multi-index and we have only a
+                    # single values
+                    return self._concat_objects(
+                        keys, values, not_indexed_same=not_indexed_same
+                    )
+
+                # still a series
+                # path added as of GH 5545
+                elif all_indexed_same:
+                    from pandas.core.reshape.concat import concat
+
+                    return concat(values)
+
+            if not all_indexed_same:
+                # GH 8467
+                return self._concat_objects(keys, values, not_indexed_same=True)
+
+            # Combine values
+            # vstack+constructor is faster than concat and handles MI-columns
+            stacked_values = np.vstack([np.asarray(v) for v in values])
+
+            if self.axis == 0:
+                index = key_index
+                columns = v.index.copy()
+                if columns.name is None:
+                    # GH6124 - propagate name of Series when it's consistent
+                    names = {v.name for v in values}
+                    if len(names) == 1:
+                        columns.name = list(names)[0]
             else:
-                if isinstance(v, Series):
-                    all_indexed_same = all_indexes_same((x.index for x in values))
+                index = v.index
+                columns = key_index
+                stacked_values = stacked_values.T
 
-                    # GH3596
-                    # provide a reduction (Frame -> Series) if groups are
-                    # unique
-                    if self.squeeze:
-                        applied_index = self._selected_obj._get_axis(self.axis)
-                        singular_series = (
-                            len(values) == 1 and applied_index.nlevels == 1
-                        )
+            result = self.obj._constructor(stacked_values, index=index, columns=columns)
 
-                        # assign the name to this series
-                        if singular_series:
-                            values[0].name = keys[0]
+        elif not self.as_index:
+            # We add grouping column below, so create a frame here
+            result = DataFrame(values, index=key_index, columns=[self._selection])
+        else:
+            # GH#1738: values is list of arrays of unequal lengths
+            #  fall through to the outer else clause
+            # TODO: sure this is right?  we used to do this
+            #  after raising AttributeError above
+            return self.obj._constructor_sliced(
+                values, index=key_index, name=self._selection_name
+            )
 
-                            # GH2893
-                            # we have series in the values array, we want to
-                            # produce a series:
-                            # if any of the sub-series are not indexed the same
-                            # OR we don't have a multi-index and we have only a
-                            # single values
-                            return self._concat_objects(
-                                keys, values, not_indexed_same=not_indexed_same
-                            )
+        # if we have date/time like in the original, then coerce dates
+        # as we are stacking can easily have object dtypes here
+        so = self._selected_obj
+        if so.ndim == 2 and so.dtypes.apply(needs_i8_conversion).any():
+            result = _recast_datetimelike_result(result)
+        else:
+            result = result._convert(datetime=True)
 
-                        # still a series
-                        # path added as of GH 5545
-                        elif all_indexed_same:
-                            from pandas.core.reshape.concat import concat
+        if not self.as_index:
+            self._insert_inaxis_grouper_inplace(result)
 
-                            return concat(values)
-
-                    if not all_indexed_same:
-                        # GH 8467
-                        return self._concat_objects(keys, values, not_indexed_same=True)
-
-                    # Combine values
-                    # vstack+constructor is faster than concat and handles MI-columns
-                    stacked_values = np.vstack([np.asarray(v) for v in values])
-
-                    if self.axis == 0:
-                        index = key_index
-                        columns = v.index.copy()
-                        if columns.name is None:
-                            # GH6124 - propagate name of Series when it's consistent
-                            names = {v.name for v in values}
-                            if len(names) == 1:
-                                columns.name = list(names)[0]
-                    else:
-                        index = v.index
-                        columns = key_index
-                        stacked_values = stacked_values.T
-
-                    result = self.obj._constructor(
-                        stacked_values, index=index, columns=columns
-                    )
-
-                elif not self.as_index:
-                    # We add grouping column below, so create a frame here
-                    result = DataFrame(
-                        values, index=key_index, columns=[self._selection]
-                    )
-                else:
-                    # GH#1738: values is list of arrays of unequal lengths
-                    #  fall through to the outer else clause
-                    # TODO: sure this is right?  we used to do this
-                    #  after raising AttributeError above
-                    return self.obj._constructor_sliced(
-                        values, index=key_index, name=self._selection_name
-                    )
-
-                # if we have date/time like in the original, then coerce dates
-                # as we are stacking can easily have object dtypes here
-                so = self._selected_obj
-                if so.ndim == 2 and so.dtypes.apply(needs_i8_conversion).any():
-                    result = _recast_datetimelike_result(result)
-                else:
-                    result = result._convert(datetime=True)
-
-                if not self.as_index:
-                    self._insert_inaxis_grouper_inplace(result)
-
-                return self._reindex_output(result)
+        return self._reindex_output(result)
 
     def _transform_general(
         self, func, *args, engine="cython", engine_kwargs=None, **kwargs
@@ -1731,6 +1723,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
         indexed_output = {key.position: val for key, val in output.items()}
         columns = Index(key.label for key in output)
+        columns.name = self.obj.columns.name
 
         result = self.obj._constructor(indexed_output)
         result.columns = columns

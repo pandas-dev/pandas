@@ -45,7 +45,7 @@ def test_with_s3_url(compression, s3_resource, s3so):
             s3_resource.Bucket("pandas-test").put_object(Key="test-1", Body=f)
 
     roundtripped_df = pd.read_json(
-        "s3://pandas-test/test-1", compression=compression, storage_options=s3so,
+        "s3://pandas-test/test-1", compression=compression, storage_options=s3so
     )
     tm.assert_frame_equal(df, roundtripped_df)
 
