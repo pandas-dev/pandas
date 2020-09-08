@@ -20,7 +20,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, notna
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype, notna
 
 from pandas.core import accessor
 from pandas.core.algorithms import take_1d
@@ -433,11 +433,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         """ convert to object if we are a categorical """
         return self.astype("object")
 
-    def _maybe_cast_indexer(self, key):
-        code = self.categories.get_loc(key)
-        code = self.codes.dtype.type(code)
-        return code
-
     @doc(Index.where)
     def where(self, cond, other=None):
         # TODO: Investigate an alternative implementation with
@@ -537,6 +532,14 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
         return new_target, indexer, new_indexer
 
+    # --------------------------------------------------------------------
+    # Indexing Methods
+
+    def _maybe_cast_indexer(self, key):
+        code = self.categories.get_loc(key)
+        code = self.codes.dtype.type(code)
+        return code
+
     @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
         method = missing.clean_reindex_fill_method(method)
@@ -619,6 +622,15 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
     def _convert_index_indexer(self, keyarr):
         return self._shallow_copy(keyarr)
 
+    @doc(Index._maybe_cast_slice_bound)
+    def _maybe_cast_slice_bound(self, label, side, kind):
+        if kind == "loc":
+            return label
+
+        return super()._maybe_cast_slice_bound(label, side, kind)
+
+    # --------------------------------------------------------------------
+
     def take_nd(self, *args, **kwargs):
         """Alias for `take`"""
         warnings.warn(
@@ -627,13 +639,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
             stacklevel=2,
         )
         return self.take(*args, **kwargs)
-
-    @doc(Index._maybe_cast_slice_bound)
-    def _maybe_cast_slice_bound(self, label, side, kind):
-        if kind == "loc":
-            return label
-
-        return super()._maybe_cast_slice_bound(label, side, kind)
 
     def map(self, mapper):
         """
@@ -734,15 +739,10 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         ValueError if the item is not in the categories
 
         """
-        code = self.categories.get_indexer([item])
-        if (code == -1) and not (is_scalar(item) and isna(item)):
-            raise TypeError(
-                "cannot insert an item into a CategoricalIndex "
-                "that is not already an existing category"
-            )
+        code = self._data._validate_insert_value(item)
 
         codes = self.codes
-        codes = np.concatenate((codes[:loc], code, codes[loc:]))
+        codes = np.concatenate((codes[:loc], [code], codes[loc:]))
         return self._create_from_codes(codes)
 
     def _concat(self, to_concat, name):

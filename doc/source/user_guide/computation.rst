@@ -361,6 +361,9 @@ compute the mean absolute deviation on a rolling basis:
    @savefig rolling_apply_ex.png
    s.rolling(window=60).apply(mad, raw=True).plot(style='k')
 
+Using the Numba engine
+~~~~~~~~~~~~~~~~~~~~~~
+
 .. versionadded:: 1.0
 
 Additionally, :meth:`~Rolling.apply` can leverage `Numba <https://numba.pydata.org/>`__

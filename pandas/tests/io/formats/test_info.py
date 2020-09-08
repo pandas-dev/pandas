@@ -299,7 +299,7 @@ def test_info_memory_usage():
     DataFrame(1, index=["a"], columns=["A"]).memory_usage(index=True)
     DataFrame(1, index=["a"], columns=["A"]).index.nbytes
     df = DataFrame(
-        data=1, index=MultiIndex.from_product([["a"], range(1000)]), columns=["A"],
+        data=1, index=MultiIndex.from_product([["a"], range(1000)]), columns=["A"]
     )
     df.index.nbytes
     df.memory_usage(index=True)
@@ -336,7 +336,7 @@ def test_info_memory_usage_deep_pypy():
 @pytest.mark.skipif(PYPY, reason="PyPy getsizeof() fails by design")
 def test_usage_via_getsizeof():
     df = DataFrame(
-        data=1, index=MultiIndex.from_product([["a"], range(1000)]), columns=["A"],
+        data=1, index=MultiIndex.from_product([["a"], range(1000)]), columns=["A"]
     )
     mem = df.memory_usage(deep=True).sum()
     # sys.getsizeof will call the .memory_usage with
@@ -359,16 +359,14 @@ def test_info_memory_usage_qualified():
 
     buf = StringIO()
     df = DataFrame(
-        1, columns=list("ab"), index=MultiIndex.from_product([range(3), range(3)]),
+        1, columns=list("ab"), index=MultiIndex.from_product([range(3), range(3)])
     )
     df.info(buf=buf)
     assert "+" not in buf.getvalue()
 
     buf = StringIO()
     df = DataFrame(
-        1,
-        columns=list("ab"),
-        index=MultiIndex.from_product([range(3), ["foo", "bar"]]),
+        1, columns=list("ab"), index=MultiIndex.from_product([range(3), ["foo", "bar"]])
     )
     df.info(buf=buf)
     assert "+" in buf.getvalue()
@@ -384,7 +382,7 @@ def test_info_memory_usage_bug_on_multiindex():
     N = 100
     M = len(uppercase)
     index = MultiIndex.from_product(
-        [list(uppercase), date_range("20160101", periods=N)], names=["id", "date"],
+        [list(uppercase), date_range("20160101", periods=N)], names=["id", "date"]
     )
     df = DataFrame({"value": np.random.randn(N * M)}, index=index)
 
