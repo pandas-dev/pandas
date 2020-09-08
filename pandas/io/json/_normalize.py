@@ -176,7 +176,7 @@ def _json_normalize(
     ...          'fitness': {'height': 130, 'weight': 60}},
     ...         {'id': 2, 'name': 'Faye Raker',
     ...          'fitness': {'height': 130, 'weight': 60}}]
-    >>> json_normalize(data, max_level=0)
+    >>> pandas.json_normalize(data, max_level=0)
                 fitness                 id        name
     0   {'height': 130, 'weight': 60}  1.0   Cole Volk
     1   {'height': 130, 'weight': 60}  NaN    Mose Reg
@@ -191,7 +191,7 @@ def _json_normalize(
     ...          'fitness': {'height': 130, 'weight': 60}},
     ...         {'id': 2, 'name': 'Faye Raker',
     ...          'fitness': {'height': 130, 'weight': 60}}]
-    >>> json_normalize(data, max_level=1)
+    >>> pandas.json_normalize(data, max_level=1)
       fitness.height  fitness.weight   id    name
     0   130              60          1.0    Cole Volk
     1   130              60          NaN    Mose Reg
@@ -208,7 +208,7 @@ def _json_normalize(
     ...          'info': {'governor': 'John Kasich'},
     ...          'counties': [{'name': 'Summit', 'population': 1234},
     ...                       {'name': 'Cuyahoga', 'population': 1337}]}]
-    >>> result = json_normalize(data, 'counties', ['state', 'shortname',
+    >>> result = pandas.json_normalize(data, 'counties', ['state', 'shortname',
     ...                                            ['info', 'governor']])
     >>> result
              name  population    state shortname info.governor
@@ -219,7 +219,7 @@ def _json_normalize(
     4    Cuyahoga        1337   Ohio       OH    John Kasich
 
     >>> data = {'A': [1, 2]}
-    >>> json_normalize(data, 'A', record_prefix='Prefix.')
+    >>> pandas.json_normalize(data, 'A', record_prefix='Prefix.')
         Prefix.0
     0          1
     1          2
