@@ -4436,18 +4436,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     ):
 
         inplace = validate_bool_kwarg(inplace, "inplace")
-
-        is_dataframe = isinstance(self, ABCDataFrame)
-        if is_dataframe:
-            axis = self._get_axis_number(axis)
-            labels = self._get_axis(axis)
-            labels = ensure_key_mapped(labels, key, levels=level)
-            labels = labels._sort_levels_monotonic()
-            target = labels
-        else:
-            _ = self._get_axis_number(axis)
-            index = ensure_key_mapped(self.index, key, levels=level)
-            target = index
+        axis = self._get_axis_number(axis)
+        target = self._get_axis(axis) if isinstance(self, ABCDataFrame) else self.index
+        target = ensure_key_mapped(target, key, levels=level)
+        target = target._sort_levels_monotonic()
 
         if level is not None:
             new_index, indexer = target.sortlevel(
@@ -4457,11 +4449,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         elif isinstance(target, MultiIndex):
             from pandas.core.sorting import lexsort_indexer
 
-            if not is_dataframe:
-                target = target._sort_levels_monotonic()
-
             indexer = lexsort_indexer(
-                target._get_codes_for_sorting(),  # type: ignore[attr-defined]
+                target._get_codes_for_sorting(),
                 orders=ascending,
                 na_position=na_position,
             )
@@ -4483,7 +4472,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 target, kind=kind, ascending=ascending, na_position=na_position
             )
 
-        if is_dataframe:
+        if isinstance(self, ABCDataFrame):
             baxis = self._get_block_manager_axis(axis)
             new_data = self._mgr.take(indexer, axis=baxis, verify=False)
 
