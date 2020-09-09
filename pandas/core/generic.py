@@ -107,7 +107,7 @@ from pandas.core.internals import BlockManager
 from pandas.core.missing import find_valid_index
 from pandas.core.ops import align_method_FRAME
 from pandas.core.shared_docs import _shared_docs
-from pandas.core.sorting import ensure_key_mapped, get_indexer_indexer
+from pandas.core.sorting import get_indexer_indexer
 from pandas.core.window import Expanding, ExponentialMovingWindow, Rolling, Window
 
 from pandas.io.formats import format as fmt
