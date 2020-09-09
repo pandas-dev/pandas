@@ -2291,7 +2291,7 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         """
         if not center or not self.win_type:
             return 0
-        
+
         if self.is_freq_type or isinstance(self.window, BaseIndexer):
             return 0
 
