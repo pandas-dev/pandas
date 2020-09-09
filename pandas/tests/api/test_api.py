@@ -195,6 +195,7 @@ class TestPDApi(Base):
         "_testing",
         "_tslib",
         "_typing",
+        "_vendored",
         "_version",
     ]
 
