@@ -183,7 +183,7 @@ class AttributesMixin:
         """
         raise AbstractMethodError(cls)
 
-    def _unbox_scalar(self, value: DTScalarOrNaT) -> int:
+    def _unbox_scalar(self, value: DTScalarOrNaT, setitem: bool = False) -> int:
         """
         Unbox the integer value of a scalar `value`.
 
@@ -191,6 +191,8 @@ class AttributesMixin:
         ----------
         value : Period, Timestamp, Timedelta, or NaT
             Depending on subclass.
+        setitem : bool, default False
+            Whether to check compatiblity with setitem strictness.
 
         Returns
         -------
@@ -841,6 +843,7 @@ class DatetimeLikeArrayMixin(
             if is_dtype_equal(value.categories.dtype, self.dtype):
                 # TODO: do we need equal dtype or just comparable?
                 value = value._internal_get_values()
+                value = extract_array(value, extract_numpy=True)
 
         if allow_object and is_object_dtype(value.dtype):
             pass
@@ -875,8 +878,7 @@ class DatetimeLikeArrayMixin(
             # TODO: cast_str for consistency?
             value = self._validate_scalar(value, msg, cast_str=False)
 
-        self._check_compatible_with(value, setitem=True)
-        return self._unbox(value)
+        return self._unbox(value, setitem=True)
 
     def _validate_insert_value(self, value):
         msg = f"cannot insert {type(self).__name__} with incompatible label"
@@ -886,6 +888,8 @@ class DatetimeLikeArrayMixin(
         # TODO: if we dont have compat, should we raise or astype(object)?
         #  PeriodIndex does astype(object)
         return value
+        # Note: we do not unbox here because the caller needs boxed value
+        #  to check for freq.
 
     def _validate_where_value(self, other):
         msg = f"Where requires matching dtype, not {type(other)}"
@@ -893,20 +897,18 @@ class DatetimeLikeArrayMixin(
             other = self._validate_scalar(other, msg)
         else:
             other = self._validate_listlike(other, "where")
-            self._check_compatible_with(other, setitem=True)
 
-        self._check_compatible_with(other, setitem=True)
-        return self._unbox(other)
+        return self._unbox(other, setitem=True)
 
-    def _unbox(self, other) -> Union[np.int64, np.ndarray]:
+    def _unbox(self, other, setitem: bool = False) -> Union[np.int64, np.ndarray]:
         """
         Unbox either a scalar with _unbox_scalar or an instance of our own type.
         """
         if lib.is_scalar(other):
-            other = self._unbox_scalar(other)
+            other = self._unbox_scalar(other, setitem=setitem)
         else:
             # same type as self
-            self._check_compatible_with(other)
+            self._check_compatible_with(other, setitem=setitem)
             other = other.view("i8")
         return other
 
