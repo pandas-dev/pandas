@@ -59,7 +59,6 @@ from pandas.core.ops import get_op_result_name
 if TYPE_CHECKING:
     from pandas import CategoricalIndex  # noqa:F401
 
-_VALID_CLOSED = {"left", "right", "both", "neither"}
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
 _index_doc_kwargs.update(

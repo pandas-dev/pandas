@@ -782,7 +782,7 @@ class Expr:
         self.env = env or Scope(level=level + 1)
         self.engine = engine
         self.parser = parser
-        self._visitor = _parsers[parser](self.env, self.engine, self.parser)
+        self._visitor = PARSERS[parser](self.env, self.engine, self.parser)
         self.terms = self.parse()
 
     @property
@@ -814,4 +814,4 @@ class Expr:
         return frozenset(term.name for term in com.flatten(self.terms))
 
 
-_parsers = {"python": PythonExprVisitor, "pandas": PandasExprVisitor}
+PARSERS = {"python": PythonExprVisitor, "pandas": PandasExprVisitor}

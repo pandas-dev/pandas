@@ -130,7 +130,7 @@ class PythonEngine(AbstractEngine):
         pass
 
 
-_engines: Dict[str, Type[AbstractEngine]] = {
+ENGINES: Dict[str, Type[AbstractEngine]] = {
     "numexpr": NumExprEngine,
     "python": PythonEngine,
 }

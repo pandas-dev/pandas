@@ -19,7 +19,7 @@ from pandas import DataFrame, Series, compat, date_range
 import pandas._testing as tm
 from pandas.core.computation import pytables
 from pandas.core.computation.check import NUMEXPR_VERSION
-from pandas.core.computation.engines import NumExprClobberingError, _engines
+from pandas.core.computation.engines import ENGINES, NumExprClobberingError
 import pandas.core.computation.expr as expr
 from pandas.core.computation.expr import (
     BaseExprVisitor,
@@ -46,14 +46,14 @@ from pandas.core.computation.ops import (
                 f"installed->{NUMEXPR_INSTALLED}",
             ),
         )
-        for engine in _engines
+        for engine in ENGINES
     )
 )  # noqa
 def engine(request):
     return request.param
 
 
-@pytest.fixture(params=expr._parsers)
+@pytest.fixture(params=expr.PARSERS)
 def parser(request):
     return request.param
 
@@ -77,7 +77,7 @@ def unary_fns_for_ne():
 
 
 def engine_has_neg_frac(engine):
-    return _engines[engine].has_neg_frac
+    return ENGINES[engine].has_neg_frac
 
 
 def _eval_single_bin(lhs, cmp1, rhs, engine):
@@ -168,7 +168,7 @@ class TestEvalNumexprPandas:
     def setup_method(self, method):
         self.setup_ops()
         self.setup_data()
-        self.current_engines = (engine for engine in _engines if engine != self.engine)
+        self.current_engines = (engine for engine in ENGINES if engine != self.engine)
 
     def teardown_method(self, method):
         del self.lhses, self.rhses, self.scalar_rhses, self.scalar_lhses
@@ -1921,7 +1921,7 @@ _parsers: Dict[str, Type[BaseExprVisitor]] = {
 }
 
 
-@pytest.mark.parametrize("engine", _engines)
+@pytest.mark.parametrize("engine", ENGINES)
 @pytest.mark.parametrize("parser", _parsers)
 def test_disallowed_nodes(engine, parser):
     VisitorClass = _parsers[parser]
