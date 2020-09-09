@@ -70,9 +70,9 @@ from pandas.core.groupby.groupby import (
     GroupBy,
     _agg_template,
     _apply_docs,
-    _group_selection_context,
     _transform_template,
     get_groupby,
+    group_selection_context,
 )
 from pandas.core.groupby.numba_ import generate_numba_func, split_for_numba
 from pandas.core.indexes.api import Index, MultiIndex, all_indexes_same
@@ -230,7 +230,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 raise NotImplementedError(
                     "Numba engine can only be used with a single function."
                 )
-            with _group_selection_context(self):
+            with group_selection_context(self):
                 data = self._selected_obj
             result, index = self._aggregate_with_numba(
                 data.to_frame(), func, *args, engine_kwargs=engine_kwargs, **kwargs
@@ -685,7 +685,7 @@ class SeriesGroupBy(GroupBy[Series]):
         self, normalize=False, sort=True, ascending=False, bins=None, dropna=True
     ):
 
-        from pandas.core.reshape.merge import _get_join_indexers
+        from pandas.core.reshape.merge import get_join_indexers
         from pandas.core.reshape.tile import cut
 
         if bins is not None and not np.iterable(bins):
@@ -787,7 +787,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         right = [diff.cumsum() - 1, codes[-1]]
 
-        _, idx = _get_join_indexers(left, right, sort=False, how="left")
+        _, idx = get_join_indexers(left, right, sort=False, how="left")
         out = np.where(idx != -1, out[idx], 0)
 
         if sort:
@@ -942,7 +942,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 raise NotImplementedError(
                     "Numba engine can only be used with a single function."
                 )
-            with _group_selection_context(self):
+            with group_selection_context(self):
                 data = self._selected_obj
             result, index = self._aggregate_with_numba(
                 data, func, *args, engine_kwargs=engine_kwargs, **kwargs

@@ -4,7 +4,7 @@ import json
 import numpy as np
 import pyarrow
 
-from pandas.core.arrays.interval import _VALID_CLOSED
+from pandas.core.arrays.interval import VALID_CLOSED
 
 _pyarrow_version_ge_015 = LooseVersion(pyarrow.__version__) >= LooseVersion("0.15")
 
@@ -83,7 +83,7 @@ if _pyarrow_version_ge_015:
         def __init__(self, subtype, closed):
             # attributes need to be set first before calling
             # super init (as that calls serialize)
-            assert closed in _VALID_CLOSED
+            assert closed in VALID_CLOSED
             self._closed = closed
             if not isinstance(subtype, pyarrow.DataType):
                 subtype = pyarrow.type_for_alias(str(subtype))
