@@ -5471,8 +5471,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     @property
     def _is_mixed_type(self) -> bool_t:
-        f = lambda: self._mgr.is_mixed_type
-        return self._protect_consolidate(f)
+        if len(self._mgr.blocks) == 1:
+            return False
+
+        if self._mgr.any_extension_types:
+            # Even if they have the same dtype, we cant consolidate them,
+            #  so we pretend this is "mixed'"
+            return True
+
+        dtypes = self.dtypes.unique()
+        return len(dtypes) > 1
 
     def _check_inplace_setting(self, value) -> bool_t:
         """ check whether we allow in-place setting with this type of value """
@@ -6252,8 +6260,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
 
         if value is None:
-
-            if self._is_mixed_type and axis == 1:
+            if len(self._mgr.blocks) > 1 and axis == 1:
                 if inplace:
                     raise NotImplementedError()
                 result = self.T.fillna(method=method, limit=limit).T

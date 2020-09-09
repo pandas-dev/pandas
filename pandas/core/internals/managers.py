@@ -652,12 +652,6 @@ class BlockManager(PandasObject):
         self._known_consolidated = True
 
     @property
-    def is_mixed_type(self) -> bool:
-        # Warning, consolidation needs to get checked upstairs
-        self._consolidate_inplace()
-        return len(self.blocks) > 1
-
-    @property
     def is_numeric_mixed_type(self) -> bool:
         return all(block.is_numeric for block in self.blocks)
 
