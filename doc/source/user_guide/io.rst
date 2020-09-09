@@ -2412,7 +2412,7 @@ indicate missing values and the subsequent read cannot distinguish the intent.
 
    os.remove('test.json')
 
-.. _Table Schema: https://specs.frictionlessdata.io/json-table-schema/
+.. _Table Schema: https://specs.frictionlessdata.io/table-schema/
 
 HTML
 ----
