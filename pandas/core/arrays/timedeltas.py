@@ -283,10 +283,10 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     def _rebox_native(cls, value: int) -> np.timedelta64:
         return np.int64(value).view("m8[ns]")
 
-    def _unbox_scalar(self, value):
+    def _unbox_scalar(self, value, setitem: bool = False):
         if not isinstance(value, self._scalar_type) and value is not NaT:
             raise ValueError("'value' should be a Timedelta.")
-        self._check_compatible_with(value)
+        self._check_compatible_with(value, setitem=setitem)
         return value.value
 
     def _scalar_from_string(self, value):
