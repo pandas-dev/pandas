@@ -1166,5 +1166,5 @@ def test_agg_no_suffix_index():
 
     # test Series case
     result = df["A"].agg(["sum", lambda x: x.sum(), lambda x: x.sum()])
-    expected = pd.Series([12, 12, 12], index=["sum", "<lambda>", "<lambda>"])
+    expected = pd.Series([12, 12, 12], index=["sum", "<lambda>", "<lambda>"], name="A")
     tm.assert_series_equal(result, expected)
