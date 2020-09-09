@@ -1706,12 +1706,14 @@ class TestStyler:
                 index=["a", "b"],
             ),
             DataFrame(data=[["Max", "Min"]], columns=["B", "A"], index=["a"]),
-            DataFrame(data=[["Min", "Max", None]], columns=["A", "B", "C"], index=["a"])
+            DataFrame(
+                data=[["Min", "Max", None]], columns=["A", "B", "C"], index=["a"]
+            ),
         ],
     )
     def test_tooltip_render(self, ttips):
         # GH 21266
-        df = pd.DataFrame(data=[[0, 3], [1, 2]], columns=['A', 'B'], index=['a', 'b'])
+        df = pd.DataFrame(data=[[0, 3], [1, 2]], columns=["A", "B"], index=["a", "b"])
         s = Styler(df, uuid="_").set_tooltips(ttips).render()
         # test tooltip table level class
         assert "#T__ .pd-t {\n          visibility: hidden;\n" in s
