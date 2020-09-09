@@ -23,6 +23,7 @@ class TestSearchsorted:
         assert pidx.searchsorted(p2) == 3
 
         if np_version_under1p18:
+            # GH#36254
             # Following numpy convention, NaT goes at the beginning
             #  (unlike NaN which goes at the end)
             assert pidx.searchsorted(NaT) == 0
