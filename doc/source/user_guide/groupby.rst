@@ -88,7 +88,7 @@ The mapping can be specified many different ways:
 * A list or NumPy array of the same length as the selected axis.
 * A dict or ``Series``, providing a ``label -> group name`` mapping.
 * For ``DataFrame`` objects, a string indicating either a column name or
-an index level name to be used to group.
+  an index level name to be used to group.
 * df.groupby('A') is just syntactic sugar for df.groupby(df['A']),
   but it feels more pythonic.
 * A list of any of the above things.
