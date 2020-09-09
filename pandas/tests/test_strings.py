@@ -838,8 +838,12 @@ class TestStringMethods:
         expected = Series([True, False, False, True, False])
         tm.assert_series_equal(result, expected)
 
-    def test_startswith(self):
-        values = Series(["om", np.nan, "foo_nom", "nom", "bar_foo", np.nan, "foo"])
+    # add category dtype parametrizations for GH-36241
+    @pytest.mark.parametrize("dtype", [None, "category"])
+    def test_startswith(self, dtype):
+        values = Series(
+            ["om", np.nan, "foo_nom", "nom", "bar_foo", np.nan, "foo"], dtype=dtype
+        )
 
         result = values.str.startswith("foo")
         exp = Series([False, np.nan, True, False, False, np.nan, True])
@@ -867,8 +871,12 @@ class TestStringMethods:
         )
         tm.assert_series_equal(rs, xp)
 
-    def test_endswith(self):
-        values = Series(["om", np.nan, "foo_nom", "nom", "bar_foo", np.nan, "foo"])
+    # add category dtype parametrizations for GH-36241
+    @pytest.mark.parametrize("dtype", [None, "category"])
+    def test_endswith(self, dtype):
+        values = Series(
+            ["om", np.nan, "foo_nom", "nom", "bar_foo", np.nan, "foo"], dtype=dtype
+        )
 
         result = values.str.endswith("foo")
         exp = Series([False, np.nan, False, False, True, np.nan, True])
