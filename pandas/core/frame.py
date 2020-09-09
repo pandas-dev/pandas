@@ -4093,7 +4093,8 @@ class DataFrame(NDFrame):
         Remove rows or columns by specifying label names and corresponding
         axis, or by specifying directly index or column names. When using a
         multi-index, labels on different levels can be removed by specifying
-        the level.
+        the level. However the multi-index keeps these levels even if they
+        are not used.
 
         Parameters
         ----------
