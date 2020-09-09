@@ -495,7 +495,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 raise NotImplementedError(
                     "Numba engine can only be used with a single function."
                 )
-            with _group_selection_context(self):
+            with group_selection_context(self):
                 data = self._selected_obj
             result = self._transform_with_numba(
                 data.to_frame(), func, *args, engine_kwargs=engine_kwargs, **kwargs
@@ -1363,7 +1363,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 raise NotImplementedError(
                     "Numba engine can only be used with a single function."
                 )
-            with _group_selection_context(self):
+            with group_selection_context(self):
                 data = self._selected_obj
             result = self._transform_with_numba(
                 data, func, *args, engine_kwargs=engine_kwargs, **kwargs
