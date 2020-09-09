@@ -476,7 +476,7 @@ class SelectionMixin:
 
                 name = getattr(self, "name", None)
                 name = name if is_hashable(name) else None
-                # GH#36212
+                # GH 36212
                 result = Series(result, name=name)
 
             return result, True
