@@ -25,6 +25,34 @@ if TYPE_CHECKING:
 _INT64_MAX = np.iinfo(np.int64).max
 
 
+def get_indexer_indexer(
+    target, level, ascending, kind, na_position, sort_remaining, key
+):
+
+    target = ensure_key_mapped(target, key, levels=level)
+    target = target._sort_levels_monotonic()
+
+    if level is not None:
+        _, indexer = target.sortlevel(
+            level, ascending=ascending, sort_remaining=sort_remaining
+        )
+    elif isinstance(target, ABCMultiIndex):
+        indexer = lexsort_indexer(
+            target._get_codes_for_sorting(), orders=ascending, na_position=na_position,
+        )
+    else:
+        # Check monotonic-ness before sort an index (GH 11080)
+        if (ascending and target.is_monotonic_increasing) or (
+            not ascending and target.is_monotonic_decreasing
+        ):
+            return None
+
+        indexer = nargsort(
+            target, kind=kind, ascending=ascending, na_position=na_position
+        )
+    return indexer
+
+
 def get_group_index(labels, shape, sort: bool, xnull: bool):
     """
     For the particular label_list, gets the offsets into the hypothetical list
