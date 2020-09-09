@@ -9,8 +9,8 @@ import warnings
 from pandas._libs.lib import no_default
 from pandas.util._validators import validate_bool_kwarg
 
-from pandas.core.computation.engines import _engines
-from pandas.core.computation.expr import Expr, _parsers
+from pandas.core.computation.engines import ENGINES
+from pandas.core.computation.expr import PARSERS, Expr
 from pandas.core.computation.parsing import tokenize_string
 from pandas.core.computation.scope import ensure_scope
 
@@ -43,8 +43,8 @@ def _check_engine(engine: Optional[str]) -> str:
     if engine is None:
         engine = "numexpr" if NUMEXPR_INSTALLED else "python"
 
-    if engine not in _engines:
-        valid_engines = list(_engines.keys())
+    if engine not in ENGINES:
+        valid_engines = list(ENGINES.keys())
         raise KeyError(
             f"Invalid engine '{engine}' passed, valid engines are {valid_engines}"
         )
@@ -75,9 +75,9 @@ def _check_parser(parser: str):
     KeyError
       * If an invalid parser is passed
     """
-    if parser not in _parsers:
+    if parser not in PARSERS:
         raise KeyError(
-            f"Invalid parser '{parser}' passed, valid parsers are {_parsers.keys()}"
+            f"Invalid parser '{parser}' passed, valid parsers are {PARSERS.keys()}"
         )
 
 
@@ -341,7 +341,7 @@ def eval(
         parsed_expr = Expr(expr, engine=engine, parser=parser, env=env)
 
         # construct the engine and evaluate the parsed expression
-        eng = _engines[engine]
+        eng = ENGINES[engine]
         eng_inst = eng(parsed_expr)
         ret = eng_inst.evaluate()
 
