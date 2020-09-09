@@ -165,8 +165,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         self.axis = obj._get_axis_number(axis) if axis is not None else None
         self.validate()
 
-        self.use_fixed_func = self.is_freq_type or isinstance(self.window, BaseIndexer)
-
     @property
     def _constructor(self):
         return Window
