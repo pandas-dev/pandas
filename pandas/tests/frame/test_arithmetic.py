@@ -1417,7 +1417,7 @@ class TestFrameArithmeticUnsorted:
         columns = ["X", "Y", "Z"]
         df = pd.DataFrame(np.random.randn(3, 3), index=index, columns=columns)
 
-        align = pd.core.ops._align_method_FRAME
+        align = pd.core.ops.align_method_FRAME
         for val in [
             [1, 2, 3],
             (1, 2, 3),
