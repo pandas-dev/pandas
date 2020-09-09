@@ -1275,7 +1275,8 @@ def test_stack_timezone_aware_values():
 
 def test_stack_empty_frame():
     tm.assert_series_equal(
-        DataFrame().stack(), Series(index=MultiIndex([[], []], [[], []]), dtype=np.float64)
+        DataFrame().stack(), 
+        Series(index=MultiIndex([[], []], [[], []]), dtype=np.float64)
     )
     tm.assert_series_equal(
         DataFrame().stack(dropna=True),
