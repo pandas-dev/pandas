@@ -587,6 +587,13 @@ class PeriodArray(PeriodMixin, dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
             return self.asfreq(dtype.freq)
         return super().astype(dtype, copy=copy)
 
+    def searchsorted(self, value, side="left", sorter=None):
+        value = self._validate_searchsorted_value(value).view("M8[ns]")
+
+        # Cast to M8 to get datetime-like NaT placement
+        m8arr = self._ndarray.view("M8[ns]")
+        return m8arr.searchsorted(value, side=side, sorter=sorter)
+
     # ------------------------------------------------------------------
     # Arithmetic Methods
 
