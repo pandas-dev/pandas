@@ -1063,7 +1063,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         IntIndex
         Indices: array([2, 3], dtype=int32)
         """
-        if dtype == self._dtype:
+        if is_dtype_equal(dtype, self._dtype):
             if not copy:
                 return self
             elif copy:
