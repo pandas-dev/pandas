@@ -513,11 +513,11 @@ def stack(frame, level=-1, dropna=True):
             verify_integrity=False,
         )
 
-    if frame._is_homogeneous_type:
+    if not frame.empty and frame._is_homogeneous_type:
         # For homogeneous EAs, frame._values will coerce to object. So
         # we concatenate instead.
         dtypes = list(frame.dtypes._values)
-        dtype = dtypes[0] if len(dtypes) > 0 else object
+        dtype = dtypes[0]
 
         if is_extension_array_dtype(dtype):
             arr = dtype.construct_array_type()

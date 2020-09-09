@@ -1273,16 +1273,21 @@ def test_stack_timezone_aware_values():
     tm.assert_series_equal(result, expected)
 
 
-def test_stack_empty_frame():
-    tm.assert_series_equal(
-        DataFrame().stack(),
-        Series(index=MultiIndex([[], []], [[], []]), dtype=np.float64),
-    )
-    tm.assert_series_equal(
-        DataFrame().stack(dropna=True),
-        Series(index=MultiIndex([[], []], [[], []]), dtype=np.float64),
-    )
-    tm.assert_frame_equal(DataFrame().stack().unstack(), DataFrame())
+@pytest.mark.parametrize("dropna", [True, False])
+def test_stack_empty_frame(dropna):
+    # GH 36113
+    expected = Series(index=MultiIndex([[], []], [[], []]), dtype=np.float64)
+    result = DataFrame().stack(dropna=dropna)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dropna", [True, False])
+@pytest.mark.parametrize("fill_value", [None, 0])
+def test_stack_unstack_empty_frame(dropna, fill_value):
+    # GH 36113
+    expected = DataFrame()
+    result = DataFrame().stack(dropna=dropna).unstack(fill_value=fill_value)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_unstacking_multi_index_df():
