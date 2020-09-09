@@ -814,14 +814,16 @@ class Styler:
 
     def set_tooltips(self, ttips: DataFrame) -> "Styler":
         """
-        Add string based tooltips that will appear in the `Styler` HTML result.
+        Add string based tooltips that will appear in the `Styler` HTML result. These
+        tooltips are applicable only to`<td>` elements.
 
         Parameters
         ----------
         ttips : DataFrame
-            DataFrame containing strings that will be translated to tooltips. Empty
-            strings, None, or NaN values will be ignored. DataFrame must have
-            identical rows and columns to the underlying `Styler` data.
+            DataFrame containing strings that will be translated to tooltips, mapped
+            by identical column and index values that must exist on the underlying
+            `Styler` data. None, NaN values, and empty strings will be ignored and
+            not affect the rendered HTML.
 
         Returns
         -------
@@ -845,17 +847,13 @@ class Styler:
         ... )
         >>> s = Styler(df, uuid="_").set_tooltips(ttips).render()
         """
-        if not (self.columns.equals(ttips.columns) and self.index.equals(ttips.index)):
-            raise ValueError(
-                "Tooltips DataFrame must have identical column and index labelling "
-                "to underlying."
-            )
-
         if not self.cell_ids:
             # tooltips not optimised for individual cell check.
             raise NotImplementedError(
                 "Tooltips can only render with 'cell_ids' is True."
             )
+
+        ttips = ttips.reindex_like(self.data)
 
         mask = (ttips.isna()) | (ttips.eq(""))
         self.tooltip_styles = [

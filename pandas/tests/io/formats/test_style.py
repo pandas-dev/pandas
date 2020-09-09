@@ -1697,12 +1697,21 @@ class TestStyler:
         s = Styler(df, uuid="_", cell_ids=False)
         assert '<th class="col_heading level0 col0" colspan="2">l0</th>' in s.render()
 
-    def test_tooltip_render(self):
+    @pytest.mark.parametrize(
+        "ttips",
+        [
+            DataFrame(
+                data=[["Min", "Max"], [np.nan, ""]],
+                columns=["A", "B"],
+                index=["a", "b"],
+            ),
+            DataFrame(data=[["Max", "Min"]], columns=["B", "A"], index=["a"]),
+            DataFrame(data=[["Min", "Max", None]], columns=["A", "B", "C"], index=["a"])
+        ],
+    )
+    def test_tooltip_render(self, ttips):
         # GH 21266
-        df = pd.DataFrame(data=[[0, 1], [2, 3]])
-        ttips = pd.DataFrame(
-            data=[["Min", ""], [np.nan, "Max"]], columns=df.columns, index=df.index
-        )
+        df = pd.DataFrame(data=[[0, 3], [1, 2]], columns=['A', 'B'], index=['a', 'b'])
         s = Styler(df, uuid="_").set_tooltips(ttips).render()
         # test tooltip table level class
         assert "#T__ .pd-t {\n          visibility: hidden;\n" in s
@@ -1719,12 +1728,12 @@ class TestStyler:
         )
         # test 'Max' tooltip added
         assert (
-            "#T__ #T__row1_col1:hover .pd-t {\n          visibility: visible;\n    }  "
-            + '  #T__ #T__row1_col1 .pd-t::after {\n          content: "Max";\n    }'
+            "#T__ #T__row0_col1:hover .pd-t {\n          visibility: visible;\n    }  "
+            + '  #T__ #T__row0_col1 .pd-t::after {\n          content: "Max";\n    }'
             in s
         )
         assert (
-            '<td id="T__row1_col1" class="data row1 col1" >3<span class="pd-t">'
+            '<td id="T__row0_col1" class="data row0 col1" >3<span class="pd-t">'
             + "</span></td>"
             in s
         )
