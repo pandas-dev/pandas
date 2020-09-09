@@ -373,7 +373,7 @@ def test_array_equivalent(dtype_equal):
     )
     # The rest are not dtype_equal
     assert not array_equivalent(
-        DatetimeIndex([0, np.nan]), DatetimeIndex([0, np.nan], tz="US/Eastern"),
+        DatetimeIndex([0, np.nan]), DatetimeIndex([0, np.nan], tz="US/Eastern")
     )
     assert not array_equivalent(
         DatetimeIndex([0, np.nan], tz="CET"),
