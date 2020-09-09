@@ -314,7 +314,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupby.tshift` failing to raise ``ValueError`` when a frequency cannot be inferred for the index of a group (:issue:`35937`)
 - Bug in :meth:`DataFrame.groupby` does not always maintain column index name for ``any``, ``all``, ``bfill``, ``ffill``, ``shift`` (:issue:`29764`)
 - Bug in :meth:`DataFrameGroupBy.apply` raising error with ``np.nan`` group(s) when ``dropna=False`` (:issue:`35889`)
-- Bug when combining methods :meth:`DataFrame.groupby` with :meth:`DataFrame.resample` and restricting to `Series` or using `agg` did miscalculate the aggregation (:issue:`27343`, :issue:`33548`, :issue:`35275`).
+- Bug in :meth:`DataFrame.groupby(...).resample(...)` when restricting to `Series` or using `agg` did miscalculate the aggregation (:issue:`27343`, :issue:`33548`, :issue:`35275`).
 -
 
 Reshaping
