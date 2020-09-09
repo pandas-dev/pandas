@@ -14,7 +14,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
--
+- Regression in :meth:``DataFrame.agg``, :meth:``DataFrame.apply``, :meth:``Series.agg``, and :meth:``Series.apply`` where internal suffix is exposed to the users when no relabelling is applied. (:issue:`36189`)
 
 .. ---------------------------------------------------------------------------
 
