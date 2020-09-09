@@ -40,6 +40,7 @@ from pandas._typing import (
     CompressionOptions,
     FilePathOrBuffer,
     FrameOrSeries,
+    IndexKeyFunc,
     IndexLabel,
     JSONSerializable,
     Label,
