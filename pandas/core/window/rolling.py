@@ -411,6 +411,9 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         if not center:
             return 0
 
+        if self.is_freq_type or isinstance(self.window, BaseIndexer):
+            return 0
+
         if not is_integer(window):
             window = len(window)
         return int((window - 1) / 2.0)
@@ -562,7 +565,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             if values.size == 0:
                 return values.copy()
 
-            if self.is_freq_type or isinstance(self.window, BaseIndexer) or skip_offset:
+            if skip_offset:
                 offset = 0
             else:
                 offset = self.calculate_center_offset(window, center)
@@ -609,9 +612,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             if use_numba_cache:
                 NUMBA_FUNC_CACHE[(kwargs["original_func"], "rolling_apply")] = func
 
-            if not (
-                self.is_freq_type or isinstance(self.window, BaseIndexer) or skip_offset
-            ):
+            if not skip_offset:
                 result = self._center_window(result, window, center)
 
             return result
@@ -2289,6 +2290,9 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         int
         """
         if not center or not self.win_type:
+            return 0
+        
+        if self.is_freq_type or isinstance(self.window, BaseIndexer):
             return 0
 
         if not is_integer(window):
