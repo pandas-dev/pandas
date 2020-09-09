@@ -472,7 +472,11 @@ class SelectionMixin:
             except ValueError:
 
                 # we have a dict of scalars
-                result = Series(result, name=getattr(self, "name", None))
+                
+                name = getattr(self, "name", None)
+                name = name if is_hashable(name) else None
+                # GH#36212
+                result = Series(result, name=name)
 
             return result, True
         elif is_list_like(arg):
