@@ -13,7 +13,6 @@ from pandas.util._validators import validate_fillna_kwargs
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import isna
-from pandas.core.dtypes.common import is_dtype_equal
 
 from pandas import compat
 from pandas.core import nanops, ops
@@ -24,7 +23,6 @@ from pandas.core.arrays.base import ExtensionArray, ExtensionOpsMixin
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import backfill_1d, pad_1d
-
 
 
 class PandasDtype(ExtensionDtype):
