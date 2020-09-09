@@ -1713,6 +1713,12 @@ class TestStyler:
         )
         assert "#T__ .row0 {\n          color: blue;\n    }" in s.render()
 
+    def test_colspan_w3(self):
+        # GH 36223
+        df = pd.DataFrame(data=[[1, 2]], columns=[["l0", "l0"], ["l1a", "l1b"]])
+        s = Styler(df, uuid="_", cell_ids=False)
+        assert '<th class="col_heading level0 col0" colspan="2">l0</th>' in s.render()
+
 
 @td.skip_if_no_mpl
 class TestStylerMatplotlibDep:
