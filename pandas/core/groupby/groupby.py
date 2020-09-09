@@ -1072,7 +1072,6 @@ b  2""",
         starts, ends = lib.generate_slices(sorted_labels, n_groups)
         cache_key = (func, "groupby_transform")
         if cache_key in NUMBA_FUNC_CACHE:
-            # Return an already compiled version of roll_apply if available
             numba_transform_func = NUMBA_FUNC_CACHE[cache_key]
         else:
             numba_transform_func = numba_.generate_numba_transform_func(
@@ -1084,7 +1083,9 @@ b  2""",
         if cache_key not in NUMBA_FUNC_CACHE:
             NUMBA_FUNC_CACHE[cache_key] = numba_transform_func
 
-        return result, sorted_index
+        # result values needs to be resorted to their original positions since we
+        # evaluated the data sorted by group
+        return result.take(np.argsort(sorted_index), axis=0)
 
     def _aggregate_with_numba(self, data, func, *args, engine_kwargs=None, **kwargs):
         """
@@ -1102,7 +1103,6 @@ b  2""",
         starts, ends = lib.generate_slices(sorted_labels, n_groups)
         cache_key = (func, "groupby_agg")
         if cache_key in NUMBA_FUNC_CACHE:
-            # Return an already compiled version of roll_apply if available
             numba_agg_func = NUMBA_FUNC_CACHE[cache_key]
         else:
             numba_agg_func = numba_.generate_numba_agg_func(

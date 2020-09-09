@@ -497,10 +497,12 @@ class SeriesGroupBy(GroupBy[Series]):
                 )
             with _group_selection_context(self):
                 data = self._selected_obj
-            result, index = self._transform_with_numba(
+            result = self._transform_with_numba(
                 data.to_frame(), func, *args, engine_kwargs=engine_kwargs, **kwargs
             )
-            return self.obj._constructor(result.ravel(), index=index, name=data.name)
+            return self.obj._constructor(
+                result.ravel(), index=data.index, name=data.name
+            )
 
         func = self._get_cython_func(func) or func
 
@@ -1363,10 +1365,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 )
             with _group_selection_context(self):
                 data = self._selected_obj
-            result, index = self._transform_with_numba(
+            result = self._transform_with_numba(
                 data, func, *args, engine_kwargs=engine_kwargs, **kwargs
             )
-            return self.obj._constructor(result, index=index, columns=data.columns)
+            return self.obj._constructor(result, index=data.index, columns=data.columns)
 
         # optimized transforms
         func = self._get_cython_func(func) or func
