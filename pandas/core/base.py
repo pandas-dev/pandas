@@ -472,7 +472,7 @@ class SelectionMixin:
             except ValueError:
 
                 # we have a dict of scalars
-                result = Series(result)
+                result = Series(result, name=getattr(self, "name", None))
 
             return result, True
         elif is_list_like(arg):
