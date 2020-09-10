@@ -83,7 +83,7 @@ FrameOrSeries = TypeVar("FrameOrSeries", bound="NDFrame")
 
 Axis = Union[str, int]
 Label = Optional[Hashable]
-IndexLabel = Optional[Union[Label, Sequence[Label]]]
+IndexLabel = Union[Label, Sequence[Label]]
 Level = Union[Label, int]
 Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, List, Dict]]

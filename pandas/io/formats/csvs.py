@@ -42,7 +42,7 @@ class CSVFormatter:
         cols: Optional[Sequence[Label]] = None,
         header: Union[bool, Sequence[Hashable]] = True,
         index: bool = True,
-        index_label: IndexLabel = None,
+        index_label: Optional[IndexLabel] = None,
         mode: str = "w",
         encoding: Optional[str] = None,
         errors: str = "strict",
@@ -100,7 +100,7 @@ class CSVFormatter:
         return self._index_label
 
     @index_label.setter
-    def index_label(self, index_label: IndexLabel) -> None:
+    def index_label(self, index_label: Optional[IndexLabel]) -> None:
         if index_label is not False:
             if index_label is None:
                 index_label = self._get_index_label_from_obj()
