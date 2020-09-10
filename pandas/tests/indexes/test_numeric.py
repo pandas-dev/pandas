@@ -394,7 +394,7 @@ class NumericInt(Numeric):
         same_values_different_type = Index(i, dtype=object)
         assert not i.identical(same_values_different_type)
 
-        i = index.copy(dtype=object)
+        i = index.astype(dtype=object)
         i = i.rename("foo")
         same_values = Index(i, dtype=object)
         assert same_values.identical(i)
@@ -402,7 +402,7 @@ class NumericInt(Numeric):
         assert not i.identical(index)
         assert Index(same_values, name="foo", dtype=object).identical(i)
 
-        assert not index.copy(dtype=object).identical(index.copy(dtype=self._dtype))
+        assert not index.astype(dtype=object).identical(index.astype(dtype=self._dtype))
 
     def test_union_noncomparable(self):
         # corner case, non-Int64Index
@@ -679,3 +679,22 @@ def test_float64_index_difference():
 
     result = string_index.difference(float_index)
     tm.assert_index_equal(result, string_index)
+
+
+class TestGetSliceBounds:
+    @pytest.mark.parametrize("kind", ["getitem", "loc", None])
+    @pytest.mark.parametrize("side, expected", [("left", 4), ("right", 5)])
+    def test_get_slice_bounds_within(self, kind, side, expected):
+        index = Index(range(6))
+        result = index.get_slice_bound(4, kind=kind, side=side)
+        assert result == expected
+
+    @pytest.mark.parametrize("kind", ["getitem", "loc", None])
+    @pytest.mark.parametrize("side", ["left", "right"])
+    @pytest.mark.parametrize(
+        "bound, expected", [(-1, 0), (10, 6)],
+    )
+    def test_get_slice_bounds_outside(self, kind, side, expected, bound):
+        index = Index(range(6))
+        result = index.get_slice_bound(bound, kind=kind, side=side)
+        assert result == expected

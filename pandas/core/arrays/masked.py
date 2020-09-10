@@ -17,7 +17,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops
-from pandas.core.algorithms import _factorize_array, take
+from pandas.core.algorithms import factorize_array, take
 from pandas.core.array_algos import masked_reductions
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 from pandas.core.indexers import check_array_indexer
@@ -126,7 +126,7 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
         return type(self)(~self._data, self._mask)
 
     def to_numpy(
-        self, dtype=None, copy: bool = False, na_value: Scalar = lib.no_default,
+        self, dtype=None, copy: bool = False, na_value: Scalar = lib.no_default
     ) -> np.ndarray:
         """
         Convert to a NumPy Array.
@@ -287,7 +287,7 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
         arr = self._data
         mask = self._mask
 
-        codes, uniques = _factorize_array(arr, na_sentinel=na_sentinel, mask=mask)
+        codes, uniques = factorize_array(arr, na_sentinel=na_sentinel, mask=mask)
 
         # the hashtables don't handle all different types of bits
         uniques = uniques.astype(self.dtype.numpy_dtype, copy=False)
