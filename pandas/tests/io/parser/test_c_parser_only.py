@@ -646,9 +646,7 @@ def test_1000_sep_with_decimal(
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "float_precision", [None, "high", "round_trip"],
-)
+@pytest.mark.parametrize("float_precision", [None, "high", "round_trip"])
 @pytest.mark.parametrize(
     "value,expected",
     [
