@@ -1162,8 +1162,7 @@ class TextFileReader(abc.Iterator):
             klass = mapping[engine]
         except KeyError:
             raise ValueError(
-                f"Unknown engine: {engine} (valid options "
-                f"are {mapping.keys()})"
+                f"Unknown engine: {engine} (valid options are {mapping.keys()})"
             )
         else:
             return klass(self.f, **self.options)
