@@ -912,10 +912,9 @@ class TestPandasContainer:
         result = read_json(json, date_unit=unit)
         tm.assert_frame_equal(result, df)
 
-        # GH 35027 - this no longer works
         # detect date unit
-        # result = read_json(json, date_unit=None)
-        # tm.assert_frame_equal(result, df)
+        result = read_json(json, date_unit=None)
+        tm.assert_frame_equal(result, df)
 
     def test_weird_nested_json(self):
         # this used to core dump the parser

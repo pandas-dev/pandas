@@ -175,8 +175,6 @@ def test_date_time(datapath):
     )
     # GH 19732: Timestamps imported from sas will incur floating point errors
     df.iloc[:, 3] = df.iloc[:, 3].dt.round("us")
-    df0["DateTimeHi"] = df0["DateTimeHi"].astype("object")
-    df["DateTimeHi"] = df["DateTimeHi"].astype("object")
     tm.assert_frame_equal(df, df0)
 
 
@@ -252,9 +250,12 @@ def test_max_sas_date(datapath):
         {
             "text": ["max", "normal"],
             "dt_as_float": [253717747199.999, 1880323199.999],
-            "dt_as_dt": [pd.NaT, datetime(2019, 8, 1, 23, 59, 59, 999000)],
+            "dt_as_dt": [
+                datetime(9999, 12, 29, 23, 59, 59, 999000),
+                datetime(2019, 8, 1, 23, 59, 59, 999000),
+            ],
             "date_as_float": [2936547.0, 21762.0],
-            "date_as_date": [pd.NaT, datetime(2019, 8, 1)],
+            "date_as_date": [datetime(9999, 12, 29), datetime(2019, 8, 1)],
         },
         columns=["text", "dt_as_float", "dt_as_dt", "date_as_float", "date_as_date"],
     )
@@ -286,9 +287,9 @@ def test_max_sas_date_iterator(datapath):
             {
                 "text": ["max"],
                 "dt_as_float": [253717747199.999],
-                "dt_as_dt": pd.to_datetime([pd.NaT]),
+                "dt_as_dt": [datetime(9999, 12, 29, 23, 59, 59, 999000)],
                 "date_as_float": [2936547.0],
-                "date_as_date": pd.to_datetime([pd.NaT]),
+                "date_as_date": [datetime(9999, 12, 29)],
             },
             columns=col_order,
         ),
