@@ -165,7 +165,7 @@ _shared_doc_kwargs = dict(
         If 0 or 'index': apply function to each column.
         If 1 or 'columns': apply function to each row.""",
     optional_by="""
-        by : str or list of str
+        by : str or list/tuple of str
             Name or list of names to sort by.
 
             - if `axis` is 0 or `'index'` then `by` may contain index
