@@ -421,10 +421,6 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
         kwds["encoding"] = encoding
     compression = kwds.get("compression", "infer")
 
-    # TODO: get_filepath_or_buffer could return
-    # Union[FilePathOrBuffer, s3fs.S3File, gcsfs.GCSFile]
-    # though mypy handling of conditional imports is difficult.
-    # See https://github.com/python/mypy/issues/1297
     ioargs = get_filepath_or_buffer(
         filepath_or_buffer, encoding, compression, storage_options=storage_options
     )
