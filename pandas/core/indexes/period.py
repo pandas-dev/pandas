@@ -433,6 +433,41 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         # indexing
         return "period"
 
+    def insert(self, loc, item):
+        if not isinstance(item, Period) or self.freq != item.freq:
+            return self.astype(object).insert(loc, item)
+
+        i8result = np.concatenate(
+            (self[:loc].asi8, np.array([item.ordinal]), self[loc:].asi8)
+        )
+        arr = type(self._data)._simple_new(i8result, dtype=self.dtype)
+        return type(self)._simple_new(arr, name=self.name)
+
+    def join(self, other, how="left", level=None, return_indexers=False, sort=False):
+        """
+        See Index.join
+        """
+        self._assert_can_do_setop(other)
+
+        if not isinstance(other, PeriodIndex):
+            return self.astype(object).join(
+                other, how=how, level=level, return_indexers=return_indexers, sort=sort
+            )
+
+        # _assert_can_do_setop ensures we have matching dtype
+        result = Int64Index.join(
+            self,
+            other,
+            how=how,
+            level=level,
+            return_indexers=return_indexers,
+            sort=sort,
+        )
+        return result
+
+    # ------------------------------------------------------------------------
+    # Indexing Methods
+
     @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
         target = ensure_index(target)
@@ -606,38 +641,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             return self._partial_date_slice(reso, parsed, use_lhs, use_rhs)
         except KeyError as err:
             raise KeyError(key) from err
-
-    def insert(self, loc, item):
-        if not isinstance(item, Period) or self.freq != item.freq:
-            return self.astype(object).insert(loc, item)
-
-        i8result = np.concatenate(
-            (self[:loc].asi8, np.array([item.ordinal]), self[loc:].asi8)
-        )
-        arr = type(self._data)._simple_new(i8result, dtype=self.dtype)
-        return type(self)._simple_new(arr, name=self.name)
-
-    def join(self, other, how="left", level=None, return_indexers=False, sort=False):
-        """
-        See Index.join
-        """
-        self._assert_can_do_setop(other)
-
-        if not isinstance(other, PeriodIndex):
-            return self.astype(object).join(
-                other, how=how, level=level, return_indexers=return_indexers, sort=sort
-            )
-
-        # _assert_can_do_setop ensures we have matching dtype
-        result = Int64Index.join(
-            self,
-            other,
-            how=how,
-            level=level,
-            return_indexers=return_indexers,
-            sort=sort,
-        )
-        return result
 
     # ------------------------------------------------------------------------
     # Set Operation Methods

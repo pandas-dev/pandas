@@ -1337,14 +1337,14 @@ class MultiIndex(Index):
             if sparsify in [False, lib.no_default]:
                 sentinel = sparsify
             # little bit of a kludge job for #1217
-            result_levels = _sparsify(
+            result_levels = sparsify_labels(
                 result_levels, start=int(names), sentinel=sentinel
             )
 
         if adjoin:
-            from pandas.io.formats.format import _get_adjustment
+            from pandas.io.formats.format import get_adjustment
 
-            adj = _get_adjustment()
+            adj = get_adjustment()
             return adj.adjoin(space, *result_levels).split("\n")
         else:
             return result_levels
@@ -2725,6 +2725,8 @@ class MultiIndex(Index):
                 "currently supported for MultiIndex"
             )
 
+        hash(key)
+
         def _maybe_to_slice(loc):
             """convert integer indexer to boolean mask or slice if possible"""
             if not isinstance(loc, np.ndarray) or loc.dtype != "int64":
@@ -2739,8 +2741,7 @@ class MultiIndex(Index):
             mask[loc] = True
             return mask
 
-        if not isinstance(key, (tuple, list)):
-            # not including list here breaks some indexing, xref #30892
+        if not isinstance(key, tuple):
             loc = self._get_level_indexer(key, level=0)
             return _maybe_to_slice(loc)
 
@@ -3152,6 +3153,8 @@ class MultiIndex(Index):
         indexer = self._reorder_indexer(seq, indexer)
 
         return indexer._values
+
+    # --------------------------------------------------------------------
 
     def _reorder_indexer(
         self,
@@ -3689,7 +3692,7 @@ MultiIndex._add_numeric_methods_add_sub_disabled()
 MultiIndex._add_logical_methods_disabled()
 
 
-def _sparsify(label_list, start: int = 0, sentinel=""):
+def sparsify_labels(label_list, start: int = 0, sentinel=""):
     pivoted = list(zip(*label_list))
     k = len(label_list)
 

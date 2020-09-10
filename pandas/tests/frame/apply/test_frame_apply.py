@@ -1072,9 +1072,6 @@ class TestDataFrameAggregate:
             result = float_frame.apply(np.sqrt, axis=axis)
             tm.assert_frame_equal(result, expected)
 
-            result = float_frame.transform(np.sqrt, axis=axis)
-            tm.assert_frame_equal(result, expected)
-
             # list-like
             result = float_frame.apply([np.sqrt], axis=axis)
             expected = f_sqrt.copy()
