@@ -219,9 +219,11 @@ def array_with_unit_to_datetime(
 
     assert is_ignore or is_coerce or is_raise
 
-    if unit == 'ns':
-        if issubclass(values.dtype.type, np.integer):
-            result = values.astype('M8[ns]')
+    if unit == "ns":
+        if issubclass(values.dtype.type, np.integer) or issubclass(
+            values.dtype.type, np.float
+        ):
+            result = values.astype("M8[ns]")
         else:
             result, tz = array_to_datetime(values.astype(object), errors=errors)
         return result, tz
@@ -233,37 +235,27 @@ def array_with_unit_to_datetime(
         # if we have nulls that are not type-compat
         # then need to iterate
 
-        if values.dtype.kind == "i":
+        if values.dtype.kind == "i" or values.dtype.kind == "f":
             iresult = values.astype("i8", copy=False)
             # fill missing values by comparing to NPY_NAT
             mask = iresult == NPY_NAT
             iresult[mask] = 0
-            fvalues = iresult.astype("f8")
-            need_to_iterate = False
-        elif values.dtype.kind == "f":
-            fresult = values.astype("f8", copy=False)
-            # fill missing values by comparing to NPY_NAT
-            mask = fresult == NPY_NAT
-            fresult[mask] = 0
-            fvalues = fresult
+            fvalues = iresult.astype("f8") * m
             need_to_iterate = False
 
         if not need_to_iterate:
             # check the bounds
-            if ((fvalues < Timestamp.min.value).any()
-                    or (fvalues > Timestamp.max.value).any()):
+            if (fvalues < Timestamp.min.value).any() or (
+                fvalues > Timestamp.max.value
+            ).any():
                 raise OutOfBoundsDatetime(f"cannot convert input with unit '{unit}'")
 
-            if values.dtype.kind == 'i':
-                result = (iresult * m).astype('M8[ns]')
+            if values.dtype.kind == "f" and prec:
+                fvalues = round(fvalues, prec)
 
-            elif values.dtype.kind == 'f':
-                result = fresult * m
-                if prec:
-                    result = round(result, prec)
-                result = result.astype("M8[ns]")
+            result = fvalues.astype("M8[ns]")
 
-            iresult = result.view('i8')
+            iresult = result.view("i8")
             iresult[mask] = NPY_NAT
 
             return result, tz
