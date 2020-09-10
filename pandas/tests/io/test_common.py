@@ -52,12 +52,6 @@ foo2,12,13,14,15
 bar2,12,13,14,15
 """
 
-    def test_is_fsspec_url(self):
-        some_string = 'some :// string'
-        expected = False
-        
-        assert icom.is_fsspec_url(some_string)==expected
-
     def test_expand_user(self):
         filename = "~/sometest"
         expanded_name = icom._expand_user(filename)
@@ -423,3 +417,5 @@ def test_is_fsspec_url():
     assert not icom.is_fsspec_url("random:pandas/somethingelse.com")
     assert not icom.is_fsspec_url("/local/path")
     assert not icom.is_fsspec_url("relative/local/path")
+    # there are no white spaces in a URL
+    assert not icom.is_fsspec_url("gs://pandas /somethingelse.com")
