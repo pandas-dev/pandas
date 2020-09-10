@@ -199,6 +199,26 @@ SQL_STRINGS = {
         "mysql": "SELECT * FROM iris WHERE `Name` LIKE '%'",
         "postgresql": "SELECT * FROM iris WHERE \"Name\" LIKE '%'",
     },
+    "read_no_parameters_with_doublepercent": {
+        "sqlite": "SELECT 1 %% 2 as x",
+        "mysql": "SELECT 1 %% 2 as x",
+        "postgresql": "SELECT 1 %% 2 as x",
+    },
+    "read_parameters_with_percent": {
+        "sqlite": "SELECT ? as x, 2 % 3 as y",
+        "mysql": "SELECT %s as x, 2 % 3 as y",
+        "postgresql": "SELECT %s as x, 2 % 3 as y",
+    },
+    "read_parameters_with_doublepercent": {
+        "sqlite": "SELECT ? as x, 2 %% 3 as y",
+        "mysql": "SELECT %s as x, 2 %% 3 as y",
+        "postgresql": "SELECT %s as x, 2 %% 3 as y",
+    },
+    "read_named_parameters_with_doublepercent": {
+        "sqlite": "SELECT :name as x, 2 %% 3 as y",
+        "mysql": "SELECT %(name)s as x, 2 %% 3 as y",
+        "postgresql": "SELECT %(name)s as x, 2 %% 3 as y",
+    },
     "create_view": {
         "sqlite": """
                 CREATE VIEW iris_view AS
@@ -434,6 +454,42 @@ class PandasSQLTest:
         query = SQL_STRINGS["read_no_parameters_with_percent"][self.flavor]
         iris_frame = self.pandasSQL.read_query(query, params=None)
         self._check_iris_loaded_frame(iris_frame)
+
+    def _read_sql_parameter_with_percent(self):
+        if self.flavor in {"postgresql", "mysql"}:
+            pytest.xfail("dialect DBI does not support parameters and single % ops")
+        query = SQL_STRINGS["read_parameters_with_percent"][self.flavor]
+        frame = self.pandasSQL.read_query(query, params=[1])
+        tm.assert_frame_equal(frame, DataFrame({"x": [1], "y": [2]}))
+
+    def _read_sql_iris_no_parameter_with_doublepercent(self):
+        query = SQL_STRINGS["read_no_parameters_with_doublepercent"][self.flavor]
+        frame = self.pandasSQL.read_query(query)
+        tm.assert_frame_equal(frame, DataFrame({"x": [1]}))
+
+    def _read_sql_no_parameter_with_declarative_percent(self):
+        from sqlalchemy import sql
+
+        query = sql.text("SELECT 1 % 2 as x")
+        frame = self.pandasSQL.read_query(query)
+        tm.assert_frame_equal(frame, DataFrame({"x": [1]}))
+
+    @pytest.mark.xfail
+    def _read_sql_parameter_with_doublepercent(self):
+        if self.flavor == "sqlite":
+            pytest.xfail("sqlite DBI does not use doublepercent syntax")
+
+        query = SQL_STRINGS["read_parameters_with_doublepercent"][self.flavor]
+        frame = self.pandasSQL.read_query(query, params=[1])
+        tm.assert_frame_equal(frame, DataFrame({"x": [1], "y": [2]}))
+
+    def _read_sql_named_parameter_with_doublepercent(self):
+        if self.flavor == "sqlite":
+            pytest.xfail("sqlite DBI does not use doublepercent syntax")
+
+        query = SQL_STRINGS["read_named_parameters_with_doublepercent"][self.flavor]
+        frame = self.pandasSQL.read_query(query, params={"name": 1})
+        tm.assert_frame_equal(frame, DataFrame({"x": [1], "y": [2]}))
 
     def _to_sql(self, method=None):
         self.drop_table("test_frame1")
@@ -1285,6 +1341,25 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     def test_read_sql_named_parameter(self):
         self._read_sql_iris_named_parameter()
+
+    def test_read_sql_no_parameter_with_percent(self):
+        self._read_sql_iris_no_parameter_with_percent()
+
+    @pytest.mark.xfail
+    def test_read_sql_no_parameter_with_doublepercent(self):
+        self._read_sql_iris_no_parameter_with_doublepercent()
+
+    def test_read_sql_no_parameter_with_declarative_percent(self):
+        self._read_sql_no_parameter_with_declarative_percent()
+
+    def test_read_sql_parameter_with_percent(self):
+        self._read_sql_parameter_with_percent()
+
+    def test_read_sql_parameter_with_doublepercent(self):
+        self._read_sql_parameter_with_doublepercent()
+
+    def test_read_sql_named_parameter_with_doublepercent(self):
+        self._read_sql_named_parameter_with_doublepercent()
 
     def test_to_sql(self):
         self._to_sql()
@@ -2168,6 +2243,15 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
 
     def test_read_sql_named_parameter(self):
         self._read_sql_iris_named_parameter()
+
+    def test_read_sql_parameter_with_percent(self):
+        self._read_sql_parameter_with_percent()
+
+    def test_read_sql_parameter_with_doublepercent(self):
+        self._read_sql_parameter_with_doublepercent()
+
+    def test_read_sql_named_parameter_with_doublepercent(self):
+        self._read_sql_named_parameter_with_doublepercent()
 
     def test_to_sql(self):
         self._to_sql()
