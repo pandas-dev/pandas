@@ -463,6 +463,7 @@ class PandasSQLTest:
         tm.assert_frame_equal(frame, DataFrame({"x": [1], "y": [2]}))
 
     def _read_sql_iris_no_parameter_with_doublepercent(self):
+        # Note that this is marked xfail in the method wrapping it...
         query = SQL_STRINGS["read_no_parameters_with_doublepercent"][self.flavor]
         frame = self.pandasSQL.read_query(query)
         tm.assert_frame_equal(frame, DataFrame({"x": [1]}))
