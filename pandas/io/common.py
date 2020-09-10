@@ -45,7 +45,7 @@ from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import is_file_like
 
-from pandas._libs.json import loads as json_loads
+from pandas._libs.json import loads
 
 lzma = import_lzma()
 
@@ -161,7 +161,7 @@ def is_json(url: FilePathOrBuffer) -> bool:
     something json.loads can handle
     """
     try:
-        json_loads(url)
+        loads(url)
 
         return True
     except:
