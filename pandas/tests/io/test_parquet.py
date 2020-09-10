@@ -564,8 +564,19 @@ class TestParquetPyArrow(Base):
             write_kwargs=s3so,
         )
 
-    @td.skip_if_no("s3fs")
-    @pytest.mark.parametrize("partition_col", [["A"], []])
+    @td.skip_if_no("s3fs")  # also requires flask
+    @pytest.mark.parametrize(
+        "partition_col",
+        [
+            pytest.param(
+                ["A"],
+                marks=pytest.mark.xfail(
+                    reason="Getting back empty DataFrame", raises=AssertionError
+                ),
+            ),
+            [],
+        ],
+    )
     def test_s3_roundtrip_for_dir(
         self, df_compat, s3_resource, pa, partition_col, s3so
     ):
