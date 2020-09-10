@@ -383,6 +383,14 @@ def test_array_equivalent(dtype_equal):
     assert not array_equivalent(DatetimeIndex([0, np.nan]), TimedeltaIndex([0, np.nan]))
 
 
+@pytest.mark.parametrize(
+    "val", [1, 1.1, 1 + 1j, True, "abc", [1, 2], (1, 2), {1, 2}, {"a": 1}, None]
+)
+def test_array_equivalent_series(val):
+    arr = np.array([1, 2])
+    assert not array_equivalent(Series([arr, arr]), Series([arr, val]))
+
+
 def test_array_equivalent_different_dtype_but_equal():
     # Unclear if this is exposed anywhere in the public-facing API
     assert array_equivalent(np.array([1, 2]), np.array([1.0, 2.0]))
