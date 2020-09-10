@@ -276,9 +276,6 @@ class PandasArray(
 
         self._ndarray[key] = value
 
-    def astype(self, dtype, copy: bool = True) -> ArrayLike:
-        return super().astype(dtype, copy)
-
     def isna(self) -> np.ndarray:
         return isna(self._ndarray)
 
