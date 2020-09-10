@@ -4,16 +4,6 @@ import re
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas._testing as tm
-from pandas.tests.frame.common import zip_frames
-
-
-def test_agg_transform(axis, float_frame):
-    other_axis = 1 if axis in {0, "index"} else 0
-
-    with np.errstate(all="ignore"):
-
 from pandas import DataFrame, MultiIndex
 import pandas._testing as tm
 from pandas.core.base import SpecificationError
@@ -21,59 +11,57 @@ from pandas.core.groupby.base import transformation_kernels
 from pandas.tests.frame.common import zip_frames
 
 
-def test_transform(axis, float_frame):
+def test_transform_ufunc(axis, float_frame):
+    # GH 35964
+    with np.errstate(all="ignore"):
+        f_sqrt = np.sqrt(float_frame)
+    result = float_frame.transform(np.sqrt, axis=axis)
+    expected = f_sqrt
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "ops, names", [([np.sqrt], ["sqrt"]), ([np.abs, np.sqrt], ["absolute", "sqrt"])]
+)
+def test_transform_list(axis, float_frame, ops, names):
     # GH 35964
     other_axis = 1 if axis in {0, "index"} else 0
-
     with np.errstate(all="ignore"):
-        f_abs = np.abs(float_frame)
-        f_sqrt = np.sqrt(float_frame)
-
-        # ufunc
-        result = float_frame.transform(np.sqrt, axis=axis)
-        expected = f_sqrt.copy()
-        tm.assert_frame_equal(result, expected)
-
-        result = float_frame.transform(np.sqrt, axis=axis)
-        tm.assert_frame_equal(result, expected)
-
-        # list-like
-        expected = f_sqrt.copy()
-        if axis in {0, "index"}:
-            expected.columns = pd.MultiIndex.from_product(
-                [float_frame.columns, ["sqrt"]]
-            )
-        else:
-            expected.index = pd.MultiIndex.from_product([float_frame.index, ["sqrt"]])
-        result = float_frame.transform([np.sqrt], axis=axis)
-        tm.assert_frame_equal(result, expected)
-
-        # multiple items in list
-        # these are in the order as if we are applying both
-        # functions per series and then concatting
-        expected = zip_frames([f_abs, f_sqrt], axis=other_axis)
-        if axis in {0, "index"}:
-            expected.columns = pd.MultiIndex.from_product(
-                [float_frame.columns, ["absolute", "sqrt"]]
-            )
-        else:
-            expected.index = pd.MultiIndex.from_product(
-                [float_frame.index, ["absolute", "sqrt"]]
-            )
-        result = float_frame.transform([np.abs, "sqrt"], axis=axis)
-        tm.assert_frame_equal(result, expected)
+        expected = zip_frames([op(float_frame) for op in ops], axis=other_axis)
+    if axis in {0, "index"}:
+        expected.columns = MultiIndex.from_product([float_frame.columns, names])
+    else:
+        expected.index = MultiIndex.from_product([float_frame.index, names])
+    result = float_frame.transform(ops, axis=axis)
+    tm.assert_frame_equal(result, expected)
 
 
-def test_transform_and_agg_err(axis, float_frame):
-    # cannot both transform and agg
-    msg = "transforms cannot produce aggregated results"
-    with pytest.raises(ValueError, match=msg):
-        float_frame.transform(["max", "min"], axis=axis)
+def test_transform_dict(axis, float_frame):
+    # GH 35964
+    if axis == 0 or axis == "index":
+        e = float_frame.columns[0]
+        expected = float_frame[[e]].transform(np.abs)
+    else:
+        e = float_frame.index[0]
+        expected = float_frame.iloc[[0]].transform(np.abs)
+    result = float_frame.transform({e: np.abs}, axis=axis)
+    tm.assert_frame_equal(result, expected)
 
-    msg = "cannot combine transform and aggregation operations"
-    with pytest.raises(ValueError, match=msg):
-        with np.errstate(all="ignore"):
-            float_frame.transform(["max", "sqrt"], axis=axis)
+
+@pytest.mark.parametrize("use_apply", [True, False])
+def test_transform_udf(axis, float_frame, use_apply):
+    # GH 35964
+    # transform uses UDF either via apply or passing the entire DataFrame
+    def func(x):
+        # transform is using apply iff x is not a DataFrame
+        if use_apply == isinstance(x, DataFrame):
+            # Force transform to fallback
+            raise ValueError
+        return x + 1
+
+    result = float_frame.transform(func, axis=axis)
+    expected = float_frame + 1
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("method", ["abs", "shift", "pct_change", "cumsum", "rank"])
@@ -103,7 +91,8 @@ def test_agg_dict_nested_renaming_depr():
     # nested renaming
     msg = r"nested renamer is not supported"
     with pytest.raises(SpecificationError, match=msg):
-        df.transform({"A": {"foo": "min"}, "B": {"bar": "max"}})
+        # mypy identifies the argument as an invalid type
+        df.transform({"A": {"foo": "min"}, "B": {"bar": "max"}})  # type: ignore
 
 
 def test_transform_reducer_raises(all_reductions):
@@ -140,32 +129,22 @@ def test_transform_bad_dtype(op):
         df.transform({"A": [op]})
 
 
-@pytest.mark.parametrize("op", transformation_kernels)
+@pytest.mark.parametrize("op", ["diff", "pct_change", "cumprod"])
 def test_transform_multi_dtypes(op):
     # GH 35964
     df = DataFrame({"A": ["a", "b", "c"], "B": [1, 2, 3]})
 
-    # Determine which columns op will work on
-    columns = []
-    for column in df:
-        try:
-            df[column].transform(op)
-            columns.append(column)
-        except Exception:
-            pass
+    expected = df[["B"]].transform([op])
+    result = df.transform([op])
+    tm.assert_equal(result, expected)
 
-    if len(columns) > 0:
-        expected = df[columns].transform([op])
-        result = df.transform([op])
-        tm.assert_equal(result, expected)
+    expected = df[["B"]].transform({"B": op})
+    result = df.transform({"B": op})
+    tm.assert_equal(result, expected)
 
-        expected = df[columns].transform({column: op for column in columns})
-        result = df.transform({column: op for column in columns})
-        tm.assert_equal(result, expected)
-
-        expected = df[columns].transform({column: [op] for column in columns})
-        result = df.transform({column: [op] for column in columns})
-        tm.assert_equal(result, expected)
+    expected = df[["B"]].transform({"B": [op]})
+    result = df.transform({"B": [op]})
+    tm.assert_equal(result, expected)
 
 
 @pytest.mark.parametrize("use_apply", [True, False])

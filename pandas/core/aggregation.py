@@ -18,7 +18,7 @@ from typing import (
     Union,
 )
 
-from pandas._typing import AggFuncType, FrameOrSeries, Label
+from pandas._typing import AggFuncType, Axis, FrameOrSeries, Label
 
 from pandas.core.dtypes.common import is_dict_like, is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
@@ -388,11 +388,7 @@ def validate_func_kwargs(
 
 
 def transform(
-    obj: FrameOrSeries,
-    func: Union[str, List, Dict, Callable],
-    axis: int,
-    *args,
-    **kwargs,
+    obj: FrameOrSeries, func: AggFuncType, axis: Axis, *args, **kwargs,
 ) -> FrameOrSeries:
     """
     Transform a DataFrame or Series
@@ -420,6 +416,8 @@ def transform(
     ValueError
         If the transform function fails or does not transform.
     """
+    from pandas.core.reshape.concat import concat
+
     is_series = obj.ndim == 1
 
     if obj._get_axis_number(axis) == 1:
@@ -454,8 +452,6 @@ def transform(
         # combine results
         if len(results) == 0:
             raise ValueError("Transform function failed")
-        from pandas.core.reshape.concat import concat
-
         return concat(results, axis=1)
 
     # func is either str or callable

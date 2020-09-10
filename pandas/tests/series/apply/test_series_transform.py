@@ -7,43 +7,37 @@ from pandas.core.base import SpecificationError
 from pandas.core.groupby.base import transformation_kernels
 
 
-def test_transform(string_series):
-    # transforming functions
-
+def test_transform_ufunc(string_series):
+    # GH 35964
     with np.errstate(all="ignore"):
         f_sqrt = np.sqrt(string_series)
         f_abs = np.abs(string_series)
 
-        # ufunc
-        result = string_series.transform(np.sqrt)
-        expected = f_sqrt.copy()
-        tm.assert_series_equal(result, expected)
+    # ufunc
+    result = string_series.transform(np.sqrt)
+    expected = f_sqrt.copy()
+    tm.assert_series_equal(result, expected)
 
-        # list-like
-        result = string_series.transform([np.sqrt])
-        expected = f_sqrt.to_frame().copy()
-        expected.columns = ["sqrt"]
+
+@pytest.mark.parametrize(
+    "ops, names", [([np.sqrt], ["sqrt"]), ([np.abs, np.sqrt], ["absolute", "sqrt"])]
+)
+def test_transform_list(string_series, ops, names):
+    # GH 35964
+    with np.errstate(all="ignore"):
+        expected = concat([op(string_series) for op in ops], axis=1)
+        expected.columns = names
+        result = string_series.transform(ops)
         tm.assert_frame_equal(result, expected)
 
-        result = string_series.transform([np.sqrt])
-        tm.assert_frame_equal(result, expected)
 
-        result = string_series.transform(["sqrt"])
-        tm.assert_frame_equal(result, expected)
-
-        # multiple items in list
-        # these are in the order as if we are applying both functions per
-        # series and then concatting
-        result = string_series.transform(["sqrt", "abs"])
-        expected = concat([f_sqrt, f_abs], axis=1)
-        expected.columns = ["sqrt", "abs"]
-        tm.assert_frame_equal(result, expected)
-
-        # dict, provide renaming
-        expected = concat([f_sqrt, f_abs], axis=1)
-        expected.columns = ["foo", "bar"]
-        result = string_series.transform({"foo": np.sqrt, "bar": np.abs})
-        tm.assert_frame_equal(result, expected)
+def test_transform_dict(string_series):
+    # GH 35964
+    with np.errstate(all="ignore"):
+        expected = concat([np.sqrt(string_series), np.abs(string_series)], axis=1)
+    expected.columns = ["foo", "bar"]
+    result = string_series.transform({"foo": np.sqrt, "bar": np.abs})
+    tm.assert_frame_equal(result, expected)
 
 
 def test_transform_udf(axis, string_series):
@@ -77,19 +71,6 @@ def test_transform_wont_agg(string_series):
         string_series.transform(["min", "max"])
 
     msg = "Function did not transform"
-        expected = pd.concat([f_sqrt, f_abs], axis=1)
-        result = string_series.transform(["sqrt", "abs"])
-        expected.columns = ["sqrt", "abs"]
-        tm.assert_frame_equal(result, expected)
-
-
-def test_transform_and_agg_error(string_series):
-    # we are trying to transform with an aggregator
-    msg = "transforms cannot produce aggregated results"
-    with pytest.raises(ValueError, match=msg):
-        string_series.transform(["min", "max"])
-
-    msg = "cannot combine transform and aggregation operations"
     with pytest.raises(ValueError, match=msg):
         with np.errstate(all="ignore"):
             string_series.transform(["sqrt", "max"])
@@ -97,11 +78,6 @@ def test_transform_and_agg_error(string_series):
 
 def test_transform_none_to_type():
     # GH34377
-    df = pd.DataFrame({"a": [None]})
-
-    msg = "DataFrame constructor called with incompatible data and dtype"
-    with pytest.raises(TypeError, match=msg):
-        df.transform({"a": int})
     df = DataFrame({"a": [None]})
     msg = "Transform function failed"
     with pytest.raises(ValueError, match=msg):

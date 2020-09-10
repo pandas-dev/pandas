@@ -45,6 +45,7 @@ from pandas._config import get_option
 from pandas._libs import algos as libalgos, lib, properties
 from pandas._libs.lib import no_default
 from pandas._typing import (
+    AggFuncType,
     ArrayLike,
     Axes,
     Axis,
@@ -7460,12 +7461,10 @@ NaN 12.3   33.0
 
     agg = aggregate
 
-    @doc(
-        NDFrame.transform,
-        klass=_shared_doc_kwargs["klass"],
-        axis=_shared_doc_kwargs["axis"],
-    )
-    def transform(self, func, axis=0, *args, **kwargs) -> DataFrame:
+    @Appender(_shared_docs["transform"])
+    def transform(
+        self, func: AggFuncType, axis: Axis = 0, *args, **kwargs
+    ) -> DataFrame:
         result = transform(self, func, axis, *args, **kwargs)
         assert isinstance(result, DataFrame)
         return result
