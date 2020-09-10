@@ -1682,6 +1682,21 @@ class TestStyler:
         result = styler.pipe((f, "styler"), a=1, b=2)
         assert result == (1, 2, styler)
 
+    def test_no_cell_ids(self):
+        # GH 35588
+        # GH 35663
+        df = pd.DataFrame(data=[[0]])
+        styler = Styler(df, uuid="_", cell_ids=False)
+        styler.render()
+        s = styler.render()  # render twice to ensure ctx is not updated
+        assert s.find('<td  class="data row0 col0" >') != -1
+
+    def test_colspan_w3(self):
+        # GH 36223
+        df = pd.DataFrame(data=[[1, 2]], columns=[["l0", "l0"], ["l1a", "l1b"]])
+        s = Styler(df, uuid="_", cell_ids=False)
+        assert '<th class="col_heading level0 col0" colspan="2">l0</th>' in s.render()
+
 
 @td.skip_if_no_mpl
 class TestStylerMatplotlibDep:

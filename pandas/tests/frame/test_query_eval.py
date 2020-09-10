@@ -9,7 +9,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, date_range
 import pandas._testing as tm
-from pandas.core.computation.check import _NUMEXPR_INSTALLED
+from pandas.core.computation.check import NUMEXPR_INSTALLED
 
 PARSERS = "python", "pandas"
 ENGINES = "python", pytest.param("numexpr", marks=td.skip_if_no_ne)
@@ -39,7 +39,7 @@ class TestCompat:
     def test_query_default(self):
 
         # GH 12749
-        # this should always work, whether _NUMEXPR_INSTALLED or not
+        # this should always work, whether NUMEXPR_INSTALLED or not
         df = self.df
         result = df.query("A>0")
         tm.assert_frame_equal(result, self.expected1)
@@ -65,7 +65,7 @@ class TestCompat:
     def test_query_numexpr(self):
 
         df = self.df
-        if _NUMEXPR_INSTALLED:
+        if NUMEXPR_INSTALLED:
             result = df.query("A>0", engine="numexpr")
             tm.assert_frame_equal(result, self.expected1)
             result = df.eval("A+1", engine="numexpr")
@@ -159,6 +159,13 @@ class TestDataFrameEval:
         dict2 = {"b": 2}
         assert df.eval("a + b", resolvers=[dict1, dict2]) == dict1["a"] + dict2["b"]
         assert pd.eval("a + b", resolvers=[dict1, dict2]) == dict1["a"] + dict2["b"]
+
+    def test_eval_object_dtype_binop(self):
+        # GH#24883
+        df = pd.DataFrame({"a1": ["Y", "N"]})
+        res = df.eval("c = ((a1 == 'Y') & True)")
+        expected = pd.DataFrame({"a1": ["Y", "N"], "c": [True, False]})
+        tm.assert_frame_equal(res, expected)
 
 
 class TestDataFrameQueryWithMultiIndex:

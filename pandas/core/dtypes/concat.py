@@ -148,15 +148,17 @@ def concat_compat(to_concat, axis: int = 0):
     any_ea = any(is_extension_array_dtype(x.dtype) for x in to_concat)
 
     if any_ea:
+        # we ignore axis here, as internally concatting with EAs is always
+        # for axis=0
         if not single_dtype:
             target_dtype = find_common_type([x.dtype for x in to_concat])
             to_concat = [_cast_to_common_type(arr, target_dtype) for arr in to_concat]
 
-        if isinstance(to_concat[0], ExtensionArray) and axis == 0:
+        if isinstance(to_concat[0], ExtensionArray):
             cls = type(to_concat[0])
             return cls._concat_same_type(to_concat)
         else:
-            return np.concatenate(to_concat, axis=axis)
+            return np.concatenate(to_concat)
 
     elif _contains_datetime or "timedelta" in typs:
         return concat_datetime(to_concat, axis=axis, typs=typs)
