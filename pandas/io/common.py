@@ -45,6 +45,8 @@ from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import is_file_like
 
+from pandas._libs.json import loads as json_loads
+
 lzma = import_lzma()
 
 
@@ -153,6 +155,19 @@ def urlopen(*args, **kwargs):
     return urllib.request.urlopen(*args, **kwargs)
 
 
+def is_json(url: FilePathOrBuffer) -> bool:
+    """
+    Returns true if the given string looks like
+    something json.loads can handle
+    """
+    try:
+        json_loads(url)
+
+        return True
+    except:
+        return False
+
+
 def is_fsspec_url(url: FilePathOrBuffer) -> bool:
     """
     Returns true if the given URL looks like
@@ -161,7 +176,7 @@ def is_fsspec_url(url: FilePathOrBuffer) -> bool:
     return (
         isinstance(url, str)
         and "://" in url
-        and " " not in url
+        and not is_json(url)
         and not url.startswith(("http://", "https://"))
     )
 
