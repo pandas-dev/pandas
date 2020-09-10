@@ -52,6 +52,12 @@ foo2,12,13,14,15
 bar2,12,13,14,15
 """
 
+    def test_is_fsspec_url(self):
+        some_string = 'some :// string'
+        expected = False
+        
+        assert icom.is_fsspec_url(some_string)==expected
+
     def test_expand_user(self):
         filename = "~/sometest"
         expanded_name = icom._expand_user(filename)
