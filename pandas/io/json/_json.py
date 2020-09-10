@@ -1,4 +1,4 @@
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
 from collections import abc
 import functools
 from io import BytesIO, StringIO
