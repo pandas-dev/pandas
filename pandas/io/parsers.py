@@ -919,8 +919,7 @@ class TextFileReader(abc.Iterator):
         self.nrows = options.pop("nrows", None)
         self.squeeze = options.pop("squeeze", False)
 
-        # might mutate self.engine
-        self.engine = self._check_file_or_buffer(f, engine)
+        self._check_file_or_buffer(f, engine)
         self.options, self.engine = self._clean_options(options, engine)
 
         if "has_index_names" in kwds:
@@ -982,8 +981,6 @@ class TextFileReader(abc.Iterator):
             if engine != "c" and not hasattr(f, next_attr):
                 msg = "The 'python' engine cannot iterate through this file buffer."
                 raise ValueError(msg)
-
-        return engine
 
     def _clean_options(self, options, engine):
         result = options.copy()
