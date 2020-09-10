@@ -991,16 +991,15 @@ class TextFileReader(abc.Iterator):
         engine_specified = self._engine_specified
         fallback_reason = None
 
-        sep = options["delimiter"]
-        delim_whitespace = options["delim_whitespace"]
-
         # C engine not supported yet
         if engine == "c":
             if options["skipfooter"] > 0:
                 fallback_reason = "the 'c' engine does not support skipfooter"
                 engine = "python"
 
-        encoding = sys.getfilesystemencoding() or "utf-8"
+        sep = options["delimiter"]
+        delim_whitespace = options["delim_whitespace"]
+
         if sep is None and not delim_whitespace:
             if engine == "c":
                 fallback_reason = (
@@ -1025,6 +1024,7 @@ class TextFileReader(abc.Iterator):
                 result["delimiter"] = r"\s+"
         elif sep is not None:
             encodeable = True
+            encoding = sys.getfilesystemencoding() or "utf-8"
             try:
                 if len(sep.encode(encoding)) > 1:
                     encodeable = False
