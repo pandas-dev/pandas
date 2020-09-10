@@ -101,7 +101,8 @@ Support for short caption and table position in ``to_latex``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :meth:`DataFrame.to_latex` now allows one to specify
-a floating table position (:issue:`35281`) and a short caption.
+a floating table position (:issue:`35281`)
+and a short caption (:issue:`36267`).
 
 New keyword ``position`` is implemented to set the position.
 
