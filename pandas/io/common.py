@@ -161,6 +161,7 @@ def is_fsspec_url(url: FilePathOrBuffer) -> bool:
     return (
         isinstance(url, str)
         and "://" in url
+        and not " " in url
         and not url.startswith(("http://", "https://"))
     )
 
