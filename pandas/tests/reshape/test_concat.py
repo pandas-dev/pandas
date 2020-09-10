@@ -2918,3 +2918,12 @@ def test_concat_frame_axis0_extension_dtypes():
     result = pd.concat([df2, df1], ignore_index=True)
     expected = pd.DataFrame({"a": [4, 5, 6, 1, 2, 3]}, dtype="Int64")
     tm.assert_frame_equal(result, expected)
+
+
+def test_concat_preserves_extension_int64_dtype():
+    # GH 24768
+    df_a = pd.DataFrame({"a": [-1]}, dtype="Int64")
+    df_b = pd.DataFrame({"b": [1]}, dtype="Int64")
+    result = pd.concat([df_a, df_b], ignore_index=True)
+    expected = pd.DataFrame({"a": [-1, None], "b": [None, 1]}, dtype="Int64")
+    tm.assert_frame_equal(result, expected)
