@@ -34,6 +34,7 @@ def df_idx(request, df_none):
         ["inner", "outer"],  # two index levels
         [("B", 5), "outer"],  # index level and column
         ["A", ("B", 5)],  # Two columns
+        ("A", ("B", 5)),  # Two columns (tuple instead of lists (GH 36268))
         ["inner", "outer"],  # two index levels and column
         ("inner", "outer"),  # tuple instead of lists (GH 36268)
     ]
