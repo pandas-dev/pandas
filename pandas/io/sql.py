@@ -1159,9 +1159,7 @@ class SQLDatabase(PandasSQL):
 
     def execute(self, *args, **kwargs):
         """Simple passthrough to SQLAlchemy connectable"""
-        return self.connectable.execution_options(no_parameters=True).execute(
-            *args, **kwargs
-        )
+        return self.connectable.execution_options().execute(*args, **kwargs)
 
     def read_table(
         self,
@@ -1291,6 +1289,11 @@ class SQLDatabase(PandasSQL):
         read_sql
 
         """
+        if isinstance(sql, str) and params is None:
+            from sqlalchemy.sql import text
+
+            sql = text(sql)
+
         args = _convert_params(sql, params)
 
         result = self.execute(*args)
