@@ -46,7 +46,7 @@ class TestTimedeltaArrayConstructor:
             TimedeltaArray(np.array([1, 2, 3], dtype="i8"), dtype="category")
 
         with pytest.raises(
-            ValueError, match=r"dtype int64 cannot be converted to timedelta64\[ns\]",
+            ValueError, match=r"dtype int64 cannot be converted to timedelta64\[ns\]"
         ):
             TimedeltaArray(np.array([1, 2, 3], dtype="i8"), dtype=np.dtype("int64"))
 
