@@ -24,14 +24,17 @@ def test_equals(arr, idx):
     assert not s1.equals(s2)
 
 
-def test_equals_list_array():
+@pytest.mark.parametrize(
+    "val", [1, 1.1, 1 + 1j, True, "abc", [1, 2], (1, 2), {1, 2}, {"a": 1}, None]
+)
+def test_equals_list_array(val):
     # GH20676 Verify equals operator for list of Numpy arrays
     arr = np.array([1, 2])
     s1 = Series([arr, arr])
     s2 = s1.copy()
     assert s1.equals(s2)
 
-    s1[1] = 9
+    s1[1] = val
     assert not s1.equals(s2)
 
 
