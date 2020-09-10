@@ -8,6 +8,7 @@ from warnings import catch_warnings
 import numpy as np
 import pytest
 
+from pandas.compat import PY38
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -571,7 +572,7 @@ class TestParquetPyArrow(Base):
             pytest.param(
                 ["A"],
                 marks=pytest.mark.xfail(
-                    reason="Getting back empty DataFrame", raises=AssertionError
+                    PY38, reason="Getting back empty DataFrame", raises=AssertionError,
                 ),
             ),
             [],
