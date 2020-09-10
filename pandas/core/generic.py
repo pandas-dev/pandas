@@ -4998,8 +4998,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         Return the first `n` rows and the last `n` rows.
 
-        This function returns the first `n` rows and the last `n` rows from the 
-        object based on position. It is useful for quickly verifying data, for 
+        This function returns the first `n` rows and the last `n` rows from the
+        object based on position. It is useful for quickly verifying data, for
         example, after sorting or appending rows.
 
         For negative values of `n`, this function returns all rows except
@@ -5072,7 +5072,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if n == 0:
             return self.iloc[0:0]
 
-        # To avoid duplication of rows, we check if the head and tail combined 
+        # To avoid duplication of rows, we check if the head and tail combined
         # would be greater than the size of the dataframe
         elif n > self.shape[0] / 2:
             return self
