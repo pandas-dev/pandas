@@ -1264,14 +1264,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
             if self.axis == 0:
                 index = key_index
-                columns = v.index.copy()
+                columns = first_not_none.index.copy()
                 if columns.name is None:
                     # GH6124 - propagate name of Series when it's consistent
                     names = {v.name for v in values}
                     if len(names) == 1:
                         columns.name = list(names)[0]
             else:
-                index = v.index
+                index = first_not_none.index
                 columns = key_index
                 stacked_values = stacked_values.T
 
