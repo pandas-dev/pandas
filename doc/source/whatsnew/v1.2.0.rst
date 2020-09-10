@@ -104,7 +104,7 @@ Other enhancements
 - Added :meth:`~DataFrame.set_flags` for setting table-wide flags on a ``Series`` or ``DataFrame`` (:issue:`28394`)
 - :class:`Index` with object dtype supports division and multiplication (:issue:`34160`)
 - :meth:`DataFrame.explode` and :meth:`Series.explode` now support exploding of sets (:issue:`35614`)
--
+- Added :meth:`~DataFrame.peek` and :meth:`~Series.peek` to simultaneously check head and tail rows (:issue:`18691`)
 
 .. _whatsnew_120.api_breaking.python:
 
