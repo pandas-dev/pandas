@@ -263,7 +263,7 @@ class Generic:
 
         self._compare(o.head(), o.iloc[:5])
         self._compare(o.tail(), o.iloc[-5:])
-        if o.shape[0]>=10:
+        if o.shape[0] >= 10:
             self._compare(o.peek(), pd.concat([o.iloc[:5], o.iloc[-5:]], axis=0))
         else:
             self._compare(o.peek(), o)
@@ -276,7 +276,7 @@ class Generic:
         # bounded
         self._compare(o.head(len(o) + 1), o)
         self._compare(o.tail(len(o) + 1), o)
-        self._compare(o.peek(len(o)//2 + 1), o)
+        self._compare(o.peek(len(o) // 2 + 1), o)
 
         # neg index
         self._compare(o.head(-3), o.head(len(index) - 3))
