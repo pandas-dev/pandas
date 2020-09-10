@@ -418,4 +418,4 @@ def test_is_fsspec_url():
     assert not icom.is_fsspec_url("/local/path")
     assert not icom.is_fsspec_url("relative/local/path")
     # there are no white spaces in a URL
-    assert not icom.is_fsspec_url("gs://pandas /somethingelse.com")
+    assert not icom.is_fsspec_url('{"json": "text ://"}')
