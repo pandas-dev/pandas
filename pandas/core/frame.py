@@ -5318,7 +5318,7 @@ class DataFrame(NDFrame):
         inplace = validate_bool_kwarg(inplace, "inplace")
         axis = self._get_axis_number(axis)
 
-        if not isinstance(by, list):
+        if not isinstance(by, (list, tuple)):
             by = [by]
         if is_sequence(ascending) and len(by) != len(ascending):
             raise ValueError(
