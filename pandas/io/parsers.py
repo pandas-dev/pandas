@@ -910,7 +910,6 @@ class TextFileReader(abc.Iterator):
 
         # miscellanea
         self.engine = engine
-        self._engine = None
         self._currow = 0
 
         options = self._get_options_with_defaults(engine)
