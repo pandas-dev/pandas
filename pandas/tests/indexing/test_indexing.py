@@ -1004,7 +1004,7 @@ def test_extension_array_cross_section():
 def test_extension_array_cross_section_converts():
     # all numeric columns -> numeric series
     df = pd.DataFrame(
-        {"A": pd.array([1, 2], dtype="Int64"), "B": np.array([1, 2])}, index=["a", "b"],
+        {"A": pd.array([1, 2], dtype="Int64"), "B": np.array([1, 2])}, index=["a", "b"]
     )
     result = df.loc["a"]
     expected = pd.Series([1, 1], dtype="Int64", index=["A", "B"], name="a")
