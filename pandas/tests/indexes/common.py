@@ -1,11 +1,11 @@
 import gc
-from typing import Optional, Type
+from typing import Type
 
 import numpy as np
 import pytest
 
 from pandas._libs import iNaT
-from pandas.compat.numpy import _is_numpy_dev
+from pandas.compat.numpy import is_numpy_dev
 from pandas.errors import InvalidIndexError
 
 from pandas.core.dtypes.common import is_datetime64tz_dtype
@@ -33,7 +33,7 @@ from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 class Base:
     """ base class for index sub-class tests """
 
-    _holder: Optional[Type[Index]] = None
+    _holder: Type[Index]
     _compat_props = ["shape", "ndim", "size", "nbytes"]
 
     def create_index(self) -> Index:
@@ -475,7 +475,7 @@ class Base:
         for case in cases:
             # https://github.com/pandas-dev/pandas/issues/35481
             if (
-                _is_numpy_dev
+                is_numpy_dev
                 and isinstance(case, Series)
                 and isinstance(index, UInt64Index)
             ):
@@ -685,6 +685,12 @@ class Base:
         idx = self.create_index()
         expected = [str(x) for x in idx]
         assert idx.format() == expected
+
+    def test_format_empty(self):
+        # GH35712
+        empty_idx = self._holder([])
+        assert empty_idx.format() == []
+        assert empty_idx.format(name=True) == [""]
 
     def test_hasnans_isnans(self, index):
         # GH 11343, added tests for hasnans / isnans

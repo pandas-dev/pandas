@@ -7,7 +7,6 @@ from numpy.lib.mixins import NDArrayOperatorsMixin
 from pandas._libs import lib
 from pandas._typing import Scalar
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.dtypes import ExtensionDtype
@@ -16,10 +15,9 @@ from pandas.core.dtypes.missing import isna
 
 from pandas import compat
 from pandas.core import nanops, ops
-from pandas.core.algorithms import searchsorted
 from pandas.core.array_algos import masked_reductions
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
-from pandas.core.arrays.base import ExtensionArray, ExtensionOpsMixin
+from pandas.core.arrays.base import ExtensionOpsMixin
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import backfill_1d, pad_1d
@@ -189,10 +187,6 @@ class PandasArray(
     def _from_factorized(cls, values, original) -> "PandasArray":
         return cls(values)
 
-    @classmethod
-    def _concat_same_type(cls, to_concat) -> "PandasArray":
-        return cls(np.concatenate(to_concat))
-
     def _from_backing_data(self, arr: np.ndarray) -> "PandasArray":
         return type(self)(arr)
 
@@ -280,7 +274,7 @@ class PandasArray(
         return isna(self._ndarray)
 
     def fillna(
-        self, value=None, method: Optional[str] = None, limit: Optional[int] = None,
+        self, value=None, method: Optional[str] = None, limit: Optional[int] = None
     ) -> "PandasArray":
         # TODO(_values_for_fillna): remove this
         value, method = validate_fillna_kwargs(value, method)
@@ -422,10 +416,6 @@ class PandasArray(
             result[self.isna()] = na_value
 
         return result
-
-    @doc(ExtensionArray.searchsorted)
-    def searchsorted(self, value, side="left", sorter=None):
-        return searchsorted(self.to_numpy(), value, side=side, sorter=sorter)
 
     # ------------------------------------------------------------------------
     # Ops

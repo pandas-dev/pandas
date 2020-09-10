@@ -7,10 +7,10 @@ from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
 
-from pandas.io.excel._base import _BaseExcelReader
+from pandas.io.excel._base import BaseExcelReader
 
 
-class _ODFReader(_BaseExcelReader):
+class _ODFReader(BaseExcelReader):
     """
     Read tables out of OpenDocument formatted files.
 
@@ -18,7 +18,7 @@ class _ODFReader(_BaseExcelReader):
     ----------
     filepath_or_buffer : string, path to be parsed or
         an open readable stream.
-    storage_options : StorageOptions
+    storage_options : dict, optional
         passed to fsspec for appropriate URLs (see ``get_filepath_or_buffer``)
     """
 
