@@ -1,3 +1,4 @@
+from abc import abstractmethod, ABC
 from collections import abc
 import functools
 from io import BytesIO, StringIO
@@ -110,7 +111,7 @@ def to_json(
             path_or_buf.close()
 
 
-class Writer:
+class Writer(ABC):
     def __init__(
         self,
         obj,
@@ -147,7 +148,7 @@ class Writer:
     def write(self):
         iso_dates = self.date_format == "iso"
         return dumps(
-            self.obj,
+            self.obj_to_write,
             orient=self.orient,
             double_precision=self.double_precision,
             ensure_ascii=self.ensure_ascii,
@@ -157,35 +158,21 @@ class Writer:
             indent=self.indent,
         )
 
+    @property
+    @abstractmethod
+    def obj_to_write(self):
+        """Object to write in JSON format."""
+
 
 class SeriesWriter(Writer):
     _default_orient = "index"
 
-    def __init__(
-        self,
-        obj,
-        orient: Optional[str],
-        date_format: str,
-        double_precision: int,
-        ensure_ascii: bool,
-        date_unit: str,
-        index: bool,
-        default_handler: Optional[Callable[[Any], JSONSerializable]] = None,
-        indent: int = 0,
-    ):
-        super().__init__(
-            obj,
-            orient,
-            date_format,
-            double_precision,
-            ensure_ascii,
-            date_unit,
-            index,
-            default_handler=default_handler,
-            indent=indent,
-        )
-        if not index and orient == "split":
-            self.obj = {"name": obj.name, "data": obj.values}
+    @property
+    def obj_to_write(self):
+        if not self.index and self.orient == "split":
+            return {"name": self.obj.name, "data": self.obj.values}
+        else:
+            return self.obj
 
     def _format_axes(self):
         if not self.obj.index.is_unique and self.orient == "index":
@@ -195,32 +182,14 @@ class SeriesWriter(Writer):
 class FrameWriter(Writer):
     _default_orient = "columns"
 
-    def __init__(
-        self,
-        obj,
-        orient: Optional[str],
-        date_format: str,
-        double_precision: int,
-        ensure_ascii: bool,
-        date_unit: str,
-        index: bool,
-        default_handler: Optional[Callable[[Any], JSONSerializable]] = None,
-        indent: int = 0,
-    ):
-        super().__init__(
-            obj,
-            orient,
-            date_format,
-            double_precision,
-            ensure_ascii,
-            date_unit,
-            index,
-            default_handler=default_handler,
-            indent=indent,
-        )
-        if not index and orient == "split":
-            self.obj = obj.to_dict(orient="split")
-            del self.obj["index"]
+    @property
+    def obj_to_write(self):
+        if not self.index and self.orient == "split":
+            obj_to_write = self.obj.to_dict(orient="split")
+            del obj_to_write["index"]
+        else:
+            obj_to_write = self.obj
+        return obj_to_write
 
     def _format_axes(self):
         """
@@ -313,7 +282,9 @@ class JSONTableWriter(FrameWriter):
         self.orient = "records"
         self.index = index
 
-        self.obj = {"schema": self.schema, "data": self.obj}
+    @property
+    def obj_to_write(self):
+        return {"schema": self.schema, "data": self.obj}
 
 
 @deprecate_kwarg(old_arg_name="numpy", new_arg_name=None)
