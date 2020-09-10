@@ -4993,14 +4993,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if n == 0:
             return self.iloc[0:0]
         return self.iloc[-n:]
-    
+
     def peek(self: FrameOrSeries, n: int = 5) -> FrameOrSeries:
         """
         Return the first `n` rows and the last `n` rows.
 
-        This function returns the first `n` rows and the last `n` rows from the object based on
-        position. It is useful for quickly verifying data, for example,
-        after sorting or appending rows.
+        This function returns the first `n` rows and the last `n` rows from the 
+        object based on position. It is useful for quickly verifying data, for 
+        example, after sorting or appending rows.
 
         For negative values of `n`, this function returns all rows except
         the first `n` rows and last `n` rows, equivalent to ``df[n:-n]``.
@@ -5071,16 +5071,17 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         if n == 0:
             return self.iloc[0:0]
-        
-        # To avoid duplication of rows, we check if the head and tail combined would be greater than the size of the dataframe
-        elif n > self.shape[0]/2:
+
+        # To avoid duplication of rows, we check if the head and tail combined 
+        # would be greater than the size of the dataframe
+        elif n > self.shape[0] / 2:
             return self
-        
+
         # When abs(n) > self.shape[0]/2, this returns nothing
         elif n < 0:
             return self.iloc[abs(n):n]
-        
-        return pd.concat([self.iloc[:n], self.iloc[-n:]],axis=0)
+
+        return pd.concat([self.iloc[:n], self.iloc[-n:]], axis=0)
 
     def sample(
         self: FrameOrSeries,
