@@ -84,13 +84,11 @@ def test_infer_dtype_from_period(freq, pandas_dtype):
 
     if pandas_dtype:
         exp_dtype = f"period[{freq}]"
-        exp_val = p.ordinal
     else:
         exp_dtype = np.object_
-        exp_val = p
 
     assert dtype == exp_dtype
-    assert val == exp_val
+    assert val == p
 
 
 @pytest.mark.parametrize(
