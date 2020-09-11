@@ -844,16 +844,16 @@ class ExcelFile:
         - ``pyxlsb`` supports Binary Excel files.
     """
 
-    from pandas.io.excel._odfreader import _ODFReader
-    from pandas.io.excel._openpyxl import _OpenpyxlReader
-    from pandas.io.excel._pyxlsb import _PyxlsbReader
-    from pandas.io.excel._xlrd import _XlrdReader
+    from pandas.io.excel._odfreader import ODFReader
+    from pandas.io.excel._openpyxl import OpenpyxlReader
+    from pandas.io.excel._pyxlsb import PyxlsbReader
+    from pandas.io.excel._xlrd import XlrdReader
 
     _engines: Mapping[str, Any] = {
-        "xlrd": _XlrdReader,
-        "openpyxl": _OpenpyxlReader,
-        "odf": _ODFReader,
-        "pyxlsb": _PyxlsbReader,
+        "xlrd": XlrdReader,
+        "openpyxl": OpenpyxlReader,
+        "odf": ODFReader,
+        "pyxlsb": PyxlsbReader,
     }
 
     def __init__(
