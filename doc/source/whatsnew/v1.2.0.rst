@@ -100,8 +100,8 @@ For example:
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
-
 - Added :meth:`~DataFrame.set_flags` for setting table-wide flags on a ``Series`` or ``DataFrame`` (:issue:`28394`)
+- :meth:`DataFrame.applymap` now supports ``na_action`` (:issue:`23803`)
 - :class:`Index` with object dtype supports division and multiplication (:issue:`34160`)
 - :meth:`DataFrame.explode` and :meth:`Series.explode` now support exploding of sets (:issue:`35614`)
 -
