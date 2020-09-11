@@ -58,6 +58,7 @@ from pandas.io.formats import console
 
 def _cat_compare_op(op):
     opname = f"__{op.__name__}__"
+    fill_value = True if op is operator.ne else False
 
     @unpack_zerodim_and_defer(opname)
     def func(self, other):
@@ -92,26 +93,23 @@ def _cat_compare_op(op):
             else:
                 other_codes = other._codes
 
-            f = getattr(self._codes, opname)
-            ret = f(other_codes)
+            ret = op(self._codes, other_codes)
             mask = (self._codes == -1) | (other_codes == -1)
             if mask.any():
-                # In other series, the leads to False, so do that here too
-                if opname == "__ne__":
-                    ret[(self._codes == -1) & (other_codes == -1)] = True
-                else:
-                    ret[mask] = False
+                ret[mask] = fill_value
             return ret
 
         if is_scalar(other):
             if other in self.categories:
                 i = self.categories.get_loc(other)
-                ret = getattr(self._codes, opname)(i)
+                ret = op(self._codes, i)
 
                 if opname not in {"__eq__", "__ge__", "__gt__"}:
-                    # check for NaN needed if we are not equal or larger
+                    # GH#29820 performance trick; get_loc will always give i>=0,
+                    #  so in the cases (__ne__, __le__, __lt__) the setting
+                    #  here is a no-op, so can be skipped.
                     mask = self._codes == -1
-                    ret[mask] = False
+                    ret[mask] = fill_value
                 return ret
             else:
                 return ops.invalid_comparison(self, other, op)
