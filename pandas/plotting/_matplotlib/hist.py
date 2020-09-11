@@ -417,7 +417,8 @@ def hist_frame(
         if not isinstance(column, (list, np.ndarray, ABCIndexClass)):
             column = [column]
         data = data[column]
-    data = data._get_numeric_data()
+    # GH32590
+    data = data._get_numeric_or_datetime_data()
     naxes = len(data.columns)
 
     if naxes == 0:
