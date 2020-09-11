@@ -205,9 +205,7 @@ class TestLogicalOps(BaseOpsUtil):
             a, pd.array([True, False, None], dtype="boolean")
         )
 
-    @pytest.mark.parametrize(
-        "other", [True, False, pd.NA, [True, False, None] * 3],
-    )
+    @pytest.mark.parametrize("other", [True, False, pd.NA, [True, False, None] * 3])
     def test_no_masked_assumptions(self, other, all_logical_operators):
         # The logical operations should not assume that masked values are False!
         a = pd.arrays.BooleanArray(

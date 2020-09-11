@@ -314,9 +314,9 @@ pc_latex_multirow = """
 
 
 def table_schema_cb(key):
-    from pandas.io.formats.printing import _enable_data_resource_formatter
+    from pandas.io.formats.printing import enable_data_resource_formatter
 
-    _enable_data_resource_formatter(cf.get_option(key))
+    enable_data_resource_formatter(cf.get_option(key))
 
 
 def is_terminal() -> bool:
@@ -327,7 +327,7 @@ def is_terminal() -> bool:
     """
     try:
         # error: Name 'get_ipython' is not defined
-        ip = get_ipython()  # type: ignore
+        ip = get_ipython()  # type: ignore[name-defined]
     except NameError:  # assume standard Python interpreter in a terminal
         return True
     else:

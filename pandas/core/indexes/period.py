@@ -345,10 +345,13 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     def __array_wrap__(self, result, context=None):
         """
-        Gets called after a ufunc. Needs additional handling as
-        PeriodIndex stores internal data as int dtype
+        Gets called after a ufunc and other functions.
 
-        Replace this to __numpy_ufunc__ in future version
+        Needs additional handling as PeriodIndex stores internal data as int
+        dtype
+
+        Replace this to __numpy_ufunc__ in future version and implement
+        __array_function__ for Indexes
         """
         if isinstance(context, tuple) and len(context) > 0:
             func = context[0]
@@ -430,6 +433,41 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         # indexing
         return "period"
 
+    def insert(self, loc, item):
+        if not isinstance(item, Period) or self.freq != item.freq:
+            return self.astype(object).insert(loc, item)
+
+        i8result = np.concatenate(
+            (self[:loc].asi8, np.array([item.ordinal]), self[loc:].asi8)
+        )
+        arr = type(self._data)._simple_new(i8result, dtype=self.dtype)
+        return type(self)._simple_new(arr, name=self.name)
+
+    def join(self, other, how="left", level=None, return_indexers=False, sort=False):
+        """
+        See Index.join
+        """
+        self._assert_can_do_setop(other)
+
+        if not isinstance(other, PeriodIndex):
+            return self.astype(object).join(
+                other, how=how, level=level, return_indexers=return_indexers, sort=sort
+            )
+
+        # _assert_can_do_setop ensures we have matching dtype
+        result = Int64Index.join(
+            self,
+            other,
+            how=how,
+            level=level,
+            return_indexers=return_indexers,
+            sort=sort,
+        )
+        return result
+
+    # ------------------------------------------------------------------------
+    # Indexing Methods
+
     @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
         target = ensure_index(target)
@@ -501,7 +539,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
             try:
                 asdt, reso = parse_time_string(key, self.freq)
-            except DateParseError as err:
+            except (ValueError, DateParseError) as err:
                 # A string with invalid format
                 raise KeyError(f"Cannot interpret '{key}' as period") from err
 
@@ -604,38 +642,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         except KeyError as err:
             raise KeyError(key) from err
 
-    def insert(self, loc, item):
-        if not isinstance(item, Period) or self.freq != item.freq:
-            return self.astype(object).insert(loc, item)
-
-        i8result = np.concatenate(
-            (self[:loc].asi8, np.array([item.ordinal]), self[loc:].asi8)
-        )
-        arr = type(self._data)._simple_new(i8result, dtype=self.dtype)
-        return type(self)._simple_new(arr, name=self.name)
-
-    def join(self, other, how="left", level=None, return_indexers=False, sort=False):
-        """
-        See Index.join
-        """
-        self._assert_can_do_setop(other)
-
-        if not isinstance(other, PeriodIndex):
-            return self.astype(object).join(
-                other, how=how, level=level, return_indexers=return_indexers, sort=sort
-            )
-
-        # _assert_can_do_setop ensures we have matching dtype
-        result = Int64Index.join(
-            self,
-            other,
-            how=how,
-            level=level,
-            return_indexers=return_indexers,
-            sort=sort,
-        )
-        return result
-
     # ------------------------------------------------------------------------
     # Set Operation Methods
 
@@ -724,7 +730,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         return result
 
 
-PeriodIndex._add_numeric_methods_disabled()
 PeriodIndex._add_logical_methods_disabled()
 
 
