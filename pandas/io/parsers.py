@@ -1172,10 +1172,7 @@ class TextFileReader(abc.Iterator):
 
     def read(self, nrows=None):
         nrows = validate_integer("nrows", nrows)
-        ret = self._engine.read(nrows)
-
-        # May alter columns / col_dict
-        index, columns, col_dict = ret
+        index, columns, col_dict = self._engine.read(nrows)
 
         if index is None:
             if col_dict:
