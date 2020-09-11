@@ -246,6 +246,7 @@ Timezones
 Numeric
 ^^^^^^^
 - Bug in :func:`to_numeric` where float precision was incorrect (:issue:`31364`)
+- Bug in :meth:`DataFrame.any` with ``axis=1`` and ``bool_only=True`` ignoring the ``bool_only`` keyword (:issue:`32432`)
 -
 
 Conversion
