@@ -92,18 +92,14 @@ class BaseMethodsTests(BaseExtensionTests):
         assert data_missing_for_sorting.argmax() == 0
         assert data_missing_for_sorting.argmin() == 2
 
-    @pytest.mark.parametrize(
-        "method", ["argmax", "argmin"],
-    )
+    @pytest.mark.parametrize("method", ["argmax", "argmin"])
     def test_argmin_argmax_empty_array(self, method, data):
         # GH 24382
         err_msg = "attempt to get"
         with pytest.raises(ValueError, match=err_msg):
             getattr(data[:0], method)()
 
-    @pytest.mark.parametrize(
-        "method", ["argmax", "argmin"],
-    )
+    @pytest.mark.parametrize("method", ["argmax", "argmin"])
     def test_argmin_argmax_all_na(self, method, data, na_value):
         # all missing with skipna=True is the same as emtpy
         err_msg = "attempt to get"
