@@ -335,7 +335,7 @@ def array(
     return result
 
 
-def extract_array(obj, extract_numpy: bool = False):
+def extract_array(obj: AnyArrayLike, extract_numpy: bool = False) -> ArrayLike:
     """
     Extract the ndarray or ExtensionArray from a Series or Index.
 
@@ -383,7 +383,9 @@ def extract_array(obj, extract_numpy: bool = False):
     if extract_numpy and isinstance(obj, ABCPandasArray):
         obj = obj.to_numpy()
 
-    return obj
+    # error: Incompatible return value type (got "Index", expected "ExtensionArray")
+    # error: Incompatible return value type (got "Series", expected "ExtensionArray")
+    return obj  # type: ignore[return-value]
 
 
 def sanitize_array(
@@ -436,7 +438,12 @@ def sanitize_array(
             subarr = subarr.copy()
         return subarr
 
-    elif isinstance(data, (list, tuple)) and len(data) > 0:
+    elif isinstance(data, (list, tuple, abc.Set, abc.ValuesView)) and len(data) > 0:
+        if isinstance(data, set):
+            # Raise only for unordered sets, e.g., not for dict_keys
+            raise TypeError("Set type is unordered")
+        data = list(data)
+
         if dtype is not None:
             subarr = _try_cast(data, dtype, copy, raise_cast_failure)
         else:
@@ -448,8 +455,6 @@ def sanitize_array(
         # GH#16804
         arr = np.arange(data.start, data.stop, data.step, dtype="int64")
         subarr = _try_cast(arr, dtype, copy, raise_cast_failure)
-    elif isinstance(data, abc.Set):
-        raise TypeError("Set type is unordered")
     elif lib.is_scalar(data) and index is not None and dtype is not None:
         data = maybe_cast_to_datetime(data, dtype)
         if not lib.is_scalar(data):
@@ -467,7 +472,7 @@ def sanitize_array(
 
             # figure out the dtype from the value (upcast if necessary)
             if dtype is None:
-                dtype, value = infer_dtype_from_scalar(value)
+                dtype, value = infer_dtype_from_scalar(value, pandas_dtype=True)
             else:
                 # need to possibly convert the value here
                 value = maybe_cast_to_datetime(value, dtype)

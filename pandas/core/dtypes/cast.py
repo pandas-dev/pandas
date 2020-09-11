@@ -22,9 +22,9 @@ from pandas._typing import ArrayLike, Dtype, DtypeObj
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
-    _POSSIBLY_CAST_DTYPES,
     DT64NS_DTYPE,
     INT64_DTYPE,
+    POSSIBLY_CAST_DTYPES,
     TD64NS_DTYPE,
     ensure_int8,
     ensure_int16,
@@ -709,7 +709,6 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, 
     elif pandas_dtype:
         if lib.is_period(val):
             dtype = PeriodDtype(freq=val.freq)
-            val = val.ordinal
         elif lib.is_interval(val):
             subtype = infer_dtype_from_scalar(val.left, pandas_dtype=True)[0]
             dtype = IntervalDtype(subtype=subtype)
@@ -1188,7 +1187,7 @@ def maybe_castable(arr) -> bool:
     elif kind == "m":
         return is_timedelta64_ns_dtype(arr.dtype)
 
-    return arr.dtype.name not in _POSSIBLY_CAST_DTYPES
+    return arr.dtype.name not in POSSIBLY_CAST_DTYPES
 
 
 def maybe_infer_to_datetimelike(value, convert_dates: bool = False):
@@ -1488,7 +1487,7 @@ def find_common_type(types: List[DtypeObj]) -> DtypeObj:
     if has_bools:
         for t in types:
             if is_integer_dtype(t) or is_float_dtype(t) or is_complex_dtype(t):
-                return object
+                return np.dtype("object")
 
     return np.find_common_type(types, [])
 
@@ -1550,7 +1549,7 @@ def construct_1d_arraylike_from_scalar(
         elif isinstance(dtype, np.dtype) and dtype.kind in ("U", "S"):
             # we need to coerce to object dtype to avoid
             # to allow numpy to take our string as a scalar value
-            dtype = object
+            dtype = np.dtype("object")
             if not isna(value):
                 value = ensure_str(value)
 

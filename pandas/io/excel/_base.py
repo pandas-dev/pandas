@@ -346,7 +346,7 @@ def read_excel(
     )
 
 
-class _BaseExcelReader(metaclass=abc.ABCMeta):
+class BaseExcelReader(metaclass=abc.ABCMeta):
     def __init__(self, filepath_or_buffer, storage_options: StorageOptions = None):
         # If filepath_or_buffer is a url, load the data into a BytesIO
         if is_url(filepath_or_buffer):
@@ -601,8 +601,8 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     You can set the date format or datetime format:
 
     >>> with ExcelWriter('path_to_file.xlsx',
-                          date_format='YYYY-MM-DD',
-                          datetime_format='YYYY-MM-DD HH:MM:SS') as writer:
+    ...                   date_format='YYYY-MM-DD',
+    ...                   datetime_format='YYYY-MM-DD HH:MM:SS') as writer:
     ...     df.to_excel(writer)
 
     You can also append to an existing Excel file:

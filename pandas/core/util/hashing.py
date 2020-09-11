@@ -24,7 +24,7 @@ from pandas.core.dtypes.generic import (
 _default_hash_key = "0123456789123456"
 
 
-def _combine_hash_arrays(arrays, num_items: int):
+def combine_hash_arrays(arrays, num_items: int):
     """
     Parameters
     ----------
@@ -108,7 +108,7 @@ def hash_pandas_object(
                 for _ in [None]
             )
             arrays = itertools.chain([h], index_iter)
-            h = _combine_hash_arrays(arrays, 2)
+            h = combine_hash_arrays(arrays, 2)
 
         h = Series(h, index=obj.index, dtype="uint64", copy=False)
 
@@ -131,7 +131,7 @@ def hash_pandas_object(
             # keep `hashes` specifically a generator to keep mypy happy
             _hashes = itertools.chain(hashes, index_hash_generator)
             hashes = (x for x in _hashes)
-        h = _combine_hash_arrays(hashes, num_items)
+        h = combine_hash_arrays(hashes, num_items)
 
         h = Series(h, index=obj.index, dtype="uint64", copy=False)
     else:
@@ -175,7 +175,7 @@ def hash_tuples(vals, encoding="utf8", hash_key: str = _default_hash_key):
     hashes = (
         _hash_categorical(cat, encoding=encoding, hash_key=hash_key) for cat in vals
     )
-    h = _combine_hash_arrays(hashes, len(vals))
+    h = combine_hash_arrays(hashes, len(vals))
     if is_tuple:
         h = h[0]
 
