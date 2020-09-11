@@ -8,6 +8,7 @@ import pytest
 
 from pandas._libs import algos as libalgos, hashtable as ht
 from pandas._libs.groupby import group_var_float32, group_var_float64
+from pandas.compat import IS64
 from pandas.compat.numpy import np_array_datetime64_compat
 import pandas.util._test_decorators as td
 
@@ -29,7 +30,6 @@ from pandas import (
     IntervalIndex,
     Series,
     Timestamp,
-    compat,
 )
 import pandas._testing as tm
 import pandas.core.algorithms as algos
@@ -256,7 +256,7 @@ class TestFactorize:
         # GH35650 Verify whether read-only datetime64 array can be factorized
         data = np.array([np.datetime64("2020-01-01T00:00:00.000")])
         data.setflags(write=writable)
-        expected_codes = np.array([0], dtype=np.int64)
+        expected_codes = np.array([0], dtype=np.intp)
         expected_uniques = np.array(
             ["2020-01-01T00:00:00.000000000"], dtype="datetime64[ns]"
         )
@@ -303,7 +303,7 @@ class TestFactorize:
         ],
     )
     def test_parametrized_factorize_na_value(self, data, na_value):
-        codes, uniques = algos._factorize_array(data, na_value=na_value)
+        codes, uniques = algos.factorize_array(data, na_value=na_value)
         expected_uniques = data[[1, 3]]
         expected_codes = np.array([-1, 0, -1, 1], dtype=np.intp)
         tm.assert_numpy_array_equal(codes, expected_codes)
@@ -340,73 +340,47 @@ class TestFactorize:
             tm.assert_extension_array_equal(uniques, expected_uniques)
 
     @pytest.mark.parametrize(
-        "data, dropna, expected_codes, expected_uniques",
+        "data, expected_codes, expected_uniques",
         [
             (
                 ["a", None, "b", "a"],
-                True,
-                np.array([0, -1, 1, 0], dtype=np.dtype("intp")),
-                np.array(["a", "b"], dtype=object),
-            ),
-            (
-                ["a", np.nan, "b", "a"],
-                True,
-                np.array([0, -1, 1, 0], dtype=np.dtype("intp")),
-                np.array(["a", "b"], dtype=object),
-            ),
-            (
-                ["a", None, "b", "a"],
-                False,
                 np.array([0, 2, 1, 0], dtype=np.dtype("intp")),
                 np.array(["a", "b", np.nan], dtype=object),
             ),
             (
                 ["a", np.nan, "b", "a"],
-                False,
                 np.array([0, 2, 1, 0], dtype=np.dtype("intp")),
                 np.array(["a", "b", np.nan], dtype=object),
             ),
         ],
     )
-    def test_object_factorize_dropna(
-        self, data, dropna, expected_codes, expected_uniques
+    def test_object_factorize_na_sentinel_none(
+        self, data, expected_codes, expected_uniques
     ):
-        codes, uniques = algos.factorize(data, dropna=dropna)
+        codes, uniques = algos.factorize(data, na_sentinel=None)
 
         tm.assert_numpy_array_equal(uniques, expected_uniques)
         tm.assert_numpy_array_equal(codes, expected_codes)
 
     @pytest.mark.parametrize(
-        "data, dropna, expected_codes, expected_uniques",
+        "data, expected_codes, expected_uniques",
         [
             (
                 [1, None, 1, 2],
-                True,
-                np.array([0, -1, 0, 1], dtype=np.dtype("intp")),
-                np.array([1, 2], dtype="O"),
-            ),
-            (
-                [1, np.nan, 1, 2],
-                True,
-                np.array([0, -1, 0, 1], dtype=np.dtype("intp")),
-                np.array([1, 2], dtype=np.float64),
-            ),
-            (
-                [1, None, 1, 2],
-                False,
                 np.array([0, 2, 0, 1], dtype=np.dtype("intp")),
                 np.array([1, 2, np.nan], dtype="O"),
             ),
             (
                 [1, np.nan, 1, 2],
-                False,
                 np.array([0, 2, 0, 1], dtype=np.dtype("intp")),
                 np.array([1, 2, np.nan], dtype=np.float64),
             ),
         ],
     )
-    def test_int_factorize_dropna(self, data, dropna, expected_codes, expected_uniques):
-        codes, uniques = algos.factorize(data, dropna=dropna)
+    def test_int_factorize_na_sentinel_none(
+        self, data, expected_codes, expected_uniques
+    ):
+        codes, uniques = algos.factorize(data, na_sentinel=None)
 
         tm.assert_numpy_array_equal(uniques, expected_uniques)
         tm.assert_numpy_array_equal(codes, expected_codes)
@@ -970,7 +944,7 @@ class TestIsin:
     @pytest.mark.xfail(reason="problem related with issue #34125")
     def test_isin_nan_df_string_search(self):
         """Comparing df with nan value (np.nan,2) with a string at isin() ("NaN")
-        -> should not match values because np.nan is not equal str NaN """
+        -> should not match values because np.nan is not equal str NaN"""
         df = pd.DataFrame({"values": [np.nan, 2]})
         result = df.isin(["NaN"])
         expected_false = pd.DataFrame({"values": [False, False]})
@@ -1163,7 +1137,7 @@ class TestValueCounts:
         )
 
         # 32-bit linux has a different ordering
-        if not compat.is_platform_32bit():
+        if IS64:
             result = Series([10.3, 5.0, 5.0, None]).value_counts(dropna=False)
             expected = Series([2, 1, 1], index=[5.0, 10.3, np.nan])
             tm.assert_series_equal(result, expected)
@@ -1196,7 +1170,7 @@ class TestValueCounts:
         result = algos.value_counts(arr)
 
         # 32-bit linux has a different ordering
-        if not compat.is_platform_32bit():
+        if IS64:
             tm.assert_series_equal(result, expected)
 
 
