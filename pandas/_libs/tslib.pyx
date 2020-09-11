@@ -246,7 +246,7 @@ def array_with_unit_to_datetime(
         if not need_to_iterate:
             # check the bounds
             if (fvalues < Timestamp.min.value).any() or (
-                fvalues > Timestamp.max.value
+                (fvalues > Timestamp.max.value).any()
             ).any():
                 raise OutOfBoundsDatetime(f"cannot convert input with unit '{unit}'")
 
