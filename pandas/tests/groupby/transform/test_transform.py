@@ -181,7 +181,7 @@ def test_transform_axis(tsframe):
     tm.assert_frame_equal(result, expected)
 
     ts = ts.T
-    grouped = ts.groupby(lambda x: x.weekday(), axis=1, dropna=False)
+    grouped = ts.groupby(lambda x: x.weekday(), axis=1)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: (x.T - x.mean(1)).T)
     tm.assert_frame_equal(result, expected)
@@ -194,7 +194,7 @@ def test_transform_axis(tsframe):
     tm.assert_frame_equal(result, expected)
 
     ts = ts.T
-    grouped = ts.groupby(lambda x: x.weekday(), axis=1, dropna=False)
+    grouped = ts.groupby(lambda x: x.weekday(), axis=1)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: (x.T - x.mean(1)).T)
     tm.assert_frame_equal(result, expected)
@@ -313,7 +313,7 @@ def test_dispatch_transform(tsframe):
 
     filled = grouped.fillna(method="pad")
     fillit = lambda x: x.fillna(method="pad")
-    expected = df.groupby(lambda x: x.month, dropna=False).transform(fillit)
+    expected = df.groupby(lambda x: x.month).transform(fillit)
     tm.assert_frame_equal(filled, expected)
 
 
@@ -412,10 +412,10 @@ def test_transform_length():
         return np.nansum(x)
 
     results = [
-        df.groupby("col1", dropna=False).transform(sum)["col2"],
-        df.groupby("col1", dropna=False)["col2"].transform(sum),
-        df.groupby("col1", dropna=False).transform(nsum)["col2"],
-        df.groupby("col1", dropna=False)["col2"].transform(nsum),
+        df.groupby("col1").transform(sum)["col2"],
+        df.groupby("col1")["col2"].transform(sum),
+        df.groupby("col1").transform(nsum)["col2"],
+        df.groupby("col1")["col2"].transform(nsum),
     ]
     for result in results:
         tm.assert_series_equal(result, expected, check_names=False)
@@ -612,7 +612,8 @@ def test_cython_transform_series(op, args, targop):
 
     # series
     for data in [s, s_missing]:
-        expected = data.groupby(labels, dropna=False).transform(targop)
+        # print(data.head())
+        expected = data.groupby(labels).transform(targop)
 
         tm.assert_series_equal(expected, data.groupby(labels).transform(op, *args))
         tm.assert_series_equal(expected, getattr(data.groupby(labels), op)(*args))
