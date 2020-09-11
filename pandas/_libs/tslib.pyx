@@ -220,7 +220,7 @@ def array_with_unit_to_datetime(
     assert is_ignore or is_coerce or is_raise
 
     if unit == "ns":
-        if issubclass(values.dtype.type, np.integer) or issubclass(
+        if issubclass(values.dtype.type, (np.integer, np.float)):
             values.dtype.type, np.float_
         ):
             result = values.astype("M8[ns]")
