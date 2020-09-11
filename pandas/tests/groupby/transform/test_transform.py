@@ -149,7 +149,7 @@ def test_transform_broadcast(tsframe, ts):
             assert_fp_equal(res[col], agged[col])
 
     # group columns
-    grouped = tsframe.groupby({"A": 0, "B": 0, "C": 1, "D": 1}, axis=1, dropna=False)
+    grouped = tsframe.groupby({"A": 0, "B": 0, "C": 1, "D": 1}, axis=1)
     result = grouped.transform(np.mean)
     tm.assert_index_equal(result.index, tsframe.index)
     tm.assert_index_equal(result.columns, tsframe.columns)
