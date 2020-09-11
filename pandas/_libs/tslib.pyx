@@ -221,8 +221,6 @@ def array_with_unit_to_datetime(
 
     if unit == "ns":
         if issubclass(values.dtype.type, (np.integer, np.float)):
-            values.dtype.type, np.float_
-        ):
             result = values.astype("M8[ns]")
         else:
             result, tz = array_to_datetime(values.astype(object), errors=errors)
@@ -247,7 +245,7 @@ def array_with_unit_to_datetime(
             # check the bounds
             if (fvalues < Timestamp.min.value).any() or (
                 (fvalues > Timestamp.max.value).any()
-            ).any():
+            ):
                 raise OutOfBoundsDatetime(f"cannot convert input with unit '{unit}'")
 
             if prec:
