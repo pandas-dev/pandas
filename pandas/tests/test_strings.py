@@ -848,7 +848,8 @@ class TestStringMethods:
     def test_startswith(self, dtype, null_value, na):
         # add category dtype parametrizations for GH-36241
         values = Series(
-            ["om", null_value, "foo_nom", "nom", "bar_foo", null_value, "foo"], dtype=dtype
+            ["om", null_value, "foo_nom", "nom", "bar_foo", null_value, "foo"],
+            dtype=dtype,
         )
 
         result = values.str.startswith("foo")
@@ -883,7 +884,8 @@ class TestStringMethods:
     def test_endswith(self, dtype, null_value, na):
         # add category dtype parametrizations for GH-36241
         values = Series(
-            ["om", null_value, "foo_nom", "nom", "bar_foo", null_value, "foo"], dtype=dtype
+            ["om", null_value, "foo_nom", "nom", "bar_foo", null_value, "foo"],
+            dtype=dtype,
         )
 
         result = values.str.endswith("foo")
