@@ -361,7 +361,7 @@ Examples
 )
 
 
-def _validate_integer(name, val, min_val=0):
+def validate_integer(name, val, min_val=0):
     """
     Checks whether the 'name' parameter for parsing is either
     an integer OR float that can SAFELY be cast to an integer
@@ -436,7 +436,7 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
 
     # Extract some of the arguments (pass chunksize on).
     iterator = kwds.get("iterator", False)
-    chunksize = _validate_integer("chunksize", kwds.get("chunksize", None), 1)
+    chunksize = validate_integer("chunksize", kwds.get("chunksize", None), 1)
     nrows = kwds.get("nrows", None)
 
     # Check for duplicates in names.
@@ -1179,7 +1179,7 @@ class TextFileReader(abc.Iterator):
         raise AbstractMethodError(self)
 
     def read(self, nrows=None):
-        nrows = _validate_integer("nrows", nrows)
+        nrows = validate_integer("nrows", nrows)
         ret = self._engine.read(nrows)
 
         # May alter columns / col_dict

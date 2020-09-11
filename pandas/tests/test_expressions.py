@@ -35,7 +35,7 @@ _integer2 = DataFrame(
 )
 
 
-@pytest.mark.skipif(not expr._USE_NUMEXPR, reason="not using numexpr")
+@pytest.mark.skipif(not expr.USE_NUMEXPR, reason="not using numexpr")
 class TestExpressions:
     def setup_method(self, method):
 

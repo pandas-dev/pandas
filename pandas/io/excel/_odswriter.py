@@ -9,7 +9,7 @@ from pandas.io.excel._util import validate_freeze_panes
 from pandas.io.formats.excel import ExcelCell
 
 
-class _ODSWriter(ExcelWriter):
+class ODSWriter(ExcelWriter):
     engine = "odf"
     supported_extensions = (".ods",)
 

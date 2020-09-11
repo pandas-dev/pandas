@@ -43,9 +43,5 @@ def test_replace(to_replace, value, expected, flip_categories):
         # the replace call loses categorical dtype
         expected = pd.Series(np.asarray(expected))
 
-    tm.assert_series_equal(
-        expected, result, check_category_order=False,
-    )
-    tm.assert_series_equal(
-        expected, s, check_category_order=False,
-    )
+    tm.assert_series_equal(expected, result, check_category_order=False)
+    tm.assert_series_equal(expected, s, check_category_order=False)

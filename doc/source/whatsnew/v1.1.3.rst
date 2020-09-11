@@ -1,0 +1,42 @@
+.. _whatsnew_113:
+
+What's new in 1.1.3 (??)
+------------------------
+
+These are the changes in pandas 1.1.3. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_113.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_113.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_113.other:
+
+Other
+~~~~~
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_113.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.1.2..v1.1.3|HEAD
