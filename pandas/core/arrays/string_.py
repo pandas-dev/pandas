@@ -1,12 +1,9 @@
 import operator
-from typing import TYPE_CHECKING, Any, Callable, Dict, Type, Union
+from typing import TYPE_CHECKING, Type, Union
 
 import numpy as np
 
-from pandas._config import get_option
-
 from pandas._libs import lib, missing as libmissing
-from pandas._typing import ArrayLike, Dtype
 
 from pandas.core.dtypes.base import ExtensionDtype, register_extension_dtype
 from pandas.core.dtypes.common import (
@@ -22,12 +19,11 @@ from pandas import compat
 from pandas.core import ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import IntegerArray, PandasArray
-from pandas.core.arrays.boolean import BooleanDtype
 from pandas.core.arrays.integer import _IntegerDtype
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import isna
-from pandas.core.strings.base import BaseStringArrayMethods
+from pandas.core.strings.object_array import ObjectArrayMethods
 
 if TYPE_CHECKING:
     import pyarrow  # noqa: F401
@@ -62,82 +58,16 @@ class StringDtype(ExtensionDtype):
     StringDtype
     """
 
+    name = "string"
+
     #: StringDtype.na_value uses pandas.NA
     na_value = libmissing.NA
-    _metadata = ("storage",)
-
-    def __init__(self, storage=None):
-        if storage is None:
-            storage = get_option("mode.string_storage")
-        if storage not in {"python", "pyarrow"}:
-            raise ValueError(
-                f"Storage must be 'python' or 'pyarrow'. Got {storage} instead."
-            )
-        self.storage = storage
-
-    @property
-    def name(self):
-        return f"StringDtype[{self.storage}]"
 
     @property
     def type(self) -> Type[str]:
         return str
 
     @classmethod
-    def construct_from_string(cls, string):
-        """
-        Construct a StringDtype from a string.
-
-        Parameters
-        ----------
-        string : str
-            The type of the name. The storage type will be taking from `string`.
-            Valid options and their storage types are
-
-            ========================== ==============
-            string                     result storage
-            ========================== ==============
-            ``'string'``               global default
-            ``'string[python]'``       python
-            ``'StringDtype[python]'``  python
-            ``'string[pyarrow]'``      pyarrow
-            ``'StringDtype[pyarrow]'`` pyarrow
-            ========================== =============
-
-        Returns
-        -------
-        StringDtype
-
-        Raise
-        -----
-        TypeError
-            If the string is not a valid option.
-
-        """
-        if not isinstance(string, str):
-            raise TypeError(
-                f"'construct_from_string' expects a string, got {type(string)}"
-            )
-        if string == "string":
-            # TODO: use global default
-            return cls()
-        elif string in {"string[python]", "StringDtype[python]"}:
-            return cls(storage="python")
-        elif string in {"string[pyarrow]", "StringDtype[pyarrow]"}:
-            return cls(storage="pyarrow")
-        else:
-            raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
-
-    def __eq__(self, other: Any) -> bool:
-        if isinstance(other, str) and other == "string":
-            return True
-        return super().__eq__(other)
-
-    def __hash__(self) -> int:
-        # custom __eq__ so have to override __hash__
-        return super().__hash__()
-
-    # XXX: this is a classmethod, but we need to know the storage type.
     def construct_array_type(self) -> Type["StringArray"]:
         """
         Return the array type associated with this dtype.
@@ -146,14 +76,9 @@ class StringDtype(ExtensionDtype):
         -------
         type
         """
-        from .string_arrow import ArrowStringArray
+        return StringArray
 
-        if self.storage == "python":
-            return StringArray
-        else:
-            return ArrowStringArray
-
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.name
 
     def __from_arrow__(
@@ -163,7 +88,6 @@ class StringDtype(ExtensionDtype):
         Construct StringArray from pyarrow Array/ChunkedArray.
         """
         import pyarrow  # noqa: F811
-        from .string_arrow import ArrowStringArray
 
         if isinstance(array, pyarrow.Array):
             chunks = [array]
@@ -177,87 +101,57 @@ class StringDtype(ExtensionDtype):
             str_arr = StringArray._from_sequence(np.array(arr))
             results.append(str_arr)
 
-        return ArrowStringArray._concat_same_type(results)
+        return StringArray._concat_same_type(results)
 
 
-def _map_stringarray(
-    func: Callable[[str], Any],
-    arr: "StringArray",
-    na_value: Any = libmissing.NA,
-    dtype: Dtype = StringDtype(),
-) -> ArrayLike:
-    """
-    Map a callable over valid elements of a StringArray.
+class StringArrayMethods(ObjectArrayMethods):
+    def _map(self, f, na_value=libmissing.NA, dtype=StringDtype()):
+        from pandas.arrays import BooleanArray, IntegerArray, StringArray
 
-    Parameters
-    ----------
-    func : Callable[[str], Any]
-        Apply to each valid element.
-    arr : StringArray
-    na_value : Any
-        The value to use for missing values. By default, this is
-        the original value (NA).
-    dtype : Dtype
-        The result dtype to use. Specifying this avoids an intermediate
-        object-dtype allocation.
+        arr = self._array
+        mask = isna(arr)
 
-    Returns
-    -------
-    ArrayLike
-        An ExtensionArray for integer or string dtypes, otherwise
-        an ndarray.
+        assert isinstance(arr, StringArray)
+        arr = np.asarray(arr)
+        if na_value is None:
+            na_value = libmissing.NA
 
-    """
-    from pandas.arrays import BooleanArray, IntegerArray, StringArray
+        if is_integer_dtype(dtype) or is_bool_dtype(dtype):
+            constructor: Union[Type[IntegerArray], Type[BooleanArray]]
+            if is_integer_dtype(dtype):
+                constructor = IntegerArray
+            else:
+                constructor = BooleanArray
 
-    mask = isna(arr)
+            na_value_is_na = isna(na_value)
+            if na_value_is_na:
+                na_value = 1
+            result = lib.map_infer_mask(
+                arr,
+                f,
+                mask.view("uint8"),
+                convert=False,
+                na_value=na_value,
+                dtype=np.dtype(dtype),
+            )
 
-    assert isinstance(arr, StringArray)
-    arr = np.asarray(arr)
-    if na_value is None:
-        na_value = libmissing.NA
+            if not na_value_is_na:
+                mask[:] = False
 
-    if is_integer_dtype(dtype) or is_bool_dtype(dtype):
-        constructor: Union[Type[IntegerArray], Type[BooleanArray]]
-        if is_integer_dtype(dtype):
-            constructor = IntegerArray
+            return constructor(result, mask)
+
+        elif is_string_dtype(dtype) and not is_object_dtype(dtype):
+            # i.e. StringDtype
+            result = lib.map_infer_mask(
+                arr, f, mask.view("uint8"), convert=False, na_value=na_value
+            )
+            return StringArray(result)
         else:
-            constructor = BooleanArray
-
-        na_value_is_na = isna(na_value)
-        if na_value_is_na:
-            na_value = 1
-        result = lib.map_infer_mask(
-            arr,
-            func,
-            mask.view("uint8"),
-            convert=False,
-            na_value=na_value,
-            dtype=np.dtype(dtype),
-        )
-
-        if not na_value_is_na:
-            mask[:] = False
-
-        return constructor(result, mask)
-
-    elif is_string_dtype(dtype) and not is_object_dtype(dtype):
-        # i.e. StringDtype
-        result = lib.map_infer_mask(
-            arr, func, mask.view("uint8"), convert=False, na_value=na_value
-        )
-        return StringArray(result)
-    else:
-        # This is when the result type is object. We reach this when
-        # -> We know the result type is truly object (e.g. .encode returns bytes
-        #    or .findall returns a list).
-        # -> We don't know the result type. E.g. `.get` can return anything.
-        return lib.map_infer_mask(arr, func, mask.view("uint8"))
-
-
-class StringArrayMethods(BaseStringArrayMethods):
-    def _map(self, f, na_result=libmissing.NA, dtype=StringDtype()):
-        return _map_stringarray(f, self._array, na_result, dtype)
+            # This is when the result type is object. We reach this when
+            # -> We know the result type is truly object (e.g. .encode returns bytes
+            #    or .findall returns a list).
+            # -> We don't know the result type. E.g. `.get` can return anything.
+            return lib.map_infer_mask(arr, f, mask.view("uint8"))
 
 
 class StringArray(PandasArray):
@@ -507,7 +401,7 @@ class StringArray(PandasArray):
         cls.__rmul__ = cls._create_arithmetic_method(ops.rmul)
 
     _create_comparison_method = _create_arithmetic_method
-    _str = CachedAccessor("str", StringArrayMethods)
+    _str = CachedAccessor("_str", StringArrayMethods)
 
 
 StringArray._add_arithmetic_ops()
