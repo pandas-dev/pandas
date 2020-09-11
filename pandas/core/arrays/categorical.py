@@ -43,7 +43,7 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, notna
 from pandas.core import ops
 from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algorithms
-from pandas.core.algorithms import _get_data_algo, factorize, take_1d, unique1d
+from pandas.core.algorithms import factorize, get_data_algo, take_1d, unique1d
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.base import ExtensionArray, NoNewAttributesMixin, PandasObject
 import pandas.core.common as com
@@ -2531,8 +2531,8 @@ def _get_codes_for_values(values, categories):
 
     # Only hit here when we've already coerced to object dtypee.
 
-    hash_klass, vals = _get_data_algo(values)
-    _, cats = _get_data_algo(categories)
+    hash_klass, vals = get_data_algo(values)
+    _, cats = get_data_algo(categories)
     t = hash_klass(len(cats))
     t.map_locations(cats)
     return coerce_indexer_dtype(t.lookup(vals), cats)
