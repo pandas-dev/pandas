@@ -100,8 +100,8 @@ For example:
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
-
 - Added :meth:`~DataFrame.set_flags` for setting table-wide flags on a ``Series`` or ``DataFrame`` (:issue:`28394`)
+- :meth:`DataFrame.applymap` now supports ``na_action`` (:issue:`23803`)
 - :class:`Index` with object dtype supports division and multiplication (:issue:`34160`)
 - :meth:`DataFrame.explode` and :meth:`Series.explode` now support exploding of sets (:issue:`35614`)
 -
@@ -228,6 +228,7 @@ Datetimelike
 - Bug in :class:`DateOffset` where attributes reconstructed from pickle files differ from original objects when input values exceed normal ranges (e.g months=12) (:issue:`34511`)
 - Bug in :meth:`DatetimeIndex.get_slice_bound` where ``datetime.date`` objects were not accepted or naive :class:`Timestamp` with a tz-aware :class:`DatetimeIndex` (:issue:`35690`)
 - Bug in :meth:`DatetimeIndex.slice_locs` where ``datetime.date`` objects were not accepted (:issue:`34077`)
+- Bug in :meth:`DatetimeIndex.searchsorted`, :meth:`TimedeltaIndex.searchsorted`, and :meth:`Series.searchsorted` with ``datetime64`` or ``timedelta64`` dtype placement of ``NaT`` values being inconsistent with ``NumPy`` (:issue:`36176`)
 
 Timedelta
 ^^^^^^^^^
@@ -244,7 +245,8 @@ Timezones
 
 Numeric
 ^^^^^^^
--
+- Bug in :func:`to_numeric` where float precision was incorrect (:issue:`31364`)
+- Bug in :meth:`DataFrame.any` with ``axis=1`` and ``bool_only=True`` ignoring the ``bool_only`` keyword (:issue:`32432`)
 -
 
 Conversion
@@ -300,7 +302,6 @@ Plotting
 ^^^^^^^^
 
 - Bug in :meth:`DataFrame.plot` where a marker letter in the ``style`` keyword sometimes causes a ``ValueError`` (:issue:`21003`)
-- meth:`DataFrame.plot` and meth:`Series.plot` raise ``UserWarning`` about usage of FixedFormatter and FixedLocator (:issue:`35684` and :issue:`35945`)
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -333,7 +334,7 @@ Sparse
 ExtensionArray
 ^^^^^^^^^^^^^^
 
--
+- Fixed Bug where :class:`DataFrame` column set to scalar extension type via a dict instantion was considered an object type rather than the extension type (:issue:`35965`)
 -
 
 

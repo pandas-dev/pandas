@@ -3,7 +3,7 @@ from copy import copy, deepcopy
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import _np_version_under1p17
+from pandas.compat.numpy import np_version_under1p17
 
 from pandas.core.dtypes.common import is_scalar
 
@@ -652,12 +652,12 @@ class TestNDFrame:
             pytest.param(
                 "np.random.MT19937",
                 3,
-                marks=pytest.mark.skipif(_np_version_under1p17, reason="NumPy<1.17"),
+                marks=pytest.mark.skipif(np_version_under1p17, reason="NumPy<1.17"),
             ),
             pytest.param(
                 "np.random.PCG64",
                 11,
-                marks=pytest.mark.skipif(_np_version_under1p17, reason="NumPy<1.17"),
+                marks=pytest.mark.skipif(np_version_under1p17, reason="NumPy<1.17"),
             ),
         ],
     )
