@@ -41,6 +41,7 @@ def get_indexer_indexer(
     na_position : {'first', 'last'}, default 'last'
     sort_remaining : bool, default True
     key : callable, optional
+
     Returns
     -------
     Optional[ndarray]

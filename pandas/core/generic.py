@@ -70,7 +70,6 @@ from pandas.util._validators import (
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_object,
-    ensure_platform_int,
     ensure_str,
     is_bool,
     is_bool_dtype,
