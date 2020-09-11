@@ -37,6 +37,12 @@ PRIVATE_IMPORTS_TO_IGNORE: Set[str] = {
     "_flex_comp_doc_FRAME",
     "_make_flex_doc",
     "_op_descriptions",
+    "_use_inf_as_na",
+    "_get_plot_backend",
+    "_matplotlib",
+    "_arrow_utils",
+    "_registry",
+    "_get_offset",  # TODO: remove after get_offset deprecation enforced
     "_test_parse_iso8601",
     "_json_normalize",  # TODO: remove after deprecation is enforced
     "_testing",
