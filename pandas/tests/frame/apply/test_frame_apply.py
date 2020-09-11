@@ -1147,7 +1147,7 @@ class TestDataFrameAggregate:
         )
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
-    def test_agg_with_unhashable_name_column_value(self):
+    def test_agg_with_name_as_column_name(self):
         # GH 36212 - Column name is "name"
         data = {"name": ["foo", "bar"]}
         df = pd.DataFrame(data)
@@ -1157,7 +1157,7 @@ class TestDataFrameAggregate:
         expected = pd.Series({"name": 2})
         tm.assert_series_equal(result, expected)
 
-        # Check if name is preserved when aggregating series instead
+        # Check if name is still preserved when aggregating series instead
         result = df["name"].agg({"name": "count"})
         expected = pd.Series({"name": 2}, name="name")
         tm.assert_series_equal(result, expected)
