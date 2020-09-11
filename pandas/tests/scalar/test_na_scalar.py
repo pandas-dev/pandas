@@ -307,15 +307,9 @@ def test_pickle_roundtrip_containers(as_frame, values, dtype):
     tm.assert_equal(result, s)
 
 
-def test_np_array_contains_na():
+@pytest.mark.parametrize("array", [np.array(["a"], dtype=object), ["a"]])
+def test_array_contains_na(array):
     # GH 31922
     msg = "boolean value of NA is ambiguous"
     with pytest.raises(TypeError, match=msg):
-        NA in np.array(["a"], dtype=object)
-
-
-def test_list_contains_na():
-    # GH 31922
-    msg = "boolean value of NA is ambiguous"
-    with pytest.raises(TypeError, match=msg):
-        NA in ["a"]
+        NA in array
