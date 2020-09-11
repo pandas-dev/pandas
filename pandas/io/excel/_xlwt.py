@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from xlwt import XFStyle
 
 
-class _XlwtWriter(ExcelWriter):
+class XlwtWriter(ExcelWriter):
     engine = "xlwt"
     supported_extensions = (".xls",)
 
