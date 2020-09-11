@@ -30,6 +30,7 @@ Bug fixes
 - Bug in :meth:`Series.str.startswith` and :meth:`Series.str.endswith` with ``category`` dtype not propagating ``na`` parameter (:issue:`36241`)
 - Bug in :class:`Series` constructor where integer overflow would occur for sufficiently large scalar inputs when an index was provided (:issue:`36291`)
 - Bug in :meth:`DataFrame.stack` raising a ``ValueError`` when stacking :class:`MultiIndex` columns based on position when the levels had duplicate names (:issue:`36353`)
+- Bug in :meth:`isin()` when using NaN and a row length above 1,000,000 (:issue:`22205`)
 
 .. ---------------------------------------------------------------------------
 
