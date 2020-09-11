@@ -324,12 +324,12 @@ def _align_method_SERIES(left: "Series", right, align_asobject: bool = False):
     return left, right
 
 
-def _arith_method_SERIES(cls, op, special):
+def arith_method_SERIES(cls, op, special):
     """
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
-    assert special  # non-special uses _flex_method_SERIES
+    assert special  # non-special uses flex_method_SERIES
     op_name = _get_op_name(op, special)
 
     @unpack_zerodim_and_defer(op_name)
@@ -348,12 +348,12 @@ def _arith_method_SERIES(cls, op, special):
     return wrapper
 
 
-def _comp_method_SERIES(cls, op, special):
+def comp_method_SERIES(cls, op, special):
     """
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
-    assert special  # non-special uses _flex_method_SERIES
+    assert special  # non-special uses flex_method_SERIES
     op_name = _get_op_name(op, special)
 
     @unpack_zerodim_and_defer(op_name)
@@ -375,12 +375,12 @@ def _comp_method_SERIES(cls, op, special):
     return wrapper
 
 
-def _bool_method_SERIES(cls, op, special):
+def bool_method_SERIES(cls, op, special):
     """
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
-    assert special  # non-special uses _flex_method_SERIES
+    assert special  # non-special uses flex_method_SERIES
     op_name = _get_op_name(op, special)
 
     @unpack_zerodim_and_defer(op_name)
@@ -398,7 +398,7 @@ def _bool_method_SERIES(cls, op, special):
     return wrapper
 
 
-def _flex_method_SERIES(cls, op, special):
+def flex_method_SERIES(cls, op, special):
     assert not special  # "special" also means "not flex"
     name = _get_op_name(op, special)
     doc = _make_flex_doc(name, "series")
@@ -614,7 +614,7 @@ def _maybe_align_series_as_frame(frame: "DataFrame", series: "Series", axis: int
     return type(frame)(rvalues, index=frame.index, columns=frame.columns)
 
 
-def _arith_method_FRAME(cls: Type["DataFrame"], op, special: bool):
+def arith_method_FRAME(cls: Type["DataFrame"], op, special: bool):
     # This is the only function where `special` can be either True or False
     op_name = _get_op_name(op, special)
     default_axis = _get_frame_op_default_axis(op_name)
@@ -666,7 +666,7 @@ def _arith_method_FRAME(cls: Type["DataFrame"], op, special: bool):
     return f
 
 
-def _flex_comp_method_FRAME(cls: Type["DataFrame"], op, special: bool):
+def flex_comp_method_FRAME(cls: Type["DataFrame"], op, special: bool):
     assert not special  # "special" also means "not flex"
     op_name = _get_op_name(op, special)
     default_axis = _get_frame_op_default_axis(op_name)
@@ -690,7 +690,7 @@ def _flex_comp_method_FRAME(cls: Type["DataFrame"], op, special: bool):
     return f
 
 
-def _comp_method_FRAME(cls: Type["DataFrame"], op, special: bool):
+def comp_method_FRAME(cls: Type["DataFrame"], op, special: bool):
     assert special  # "special" also means "not flex"
     op_name = _get_op_name(op, special)
 

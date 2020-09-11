@@ -44,28 +44,28 @@ def _get_method_wrappers(cls):
     # TODO: make these non-runtime imports once the relevant functions
     #  are no longer in __init__
     from pandas.core.ops import (
-        _arith_method_FRAME,
-        _arith_method_SERIES,
-        _bool_method_SERIES,
-        _comp_method_FRAME,
-        _comp_method_SERIES,
-        _flex_comp_method_FRAME,
-        _flex_method_SERIES,
+        arith_method_FRAME,
+        arith_method_SERIES,
+        bool_method_SERIES,
+        comp_method_FRAME,
+        comp_method_SERIES,
+        flex_comp_method_FRAME,
+        flex_method_SERIES,
     )
 
     if issubclass(cls, ABCSeries):
         # Just Series
-        arith_flex = _flex_method_SERIES
-        comp_flex = _flex_method_SERIES
-        arith_special = _arith_method_SERIES
-        comp_special = _comp_method_SERIES
-        bool_special = _bool_method_SERIES
+        arith_flex = flex_method_SERIES
+        comp_flex = flex_method_SERIES
+        arith_special = arith_method_SERIES
+        comp_special = comp_method_SERIES
+        bool_special = bool_method_SERIES
     elif issubclass(cls, ABCDataFrame):
-        arith_flex = _arith_method_FRAME
-        comp_flex = _flex_comp_method_FRAME
-        arith_special = _arith_method_FRAME
-        comp_special = _comp_method_FRAME
-        bool_special = _arith_method_FRAME
+        arith_flex = arith_method_FRAME
+        comp_flex = flex_comp_method_FRAME
+        arith_special = arith_method_FRAME
+        comp_special = comp_method_FRAME
+        bool_special = arith_method_FRAME
     return arith_flex, comp_flex, arith_special, comp_special, bool_special
 
 

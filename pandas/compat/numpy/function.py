@@ -21,7 +21,7 @@ from collections import OrderedDict
 from distutils.version import LooseVersion
 from typing import Any, Dict, Optional, Union
 
-from numpy import __version__ as _np_version, ndarray
+from numpy import __version__, ndarray
 
 from pandas._libs.lib import is_bool, is_integer
 from pandas.errors import UnsupportedFunctionCall
@@ -122,7 +122,7 @@ ARGSORT_DEFAULTS["axis"] = -1
 ARGSORT_DEFAULTS["kind"] = "quicksort"
 ARGSORT_DEFAULTS["order"] = None
 
-if LooseVersion(_np_version) >= LooseVersion("1.17.0"):
+if LooseVersion(__version__) >= LooseVersion("1.17.0"):
     # GH-26361. NumPy added radix sort and changed default to None.
     ARGSORT_DEFAULTS["kind"] = None
 

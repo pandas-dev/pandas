@@ -33,7 +33,6 @@ import pytest
 
 from pandas.compat import IS64, is_platform_windows
 from pandas.compat._optional import import_optional_dependency
-from pandas.compat.numpy import _np_version
 
 from pandas.core.computation.expressions import NUMEXPR_INSTALLED, USE_NUMEXPR
 
@@ -205,7 +204,9 @@ skip_if_no_ne = pytest.mark.skipif(
 def skip_if_np_lt(ver_str: str, *args, reason: Optional[str] = None):
     if reason is None:
         reason = f"NumPy {ver_str} or greater required"
-    return pytest.mark.skipif(_np_version < LooseVersion(ver_str), *args, reason=reason)
+    return pytest.mark.skipif(
+        np.__version__ < LooseVersion(ver_str), *args, reason=reason
+    )
 
 
 def parametrize_fixture_doc(*args):

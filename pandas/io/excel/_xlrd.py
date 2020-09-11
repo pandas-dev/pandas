@@ -8,7 +8,7 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.io.excel._base import BaseExcelReader
 
 
-class _XlrdReader(BaseExcelReader):
+class XlrdReader(BaseExcelReader):
     def __init__(self, filepath_or_buffer, storage_options: StorageOptions = None):
         """
         Reader using xlrd engine.

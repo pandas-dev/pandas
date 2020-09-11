@@ -10,7 +10,7 @@ import pandas as pd
 from pandas.io.excel._base import BaseExcelReader
 
 
-class _ODFReader(BaseExcelReader):
+class ODFReader(BaseExcelReader):
     """
     Read tables out of OpenDocument formatted files.
 

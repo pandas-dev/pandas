@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from openpyxl.descriptors.serialisable import Serialisable
 
 
-class _OpenpyxlWriter(ExcelWriter):
+class OpenpyxlWriter(ExcelWriter):
     engine = "openpyxl"
     supported_extensions = (".xlsx", ".xlsm")
 
@@ -438,7 +438,7 @@ class _OpenpyxlWriter(ExcelWriter):
                                 setattr(xcell, k, v)
 
 
-class _OpenpyxlReader(BaseExcelReader):
+class OpenpyxlReader(BaseExcelReader):
     def __init__(
         self,
         filepath_or_buffer: FilePathOrBuffer,
