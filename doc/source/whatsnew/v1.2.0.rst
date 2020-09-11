@@ -279,6 +279,7 @@ Missing
 ^^^^^^^
 
 - Bug in :meth:`SeriesGroupBy.transform` now correctly handles missing values for `dropna=False` (:issue:`35014`)
+- Bug in :meth:`DataFrame.mask` and :meth:`DataFrame.where` raising an ``AssertionError`` when using a nullable boolean mask (:issue:`35429`)
 -
 
 MultiIndex
