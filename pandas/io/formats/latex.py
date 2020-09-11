@@ -478,6 +478,11 @@ class LongTableBuilder(GenericTableBuilder):
         iterator = self._create_row_iterator(over="header")
         elements = [
             "\\midrule",
+            "\\endfirsthead",
+            f"\\caption[]{{{self.caption}}} \\\\" if self.caption else "",
+            self.top_separator,
+            self.header,
+            "\\midrule",
             "\\endhead",
             "\\midrule",
             f"\\multicolumn{{{len(iterator.strcols)}}}{{r}}"
