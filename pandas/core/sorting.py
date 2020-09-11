@@ -28,6 +28,24 @@ _INT64_MAX = np.iinfo(np.int64).max
 def get_indexer_indexer(
     target, level, ascending, kind, na_position, sort_remaining, key
 ):
+    """
+    Helper method that return the indexer according to input parameters for
+    the sort_index method of DataFrame and Series.
+
+    Parameters
+    ----------
+    target : Index
+    level : int or level name or list of ints or list of level names
+    ascending : bool or list of bools, default True
+    kind : {'quicksort', 'mergesort', 'heapsort'}, default 'quicksort'
+    na_position : {'first', 'last'}, default 'last'
+    sort_remaining : bool, default True
+    key : callable, optional
+    Returns
+    -------
+    Optional[ndarray]
+        The indexer for the new index.
+    """
 
     target = ensure_key_mapped(target, key, levels=level)
     target = target._sort_levels_monotonic()
