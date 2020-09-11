@@ -1175,7 +1175,7 @@ class TextFileReader(abc.Iterator):
         ret = self._engine.read(nrows)
 
         # May alter columns / col_dict
-        index, columns, col_dict = self._create_index(ret)
+        index, columns, col_dict = ret
 
         if index is None:
             if col_dict:
@@ -1194,10 +1194,6 @@ class TextFileReader(abc.Iterator):
         if self.squeeze and len(df.columns) == 1:
             return df[df.columns[0]].copy()
         return df
-
-    def _create_index(self, ret):
-        index, columns, col_dict = ret
-        return index, columns, col_dict
 
     def get_chunk(self, size=None):
         if size is None:
