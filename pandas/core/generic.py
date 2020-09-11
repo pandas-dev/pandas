@@ -8820,9 +8820,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # make sure we are boolean
         cond = cond.fillna(False)
 
-        if invert:
-            cond = ~cond
-
         msg = "Boolean array expected for the condition, not {dtype}"
 
         if not cond.empty:
@@ -8838,7 +8835,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             # GH#21947 we have an empty DataFrame/Series, could be object-dtype
             cond = cond.astype(bool)
 
-        cond = ~cond if inplace else cond
+        cond = ~cond if (inplace ^ invert) else cond
 
         # try to align with other
         try_quick = True
