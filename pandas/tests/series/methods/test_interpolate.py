@@ -26,8 +26,7 @@ import pandas._testing as tm
         "from_derivatives",
         "pchip",
         "akima",
-        "cubicspline",
-    ]
+        "cubicspline"]
 )
 def nontemporal_method(request):
     """Fixture that returns an (method name, required kwargs) pair.
@@ -56,8 +55,7 @@ def nontemporal_method(request):
         "from_derivatives",
         "pchip",
         "akima",
-        "cubicspline",
-    ]
+        "cubicspline"]
 )
 def interp_methods_ind(request):
     """Fixture that returns a (method name, required kwargs) pair to
@@ -104,10 +102,7 @@ class TestSeriesInterpolateData:
 
         ser = Series([10, 11, 12, 13])
 
-        expected = Series(
-            [11.00, 11.25, 11.50, 11.75, 12.00, 12.25, 12.50, 12.75, 13.00],
-            index=Index([1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0]),
-        )
+        expected = Series([11.00, 11.25, 11.50, 11.75, 12.00, 12.25, 12.50, 12.75, 13.00], index=Index([1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0]))
         # interpolate at new_index
         new_index = ser.index.union(Index([1.25, 1.5, 1.75, 2.25, 2.5, 2.75])).astype(
             float
@@ -134,10 +129,7 @@ class TestSeriesInterpolateData:
         ser = Series([10, 11, 12, 13])
 
         # interpolate at new_index where `der` is zero
-        expected = Series(
-            [11.00, 11.25, 11.50, 11.75, 12.00, 12.25, 12.50, 12.75, 13.00],
-            index=Index([1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0]),
-        )
+        expected = Series([11.00, 11.25, 11.50, 11.75, 12.00, 12.25, 12.50, 12.75, 13.00], index=Index([1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0]))
         new_index = ser.index.union(Index([1.25, 1.5, 1.75, 2.25, 2.5, 2.75])).astype(
             float
         )
@@ -145,10 +137,7 @@ class TestSeriesInterpolateData:
         tm.assert_series_equal(interp_s[1:3], expected)
 
         # interpolate at new_index where `der` is a non-zero int
-        expected = Series(
-            [11.0, 1.0, 1.0, 1.0, 12.0, 1.0, 1.0, 1.0, 13.0],
-            index=Index([1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0]),
-        )
+        expected = Series([11.0, 1.0, 1.0, 1.0, 12.0, 1.0, 1.0, 1.0, 13.0], index=Index([1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0]))
         new_index = ser.index.union(Index([1.25, 1.5, 1.75, 2.25, 2.5, 2.75])).astype(
             float
         )
@@ -159,10 +148,7 @@ class TestSeriesInterpolateData:
     def test_interpolate_piecewise_polynomial(self):
         ser = Series([10, 11, 12, 13])
 
-        expected = Series(
-            [11.00, 11.25, 11.50, 11.75, 12.00, 12.25, 12.50, 12.75, 13.00],
-            index=Index([1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0]),
-        )
+        expected = Series([11.00, 11.25, 11.50, 11.75, 12.00, 12.25, 12.50, 12.75, 13.00], index=Index([1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0]))
         # interpolate at new_index
         new_index = ser.index.union(Index([1.25, 1.5, 1.75, 2.25, 2.5, 2.75])).astype(
             float
@@ -174,10 +160,7 @@ class TestSeriesInterpolateData:
     def test_interpolate_from_derivatives(self):
         ser = Series([10, 11, 12, 13])
 
-        expected = Series(
-            [11.00, 11.25, 11.50, 11.75, 12.00, 12.25, 12.50, 12.75, 13.00],
-            index=Index([1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0]),
-        )
+        expected = Series([11.00, 11.25, 11.50, 11.75, 12.00, 12.25, 12.50, 12.75, 13.00], index=Index([1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0]))
         # interpolate at new_index
         new_index = ser.index.union(Index([1.25, 1.5, 1.75, 2.25, 2.5, 2.75])).astype(
             float
@@ -187,13 +170,7 @@ class TestSeriesInterpolateData:
 
     @pytest.mark.parametrize(
         "kwargs",
-        [
-            {},
-            pytest.param(
-                {"method": "polynomial", "order": 1}, marks=td.skip_if_no_scipy
-            ),
-        ],
-    )
+        [{}, pytest.param({"method": "polynomial", "order": 1}, marks=td.skip_if_no_scipy)])
     def test_interpolate_corners(self, kwargs):
         s = Series([np.nan, np.nan])
         tm.assert_series_equal(s.interpolate(**kwargs), s)
@@ -233,15 +210,7 @@ class TestSeriesInterpolateData:
         with pytest.raises(ValueError, match=msg):
             s.interpolate(method="time")
 
-    @pytest.mark.parametrize(
-        "kwargs",
-        [
-            {},
-            pytest.param(
-                {"method": "polynomial", "order": 1}, marks=td.skip_if_no_scipy
-            ),
-        ],
-    )
+    @pytest.mark.parametrize("kwargs",[{}, pytest.param({"method": "polynomial", "order": 1}, marks=td.skip_if_no_scipy)])
     def test_nan_interpolate(self, kwargs):
         s = Series([0, 1, np.nan, 3])
         result = s.interpolate(**kwargs)
@@ -431,17 +400,7 @@ class TestSeriesInterpolateData:
 
     @pytest.mark.parametrize(
         "method, limit_direction, expected",
-        [
-            ("pad", "backward", "forward"),
-            ("ffill", "backward", "forward"),
-            ("backfill", "forward", "backward"),
-            ("bfill", "forward", "backward"),
-            ("pad", "both", "forward"),
-            ("ffill", "both", "forward"),
-            ("backfill", "both", "backward"),
-            ("bfill", "both", "backward"),
-        ],
-    )
+        [("pad", "backward", "forward"), ("ffill", "backward", "forward"), ("backfill", "forward", "backward"), ("bfill", "forward", "backward"), ("pad", "both", "forward"), ("ffill", "both", "forward"), ("backfill", "both", "backward"), ("bfill", "both", "backward")])
     def test_interp_limit_direction_raises(self, method, limit_direction, expected):
         # https://github.com/pandas-dev/pandas/pull/34746
         s = Series([1, 2, 3])
@@ -540,14 +499,9 @@ class TestSeriesInterpolateData:
     @td.skip_if_no_scipy
     @pytest.mark.parametrize("method", ["nearest", "pad"])
     def test_interp_datetime64(self, method, tz_naive_fixture):
-        df = Series(
-            [1, np.nan, 3], index=date_range("1/1/2000", periods=3, tz=tz_naive_fixture)
-        )
+        df = Series([1, np.nan, 3], index=date_range("1/1/2000", periods=3, tz=tz_naive_fixture))
         result = df.interpolate(method=method)
-        expected = Series(
-            [1.0, 1.0, 3.0],
-            index=date_range("1/1/2000", periods=3, tz=tz_naive_fixture),
-        )
+        expected = Series([1.0, 1.0, 3.0], index=date_range("1/1/2000", periods=3, tz=tz_naive_fixture))
         tm.assert_series_equal(result, expected)
 
     def test_interp_pad_datetime64tz_values(self):
@@ -658,14 +612,7 @@ class TestSeriesInterpolateData:
 
         tm.assert_numpy_array_equal(result.values, exp.values)
 
-    @pytest.mark.parametrize(
-        "ind",
-        [
-            ["a", "b", "c", "d"],
-            pd.period_range(start="2019-01-01", periods=4),
-            pd.interval_range(start=0, end=4),
-        ],
-    )
+    @pytest.mark.parametrize("ind",[["a", "b", "c", "d"], pd.period_range(start="2019-01-01", periods=4), pd.interval_range(start=0, end=4)])
     def test_interp_non_timedelta_index(self, interp_methods_ind, ind):
         # gh 21662
         df = pd.DataFrame([0, 1, np.nan, 3], index=ind)
@@ -711,10 +658,7 @@ class TestSeriesInterpolateData:
                 "This interpolation method is not supported for Timedelta Index yet."
             )
 
-    @pytest.mark.parametrize(
-        "ascending, expected_values",
-        [(True, [1, 2, 3, 9, 10]), (False, [10, 9, 3, 2, 1])],
-    )
+    @pytest.mark.parametrize("ascending, expected_values", [(True, [1, 2, 3, 9, 10]), (False, [10, 9, 3, 2, 1])])
     def test_interpolate_unsorted_index(self, ascending, expected_values):
         # GH 21037
         ts = pd.Series(data=[10, 9, np.nan, 2, 1], index=[10, 9, 3, 2, 1])
