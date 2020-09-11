@@ -100,8 +100,8 @@ For example:
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
-
 - Added :meth:`~DataFrame.set_flags` for setting table-wide flags on a ``Series`` or ``DataFrame`` (:issue:`28394`)
+- :meth:`DataFrame.applymap` now supports ``na_action`` (:issue:`23803`)
 - :class:`Index` with object dtype supports division and multiplication (:issue:`34160`)
 - :meth:`DataFrame.explode` and :meth:`Series.explode` now support exploding of sets (:issue:`35614`)
 -
@@ -246,6 +246,7 @@ Timezones
 Numeric
 ^^^^^^^
 - Bug in :func:`to_numeric` where float precision was incorrect (:issue:`31364`)
+- Bug in :meth:`DataFrame.any` with ``axis=1`` and ``bool_only=True`` ignoring the ``bool_only`` keyword (:issue:`32432`)
 -
 
 Conversion
@@ -333,7 +334,7 @@ Sparse
 ExtensionArray
 ^^^^^^^^^^^^^^
 
--
+- Fixed Bug where :class:`DataFrame` column set to scalar extension type via a dict instantion was considered an object type rather than the extension type (:issue:`35965`)
 -
 
 
