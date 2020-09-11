@@ -14,8 +14,11 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_integer_dtype,
     is_list_like,
+    is_scalar,
 )
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+
+import pandas.core.common as com
 
 # -----------------------------------------------------------
 # Indexer Identification
@@ -141,7 +144,7 @@ def check_setitem_lengths(indexer, value, values) -> None:
         When the indexer is an ndarray or list and the lengths don't match.
     """
     # boolean with truth values == len of the value is ok too
-    if isinstance(indexer, (np.ndarray, list)):
+    if isinstance(indexer, (np.ndarray, list)):  # TODO: why not other listlike?
         if is_list_like(value) and len(indexer) != len(value):
             if not (
                 isinstance(indexer, np.ndarray)
@@ -482,3 +485,34 @@ def check_array_indexer(array: AnyArrayLike, indexer: Any) -> Any:
         raise IndexError("arrays used as indices must be of integer or boolean type")
 
     return indexer
+
+
+def check_empty_setitem(key, value, array) -> bool:
+    """
+    If the value being set is listlike, check that its length matches array[key].
+
+    If the value is empty, notify the caller that this is a no-op.
+    NB: we skip some dtype validation on these no-ops.
+    """
+    no_op = False
+    if is_list_like(value):  # TODO: what about object dtype holding listlike?
+        if is_scalar(key):
+            raise ValueError("Setting an array element with a sequence.")
+
+        key_len = length_of_indexer(key, array)
+        if key_len != len(value):
+            if com.is_bool_indexer(key):
+                # We will fall through to let numpy raise with an accurate message
+                pass
+            else:
+                msg = (
+                    f"shape mismatch: value array of length '{len(key)}' "
+                    "does not match indexing result of length "
+                    f"'{len(value)}'."
+                )
+                raise ValueError(msg)
+        else:
+            if len(value) == 0:
+                no_op = True
+
+    return no_op
