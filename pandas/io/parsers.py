@@ -2299,6 +2299,7 @@ def TextParser(*args, **kwds):
         values. The options are None for the ordinary converter,
         'high' for the high-precision converter, and 'round_trip' for the
         round-trip converter.
+        .. versionchanged:: 1.1.2
     """
     kwds["engine"] = "python"
     return TextFileReader(*args, **kwds)

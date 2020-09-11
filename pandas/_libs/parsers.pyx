@@ -478,8 +478,11 @@ cdef class TextReader:
             self.parser.double_converter = round_trip
         elif float_precision == "legacy":
             self.parser.double_converter = xstrtod
-        else:  # float_precision == "high" or float_precision is None:
+        elif float_precision == "high" or float_precision is None:
             self.parser.double_converter = precise_xstrtod
+        else:
+            raise ValueError(f'Unrecognized float_precision option: '
+                             f'{float_precision}')
 
         if isinstance(dtype, dict):
             dtype = {k: pandas_dtype(dtype[k])
