@@ -472,7 +472,7 @@ def sanitize_array(
 
             # figure out the dtype from the value (upcast if necessary)
             if dtype is None:
-                dtype, value = infer_dtype_from_scalar(value)
+                dtype, value = infer_dtype_from_scalar(value, pandas_dtype=True)
             else:
                 # need to possibly convert the value here
                 value = maybe_cast_to_datetime(value, dtype)
