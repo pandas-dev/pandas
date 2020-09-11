@@ -696,7 +696,7 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
             and self.axis == 0
             and len(result.index) < len(self._selected_obj.index)
         ):
-            result.index = self._selected_obj.index[result.index.asi8]
+            pass
         else:
             result.set_axis(self.obj._get_axis(self.axis), axis=self.axis, inplace=True)
         return result
