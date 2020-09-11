@@ -4,7 +4,7 @@ import functools
 from io import BytesIO, StringIO
 from itertools import islice
 import os
-from typing import IO, Any, Callable, List, Optional, Type
+from typing import IO, Any, Callable, Dict, List, Optional, Type, Union
 
 import numpy as np
 
@@ -18,6 +18,7 @@ from pandas.core.dtypes.common import ensure_str, is_period_dtype
 
 from pandas import DataFrame, MultiIndex, Series, isna, to_datetime
 from pandas.core.construction import create_series_with_explicit_dtype
+from pandas.core.generic import NDFrame
 from pandas.core.reshape.concat import concat
 
 from pandas.io.common import get_compression_method, get_filepath_or_buffer, get_handle
@@ -34,7 +35,7 @@ TABLE_SCHEMA_VERSION = "0.20.0"
 # interface to/from
 def to_json(
     path_or_buf,
-    obj,
+    obj: NDFrame,
     orient: Optional[str] = None,
     date_format: str = "epoch",
     double_precision: int = 10,
@@ -160,7 +161,7 @@ class Writer(ABC):
 
     @property
     @abstractmethod
-    def obj_to_write(self):
+    def obj_to_write(self) -> Union[NDFrame, Dict[str, Any]]:
         """Object to write in JSON format."""
 
 
@@ -168,7 +169,7 @@ class SeriesWriter(Writer):
     _default_orient = "index"
 
     @property
-    def obj_to_write(self):
+    def obj_to_write(self) -> Union[NDFrame, Dict[str, Any]]:
         if not self.index and self.orient == "split":
             return {"name": self.obj.name, "data": self.obj.values}
         else:
@@ -183,7 +184,7 @@ class FrameWriter(Writer):
     _default_orient = "columns"
 
     @property
-    def obj_to_write(self):
+    def obj_to_write(self) -> Union[NDFrame, Dict[str, Any]]:
         if not self.index and self.orient == "split":
             obj_to_write = self.obj.to_dict(orient="split")
             del obj_to_write["index"]
@@ -283,7 +284,7 @@ class JSONTableWriter(FrameWriter):
         self.index = index
 
     @property
-    def obj_to_write(self):
+    def obj_to_write(self) -> Union[NDFrame, Dict[str, Any]]:
         return {"schema": self.schema, "data": self.obj}
 
 
