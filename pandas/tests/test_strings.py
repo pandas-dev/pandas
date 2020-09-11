@@ -29,6 +29,8 @@ _any_string_method = [
     ("decode", ("UTF-8",), {}),
     ("encode", ("UTF-8",), {}),
     ("endswith", ("a",), {}),
+    ("endswith", ("a",), {"na": True}),
+    ("endswith", ("a",), {"na": False}),
     ("extract", ("([a-z]*)",), {"expand": False}),
     ("extract", ("([a-z]*)",), {"expand": True}),
     ("extractall", ("([a-z]*)",), {}),
@@ -58,6 +60,8 @@ _any_string_method = [
     ("split", (" ",), {"expand": False}),
     ("split", (" ",), {"expand": True}),
     ("startswith", ("a",), {}),
+    ("startswith", ("a",), {"na": True}),
+    ("startswith", ("a",), {"na": False}),
     # translating unicode points of "a" to "d"
     ("translate", ({97: 100},), {}),
     ("wrap", (2,), {}),
@@ -838,7 +842,7 @@ class TestStringMethods:
         expected = Series([True, False, False, True, False])
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("dtype", [None, "category", "string"])
+    @pytest.mark.parametrize("dtype", [None, "category"])
     @pytest.mark.parametrize("null_value", [None, np.nan, pd.NA])
     @pytest.mark.parametrize("na", [True, False])
     def test_startswith(self, dtype, null_value, na):
@@ -873,7 +877,7 @@ class TestStringMethods:
         )
         tm.assert_series_equal(rs, xp)
 
-    @pytest.mark.parametrize("dtype", [None, "category", "string"])
+    @pytest.mark.parametrize("dtype", [None, "category"])
     @pytest.mark.parametrize("null_value", [None, np.nan, pd.NA])
     @pytest.mark.parametrize("na", [True, False])
     def test_endswith(self, dtype, null_value, na):
@@ -3540,7 +3544,6 @@ class TestStringMethods:
 
 
 def test_string_array(any_string_method):
-    print(any_string_method)
     method_name, args, kwargs = any_string_method
     if method_name == "decode":
         pytest.skip("decode requires bytes.")
@@ -3564,6 +3567,10 @@ def test_string_array(any_string_method):
         ):
             assert result.dtype == "boolean"
             result = result.astype(object)
+
+        elif expected.dtype == "bool":
+            assert result.dtype == "boolean"
+            result = result.astype("bool")
 
         elif expected.dtype == "float" and expected.isna().any():
             assert result.dtype == "Int64"
