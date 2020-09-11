@@ -914,6 +914,13 @@ class TestSeriesReductions:
         tm.assert_series_equal(s.all(level=0), Series([False, True, False]))
         tm.assert_series_equal(s.any(level=0), Series([False, True, True]))
 
+    def test_any_axis1_bool_only(self):
+        # GH#32432
+        df = pd.DataFrame({"A": [True, False], "B": [1, 2]})
+        result = df.any(axis=1, bool_only=True)
+        expected = pd.Series([True, False])
+        tm.assert_series_equal(result, expected)
+
     def test_timedelta64_analytics(self):
 
         # index min/max
