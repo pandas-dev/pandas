@@ -4450,30 +4450,17 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             else:
                 return self.copy()
 
-        if isinstance(self, ABCDataFrame):
-            baxis = self._get_block_manager_axis(axis)
-            new_data = self._mgr.take(indexer, axis=baxis, verify=False)
+        baxis = self._get_block_manager_axis(axis)
+        new_data = self._mgr.take(indexer, axis=baxis, verify=False)
 
-            # reconstruct axis if needed
-            new_data.axes[baxis] = new_data.axes[baxis]._sort_levels_monotonic()
+        # reconstruct axis if needed
+        new_data.axes[baxis] = new_data.axes[baxis]._sort_levels_monotonic()
 
-            if ignore_index:
-                new_data.axes[1] = ibase.default_index(len(indexer))
+        if ignore_index:
+            axis = 1 if isinstance(self, ABCDataFrame) else 0
+            new_data.axes[axis] = ibase.default_index(len(indexer))
 
-            result = self._constructor(new_data)
-
-        else:
-            indexer = ensure_platform_int(indexer)
-            new_index = self.index.take(indexer)
-            new_index = new_index._sort_levels_monotonic()
-
-            new_values = self._values.take(indexer)
-            result = self._constructor(
-                new_values, index=new_index  # type: ignore[call-arg]
-            )
-
-            if ignore_index:
-                result.index = ibase.default_index(len(result))
+        result = self._constructor(new_data)
 
         if inplace:
             return self._update_inplace(result)
