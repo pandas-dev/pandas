@@ -8798,6 +8798,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         level=None,
         errors="raise",
         try_cast=False,
+        invert=False,
     ):
         """
         Equivalent to public method `where`, except that `other` is not
@@ -8818,6 +8819,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         # make sure we are boolean
         cond = cond.fillna(False)
+
+        if invert:
+            cond = ~cond
 
         msg = "Boolean array expected for the condition, not {dtype}"
 
@@ -8951,6 +8955,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         level=None,
         errors="raise",
         try_cast=False,
+        invert=False,
     ):
         """
         Replace values where the condition is {cond_rev}.
@@ -9068,7 +9073,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         other = com.apply_if_callable(other, self)
         return self._where(
-            cond, other, inplace, axis, level, errors=errors, try_cast=try_cast
+            cond,
+            other,
+            inplace,
+            axis,
+            level,
+            errors=errors,
+            try_cast=try_cast,
+            invert=invert,
         )
 
     @doc(
@@ -9093,21 +9105,15 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         inplace = validate_bool_kwarg(inplace, "inplace")
         cond = com.apply_if_callable(cond, self)
 
-        # see gh-21891
-        if not hasattr(cond, "__array__"):
-            cond = np.array(cond)
-
-        cond[isna(cond)] = False
-        cond = cond.astype(bool, copy=False)
-
         return self.where(
-            ~cond,
+            cond,
             other=other,
             inplace=inplace,
             axis=axis,
             level=level,
             try_cast=try_cast,
             errors=errors,
+            invert=True,
         )
 
     @doc(klass=_shared_doc_kwargs["klass"])
