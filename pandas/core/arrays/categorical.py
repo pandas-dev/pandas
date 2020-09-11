@@ -12,7 +12,7 @@ from pandas._config import get_option
 from pandas._libs import NaT, algos as libalgos, hashtable as htable, lib
 from pandas._typing import ArrayLike, Dtype, Ordered, Scalar
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import cache_readonly, deprecate_kwarg, doc
+from pandas.util._decorators import cache_readonly, deprecate_kwarg
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 
 from pandas.core.dtypes.cast import (
@@ -45,12 +45,7 @@ from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algorithms
 from pandas.core.algorithms import _get_data_algo, factorize, take_1d, unique1d
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
-from pandas.core.base import (
-    ExtensionArray,
-    NoNewAttributesMixin,
-    PandasObject,
-    _shared_docs,
-)
+from pandas.core.base import ExtensionArray, NoNewAttributesMixin, PandasObject
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array, sanitize_array
 from pandas.core.indexers import check_array_indexer, deprecate_ndim_indexing
@@ -1315,11 +1310,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         """
         return self._codes.nbytes + self.dtype.categories.memory_usage(deep=deep)
 
-    @doc(_shared_docs["searchsorted"], klass="Categorical")
-    def searchsorted(self, value, side="left", sorter=None):
-        value = self._validate_searchsorted_value(value)
-        return self.codes.searchsorted(value, side=side, sorter=sorter)
-
     def isna(self):
         """
         Detect missing values
@@ -1427,9 +1417,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
                 "you can use .as_ordered() to change the "
                 "Categorical to an ordered one\n"
             )
-
-    def _values_for_argsort(self):
-        return self._codes
 
     def argsort(self, ascending=True, kind="quicksort", **kwargs):
         """
@@ -1879,7 +1866,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         if result.ndim > 1:
             deprecate_ndim_indexing(result)
             return result
-        return self._constructor(result, dtype=self.dtype, fastpath=True)
+        return self._from_backing_data(result)
 
     def __setitem__(self, key, value):
         """
