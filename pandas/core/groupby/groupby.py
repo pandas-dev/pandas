@@ -1330,7 +1330,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
 
         Returns
         -------
-        bool
+        Series or DataFrame
         """
         return self._bool_agg("any", skipna)
 
@@ -1347,7 +1347,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
 
         Returns
         -------
-        bool
+        Series or DataFrame
         """
         return self._bool_agg("all", skipna)
 
