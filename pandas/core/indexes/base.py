@@ -2622,41 +2622,39 @@ class Index(IndexOpsMixin, PandasObject):
         lvals = self._values
         rvals = other._values
 
-        if sort is None and self.is_monotonic and other.is_monotonic:
-            try:
-                result = self._outer_indexer(lvals, rvals)[0]
-            except TypeError:
-                # incomparable objects
-                result = list(lvals)
-
-                # worth making this faster? a very unusual case
-                value_set = set(lvals)
-                result.extend([x for x in rvals if x not in value_set])
-                result = Index(result)._values  # do type inference here
-        else:
-            # find indexes of things in "other" that are not in "self"
-            if self.is_unique:
-                indexer = self.get_indexer(other)
-                indexer = (indexer == -1).nonzero()[0]
+        # if sort is None and self.is_monotonic and other.is_monotonic:
+        try:
+            if sort is None and self.is_monotonic and other.is_monotonic:
+                result = self._outer_indexer(np.sort(lvals), np.sort(rvals))[0]
             else:
-                indexer = algos.unique1d(self.get_indexer_non_unique(other)[1])
-
-            if len(indexer) > 0:
-                other_diff = algos.take_nd(rvals, indexer, allow_fill=False)
-                result = concat_compat((lvals, other_diff))
-
-            else:
-                result = lvals
-
-            if sort is None:
-                try:
-                    result = algos.safe_sort(result)
-                except TypeError as err:
-                    warnings.warn(
-                        f"{err}, sort order is undefined for incomparable objects",
-                        RuntimeWarning,
-                        stacklevel=3,
+                new_index_sorted = self._outer_indexer(np.sort(lvals), np.sort(rvals))
+                l_reindexer = self.unique().reindex(new_index_sorted[0])[1]
+                if l_reindexer is None:
+                    result = lvals
+                else:
+                    l_result = self.unique().take(np.sort(l_reindexer[l_reindexer != -1]))
+                    r_reindexer = other.unique().reindex(new_index_sorted[0])[1]
+                    r_result = other.unique().take(
+                        np.sort(r_reindexer[new_index_sorted[1] == -1])
                     )
+                    result = np.append(l_result, r_result)
+        except TypeError:
+            # incomparable objects
+            result = list(lvals)
+
+            # worth making this faster? a very unusual case
+            value_set = set(lvals)
+            result.extend([x for x in rvals if x not in value_set])
+            result = Index(result)._values  # do type inference here
+        if sort is None and (not self.is_monotonic or not other.is_monotonic):
+            try:
+                result = algos.safe_sort(result)
+            except TypeError as err:
+                warnings.warn(
+                    f"{err}, sort order is undefined for incomparable objects",
+                    RuntimeWarning,
+                    stacklevel=3,
+                )
 
         # for subclasses
         return self._wrap_setop_result(other, result)
