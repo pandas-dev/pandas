@@ -496,7 +496,19 @@ class _Concatenator:
                     # 1-ax to convert BlockManager axis to DataFrame axis
                     obj_labels = obj.axes[1 - ax]
                     if not new_labels.equals(obj_labels):
-                        indexers[ax] = obj_labels.reindex(new_labels)[1]
+                        # We have to remove the duplicates from obj_labels
+                        # in new labels to make them unique, otherwise we would
+                        # duplicate or duplicates again
+                        obj_labels_duplicates = obj_labels[
+                            obj_labels.duplicated()
+                        ].unique()
+                        new_labels_cleared = new_labels[
+                            ~(
+                                new_labels.duplicated()
+                                & new_labels.isin(obj_labels_duplicates)
+                            )
+                        ]
+                        indexers[ax] = obj_labels.reindex(new_labels_cleared)[1]
 
                 mgrs_indexers.append((obj._mgr, indexers))
 
