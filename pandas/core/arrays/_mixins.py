@@ -6,7 +6,7 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly, doc
 
-from pandas.core.algorithms import searchsorted, take, unique
+from pandas.core.algorithms import take, unique
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays.base import ExtensionArray
 
@@ -102,6 +102,9 @@ class NDArrayBackedExtensionArray(ExtensionArray):
 
     # ------------------------------------------------------------------------
 
+    def _values_for_argsort(self):
+        return self._ndarray
+
     def copy(self: _T) -> _T:
         new_data = self._ndarray.copy()
         return self._from_backing_data(new_data)
@@ -135,7 +138,11 @@ class NDArrayBackedExtensionArray(ExtensionArray):
 
     @doc(ExtensionArray.searchsorted)
     def searchsorted(self, value, side="left", sorter=None):
-        return searchsorted(self._ndarray, value, side=side, sorter=sorter)
+        value = self._validate_searchsorted_value(value)
+        return self._ndarray.searchsorted(value, side=side, sorter=sorter)
+
+    def _validate_searchsorted_value(self, value):
+        return value
 
     @doc(ExtensionArray.shift)
     def shift(self, periods=1, fill_value=None, axis=0):

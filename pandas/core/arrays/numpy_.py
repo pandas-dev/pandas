@@ -260,15 +260,19 @@ class PandasArray(
         return result
 
     def __setitem__(self, key, value) -> None:
+        key = self._validate_setitem_key(key)
+        value = self._validate_setitem_value(value)
+        self._ndarray[key] = value
+
+    def _validate_setitem_value(self, value):
         value = extract_array(value, extract_numpy=True)
 
-        key = check_array_indexer(self, key)
-        scalar_value = lib.is_scalar(value)
-
-        if not scalar_value:
+        if not lib.is_scalar(value):
             value = np.asarray(value, dtype=self._ndarray.dtype)
+        return value
 
-        self._ndarray[key] = value
+    def _validate_setitem_key(self, key):
+        return check_array_indexer(self, key)
 
     def isna(self) -> np.ndarray:
         return isna(self._ndarray)
@@ -307,9 +311,6 @@ class PandasArray(
             # Primarily for subclasses
             fill_value = self.dtype.na_value
         return fill_value
-
-    def _values_for_argsort(self) -> np.ndarray:
-        return self._ndarray
 
     def _values_for_factorize(self) -> Tuple[np.ndarray, int]:
         return self._ndarray, -1

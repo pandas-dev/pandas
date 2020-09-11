@@ -545,15 +545,18 @@ class DatetimeLikeArrayMixin(
             result = self._ndarray[key]
             if self.ndim == 1:
                 return self._box_func(result)
-            return self._simple_new(result, dtype=self.dtype)
+            return self._from_backing_data(result)
 
         key = self._validate_getitem_key(key)
         result = self._ndarray[key]
         if lib.is_scalar(result):
             return self._box_func(result)
 
+        result = self._from_backing_data(result)
+
         freq = self._get_getitem_freq(key)
-        return self._simple_new(result, dtype=self.dtype, freq=freq)
+        result._freq = freq
+        return result
 
     def _validate_getitem_key(self, key):
         if com.is_bool_indexer(key):
@@ -713,9 +716,6 @@ class DatetimeLikeArrayMixin(
     @classmethod
     def _from_factorized(cls, values, original):
         return cls(values, dtype=original.dtype)
-
-    def _values_for_argsort(self):
-        return self._ndarray
 
     # ------------------------------------------------------------------
     # Validation Methods
@@ -916,34 +916,6 @@ class DatetimeLikeArrayMixin(
     # Additional array methods
     #  These are not part of the EA API, but we implement them because
     #  pandas assumes they're there.
-
-    def searchsorted(self, value, side="left", sorter=None):
-        """
-        Find indices where elements should be inserted to maintain order.
-
-        Find the indices into a sorted array `self` such that, if the
-        corresponding elements in `value` were inserted before the indices,
-        the order of `self` would be preserved.
-
-        Parameters
-        ----------
-        value : array_like
-            Values to insert into `self`.
-        side : {'left', 'right'}, optional
-            If 'left', the index of the first suitable location found is given.
-            If 'right', return the last such index.  If there is no suitable
-            index, return either 0 or N (where N is the length of `self`).
-        sorter : 1-D array_like, optional
-            Optional array of integer indices that sort `self` into ascending
-            order. They are typically the result of ``np.argsort``.
-
-        Returns
-        -------
-        indices : array of ints
-            Array of insertion points with the same shape as `value`.
-        """
-        value = self._validate_searchsorted_value(value)
-        return self._data.searchsorted(value, side=side, sorter=sorter)
 
     def value_counts(self, dropna=False):
         """
