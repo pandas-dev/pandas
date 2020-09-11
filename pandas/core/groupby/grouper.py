@@ -393,7 +393,7 @@ class Grouping:
     ----------
     index : Index
     grouper :
-    obj Union[DataFrame, Series]:
+    obj : DataFrame or Series
     name : Label
     level :
     observed : bool, default False

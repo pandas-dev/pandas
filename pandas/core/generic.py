@@ -40,6 +40,7 @@ from pandas._typing import (
     CompressionOptions,
     FilePathOrBuffer,
     FrameOrSeries,
+    IndexLabel,
     JSONSerializable,
     Label,
     Level,
@@ -102,7 +103,7 @@ from pandas.core.indexes.period import Period, PeriodIndex
 import pandas.core.indexing as indexing
 from pandas.core.internals import BlockManager
 from pandas.core.missing import find_valid_index
-from pandas.core.ops import _align_method_FRAME
+from pandas.core.ops import align_method_FRAME
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.window import Expanding, ExponentialMovingWindow, Rolling, Window
 
@@ -3160,7 +3161,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         columns: Optional[Sequence[Label]] = None,
         header: Union[bool_t, List[str]] = True,
         index: bool_t = True,
-        index_label: Optional[Union[bool_t, str, Sequence[Label]]] = None,
+        index_label: IndexLabel = None,
         mode: str = "w",
         encoding: Optional[str] = None,
         compression: CompressionOptions = "infer",
@@ -3533,6 +3534,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             )
 
         nv.validate_take(tuple(), kwargs)
+
+        self._consolidate_inplace()
 
         new_data = self._mgr.take(
             indices, axis=self._get_block_manager_axis(axis), verify=True
@@ -6559,20 +6562,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         1   new  new
         2  bait  xyz
 
-        Note that when replacing multiple ``bool`` or ``datetime64`` objects,
-        the data types in the `to_replace` parameter must match the data
-        type of the value being replaced:
-
-        >>> df = pd.DataFrame({{'A': [True, False, True],
-        ...                    'B': [False, True, False]}})
-        >>> df.replace({{'a string': 'new value', True: False}})  # raises
-        Traceback (most recent call last):
-            ...
-        TypeError: Cannot compare types 'ndarray(dtype=bool)' and 'str'
-
-        This raises a ``TypeError`` because one of the ``dict`` keys is not of
-        the correct type for replacement.
-
         Compare the behavior of ``s.replace({{'a': None}})`` and
         ``s.replace('a', None)`` to understand the peculiarities
         of the `to_replace` parameter:
@@ -7414,7 +7403,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if isinstance(self, ABCSeries):
                 threshold = self._constructor(threshold, index=self.index)
             else:
-                threshold = _align_method_FRAME(self, threshold, axis, flex=None)[1]
+                threshold = align_method_FRAME(self, threshold, axis, flex=None)[1]
         return self.where(subset, threshold, axis=axis, inplace=inplace)
 
     def clip(

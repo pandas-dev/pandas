@@ -9,7 +9,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, date_range
 import pandas._testing as tm
-from pandas.core.computation.check import _NUMEXPR_INSTALLED
+from pandas.core.computation.check import NUMEXPR_INSTALLED
 
 PARSERS = "python", "pandas"
 ENGINES = "python", pytest.param("numexpr", marks=td.skip_if_no_ne)
@@ -39,7 +39,7 @@ class TestCompat:
     def test_query_default(self):
 
         # GH 12749
-        # this should always work, whether _NUMEXPR_INSTALLED or not
+        # this should always work, whether NUMEXPR_INSTALLED or not
         df = self.df
         result = df.query("A>0")
         tm.assert_frame_equal(result, self.expected1)
@@ -65,7 +65,7 @@ class TestCompat:
     def test_query_numexpr(self):
 
         df = self.df
-        if _NUMEXPR_INSTALLED:
+        if NUMEXPR_INSTALLED:
             result = df.query("A>0", engine="numexpr")
             tm.assert_frame_equal(result, self.expected1)
             result = df.eval("A+1", engine="numexpr")

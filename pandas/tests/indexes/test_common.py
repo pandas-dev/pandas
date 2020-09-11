@@ -13,7 +13,14 @@ from pandas._libs.tslibs import iNaT
 from pandas.core.dtypes.common import is_period_dtype, needs_i8_conversion
 
 import pandas as pd
-from pandas import CategoricalIndex, MultiIndex, RangeIndex
+from pandas import (
+    CategoricalIndex,
+    DatetimeIndex,
+    MultiIndex,
+    PeriodIndex,
+    RangeIndex,
+    TimedeltaIndex,
+)
 import pandas._testing as tm
 
 
@@ -391,3 +398,46 @@ class TestCommon:
             assert result.names == index.names
         else:
             assert result.name == index.name
+
+
+@pytest.mark.parametrize("na_position", [None, "middle"])
+def test_sort_values_invalid_na_position(index_with_missing, na_position):
+    if isinstance(index_with_missing, (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
+        # datetime-like indices will get na_position kwarg as part of
+        # synchronizing duplicate-sorting behavior, because we currently expect
+        # them, other indices, and Series to sort differently (xref 35922)
+        pytest.xfail("sort_values does not support na_position kwarg")
+    elif isinstance(index_with_missing, (CategoricalIndex, MultiIndex)):
+        pytest.xfail("missing value sorting order not defined for index type")
+
+    if na_position not in ["first", "last"]:
+        with pytest.raises(
+            ValueError, match=f"invalid na_position: {na_position}",
+        ):
+            index_with_missing.sort_values(na_position=na_position)
+
+
+@pytest.mark.parametrize("na_position", ["first", "last"])
+def test_sort_values_with_missing(index_with_missing, na_position):
+    # GH 35584. Test that sort_values works with missing values,
+    # sort non-missing and place missing according to na_position
+
+    if isinstance(index_with_missing, (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
+        # datetime-like indices will get na_position kwarg as part of
+        # synchronizing duplicate-sorting behavior, because we currently expect
+        # them, other indices, and Series to sort differently (xref 35922)
+        pytest.xfail("sort_values does not support na_position kwarg")
+    elif isinstance(index_with_missing, (CategoricalIndex, MultiIndex)):
+        pytest.xfail("missing value sorting order not defined for index type")
+
+    missing_count = np.sum(index_with_missing.isna())
+    not_na_vals = index_with_missing[index_with_missing.notna()].values
+    sorted_values = np.sort(not_na_vals)
+    if na_position == "first":
+        sorted_values = np.concatenate([[None] * missing_count, sorted_values])
+    else:
+        sorted_values = np.concatenate([sorted_values, [None] * missing_count])
+    expected = type(index_with_missing)(sorted_values)
+
+    result = index_with_missing.sort_values(na_position=na_position)
+    tm.assert_index_equal(result, expected)
