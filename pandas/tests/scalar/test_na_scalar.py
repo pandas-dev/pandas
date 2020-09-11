@@ -305,3 +305,17 @@ def test_pickle_roundtrip_containers(as_frame, values, dtype):
         s = s.to_frame(name="A")
     result = tm.round_trip_pickle(s)
     tm.assert_equal(result, s)
+
+
+def test_np_array_contains_na():
+    # GH 31922
+    msg = "boolean value of NA is ambiguous"
+    with pytest.raises(TypeError, match=msg):
+        NA in np.array(["a"], dtype=object)
+
+
+def test_list_contains_na():
+    # GH 31922
+    msg = "boolean value of NA is ambiguous"
+    with pytest.raises(TypeError, match=msg):
+        NA in ["a"]
