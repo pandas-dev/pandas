@@ -838,19 +838,21 @@ class TestStringMethods:
         expected = Series([True, False, False, True, False])
         tm.assert_series_equal(result, expected)
 
-    # add category dtype parametrizations for GH-36241
-    @pytest.mark.parametrize("dtype", [None, "category"])
-    def test_startswith(self, dtype):
+    @pytest.mark.parametrize("dtype", [None, "category", "string"])
+    @pytest.mark.parametrize("null_value", [None, np.nan, pd.NA])
+    @pytest.mark.parametrize("na", [True, False])
+    def test_startswith(self, dtype, null_value, na):
+        # add category dtype parametrizations for GH-36241
         values = Series(
-            ["om", np.nan, "foo_nom", "nom", "bar_foo", np.nan, "foo"], dtype=dtype
+            ["om", null_value, "foo_nom", "nom", "bar_foo", null_value, "foo"], dtype=dtype
         )
 
         result = values.str.startswith("foo")
         exp = Series([False, np.nan, True, False, False, np.nan, True])
         tm.assert_series_equal(result, exp)
 
-        result = values.str.startswith("foo", na=True)
-        tm.assert_series_equal(result, exp.fillna(True).astype(bool))
+        result = values.str.startswith("foo", na=na)
+        tm.assert_series_equal(result, exp.fillna(na).astype(bool))
 
         # mixed
         mixed = np.array(
@@ -871,19 +873,21 @@ class TestStringMethods:
         )
         tm.assert_series_equal(rs, xp)
 
-    # add category dtype parametrizations for GH-36241
-    @pytest.mark.parametrize("dtype", [None, "category"])
-    def test_endswith(self, dtype):
+    @pytest.mark.parametrize("dtype", [None, "category", "string"])
+    @pytest.mark.parametrize("null_value", [None, np.nan, pd.NA])
+    @pytest.mark.parametrize("na", [True, False])
+    def test_endswith(self, dtype, null_value, na):
+        # add category dtype parametrizations for GH-36241
         values = Series(
-            ["om", np.nan, "foo_nom", "nom", "bar_foo", np.nan, "foo"], dtype=dtype
+            ["om", null_value, "foo_nom", "nom", "bar_foo", null_value, "foo"], dtype=dtype
         )
 
         result = values.str.endswith("foo")
         exp = Series([False, np.nan, False, False, True, np.nan, True])
         tm.assert_series_equal(result, exp)
 
-        result = values.str.endswith("foo", na=False)
-        tm.assert_series_equal(result, exp.fillna(False).astype(bool))
+        result = values.str.endswith("foo", na=na)
+        tm.assert_series_equal(result, exp.fillna(na).astype(bool))
 
         # mixed
         mixed = np.array(
@@ -3536,6 +3540,7 @@ class TestStringMethods:
 
 
 def test_string_array(any_string_method):
+    print(any_string_method)
     method_name, args, kwargs = any_string_method
     if method_name == "decode":
         pytest.skip("decode requires bytes.")
