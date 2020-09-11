@@ -3637,7 +3637,7 @@ class MultiIndex(Index):
 
     def _wrap_joined_index(self, joined, other):
         names = self.names if self.names == other.names else None
-        return MultiIndex.from_tuples(joined, names=names)
+        return self._constructor(joined, names=names)
 
     @doc(Index.isin)
     def isin(self, values, level=None):
