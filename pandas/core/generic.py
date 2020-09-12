@@ -1410,11 +1410,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         values = self._values
         if is_bool_dtype(values) or is_numeric_dtype(values):
             arr = values
-        elif (
-            is_numeric_dtype(values)
-            or is_timedelta64_dtype(values)
-            or is_object_dtype(values)
-        ):
+        elif is_timedelta64_dtype(values) or is_object_dtype(values):
             arr = operator.pos(values)
         else:
             raise TypeError(f"Unary plus expects numeric dtype, not {values.dtype}")
