@@ -54,7 +54,7 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core import missing, nanops, ops
 from pandas.core.algorithms import checked_add_with_arr, unique1d, value_counts
-from pandas.core.arrays._mixins import _T, NDArrayBackedExtensionArray
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.arrays.base import ExtensionOpsMixin
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array
@@ -472,11 +472,11 @@ class DatetimeLikeArrayMixin(
     def _ndarray(self) -> np.ndarray:
         return self._data
 
-    def _from_backing_data(self: _T, arr: np.ndarray) -> _T:
+    def _from_backing_data(
+        self: DatetimeLikeArrayT, arr: np.ndarray
+    ) -> DatetimeLikeArrayT:
         # Note: we do not retain `freq`
-        return type(self)._simple_new(  # type: ignore[attr-defined]
-            arr, dtype=self.dtype
-        )
+        return type(self)._simple_new(arr, dtype=self.dtype)
 
     # ------------------------------------------------------------------
 

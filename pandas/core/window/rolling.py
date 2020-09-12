@@ -1214,13 +1214,13 @@ class Window(_Window):
         return zsqrt(self.var(ddof=ddof, name="std", **kwargs))
 
 
-class _Rolling(_Window):
+class RollingMixin(_Window):
     @property
     def _constructor(self):
         return Rolling
 
 
-class _Rolling_and_Expanding(_Rolling):
+class RollingAndExpandingMixin(RollingMixin):
 
     _shared_docs["count"] = dedent(
         r"""
@@ -1917,7 +1917,7 @@ class _Rolling_and_Expanding(_Rolling):
         )
 
 
-class Rolling(_Rolling_and_Expanding):
+class Rolling(RollingAndExpandingMixin):
     @cache_readonly
     def is_datetimelike(self) -> bool:
         return isinstance(
