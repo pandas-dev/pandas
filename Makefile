@@ -32,3 +32,9 @@ check:
 		--included-file-extensions="py" \
 		--excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored \
 		pandas/
+
+	python3 scripts/validate_unwanted_patterns.py \
+		--validation-type="private_import_across_module" \
+		--included-file-extensions="py" \
+		--excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored,doc/
+		pandas/

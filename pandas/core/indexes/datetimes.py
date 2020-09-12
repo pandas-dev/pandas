@@ -312,9 +312,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -------
         bool
         """
-        from pandas.io.formats.format import _is_dates_only
+        from pandas.io.formats.format import is_dates_only
 
-        return self.tz is None and _is_dates_only(self._values)
+        return self.tz is None and is_dates_only(self._values)
 
     def __reduce__(self):
 
