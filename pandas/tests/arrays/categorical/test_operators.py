@@ -79,10 +79,6 @@ class TestCategoricalOpsWithFactor(TestCategorical):
 
         cat_rev_base2 = Categorical(["b", "b", "b"], categories=["c", "b", "a", "d"])
 
-        msg = (
-            "Categoricals can only be compared if 'categories' are the same. "
-            "Categories are different lengths"
-        )
         with pytest.raises(TypeError, match=msg):
             cat_rev > cat_rev_base2
 
@@ -90,7 +86,6 @@ class TestCategoricalOpsWithFactor(TestCategorical):
         cat_unorderd = cat.set_ordered(False)
         assert not (cat > cat).any()
 
-        msg = "Categoricals can only be compared if 'ordered' is the same"
         with pytest.raises(TypeError, match=msg):
             cat > cat_unorderd
 
@@ -321,7 +316,7 @@ class TestCategoricalOps:
         c1 = Categorical([], categories=["a", "b"])
         c2 = Categorical([], categories=["a"])
 
-        msg = "Categories are different lengths"
+        msg = "Categoricals can only be compared if 'categories' are the same."
         with pytest.raises(TypeError, match=msg):
             c1 == c2
 
