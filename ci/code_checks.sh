@@ -126,9 +126,9 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
 
     MSG='Check for use of private functions across modules' ; echo $MSG
     if [[ "$GITHUB_ACTIONS" == "true" ]]; then
-        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module" --included-file-extensions="py" --format="##[error]{source_path}:{line_number}:{msg}" pandas/
+        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored,doc/ --format="##[error]{source_path}:{line_number}:{msg}" pandas/
     else
-        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module" --included-file-extensions="py" pandas/
+        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored,doc/ pandas/
     fi
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
