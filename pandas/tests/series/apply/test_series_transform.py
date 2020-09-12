@@ -18,6 +18,21 @@ def test_transform_ufunc(string_series):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("op", transformation_kernels)
+def test_transform_groupby_kernel(string_series, op):
+    # GH 35964
+    if op == "cumcount":
+        pytest.xfail("Series.cumcount does not exist")
+    if op == "tshift":
+        pytest.xfail("Only works on time index and is deprecated")
+
+    args = [0.0] if op == "fillna" else []
+    ones = np.ones(string_series.shape[0])
+    expected = string_series.groupby(ones).transform(op, *args)
+    result = string_series.transform(op, 0, *args)
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "ops, names", [([np.sqrt], ["sqrt"]), ([np.abs, np.sqrt], ["absolute", "sqrt"])]
 )

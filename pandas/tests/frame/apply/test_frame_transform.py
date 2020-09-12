@@ -20,6 +20,26 @@ def test_transform_ufunc(axis, float_frame):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("op", transformation_kernels)
+def test_transform_groupby_kernel(axis, float_frame, op):
+    # GH 35964
+    if op == "cumcount":
+        pytest.xfail("DataFrame.cumcount does not exist")
+    if op == "tshift":
+        pytest.xfail("Only works on time index and is deprecated")
+    if axis == 1 or axis == "columns":
+        pytest.xfail("GH 36308: groupby.transform with axis=1 is broken")
+
+    args = [0.0] if op == "fillna" else []
+    if axis == 0 or axis == "index":
+        ones = np.ones(float_frame.shape[0])
+    else:
+        ones = np.ones(float_frame.shape[1])
+    expected = float_frame.groupby(ones, axis=axis).transform(op, *args)
+    result = float_frame.transform(op, axis, *args)
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "ops, names", [([np.sqrt], ["sqrt"]), ([np.abs, np.sqrt], ["absolute", "sqrt"])]
 )
@@ -129,10 +149,19 @@ def test_transform_bad_dtype(op):
         df.transform({"A": [op]})
 
 
-@pytest.mark.parametrize("op", ["diff", "pct_change", "cumprod"])
-def test_transform_multi_dtypes(op):
+@pytest.mark.parametrize("op", transformation_kernels)
+def test_transform_partial_failure(op):
     # GH 35964
-    df = DataFrame({"A": ["a", "b", "c"], "B": [1, 2, 3]})
+    wont_fail = ["ffill", "bfill", "fillna", "pad", "backfill", "shift"]
+    if op in wont_fail:
+        pytest.xfail("Transform kernel is successful on all dtypes")
+    if op == "cumcount":
+        pytest.xfail("transform('cumcount') not implemented")
+    if op == "tshift":
+        pytest.xfail("Only works on time index; deprecated")
+
+    # Using object makes most transform kernels fail
+    df = DataFrame({"A": 3 * [object], "B": [1, 2, 3]})
 
     expected = df[["B"]].transform([op])
     result = df.transform([op])
