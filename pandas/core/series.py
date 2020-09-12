@@ -4082,7 +4082,11 @@ Keep all original rows and also all original values
 
     agg = aggregate
 
-    @Appender(_shared_docs["transform"])
+    @doc(
+        _shared_docs["transform"],
+        klass=_shared_doc_kwargs["klass"],
+        axis=_shared_doc_kwargs["axis"],
+    )
     def transform(
         self, func: AggFuncType, axis: Axis = 0, *args, **kwargs
     ) -> FrameOrSeriesUnion:

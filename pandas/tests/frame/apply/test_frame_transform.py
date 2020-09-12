@@ -92,7 +92,7 @@ def test_agg_dict_nested_renaming_depr():
     msg = r"nested renamer is not supported"
     with pytest.raises(SpecificationError, match=msg):
         # mypy identifies the argument as an invalid type
-        df.transform({"A": {"foo": "min"}, "B": {"bar": "max"}})  # type: ignore
+        df.transform({"A": {"foo": "min"}, "B": {"bar": "max"}})
 
 
 def test_transform_reducer_raises(all_reductions):

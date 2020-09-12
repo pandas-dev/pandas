@@ -11,7 +11,6 @@ def test_transform_ufunc(string_series):
     # GH 35964
     with np.errstate(all="ignore"):
         f_sqrt = np.sqrt(string_series)
-        f_abs = np.abs(string_series)
 
     # ufunc
     result = string_series.transform(np.sqrt)
