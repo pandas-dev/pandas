@@ -459,9 +459,9 @@ class GroupByPlot(PandasObject):
 
 
 @contextmanager
-def _group_selection_context(groupby: "_GroupBy"):
+def group_selection_context(groupby: "_GroupBy"):
     """
-    Set / reset the _group_selection_context.
+    Set / reset the group_selection_context.
     """
     groupby._set_group_selection()
     try:
@@ -737,7 +737,7 @@ b  2""",
     def _make_wrapper(self, name: str) -> Callable:
         assert name in self._apply_allowlist
 
-        with _group_selection_context(self):
+        with group_selection_context(self):
             # need to setup the selection
             # as are not passed directly but in the grouper
             f = getattr(self._obj_with_exclusions, name)
@@ -868,7 +868,7 @@ b  2""",
                 # fails on *some* columns, e.g. a numeric operation
                 # on a string grouper column
 
-                with _group_selection_context(self):
+                with group_selection_context(self):
                     return self._python_apply_general(f, self._selected_obj)
 
         return result
@@ -994,7 +994,7 @@ b  2""",
         alias: str,
         npfunc: Callable,
     ):
-        with _group_selection_context(self):
+        with group_selection_context(self):
             # try a cython aggregation if we can
             try:
                 return self._cython_agg_general(
@@ -1499,7 +1499,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
             )
         else:
             func = lambda x: x.var(ddof=ddof)
-            with _group_selection_context(self):
+            with group_selection_context(self):
                 return self._python_agg_general(func)
 
     @Substitution(name="groupby")
@@ -1658,7 +1658,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
 
     @doc(DataFrame.describe)
     def describe(self, **kwargs):
-        with _group_selection_context(self):
+        with group_selection_context(self):
             result = self.apply(lambda x: x.describe(**kwargs))
             if self.axis == 1:
                 return result.T
@@ -1963,7 +1963,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
                 nth_values = list(set(n))
 
             nth_array = np.array(nth_values, dtype=np.intp)
-            with _group_selection_context(self):
+            with group_selection_context(self):
 
                 mask_left = np.in1d(self._cumcount_array(), nth_array)
                 mask_right = np.in1d(
@@ -2226,7 +2226,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         5    0
         dtype: int64
         """
-        with _group_selection_context(self):
+        with group_selection_context(self):
             index = self._selected_obj.index
             result = self._obj_1d_constructor(self.grouper.group_info[0], index)
             if not ascending:
@@ -2287,7 +2287,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         5    0
         dtype: int64
         """
-        with _group_selection_context(self):
+        with group_selection_context(self):
             index = self._selected_obj.index
             cumcounts = self._cumcount_array(ascending=ascending)
             return self._obj_1d_constructor(cumcounts, index)

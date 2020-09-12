@@ -22,9 +22,9 @@ from pandas._typing import ArrayLike, Dtype, DtypeObj
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
-    _POSSIBLY_CAST_DTYPES,
     DT64NS_DTYPE,
     INT64_DTYPE,
+    POSSIBLY_CAST_DTYPES,
     TD64NS_DTYPE,
     ensure_int8,
     ensure_int16,
@@ -709,7 +709,6 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, 
     elif pandas_dtype:
         if lib.is_period(val):
             dtype = PeriodDtype(freq=val.freq)
-            val = val.ordinal
         elif lib.is_interval(val):
             subtype = infer_dtype_from_scalar(val.left, pandas_dtype=True)[0]
             dtype = IntervalDtype(subtype=subtype)
@@ -1188,7 +1187,7 @@ def maybe_castable(arr) -> bool:
     elif kind == "m":
         return is_timedelta64_ns_dtype(arr.dtype)
 
-    return arr.dtype.name not in _POSSIBLY_CAST_DTYPES
+    return arr.dtype.name not in POSSIBLY_CAST_DTYPES
 
 
 def maybe_infer_to_datetimelike(value, convert_dates: bool = False):

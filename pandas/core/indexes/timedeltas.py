@@ -202,6 +202,9 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         """
         return is_timedelta64_dtype(dtype)
 
+    # -------------------------------------------------------------------
+    # Indexing Methods
+
     def get_loc(self, key, method=None, tolerance=None):
         """
         Get integer location for requested label
@@ -247,6 +250,8 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
             self._invalid_indexer("slice", label)
 
         return label
+
+    # -------------------------------------------------------------------
 
     def is_type_compatible(self, typ) -> bool:
         return typ == self.inferred_type or typ == "timedelta"

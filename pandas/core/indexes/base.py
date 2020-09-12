@@ -195,7 +195,7 @@ _IndexT = TypeVar("_IndexT", bound="Index")
 
 class Index(IndexOpsMixin, PandasObject):
     """
-    Immutable ndarray implementing an ordered, sliceable set. The basic object
+    Immutable sequence used for indexing and alignment. The basic object
     storing axis labels for all pandas objects.
 
     Parameters
@@ -3586,7 +3586,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _join_multi(self, other, how, return_indexers=True):
         from pandas.core.indexes.multi import MultiIndex
-        from pandas.core.reshape.merge import _restore_dropped_levels_multijoin
+        from pandas.core.reshape.merge import restore_dropped_levels_multijoin
 
         # figure out join names
         self_names = set(com.not_none(*self.names))
@@ -3622,7 +3622,7 @@ class Index(IndexOpsMixin, PandasObject):
             # common levels, ldrop_names, rdrop_names
             dropped_names = ldrop_names + rdrop_names
 
-            levels, codes, names = _restore_dropped_levels_multijoin(
+            levels, codes, names = restore_dropped_levels_multijoin(
                 self, other, dropped_names, join_idx, lidx, ridx
             )
 
@@ -3660,7 +3660,7 @@ class Index(IndexOpsMixin, PandasObject):
         return result
 
     def _join_non_unique(self, other, how="left", return_indexers=False):
-        from pandas.core.reshape.merge import _get_join_indexers
+        from pandas.core.reshape.merge import get_join_indexers
 
         # We only get here if dtypes match
         assert self.dtype == other.dtype
@@ -3668,7 +3668,7 @@ class Index(IndexOpsMixin, PandasObject):
         lvalues = self._get_engine_target()
         rvalues = other._get_engine_target()
 
-        left_idx, right_idx = _get_join_indexers(
+        left_idx, right_idx = get_join_indexers(
             [lvalues], [rvalues], how=how, sort=True
         )
 

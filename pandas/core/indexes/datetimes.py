@@ -509,6 +509,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         dta = DatetimeArray(snapped, dtype=self.dtype)
         return DatetimeIndex._simple_new(dta, name=self.name)
 
+    # --------------------------------------------------------------------
+    # Indexing Methods
+
     def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
         """
         Calculate datetime bounds for parsed time string and its resolution.

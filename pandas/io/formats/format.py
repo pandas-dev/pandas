@@ -939,17 +939,18 @@ class DataFrameFormatter(TableFormatter):
         """
         from pandas.io.formats.latex import LatexFormatter
 
-        return LatexFormatter(
+        latex_formatter = LatexFormatter(
             self,
-            column_format=column_format,
             longtable=longtable,
+            column_format=column_format,
             multicolumn=multicolumn,
             multicolumn_format=multicolumn_format,
             multirow=multirow,
             caption=caption,
             label=label,
             position=position,
-        ).get_result(buf=buf, encoding=encoding)
+        )
+        return latex_formatter.get_result(buf=buf, encoding=encoding)
 
     def _format_col(self, i: int) -> List[str]:
         frame = self.tr_frame
@@ -994,7 +995,7 @@ class DataFrameFormatter(TableFormatter):
         )
 
     def _get_formatted_column_labels(self, frame: "DataFrame") -> List[List[str]]:
-        from pandas.core.indexes.multi import _sparsify
+        from pandas.core.indexes.multi import sparsify_labels
 
         columns = frame.columns
 
@@ -1020,7 +1021,7 @@ class DataFrameFormatter(TableFormatter):
                 zip(*[[space_format(x, y) for y in x] for x in fmt_columns])
             )
             if self.sparsify and len(str_columns):
-                str_columns = _sparsify(str_columns)
+                str_columns = sparsify_labels(str_columns)
 
             str_columns = [list(x) for x in zip(*str_columns)]
         else:

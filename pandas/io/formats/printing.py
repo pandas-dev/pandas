@@ -243,7 +243,7 @@ def pprint_thing_encoded(
     return value.encode(encoding, errors)
 
 
-def _enable_data_resource_formatter(enable: bool) -> None:
+def enable_data_resource_formatter(enable: bool) -> None:
     if "IPython" not in sys.modules:
         # definitely not in IPython
         return
