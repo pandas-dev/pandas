@@ -37,6 +37,7 @@ PRIVATE_IMPORTS_TO_IGNORE: Set[str] = {
     "_flex_comp_doc_FRAME",
     "_make_flex_doc",
     "_op_descriptions",
+    "_IntegerDtype",
     "_use_inf_as_na",
     "_get_plot_backend",
     "_matplotlib",

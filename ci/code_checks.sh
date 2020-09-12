@@ -121,6 +121,7 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
         $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_import_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored --format="##[error]{source_path}:{line_number}:{msg}" pandas/
     else
         $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_import_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored pandas/
+    fi
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for use of private functions across modules' ; echo $MSG

@@ -459,7 +459,7 @@ class GroupByPlot(PandasObject):
 
 
 @contextmanager
-def group_selection_context(groupby: "_GroupBy"):
+def group_selection_context(groupby: "BaseGroupBy"):
     """
     Set / reset the group_selection_context.
     """
@@ -479,7 +479,7 @@ _KeysArgType = Union[
 ]
 
 
-class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
+class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
     _group_selection = None
     _apply_allowlist: FrozenSet[str] = frozenset()
 
@@ -1212,7 +1212,7 @@ b  2""",
 OutputFrameOrSeries = TypeVar("OutputFrameOrSeries", bound=NDFrame)
 
 
-class GroupBy(_GroupBy[FrameOrSeries]):
+class GroupBy(BaseGroupBy[FrameOrSeries]):
     """
     Class for grouping and aggregating relational data.
 
