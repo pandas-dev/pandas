@@ -655,6 +655,10 @@ cpdef ndarray[object] ensure_string_array(
 
     for i in range(n):
         val = result[i]
+
+        if isinstance(val, str):
+            continue
+
         if not checknull(val):
             result[i] = str(val)
         else:
