@@ -1107,7 +1107,6 @@ Plotting
 - Bug in :meth:`DataFrame.plot.scatter` was adding a colorbar to the plot even if the argument ``c`` was assigned to a column containing color names (:issue:`34316`)
 - Bug in :meth:`pandas.plotting.bootstrap_plot` was causing cluttered axes and overlapping labels (:issue:`34905`)
 - Bug in :meth:`DataFrame.plot.scatter` caused an error when plotting variable marker sizes (:issue:`32904`)
-- Bug in :func:`plot.bar`. Ticks position were assigned by value order instead of using the actual value for numeric, or a smart ordering for string. (:issue:`26186` and :issue:`11465`)
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^

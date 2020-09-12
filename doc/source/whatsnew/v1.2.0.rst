@@ -302,6 +302,7 @@ Plotting
 ^^^^^^^^
 
 - Bug in :meth:`DataFrame.plot` where a marker letter in the ``style`` keyword sometimes causes a ``ValueError`` (:issue:`21003`)
+- Bug in :func:`DataFrame.plot.bar` and :func:`Series.plot.bar`. Ticks position were assigned by value order instead of using the actual value for numeric, or a smart ordering for string. (:issue:`26186` and :issue:`11465`)
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
