@@ -1408,12 +1408,18 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     def __pos__(self):
         values = self._values
-        if is_bool_dtype(values) or is_numeric_dtype(values):
+        if (
+            is_bool_dtype(values)
+            or is_numeric_dtype(values)
+            or is_timedelta64_dtype(values)
+            or is_object_dtype(values)
+        ):
             arr = values
-        elif is_timedelta64_dtype(values) or is_object_dtype(values):
-            arr = operator.pos(values)
         else:
-            raise TypeError(f"Unary plus expects numeric dtype, not {values.dtype}")
+            raise TypeError(
+                "Unary plus expects bool, numeric, timedelta, "
+                f"or object dtype, not {values.dtype}"
+            )
         return self.__array_wrap__(arr)
 
     def __invert__(self):
