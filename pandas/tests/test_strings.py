@@ -857,7 +857,8 @@ class TestStringMethods:
         tm.assert_series_equal(result, exp)
 
         result = values.str.startswith("foo", na=na)
-        tm.assert_series_equal(result, exp.fillna(na).astype(bool))
+        exp = Series([False, na, True, False, False, na, True])
+        tm.assert_series_equal(result, exp)
 
         # mixed
         mixed = np.array(
@@ -893,7 +894,8 @@ class TestStringMethods:
         tm.assert_series_equal(result, exp)
 
         result = values.str.endswith("foo", na=na)
-        tm.assert_series_equal(result, exp.fillna(na).astype(bool))
+        exp = Series([False, na, False, False, True, na, True])
+        tm.assert_series_equal(result, exp)
 
         # mixed
         mixed = np.array(
