@@ -205,6 +205,7 @@ Deprecations
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
+- Performance improvements when creating Series with dtype `str` or :class:`StringDtype` from array with many string elements (:issue:`36304`)
 - Performance improvement in :meth:`GroupBy.agg` with the ``numba`` engine (:issue:`35759`)
 -
 
@@ -228,7 +229,7 @@ Datetimelike
 - Bug in :class:`DateOffset` where attributes reconstructed from pickle files differ from original objects when input values exceed normal ranges (e.g months=12) (:issue:`34511`)
 - Bug in :meth:`DatetimeIndex.get_slice_bound` where ``datetime.date`` objects were not accepted or naive :class:`Timestamp` with a tz-aware :class:`DatetimeIndex` (:issue:`35690`)
 - Bug in :meth:`DatetimeIndex.slice_locs` where ``datetime.date`` objects were not accepted (:issue:`34077`)
-- Bug in :meth:`DatetimeIndex.searchsorted`, :meth:`TimedeltaIndex.searchsorted`, and :meth:`Series.searchsorted` with ``datetime64`` or ``timedelta64`` dtype placement of ``NaT`` values being inconsistent with ``NumPy`` (:issue:`36176`)
+- Bug in :meth:`DatetimeIndex.searchsorted`, :meth:`TimedeltaIndex.searchsorted`, :meth:`PeriodIndex.searchsorted`, and :meth:`Series.searchsorted` with ``datetime64``, ``timedelta64`` or ``Period`` dtype placement of ``NaT`` values being inconsistent with ``NumPy`` (:issue:`36176`,:issue:`36254`)
 
 Timedelta
 ^^^^^^^^^
@@ -308,6 +309,7 @@ Groupby/resample/rolling
 
 - Bug in :meth:`DataFrameGroupBy.count` and :meth:`SeriesGroupBy.sum` returning ``NaN`` for missing categories when grouped on multiple ``Categoricals``. Now returning ``0`` (:issue:`35028`)
 - Bug in :meth:`DataFrameGroupBy.apply` that would some times throw an erroneous ``ValueError`` if the grouping axis had duplicate entries (:issue:`16646`)
+- Bug in :meth:`DataFrame.resample(...)` that would throw a ``ValueError`` when resampling from "D" to "24H" over a transition into daylight savings time (DST) (:issue:`35219`)
 - Bug when combining methods :meth:`DataFrame.groupby` with :meth:`DataFrame.resample` and :meth:`DataFrame.interpolate` raising an ``TypeError`` (:issue:`35325`)
 - Bug in :meth:`DataFrameGroupBy.apply` where a non-nuisance grouping column would be dropped from the output columns if another groupby method was called before ``.apply()`` (:issue:`34656`)
 - Bug in :meth:`DataFrameGroupby.apply` would drop a :class:`CategoricalIndex` when grouped on. (:issue:`35792`)

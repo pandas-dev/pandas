@@ -245,7 +245,7 @@ class SharedTests:
         # GH#29884 match numpy convention on whether NaT goes
         #  at the end or the beginning
         result = arr.searchsorted(pd.NaT)
-        if np_version_under1p18 or self.array_cls is PeriodArray:
+        if np_version_under1p18:
             # Following numpy convention, NaT goes at the beginning
             #  (unlike NaN which goes at the end)
             assert result == 0
