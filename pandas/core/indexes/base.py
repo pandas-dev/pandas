@@ -3877,7 +3877,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _wrap_joined_index(self, joined, other):
         name = get_op_result_name(self, other)
-        return Index(joined, name=name)
+        return self._constructor(joined, name=name)
 
     # --------------------------------------------------------------------
     # Uncategorized Methods
@@ -4444,8 +4444,8 @@ class Index(IndexOpsMixin, PandasObject):
 
     def sort_values(
         self,
-        return_indexer=False,
-        ascending=True,
+        return_indexer: bool = False,
+        ascending: bool = True,
         na_position: str_t = "last",
         key: Optional[Callable] = None,
     ):
@@ -4509,7 +4509,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         # GH 35584. Sort missing values according to na_position kwarg
         # ignore na_position for MutiIndex
-        if not isinstance(self, ABCMultiIndex):
+        if not isinstance(
+            self, (ABCMultiIndex, ABCDatetimeIndex, ABCTimedeltaIndex, ABCPeriodIndex)
+        ):
             _as = nargsort(
                 items=idx, ascending=ascending, na_position=na_position, key=key
             )
