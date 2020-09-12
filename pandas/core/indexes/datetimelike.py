@@ -603,7 +603,9 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         else:
             self = cast(DatetimeTimedeltaMixin, self)
             freq = self.freq if self._can_fast_union(other) else None
-        new_data = type(self._data)._simple_new(joined, dtype=self.dtype, freq=freq)
+
+        new_data = self._data._from_backing_data(joined)
+        new_data._freq = freq
 
         return type(self)._simple_new(new_data, name=name)
 
