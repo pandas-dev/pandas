@@ -1087,7 +1087,11 @@ class DatetimeIndexResampler(Resampler):
         res_index = self._adjust_binner_for_upsample(binner)
 
         # if we have the same frequency as our axis, then we are equal sampling
-        if limit is None and to_offset(ax.inferred_freq) == self.freq:
+        if (
+            limit is None
+            and to_offset(ax.inferred_freq) == self.freq
+            and len(obj) == len(res_index)
+        ):
             result = obj.copy()
             result.index = res_index
         else:
