@@ -365,10 +365,10 @@ class IntegerArray(BaseMaskedArray):
         super().__init__(values, mask, copy=copy)
 
     def __neg__(self):
-        return type(self)(0 - self._data, self._mask)
+        return type(self)(-self._data, self._mask)
 
     def __pos__(self):
-        return type(self)(0 + self._data, self._mask)
+        return self
 
     def __abs__(self):
         return type(self)(np.sign(self._data) * self._data, self._mask)
