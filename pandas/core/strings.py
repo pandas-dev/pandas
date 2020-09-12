@@ -2050,7 +2050,7 @@ def _pat_wrapper(
     @forbid_nonstring_types(forbidden_types, name=name)
     def wrapper3(self, pat, na=np.nan):
         result = f(self._parent, pat, na=na)
-        return self._wrap_result(result, returns_string=returns_string)
+        return self._wrap_result(result, returns_string=returns_string, fill_value=na)
 
     wrapper = wrapper3 if na else wrapper2 if flags else wrapper1
 
