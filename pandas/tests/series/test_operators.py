@@ -536,3 +536,42 @@ class TestSeriesUnaryOps:
         ser = tm.makeStringSeries()
         ser.name = "series"
         tm.assert_series_equal(-(ser < 0), ~(ser < 0))
+
+    @pytest.mark.parametrize("dtype", ["Int64", "Int32", "Int16", "Int8"])
+    @pytest.mark.parametrize(
+        "source, target",
+        [
+            ([1, 2, 3], [-1, -2, -3]),
+            ([1, 2, None], [-1, -2, None]),
+            ([-1, 0, 1], [1, 0, -1]),
+        ],
+    )
+    def test_unary_minus_nullable_int(self, dtype, source, target):
+        s = pd.Series(source, dtype=dtype)
+        result = -s
+        expected = pd.Series(target, dtype=dtype)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["Int64", "Int32", "Int16", "Int8"])
+    @pytest.mark.parametrize(
+        "source", [[1, 2, 3], [1, 2, None], [-1, 0, 1]],
+    )
+    def test_unary_plus_nullable_int(self, dtype, source):
+        expected = pd.Series(source, dtype=dtype)
+        result = +expected
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["Int64", "Int32", "Int16", "Int8"])
+    @pytest.mark.parametrize(
+        "source, target",
+        [
+            ([1, 2, 3], [1, 2, 3]),
+            ([1, -2, None], [1, 2, None]),
+            ([-1, 0, 1], [1, 0, 1]),
+        ],
+    )
+    def test_abs_nullable_int(self, dtype, source, target):
+        s = pd.Series(source, dtype=dtype)
+        result = abs(s)
+        expected = pd.Series(target, dtype=dtype)
+        tm.assert_series_equal(result, expected)

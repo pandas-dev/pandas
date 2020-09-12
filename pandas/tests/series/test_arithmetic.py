@@ -687,27 +687,3 @@ class TestTimeSeriesArithmetic:
         result = series - offset
         expected = pd.Series(pd.to_datetime(["2011-12-26", "2011-12-27", "2011-12-28"]))
         tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize("dtype", ["Int64", "Int32", "Int16", "Int8"])
-    @pytest.mark.parametrize(
-        "source, target",
-        [
-            ([1, 2, 3], [-1, -2, -3]),
-            ([1, 2, None], [-1, -2, None]),
-            ([-1, 0, 1], [1, 0, -1]),
-        ],
-    )
-    def test_unary_minus_nullable_int(self, dtype, source, target):
-        s = pd.Series(source, dtype=dtype)
-        result = -s
-        expected = pd.Series(target, dtype=dtype)
-        tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize("dtype", ["Int64", "Int32", "Int16", "Int8"])
-    @pytest.mark.parametrize(
-        "source", [[1, 2, 3], [1, 2, None], [-1, 0, 1]],
-    )
-    def test_unary_plus_nullable_int(self, dtype, source):
-        expected = pd.Series(source, dtype=dtype)
-        result = +expected
-        tm.assert_series_equal(result, expected)
