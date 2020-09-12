@@ -182,8 +182,7 @@ class TestSeriesValueCounts:
     def test_value_counts_interval_bins(self):
         ser = Series([1, 2, 3, 0, 1, 4], ["a", "a", "a", "b", "b", "c"])
         res = ser.value_counts(bins=[0, 1, 2])
-        print(res)
-        exp = Series([2, 3, 4])
+        exp = Series([3, 1], res.index)
         tm.assert_series_equal(res, exp)
 
     @pytest.mark.parametrize(
