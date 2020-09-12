@@ -1588,7 +1588,7 @@ def format_percentiles(
     return [i + "%" for i in out]
 
 
-def _is_dates_only(
+def is_dates_only(
     values: Union[np.ndarray, DatetimeArray, Index, DatetimeIndex]
 ) -> bool:
     # return a boolean if we are only dates (and don't have a timezone)
@@ -1660,8 +1660,8 @@ def get_format_datetime64_from_values(
         #  only accepts 1D values
         values = values.ravel()
 
-    is_dates_only = _is_dates_only(values)
-    if is_dates_only:
+    ido = is_dates_only(values)
+    if ido:
         return date_format or "%Y-%m-%d"
     return date_format
 
@@ -1670,9 +1670,9 @@ class Datetime64TZFormatter(Datetime64Formatter):
     def _format_strings(self) -> List[str]:
         """ we by definition have a TZ """
         values = self.values.astype(object)
-        is_dates_only = _is_dates_only(values)
+        ido = is_dates_only(values)
         formatter = self.formatter or get_format_datetime64(
-            is_dates_only, date_format=self.date_format
+            ido, date_format=self.date_format
         )
         fmt_values = [formatter(x) for x in values]
 
