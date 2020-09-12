@@ -23,8 +23,7 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, notna
 
 from pandas.core import accessor
-from pandas.core.algorithms import take_1d
-from pandas.core.arrays.categorical import Categorical, contains, recode_for_categories
+from pandas.core.arrays.categorical import Categorical, contains
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
@@ -558,21 +557,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
                 "method='nearest' not implemented yet for CategoricalIndex"
             )
 
-        if isinstance(target, CategoricalIndex) and self._values.is_dtype_equal(target):
-            if self._values.equals(target._values):
-                # we have the same codes
-                codes = target.codes
-            else:
-                codes = recode_for_categories(
-                    target.codes, target.categories, self._values.categories
-                )
-        else:
-            if isinstance(target, CategoricalIndex):
-                code_indexer = self.categories.get_indexer(target.categories)
-                codes = take_1d(code_indexer, target.codes, fill_value=-1)
-            else:
-                codes = self.categories.get_indexer(target)
-
+        codes = self._values._validate_listlike(target._values)
         indexer, _ = self._engine.get_indexer_non_unique(codes)
         return ensure_platform_int(indexer)
 
@@ -580,15 +565,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
     def get_indexer_non_unique(self, target):
         target = ibase.ensure_index(target)
 
-        if isinstance(target, CategoricalIndex):
-            # Indexing on codes is more efficient if categories are the same:
-            if target.categories is self.categories:
-                target = target.codes
-                indexer, missing = self._engine.get_indexer_non_unique(target)
-                return ensure_platform_int(indexer), missing
-            target = target._values
-
-        codes = self.categories.get_indexer(target)
+        codes = self._values._validate_listlike(target._values)
         indexer, missing = self._engine.get_indexer_non_unique(codes)
         return ensure_platform_int(indexer), missing
 

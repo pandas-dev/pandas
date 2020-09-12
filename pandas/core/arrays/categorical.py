@@ -1716,6 +1716,35 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             return np.NaN
         return self.categories[i]
 
+    def _validate_listlike(self, target: ArrayLike) -> np.ndarray:
+        """
+        Extract integer codes we can use for comparison.
+
+        Notes
+        -----
+        If a value in target is not present, it gets coded as -1.
+        """
+
+        if isinstance(target, Categorical):
+            # Indexing on codes is more efficient if categories are the same,
+            #  so we can apply some optimizations based on the degree of
+            #  dtype-matching.
+            if self.categories.equals(target.categories):
+                # We use the same codes, so can go directly to the engine
+                codes = target.codes
+            elif self.is_dtype_equal(target):
+                # We have the same categories up to a reshuffling of codes.
+                codes = recode_for_categories(
+                    target.codes, target.categories, self.categories
+                )
+            else:
+                code_indexer = self.categories.get_indexer(target.categories)
+                codes = take_1d(code_indexer, target.codes, fill_value=-1)
+        else:
+            codes = self.categories.get_indexer(target)
+
+        return codes
+
     # ------------------------------------------------------------------
 
     def take_nd(self, indexer, allow_fill: bool = False, fill_value=None):
@@ -1890,11 +1919,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
                     "Cannot set a Categorical with another, "
                     "without identical categories"
                 )
-            if not self.categories.equals(value.categories):
-                new_codes = recode_for_categories(
-                    value.codes, value.categories, self.categories
-                )
-                value = Categorical.from_codes(new_codes, dtype=self.dtype)
+            new_codes = self._validate_listlike(value)
+            value = Categorical.from_codes(new_codes, dtype=self.dtype)
 
         rvalue = value if is_list_like(value) else [value]
 
@@ -2164,13 +2190,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         if not isinstance(other, Categorical):
             return False
         elif self.is_dtype_equal(other):
-            if self.categories.equals(other.categories):
-                # fastpath to avoid re-coding
-                other_codes = other._codes
-            else:
-                other_codes = recode_for_categories(
-                    other.codes, other.categories, self.categories
-                )
+            other_codes = self._validate_listlike(other)
             return np.array_equal(self._codes, other_codes)
         return False
 
