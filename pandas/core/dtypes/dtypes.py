@@ -377,6 +377,8 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             # will be equal if they have the same categories.
             left = self.categories
             right = other.categories
+
+            # GH#36280 the ordering of checks here is for performance
             if not left.dtype == right.dtype:
                 return False
 
