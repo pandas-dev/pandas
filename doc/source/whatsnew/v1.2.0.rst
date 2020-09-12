@@ -205,6 +205,7 @@ Deprecations
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
+- Performance improvements when converting :class:`Series` with object dtype and many string elements to dtype :class:`StringDtype` (:issue:`xxxxx`)
 - Performance improvement in :meth:`GroupBy.agg` with the ``numba`` engine (:issue:`35759`)
 -
 
