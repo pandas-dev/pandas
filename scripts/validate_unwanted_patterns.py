@@ -357,9 +357,9 @@ def main(
     output_format : str
         Output format of the error message.
     file_extensions_to_check : str
-        Coma seperated values of what file extensions to check.
+        Comma separated values of what file extensions to check.
     excluded_file_paths : str
-        Coma seperated values of what file paths to exclude during the check.
+        Comma separated values of what file paths to exclude during the check.
 
     Returns
     -------
@@ -444,7 +444,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--included-file-extensions",
         default="py,pyx,pxd,pxi",
-        help="Coma seperated file extensions to check.",
+        help="Comma separated file extensions to check.",
     )
     parser.add_argument(
         "--excluded-file-paths",

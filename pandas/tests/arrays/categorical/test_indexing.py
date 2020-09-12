@@ -183,7 +183,7 @@ class TestCategoricalIndexing:
         # GH 21448
         key = key_class(key_values, categories=range(1, 5))
         # Test for flat index and CategoricalIndex with same/different cats:
-        for dtype in None, "category", key.dtype:
+        for dtype in [None, "category", key.dtype]:
             idx = Index(idx_values, dtype=dtype)
             expected, exp_miss = idx.get_indexer_non_unique(key_values)
             result, res_miss = idx.get_indexer_non_unique(key)
