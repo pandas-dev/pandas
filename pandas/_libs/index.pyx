@@ -80,7 +80,11 @@ cdef class IndexEngine:
             values = self._get_index_values()
 
             self._check_type(val)
-            loc = _bin_search(values, val)  # .searchsorted(val, side='left')
+            try:
+                loc = _bin_search(values, val)  # .searchsorted(val, side='left')
+            except TypeError:
+                # GH#35788 e.g. val=None with float64 values
+                raise KeyError(val)
             if loc >= len(values):
                 raise KeyError(val)
             if values[loc] != val:
@@ -256,7 +260,7 @@ cdef class IndexEngine:
     def get_indexer_non_unique(self, targets):
         """
         Return an indexer suitable for taking from a non unique index
-        return the labels in the same order ast the target
+        return the labels in the same order as the target
         and a missing indexer into the targets (which correspond
         to the -1 indices in the results
         """
