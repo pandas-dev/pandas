@@ -19,7 +19,6 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_dict_like,
     is_extension_array_dtype,
-    is_hashable,
     is_list_like,
     is_object_dtype,
     is_scalar,
