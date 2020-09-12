@@ -209,14 +209,17 @@ class TestSeriesAggregate:
             f_abs = np.abs(string_series)
 
             # ufunc
-            expected = f_sqrt.copy()
             result = string_series.apply(np.sqrt)
+            expected = f_sqrt.copy()
             tm.assert_series_equal(result, expected)
 
             # list-like
             result = string_series.apply([np.sqrt])
             expected = f_sqrt.to_frame().copy()
             expected.columns = ["sqrt"]
+            tm.assert_frame_equal(result, expected)
+
+            result = string_series.apply(["sqrt"])
             tm.assert_frame_equal(result, expected)
 
             # multiple items in list
