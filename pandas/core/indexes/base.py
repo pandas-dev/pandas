@@ -4902,7 +4902,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         Compute boolean array of whether each index value is found in the
         passed set of values. The length of the returned boolean array matches
-        the length of the index.
+        the length of the index. If the index is a multi-index and no level is
+        given, the values must be given as list containing tuples with the same
+        length as the mulit-index.
 
         Parameters
         ----------
