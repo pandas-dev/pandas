@@ -1203,16 +1203,27 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
             values = [x if (x is not None) else backup for x in values]
 
-        v = values[0]
-
-        if not isinstance(v, (np.ndarray, Index, Series)) and self.as_index:
+        if isinstance(first_not_none, (np.ndarray, Index)):
+            # GH#1738: values is list of arrays of unequal lengths
+            #  fall through to the outer else clause
+            # TODO: sure this is right?  we used to do this
+            #  after raising AttributeError above
+            return self.obj._constructor_sliced(
+                values, index=key_index, name=self._selection_name
+            )
+        elif not isinstance(first_not_none, Series):
             # values are not series or array-like but scalars
             # self._selection_name not passed through to Series as the
             # result should not take the name of original selection
             # of columns
-            return self.obj._constructor_sliced(values, index=key_index)
+            if self.as_index:
+                return self.obj._constructor_sliced(values, index=key_index)
+            else:
+                result = DataFrame(values, index=key_index, columns=[self._selection])
+                self._insert_inaxis_grouper_inplace(result)
+                return result
 
-        if isinstance(v, Series):
+        else:
             all_indexed_same = all_indexes_same((x.index for x in values))
 
             # GH3596
@@ -1253,30 +1264,18 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
             if self.axis == 0:
                 index = key_index
-                columns = v.index.copy()
+                columns = first_not_none.index.copy()
                 if columns.name is None:
                     # GH6124 - propagate name of Series when it's consistent
                     names = {v.name for v in values}
                     if len(names) == 1:
                         columns.name = list(names)[0]
             else:
-                index = v.index
+                index = first_not_none.index
                 columns = key_index
                 stacked_values = stacked_values.T
 
             result = self.obj._constructor(stacked_values, index=index, columns=columns)
-
-        elif not self.as_index:
-            # We add grouping column below, so create a frame here
-            result = DataFrame(values, index=key_index, columns=[self._selection])
-        else:
-            # GH#1738: values is list of arrays of unequal lengths
-            #  fall through to the outer else clause
-            # TODO: sure this is right?  we used to do this
-            #  after raising AttributeError above
-            return self.obj._constructor_sliced(
-                values, index=key_index, name=self._selection_name
-            )
 
         # if we have date/time like in the original, then coerce dates
         # as we are stacking can easily have object dtypes here
