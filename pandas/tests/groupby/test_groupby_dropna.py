@@ -163,39 +163,52 @@ def test_groupby_dropna_series_by(dropna, expected):
 
 
 @pytest.mark.parametrize(
-    "dropna,expected",
+    "dropna,input_index,expected_data,expected_index",
     [
-        (True, pd.DataFrame({"B": [2, 2, 1]})),
-        (False, pd.DataFrame({"B": [2, 2, 1, 1]})),
+        (True, pd.RangeIndex(0, 4), {"B": [2, 2, 1]}, pd.RangeIndex(0, 3)),
+        (True, list("abcd"), {"B": [2, 2, 1]}, list("abc")),
+        (
+            True,
+            pd.MultiIndex.from_tuples(
+                [(1, "R"), (1, "B"), (2, "R"), (2, "B")], names=["num", "col"]
+            ),
+            {"B": [2, 2, 1]},
+            pd.MultiIndex.from_tuples(
+                [(1, "R"), (1, "B"), (2, "R")], names=["num", "col"]
+            ),
+        ),
+        (False, pd.RangeIndex(0, 4), {"B": [2, 2, 1, 1]}, pd.RangeIndex(0, 4)),
+        (False, list("abcd"), {"B": [2, 2, 1, 1]}, list("abcd")),
+        (
+            False,
+            pd.MultiIndex.from_tuples(
+                [(1, "R"), (1, "B"), (2, "R"), (2, "B")], names=["num", "col"]
+            ),
+            {"B": [2, 2, 1, 1]},
+            pd.MultiIndex.from_tuples(
+                [(1, "R"), (1, "B"), (2, "R"), (2, "B")], names=["num", "col"]
+            ),
+        ),
     ],
 )
-def test_groupby_dataframe_slice_then_transform(dropna, expected):
+def test_groupby_dataframe_slice_then_transform(
+    dropna, input_index, expected_data, expected_index
+):
     # GH35014 & GH35612
 
-    df = pd.DataFrame({"A": [0, 0, 1, None], "B": [1, 2, 3, None]})
+    df = pd.DataFrame({"A": [0, 0, 1, None], "B": [1, 2, 3, None]}, index=input_index)
     gb = df.groupby("A", dropna=dropna)
 
     result = gb.transform(len)
+    expected = pd.DataFrame(expected_data, index=expected_index)
     tm.assert_frame_equal(result, expected)
 
     result = gb[["B"]].transform(len)
+    expected = pd.DataFrame(expected_data, index=expected_index)
     tm.assert_frame_equal(result, expected)
 
-
-@pytest.mark.parametrize(
-    "dropna,expected",
-    [
-        (True, pd.Series(data=[2, 2, 1], name="B")),
-        (False, pd.Series(data=[2, 2, 1, 1], name="B")),
-    ],
-)
-def test_groupby_series_slice_then_transform_(dropna, expected):
-    # GH35014 & GH35612
-
-    df = pd.DataFrame({"A": [0, 0, 1, None], "B": [1, 2, 3, None]})
-    gb = df.groupby("A", dropna=dropna)
-
     result = gb["B"].transform(len)
+    expected = pd.Series(expected_data["B"], index=expected_index, name="B")
     tm.assert_series_equal(result, expected)
 
 
