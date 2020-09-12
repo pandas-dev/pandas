@@ -890,6 +890,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if is_hashable(key):
             # Otherwise index.get_value will raise InvalidIndexError
             try:
+                # For labels that don't resolve as scalars like tuples and frozensets
                 result = self._get_value(key)
 
                 return result
@@ -1012,11 +1013,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 # GH#12862 adding an new key to the Series
                 self.loc[key] = value
 
-        except TypeError as e:
+        except TypeError as err:
             if isinstance(key, tuple) and not isinstance(self.index, MultiIndex):
                 raise ValueError(
                     "key of type tuple not found and not a MultiIndex"
-                ) from e
+                ) from err
 
             if com.is_bool_indexer(key):
                 key = check_bool_indexer(self.index, key)
