@@ -32,7 +32,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
-    ABCIndexClass,
     ABCIntervalIndex,
     ABCPeriodIndex,
     ABCSeries,
@@ -43,7 +42,7 @@ from pandas.core.algorithms import take, value_counts
 from pandas.core.arrays.base import ExtensionArray, _extension_array_shared_docs
 from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
-from pandas.core.construction import array
+from pandas.core.construction import array, extract_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.indexes.base import ensure_index
 
@@ -162,7 +161,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     ):
 
         if isinstance(data, ABCSeries) and is_interval_dtype(data.dtype):
-            data = data._values
+            data = data._values  # TODO: extract_array?
 
         if isinstance(data, (cls, ABCIntervalIndex)):
             left = data.left
@@ -243,8 +242,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             )
             raise ValueError(msg)
 
-        result._left = left
-        result._right = right
+        result._left = extract_array(array(left), extract_numpy=True)
+        result._right = extract_array(array(right), extract_numpy=True)
         result._closed = closed
         if verify_integrity:
             result._validate()
@@ -512,14 +511,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         right = self.right[value]
 
         # scalar
-        if not isinstance(left, ABCIndexClass):
+        if not isinstance(left, (np.ndarray, ExtensionArray)):
             if is_scalar(left) and isna(left):
                 return self._fill_value
             if np.ndim(left) > 1:
                 # GH#30588 multi-dimensional indexer disallowed
                 raise ValueError("multi-dimensional indexing not allowed")
             return Interval(left, right, self.closed)
-
         return self._shallow_copy(left, right)
 
     def __setitem__(self, key, value):
@@ -559,12 +557,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         # Need to ensure that left and right are updated atomically, so we're
         # forced to copy, update the copy, and swap in the new values.
-        left = self.left.copy(deep=True)
-        left._values[key] = value_left
+        left = self.left.copy()
+        left[key] = value_left
         self._left = left
 
-        right = self.right.copy(deep=True)
-        right._values[key] = value_right
+        right = self.right.copy()
+        right[key] = value_right
         self._right = right
 
     def __eq__(self, other):
@@ -657,8 +655,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         self._check_closed_matches(value, name="value")
 
-        left = self.left.fillna(value=value.left)
-        right = self.right.fillna(value=value.right)
+        from pandas import Index
+
+        left = Index(self.left).fillna(value=value.left)
+        right = Index(self.right).fillna(value=value.right)
         return self._shallow_copy(left, right)
 
     @property
@@ -684,6 +684,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         array : ExtensionArray or ndarray
             ExtensionArray or NumPy ndarray with 'dtype' for its dtype.
         """
+        from pandas import Index
         from pandas.core.arrays.string_ import StringDtype
 
         if dtype is not None:
@@ -695,8 +696,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
             # need to cast to different subtype
             try:
-                new_left = self.left.astype(dtype.subtype)
-                new_right = self.right.astype(dtype.subtype)
+                # We need to use Index rules for astype to prevent casting
+                #  np.nan entries to int subtypes
+                new_left = Index(self.left).astype(dtype.subtype)
+                new_right = Index(self.right).astype(dtype.subtype)
             except TypeError as err:
                 msg = (
                     f"Cannot convert {self.dtype} to {dtype}; subtypes are incompatible"
@@ -758,13 +761,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         -------
         IntervalArray
         """
-        left = self.left.copy(deep=True)
-        right = self.right.copy(deep=True)
+        left = self.left.copy()
+        right = self.right.copy()
         closed = self.closed
         # TODO: Could skip verify_integrity here.
         return type(self).from_arrays(left, right, closed=closed)
 
-    def isna(self):
+    def isna(self) -> np.ndarray:
         return isna(self.left)
 
     @property
@@ -790,7 +793,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         empty_len = min(abs(periods), len(self))
         if isna(fill_value):
-            fill_value = self.left._na_value
+            from pandas import Index
+
+            fill_value = Index(self.left)._na_value
             empty = IntervalArray.from_breaks([fill_value] * (empty_len + 1))
         else:
             empty = self._from_sequence([fill_value] * empty_len)
@@ -854,7 +859,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         fill_left = fill_right = fill_value
         if allow_fill:
             if fill_value is None:
-                fill_left = fill_right = self.left._na_value
+                from pandas import Index
+
+                fill_left = fill_right = Index(self.left)._na_value
             elif is_interval(fill_value):
                 self._check_closed_matches(fill_value, name="fill_value")
                 fill_left, fill_right = fill_value.left, fill_value.right

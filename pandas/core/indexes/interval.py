@@ -183,12 +183,8 @@ class SetopCheck:
     )
 )
 @inherit_names(["set_closed", "to_tuples"], IntervalArray, wrap=True)
-@inherit_names(
-    ["__array__", "overlaps", "contains", "left", "right", "length"], IntervalArray
-)
-@inherit_names(
-    ["is_non_overlapping_monotonic", "mid", "closed"], IntervalArray, cache=True
-)
+@inherit_names(["__array__", "overlaps", "contains"], IntervalArray)
+@inherit_names(["is_non_overlapping_monotonic", "closed"], IntervalArray, cache=True)
 class IntervalIndex(IntervalMixin, ExtensionIndex):
     _typ = "intervalindex"
     _comparables = ["name"]
@@ -407,7 +403,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return _new_IntervalIndex, (type(self), d), None
 
     @Appender(Index.astype.__doc__)
-    def astype(self, dtype, copy=True):
+    def astype(self, dtype, copy: bool = True):
         with rewrite_exception("IntervalArray", type(self).__name__):
             new_values = self._values.astype(dtype, copy=copy)
         if is_interval_dtype(new_values.dtype):
@@ -436,7 +432,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return self[::-1].is_monotonic_increasing
 
     @cache_readonly
-    def is_unique(self):
+    def is_unique(self) -> bool:
         """
         Return True if the IntervalIndex contains unique elements, else False.
         """
@@ -890,6 +886,22 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return locs
 
     # --------------------------------------------------------------------
+
+    @cache_readonly
+    def left(self) -> Index:
+        return Index(self._values.left)
+
+    @cache_readonly
+    def right(self) -> Index:
+        return Index(self._values.right)
+
+    @cache_readonly
+    def mid(self):
+        return Index(self._data.mid)
+
+    @property
+    def length(self):
+        return Index(self._data.length)
 
     @Appender(Index.where.__doc__)
     def where(self, cond, other=None):
