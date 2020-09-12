@@ -93,7 +93,7 @@ from pandas.core.window import Expanding, ExponentialMovingWindow, Rolling, Wind
 from pandas.io.formats import format as fmt
 from pandas.io.formats.format import DataFrameFormatter, format_percentiles
 from pandas.io.formats.printing import pprint_thing
-from pandas.util._decorators import doc
+from pandas.util._decorators import doc, rewrite_axis_style_signature, Appender
 
 if TYPE_CHECKING:
     from pandas._libs.tslibs import BaseOffset
@@ -3071,7 +3071,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             .. versionadded:: 1.0.0
         position : str, optional
             The LaTeX positional argument for tables, to be placed after
-            ``\begin{}`` in the output.
+            ``\begin{{}}`` in the output.
         {returns}
         See Also
         --------
