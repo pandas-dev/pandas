@@ -158,7 +158,7 @@ class _XlsxStyler:
         return props
 
 
-class _XlsxWriter(ExcelWriter):
+class XlsxWriter(ExcelWriter):
     engine = "xlsxwriter"
     supported_extensions = (".xlsx",)
 
