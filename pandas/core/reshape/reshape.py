@@ -399,11 +399,6 @@ def _unstack_multiple(data, clocs, fill_value=None):
 
 
 def unstack(obj, level, fill_value=None):
-    # GH 36113
-    # Give nicer error messages when unstack a Index that is not
-    # a MultiIndex.
-    if not isinstance(obj.index, MultiIndex):
-        raise ValueError("index must be a MultiIndex to unstack")
 
     if isinstance(level, (tuple, list)):
         if len(level) != 1:
@@ -423,11 +418,20 @@ def unstack(obj, level, fill_value=None):
         elif isinstance(obj.columns, MultiIndex):
             return obj.T.stack(dropna=False)
         else:
+            # GH 36113
+            # Give nicer error messages when unstack a Index that is not
+            # a MultiIndex.
             raise ValueError(
                 "either index or column of a DataFrame need to "
                 "be a MultiIndex to unstack."
             )
     else:
+        # GH 36113
+        # Give nicer error messages when unstack a Index that is not
+        # a MultiIndex.
+        if not isinstance(obj.index, MultiIndex):
+            raise ValueError("index must be a MultiIndex to unstack")
+
         if is_extension_array_dtype(obj.dtype):
             return _unstack_extension_series(obj, level, fill_value)
         unstacker = _Unstacker(
