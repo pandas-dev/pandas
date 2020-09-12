@@ -688,7 +688,7 @@ class TestTimeSeriesArithmetic:
         expected = pd.Series(pd.to_datetime(["2011-12-26", "2011-12-27", "2011-12-28"]))
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("dtype", ["Int64", "Int32", "Int16"])
+    @pytest.mark.parametrize("dtype", ["Int64", "Int32", "Int16", "Int8"])
     @pytest.mark.parametrize(
         "source, target",
         [
@@ -703,7 +703,7 @@ class TestTimeSeriesArithmetic:
         expected = pd.Series(target, dtype=dtype)
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("dtype", ["Int64", "Int32", "Int16"])
+    @pytest.mark.parametrize("dtype", ["Int64", "Int32", "Int16", "Int8"])
     @pytest.mark.parametrize(
         "source", [[1, 2, 3], [1, 2, None], [-1, 0, 1]],
     )
