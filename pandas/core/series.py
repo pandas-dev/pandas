@@ -25,6 +25,7 @@ from pandas._config import get_option
 from pandas._libs import lib, properties, reshape, tslibs
 from pandas._libs.lib import no_default
 from pandas._typing import (
+    AggFuncType,
     ArrayLike,
     Axis,
     DtypeObj,
@@ -89,6 +90,7 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexing import check_bool_indexer
 from pandas.core.internals import SingleBlockManager
+from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import ensure_key_mapped
 from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
@@ -4081,14 +4083,16 @@ Keep all original rows and also all original values
     agg = aggregate
 
     @doc(
-        NDFrame.transform,
+        _shared_docs["transform"],
         klass=_shared_doc_kwargs["klass"],
         axis=_shared_doc_kwargs["axis"],
     )
-    def transform(self, func, axis=0, *args, **kwargs):
-        # Validate the axis parameter
-        self._get_axis_number(axis)
-        return super().transform(func, *args, **kwargs)
+    def transform(
+        self, func: AggFuncType, axis: Axis = 0, *args, **kwargs
+    ) -> FrameOrSeriesUnion:
+        from pandas.core.aggregation import transform
+
+        return transform(self, func, axis, *args, **kwargs)
 
     def apply(self, func, convert_dtype=True, args=(), **kwds):
         """

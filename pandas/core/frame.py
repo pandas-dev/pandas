@@ -45,6 +45,7 @@ from pandas._config import get_option
 from pandas._libs import algos as libalgos, lib, properties
 from pandas._libs.lib import no_default
 from pandas._typing import (
+    AggFuncType,
     ArrayLike,
     Axes,
     Axis,
@@ -116,7 +117,7 @@ from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 from pandas.core import algorithms, common as com, nanops, ops
 from pandas.core.accessor import CachedAccessor
-from pandas.core.aggregation import reconstruct_func, relabel_result
+from pandas.core.aggregation import reconstruct_func, relabel_result, transform
 from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin as DatetimeLikeArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
@@ -7462,15 +7463,16 @@ NaN 12.3   33.0
     agg = aggregate
 
     @doc(
-        NDFrame.transform,
+        _shared_docs["transform"],
         klass=_shared_doc_kwargs["klass"],
         axis=_shared_doc_kwargs["axis"],
     )
-    def transform(self, func, axis=0, *args, **kwargs) -> DataFrame:
-        axis = self._get_axis_number(axis)
-        if axis == 1:
-            return self.T.transform(func, *args, **kwargs).T
-        return super().transform(func, *args, **kwargs)
+    def transform(
+        self, func: AggFuncType, axis: Axis = 0, *args, **kwargs
+    ) -> DataFrame:
+        result = transform(self, func, axis, *args, **kwargs)
+        assert isinstance(result, DataFrame)
+        return result
 
     def apply(self, func, axis=0, raw=False, result_type=None, args=(), **kwds):
         """
