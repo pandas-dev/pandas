@@ -1740,3 +1740,50 @@ def test_resample_apply_product():
         columns=["A", "B"],
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "first,last,freq_in,freq_out,exp_last",
+    [
+        (
+            "2020-03-28",
+            "2020-03-31",
+            "D",
+            "24H",
+            "2020-03-30 01:00",
+        ),  # includes transition into DST
+        (
+            "2020-03-28",
+            "2020-10-27",
+            "D",
+            "24H",
+            "2020-10-27 00:00",
+        ),  # includes transition into and out of DST
+        (
+            "2020-10-25",
+            "2020-10-27",
+            "D",
+            "24H",
+            "2020-10-26 23:00",
+        ),  # includes transition out of DST
+        (
+            "2020-03-28",
+            "2020-03-31",
+            "24H",
+            "D",
+            "2020-03-30 00:00",
+        ),  # same as above, but from 24H to D
+        ("2020-03-28", "2020-10-27", "24H", "D", "2020-10-27 00:00"),
+        ("2020-10-25", "2020-10-27", "24H", "D", "2020-10-26 00:00"),
+    ],
+)
+def test_resample_calendar_day_with_dst(
+    first: str, last: str, freq_in: str, freq_out: str, exp_last: str
+):
+    # GH 35219
+    ts = pd.Series(1.0, pd.date_range(first, last, freq=freq_in, tz="Europe/Amsterdam"))
+    result = ts.resample(freq_out).pad()
+    expected = pd.Series(
+        1.0, pd.date_range(first, exp_last, freq=freq_out, tz="Europe/Amsterdam")
+    )
+    tm.assert_series_equal(result, expected)
