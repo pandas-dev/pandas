@@ -26,7 +26,12 @@ from pandas.core.base import DataError, ShallowMixin
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.groupby.base import GroupByMixin
 from pandas.core.groupby.generic import SeriesGroupBy
-from pandas.core.groupby.groupby import GroupBy, _GroupBy, _pipe_template, get_groupby
+from pandas.core.groupby.groupby import (
+    BaseGroupBy,
+    GroupBy,
+    _pipe_template,
+    get_groupby,
+)
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.ops import BinGrouper
 from pandas.core.indexes.api import Index
@@ -40,7 +45,7 @@ from pandas.tseries.offsets import DateOffset, Day, Nano, Tick
 _shared_docs_kwargs: Dict[str, str] = dict()
 
 
-class Resampler(_GroupBy, ShallowMixin):
+class Resampler(BaseGroupBy, ShallowMixin):
     """
     Class for resampling datetimelike data, a groupby-like operation.
     See aggregate, transform, and apply functions on this object.
@@ -1087,7 +1092,11 @@ class DatetimeIndexResampler(Resampler):
         res_index = self._adjust_binner_for_upsample(binner)
 
         # if we have the same frequency as our axis, then we are equal sampling
-        if limit is None and to_offset(ax.inferred_freq) == self.freq:
+        if (
+            limit is None
+            and to_offset(ax.inferred_freq) == self.freq
+            and len(obj) == len(res_index)
+        ):
             result = obj.copy()
             result.index = res_index
         else:

@@ -301,14 +301,8 @@ def union_categoricals(
         categories = first.categories
         ordered = first.ordered
 
-        if all(first.categories.equals(other.categories) for other in to_union[1:]):
-            new_codes = np.concatenate([c.codes for c in to_union])
-        else:
-            codes = [first.codes] + [
-                recode_for_categories(other.codes, other.categories, first.categories)
-                for other in to_union[1:]
-            ]
-            new_codes = np.concatenate(codes)
+        all_codes = [first._validate_listlike(x) for x in to_union]
+        new_codes = np.concatenate(all_codes)
 
         if sort_categories and not ignore_order and ordered:
             raise TypeError("Cannot use sort_categories=True with ordered Categoricals")

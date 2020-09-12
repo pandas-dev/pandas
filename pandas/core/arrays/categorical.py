@@ -76,17 +76,9 @@ def _cat_compare_op(op):
             # the same (maybe up to ordering, depending on ordered)
 
             msg = "Categoricals can only be compared if 'categories' are the same."
-            if len(self.categories) != len(other.categories):
-                raise TypeError(msg + " Categories are different lengths")
-            elif self.ordered and not (self.categories == other.categories).all():
-                raise TypeError(msg)
-            elif not set(self.categories) == set(other.categories):
+            if not self.is_dtype_equal(other):
                 raise TypeError(msg)
 
-            if not (self.ordered == other.ordered):
-                raise TypeError(
-                    "Categoricals can only be compared if 'ordered' is the same"
-                )
             if not self.ordered and not self.categories.equals(other.categories):
                 # both unordered and different order
                 other_codes = _get_codes_for_values(other, self.categories)
@@ -1716,6 +1708,35 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             return np.NaN
         return self.categories[i]
 
+    def _validate_listlike(self, target: ArrayLike) -> np.ndarray:
+        """
+        Extract integer codes we can use for comparison.
+
+        Notes
+        -----
+        If a value in target is not present, it gets coded as -1.
+        """
+
+        if isinstance(target, Categorical):
+            # Indexing on codes is more efficient if categories are the same,
+            #  so we can apply some optimizations based on the degree of
+            #  dtype-matching.
+            if self.categories.equals(target.categories):
+                # We use the same codes, so can go directly to the engine
+                codes = target.codes
+            elif self.is_dtype_equal(target):
+                # We have the same categories up to a reshuffling of codes.
+                codes = recode_for_categories(
+                    target.codes, target.categories, self.categories
+                )
+            else:
+                code_indexer = self.categories.get_indexer(target.categories)
+                codes = take_1d(code_indexer, target.codes, fill_value=-1)
+        else:
+            codes = self.categories.get_indexer(target)
+
+        return codes
+
     # ------------------------------------------------------------------
 
     def take_nd(self, indexer, allow_fill: bool = False, fill_value=None):
@@ -1890,11 +1911,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
                     "Cannot set a Categorical with another, "
                     "without identical categories"
                 )
-            if not self.categories.equals(value.categories):
-                new_codes = recode_for_categories(
-                    value.codes, value.categories, self.categories
-                )
-                value = Categorical.from_codes(new_codes, dtype=self.dtype)
+            new_codes = self._validate_listlike(value)
+            value = Categorical.from_codes(new_codes, dtype=self.dtype)
 
         rvalue = value if is_list_like(value) else [value]
 
@@ -2164,13 +2182,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         if not isinstance(other, Categorical):
             return False
         elif self.is_dtype_equal(other):
-            if self.categories.equals(other.categories):
-                # fastpath to avoid re-coding
-                other_codes = other._codes
-            else:
-                other_codes = recode_for_categories(
-                    other.codes, other.categories, self.categories
-                )
+            other_codes = self._validate_listlike(other)
             return np.array_equal(self._codes, other_codes)
         return False
 
