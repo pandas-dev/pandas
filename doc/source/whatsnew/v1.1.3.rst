@@ -14,7 +14,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
--
+- Fixed regression in :class:`IntegerArray` unary plus and minus operations raising a ``TypeError`` (:issue:`36063`)
 
 .. ---------------------------------------------------------------------------
 

@@ -1408,7 +1408,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     def __pos__(self):
         values = self._values
-        if is_bool_dtype(values):
+        if is_bool_dtype(values) or is_numeric_dtype(values):
             arr = values
         elif (
             is_numeric_dtype(values)
