@@ -712,7 +712,9 @@ class SeriesGroupBy(GroupBy[Series]):
                 ids, val = ids[mask], val[mask]
 
         if bins is None:
-            val_lab, val_lev = algorithms.factorize(val, sort=True, dropna=dropna)
+            val_lab, val_lev = algorithms.factorize(
+                val, sort=True, na_sentinel=(None if dropna else -1)
+            )
         else:
             # val_lab is a Categorical with categories an IntervalIndex
             val_lab = cut(Series(val), bins, include_lowest=True)
