@@ -371,7 +371,7 @@ class IntegerArray(BaseMaskedArray):
         return self
 
     def __abs__(self):
-        return type(self)(np.sign(self._data) * self._data, self._mask)
+        return type(self)(np.abs(self._data), self._mask)
 
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy: bool = False) -> "IntegerArray":
