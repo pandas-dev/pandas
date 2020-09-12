@@ -76,17 +76,9 @@ def _cat_compare_op(op):
             # the same (maybe up to ordering, depending on ordered)
 
             msg = "Categoricals can only be compared if 'categories' are the same."
-            if len(self.categories) != len(other.categories):
-                raise TypeError(msg + " Categories are different lengths")
-            elif self.ordered and not (self.categories == other.categories).all():
-                raise TypeError(msg)
-            elif not set(self.categories) == set(other.categories):
+            if not self.is_dtype_equal(other):
                 raise TypeError(msg)
 
-            if not (self.ordered == other.ordered):
-                raise TypeError(
-                    "Categoricals can only be compared if 'ordered' is the same"
-                )
             if not self.ordered and not self.categories.equals(other.categories):
                 # both unordered and different order
                 other_codes = _get_codes_for_values(other, self.categories)
