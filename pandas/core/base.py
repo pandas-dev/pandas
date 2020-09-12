@@ -473,7 +473,7 @@ class SelectionMixin:
                 # we have a dict of scalars
 
                 # GH 36212 use name only if self is a series
-                name = getattr(self, "name", None) if (self.ndim == 1) else None
+                name = self.name if (self.ndim == 1) else None
 
                 result = Series(result, name=name)
 
