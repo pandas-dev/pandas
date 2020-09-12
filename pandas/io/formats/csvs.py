@@ -341,12 +341,11 @@ class CSVFormatter:
         slicer = slice(start_i, end_i)
 
         df = self.obj.iloc[slicer]
+        mgr = df._mgr
 
-        for block in df._mgr.blocks:
-            d = block.to_native_types(**self._number_format)
-
-            for col_loc, col in zip(block.mgr_locs, d):
-                data[col_loc] = col
+        res = mgr.apply("to_native_types", **self._number_format)
+        for i in range(len(res.items)):
+            data[i] = res.iget_values(i)
 
         ix = self.data_index.to_native_types(slicer=slicer, **self._number_format)
         libwriters.write_csv_rows(data, ix, self.nlevels, self.cols, self.writer)
