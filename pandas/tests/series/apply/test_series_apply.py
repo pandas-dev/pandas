@@ -209,23 +209,14 @@ class TestSeriesAggregate:
             f_abs = np.abs(string_series)
 
             # ufunc
-            result = string_series.transform(np.sqrt)
             expected = f_sqrt.copy()
-            tm.assert_series_equal(result, expected)
-
             result = string_series.apply(np.sqrt)
             tm.assert_series_equal(result, expected)
 
             # list-like
-            result = string_series.transform([np.sqrt])
+            result = string_series.apply([np.sqrt])
             expected = f_sqrt.to_frame().copy()
             expected.columns = ["sqrt"]
-            tm.assert_frame_equal(result, expected)
-
-            result = string_series.transform([np.sqrt])
-            tm.assert_frame_equal(result, expected)
-
-            result = string_series.transform(["sqrt"])
             tm.assert_frame_equal(result, expected)
 
             # multiple items in list
@@ -234,10 +225,6 @@ class TestSeriesAggregate:
             expected = pd.concat([f_sqrt, f_abs], axis=1)
             expected.columns = ["sqrt", "absolute"]
             result = string_series.apply([np.sqrt, np.abs])
-            tm.assert_frame_equal(result, expected)
-
-            result = string_series.transform(["sqrt", "abs"])
-            expected.columns = ["sqrt", "abs"]
             tm.assert_frame_equal(result, expected)
 
             # dict, provide renaming
@@ -250,18 +237,10 @@ class TestSeriesAggregate:
 
     def test_transform_and_agg_error(self, string_series):
         # we are trying to transform with an aggregator
-        msg = "transforms cannot produce aggregated results"
-        with pytest.raises(ValueError, match=msg):
-            string_series.transform(["min", "max"])
-
         msg = "cannot combine transform and aggregation"
         with pytest.raises(ValueError, match=msg):
             with np.errstate(all="ignore"):
                 string_series.agg(["sqrt", "max"])
-
-        with pytest.raises(ValueError, match=msg):
-            with np.errstate(all="ignore"):
-                string_series.transform(["sqrt", "max"])
 
         msg = "cannot perform both aggregation and transformation"
         with pytest.raises(ValueError, match=msg):
@@ -462,14 +441,6 @@ class TestSeriesAggregate:
         with pytest.raises(expected):
             # e.g. Series('a b'.split()).cumprod() will raise
             series.agg(func)
-
-    def test_transform_none_to_type(self):
-        # GH34377
-        df = pd.DataFrame({"a": [None]})
-
-        msg = "DataFrame constructor called with incompatible data and dtype"
-        with pytest.raises(TypeError, match=msg):
-            df.transform({"a": int})
 
 
 class TestSeriesMap:
