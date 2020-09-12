@@ -3206,9 +3206,11 @@ class DataFrame(NDFrame):
                     "and a value that cannot be converted to a Series"
                 ) from err
 
-            self._mgr = self._mgr.reindex_axis(
-                value.index.copy(), axis=1, fill_value=np.nan
-            )
+            # GH31368 preserve name of index
+            index_copy = value.index.copy()
+            index_copy.name = self.index.name
+
+            self._mgr = self._mgr.reindex_axis(index_copy, axis=1, fill_value=np.nan)
 
     def _box_col_values(self, values, loc: int) -> Series:
         """
@@ -5257,7 +5259,7 @@ class DataFrame(NDFrame):
         4     True
         dtype: bool
         """
-        from pandas._libs.hashtable import _SIZE_HINT_LIMIT, duplicated_int64
+        from pandas._libs.hashtable import SIZE_HINT_LIMIT, duplicated_int64
 
         from pandas.core.sorting import get_group_index
 
@@ -5266,7 +5268,7 @@ class DataFrame(NDFrame):
 
         def f(vals):
             labels, shape = algorithms.factorize(
-                vals, size_hint=min(len(self), _SIZE_HINT_LIMIT)
+                vals, size_hint=min(len(self), SIZE_HINT_LIMIT)
             )
             return labels.astype("i8", copy=False), len(shape)
 
@@ -7091,10 +7093,11 @@ NaN 12.3   33.0
 
         Notes
         -----
-        This routine will explode list-likes including lists, tuples,
+        This routine will explode list-likes including lists, tuples, sets,
         Series, and np.ndarray. The result dtype of the subset rows will
-        be object. Scalars will be returned unchanged. Empty list-likes will
-        result in a np.nan for that row.
+        be object. Scalars will be returned unchanged, and empty list-likes will
+        result in a np.nan for that row. In addition, the ordering of rows in the
+        output will be non-deterministic when exploding sets.
 
         Examples
         --------
@@ -7616,7 +7619,7 @@ NaN 12.3   33.0
         )
         return op.get_result()
 
-    def applymap(self, func) -> DataFrame:
+    def applymap(self, func, na_action: Optional[str] = None) -> DataFrame:
         """
         Apply a function to a Dataframe elementwise.
 
@@ -7627,6 +7630,10 @@ NaN 12.3   33.0
         ----------
         func : callable
             Python function, returns a single value from a single value.
+        na_action : {None, 'ignore'}, default None
+            If ‘ignore’, propagate NaN values, without passing them to func.
+
+            .. versionadded:: 1.2
 
         Returns
         -------
@@ -7650,6 +7657,15 @@ NaN 12.3   33.0
         0  3  4
         1  5  5
 
+        Like Series.map, NA values can be ignored:
+
+        >>> df_copy = df.copy()
+        >>> df_copy.iloc[0, 0] = pd.NA
+        >>> df_copy.applymap(lambda x: len(str(x)), na_action='ignore')
+              0  1
+        0  <NA>  4
+        1     5  5
+
         Note that a vectorized version of `func` often exists, which will
         be much faster. You could square each number elementwise.
 
@@ -7665,11 +7681,17 @@ NaN 12.3   33.0
         0   1.000000   4.494400
         1  11.262736  20.857489
         """
+        if na_action not in {"ignore", None}:
+            raise ValueError(
+                f"na_action must be 'ignore' or None. Got {repr(na_action)}"
+            )
+        ignore_na = na_action == "ignore"
+
         # if we have a dtype == 'M8[ns]', provide boxed values
         def infer(x):
             if x.empty:
-                return lib.map_infer(x, func)
-            return lib.map_infer(x.astype(object)._values, func)
+                return lib.map_infer(x, func, ignore_na=ignore_na)
+            return lib.map_infer(x.astype(object)._values, func, ignore_na=ignore_na)
 
         return self.apply(infer)
 
@@ -8636,15 +8658,12 @@ NaN 12.3   33.0
             else:
                 return op(values, axis=axis, skipna=skipna, **kwds)
 
-        def _get_data(axis_matters: bool) -> DataFrame:
+        def _get_data() -> DataFrame:
             if filter_type is None:
                 data = self._get_numeric_data()
             elif filter_type == "bool":
-                if axis_matters:
-                    # GH#25101, GH#24434
-                    data = self._get_bool_data() if axis == 0 else self
-                else:
-                    data = self._get_bool_data()
+                # GH#25101, GH#24434
+                data = self._get_bool_data()
             else:  # pragma: no cover
                 msg = (
                     f"Generating numeric_only data with filter_type {filter_type} "
@@ -8656,7 +8675,7 @@ NaN 12.3   33.0
         if numeric_only is not None:
             df = self
             if numeric_only is True:
-                df = _get_data(axis_matters=True)
+                df = _get_data()
             if axis == 1:
                 df = df.T
                 axis = 0
@@ -8717,8 +8736,7 @@ NaN 12.3   33.0
         except TypeError:
             # e.g. in nanops trying to convert strs to float
 
-            # TODO: why doesnt axis matter here?
-            data = _get_data(axis_matters=False)
+            data = _get_data()
             labels = data._get_agg_axis(axis)
 
             values = data.values

@@ -306,7 +306,7 @@ def dispatch_to_series(left, right, func, axis: Optional[int] = None):
 
 def _align_method_SERIES(left: "Series", right, align_asobject: bool = False):
     """ align lhs and rhs Series """
-    # ToDo: Different from _align_method_FRAME, list, tuple and ndarray
+    # ToDo: Different from align_method_FRAME, list, tuple and ndarray
     # are not coerced here
     # because Series has inconsistencies described in #13637
 
@@ -324,12 +324,12 @@ def _align_method_SERIES(left: "Series", right, align_asobject: bool = False):
     return left, right
 
 
-def _arith_method_SERIES(cls, op, special):
+def arith_method_SERIES(cls, op, special):
     """
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
-    assert special  # non-special uses _flex_method_SERIES
+    assert special  # non-special uses flex_method_SERIES
     op_name = _get_op_name(op, special)
 
     @unpack_zerodim_and_defer(op_name)
@@ -348,12 +348,12 @@ def _arith_method_SERIES(cls, op, special):
     return wrapper
 
 
-def _comp_method_SERIES(cls, op, special):
+def comp_method_SERIES(cls, op, special):
     """
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
-    assert special  # non-special uses _flex_method_SERIES
+    assert special  # non-special uses flex_method_SERIES
     op_name = _get_op_name(op, special)
 
     @unpack_zerodim_and_defer(op_name)
@@ -375,12 +375,12 @@ def _comp_method_SERIES(cls, op, special):
     return wrapper
 
 
-def _bool_method_SERIES(cls, op, special):
+def bool_method_SERIES(cls, op, special):
     """
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
-    assert special  # non-special uses _flex_method_SERIES
+    assert special  # non-special uses flex_method_SERIES
     op_name = _get_op_name(op, special)
 
     @unpack_zerodim_and_defer(op_name)
@@ -398,7 +398,7 @@ def _bool_method_SERIES(cls, op, special):
     return wrapper
 
 
-def _flex_method_SERIES(cls, op, special):
+def flex_method_SERIES(cls, op, special):
     assert not special  # "special" also means "not flex"
     name = _get_op_name(op, special)
     doc = _make_flex_doc(name, "series")
@@ -430,7 +430,7 @@ def _flex_method_SERIES(cls, op, special):
 # DataFrame
 
 
-def _align_method_FRAME(
+def align_method_FRAME(
     left, right, axis, flex: Optional[bool] = False, level: Level = None
 ):
     """
@@ -571,7 +571,7 @@ def _frame_arith_method_with_reindex(
     new_right = right.iloc[:, rcols]
     result = op(new_left, new_right)
 
-    # Do the join on the columns instead of using _align_method_FRAME
+    # Do the join on the columns instead of using align_method_FRAME
     #  to avoid constructing two potentially large/sparse DataFrames
     join_columns, _, _ = left.columns.join(
         right.columns, how="outer", level=None, return_indexers=True
@@ -614,7 +614,7 @@ def _maybe_align_series_as_frame(frame: "DataFrame", series: "Series", axis: int
     return type(frame)(rvalues, index=frame.index, columns=frame.columns)
 
 
-def _arith_method_FRAME(cls: Type["DataFrame"], op, special: bool):
+def arith_method_FRAME(cls: Type["DataFrame"], op, special: bool):
     # This is the only function where `special` can be either True or False
     op_name = _get_op_name(op, special)
     default_axis = _get_frame_op_default_axis(op_name)
@@ -644,7 +644,7 @@ def _arith_method_FRAME(cls: Type["DataFrame"], op, special: bool):
 
         # TODO: why are we passing flex=True instead of flex=not special?
         #  15 tests fail if we pass flex=not special instead
-        self, other = _align_method_FRAME(self, other, axis, flex=True, level=level)
+        self, other = align_method_FRAME(self, other, axis, flex=True, level=level)
 
         if isinstance(other, ABCDataFrame):
             # Another DataFrame
@@ -666,7 +666,7 @@ def _arith_method_FRAME(cls: Type["DataFrame"], op, special: bool):
     return f
 
 
-def _flex_comp_method_FRAME(cls: Type["DataFrame"], op, special: bool):
+def flex_comp_method_FRAME(cls: Type["DataFrame"], op, special: bool):
     assert not special  # "special" also means "not flex"
     op_name = _get_op_name(op, special)
     default_axis = _get_frame_op_default_axis(op_name)
@@ -680,7 +680,7 @@ def _flex_comp_method_FRAME(cls: Type["DataFrame"], op, special: bool):
     def f(self, other, axis=default_axis, level=None):
         axis = self._get_axis_number(axis) if axis is not None else 1
 
-        self, other = _align_method_FRAME(self, other, axis, flex=True, level=level)
+        self, other = align_method_FRAME(self, other, axis, flex=True, level=level)
 
         new_data = dispatch_to_series(self, other, op, axis=axis)
         return self._construct_result(new_data)
@@ -690,7 +690,7 @@ def _flex_comp_method_FRAME(cls: Type["DataFrame"], op, special: bool):
     return f
 
 
-def _comp_method_FRAME(cls: Type["DataFrame"], op, special: bool):
+def comp_method_FRAME(cls: Type["DataFrame"], op, special: bool):
     assert special  # "special" also means "not flex"
     op_name = _get_op_name(op, special)
 
@@ -698,7 +698,7 @@ def _comp_method_FRAME(cls: Type["DataFrame"], op, special: bool):
     def f(self, other):
         axis = 1  # only relevant for Series other case
 
-        self, other = _align_method_FRAME(self, other, axis, level=None, flex=False)
+        self, other = align_method_FRAME(self, other, axis, level=None, flex=False)
 
         # See GH#4537 for discussion of scalar op behavior
         new_data = dispatch_to_series(self, other, op, axis=axis)
