@@ -41,7 +41,6 @@ from pandas.core.indexes.extension import (
 )
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
-from pandas.core.sorting import ensure_key_mapped
 from pandas.core.tools.timedeltas import to_timedelta
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -163,22 +162,6 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         return bool(
             is_scalar(res) or isinstance(res, slice) or (is_list_like(res) and len(res))
         )
-
-    def sort_values(self, return_indexer=False, ascending=True, key=None):
-        """
-        Return sorted copy of Index.
-        """
-        idx = ensure_key_mapped(self, key)
-
-        _as = idx.argsort()
-        if not ascending:
-            _as = _as[::-1]
-        sorted_index = self.take(_as)
-
-        if return_indexer:
-            return sorted_index, _as
-        else:
-            return sorted_index
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
