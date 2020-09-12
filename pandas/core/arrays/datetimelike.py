@@ -875,8 +875,7 @@ class DatetimeLikeArrayMixin(
         if is_list_like(value):
             value = self._validate_listlike(value, "setitem", cast_str=True)
         else:
-            # TODO: cast_str for consistency?
-            value = self._validate_scalar(value, msg, cast_str=False)
+            value = self._validate_scalar(value, msg, cast_str=True)
 
         return self._unbox(value, setitem=True)
 
