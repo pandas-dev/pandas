@@ -930,7 +930,7 @@ take full advantage of the flexibility of the date parsing API:
 .. ipython:: python
 
    df = pd.read_csv('tmp.csv', header=None, parse_dates=date_spec,
-                    date_parser=pd.io.date_converters.parse_date_time)
+                    date_parser=pd.to_datetime)
    df
 
 Pandas will try to call the ``date_parser`` function in three different ways. If
@@ -941,11 +941,6 @@ an exception is raised, the next one is tried:
 
 2. If #1 fails, ``date_parser`` is called with all the columns
    concatenated row-wise into a single array (e.g., ``date_parser(['2013 1', '2013 2'])``).
-
-3. If #2 fails, ``date_parser`` is called once for every row with one or more
-   string arguments from the columns indicated with `parse_dates`
-   (e.g., ``date_parser('2013', '1')`` for the first row, ``date_parser('2013', '2')``
-   for the second, etc.).
 
 Note that performance-wise, you should try these methods of parsing dates in order:
 
@@ -958,14 +953,6 @@ Note that performance-wise, you should try these methods of parsing dates in ord
    For optimal performance, this should be vectorized, i.e., it should accept arrays
    as arguments.
 
-You can explore the date parsing functionality in
-`date_converters.py <https://github.com/pandas-dev/pandas/blob/master/pandas/io/date_converters.py>`__
-and add your own. We would love to turn this module into a community supported
-set of date/time parsers. To get you started, ``date_converters.py`` contains
-functions to parse dual date and time columns, year/month/day columns,
-and year/month/day/hour/minute/second columns. It also contains a
-``generic_parser`` function so you can curry it with a function that deals with
-a single date rather than the entire array.
 
 .. ipython:: python
    :suppress:
