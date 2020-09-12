@@ -98,7 +98,8 @@ from pandas.io.formats import format as fmt
 from pandas.io.formats.format import DataFrameFormatter, format_percentiles
 from pandas.io.formats.printing import pprint_thing
 from pandas.util._decorators import doc, rewrite_axis_style_signature, Appender
-from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs, validate_percentile
+from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs,\
+    validate_percentile
 
 if TYPE_CHECKING:
     from pandas._libs.tslibs import BaseOffset
