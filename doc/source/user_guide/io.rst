@@ -3024,19 +3024,12 @@ It is often the case that users will insert columns to do temporary computations
 in Excel and you may not want to read in those columns. ``read_excel`` takes
 a ``usecols`` keyword to allow you to specify a subset of columns to parse.
 
-.. deprecated:: 0.24.0
+.. versionchanged:: 1.0.0
 
-Passing in an integer for ``usecols`` has been deprecated. Please pass in a list
+Passing in an integer for ``usecols`` will no longer work. Please pass in a list
 of ints from 0 to ``usecols`` inclusive instead.
 
-If ``usecols`` is an integer, then it is assumed to indicate the last column
-to be parsed.
-
-.. code-block:: python
-
-   pd.read_excel('path_to_file.xls', 'Sheet1', usecols=2)
-
-You can also specify a comma-delimited set of Excel columns and ranges as a string:
+You can specify a comma-delimited set of Excel columns and ranges as a string:
 
 .. code-block:: python
 
