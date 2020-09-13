@@ -63,7 +63,7 @@ def reconstruct_func(
     Examples
     --------
     >>> reconstruct_func(None, **{"foo": ("col", "min")})
-    (True, defaultdict(None, {'col': ['min']}), ('foo',), array([0]))
+    (True, defaultdict(<class 'list'>, {'col': ['min']}), ('foo',), array([0]))
 
     >>> reconstruct_func("min")
     (False, 'min', None, None)
@@ -87,7 +87,6 @@ def reconstruct_func(
 
     if relabeling:
         func, columns, order = normalize_keyword_aggregation(kwargs)
-    func = maybe_mangle_lambdas(func)
 
     return relabeling, func, columns, order
 

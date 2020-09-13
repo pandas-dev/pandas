@@ -946,6 +946,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
             )
 
+        func = maybe_mangle_lambdas(func)
+
         result, how = self._aggregate(func, *args, **kwargs)
         if how is None:
             return result
