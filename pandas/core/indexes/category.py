@@ -211,29 +211,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
         return cls._simple_new(data, name=name)
 
-    def _create_from_codes(self, codes, dtype=None, name=None):
-        """
-        *this is an internal non-public method*
-
-        create the correct categorical from codes
-
-        Parameters
-        ----------
-        codes : new codes
-        dtype: CategoricalDtype, defaults to existing
-        name : optional name attribute, defaults to existing
-
-        Returns
-        -------
-        CategoricalIndex
-        """
-        if dtype is None:
-            dtype = self.dtype
-        if name is None:
-            name = self.name
-        cat = Categorical.from_codes(codes, dtype=dtype)
-        return CategoricalIndex(cat, name=name)
-
     @classmethod
     def _simple_new(cls, values: Categorical, name: Label = None):
         assert isinstance(values, Categorical), type(values)
@@ -495,7 +472,8 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
                 codes = new_target.codes.copy()
                 codes[indexer == -1] = cats[missing]
-                new_target = self._create_from_codes(codes)
+                cat = self._data._from_backing_data(codes)
+                new_target = type(self)._simple_new(cat, name=self.name)
 
         # we always want to return an Index type here
         # to be consistent with .reindex for other index types (e.g. they don't
@@ -695,7 +673,9 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         -------
         new_index : Index
         """
-        return self._create_from_codes(np.delete(self.codes, loc))
+        codes = np.delete(self.codes, loc)
+        cat = self._data._from_backing_data(codes)
+        return type(self)._simple_new(cat, name=self.name)
 
     def insert(self, loc: int, item):
         """
@@ -720,15 +700,14 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
         codes = self.codes
         codes = np.concatenate((codes[:loc], [code], codes[loc:]))
-        return self._create_from_codes(codes)
+        cat = self._data._from_backing_data(codes)
+        return type(self)._simple_new(cat, name=self.name)
 
     def _concat(self, to_concat, name):
         # if calling index is category, don't check dtype of others
         codes = np.concatenate([self._is_dtype_compat(c).codes for c in to_concat])
-        result = self._create_from_codes(codes, name=name)
-        # if name is None, _create_from_codes sets self.name
-        result.name = name
-        return result
+        cat = self._data._from_backing_data(codes)
+        return type(self)._simple_new(cat, name=name)
 
     def _delegate_method(self, name: str, *args, **kwargs):
         """ method delegation to the ._values """
