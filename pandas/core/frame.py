@@ -3872,8 +3872,7 @@ class DataFrame(NDFrame):
         .. deprecated:: 1.2.0
             DataFrame.lookup is deprecated,
             use DataFrame.melt and DataFrame.loc instead.
-            For an example see "Looking up values by index/column labels"
-            in the "Indexing and selecting data" section
+            For an example see :meth:`~pandas.DataFrame.lookup`
             in the user guide.
 
         Parameters
