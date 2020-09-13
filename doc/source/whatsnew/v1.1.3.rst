@@ -14,6 +14,8 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
+- Fixed regression in :meth:`Series.__getitem__` incorrectly raising when the input was a tuple (:issue:`35534`)
+- Fixed regression in :meth:`Series.__getitem__` incorrectly raising when the input was a frozenset (:issue:`35747`)
 -
 
 .. ---------------------------------------------------------------------------

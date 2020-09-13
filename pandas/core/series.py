@@ -881,21 +881,19 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         elif key_is_scalar:
             return self._get_value(key)
 
-        if (
-            isinstance(key, tuple)
-            and is_hashable(key)
-            and isinstance(self.index, MultiIndex)
-        ):
+        if is_hashable(key):
             # Otherwise index.get_value will raise InvalidIndexError
             try:
+                # For labels that don't resolve as scalars like tuples and frozensets
                 result = self._get_value(key)
 
                 return result
 
             except KeyError:
-                # We still have the corner case where this tuple is a key
-                #  in the first level of our MultiIndex
-                return self._get_values_tuple(key)
+                if isinstance(key, tuple) and isinstance(self.index, MultiIndex):
+                    # We still have the corner case where a tuple is a key
+                    # in the first level of our MultiIndex
+                    return self._get_values_tuple(key)
 
         if is_iterator(key):
             key = list(key)
@@ -955,7 +953,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return result
 
         if not isinstance(self.index, MultiIndex):
-            raise ValueError("Can only tuple-index with a MultiIndex")
+            raise ValueError("key of type tuple not found and not a MultiIndex")
 
         # If key is contained, would have returned by now
         indexer, new_index = self.index.get_loc_level(key)
@@ -1009,9 +1007,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 # GH#12862 adding an new key to the Series
                 self.loc[key] = value
 
-        except TypeError as e:
+        except TypeError as err:
             if isinstance(key, tuple) and not isinstance(self.index, MultiIndex):
-                raise ValueError("Can only tuple-index with a MultiIndex") from e
+                raise ValueError(
+                    "key of type tuple not found and not a MultiIndex"
+                ) from err
 
             if com.is_bool_indexer(key):
                 key = check_bool_indexer(self.index, key)
