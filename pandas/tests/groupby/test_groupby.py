@@ -2146,3 +2146,16 @@ def test_groupby_column_index_name_lost_fill_funcs(func):
     result = getattr(df_grouped, func)().columns
     expected = pd.Index(["a", "b"], name="idx")
     tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", ["ffill", "bfill"])
+def test_groupby_fill_duplicate_column_names(func):
+    # GH: 25610 ValueError with duplicate column names
+    df1 = pd.DataFrame({"field1": [1, 3, 4], "field2": [1, 3, 4],})
+    df2 = pd.DataFrame({"field1": [1, np.nan, 4],})
+    df_grouped = pd.concat([df1, df2], axis=1).groupby(by=["field2"])
+    expected = pd.DataFrame(
+        [[1, 1.0], [3, np.nan], [4, 4.0]], columns=["field1", "field1"]
+    )
+    result = getattr(df_grouped, func)()
+    tm.assert_frame_equal(result, expected)
