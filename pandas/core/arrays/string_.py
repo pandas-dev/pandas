@@ -168,7 +168,7 @@ class StringArray(PandasArray):
     Instantiating StringArrays directly with non-strings arrays  will raise an error
     unless ``convert=True``.
 
-    >>> pd.arrays.StringArray(np.array(['1', 1], dtype=object))
+    >>> pd.arrays.StringArray(np.array(['1', 1]))
     ValueError: StringArray requires a sequence of strings or pandas.NA
     >>> pd.arrays.StringArray(['1', 1], convert=True)
     <StringArray>
@@ -190,9 +190,8 @@ class StringArray(PandasArray):
         values = extract_array(values)
         if not isinstance(values, type(self)):
             if convert:
-                values = lib.ensure_string_array(
-                    values, na_value=StringDtype.na_value, copy=copy
-                )
+                na_val = StringDtype.na_value
+                values = lib.ensure_string_array(values, na_value=na_val, copy=copy)
             else:
                 self._validate(values)
 
