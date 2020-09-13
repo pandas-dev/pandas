@@ -88,9 +88,9 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         dtype: Sparse[float64, nan]
         """
         from pandas import Series
-        from pandas.core.arrays.sparse.scipy_sparse import _coo_to_sparse_series
+        from pandas.core.arrays.sparse.scipy_sparse import coo_to_sparse_series
 
-        result = _coo_to_sparse_series(A, dense_index=dense_index)
+        result = coo_to_sparse_series(A, dense_index=dense_index)
         result = Series(result.array, index=result.index, copy=False)
 
         return result
@@ -168,9 +168,9 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         >>> columns
         [('a', 0), ('a', 1), ('b', 0), ('b', 1)]
         """
-        from pandas.core.arrays.sparse.scipy_sparse import _sparse_series_to_coo
+        from pandas.core.arrays.sparse.scipy_sparse import sparse_series_to_coo
 
-        A, rows, columns = _sparse_series_to_coo(
+        A, rows, columns = sparse_series_to_coo(
             self._parent, row_levels, column_levels, sort_labels=sort_labels
         )
         return A, rows, columns

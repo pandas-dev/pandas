@@ -48,10 +48,10 @@ def cartesian_product(X):
         # if any factor is empty, the cartesian product is empty
         b = np.zeros_like(cumprodX)
 
-    return [_tile_compat(np.repeat(x, b[i]), np.product(a[i])) for i, x in enumerate(X)]
+    return [tile_compat(np.repeat(x, b[i]), np.product(a[i])) for i, x in enumerate(X)]
 
 
-def _tile_compat(arr, num: int):
+def tile_compat(arr, num: int):
     """
     Index compat for np.tile.
 

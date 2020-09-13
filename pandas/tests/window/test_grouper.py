@@ -372,3 +372,36 @@ class TestGrouperGrouping:
             name="column1",
         )
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("func", ["max", "min"])
+    def test_groupby_rolling_index_changed(self, func):
+        # GH: #36018 nlevels of MultiIndex changed
+        ds = Series(
+            [1, 2, 2],
+            index=pd.MultiIndex.from_tuples(
+                [("a", "x"), ("a", "y"), ("c", "z")], names=["1", "2"]
+            ),
+            name="a",
+        )
+
+        result = getattr(ds.groupby(ds).rolling(2), func)()
+        expected = Series(
+            [np.nan, np.nan, 2.0],
+            index=pd.MultiIndex.from_tuples(
+                [(1, "a", "x"), (2, "a", "y"), (2, "c", "z")], names=["a", "1", "2"]
+            ),
+            name="a",
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_groupby_rolling_empty_frame(self):
+        # GH 36197
+        expected = pd.DataFrame({"s1": []})
+        result = expected.groupby("s1").rolling(window=1).sum()
+        expected.index = pd.MultiIndex.from_tuples([], names=["s1", None])
+        tm.assert_frame_equal(result, expected)
+
+        expected = pd.DataFrame({"s1": [], "s2": []})
+        result = expected.groupby(["s1", "s2"]).rolling(window=1).sum()
+        expected.index = pd.MultiIndex.from_tuples([], names=["s1", "s2", None])
+        tm.assert_frame_equal(result, expected)

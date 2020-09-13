@@ -51,7 +51,7 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.xfail(reason="Waiting for PR 34334", strict=True)
     @pytest.mark.slow
     def test_plot(self):
-        from pandas.plotting._matplotlib.compat import _mpl_ge_3_1_0
+        from pandas.plotting._matplotlib.compat import mpl_ge_3_1_0
 
         df = self.tdf
         _check_plot_works(df.plot, grid=False)
@@ -69,7 +69,7 @@ class TestDataFramePlots(TestPlotBase):
         self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
         df = DataFrame({"x": [1, 2], "y": [3, 4]})
-        if _mpl_ge_3_1_0():
+        if mpl_ge_3_1_0():
             msg = "'Line2D' object has no property 'blarg'"
         else:
             msg = "Unknown property blarg"
@@ -204,6 +204,24 @@ class TestDataFramePlots(TestPlotBase):
         # if there is a color symbol in the style strings:
         with pytest.raises(ValueError):
             df.plot(color=["red", "black"], style=["k-", "r--"])
+
+    @pytest.mark.parametrize(
+        "color, expected",
+        [
+            ("green", ["green"] * 4),
+            (["yellow", "red", "green", "blue"], ["yellow", "red", "green", "blue"]),
+        ],
+    )
+    def test_color_and_marker(self, color, expected):
+        # GH 21003
+        df = DataFrame(np.random.random((7, 4)))
+        ax = df.plot(color=color, style="d--")
+        # check colors
+        result = [i.get_color() for i in ax.lines]
+        assert result == expected
+        # check markers and linestyles
+        assert all(i.get_linestyle() == "--" for i in ax.lines)
+        assert all(i.get_marker() == "d" for i in ax.lines)
 
     def test_nonnumeric_exclude(self):
         df = DataFrame({"A": ["x", "y", "z"], "B": [1, 2, 3]})
@@ -1321,7 +1339,7 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_plot_scatter_with_s(self):
         # this refers to GH 32904
-        df = DataFrame(np.random.random((10, 3)) * 100, columns=["a", "b", "c"],)
+        df = DataFrame(np.random.random((10, 3)) * 100, columns=["a", "b", "c"])
 
         ax = df.plot.scatter(x="a", y="b", s="c")
         tm.assert_numpy_array_equal(df["c"].values, right=ax.collections[0].get_sizes())
@@ -1716,7 +1734,7 @@ class TestDataFramePlots(TestPlotBase):
     def test_hist_weights(self, weights):
         # GH 33173
         np.random.seed(0)
-        df = pd.DataFrame(dict(zip(["A", "B"], np.random.randn(2, 100,))))
+        df = pd.DataFrame(dict(zip(["A", "B"], np.random.randn(2, 100))))
 
         ax1 = _check_plot_works(df.plot, kind="hist", weights=weights)
         ax2 = _check_plot_works(df.plot, kind="hist")
@@ -2796,10 +2814,12 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.plot, table=True)
         _check_plot_works(df.plot, table=df)
 
-        ax = df.plot()
-        assert len(ax.tables) == 0
-        plotting.table(ax, df.T)
-        assert len(ax.tables) == 1
+        # GH 35945 UserWarning
+        with tm.assert_produces_warning(None):
+            ax = df.plot()
+            assert len(ax.tables) == 0
+            plotting.table(ax, df.T)
+            assert len(ax.tables) == 1
 
     def test_errorbar_scatter(self):
         df = DataFrame(np.random.randn(5, 2), index=range(5), columns=["x", "y"])
