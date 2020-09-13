@@ -559,7 +559,8 @@ b &       b &     b \\
         assert result_cl == expected_cl
 
         # test that wrong number of params is raised
-        with pytest.raises(ValueError):
+        msg = "caption must be either a string or a tuple of two strings"
+        with pytest.raises(ValueError, match=msg):
             df.to_latex(caption=(the_caption, the_short_caption, "extra_string"))
 
         # test that two chars caption is handled correctly
