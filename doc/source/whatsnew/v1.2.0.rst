@@ -305,6 +305,7 @@ I/O
 Plotting
 ^^^^^^^^
 
+- Bug in :meth:`DataFrame.plot` was rotating xticklabels when ``subplots=True``, even if the x-axis wasn't an irregular time series (:issue:`29460`)
 - Bug in :meth:`DataFrame.plot` where a marker letter in the ``style`` keyword sometimes causes a ``ValueError`` (:issue:`21003`)
 
 Groupby/resample/rolling
