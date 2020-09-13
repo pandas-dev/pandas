@@ -392,7 +392,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                 # insert at the end
                 result[name] = extra_col
 
-    def calculate_center_offset(self, window: Union[np.ndarray, int], center: bool) -> int:
+    def calculate_center_offset(self, window, center: bool) -> int:
         """
         Calculate an offset necessary to have the window label to be centered.
 
@@ -2275,7 +2275,7 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
             obj = obj.take(groupby_order)
         return super()._create_data(obj)
 
-    def calculate_center_offset(self, window: Union[np.ndarray, int], center: bool) -> int:
+    def calculate_center_offset(self, window, center: bool) -> int:
         """
         Calculate an offset necessary to have the window label to be centered.
 
