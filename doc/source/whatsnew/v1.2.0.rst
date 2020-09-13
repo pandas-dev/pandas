@@ -104,7 +104,7 @@ Other enhancements
 - :meth:`DataFrame.applymap` now supports ``na_action`` (:issue:`23803`)
 - :class:`Index` with object dtype supports division and multiplication (:issue:`34160`)
 - :meth:`DataFrame.explode` and :meth:`Series.explode` now support exploding of sets (:issue:`35614`)
--
+- `Styler` now allows direct CSS class name addition to individual data cells (:issue:`36159`)
 
 .. _whatsnew_120.api_breaking.python:
 
