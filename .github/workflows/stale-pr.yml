@@ -1,7 +1,8 @@
-name: "Close stale pull requests"
+name: "Manage stale pull requests"
 on:
   schedule:
-  - cron: "0 0 * * *"
+  # * is a special character in YAML so you have to quote this string
+  - cron: "0 */6 * * *"
 
 jobs:
   stale:
@@ -10,7 +11,7 @@ jobs:
     - uses: actions/stale@v3
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
-        stale-pr-message: "This pull request is stale because it has been open 30 days with no activity. Remove stale label or comment or this will be closed in 5 days."
+        stale-pr-message: "This pull request is stale because it has been open for 30 days with no activity. Please update to prevent this from being closed."
         days-before-stale: 30
         days-before-close: -1
         debug-only: true
