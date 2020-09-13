@@ -124,9 +124,6 @@ skiprows : list-like
     Rows to skip at the beginning (0-indexed).
 nrows : int, default None
     Number of rows to parse.
-
-    .. versionadded:: 0.23.0
-
 na_values : scalar, str, list-like, or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values. By default the following values are interpreted
@@ -601,8 +598,8 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     You can set the date format or datetime format:
 
     >>> with ExcelWriter('path_to_file.xlsx',
-                          date_format='YYYY-MM-DD',
-                          datetime_format='YYYY-MM-DD HH:MM:SS') as writer:
+    ...                   date_format='YYYY-MM-DD',
+    ...                   datetime_format='YYYY-MM-DD HH:MM:SS') as writer:
     ...     df.to_excel(writer)
 
     You can also append to an existing Excel file:
@@ -844,16 +841,16 @@ class ExcelFile:
         - ``pyxlsb`` supports Binary Excel files.
     """
 
-    from pandas.io.excel._odfreader import _ODFReader
-    from pandas.io.excel._openpyxl import _OpenpyxlReader
-    from pandas.io.excel._pyxlsb import _PyxlsbReader
-    from pandas.io.excel._xlrd import _XlrdReader
+    from pandas.io.excel._odfreader import ODFReader
+    from pandas.io.excel._openpyxl import OpenpyxlReader
+    from pandas.io.excel._pyxlsb import PyxlsbReader
+    from pandas.io.excel._xlrd import XlrdReader
 
     _engines: Mapping[str, Any] = {
-        "xlrd": _XlrdReader,
-        "openpyxl": _OpenpyxlReader,
-        "odf": _ODFReader,
-        "pyxlsb": _PyxlsbReader,
+        "xlrd": XlrdReader,
+        "openpyxl": OpenpyxlReader,
+        "odf": ODFReader,
+        "pyxlsb": PyxlsbReader,
     }
 
     def __init__(

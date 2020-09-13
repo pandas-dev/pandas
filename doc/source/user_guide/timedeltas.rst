@@ -18,7 +18,7 @@ parsing, and attributes.
 Parsing
 -------
 
-You can construct a ``Timedelta`` scalar through various arguments:
+You can construct a ``Timedelta`` scalar through various arguments, including `ISO 8601 Duration`_ strings.
 
 .. ipython:: python
 
@@ -52,10 +52,6 @@ You can construct a ``Timedelta`` scalar through various arguments:
    # ISO 8601 Duration strings
    pd.Timedelta('P0DT0H1M0S')
    pd.Timedelta('P0DT0H0M0.000000123S')
-
-.. versionadded:: 0.23.0
-
-   Added constructor for `ISO 8601 Duration`_ strings
 
 :ref:`DateOffsets<timeseries.offsets>` (``Day, Hour, Minute, Second, Milli, Micro, Nano``) can also be used in construction.
 
@@ -386,8 +382,6 @@ The ``freq`` parameter can passed a variety of :ref:`frequency aliases <timeseri
 
    pd.timedelta_range(start='1 days', periods=5, freq='2D5H')
 
-
-.. versionadded:: 0.23.0
 
 Specifying ``start``, ``end``, and ``periods`` will generate a range of evenly spaced
 timedeltas from ``start`` to ``end`` inclusively, with ``periods`` number of elements
