@@ -1064,6 +1064,10 @@ b  2""",
         to generate the indices of each group in the sorted data and then passes the
         data and indices into a Numba jitted function.
         """
+        if not callable(func):
+            raise NotImplementedError(
+                "Numba engine can only be used with a single function."
+            )
         group_keys = self.grouper._get_group_keys()
         labels, _, n_groups = self.grouper.group_info
         sorted_index = get_group_index_sorter(labels, n_groups)
@@ -1095,6 +1099,10 @@ b  2""",
         to generate the indices of each group in the sorted data and then passes the
         data and indices into a Numba jitted function.
         """
+        if not callable(func):
+            raise NotImplementedError(
+                "Numba engine can only be used with a single function."
+            )
         group_keys = self.grouper._get_group_keys()
         labels, _, n_groups = self.grouper.group_info
         sorted_index = get_group_index_sorter(labels, n_groups)

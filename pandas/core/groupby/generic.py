@@ -226,10 +226,6 @@ class SeriesGroupBy(GroupBy[Series]):
     def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
 
         if maybe_use_numba(engine):
-            if not callable(func):
-                raise NotImplementedError(
-                    "Numba engine can only be used with a single function."
-                )
             with group_selection_context(self):
                 data = self._selected_obj
             result, index = self._aggregate_with_numba(
@@ -491,10 +487,6 @@ class SeriesGroupBy(GroupBy[Series]):
     def transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
 
         if maybe_use_numba(engine):
-            if not callable(func):
-                raise NotImplementedError(
-                    "Numba engine can only be used with a single function."
-                )
             with group_selection_context(self):
                 data = self._selected_obj
             result = self._transform_with_numba(
@@ -951,10 +943,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
 
         if maybe_use_numba(engine):
-            if not callable(func):
-                raise NotImplementedError(
-                    "Numba engine can only be used with a single function."
-                )
             with group_selection_context(self):
                 data = self._selected_obj
             result, index = self._aggregate_with_numba(
@@ -1358,10 +1346,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
 
         if maybe_use_numba(engine):
-            if not callable(func):
-                raise NotImplementedError(
-                    "Numba engine can only be used with a single function."
-                )
             with group_selection_context(self):
                 data = self._selected_obj
             result = self._transform_with_numba(
