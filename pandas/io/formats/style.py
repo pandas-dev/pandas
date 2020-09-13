@@ -18,7 +18,7 @@ from typing import (
     Tuple,
     Union,
 )
-from uuid import uuid4
+from uuid import uuid1
 
 import numpy as np
 
@@ -159,7 +159,7 @@ class Styler:
         self.index = data.index
         self.columns = data.columns
 
-        self.uuid = uuid or (uuid4().hex[:5] + "_")
+        self.uuid = uuid or str(uuid1()).replace("-", "_")
         self.table_styles = table_styles
         self.caption = caption
         if precision is None:
