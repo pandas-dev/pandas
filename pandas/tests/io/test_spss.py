@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import pytest
 
@@ -7,9 +9,10 @@ import pandas._testing as tm
 pyreadstat = pytest.importorskip("pyreadstat")
 
 
-def test_spss_labelled_num(datapath):
+@pytest.mark.parametrize("path_klass", [lambda p: p, Path])
+def test_spss_labelled_num(path_klass, datapath):
     # test file from the Haven project (https://haven.tidyverse.org/)
-    fname = datapath("io", "data", "spss", "labelled-num.sav")
+    fname = path_klass(datapath("io", "data", "spss", "labelled-num.sav"))
 
     df = pd.read_spss(fname, convert_categoricals=True)
     expected = pd.DataFrame({"VAR00002": "This is one"}, index=[0])
