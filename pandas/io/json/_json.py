@@ -428,9 +428,6 @@ def read_json(
           - The DataFrame columns must be unique for orients ``'index'``,
             ``'columns'``, and ``'records'``.
 
-        .. versionadded:: 0.23.0
-           'table' as an allowed value for the ``orient`` argument
-
     typ : {'frame', 'series'}, default 'frame'
         The type of object to recover.
 

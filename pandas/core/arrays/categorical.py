@@ -838,8 +838,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             * callable : a callable that is called on all items in the old
               categories and whose return values comprise the new categories.
 
-            .. versionadded:: 0.23.0.
-
         inplace : bool, default False
             Whether or not to rename the categories inplace or return a copy of
             this categorical with renamed categories.
