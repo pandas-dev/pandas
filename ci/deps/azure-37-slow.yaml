@@ -3,36 +3,35 @@ channels:
   - defaults
   - conda-forge
 dependencies:
-  - python=3.6.*
+  - python=3.7.*
 
   # tools
   - cython>=0.29.16
-  - pytest>=5.0.1,<6.0.0rc0
+  - pytest>=5.0.1
   - pytest-xdist>=1.21
-  - pytest-asyncio
   - hypothesis>=3.58.0
-  - pytest-azurepipelines
 
   # pandas dependencies
   - beautifulsoup4
+  - fsspec>=0.7.4
   - html5lib
-  - ipython
-  - jinja2
   - lxml
-  - matplotlib=3.0.*
-  - nomkl
+  - matplotlib
   - numexpr
-  - numpy=1.15.*
+  - numpy
   - openpyxl
-  # lowest supported version of pyarrow (putting it here instead of in
-  # azure-36-minimum_versions because it needs numpy >= 1.14)
-  - pyarrow=0.13
+  - patsy
+  - psycopg2
+  - pymysql
   - pytables
   - python-dateutil
   - pytz
+  - s3fs>=0.4.0
+  - moto>=1.3.14
   - scipy
-  - xarray
+  - sqlalchemy
   - xlrd
   - xlsxwriter
   - xlwt
   - moto
+  - flask

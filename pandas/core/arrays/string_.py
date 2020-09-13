@@ -7,7 +7,6 @@ from pandas._libs import lib, missing as libmissing
 
 from pandas.core.dtypes.base import ExtensionDtype, register_extension_dtype
 from pandas.core.dtypes.common import pandas_dtype
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import is_array_like
 
 from pandas import compat
@@ -178,11 +177,10 @@ class StringArray(PandasArray):
 
     def __init__(self, values, copy=False):
         values = extract_array(values)
-        skip_validation = isinstance(values, type(self))
 
         super().__init__(values, copy=copy)
         self._dtype = StringDtype()
-        if not skip_validation:
+        if not isinstance(values, type(self)):
             self._validate()
 
     def _validate(self):
@@ -201,23 +199,11 @@ class StringArray(PandasArray):
             assert dtype == "string"
 
         result = np.asarray(scalars, dtype="object")
-        if copy and result is scalars:
-            result = result.copy()
 
-        # Standardize all missing-like values to NA
-        # TODO: it would be nice to do this in _validate / lib.is_string_array
-        # We are already doing a scan over the values there.
-        na_values = isna(result)
-        has_nans = na_values.any()
-        if has_nans and result is scalars:
-            # force a copy now, if we haven't already
-            result = result.copy()
-
-        # convert to str, then to object to avoid dtype like '<U3', then insert na_value
-        result = np.asarray(result, dtype=str)
-        result = np.asarray(result, dtype="object")
-        if has_nans:
-            result[na_values] = StringDtype.na_value
+        # convert non-na-likes to str, and nan-likes to StringDtype.na_value
+        result = lib.ensure_string_array(
+            result, na_value=StringDtype.na_value, copy=copy
+        )
 
         return cls(result)
 
@@ -312,15 +298,14 @@ class StringArray(PandasArray):
     @classmethod
     def _create_arithmetic_method(cls, op):
         # Note: this handles both arithmetic and comparison methods.
+
+        @ops.unpack_zerodim_and_defer(op.__name__)
         def method(self, other):
             from pandas.arrays import BooleanArray
 
             assert op.__name__ in ops.ARITHMETIC_BINOPS | ops.COMPARISON_BINOPS
 
-            if isinstance(other, (ABCIndexClass, ABCSeries, ABCDataFrame)):
-                return NotImplemented
-
-            elif isinstance(other, cls):
+            if isinstance(other, cls):
                 other = other._ndarray
 
             mask = isna(self) | isna(other)

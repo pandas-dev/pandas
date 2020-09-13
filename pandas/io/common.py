@@ -27,15 +27,25 @@ from urllib.parse import (
     uses_params,
     uses_relative,
 )
+import warnings
 import zipfile
 
-from pandas._typing import FilePathOrBuffer
-from pandas.compat import _get_lzma_file, _import_lzma
+from pandas._typing import (
+    CompressionDict,
+    CompressionOptions,
+    EncodingVar,
+    FileOrBuffer,
+    FilePathOrBuffer,
+    IOargs,
+    ModeVar,
+    StorageOptions,
+)
+from pandas.compat import get_lzma_file, import_lzma
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import is_file_like
 
-lzma = _import_lzma()
+lzma = import_lzma()
 
 
 _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
@@ -64,9 +74,7 @@ def is_url(url) -> bool:
     return parse_url(url).scheme in _VALID_URLS
 
 
-def _expand_user(
-    filepath_or_buffer: FilePathOrBuffer[AnyStr],
-) -> FilePathOrBuffer[AnyStr]:
+def _expand_user(filepath_or_buffer: FileOrBuffer[AnyStr]) -> FileOrBuffer[AnyStr]:
     """
     Return the argument with an initial component of ~ or ~user
     replaced by that user's home directory.
@@ -96,7 +104,7 @@ def validate_header_arg(header) -> None:
 
 def stringify_path(
     filepath_or_buffer: FilePathOrBuffer[AnyStr],
-) -> FilePathOrBuffer[AnyStr]:
+) -> FileOrBuffer[AnyStr]:
     """
     Attempt to convert a path-like object to a string.
 
@@ -121,9 +129,17 @@ def stringify_path(
     """
     if hasattr(filepath_or_buffer, "__fspath__"):
         # https://github.com/python/mypy/issues/1424
-        return filepath_or_buffer.__fspath__()  # type: ignore
+        # error: Item "str" of "Union[str, Path, IO[str]]" has no attribute
+        # "__fspath__"  [union-attr]
+        # error: Item "IO[str]" of "Union[str, Path, IO[str]]" has no attribute
+        # "__fspath__"  [union-attr]
+        # error: Item "str" of "Union[str, Path, IO[bytes]]" has no attribute
+        # "__fspath__"  [union-attr]
+        # error: Item "IO[bytes]" of "Union[str, Path, IO[bytes]]" has no
+        # attribute "__fspath__"  [union-attr]
+        filepath_or_buffer = filepath_or_buffer.__fspath__()  # type: ignore[union-attr]
     elif isinstance(filepath_or_buffer, pathlib.Path):
-        return str(filepath_or_buffer)
+        filepath_or_buffer = str(filepath_or_buffer)
     return _expand_user(filepath_or_buffer)
 
 
@@ -149,13 +165,18 @@ def is_fsspec_url(url: FilePathOrBuffer) -> bool:
     )
 
 
+# https://github.com/python/mypy/issues/8708
+# error: Incompatible default for argument "encoding" (default has type "None",
+# argument has type "str")
+# error: Incompatible default for argument "mode" (default has type "None",
+# argument has type "str")
 def get_filepath_or_buffer(
     filepath_or_buffer: FilePathOrBuffer,
-    encoding: Optional[str] = None,
-    compression: Optional[str] = None,
-    mode: Optional[str] = None,
-    storage_options: Optional[Dict[str, Any]] = None,
-):
+    encoding: EncodingVar = None,  # type: ignore[assignment]
+    compression: CompressionOptions = None,
+    mode: ModeVar = None,  # type: ignore[assignment]
+    storage_options: StorageOptions = None,
+) -> IOargs[ModeVar, EncodingVar]:
     """
     If the filepath_or_buffer is a url, translate and return the buffer.
     Otherwise passthrough.
@@ -167,27 +188,83 @@ def get_filepath_or_buffer(
     compression : {{'gzip', 'bz2', 'zip', 'xz', None}}, optional
     encoding : the encoding to use to decode bytes, default is 'utf-8'
     mode : str, optional
-    storage_options: dict, optional
-        passed on to fsspec, if using it; this is not yet accessed by the public API
 
-    Returns
-    -------
-    Tuple[FilePathOrBuffer, str, str, bool]
-        Tuple containing the filepath or buffer, the encoding, the compression
-        and should_close.
+    storage_options : dict, optional
+        Extra options that make sense for a particular storage connection, e.g.
+        host, port, username, password, etc., if using a URL that will
+        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+        will be raised if providing this argument with a local path or
+        a file-like buffer. See the fsspec and backend storage implementation
+        docs for the set of allowed keys and values
+
+        .. versionadded:: 1.2.0
+
+    ..versionchange:: 1.2.0
+
+      Returns the dataclass IOargs.
     """
     filepath_or_buffer = stringify_path(filepath_or_buffer)
 
+    # handle compression dict
+    compression_method, compression = get_compression_method(compression)
+    compression_method = infer_compression(filepath_or_buffer, compression_method)
+
+    # GH21227 internal compression is not used for non-binary handles.
+    if (
+        compression_method
+        and hasattr(filepath_or_buffer, "write")
+        and mode
+        and "b" not in mode
+    ):
+        warnings.warn(
+            "compression has no effect when passing a non-binary object as input.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        compression_method = None
+
+    compression = dict(compression, method=compression_method)
+
+    # bz2 and xz do not write the byte order mark for utf-16 and utf-32
+    # print a warning when writing such files
+    if (
+        mode
+        and "w" in mode
+        and compression_method in ["bz2", "xz"]
+        and encoding in ["utf-16", "utf-32"]
+    ):
+        warnings.warn(
+            f"{compression} will not write the byte order mark for {encoding}",
+            UnicodeWarning,
+        )
+
+    # Use binary mode when converting path-like objects to file-like objects (fsspec)
+    # except when text mode is explicitly requested. The original mode is returned if
+    # fsspec is not used.
+    fsspec_mode = mode or "rb"
+    if "t" not in fsspec_mode and "b" not in fsspec_mode:
+        fsspec_mode += "b"
+
     if isinstance(filepath_or_buffer, str) and is_url(filepath_or_buffer):
         # TODO: fsspec can also handle HTTP via requests, but leaving this unchanged
+        if storage_options:
+            raise ValueError(
+                "storage_options passed with file object or non-fsspec file path"
+            )
         req = urlopen(filepath_or_buffer)
         content_encoding = req.headers.get("Content-Encoding", None)
         if content_encoding == "gzip":
             # Override compression based on Content-Encoding header
-            compression = "gzip"
+            compression = {"method": "gzip"}
         reader = BytesIO(req.read())
         req.close()
-        return reader, encoding, compression, True
+        return IOargs(
+            filepath_or_buffer=reader,
+            encoding=encoding,
+            compression=compression,
+            should_close=True,
+            mode=fsspec_mode,
+        )
 
     if is_fsspec_url(filepath_or_buffer):
         assert isinstance(
@@ -219,7 +296,7 @@ def get_filepath_or_buffer(
 
         try:
             file_obj = fsspec.open(
-                filepath_or_buffer, mode=mode or "rb", **(storage_options or {})
+                filepath_or_buffer, mode=fsspec_mode, **(storage_options or {})
             ).open()
         # GH 34626 Reads from Public Buckets without Credentials needs anon=True
         except tuple(err_types_to_retry_with_anon):
@@ -230,19 +307,41 @@ def get_filepath_or_buffer(
                 storage_options = dict(storage_options)
                 storage_options["anon"] = True
             file_obj = fsspec.open(
-                filepath_or_buffer, mode=mode or "rb", **(storage_options or {})
+                filepath_or_buffer, mode=fsspec_mode, **(storage_options or {})
             ).open()
 
-        return file_obj, encoding, compression, True
+        return IOargs(
+            filepath_or_buffer=file_obj,
+            encoding=encoding,
+            compression=compression,
+            should_close=True,
+            mode=fsspec_mode,
+        )
+    elif storage_options:
+        raise ValueError(
+            "storage_options passed with file object or non-fsspec file path"
+        )
 
     if isinstance(filepath_or_buffer, (str, bytes, mmap.mmap)):
-        return _expand_user(filepath_or_buffer), None, compression, False
+        return IOargs(
+            filepath_or_buffer=_expand_user(filepath_or_buffer),
+            encoding=encoding,
+            compression=compression,
+            should_close=False,
+            mode=mode,
+        )
 
     if not is_file_like(filepath_or_buffer):
         msg = f"Invalid file path or buffer object type: {type(filepath_or_buffer)}"
         raise ValueError(msg)
 
-    return filepath_or_buffer, None, compression, False
+    return IOargs(
+        filepath_or_buffer=filepath_or_buffer,
+        encoding=encoding,
+        compression=compression,
+        should_close=False,
+        mode=mode,
+    )
 
 
 def file_path_to_url(path: str) -> str:
@@ -267,8 +366,8 @@ _compression_to_extension = {"gzip": ".gz", "bz2": ".bz2", "zip": ".zip", "xz": 
 
 
 def get_compression_method(
-    compression: Optional[Union[str, Mapping[str, str]]]
-) -> Tuple[Optional[str], Dict[str, str]]:
+    compression: CompressionOptions,
+) -> Tuple[Optional[str], CompressionDict]:
     """
     Simplifies a compression argument to a compression method string and
     a mapping containing additional arguments.
@@ -282,21 +381,23 @@ def get_compression_method(
     Returns
     -------
     tuple of ({compression method}, Optional[str]
-              {compression arguments}, Dict[str, str])
+              {compression arguments}, Dict[str, Any])
 
     Raises
     ------
     ValueError on mapping missing 'method' key
     """
+    compression_method: Optional[str]
     if isinstance(compression, Mapping):
         compression_args = dict(compression)
         try:
-            compression = compression_args.pop("method")
+            compression_method = compression_args.pop("method")
         except KeyError as err:
             raise ValueError("If mapping, compression must have key 'method'") from err
     else:
         compression_args = {}
-    return compression, compression_args
+        compression_method = compression
+    return compression_method, compression_args
 
 
 def infer_compression(
@@ -357,7 +458,7 @@ def get_handle(
     path_or_buf,
     mode: str,
     encoding=None,
-    compression: Optional[Union[str, Mapping[str, Any]]] = None,
+    compression: CompressionOptions = None,
     memory_map: bool = False,
     is_text: bool = True,
     errors=None,
@@ -397,8 +498,9 @@ def get_handle(
     memory_map : boolean, default False
         See parsers._parser_params for more information.
     is_text : boolean, default True
-        whether file/buffer is in text format (csv, json, etc.), or in binary
-        mode (pickle, etc.).
+        Whether the type of the content passed to the file/buffer is string or
+        bytes. This is not the same as `"b" not in mode`. If a string content is
+        passed to a binary file/buffer, a wrapper is inserted.
     errors : str, default 'strict'
         Specifies how encoding and decoding errors are to be handled.
         See the errors argument for :func:`open` for a full list
@@ -420,8 +522,17 @@ def get_handle(
         need_text_wrapping = (BufferedIOBase, RawIOBase, S3File)
     except ImportError:
         need_text_wrapping = (BufferedIOBase, RawIOBase)
+    # fsspec is an optional dependency. If it is available, add its file-object
+    # class to the list of classes that need text wrapping. If fsspec is too old and is
+    # needed, get_filepath_or_buffer would already have thrown an exception.
+    try:
+        from fsspec.spec import AbstractFileSystem
 
-    handles: List[IO] = list()
+        need_text_wrapping = (*need_text_wrapping, AbstractFileSystem)
+    except ImportError:
+        pass
+
+    handles: List[Union[IO, _MMapWrapper]] = list()
     f = path_or_buf
 
     # Convert pathlib.Path/py.path.local or string
@@ -434,28 +545,16 @@ def get_handle(
 
     if compression:
 
-        # GH33398 the type ignores here seem related to mypy issue #5382;
-        # it may be possible to remove them once that is resolved.
-
         # GZ Compression
         if compression == "gzip":
             if is_path:
-                f = gzip.open(
-                    path_or_buf, mode, **compression_args  # type: ignore
-                )
+                f = gzip.GzipFile(filename=path_or_buf, mode=mode, **compression_args)
             else:
-                f = gzip.GzipFile(
-                    fileobj=path_or_buf, **compression_args  # type: ignore
-                )
+                f = gzip.GzipFile(fileobj=path_or_buf, mode=mode, **compression_args)
 
         # BZ Compression
         elif compression == "bz2":
-            if is_path:
-                f = bz2.BZ2File(
-                    path_or_buf, mode, **compression_args  # type: ignore
-                )
-            else:
-                f = bz2.BZ2File(path_or_buf, **compression_args)  # type: ignore
+            f = bz2.BZ2File(path_or_buf, mode=mode, **compression_args)
 
         # ZIP Compression
         elif compression == "zip":
@@ -478,7 +577,7 @@ def get_handle(
 
         # XZ Compression
         elif compression == "xz":
-            f = _get_lzma_file(lzma)(path_or_buf, mode)
+            f = get_lzma_file(lzma)(path_or_buf, mode)
 
         # Unrecognized Compression
         else:
@@ -488,10 +587,14 @@ def get_handle(
         handles.append(f)
 
     elif is_path:
-        if encoding:
+        # Check whether the filename is to be opened in binary mode.
+        # Binary mode does not support 'encoding' and 'newline'.
+        is_binary_mode = "b" in mode
+
+        if encoding and not is_binary_mode:
             # Encoding
             f = open(path_or_buf, mode, encoding=encoding, errors=errors, newline="")
-        elif is_text:
+        elif is_text and not is_binary_mode:
             # No explicit encoding
             f = open(path_or_buf, mode, errors="replace", newline="")
         else:
@@ -512,6 +615,8 @@ def get_handle(
         try:
             wrapped = _MMapWrapper(f)
             f.close()
+            handles.remove(f)
+            handles.append(wrapped)
             f = wrapped
         except Exception:
             # we catch any errors that may have occurred
@@ -523,7 +628,19 @@ def get_handle(
     return f, handles
 
 
-class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore
+# error: Definition of "__exit__" in base class "ZipFile" is incompatible with
+# definition in base class "BytesIO"  [misc]
+# error: Definition of "__enter__" in base class "ZipFile" is incompatible with
+# definition in base class "BytesIO"  [misc]
+# error: Definition of "__enter__" in base class "ZipFile" is incompatible with
+# definition in base class "BinaryIO"  [misc]
+# error: Definition of "__enter__" in base class "ZipFile" is incompatible with
+# definition in base class "IO"  [misc]
+# error: Definition of "read" in base class "ZipFile" is incompatible with
+# definition in base class "BytesIO"  [misc]
+# error: Definition of "read" in base class "ZipFile" is incompatible with
+# definition in base class "IO"  [misc]
+class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore[misc]
     """
     Wrapper for standard library class ZipFile and allow the returned file-like
     handle to accept byte strings via `write` method.
@@ -543,12 +660,13 @@ class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore
         if mode in ["wb", "rb"]:
             mode = mode.replace("b", "")
         self.archive_name = archive_name
-        super().__init__(file, mode, zipfile.ZIP_DEFLATED, **kwargs)
+        kwargs_zip: Dict[str, Any] = {"compression": zipfile.ZIP_DEFLATED}
+        kwargs_zip.update(kwargs)
+        super().__init__(file, mode, **kwargs_zip)  # type: ignore[arg-type]
 
     def write(self, data):
-        archive_name = self.filename
-        if self.archive_name is not None:
-            archive_name = self.archive_name
+        # ZipFile needs a non-empty string
+        archive_name = self.archive_name or self.filename or "zip"
         super().writestr(archive_name, data)
 
     @property

@@ -2,10 +2,13 @@
 # at https://github.com/veorq/SipHash
 
 import cython
-from libc.stdlib cimport malloc, free
+
+from libc.stdlib cimport free, malloc
 
 import numpy as np
-from numpy cimport ndarray, uint8_t, uint32_t, uint64_t, import_array
+
+from numpy cimport import_array, ndarray, uint8_t, uint32_t, uint64_t
+
 import_array()
 
 from pandas._libs.util cimport is_nan
