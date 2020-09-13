@@ -8789,6 +8789,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         errors="raise",
         try_cast=False,
         invert=False,
+        apply_callable_other=False,
     ):
         """
         Equivalent to public method `where`, except that `other` is not
@@ -8796,7 +8797,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
-        other = com.apply_if_callable(other, self)
+        if apply_callable_other:
+            other = com.apply_if_callable(other, self)
+
         # align the cond to same shape as myself
         cond = com.apply_if_callable(cond, self)
         if isinstance(cond, NDFrame):
@@ -9059,7 +9062,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         4  True  True
         """
         return self._where(
-            cond, other, inplace, axis, level, errors=errors, try_cast=try_cast,
+            cond,
+            other,
+            inplace,
+            axis,
+            level,
+            errors=errors,
+            try_cast=try_cast,
+            apply_callable_other=True,
         )
 
     @doc(
@@ -9093,6 +9103,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             try_cast=try_cast,
             errors=errors,
             invert=True,
+            apply_callable_other=True,
         )
 
     @doc(klass=_shared_doc_kwargs["klass"])
