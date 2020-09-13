@@ -1699,21 +1699,21 @@ class TestStyler:
 
     @pytest.mark.parametrize("len_", [1, 5, 32])
     def test_uuid_len(self, len_):
-        # GH ..
+        # GH 36345
         df = pd.DataFrame(data=[["A"]])
         s = Styler(df, uuid_len=len_, cell_ids=False).render()
         strt = s.find('id="T_')
         end = s[strt + 6 :].find('"')
-        assert end == len_
+        assert end == len_ + 1
 
     @pytest.mark.parametrize("len_", [33, 100])
     def test_uuid_max_len(self, len_):
-        # GH ..
+        # GH 36345
         df = pd.DataFrame(data=[["A"]])
         s = Styler(df, uuid_len=len_, cell_ids=False).render()
         strt = s.find('id="T_')
         end = s[strt + 6 :].find('"')
-        assert end == 32
+        assert end == 32 + 1
 
 
 @td.skip_if_no_mpl

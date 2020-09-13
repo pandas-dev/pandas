@@ -165,7 +165,7 @@ class Styler:
         self.columns = data.columns
 
         self.uuid_len = uuid_len if uuid_len < 33 else 32
-        self.uuid = uuid or uuid4().hex[: self.uuid_len]
+        self.uuid = (uuid or uuid4().hex[: self.uuid_len]) + "_"
         self.table_styles = table_styles
         self.caption = caption
         if precision is None:
