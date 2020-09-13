@@ -312,7 +312,7 @@ cdef inline void remove_mean(float64_t val, Py_ssize_t *nobs, float64_t *sum_x,
 def roll_mean_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
                     ndarray[int64_t] end, int64_t minp, int64_t win):
     cdef:
-        float64_t val, prev_x, sum_x = 0, c = 0
+        float64_t val, prev_x, sum_x = 0, c_add = 0, c_remove = 0
         Py_ssize_t nobs = 0, i, neg_ct = 0, N = len(values)
         ndarray[float64_t] output
 
@@ -321,16 +321,16 @@ def roll_mean_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
     with nogil:
         for i in range(minp - 1):
             val = values[i]
-            add_mean(val, &nobs, &sum_x, &neg_ct, &c)
+            add_mean(val, &nobs, &sum_x, &neg_ct, &c_add)
             output[i] = NaN
 
         for i in range(minp - 1, N):
             val = values[i]
-            add_mean(val, &nobs, &sum_x, &neg_ct, &c)
+            add_mean(val, &nobs, &sum_x, &neg_ct, &c_add)
 
             if i > win - 1:
                 prev_x = values[i - win]
-                remove_mean(prev_x, &nobs, &sum_x, &neg_ct, &c)
+                remove_mean(prev_x, &nobs, &sum_x, &neg_ct, &c_remove)
 
             output[i] = calc_mean(minp, nobs, neg_ct, sum_x)
 
