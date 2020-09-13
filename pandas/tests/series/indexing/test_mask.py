@@ -21,14 +21,14 @@ def test_mask():
     rs2 = s.mask(cond, -s)
     tm.assert_series_equal(rs, rs2)
 
-    # cond = Series([True, False, False, True, False], index=s.index)
-    # s2 = -(s.abs())
-    # rs = s2.where(cond[:3], invert=True)
-    # rs2 = s2.mask(cond[:3])
+    cond = Series([True, False, False, True, False], index=s.index)
+    s2 = -(s.abs())
+    rs = s2.where(~cond[:3])
+    rs2 = s2.mask(cond[:3])
     # tm.assert_series_equal(rs, rs2)
 
-    # rs = s2.where(cond[:3], -s2, invert=True)
-    # rs2 = s2.mask(cond[:3], -s2)
+    rs = s2.where(~cond[:3], -s2)
+    rs2 = s2.mask(cond[:3], -s2)
     # tm.assert_series_equal(rs, rs2)
 
     msg = "Array conditional must be same shape as self"
@@ -63,19 +63,3 @@ def test_mask_inplace():
     rs = s.copy()
     rs.mask(cond, -s, inplace=True)
     tm.assert_series_equal(rs, s.mask(cond, -s))
-
-
-@pytest.mark.parametrize("inplace", [True, False])
-def test_mask_nullable_boolean(inplace):
-    # https://github.com/pandas-dev/pandas/issues/35429
-    ser = Series([1, 2, 3])
-    mask = Series([True, False, None], dtype="boolean")
-    expected = Series([999, 2, 3])
-
-    if inplace:
-        result = ser.copy()
-        result.mask(mask, 999, inplace=True)
-    else:
-        result = ser.mask(mask, 999, inplace=False)
-
-    tm.assert_series_equal(result, expected)
