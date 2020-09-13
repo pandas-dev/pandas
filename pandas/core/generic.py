@@ -6962,6 +6962,93 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         3    16.0
         Name: d, dtype: float64
         """
+        inplace = validate_bool_kwarg(inplace, "inplace")
+
+        axis = self._get_axis_number(axis)
+
+        fillna_methods = ["ffill", "bfill", "pad", "backfill"]
+        should_transpose = axis == 1 and method not in fillna_methods
+
+        obj = self.T if should_transpose else self
+
+        if obj.empty:
+            return self.copy()
+
+        if method not in fillna_methods:
+            axis = self._info_axis_number
+
+        if isinstance(obj.index, MultiIndex) and method != "linear":
+            raise ValueError(
+                "Only `method=linear` interpolation is supported on MultiIndexes."
+            )
+
+        # Set `limit_direction` depending on `method`
+        if limit_direction is None:
+            limit_direction = (
+                "backward" if method in ("backfill", "bfill") else "forward"
+            )
+        else:
+            if method in ("pad", "ffill") and limit_direction != "forward":
+                raise ValueError(
+                    f"`limit_direction` must be 'forward' for method `{method}`"
+                )
+            if method in ("backfill", "bfill") and limit_direction != "backward":
+                raise ValueError(
+                    f"`limit_direction` must be 'backward' for method `{method}`"
+                )
+
+        if obj.ndim == 2 and np.all(obj.dtypes == np.dtype(object)):
+            raise TypeError(
+                "Cannot interpolate with all object-dtype columns "
+                "in the DataFrame. Try setting at least one "
+                "column to a numeric dtype."
+            )
+
+        # create/use the index
+        if method == "linear":
+            # prior default
+            index = np.arange(len(obj.index))
+        else:
+            index = obj.index
+            methods = {"index", "values", "nearest", "time"}
+            is_numeric_or_datetime = (
+                    is_numeric_dtype(index.dtype)
+                    or is_datetime64_any_dtype(index.dtype)
+                    or is_timedelta64_dtype(index.dtype)
+            )
+            if method not in methods and not is_numeric_or_datetime:
+                raise ValueError(
+                    "Index column must be numeric or datetime type when "
+                    f"using {method} method other than linear. "
+                    "Try setting a numeric or datetime index column before "
+                    "interpolating."
+                )
+
+        if isna(index).any():
+            raise NotImplementedError(
+                "Interpolation with NaNs in the index "
+                "has not been implemented. Try filling "
+                "those NaNs before interpolating."
+            )
+        new_data = obj._mgr.interpolate(
+            method=method,
+            axis=axis,
+            index=index,
+            limit=limit,
+            limit_direction=limit_direction,
+            limit_area=limit_area,
+            inplace=inplace,
+            downcast=downcast,
+            **kwargs,
+        )
+
+        result = self._constructor(new_data)
+        if should_transpose:
+            result = result.T
+        if inplace:
+            return self._update_inplace(result)
+        else:
+            return result.__finalize__(self, method="interpolate")
 
     # ----------------------------------------------------------------------
     # Timeseries methods Methods
