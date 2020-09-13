@@ -2214,8 +2214,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
                 Describing the data, where data component is like ``orient='records'``.
 
-            .. versionchanged:: 0.20.0
-
         date_format : {None, 'epoch', 'iso'}
             Type of date conversion. 'epoch' = epoch milliseconds,
             'iso' = ISO8601. The default depends on the `orient`. For
@@ -2251,9 +2249,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             Whether to include the index values in the JSON string. Not
             including the index (``index=False``) is only supported when
             orient is 'split' or 'table'.
-
-            .. versionadded:: 0.23.0
-
         indent : int, optional
            Length of whitespace used to indent each record.
 
@@ -3010,9 +3005,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Requires ``\usepackage{booktabs}``.  The output can be copy/pasted
         into a main LaTeX document or read from an external file
         with ``\input{table.tex}``.
-
-        .. versionchanged:: 0.20.2
-           Added to Series.
 
         .. versionchanged:: 1.0.0
            Added caption and label arguments.
@@ -6404,9 +6396,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             The method to use when for replacement, when `to_replace` is a
             scalar, list or tuple and `value` is ``None``.
 
-            .. versionchanged:: 0.23.0
-                Added to DataFrame.
-
         Returns
         -------
         {klass}
@@ -6835,8 +6824,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             * 'inside': Only fill NaNs surrounded by valid values
               (interpolate).
             * 'outside': Only fill NaNs outside valid values (extrapolate).
-
-            .. versionadded:: 0.23.0
 
         downcast : optional, 'infer' or None, defaults to None
             Downcast dtypes if possible.
@@ -11349,12 +11336,6 @@ _min_count_stub = """\
 min_count : int, default 0
     The required number of valid values to perform the operation. If fewer than
     ``min_count`` non-NA values are present the result will be NA.
-
-    .. versionadded:: 0.22.0
-
-       Added with the default being 0. This means the sum of an all-NA
-       or empty Series is 0, and the product of an all-NA or empty
-       Series is 1.
 """
 
 

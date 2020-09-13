@@ -336,10 +336,6 @@ examined :ref:`in the API <api.dataframe.missing>`.
 Interpolation
 ~~~~~~~~~~~~~
 
-.. versionadded:: 0.23.0
-
-  The ``limit_area`` keyword argument was added.
-
 Both Series and DataFrame objects have :meth:`~DataFrame.interpolate`
 that, by default, performs linear interpolation at missing data points.
 
@@ -507,8 +503,8 @@ By default, ``NaN`` values are filled in a ``forward`` direction. Use
    ser.interpolate(limit_direction='both')
 
 By default, ``NaN`` values are filled whether they are inside (surrounded by)
-existing valid values, or outside existing valid values. Introduced in v0.23
-the ``limit_area`` parameter restricts filling to either inside or outside values.
+existing valid values, or outside existing valid values. The ``limit_area``
+parameter restricts filling to either inside or outside values.
 
 .. ipython:: python
 
