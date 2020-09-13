@@ -22,10 +22,7 @@ if TYPE_CHECKING:
     from pandas import DataFrame, Series  # noqa: F401
 
 
-@Appender(
-    _shared_docs["melt"]
-    % dict(caller="pd.melt(df, ", other="DataFrame.melt")
-)
+@Appender(_shared_docs["melt"] % dict(caller="pd.melt(df, ", other="DataFrame.melt"))
 def melt(
     frame: "DataFrame",
     id_vars=None,

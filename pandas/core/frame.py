@@ -7175,13 +7175,7 @@ NaN 12.3   33.0
 
         return unstack(self, level, fill_value)
 
-    @Appender(
-        _shared_docs["melt"]
-        % dict(
-            caller="df.melt(",
-            other="melt",
-        )
-    )
+    @Appender(_shared_docs["melt"] % dict(caller="df.melt(", other="melt",))
     def melt(
         self,
         id_vars=None,

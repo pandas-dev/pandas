@@ -18,7 +18,7 @@ parsing, and attributes.
 Parsing
 -------
 
-You can construct a ``Timedelta`` scalar through various arguments:
+You can construct a ``Timedelta`` scalar through various arguments, including `ISO 8601 Duration`_ strings.
 
 .. ipython:: python
 
