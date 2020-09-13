@@ -1376,7 +1376,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             count = np.bincount(np.where(mask, code, ncat))
             ix = np.append(ix, -1)
 
-        ix = self._constructor(ix, dtype=self.dtype, fastpath=True)
+        ix = self._from_backing_data(ix)
 
         return Series(count, index=CategoricalIndex(ix), dtype="int64")
 
@@ -1546,9 +1546,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         if inplace:
             self._codes = self._codes[sorted_idx]
         else:
-            return self._constructor(
-                values=self._codes[sorted_idx], dtype=self.dtype, fastpath=True
-            )
+            codes = self._codes[sorted_idx]
+            return self._from_backing_data(codes)
 
     def _values_for_rank(self):
         """
@@ -1583,7 +1582,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
     def view(self, dtype=None):
         if dtype is not None:
             raise NotImplementedError(dtype)
-        return self._constructor(values=self._codes, dtype=self.dtype, fastpath=True)
+        return self._from_backing_data(self._ndarray)
 
     def to_dense(self):
         """
@@ -1691,7 +1690,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
                     f"or Series, but you passed a {type(value).__name__}"
                 )
 
-        return self._constructor(codes, dtype=self.dtype, fastpath=True)
+        return self._from_backing_data(codes)
 
     # ------------------------------------------------------------------
     # NDArrayBackedExtensionArray compat
@@ -2098,7 +2097,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             good = self._codes != -1
             codes = self._codes[good]
         codes = sorted(htable.mode_int64(ensure_int64(codes), dropna))
-        return self._constructor(values=codes, dtype=self.dtype, fastpath=True)
+        return self._from_backing_data(codes)
 
     # ------------------------------------------------------------------
     # ExtensionArray Interface

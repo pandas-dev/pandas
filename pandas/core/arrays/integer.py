@@ -364,6 +364,15 @@ class IntegerArray(BaseMaskedArray):
             )
         super().__init__(values, mask, copy=copy)
 
+    def __neg__(self):
+        return type(self)(-self._data, self._mask)
+
+    def __pos__(self):
+        return self
+
+    def __abs__(self):
+        return type(self)(np.abs(self._data), self._mask)
+
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy: bool = False) -> "IntegerArray":
         return integer_array(scalars, dtype=dtype, copy=copy)
