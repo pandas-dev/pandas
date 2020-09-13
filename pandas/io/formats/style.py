@@ -131,7 +131,6 @@ class Styler:
 
     * Blank cells include ``blank``
     * Data cells include ``data``
-
     """
 
     loader = jinja2.PackageLoader("pandas", "io/formats/templates")
