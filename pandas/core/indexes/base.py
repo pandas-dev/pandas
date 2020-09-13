@@ -1553,8 +1553,6 @@ class Index(IndexOpsMixin, PandasObject):
         If resulting index has only 1 level left, the result will be
         of Index type, not MultiIndex.
 
-        .. versionadded:: 0.23.1 (support for non-MultiIndex)
-
         Parameters
         ----------
         level : int, str, or list-like, default 0
@@ -2295,8 +2293,6 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         level : int or str, optional, default None
             Only return values from specified level (for MultiIndex).
-
-            .. versionadded:: 0.23.0
 
         Returns
         -------
@@ -3876,8 +3872,11 @@ class Index(IndexOpsMixin, PandasObject):
             return join_index
 
     def _wrap_joined_index(self, joined, other):
-        name = get_op_result_name(self, other)
-        return Index(joined, name=name)
+        if isinstance(self, ABCMultiIndex):
+            name = self.names if self.names == other.names else None
+        else:
+            name = get_op_result_name(self, other)
+        return self._constructor(joined, name=name)
 
     # --------------------------------------------------------------------
     # Uncategorized Methods
@@ -4047,9 +4046,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self
 
-    def _convert_for_op(self, value):
+    def _validate_fill_value(self, value):
         """
-        Convert value to be insertable to ndarray.
+        Check if the value can be inserted into our array, and convert
+        it to an appropriate native type if necessary.
         """
         return value
 
@@ -4228,7 +4228,8 @@ class Index(IndexOpsMixin, PandasObject):
         """
         values = self.values.copy()
         try:
-            np.putmask(values, mask, self._convert_for_op(value))
+            converted = self._validate_fill_value(value)
+            np.putmask(values, mask, converted)
             if is_period_dtype(self.dtype):
                 # .values cast to object, so we need to cast back
                 values = type(self)(values)._data
@@ -4444,8 +4445,8 @@ class Index(IndexOpsMixin, PandasObject):
 
     def sort_values(
         self,
-        return_indexer=False,
-        ascending=True,
+        return_indexer: bool = False,
+        ascending: bool = True,
         na_position: str_t = "last",
         key: Optional[Callable] = None,
     ):
@@ -4509,7 +4510,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         # GH 35584. Sort missing values according to na_position kwarg
         # ignore na_position for MutiIndex
-        if not isinstance(self, ABCMultiIndex):
+        if not isinstance(
+            self, (ABCMultiIndex, ABCDatetimeIndex, ABCTimedeltaIndex, ABCPeriodIndex)
+        ):
             _as = nargsort(
                 items=idx, ascending=ascending, na_position=na_position, key=key
             )

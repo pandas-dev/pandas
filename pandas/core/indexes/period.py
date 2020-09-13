@@ -12,7 +12,6 @@ from pandas.errors import InvalidIndexError
 from pandas.util._decorators import Appender, cache_readonly, doc
 
 from pandas.core.dtypes.common import (
-    ensure_platform_int,
     is_bool_dtype,
     is_datetime64_any_dtype,
     is_dtype_equal,
@@ -473,12 +472,13 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         target = ensure_index(target)
 
         if isinstance(target, PeriodIndex):
-            if target.freq != self.freq:
+            if not self._is_comparable_dtype(target.dtype):
+                # i.e. target.freq != self.freq
                 # No matches
                 no_matches = -1 * np.ones(self.shape, dtype=np.intp)
                 return no_matches
 
-            target = target.asi8
+            target = target._get_engine_target()  # i.e. target.asi8
             self_index = self._int64index
         else:
             self_index = self
@@ -490,19 +490,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
                 tolerance = self._maybe_convert_timedelta(tolerance)
 
         return Index.get_indexer(self_index, target, method, limit, tolerance)
-
-    @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
-    def get_indexer_non_unique(self, target):
-        target = ensure_index(target)
-
-        if not self._is_comparable_dtype(target.dtype):
-            no_matches = -1 * np.ones(self.shape, dtype=np.intp)
-            return no_matches, no_matches
-
-        target = target.asi8
-
-        indexer, missing = self._int64index.get_indexer_non_unique(target)
-        return ensure_platform_int(indexer), missing
 
     def get_loc(self, key, method=None, tolerance=None):
         """
