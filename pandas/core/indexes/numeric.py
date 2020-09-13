@@ -33,7 +33,6 @@ from pandas.core.dtypes.missing import isna
 from pandas.core import algorithms
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, maybe_extract_name
-from pandas.core.ops import get_op_result_name
 
 _num_index_shared_docs = dict()
 
@@ -117,7 +116,7 @@ class NumericIndex(Index):
             return Float64Index._simple_new(values, name=name)
         return super()._shallow_copy(values=values, name=name)
 
-    def _convert_for_op(self, value):
+    def _validate_fill_value(self, value):
         """
         Convert value to be insertable to ndarray.
         """
@@ -262,10 +261,6 @@ class Int64Index(IntegerIndex):
     _engine_type = libindex.Int64Engine
     _default_dtype = np.dtype(np.int64)
 
-    def _wrap_joined_index(self, joined, other):
-        name = get_op_result_name(self, other)
-        return Int64Index(joined, name=name)
-
     @classmethod
     def _assert_safe_casting(cls, data, subarr):
         """
@@ -323,10 +318,6 @@ class UInt64Index(IntegerIndex):
         return keyarr
 
     # ----------------------------------------------------------------
-
-    def _wrap_joined_index(self, joined, other):
-        name = get_op_result_name(self, other)
-        return UInt64Index(joined, name=name)
 
     @classmethod
     def _assert_safe_casting(cls, data, subarr):
