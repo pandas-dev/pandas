@@ -99,8 +99,7 @@ For example:
 Inverting a misaligned mask within ``where``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:meth:`Series.where` and :meth:`DataFrame.where` now include an argument ``invert`` to handle inversion of a possibly misaligned mask.
-The inversion is done after realignment so as to properly handle any missing values.
+:meth:`Series.where` and :meth:`DataFrame.where` now include an argument ``invert`` to handle inversion of a possibly misaligned mask. The inversion is done after realignment so as to properly handle any missing values.
 
 .. ipython:: python
 
