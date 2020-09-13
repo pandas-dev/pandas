@@ -7012,9 +7012,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             index = obj.index
             methods = {"index", "values", "nearest", "time"}
             is_numeric_or_datetime = (
-                    is_numeric_dtype(index.dtype)
-                    or is_datetime64_any_dtype(index.dtype)
-                    or is_timedelta64_dtype(index.dtype)
+                is_numeric_dtype(index.dtype)
+                or is_datetime64_any_dtype(index.dtype)
+                or is_timedelta64_dtype(index.dtype)
             )
             if method not in methods and not is_numeric_or_datetime:
                 raise ValueError(
