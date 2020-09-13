@@ -46,9 +46,10 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import notna
 
-from pandas.core.base import DataError, PandasObject, SelectionMixin, ShallowMixin
+from pandas.core.base import DataError, SelectionMixin
 import pandas.core.common as com
 from pandas.core.construction import extract_array
+from pandas.core.groupby.base import ShallowMixin
 from pandas.core.indexes.api import Index, MultiIndex
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE, maybe_use_numba
 from pandas.core.window.common import (
@@ -146,7 +147,7 @@ def get_weighted_roll_func(cfunc: Callable) -> Callable:
     return func
 
 
-class _Window(PandasObject, ShallowMixin, SelectionMixin):
+class _Window(ShallowMixin, SelectionMixin):
     _attributes: List[str] = [
         "window",
         "min_periods",

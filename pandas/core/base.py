@@ -4,7 +4,7 @@ Base and utility classes for pandas objects.
 
 import builtins
 import textwrap
-from typing import Any, Callable, Dict, FrozenSet, List, Optional, Union
+from typing import Any, Callable, Dict, FrozenSet, Optional, Union
 
 import numpy as np
 
@@ -575,21 +575,6 @@ class SelectionMixin:
         otherwise return the arg
         """
         return self._builtin_table.get(arg, arg)
-
-
-class ShallowMixin:
-    _attributes: List[str] = []
-
-    def _shallow_copy(self, obj, **kwargs):
-        """
-        return a new object with the replacement attributes
-        """
-        if isinstance(obj, self._constructor):
-            obj = obj.obj
-        for attr in self._attributes:
-            if attr not in kwargs:
-                kwargs[attr] = getattr(self, attr)
-        return self._constructor(obj, **kwargs)
 
 
 class IndexOpsMixin:
