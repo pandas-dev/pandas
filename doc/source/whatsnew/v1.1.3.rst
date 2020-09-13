@@ -14,6 +14,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
+- Fixed regression in :class:`IntegerArray` unary plus and minus operations raising a ``TypeError`` (:issue:`36063`)
 - Fixed regression in :meth:`Series.__getitem__` incorrectly raising when the input was a tuple (:issue:`35534`)
 - Fixed regression in :meth:`Series.__getitem__` incorrectly raising when the input was a frozenset (:issue:`35747`)
 -
@@ -25,6 +26,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Bug in :meth:`Series.str.startswith` and :meth:`Series.str.endswith` with ``category`` dtype not propagating ``na`` parameter (:issue:`36241`)
+- Bug in :class:`Series` constructor where integer overflow would occur for sufficiently large scalar inputs when an index was provided (:issue:`36291`)
 
 .. ---------------------------------------------------------------------------
 
