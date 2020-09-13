@@ -471,6 +471,14 @@ class TestSeriesAggregate:
         with pytest.raises(TypeError, match=msg):
             df.transform({"a": int})
 
+    def test_series_apply_no_suffix_index(self):
+        # GH36189
+        s = pd.Series([4] * 3)
+        result = s.apply(["sum", lambda x: x.sum(), lambda x: x.sum()])
+        expected = pd.Series([12, 12, 12], index=["sum", "<lambda>", "<lambda>"])
+
+        tm.assert_series_equal(result, expected)
+
 
 class TestSeriesMap:
     def test_map(self, datetime_series):
