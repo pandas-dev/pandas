@@ -41,6 +41,12 @@ class RowStringConverter(ABC):
         self.multirow = multirow
         self.clinebuf: List[List[int]] = []
         self.strcols = self._get_strcols()
+
+        # Here is a reason for ignoring typing.
+        # list() implicitly exhausts zip iterator into lists of strings.
+        # Hence, self.strrows is List[List[str]].
+        # Meanwhile, mypy thinks we pass Iterator[Tuple[Any, ...]] to list(),
+        # but expected Iterable[List[str]].
         self.strrows: List[List[str]] = (
             list(zip(*self.strcols))  # type: ignore[arg-type]
         )
@@ -653,7 +659,7 @@ class LatexFormatter(TableFormatter):
         self.multicolumn_format = multicolumn_format
         self.multirow = multirow
 
-        # Reason for ignoring typing in assignment:
+        # Here is a reason for ignoring typing in assignment.
         # Inside caption setter we make sure that self._caption is str only.
         # Meanwhile mypy would complain that it expects
         # Union[str, Tuple[str, str], None].
