@@ -416,6 +416,7 @@ class TestBasic(Base):
         self.check_error_on_write(df, engine, ValueError)
 
     def test_write_column_multiindex_string(self, pa):
+        # GH #34777
         # Not supported in fastparquet as of 0.1.3 or older pyarrow version
         engine = pa
 
