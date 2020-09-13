@@ -712,6 +712,8 @@ class LatexFormatter(TableFormatter):
         else:
             self._caption = ""
             self.short_caption = ""
+        assert isinstance(self._caption, str)
+        assert isinstance(self.short_caption, str)
 
     @property
     def column_format(self) -> Optional[str]:
