@@ -8989,6 +8989,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             Whether or not to invert `cond`. This is done after alignment and
             filling any missing values with `False`.
 
+            .. versionadded:: 1.2
+
         Returns
         -------
         Same type as caller
