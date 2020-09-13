@@ -861,8 +861,7 @@ class DatetimeLikeArrayMixin(
         if not is_list_like(value):
             value = self._validate_scalar(value, msg, cast_str=True)
         else:
-            # TODO: cast_str?  we accept it for scalar
-            value = self._validate_listlike(value, "searchsorted")
+            value = self._validate_listlike(value, "searchsorted", cast_str=True)
 
         rv = self._unbox(value)
         return self._rebox_native(rv)
