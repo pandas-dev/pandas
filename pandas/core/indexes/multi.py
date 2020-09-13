@@ -1,3 +1,4 @@
+from functools import wraps
 from sys import getsizeof
 from typing import (
     TYPE_CHECKING,
@@ -150,6 +151,25 @@ class MultiIndexPyIntEngine(libindex.BaseMultiIndexCodesEngine, libindex.ObjectE
 
         # Multiple keys
         return np.bitwise_or.reduce(codes, axis=1)
+
+
+def names_compat(meth):
+    """
+    A decorator to allow either `name` or `names` keyword but not both.
+
+    This makes it easier to share code with base class.
+    """
+
+    @wraps(meth)
+    def new_meth(self_or_cls, *args, **kwargs):
+        if "name" in kwargs and "names" in kwargs:
+            raise TypeError("Can only provide one of `names` and `name`")
+        elif "name" in kwargs:
+            kwargs["names"] = kwargs.pop("name")
+
+        return meth(self_or_cls, *args, **kwargs)
+
+    return new_meth
 
 
 class MultiIndex(Index):
@@ -449,6 +469,7 @@ class MultiIndex(Index):
         )
 
     @classmethod
+    @names_compat
     def from_tuples(
         cls,
         tuples,
@@ -3634,10 +3655,6 @@ class MultiIndex(Index):
             names=self.names,
             verify_integrity=False,
         )
-
-    def _wrap_joined_index(self, joined, other):
-        names = self.names if self.names == other.names else None
-        return self._constructor(joined, names=names)
 
     @doc(Index.isin)
     def isin(self, values, level=None):
