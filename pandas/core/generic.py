@@ -6833,7 +6833,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         downcast : optional, 'infer' or None, defaults to None
             Downcast dtypes if possible.
-        ``**kwargs``
+        ``**kwargs`` : optional
             Keyword arguments to pass on to the interpolating function.
 
         Returns
