@@ -96,6 +96,21 @@ For example:
    buffer = io.BytesIO()
    data.to_csv(buffer, mode="w+b", encoding="utf-8", compression="gzip")
 
+Inverting a misaligned mask within ``where``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`Series.where` and :meth:`DataFrame.where` now include an argument ``invert`` to handle inversion of a possibly misaligned mask.
+The inversion is done after realignment so as to properly handle any missing values.
+
+.. ipython:: python
+
+    s = pd.Series(range(5), dtype=float)
+    mask = (s > 2)[:-1]
+    mask
+    s.where(mask)
+    s.where(~mask)
+    s.where(mask, invert=True)
+
 .. _whatsnew_120.enhancements.other:
 
 Other enhancements
