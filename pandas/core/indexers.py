@@ -149,12 +149,12 @@ def check_setitem_lengths(indexer, value, values) -> bool:
         #  b) boolean indexers e.g. BoolArray
         if is_list_like(value):
             if len(indexer) != len(value):
+                # boolean with truth values == len of the value is ok too
                 if not (
                     isinstance(indexer, np.ndarray)
                     and indexer.dtype == np.bool_
                     and len(indexer[indexer]) == len(value)
                 ):
-                    # boolean with truth values == len of the value is ok too
                     raise ValueError(
                         "cannot set using a list-like indexer "
                         "with a different length than the value"
@@ -163,17 +163,15 @@ def check_setitem_lengths(indexer, value, values) -> bool:
                 no_op = True
 
     elif isinstance(indexer, slice):
-        # slice
         if is_list_like(value):
-            if len(values):
-                if len(value) != length_of_indexer(indexer, values):
-                    raise ValueError(
-                        "cannot set using a slice indexer with a "
-                        "different length than the value"
-                    )
-            else:
-                # TODO: dont we still need lengths to match?
+            if len(value) != length_of_indexer(indexer, values):
+                raise ValueError(
+                    "cannot set using a slice indexer with a "
+                    "different length than the value"
+                )
+            if len(value) == 0:
                 no_op = True
+
     return no_op
 
 
