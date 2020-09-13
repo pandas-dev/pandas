@@ -10258,10 +10258,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Percentage change in French franc, Deutsche Mark, and Italian lira from
         1980-01-01 to 1980-03-01.
 
-        >>> df = pd.DataFrame({{
-        ...     'FR': [4.0405, 4.0963, 4.3149],
-        ...     'GR': [1.7246, 1.7482, 1.8519],
-        ...     'IT': [804.74, 810.01, 860.13]}},
+        >>> df = pd.DataFrame(dict(
+        ...     FR=[4.0405, 4.0963, 4.3149],
+        ...     GR=[1.7246, 1.7482, 1.8519],
+        ...     IT=[804.74, 810.01, 860.13]),
         ...     index=['1980-01-01', '1980-02-01', '1980-03-01'])
         >>> df
                         FR      GR      IT
@@ -10278,10 +10278,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Percentage of change in GOOG and APPL stock volume. Shows computing
         the percentage change between columns.
 
-        >>> df = pd.DataFrame({{
-        ...     '2016': [1769950, 30586265],
-        ...     '2015': [1500923, 40912316],
-        ...     '2014': [1371819, 41403351]}},
+        >>> df = pd.DataFrame(dict([
+        ...     ('2016', [1769950, 30586265]),
+        ...     ('2015', [1500923, 40912316]),
+        ...     ('2014', [1371819, 41403351])]),
         ...     index=['GOOG', 'APPL'])
         >>> df
                   2016      2015      2014
