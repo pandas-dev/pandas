@@ -4047,9 +4047,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self
 
-    def _convert_for_op(self, value):
+    def _validate_fill_value(self, value):
         """
-        Convert value to be insertable to ndarray.
+        Check if the value can be inserted into our array, and convert
+        it to an appropriate native type if necessary.
         """
         return value
 
@@ -4228,7 +4229,8 @@ class Index(IndexOpsMixin, PandasObject):
         """
         values = self.values.copy()
         try:
-            np.putmask(values, mask, self._convert_for_op(value))
+            converted = self._validate_fill_value(value)
+            np.putmask(values, mask, converted)
             if is_period_dtype(self.dtype):
                 # .values cast to object, so we need to cast back
                 values = type(self)(values)._data
