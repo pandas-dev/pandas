@@ -697,6 +697,11 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, 
         else:
             dtype = np.dtype(np.int64)
 
+        try:
+            np.array(val, dtype=dtype)
+        except OverflowError:
+            dtype = np.array(val).dtype
+
     elif is_float(val):
         if isinstance(val, np.floating):
             dtype = np.dtype(type(val))
