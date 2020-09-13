@@ -215,8 +215,6 @@ _pipe_template = """
 Apply a function `func` with arguments to this %(klass)s object and return
 the function's result.
 
-%(versionadded)s
-
 Use `.pipe` when you want to improve readability by chaining together
 functions that expect Series, DataFrames, GroupBy or Resampler objects.
 Instead of writing
@@ -709,7 +707,6 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
 
     @Substitution(
         klass="GroupBy",
-        versionadded=".. versionadded:: 0.21.0",
         examples="""\
 >>> df = pd.DataFrame({'A': 'a b a b'.split(), 'B': [1, 2, 3, 4]})
 >>> df
