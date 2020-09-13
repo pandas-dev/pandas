@@ -341,16 +341,12 @@ class PandasArray(
         )
         return result
 
-    amin = min
-
     def max(self, skipna: bool = True, **kwargs) -> Scalar:
         nv.validate_max((), kwargs)
         result = masked_reductions.max(
             values=self.to_numpy(), mask=self.isna(), skipna=skipna
         )
         return result
-
-    amax = max
 
     def sum(self, axis=None, skipna=True, min_count=0, **kwargs) -> Scalar:
         nv.validate_sum((), kwargs)

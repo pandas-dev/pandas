@@ -156,3 +156,19 @@ class NDArrayBackedExtensionArray(ExtensionArray, ArrayFunctionMixin):
         # TODO: after deprecation in datetimelikearraymixin is enforced,
         #  we can remove this and ust validate_fill_value directly
         return self._validate_fill_value(fill_value)
+
+    # ------------------------------------------------------------------------
+    # __array_function__ compat
+    # ------------------------------------------------------------------------
+
+    def min(self, skipna: bool = True, **kwargs):
+        raise AbstractMethodError(self)
+
+    def amin(self, skipna: bool = True, **kwargs):
+        return self.min(skipna=skipna, **kwargs)
+
+    def max(self, skipna: bool = True, **kwargs):
+        raise AbstractMethodError(self)
+
+    def amax(self, skipna: bool = True, **kwargs):
+        return self.max(skipna=skipna, **kwargs)

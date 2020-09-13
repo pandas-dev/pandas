@@ -1550,8 +1550,6 @@ class DatetimeLikeArrayMixin(
             return NaT
         return self._box_func(result)
 
-    amin = min
-
     def max(self, axis=None, skipna=True, *args, **kwargs):
         """
         Return the maximum value of the Array or maximum along
@@ -1583,8 +1581,6 @@ class DatetimeLikeArrayMixin(
         result = nanops.nanmax(values, skipna=skipna)
         # Don't have to worry about NA `result`, since no NA went in.
         return self._box_func(result)
-
-    amax = max
 
     def mean(self, skipna=True):
         """
