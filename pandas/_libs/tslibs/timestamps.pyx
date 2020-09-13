@@ -16,8 +16,8 @@ from numpy cimport int8_t, int64_t, ndarray, uint8_t
 cnp.import_array()
 
 from cpython.datetime cimport (
-    PyDateTime_Check,
     PyDate_Check,
+    PyDateTime_Check,
     PyDateTime_IMPORT,
     PyDelta_Check,
     PyTZInfo_Check,
