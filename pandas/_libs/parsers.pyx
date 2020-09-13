@@ -67,7 +67,7 @@ from pandas._libs.khash cimport (
     khiter_t,
 )
 
-from pandas.compat import _get_lzma_file, _import_lzma
+from pandas.compat import get_lzma_file, import_lzma
 from pandas.errors import DtypeWarning, EmptyDataError, ParserError, ParserWarning
 
 from pandas.core.dtypes.common import (
@@ -82,7 +82,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.concat import union_categoricals
 
-lzma = _import_lzma()
+lzma = import_lzma()
 
 cdef:
     float64_t INF = <float64_t>np.inf
@@ -638,9 +638,9 @@ cdef class TextReader:
                                      f'zip file {zip_names}')
             elif self.compression == 'xz':
                 if isinstance(source, str):
-                    source = _get_lzma_file(lzma)(source, 'rb')
+                    source = get_lzma_file(lzma)(source, 'rb')
                 else:
-                    source = _get_lzma_file(lzma)(filename=source)
+                    source = get_lzma_file(lzma)(filename=source)
             else:
                 raise ValueError(f'Unrecognized compression type: '
                                  f'{self.compression}')

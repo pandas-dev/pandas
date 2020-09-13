@@ -25,6 +25,7 @@ from pandas._config import get_option
 from pandas._libs import lib, properties, reshape, tslibs
 from pandas._libs.lib import no_default
 from pandas._typing import (
+    AggFuncType,
     ArrayLike,
     Axis,
     DtypeObj,
@@ -89,6 +90,7 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexing import check_bool_indexer
 from pandas.core.internals import SingleBlockManager
+from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import ensure_key_mapped
 from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
@@ -164,9 +166,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     index : array-like or Index (1d)
         Values must be hashable and have the same length as `data`.
         Non-unique index values are allowed. Will default to
-        RangeIndex (0, 1, 2, ..., n) if not provided. If both a dict and index
-        sequence are used, the index will override the keys found in the
-        dict.
+        RangeIndex (0, 1, 2, ..., n) if not provided. If data is dict-like
+        and index is None, then the values in the index are used to
+        reindex the Series after it is created using the keys in the data.
     dtype : str, numpy.dtype, or ExtensionDtype, optional
         Data type for the output Series. If not specified, this will be
         inferred from `data`.
@@ -887,21 +889,19 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         elif key_is_scalar:
             return self._get_value(key)
 
-        if (
-            isinstance(key, tuple)
-            and is_hashable(key)
-            and isinstance(self.index, MultiIndex)
-        ):
+        if is_hashable(key):
             # Otherwise index.get_value will raise InvalidIndexError
             try:
+                # For labels that don't resolve as scalars like tuples and frozensets
                 result = self._get_value(key)
 
                 return result
 
             except KeyError:
-                # We still have the corner case where this tuple is a key
-                #  in the first level of our MultiIndex
-                return self._get_values_tuple(key)
+                if isinstance(key, tuple) and isinstance(self.index, MultiIndex):
+                    # We still have the corner case where a tuple is a key
+                    # in the first level of our MultiIndex
+                    return self._get_values_tuple(key)
 
         if is_iterator(key):
             key = list(key)
@@ -961,7 +961,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return result
 
         if not isinstance(self.index, MultiIndex):
-            raise ValueError("Can only tuple-index with a MultiIndex")
+            raise ValueError("key of type tuple not found and not a MultiIndex")
 
         # If key is contained, would have returned by now
         indexer, new_index = self.index.get_loc_level(key)
@@ -1015,9 +1015,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 # GH#12862 adding an new key to the Series
                 self.loc[key] = value
 
-        except TypeError as e:
+        except TypeError as err:
             if isinstance(key, tuple) and not isinstance(self.index, MultiIndex):
-                raise ValueError("Can only tuple-index with a MultiIndex") from e
+                raise ValueError(
+                    "key of type tuple not found and not a MultiIndex"
+                ) from err
 
             if com.is_bool_indexer(key):
                 key = check_bool_indexer(self.index, key)
@@ -3829,10 +3831,11 @@ Keep all original rows and also all original values
 
         Notes
         -----
-        This routine will explode list-likes including lists, tuples,
+        This routine will explode list-likes including lists, tuples, sets,
         Series, and np.ndarray. The result dtype of the subset rows will
-        be object. Scalars will be returned unchanged. Empty list-likes will
-        result in a np.nan for that row.
+        be object. Scalars will be returned unchanged, and empty list-likes will
+        result in a np.nan for that row. In addition, the ordering of elements in
+        the output will be non-deterministic when exploding sets.
 
         Examples
         --------
@@ -4080,14 +4083,16 @@ Keep all original rows and also all original values
     agg = aggregate
 
     @doc(
-        NDFrame.transform,
+        _shared_docs["transform"],
         klass=_shared_doc_kwargs["klass"],
         axis=_shared_doc_kwargs["axis"],
     )
-    def transform(self, func, axis=0, *args, **kwargs):
-        # Validate the axis parameter
-        self._get_axis_number(axis)
-        return super().transform(func, *args, **kwargs)
+    def transform(
+        self, func: AggFuncType, axis: Axis = 0, *args, **kwargs
+    ) -> FrameOrSeriesUnion:
+        from pandas.core.aggregation import transform
+
+        return transform(self, func, axis, *args, **kwargs)
 
     def apply(self, func, convert_dtype=True, args=(), **kwds):
         """

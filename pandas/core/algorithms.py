@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import operator
 from textwrap import dedent
-from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union, cast
 from warnings import catch_warnings, simplefilter, warn
 
 import numpy as np
@@ -60,7 +60,7 @@ from pandas.core.construction import array, extract_array
 from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Series
+    from pandas import Categorical, DataFrame, Series  # noqa:F401
 
 _shared_docs: Dict[str, str] = {}
 
@@ -262,7 +262,7 @@ def _get_values_for_rank(values):
     return values
 
 
-def _get_data_algo(values):
+def get_data_algo(values):
     values = _get_values_for_rank(values)
 
     ndtype = _check_object_for_strings(values)
@@ -429,8 +429,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     if is_categorical_dtype(comps):
         # TODO(extension)
         # handle categoricals
-        # error: "ExtensionArray" has no attribute "isin"  [attr-defined]
-        return comps.isin(values)  # type: ignore[attr-defined]
+        return cast("Categorical", comps).isin(values)
 
     comps, dtype = _ensure_data(comps)
     values, _ = _ensure_data(values, dtype=dtype)
@@ -463,7 +462,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     return f(comps, values)
 
 
-def _factorize_array(
+def factorize_array(
     values, na_sentinel: int = -1, size_hint=None, na_value=None, mask=None
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
@@ -492,7 +491,7 @@ def _factorize_array(
     codes : ndarray
     uniques : ndarray
     """
-    hash_klass, values = _get_data_algo(values)
+    hash_klass, values = get_data_algo(values)
 
     table = hash_klass(size_hint or len(values))
     uniques, codes = table.factorize(
@@ -672,7 +671,7 @@ def factorize(
         else:
             na_value = None
 
-        codes, uniques = _factorize_array(
+        codes, uniques = factorize_array(
             values, na_sentinel=na_sentinel, size_hint=size_hint, na_value=na_value
         )
 
@@ -768,7 +767,7 @@ def value_counts(
             counts = result._values
 
         else:
-            keys, counts = _value_counts_arraylike(values, dropna)
+            keys, counts = value_counts_arraylike(values, dropna)
 
             result = Series(counts, index=keys, name=name)
 
@@ -781,8 +780,8 @@ def value_counts(
     return result
 
 
-# Called once from SparseArray
-def _value_counts_arraylike(values, dropna: bool):
+# Called once from SparseArray, otherwise could be private
+def value_counts_arraylike(values, dropna: bool):
     """
     Parameters
     ----------
@@ -2087,7 +2086,7 @@ def safe_sort(
 
     if sorter is None:
         # mixed types
-        hash_klass, values = _get_data_algo(values)
+        hash_klass, values = get_data_algo(values)
         t = hash_klass(len(values))
         t.map_locations(values)
         sorter = ensure_platform_int(t.lookup(ordered))

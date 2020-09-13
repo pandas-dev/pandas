@@ -1,14 +1,11 @@
 from collections import defaultdict
 import itertools
-import operator
-import re
 from typing import (
     Any,
     DefaultDict,
     Dict,
     List,
     Optional,
-    Pattern,
     Sequence,
     Tuple,
     TypeVar,
@@ -19,7 +16,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import internals as libinternals, lib
-from pandas._typing import ArrayLike, DtypeObj, Label, Scalar
+from pandas._typing import ArrayLike, DtypeObj, Label
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -29,12 +26,9 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
-    is_datetimelike_v_numeric,
     is_dtype_equal,
     is_extension_array_dtype,
     is_list_like,
-    is_numeric_v_string_like,
-    is_scalar,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import ExtensionDtype
@@ -44,7 +38,6 @@ from pandas.core.dtypes.missing import array_equals, isna
 import pandas.core.algorithms as algos
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.base import PandasObject
-import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.api import Index, ensure_index
@@ -54,10 +47,10 @@ from pandas.core.internals.blocks import (
     DatetimeTZBlock,
     ExtensionBlock,
     ObjectValuesExtensionBlock,
-    _extend_blocks,
-    _safe_reshape,
+    extend_blocks,
     get_block_type,
     make_block,
+    safe_reshape,
 )
 from pandas.core.internals.ops import blockwise_all, operate_blockwise
 
@@ -406,7 +399,7 @@ class BlockManager(PandasObject):
                 if not ignore_failures:
                     raise
                 continue
-            result_blocks = _extend_blocks(applied, result_blocks)
+            result_blocks = extend_blocks(applied, result_blocks)
 
         if ignore_failures:
             return self._combine(result_blocks)
@@ -628,31 +621,10 @@ class BlockManager(PandasObject):
         """ do a list replace """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
-        # figure out our mask apriori to avoid repeated replacements
-        values = self.as_array()
-
-        def comp(s: Scalar, mask: np.ndarray, regex: bool = False):
-            """
-            Generate a bool array by perform an equality check, or perform
-            an element-wise regular expression matching
-            """
-            if isna(s):
-                return ~mask
-
-            s = com.maybe_box_datetimelike(s)
-            return _compare_or_regex_search(values, s, regex, mask)
-
-        # Calculate the mask once, prior to the call of comp
-        # in order to avoid repeating the same computations
-        mask = ~isna(values)
-
-        masks = [comp(s, mask, regex) for s in src_list]
-
         bm = self.apply(
             "_replace_list",
             src_list=src_list,
             dest_list=dest_list,
-            masks=masks,
             inplace=inplace,
             regex=regex,
         )
@@ -719,7 +691,6 @@ class BlockManager(PandasObject):
         copy : bool, default False
             Whether to copy the blocks
         """
-        self._consolidate_inplace()
         return self._combine([b for b in self.blocks if b.is_numeric], copy)
 
     def _combine(self: T, blocks: List[Block], copy: bool = True) -> T:
@@ -1044,7 +1015,7 @@ class BlockManager(PandasObject):
 
         else:
             if value.ndim == self.ndim - 1:
-                value = _safe_reshape(value, (1,) + value.shape)
+                value = safe_reshape(value, (1,) + value.shape)
 
                 def value_getitem(placement):
                     return value
@@ -1167,7 +1138,7 @@ class BlockManager(PandasObject):
 
         if value.ndim == self.ndim - 1 and not is_extension_array_dtype(value.dtype):
             # TODO(EA2D): special case not needed with 2D EAs
-            value = _safe_reshape(value, (1,) + value.shape)
+            value = safe_reshape(value, (1,) + value.shape)
 
         block = make_block(values=value, ndim=self.ndim, placement=slice(loc, loc + 1))
 
@@ -1868,7 +1839,7 @@ def _consolidate(blocks):
         merged_blocks = _merge_blocks(
             list(group_blocks), dtype=dtype, can_consolidate=_can_consolidate
         )
-        new_blocks = _extend_blocks(merged_blocks, new_blocks)
+        new_blocks = extend_blocks(merged_blocks, new_blocks)
     return new_blocks
 
 
@@ -1898,80 +1869,6 @@ def _merge_blocks(
 
     # can't consolidate --> no merge
     return blocks
-
-
-def _compare_or_regex_search(
-    a: ArrayLike,
-    b: Union[Scalar, Pattern],
-    regex: bool = False,
-    mask: Optional[ArrayLike] = None,
-) -> Union[ArrayLike, bool]:
-    """
-    Compare two array_like inputs of the same shape or two scalar values
-
-    Calls operator.eq or re.search, depending on regex argument. If regex is
-    True, perform an element-wise regex matching.
-
-    Parameters
-    ----------
-    a : array_like
-    b : scalar or regex pattern
-    regex : bool, default False
-    mask : array_like or None (default)
-
-    Returns
-    -------
-    mask : array_like of bool
-    """
-
-    def _check_comparison_types(
-        result: Union[ArrayLike, bool], a: ArrayLike, b: Union[Scalar, Pattern]
-    ):
-        """
-        Raises an error if the two arrays (a,b) cannot be compared.
-        Otherwise, returns the comparison result as expected.
-        """
-        if is_scalar(result) and isinstance(a, np.ndarray):
-            type_names = [type(a).__name__, type(b).__name__]
-
-            if isinstance(a, np.ndarray):
-                type_names[0] = f"ndarray(dtype={a.dtype})"
-
-            raise TypeError(
-                f"Cannot compare types {repr(type_names[0])} and {repr(type_names[1])}"
-            )
-
-    if not regex:
-        op = lambda x: operator.eq(x, b)
-    else:
-        op = np.vectorize(
-            lambda x: bool(re.search(b, x))
-            if isinstance(x, str) and isinstance(b, (str, Pattern))
-            else False
-        )
-
-    # GH#32621 use mask to avoid comparing to NAs
-    if mask is None and isinstance(a, np.ndarray) and not isinstance(b, np.ndarray):
-        mask = np.reshape(~(isna(a)), a.shape)
-    if isinstance(a, np.ndarray):
-        a = a[mask]
-
-    if is_datetimelike_v_numeric(a, b) or is_numeric_v_string_like(a, b):
-        # GH#29553 avoid deprecation warnings from numpy
-        _check_comparison_types(False, a, b)
-        return False
-
-    result = op(a)
-
-    if isinstance(result, np.ndarray) and mask is not None:
-        # The shape of the mask can differ to that of the result
-        # since we may compare only a subset of a's or b's elements
-        tmp = np.zeros(mask.shape, dtype=np.bool_)
-        tmp[mask] = result
-        result = tmp
-
-    _check_comparison_types(result, a, b)
-    return result
 
 
 def _fast_count_smallints(arr: np.ndarray) -> np.ndarray:

@@ -54,8 +54,8 @@ from pandas.core.util.numba_ import NUMBA_FUNC_CACHE, maybe_use_numba
 from pandas.core.window.common import (
     WindowGroupByMixin,
     _doc_template,
-    _flex_binary_moment,
     _shared_docs,
+    flex_binary_moment,
     zsqrt,
 )
 from pandas.core.window.indexers import (
@@ -234,7 +234,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                 f"get_window_bounds"
             )
 
-    def _create_blocks(self, obj: FrameOrSeriesUnion):
+    def _create_data(self, obj: FrameOrSeries) -> FrameOrSeries:
         """
         Split data into blocks & return conformed data.
         """
@@ -242,9 +242,8 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         if self.on is not None and not isinstance(self.on, Index):
             if obj.ndim == 2:
                 obj = obj.reindex(columns=obj.columns.difference([self.on]), copy=False)
-        blocks = obj._to_dict_of_blocks(copy=False).values()
 
-        return blocks, obj
+        return obj
 
     def _gotitem(self, key, ndim, subset=None):
         """
@@ -333,7 +332,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
     def __iter__(self):
         window = self._get_window(win_type=None)
-        _, obj = self._create_blocks(self._selected_obj)
+        obj = self._create_data(self._selected_obj)
         index = self._get_window_indexer(window=window)
 
         start, end = index.get_window_bounds(
@@ -469,7 +468,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         """
         Series version of _apply_blockwise
         """
-        _, obj = self._create_blocks(self._selected_obj)
+        obj = self._create_data(self._selected_obj)
 
         try:
             values = self._prep_values(obj.values)
@@ -489,7 +488,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         if self._selected_obj.ndim == 1:
             return self._apply_series(homogeneous_func)
 
-        _, obj = self._create_blocks(self._selected_obj)
+        obj = self._create_data(self._selected_obj)
         mgr = obj._mgr
 
         def hfunc(bvalues: ArrayLike) -> ArrayLike:
@@ -1215,13 +1214,13 @@ class Window(_Window):
         return zsqrt(self.var(ddof=ddof, name="std", **kwargs))
 
 
-class _Rolling(_Window):
+class RollingMixin(_Window):
     @property
     def _constructor(self):
         return Rolling
 
 
-class _Rolling_and_Expanding(_Rolling):
+class RollingAndExpandingMixin(RollingMixin):
 
     _shared_docs["count"] = dedent(
         r"""
@@ -1268,7 +1267,7 @@ class _Rolling_and_Expanding(_Rolling):
         # implementations shouldn't end up here
         assert not isinstance(self.window, BaseIndexer)
 
-        _, obj = self._create_blocks(self._selected_obj)
+        obj = self._create_data(self._selected_obj)
 
         def hfunc(values: np.ndarray) -> np.ndarray:
             result = notna(values)
@@ -1774,7 +1773,7 @@ class _Rolling_and_Expanding(_Rolling):
             bias_adj = count / (count - ddof)
             return (mean(X * Y) - mean(X) * mean(Y)) * bias_adj
 
-        return _flex_binary_moment(
+        return flex_binary_moment(
             self._selected_obj, other._selected_obj, _get_cov, pairwise=bool(pairwise)
         )
 
@@ -1913,12 +1912,12 @@ class _Rolling_and_Expanding(_Rolling):
 
             return a.cov(b, **kwargs) / (a.std(**kwargs) * b.std(**kwargs))
 
-        return _flex_binary_moment(
+        return flex_binary_moment(
             self._selected_obj, other._selected_obj, _get_corr, pairwise=bool(pairwise)
         )
 
 
-class Rolling(_Rolling_and_Expanding):
+class Rolling(RollingAndExpandingMixin):
     @cache_readonly
     def is_datetimelike(self) -> bool:
         return isinstance(
@@ -2211,17 +2210,17 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         # Compose MultiIndex result from grouping levels then rolling level
         # Aggregate the MultiIndex data as tuples then the level names
         grouped_object_index = self.obj.index
-        grouped_index_name = [grouped_object_index.name]
+        grouped_index_name = [*grouped_object_index.names]
         groupby_keys = [grouping.name for grouping in self._groupby.grouper._groupings]
         result_index_names = groupby_keys + grouped_index_name
 
         result_index_data = []
         for key, values in self._groupby.grouper.indices.items():
             for value in values:
-                if not is_list_like(key):
-                    data = [key, grouped_object_index[value]]
-                else:
-                    data = [*key, grouped_object_index[value]]
+                data = [
+                    *com.maybe_make_list(key),
+                    *com.maybe_make_list(grouped_object_index[value]),
+                ]
                 result_index_data.append(tuple(data))
 
         result_index = MultiIndex.from_tuples(
@@ -2234,17 +2233,19 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
     def _constructor(self):
         return Rolling
 
-    def _create_blocks(self, obj: FrameOrSeriesUnion):
+    def _create_data(self, obj: FrameOrSeries) -> FrameOrSeries:
         """
         Split data into blocks & return conformed data.
         """
         # Ensure the object we're rolling over is monotonically sorted relative
         # to the groups
-        groupby_order = np.concatenate(
-            list(self._groupby.grouper.indices.values())
-        ).astype(np.int64)
-        obj = obj.take(groupby_order)
-        return super()._create_blocks(obj)
+        # GH 36197
+        if not obj.empty:
+            groupby_order = np.concatenate(
+                list(self._groupby.grouper.indices.values())
+            ).astype(np.int64)
+            obj = obj.take(groupby_order)
+        return super()._create_data(obj)
 
     def _get_cython_func_type(self, func: str) -> Callable:
         """

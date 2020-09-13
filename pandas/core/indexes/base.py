@@ -88,7 +88,7 @@ from pandas.core.indexes.frozen import FrozenList
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
 from pandas.core.ops.invalid import make_invalid_op
-from pandas.core.sorting import ensure_key_mapped
+from pandas.core.sorting import ensure_key_mapped, nargsort
 from pandas.core.strings import StringMethods
 
 from pandas.io.formats.printing import (
@@ -195,7 +195,7 @@ _IndexT = TypeVar("_IndexT", bound="Index")
 
 class Index(IndexOpsMixin, PandasObject):
     """
-    Immutable ndarray implementing an ordered, sliceable set. The basic object
+    Immutable sequence used for indexing and alignment. The basic object
     storing axis labels for all pandas objects.
 
     Parameters
@@ -3586,7 +3586,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _join_multi(self, other, how, return_indexers=True):
         from pandas.core.indexes.multi import MultiIndex
-        from pandas.core.reshape.merge import _restore_dropped_levels_multijoin
+        from pandas.core.reshape.merge import restore_dropped_levels_multijoin
 
         # figure out join names
         self_names = set(com.not_none(*self.names))
@@ -3622,7 +3622,7 @@ class Index(IndexOpsMixin, PandasObject):
             # common levels, ldrop_names, rdrop_names
             dropped_names = ldrop_names + rdrop_names
 
-            levels, codes, names = _restore_dropped_levels_multijoin(
+            levels, codes, names = restore_dropped_levels_multijoin(
                 self, other, dropped_names, join_idx, lidx, ridx
             )
 
@@ -3660,7 +3660,7 @@ class Index(IndexOpsMixin, PandasObject):
         return result
 
     def _join_non_unique(self, other, how="left", return_indexers=False):
-        from pandas.core.reshape.merge import _get_join_indexers
+        from pandas.core.reshape.merge import get_join_indexers
 
         # We only get here if dtypes match
         assert self.dtype == other.dtype
@@ -3668,7 +3668,7 @@ class Index(IndexOpsMixin, PandasObject):
         lvalues = self._get_engine_target()
         rvalues = other._get_engine_target()
 
-        left_idx, right_idx = _get_join_indexers(
+        left_idx, right_idx = get_join_indexers(
             [lvalues], [rvalues], how=how, sort=True
         )
 
@@ -3876,8 +3876,11 @@ class Index(IndexOpsMixin, PandasObject):
             return join_index
 
     def _wrap_joined_index(self, joined, other):
-        name = get_op_result_name(self, other)
-        return Index(joined, name=name)
+        if isinstance(self, ABCMultiIndex):
+            name = self.names if self.names == other.names else None
+        else:
+            name = get_op_result_name(self, other)
+        return self._constructor(joined, name=name)
 
     # --------------------------------------------------------------------
     # Uncategorized Methods
@@ -4047,9 +4050,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self
 
-    def _convert_for_op(self, value):
+    def _validate_fill_value(self, value):
         """
-        Convert value to be insertable to ndarray.
+        Check if the value can be inserted into our array, and convert
+        it to an appropriate native type if necessary.
         """
         return value
 
@@ -4228,7 +4232,8 @@ class Index(IndexOpsMixin, PandasObject):
         """
         values = self.values.copy()
         try:
-            np.putmask(values, mask, self._convert_for_op(value))
+            converted = self._validate_fill_value(value)
+            np.putmask(values, mask, converted)
             if is_period_dtype(self.dtype):
                 # .values cast to object, so we need to cast back
                 values = type(self)(values)._data
@@ -4443,7 +4448,11 @@ class Index(IndexOpsMixin, PandasObject):
         return result
 
     def sort_values(
-        self, return_indexer=False, ascending=True, key: Optional[Callable] = None
+        self,
+        return_indexer: bool = False,
+        ascending: bool = True,
+        na_position: str_t = "last",
+        key: Optional[Callable] = None,
     ):
         """
         Return a sorted copy of the index.
@@ -4457,6 +4466,12 @@ class Index(IndexOpsMixin, PandasObject):
             Should the indices that would sort the index be returned.
         ascending : bool, default True
             Should the index values be sorted in an ascending order.
+        na_position : {'first' or 'last'}, default 'last'
+            Argument 'first' puts NaNs at the beginning, 'last' puts NaNs at
+            the end.
+
+            .. versionadded:: 1.2.0
+
         key : callable, optional
             If not None, apply the key function to the index values
             before sorting. This is similar to the `key` argument in the
@@ -4497,9 +4512,18 @@ class Index(IndexOpsMixin, PandasObject):
         """
         idx = ensure_key_mapped(self, key)
 
-        _as = idx.argsort()
-        if not ascending:
-            _as = _as[::-1]
+        # GH 35584. Sort missing values according to na_position kwarg
+        # ignore na_position for MutiIndex
+        if not isinstance(
+            self, (ABCMultiIndex, ABCDatetimeIndex, ABCTimedeltaIndex, ABCPeriodIndex)
+        ):
+            _as = nargsort(
+                items=idx, ascending=ascending, na_position=na_position, key=key
+            )
+        else:
+            _as = idx.argsort()
+            if not ascending:
+                _as = _as[::-1]
 
         sorted_index = self.take(_as)
 

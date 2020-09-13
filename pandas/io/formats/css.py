@@ -3,6 +3,7 @@ Utilities for interpreting CSS from Stylers for formatting non-HTML outputs.
 """
 
 import re
+from typing import Optional
 import warnings
 
 
@@ -93,6 +94,7 @@ class CSSResolver:
                 props[prop] = val
 
         # 2. resolve relative font size
+        font_size: Optional[float]
         if props.get("font-size"):
             if "font-size" in inherited:
                 em_pt = inherited["font-size"]
@@ -173,10 +175,11 @@ class CSSResolver:
             warnings.warn(f"Unhandled size: {repr(in_val)}", CSSWarning)
             return self.size_to_pt("1!!default", conversions=conversions)
 
-        try:
-            val, unit = re.match(r"^(\S*?)([a-zA-Z%!].*)", in_val).groups()
-        except AttributeError:
+        match = re.match(r"^(\S*?)([a-zA-Z%!].*)", in_val)
+        if match is None:
             return _error()
+
+        val, unit = match.groups()
         if val == "":
             # hack for 'large' etc.
             val = 1

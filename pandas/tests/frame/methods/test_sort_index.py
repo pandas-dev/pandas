@@ -739,3 +739,18 @@ class TestDataFrameSortIndexKey:
         df = pd.DataFrame({"A": [1, 2, 3]})
         with pytest.raises(ValueError, match="change the shape"):
             df.sort_index(key=lambda x: x[:1])
+
+    def test_sort_index_multiindex_sparse_column(self):
+        # GH 29735, testing that sort_index on a multiindexed frame with sparse
+        # columns fills with 0.
+        expected = pd.DataFrame(
+            {
+                i: pd.array([0.0, 0.0, 0.0, 0.0], dtype=pd.SparseDtype("float64", 0.0))
+                for i in range(0, 4)
+            },
+            index=pd.MultiIndex.from_product([[1, 2], [1, 2]]),
+        )
+
+        result = expected.sort_index(level=0)
+
+        tm.assert_frame_equal(result, expected)

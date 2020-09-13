@@ -56,7 +56,7 @@ class TestiLoc2:
         assert ser.iloc._is_scalar_access((1,))
 
         df = ser.to_frame()
-        assert df.iloc._is_scalar_access((1, 0,))
+        assert df.iloc._is_scalar_access((1, 0))
 
     def test_iloc_exceeds_bounds(self):
 
