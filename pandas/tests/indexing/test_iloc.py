@@ -369,6 +369,20 @@ class TestiLoc2:
         df.iloc[[1, 0], [0, 1]] = df.iloc[[1, 0], [0, 1]].reset_index(drop=True)
         tm.assert_frame_equal(df, expected)
 
+    def test_iloc_setitem_frame_duplicate_columns_multiple_blocks(self):
+        # Same as the "assign back to self" check in test_iloc_setitem_dups
+        #  but on a DataFrame with multiple blocks
+        df = pd.DataFrame([[0, 1], [2, 3]], columns=["B", "B"])
+
+        df.iloc[:, 0] = df.iloc[:, 0].astype("f8")
+        assert len(df._mgr.blocks) == 2
+        expected = df.copy()
+
+        # assign back to self
+        df.iloc[[0, 1], [0, 1]] = df.iloc[[0, 1], [0, 1]]
+
+        tm.assert_frame_equal(df, expected)
+
     # TODO: GH#27620 this test used to compare iloc against ix; check if this
     #  is redundant with another test comparing iloc against loc
     def test_iloc_getitem_frame(self):
