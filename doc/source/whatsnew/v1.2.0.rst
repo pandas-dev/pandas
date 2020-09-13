@@ -128,11 +128,11 @@ to add a short caption macro.
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
-
 - Added :meth:`~DataFrame.set_flags` for setting table-wide flags on a ``Series`` or ``DataFrame`` (:issue:`28394`)
+- :meth:`DataFrame.applymap` now supports ``na_action`` (:issue:`23803`)
 - :class:`Index` with object dtype supports division and multiplication (:issue:`34160`)
 - :meth:`DataFrame.explode` and :meth:`Series.explode` now support exploding of sets (:issue:`35614`)
--
+- `Styler` now allows direct CSS class name addition to individual data cells (:issue:`36159`)
 
 .. _whatsnew_120.api_breaking.python:
 
@@ -223,7 +223,7 @@ Deprecations
 ~~~~~~~~~~~~
 - Deprecated parameter ``inplace`` in :meth:`MultiIndex.set_codes` and :meth:`MultiIndex.set_levels` (:issue:`35626`)
 - Deprecated parameter ``dtype`` in :~meth:`Index.copy` on method all index classes. Use the :meth:`Index.astype` method instead for changing dtype(:issue:`35853`)
--
+- Date parser functions :func:`~pandas.io.date_converters.parse_date_time`, :func:`~pandas.io.date_converters.parse_date_fields`, :func:`~pandas.io.date_converters.parse_all_fields` and :func:`~pandas.io.date_converters.generic_parser` from ``pandas.io.date_converters`` are deprecated and will be removed in a future version; use :func:`to_datetime` instead (:issue:`35741`)
 
 .. ---------------------------------------------------------------------------
 
@@ -233,8 +233,9 @@ Deprecations
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
+- Performance improvements when creating Series with dtype `str` or :class:`StringDtype` from array with many string elements (:issue:`36304`, :issue:`36317`)
 - Performance improvement in :meth:`GroupBy.agg` with the ``numba`` engine (:issue:`35759`)
--
+- Performance improvement in :meth:`GroupBy.transform` with the ``numba`` engine (:issue:`36240`)
 
 .. ---------------------------------------------------------------------------
 
@@ -256,7 +257,9 @@ Datetimelike
 - Bug in :class:`DateOffset` where attributes reconstructed from pickle files differ from original objects when input values exceed normal ranges (e.g months=12) (:issue:`34511`)
 - Bug in :meth:`DatetimeIndex.get_slice_bound` where ``datetime.date`` objects were not accepted or naive :class:`Timestamp` with a tz-aware :class:`DatetimeIndex` (:issue:`35690`)
 - Bug in :meth:`DatetimeIndex.slice_locs` where ``datetime.date`` objects were not accepted (:issue:`34077`)
-- Bug in :meth:`DatetimeIndex.searchsorted`, :meth:`TimedeltaIndex.searchsorted`, and :meth:`Series.searchsorted` with ``datetime64`` or ``timedelta64`` dtype placement of ``NaT`` values being inconsistent with ``NumPy`` (:issue:`36176`)
+- Bug in :meth:`DatetimeIndex.searchsorted`, :meth:`TimedeltaIndex.searchsorted`, :meth:`PeriodIndex.searchsorted`, and :meth:`Series.searchsorted` with ``datetime64``, ``timedelta64`` or ``Period`` dtype placement of ``NaT`` values being inconsistent with ``NumPy`` (:issue:`36176`,:issue:`36254`)
+- Inconsistency in :class:`DatetimeArray`, :class:`TimedeltaArray`, and :class:`PeriodArray`  setitem casting arrays of strings to datetimelike scalars but not scalar strings (:issue:`36261`)
+-
 
 Timedelta
 ^^^^^^^^^
@@ -274,6 +277,7 @@ Timezones
 Numeric
 ^^^^^^^
 - Bug in :func:`to_numeric` where float precision was incorrect (:issue:`31364`)
+- Bug in :meth:`DataFrame.any` with ``axis=1`` and ``bool_only=True`` ignoring the ``bool_only`` keyword (:issue:`32432`)
 -
 
 Conversion
@@ -335,6 +339,7 @@ Groupby/resample/rolling
 
 - Bug in :meth:`DataFrameGroupBy.count` and :meth:`SeriesGroupBy.sum` returning ``NaN`` for missing categories when grouped on multiple ``Categoricals``. Now returning ``0`` (:issue:`35028`)
 - Bug in :meth:`DataFrameGroupBy.apply` that would some times throw an erroneous ``ValueError`` if the grouping axis had duplicate entries (:issue:`16646`)
+- Bug in :meth:`DataFrame.resample(...)` that would throw a ``ValueError`` when resampling from "D" to "24H" over a transition into daylight savings time (DST) (:issue:`35219`)
 - Bug when combining methods :meth:`DataFrame.groupby` with :meth:`DataFrame.resample` and :meth:`DataFrame.interpolate` raising an ``TypeError`` (:issue:`35325`)
 - Bug in :meth:`DataFrameGroupBy.apply` where a non-nuisance grouping column would be dropped from the output columns if another groupby method was called before ``.apply()`` (:issue:`34656`)
 - Bug in :meth:`DataFrameGroupby.apply` would drop a :class:`CategoricalIndex` when grouped on. (:issue:`35792`)
@@ -350,6 +355,7 @@ Reshaping
 - Bug in :meth:`DataFrame.pivot_table` with ``aggfunc='count'`` or ``aggfunc='sum'`` returning ``NaN`` for missing categories when pivoted on a ``Categorical``. Now returning ``0`` (:issue:`31422`)
 - Bug in :func:`union_indexes` where input index names are not preserved in some cases. Affects :func:`concat` and :class:`DataFrame` constructor (:issue:`13475`)
 - Bug in func :meth:`crosstab` when using multiple columns with ``margins=True`` and ``normalize=True`` (:issue:`35144`)
+- Bug in :meth:`DataFrame.agg` with ``func={'name':<FUNC>}`` incorrectly raising ``TypeError`` when ``DataFrame.columns==['Name']`` (:issue:`36212`)
 -
 
 Sparse
@@ -361,7 +367,7 @@ Sparse
 ExtensionArray
 ^^^^^^^^^^^^^^
 
--
+- Fixed Bug where :class:`DataFrame` column set to scalar extension type via a dict instantion was considered an object type rather than the extension type (:issue:`35965`)
 -
 
 
@@ -369,6 +375,7 @@ Other
 ^^^^^
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` incorrectly raising ``AssertionError`` instead of ``ValueError`` when invalid parameter combinations are passed (:issue:`36045`)
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` with numeric values and string ``to_replace`` (:issue:`34789`)
+- Bug in :meth:`Series.transform` would give incorrect results or raise when the argument ``func`` was dictionary (:issue:`35811`)
 -
 
 .. ---------------------------------------------------------------------------
