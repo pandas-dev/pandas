@@ -215,6 +215,7 @@ Performance improvements
 Bug fixes
 ~~~~~~~~~
 
+
 Categorical
 ^^^^^^^^^^^
 
@@ -315,7 +316,8 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupby.tshift` failing to raise ``ValueError`` when a frequency cannot be inferred for the index of a group (:issue:`35937`)
 - Bug in :meth:`DataFrame.groupby` does not always maintain column index name for ``any``, ``all``, ``bfill``, ``ffill``, ``shift`` (:issue:`29764`)
 - Bug in :meth:`DataFrameGroupBy.apply` raising error with ``np.nan`` group(s) when ``dropna=False`` (:issue:`35889`)
--
+- Fixed Series.value_counts so that normalize excludes NA values when dropna=False. (:issue:`25970`)
+- Fixed Dataframe Groupby value_counts with bins (:issue:`32471`)
 
 Reshaping
 ^^^^^^^^^
