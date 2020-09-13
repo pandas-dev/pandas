@@ -3092,9 +3092,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({{'name': ['Raphael', 'Donatello'],
-        ...                    'mask': ['red', 'purple'],
-        ...                    'weapon': ['sai', 'bo staff']}})
+        >>> df = pd.DataFrame(dict(name=['Raphael', 'Donatello'],
+        ...                    mask=['red', 'purple'],
+        ...                    weapon=['sai', 'bo staff']))
         >>> print(df.to_latex(index=False))  # doctest: +NORMALIZE_WHITESPACE
         \begin{{tabular}}{{lll}}
          \toprule
