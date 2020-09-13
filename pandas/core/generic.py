@@ -8983,13 +8983,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             - 'raise' : allow exceptions to be raised.
             - 'ignore' : suppress exceptions. On error return original object.
-
         try_cast : bool, default False
             Try to cast the result back to the input type (if possible).
+        invert : bool, default False
+            Whether or not to invert `cond`. This is done after alignment and
+            filling any missing values with `False`.
 
         Returns
         -------
         Same type as caller
+            Original object with values replaced where `cond` is not True.
 
         See Also
         --------
