@@ -3869,7 +3869,7 @@ class DataFrame(NDFrame):
         Given equal-length arrays of row and column labels, return an
         array of the values corresponding to each (row, col) pair.
 
-        .. deprecated:: 1.1.0
+        .. deprecated:: 1.2.0
             DataFrame.lookup is deprecated,
             use DataFrame.melt and DataFrame.loc instead.
             For an example see "Looking up values by index/column labels"
