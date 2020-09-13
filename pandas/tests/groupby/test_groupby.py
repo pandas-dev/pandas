@@ -1961,13 +1961,6 @@ def test_shift_bfill_ffill_tz(tz_naive_fixture, op, expected):
     tm.assert_frame_equal(result, expected)
 
 
-def test_ffill_missing_arguments():
-    # GH 14955
-    df = pd.DataFrame({"a": [1, 2], "b": [1, 1]})
-    with pytest.raises(ValueError, match="Must specify a fill"):
-        df.groupby("b").fillna()
-
-
 def test_groupby_only_none_group():
     # see GH21624
     # this was crashing with "ValueError: Length of passed values is 1, index implies 0"
@@ -2132,17 +2125,4 @@ def test_groupby_column_index_name_lost(func):
     df = pd.DataFrame([[1]], columns=expected)
     df_grouped = df.groupby([1])
     result = getattr(df_grouped, func)().columns
-    tm.assert_index_equal(result, expected)
-
-
-@pytest.mark.parametrize("func", ["ffill", "bfill"])
-def test_groupby_column_index_name_lost_fill_funcs(func):
-    # GH: 29764 groupby loses index sometimes
-    df = pd.DataFrame(
-        [[1, 1.0, -1.0], [1, np.nan, np.nan], [1, 2.0, -2.0]],
-        columns=pd.Index(["type", "a", "b"], name="idx"),
-    )
-    df_grouped = df.groupby(["type"])[["a", "b"]]
-    result = getattr(df_grouped, func)().columns
-    expected = pd.Index(["a", "b"], name="idx")
     tm.assert_index_equal(result, expected)
