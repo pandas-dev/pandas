@@ -551,7 +551,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     Parameters
     ----------
-    path : str
+    path : str or typing.BinaryIO
         Path to xls or xlsx or ods file.
     engine : str (optional)
         Engine to use for writing. If None, defaults to
@@ -606,6 +606,21 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     >>> with ExcelWriter('path_to_file.xlsx', mode='a') as writer:
     ...     df.to_excel(writer, sheet_name='Sheet3')
+
+    You can store Excel file in RAM:
+
+    >>> import io
+    >>> buffer = io.BytesIO()
+    >>> with pd.ExcelWriter(buffer) as writer:
+    ...     df.to_excel(writer)
+
+    You can pack Excel file into zip archive:
+
+    >>> import zipfile
+    >>> with zipfile.ZipFile('path_to_file.zip', 'w') as zf:
+    ...     with zf.open('filename.xlsx', 'w') as buffer:
+    ...         with pd.ExcelWriter(buffer) as writer:
+    ...             df.to_excel(writer)
     """
 
     # Defining an ExcelWriter implementation (see abstract methods for more...)
