@@ -22,9 +22,9 @@ from pandas.util._decorators import Appender, Substitution, doc
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 import pandas.core.algorithms as algos
-from pandas.core.base import DataError, ShallowMixin
+from pandas.core.base import DataError
 from pandas.core.generic import NDFrame, _shared_docs
-from pandas.core.groupby.base import GroupByMixin
+from pandas.core.groupby.base import GotItemMixin, ShallowMixin
 from pandas.core.groupby.generic import SeriesGroupBy
 from pandas.core.groupby.groupby import (
     BaseGroupBy,
@@ -208,7 +208,6 @@ class Resampler(BaseGroupBy, ShallowMixin):
 
     @Substitution(
         klass="Resampler",
-        versionadded=".. versionadded:: 0.23.0",
         examples="""
     >>> df = pd.DataFrame({'A': [1, 2, 3, 4]},
     ...                   index=pd.date_range('2012-08-02', periods=4))
@@ -283,7 +282,6 @@ class Resampler(BaseGroupBy, ShallowMixin):
         _shared_docs["aggregate"],
         see_also=_agg_see_also_doc,
         examples=_agg_examples_doc,
-        versionadded="",
         klass="DataFrame",
         axis="",
     )
@@ -954,7 +952,7 @@ for method in ["nunique"]:
     setattr(Resampler, method, h)
 
 
-class _GroupByMixin(GroupByMixin):
+class _GroupByMixin(GotItemMixin):
     """
     Provide the groupby facilities.
     """

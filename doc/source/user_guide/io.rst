@@ -2360,8 +2360,6 @@ A few notes on the generated table schema:
       then ``level_<i>`` is used.
 
 
-.. versionadded:: 0.23.0
-
 ``read_json`` also accepts ``orient='table'`` as an argument. This allows for
 the preservation of metadata such as dtypes and index names in a
 round-trippable manner.
