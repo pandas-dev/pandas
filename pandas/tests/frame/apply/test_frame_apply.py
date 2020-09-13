@@ -1147,6 +1147,21 @@ class TestDataFrameAggregate:
         )
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
+    def test_agg_with_name_as_column_name(self):
+        # GH 36212 - Column name is "name"
+        data = {"name": ["foo", "bar"]}
+        df = pd.DataFrame(data)
+
+        # result's name should be None
+        result = df.agg({"name": "count"})
+        expected = pd.Series({"name": 2})
+        tm.assert_series_equal(result, expected)
+
+        # Check if name is still preserved when aggregating series instead
+        result = df["name"].agg({"name": "count"})
+        expected = pd.Series({"name": 2}, name="name")
+        tm.assert_series_equal(result, expected)
+
     def test_agg_multiple_mixed_no_warning(self):
         # GH 20909
         mdf = pd.DataFrame(
@@ -1519,3 +1534,14 @@ def test_apply_empty_list_reduce():
     result = df.apply(lambda x: [], result_type="reduce")
     expected = pd.Series({"a": [], "b": []}, dtype=object)
     tm.assert_series_equal(result, expected)
+
+
+def test_apply_no_suffix_index():
+    # GH36189
+    pdf = pd.DataFrame([[4, 9]] * 3, columns=["A", "B"])
+    result = pdf.apply(["sum", lambda x: x.sum(), lambda x: x.sum()])
+    expected = pd.DataFrame(
+        {"A": [12, 12, 12], "B": [27, 27, 27]}, index=["sum", "<lambda>", "<lambda>"]
+    )
+
+    tm.assert_frame_equal(result, expected)

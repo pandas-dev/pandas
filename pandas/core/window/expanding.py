@@ -5,10 +5,10 @@ from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.window.common import WindowGroupByMixin, _doc_template, _shared_docs
-from pandas.core.window.rolling import _Rolling_and_Expanding
+from pandas.core.window.rolling import RollingAndExpandingMixin
 
 
-class Expanding(_Rolling_and_Expanding):
+class Expanding(RollingAndExpandingMixin):
     """
     Provide expanding transformations.
 
