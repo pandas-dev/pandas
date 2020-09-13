@@ -14,7 +14,6 @@ from pandas._libs.tslibs import (
 import pandas._libs.tslibs.offsets as liboffsets
 from pandas._libs.tslibs.offsets import ApplyTypeError, _get_offset, _offset_map
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
-import pandas.compat as compat
 from pandas.compat.numpy import np_datetime64_compat
 from pandas.errors import PerformanceWarning
 
@@ -635,22 +634,6 @@ class TestCommon(Base):
             result = offset_s + dta
         tm.assert_equal(result, dta)
 
-    def test_pickle_v0_15_2(self, datapath):
-        offsets = {
-            "DateOffset": DateOffset(years=1),
-            "MonthBegin": MonthBegin(1),
-            "Day": Day(1),
-            "YearBegin": YearBegin(1),
-            "Week": Week(1),
-        }
-
-        pickle_path = datapath("tseries", "offsets", "data", "dateoffset_0_15_2.pickle")
-        # This code was executed once on v0.15.2 to generate the pickle:
-        # with open(pickle_path, 'wb') as f: pickle.dump(offsets, f)
-        #
-        result = read_pickle(pickle_path)
-        tm.assert_dict_equal(offsets, result)
-
     def test_pickle_roundtrip(self, offset_types):
         off = self._get_offset(offset_types)
         res = tm.round_trip_pickle(off)
@@ -663,6 +646,15 @@ class TestCommon(Base):
                     continue
                 # Make sure nothings got lost from _params (which __eq__) is based on
                 assert getattr(off, attr) == getattr(res, attr)
+
+    def test_pickle_dateoffset_odd_inputs(self):
+        # GH#34511
+        off = DateOffset(months=12)
+        res = tm.round_trip_pickle(off)
+        assert off == res
+
+        base_dt = datetime(2020, 1, 1)
+        assert base_dt + off == base_dt + res
 
     def test_onOffset_deprecated(self, offset_types):
         # GH#30340 use idiomatic naming
@@ -744,10 +736,7 @@ class TestBusinessDay(Base):
         assert repr(self.offset) == "<BusinessDay>"
         assert repr(self.offset2) == "<2 * BusinessDays>"
 
-        if compat.PY37:
-            expected = "<BusinessDay: offset=datetime.timedelta(days=1)>"
-        else:
-            expected = "<BusinessDay: offset=datetime.timedelta(1)>"
+        expected = "<BusinessDay: offset=datetime.timedelta(days=1)>"
         assert repr(self.offset + timedelta(1)) == expected
 
     def test_with_offset(self):
@@ -2636,10 +2625,7 @@ class TestCustomBusinessDay(Base):
         assert repr(self.offset) == "<CustomBusinessDay>"
         assert repr(self.offset2) == "<2 * CustomBusinessDays>"
 
-        if compat.PY37:
-            expected = "<BusinessDay: offset=datetime.timedelta(days=1)>"
-        else:
-            expected = "<BusinessDay: offset=datetime.timedelta(1)>"
+        expected = "<BusinessDay: offset=datetime.timedelta(days=1)>"
         assert repr(self.offset + timedelta(1)) == expected
 
     def test_with_offset(self):

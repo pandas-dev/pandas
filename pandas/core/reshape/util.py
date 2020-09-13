@@ -44,6 +44,11 @@ def cartesian_product(X):
         raise ValueError(msg)
 
     a = np.roll(cumprodX, 1)
+
+    msg = "Product space too large to allocate arrays!"
+    if np.any(cumprodX < 0):
+        raise ValueError(msg)
+
     a[0] = 1
 
     if cumprodX[-1] != 0:
@@ -52,10 +57,10 @@ def cartesian_product(X):
         # if any factor is empty, the cartesian product is empty
         b = np.zeros_like(cumprodX)
 
-    return [_tile_compat(np.repeat(x, b[i]), np.product(a[i])) for i, x in enumerate(X)]
+    return [tile_compat(np.repeat(x, b[i]), np.product(a[i])) for i, x in enumerate(X)]
 
 
-def _tile_compat(arr, num: int):
+def tile_compat(arr, num: int):
     """
     Index compat for np.tile.
 

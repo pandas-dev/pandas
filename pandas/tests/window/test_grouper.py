@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series, compat
+from pandas import DataFrame, Series
 import pandas._testing as tm
 from pandas.core.groupby.groupby import get_groupby
 
@@ -23,7 +23,6 @@ class TestGrouperGrouping:
         g = get_groupby(self.frame, by="A", mutated=True)
         assert g.mutated
 
-    @pytest.mark.xfail(not compat.IS64, reason="GH-35294")
     def test_getitem(self):
         g = self.frame.groupby("A")
         g_mutated = get_groupby(self.frame, by="A", mutated=True)
@@ -56,7 +55,6 @@ class TestGrouperGrouping:
         result = r.B.count()
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(not compat.IS64, reason="GH-35294")
     def test_rolling(self):
         g = self.frame.groupby("A")
         r = g.rolling(window=4)
@@ -74,7 +72,6 @@ class TestGrouperGrouping:
     @pytest.mark.parametrize(
         "interpolation", ["linear", "lower", "higher", "midpoint", "nearest"]
     )
-    @pytest.mark.xfail(not compat.IS64, reason="GH-35294")
     def test_rolling_quantile(self, interpolation):
         g = self.frame.groupby("A")
         r = g.rolling(window=4)
@@ -105,7 +102,6 @@ class TestGrouperGrouping:
             expected = g.apply(func)
             tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(not compat.IS64, reason="GH-35294")
     def test_rolling_apply(self, raw):
         g = self.frame.groupby("A")
         r = g.rolling(window=4)
@@ -115,7 +111,6 @@ class TestGrouperGrouping:
         expected = g.apply(lambda x: x.rolling(4).apply(lambda y: y.sum(), raw=raw))
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(not compat.IS64, reason="GH-35294")
     def test_rolling_apply_mutability(self):
         # GH 14013
         df = pd.DataFrame({"A": ["foo"] * 3 + ["bar"] * 3, "B": [1] * 6})
@@ -197,7 +192,6 @@ class TestGrouperGrouping:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("expected_value,raw_value", [[1.0, True], [0.0, False]])
-    @pytest.mark.xfail(not compat.IS64, reason="GH-35294")
     def test_groupby_rolling(self, expected_value, raw_value):
         # GH 31754
 
@@ -215,7 +209,10 @@ class TestGrouperGrouping:
         )
         tm.assert_series_equal(result, expected)
 
+<<<<<<< HEAD
     @pytest.mark.xfail(not compat.IS64, reason="GH-35294")
+=======
+>>>>>>> b3dca88d31d0f463932713bab92a0953f4adf683
     def test_groupby_rolling_center_center(self):
         # GH 35552
         series = Series(range(1, 6))
@@ -281,7 +278,10 @@ class TestGrouperGrouping:
         )
         tm.assert_frame_equal(result, expected)
 
+<<<<<<< HEAD
     @pytest.mark.xfail(not compat.IS64, reason="GH-35294")
+=======
+>>>>>>> b3dca88d31d0f463932713bab92a0953f4adf683
     def test_groupby_subselect_rolling(self):
         # GH 35486
         df = DataFrame(
@@ -307,7 +307,10 @@ class TestGrouperGrouping:
         )
         tm.assert_series_equal(result, expected)
 
+<<<<<<< HEAD
     @pytest.mark.xfail(not compat.IS64, reason="GH-35294")
+=======
+>>>>>>> b3dca88d31d0f463932713bab92a0953f4adf683
     def test_groupby_rolling_custom_indexer(self):
         # GH 35557
         class SimpleIndexer(pd.api.indexers.BaseIndexer):
@@ -331,7 +334,10 @@ class TestGrouperGrouping:
         expected = df.groupby(df.index).rolling(window=3, min_periods=1).sum()
         tm.assert_frame_equal(result, expected)
 
+<<<<<<< HEAD
     @pytest.mark.xfail(not compat.IS64, reason="GH-35294")
+=======
+>>>>>>> b3dca88d31d0f463932713bab92a0953f4adf683
     def test_groupby_rolling_subset_with_closed(self):
         # GH 35549
         df = pd.DataFrame(
@@ -356,7 +362,10 @@ class TestGrouperGrouping:
         )
         tm.assert_series_equal(result, expected)
 
+<<<<<<< HEAD
     @pytest.mark.xfail(not compat.IS64, reason="GH-35294")
+=======
+>>>>>>> b3dca88d31d0f463932713bab92a0953f4adf683
     def test_groupby_subset_rolling_subset_with_closed(self):
         # GH 35549
         df = pd.DataFrame(
@@ -383,6 +392,7 @@ class TestGrouperGrouping:
             name="column1",
         )
         tm.assert_series_equal(result, expected)
+<<<<<<< HEAD
 
     @pytest.mark.xfail(not compat.IS64, reason="GH-35294")
     @pytest.mark.parametrize("func", ["max", "min"])
@@ -417,3 +427,5 @@ class TestGrouperGrouping:
         result = expected.groupby(["s1", "s2"]).rolling(window=1).sum()
         expected.index = pd.MultiIndex.from_tuples([], names=["s1", "s2", None])
         tm.assert_frame_equal(result, expected)
+=======
+>>>>>>> b3dca88d31d0f463932713bab92a0953f4adf683

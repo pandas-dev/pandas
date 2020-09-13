@@ -268,3 +268,21 @@ def test_assert_frame_equal_ignore_extension_dtype_mismatch(right_dtype):
     left = pd.DataFrame({"a": [1, 2, 3]}, dtype="Int64")
     right = pd.DataFrame({"a": [1, 2, 3]}, dtype=right_dtype)
     tm.assert_frame_equal(left, right, check_dtype=False)
+<<<<<<< HEAD
+=======
+
+
+def test_allows_duplicate_labels():
+    left = pd.DataFrame()
+    right = pd.DataFrame().set_flags(allows_duplicate_labels=False)
+    tm.assert_frame_equal(left, left)
+    tm.assert_frame_equal(right, right)
+    tm.assert_frame_equal(left, right, check_flags=False)
+    tm.assert_frame_equal(right, left, check_flags=False)
+
+    with pytest.raises(AssertionError, match="<Flags"):
+        tm.assert_frame_equal(left, right)
+
+    with pytest.raises(AssertionError, match="<Flags"):
+        tm.assert_frame_equal(left, right)
+>>>>>>> b3dca88d31d0f463932713bab92a0953f4adf683

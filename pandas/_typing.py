@@ -1,4 +1,6 @@
+from dataclasses import dataclass
 from datetime import datetime, timedelta, tzinfo
+from io import IOBase
 from pathlib import Path
 from typing import (
     IO,
@@ -8,6 +10,7 @@ from typing import (
     Callable,
     Collection,
     Dict,
+    Generic,
     Hashable,
     List,
     Mapping,
@@ -59,10 +62,11 @@ Timezone = Union[str, tzinfo]
 # other
 
 Dtype = Union[
-    "ExtensionDtype", str, np.dtype, Type[Union[str, float, int, complex, bool]]
+    "ExtensionDtype", str, np.dtype, Type[Union[str, float, int, complex, bool, object]]
 ]
 DtypeObj = Union[np.dtype, "ExtensionDtype"]
-FilePathOrBuffer = Union[str, Path, IO[AnyStr]]
+FilePathOrBuffer = Union[str, Path, IO[AnyStr], IOBase]
+FileOrBuffer = Union[str, IO[AnyStr], IOBase]
 
 # FrameOrSeriesUnion  means either a DataFrame or a Series. E.g.
 # `def func(a: FrameOrSeriesUnion) -> FrameOrSeriesUnion: ...` means that if a Series
@@ -106,3 +110,34 @@ AggFuncType = Union[
     List[AggFuncTypeBase],
     Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]],
 ]
+
+# for arbitrary kwargs passed during reading/writing files
+StorageOptions = Optional[Dict[str, Any]]
+
+
+# compression keywords and compression
+CompressionDict = Mapping[str, Optional[Union[str, int, bool]]]
+CompressionOptions = Optional[Union[str, CompressionDict]]
+
+
+# let's bind types
+ModeVar = TypeVar("ModeVar", str, None, Optional[str])
+EncodingVar = TypeVar("EncodingVar", str, None, Optional[str])
+
+
+@dataclass
+class IOargs(Generic[ModeVar, EncodingVar]):
+    """
+    Return value of io/common.py:get_filepath_or_buffer.
+
+    Note (copy&past from io/parsers):
+    filepath_or_buffer can be Union[FilePathOrBuffer, s3fs.S3File, gcsfs.GCSFile]
+    though mypy handling of conditional imports is difficult.
+    See https://github.com/python/mypy/issues/1297
+    """
+
+    filepath_or_buffer: FileOrBuffer
+    encoding: EncodingVar
+    compression: CompressionOptions
+    should_close: bool
+    mode: Union[ModeVar, str]

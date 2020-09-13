@@ -3,7 +3,7 @@ channels:
   - defaults
   - conda-forge
 dependencies:
-  - python=3.6.*
+  - python=3.7.*
 
   # tools
   - cython>=0.29.16
@@ -19,23 +19,28 @@ dependencies:
   - html5lib
   - ipython
   - jinja2
-  - lxml=3.8.0
+  - lxml=4.3.0
   - matplotlib=3.0.*
-  - moto
   - nomkl
   - numexpr
   - numpy
   - openpyxl
   - pandas-gbq=0.12.0
+<<<<<<< HEAD:ci/deps/travis-36-locale.yaml
   - psycopg2=2.6.2
   - pyarrow>=0.13.0 # GH #35813
+=======
+  - pyarrow>=0.17
+  - psycopg2=2.7
+  - pyarrow>=0.15.0 # GH #35813
+>>>>>>> b3dca88d31d0f463932713bab92a0953f4adf683:ci/deps/travis-37-locale.yaml
   - pymysql=0.7.11
   - pytables
   - python-dateutil
   - pytz
   - scipy
-  - sqlalchemy=1.1.4
-  - xarray=0.10
+  - sqlalchemy=1.3.0
+  - xarray=0.12.0
   - xlrd
   - xlsxwriter
   - xlwt

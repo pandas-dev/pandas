@@ -11,12 +11,11 @@ from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import isna
 
 from pandas import compat
-from pandas.core import nanops
+from pandas.core import nanops, ops
 from pandas.core.algorithms import searchsorted
 from pandas.core.array_algos import masked_reductions
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
@@ -281,7 +280,7 @@ class PandasArray(
         return isna(self._ndarray)
 
     def fillna(
-        self, value=None, method: Optional[str] = None, limit: Optional[int] = None,
+        self, value=None, method: Optional[str] = None, limit: Optional[int] = None
     ) -> "PandasArray":
         # TODO(_values_for_fillna): remove this
         value, method = validate_fillna_kwargs(value, method)
@@ -436,11 +435,9 @@ class PandasArray(
 
     @classmethod
     def _create_arithmetic_method(cls, op):
+        @ops.unpack_zerodim_and_defer(op.__name__)
         def arithmetic_method(self, other):
-            if isinstance(other, (ABCIndexClass, ABCSeries)):
-                return NotImplemented
-
-            elif isinstance(other, cls):
+            if isinstance(other, cls):
                 other = other._ndarray
 
             with np.errstate(all="ignore"):

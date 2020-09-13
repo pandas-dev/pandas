@@ -290,7 +290,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
         return other
 
-    def equals(self, other) -> bool:
+    def equals(self, other: object) -> bool:
         """
         Determine if two CategoricalIndex objects contain the same elements.
 
@@ -770,6 +770,4 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         return self._create_from_codes(joined, name=name)
 
 
-CategoricalIndex._add_numeric_methods_add_sub_disabled()
-CategoricalIndex._add_numeric_methods_disabled()
 CategoricalIndex._add_logical_methods_disabled()

@@ -75,7 +75,7 @@ def _new_DatetimeIndex(cls, d):
     + [
         method
         for method in DatetimeArray._datetimelike_methods
-        if method not in ("tz_localize",)
+        if method not in ("tz_localize", "tz_convert")
     ],
     DatetimeArray,
     wrap=True,
@@ -228,6 +228,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     # --------------------------------------------------------------------
     # methods that dispatch to array and wrap result in DatetimeIndex
 
+    @doc(DatetimeArray.tz_convert)
+    def tz_convert(self, tz) -> "DatetimeIndex":
+        arr = self._data.tz_convert(tz)
+        return type(self)._simple_new(arr, name=self.name)
+
     @doc(DatetimeArray.tz_localize)
     def tz_localize(
         self, tz, ambiguous="raise", nonexistent="raise"
@@ -349,9 +354,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     @property
     def _formatter_func(self):
-        from pandas.io.formats.format import _get_format_datetime64
+        from pandas.io.formats.format import get_format_datetime64
 
-        formatter = _get_format_datetime64(is_dates_only=self._is_dates_only)
+        formatter = get_format_datetime64(is_dates_only=self._is_dates_only)
         return lambda x: f"'{formatter(x, tz=self.tz)}'"
 
     # --------------------------------------------------------------------
@@ -627,7 +632,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             raise KeyError(orig_key) from err
 
     def _maybe_cast_for_get_loc(self, key) -> Timestamp:
-        # needed to localize naive datetimes
+        # needed to localize naive datetimes or dates (GH 35690)
         key = Timestamp(key)
         if key.tzinfo is None:
             key = key.tz_localize(self.tz)
@@ -672,8 +677,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             if self._is_strictly_monotonic_decreasing and len(self) > 1:
                 return upper if side == "left" else lower
             return lower if side == "left" else upper
-        else:
-            return label
+        return self._maybe_cast_for_get_loc(label)
 
     def _get_string_slice(self, key: str, use_lhs: bool = True, use_rhs: bool = True):
         freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
@@ -842,7 +846,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return mask.nonzero()[0]
 
 
-DatetimeIndex._add_numeric_methods_disabled()
 DatetimeIndex._add_logical_methods_disabled()
 
 

@@ -10,6 +10,7 @@ from typing import (
     Callable,
     DefaultDict,
     Dict,
+    Iterable,
     List,
     Optional,
     Sequence,
@@ -17,21 +18,19 @@ from typing import (
     Union,
 )
 
-from pandas._typing import AggFuncType, Label
+from pandas._typing import AggFuncType, FrameOrSeries, Label
 
 from pandas.core.dtypes.common import is_dict_like, is_list_like
 
 from pandas.core.base import SpecificationError
 import pandas.core.common as com
 from pandas.core.indexes.api import Index
-from pandas.core.series import FrameOrSeriesUnion, Series
+from pandas.core.series import Series
 
 
 def reconstruct_func(
-    func: Optional[AggFuncType], **kwargs,
-) -> Tuple[
-    bool, Optional[AggFuncType], Optional[List[str]], Optional[List[int]],
-]:
+    func: Optional[AggFuncType], **kwargs
+) -> Tuple[bool, Optional[AggFuncType], Optional[List[str]], Optional[List[int]]]:
     """
     This is the internal function to reconstruct func given if there is relabeling
     or not and also normalize the keyword to get new order of columns.
@@ -278,12 +277,13 @@ def maybe_mangle_lambdas(agg_spec: Any) -> Any:
 
 
 def relabel_result(
-    result: FrameOrSeriesUnion,
+    result: FrameOrSeries,
     func: Dict[str, List[Union[Callable, str]]],
-    columns: Tuple,
-    order: List[int],
+    columns: Iterable[Label],
+    order: Iterable[int],
 ) -> Dict[Label, Series]:
-    """Internal function to reorder result if relabelling is True for
+    """
+    Internal function to reorder result if relabelling is True for
     dataframe.agg, and return the reordered result in dict.
 
     Parameters:

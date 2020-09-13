@@ -9,7 +9,7 @@ import contextlib
 from datetime import datetime, timedelta
 from functools import partial
 import inspect
-from typing import Any, Collection, Iterable, Iterator, List, Union
+from typing import Any, Collection, Iterable, Iterator, List, Union, cast
 import warnings
 
 import numpy as np
@@ -31,7 +31,7 @@ from pandas.core.dtypes.generic import (
     ABCIndexClass,
     ABCSeries,
 )
-from pandas.core.dtypes.inference import _iterable_not_string
+from pandas.core.dtypes.inference import iterable_not_string
 from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
 
 
@@ -61,7 +61,7 @@ def flatten(l):
     flattened : generator
     """
     for el in l:
-        if _iterable_not_string(el):
+        if iterable_not_string(el):
             for s in flatten(el):
                 yield s
         else:
@@ -277,6 +277,11 @@ def maybe_iterable_to_list(obj: Union[Iterable[T], T]) -> Union[Collection[T], T
     """
     if isinstance(obj, abc.Iterable) and not isinstance(obj, abc.Sized):
         return list(obj)
+    # error: Incompatible return value type (got
+    # "Union[pandas.core.common.<subclass of "Iterable" and "Sized">,
+    # pandas.core.common.<subclass of "Iterable" and "Sized">1, T]", expected
+    # "Union[Collection[T], T]")  [return-value]
+    obj = cast(Collection, obj)
     return obj
 
 

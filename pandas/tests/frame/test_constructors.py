@@ -10,7 +10,7 @@ import numpy.ma.mrecords as mrecords
 import pytest
 import pytz
 
-from pandas.compat import PY37, is_platform_little_endian
+from pandas.compat import is_platform_little_endian
 from pandas.compat.numpy import _np_version_under1p19
 
 from pandas.core.dtypes.common import is_integer_dtype
@@ -932,7 +932,7 @@ class TestDataFrameConstructors:
         # from GH3479
 
         assert_fr_equal = functools.partial(
-            tm.assert_frame_equal, check_index_type=True, check_column_type=True,
+            tm.assert_frame_equal, check_index_type=True, check_column_type=True
         )
         arrays = [
             ("float", np.array([1.5, 2.0])),
@@ -1418,7 +1418,6 @@ class TestDataFrameConstructors:
         result = DataFrame(tuples, columns=["y", "z"])
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.skipif(not PY37, reason="Requires Python >= 3.7")
     def test_constructor_list_of_dataclasses(self):
         # GH21910
         from dataclasses import make_dataclass
@@ -1430,7 +1429,6 @@ class TestDataFrameConstructors:
         result = DataFrame(datas)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.skipif(not PY37, reason="Requires Python >= 3.7")
     def test_constructor_list_of_dataclasses_with_varying_types(self):
         # GH21910
         from dataclasses import make_dataclass
@@ -1447,7 +1445,6 @@ class TestDataFrameConstructors:
         result = DataFrame(datas)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.skipif(not PY37, reason="Requires Python >= 3.7")
     def test_constructor_list_of_dataclasses_error_thrown(self):
         # GH21910
         from dataclasses import make_dataclass
@@ -1617,6 +1614,42 @@ class TestDataFrameConstructors:
         assert df2.columns[0] == 0
         tm.assert_index_equal(df2.index, other_index)
         tm.assert_frame_equal(df2, exp2)
+
+    @pytest.mark.parametrize(
+        "name_in1,name_in2,name_in3,name_out",
+        [
+            ("idx", "idx", "idx", "idx"),
+            ("idx", "idx", None, "idx"),
+            ("idx", None, None, "idx"),
+            ("idx1", "idx2", None, None),
+            ("idx1", "idx1", "idx2", None),
+            ("idx1", "idx2", "idx3", None),
+            (None, None, None, None),
+        ],
+    )
+    def test_constructor_index_names(self, name_in1, name_in2, name_in3, name_out):
+        # GH13475
+        indices = [
+            pd.Index(["a", "b", "c"], name=name_in1),
+            pd.Index(["b", "c", "d"], name=name_in2),
+            pd.Index(["c", "d", "e"], name=name_in3),
+        ]
+        series = {
+            c: pd.Series([0, 1, 2], index=i) for i, c in zip(indices, ["x", "y", "z"])
+        }
+        result = pd.DataFrame(series)
+
+        exp_ind = pd.Index(["a", "b", "c", "d", "e"], name=name_out)
+        expected = pd.DataFrame(
+            {
+                "x": [0, 1, 2, np.nan, np.nan],
+                "y": [np.nan, 0, 1, 2, np.nan],
+                "z": [np.nan, np.nan, 0, 1, 2],
+            },
+            index=exp_ind,
+        )
+
+        tm.assert_frame_equal(result, expected)
 
     def test_constructor_manager_resize(self, float_frame):
         index = list(float_frame.index[:5])

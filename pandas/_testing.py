@@ -939,7 +939,7 @@ def assert_categorical_equal(
     if check_category_order:
         assert_index_equal(left.categories, right.categories, obj=f"{obj}.categories")
         assert_numpy_array_equal(
-            left.codes, right.codes, check_dtype=check_dtype, obj=f"{obj}.codes",
+            left.codes, right.codes, check_dtype=check_dtype, obj=f"{obj}.codes"
         )
     else:
         try:
@@ -948,9 +948,7 @@ def assert_categorical_equal(
         except TypeError:
             # e.g. '<' not supported between instances of 'int' and 'str'
             lc, rc = left.categories, right.categories
-        assert_index_equal(
-            lc, rc, obj=f"{obj}.categories",
-        )
+        assert_index_equal(lc, rc, obj=f"{obj}.categories")
         assert_index_equal(
             left.categories.take(left.codes),
             right.categories.take(right.codes),
@@ -1092,7 +1090,7 @@ def assert_numpy_array_equal(
         if err_msg is None:
             if left.shape != right.shape:
                 raise_assert_detail(
-                    obj, f"{obj} shapes are different", left.shape, right.shape,
+                    obj, f"{obj} shapes are different", left.shape, right.shape
                 )
 
             diff = 0
@@ -1227,6 +1225,7 @@ def assert_series_equal(
     check_categorical=True,
     check_category_order=True,
     check_freq=True,
+    check_flags=True,
     rtol=1.0e-5,
     atol=1.0e-8,
     obj="Series",
@@ -1273,6 +1272,11 @@ def assert_series_equal(
         .. versionadded:: 1.0.2
     check_freq : bool, default True
         Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex.
+    check_flags : bool, default True
+        Whether to check the `flags` attribute.
+
+        .. versionadded:: 1.2.0
+
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
 
@@ -1308,6 +1312,9 @@ def assert_series_equal(
         msg1 = f"{len(left)}, {left.index}"
         msg2 = f"{len(right)}, {right.index}"
         raise_assert_detail(obj, "Series length are different", msg1, msg2)
+
+    if check_flags:
+        assert left.flags == right.flags, f"{repr(left.flags)} != {repr(right.flags)}"
 
     # index comparison
     assert_index_equal(
@@ -1431,6 +1438,7 @@ def assert_frame_equal(
     check_categorical=True,
     check_like=False,
     check_freq=True,
+    check_flags=True,
     rtol=1.0e-5,
     atol=1.0e-8,
     obj="DataFrame",
@@ -1492,6 +1500,8 @@ def assert_frame_equal(
         (same as in columns) - same labels must be with the same data.
     check_freq : bool, default True
         Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex.
+    check_flags : bool, default True
+        Whether to check the `flags` attribute.
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
 
@@ -1559,11 +1569,14 @@ def assert_frame_equal(
     # shape comparison
     if left.shape != right.shape:
         raise_assert_detail(
-            obj, f"{obj} shape mismatch", f"{repr(left.shape)}", f"{repr(right.shape)}",
+            obj, f"{obj} shape mismatch", f"{repr(left.shape)}", f"{repr(right.shape)}"
         )
 
     if check_like:
         left, right = left.reindex_like(right), right
+
+    if check_flags:
+        assert left.flags == right.flags, f"{repr(left.flags)} != {repr(right.flags)}"
 
     # index comparison
     assert_index_equal(
@@ -2884,7 +2897,11 @@ def convert_rows_list_to_csv_str(rows_list: List[str]):
     return expected
 
 
+<<<<<<< HEAD
 def external_error_raised(expected_exception: Type[Exception],) -> ContextManager:
+=======
+def external_error_raised(expected_exception: Type[Exception]) -> ContextManager:
+>>>>>>> b3dca88d31d0f463932713bab92a0953f4adf683
     """
     Helper function to mark pytest.raises that have an external error message.
 

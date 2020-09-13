@@ -940,10 +940,6 @@ def test_frame_describe_multikey(tsframe):
     groupedT = tsframe.groupby({"A": 0, "B": 0, "C": 1, "D": 1}, axis=1)
     result = groupedT.describe()
     expected = tsframe.describe().T
-    expected.index = pd.MultiIndex(
-        levels=[[0, 1], expected.index],
-        codes=[[0, 0, 1, 1], range(len(expected.index))],
-    )
     tm.assert_frame_equal(result, expected)
 
 
@@ -989,6 +985,68 @@ def test_frame_describe_unstacked_format():
         index=pd.Index([24990, 25499], name="PRICE"),
         columns=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
     )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.filterwarnings(
+    "ignore:"
+    "indexing past lexsort depth may impact performance:"
+    "pandas.errors.PerformanceWarning"
+)
+@pytest.mark.parametrize("as_index", [True, False])
+def test_describe_with_duplicate_output_column_names(as_index):
+    # GH 35314
+    df = pd.DataFrame(
+        {
+            "a": [99, 99, 99, 88, 88, 88],
+            "b": [1, 2, 3, 4, 5, 6],
+            "c": [10, 20, 30, 40, 50, 60],
+        },
+        columns=["a", "b", "b"],
+    )
+
+    expected = (
+        pd.DataFrame.from_records(
+            [
+                ("a", "count", 3.0, 3.0),
+                ("a", "mean", 88.0, 99.0),
+                ("a", "std", 0.0, 0.0),
+                ("a", "min", 88.0, 99.0),
+                ("a", "25%", 88.0, 99.0),
+                ("a", "50%", 88.0, 99.0),
+                ("a", "75%", 88.0, 99.0),
+                ("a", "max", 88.0, 99.0),
+                ("b", "count", 3.0, 3.0),
+                ("b", "mean", 5.0, 2.0),
+                ("b", "std", 1.0, 1.0),
+                ("b", "min", 4.0, 1.0),
+                ("b", "25%", 4.5, 1.5),
+                ("b", "50%", 5.0, 2.0),
+                ("b", "75%", 5.5, 2.5),
+                ("b", "max", 6.0, 3.0),
+                ("b", "count", 3.0, 3.0),
+                ("b", "mean", 5.0, 2.0),
+                ("b", "std", 1.0, 1.0),
+                ("b", "min", 4.0, 1.0),
+                ("b", "25%", 4.5, 1.5),
+                ("b", "50%", 5.0, 2.0),
+                ("b", "75%", 5.5, 2.5),
+                ("b", "max", 6.0, 3.0),
+            ],
+        )
+        .set_index([0, 1])
+        .T
+    )
+    expected.columns.names = [None, None]
+    expected.index = pd.Index([88, 99], name="a")
+
+    if as_index:
+        expected = expected.drop(columns=["a"], level=0)
+    else:
+        expected = expected.reset_index(drop=True)
+
+    result = df.groupby("a", as_index=as_index).describe()
+
     tm.assert_frame_equal(result, expected)
 
 

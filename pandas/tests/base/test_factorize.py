@@ -34,7 +34,11 @@ def test_series_factorize_na_sentinel_none():
     ser = pd.Series(values)
     codes, uniques = ser.factorize(na_sentinel=None)
 
+<<<<<<< HEAD
     expected_codes = np.array([0, 1, 0, 2], dtype=np.intp)
+=======
+    expected_codes = np.array([0, 1, 0, 2], dtype="int64")
+>>>>>>> b3dca88d31d0f463932713bab92a0953f4adf683
     expected_uniques = pd.Index([1.0, 2.0, np.nan])
 
     tm.assert_numpy_array_equal(codes, expected_codes)

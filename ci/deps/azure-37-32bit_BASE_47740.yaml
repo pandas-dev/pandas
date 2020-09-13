@@ -6,27 +6,21 @@ dependencies:
   - python=3.6.*
 
   # tools
-  - cython>=0.29.16
-  - pytest>=5.0.1
+  ### Cython 0.29.13 and pytest 5.0.1 for 32 bits are not available with conda, installing below with pip instead
   - pytest-xdist>=1.21
   - hypothesis>=3.58.0
   - pytest-azurepipelines
 
   # pandas dependencies
-  - beautifulsoup4=4.6.0
-  - bottleneck=1.2.*
-  - lxml
-  - matplotlib=2.2.2
+  - attrs=19.1.0
+  - gcc_linux-32
+  - gxx_linux-32
   - numpy=1.14.*
-  - openpyxl=2.5.7
   - python-dateutil
-  - python-blosc
   - pytz=2017.2
-  - scipy
-  - sqlalchemy=1.1.4
-  - xlrd=1.1.0
-  - xlsxwriter=0.9.8
-  - xlwt=1.2.0
+
+  # see comment above
   - pip
   - pip:
-    - html5lib==1.0b2
+    - cython>=0.29.16
+    - pytest>=5.0.1,<6.0.0rc0

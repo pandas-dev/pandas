@@ -153,13 +153,37 @@ to build the documentation locally before pushing your changes.
 Using a Docker container
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Instead of manually setting up a development environment, you can use Docker to
-automatically create the environment with just several commands. Pandas provides a `DockerFile`
-in the root directory to build a Docker image with a full pandas development environment.
+Instead of manually setting up a development environment, you can use `Docker
+<https://docs.docker.com/get-docker/>`_ to automatically create the environment with just several
+commands. Pandas provides a `DockerFile` in the root directory to build a Docker image
+with a full pandas development environment.
 
-Even easier, you can use the DockerFile to launch a remote session with Visual Studio Code,
+**Docker Commands**
+
+Pass your GitHub username in the `DockerFile` to use your own fork::
+
+    # Build the image pandas-yourname-env
+    docker build --tag pandas-yourname-env .
+    # Run a container and bind your local forked repo, pandas-yourname, to the container
+    docker run -it --rm -v path-to-pandas-yourname:/home/pandas-yourname pandas-yourname-env
+
+Even easier, you can integrate Docker with the following IDEs:
+
+**Visual Studio Code**
+
+You can use the DockerFile to launch a remote session with Visual Studio Code,
 a popular free IDE, using the `.devcontainer.json` file.
 See https://code.visualstudio.com/docs/remote/containers for details.
+
+**PyCharm (Professional)**
+
+Enable Docker support and use the Services tool window to build and manage images as well as
+run and interact with containers.
+See https://www.jetbrains.com/help/pycharm/docker.html for details.
+
+Note that you might need to rebuild the C extensions if/when you merge with upstream/master using::
+
+    python setup.py build_ext --inplace -j 4
 
 .. _contributing.dev_c:
 
@@ -180,6 +204,7 @@ You will need `Build Tools for Visual Studio 2017
 	You DO NOT need to install Visual Studio 2019.
 	You only need "Build Tools for Visual Studio 2019" found by
 	scrolling down to "All downloads" -> "Tools for Visual Studio 2019".
+	In the installer, select the "C++ build tools" workload.
 
 **Mac OS**
 

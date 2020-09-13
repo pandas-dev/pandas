@@ -1,7 +1,7 @@
 from datetime import timedelta
 import operator
 from sys import getsizeof
-from typing import Any, List, Optional
+from typing import Any, List
 import warnings
 
 import numpy as np
@@ -78,13 +78,11 @@ class RangeIndex(Int64Index):
     _engine_type = libindex.Int64Engine
     _range: range
 
-    # check whether self._data has been called
-    _cached_data: Optional[np.ndarray] = None
     # --------------------------------------------------------------------
     # Constructors
 
     def __new__(
-        cls, start=None, stop=None, step=None, dtype=None, copy=False, name=None,
+        cls, start=None, stop=None, step=None, dtype=None, copy=False, name=None
     ):
 
         cls._validate_dtype(dtype)
@@ -150,20 +148,14 @@ class RangeIndex(Int64Index):
         """ return the class to use for construction """
         return Int64Index
 
-    @property
+    @cache_readonly
     def _data(self):
         """
         An int array that for performance reasons is created only when needed.
 
-        The constructed array is saved in ``_cached_data``. This allows us to
-        check if the array has been created without accessing ``_data`` and
-        triggering the construction.
+        The constructed array is saved in ``_cache``.
         """
-        if self._cached_data is None:
-            self._cached_data = np.arange(
-                self.start, self.stop, self.step, dtype=np.int64
-            )
-        return self._cached_data
+        return np.arange(self.start, self.stop, self.step, dtype=np.int64)
 
     @cache_readonly
     def _int64index(self) -> Int64Index:
@@ -390,6 +382,10 @@ class RangeIndex(Int64Index):
     def tolist(self):
         return list(self._range)
 
+    @doc(Int64Index.__iter__)
+    def __iter__(self):
+        yield from self._range
+
     @doc(Int64Index._shallow_copy)
     def _shallow_copy(self, values=None, name: Label = no_default):
         name = self.name if name is no_default else name
@@ -402,11 +398,19 @@ class RangeIndex(Int64Index):
             return Int64Index._simple_new(values, name=name)
 
     @doc(Int64Index.copy)
-    def copy(self, name=None, deep=False, dtype=None, **kwargs):
-        self._validate_dtype(dtype)
-        if name is None:
-            name = self.name
-        return self.from_range(self._range, name=name)
+    def copy(self, name=None, deep=False, dtype=None, names=None):
+        name = self._validate_names(name=name, names=names, deep=deep)[0]
+        new_index = self._shallow_copy(name=name)
+
+        if dtype:
+            warnings.warn(
+                "parameter dtype is deprecated and will be removed in a future "
+                "version. Use the astype method instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            new_index = new_index.astype(dtype)
+        return new_index
 
     def _minmax(self, meth: str):
         no_steps = len(self) - 1
@@ -449,7 +453,7 @@ class RangeIndex(Int64Index):
         else:
             return np.arange(len(self) - 1, -1, -1)
 
-    def equals(self, other) -> bool:
+    def equals(self, other: object) -> bool:
         """
         Determines if two Index objects contain the same elements.
         """

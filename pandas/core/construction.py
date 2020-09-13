@@ -4,6 +4,7 @@ and Index.__new__.
 
 These should not depend on core.internals.
 """
+from __future__ import annotations
 
 from collections import abc
 from typing import TYPE_CHECKING, Any, Optional, Sequence, Union, cast
@@ -49,16 +50,20 @@ from pandas.core.dtypes.missing import isna
 import pandas.core.common as com
 
 if TYPE_CHECKING:
+<<<<<<< HEAD
     from pandas.core.arrays import ExtensionArray  # noqa: F401
     from pandas.core.indexes.api import Index  # noqa: F401
     from pandas.core.series import Series  # noqa: F401
+=======
+    from pandas import ExtensionArray, Index, Series
+>>>>>>> b3dca88d31d0f463932713bab92a0953f4adf683
 
 
 def array(
     data: Union[Sequence[object], AnyArrayLike],
     dtype: Optional[Dtype] = None,
     copy: bool = True,
-) -> "ExtensionArray":
+) -> ExtensionArray:
     """
     Create an array.
 
@@ -336,7 +341,7 @@ def array(
     return result
 
 
-def extract_array(obj, extract_numpy: bool = False):
+def extract_array(obj: AnyArrayLike, extract_numpy: bool = False) -> ArrayLike:
     """
     Extract the ndarray or ExtensionArray from a Series or Index.
 
@@ -384,12 +389,14 @@ def extract_array(obj, extract_numpy: bool = False):
     if extract_numpy and isinstance(obj, ABCPandasArray):
         obj = obj.to_numpy()
 
-    return obj
+    # error: Incompatible return value type (got "Index", expected "ExtensionArray")
+    # error: Incompatible return value type (got "Series", expected "ExtensionArray")
+    return obj  # type: ignore[return-value]
 
 
 def sanitize_array(
     data,
-    index: Optional["Index"],
+    index: Optional[Index],
     dtype: Optional[DtypeObj] = None,
     copy: bool = False,
     raise_cast_failure: bool = False,
@@ -517,9 +524,7 @@ def sanitize_array(
     return subarr
 
 
-def _try_cast(
-    arr, dtype: Optional[DtypeObj], copy: bool, raise_cast_failure: bool,
-):
+def _try_cast(arr, dtype: Optional[DtypeObj], copy: bool, raise_cast_failure: bool):
     """
     Convert input to numpy ndarray and optionally cast to a given dtype.
 
@@ -599,13 +604,13 @@ def is_empty_data(data: Any) -> bool:
 
 def create_series_with_explicit_dtype(
     data: Any = None,
-    index: Optional[Union[ArrayLike, "Index"]] = None,
+    index: Optional[Union[ArrayLike, Index]] = None,
     dtype: Optional[Dtype] = None,
     name: Optional[str] = None,
     copy: bool = False,
     fastpath: bool = False,
     dtype_if_empty: Dtype = object,
-) -> "Series":
+) -> Series:
     """
     Helper to pass an explicit dtype when instantiating an empty Series.
 

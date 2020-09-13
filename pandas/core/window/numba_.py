@@ -57,7 +57,7 @@ def generate_numba_apply_func(
 
     @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
     def roll_apply(
-        values: np.ndarray, begin: np.ndarray, end: np.ndarray, minimum_periods: int,
+        values: np.ndarray, begin: np.ndarray, end: np.ndarray, minimum_periods: int
     ) -> np.ndarray:
         result = np.empty(len(begin))
         for i in loop_range(len(result)):

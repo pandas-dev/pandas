@@ -20,7 +20,7 @@ import pandas._libs.ops as libops
 import pandas._libs.parsers as parsers
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._libs.tslibs import parsing
-from pandas._typing import FilePathOrBuffer, Union
+from pandas._typing import FilePathOrBuffer, StorageOptions, Union
 from pandas.errors import (
     AbstractMethodError,
     EmptyDataError,
@@ -420,6 +420,7 @@ def _validate_names(names):
 def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     """Generic reader of line files."""
     encoding = kwds.get("encoding", None)
+    storage_options = kwds.get("storage_options", None)
     if encoding is not None:
         encoding = re.sub("_", "-", encoding).lower()
         kwds["encoding"] = encoding
@@ -431,10 +432,10 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     # Union[FilePathOrBuffer, s3fs.S3File, gcsfs.GCSFile]
     # though mypy handling of conditional imports is difficult.
     # See https://github.com/python/mypy/issues/1297
-    fp_or_buf, _, compression, should_close = get_filepath_or_buffer(
-        filepath_or_buffer, encoding, compression
+    ioargs = get_filepath_or_buffer(
+        filepath_or_buffer, encoding, compression, storage_options=storage_options
     )
-    kwds["compression"] = compression
+    kwds["compression"] = ioargs.compression
 
     if kwds.get("date_parser", None) is not None:
         if isinstance(kwds["parse_dates"], bool):
@@ -449,7 +450,7 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     _validate_names(kwds.get("names", None))
 
     # Create the parser.
-    parser = TextFileReader(fp_or_buf, **kwds)
+    parser = TextFileReader(ioargs.filepath_or_buffer, **kwds)
 
     if chunksize or iterator:
         return parser
@@ -459,9 +460,10 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     finally:
         parser.close()
 
-    if should_close:
+    if ioargs.should_close:
+        assert not isinstance(ioargs.filepath_or_buffer, str)
         try:
-            fp_or_buf.close()
+            ioargs.filepath_or_buffer.close()
         except ValueError:
             pass
 
@@ -595,6 +597,7 @@ def read_csv(
     low_memory=_c_parser_defaults["low_memory"],
     memory_map=False,
     float_precision=None,
+    storage_options: StorageOptions = None,
 ):
     # gh-23761
     #
@@ -681,6 +684,7 @@ def read_csv(
         mangle_dupe_cols=mangle_dupe_cols,
         infer_datetime_format=infer_datetime_format,
         skip_blank_lines=skip_blank_lines,
+        storage_options=storage_options,
     )
 
     return _read(filepath_or_buffer, kwds)
@@ -1964,10 +1968,6 @@ class ParserBase:
 
 
 class CParserWrapper(ParserBase):
-    """
-
-    """
-
     def __init__(self, src, **kwds):
         self.kwds = kwds
         kwds = kwds.copy()
@@ -2158,9 +2158,7 @@ class CParserWrapper(ParserBase):
                 if self.usecols is not None:
                     columns = self._filter_usecols(columns)
 
-                col_dict = dict(
-                    filter(lambda item: item[0] in columns, col_dict.items())
-                )
+                col_dict = {k: v for k, v in col_dict.items() if k in columns}
 
                 return index, columns, col_dict
 

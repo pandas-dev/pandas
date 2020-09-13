@@ -1464,6 +1464,7 @@ class TestSeriesConstructors:
         arr = pd.arrays.SparseArray(values, dtype=dtype)
         expected = pd.Series(arr)
         tm.assert_series_equal(result, expected)
+<<<<<<< HEAD
 
     def test_construction_from_ordered_collection(self):
         # https://github.com/pandas-dev/pandas/issues/36044
@@ -1474,3 +1475,5 @@ class TestSeriesConstructors:
         result = Series({"a": 1, "b": 2}.values())
         expected = Series([1, 2])
         tm.assert_series_equal(result, expected)
+=======
+>>>>>>> b3dca88d31d0f463932713bab92a0953f4adf683

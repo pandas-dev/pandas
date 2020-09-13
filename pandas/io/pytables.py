@@ -99,22 +99,20 @@ Term = PyTablesExpr
 
 def _ensure_term(where, scope_level: int):
     """
-    ensure that the where is a Term or a list of Term
-    this makes sure that we are capturing the scope of variables
-    that are passed
-    create the terms here with a frame_level=2 (we are 2 levels down)
+    Ensure that the where is a Term or a list of Term.
+
+    This makes sure that we are capturing the scope of variables that are
+    passed create the terms here with a frame_level=2 (we are 2 levels down)
     """
     # only consider list/tuple here as an ndarray is automatically a coordinate
     # list
     level = scope_level + 1
     if isinstance(where, (list, tuple)):
-        wlist = []
-        for w in filter(lambda x: x is not None, where):
-            if not maybe_expression(w):
-                wlist.append(w)
-            else:
-                wlist.append(Term(w, scope_level=level))
-        where = wlist
+        where = [
+            Term(term, scope_level=level + 1) if maybe_expression(term) else term
+            for term in where
+            if term is not None
+        ]
     elif maybe_expression(where):
         where = Term(where, scope_level=level)
     return where if where is None or len(where) else None
@@ -2329,7 +2327,8 @@ class DataCol(IndexCol):
         Get an appropriately typed and shaped pytables.Col object for values.
         """
         dtype = values.dtype
-        itemsize = dtype.itemsize  # type: ignore
+        # error: "ExtensionDtype" has no attribute "itemsize"
+        itemsize = dtype.itemsize  # type: ignore[attr-defined]
 
         shape = values.shape
         if values.ndim == 1:
@@ -2932,7 +2931,7 @@ class GenericFixed(Fixed):
         # If the index was an empty array write_array_empty() will
         # have written a sentinel. Here we replace it with the original.
         if "shape" in node._v_attrs and np.prod(node._v_attrs.shape) == 0:
-            data = np.empty(node._v_attrs.shape, dtype=node._v_attrs.value_type,)
+            data = np.empty(node._v_attrs.shape, dtype=node._v_attrs.value_type)
         kind = _ensure_decoded(node._v_attrs.kind)
         name = None
 
@@ -3398,9 +3397,9 @@ class Table(Fixed):
             (v.cname, v) for v in self.values_axes if v.name in set(self.data_columns)
         ]
 
-        return dict(d1 + d2 + d3)  # type: ignore
-        # error: List comprehension has incompatible type
-        #  List[Tuple[Any, None]]; expected List[Tuple[str, IndexCol]]
+        # error: Unsupported operand types for + ("List[Tuple[str, IndexCol]]"
+        # and "List[Tuple[str, None]]")
+        return dict(d1 + d2 + d3)  # type: ignore[operator]
 
     def index_cols(self):
         """ return a list of my index cols """
@@ -4104,7 +4103,7 @@ class Table(Fixed):
         return d
 
     def read_coordinates(
-        self, where=None, start: Optional[int] = None, stop: Optional[int] = None,
+        self, where=None, start: Optional[int] = None, stop: Optional[int] = None
     ):
         """
         select coordinates (row numbers) from a table; return the
@@ -4375,7 +4374,7 @@ class AppendableTable(Table):
             self.table.flush()
 
     def delete(
-        self, where=None, start: Optional[int] = None, stop: Optional[int] = None,
+        self, where=None, start: Optional[int] = None, stop: Optional[int] = None
     ):
 
         # delete all rows (and return the nrows)
@@ -4806,7 +4805,7 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
     if inferred_type == "date":
         converted = np.asarray([v.toordinal() for v in values], dtype=np.int32)
         return IndexCol(
-            name, converted, "date", _tables().Time32Col(), index_name=index_name,
+            name, converted, "date", _tables().Time32Col(), index_name=index_name
         )
     elif inferred_type == "string":
 
@@ -4822,13 +4821,13 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
 
     elif inferred_type in ["integer", "floating"]:
         return IndexCol(
-            name, values=converted, kind=kind, typ=atom, index_name=index_name,
+            name, values=converted, kind=kind, typ=atom, index_name=index_name
         )
     else:
         assert isinstance(converted, np.ndarray) and converted.dtype == object
         assert kind == "object", kind
         atom = _tables().ObjectAtom()
-        return IndexCol(name, converted, kind, atom, index_name=index_name,)
+        return IndexCol(name, converted, kind, atom, index_name=index_name)
 
 
 def _unconvert_index(

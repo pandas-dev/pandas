@@ -12,9 +12,7 @@ from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
-from pandas.core.dtypes.generic import ABCDataFrame
 
-from pandas.core.base import DataError
 import pandas.core.common as common
 from pandas.core.window.common import _doc_template, _shared_docs, zsqrt
 from pandas.core.window.rolling import _flex_binary_moment, _Rolling
@@ -302,30 +300,13 @@ class ExponentialMovingWindow(_Rolling):
         -------
         y : same type as input argument
         """
-        blocks, obj = self._create_blocks(self._selected_obj)
-        block_list = list(blocks)
 
-        results = []
-        exclude = []
-        for i, b in enumerate(blocks):
-            try:
-                values = self._prep_values(b.values)
-
-            except (TypeError, NotImplementedError) as err:
-                if isinstance(obj, ABCDataFrame):
-                    exclude.extend(b.columns)
-                    del block_list[i]
-                    continue
-                else:
-                    raise DataError("No numeric types to aggregate") from err
-
+        def homogeneous_func(values: np.ndarray):
             if values.size == 0:
-                results.append(values.copy())
-                continue
+                return values.copy()
+            return np.apply_along_axis(func, self.axis, values)
 
-            results.append(np.apply_along_axis(func, self.axis, values))
-
-        return self._wrap_results(results, block_list, obj, exclude)
+        return self._apply_blockwise(homogeneous_func)
 
     @Substitution(name="ewm", func_name="mean")
     @Appender(_doc_template)
@@ -381,7 +362,7 @@ class ExponentialMovingWindow(_Rolling):
 
         def f(arg):
             return window_aggregations.ewmcov(
-                arg, arg, self.com, self.adjust, self.ignore_na, self.min_periods, bias,
+                arg, arg, self.com, self.adjust, self.ignore_na, self.min_periods, bias
             )
 
         return self._apply(f)
@@ -477,7 +458,7 @@ class ExponentialMovingWindow(_Rolling):
 
             def _cov(x, y):
                 return window_aggregations.ewmcov(
-                    x, y, self.com, self.adjust, self.ignore_na, self.min_periods, 1,
+                    x, y, self.com, self.adjust, self.ignore_na, self.min_periods, 1
                 )
 
             x_values = X._prep_values()

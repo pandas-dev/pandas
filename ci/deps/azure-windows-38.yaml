@@ -1,0 +1,40 @@
+name: pandas-dev
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.8.*
+
+  # tools
+  - cython>=0.29.16
+  - pytest>=5.0.1
+<<<<<<< HEAD:ci/deps/azure-windows-36.yaml
+  - pytest-xdist>=1.21,<2.0.0 # GH 35737
+=======
+  - pytest-xdist>=1.21
+>>>>>>> b3dca88d31d0f463932713bab92a0953f4adf683:ci/deps/azure-windows-38.yaml
+  - hypothesis>=3.58.0
+  - pytest-azurepipelines
+
+  # pandas dependencies
+  - blosc
+  - bottleneck
+  - fastparquet>=0.3.2
+  - flask
+  - fsspec>=0.8.0
+  - matplotlib=3.1.3
+  - moto>=1.3.14
+  - numba
+  - numexpr
+  - numpy=1.18.*
+  - openpyxl
+  - jinja2
+  - pyarrow>=0.15.0
+  - pytables
+  - python-dateutil
+  - pytz
+  - s3fs>=0.4.0
+  - scipy
+  - xlrd
+  - xlsxwriter
+  - xlwt

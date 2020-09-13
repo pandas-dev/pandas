@@ -80,7 +80,7 @@ FormattersType = Union[
 FloatFormatType = Union[str, Callable, "EngFormatter"]
 ColspaceType = Mapping[Label, Union[str, int]]
 ColspaceArgType = Union[
-    str, int, Sequence[Union[str, int]], Mapping[Label, Union[str, int]],
+    str, int, Sequence[Union[str, int]], Mapping[Label, Union[str, int]]
 ]
 
 common_docstring = """
@@ -741,7 +741,7 @@ class DataFrameFormatter(TableFormatter):
             for i, c in enumerate(frame):
                 fmt_values = self._format_col(i)
                 fmt_values = _make_fixed_width(
-                    fmt_values, self.justify, minimum=col_space.get(c, 0), adj=self.adj,
+                    fmt_values, self.justify, minimum=col_space.get(c, 0), adj=self.adj
                 )
                 stringified.append(fmt_values)
         else:
@@ -931,6 +931,7 @@ class DataFrameFormatter(TableFormatter):
         multirow: bool = False,
         caption: Optional[str] = None,
         label: Optional[str] = None,
+        position: Optional[str] = None,
     ) -> Optional[str]:
         """
         Render a DataFrame to a LaTeX tabular/longtable environment output.
@@ -946,6 +947,7 @@ class DataFrameFormatter(TableFormatter):
             multirow=multirow,
             caption=caption,
             label=label,
+            position=position,
         ).get_result(buf=buf, encoding=encoding)
 
     def _format_col(self, i: int) -> List[str]:
@@ -1067,7 +1069,7 @@ class DataFrameFormatter(TableFormatter):
         fmt_index = [
             tuple(
                 _make_fixed_width(
-                    list(x), justify="left", minimum=col_space.get("", 0), adj=self.adj,
+                    list(x), justify="left", minimum=col_space.get("", 0), adj=self.adj
                 )
             )
             for x in fmt_index
@@ -1471,7 +1473,7 @@ class Datetime64Formatter(GenericArrayFormatter):
 
         fmt_values = format_array_from_datetime(
             values.asi8.ravel(),
-            format=_get_format_datetime64_from_values(values, self.date_format),
+            format=get_format_datetime64_from_values(values, self.date_format),
             na_rep=self.nat_rep,
         ).reshape(values.shape)
         return fmt_values.tolist()
@@ -1622,7 +1624,7 @@ def _format_datetime64_dateonly(
         return x._date_repr
 
 
-def _get_format_datetime64(
+def get_format_datetime64(
     is_dates_only: bool, nat_rep: str = "NaT", date_format: None = None
 ) -> Callable:
 
@@ -1634,7 +1636,7 @@ def _get_format_datetime64(
         return lambda x, tz=None: _format_datetime64(x, tz=tz, nat_rep=nat_rep)
 
 
-def _get_format_datetime64_from_values(
+def get_format_datetime64_from_values(
     values: Union[np.ndarray, DatetimeArray, DatetimeIndex], date_format: Optional[str]
 ) -> Optional[str]:
     """ given values and a date_format, return a string format """
@@ -1654,7 +1656,7 @@ class Datetime64TZFormatter(Datetime64Formatter):
         """ we by definition have a TZ """
         values = self.values.astype(object)
         is_dates_only = _is_dates_only(values)
-        formatter = self.formatter or _get_format_datetime64(
+        formatter = self.formatter or get_format_datetime64(
             is_dates_only, date_format=self.date_format
         )
         fmt_values = [formatter(x) for x in values]
@@ -1675,13 +1677,13 @@ class Timedelta64Formatter(GenericArrayFormatter):
         self.box = box
 
     def _format_strings(self) -> List[str]:
-        formatter = self.formatter or _get_format_timedelta64(
+        formatter = self.formatter or get_format_timedelta64(
             self.values, nat_rep=self.nat_rep, box=self.box
         )
         return [formatter(x) for x in self.values]
 
 
-def _get_format_timedelta64(
+def get_format_timedelta64(
     values: Union[np.ndarray, TimedeltaIndex, TimedeltaArray],
     nat_rep: str = "NaT",
     box: bool = False,

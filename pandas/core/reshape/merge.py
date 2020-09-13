@@ -1870,7 +1870,7 @@ def _right_outer_join(x, y, max_groups):
 
 def _factorize_keys(
     lk: ArrayLike, rk: ArrayLike, sort: bool = True, how: str = "inner"
-) -> Tuple[np.array, np.array, int]:
+) -> Tuple[np.ndarray, np.ndarray, int]:
     """
     Encode left and right keys as enumerated types.
 
@@ -2012,8 +2012,11 @@ def _sort_labels(uniques: np.ndarray, left, right):
 def _get_join_keys(llab, rlab, shape, sort: bool):
 
     # how many levels can be done without overflow
-    pred = lambda i: not is_int64_overflow_possible(shape[:i])
-    nlev = next(filter(pred, range(len(shape), 0, -1)))
+    nlev = next(
+        lev
+        for lev in range(len(shape), 0, -1)
+        if not is_int64_overflow_possible(shape[:lev])
+    )
 
     # get keys for the first `nlev` levels
     stride = np.prod(shape[1:nlev], dtype="i8")

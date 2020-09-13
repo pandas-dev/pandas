@@ -395,7 +395,11 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         from pandas.core.dtypes.common import DT64NS_DTYPE, is_datetime64tz_dtype
 
         from pandas.core.util.hashing import (
+<<<<<<< HEAD
             _combine_hash_arrays,
+=======
+            combine_hash_arrays,
+>>>>>>> b3dca88d31d0f463932713bab92a0953f4adf683
             hash_array,
             hash_tuples,
         )
@@ -427,7 +431,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             )
         else:
             cat_array = [cat_array]
-        hashed = _combine_hash_arrays(iter(cat_array), num_items=len(cat_array))
+        hashed = combine_hash_arrays(iter(cat_array), num_items=len(cat_array))
         return np.bitwise_xor.reduce(hashed)
 
     @classmethod
@@ -635,7 +639,8 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
     def __init__(self, unit: Union[str_type, "DatetimeTZDtype"] = "ns", tz=None):
         if isinstance(unit, DatetimeTZDtype):
-            unit, tz = unit.unit, unit.tz  # type: ignore
+            # error: "str" has no attribute "tz"
+            unit, tz = unit.unit, unit.tz  # type: ignore[attr-defined]
 
         if unit != "ns":
             if isinstance(unit, str) and tz is None:

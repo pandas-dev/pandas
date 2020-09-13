@@ -374,8 +374,7 @@ class TestCommon:
         "dtype",
         ["int64", "uint64", "float64", "category", "datetime64[ns]", "timedelta64[ns]"],
     )
-    @pytest.mark.parametrize("copy", [True, False])
-    def test_astype_preserves_name(self, index, dtype, copy):
+    def test_astype_preserves_name(self, index, dtype):
         # https://github.com/pandas-dev/pandas/issues/32013
         if isinstance(index, MultiIndex):
             index.names = ["idx" + str(i) for i in range(index.nlevels)]
@@ -384,10 +383,7 @@ class TestCommon:
 
         try:
             # Some of these conversions cannot succeed so we use a try / except
-            if copy:
-                result = index.copy(dtype=dtype)
-            else:
-                result = index.astype(dtype)
+            result = index.astype(dtype)
         except (ValueError, TypeError, NotImplementedError, SystemError):
             return
 

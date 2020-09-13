@@ -146,22 +146,41 @@ class Base:
         # Check that this doesn't cover MultiIndex case, if/when it does,
         #  we can remove multi.test_compat.test_numeric_compat
         assert not isinstance(idx, MultiIndex)
+        if type(idx) is Index:
+            return
 
-        with pytest.raises(TypeError, match="cannot perform __mul__"):
+        typ = type(idx._data).__name__
+        lmsg = "|".join(
+            [
+                rf"unsupported operand type\(s\) for \*: '{typ}' and 'int'",
+                "cannot perform (__mul__|__truediv__|__floordiv__) with "
+                f"this index type: {typ}",
+            ]
+        )
+        with pytest.raises(TypeError, match=lmsg):
             idx * 1
-        with pytest.raises(TypeError, match="cannot perform __rmul__"):
+        rmsg = "|".join(
+            [
+                rf"unsupported operand type\(s\) for \*: 'int' and '{typ}'",
+                "cannot perform (__rmul__|__rtruediv__|__rfloordiv__) with "
+                f"this index type: {typ}",
+            ]
+        )
+        with pytest.raises(TypeError, match=rmsg):
             1 * idx
 
-        div_err = "cannot perform __truediv__"
+        div_err = lmsg.replace("*", "/")
         with pytest.raises(TypeError, match=div_err):
             idx / 1
-
-        div_err = div_err.replace(" __", " __r")
+        div_err = rmsg.replace("*", "/")
         with pytest.raises(TypeError, match=div_err):
             1 / idx
-        with pytest.raises(TypeError, match="cannot perform __floordiv__"):
+
+        floordiv_err = lmsg.replace("*", "//")
+        with pytest.raises(TypeError, match=floordiv_err):
             idx // 1
-        with pytest.raises(TypeError, match="cannot perform __rfloordiv__"):
+        floordiv_err = rmsg.replace("*", "//")
+        with pytest.raises(TypeError, match=floordiv_err):
             1 // idx
 
     def test_logical_compat(self):
@@ -250,6 +269,25 @@ class Base:
             # See gh-13365
             s3 = s1 * s2
             assert s3.index.name == "mario"
+
+    def test_copy_name2(self, index):
+        # gh-35592
+        if isinstance(index, MultiIndex):
+            return
+
+        assert index.copy(name="mario").name == "mario"
+
+        with pytest.raises(ValueError, match="Length of new names must be 1, got 2"):
+            index.copy(name=["mario", "luigi"])
+
+        msg = f"{type(index).__name__}.name must be a hashable type"
+        with pytest.raises(TypeError, match=msg):
+            index.copy(name=[["mario"]])
+
+    def test_copy_dtype_deprecated(self, index):
+        # GH35853
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            index.copy(dtype=object)
 
     def test_ensure_copied_data(self, index):
         # Check the "copy" argument of each Index.__new__ is honoured

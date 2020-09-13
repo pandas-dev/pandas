@@ -8,6 +8,7 @@ Similar to its R counterpart, data.frame, except providing automatic data
 alignment and a host of useful data manipulation methods having to do with the
 labeling information
 """
+from __future__ import annotations
 
 import collections
 from collections import abc
@@ -55,9 +56,9 @@ from pandas._typing import (
     Label,
     Level,
     Renamer,
+    StorageOptions,
     ValueKeyFunc,
 )
-from pandas.compat import PY37
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
@@ -457,7 +458,9 @@ class DataFrame(NDFrame):
         if isinstance(data, BlockManager):
             if index is None and columns is None and dtype is None and copy is False:
                 # GH#33357 fastpath
-                NDFrame.__init__(self, data)
+                NDFrame.__init__(
+                    self, data,
+                )
                 return
 
             mgr = self._init_mgr(
@@ -885,7 +888,7 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
 
     @property
-    def style(self) -> "Styler":
+    def style(self) -> Styler:
         """
         Returns a Styler object.
 
@@ -1014,7 +1017,7 @@ class DataFrame(NDFrame):
             s = klass(v, index=columns, name=k)
             yield k, s
 
-    def itertuples(self, index=True, name="Pandas"):
+    def itertuples(self, index: bool = True, name: Optional[str] = "Pandas"):
         """
         Iterate over DataFrame rows as namedtuples.
 
@@ -1087,10 +1090,12 @@ class DataFrame(NDFrame):
         # use integer indexing because of possible duplicate column names
         arrays.extend(self.iloc[:, k] for k in range(len(self.columns)))
 
-        # Python versions before 3.7 support at most 255 arguments to constructors
-        can_return_named_tuples = PY37 or len(self.columns) + index < 255
-        if name is not None and can_return_named_tuples:
-            itertuple = collections.namedtuple(name, fields, rename=True)
+        if name is not None:
+            # https://github.com/python/mypy/issues/9046
+            # error: namedtuple() expects a string literal as the first argument
+            itertuple = collections.namedtuple(  # type: ignore[misc]
+                name, fields, rename=True
+            )
             return map(itertuple._make, zip(*arrays))
 
         # fallback to regular tuples
@@ -1774,13 +1779,13 @@ class DataFrame(NDFrame):
                 arrays = [data[k] for k in columns]
             else:
                 arrays = []
-                arr_columns = []
+                arr_columns_list = []
                 for k, v in data.items():
                     if k in columns:
-                        arr_columns.append(k)
+                        arr_columns_list.append(k)
                         arrays.append(v)
 
-                arrays, arr_columns = reorder_arrays(arrays, arr_columns, columns)
+                arrays, arr_columns = reorder_arrays(arrays, arr_columns_list, columns)
 
         elif isinstance(data, (np.ndarray, DataFrame)):
             arrays, columns = to_arrays(data, columns)
@@ -2058,6 +2063,7 @@ class DataFrame(NDFrame):
         version: Optional[int] = 114,
         convert_strl: Optional[Sequence[Label]] = None,
         compression: Union[str, Mapping[str, str], None] = "infer",
+        storage_options: StorageOptions = None,
     ) -> None:
         """
         Export DataFrame object to Stata dta format.
@@ -2134,6 +2140,16 @@ class DataFrame(NDFrame):
 
             .. versionadded:: 1.1.0
 
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc., if using a URL that will
+            be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+            will be raised if providing this argument with a local path or
+            a file-like buffer. See the fsspec and backend storage implementation
+            docs for the set of allowed keys and values.
+
+            .. versionadded:: 1.2.0
+
         Raises
         ------
         NotImplementedError
@@ -2166,10 +2182,14 @@ class DataFrame(NDFrame):
             from pandas.io.stata import StataWriter as statawriter
         elif version == 117:
             # mypy: Name 'statawriter' already defined (possibly by an import)
-            from pandas.io.stata import StataWriter117 as statawriter  # type: ignore
+            from pandas.io.stata import (  # type: ignore[no-redef]
+                StataWriter117 as statawriter,
+            )
         else:  # versions 118 and 119
             # mypy: Name 'statawriter' already defined (possibly by an import)
-            from pandas.io.stata import StataWriterUTF8 as statawriter  # type: ignore
+            from pandas.io.stata import (  # type: ignore[no-redef]
+                StataWriterUTF8 as statawriter,
+            )
 
         kwargs: Dict[str, Any] = {}
         if version is None or version >= 117:
@@ -2180,7 +2200,7 @@ class DataFrame(NDFrame):
             kwargs["version"] = version
 
         # mypy: Too many arguments for "StataWriter"
-        writer = statawriter(  # type: ignore
+        writer = statawriter(  # type: ignore[call-arg]
             path,
             self,
             convert_dates=convert_dates,
@@ -2190,6 +2210,7 @@ class DataFrame(NDFrame):
             write_index=write_index,
             variable_labels=variable_labels,
             compression=compression,
+            storage_options=storage_options,
             **kwargs,
         )
         writer.write_file()
@@ -2242,9 +2263,10 @@ class DataFrame(NDFrame):
     )
     def to_markdown(
         self,
-        buf: Optional[IO[str]] = None,
-        mode: Optional[str] = None,
+        buf: Optional[Union[IO[str], str]] = None,
+        mode: str = "wt",
         index: bool = True,
+        storage_options: StorageOptions = None,
         **kwargs,
     ) -> Optional[str]:
         if "showindex" in kwargs:
@@ -2262,9 +2284,11 @@ class DataFrame(NDFrame):
         result = tabulate.tabulate(self, **kwargs)
         if buf is None:
             return result
-        buf, _, _, _ = get_filepath_or_buffer(buf, mode=mode)
-        assert buf is not None  # Help mypy.
-        buf.writelines(result)
+        ioargs = get_filepath_or_buffer(buf, mode=mode, storage_options=storage_options)
+        assert not isinstance(ioargs.filepath_or_buffer, str)
+        ioargs.filepath_or_buffer.writelines(result)
+        if ioargs.should_close:
+            ioargs.filepath_or_buffer.close()
         return None
 
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
@@ -2275,6 +2299,7 @@ class DataFrame(NDFrame):
         compression: Optional[str] = "snappy",
         index: Optional[bool] = None,
         partition_cols: Optional[List[str]] = None,
+        storage_options: StorageOptions = None,
         **kwargs,
     ) -> None:
         """
@@ -2323,6 +2348,16 @@ class DataFrame(NDFrame):
 
             .. versionadded:: 0.24.0
 
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc., if using a URL that will
+            be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+            will be raised if providing this argument with a local path or
+            a file-like buffer. See the fsspec and backend storage implementation
+            docs for the set of allowed keys and values
+
+            .. versionadded:: 1.2.0
+
         **kwargs
             Additional arguments passed to the parquet library. See
             :ref:`pandas io <io.parquet>` for more details.
@@ -2369,6 +2404,7 @@ class DataFrame(NDFrame):
             compression=compression,
             index=index,
             partition_cols=partition_cols,
+            storage_options=storage_options,
             **kwargs,
         )
 
@@ -2568,7 +2604,7 @@ class DataFrame(NDFrame):
              1   column_2  1000000 non-null  object
              2   column_3  1000000 non-null  object
             dtypes: object(3)
-            memory usage: 188.8 MB"""
+            memory usage: 165.9 MB"""
         ),
         see_also_sub=(
             """
@@ -3582,7 +3618,13 @@ class DataFrame(NDFrame):
             extracted_dtypes = [
                 unique_dtype
                 for unique_dtype in unique_dtypes
-                if issubclass(unique_dtype.type, tuple(dtypes_set))  # type: ignore
+                # error: Argument 1 to "tuple" has incompatible type
+                # "FrozenSet[Union[ExtensionDtype, str, Any, Type[str],
+                # Type[float], Type[int], Type[complex], Type[bool]]]";
+                # expected "Iterable[Union[type, Tuple[Any, ...]]]"
+                if issubclass(
+                    unique_dtype.type, tuple(dtypes_set)  # type: ignore[arg-type]
+                )
             ]
             return extracted_dtypes
 
@@ -3618,6 +3660,11 @@ class DataFrame(NDFrame):
         value : int, Series, or array-like
         allow_duplicates : bool, optional
         """
+        if allow_duplicates and not self.flags.allows_duplicate_labels:
+            raise ValueError(
+                "Cannot specify 'allow_duplicates=True' when "
+                "'self.flags.allows_duplicate_labels' is False."
+            )
         self._ensure_valid_index(value)
         value = self._sanitize_column(column, value, broadcast=False)
         self._mgr.insert(loc, column, value, allow_duplicates=allow_duplicates)
@@ -4197,7 +4244,7 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         mapper : dict-like or function
-            Dict-like or functions transformations to apply to
+            Dict-like or function transformations to apply to
             that axis' values. Use either ``mapper`` and ``axis`` to
             specify the axis to target with ``mapper``, or ``index`` and
             ``columns``.
@@ -4518,6 +4565,7 @@ class DataFrame(NDFrame):
         4 16     10  2014    31
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
+        self._check_inplace_and_allows_duplicate_labels(inplace)
         if not isinstance(keys, list):
             keys = [keys]
 
@@ -4555,7 +4603,7 @@ class DataFrame(NDFrame):
             frame = self.copy()
 
         arrays = []
-        names = []
+        names: List[Label] = []
         if append:
             names = list(self.index.names)
             if isinstance(self.index, MultiIndex):
@@ -4763,6 +4811,7 @@ class DataFrame(NDFrame):
         monkey         mammal    NaN    jump
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
+        self._check_inplace_and_allows_duplicate_labels(inplace)
         if inplace:
             new_obj = self
         else:
@@ -4971,9 +5020,10 @@ class DataFrame(NDFrame):
 
         Define in which columns to look for missing values.
 
-        >>> df.dropna(subset=['name', 'born'])
+        >>> df.dropna(subset=['name', 'toy'])
                name        toy       born
         1    Batman  Batmobile 1940-04-25
+        2  Catwoman   Bullwhip        NaT
 
         Keep the DataFrame with valid entries in the same variable.
 
@@ -5253,7 +5303,8 @@ class DataFrame(NDFrame):
     # TODO: Just move the sort_values doc here.
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.sort_values.__doc__)
-    def sort_values(  # type: ignore[override] # NOQA # issue 27237
+    # error: Signature of "sort_values" incompatible with supertype "NDFrame"
+    def sort_values(  # type: ignore[override]
         self,
         by,
         axis=0,
@@ -6488,7 +6539,7 @@ NaN 12.3   33.0
         squeeze: bool = no_default,
         observed: bool = False,
         dropna: bool = True,
-    ) -> "DataFrameGroupBy":
+    ) -> DataFrameGroupBy:
         from pandas.core.groupby.generic import DataFrameGroupBy
 
         if squeeze is not no_default:
@@ -6571,6 +6622,8 @@ NaN 12.3   33.0
             duplicate values for one index/column pair.
         DataFrame.unstack : Pivot based on the index values instead of a
             column.
+        wide_to_long : Wide panel to long format. Less flexible but more
+            user-friendly than melt.
 
         Notes
         -----
@@ -6725,6 +6778,10 @@ NaN 12.3   33.0
         --------
         DataFrame.pivot : Pivot without aggregation that can handle
             non-numeric data.
+        DataFrame.melt: Unpivot a DataFrame from wide to long format,
+            optionally leaving identifiers set.
+        wide_to_long : Wide panel to long format. Less flexible but more
+            user-friendly than melt.
 
         Examples
         --------
@@ -7332,6 +7389,15 @@ NaN 12.3   33.0
     min   1.0  2.0
     sum  12.0  NaN
 
+    Aggregate different functions over the columns and rename the index of the resulting
+    DataFrame.
+
+    >>> df.agg(x=('A', max), y=('B', 'min'), z=('C', np.mean))
+         A    B    C
+    x  7.0  NaN  NaN
+    y  NaN  2.0  NaN
+    z  NaN  NaN  6.0
+
     Aggregate over the columns.
 
     >>> df.agg("mean", axis="columns")
@@ -7371,6 +7437,12 @@ NaN 12.3   33.0
         if relabeling:
             # This is to keep the order to columns occurrence unchanged, and also
             # keep the order of new columns occurrence unchanged
+
+            # For the return values of reconstruct_func, if relabeling is
+            # False, columns and order will be None.
+            assert columns is not None
+            assert order is not None
+
             result_in_dict = relabel_result(result, func, columns, order)
             result = DataFrame(result_in_dict, index=columns)
 
@@ -8554,14 +8626,11 @@ NaN 12.3   33.0
             cols = self.columns[~dtype_is_dt]
             self = self[cols]
 
-        if axis is None and filter_type == "bool":
-            labels = None
-            constructor = None
-        else:
-            # TODO: Make other agg func handle axis=None properly
-            axis = self._get_axis_number(axis)
-            labels = self._get_agg_axis(axis)
-            constructor = self._constructor
+        # TODO: Make other agg func handle axis=None properly
+        axis = self._get_axis_number(axis)
+        labels = self._get_agg_axis(axis)
+        constructor = self._constructor
+        assert axis in [0, 1]
 
         def func(values):
             if is_extension_array_dtype(values.dtype):
@@ -8569,7 +8638,7 @@ NaN 12.3   33.0
             else:
                 return op(values, axis=axis, skipna=skipna, **kwds)
 
-        def _get_data(axis_matters):
+        def _get_data(axis_matters: bool) -> "DataFrame":
             if filter_type is None:
                 data = self._get_numeric_data()
             elif filter_type == "bool":
@@ -8586,7 +8655,7 @@ NaN 12.3   33.0
                 raise NotImplementedError(msg)
             return data
 
-        if numeric_only is not None and axis in [0, 1]:
+        if numeric_only is not None:
             df = self
             if numeric_only is True:
                 df = _get_data(axis_matters=True)
@@ -8603,16 +8672,16 @@ NaN 12.3   33.0
                     return op(values, axis=1, skipna=skipna, **kwds)
 
             # After possibly _get_data and transposing, we are now in the
-            #  simple case where we can use BlockManager._reduce
+            #  simple case where we can use BlockManager.reduce
             res = df._mgr.reduce(blk_func)
-            assert isinstance(res, dict)
-            if len(res):
-                assert len(res) == max(list(res.keys())) + 1, res.keys()
-            out = df._constructor_sliced(res, index=range(len(res)), dtype=out_dtype)
-            out.index = df.columns
+            out = df._constructor(res,).iloc[0].rename(None)
+            if out_dtype is not None:
+                out = out.astype(out_dtype)
             if axis == 0 and is_object_dtype(out.dtype):
                 out[:] = coerce_to_dtypes(out.values, df.dtypes)
             return out
+
+        assert numeric_only is None
 
         if not self._is_homogeneous_type or self._mgr.any_extension_types:
             # try to avoid self.values call
@@ -8641,40 +8710,24 @@ NaN 12.3   33.0
                     result = result.iloc[0].rename(None)
                 return result
 
-        if numeric_only is None:
-            data = self
-            values = data.values
+        data = self
+        values = data.values
 
-            try:
-                result = func(values)
-
-            except TypeError:
-                # e.g. in nanops trying to convert strs to float
-
-                # TODO: why doesnt axis matter here?
-                data = _get_data(axis_matters=False)
-                labels = data._get_agg_axis(axis)
-
-                values = data.values
-                with np.errstate(all="ignore"):
-                    result = func(values)
-
-        else:
-            if numeric_only:
-                data = _get_data(axis_matters=True)
-                labels = data._get_agg_axis(axis)
-
-                values = data.values
-            else:
-                data = self
-                values = data.values
+        try:
             result = func(values)
 
-        if filter_type == "bool" and is_object_dtype(values) and axis is None:
-            # work around https://github.com/numpy/numpy/issues/10489
-            # TODO: can we de-duplicate parts of this with the next blocK?
-            result = np.bool_(result)
-        elif hasattr(result, "dtype") and is_object_dtype(result.dtype):
+        except TypeError:
+            # e.g. in nanops trying to convert strs to float
+
+            # TODO: why doesnt axis matter here?
+            data = _get_data(axis_matters=False)
+            labels = data._get_agg_axis(axis)
+
+            values = data.values
+            with np.errstate(all="ignore"):
+                result = func(values)
+
+        if is_object_dtype(result.dtype):
             try:
                 if filter_type is None:
                     result = result.astype(np.float64)
@@ -9264,7 +9317,6 @@ NaN 12.3   33.0
 
 
 DataFrame._add_numeric_operations()
-DataFrame._add_series_or_dataframe_operations()
 
 ops.add_flex_arithmetic_methods(DataFrame)
 ops.add_special_arithmetic_methods(DataFrame)

@@ -628,6 +628,27 @@ class TestDataFrameBlockInternals:
         tm.assert_frame_equal(df, df2)
 
 
+<<<<<<< HEAD
+=======
+def test_to_dict_of_blocks_item_cache():
+    # Calling to_dict_of_blocks should not poison item_cache
+    df = pd.DataFrame({"a": [1, 2, 3, 4], "b": ["a", "b", "c", "d"]})
+    df["c"] = pd.arrays.PandasArray(np.array([1, 2, None, 3], dtype=object))
+    mgr = df._mgr
+    assert len(mgr.blocks) == 3  # i.e. not consolidated
+
+    ser = df["b"]  # populations item_cache["b"]
+
+    df._to_dict_of_blocks()
+
+    # Check that the to_dict_of_blocks didnt break link between ser and df
+    ser.values[0] = "foo"
+    assert df.loc[0, "b"] == "foo"
+
+    assert df["b"] is ser
+
+
+>>>>>>> b3dca88d31d0f463932713bab92a0953f4adf683
 def test_update_inplace_sets_valid_block_values():
     # https://github.com/pandas-dev/pandas/issues/33457
     df = pd.DataFrame({"a": pd.Series([1, 2, None], dtype="category")})

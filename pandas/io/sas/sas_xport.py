@@ -253,12 +253,9 @@ class XportReader(ReaderBase, abc.Iterator):
         self._chunksize = chunksize
 
         if isinstance(filepath_or_buffer, str):
-            (
-                filepath_or_buffer,
-                encoding,
-                compression,
-                should_close,
-            ) = get_filepath_or_buffer(filepath_or_buffer, encoding=encoding)
+            filepath_or_buffer = get_filepath_or_buffer(
+                filepath_or_buffer, encoding=encoding
+            ).filepath_or_buffer
 
         if isinstance(filepath_or_buffer, (str, bytes)):
             self.filepath_or_buffer = open(filepath_or_buffer, "rb")

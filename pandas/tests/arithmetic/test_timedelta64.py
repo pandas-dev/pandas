@@ -1733,6 +1733,23 @@ class TestTimedeltaArraylikeMulDivOps:
     # ------------------------------------------------------------------
     # __floordiv__, __rfloordiv__
 
+    def test_td64arr_floordiv_td64arr_with_nat(self, box_with_array):
+        # GH#35529
+        box = box_with_array
+
+        left = pd.Series([1000, 222330, 30], dtype="timedelta64[ns]")
+        right = pd.Series([1000, 222330, None], dtype="timedelta64[ns]")
+
+        left = tm.box_expected(left, box)
+        right = tm.box_expected(right, box)
+
+        expected = np.array([1.0, 1.0, np.nan], dtype=np.float64)
+        expected = tm.box_expected(expected, box)
+
+        result = left // right
+
+        tm.assert_equal(result, expected)
+
     def test_td64arr_floordiv_tdscalar(self, box_with_array, scalar_td):
         # GH#18831
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)

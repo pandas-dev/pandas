@@ -280,6 +280,19 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
     ['a', 'b', 'c', 'a', 'b', 'c']
     Categories (3, object): ['a', 'b', 'c']
 
+    Missing values are not included as a category.
+
+    >>> c = pd.Categorical([1, 2, 3, 1, 2, 3, np.nan])
+    >>> c
+    [1, 2, 3, 1, 2, 3, NaN]
+    Categories (3, int64): [1, 2, 3]
+
+    However, their presence is indicated in the `codes` attribute
+    by code `-1`.
+
+    >>> c.codes
+    array([ 0,  1,  2,  0,  1,  2, -1], dtype=int8)
+
     Ordered `Categoricals` can be sorted according to the custom order
     of the categories and can have a min and max value.
 
@@ -1505,7 +1518,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         return super().argsort(ascending=ascending, kind=kind, **kwargs)
 
     def sort_values(
-        self, inplace: bool = False, ascending: bool = True, na_position: str = "last",
+        self, inplace: bool = False, ascending: bool = True, na_position: str = "last"
     ):
         """
         Sort the Categorical by category value returning a new
@@ -2242,7 +2255,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             original.categories.take(uniques), dtype=original.dtype
         )
 
-    def equals(self, other):
+    def equals(self, other: object) -> bool:
         """
         Returns True if categorical arrays are equal.
 
@@ -2254,7 +2267,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         -------
         bool
         """
-        if self.is_dtype_equal(other):
+        if not isinstance(other, Categorical):
+            return False
+        elif self.is_dtype_equal(other):
             if self.categories.equals(other.categories):
                 # fastpath to avoid re-coding
                 other_codes = other._codes
@@ -2314,7 +2329,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
 
         return union_categoricals(to_concat)
 
-    def isin(self, values):
+    def isin(self, values) -> np.ndarray:
         """
         Check whether `values` are contained in Categorical.
 

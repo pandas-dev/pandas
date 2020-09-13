@@ -3,16 +3,15 @@ Module for formatting output data into CSV files.
 """
 
 import csv as csvlib
-from io import StringIO
+from io import StringIO, TextIOWrapper
 import os
-from typing import Hashable, List, Mapping, Optional, Sequence, Union
+from typing import Hashable, List, Optional, Sequence, Union
 import warnings
-from zipfile import ZipFile
 
 import numpy as np
 
 from pandas._libs import writers as libwriters
-from pandas._typing import FilePathOrBuffer
+from pandas._typing import CompressionOptions, FilePathOrBuffer, StorageOptions
 
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
@@ -45,7 +44,7 @@ class CSVFormatter:
         mode: str = "w",
         encoding: Optional[str] = None,
         errors: str = "strict",
-        compression: Union[str, Mapping[str, str], None] = "infer",
+        compression: CompressionOptions = "infer",
         quoting: Optional[int] = None,
         line_terminator="\n",
         chunksize: Optional[int] = None,
@@ -54,6 +53,7 @@ class CSVFormatter:
         doublequote: bool = True,
         escapechar: Optional[str] = None,
         decimal=".",
+        storage_options: StorageOptions = None,
     ):
         self.obj = obj
 
@@ -62,10 +62,19 @@ class CSVFormatter:
 
         # Extract compression mode as given, if dict
         compression, self.compression_args = get_compression_method(compression)
+        self.compression = infer_compression(path_or_buf, compression)
 
-        self.path_or_buf, _, _, self.should_close = get_filepath_or_buffer(
-            path_or_buf, encoding=encoding, compression=compression, mode=mode
+        ioargs = get_filepath_or_buffer(
+            path_or_buf,
+            encoding=encoding,
+            compression=self.compression,
+            mode=mode,
+            storage_options=storage_options,
         )
+        self.path_or_buf = ioargs.filepath_or_buffer
+        self.should_close = ioargs.should_close
+        self.mode = ioargs.mode
+
         self.sep = sep
         self.na_rep = na_rep
         self.float_format = float_format
@@ -74,12 +83,10 @@ class CSVFormatter:
         self.header = header
         self.index = index
         self.index_label = index_label
-        self.mode = mode
         if encoding is None:
             encoding = "utf-8"
         self.encoding = encoding
         self.errors = errors
-        self.compression = infer_compression(self.path_or_buf, compression)
 
         if quoting is None:
             quoting = csvlib.QUOTE_MINIMAL
@@ -159,37 +166,28 @@ class CSVFormatter:
         """
         Create the writer & save.
         """
-        # GH21227 internal compression is not used when file-like passed.
-        if self.compression and hasattr(self.path_or_buf, "write"):
+        # GH21227 internal compression is not used for non-binary handles.
+        if (
+            self.compression
+            and hasattr(self.path_or_buf, "write")
+            and "b" not in self.mode
+        ):
             warnings.warn(
-                "compression has no effect when passing file-like object as input.",
+                "compression has no effect when passing a non-binary object as input.",
                 RuntimeWarning,
                 stacklevel=2,
             )
+            self.compression = None
 
-        # when zip compression is called.
-        is_zip = isinstance(self.path_or_buf, ZipFile) or (
-            not hasattr(self.path_or_buf, "write") and self.compression == "zip"
+        # get a handle or wrap an existing handle to take care of 1) compression and
+        # 2) text -> byte conversion
+        f, handles = get_handle(
+            self.path_or_buf,
+            self.mode,
+            encoding=self.encoding,
+            errors=self.errors,
+            compression=dict(self.compression_args, method=self.compression),
         )
-
-        if is_zip:
-            # zipfile doesn't support writing string to archive. uses string
-            # buffer to receive csv writing and dump into zip compression
-            # file handle. GH21241, GH21118
-            f = StringIO()
-            close = False
-        elif hasattr(self.path_or_buf, "write"):
-            f = self.path_or_buf
-            close = False
-        else:
-            f, handles = get_handle(
-                self.path_or_buf,
-                self.mode,
-                encoding=self.encoding,
-                errors=self.errors,
-                compression=dict(self.compression_args, method=self.compression),
-            )
-            close = True
 
         try:
             # Note: self.encoding is irrelevant here
@@ -206,29 +204,23 @@ class CSVFormatter:
             self._save()
 
         finally:
-            if is_zip:
-                # GH17778 handles zip compression separately.
-                buf = f.getvalue()
-                if hasattr(self.path_or_buf, "write"):
-                    self.path_or_buf.write(buf)
-                else:
-                    compression = dict(self.compression_args, method=self.compression)
-
-                    f, handles = get_handle(
-                        self.path_or_buf,
-                        self.mode,
-                        encoding=self.encoding,
-                        errors=self.errors,
-                        compression=compression,
-                    )
-                    f.write(buf)
-                    close = True
-            if close:
+            if self.should_close:
                 f.close()
-                for _fh in handles:
-                    _fh.close()
-            elif self.should_close:
+            elif (
+                isinstance(f, TextIOWrapper)
+                and not f.closed
+                and f != self.path_or_buf
+                and hasattr(self.path_or_buf, "write")
+            ):
+                # get_handle uses TextIOWrapper for non-binary handles. TextIOWrapper
+                # closes the wrapped handle if it is not detached.
+                f.flush()  # make sure everything is written
+                f.detach()  # makes f unusable
+                del f
+            elif f != self.path_or_buf:
                 f.close()
+            for _fh in handles:
+                _fh.close()
 
     def _save_header(self):
         writer = self.writer
