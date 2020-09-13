@@ -39,9 +39,8 @@ def cartesian_product(X):
     lenX = np.fromiter((len(x) for x in X), dtype=np.intp)
     cumprodX = np.cumproduct(lenX)
 
-    msg = "Product space too large to allocate arrays!"
     if np.any(cumprodX < 0):
-        raise ValueError(msg)
+        raise ValueError("Product space too large to allocate arrays!")
 
     a = np.roll(cumprodX, 1)
     a[0] = 1
