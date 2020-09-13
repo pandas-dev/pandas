@@ -261,3 +261,41 @@ def test_reduce_to_float(op):
         index=pd.Index(["a", "b"], name="A"),
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "source, target",
+    [
+        ([1, 2, 3], [-1, -2, -3]),
+        ([1, 2, None], [-1, -2, None]),
+        ([-1, 0, 1], [1, 0, -1]),
+    ],
+)
+def test_unary_minus_nullable_int(any_signed_nullable_int_dtype, source, target):
+    dtype = any_signed_nullable_int_dtype
+    arr = pd.array(source, dtype=dtype)
+    result = -arr
+    expected = pd.array(target, dtype=dtype)
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "source", [[1, 2, 3], [1, 2, None], [-1, 0, 1]],
+)
+def test_unary_plus_nullable_int(any_signed_nullable_int_dtype, source):
+    dtype = any_signed_nullable_int_dtype
+    expected = pd.array(source, dtype=dtype)
+    result = +expected
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "source, target",
+    [([1, 2, 3], [1, 2, 3]), ([1, -2, None], [1, 2, None]), ([-1, 0, 1], [1, 0, 1])],
+)
+def test_abs_nullable_int(any_signed_nullable_int_dtype, source, target):
+    dtype = any_signed_nullable_int_dtype
+    s = pd.array(source, dtype=dtype)
+    result = abs(s)
+    expected = pd.array(target, dtype=dtype)
+    tm.assert_extension_array_equal(result, expected)
