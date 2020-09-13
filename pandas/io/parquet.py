@@ -7,7 +7,7 @@ from pandas._typing import FilePathOrBuffer, StorageOptions
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
 
-from pandas import DataFrame, get_option
+from pandas import DataFrame, MultiIndex, get_option
 
 from pandas.io.common import get_filepath_or_buffer, is_fsspec_url, stringify_path
 
@@ -54,7 +54,7 @@ class BaseImpl:
             raise ValueError("to_parquet only supports IO with DataFrames")
 
         # must have value column names for all index levels (strings only)
-        if df.columns.nlevels > 1:
+        if isinstance(df.columns, MultiIndex):
             if not all(
                 x.inferred_type in {"string", "empty"} for x in df.columns.levels
             ):

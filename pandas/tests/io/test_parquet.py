@@ -410,10 +410,23 @@ class TestBasic(Base):
         check_round_trip(df, engine)
 
     def test_write_column_multiindex(self, engine):
-        # column multi-index
+        # Not able to write column multi-indexes with non-string column names.
         mi_columns = pd.MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1)])
         df = pd.DataFrame(np.random.randn(4, 3), columns=mi_columns)
         self.check_error_on_write(df, engine, ValueError)
+
+    def test_write_column_multiindex_string(self, pa):
+        # Not supported in fastparquet as of 0.1.3 or older pyarrow version
+        engine = pa
+
+        # Write column multi-indexes with string column names
+        arrays = [
+            ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
+            ["one", "two", "one", "two", "one", "two", "one", "two"],
+        ]
+        df = pd.DataFrame(np.random.randn(8, 8), columns=arrays)
+
+        check_round_trip(df, engine)
 
     def test_multiindex_with_columns(self, pa):
         engine = pa
