@@ -136,7 +136,6 @@ def test_rolling_apply_consistency(
                 tm.assert_equal(rolling_f_result, rolling_apply_f_result)
 
 
-@pytest.mark.slow
 @pytest.mark.parametrize(
     "window,min_periods,center", list(_rolling_consistency_cases())
 )
