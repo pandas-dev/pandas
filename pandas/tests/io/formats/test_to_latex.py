@@ -563,6 +563,12 @@ b &       b &     b \\
         with pytest.raises(ValueError, match=msg):
             df.to_latex(caption=(the_caption, the_short_caption, "extra_string"))
 
+        with pytest.raises(ValueError, match=msg):
+            df.to_latex(caption=(the_caption,))
+
+        with pytest.raises(ValueError, match=msg):
+            df.to_latex(caption=(None,))
+
         # test that two chars caption is handled correctly
         result_cl = df.to_latex(caption="xy")
         expected_cl = r"""\begin{table}
