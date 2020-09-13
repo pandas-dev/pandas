@@ -1553,8 +1553,6 @@ class Index(IndexOpsMixin, PandasObject):
         If resulting index has only 1 level left, the result will be
         of Index type, not MultiIndex.
 
-        .. versionadded:: 0.23.1 (support for non-MultiIndex)
-
         Parameters
         ----------
         level : int, str, or list-like, default 0
@@ -2295,8 +2293,6 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         level : int or str, optional, default None
             Only return values from specified level (for MultiIndex).
-
-            .. versionadded:: 0.23.0
 
         Returns
         -------

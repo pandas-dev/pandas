@@ -26,6 +26,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
+- Bug in :func:`read_spss` where passing a ``pathlib.Path`` as ``path`` would raise a ``TypeError`` (:issue:`33666`)
 - Bug in :meth:`Series.str.startswith` and :meth:`Series.str.endswith` with ``category`` dtype not propagating ``na`` parameter (:issue:`36241`)
 - Bug in :class:`Series` constructor where integer overflow would occur for sufficiently large scalar inputs when an index was provided (:issue:`36291`)
 
