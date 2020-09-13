@@ -24,11 +24,11 @@ from pandas.io.common import (
     validate_header_arg,
 )
 from pandas.io.excel._util import (
-    _fill_mi_header,
-    _get_default_writer,
-    _maybe_convert_usecols,
-    _pop_header_name,
+    fill_mi_header,
+    get_default_writer,
     get_writer,
+    maybe_convert_usecols,
+    pop_header_name,
 )
 from pandas.io.parsers import TextParser
 
@@ -124,9 +124,6 @@ skiprows : list-like
     Rows to skip at the beginning (0-indexed).
 nrows : int, default None
     Number of rows to parse.
-
-    .. versionadded:: 0.23.0
-
 na_values : scalar, str, list-like, or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values. By default the following values are interpreted
@@ -346,15 +343,15 @@ def read_excel(
     )
 
 
-class _BaseExcelReader(metaclass=abc.ABCMeta):
+class BaseExcelReader(metaclass=abc.ABCMeta):
     def __init__(self, filepath_or_buffer, storage_options: StorageOptions = None):
         # If filepath_or_buffer is a url, load the data into a BytesIO
         if is_url(filepath_or_buffer):
             filepath_or_buffer = BytesIO(urlopen(filepath_or_buffer).read())
         elif not isinstance(filepath_or_buffer, (ExcelFile, self._workbook_class)):
-            filepath_or_buffer, _, _, _ = get_filepath_or_buffer(
+            filepath_or_buffer = get_filepath_or_buffer(
                 filepath_or_buffer, storage_options=storage_options
-            )
+            ).filepath_or_buffer
 
         if isinstance(filepath_or_buffer, self._workbook_class):
             self.book = filepath_or_buffer
@@ -454,7 +451,7 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
                 sheet = self.get_sheet_by_index(asheetname)
 
             data = self.get_sheet_data(sheet, convert_float)
-            usecols = _maybe_convert_usecols(usecols)
+            usecols = maybe_convert_usecols(usecols)
 
             if not data:
                 output[asheetname] = DataFrame()
@@ -473,10 +470,10 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
                     if is_integer(skiprows):
                         row += skiprows
 
-                    data[row], control_row = _fill_mi_header(data[row], control_row)
+                    data[row], control_row = fill_mi_header(data[row], control_row)
 
                     if index_col is not None:
-                        header_name, _ = _pop_header_name(data[row], index_col)
+                        header_name, _ = pop_header_name(data[row], index_col)
                         header_names.append(header_name)
 
             if is_list_like(index_col):
@@ -601,8 +598,8 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     You can set the date format or datetime format:
 
     >>> with ExcelWriter('path_to_file.xlsx',
-                          date_format='YYYY-MM-DD',
-                          datetime_format='YYYY-MM-DD HH:MM:SS') as writer:
+    ...                   date_format='YYYY-MM-DD',
+    ...                   datetime_format='YYYY-MM-DD HH:MM:SS') as writer:
     ...     df.to_excel(writer)
 
     You can also append to an existing Excel file:
@@ -645,7 +642,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
                 try:
                     engine = config.get_option(f"io.excel.{ext}.writer")
                     if engine == "auto":
-                        engine = _get_default_writer(ext)
+                        engine = get_default_writer(ext)
                 except KeyError as err:
                     raise ValueError(f"No engine for filetype: '{ext}'") from err
             cls = get_writer(engine)
@@ -653,7 +650,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         return object.__new__(cls)
 
     # declare external properties you can count on
-    book = None
     curr_sheet = None
     path = None
 
@@ -845,16 +841,16 @@ class ExcelFile:
         - ``pyxlsb`` supports Binary Excel files.
     """
 
-    from pandas.io.excel._odfreader import _ODFReader
-    from pandas.io.excel._openpyxl import _OpenpyxlReader
-    from pandas.io.excel._pyxlsb import _PyxlsbReader
-    from pandas.io.excel._xlrd import _XlrdReader
+    from pandas.io.excel._odfreader import ODFReader
+    from pandas.io.excel._openpyxl import OpenpyxlReader
+    from pandas.io.excel._pyxlsb import PyxlsbReader
+    from pandas.io.excel._xlrd import XlrdReader
 
     _engines: Mapping[str, Any] = {
-        "xlrd": _XlrdReader,
-        "openpyxl": _OpenpyxlReader,
-        "odf": _ODFReader,
-        "pyxlsb": _PyxlsbReader,
+        "xlrd": XlrdReader,
+        "openpyxl": OpenpyxlReader,
+        "odf": ODFReader,
+        "pyxlsb": PyxlsbReader,
     }
 
     def __init__(

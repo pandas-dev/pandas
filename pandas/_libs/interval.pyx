@@ -46,7 +46,7 @@ from pandas._libs.tslibs.util cimport (
     is_timedelta64_object,
 )
 
-_VALID_CLOSED = frozenset(['left', 'right', 'both', 'neither'])
+VALID_CLOSED = frozenset(['left', 'right', 'both', 'neither'])
 
 
 cdef class IntervalMixin:
@@ -291,12 +291,6 @@ cdef class Interval(IntervalMixin):
     True
     >>> year_2017.length
     Timedelta('365 days 00:00:00')
-
-    And also you can create string intervals
-
-    >>> volume_1 = pd.Interval('Ant', 'Dog', closed='both')
-    >>> 'Bee' in volume_1
-    True
     """
     _typ = "interval"
     __array_priority__ = 1000
@@ -324,7 +318,7 @@ cdef class Interval(IntervalMixin):
         self._validate_endpoint(left)
         self._validate_endpoint(right)
 
-        if closed not in _VALID_CLOSED:
+        if closed not in VALID_CLOSED:
             raise ValueError(f"invalid option for 'closed': {closed}")
         if not left <= right:
             raise ValueError("left side of interval must be <= right side")
@@ -358,6 +352,11 @@ cdef class Interval(IntervalMixin):
             self_tuple = (self.left, self.right, self.closed)
             other_tuple = (other.left, other.right, other.closed)
             return PyObject_RichCompare(self_tuple, other_tuple, op)
+        elif util.is_array(other):
+            return np.array(
+                [PyObject_RichCompare(self, x, op) for x in other],
+                dtype=bool,
+            )
 
         return NotImplemented
 

@@ -20,9 +20,9 @@ del hard_dependencies, dependency, missing_dependencies
 
 # numpy compat
 from pandas.compat.numpy import (
-    _np_version_under1p17,
-    _np_version_under1p18,
-    _is_numpy_dev,
+    np_version_under1p17 as _np_version_under1p17,
+    np_version_under1p18 as _np_version_under1p18,
+    is_numpy_dev as _is_numpy_dev,
 )
 
 try:
@@ -100,6 +100,7 @@ from pandas.core.api import (
     to_datetime,
     to_timedelta,
     # misc
+    Flags,
     Grouper,
     factorize,
     unique,

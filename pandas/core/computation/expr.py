@@ -12,7 +12,13 @@ import numpy as np
 
 import pandas.core.common as com
 from pandas.core.computation.ops import (
-    _LOCAL_TAG,
+    ARITH_OPS_SYMS,
+    BOOL_OPS_SYMS,
+    CMP_OPS_SYMS,
+    LOCAL_TAG,
+    MATHOPS,
+    REDUCTIONS,
+    UNARY_OPS_SYMS,
     BinOp,
     Constant,
     Div,
@@ -21,12 +27,6 @@ from pandas.core.computation.ops import (
     Term,
     UnaryOp,
     UndefinedVariableError,
-    _arith_ops_syms,
-    _bool_ops_syms,
-    _cmp_ops_syms,
-    _mathops,
-    _reductions,
-    _unary_ops_syms,
     is_term,
 )
 from pandas.core.computation.parsing import clean_backtick_quoted_toks, tokenize_string
@@ -101,7 +101,7 @@ def _replace_locals(tok: Tuple[int, str]) -> Tuple[int, str]:
     """
     toknum, tokval = tok
     if toknum == tokenize.OP and tokval == "@":
-        return tokenize.OP, _LOCAL_TAG
+        return tokenize.OP, LOCAL_TAG
     return toknum, tokval
 
 
@@ -338,7 +338,7 @@ class BaseExprVisitor(ast.NodeVisitor):
     const_type: Type[Term] = Constant
     term_type = Term
 
-    binary_ops = _cmp_ops_syms + _bool_ops_syms + _arith_ops_syms
+    binary_ops = CMP_OPS_SYMS + BOOL_OPS_SYMS + ARITH_OPS_SYMS
     binary_op_nodes = (
         "Gt",
         "Lt",
@@ -362,9 +362,9 @@ class BaseExprVisitor(ast.NodeVisitor):
     )
     binary_op_nodes_map = dict(zip(binary_ops, binary_op_nodes))
 
-    unary_ops = _unary_ops_syms
+    unary_ops = UNARY_OPS_SYMS
     unary_op_nodes = "UAdd", "USub", "Invert", "Not"
-    unary_op_nodes_map = dict(zip(unary_ops, unary_op_nodes))
+    unary_op_nodes_map = {k: v for k, v in zip(unary_ops, unary_op_nodes)}
 
     rewrite_map = {
         ast.Eq: ast.In,
@@ -494,7 +494,7 @@ class BaseExprVisitor(ast.NodeVisitor):
 
         if self.engine != "pytables":
             if (
-                res.op in _cmp_ops_syms
+                res.op in CMP_OPS_SYMS
                 and getattr(lhs, "is_datetime", False)
                 or getattr(rhs, "is_datetime", False)
             ):
@@ -726,7 +726,7 @@ class BaseExprVisitor(ast.NodeVisitor):
 
 
 _python_not_supported = frozenset(["Dict", "BoolOp", "In", "NotIn"])
-_numexpr_supported_calls = frozenset(_reductions + _mathops)
+_numexpr_supported_calls = frozenset(REDUCTIONS + MATHOPS)
 
 
 @disallow(
@@ -782,7 +782,7 @@ class Expr:
         self.env = env or Scope(level=level + 1)
         self.engine = engine
         self.parser = parser
-        self._visitor = _parsers[parser](self.env, self.engine, self.parser)
+        self._visitor = PARSERS[parser](self.env, self.engine, self.parser)
         self.terms = self.parse()
 
     @property
@@ -814,4 +814,4 @@ class Expr:
         return frozenset(term.name for term in com.flatten(self.terms))
 
 
-_parsers = {"python": PythonExprVisitor, "pandas": PandasExprVisitor}
+PARSERS = {"python": PythonExprVisitor, "pandas": PandasExprVisitor}

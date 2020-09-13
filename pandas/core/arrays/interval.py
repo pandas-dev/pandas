@@ -5,7 +5,12 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs.interval import Interval, IntervalMixin, intervals_to_interval_bounds
+from pandas._libs.interval import (
+    VALID_CLOSED,
+    Interval,
+    IntervalMixin,
+    intervals_to_interval_bounds,
+)
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
 
@@ -42,7 +47,6 @@ from pandas.core.construction import array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.indexes.base import ensure_index
 
-_VALID_CLOSED = {"left", "right", "both", "neither"}
 _interval_shared_docs = {}
 
 _shared_docs_kwargs = dict(
@@ -67,8 +71,6 @@ closed : {'left', 'right', 'both', 'neither'}, default 'right'
     neither.
 dtype : dtype or None, default None
     If None, dtype will be inferred.
-
-    .. versionadded:: 0.23.0
 copy : bool, default False
     Copy the input data.
 %(name)s\
@@ -275,8 +277,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     dtype : dtype or None, default None
         If None, dtype will be inferred.
 
-        .. versionadded:: 0.23.0
-
     Returns
     -------
     %(klass)s
@@ -330,8 +330,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             Copy the data.
         dtype : dtype, optional
             If None, dtype will be inferred.
-
-            .. versionadded:: 0.23.0
 
         Returns
         -------
@@ -403,8 +401,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     dtype : dtype or None, default None
         If None, dtype will be inferred.
 
-        .. versionadded:: 0.23.0
-
     Returns
     -------
     %(klass)s
@@ -475,7 +471,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         * left and right have the same missing values
         * left is always below right
         """
-        if self.closed not in _VALID_CLOSED:
+        if self.closed not in VALID_CLOSED:
             msg = f"invalid option for 'closed': {self.closed}"
             raise ValueError(msg)
         if len(self.left) != len(self.right):
@@ -1012,7 +1008,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         )
     )
     def set_closed(self, closed):
-        if closed not in _VALID_CLOSED:
+        if closed not in VALID_CLOSED:
             msg = f"invalid option for 'closed': {closed}"
             raise ValueError(msg)
 
@@ -1162,8 +1158,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         na_tuple : bool, default True
             Returns NA as a tuple if True, ``(nan, nan)``, or just as the NA
             value itself if False, ``nan``.
-
-            .. versionadded:: 0.23.0
 
         Returns
         -------

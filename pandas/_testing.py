@@ -25,7 +25,7 @@ from pandas._config.localization import (  # noqa:F401
 from pandas._libs.lib import no_default
 import pandas._libs.testing as _testing
 from pandas._typing import Dtype, FilePathOrBuffer, FrameOrSeries
-from pandas.compat import _get_lzma_file, _import_lzma
+from pandas.compat import get_lzma_file, import_lzma
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -70,7 +70,7 @@ from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 from pandas.io.common import urlopen
 from pandas.io.formats.printing import pprint_thing
 
-lzma = _import_lzma()
+lzma = import_lzma()
 
 _N = 30
 _K = 4
@@ -243,7 +243,7 @@ def decompress_file(path, compression):
     elif compression == "bz2":
         f = bz2.BZ2File(path, "rb")
     elif compression == "xz":
-        f = _get_lzma_file(lzma)(path, "rb")
+        f = get_lzma_file(lzma)(path, "rb")
     elif compression == "zip":
         zip_file = zipfile.ZipFile(path)
         zip_names = zip_file.namelist()
@@ -288,7 +288,7 @@ def write_to_compressed(compression, path, data, dest="test"):
     elif compression == "bz2":
         compress_method = bz2.BZ2File
     elif compression == "xz":
-        compress_method = _get_lzma_file(lzma)
+        compress_method = get_lzma_file(lzma)
     else:
         raise ValueError(f"Unrecognized compression type: {compression}")
 
@@ -1225,6 +1225,7 @@ def assert_series_equal(
     check_categorical=True,
     check_category_order=True,
     check_freq=True,
+    check_flags=True,
     rtol=1.0e-5,
     atol=1.0e-8,
     obj="Series",
@@ -1271,6 +1272,11 @@ def assert_series_equal(
         .. versionadded:: 1.0.2
     check_freq : bool, default True
         Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex.
+    check_flags : bool, default True
+        Whether to check the `flags` attribute.
+
+        .. versionadded:: 1.2.0
+
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
 
@@ -1306,6 +1312,9 @@ def assert_series_equal(
         msg1 = f"{len(left)}, {left.index}"
         msg2 = f"{len(right)}, {right.index}"
         raise_assert_detail(obj, "Series length are different", msg1, msg2)
+
+    if check_flags:
+        assert left.flags == right.flags, f"{repr(left.flags)} != {repr(right.flags)}"
 
     # index comparison
     assert_index_equal(
@@ -1429,6 +1438,7 @@ def assert_frame_equal(
     check_categorical=True,
     check_like=False,
     check_freq=True,
+    check_flags=True,
     rtol=1.0e-5,
     atol=1.0e-8,
     obj="DataFrame",
@@ -1490,6 +1500,8 @@ def assert_frame_equal(
         (same as in columns) - same labels must be with the same data.
     check_freq : bool, default True
         Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex.
+    check_flags : bool, default True
+        Whether to check the `flags` attribute.
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
 
@@ -1562,6 +1574,9 @@ def assert_frame_equal(
 
     if check_like:
         left, right = left.reindex_like(right), right
+
+    if check_flags:
+        assert left.flags == right.flags, f"{repr(left.flags)} != {repr(right.flags)}"
 
     # index comparison
     assert_index_equal(
@@ -2698,7 +2713,7 @@ def use_numexpr(use, min_elements=None):
     if min_elements is None:
         min_elements = expr._MIN_ELEMENTS
 
-    olduse = expr._USE_NUMEXPR
+    olduse = expr.USE_NUMEXPR
     oldmin = expr._MIN_ELEMENTS
     expr.set_use_numexpr(use)
     expr._MIN_ELEMENTS = min_elements

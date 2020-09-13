@@ -1,15 +1,16 @@
 from collections import defaultdict
 import copy
-from typing import List
+from typing import Dict, List
 
 import numpy as np
 
 from pandas._libs import NaT, internals as libinternals
+from pandas._typing import DtypeObj
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
-    _get_dtype,
+    get_dtype,
     is_categorical_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
@@ -20,10 +21,10 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import isna_all
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import DatetimeArray, ExtensionArray
 from pandas.core.internals.blocks import make_block
 from pandas.core.internals.managers import BlockManager
 
@@ -100,10 +101,10 @@ def _get_mgr_concatenation_plan(mgr, indexers):
     """
     # Calculate post-reindex shape , save for item axis which will be separate
     # for each block anyway.
-    mgr_shape = list(mgr.shape)
+    mgr_shape_list = list(mgr.shape)
     for ax, indexer in indexers.items():
-        mgr_shape[ax] = len(indexer)
-    mgr_shape = tuple(mgr_shape)
+        mgr_shape_list[ax] = len(indexer)
+    mgr_shape = tuple(mgr_shape_list)
 
     if 0 in indexers:
         ax0_indexer = indexers.pop(0)
@@ -126,9 +127,9 @@ def _get_mgr_concatenation_plan(mgr, indexers):
 
         join_unit_indexers = indexers.copy()
 
-        shape = list(mgr_shape)
-        shape[0] = len(placements)
-        shape = tuple(shape)
+        shape_list = list(mgr_shape)
+        shape_list[0] = len(placements)
+        shape = tuple(shape_list)
 
         if blkno == -1:
             unit = JoinUnit(None, shape)
@@ -199,7 +200,7 @@ class JoinUnit:
         if not self.needs_filling:
             return self.block.dtype
         else:
-            return _get_dtype(maybe_promote(self.block.dtype, self.block.fill_value)[0])
+            return get_dtype(maybe_promote(self.block.dtype, self.block.fill_value)[0])
 
     @cache_readonly
     def is_na(self):
@@ -222,13 +223,8 @@ class JoinUnit:
             values_flat = values
         else:
             values_flat = values.ravel(order="K")
-        total_len = values_flat.shape[0]
-        chunk_len = max(total_len // 40, 1000)
-        for i in range(0, total_len, chunk_len):
-            if not isna(values_flat[i : i + chunk_len]).all():
-                return False
 
-        return True
+        return isna_all(values_flat)
 
     def get_reindexed_values(self, empty_dtype, upcasted_na):
         if upcasted_na is None:
@@ -334,9 +330,13 @@ def _concatenate_join_units(join_units, concat_axis, copy):
         # the non-EA values are 2D arrays with shape (1, n)
         to_concat = [t if isinstance(t, ExtensionArray) else t[0, :] for t in to_concat]
         concat_values = concat_compat(to_concat, axis=0)
-        if not isinstance(concat_values, ExtensionArray):
+        if not isinstance(concat_values, ExtensionArray) or (
+            isinstance(concat_values, DatetimeArray) and concat_values.tz is None
+        ):
             # if the result of concat is not an EA but an ndarray, reshape to
             # 2D to put it a non-EA Block
+            # special case DatetimeArray, which *is* an EA, but is put in a
+            # consolidated 2D block
             concat_values = np.atleast_2d(concat_values)
     else:
         concat_values = concat_compat(to_concat, axis=concat_axis)
@@ -374,8 +374,8 @@ def _get_empty_dtype_and_na(join_units):
         else:
             dtypes[i] = unit.dtype
 
-    upcast_classes = defaultdict(list)
-    null_upcast_classes = defaultdict(list)
+    upcast_classes: Dict[str, List[DtypeObj]] = defaultdict(list)
+    null_upcast_classes: Dict[str, List[DtypeObj]] = defaultdict(list)
     for dtype, unit in zip(dtypes, join_units):
         if dtype is None:
             continue
@@ -469,8 +469,8 @@ def _is_uniform_join_units(join_units: List[JoinUnit]) -> bool:
     #  cannot necessarily join
     return (
         # all blocks need to have the same type
-        all(type(ju.block) is type(join_units[0].block) for ju in join_units)
-        and  # noqa
+        all(type(ju.block) is type(join_units[0].block) for ju in join_units)  # noqa
+        and
         # no blocks that would get missing values (can lead to type upcasts)
         # unless we're an extension dtype.
         all(not ju.is_na or ju.block.is_extension for ju in join_units)
