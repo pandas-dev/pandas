@@ -1032,6 +1032,19 @@ def any_nullable_int_dtype(request):
     return request.param
 
 
+@pytest.fixture(params=tm.SIGNED_EA_INT_DTYPES)
+def any_signed_nullable_int_dtype(request):
+    """
+    Parameterized fixture for any signed nullable integer dtype.
+
+    * 'Int8'
+    * 'Int16'
+    * 'Int32'
+    * 'Int64'
+    """
+    return request.param
+
+
 @pytest.fixture(params=tm.ALL_REAL_DTYPES)
 def any_real_dtype(request):
     """
