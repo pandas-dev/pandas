@@ -160,10 +160,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         verify_integrity: bool = True,
     ):
 
-        if isinstance(data, ABCSeries) and is_interval_dtype(data.dtype):
+        if isinstance(data, (ABCSeries, ABCIntervalIndex)) and is_interval_dtype(
+            data.dtype
+        ):
             data = data._values  # TODO: extract_array?
 
-        if isinstance(data, (cls, ABCIntervalIndex)):
+        if isinstance(data, cls):
             left = data.left
             right = data.right
             closed = closed or data.closed
@@ -242,8 +244,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             )
             raise ValueError(msg)
 
-        result._left = extract_array(array(left), extract_numpy=True)
-        result._right = extract_array(array(right), extract_numpy=True)
+        from pandas.core.ops.array_ops import maybe_upcast_datetimelike_array
+
+        left = maybe_upcast_datetimelike_array(left)
+        right = maybe_upcast_datetimelike_array(right)
+        result._left = extract_array(left, extract_numpy=True)
+        result._right = extract_array(right, extract_numpy=True)
         result._closed = closed
         if verify_integrity:
             result._validate()
@@ -510,14 +516,14 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         left = self.left[value]
         right = self.right[value]
 
-        # scalar
         if not isinstance(left, (np.ndarray, ExtensionArray)):
+            # scalar
             if is_scalar(left) and isna(left):
                 return self._fill_value
-            if np.ndim(left) > 1:
-                # GH#30588 multi-dimensional indexer disallowed
-                raise ValueError("multi-dimensional indexing not allowed")
             return Interval(left, right, self.closed)
+        if np.ndim(left) > 1:
+            # GH#30588 multi-dimensional indexer disallowed
+            raise ValueError("multi-dimensional indexing not allowed")
         return self._shallow_copy(left, right)
 
     def __setitem__(self, key, value):
@@ -555,15 +561,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         key = check_array_indexer(self, key)
 
-        # Need to ensure that left and right are updated atomically, so we're
-        # forced to copy, update the copy, and swap in the new values.
-        left = self.left.copy()
-        left[key] = value_left
-        self._left = left
-
-        right = self.right.copy()
-        right[key] = value_right
-        self._right = right
+        self._left[key] = value_left
+        self._right[key] = value_right  # TODO: needs tests for not breaking views
 
     def __eq__(self, other):
         # ensure pandas array for list-like and eliminate non-interval scalars
