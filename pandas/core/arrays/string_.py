@@ -165,11 +165,11 @@ class StringArray(PandasArray):
     ['1', '1']
     Length: 2, dtype: string
 
-    Instantiating StringArrays directly with non-strings will raise an error unless
-    ``convert=True``.
+    Instantiating StringArrays directly with non-strings arrays  will raise an error
+    unless ``convert=True``.
 
-    >>> pd.arrays.StringArray(['1', 1])
-    TypeError: Argument 'values' has incorrect type (expected numpy.ndarray, got list)
+    >>> pd.arrays.StringArray(np.array(['1', 1], dtype=object))
+    ValueError: StringArray requires a sequence of strings or pandas.NA
     >>> pd.arrays.StringArray(['1', 1], convert=True)
     <StringArray>
     ['1', '1']
