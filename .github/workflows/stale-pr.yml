@@ -1,4 +1,4 @@
-name: "Manage stale pull requests"
+name: "Stale PRs"
 on:
   schedule:
   # * is a special character in YAML so you have to quote this string
@@ -11,7 +11,7 @@ jobs:
     - uses: actions/stale@v3
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
-        stale-pr-message: "This pull request is stale because it has been open for 30 days with no activity. Please update to prevent this from being closed."
+        stale-pr-message: "This pull request is stale because it has been open for thirty days with no activity. Please update to prevent this from being closed (you can always reopen later). If you need help don't hesitate to contact one of the maintainers."
         days-before-stale: 30
         days-before-close: -1
         debug-only: true
