@@ -955,7 +955,6 @@ Numeric
 - Bug in :meth:`DataFrame.corr` and :meth:`DataFrame.cov` raising when handling nullable integer columns with ``pandas.NA`` (:issue:`33803`)
 - Bug in arithmetic operations between :class:`DataFrame` objects with non-overlapping columns with duplicate labels causing an infinite loop (:issue:`35194`)
 - Bug in :class:`DataFrame` and :class:`Series` addition and subtraction between object-dtype objects and ``datetime64`` dtype objects (:issue:`33824`)
-- Bug in :meth:`Series.value_counts` with ``normalize=True`` for NA values (:issue:`25970`)
 - Bug in :meth:`Index.difference` giving incorrect results when comparing a :class:`Float64Index` and object :class:`Index` (:issue:`35217`)
 - Bug in :class:`DataFrame` reductions (e.g. ``df.min()``, ``df.max()``) with ``ExtensionArray`` dtypes (:issue:`34520`, :issue:`32651`)
 - :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` now raise a ValueError if ``limit_direction`` is ``'forward'`` or ``'both'`` and ``method`` is ``'backfill'`` or ``'bfill'`` or ``limit_direction`` is ``'backward'`` or ``'both'`` and ``method`` is ``'pad'`` or ``'ffill'`` (:issue:`34746`)

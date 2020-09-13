@@ -728,9 +728,8 @@ class SeriesGroupBy(GroupBy[Series]):
         sorter = np.lexsort((val_lab, ids))
         ids, val_lab = ids[sorter], val_lab[sorter]
         used_ids = unique(ids)
-        if max(used_ids) >= len(
-            codes[0]
-        ):  # this means we had something skipped from the start
+        if max(used_ids) >= len(codes[0]):
+            # this means we had something skipped from the start
             used_ids = compress_group_index(used_ids)[0]
         codes = [code[used_ids] for code in codes]  # drop what was taken out for n/a
 
