@@ -1534,3 +1534,14 @@ def test_apply_empty_list_reduce():
     result = df.apply(lambda x: [], result_type="reduce")
     expected = pd.Series({"a": [], "b": []}, dtype=object)
     tm.assert_series_equal(result, expected)
+
+
+def test_apply_no_suffix_index():
+    # GH36189
+    pdf = pd.DataFrame([[4, 9]] * 3, columns=["A", "B"])
+    result = pdf.apply(["sum", lambda x: x.sum(), lambda x: x.sum()])
+    expected = pd.DataFrame(
+        {"A": [12, 12, 12], "B": [27, 27, 27]}, index=["sum", "<lambda>", "<lambda>"]
+    )
+
+    tm.assert_frame_equal(result, expected)
