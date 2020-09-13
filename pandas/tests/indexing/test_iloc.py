@@ -364,8 +364,6 @@ class TestiLoc2:
         df.iloc[[0, 1], [0, 1]] = df.iloc[[0, 1], [0, 1]]
         tm.assert_frame_equal(df, expected)
 
-        # Setting on a multi-block DataFrame
-
         # reversed x 2
         df.iloc[[1, 0], [0, 1]] = df.iloc[[1, 0], [0, 1]].reset_index(drop=True)
         df.iloc[[1, 0], [0, 1]] = df.iloc[[1, 0], [0, 1]].reset_index(drop=True)
