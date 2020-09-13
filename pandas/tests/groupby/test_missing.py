@@ -1,9 +1,9 @@
 import numpy as np
+import pytest
 
 import pandas as pd
-import pandas._testing as tm
 from pandas import DataFrame, Index, date_range
-import pytest
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize("func", ["ffill", "bfill"])
