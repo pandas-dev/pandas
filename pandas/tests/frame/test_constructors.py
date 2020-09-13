@@ -2628,7 +2628,9 @@ class TestDataFrameConstructors:
         # GH 10863
         v = date.today()
         tup = v, v
-        result = DataFrame({tup: Series(range(3), index=range(3))}, columns=[tup])
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # GH#36131 comparison of Timestamp vs date
+            result = DataFrame({tup: Series(range(3), index=range(3))}, columns=[tup])
         expected = DataFrame([0, 1, 2], columns=Index(Series([tup])))
         tm.assert_frame_equal(result, expected)
 

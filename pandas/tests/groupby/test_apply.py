@@ -1065,7 +1065,9 @@ def test_apply_with_date_in_multiindex_does_not_convert_to_timestamp():
     )
 
     grp = df.groupby(["A", "B"])
-    result = grp.apply(lambda x: x.head(1))
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        # GH#36131 comparison of Timestamp vs date inside _make_concat_multiindex
+        result = grp.apply(lambda x: x.head(1))
 
     expected = df.iloc[[0, 2, 3]]
     expected = expected.reset_index()
