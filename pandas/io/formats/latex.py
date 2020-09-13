@@ -652,7 +652,13 @@ class LatexFormatter(TableFormatter):
         self.multicolumn = multicolumn
         self.multicolumn_format = multicolumn_format
         self.multirow = multirow
+
+        # Reason for ignoring typing in assignment:
+        # Inside caption setter we make sure that self._caption is str only.
+        # Meanwhile mypy would complain that it expects
+        # Union[str, Tuple[str, str], None].
         self.caption = caption  # type: ignore[assignment]
+
         self.label = label
         self.position = position
 
