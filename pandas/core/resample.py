@@ -22,9 +22,9 @@ from pandas.util._decorators import Appender, Substitution, doc
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 import pandas.core.algorithms as algos
-from pandas.core.base import DataError, ShallowMixin
+from pandas.core.base import DataError
 from pandas.core.generic import NDFrame, _shared_docs
-from pandas.core.groupby.base import GroupByMixin
+from pandas.core.groupby.base import GotItemMixin, ShallowMixin
 from pandas.core.groupby.generic import SeriesGroupBy
 from pandas.core.groupby.groupby import (
     BaseGroupBy,
@@ -954,7 +954,7 @@ for method in ["nunique"]:
     setattr(Resampler, method, h)
 
 
-class _GroupByMixin(GroupByMixin):
+class _GroupByMixin(GotItemMixin):
     """
     Provide the groupby facilities.
     """
