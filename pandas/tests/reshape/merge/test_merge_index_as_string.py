@@ -29,7 +29,7 @@ def df2():
 
 @pytest.fixture(params=[[], ["outer"], ["outer", "inner"]])
 def left_df(request, df1):
-    """ Construct left test DataFrame with specified levels
+    """Construct left test DataFrame with specified levels
     (any of 'outer', 'inner', and 'v1')
     """
     levels = request.param
@@ -41,7 +41,7 @@ def left_df(request, df1):
 
 @pytest.fixture(params=[[], ["outer"], ["outer", "inner"]])
 def right_df(request, df2):
-    """ Construct right test DataFrame with specified levels
+    """Construct right test DataFrame with specified levels
     (any of 'outer', 'inner', and 'v2')
     """
     levels = request.param

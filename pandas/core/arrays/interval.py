@@ -5,7 +5,12 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs.interval import Interval, IntervalMixin, intervals_to_interval_bounds
+from pandas._libs.interval import (
+    VALID_CLOSED,
+    Interval,
+    IntervalMixin,
+    intervals_to_interval_bounds,
+)
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
 
@@ -46,7 +51,6 @@ from pandas.core.construction import array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.indexes.base import ensure_index
 
-_VALID_CLOSED = {"left", "right", "both", "neither"}
 _interval_shared_docs = {}
 
 _shared_docs_kwargs = dict(
@@ -479,7 +483,7 @@ class IntervalArray(IntervalMixin, ExtensionArray, ArrayFunctionMixin):
         * left and right have the same missing values
         * left is always below right
         """
-        if self.closed not in _VALID_CLOSED:
+        if self.closed not in VALID_CLOSED:
             msg = f"invalid option for 'closed': {self.closed}"
             raise ValueError(msg)
         if len(self.left) != len(self.right):
@@ -1016,7 +1020,7 @@ class IntervalArray(IntervalMixin, ExtensionArray, ArrayFunctionMixin):
         )
     )
     def set_closed(self, closed):
-        if closed not in _VALID_CLOSED:
+        if closed not in VALID_CLOSED:
             msg = f"invalid option for 'closed': {closed}"
             raise ValueError(msg)
 
@@ -1061,7 +1065,7 @@ class IntervalArray(IntervalMixin, ExtensionArray, ArrayFunctionMixin):
 
     # https://github.com/python/mypy/issues/1362
     # Mypy does not support decorated properties
-    @property  # type: ignore
+    @property  # type: ignore[misc]
     @Appender(
         _interval_shared_docs["is_non_overlapping_monotonic"] % _shared_docs_kwargs
     )
@@ -1109,6 +1113,7 @@ class IntervalArray(IntervalMixin, ExtensionArray, ArrayFunctionMixin):
         Convert myself into a pyarrow Array.
         """
         import pyarrow
+
         from pandas.core.arrays._arrow_utils import ArrowIntervalType
 
         try:

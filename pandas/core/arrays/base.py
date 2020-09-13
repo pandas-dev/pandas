@@ -7,7 +7,7 @@ An interface for extending pandas with custom arrays.
    without warning.
 """
 import operator
-from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union, cast
 
 import numpy as np
 
@@ -20,13 +20,18 @@ from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.cast import maybe_cast_to_extension_array
-from pandas.core.dtypes.common import is_array_like, is_list_like, pandas_dtype
+from pandas.core.dtypes.common import (
+    is_array_like,
+    is_dtype_equal,
+    is_list_like,
+    pandas_dtype,
+)
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
-from pandas.core.algorithms import _factorize_array, unique
+from pandas.core.algorithms import factorize_array, unique
 from pandas.core.missing import backfill_1d, pad_1d
 from pandas.core.sorting import nargminmax, nargsort
 
@@ -777,7 +782,7 @@ class ExtensionArray:
         arr = self.astype(object)
         return arr.searchsorted(value, side=side, sorter=sorter)
 
-    def equals(self, other: "ExtensionArray") -> bool:
+    def equals(self, other: object) -> bool:
         """
         Return if another array is equivalent to this array.
 
@@ -797,7 +802,8 @@ class ExtensionArray:
         """
         if not type(self) == type(other):
             return False
-        elif not self.dtype == other.dtype:
+        other = cast(ExtensionArray, other)
+        if not is_dtype_equal(self.dtype, other.dtype):
             return False
         elif not len(self) == len(other):
             return False
@@ -874,7 +880,7 @@ class ExtensionArray:
         #    Complete control over factorization.
         arr, na_value = self._values_for_factorize()
 
-        codes, uniques = _factorize_array(
+        codes, uniques = factorize_array(
             arr, na_sentinel=na_sentinel, na_value=na_value
         )
 
@@ -1197,6 +1203,10 @@ class ExtensionOpsMixin:
     """
 
     @classmethod
+    def _create_arithmetic_method(cls, op):
+        raise AbstractMethodError(cls)
+
+    @classmethod
     def _add_arithmetic_ops(cls):
         cls.__add__ = cls._create_arithmetic_method(operator.add)
         cls.__radd__ = cls._create_arithmetic_method(ops.radd)
@@ -1216,6 +1226,10 @@ class ExtensionOpsMixin:
         cls.__rdivmod__ = cls._create_arithmetic_method(ops.rdivmod)
 
     @classmethod
+    def _create_comparison_method(cls, op):
+        raise AbstractMethodError(cls)
+
+    @classmethod
     def _add_comparison_ops(cls):
         cls.__eq__ = cls._create_comparison_method(operator.eq)
         cls.__ne__ = cls._create_comparison_method(operator.ne)
@@ -1223,6 +1237,10 @@ class ExtensionOpsMixin:
         cls.__gt__ = cls._create_comparison_method(operator.gt)
         cls.__le__ = cls._create_comparison_method(operator.le)
         cls.__ge__ = cls._create_comparison_method(operator.ge)
+
+    @classmethod
+    def _create_logical_method(cls, op):
+        raise AbstractMethodError(cls)
 
     @classmethod
     def _add_logical_ops(cls):
@@ -1308,7 +1326,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
                     ovalues = [param] * len(self)
                 return ovalues
 
-            if isinstance(other, (ABCSeries, ABCIndexClass)):
+            if isinstance(other, (ABCSeries, ABCIndexClass, ABCDataFrame)):
                 # rely on pandas to unbox and dispatch to us
                 return NotImplemented
 

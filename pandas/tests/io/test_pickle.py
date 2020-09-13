@@ -14,7 +14,9 @@ import bz2
 import datetime
 import glob
 import gzip
+import io
 import os
+from pathlib import Path
 import pickle
 import shutil
 from warnings import catch_warnings, simplefilter
@@ -22,7 +24,7 @@ import zipfile
 
 import pytest
 
-from pandas.compat import _get_lzma_file, _import_lzma, is_platform_little_endian
+from pandas.compat import get_lzma_file, import_lzma, is_platform_little_endian
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -31,7 +33,7 @@ import pandas._testing as tm
 
 from pandas.tseries.offsets import Day, MonthEnd
 
-lzma = _import_lzma()
+lzma = import_lzma()
 
 
 @pytest.fixture(scope="module")
@@ -183,6 +185,15 @@ def test_round_trip_current(current_pickle_data):
                     result = python_unpickler(path)
                     compare_element(result, expected, typ)
 
+                    # and the same for file objects (GH 35679)
+                    with open(path, mode="wb") as handle:
+                        writer(expected, path)
+                        handle.seek(0)  # shouldn't close file handle
+                    with open(path, mode="rb") as handle:
+                        result = pd.read_pickle(handle)
+                        handle.seek(0)  # shouldn't close file handle
+                    compare_element(result, expected, typ)
+
 
 def test_pickle_path_pathlib():
     df = tm.makeDataFrame()
@@ -257,7 +268,7 @@ class TestCompression:
             with zipfile.ZipFile(dest_path, "w", compression=zipfile.ZIP_DEFLATED) as f:
                 f.write(src_path, os.path.basename(src_path))
         elif compression == "xz":
-            f = _get_lzma_file(lzma)(dest_path, "w")
+            f = get_lzma_file(lzma)(dest_path, "w")
         else:
             msg = f"Unrecognized compression type: {compression}"
             raise ValueError(msg)
@@ -477,3 +488,30 @@ def test_read_pickle_with_subclass():
 
     tm.assert_series_equal(result[0], expected[0])
     assert isinstance(result[1], MyTz)
+
+
+def test_pickle_binary_object_compression(compression):
+    """
+    Read/write from binary file-objects w/wo compression.
+
+    GH 26237, GH 29054, and GH 29570
+    """
+    df = tm.makeDataFrame()
+
+    # reference for compression
+    with tm.ensure_clean() as path:
+        df.to_pickle(path, compression=compression)
+        reference = Path(path).read_bytes()
+
+    # write
+    buffer = io.BytesIO()
+    df.to_pickle(buffer, compression=compression)
+    buffer.seek(0)
+
+    # gzip  and zip safe the filename: cannot compare the compressed content
+    assert buffer.getvalue() == reference or compression in ("gzip", "zip")
+
+    # read
+    read_df = pd.read_pickle(buffer, compression=compression)
+    buffer.seek(0)
+    tm.assert_frame_equal(df, read_df)

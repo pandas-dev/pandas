@@ -20,6 +20,12 @@ class TestDatetimeIndex(DatetimeLike):
     def create_index(self) -> DatetimeIndex:
         return date_range("20130101", periods=5)
 
+    def test_format(self):
+        # GH35439
+        idx = self.create_index()
+        expected = [f"{x:%Y-%m-%d}" for x in idx]
+        assert idx.format() == expected
+
     def test_shift(self):
         pass  # handled in test_ops
 
