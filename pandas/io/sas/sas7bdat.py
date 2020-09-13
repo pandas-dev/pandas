@@ -142,8 +142,12 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
             self._path_or_buf = open(self._path_or_buf, "rb")
             self.handle = self._path_or_buf
 
-        self._get_properties()
-        self._parse_metadata()
+        try:
+            self._get_properties()
+            self._parse_metadata()
+        except Exception:
+            self.close()
+            raise
 
     def column_data_lengths(self):
         """Return a numpy int64 array of the column data lengths"""

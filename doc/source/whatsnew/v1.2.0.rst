@@ -294,6 +294,7 @@ MultiIndex
 I/O
 ^^^
 
+- :func:`read_sas` no longer leaks resources on failure (:issue:`35566`)
 - Bug in :meth:`to_csv` caused a ``ValueError`` when it was called with a filename in combination with ``mode`` containing a ``b`` (:issue:`35058`)
 - In :meth:`read_csv` `float_precision='round_trip'` now handles `decimal` and `thousands` parameters (:issue:`35365`)
 - :meth:`to_pickle` and :meth:`read_pickle` were closing user-provided file objects (:issue:`35679`)
