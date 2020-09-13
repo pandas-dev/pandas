@@ -281,12 +281,13 @@ cdef class _Timestamp(ABCTimestamp):
             #  which incorrectly drops tz and normalizes to midnight
             #  before comparing
             # We follow the stdlib datetime behavior of never being equal
-            if op == Py_NE:
-                return True
-            elif op == Py_EQ:
-                return False
-            raise TypeError("Cannot compare Timestamp with datetime.date object")
-
+            warnings.warn(
+                "Comparison of Timestamp with datetime.date is deprecated in "
+                "order to match the standard library behavior.  "
+                "In a future version these will be considered non-comparable."
+                "Use ts == pd.Timestamp(dt) instead.", FutureWarning
+            )
+            return NotImplemented
         else:
             return NotImplemented
 

@@ -135,21 +135,39 @@ class TestTimestampComparison:
 
     @pytest.mark.parametrize("tz", [None, "US/Pacific"])
     def test_compare_date(self, tz):
+        # GH#36131 comparing Timestamp with date object is deprecated
         ts = Timestamp.now(tz)
         dt = ts.to_pydatetime().date()
+        # These are incorrectly considered as equal because they
+        #  dispatch to the date comparisons which truncates ts
 
         for left, right in [(ts, dt), (dt, ts)]:
-            assert not left == right
-            assert left != right
+            with tm.assert_produces_warning(FutureWarning):
+                assert left == right
+            with tm.assert_produces_warning(FutureWarning):
+                assert not left != right
+            with tm.assert_produces_warning(FutureWarning):
+                assert not left < right
+            with tm.assert_produces_warning(FutureWarning):
+                assert left <= right
+            with tm.assert_produces_warning(FutureWarning):
+                assert not left > right
+            with tm.assert_produces_warning(FutureWarning):
+                assert left >= right
 
-            with pytest.raises(TypeError):
-                left < right
-            with pytest.raises(TypeError):
-                left <= right
-            with pytest.raises(TypeError):
-                left > right
-            with pytest.raises(TypeError):
-                left >= right
+        # Once the deprecation is enforced, the following assertions
+        #  can be enabled:
+        #    assert not left == right
+        #    assert left != right
+        #
+        #    with pytest.raises(TypeError):
+        #        left < right
+        #    with pytest.raises(TypeError):
+        #        left <= right
+        #    with pytest.raises(TypeError):
+        #        left > right
+        #    with pytest.raises(TypeError):
+        #        left >= right
 
     def test_cant_compare_tz_naive_w_aware(self, utc_fixture):
         # see GH#1404

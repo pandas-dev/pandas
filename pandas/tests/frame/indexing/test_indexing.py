@@ -1931,7 +1931,9 @@ class TestDataFrameIndexing:
         assert pd.Timestamp("2008-08-08") == df.loc[0, "c"]
         assert pd.Timestamp("2008-08-08") == df.loc[1, "c"]
         df.loc[2, "c"] = date(2005, 5, 5)
-        assert pd.Timestamp("2005-05-05") != df.loc[2, "c"]
+        with tm.assert_produces_warning(FutureWarning):
+            # Comparing Timestamp to date obj is deprecated
+            assert pd.Timestamp("2005-05-05") == df.loc[2, "c"]
         assert pd.Timestamp("2005-05-05").date() == df.loc[2, "c"]
 
     def test_setitem_datetimelike_with_inference(self):
