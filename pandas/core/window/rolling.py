@@ -392,7 +392,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                 # insert at the end
                 result[name] = extra_col
 
-    def calculate_center_offset(self, window, center: bool) -> int:
+    def calculate_center_offset(self, window: Union[np.ndarray, int], center: bool) -> int:
         """
         Calculate an offset necessary to have the window label to be centered.
 
@@ -1208,7 +1208,7 @@ class Window(_Window):
         window_func = self._get_roll_func("roll_weighted_mean")
         window_func = get_weighted_roll_func(window_func)
         return self._apply(
-            window_func, center=self.center, is_weighted=True, name="mean", **kwargs,
+            window_func, center=self.center, is_weighted=True, name="mean", **kwargs
         )
 
     @Substitution(name="window", versionadded="\n.. versionadded:: 1.0.0\n")
@@ -2275,7 +2275,7 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
             obj = obj.take(groupby_order)
         return super()._create_data(obj)
 
-    def calculate_center_offset(self, window, center: bool) -> int:
+    def calculate_center_offset(self, window: Union[np.ndarray, int], center: bool) -> int:
         """
         Calculate an offset necessary to have the window label to be centered.
 
