@@ -707,7 +707,7 @@ class LatexFormatter(TableFormatter):
                 try:
                     self._caption, self.short_caption = caption
                 except ValueError as err:
-                    msg = "caption must be either str or tuple of two strings"
+                    msg = "caption must be either a string or a tuple of two strings"
                     raise ValueError(msg) from err
         else:
             self._caption = ""
