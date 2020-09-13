@@ -8809,6 +8809,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
+        other = com.apply_if_callable(other, self)
         # align the cond to same shape as myself
         cond = com.apply_if_callable(cond, self)
         if isinstance(cond, NDFrame):
@@ -8955,7 +8956,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         level=None,
         errors="raise",
         try_cast=False,
-        invert=False,
     ):
         """
         Replace values where the condition is {cond_rev}.
@@ -8988,11 +8988,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             - 'ignore' : suppress exceptions. On error return original object.
         try_cast : bool, default False
             Try to cast the result back to the input type (if possible).
-        invert : bool, default False
-            Whether or not to invert `cond`. This is done after alignment and
-            filling any missing values with `False`.
-
-            .. versionadded:: 1.2
 
         Returns
         -------
@@ -9076,16 +9071,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         3  True  True
         4  True  True
         """
-        other = com.apply_if_callable(other, self)
         return self._where(
-            cond,
-            other,
-            inplace,
-            axis,
-            level,
-            errors=errors,
-            try_cast=try_cast,
-            invert=invert,
+            cond, other, inplace, axis, level, errors=errors, try_cast=try_cast,
         )
 
     @doc(
@@ -9110,7 +9097,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         inplace = validate_bool_kwarg(inplace, "inplace")
         cond = com.apply_if_callable(cond, self)
 
-        return self.where(
+        return self._where(
             cond,
             other=other,
             inplace=inplace,
