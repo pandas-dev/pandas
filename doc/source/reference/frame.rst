@@ -37,6 +37,7 @@ Attributes and underlying data
    DataFrame.shape
    DataFrame.memory_usage
    DataFrame.empty
+   DataFrame.set_flags
 
 Conversion
 ~~~~~~~~~~
@@ -276,6 +277,21 @@ Time Series-related
    DataFrame.tz_convert
    DataFrame.tz_localize
 
+.. _api.frame.flags:
+
+Flags
+~~~~~
+
+Flags refer to attributes of the pandas object. Properties of the dataset (like
+the date is was recorded, the URL it was accessed from, etc.) should be stored
+in :attr:`DataFrame.attrs`.
+
+.. autosummary::
+   :toctree: api/
+
+   Flags
+
+
 .. _api.frame.metadata:
 
 Metadata
@@ -343,6 +359,7 @@ Sparse-dtype specific methods and attributes are provided under the
 
 .. autosummary::
    :toctree: api/
+   :template: autosummary/accessor_method.rst
 
    DataFrame.sparse.from_spmatrix
    DataFrame.sparse.to_coo

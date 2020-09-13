@@ -51,7 +51,6 @@ Bug fixes
 
 - Bug where calling :meth:`Series.replace` on categorical data could return a ``Series`` with incorrect dimensions (:issue:`24971`)
 -
--
 
 **Reshaping**
 

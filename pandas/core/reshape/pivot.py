@@ -12,7 +12,7 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import Label
+from pandas._typing import FrameOrSeriesUnion, Label
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
@@ -200,7 +200,7 @@ def pivot_table(
 
 
 def _add_margins(
-    table: Union["Series", "DataFrame"],
+    table: FrameOrSeriesUnion,
     data,
     values,
     rows,
@@ -239,7 +239,7 @@ def _add_margins(
 
     elif values:
         marginal_result_set = _generate_marginal_results(
-            table, data, values, rows, cols, aggfunc, observed, margins_name,
+            table, data, values, rows, cols, aggfunc, observed, margins_name
         )
         if not isinstance(marginal_result_set, tuple):
             return marginal_result_set
@@ -308,7 +308,7 @@ def _compute_grand_margin(data, values, aggfunc, margins_name: str = "All"):
 
 
 def _generate_marginal_results(
-    table, data, values, rows, cols, aggfunc, observed, margins_name: str = "All",
+    table, data, values, rows, cols, aggfunc, observed, margins_name: str = "All"
 ):
     if len(cols) > 0:
         # need to "interleave" the margins
@@ -670,12 +670,11 @@ def _normalize(table, normalize, margins: bool, margins_name="All"):
         # keep index and column of pivoted table
         table_index = table.index
         table_columns = table.columns
+        last_ind_or_col = table.iloc[-1, :].name
 
-        # check if margin name is in (for MI cases) or equal to last
+        # check if margin name is not in (for MI cases) and not equal to last
         # index/column and save the column and index margin
-        if (margins_name not in table.iloc[-1, :].name) | (
-            margins_name != table.iloc[:, -1].name
-        ):
+        if (margins_name not in last_ind_or_col) & (margins_name != last_ind_or_col):
             raise ValueError(f"{margins_name} not in pivoted DataFrame")
         column_margin = table.iloc[:-1, -1]
         index_margin = table.iloc[-1, :-1]

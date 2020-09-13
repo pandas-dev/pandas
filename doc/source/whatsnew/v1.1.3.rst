@@ -1,0 +1,44 @@
+.. _whatsnew_113:
+
+What's new in 1.1.3 (??)
+------------------------
+
+These are the changes in pandas 1.1.3. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_113.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Fixed regression in :meth:`Series.__getitem__` incorrectly raising when the input was a tuple (:issue:`35534`)
+- Fixed regression in :meth:`Series.__getitem__` incorrectly raising when the input was a frozenset (:issue:`35747`)
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_113.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+- Bug in :meth:`Series.str.startswith` and :meth:`Series.str.endswith` with ``category`` dtype not propagating ``na`` parameter (:issue:`36241`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_113.other:
+
+Other
+~~~~~
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_113.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.1.2..v1.1.3|HEAD

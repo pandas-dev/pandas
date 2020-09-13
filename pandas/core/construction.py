@@ -4,6 +4,7 @@ and Index.__new__.
 
 These should not depend on core.internals.
 """
+from __future__ import annotations
 
 from collections import abc
 from typing import TYPE_CHECKING, Any, Optional, Sequence, Union, cast
@@ -35,6 +36,7 @@ from pandas.core.dtypes.common import (
     is_iterator,
     is_list_like,
     is_object_dtype,
+    is_sparse,
     is_timedelta64_ns_dtype,
 )
 from pandas.core.dtypes.generic import (
@@ -48,16 +50,14 @@ from pandas.core.dtypes.missing import isna
 import pandas.core.common as com
 
 if TYPE_CHECKING:
-    from pandas.core.series import Series  # noqa: F401
-    from pandas.core.indexes.api import Index  # noqa: F401
-    from pandas.core.arrays import ExtensionArray  # noqa: F401
+    from pandas import ExtensionArray, Index, Series
 
 
 def array(
     data: Union[Sequence[object], AnyArrayLike],
     dtype: Optional[Dtype] = None,
     copy: bool = True,
-) -> "ExtensionArray":
+) -> ExtensionArray:
     """
     Create an array.
 
@@ -255,14 +255,14 @@ def array(
     ValueError: Cannot pass scalar '1' to 'pandas.array'.
     """
     from pandas.core.arrays import (
-        period_array,
         BooleanArray,
+        DatetimeArray,
         IntegerArray,
         IntervalArray,
         PandasArray,
-        DatetimeArray,
-        TimedeltaArray,
         StringArray,
+        TimedeltaArray,
+        period_array,
     )
 
     if lib.is_scalar(data):
@@ -335,7 +335,7 @@ def array(
     return result
 
 
-def extract_array(obj, extract_numpy: bool = False):
+def extract_array(obj: AnyArrayLike, extract_numpy: bool = False) -> ArrayLike:
     """
     Extract the ndarray or ExtensionArray from a Series or Index.
 
@@ -383,12 +383,14 @@ def extract_array(obj, extract_numpy: bool = False):
     if extract_numpy and isinstance(obj, ABCPandasArray):
         obj = obj.to_numpy()
 
-    return obj
+    # error: Incompatible return value type (got "Index", expected "ExtensionArray")
+    # error: Incompatible return value type (got "Series", expected "ExtensionArray")
+    return obj  # type: ignore[return-value]
 
 
 def sanitize_array(
     data,
-    index: Optional["Index"],
+    index: Optional[Index],
     dtype: Optional[DtypeObj] = None,
     copy: bool = False,
     raise_cast_failure: bool = False,
@@ -436,7 +438,12 @@ def sanitize_array(
             subarr = subarr.copy()
         return subarr
 
-    elif isinstance(data, (list, tuple)) and len(data) > 0:
+    elif isinstance(data, (list, tuple, abc.Set, abc.ValuesView)) and len(data) > 0:
+        if isinstance(data, set):
+            # Raise only for unordered sets, e.g., not for dict_keys
+            raise TypeError("Set type is unordered")
+        data = list(data)
+
         if dtype is not None:
             subarr = _try_cast(data, dtype, copy, raise_cast_failure)
         else:
@@ -448,8 +455,6 @@ def sanitize_array(
         # GH#16804
         arr = np.arange(data.start, data.stop, data.step, dtype="int64")
         subarr = _try_cast(arr, dtype, copy, raise_cast_failure)
-    elif isinstance(data, abc.Set):
-        raise TypeError("Set type is unordered")
     elif lib.is_scalar(data) and index is not None and dtype is not None:
         data = maybe_cast_to_datetime(data, dtype)
         if not lib.is_scalar(data):
@@ -467,7 +472,7 @@ def sanitize_array(
 
             # figure out the dtype from the value (upcast if necessary)
             if dtype is None:
-                dtype, value = infer_dtype_from_scalar(value)
+                dtype, value = infer_dtype_from_scalar(value, pandas_dtype=True)
             else:
                 # need to possibly convert the value here
                 value = maybe_cast_to_datetime(value, dtype)
@@ -513,9 +518,7 @@ def sanitize_array(
     return subarr
 
 
-def _try_cast(
-    arr, dtype: Optional[DtypeObj], copy: bool, raise_cast_failure: bool,
-):
+def _try_cast(arr, dtype: Optional[DtypeObj], copy: bool, raise_cast_failure: bool):
     """
     Convert input to numpy ndarray and optionally cast to a given dtype.
 
@@ -535,9 +538,10 @@ def _try_cast(
         if maybe_castable(arr) and not copy and dtype is None:
             return arr
 
-    if isinstance(dtype, ExtensionDtype) and dtype.kind != "M":
+    if isinstance(dtype, ExtensionDtype) and (dtype.kind != "M" or is_sparse(dtype)):
         # create an extension array from its dtype
-        # DatetimeTZ case needs to go through maybe_cast_to_datetime
+        # DatetimeTZ case needs to go through maybe_cast_to_datetime but
+        # SparseDtype does not
         array_type = dtype.construct_array_type()._from_sequence
         subarr = array_type(arr, dtype=dtype, copy=copy)
         return subarr
@@ -594,13 +598,13 @@ def is_empty_data(data: Any) -> bool:
 
 def create_series_with_explicit_dtype(
     data: Any = None,
-    index: Optional[Union[ArrayLike, "Index"]] = None,
+    index: Optional[Union[ArrayLike, Index]] = None,
     dtype: Optional[Dtype] = None,
     name: Optional[str] = None,
     copy: bool = False,
     fastpath: bool = False,
     dtype_if_empty: Dtype = object,
-) -> "Series":
+) -> Series:
     """
     Helper to pass an explicit dtype when instantiating an empty Series.
 

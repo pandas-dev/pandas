@@ -106,7 +106,7 @@ class _IntegerDtype(BaseMaskedDtype):
             [t.numpy_dtype if isinstance(t, BaseMaskedDtype) else t for t in dtypes], []
         )
         if np.issubdtype(np_dtype, np.integer):
-            return _dtypes[str(np_dtype)]
+            return STR_TO_DTYPE[str(np_dtype)]
         return None
 
     def __from_arrow__(
@@ -116,6 +116,7 @@ class _IntegerDtype(BaseMaskedDtype):
         Construct IntegerArray from pyarrow Array/ChunkedArray.
         """
         import pyarrow  # noqa: F811
+
         from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
 
         pyarrow_type = pyarrow.from_numpy_dtype(self.type)
@@ -137,7 +138,7 @@ class _IntegerDtype(BaseMaskedDtype):
         return IntegerArray._concat_same_type(results)
 
 
-def integer_array(values, dtype=None, copy: bool = False,) -> "IntegerArray":
+def integer_array(values, dtype=None, copy: bool = False) -> "IntegerArray":
     """
     Infer and return an integer array of the values.
 
@@ -181,7 +182,7 @@ def safe_cast(values, dtype, copy: bool):
 
 
 def coerce_to_array(
-    values, dtype, mask=None, copy: bool = False,
+    values, dtype, mask=None, copy: bool = False
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Coerce the input values array to numpy arrays with a mask
@@ -213,7 +214,7 @@ def coerce_to_array(
 
         if not issubclass(type(dtype), _IntegerDtype):
             try:
-                dtype = _dtypes[str(np.dtype(dtype))]
+                dtype = STR_TO_DTYPE[str(np.dtype(dtype))]
             except KeyError as err:
                 raise ValueError(f"invalid dtype specified {dtype}") from err
 
@@ -353,7 +354,7 @@ class IntegerArray(BaseMaskedArray):
 
     @cache_readonly
     def dtype(self) -> _IntegerDtype:
-        return _dtypes[str(self._data.dtype)]
+        return STR_TO_DTYPE[str(self._data.dtype)]
 
     def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
         if not (isinstance(values, np.ndarray) and values.dtype.kind in ["i", "u"]):
@@ -734,7 +735,7 @@ class UInt64Dtype(_IntegerDtype):
     __doc__ = _dtype_docstring.format(dtype="uint64")
 
 
-_dtypes: Dict[str, _IntegerDtype] = {
+STR_TO_DTYPE: Dict[str, _IntegerDtype] = {
     "int8": Int8Dtype(),
     "int16": Int16Dtype(),
     "int32": Int32Dtype(),

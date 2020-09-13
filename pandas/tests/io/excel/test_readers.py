@@ -1,9 +1,7 @@
-import contextlib
 from datetime import datetime, time
 from functools import partial
 import os
 from urllib.error import URLError
-import warnings
 
 import numpy as np
 import pytest
@@ -13,22 +11,6 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
 import pandas._testing as tm
-
-
-@contextlib.contextmanager
-def ignore_xlrd_time_clock_warning():
-    """
-    Context manager to ignore warnings raised by the xlrd library,
-    regarding the deprecation of `time.clock` in Python 3.7.
-    """
-    with warnings.catch_warnings():
-        warnings.filterwarnings(
-            action="ignore",
-            message="time.clock has been deprecated",
-            category=DeprecationWarning,
-        )
-        yield
-
 
 read_ext_params = [".xls", ".xlsx", ".xlsm", ".xlsb", ".ods"]
 engine_params = [
@@ -134,21 +116,19 @@ class TestReaders:
         # usecols as int
         msg = "Passing an integer for `usecols`"
         with pytest.raises(ValueError, match=msg):
-            with ignore_xlrd_time_clock_warning():
-                pd.read_excel(
-                    "test1" + read_ext, sheet_name="Sheet1", index_col=0, usecols=3
-                )
+            pd.read_excel(
+                "test1" + read_ext, sheet_name="Sheet1", index_col=0, usecols=3
+            )
 
         # usecols as int
         with pytest.raises(ValueError, match=msg):
-            with ignore_xlrd_time_clock_warning():
-                pd.read_excel(
-                    "test1" + read_ext,
-                    sheet_name="Sheet2",
-                    skiprows=[1],
-                    index_col=0,
-                    usecols=3,
-                )
+            pd.read_excel(
+                "test1" + read_ext,
+                sheet_name="Sheet2",
+                skiprows=[1],
+                index_col=0,
+                usecols=3,
+            )
 
     def test_usecols_list(self, read_ext, df_ref):
         if pd.read_excel.keywords["engine"] == "pyxlsb":
@@ -597,8 +577,7 @@ class TestReaders:
         df1 = pd.read_excel(
             filename + read_ext, sheet_name=sheet_name, index_col=0
         )  # doc
-        with ignore_xlrd_time_clock_warning():
-            df2 = pd.read_excel(filename + read_ext, index_col=0, sheet_name=sheet_name)
+        df2 = pd.read_excel(filename + read_ext, index_col=0, sheet_name=sheet_name)
 
         tm.assert_frame_equal(df1, df_ref, check_names=False)
         tm.assert_frame_equal(df2, df_ref, check_names=False)
@@ -627,13 +606,14 @@ class TestReaders:
         tm.assert_frame_equal(url_table, local_table)
 
     @td.skip_if_not_us_locale
-    def test_read_from_s3_url(self, read_ext, s3_resource):
+    def test_read_from_s3_url(self, read_ext, s3_resource, s3so):
         # Bucket "pandas-test" created in tests/io/conftest.py
         with open("test1" + read_ext, "rb") as f:
             s3_resource.Bucket("pandas-test").put_object(Key="test1" + read_ext, Body=f)
 
         url = "s3://pandas-test/test1" + read_ext
-        url_table = pd.read_excel(url)
+
+        url_table = pd.read_excel(url, storage_options=s3so)
         local_table = pd.read_excel("test1" + read_ext)
         tm.assert_frame_equal(url_table, local_table)
 

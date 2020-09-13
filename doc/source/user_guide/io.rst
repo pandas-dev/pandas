@@ -287,16 +287,19 @@ Quoting, compression, and file format
 
 compression : {``'infer'``, ``'gzip'``, ``'bz2'``, ``'zip'``, ``'xz'``, ``None``, ``dict``}, default ``'infer'``
   For on-the-fly decompression of on-disk data. If 'infer', then use gzip,
-  bz2, zip, or xz if filepath_or_buffer is a string ending in '.gz', '.bz2',
+  bz2, zip, or xz if ``filepath_or_buffer`` is path-like ending in '.gz', '.bz2',
   '.zip', or '.xz', respectively, and no decompression otherwise. If using 'zip',
   the ZIP file must contain only one data file to be read in.
   Set to ``None`` for no decompression. Can also be a dict with key ``'method'``
-  set to one of {``'zip'``, ``'gzip'``, ``'bz2'``}, and other keys set to
-  compression settings. As an example, the following could be passed for
-  faster compression: ``compression={'method': 'gzip', 'compresslevel': 1}``.
+  set to one of {``'zip'``, ``'gzip'``, ``'bz2'``} and other key-value pairs are
+  forwarded to ``zipfile.ZipFile``, ``gzip.GzipFile``, or ``bz2.BZ2File``.
+  As an example, the following could be passed for faster compression and to
+  create a reproducible gzip archive:
+  ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
 
   .. versionchanged:: 0.24.0 'infer' option added and set to default.
   .. versionchanged:: 1.1.0 dict option extended to support ``gzip`` and ``bz2``.
+  .. versionchanged:: 1.2.0 Previous versions forwarded dict entries for 'gzip' to `gzip.open`.
 thousands : str, default ``None``
   Thousands separator.
 decimal : str, default ``'.'``
@@ -927,7 +930,7 @@ take full advantage of the flexibility of the date parsing API:
 .. ipython:: python
 
    df = pd.read_csv('tmp.csv', header=None, parse_dates=date_spec,
-                    date_parser=pd.io.date_converters.parse_date_time)
+                    date_parser=pd.to_datetime)
    df
 
 Pandas will try to call the ``date_parser`` function in three different ways. If
@@ -938,11 +941,6 @@ an exception is raised, the next one is tried:
 
 2. If #1 fails, ``date_parser`` is called with all the columns
    concatenated row-wise into a single array (e.g., ``date_parser(['2013 1', '2013 2'])``).
-
-3. If #2 fails, ``date_parser`` is called once for every row with one or more
-   string arguments from the columns indicated with `parse_dates`
-   (e.g., ``date_parser('2013', '1')`` for the first row, ``date_parser('2013', '2')``
-   for the second, etc.).
 
 Note that performance-wise, you should try these methods of parsing dates in order:
 
@@ -955,14 +953,6 @@ Note that performance-wise, you should try these methods of parsing dates in ord
    For optimal performance, this should be vectorized, i.e., it should accept arrays
    as arguments.
 
-You can explore the date parsing functionality in
-`date_converters.py <https://github.com/pandas-dev/pandas/blob/master/pandas/io/date_converters.py>`__
-and add your own. We would love to turn this module into a community supported
-set of date/time parsers. To get you started, ``date_converters.py`` contains
-functions to parse dual date and time columns, year/month/day columns,
-and year/month/day/hour/minute/second columns. It also contains a
-``generic_parser`` function so you can curry it with a function that deals with
-a single date rather than the entire array.
 
 .. ipython:: python
    :suppress:
@@ -1063,6 +1053,23 @@ DD/MM/YYYY instead. For convenience, a ``dayfirst`` keyword is provided:
 
    pd.read_csv('tmp.csv', parse_dates=[0])
    pd.read_csv('tmp.csv', dayfirst=True, parse_dates=[0])
+
+Writing CSVs to binary file objects
++++++++++++++++++++++++++++++++++++
+
+.. versionadded:: 1.2.0
+
+``df.to_csv(..., mode="w+b")`` allows writing a CSV to a file object
+opened binary mode. For this to work, it is necessary that ``mode``
+contains a "b":
+
+.. ipython:: python
+
+   import io
+
+   data = pd.DataFrame([0, 1, 2])
+   buffer = io.BytesIO()
+   data.to_csv(buffer, mode="w+b", encoding="utf-8", compression="gzip")
 
 .. _io.float_precision:
 
@@ -1632,29 +1639,72 @@ options include:
 Specifying any of the above options will produce a ``ParserWarning`` unless the
 python engine is selected explicitly using ``engine='python'``.
 
-Reading remote files
-''''''''''''''''''''
+.. _io.remote:
 
-You can pass in a URL to a CSV file:
+Reading/writing remote files
+''''''''''''''''''''''''''''
+
+You can pass in a URL to read or write remote files to many of Pandas' IO
+functions - the following example shows reading a CSV file:
 
 .. code-block:: python
 
    df = pd.read_csv('https://download.bls.gov/pub/time.series/cu/cu.item',
                     sep='\t')
 
-S3 URLs are handled as well but require installing the `S3Fs
+All URLs which are not local files or HTTP(s) are handled by
+`fsspec`_, if installed, and its various filesystem implementations
+(including Amazon S3, Google Cloud, SSH, FTP, webHDFS...).
+Some of these implementations will require additional packages to be
+installed, for example
+S3 URLs require the `s3fs
 <https://pypi.org/project/s3fs/>`_ library:
 
 .. code-block:: python
 
-   df = pd.read_csv('s3://pandas-test/tips.csv')
+   df = pd.read_json('s3://pandas-test/adatafile.json')
 
-If your S3 bucket requires credentials you will need to set them as environment
-variables or in the ``~/.aws/credentials`` config file, refer to the `S3Fs
-documentation on credentials
-<https://s3fs.readthedocs.io/en/latest/#credentials>`_.
+When dealing with remote storage systems, you might need
+extra configuration with environment variables or config files in
+special locations. For example, to access data in your S3 bucket,
+you will need to define credentials in one of the several ways listed in
+the `S3Fs documentation
+<https://s3fs.readthedocs.io/en/latest/#credentials>`_. The same is true
+for several of the storage backends, and you should follow the links
+at `fsimpl1`_ for implementations built into ``fsspec`` and `fsimpl2`_
+for those not included in the main ``fsspec``
+distribution.
 
+You can also pass parameters directly to the backend driver. For example,
+if you do *not* have S3 credentials, you can still access public data by
+specifying an anonymous connection, such as
 
+.. versionadded:: 1.2.0
+
+.. code-block:: python
+
+   pd.read_csv("s3://ncei-wcsd-archive/data/processed/SH1305/18kHz/SaKe2013"
+               "-D20130523-T080854_to_SaKe2013-D20130523-T085643.csv",
+               storage_options={"anon": True})
+
+``fsspec`` also allows complex URLs, for accessing data in compressed
+archives, local caching of files, and more. To locally cache the above
+example, you would modify the call to
+
+.. code-block:: python
+
+   pd.read_csv("simplecache::s3://ncei-wcsd-archive/data/processed/SH1305/18kHz/"
+               "SaKe2013-D20130523-T080854_to_SaKe2013-D20130523-T085643.csv",
+               storage_options={"s3": {"anon": True}})
+
+where we specify that the "anon" parameter is meant for the "s3" part of
+the implementation, not to the caching implementation. Note that this caches to a temporary
+directory for the duration of the session only, but you can also specify
+a permanent store.
+
+.. _fsspec: https://filesystem-spec.readthedocs.io/en/latest/
+.. _fsimpl1: https://filesystem-spec.readthedocs.io/en/latest/api.html#built-in-implementations
+.. _fsimpl2: https://filesystem-spec.readthedocs.io/en/latest/api.html#other-known-implementations
 
 Writing out data
 ''''''''''''''''
@@ -2349,7 +2399,7 @@ indicate missing values and the subsequent read cannot distinguish the intent.
 
    os.remove('test.json')
 
-.. _Table Schema: https://specs.frictionlessdata.io/json-table-schema/
+.. _Table Schema: https://specs.frictionlessdata.io/table-schema/
 
 HTML
 ----
@@ -2961,19 +3011,12 @@ It is often the case that users will insert columns to do temporary computations
 in Excel and you may not want to read in those columns. ``read_excel`` takes
 a ``usecols`` keyword to allow you to specify a subset of columns to parse.
 
-.. deprecated:: 0.24.0
+.. versionchanged:: 1.0.0
 
-Passing in an integer for ``usecols`` has been deprecated. Please pass in a list
+Passing in an integer for ``usecols`` will no longer work. Please pass in a list
 of ints from 0 to ``usecols`` inclusive instead.
 
-If ``usecols`` is an integer, then it is assumed to indicate the last column
-to be parsed.
-
-.. code-block:: python
-
-   pd.read_excel('path_to_file.xls', 'Sheet1', usecols=2)
-
-You can also specify a comma-delimited set of Excel columns and ranges as a string:
+You can specify a comma-delimited set of Excel columns and ranges as a string:
 
 .. code-block:: python
 
@@ -3441,10 +3484,11 @@ for some advanced strategies
 
 .. warning::
 
-   pandas requires ``PyTables`` >= 3.0.0.
-   There is a indexing bug in ``PyTables`` < 3.2 which may appear when querying stores using an index.
-   If you see a subset of results being returned, upgrade to ``PyTables`` >= 3.2.
-   Stores created previously will need to be rewritten using the updated version.
+   Pandas uses PyTables for reading and writing HDF5 files, which allows
+   serializing object-dtype data with pickle. Loading pickled data received from
+   untrusted sources can be unsafe.
+
+   See: https://docs.python.org/3/library/pickle.html for more.
 
 .. ipython:: python
    :suppress:
