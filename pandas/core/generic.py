@@ -40,6 +40,7 @@ from pandas._typing import (
     CompressionOptions,
     FilePathOrBuffer,
     FrameOrSeries,
+    IndexLabel,
     JSONSerializable,
     Label,
     Level,
@@ -102,7 +103,7 @@ from pandas.core.indexes.period import Period, PeriodIndex
 import pandas.core.indexing as indexing
 from pandas.core.internals import BlockManager
 from pandas.core.missing import find_valid_index
-from pandas.core.ops import _align_method_FRAME
+from pandas.core.ops import align_method_FRAME
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.window import Expanding, ExponentialMovingWindow, Rolling, Window
 
@@ -1416,7 +1417,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ):
             arr = operator.pos(values)
         else:
-            raise TypeError(f"Unary plus expects numeric dtype, not {values.dtype}")
+            raise TypeError(
+                "Unary plus expects bool, numeric, timedelta, "
+                f"or object dtype, not {values.dtype}"
+            )
         return self.__array_wrap__(arr)
 
     def __invert__(self):
@@ -3160,7 +3164,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         columns: Optional[Sequence[Label]] = None,
         header: Union[bool_t, List[str]] = True,
         index: bool_t = True,
-        index_label: Optional[Union[bool_t, str, Sequence[Label]]] = None,
+        index_label: IndexLabel = None,
         mode: str = "w",
         encoding: Optional[str] = None,
         compression: CompressionOptions = "infer",
@@ -7402,7 +7406,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if isinstance(self, ABCSeries):
                 threshold = self._constructor(threshold, index=self.index)
             else:
-                threshold = _align_method_FRAME(self, threshold, axis, flex=None)[1]
+                threshold = align_method_FRAME(self, threshold, axis, flex=None)[1]
         return self.where(subset, threshold, axis=axis, inplace=inplace)
 
     def clip(
@@ -10646,80 +10650,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             axis=axis,
             times=times,
         )
-
-    @doc(klass=_shared_doc_kwargs["klass"], axis="")
-    def transform(self, func, *args, **kwargs):
-        """
-        Call ``func`` on self producing a {klass} with transformed values.
-
-        Produced {klass} will have same axis length as self.
-
-        Parameters
-        ----------
-        func : function, str, list or dict
-            Function to use for transforming the data. If a function, must either
-            work when passed a {klass} or when passed to {klass}.apply.
-
-            Accepted combinations are:
-
-            - function
-            - string function name
-            - list of functions and/or function names, e.g. ``[np.exp, 'sqrt']``
-            - dict of axis labels -> functions, function names or list of such.
-        {axis}
-        *args
-            Positional arguments to pass to `func`.
-        **kwargs
-            Keyword arguments to pass to `func`.
-
-        Returns
-        -------
-        {klass}
-            A {klass} that must have the same length as self.
-
-        Raises
-        ------
-        ValueError : If the returned {klass} has a different length than self.
-
-        See Also
-        --------
-        {klass}.agg : Only perform aggregating type operations.
-        {klass}.apply : Invoke function on a {klass}.
-
-        Examples
-        --------
-        >>> df = pd.DataFrame({{'A': range(3), 'B': range(1, 4)}})
-        >>> df
-           A  B
-        0  0  1
-        1  1  2
-        2  2  3
-        >>> df.transform(lambda x: x + 1)
-           A  B
-        0  1  2
-        1  2  3
-        2  3  4
-
-        Even though the resulting {klass} must have the same length as the
-        input {klass}, it is possible to provide several input functions:
-
-        >>> s = pd.Series(range(3))
-        >>> s
-        0    0
-        1    1
-        2    2
-        dtype: int64
-        >>> s.transform([np.sqrt, np.exp])
-               sqrt        exp
-        0  0.000000   1.000000
-        1  1.000000   2.718282
-        2  1.414214   7.389056
-        """
-        result = self.agg(func, *args, **kwargs)
-        if is_scalar(result) or len(result) != len(self):
-            raise ValueError("transforms cannot produce aggregated results")
-
-        return result
 
     # ----------------------------------------------------------------------
     # Misc methods

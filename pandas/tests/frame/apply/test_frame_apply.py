@@ -630,6 +630,22 @@ class TestDataFrameApply:
                 result = frame.applymap(func)
                 tm.assert_frame_equal(result, frame)
 
+    def test_applymap_na_ignore(self, float_frame):
+        # GH 23803
+        strlen_frame = float_frame.applymap(lambda x: len(str(x)))
+        float_frame_with_na = float_frame.copy()
+        mask = np.random.randint(0, 2, size=float_frame.shape, dtype=bool)
+        float_frame_with_na[mask] = pd.NA
+        strlen_frame_na_ignore = float_frame_with_na.applymap(
+            lambda x: len(str(x)), na_action="ignore"
+        )
+        strlen_frame_with_na = strlen_frame.copy()
+        strlen_frame_with_na[mask] = pd.NA
+        tm.assert_frame_equal(strlen_frame_na_ignore, strlen_frame_with_na)
+
+        with pytest.raises(ValueError, match="na_action must be .*Got 'abc'"):
+            float_frame_with_na.applymap(lambda x: len(str(x)), na_action="abc")
+
     def test_applymap_box_timestamps(self):
         # GH 2689, GH 2627
         ser = pd.Series(date_range("1/1/2000", periods=10))
@@ -1130,6 +1146,21 @@ class TestDataFrameAggregate:
             index=["max", "min", "sum"],
         )
         tm.assert_frame_equal(result.reindex_like(expected), expected)
+
+    def test_agg_with_name_as_column_name(self):
+        # GH 36212 - Column name is "name"
+        data = {"name": ["foo", "bar"]}
+        df = pd.DataFrame(data)
+
+        # result's name should be None
+        result = df.agg({"name": "count"})
+        expected = pd.Series({"name": 2})
+        tm.assert_series_equal(result, expected)
+
+        # Check if name is still preserved when aggregating series instead
+        result = df["name"].agg({"name": "count"})
+        expected = pd.Series({"name": 2}, name="name")
+        tm.assert_series_equal(result, expected)
 
     def test_agg_multiple_mixed_no_warning(self):
         # GH 20909

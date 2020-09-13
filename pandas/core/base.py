@@ -4,7 +4,7 @@ Base and utility classes for pandas objects.
 
 import builtins
 import textwrap
-from typing import Any, Dict, FrozenSet, List, Optional, Union
+from typing import Any, Callable, Dict, FrozenSet, List, Optional, Union
 
 import numpy as np
 
@@ -470,9 +470,12 @@ class SelectionMixin:
             try:
                 result = DataFrame(result)
             except ValueError:
-
                 # we have a dict of scalars
-                result = Series(result, name=getattr(self, "name", None))
+
+                # GH 36212 use name only if self is a series
+                name = self.name if (self.ndim == 1) else None
+
+                result = Series(result, name=name)
 
             return result, True
         elif is_list_like(arg):
@@ -560,7 +563,7 @@ class SelectionMixin:
                 ) from err
             return result
 
-    def _get_cython_func(self, arg: str) -> Optional[str]:
+    def _get_cython_func(self, arg: Callable) -> Optional[str]:
         """
         if we define an internal function for this argument, return it
         """
