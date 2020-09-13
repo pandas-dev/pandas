@@ -6,7 +6,7 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Index, Series
+from pandas import DataFrame, Index, Series, to_datetime
 import pandas._testing as tm
 from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
 
@@ -225,12 +225,23 @@ class TestDataFramePlots(TestPlotBase):
             ser.hist(foo="bar")
 
     @pytest.mark.slow
-    def test_hist_non_numerical_raises(self):
-        # gh-10444
-        df = DataFrame(np.random.rand(10, 2))
+    def test_hist_non_numerical_or_datetime_raises(self):
+        # gh-10444, GH32590
+        df = DataFrame(
+            {
+                "a": np.random.rand(10),
+                "b": np.random.rand(10),
+                "c": to_datetime(
+                    np.random.randint(1582800000000000000, 1583500000000000000, 10)
+                ),
+                "d": to_datetime(
+                    np.random.randint(1582800000000000000, 1583500000000000000, 10)
+                ),
+            }
+        )
         df_o = df.astype(object)
 
-        msg = "hist method requires numerical columns, nothing to plot."
+        msg = "hist method requires numerical or datetime columns, nothing to plot."
         with pytest.raises(ValueError, match=msg):
             df_o.hist()
 
