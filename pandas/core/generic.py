@@ -3017,6 +3017,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         .. versionchanged:: 1.0.0
            Added caption and label arguments.
 
+        .. versionchanged:: 1.2.0
+           Added position argument, changed meaning of caption argument.
+
         Parameters
         ----------
         buf : str, Path or StringIO-like, optional, default None
@@ -3084,6 +3087,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if a single string is passed, no short caption will be set.
 
             .. versionadded:: 1.0.0
+
+            .. versionchanged:: 1.2.0
+               Optionally allow caption to be a tuple (full_caption, short_caption).
+
         label : str, optional
             The LaTeX label to be placed inside ``\label{}`` in the output.
             This is used with ``\ref{}`` in the main ``.tex`` file.
@@ -3092,6 +3099,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         position : str, optional
             The LaTeX positional argument for tables, to be placed after
             ``\begin{}`` in the output.
+            .. versionadded:: 1.2.0
         %(returns)s
         See Also
         --------
