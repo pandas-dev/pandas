@@ -277,24 +277,34 @@ cdef inline float64_t calc_mean(int64_t minp, Py_ssize_t nobs,
 
 
 cdef inline void add_mean(float64_t val, Py_ssize_t *nobs, float64_t *sum_x,
-                          Py_ssize_t *neg_ct) nogil:
-    """ add a value from the mean calc """
+                          Py_ssize_t *neg_ct, float64_t *c) nogil:
+    """ add a value from the mean calc using Kahan summation """
+    cdef:
+        float64_t y, t
 
     # Not NaN
     if notnan(val):
         nobs[0] = nobs[0] + 1
-        sum_x[0] = sum_x[0] + val
+        y = val - c[0]
+        t = sum_x[0] + y
+        c[0] = t - sum_x[0] - y
+        sum_x[0] = t
         if signbit(val):
             neg_ct[0] = neg_ct[0] + 1
 
 
 cdef inline void remove_mean(float64_t val, Py_ssize_t *nobs, float64_t *sum_x,
-                             Py_ssize_t *neg_ct) nogil:
-    """ remove a value from the mean calc """
+                             Py_ssize_t *neg_ct, float64_t *c) nogil:
+    """ remove a value from the mean calc using Kahan summation """
+    cdef:
+        float64_t y, t
 
     if notnan(val):
         nobs[0] = nobs[0] - 1
-        sum_x[0] = sum_x[0] - val
+        y = - val - c[0]
+        t = sum_x[0] + y
+        c[0] = t - sum_x[0] - y
+        sum_x[0] = t
         if signbit(val):
             neg_ct[0] = neg_ct[0] - 1
 
@@ -302,7 +312,7 @@ cdef inline void remove_mean(float64_t val, Py_ssize_t *nobs, float64_t *sum_x,
 def roll_mean_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
                     ndarray[int64_t] end, int64_t minp, int64_t win):
     cdef:
-        float64_t val, prev_x, sum_x = 0
+        float64_t val, prev_x, sum_x = 0, c = 0
         Py_ssize_t nobs = 0, i, neg_ct = 0, N = len(values)
         ndarray[float64_t] output
 
@@ -311,16 +321,16 @@ def roll_mean_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
     with nogil:
         for i in range(minp - 1):
             val = values[i]
-            add_mean(val, &nobs, &sum_x, &neg_ct)
+            add_mean(val, &nobs, &sum_x, &neg_ct, &c)
             output[i] = NaN
 
         for i in range(minp - 1, N):
             val = values[i]
-            add_mean(val, &nobs, &sum_x, &neg_ct)
+            add_mean(val, &nobs, &sum_x, &neg_ct, &c)
 
             if i > win - 1:
                 prev_x = values[i - win]
-                remove_mean(prev_x, &nobs, &sum_x, &neg_ct)
+                remove_mean(prev_x, &nobs, &sum_x, &neg_ct, &c)
 
             output[i] = calc_mean(minp, nobs, neg_ct, sum_x)
 
@@ -330,7 +340,7 @@ def roll_mean_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
 def roll_mean_variable(ndarray[float64_t] values, ndarray[int64_t] start,
                        ndarray[int64_t] end, int64_t minp):
     cdef:
-        float64_t val, sum_x = 0
+        float64_t val, c_add = 0, c_remove = 0, sum_x = 0
         int64_t s, e
         Py_ssize_t nobs = 0, i, j, neg_ct = 0, N = len(values)
         ndarray[float64_t] output
@@ -350,26 +360,26 @@ def roll_mean_variable(ndarray[float64_t] values, ndarray[int64_t] start,
                 # setup
                 for j in range(s, e):
                     val = values[j]
-                    add_mean(val, &nobs, &sum_x, &neg_ct)
+                    add_mean(val, &nobs, &sum_x, &neg_ct, &c_add)
 
             else:
 
                 # calculate deletes
                 for j in range(start[i - 1], s):
                     val = values[j]
-                    remove_mean(val, &nobs, &sum_x, &neg_ct)
+                    remove_mean(val, &nobs, &sum_x, &neg_ct, &c_remove)
 
                 # calculate adds
                 for j in range(end[i - 1], e):
                     val = values[j]
-                    add_mean(val, &nobs, &sum_x, &neg_ct)
+                    add_mean(val, &nobs, &sum_x, &neg_ct, &c_add)
 
             output[i] = calc_mean(minp, nobs, neg_ct, sum_x)
 
             if not is_monotonic_bounds:
                 for j in range(s, e):
                     val = values[j]
-                    remove_mean(val, &nobs, &sum_x, &neg_ct)
+                    remove_mean(val, &nobs, &sum_x, &neg_ct, &c_remove)
     return output
 
 # ----------------------------------------------------------------------

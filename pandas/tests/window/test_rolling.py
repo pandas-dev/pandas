@@ -696,3 +696,21 @@ def test_rolling_positional_argument(grouping, _index, raw):
     expected = DataFrame(data={"X": [0.0, 0.5, 1.0, 1.5, 2.0]}, index=_index)
     result = df.groupby(**grouping).rolling(1).apply(scaled_sum, raw=raw, args=(2,))
     tm.assert_frame_equal(result, expected)
+
+
+def test_rolling_numerical_accuracy_kahan():
+    # GH: 36031 implementing kahan summation
+    df = pd.DataFrame(
+        {
+            "A": [3002399751580331.0, -0.0, -0.0]
+        },  # First value is a single digit longer.
+        index=[
+            pd.Timestamp("19700101 09:00:00"),
+            pd.Timestamp("19700101 09:00:03"),
+            pd.Timestamp("19700101 09:00:06"),
+        ],
+    )
+    result = (
+        df.resample("1s").ffill().rolling("3s", closed="left", min_periods=3).mean()
+    )
+    assert result.values[-1] == 0.0

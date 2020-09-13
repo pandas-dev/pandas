@@ -104,7 +104,7 @@ Other enhancements
 - Added :meth:`~DataFrame.set_flags` for setting table-wide flags on a ``Series`` or ``DataFrame`` (:issue:`28394`)
 - :class:`Index` with object dtype supports division and multiplication (:issue:`34160`)
 - :meth:`DataFrame.explode` and :meth:`Series.explode` now support exploding of sets (:issue:`35614`)
--
+- :meth:`Series.rolling().mean()` and :meth:`DataFrame.rolling().mean()` use Kahan summation to calculate the mean to avoid numerical problems (:issue:`36031`)
 
 .. _whatsnew_120.api_breaking.python:
 
