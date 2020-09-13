@@ -25,7 +25,7 @@ VERSIONS = {
     "scipy": "1.2.0",
     "sqlalchemy": "1.2.8",
     "tables": "3.4.4",
-    "tabulate": "0.8.3",
+    "tabulate": "0.8.7",
     "xarray": "0.12.0",
     "xlrd": "1.2.0",
     "xlwt": "1.3.0",
