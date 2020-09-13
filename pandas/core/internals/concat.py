@@ -21,7 +21,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import isna_all
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray, ExtensionArray
@@ -223,13 +223,8 @@ class JoinUnit:
             values_flat = values
         else:
             values_flat = values.ravel(order="K")
-        total_len = values_flat.shape[0]
-        chunk_len = max(total_len // 40, 1000)
-        for i in range(0, total_len, chunk_len):
-            if not isna(values_flat[i : i + chunk_len]).all():
-                return False
 
-        return True
+        return isna_all(values_flat)
 
     def get_reindexed_values(self, empty_dtype, upcasted_na):
         if upcasted_na is None:
@@ -474,8 +469,8 @@ def _is_uniform_join_units(join_units: List[JoinUnit]) -> bool:
     #  cannot necessarily join
     return (
         # all blocks need to have the same type
-        all(type(ju.block) is type(join_units[0].block) for ju in join_units)
-        and  # noqa
+        all(type(ju.block) is type(join_units[0].block) for ju in join_units)  # noqa
+        and
         # no blocks that would get missing values (can lead to type upcasts)
         # unless we're an extension dtype.
         all(not ju.is_na or ju.block.is_extension for ju in join_units)
