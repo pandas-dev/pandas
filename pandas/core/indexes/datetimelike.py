@@ -41,7 +41,6 @@ from pandas.core.indexes.extension import (
 )
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
-from pandas.core.sorting import ensure_key_mapped
 from pandas.core.tools.timedeltas import to_timedelta
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -163,22 +162,6 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         return bool(
             is_scalar(res) or isinstance(res, slice) or (is_list_like(res) and len(res))
         )
-
-    def sort_values(self, return_indexer=False, ascending=True, key=None):
-        """
-        Return sorted copy of Index.
-        """
-        idx = ensure_key_mapped(self, key)
-
-        _as = idx.argsort()
-        if not ascending:
-            _as = _as[::-1]
-        sorted_index = self.take(_as)
-
-        if return_indexer:
-            return sorted_index, _as
-        else:
-            return sorted_index
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
@@ -603,7 +586,9 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         else:
             self = cast(DatetimeTimedeltaMixin, self)
             freq = self.freq if self._can_fast_union(other) else None
-        new_data = type(self._data)._simple_new(joined, dtype=self.dtype, freq=freq)
+
+        new_data = self._data._from_backing_data(joined)
+        new_data._freq = freq
 
         return type(self)._simple_new(new_data, name=name)
 
