@@ -3099,6 +3099,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         position : str, optional
             The LaTeX positional argument for tables, to be placed after
             ``\begin{}`` in the output.
+
             .. versionadded:: 1.2.0
         %(returns)s
         See Also
