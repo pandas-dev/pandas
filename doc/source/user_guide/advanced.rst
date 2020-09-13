@@ -1065,8 +1065,6 @@ are closed on.  Intervals are closed on the right side by default.
 
    pd.interval_range(start=0, end=4, closed='neither')
 
-.. versionadded:: 0.23.0
-
 Specifying ``start``, ``end``, and ``periods`` will generate a range of evenly spaced
 intervals from ``start`` to ``end`` inclusively, with ``periods`` number of elements
 in the resulting ``IntervalIndex``:

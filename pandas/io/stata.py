@@ -164,8 +164,6 @@ Parameters
 path_or_buf : path (string), buffer or path object
     string, path object (pathlib.Path or py._path.local.LocalPath) or object
     implementing a binary read() functions.
-
-    .. versionadded:: 0.23.0 support for pathlib, py.path.
 {_statafile_processing_params1}
 {_statafile_processing_params2}
 {_chunksize_params}
@@ -2122,9 +2120,6 @@ class StataWriter(StataParser):
         object implementing a binary write() functions. If using a buffer
         then the buffer will not be automatically closed after the file
         is written.
-
-        .. versionadded:: 0.23.0 support for pathlib, py.path.
-
     data : DataFrame
         Input to save
     convert_dates : dict
@@ -2999,8 +2994,6 @@ class StataStrLWriter:
 class StataWriter117(StataWriter):
     """
     A class for writing Stata binary dta files in Stata 13 format (117)
-
-    .. versionadded:: 0.23.0
 
     Parameters
     ----------

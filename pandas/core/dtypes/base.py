@@ -19,8 +19,6 @@ class ExtensionDtype:
     """
     A custom data type, to be paired with an ExtensionArray.
 
-    .. versionadded:: 0.23.0
-
     See Also
     --------
     extensions.register_extension_dtype

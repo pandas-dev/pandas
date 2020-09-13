@@ -6,7 +6,7 @@ _shared_docs[
     "aggregate"
 ] = """\
 Aggregate using one or more operations over the specified axis.
-{versionadded}
+
 Parameters
 ----------
 func : function, str, list or dict
@@ -119,8 +119,6 @@ observed : bool, default False
     This only applies if any of the groupers are Categoricals.
     If True: only show observed values for categorical groupers.
     If False: show all values for categorical groupers.
-
-    .. versionadded:: 0.23.0
 dropna : bool, default True
     If True, and if group keys contain NA values, NA values together
     with row/column will be dropped.
@@ -154,7 +152,7 @@ or more columns are identifier variables (`id_vars`), while all other
 columns, considered measured variables (`value_vars`), are "unpivoted" to
 the row axis, leaving just two non-identifier columns, 'variable' and
 'value'.
-%(versionadded)s
+
 Parameters
 ----------
 id_vars : tuple, list, or ndarray, optional

@@ -542,12 +542,8 @@ def boxplot_frame_groupby(
         The layout of the plot: (rows, columns).
     sharex : bool, default False
         Whether x-axes will be shared among subplots.
-
-        .. versionadded:: 0.23.1
     sharey : bool, default True
         Whether y-axes will be shared among subplots.
-
-        .. versionadded:: 0.23.1
     backend : str, default None
         Backend to use instead of the backend specified in the option
         ``plotting.backend``. For instance, 'matplotlib'. Alternatively, to

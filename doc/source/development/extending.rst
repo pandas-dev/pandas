@@ -73,8 +73,6 @@ applies only to certain dtypes.
 Extension types
 ---------------
 
-.. versionadded:: 0.23.0
-
 .. warning::
 
    The :class:`pandas.api.extensions.ExtensionDtype` and :class:`pandas.api.extensions.ExtensionArray` APIs are new and

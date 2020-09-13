@@ -1162,7 +1162,6 @@ class Window(_Window):
         _shared_docs["aggregate"],
         see_also=_agg_see_also_doc,
         examples=_agg_examples_doc,
-        versionadded="",
         klass="Series/DataFrame",
         axis="",
     )
@@ -1650,8 +1649,6 @@ class RollingAndExpandingMixin(RollingMixin):
     quantile : float
         Quantile to compute. 0 <= quantile <= 1.
     interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
-        .. versionadded:: 0.23.0
-
         This optional parameter specifies the interpolation method to use,
         when the desired quantile lies between two data points `i` and `j`:
 
@@ -2043,7 +2040,6 @@ class Rolling(RollingAndExpandingMixin):
         _shared_docs["aggregate"],
         see_also=_agg_see_also_doc,
         examples=_agg_examples_doc,
-        versionadded="",
         klass="Series/Dataframe",
         axis="",
     )

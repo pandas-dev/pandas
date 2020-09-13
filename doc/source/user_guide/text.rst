@@ -282,8 +282,6 @@ following code will cause trouble because of the regular expression meaning of
    # We need to escape the special character (for >1 len patterns)
    dollars.str.replace(r'-\$', '-')
 
-.. versionadded:: 0.23.0
-
 If you do want literal replacement of a string (equivalent to
 :meth:`str.replace`), you can set the optional ``regex`` parameter to
 ``False``, rather than escaping each character. In this case both ``pat``
@@ -390,8 +388,6 @@ Missing values on either side will result in missing values in the result as wel
 Concatenating a Series and something array-like into a Series
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. versionadded:: 0.23.0
-
 The parameter ``others`` can also be two-dimensional. In this case, the number or rows must match the lengths of the calling ``Series`` (or ``Index``).
 
 .. ipython:: python
@@ -403,8 +399,6 @@ The parameter ``others`` can also be two-dimensional. In this case, the number o
 
 Concatenating a Series and an indexed object into a Series, with alignment
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. versionadded:: 0.23.0
 
 For concatenation with a ``Series`` or ``DataFrame``, it is possible to align the indexes before concatenation by setting
 the ``join``-keyword.

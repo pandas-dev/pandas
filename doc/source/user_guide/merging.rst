@@ -175,8 +175,6 @@ behavior:
 
 .. warning::
 
-   .. versionchanged:: 0.23.0
-
    The default behavior with ``join='outer'`` is to sort the other axis
    (columns in this case). In a future version of pandas, the default will
    be to not sort. We specified ``sort=False`` to opt in to the new
@@ -1197,8 +1195,6 @@ done using the following code.
 
 Merging on a combination of columns and index levels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. versionadded:: 0.23
 
 Strings passed as the ``on``, ``left_on``, and ``right_on`` parameters
 may refer to either column names or index level names.  This enables merging

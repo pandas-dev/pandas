@@ -122,7 +122,6 @@ def concat(
         This has no effect when ``join='inner'``, which already preserves
         the order of the non-concatenation axis.
 
-        .. versionadded:: 0.23.0
         .. versionchanged:: 1.0.0
 
            Changed to not sort by default.

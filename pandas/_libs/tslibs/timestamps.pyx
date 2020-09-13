@@ -503,9 +503,7 @@ cdef class _Timestamp(ABCTimestamp):
 
         Returns
         -------
-        day_name : string
-
-        .. versionadded:: 0.23.0
+        string
         """
         return self._get_date_name_field("day_name", locale)
 
@@ -520,9 +518,7 @@ cdef class _Timestamp(ABCTimestamp):
 
         Returns
         -------
-        month_name : string
-
-        .. versionadded:: 0.23.0
+        string
         """
         return self._get_date_name_field("month_name", locale)
 
@@ -783,7 +779,6 @@ class Timestamp(_Timestamp):
     year, month, day : int
     hour, minute, second, microsecond : int, optional, default 0
     nanosecond : int, optional, default 0
-        .. versionadded:: 0.23.0
     tzinfo : datetime.tzinfo, optional, default None
     fold : {0, 1}, default None, keyword-only
         Due to daylight saving time, one wall clock time can occur twice

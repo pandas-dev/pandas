@@ -680,8 +680,6 @@ def to_datetime(
         used when there are at least 50 values. The presence of out-of-bounds
         values will render the cache unusable and may slow down parsing.
 
-        .. versionadded:: 0.23.0
-
         .. versionchanged:: 0.25.0
             - changed default value from False to True.
 

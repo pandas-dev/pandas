@@ -208,7 +208,6 @@ class Resampler(BaseGroupBy, ShallowMixin):
 
     @Substitution(
         klass="Resampler",
-        versionadded=".. versionadded:: 0.23.0",
         examples="""
     >>> df = pd.DataFrame({'A': [1, 2, 3, 4]},
     ...                   index=pd.date_range('2012-08-02', periods=4))
@@ -283,7 +282,6 @@ class Resampler(BaseGroupBy, ShallowMixin):
         _shared_docs["aggregate"],
         see_also=_agg_see_also_doc,
         examples=_agg_examples_doc,
-        versionadded="",
         klass="DataFrame",
         axis="",
     )

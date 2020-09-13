@@ -1524,8 +1524,6 @@ def take(arr, indices, axis: int = 0, allow_fill: bool = False, fill_value=None)
     """
     Take elements from an array.
 
-    .. versionadded:: 0.23.0
-
     Parameters
     ----------
     arr : sequence
