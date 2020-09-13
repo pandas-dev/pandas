@@ -1697,6 +1697,24 @@ class TestStyler:
         s = Styler(df, uuid="_", cell_ids=False)
         assert '<th class="col_heading level0 col0" colspan="2">l0</th>' in s.render()
 
+    @pytest.mark.parametrize("len_", [1, 5, 32])
+    def test_uuid_len(self, len_):
+        # GH ..
+        df = pd.DataFrame(data=[["A"]])
+        s = Styler(df, uuid_len=len_, cell_ids=False).render()
+        strt = s.find('id="T_')
+        end = s[strt + 6 :].find('"')
+        assert end == len_
+
+    @pytest.mark.parametrize("len_", [33, 100])
+    def test_uuid_max_len(self, len_):
+        # GH ..
+        df = pd.DataFrame(data=[["A"]])
+        s = Styler(df, uuid_len=len_, cell_ids=False).render()
+        strt = s.find('id="T_')
+        end = s[strt + 6 :].find('"')
+        assert end == 32
+
 
 @td.skip_if_no_mpl
 class TestStylerMatplotlibDep:

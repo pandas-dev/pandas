@@ -18,7 +18,7 @@ from typing import (
     Tuple,
     Union,
 )
-from uuid import uuid1
+from uuid import uuid4
 
 import numpy as np
 
@@ -73,6 +73,9 @@ class Styler:
         List of {selector: (attr, value)} dicts; see Notes.
     uuid : str, default None
         A unique identifier to avoid CSS collisions; generated automatically.
+    uuid_len : int, default 5
+        If ``uuid`` is not specified, the length of the ``uuid`` to randomly generate
+        in characters, max is 32.
     caption : str, default None
         Caption to attach to the table.
     table_attributes : str, default None
@@ -128,6 +131,7 @@ class Styler:
 
     * Blank cells include ``blank``
     * Data cells include ``data``
+
     """
 
     loader = jinja2.PackageLoader("pandas", "io/formats/templates")
@@ -140,6 +144,7 @@ class Styler:
         precision: Optional[int] = None,
         table_styles: Optional[List[Dict[str, List[Tuple[str, str]]]]] = None,
         uuid: Optional[str] = None,
+        uuid_len: int = 5,
         caption: Optional[str] = None,
         table_attributes: Optional[str] = None,
         cell_ids: bool = True,
@@ -159,7 +164,8 @@ class Styler:
         self.index = data.index
         self.columns = data.columns
 
-        self.uuid = uuid
+        self.uuid_len = uuid_len if uuid_len < 33 else 32
+        self.uuid = uuid or uuid4().hex[: self.uuid_len]
         self.table_styles = table_styles
         self.caption = caption
         if precision is None:
@@ -246,7 +252,7 @@ class Styler:
         precision = self.precision
         hidden_index = self.hidden_index
         hidden_columns = self.hidden_columns
-        uuid = self.uuid or str(uuid1()).replace("-", "_")
+        uuid = self.uuid
         ROW_HEADING_CLASS = "row_heading"
         COL_HEADING_CLASS = "col_heading"
         INDEX_NAME_CLASS = "index_name"
