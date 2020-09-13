@@ -693,15 +693,6 @@ class BlockManager(PandasObject):
         """
         return self._combine([b for b in self.blocks if b.is_numeric], copy)
 
-    def get_numeric_or_datetime_data(self, copy: bool = False) -> "BlockManager":
-        """
-        Parameters
-        ----------
-        copy : bool, default False
-            Whether to copy the blocks
-        """
-        return self._combine([b for b in self.blocks if b.is_numeric or b.is_datetime], copy)
-
     def _combine(self: T, blocks: List[Block], copy: bool = True) -> T:
         """ return a new manager with the blocks """
         if len(blocks) == 0:
