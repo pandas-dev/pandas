@@ -54,7 +54,7 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core import missing, nanops, ops
 from pandas.core.algorithms import checked_add_with_arr, unique1d, value_counts
-from pandas.core.arrays._mixins import _T, NDArrayBackedExtensionArray
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.arrays.base import ExtensionOpsMixin
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array
@@ -472,11 +472,11 @@ class DatetimeLikeArrayMixin(
     def _ndarray(self) -> np.ndarray:
         return self._data
 
-    def _from_backing_data(self: _T, arr: np.ndarray) -> _T:
+    def _from_backing_data(
+        self: DatetimeLikeArrayT, arr: np.ndarray
+    ) -> DatetimeLikeArrayT:
         # Note: we do not retain `freq`
-        return type(self)._simple_new(  # type: ignore[attr-defined]
-            arr, dtype=self.dtype
-        )
+        return type(self)._simple_new(arr, dtype=self.dtype)
 
     # ------------------------------------------------------------------
 
@@ -545,15 +545,18 @@ class DatetimeLikeArrayMixin(
             result = self._ndarray[key]
             if self.ndim == 1:
                 return self._box_func(result)
-            return self._simple_new(result, dtype=self.dtype)
+            return self._from_backing_data(result)
 
         key = self._validate_getitem_key(key)
         result = self._ndarray[key]
         if lib.is_scalar(result):
             return self._box_func(result)
 
+        result = self._from_backing_data(result)
+
         freq = self._get_getitem_freq(key)
-        return self._simple_new(result, dtype=self.dtype, freq=freq)
+        result._freq = freq
+        return result
 
     def _validate_getitem_key(self, key):
         if com.is_bool_indexer(key):
@@ -714,9 +717,6 @@ class DatetimeLikeArrayMixin(
     def _from_factorized(cls, values, original):
         return cls(values, dtype=original.dtype)
 
-    def _values_for_argsort(self):
-        return self._ndarray
-
     # ------------------------------------------------------------------
     # Validation Methods
     # TODO: try to de-duplicate these, ensure identical behavior
@@ -875,8 +875,7 @@ class DatetimeLikeArrayMixin(
         if is_list_like(value):
             value = self._validate_listlike(value, "setitem", cast_str=True)
         else:
-            # TODO: cast_str for consistency?
-            value = self._validate_scalar(value, msg, cast_str=False)
+            value = self._validate_scalar(value, msg, cast_str=True)
 
         return self._unbox(value, setitem=True)
 
@@ -916,34 +915,6 @@ class DatetimeLikeArrayMixin(
     # Additional array methods
     #  These are not part of the EA API, but we implement them because
     #  pandas assumes they're there.
-
-    def searchsorted(self, value, side="left", sorter=None):
-        """
-        Find indices where elements should be inserted to maintain order.
-
-        Find the indices into a sorted array `self` such that, if the
-        corresponding elements in `value` were inserted before the indices,
-        the order of `self` would be preserved.
-
-        Parameters
-        ----------
-        value : array_like
-            Values to insert into `self`.
-        side : {'left', 'right'}, optional
-            If 'left', the index of the first suitable location found is given.
-            If 'right', return the last such index.  If there is no suitable
-            index, return either 0 or N (where N is the length of `self`).
-        sorter : 1-D array_like, optional
-            Optional array of integer indices that sort `self` into ascending
-            order. They are typically the result of ``np.argsort``.
-
-        Returns
-        -------
-        indices : array of ints
-            Array of insertion points with the same shape as `value`.
-        """
-        value = self._validate_searchsorted_value(value)
-        return self._data.searchsorted(value, side=side, sorter=sorter)
 
     def value_counts(self, dropna=False):
         """

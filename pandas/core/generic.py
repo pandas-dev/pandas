@@ -40,6 +40,7 @@ from pandas._typing import (
     CompressionOptions,
     FilePathOrBuffer,
     FrameOrSeries,
+    IndexLabel,
     JSONSerializable,
     Label,
     Level,
@@ -1416,7 +1417,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ):
             arr = operator.pos(values)
         else:
-            raise TypeError(f"Unary plus expects numeric dtype, not {values.dtype}")
+            raise TypeError(
+                "Unary plus expects bool, numeric, timedelta, "
+                f"or object dtype, not {values.dtype}"
+            )
         return self.__array_wrap__(arr)
 
     def __invert__(self):
@@ -2210,8 +2214,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
                 Describing the data, where data component is like ``orient='records'``.
 
-            .. versionchanged:: 0.20.0
-
         date_format : {None, 'epoch', 'iso'}
             Type of date conversion. 'epoch' = epoch milliseconds,
             'iso' = ISO8601. The default depends on the `orient`. For
@@ -2247,9 +2249,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             Whether to include the index values in the JSON string. Not
             including the index (``index=False``) is only supported when
             orient is 'split' or 'table'.
-
-            .. versionadded:: 0.23.0
-
         indent : int, optional
            Length of whitespace used to indent each record.
 
@@ -3007,9 +3006,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         into a main LaTeX document or read from an external file
         with ``\input{table.tex}``.
 
-        .. versionchanged:: 0.20.2
-           Added to Series.
-
         .. versionchanged:: 1.0.0
            Added caption and label arguments.
 
@@ -3160,7 +3156,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         columns: Optional[Sequence[Label]] = None,
         header: Union[bool_t, List[str]] = True,
         index: bool_t = True,
-        index_label: Optional[Union[bool_t, str, Sequence[Label]]] = None,
+        index_label: IndexLabel = None,
         mode: str = "w",
         encoding: Optional[str] = None,
         compression: CompressionOptions = "infer",
@@ -6400,9 +6396,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             The method to use when for replacement, when `to_replace` is a
             scalar, list or tuple and `value` is ``None``.
 
-            .. versionchanged:: 0.23.0
-                Added to DataFrame.
-
         Returns
         -------
         {klass}
@@ -6831,8 +6824,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             * 'inside': Only fill NaNs surrounded by valid values
               (interpolate).
             * 'outside': Only fill NaNs outside valid values (extrapolate).
-
-            .. versionadded:: 0.23.0
 
         downcast : optional, 'infer' or None, defaults to None
             Downcast dtypes if possible.
@@ -10647,80 +10638,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             times=times,
         )
 
-    @doc(klass=_shared_doc_kwargs["klass"], axis="")
-    def transform(self, func, *args, **kwargs):
-        """
-        Call ``func`` on self producing a {klass} with transformed values.
-
-        Produced {klass} will have same axis length as self.
-
-        Parameters
-        ----------
-        func : function, str, list or dict
-            Function to use for transforming the data. If a function, must either
-            work when passed a {klass} or when passed to {klass}.apply.
-
-            Accepted combinations are:
-
-            - function
-            - string function name
-            - list of functions and/or function names, e.g. ``[np.exp, 'sqrt']``
-            - dict of axis labels -> functions, function names or list of such.
-        {axis}
-        *args
-            Positional arguments to pass to `func`.
-        **kwargs
-            Keyword arguments to pass to `func`.
-
-        Returns
-        -------
-        {klass}
-            A {klass} that must have the same length as self.
-
-        Raises
-        ------
-        ValueError : If the returned {klass} has a different length than self.
-
-        See Also
-        --------
-        {klass}.agg : Only perform aggregating type operations.
-        {klass}.apply : Invoke function on a {klass}.
-
-        Examples
-        --------
-        >>> df = pd.DataFrame({{'A': range(3), 'B': range(1, 4)}})
-        >>> df
-           A  B
-        0  0  1
-        1  1  2
-        2  2  3
-        >>> df.transform(lambda x: x + 1)
-           A  B
-        0  1  2
-        1  2  3
-        2  3  4
-
-        Even though the resulting {klass} must have the same length as the
-        input {klass}, it is possible to provide several input functions:
-
-        >>> s = pd.Series(range(3))
-        >>> s
-        0    0
-        1    1
-        2    2
-        dtype: int64
-        >>> s.transform([np.sqrt, np.exp])
-               sqrt        exp
-        0  0.000000   1.000000
-        1  1.000000   2.718282
-        2  1.414214   7.389056
-        """
-        result = self.agg(func, *args, **kwargs)
-        if is_scalar(result) or len(result) != len(self):
-            raise ValueError("transforms cannot produce aggregated results")
-
-        return result
-
     # ----------------------------------------------------------------------
     # Misc methods
 
@@ -11419,12 +11336,6 @@ _min_count_stub = """\
 min_count : int, default 0
     The required number of valid values to perform the operation. If fewer than
     ``min_count`` non-NA values are present the result will be NA.
-
-    .. versionadded:: 0.22.0
-
-       Added with the default being 0. This means the sum of an all-NA
-       or empty Series is 0, and the product of an all-NA or empty
-       Series is 1.
 """
 
 
