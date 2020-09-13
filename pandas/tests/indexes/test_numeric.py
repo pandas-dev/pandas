@@ -21,6 +21,13 @@ class Numeric(Base):
         key = idx[0]
         assert idx._can_hold_identifiers_and_holds_name(key) is False
 
+    def test_format(self):
+        # GH35439
+        idx = self.create_index()
+        max_width = max(len(str(x)) for x in idx)
+        expected = [str(x).ljust(max_width) for x in idx]
+        assert idx.format() == expected
+
     def test_numeric_compat(self):
         pass  # override Base method
 
@@ -240,6 +247,19 @@ class TestFloat64Index(Numeric):
         assert i.equals(i2)
 
     @pytest.mark.parametrize(
+        "other",
+        (
+            Int64Index([1, 2]),
+            Index([1.0, 2.0], dtype=object),
+            Index([1, 2], dtype=object),
+        ),
+    )
+    def test_equals_numeric_other_index_type(self, other):
+        i = Float64Index([1.0, 2.0])
+        assert i.equals(other)
+        assert other.equals(i)
+
+    @pytest.mark.parametrize(
         "vals",
         [
             pd.date_range("2016-01-01", periods=3),
@@ -374,7 +394,7 @@ class NumericInt(Numeric):
         same_values_different_type = Index(i, dtype=object)
         assert not i.identical(same_values_different_type)
 
-        i = index.copy(dtype=object)
+        i = index.astype(dtype=object)
         i = i.rename("foo")
         same_values = Index(i, dtype=object)
         assert same_values.identical(i)
@@ -382,7 +402,7 @@ class NumericInt(Numeric):
         assert not i.identical(index)
         assert Index(same_values, name="foo", dtype=object).identical(i)
 
-        assert not index.copy(dtype=object).identical(index.copy(dtype=self._dtype))
+        assert not index.astype(dtype=object).identical(index.astype(dtype=self._dtype))
 
     def test_union_noncomparable(self):
         # corner case, non-Int64Index
@@ -635,3 +655,46 @@ def test_uint_index_does_not_convert_to_float64():
     tm.assert_index_equal(result.index, expected)
 
     tm.assert_equal(result, series[:3])
+
+
+def test_float64_index_equals():
+    # https://github.com/pandas-dev/pandas/issues/35217
+    float_index = pd.Index([1.0, 2, 3])
+    string_index = pd.Index(["1", "2", "3"])
+
+    result = float_index.equals(string_index)
+    assert result is False
+
+    result = string_index.equals(float_index)
+    assert result is False
+
+
+def test_float64_index_difference():
+    # https://github.com/pandas-dev/pandas/issues/35217
+    float_index = pd.Index([1.0, 2, 3])
+    string_index = pd.Index(["1", "2", "3"])
+
+    result = float_index.difference(string_index)
+    tm.assert_index_equal(result, float_index)
+
+    result = string_index.difference(float_index)
+    tm.assert_index_equal(result, string_index)
+
+
+class TestGetSliceBounds:
+    @pytest.mark.parametrize("kind", ["getitem", "loc", None])
+    @pytest.mark.parametrize("side, expected", [("left", 4), ("right", 5)])
+    def test_get_slice_bounds_within(self, kind, side, expected):
+        index = Index(range(6))
+        result = index.get_slice_bound(4, kind=kind, side=side)
+        assert result == expected
+
+    @pytest.mark.parametrize("kind", ["getitem", "loc", None])
+    @pytest.mark.parametrize("side", ["left", "right"])
+    @pytest.mark.parametrize(
+        "bound, expected", [(-1, 0), (10, 6)],
+    )
+    def test_get_slice_bounds_outside(self, kind, side, expected, bound):
+        index = Index(range(6))
+        result = index.get_slice_bound(bound, kind=kind, side=side)
+        assert result == expected

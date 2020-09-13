@@ -10,6 +10,7 @@ from pandas._libs.tslibs import (
     NaTType,
     Timedelta,
     delta_to_nanoseconds,
+    dt64arr_to_periodarr as c_dt64arr_to_periodarr,
     iNaT,
     period as libperiod,
     to_offset,
@@ -252,11 +253,17 @@ class PeriodArray(PeriodMixin, dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     # -----------------------------------------------------------------
     # DatetimeLike Interface
 
-    def _unbox_scalar(self, value: Union[Period, NaTType]) -> int:
+    @classmethod
+    def _rebox_native(cls, value: int) -> np.int64:
+        return np.int64(value)
+
+    def _unbox_scalar(
+        self, value: Union[Period, NaTType], setitem: bool = False
+    ) -> int:
         if value is NaT:
             return value.value
         elif isinstance(value, self._scalar_type):
-            self._check_compatible_with(value)
+            self._check_compatible_with(value, setitem=setitem)
             return value.ordinal
         else:
             raise ValueError(f"'value' should be a Period. Got '{value}' instead.")
@@ -277,8 +284,8 @@ class PeriodArray(PeriodMixin, dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     def dtype(self) -> PeriodDtype:
         return self._dtype
 
-    # error: Read-only property cannot override read-write property  [misc]
-    @property  # type: ignore
+    # error: Read-only property cannot override read-write property
+    @property  # type: ignore[misc]
     def freq(self) -> BaseOffset:
         """
         Return the frequency object for this PeriodArray.
@@ -299,6 +306,7 @@ class PeriodArray(PeriodMixin, dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         Convert myself into a pyarrow Array.
         """
         import pyarrow
+
         from pandas.core.arrays._arrow_utils import ArrowPeriodType
 
         if type is not None:
@@ -478,9 +486,8 @@ class PeriodArray(PeriodMixin, dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
             values[self._isnan] = iNaT
         return type(self)(values, freq=self.freq)
 
-    @property
-    def _box_func(self):
-        return lambda x: Period._from_ordinal(ordinal=x, freq=self.freq)
+    def _box_func(self, x) -> Union[Period, NaTType]:
+        return Period._from_ordinal(ordinal=x, freq=self.freq)
 
     def asfreq(self, freq=None, how: str = "E") -> "PeriodArray":
         """
@@ -580,6 +587,13 @@ class PeriodArray(PeriodMixin, dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
             return self.asfreq(dtype.freq)
         return super().astype(dtype, copy=copy)
 
+    def searchsorted(self, value, side="left", sorter=None):
+        value = self._validate_searchsorted_value(value).view("M8[ns]")
+
+        # Cast to M8 to get datetime-like NaT placement
+        m8arr = self._ndarray.view("M8[ns]")
+        return m8arr.searchsorted(value, side=side, sorter=sorter)
+
     # ------------------------------------------------------------------
     # Arithmetic Methods
 
@@ -632,7 +646,7 @@ class PeriodArray(PeriodMixin, dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         return new_values
 
     def _addsub_int_array(
-        self, other: np.ndarray, op: Callable[[Any, Any], Any],
+        self, other: np.ndarray, op: Callable[[Any, Any], Any]
     ) -> "PeriodArray":
         """
         Add or subtract array of integers; equivalent to applying
@@ -951,7 +965,7 @@ def dt64arr_to_periodarr(data, freq, tz=None):
         data = data._values
 
     base = freq._period_dtype_code
-    return libperiod.dt64arr_to_periodarr(data.view("i8"), base, tz), freq
+    return c_dt64arr_to_periodarr(data.view("i8"), base, tz), freq
 
 
 def _get_ordinal_range(start, end, periods, freq, mult=1):
@@ -1033,9 +1047,10 @@ def _range_from_fields(
             if base != FreqGroup.FR_QTR:
                 raise AssertionError("base must equal FR_QTR")
 
+        freqstr = freq.freqstr
         year, quarter = _make_field_arrays(year, quarter)
         for y, q in zip(year, quarter):
-            y, m = libperiod.quarter_to_myear(y, q, freq)
+            y, m = libperiod.quarter_to_myear(y, q, freqstr)
             val = libperiod.period_ordinal(y, m, 1, 1, 1, 1, 0, 0, base)
             ordinals.append(val)
     else:

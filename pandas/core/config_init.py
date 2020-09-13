@@ -52,6 +52,20 @@ def use_numexpr_cb(key):
     expressions.set_use_numexpr(cf.get_option(key))
 
 
+use_numba_doc = """
+: bool
+    Use the numba engine option for select operations if it is installed,
+    the default is False
+    Valid values: False,True
+"""
+
+
+def use_numba_cb(key):
+    from pandas.core.util import numba_
+
+    numba_.set_use_numba(cf.get_option(key))
+
+
 with cf.config_prefix("compute"):
     cf.register_option(
         "use_bottleneck",
@@ -62,6 +76,9 @@ with cf.config_prefix("compute"):
     )
     cf.register_option(
         "use_numexpr", True, use_numexpr_doc, validator=is_bool, cb=use_numexpr_cb
+    )
+    cf.register_option(
+        "use_numba", False, use_numba_doc, validator=is_bool, cb=use_numba_cb
     )
 #
 # options from the "display" namespace
@@ -297,9 +314,9 @@ pc_latex_multirow = """
 
 
 def table_schema_cb(key):
-    from pandas.io.formats.printing import _enable_data_resource_formatter
+    from pandas.io.formats.printing import enable_data_resource_formatter
 
-    _enable_data_resource_formatter(cf.get_option(key))
+    enable_data_resource_formatter(cf.get_option(key))
 
 
 def is_terminal() -> bool:
@@ -310,7 +327,7 @@ def is_terminal() -> bool:
     """
     try:
         # error: Name 'get_ipython' is not defined
-        ip = get_ipython()  # type: ignore
+        ip = get_ipython()  # type: ignore[name-defined]
     except NameError:  # assume standard Python interpreter in a terminal
         return True
     else:
@@ -645,8 +662,10 @@ register_converter_doc = """
 
 
 def register_converter_cb(key):
-    from pandas.plotting import register_matplotlib_converters
-    from pandas.plotting import deregister_matplotlib_converters
+    from pandas.plotting import (
+        deregister_matplotlib_converters,
+        register_matplotlib_converters,
+    )
 
     if cf.get_option(key):
         register_matplotlib_converters()

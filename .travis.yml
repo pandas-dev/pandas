@@ -45,7 +45,7 @@ matrix:
         - JOB="3.7, arm64" PYTEST_WORKERS=8 ENV_FILE="ci/deps/travis-37-arm64.yaml" PATTERN="(not slow and not network and not clipboard)"
 
     - env:
-        - JOB="3.6, locale" ENV_FILE="ci/deps/travis-36-locale.yaml" PATTERN="((not slow and not network and not clipboard) or (single and db))" LOCALE_OVERRIDE="zh_CN.UTF-8" SQL="1"
+        - JOB="3.7, locale" ENV_FILE="ci/deps/travis-37-locale.yaml" PATTERN="((not slow and not network and not clipboard) or (single and db))" LOCALE_OVERRIDE="zh_CN.UTF-8" SQL="1"
       services:
         - mysql
         - postgresql
@@ -54,13 +54,7 @@ matrix:
         # Enabling Deprecations when running tests
         # PANDAS_TESTING_MODE="deprecate" causes DeprecationWarning messages to be displayed in the logs
         # See pandas/_testing.py for more details.
-        - JOB="3.6, coverage" ENV_FILE="ci/deps/travis-36-cov.yaml" PATTERN="((not slow and not network and not clipboard) or (single and db))" PANDAS_TESTING_MODE="deprecate" COVERAGE=true SQL="1"
-      services:
-        - mysql
-        - postgresql
-
-    - env:
-        - JOB="3.6, slow" ENV_FILE="ci/deps/travis-36-slow.yaml" PATTERN="slow" SQL="1"
+        - JOB="3.7, coverage" ENV_FILE="ci/deps/travis-37-cov.yaml" PATTERN="((not slow and not network and not clipboard) or (single and db))" PANDAS_TESTING_MODE="deprecate" COVERAGE=true SQL="1"
       services:
         - mysql
         - postgresql

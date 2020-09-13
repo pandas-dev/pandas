@@ -361,6 +361,9 @@ compute the mean absolute deviation on a rolling basis:
    @savefig rolling_apply_ex.png
    s.rolling(window=60).apply(mad, raw=True).plot(style='k')
 
+Using the Numba engine
+~~~~~~~~~~~~~~~~~~~~~~
+
 .. versionadded:: 1.0
 
 Additionally, :meth:`~Rolling.apply` can leverage `Numba <https://numba.pydata.org/>`__
@@ -1094,6 +1097,25 @@ and **alpha** to the EW functions:
 * **Half-life** is the period of time for the exponential weight to reduce to
   one half.
 * **Alpha** specifies the smoothing factor directly.
+
+.. versionadded:: 1.1.0
+
+You can also specify ``halflife`` in terms of a timedelta convertible unit to specify the amount of
+time it takes for an observation to decay to half its value when also specifying a sequence
+of ``times``.
+
+.. ipython:: python
+
+    df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
+    df
+    times = ['2020-01-01', '2020-01-03', '2020-01-10', '2020-01-15', '2020-01-17']
+    df.ewm(halflife='4 days', times=pd.DatetimeIndex(times)).mean()
+
+The following formula is used to compute exponentially weighted mean with an input vector of times:
+
+.. math::
+
+    y_t = \frac{\sum_{i=0}^t 0.5^\frac{t_{t} - t_{i}}{\lambda} x_{t-i}}{0.5^\frac{t_{t} - t_{i}}{\lambda}},
 
 Here is an example for a univariate time series:
 

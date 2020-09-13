@@ -194,8 +194,7 @@ class TestSparseArray:
 
     @pytest.mark.parametrize("format", ["coo", "csc", "csr"])
     @pytest.mark.parametrize(
-        "size",
-        [pytest.param(0, marks=td.skip_if_np_lt("1.16", reason="NumPy-11383")), 10],
+        "size", [0, 10],
     )
     @td.skip_if_no_scipy
     def test_from_spmatrix(self, size, format):
@@ -280,6 +279,11 @@ class TestSparseArray:
 
         exp = SparseArray(np.take(self.arr_data, [0, 1, 2]))
         tm.assert_sp_array_equal(self.arr.take([0, 1, 2]), exp)
+
+    def test_take_all_empty(self):
+        a = pd.array([0, 0], dtype=pd.SparseDtype("int64"))
+        result = a.take([0, 1], allow_fill=True, fill_value=np.nan)
+        tm.assert_sp_array_equal(a, result)
 
     def test_take_fill_value(self):
         data = np.array([1, np.nan, 0, 3, 0])
@@ -899,7 +903,6 @@ class TestSparseArrayAnalytics:
             ([1.0, 2.0, 1.0], 1.0, 0.0),
         ],
     )
-    @td.skip_if_np_lt("1.15")  # prior didn't dispatch
     def test_numpy_all(self, data, pos, neg):
         # GH 17570
         out = np.all(SparseArray(data))
@@ -951,7 +954,6 @@ class TestSparseArrayAnalytics:
             ([0.0, 2.0, 0.0], 2.0, 0.0),
         ],
     )
-    @td.skip_if_np_lt("1.15")  # prior didn't dispatch
     def test_numpy_any(self, data, pos, neg):
         # GH 17570
         out = np.any(SparseArray(data))

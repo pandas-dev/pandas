@@ -296,6 +296,22 @@ For instance,
    cheese.melt(id_vars=['first', 'last'])
    cheese.melt(id_vars=['first', 'last'], var_name='quantity')
 
+When transforming a DataFrame using :func:`~pandas.melt`, the index will be ignored. The original index values can be kept around by setting the ``ignore_index`` parameter to ``False`` (default is ``True``). This will however duplicate them.
+
+.. versionadded:: 1.1.0
+
+.. ipython:: python
+
+   index = pd.MultiIndex.from_tuples([('person', 'A'), ('person', 'B')])
+   cheese = pd.DataFrame({'first': ['John', 'Mary'],
+                          'last': ['Doe', 'Bo'],
+                          'height': [5.5, 6.0],
+                          'weight': [130, 150]},
+                         index=index)
+   cheese
+   cheese.melt(id_vars=['first', 'last'])
+   cheese.melt(id_vars=['first', 'last'], ignore_index=False)
+
 Another way to transform is to use the :func:`~pandas.wide_to_long` panel data
 convenience function. It is less flexible than :func:`~pandas.melt`, but more
 user-friendly.

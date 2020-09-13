@@ -470,6 +470,13 @@ class TestBusinessDatetimeIndex:
         tm.assert_index_equal(result, b)
         assert result.freq == b.freq
 
+    def test_intersection_list(self):
+        # GH#35876
+        values = [pd.Timestamp("2020-01-01"), pd.Timestamp("2020-02-01")]
+        idx = pd.DatetimeIndex(values, name="a")
+        res = idx.intersection(values)
+        tm.assert_index_equal(res, idx)
+
     def test_month_range_union_tz_pytz(self, sort):
         from pytz import timezone
 

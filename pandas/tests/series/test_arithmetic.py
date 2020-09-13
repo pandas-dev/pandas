@@ -195,8 +195,8 @@ class TestSeriesArithmetic:
         tm.assert_series_equal(result, expected)
 
     def test_add_na_handling(self):
-        from decimal import Decimal
         from datetime import date
+        from decimal import Decimal
 
         s = Series(
             [Decimal("1.3"), Decimal("2.3")], index=[date(2012, 1, 1), date(2012, 1, 2)]
@@ -501,7 +501,7 @@ class TestSeriesComparison:
         # for unequal comps, but not for equal/not equal
         cat = Series(Categorical(list("abc"), ordered=True))
 
-        msg = "Cannot compare a Categorical for op.+with a scalar"
+        msg = "Invalid comparison between dtype=category and str"
         with pytest.raises(TypeError, match=msg):
             cat < "d"
         with pytest.raises(TypeError, match=msg):

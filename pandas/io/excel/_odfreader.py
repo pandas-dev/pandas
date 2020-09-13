@@ -2,27 +2,33 @@ from typing import List, cast
 
 import numpy as np
 
-from pandas._typing import FilePathOrBuffer, Scalar
+from pandas._typing import FilePathOrBuffer, Scalar, StorageOptions
 from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
 
-from pandas.io.excel._base import _BaseExcelReader
+from pandas.io.excel._base import BaseExcelReader
 
 
-class _ODFReader(_BaseExcelReader):
+class ODFReader(BaseExcelReader):
     """
     Read tables out of OpenDocument formatted files.
 
     Parameters
     ----------
-    filepath_or_buffer: string, path to be parsed or
+    filepath_or_buffer : string, path to be parsed or
         an open readable stream.
+    storage_options : dict, optional
+        passed to fsspec for appropriate URLs (see ``get_filepath_or_buffer``)
     """
 
-    def __init__(self, filepath_or_buffer: FilePathOrBuffer):
+    def __init__(
+        self,
+        filepath_or_buffer: FilePathOrBuffer,
+        storage_options: StorageOptions = None,
+    ):
         import_optional_dependency("odf")
-        super().__init__(filepath_or_buffer)
+        super().__init__(filepath_or_buffer, storage_options=storage_options)
 
     @property
     def _workbook_class(self):
@@ -191,9 +197,9 @@ class _ODFReader(_BaseExcelReader):
         Find and decode OpenDocument text:s tags that represent
         a run length encoded sequence of space characters.
         """
-        from odf.element import Text, Element
-        from odf.text import S, P
+        from odf.element import Element, Text
         from odf.namespaces import TEXTNS
+        from odf.text import P, S
 
         text_p = P().qname
         text_s = S().qname

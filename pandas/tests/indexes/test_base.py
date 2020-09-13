@@ -56,16 +56,11 @@ class TestIndex(Base):
 
     @pytest.mark.parametrize("index", ["datetime"], indirect=True)
     def test_new_axis(self, index):
-        with tm.assert_produces_warning(DeprecationWarning):
+        with tm.assert_produces_warning(FutureWarning):
             # GH#30588 multi-dimensional indexing deprecated
             new_index = index[None, :]
         assert new_index.ndim == 2
         assert isinstance(new_index, np.ndarray)
-
-    @pytest.mark.parametrize("index", ["int", "uint", "float"], indirect=True)
-    def test_copy_and_deepcopy(self, index):
-        new_copy2 = index.copy(dtype=int)
-        assert new_copy2.dtype.kind == "i"
 
     def test_constructor_regular(self, index):
         tm.assert_contains_all(index, index)
@@ -1171,8 +1166,11 @@ class TestIndex(Base):
         assert "~:{range}:0" in result
         assert "{other}%s" in result
 
-    def test_format(self, index):
-        self._check_method_works(Index.format, index)
+    def test_format_different_scalar_lengths(self):
+        # GH35439
+        idx = Index(["aaaaaaaaa", "b"])
+        expected = ["aaaaaaaaa", "b"]
+        assert idx.format() == expected
 
     def test_format_bug(self):
         # GH 14626
@@ -1511,23 +1509,24 @@ class TestIndex(Base):
     @pytest.mark.parametrize(
         "in_slice,expected",
         [
+            # error: Slice index must be an integer or None
             (pd.IndexSlice[::-1], "yxdcb"),
-            (pd.IndexSlice["b":"y":-1], ""),  # type: ignore
-            (pd.IndexSlice["b"::-1], "b"),  # type: ignore
-            (pd.IndexSlice[:"b":-1], "yxdcb"),  # type: ignore
-            (pd.IndexSlice[:"y":-1], "y"),  # type: ignore
-            (pd.IndexSlice["y"::-1], "yxdcb"),  # type: ignore
-            (pd.IndexSlice["y"::-4], "yb"),  # type: ignore
+            (pd.IndexSlice["b":"y":-1], ""),  # type: ignore[misc]
+            (pd.IndexSlice["b"::-1], "b"),  # type: ignore[misc]
+            (pd.IndexSlice[:"b":-1], "yxdcb"),  # type: ignore[misc]
+            (pd.IndexSlice[:"y":-1], "y"),  # type: ignore[misc]
+            (pd.IndexSlice["y"::-1], "yxdcb"),  # type: ignore[misc]
+            (pd.IndexSlice["y"::-4], "yb"),  # type: ignore[misc]
             # absent labels
-            (pd.IndexSlice[:"a":-1], "yxdcb"),  # type: ignore
-            (pd.IndexSlice[:"a":-2], "ydb"),  # type: ignore
-            (pd.IndexSlice["z"::-1], "yxdcb"),  # type: ignore
-            (pd.IndexSlice["z"::-3], "yc"),  # type: ignore
-            (pd.IndexSlice["m"::-1], "dcb"),  # type: ignore
-            (pd.IndexSlice[:"m":-1], "yx"),  # type: ignore
-            (pd.IndexSlice["a":"a":-1], ""),  # type: ignore
-            (pd.IndexSlice["z":"z":-1], ""),  # type: ignore
-            (pd.IndexSlice["m":"m":-1], ""),  # type: ignore
+            (pd.IndexSlice[:"a":-1], "yxdcb"),  # type: ignore[misc]
+            (pd.IndexSlice[:"a":-2], "ydb"),  # type: ignore[misc]
+            (pd.IndexSlice["z"::-1], "yxdcb"),  # type: ignore[misc]
+            (pd.IndexSlice["z"::-3], "yc"),  # type: ignore[misc]
+            (pd.IndexSlice["m"::-1], "dcb"),  # type: ignore[misc]
+            (pd.IndexSlice[:"m":-1], "yx"),  # type: ignore[misc]
+            (pd.IndexSlice["a":"a":-1], ""),  # type: ignore[misc]
+            (pd.IndexSlice["z":"z":-1], ""),  # type: ignore[misc]
+            (pd.IndexSlice["m":"m":-1], ""),  # type: ignore[misc]
         ],
     )
     def test_slice_locs_negative_step(self, in_slice, expected):
@@ -2427,7 +2426,7 @@ class TestMixedIntIndex(Base):
         # TODO: remove tupleize_cols=False once correct behaviour is restored
         # TODO: also this op right now produces FutureWarning from numpy
         idx = Index([("a", "b"), ("b", "c"), ("c", "a")], tupleize_cols=False)
-        result = idx == ("c", "a",)
+        result = idx == ("c", "a")
         expected = np.array([False, False, True])
         tm.assert_numpy_array_equal(result, expected)
 
@@ -2531,7 +2530,7 @@ def test_shape_of_invalid_index():
     # that the returned shape is consistent with this underlying array for
     # compat with matplotlib (see https://github.com/pandas-dev/pandas/issues/27775)
     idx = pd.Index([0, 1, 2, 3])
-    with tm.assert_produces_warning(DeprecationWarning):
+    with tm.assert_produces_warning(FutureWarning):
         # GH#30588 multi-dimensional indexing deprecated
         assert idx[:, None].shape == (4, 1)
 

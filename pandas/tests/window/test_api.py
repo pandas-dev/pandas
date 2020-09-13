@@ -107,10 +107,7 @@ def test_agg():
 
     with pytest.raises(SpecificationError, match=msg):
         r.aggregate(
-            {
-                "A": {"mean": "mean", "sum": "sum"},
-                "B": {"mean2": "mean", "sum2": "sum"},
-            }
+            {"A": {"mean": "mean", "sum": "sum"}, "B": {"mean2": "mean", "sum2": "sum"}}
         )
 
     result = r.aggregate({"A": ["mean", "std"], "B": ["mean", "std"]})
@@ -191,11 +188,7 @@ def test_count_nonnumeric_types():
         "dt_nat",
         "periods_nat",
     ]
-    dt_nat_col = [
-        Timestamp("20170101"),
-        Timestamp("20170203"),
-        Timestamp(None),
-    ]
+    dt_nat_col = [Timestamp("20170101"), Timestamp("20170203"), Timestamp(None)]
 
     df = DataFrame(
         {

@@ -417,7 +417,7 @@ class TestDataFrameReshape:
         result = df.unstack(unstack_idx)
 
         expected = pd.DataFrame(
-            expected_values, columns=expected_columns, index=expected_index,
+            expected_values, columns=expected_columns, index=expected_index
         )
         tm.assert_frame_equal(result, expected)
 
@@ -473,7 +473,8 @@ class TestDataFrameReshape:
         )
 
         df_named = df.copy()
-        df_named.columns.set_names(range(3), inplace=True)
+        return_value = df_named.columns.set_names(range(3), inplace=True)
+        assert return_value is None
 
         tm.assert_frame_equal(
             df_named.stack(level=[1, 2]), df_named.stack(level=1).stack(level=1)
@@ -806,7 +807,7 @@ class TestDataFrameReshape:
                 [["B", "C"], ["B", "D"]], names=["c1", "c2"]
             ),
             index=pd.MultiIndex.from_tuples(
-                [[10, 20, 30], [10, 20, 40]], names=["i1", "i2", "i3"],
+                [[10, 20, 30], [10, 20, 40]], names=["i1", "i2", "i3"]
             ),
         )
         assert df.unstack(["i2", "i1"]).columns.names[-2:] == ["i2", "i1"]

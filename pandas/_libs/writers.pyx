@@ -5,8 +5,8 @@ from cpython.bytes cimport PyBytes_GET_SIZE
 from cpython.unicode cimport PyUnicode_GET_SIZE
 
 import numpy as np
-from numpy cimport ndarray, uint8_t
 
+from numpy cimport ndarray, uint8_t
 
 ctypedef fused pandas_string:
     str

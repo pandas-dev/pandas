@@ -21,7 +21,10 @@ from dateutil.tz import gettz, tzlocal
 import numpy as np
 import pytz
 
-from pandas._libs.tslib import ints_to_pydatetime
+try:
+    from pandas._libs.tslibs import ints_to_pydatetime
+except ImportError:
+    from pandas._libs.tslib import ints_to_pydatetime
 
 _tzs = [
     None,
