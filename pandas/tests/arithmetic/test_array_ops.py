@@ -3,7 +3,7 @@ import operator
 import numpy as np
 import pytest
 
-from pandas import Series
+from pandas import Index, Series, array
 import pandas._testing as tm
 from pandas.core.ops.array_ops import comparison_op, na_logical_op
 
@@ -37,15 +37,24 @@ def test_object_comparison_2d():
     tm.assert_numpy_array_equal(result, ~expected)
 
 
+@pytest.fixture(params=[Index, Series, tm.to_array])
+def box_pandas_1d_array(request):
+    """
+    Fixture to test behavior for Index, Series and tm.to_array classes
+    """
+    return request.param
+
+
 @pytest.mark.parametrize(
     "data, expected", [([0, 1, 2], [0, 2, 4])],
 )
-def test_extension_array_add(box_1d_array, data, expected):
+def test_extension_array_add(box_pandas_1d_array, box_1d_array, data, expected):
     # GH22606 Verify operators with Extension Array and list-likes
-    ser = Series(data, dtype="Int64")
-    left = ser + box_1d_array(data)
-    right = box_1d_array(data) + ser
 
-    expected = Series(expected, dtype="Int64")
-    tm.assert_series_equal(left, expected)
-    tm.assert_series_equal(right, expected)
+    arr = array(data, dtype="Int64")
+    container = box_pandas_1d_array(arr)
+    left = container + box_1d_array(data)
+    right = box_1d_array(data) + container
+
+    assert left.tolist() == expected
+    assert right.tolist() == expected

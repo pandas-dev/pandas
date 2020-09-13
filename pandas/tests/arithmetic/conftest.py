@@ -243,7 +243,7 @@ def box_with_array(request):
 @pytest.fixture(params=[pd.Index, pd.Series, tm.to_array, np.array, list], ids=id_func)
 def box_1d_array(request):
     """
-    Fixture to test behavior for Index, Series, pandas Array, numpy Array and list
+    Fixture to test behavior for Index, Series, tm.to_array, numpy Array and list
     classes
     """
     return request.param
