@@ -197,6 +197,8 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     _mask = None
 
     _data: IntervalArray
+    _values: IntervalArray
+
     # --------------------------------------------------------------------
     # Constructors
 
