@@ -1676,7 +1676,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         columns.name = self.obj.columns.name
 
         result = self.obj._constructor(indexed_output)
-        result.columns = columns
+
+        if self.axis == 1:
+            result = result.T
+            result.columns = self.obj.columns
+        else:
+            result.columns = columns
+
         result.index = self.obj.index
 
         return result

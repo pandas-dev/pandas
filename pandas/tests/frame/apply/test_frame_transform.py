@@ -27,8 +27,6 @@ def test_transform_groupby_kernel(axis, float_frame, op):
         pytest.xfail("DataFrame.cumcount does not exist")
     if op == "tshift":
         pytest.xfail("Only works on time index and is deprecated")
-    if axis == 1 or axis == "columns":
-        pytest.xfail("GH 36308: groupby.transform with axis=1 is broken")
 
     args = [0.0] if op == "fillna" else []
     if axis == 0 or axis == "index":
