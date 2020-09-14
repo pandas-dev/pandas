@@ -147,7 +147,7 @@ def concat_compat(to_concat, axis: int = 0):
             target_dtype = find_common_type([x.dtype for x in to_concat])
             to_concat = [_cast_to_common_type(arr, target_dtype) for arr in to_concat]
 
-        if isinstance(to_concat[0], ExtensionArray):
+        if isinstance(to_concat[0], ExtensionArray) and axis == 0:
             cls = type(to_concat[0])
             return cls._concat_same_type(to_concat)
         else:
@@ -155,7 +155,7 @@ def concat_compat(to_concat, axis: int = 0):
                 arr.to_numpy() if isinstance(arr, ExtensionArray) else arr
                 for arr in to_concat
             ]
-            return np.concatenate(to_concat)
+            return np.concatenate(to_concat, axis=axis)
 
     elif _contains_datetime or "timedelta" in typs:
         return _concat_datetime(to_concat, axis=axis, typs=typs)
