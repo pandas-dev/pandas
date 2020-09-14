@@ -8,7 +8,15 @@ import pytest
 from pandas.core.dtypes.common import is_dtype_equal
 
 import pandas as pd
-from pandas import CategoricalIndex, DatetimeIndex, Float64Index, Int64Index, RangeIndex, UInt64Index, TimedeltaIndex
+from pandas import (
+    CategoricalIndex,
+    DatetimeIndex,
+    Float64Index,
+    Int64Index,
+    RangeIndex,
+    UInt64Index,
+    TimedeltaIndex
+)
 import pandas._testing as tm
 from pandas.api.types import pandas_dtype
 

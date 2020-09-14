@@ -2613,6 +2613,3 @@ def test_get_indexer_non_unique_wrong_dtype(ldtype, rdtype):
         no_matches = np.array([-1] * 6, dtype=np.intp)
         tm.assert_numpy_array_equal(result[0], no_matches)
         tm.assert_numpy_array_equal(result[1], no_matches)
-
-
-

@@ -2625,7 +2625,7 @@ class Index(IndexOpsMixin, PandasObject):
         # if sort is None and self.is_monotonic and other.is_monotonic:
         try:
             if sort is None and self.is_monotonic and other.is_monotonic:
-                result = self._outer_indexer(np.sort(lvals), np.sort(rvals))[0]
+                result = self._outer_indexer(lvals, rvals)[0]
             else:
                 # We calculate the sorted union and resort it afterwards
                 new_index_sorted = self._outer_indexer(np.sort(lvals), np.sort(rvals))
