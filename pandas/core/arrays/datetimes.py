@@ -7,6 +7,7 @@ import numpy as np
 from pandas._libs import lib, tslib
 from pandas._libs.tslibs import (
     NaT,
+    NaTType,
     Resolution,
     Timestamp,
     conversion,
@@ -446,11 +447,15 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
     # -----------------------------------------------------------------
     # DatetimeLike Interface
 
-    def _unbox_scalar(self, value):
+    @classmethod
+    def _rebox_native(cls, value: int) -> np.datetime64:
+        return np.int64(value).view("M8[ns]")
+
+    def _unbox_scalar(self, value, setitem: bool = False):
         if not isinstance(value, self._scalar_type) and value is not NaT:
             raise ValueError("'value' should be a Timestamp.")
         if not isna(value):
-            self._check_compatible_with(value)
+            self._check_compatible_with(value, setitem=setitem)
         return value.value
 
     def _scalar_from_string(self, value):
@@ -471,9 +476,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
     # -----------------------------------------------------------------
     # Descriptive Properties
 
-    @property
-    def _box_func(self):
-        return lambda x: Timestamp(x, freq=self.freq, tz=self.tz)
+    def _box_func(self, x) -> Union[Timestamp, NaTType]:
+        return Timestamp(x, freq=self.freq, tz=self.tz)
 
     @property
     def dtype(self) -> Union[np.dtype, DatetimeTZDtype]:
@@ -1144,8 +1148,6 @@ default 'raise'
         """
         Return the month names of the DateTimeIndex with specified locale.
 
-        .. versionadded:: 0.23.0
-
         Parameters
         ----------
         locale : str, optional
@@ -1178,8 +1180,6 @@ default 'raise'
     def day_name(self, locale=None):
         """
         Return the day names of the DateTimeIndex with specified locale.
-
-        .. versionadded:: 0.23.0
 
         Parameters
         ----------

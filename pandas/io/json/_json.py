@@ -22,7 +22,7 @@ from pandas.core.reshape.concat import concat
 from pandas.io.common import get_compression_method, get_filepath_or_buffer, get_handle
 from pandas.io.json._normalize import convert_to_line_delimits
 from pandas.io.json._table_schema import build_table_schema, parse_table_schema
-from pandas.io.parsers import _validate_integer
+from pandas.io.parsers import validate_integer
 
 loads = json.loads
 dumps = json.dumps
@@ -428,9 +428,6 @@ def read_json(
           - The DataFrame columns must be unique for orients ``'index'``,
             ``'columns'``, and ``'records'``.
 
-        .. versionadded:: 0.23.0
-           'table' as an allowed value for the ``orient`` argument
-
     typ : {'frame', 'series'}, default 'frame'
         The type of object to recover.
 
@@ -698,11 +695,11 @@ class JsonReader(abc.Iterator):
         self.file_handles: List[IO] = []
 
         if self.chunksize is not None:
-            self.chunksize = _validate_integer("chunksize", self.chunksize, 1)
+            self.chunksize = validate_integer("chunksize", self.chunksize, 1)
             if not self.lines:
                 raise ValueError("chunksize can only be passed if lines=True")
         if self.nrows is not None:
-            self.nrows = _validate_integer("nrows", self.nrows, 0)
+            self.nrows = validate_integer("nrows", self.nrows, 0)
             if not self.lines:
                 raise ValueError("nrows can only be passed if lines=True")
 

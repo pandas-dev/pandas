@@ -33,7 +33,6 @@ from pandas.core.dtypes.missing import isna
 from pandas.core import algorithms
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, maybe_extract_name
-from pandas.core.ops import get_op_result_name
 
 _num_index_shared_docs = dict()
 
@@ -97,12 +96,17 @@ class NumericIndex(Index):
                 f"Incorrect `dtype` passed: expected {expected}, received {dtype}"
             )
 
+    # ----------------------------------------------------------------
+    # Indexing Methods
+
     @doc(Index._maybe_cast_slice_bound)
     def _maybe_cast_slice_bound(self, label, side, kind):
         assert kind in ["loc", "getitem", None]
 
         # we will try to coerce to integers
         return self._maybe_cast_indexer(label)
+
+    # ----------------------------------------------------------------
 
     @doc(Index._shallow_copy)
     def _shallow_copy(self, values=None, name: Label = lib.no_default):
@@ -112,7 +116,7 @@ class NumericIndex(Index):
             return Float64Index._simple_new(values, name=name)
         return super()._shallow_copy(values=values, name=name)
 
-    def _convert_for_op(self, value):
+    def _validate_fill_value(self, value):
         """
         Convert value to be insertable to ndarray.
         """
@@ -184,7 +188,7 @@ class NumericIndex(Index):
 _num_index_shared_docs[
     "class_descr"
 ] = """
-    Immutable ndarray implementing an ordered, sliceable set. The basic object
+    Immutable sequence used for indexing and alignment. The basic object
     storing axis labels for all pandas objects. %(klass)s is a special case
     of `Index` with purely %(ltype)s labels. %(extra)s.
 
@@ -257,10 +261,6 @@ class Int64Index(IntegerIndex):
     _engine_type = libindex.Int64Engine
     _default_dtype = np.dtype(np.int64)
 
-    def _wrap_joined_index(self, joined, other):
-        name = get_op_result_name(self, other)
-        return Int64Index(joined, name=name)
-
     @classmethod
     def _assert_safe_casting(cls, data, subarr):
         """
@@ -293,6 +293,9 @@ class UInt64Index(IntegerIndex):
     _engine_type = libindex.UInt64Engine
     _default_dtype = np.dtype(np.uint64)
 
+    # ----------------------------------------------------------------
+    # Indexing Methods
+
     @doc(Index._convert_arr_indexer)
     def _convert_arr_indexer(self, keyarr):
         # Cast the indexer to uint64 if possible so that the values returned
@@ -314,9 +317,7 @@ class UInt64Index(IntegerIndex):
             return keyarr.astype(np.uint64)
         return keyarr
 
-    def _wrap_joined_index(self, joined, other):
-        name = get_op_result_name(self, other)
-        return UInt64Index(joined, name=name)
+    # ----------------------------------------------------------------
 
     @classmethod
     def _assert_safe_casting(cls, data, subarr):
@@ -385,6 +386,22 @@ class Float64Index(NumericIndex):
         # translate to locations
         return self.slice_indexer(key.start, key.stop, key.step, kind=kind)
 
+    @doc(Index.get_loc)
+    def get_loc(self, key, method=None, tolerance=None):
+        if is_bool(key):
+            # Catch this to avoid accidentally casting to 1.0
+            raise KeyError(key)
+
+        if is_float(key) and np.isnan(key):
+            nan_idxs = self._nan_idxs
+            if not len(nan_idxs):
+                raise KeyError(key)
+            elif len(nan_idxs) == 1:
+                return nan_idxs[0]
+            return nan_idxs
+
+        return super().get_loc(key, method=method, tolerance=tolerance)
+
     # ----------------------------------------------------------------
 
     def _format_native_types(
@@ -408,22 +425,6 @@ class Float64Index(NumericIndex):
             return True
 
         return is_float(other) and np.isnan(other) and self.hasnans
-
-    @doc(Index.get_loc)
-    def get_loc(self, key, method=None, tolerance=None):
-        if is_bool(key):
-            # Catch this to avoid accidentally casting to 1.0
-            raise KeyError(key)
-
-        if is_float(key) and np.isnan(key):
-            nan_idxs = self._nan_idxs
-            if not len(nan_idxs):
-                raise KeyError(key)
-            elif len(nan_idxs) == 1:
-                return nan_idxs[0]
-            return nan_idxs
-
-        return super().get_loc(key, method=method, tolerance=tolerance)
 
     @cache_readonly
     def is_unique(self) -> bool:

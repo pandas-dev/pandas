@@ -2715,7 +2715,7 @@ def use_numexpr(use, min_elements=None):
     if min_elements is None:
         min_elements = expr._MIN_ELEMENTS
 
-    olduse = expr._USE_NUMEXPR
+    olduse = expr.USE_NUMEXPR
     oldmin = expr._MIN_ELEMENTS
     expr.set_use_numexpr(use)
     expr._MIN_ELEMENTS = min_elements
