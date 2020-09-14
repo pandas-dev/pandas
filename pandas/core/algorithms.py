@@ -725,11 +725,12 @@ def value_counts(
     bins : integer or iterable of numeric, optional
         Rather than count values, group them into half-open bins.
         Only works with numeric data.
-        If int, interpreted as number of bins and will use pd.cut.
+        If int, interpreted as number of bins.
         If interable of numeric, will use provided numbers as bin endpoints.
     dropna : bool, default True
         Don't include counts of NaN.
         If False and NaNs are present, NaN will be a key in the output.
+        .. versionchanged:: 1.2
 
     Returns
     -------

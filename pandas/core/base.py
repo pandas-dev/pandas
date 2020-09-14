@@ -1182,11 +1182,12 @@ class IndexOpsMixin:
         bins : integer or iterable of numeric, optional
             Rather than count individual values, group them into half-open bins.
             Only works with numeric data.
-            If int, interpreted as number of bins and will use `pd.cut`.
+            If int, interpreted as number of bins.
             If interable of numeric, will use provided numbers as bin endpoints.
         dropna : bool, default True
             Don't include counts of NaN.
             If False and NaNs are present, NaN will be a key in the output.
+            .. versionchanged:: 1.1.2
 
         Returns
         -------
@@ -1237,7 +1238,7 @@ class IndexOpsMixin:
         Bins can also be an iterable of numbers.  These numbers are treated
         as endpoints for the intervals.
 
-        >>> s.value_counts(bins=[0,2,4,9])
+        >>> s.value_counts(bins=[0, 2, 4, 9])
         (2.0, 4.0]      3
         (-0.001, 2.0]    2
         (4.0, 9.0]       0
