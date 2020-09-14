@@ -121,7 +121,6 @@ Other enhancements
 - :meth:`DataFrame.hist` now supports time series (datetime) data (:issue:`32590`)
 -
 
-
 .. _whatsnew_120.api_breaking.python:
 
 Increased minimum version for Python
