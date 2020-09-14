@@ -2615,26 +2615,4 @@ def test_get_indexer_non_unique_wrong_dtype(ldtype, rdtype):
         tm.assert_numpy_array_equal(result[1], no_matches)
 
 
-def test_union_with_duplicate_index():
-    # GH: 36289
-    idx1 = Index([1, 0, 0])
-    idx2 = Index([0, 1])
-    expected = pd.Index([0, 0, 1])
 
-    result = idx1.union(idx2)
-    tm.assert_index_equal(result, expected)
-
-    result = idx2.union(idx1)
-    tm.assert_index_equal(result, expected)
-
-
-def test_union_duplicate_index_subsets_of_each_other():
-    # GH: 31326
-    a = pd.Index([1, 2, 2, 3])
-    b = pd.Index([3, 3, 4])
-    expected = Index([1, 2, 2, 3, 3, 4])
-
-    result = a.union(b)
-    tm.assert_index_equal(result, expected)
-    result = a.union(b, sort=False)
-    tm.assert_index_equal(result, expected)

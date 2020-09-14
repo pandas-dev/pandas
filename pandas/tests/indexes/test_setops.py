@@ -8,7 +8,7 @@ import pytest
 from pandas.core.dtypes.common import is_dtype_equal
 
 import pandas as pd
-from pandas import Float64Index, Int64Index, RangeIndex, UInt64Index
+from pandas import CategoricalIndex, DatetimeIndex, Float64Index, Int64Index, RangeIndex, UInt64Index, TimedeltaIndex
 import pandas._testing as tm
 from pandas.api.types import pandas_dtype
 
@@ -95,3 +95,38 @@ def test_union_dtypes(left, right, expected):
     b = pd.Index([], dtype=right)
     result = (a | b).dtype
     assert result == expected
+
+
+def test_union_duplicate_index_subsets_of_each_other():
+    # GH: 31326
+    a = pd.Index([1, 2, 2, 3])
+    b = pd.Index([3, 3, 4])
+    expected = pd.Index([1, 2, 2, 3, 3, 4])
+
+    result = a.union(b)
+    tm.assert_index_equal(result, expected)
+    result = a.union(b, sort=False)
+    tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "func",
+    [
+        (Int64Index),
+        (Float64Index),
+        (DatetimeIndex),
+        (CategoricalIndex),
+        (TimedeltaIndex),
+    ]
+)
+def test_union_with_duplicate_index(func):
+    # GH: 36289
+    idx1 = func([1, 0, 0])
+    idx2 = func([0, 1])
+    expected = func([0, 0, 1])
+
+    result = idx1.union(idx2)
+    tm.assert_index_equal(result, expected)
+
+    result = idx2.union(idx1)
+    tm.assert_index_equal(result, expected)
