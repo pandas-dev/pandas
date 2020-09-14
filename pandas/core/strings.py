@@ -602,8 +602,6 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
         - Cannot be set to False if `pat` is a compiled regex or `repl` is
           a callable.
 
-        .. versionadded:: 0.23.0
-
     Returns
     -------
     Series or Index of object
@@ -2050,7 +2048,7 @@ def _pat_wrapper(
     @forbid_nonstring_types(forbidden_types, name=name)
     def wrapper3(self, pat, na=np.nan):
         result = f(self._parent, pat, na=na)
-        return self._wrap_result(result, returns_string=returns_string)
+        return self._wrap_result(result, returns_string=returns_string, fill_value=na)
 
     wrapper = wrapper3 if na else wrapper2 if flags else wrapper1
 
@@ -2374,7 +2372,6 @@ class StringMethods(NoNewAttributesMixin):
             to match the length of the calling Series/Index). To disable
             alignment, use `.values` on any Series/Index/DataFrame in `others`.
 
-            .. versionadded:: 0.23.0
             .. versionchanged:: 1.0.0
                 Changed default of `join` from None to `'left'`.
 
