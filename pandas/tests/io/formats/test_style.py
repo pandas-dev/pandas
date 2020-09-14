@@ -1718,23 +1718,25 @@ class TestStyler:
         s = Styler(df, uuid="_", cell_ids=False)
         assert '<th class="col_heading level0 col0" colspan="2">l0</th>' in s.render()
 
-    @pytest.mark.parametrize("len_", [1, 5, 32])
+    @pytest.mark.parametrize("len_", [1, 5, 32, 33, 100])
     def test_uuid_len(self, len_):
         # GH 36345
         df = pd.DataFrame(data=[["A"]])
         s = Styler(df, uuid_len=len_, cell_ids=False).render()
         strt = s.find('id="T_')
         end = s[strt + 6 :].find('"')
-        assert end == len_ + 1
+        if len_ > 32:
+            assert end == 32 + 1
+        else:
+            assert end == len_ + 1
 
-    @pytest.mark.parametrize("len_", [33, 100])
-    def test_uuid_max_len(self, len_):
+    @pytest.mark.parametrize("len_", [-2, "bad", None])
+    def test_uuid_len_raises(self, len_):
         # GH 36345
         df = pd.DataFrame(data=[["A"]])
-        s = Styler(df, uuid_len=len_, cell_ids=False).render()
-        strt = s.find('id="T_')
-        end = s[strt + 6 :].find('"')
-        assert end == 32 + 1
+        msg = "``uuid_len`` must be an integer in range \\[0, 32\\]."
+        with pytest.raises(TypeError, match=msg):
+            Styler(df, uuid_len=len_, cell_ids=False).render()
 
 
 @td.skip_if_no_mpl

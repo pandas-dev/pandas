@@ -75,7 +75,10 @@ class Styler:
         A unique identifier to avoid CSS collisions; generated automatically.
     uuid_len : int, default 5
         If ``uuid`` is not specified, the length of the ``uuid`` to randomly generate
-        in characters, max is 32.
+        expressed in hex characters, in range [0, 32].
+
+        .. versionadded:: 1.2.0
+
     caption : str, default None
         Caption to attach to the table.
     table_attributes : str, default None
@@ -163,7 +166,9 @@ class Styler:
         self.index = data.index
         self.columns = data.columns
 
-        self.uuid_len = uuid_len if uuid_len < 33 else 32
+        if not isinstance(uuid_len, int) or not uuid_len >= 0:
+            raise TypeError("``uuid_len`` must be an integer in range [0, 32].")
+        self.uuid_len = min(32, uuid_len)
         self.uuid = (uuid or uuid4().hex[: self.uuid_len]) + "_"
         self.table_styles = table_styles
         self.caption = caption
