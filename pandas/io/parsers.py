@@ -342,6 +342,7 @@ float_precision : str, optional
     `legacy` for the original lower precision pandas converter, and
     `round_trip` for the round-trip converter.
 
+    .. versionchanged:: 1.2
 Returns
 -------
 DataFrame or TextParser
@@ -2281,9 +2282,10 @@ def TextParser(*args, **kwds):
         can be inferred, there often will be a large parsing speed-up.
     float_precision : str, optional
         Specifies which converter the C engine should use for floating-point
-        values. The options are None for the ordinary converter,
-        'high' for the high-precision converter, and 'round_trip' for the
-        round-trip converter.
+        values. The options are `None` or `high` for the ordinary converter,
+        `legacy` for the original lower precision pandas converter, and
+        `round_trip` for the round-trip converter.
+
         .. versionchanged:: 1.2
     """
     kwds["engine"] = "python"
