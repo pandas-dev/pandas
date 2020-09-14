@@ -698,12 +698,11 @@ def test_rolling_positional_argument(grouping, _index, raw):
     tm.assert_frame_equal(result, expected)
 
 
-def test_rolling_numerical_accuracy_kahan():
+@pytest.mark.parametrize("add", [0.0, 2.0])
+def test_rolling_numerical_accuracy_kahan(add):
     # GH: 36031 implementing kahan summation
     df = pd.DataFrame(
-        {
-            "A": [3002399751580331.0, -0.0, -0.0]
-        },  # First value is a single digit longer.
+        {"A": [3002399751580331.0 + add, -0.0, -0.0]},
         index=[
             pd.Timestamp("19700101 09:00:00"),
             pd.Timestamp("19700101 09:00:03"),
