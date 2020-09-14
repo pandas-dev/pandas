@@ -461,8 +461,6 @@ of those specified will not be generated:
 
    pd.bdate_range(start=start, periods=20)
 
-.. versionadded:: 0.23.0
-
 Specifying ``start``, ``end``, and ``periods`` will generate a range of evenly spaced
 dates from ``start`` to ``end`` inclusively, with ``periods`` number of elements in the
 resulting ``DatetimeIndex``:
@@ -642,8 +640,6 @@ Slicing with string indexing also honors UTC offset.
 
 Slice vs. exact match
 ~~~~~~~~~~~~~~~~~~~~~
-
-.. versionchanged:: 0.20.0
 
 The same string used as an indexing parameter can be treated either as a slice or as an exact match depending on the resolution of the index. If the string is less accurate than the index, it will be treated as a slice, otherwise as an exact match.
 

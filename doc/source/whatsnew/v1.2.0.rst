@@ -96,6 +96,19 @@ For example:
    buffer = io.BytesIO()
    data.to_csv(buffer, mode="w+b", encoding="utf-8", compression="gzip")
 
+:.. _whatsnew_read_csv_table_precision_default:
+
+Change in default floating precision for ``read_csv`` and ``read_table``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For the C parsing engine, the methods :meth:`read_csv` and :meth:`read_table` previously defaulted to a parser that
+could read floating point numbers slightly incorrectly with respect to the last bit in precision.
+The option ``floating_precision="high"`` has always been available to avoid this issue.
+Beginning with this version, the default is now to use the more accurate parser by making
+``floating_precision=None`` correspond to the high precision parser, and the new option
+``floating_precision="legacy"`` to use the legacy parser. The change to using the higher precision
+parser by default should have no impact on performance. (:issue:`17154`)
+
 .. _whatsnew_120.enhancements.other:
 
 Other enhancements
@@ -207,6 +220,7 @@ Performance improvements
 
 - Performance improvements when creating Series with dtype `str` or :class:`StringDtype` from array with many string elements (:issue:`36304`, :issue:`36317`)
 - Performance improvement in :meth:`GroupBy.agg` with the ``numba`` engine (:issue:`35759`)
+- Performance improvements when creating :meth:`pd.Series.map` from a huge dictionary (:issue:`34717`)
 - Performance improvement in :meth:`GroupBy.transform` with the ``numba`` engine (:issue:`36240`)
 
 .. ---------------------------------------------------------------------------
@@ -293,6 +307,7 @@ MultiIndex
 I/O
 ^^^
 
+- :func:`read_sas` no longer leaks resources on failure (:issue:`35566`)
 - Bug in :meth:`to_csv` caused a ``ValueError`` when it was called with a filename in combination with ``mode`` containing a ``b`` (:issue:`35058`)
 - In :meth:`read_csv` `float_precision='round_trip'` now handles `decimal` and `thousands` parameters (:issue:`35365`)
 - :meth:`to_pickle` and :meth:`read_pickle` were closing user-provided file objects (:issue:`35679`)
@@ -300,10 +315,12 @@ I/O
 - :meth:`to_csv` did not support zip compression for binary file object not having a filename (:issue: `35058`)
 - :meth:`to_csv` and :meth:`read_csv` did not honor `compression` and `encoding` for path-like objects that are internally converted to file-like objects (:issue:`35677`, :issue:`26124`, and :issue:`32392`)
 - :meth:`to_picke` and :meth:`read_pickle` did not support compression for file-objects (:issue:`26237`, :issue:`29054`, and :issue:`29570`)
+- Bug in :meth:`read_excel` with `engine="odf"` caused ``UnboundLocalError`` in some cases where cells had nested child nodes (:issue:`36122`, and :issue:`35802`)
 
 Plotting
 ^^^^^^^^
 
+- Bug in :meth:`DataFrame.plot` was rotating xticklabels when ``subplots=True``, even if the x-axis wasn't an irregular time series (:issue:`29460`)
 - Bug in :meth:`DataFrame.plot` where a marker letter in the ``style`` keyword sometimes causes a ``ValueError`` (:issue:`21003`)
 
 Groupby/resample/rolling
