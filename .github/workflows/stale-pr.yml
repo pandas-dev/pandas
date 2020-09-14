@@ -11,7 +11,8 @@ jobs:
     - uses: actions/stale@v3
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
-        stale-pr-message: "This pull request is stale because it has been open for thirty days with no activity. Please update to prevent this from being closed (you can always reopen later). If you need help don't hesitate to contact one of the maintainers."
+        stale-pr-message: "This pull request is stale because it has been open for thirty days with no activity."
+        stale-pr-label: "Stale"
         days-before-stale: 30
         days-before-close: -1
         debug-only: true
