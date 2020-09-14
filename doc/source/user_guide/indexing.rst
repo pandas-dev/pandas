@@ -1487,7 +1487,7 @@ Looking up values by index/column labels
 
 Sometimes you want to extract a set of values given a sequence of row labels
 and column labels, this can be achieved by ``DataFrame.melt`` combined by filtering the corresponding
-rows with ``DataFrame.query``.  For instance:
+rows with ``DataFrame.loc``.  For instance:
 
 .. ipython:: python
 
@@ -1496,8 +1496,12 @@ rows with ``DataFrame.query``.  For instance:
                        'B': [80, 55, 76, 67]})
     df
     melt = df.melt('col')
-    df['lookup'] = melt.query('col == variable')['value'].to_numpy()
+    melt = melt.loc[melt['col'] == melt['variable'], 'value']
+    df['lookup'] = melt.reset_index(drop=True)
     df
+
+Formerly this could be achieved with the dedicated ``DataFrame.lookup`` method
+which was deprecated in version 1.2.0.
 
 .. _indexing.class:
 
