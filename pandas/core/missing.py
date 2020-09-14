@@ -543,12 +543,59 @@ def _cubicspline_interpolate(xi, yi, x, axis=0, bc_type="not-a-knot", extrapolat
 
 
 def interpolate_2d(
-    values, method="pad", axis=0, limit=None, fill_value=None, dtype=None
+    values,
+    method="pad",
+    axis=0,
+    limit=None,
+    limit_area=None,
+    fill_value=None,
+    dtype=None,
 ):
     """
     Perform an actual interpolation of values, values will be make 2-d if
     needed fills inplace, returns the result.
     """
+
+    if limit_area is not None:
+
+        def func(values):
+            invalid = isna(values)
+
+            if not invalid.any():
+                return values
+
+            if not invalid.all():
+                first = find_valid_index(values, "first")
+                last = find_valid_index(values, "last")
+
+                values = interpolate_2d(
+                    values,
+                    method=method,
+                    limit=limit,
+                    fill_value=fill_value,
+                    dtype=dtype,
+                )
+
+                if limit_area == "inside":
+                    invalid[first : last + 1] = False
+                elif limit_area == "outside":
+                    invalid[:first] = False
+                    invalid[last + 1 :] = False
+
+                values[invalid] = np.nan
+            else:
+                values = interpolate_2d(
+                    values,
+                    method=method,
+                    limit=limit,
+                    fill_value=fill_value,
+                    dtype=dtype,
+                )
+            return values
+
+        values = np.apply_along_axis(func, axis, values)
+        return values
+
     orig_values = values
 
     transf = (lambda x: x) if axis == 0 else (lambda x: x.T)

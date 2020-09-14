@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-import functools
 import inspect
 import re
 from typing import TYPE_CHECKING, Any, List, Optional
@@ -1179,42 +1178,15 @@ class Block(PandasObject):
         # We only get here for non-ExtensionBlock
         fill_value = convert_scalar_for_putitemlike(fill_value, self.values.dtype)
 
-        interpolate_2d = functools.partial(
-            missing.interpolate_2d,
+        values = missing.interpolate_2d(
+            values,
             method=method,
+            axis=axis,
             limit=limit,
+            limit_area=limit_area,
             fill_value=fill_value,
             dtype=self.dtype,
         )
-
-        if limit_area is None:
-            values = interpolate_2d(values, axis=axis)
-        else:
-
-            def func(values):
-                invalid = isna(values)
-
-                if not invalid.any():
-                    return values
-
-                if not invalid.all():
-                    first = missing.find_valid_index(values, "first")
-                    last = missing.find_valid_index(values, "last")
-
-                    values = interpolate_2d(values)
-
-                    if limit_area == "inside":
-                        invalid[first : last + 1] = False
-                    elif limit_area == "outside":
-                        invalid[:first] = False
-                        invalid[last + 1 :] = False
-
-                    values[invalid] = np.nan
-                else:
-                    values = interpolate_2d(values)
-                return values
-
-            values = np.apply_along_axis(func, axis, values)
 
         blocks = [self.make_block_same_class(values, ndim=self.ndim)]
         return self._maybe_downcast(blocks, downcast)
