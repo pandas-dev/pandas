@@ -1715,8 +1715,10 @@ class TestStyler:
         # GH 21266
         df = pd.DataFrame(data=[[0, 3], [1, 2]], columns=["A", "B"], index=["a", "b"])
         s = Styler(df, uuid="_").set_tooltips(ttips).render()
+
         # test tooltip table level class
         assert "#T__ .pd-t {\n          visibility: hidden;\n" in s
+
         # test 'Min' tooltip added
         assert (
             "#T__ #T__row0_col0:hover .pd-t {\n          visibility: visible;\n    }  "
@@ -1728,6 +1730,7 @@ class TestStyler:
             + "</span></td>"
             in s
         )
+
         # test 'Max' tooltip added
         assert (
             "#T__ #T__row0_col1:hover .pd-t {\n          visibility: visible;\n    }  "
@@ -1743,9 +1746,26 @@ class TestStyler:
     def test_tooltip_ignored(self):
         # GH 21266
         df = pd.DataFrame(data=[[0, 1], [2, 3]])
-        s = Styler(df, uuid="_").set_tooltip_class("pd-t").render()  # no set_tooltips()
+        s = (
+            Styler(df, uuid="_").set_tooltips_class("pd-t").render()
+        )  # no set_tooltips()
         assert '<style  type="text/css" >\n</style>' in s
         assert '<span class="pd-t"></span>' not in s
+
+    def test_tooltip_class(self):
+        # GH 21266
+        df = pd.DataFrame(data=[[0, 1], [2, 3]])
+        s = (
+            Styler(df, uuid="_")
+            .set_tooltips(DataFrame([["tooltip"]]))
+            .set_tooltips_class(name="other-class", properties=[("color", "green")])
+            .render()
+        )
+        assert "#T__ .other-class {\n          color: green;\n" in s
+        assert (
+            '#T__ #T__row0_col0 .other-class::after {\n          content: "tooltip";\n'
+            in s
+        )
 
 
 @td.skip_if_no_mpl
