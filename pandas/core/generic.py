@@ -4407,7 +4407,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         4    D     7     2    e
         5    C     4     3    F
 
-        Natural sort with the key function,
+        Natural sort with the key argument,
         using the `natsort <https://github.com/SethMMorton/natsort>` package.
 
         >>> df = pd.DataFrame({
