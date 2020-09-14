@@ -6,14 +6,7 @@ import numpy as np
 from pandas._libs import lib, missing as libmissing
 
 from pandas.core.dtypes.base import ExtensionDtype, register_extension_dtype
-from pandas.core.dtypes.common import (
-    is_array_like,
-    is_bool_dtype,
-    is_integer_dtype,
-    is_object_dtype,
-    is_string_dtype,
-    pandas_dtype,
-)
+from pandas.core.dtypes.common import is_array_like, pandas_dtype
 
 from pandas import compat
 from pandas.core import ops
@@ -23,7 +16,7 @@ from pandas.core.arrays.integer import _IntegerDtype
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import isna
-from pandas.core.strings.object_array import ObjectArrayMethods
+from pandas.core.strings.string_array import StringArrayMethods
 
 if TYPE_CHECKING:
     import pyarrow  # noqa: F401
@@ -68,7 +61,7 @@ class StringDtype(ExtensionDtype):
         return str
 
     @classmethod
-    def construct_array_type(self) -> Type["StringArray"]:
+    def construct_array_type(cls) -> Type["StringArray"]:
         """
         Return the array type associated with this dtype.
 
@@ -79,7 +72,7 @@ class StringDtype(ExtensionDtype):
         return StringArray
 
     def __repr__(self) -> str:
-        return self.name
+        return "StringDtype"
 
     def __from_arrow__(
         self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]
@@ -102,56 +95,6 @@ class StringDtype(ExtensionDtype):
             results.append(str_arr)
 
         return StringArray._concat_same_type(results)
-
-
-class StringArrayMethods(ObjectArrayMethods):
-    def _map(self, f, na_value=libmissing.NA, dtype=StringDtype()):
-        from pandas.arrays import BooleanArray, IntegerArray, StringArray
-
-        arr = self._array
-        mask = isna(arr)
-
-        assert isinstance(arr, StringArray)
-        arr = np.asarray(arr)
-        if na_value is None:
-            na_value = libmissing.NA
-
-        if is_integer_dtype(dtype) or is_bool_dtype(dtype):
-            constructor: Union[Type[IntegerArray], Type[BooleanArray]]
-            if is_integer_dtype(dtype):
-                constructor = IntegerArray
-            else:
-                constructor = BooleanArray
-
-            na_value_is_na = isna(na_value)
-            if na_value_is_na:
-                na_value = 1
-            result = lib.map_infer_mask(
-                arr,
-                f,
-                mask.view("uint8"),
-                convert=False,
-                na_value=na_value,
-                dtype=np.dtype(dtype),
-            )
-
-            if not na_value_is_na:
-                mask[:] = False
-
-            return constructor(result, mask)
-
-        elif is_string_dtype(dtype) and not is_object_dtype(dtype):
-            # i.e. StringDtype
-            result = lib.map_infer_mask(
-                arr, f, mask.view("uint8"), convert=False, na_value=na_value
-            )
-            return StringArray(result)
-        else:
-            # This is when the result type is object. We reach this when
-            # -> We know the result type is truly object (e.g. .encode returns bytes
-            #    or .findall returns a list).
-            # -> We don't know the result type. E.g. `.get` can return anything.
-            return lib.map_infer_mask(arr, f, mask.view("uint8"))
 
 
 class StringArray(PandasArray):

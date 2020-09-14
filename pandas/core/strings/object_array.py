@@ -20,8 +20,12 @@ from pandas.core.strings.base import BaseStringArrayMethods
 
 
 class ObjectArrayMethods(BaseStringArrayMethods):
-    def _map(self, f, na_value=np.nan, dtype=np.dtype(object)):
+    def _map(self, f, na_value=None, dtype=None):
         arr = self._array  # object-dtype ndarray.
+        if dtype is None:
+            dtype = np.dtype("object")
+        if na_value is None:
+            na_value = np.nan
 
         if not len(arr):
             return np.ndarray(0, dtype=dtype)

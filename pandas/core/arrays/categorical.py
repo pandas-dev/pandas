@@ -52,7 +52,7 @@ from pandas.core.indexers import check_array_indexer, deprecate_ndim_indexing
 from pandas.core.missing import interpolate_2d
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.sorting import nargsort
-from pandas.core.strings.categorical_strings import CategoricalStringMethods
+from pandas.core.strings.categorical import CategoricalStringMethods
 
 from pandas.io.formats import console
 

@@ -354,8 +354,6 @@ class ExtensionArray:
         """
         Return for `self != other` (element-wise in-equality).
         """
-        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
-            return NotImplemented
         return ~(self == other)
 
     def to_numpy(
@@ -459,7 +457,6 @@ class ExtensionArray:
         from pandas.core.arrays.string_ import StringDtype
 
         dtype = pandas_dtype(dtype)
-        # FIXME: Really hard-code here?
         if isinstance(dtype, StringDtype):  # allow conversion to StringArrays
             return dtype.construct_array_type()._from_sequence(self, copy=False)
 
@@ -925,9 +922,9 @@ class ExtensionArray:
               from the right (the default). This is similar to
               :func:`numpy.take`.
 
-            * True: ``-1`` in `indices` indicate missing values.
-              These values are set to `fill_value`. Any other other negative
-              value raise a ``ValueError``.
+            * True: negative values in `indices` indicate
+              missing values. These values are set to `fill_value`. Any other
+              other negative values raise a ``ValueError``.
 
         fill_value : any, optional
             Fill value to use for NA-indices when `allow_fill` is True.

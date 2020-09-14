@@ -143,6 +143,12 @@ class StringMethods(NoNewAttributesMixin):
     dtype: object
     """
 
+    # TODO: Dispatch all the methods
+    # Currently the following are not dispatched to the array
+    # * cat
+    # * extract
+    # * extractall
+
     def __init__(self, data):
         from pandas.core.arrays.string_ import StringDtype
 
@@ -249,7 +255,6 @@ class StringMethods(NoNewAttributesMixin):
         # case we'll want to return the same dtype as the input.
         # Or we can be wrapping a numeric output, in which case we don't want
         # to return a StringArray.
-        # XXX: see if this can be removed.
         # Ideally the array method returns the right array type.
         if expand is None:
             # infer from ndim if expand is not specified
@@ -513,7 +518,7 @@ class StringMethods(NoNewAttributesMixin):
 
         For more examples, see :ref:`here <text.concatenate>`.
         """
-        # XXX: not dispatched yet.
+        # TODO: dispatch
         from pandas import Index, Series, concat
 
         if isinstance(others, str):
@@ -968,7 +973,6 @@ class StringMethods(NoNewAttributesMixin):
         4                    NaN
         dtype: object
         """
-        # XXX: Does this use the Series? If so then we can't dispatch.
         result = self._array._str.join(sep)
         return self._wrap_result(result)
 
@@ -1414,7 +1418,6 @@ class StringMethods(NoNewAttributesMixin):
     -------
     filled : Series/Index of objects.
     """
-    # XXX: Do we need to dispatch to center, etc, or is it equivalent?
 
     @Appender(_shared_docs["str_pad"] % dict(side="left and right", method="center"))
     @forbid_nonstring_types(["bytes"])
@@ -1885,9 +1888,7 @@ class StringMethods(NoNewAttributesMixin):
         """
         # we need to cast to Series of strings as only that has all
         # methods available for making the dummies...
-        # XXX: data = self._orig.astype(str) if self._is_categorical else self._parent
         result, name = self._array._str.get_dummies(sep)
-        # result, name = str_get_dummies(data, sep)
         return self._wrap_result(result, name=name, expand=True, returns_string=False,)
 
     @forbid_nonstring_types(["bytes"])
@@ -2032,7 +2033,6 @@ class StringMethods(NoNewAttributesMixin):
         3    False
         dtype: bool
         """
-        # XXX: changed default na to None
         result = self._array._str.startswith(pat, na=na)
         return self._wrap_result(result, returns_string=False)
 
@@ -2088,7 +2088,6 @@ class StringMethods(NoNewAttributesMixin):
         3    False
         dtype: bool
         """
-        # XXX: changed default na to None
         result = self._array._str.endswith(pat, na=na)
         return self._wrap_result(result, returns_string=False)
 
@@ -2267,7 +2266,7 @@ class StringMethods(NoNewAttributesMixin):
         2    NaN
         dtype: object
         """
-        # XXX: not dispatched
+        # TODO: dispatch
         return str_extract(self, pat, flags, expand=expand)
 
     @forbid_nonstring_types(["bytes"])
@@ -2345,7 +2344,7 @@ class StringMethods(NoNewAttributesMixin):
         B 0          b     1
         C 0        NaN     1
         """
-        # XXX: not dispatched
+        # TODO: dispatch
         return str_extractall(self._orig, pat, flags)
 
     _shared_docs[
@@ -3022,10 +3021,6 @@ def str_extract(arr, pat, flags=0, expand=True):
     if expand:
         return _str_extract_frame(arr._orig, pat, flags=flags)
     else:
-        # XXX: some dead code now.
-        # arr = arr._array
-        # if isinstance(arr, ObjectProxy):
-        # arr = arr._ndarray
         result, name = _str_extract_noexpand(arr._orig, pat, flags=flags)
         return arr._wrap_result(result, name=name, expand=expand)
 
