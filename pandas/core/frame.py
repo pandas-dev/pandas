@@ -3868,7 +3868,7 @@ class DataFrame(NDFrame):
             "The 'lookup' method is deprecated and will be"
             "removed in a future version."
             "You can use DataFrame.melt and DataFrame.loc"
-            "as a substitute"
+            "as a substitute."
         )
         warnings.warn(msg, FutureWarning, stacklevel=2)
 
