@@ -186,7 +186,7 @@ cdef inline void remove_sum(float64_t val, int64_t *nobs, float64_t *sum_x,
 
     # Not NaN
     if notnan(val):
-        nobs[0] = nobs[0] + 1
+        nobs[0] = nobs[0] - 1
         y = - val - compensation[0]
         t = sum_x[0] + y
         compensation[0] = t - sum_x[0] - y

@@ -725,14 +725,14 @@ def test_rolling_numerical_accuracy_kahan_sum():
 
 def test_rolling_numerical_accuracy_jump():
     # GH: 32761
-    index = pd.date_range(start="2020-01-01", end="2020-01-02", freq="1s").append(
+    index = pd.date_range(start="2020-01-01", end="2020-01-02", freq="60s").append(
         pd.DatetimeIndex(["2020-01-03"])
     )
     data = np.random.rand(len(index))
 
     df = pd.DataFrame({"data": data}, index=index)
-    df["mean"] = df.rolling("60s").mean()
-    assert df["mean"][-1] == df["data"][-1]
+    result = df.rolling("60s").mean()
+    tm.assert_frame_equal(result, df[["data"]])
 
 
 def test_rolling_numerical_accuracy_small_values():
@@ -741,7 +741,8 @@ def test_rolling_numerical_accuracy_small_values():
         data=[0.00012456, 0.0003, -0.0, -0.0],
         index=date_range("1999-02-03", "1999-02-06"),
     )
-    assert s.rolling(1).mean()["1999-02-06"] == 0.0
+    result = s.rolling(1).mean()
+    tm.assert_series_equal(result, s)
 
 
 def test_rolling_numerical_too_large_numbers():
