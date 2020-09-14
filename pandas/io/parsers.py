@@ -343,6 +343,7 @@ float_precision : str, optional
     `round_trip` for the round-trip converter.
 
     .. versionchanged:: 1.2
+
 Returns
 -------
 DataFrame or TextParser
