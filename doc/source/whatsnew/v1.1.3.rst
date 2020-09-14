@@ -22,7 +22,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
-- Fixed bug in :func:`LongTableBuilder.middle_separator` which was duplicating LaTeX longtable entires in the List of Tables of a LaTeX document (:issue:`34360`)
+-
 
 .. ---------------------------------------------------------------------------
 
