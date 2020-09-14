@@ -840,12 +840,22 @@ class TestIsin:
         result = algos.isin(comps, values)
         tm.assert_numpy_array_equal(expected, result)
 
+    # issue:`22205`
     def test_same_nan_is_in_large(self):
         s = np.tile(1.0, 1_000_001)
         s[0] = np.nan
         result = algos.isin(s, [np.nan, 1])
         expected = np.ones(len(s), dtype=bool)
         tm.assert_numpy_array_equal(result, expected)
+
+    # issue:`#25395`
+    def test_same_nan_is_in_large_series(self):
+        s = np.tile(1.0, 1_000_001)
+        series = pd.Series(s)
+        s[0] = np.nan
+        result = series.isin([np.nan, 1])
+        expected = pd.Series(np.ones(len(s), dtype=bool))
+        tm.assert_series_equal(result, expected)
 
     def test_same_object_is_in(self):
         # GH 22160
