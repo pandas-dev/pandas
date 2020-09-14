@@ -15,7 +15,7 @@ from numpy cimport int8_t, int64_t, ndarray, uint8_t
 
 cnp.import_array()
 
-from cpython.datetime cimport (
+from cpython.datetime cimport (  # alias bc `tzinfo` is a kwarg below
     PyDate_Check,
     PyDateTime_Check,
     PyDateTime_IMPORT,
@@ -23,7 +23,7 @@ from cpython.datetime cimport (
     PyTZInfo_Check,
     datetime,
     time,
-    tzinfo as tzinfo_type,  # alias bc `tzinfo` is a kwarg below
+    tzinfo as tzinfo_type,
 )
 from cpython.object cimport Py_EQ, Py_NE, PyObject_RichCompare, PyObject_RichCompareBool
 
