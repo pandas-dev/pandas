@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 import operator
-from typing import Any, Callable, Optional, Sequence, Tuple, Type, TypeVar, Union, cast
+from typing import Any, Callable, Optional, Sequence, Tuple, Type, TypeVar, Union
 import warnings
 
 import numpy as np
@@ -54,11 +54,11 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core import missing, nanops, ops
 from pandas.core.algorithms import checked_add_with_arr, unique1d, value_counts
-from pandas.core.arrays._mixins import _T, NDArrayBackedExtensionArray
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.arrays.base import ExtensionOpsMixin
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array
-from pandas.core.indexers import check_array_indexer
+from pandas.core.indexers import check_array_indexer, check_setitem_lengths
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.ops.invalid import invalid_comparison, make_invalid_op
 
@@ -472,11 +472,11 @@ class DatetimeLikeArrayMixin(
     def _ndarray(self) -> np.ndarray:
         return self._data
 
-    def _from_backing_data(self: _T, arr: np.ndarray) -> _T:
+    def _from_backing_data(
+        self: DatetimeLikeArrayT, arr: np.ndarray
+    ) -> DatetimeLikeArrayT:
         # Note: we do not retain `freq`
-        return type(self)._simple_new(  # type: ignore[attr-defined]
-            arr, dtype=self.dtype
-        )
+        return type(self)._simple_new(arr, dtype=self.dtype)
 
     # ------------------------------------------------------------------
 
@@ -605,23 +605,9 @@ class DatetimeLikeArrayMixin(
         # to a period in from_sequence). For DatetimeArray, it's Timestamp...
         # I don't know if mypy can do that, possibly with Generics.
         # https://mypy.readthedocs.io/en/latest/generics.html
-        if is_list_like(value):
-            is_slice = isinstance(key, slice)
-
-            if lib.is_scalar(key):
-                raise ValueError("setting an array element with a sequence.")
-
-            if not is_slice:
-                key = cast(Sequence, key)
-                if len(key) != len(value) and not com.is_bool_indexer(key):
-                    msg = (
-                        f"shape mismatch: value array of length '{len(key)}' "
-                        "does not match indexing result of length "
-                        f"'{len(value)}'."
-                    )
-                    raise ValueError(msg)
-                elif not len(key):
-                    return
+        no_op = check_setitem_lengths(key, value, self)
+        if no_op:
+            return
 
         value = self._validate_setitem_value(value)
         key = check_array_indexer(self, key)
@@ -875,8 +861,7 @@ class DatetimeLikeArrayMixin(
         if is_list_like(value):
             value = self._validate_listlike(value, "setitem", cast_str=True)
         else:
-            # TODO: cast_str for consistency?
-            value = self._validate_scalar(value, msg, cast_str=False)
+            value = self._validate_scalar(value, msg, cast_str=True)
 
         return self._unbox(value, setitem=True)
 
