@@ -1148,8 +1148,6 @@ default 'raise'
         """
         Return the month names of the DateTimeIndex with specified locale.
 
-        .. versionadded:: 0.23.0
-
         Parameters
         ----------
         locale : str, optional
@@ -1182,8 +1180,6 @@ default 'raise'
     def day_name(self, locale=None):
         """
         Return the day names of the DateTimeIndex with specified locale.
-
-        .. versionadded:: 0.23.0
 
         Parameters
         ----------
