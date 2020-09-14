@@ -2202,14 +2202,14 @@ class DataFrame(NDFrame):
         writer.write_file()
 
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
-    def to_feather(self, path, **kwargs) -> None:
+    def to_feather(self, path: FilePathOrBuffer[AnyStr], **kwargs) -> None:
         """
         Write a DataFrame to the binary Feather format.
 
         Parameters
         ----------
-        path : str
-            String file path.
+        path : str or file-like object
+            If a string, it will be used as Root Directory path.
         **kwargs :
             Additional keywords passed to :func:`pyarrow.feather.write_feather`.
             Starting with pyarrow 0.17, this includes the `compression`,
