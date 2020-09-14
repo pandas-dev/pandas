@@ -20,17 +20,19 @@ from pandas.core.strings.base import BaseStringArrayMethods
 
 
 class ObjectArrayMethods(BaseStringArrayMethods):
+    _default_na_value = np.nan
+
     def _map(self, f, na_value=None, dtype=None):
         arr = self._array  # object-dtype ndarray.
         if dtype is None:
             dtype = np.dtype("object")
         if na_value is None:
-            na_value = np.nan
+            na_value = self._default_na_value
 
         if not len(arr):
             return np.ndarray(0, dtype=dtype)
         if na_value is None:
-            na_value = np.nan
+            na_value = self._default_na_value
 
         if not isinstance(arr, np.ndarray):
             arr = np.asarray(arr, dtype=object)
@@ -111,11 +113,11 @@ class ObjectArrayMethods(BaseStringArrayMethods):
                 f = lambda x: upper_pat in x.upper()
         return self._map(f, na, dtype=np.dtype("bool"))
 
-    def startswith(self, pat, na=np.nan):
+    def startswith(self, pat, na=None):
         f = lambda x: x.startswith(pat)
         return self._map(f, na_value=na, dtype=np.dtype(bool))
 
-    def endswith(self, pat, na=np.nan):
+    def endswith(self, pat, na=None):
         f = lambda x: x.endswith(pat)
         return self._map(f, na_value=na, dtype=np.dtype(bool))
 
@@ -191,7 +193,7 @@ class ObjectArrayMethods(BaseStringArrayMethods):
         pat: Union[str, Pattern],
         case: bool = True,
         flags: int = 0,
-        na: Scalar = np.nan,
+        na: Scalar = None,
     ):
         if not case:
             flags |= re.IGNORECASE
@@ -206,7 +208,7 @@ class ObjectArrayMethods(BaseStringArrayMethods):
         pat: Union[str, Pattern],
         case: bool = True,
         flags: int = 0,
-        na: Scalar = np.nan,
+        na: Scalar = None,
     ):
         if not case:
             flags |= re.IGNORECASE
@@ -250,7 +252,7 @@ class ObjectArrayMethods(BaseStringArrayMethods):
                 return x.get(i)
             elif len(x) > i >= -len(x):
                 return x[i]
-            return np.nan
+            return self._default_na_value
 
         return self._map(f)
 

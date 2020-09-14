@@ -977,7 +977,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     @forbid_nonstring_types(["bytes"])
-    def contains(self, pat, case=True, flags=0, na=np.nan, regex=True):
+    def contains(self, pat, case=True, flags=0, na=None, regex=True):
         """
         Test if pattern or regex is contained within a string of a Series or Index.
 
@@ -992,8 +992,10 @@ class StringMethods(NoNewAttributesMixin):
             If True, case sensitive.
         flags : int, default 0 (no flags)
             Flags to pass through to the re module, e.g. re.IGNORECASE.
-        na : default NaN
-            Fill value for missing values.
+        na : scalar, optional.
+            Fill value for missing values. The default depends on dtype of the
+            array. For object-dtype, ``numpy.nan`` is used. For ``StringDtype``,
+            ``pandas.NA`` is used.
         regex : bool, default True
             If True, assumes the pat is a regular expression.
 
@@ -1103,7 +1105,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result, fill_value=na, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
-    def match(self, pat, case=True, flags=0, na=np.nan):
+    def match(self, pat, case=True, flags=0, na=None):
         """
         Determine if each string starts with a match of a regular expression.
 
@@ -1115,8 +1117,10 @@ class StringMethods(NoNewAttributesMixin):
             If True, case sensitive.
         flags : int, default 0 (no flags)
             Regex module flags, e.g. re.IGNORECASE.
-        na : default NaN
-            Fill value for missing values.
+        na : scalar, optional.
+            Fill value for missing values. The default depends on dtype of the
+            array. For object-dtype, ``numpy.nan`` is used. For ``StringDtype``,
+            ``pandas.NA`` is used.
 
         Returns
         -------
@@ -1133,7 +1137,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result, fill_value=na, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
-    def fullmatch(self, pat, case=True, flags=0, na=np.nan):
+    def fullmatch(self, pat, case=True, flags=0, na=None):
         """
         Determine if each string entirely matches a regular expression.
 
@@ -1147,8 +1151,10 @@ class StringMethods(NoNewAttributesMixin):
             If True, case sensitive.
         flags : int, default 0 (no flags)
             Regex module flags, e.g. re.IGNORECASE.
-        na : default NaN
-            Fill value for missing values.
+        na : scalar, optional.
+            Fill value for missing values. The default depends on dtype of the
+            array. For object-dtype, ``numpy.nan`` is used. For ``StringDtype``,
+            ``pandas.NA`` is used.
 
         Returns
         -------
@@ -1993,7 +1999,9 @@ class StringMethods(NoNewAttributesMixin):
         pat : str
             Character sequence. Regular expressions are not accepted.
         na : object, default NaN
-            Object shown if element tested is not a string.
+            Object shown if element tested is not a string. The default depends
+            on dtype of the array. For object-dtype, ``numpy.nan`` is used.
+            For ``StringDtype``, ``pandas.NA`` is used.
 
         Returns
         -------
@@ -2048,7 +2056,9 @@ class StringMethods(NoNewAttributesMixin):
         pat : str
             Character sequence. Regular expressions are not accepted.
         na : object, default NaN
-            Object shown if element tested is not a string.
+            Object shown if element tested is not a string. The default depends
+            on dtype of the array. For object-dtype, ``numpy.nan`` is used.
+            For ``StringDtype``, ``pandas.NA`` is used.
 
         Returns
         -------

@@ -3643,3 +3643,10 @@ def test_cat_different_classes(klass):
     result = s.str.cat(klass(["x", "y", "z"]))
     expected = pd.Series(["ax", "by", "cz"])
     tm.assert_series_equal(result, expected)
+
+
+def test_str_get_stringarray_multiple_nans():
+    s = pd.Series(pd.array(["a", "ab", pd.NA, "abc"]))
+    result = s.str.get(2)
+    expected = pd.Series(pd.array([pd.NA, pd.NA, pd.NA, "c"]))
+    tm.assert_series_equal(result, expected)

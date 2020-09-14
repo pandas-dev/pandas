@@ -16,6 +16,8 @@ from pandas.core.strings.object_array import ObjectArrayMethods
 
 
 class StringArrayMethods(ObjectArrayMethods):
+    _default_na_value = libmissing.NA
+
     def _map(self, f, na_value=None, dtype=None):
         from pandas.arrays import BooleanArray, IntegerArray, StringArray
         from pandas.core.arrays.string_ import StringDtype
@@ -23,14 +25,12 @@ class StringArrayMethods(ObjectArrayMethods):
         if dtype is None:
             dtype = StringDtype()
         if na_value is None:
-            na_value = libmissing.NA
+            na_value = self._default_na_value
 
         arr = self._array
         mask = isna(arr)
 
         arr = np.asarray(arr)
-        if na_value is None:
-            na_value = libmissing.NA
 
         if is_integer_dtype(dtype) or is_bool_dtype(dtype):
             constructor: Union[Type[IntegerArray], Type[BooleanArray]]

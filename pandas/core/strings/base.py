@@ -41,15 +41,15 @@ class BaseStringArrayMethods(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def contains(self, pat, case=True, flags=0, na=np.nan, regex=True):
+    def contains(self, pat, case=True, flags=0, na=None, regex=True):
         pass
 
     @abc.abstractmethod
-    def startswith(self, pat, na=np.nan):
+    def startswith(self, pat, na=None):
         pass
 
     @abc.abstractmethod
-    def endswith(self, pat, na=np.nan):
+    def endswith(self, pat, na=None):
         pass
 
     @abc.abstractmethod
