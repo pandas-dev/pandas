@@ -313,8 +313,10 @@ Selection by label
 
 .. warning::
 
-   Starting in 0.21.0, pandas will show a ``FutureWarning`` if indexing with a list with missing labels. In the future
-   this will raise a ``KeyError``. See :ref:`list-like Using loc with missing keys in a list is Deprecated <indexing.deprecate_loc_reindex_listlike>`.
+   .. versionchanged:: 1.0.0
+
+   Pandas will raise a ``KeyError`` if indexing with a list with missing labels. See :ref:`list-like Using loc with
+   missing keys in a list is Deprecated <indexing.deprecate_loc_reindex_listlike>`.
 
 pandas provides a suite of methods in order to have **purely label based indexing**. This is a strict inclusion based protocol.
 Every label asked for must be in the index, or a ``KeyError`` will be raised.
@@ -578,8 +580,9 @@ IX indexer is deprecated
 
 .. warning::
 
-   Starting in 0.20.0, the ``.ix`` indexer is deprecated, in favor of the more strict ``.iloc``
-   and ``.loc`` indexers.
+   .. versionchanged:: 1.0.0
+
+   The ``.ix`` indexer was removed, in favor of the more strict ``.iloc`` and ``.loc`` indexers.
 
 ``.ix`` offers a lot of magic on the inference of what the user wants to do. To wit, ``.ix`` can decide
 to index *positionally* OR via *labels* depending on the data type of the index. This has caused quite a
@@ -636,11 +639,13 @@ Indexing with list with missing labels is deprecated
 
 .. warning::
 
-   Starting in 0.21.0, using ``.loc`` or ``[]`` with a list with one or more missing labels, is deprecated, in favor of ``.reindex``.
+   .. versionchanged:: 1.0.0
+
+   Using ``.loc`` or ``[]`` with a list with one or more missing labels will no longer reindex, in favor of ``.reindex``.
 
 In prior versions, using ``.loc[list-of-labels]`` would work as long as *at least 1* of the keys was found (otherwise it
-would raise a ``KeyError``). This behavior is deprecated and will show a warning message pointing to this section. The
-recommended alternative is to use ``.reindex()``.
+would raise a ``KeyError``). This behavior was changed and will now raise a ``KeyError`` if at least one label is missing.
+The recommended alternative is to use ``.reindex()``.
 
 For example.
 

@@ -43,7 +43,6 @@ from pandas.core.dtypes.missing import isna, na_value_for_dtype
 from pandas import Categorical, Index, MultiIndex
 from pandas.core import groupby
 import pandas.core.algorithms as algos
-from pandas.core.arrays.categorical import recode_for_categories
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.frame import _merge_doc
@@ -859,7 +858,7 @@ class _MergeOperation:
 
     def _get_join_indexers(self):
         """ return the join indexers """
-        return _get_join_indexers(
+        return get_join_indexers(
             self.left_join_keys, self.right_join_keys, sort=self.sort, how=self.how
         )
 
@@ -1298,7 +1297,7 @@ class _MergeOperation:
             raise ValueError("Not a valid argument for validate")
 
 
-def _get_join_indexers(
+def get_join_indexers(
     left_keys, right_keys, sort: bool = False, how: str = "inner", **kwargs
 ):
     """
@@ -1350,7 +1349,7 @@ def _get_join_indexers(
     return join_func(lkey, rkey, count, **kwargs)
 
 
-def _restore_dropped_levels_multijoin(
+def restore_dropped_levels_multijoin(
     left: MultiIndex,
     right: MultiIndex,
     dropped_level_names,
@@ -1936,12 +1935,8 @@ def _factorize_keys(
     ):
         assert isinstance(lk, Categorical)
         assert isinstance(rk, Categorical)
-        if lk.categories.equals(rk.categories):
-            # if we exactly match in categories, allow us to factorize on codes
-            rk = rk.codes
-        else:
-            # Same categories in different orders -> recode
-            rk = recode_for_categories(rk.codes, rk.categories, lk.categories)
+        # Cast rk to encoding so we can compare codes with lk
+        rk = lk._validate_listlike(rk)
 
         lk = ensure_int64(lk.codes)
         rk = ensure_int64(rk)
