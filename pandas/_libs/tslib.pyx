@@ -248,10 +248,13 @@ def array_with_unit_to_datetime(
             ):
                 raise OutOfBoundsDatetime(f"cannot convert input with unit '{unit}'")
 
-            if prec:
-                fvalues = round(fvalues, prec)
+            if values.dtype.kind == "i":
+                result = (iresult * m).astype('M8[ns]')
 
-            result = fvalues.astype("M8[ns]")
+            if values.dtype.kind == "f":
+                if prec:
+                    fvalues = round(fvalues, prec)
+                result = fvalues.astype("M8[ns]", copy=False)
 
             iresult = result.view("i8")
             iresult[mask] = NPY_NAT
