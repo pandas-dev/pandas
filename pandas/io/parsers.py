@@ -348,7 +348,7 @@ storage_options : dict, optional
     will be raised if providing this argument with a local path or
     a file-like buffer. See the fsspec and backend storage implementation
     docs for the set of allowed keys and values.
-    
+
     .. versionadded:: 1.2.0
 
 Returns
