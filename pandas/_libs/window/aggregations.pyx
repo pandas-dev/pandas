@@ -161,27 +161,42 @@ cdef inline float64_t calc_sum(int64_t minp, int64_t nobs, float64_t sum_x) nogi
     return result
 
 
-cdef inline void add_sum(float64_t val, int64_t *nobs, float64_t *sum_x) nogil:
-    """ add a value from the sum calc """
+cdef inline void add_sum(float64_t val, int64_t *nobs, float64_t *sum_x,
+                         float64_t *compensation) nogil:
+    """ add a value from the sum calc using Kahan summation """
+
+    cdef:
+        float64_t y, t
 
     # Not NaN
     if notnan(val):
         nobs[0] = nobs[0] + 1
-        sum_x[0] = sum_x[0] + val
+        y = val - compensation[0]
+        t = sum_x[0] + y
+        compensation[0] = t - sum_x[0] - y
+        sum_x[0] = t
 
 
-cdef inline void remove_sum(float64_t val, int64_t *nobs, float64_t *sum_x) nogil:
-    """ remove a value from the sum calc """
+cdef inline void remove_sum(float64_t val, int64_t *nobs, float64_t *sum_x,
+                            float64_t *compensation) nogil:
+    """ remove a value from the sum calc using Kahan summation """
 
+    cdef:
+        float64_t y, t
+
+    # Not NaN
     if notnan(val):
-        nobs[0] = nobs[0] - 1
-        sum_x[0] = sum_x[0] - val
+        nobs[0] = nobs[0] + 1
+        y = - val - compensation[0]
+        t = sum_x[0] + y
+        compensation[0] = t - sum_x[0] - y
+        sum_x[0] = t
 
 
 def roll_sum_variable(ndarray[float64_t] values, ndarray[int64_t] start,
                       ndarray[int64_t] end, int64_t minp):
     cdef:
-        float64_t sum_x = 0
+        float64_t sum_x = 0, compensation_add = 0, compensation_remove = 0
         int64_t s, e
         int64_t nobs = 0, i, j, N = len(values)
         ndarray[float64_t] output
@@ -201,23 +216,23 @@ def roll_sum_variable(ndarray[float64_t] values, ndarray[int64_t] start,
                 # setup
 
                 for j in range(s, e):
-                    add_sum(values[j], &nobs, &sum_x)
+                    add_sum(values[j], &nobs, &sum_x, &compensation_add)
 
             else:
 
                 # calculate deletes
                 for j in range(start[i - 1], s):
-                    remove_sum(values[j], &nobs, &sum_x)
+                    remove_sum(values[j], &nobs, &sum_x, &compensation_remove)
 
                 # calculate adds
                 for j in range(end[i - 1], e):
-                    add_sum(values[j], &nobs, &sum_x)
+                    add_sum(values[j], &nobs, &sum_x, &compensation_add)
 
             output[i] = calc_sum(minp, nobs, sum_x)
 
             if not is_monotonic_bounds:
                 for j in range(s, e):
-                    remove_sum(values[j], &nobs, &sum_x)
+                    remove_sum(values[j], &nobs, &sum_x, &compensation_remove)
 
     return output
 
@@ -225,7 +240,7 @@ def roll_sum_variable(ndarray[float64_t] values, ndarray[int64_t] start,
 def roll_sum_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
                    ndarray[int64_t] end, int64_t minp, int64_t win):
     cdef:
-        float64_t val, prev_x, sum_x = 0
+        float64_t val, prev_x, sum_x = 0, compensation_add = 0, compensation_remove = 0
         int64_t range_endpoint
         int64_t nobs = 0, i, N = len(values)
         ndarray[float64_t] output
@@ -237,16 +252,16 @@ def roll_sum_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
     with nogil:
 
         for i in range(0, range_endpoint):
-            add_sum(values[i], &nobs, &sum_x)
+            add_sum(values[i], &nobs, &sum_x, &compensation_add)
             output[i] = NaN
 
         for i in range(range_endpoint, N):
             val = values[i]
-            add_sum(val, &nobs, &sum_x)
+            add_sum(val, &nobs, &sum_x, &compensation_add)
 
             if i > win - 1:
                 prev_x = values[i - win]
-                remove_sum(prev_x, &nobs, &sum_x)
+                remove_sum(prev_x, &nobs, &sum_x, &compensation_remove)
 
             output[i] = calc_sum(minp, nobs, sum_x)
 
