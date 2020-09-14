@@ -1331,8 +1331,8 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         Returns
         -------
         Series or DataFrame
-            DataFrame or Series of boolean values, which is True if any element is True
-            within each group, False otherwise.
+            DataFrame or Series of boolean values, which is True if any element is
+            True within each group, False otherwise.
         """
         return self._bool_agg("any", skipna)
 
@@ -1350,8 +1350,8 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         Returns
         -------
         Series or DataFrame
-            DataFrame or Series of boolean values, which is True if all elements are True
-            within each group, False otherwise.
+            DataFrame or Series of boolean values, which is True if all elements are
+            True within each group, False otherwise.
         """
         return self._bool_agg("all", skipna)
 
