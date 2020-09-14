@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Iterable, List, Mapping, Union, overload
 import numpy as np
 
 from pandas._typing import FrameOrSeries, FrameOrSeriesUnion, Label
+from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
@@ -515,7 +516,7 @@ class _Concatenator:
     def _get_new_axes(self) -> List[Index]:
         ndim = self._get_result_dim()
         return [
-            self._get_concat_axis() if i == self.bm_axis else self._get_comb_axis(i)
+            self._get_concat_axis if i == self.bm_axis else self._get_comb_axis(i)
             for i in range(ndim)
         ]
 
@@ -529,6 +530,7 @@ class _Concatenator:
             copy=self.copy,
         )
 
+    @cache_readonly
     def _get_concat_axis(self) -> Index:
         """
         Return index to be used along concatenation axis.
