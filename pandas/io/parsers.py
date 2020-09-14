@@ -338,9 +338,9 @@ memory_map : bool, default False
     option can improve performance because there is no longer any I/O overhead.
 float_precision : str, optional
     Specifies which converter the C engine should use for floating-point
-    values. The options are `None` for the ordinary converter,
-    `high` for the high-precision converter, and `round_trip` for the
-    round-trip converter.
+    values. The options are `None` or `high` for the ordinary converter,
+    `legacy` for the original lower precision pandas converter, and
+    `round_trip` for the round-trip converter.
 
 Returns
 -------
@@ -421,10 +421,6 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
         kwds["encoding"] = encoding
     compression = kwds.get("compression", "infer")
 
-    # TODO: get_filepath_or_buffer could return
-    # Union[FilePathOrBuffer, s3fs.S3File, gcsfs.GCSFile]
-    # though mypy handling of conditional imports is difficult.
-    # See https://github.com/python/mypy/issues/1297
     ioargs = get_filepath_or_buffer(
         filepath_or_buffer, encoding, compression, storage_options=storage_options
     )
@@ -914,7 +910,6 @@ class TextFileReader(abc.Iterator):
 
         # miscellanea
         self.engine = engine
-        self._engine = None
         self._currow = 0
 
         options = self._get_options_with_defaults(engine)
@@ -923,14 +918,13 @@ class TextFileReader(abc.Iterator):
         self.nrows = options.pop("nrows", None)
         self.squeeze = options.pop("squeeze", False)
 
-        # might mutate self.engine
-        self.engine = self._check_file_or_buffer(f, engine)
+        self._check_file_or_buffer(f, engine)
         self.options, self.engine = self._clean_options(options, engine)
 
         if "has_index_names" in kwds:
             self.options["has_index_names"] = kwds["has_index_names"]
 
-        self._make_engine(self.engine)
+        self._engine = self._make_engine(self.engine)
 
     def close(self):
         self._engine.close()
@@ -987,16 +981,11 @@ class TextFileReader(abc.Iterator):
                 msg = "The 'python' engine cannot iterate through this file buffer."
                 raise ValueError(msg)
 
-        return engine
-
     def _clean_options(self, options, engine):
         result = options.copy()
 
         engine_specified = self._engine_specified
         fallback_reason = None
-
-        sep = options["delimiter"]
-        delim_whitespace = options["delim_whitespace"]
 
         # C engine not supported yet
         if engine == "c":
@@ -1004,7 +993,9 @@ class TextFileReader(abc.Iterator):
                 fallback_reason = "the 'c' engine does not support skipfooter"
                 engine = "python"
 
-        encoding = sys.getfilesystemencoding() or "utf-8"
+        sep = options["delimiter"]
+        delim_whitespace = options["delim_whitespace"]
+
         if sep is None and not delim_whitespace:
             if engine == "c":
                 fallback_reason = (
@@ -1029,6 +1020,7 @@ class TextFileReader(abc.Iterator):
                 result["delimiter"] = r"\s+"
         elif sep is not None:
             encodeable = True
+            encoding = sys.getfilesystemencoding() or "utf-8"
             try:
                 if len(sep.encode(encoding)) > 1:
                     encodeable = False
@@ -1161,29 +1153,26 @@ class TextFileReader(abc.Iterator):
             raise
 
     def _make_engine(self, engine="c"):
-        if engine == "c":
-            self._engine = CParserWrapper(self.f, **self.options)
+        mapping = {
+            "c": CParserWrapper,
+            "python": PythonParser,
+            "python-fwf": FixedWidthFieldParser,
+        }
+        try:
+            klass = mapping[engine]
+        except KeyError:
+            raise ValueError(
+                f"Unknown engine: {engine} (valid options are {mapping.keys()})"
+            )
         else:
-            if engine == "python":
-                klass = PythonParser
-            elif engine == "python-fwf":
-                klass = FixedWidthFieldParser
-            else:
-                raise ValueError(
-                    f"Unknown engine: {engine} (valid options "
-                    'are "c", "python", or "python-fwf")'
-                )
-            self._engine = klass(self.f, **self.options)
+            return klass(self.f, **self.options)
 
     def _failover_to_python(self):
         raise AbstractMethodError(self)
 
     def read(self, nrows=None):
         nrows = validate_integer("nrows", nrows)
-        ret = self._engine.read(nrows)
-
-        # May alter columns / col_dict
-        index, columns, col_dict = self._create_index(ret)
+        index, columns, col_dict = self._engine.read(nrows)
 
         if index is None:
             if col_dict:
@@ -1202,10 +1191,6 @@ class TextFileReader(abc.Iterator):
         if self.squeeze and len(df.columns) == 1:
             return df[df.columns[0]].copy()
         return df
-
-    def _create_index(self, ret):
-        index, columns, col_dict = ret
-        return index, columns, col_dict
 
     def get_chunk(self, size=None):
         if size is None:
@@ -2299,6 +2284,7 @@ def TextParser(*args, **kwds):
         values. The options are None for the ordinary converter,
         'high' for the high-precision converter, and 'round_trip' for the
         round-trip converter.
+        .. versionchanged:: 1.2
     """
     kwds["engine"] = "python"
     return TextFileReader(*args, **kwds)

@@ -301,8 +301,6 @@ Optional dependencies for parsing HTML
 One of the following combinations of libraries is needed to use the
 top-level :func:`~pandas.read_html` function:
 
-.. versionchanged:: 0.23.0
-
 * `BeautifulSoup4`_ and `html5lib`_
 * `BeautifulSoup4`_ and `lxml`_
 * `BeautifulSoup4`_ and `html5lib`_ and `lxml`_

@@ -119,7 +119,7 @@ class TestDataFrameUnaryOperators:
         "df", [pd.DataFrame({"a": pd.to_datetime(["2017-01-22", "1970-01-01"])})]
     )
     def test_pos_raises(self, df):
-        msg = re.escape("Unary plus expects numeric dtype, not datetime64[ns]")
+        msg = "Unary plus expects .* dtype, not datetime64\\[ns\\]"
         with pytest.raises(TypeError, match=msg):
             (+df)
         with pytest.raises(TypeError, match=msg):
