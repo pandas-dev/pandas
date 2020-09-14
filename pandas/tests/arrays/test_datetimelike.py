@@ -338,6 +338,16 @@ class SharedTests:
         with pytest.raises(TypeError, match="'value' should be a.* 'object'"):
             arr[0] = object()
 
+        msg = "cannot set using a list-like indexer with a different length"
+        with pytest.raises(ValueError, match=msg):
+            # GH#36339
+            arr[[]] = [arr[1]]
+
+        msg = "cannot set using a slice indexer with a different length than"
+        with pytest.raises(ValueError, match=msg):
+            # GH#36339
+            arr[1:1] = arr[:3]
+
     @pytest.mark.parametrize("box", [list, np.array, pd.Index, pd.Series])
     def test_setitem_numeric_raises(self, arr1d, box):
         # We dont case e.g. int64 to our own dtype for setitem
