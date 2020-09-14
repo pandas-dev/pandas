@@ -125,7 +125,7 @@ def test_union_duplicate_index_subsets_of_each_other():
         (DatetimeIndex),
         (CategoricalIndex),
         (TimedeltaIndex),
-    ]
+    ],
 )
 def test_union_with_duplicate_index(func):
     # GH: 36289
