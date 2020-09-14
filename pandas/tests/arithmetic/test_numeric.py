@@ -11,7 +11,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Index, Series, Timedelta, TimedeltaIndex
+from pandas import Index, Series, Timedelta, TimedeltaIndex, array
 import pandas._testing as tm
 from pandas.core import ops
 
@@ -1297,3 +1297,26 @@ def test_dataframe_div_silenced():
     )
     with tm.assert_produces_warning(None):
         pdf1.div(pdf2, fill_value=0)
+
+
+@pytest.fixture(params=[Index, Series, tm.to_array])
+def box_pandas_1d_array(request):
+    """
+    Fixture to test behavior for Index, Series and tm.to_array classes
+    """
+    return request.param
+
+
+@pytest.mark.parametrize(
+    "data, expected", [([0, 1, 2], [0, 2, 4])],
+)
+def test_integer_array_add_list_like(box_pandas_1d_array, box_1d_array, data, expected):
+    # GH22606 Verify operators with IntegerArray and list-likes
+
+    arr = array(data, dtype="Int64")
+    container = box_pandas_1d_array(arr)
+    left = container + box_1d_array(data)
+    right = box_1d_array(data) + container
+
+    assert left.tolist() == expected
+    assert right.tolist() == expected
