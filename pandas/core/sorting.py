@@ -1,6 +1,15 @@
 """ miscellaneous sorting / groupby utilities """
 from collections import defaultdict
-from typing import TYPE_CHECKING, Callable, DefaultDict, Iterable, List, Optional, Tuple
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    DefaultDict,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 
 import numpy as np
 
@@ -20,14 +29,20 @@ import pandas.core.algorithms as algorithms
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
-    from pandas.core.indexes.base import Index  # noqa:F401
+    from pandas.core.indexes.base import Index
 
 _INT64_MAX = np.iinfo(np.int64).max
 
 
 def get_indexer_indexer(
-    target, level, ascending, kind, na_position, sort_remaining, key
-):
+    target: "Index",
+    level: Union[str, int, List[str], List[int]],
+    ascending: bool,
+    kind: str,
+    na_position: str,
+    sort_remaining: bool,
+    key: Optional[Callable],
+) -> Optional[np.array]:
     """
     Helper method that return the indexer according to input parameters for
     the sort_index method of DataFrame and Series.
