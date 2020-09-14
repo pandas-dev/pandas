@@ -679,8 +679,6 @@ To choose another dtype, use the ``dtype`` argument:
 
     pd.get_dummies(df, dtype=bool).dtypes
 
-.. versionadded:: 0.23.0
-
 
 .. _reshaping.factorize:
 
