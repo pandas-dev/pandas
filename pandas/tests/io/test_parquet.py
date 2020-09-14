@@ -409,26 +409,6 @@ class TestBasic(Base):
         df.index = index
         check_round_trip(df, engine)
 
-    def test_write_column_multiindex(self, engine):
-        # Not able to write column multi-indexes with non-string column names.
-        mi_columns = pd.MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1)])
-        df = pd.DataFrame(np.random.randn(4, 3), columns=mi_columns)
-        self.check_error_on_write(df, engine, ValueError)
-
-    def test_write_column_multiindex_string(self, pa):
-        # GH #34777
-        # Not supported in fastparquet as of 0.1.3 or older pyarrow version
-        engine = pa
-
-        # Write column multi-indexes with string column names
-        arrays = [
-            ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
-            ["one", "two", "one", "two", "one", "two", "one", "two"],
-        ]
-        df = pd.DataFrame(np.random.randn(8, 8), columns=arrays)
-
-        check_round_trip(df, engine)
-
     def test_multiindex_with_columns(self, pa):
         engine = pa
         dates = pd.date_range("01-Jan-2018", "01-Dec-2018", freq="MS")
@@ -476,6 +456,66 @@ class TestBasic(Base):
 
         expected = df.reset_index(drop=True)
         check_round_trip(df, engine, write_kwargs=write_kwargs, expected=expected)
+
+    def test_write_column_multiindex(self, engine):
+        # Not able to write column multi-indexes with non-string column names.
+        mi_columns = pd.MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1)])
+        df = pd.DataFrame(np.random.randn(4, 3), columns=mi_columns)
+        self.check_error_on_write(df, engine, ValueError)
+
+    def test_write_column_multiindex_nonstring(self, pa):
+        # GH #34777
+        # Not supported in fastparquet as of 0.1.3
+        engine = pa
+
+        # Not able to write column multi-indexes with non-string column names
+        arrays = [
+            ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
+            [1, 2, 1, 2, 1, 2, 1, 2],
+        ]
+        df = pd.DataFrame(np.random.randn(8, 8), columns=arrays)
+        df.columns.names = ["Level1", "Level2"]
+
+        self.check_error_on_write(df, engine, ValueError)
+
+    def test_write_column_multiindex_string(self, pa):
+        # GH #34777
+        # Not supported in fastparquet as of 0.1.3
+        engine = pa
+
+        # Write column multi-indexes with string column names
+        arrays = [
+            ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
+            ["one", "two", "one", "two", "one", "two", "one", "two"],
+        ]
+        df = pd.DataFrame(np.random.randn(8, 8), columns=arrays)
+        df.columns.names = ["ColLevel1", "ColLevel2"]
+
+        check_round_trip(df, engine)
+
+    def test_write_column_index_string(self, pa):
+        # GH #34777
+        # Not supported in fastparquet as of 0.1.3
+        engine = pa
+
+        # Write column indexes with string column names
+        arrays = ["bar", "baz", "foo", "qux"]
+        df = pd.DataFrame(np.random.randn(8, 4), columns=arrays)
+        df.columns.name = "StringCol"
+
+        check_round_trip(df, engine)
+
+    def test_write_column_index_nonstring(self, pa):
+        # GH #34777
+        # Not supported in fastparquet as of 0.1.3
+        engine = pa
+
+        # Write column indexes with string column names
+        arrays = [1, 2, 3, 4]
+        df = pd.DataFrame(np.random.randn(8, 4), columns=arrays)
+        df.columns.name = "NonStringCol"
+
+        self.check_error_on_write(df, engine, ValueError)
 
 
 class TestParquetPyArrow(Base):

@@ -297,7 +297,6 @@ I/O
 - :meth:`to_csv` did not support zip compression for binary file object not having a filename (:issue: `35058`)
 - :meth:`to_csv` and :meth:`read_csv` did not honor `compression` and `encoding` for path-like objects that are internally converted to file-like objects (:issue:`35677`, :issue:`26124`, and :issue:`32392`)
 - :meth:`to_picke` and :meth:`read_pickle` did not support compression for file-objects (:issue:`26237`, :issue:`29054`, and :issue:`29570`)
-- :meth:`to_parquet` did not support :class:`MultiIndex` for columns in parquet format (:issue:`34777`)
 
 Plotting
 ^^^^^^^^
@@ -343,7 +342,8 @@ Other
 ^^^^^
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` incorrectly raising ``AssertionError`` instead of ``ValueError`` when invalid parameter combinations are passed (:issue:`36045`)
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` with numeric values and string ``to_replace`` (:issue:`34789`)
--
+- :meth:`to_parquet` support when using :class:`MultiIndex` for columns in parquet format enabled with pyarrow >= 0.15 (:issue:`34777`)
+
 
 .. ---------------------------------------------------------------------------
 
