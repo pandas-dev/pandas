@@ -159,7 +159,7 @@ def check_setitem_lengths(indexer, value, values) -> bool:
                         "cannot set using a list-like indexer "
                         "with a different length than the value"
                     )
-            if len(indexer) == 0:
+            if not len(indexer):
                 no_op = True
 
     elif isinstance(indexer, slice):
@@ -169,7 +169,7 @@ def check_setitem_lengths(indexer, value, values) -> bool:
                     "cannot set using a slice indexer with a "
                     "different length than the value"
                 )
-            if len(value) == 0:
+            if not len(value):
                 no_op = True
 
     return no_op
