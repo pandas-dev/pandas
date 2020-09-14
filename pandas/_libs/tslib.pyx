@@ -238,7 +238,7 @@ def array_with_unit_to_datetime(
             # fill missing values by comparing to NPY_NAT
             mask = iresult == NPY_NAT
             iresult[mask] = 0
-            fvalues = values.astype("f8") * m
+            fvalues = iresult.astype("f8") * m
             need_to_iterate = False
 
         if not need_to_iterate:
@@ -252,10 +252,12 @@ def array_with_unit_to_datetime(
                 result = (iresult * m).astype('M8[ns]')
 
             if values.dtype.kind == "f":
+                fresult = (values*m).astype("f8")
+                fresult[mask] = 0
                 if prec:
-                    fvalues = round(fvalues, prec)
-                result = fvalues.astype("M8[ns]", copy=False)
-
+                    fresult = round(fresult, prec)
+                result = fresult.astype("M8[ns]", copy=False)
+            
             iresult = result.view("i8")
             iresult[mask] = NPY_NAT
 
