@@ -2128,10 +2128,11 @@ def test_first_row_bom(all_parsers):
     tm.assert_frame_equal(result, expected)
 
     # see gh-36343
-    data = '''\ufeffHead1	Head2	Head3'''
+    data = """\ufeffHead1	Head2	Head3"""
 
     result = parser.read_csv(StringIO(data), delimiter="\t")
     tm.assert_frame_equal(result, expected)
+
 
 def test_integer_precision(all_parsers):
     # Gh 7072

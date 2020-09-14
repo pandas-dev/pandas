@@ -2876,7 +2876,7 @@ class PythonParser(ParserBase):
             return [new_row] + first_row[1:]
 
         elif len(first_row_bom) > 1:
-            return [first_row_bom[1:]]
+            return [first_row_bom[1:]] + first_row[1:]
         else:
             # First row is just the BOM, so we
             # return an empty string.
