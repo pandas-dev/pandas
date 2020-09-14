@@ -1787,3 +1787,13 @@ def test_resample_calendar_day_with_dst(
         1.0, pd.date_range(first, exp_last, freq=freq_out, tz="Europe/Amsterdam")
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_resample_numerical_accuracy_kahan():
+    # GH: 36031 implementing kahan summation
+    df = pd.DataFrame(
+        {"A": [3002399751580331.0, -0.0]},
+        index=[pd.Timestamp("19700101 09:00:00"), pd.Timestamp("19700101 09:00:02")],
+    )
+    result = df.resample("2s").mean()
+    assert result.values[-1] == 0.0
