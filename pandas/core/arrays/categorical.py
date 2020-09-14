@@ -1884,20 +1884,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             return result
         return self._from_backing_data(result)
 
-    def __setitem__(self, key, value):
-        """
-        Item assignment.
-
-        Raises
-        ------
-        ValueError
-            If (one or more) Value is not in categories or if a assigned
-            `Categorical` does not have the same categories
-        """
-        key = self._validate_setitem_key(key)
-        value = self._validate_setitem_value(value)
-        self._ndarray[key] = value
-
     def _validate_setitem_value(self, value):
         value = extract_array(value, extract_numpy=True)
 

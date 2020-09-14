@@ -609,9 +609,7 @@ class DatetimeLikeArrayMixin(
         if no_op:
             return
 
-        value = self._validate_setitem_value(value)
-        key = check_array_indexer(self, key)
-        self._ndarray[key] = value
+        super().__setitem__(key, value)
         self._maybe_clear_freq()
 
     def _maybe_clear_freq(self):
