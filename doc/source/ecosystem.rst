@@ -303,6 +303,13 @@ HTTP API, and also provides several convenient methods for parsing and analyzing
 fredapi makes use of pandas and returns data in a Series or DataFrame. This module requires a FRED API key that
 you can obtain for free on the FRED website.
 
+`dataframe_sql <https://github.com/zbrookle/dataframe_sql>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+``dataframe_sql`` is a Python package that translates SQL syntax directly into
+operations on pandas DataFrames. This is useful when migrating from a database to
+using pandas or for users more comfortable with SQL looking for a way to interface
+with pandas
+
 
 .. _ecosystem.domain:
 
