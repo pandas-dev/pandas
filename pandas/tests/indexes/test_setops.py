@@ -14,8 +14,8 @@ from pandas import (
     Float64Index,
     Int64Index,
     RangeIndex,
+    TimedeltaIndex,
     UInt64Index,
-    TimedeltaIndex
 )
 import pandas._testing as tm
 from pandas.api.types import pandas_dtype
