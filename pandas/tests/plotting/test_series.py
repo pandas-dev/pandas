@@ -109,6 +109,7 @@ class TestSeriesPlots(TestPlotBase):
         line = ax.get_lines()[0].get_data(orig=False)[0]
         assert xmin <= line[0]
         assert xmax >= line[-1]
+        self._check_ticks_props(ax, xrot=0)
         tm.close()
 
         # GH 7471
@@ -118,6 +119,7 @@ class TestSeriesPlots(TestPlotBase):
         line = ax.get_lines()[0].get_data(orig=False)[0]
         assert xmin <= line[0]
         assert xmax >= line[-1]
+        self._check_ticks_props(ax, xrot=30)
         tm.close()
 
         tz_ts = self.ts.copy()
@@ -128,6 +130,7 @@ class TestSeriesPlots(TestPlotBase):
         line = ax.get_lines()[0].get_data(orig=False)[0]
         assert xmin <= line[0]
         assert xmax >= line[-1]
+        self._check_ticks_props(ax, xrot=0)
         tm.close()
 
         _, ax = self.plt.subplots()
@@ -136,6 +139,7 @@ class TestSeriesPlots(TestPlotBase):
         line = ax.get_lines()[0].get_data(orig=False)[0]
         assert xmin <= line[0]
         assert xmax >= line[-1]
+        self._check_ticks_props(ax, xrot=0)
 
     def test_label(self):
         s = Series([1, 2])
@@ -284,6 +288,7 @@ class TestSeriesPlots(TestPlotBase):
         xp = DatetimeConverter.convert(datetime(1999, 1, 1), "", ax)
         ax.set_xlim("1/1/1999", "1/1/2001")
         assert xp == ax.get_xlim()[0]
+        self._check_ticks_props(ax, xrot=30)
 
     def test_unsorted_index_xlim(self):
         ser = Series(
