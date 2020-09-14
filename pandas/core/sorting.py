@@ -15,6 +15,7 @@ import numpy as np
 
 from pandas._libs import algos, hashtable, lib
 from pandas._libs.hashtable import unique_label_indices
+from pandas._typing import IndexKeyFunc
 
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -41,7 +42,7 @@ def get_indexer_indexer(
     kind: str,
     na_position: str,
     sort_remaining: bool,
-    key: Optional[Callable],
+    key: IndexKeyFunc,
 ) -> Optional[np.array]:
     """
     Helper method that return the indexer according to input parameters for
