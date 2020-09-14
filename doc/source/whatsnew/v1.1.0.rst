@@ -834,14 +834,9 @@ Deprecations
 - The ``squeeze`` keyword in :meth:`~DataFrame.groupby` is deprecated and will be removed in a future version (:issue:`32380`)
 - The ``tz`` keyword in :meth:`Period.to_timestamp` is deprecated and will be removed in a future version; use ``per.to_timestamp(...).tz_localize(tz)`` instead (:issue:`34522`)
 - :meth:`DatetimeIndex.to_perioddelta` is deprecated and will be removed in a future version.  Use ``index - index.to_period(freq).to_timestamp()`` instead (:issue:`34853`)
-- :meth:`util.testing.assert_almost_equal` now accepts both relative and absolute
-  precision through the ``rtol``, and ``atol`` parameters, thus deprecating the
-  ``check_less_precise`` parameter. (:issue:`13357`).
-- :func:`DataFrame.melt` accepting a value_name that already exists is deprecated, and will be removed in a future version (:issue:`34731`)
-- the ``center`` keyword in the :meth:`DataFrame.expanding`  function is deprecated and will be removed in a future version (:issue:`20647`)
-- :meth:`DataFrame.lookup` is deprecated and will be removed in a future version, use :meth:`DataFrame.melt` and :meth:`DataFrame.loc` instead (:issue:`18682`)
-- The ``center`` keyword in the :meth:`DataFrame.expanding` function is deprecated and will be removed in a future version (:issue:`20647`)
 - :meth:`DataFrame.melt` accepting a ``value_name`` that already exists is deprecated, and will be removed in a future version (:issue:`34731`)
+- The ``center`` keyword in the :meth:`DataFrame.expanding` function is deprecated and will be removed in a future version (:issue:`20647`)
+
 
 
 .. ---------------------------------------------------------------------------
