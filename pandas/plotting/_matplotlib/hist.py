@@ -430,10 +430,10 @@ def hist_frame(
         raise ValueError(
             "hist method requires numerical or datetime columns, nothing to plot."
         )
-    else:
-        data = data.reindex(
-            columns=[name for name in columns_copy if name in data.columns]
-        )
+
+    data = data.reindex(
+        columns=[name for name in columns_copy if name in data.columns], copy=False
+    )
 
     fig, axes = create_subplots(
         naxes=naxes,

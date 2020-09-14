@@ -104,6 +104,7 @@ Other enhancements
 - Added :meth:`~DataFrame.set_flags` for setting table-wide flags on a ``Series`` or ``DataFrame`` (:issue:`28394`)
 - :class:`Index` with object dtype supports division and multiplication (:issue:`34160`)
 - :meth:`DataFrame.explode` and :meth:`Series.explode` now support exploding of sets (:issue:`35614`)
+- :meth:`DataFrame.hist` now supports time series (datetime) data (:issue:`32590`)
 -
 
 .. _whatsnew_120.api_breaking.python:
