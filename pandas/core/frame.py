@@ -172,12 +172,7 @@ _shared_doc_kwargs = dict(
             - if `axis` is 0 or `'index'` then `by` may contain index
               levels and/or column labels.
             - if `axis` is 1 or `'columns'` then `by` may contain column
-              levels and/or index labels.
-
-            .. versionchanged:: 0.23.0
-
-               Allow specifying index or column level names.""",
-    versionadded_to_excel="",
+              levels and/or index labels.""",
     optional_labels="""labels : array-like, optional
             New labels / index to conform the axis specified by 'axis' to.""",
     optional_axis="""axis : int or str, optional
@@ -351,15 +346,11 @@ class DataFrame(NDFrame):
     Parameters
     ----------
     data : ndarray (structured or homogeneous), Iterable, dict, or DataFrame
-        Dict can contain Series, arrays, constants, or list-like objects.
-
-        .. versionchanged:: 0.23.0
-           If data is a dict, column order follows insertion-order for
-           Python 3.6 and later.
+        Dict can contain Series, arrays, constants, or list-like objects. If
+        data is a dict, column order follows insertion-order.
 
         .. versionchanged:: 0.25.0
-           If data is a list of dicts, column order follows insertion-order
-           for Python 3.6 and later.
+           If data is a list of dicts, column order follows insertion-order.
 
     index : Index or array-like
         Index to use for resulting frame. Will default to RangeIndex if
@@ -1255,8 +1246,6 @@ class DataFrame(NDFrame):
             Column labels to use when ``orient='index'``. Raises a ValueError
             if used with ``orient='columns'``.
 
-            .. versionadded:: 0.23.0
-
         Returns
         -------
         DataFrame
@@ -2115,7 +2104,6 @@ class DataFrame(NDFrame):
             support Unicode characters, and version 119 supports more than
             32,767 variables.
 
-            .. versionadded:: 0.23.0
             .. versionchanged:: 1.0.0
 
                 Added support for formats 118 and 119.
@@ -2125,9 +2113,6 @@ class DataFrame(NDFrame):
             format. Only available if version is 117.  Storing strings in the
             StrL format can produce smaller dta files if strings have more than
             8 characters and values are repeated.
-
-            .. versionadded:: 0.23.0
-
         compression : str or dict, default 'infer'
             For on-the-fly compression of the output dta. If string, specifies
             compression mode. If dict, value at key 'method' specifies
@@ -2217,14 +2202,14 @@ class DataFrame(NDFrame):
         writer.write_file()
 
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
-    def to_feather(self, path, **kwargs) -> None:
+    def to_feather(self, path: FilePathOrBuffer[AnyStr], **kwargs) -> None:
         """
         Write a DataFrame to the binary Feather format.
 
         Parameters
         ----------
-        path : str
-            String file path.
+        path : str or file-like object
+            If a string, it will be used as Root Directory path.
         **kwargs :
             Additional keywords passed to :func:`pyarrow.feather.write_feather`.
             Starting with pyarrow 0.17, this includes the `compression`,
@@ -2466,9 +2451,6 @@ class DataFrame(NDFrame):
 
         table_id : str, optional
             A css id is included in the opening `<table>` tag if specified.
-
-            .. versionadded:: 0.23.0
-
         render_links : bool, default False
             Convert URLs to HTML links.
 
@@ -3699,10 +3681,6 @@ class DataFrame(NDFrame):
         Assigning multiple columns within the same ``assign`` is possible.
         Later items in '\*\*kwargs' may refer to newly created or modified
         columns in 'df'; items are computed and assigned into 'df' in order.
-
-        .. versionchanged:: 0.23.0
-
-           Keyword argument order is maintained.
 
         Examples
         --------
@@ -6604,9 +6582,6 @@ NaN 12.3   33.0
             specified, all remaining columns will be used and the result will
             have hierarchically indexed columns.
 
-            .. versionchanged:: 0.23.0
-               Also accept list of column names.
-
         Returns
         -------
         DataFrame
@@ -7200,14 +7175,7 @@ NaN 12.3   33.0
 
         return unstack(self, level, fill_value)
 
-    @Appender(
-        _shared_docs["melt"]
-        % dict(
-            caller="df.melt(",
-            versionadded="\n    .. versionadded:: 0.20.0\n",
-            other="melt",
-        )
-    )
+    @Appender(_shared_docs["melt"] % dict(caller="df.melt(", other="melt",))
     def melt(
         self,
         id_vars=None,
@@ -7418,7 +7386,6 @@ NaN 12.3   33.0
         axis=_shared_doc_kwargs["axis"],
         see_also=_agg_summary_and_see_also_doc,
         examples=_agg_examples_doc,
-        versionadded="\n.. versionadded:: 0.20.0\n",
     )
     def aggregate(self, func=None, axis=0, *args, **kwargs):
         axis = self._get_axis_number(axis)
@@ -7518,9 +7485,6 @@ NaN 12.3   33.0
             applied function: list-like results will be returned as a Series
             of those. However if the apply function returns a Series these
             are expanded to columns.
-
-            .. versionadded:: 0.23.0
-
         args : tuple
             Positional arguments to pass to `func` in addition to the
             array/series.
@@ -7720,7 +7684,6 @@ NaN 12.3   33.0
         sort : bool, default False
             Sort columns if the columns of `self` and `other` are not aligned.
 
-            .. versionadded:: 0.23.0
             .. versionchanged:: 1.0.0
 
                 Changed to not sort by default.

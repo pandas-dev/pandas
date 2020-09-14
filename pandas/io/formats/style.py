@@ -1037,8 +1037,6 @@ class Styler:
         """
         Hide any indices from rendering.
 
-        .. versionadded:: 0.23.0
-
         Returns
         -------
         self : Styler
@@ -1049,8 +1047,6 @@ class Styler:
     def hide_columns(self, subset) -> "Styler":
         """
         Hide columns from rendering.
-
-        .. versionadded:: 0.23.0
 
         Parameters
         ----------
