@@ -54,7 +54,7 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core import missing, nanops, ops
 from pandas.core.algorithms import checked_add_with_arr, unique1d, value_counts
-from pandas.core.arrays._mixins import _T, NDArrayBackedExtensionArray
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.arrays.base import ExtensionOpsMixin
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array
@@ -183,7 +183,7 @@ class AttributesMixin:
         """
         raise AbstractMethodError(cls)
 
-    def _unbox_scalar(self, value: DTScalarOrNaT) -> int:
+    def _unbox_scalar(self, value: DTScalarOrNaT, setitem: bool = False) -> int:
         """
         Unbox the integer value of a scalar `value`.
 
@@ -191,6 +191,8 @@ class AttributesMixin:
         ----------
         value : Period, Timestamp, Timedelta, or NaT
             Depending on subclass.
+        setitem : bool, default False
+            Whether to check compatiblity with setitem strictness.
 
         Returns
         -------
@@ -470,16 +472,15 @@ class DatetimeLikeArrayMixin(
     def _ndarray(self) -> np.ndarray:
         return self._data
 
-    def _from_backing_data(self: _T, arr: np.ndarray) -> _T:
+    def _from_backing_data(
+        self: DatetimeLikeArrayT, arr: np.ndarray
+    ) -> DatetimeLikeArrayT:
         # Note: we do not retain `freq`
-        return type(self)._simple_new(  # type: ignore[attr-defined]
-            arr, dtype=self.dtype
-        )
+        return type(self)._simple_new(arr, dtype=self.dtype)
 
     # ------------------------------------------------------------------
 
-    @property
-    def _box_func(self):
+    def _box_func(self, x):
         """
         box function to get object from internal representation
         """
@@ -544,15 +545,18 @@ class DatetimeLikeArrayMixin(
             result = self._ndarray[key]
             if self.ndim == 1:
                 return self._box_func(result)
-            return self._simple_new(result, dtype=self.dtype)
+            return self._from_backing_data(result)
 
         key = self._validate_getitem_key(key)
         result = self._ndarray[key]
         if lib.is_scalar(result):
             return self._box_func(result)
 
+        result = self._from_backing_data(result)
+
         freq = self._get_getitem_freq(key)
-        return self._simple_new(result, dtype=self.dtype, freq=freq)
+        result._freq = freq
+        return result
 
     def _validate_getitem_key(self, key):
         if com.is_bool_indexer(key):
@@ -713,9 +717,6 @@ class DatetimeLikeArrayMixin(
     def _from_factorized(cls, values, original):
         return cls(values, dtype=original.dtype)
 
-    def _values_for_argsort(self):
-        return self._ndarray
-
     # ------------------------------------------------------------------
     # Validation Methods
     # TODO: try to de-duplicate these, ensure identical behavior
@@ -842,6 +843,7 @@ class DatetimeLikeArrayMixin(
             if is_dtype_equal(value.categories.dtype, self.dtype):
                 # TODO: do we need equal dtype or just comparable?
                 value = value._internal_get_values()
+                value = extract_array(value, extract_numpy=True)
 
         if allow_object and is_object_dtype(value.dtype):
             pass
@@ -873,11 +875,9 @@ class DatetimeLikeArrayMixin(
         if is_list_like(value):
             value = self._validate_listlike(value, "setitem", cast_str=True)
         else:
-            # TODO: cast_str for consistency?
-            value = self._validate_scalar(value, msg, cast_str=False)
+            value = self._validate_scalar(value, msg, cast_str=True)
 
-        self._check_compatible_with(value, setitem=True)
-        return self._unbox(value)
+        return self._unbox(value, setitem=True)
 
     def _validate_insert_value(self, value):
         msg = f"cannot insert {type(self).__name__} with incompatible label"
@@ -887,6 +887,8 @@ class DatetimeLikeArrayMixin(
         # TODO: if we dont have compat, should we raise or astype(object)?
         #  PeriodIndex does astype(object)
         return value
+        # Note: we do not unbox here because the caller needs boxed value
+        #  to check for freq.
 
     def _validate_where_value(self, other):
         msg = f"Where requires matching dtype, not {type(other)}"
@@ -894,20 +896,18 @@ class DatetimeLikeArrayMixin(
             other = self._validate_scalar(other, msg)
         else:
             other = self._validate_listlike(other, "where")
-            self._check_compatible_with(other, setitem=True)
 
-        self._check_compatible_with(other, setitem=True)
-        return self._unbox(other)
+        return self._unbox(other, setitem=True)
 
-    def _unbox(self, other) -> Union[np.int64, np.ndarray]:
+    def _unbox(self, other, setitem: bool = False) -> Union[np.int64, np.ndarray]:
         """
         Unbox either a scalar with _unbox_scalar or an instance of our own type.
         """
         if lib.is_scalar(other):
-            other = self._unbox_scalar(other)
+            other = self._unbox_scalar(other, setitem=setitem)
         else:
             # same type as self
-            self._check_compatible_with(other)
+            self._check_compatible_with(other, setitem=setitem)
             other = other.view("i8")
         return other
 
@@ -915,34 +915,6 @@ class DatetimeLikeArrayMixin(
     # Additional array methods
     #  These are not part of the EA API, but we implement them because
     #  pandas assumes they're there.
-
-    def searchsorted(self, value, side="left", sorter=None):
-        """
-        Find indices where elements should be inserted to maintain order.
-
-        Find the indices into a sorted array `self` such that, if the
-        corresponding elements in `value` were inserted before the indices,
-        the order of `self` would be preserved.
-
-        Parameters
-        ----------
-        value : array_like
-            Values to insert into `self`.
-        side : {'left', 'right'}, optional
-            If 'left', the index of the first suitable location found is given.
-            If 'right', return the last such index.  If there is no suitable
-            index, return either 0 or N (where N is the length of `self`).
-        sorter : 1-D array_like, optional
-            Optional array of integer indices that sort `self` into ascending
-            order. They are typically the result of ``np.argsort``.
-
-        Returns
-        -------
-        indices : array of ints
-            Array of insertion points with the same shape as `value`.
-        """
-        value = self._validate_searchsorted_value(value)
-        return self._data.searchsorted(value, side=side, sorter=sorter)
 
     def value_counts(self, dropna=False):
         """

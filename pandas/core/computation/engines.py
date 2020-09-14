@@ -6,11 +6,11 @@ import abc
 from typing import Dict, Type
 
 from pandas.core.computation.align import align_terms, reconstruct_object
-from pandas.core.computation.ops import _mathops, _reductions
+from pandas.core.computation.ops import MATHOPS, REDUCTIONS
 
 import pandas.io.formats.printing as printing
 
-_ne_builtins = frozenset(_mathops + _reductions)
+_ne_builtins = frozenset(MATHOPS + REDUCTIONS)
 
 
 class NumExprClobberingError(NameError):
@@ -130,7 +130,7 @@ class PythonEngine(AbstractEngine):
         pass
 
 
-_engines: Dict[str, Type[AbstractEngine]] = {
+ENGINES: Dict[str, Type[AbstractEngine]] = {
     "numexpr": NumExprEngine,
     "python": PythonEngine,
 }

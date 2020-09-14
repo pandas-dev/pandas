@@ -59,7 +59,6 @@ from pandas.core.ops import get_op_result_name
 if TYPE_CHECKING:
     from pandas import CategoricalIndex  # noqa:F401
 
-_VALID_CLOSED = {"left", "right", "both", "neither"}
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
 _index_doc_kwargs.update(
@@ -590,6 +589,8 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         if scalar:
             # Timestamp/Timedelta
             key_dtype, key_i8 = infer_dtype_from_scalar(key, pandas_dtype=True)
+            if lib.is_period(key):
+                key_i8 = key.ordinal
         else:
             # DatetimeIndex/TimedeltaIndex
             key_dtype, key_i8 = key.dtype, Index(key.asi8)
