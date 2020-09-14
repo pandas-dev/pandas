@@ -519,6 +519,23 @@ class TestReaders:
         )
         tm.assert_frame_equal(actual, expected)
 
+    # gh-36122, gh-35802
+    @pytest.mark.parametrize(
+        "basename,expected",
+        [
+            ("gh-35802", DataFrame({"COLUMN": ["Test (1)"]})),
+            ("gh-36122", DataFrame(columns=["got 2nd sa"])),
+        ],
+    )
+    def test_read_excel_ods_nested_xml(self, read_ext, basename, expected):
+        # see gh-35802
+        engine = pd.read_excel.keywords["engine"]
+        if engine != "odf":
+            pytest.skip(f"Skipped for engine: {engine}")
+
+        actual = pd.read_excel(basename + read_ext)
+        tm.assert_frame_equal(actual, expected)
+
     def test_reading_all_sheets(self, read_ext):
         # Test reading all sheet names by setting sheet_name to None,
         # Ensure a dict is returned.
