@@ -59,7 +59,10 @@ class BaseImpl:
                 x.inferred_type in {"string", "empty"} for x in df.columns.levels
             ):
                 raise ValueError(
-                    "parquet must have string column names for all values in each level of the MultiIndex"
+                    """
+                    parquet must have string column names for all values in
+                     each level of the MultiIndex
+                    """
                 )
         else:
             if df.columns.inferred_type not in {"string", "empty"}:
