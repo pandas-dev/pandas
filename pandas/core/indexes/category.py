@@ -380,8 +380,9 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
     @doc(Index.fillna)
     def fillna(self, value, downcast=None):
-        self._assert_can_do_op(value)
-        return CategoricalIndex(self._data.fillna(value), name=self.name)
+        value = self._validate_scalar(value)
+        cat = self._data.fillna(value)
+        return type(self)._simple_new(cat, name=self.name)
 
     @cache_readonly
     def _engine(self):
