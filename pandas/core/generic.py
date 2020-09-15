@@ -8221,24 +8221,25 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2000-10-02 00:41:00    24
         Freq: 17T, dtype: int64
         """
-        from pandas.core.resample import get_resampler
+        from pandas.core.resample import check_deprecated_resample_kwargs, get_resampler
 
-        axis = self._get_axis_number(axis)
-        return get_resampler(
-            self,
-            freq=rule,
-            label=label,
-            closed=closed,
-            axis=axis,
-            kind=kind,
-            loffset=loffset,
-            convention=convention,
-            base=base,
-            key=on,
-            level=level,
-            origin=origin,
-            offset=offset,
-        )
+        with check_deprecated_resample_kwargs(dict(base=base, loffset=loffset)):
+            axis = self._get_axis_number(axis)
+            return get_resampler(
+                self,
+                freq=rule,
+                label=label,
+                closed=closed,
+                axis=axis,
+                kind=kind,
+                loffset=loffset,
+                convention=convention,
+                base=base,
+                key=on,
+                level=level,
+                origin=origin,
+                offset=offset,
+            )
 
     def first(self: FrameOrSeries, offset) -> FrameOrSeries:
         """

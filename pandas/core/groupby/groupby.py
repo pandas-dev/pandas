@@ -1795,9 +1795,13 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             2000-01-01 00:03:00  0  2
         5   2000-01-01 00:03:00  5  1
         """
-        from pandas.core.resample import get_resampler_for_grouping
+        from pandas.core.resample import (
+            check_deprecated_resample_kwargs,
+            get_resampler_for_grouping,
+        )
 
-        return get_resampler_for_grouping(self, rule, *args, **kwargs)
+        with check_deprecated_resample_kwargs(kwargs):
+            return get_resampler_for_grouping(self, rule, *args, **kwargs)
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)

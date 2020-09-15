@@ -2,6 +2,7 @@ import copy
 from datetime import timedelta
 from textwrap import dedent
 from typing import Dict, Optional, Union, no_type_check
+import warnings
 
 import numpy as np
 
@@ -17,6 +18,7 @@ from pandas._libs.tslibs import (
 from pandas._typing import TimedeltaConvertibleTypes, TimestampConvertibleTypes
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
+from pandas.util._call_once import call_once
 from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
@@ -1333,6 +1335,9 @@ class TimeGrouper(Grouper):
         offset: Optional[TimedeltaConvertibleTypes] = None,
         **kwargs,
     ):
+        with check_deprecated_resample_kwargs(dict(base=base, loffset=loffset)):
+            pass
+
         # Check for correctness of the keyword arguments which would
         # otherwise silently use the default if misspelled
         if label not in {None, "left", "right"}:
@@ -1657,7 +1662,6 @@ class TimeGrouper(Grouper):
 
 
 def _take_new_index(obj, indexer, new_index, axis=0):
-
     if isinstance(obj, ABCSeries):
         new_values = algos.take_1d(obj._values, indexer)
         return obj._constructor(new_values, index=new_index, name=obj.name)
@@ -1911,3 +1915,54 @@ def _asfreq_compat(index, freq):
     else:
         new_index = Index([], dtype=index.dtype, freq=freq, name=index.name)
     return new_index
+
+
+def check_deprecated_resample_kwargs(kwargs, stacklevel=2):
+    """
+    Utility function to emit the deprecation warnings of `base` and `loffset` (v1.1.0).
+
+    Its purpose is to allow passing `test_deprecating_on_loffset_and_base` without any
+    hacky manipulation of ``stacklevel`` (see L231-L266 of pandas.core.groupby.grouper
+    at commit 4a267c69).
+
+    Uses a :class:`pandas.util._call_once.CallOnceContextManager`. This idempotent
+    context manager ensures that only the outermost instance (which has the correct
+    value for stacklevel) is the one to emit the warnings when it is entered.
+
+    Parameters
+    ----------
+    kwargs
+        Kewyword arguments dict to check.
+    stacklevel
+        The ``stacklevel`` of warnings from the perspective of the caller.
+
+    Returns
+    -------
+    A :class:`pandas.util._call_once.CallOnceContextManager` instance.
+    """
+    stacklevel += 2  # one for __enter__() and one for callback()
+
+    def callback():
+        if kwargs.get("base", None) is not None:
+            warnings.warn(
+                "'base' in .resample() and in Grouper() is deprecated.\n"
+                "The new arguments that you should use are 'offset' or 'origin'.\n"
+                '\n>>> df.resample(freq="3s", base=2)\n'
+                "\nbecomes:\n"
+                '\n>>> df.resample(freq="3s", offset="2s")\n',
+                FutureWarning,
+                stacklevel=stacklevel,
+            )
+        if kwargs.get("loffset", None) is not None:
+            warnings.warn(
+                "'loffset' in .resample() and in Grouper() is deprecated.\n"
+                '\n>>> df.resample(freq="3s", loffset="8H")\n'
+                "\nbecomes:\n"
+                "\n>>> from pandas.tseries.frequencies import to_offset"
+                '\n>>> df = df.resample(freq="3s").mean()'
+                '\n>>> df.index = df.index.to_timestamp() + to_offset("8H")\n',
+                FutureWarning,
+                stacklevel=stacklevel,
+            )
+
+    return call_once(callback, key="check_deprecated_resample_kwargs")

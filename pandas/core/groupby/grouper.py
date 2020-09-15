@@ -3,7 +3,6 @@ Provide user facing operators for doing the split part of the
 split-apply-combine paradigm.
 """
 from typing import Dict, Hashable, List, Optional, Set, Tuple
-import warnings
 
 import numpy as np
 
@@ -228,43 +227,8 @@ class Grouper:
         if kwargs.get("freq") is not None:
             from pandas.core.resample import TimeGrouper
 
-            # Deprecation warning of `base` and `loffset` since v1.1.0:
-            # we are raising the warning here to be able to set the `stacklevel`
-            # properly since we need to raise the `base` and `loffset` deprecation
-            # warning from three different cases:
-            #   core/generic.py::NDFrame.resample
-            #   core/groupby/groupby.py::GroupBy.resample
-            #   core/groupby/grouper.py::Grouper
-            # raising these warnings from TimeGrouper directly would fail the test:
-            #   tests/resample/test_deprecated.py::test_deprecating_on_loffset_and_base
-            # hacky way to set the stacklevel: if cls is TimeGrouper it means
-            # that the call comes from a pandas internal call of resample,
-            # otherwise it comes from pd.Grouper
-            stacklevel = 4 if cls is TimeGrouper else 2
-            if kwargs.get("base", None) is not None:
-                warnings.warn(
-                    "'base' in .resample() and in Grouper() is deprecated.\n"
-                    "The new arguments that you should use are 'offset' or 'origin'.\n"
-                    '\n>>> df.resample(freq="3s", base=2)\n'
-                    "\nbecomes:\n"
-                    '\n>>> df.resample(freq="3s", offset="2s")\n',
-                    FutureWarning,
-                    stacklevel=stacklevel,
-                )
-
-            if kwargs.get("loffset", None) is not None:
-                warnings.warn(
-                    "'loffset' in .resample() and in Grouper() is deprecated.\n"
-                    '\n>>> df.resample(freq="3s", loffset="8H")\n'
-                    "\nbecomes:\n"
-                    "\n>>> from pandas.tseries.frequencies import to_offset"
-                    '\n>>> df = df.resample(freq="3s").mean()'
-                    '\n>>> df.index = df.index.to_timestamp() + to_offset("8H")\n',
-                    FutureWarning,
-                    stacklevel=stacklevel,
-                )
-
             cls = TimeGrouper
+
         return super().__new__(cls)
 
     def __init__(
