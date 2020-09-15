@@ -692,7 +692,8 @@ class TestDataFrameSortKey:  # test key sorting (issue 27237)
         expected = df.loc[:, ::-1]
         tm.assert_frame_equal(result, expected)
 
-    def test_sort_values_key_casts_to_categorical(self):
+    @pytest.mark.parametrize("ordered", [True, False])
+    def test_sort_values_key_casts_to_categorical(self, ordered):
         # https://github.com/pandas-dev/pandas/issues/36383
         categories = ["c", "b", "a"]
         df = pd.DataFrame({"x": [1, 1, 1], "y": ["a", "b", "c"]})
@@ -700,7 +701,7 @@ class TestDataFrameSortKey:  # test key sorting (issue 27237)
         def sorter(key):
             if key.name == "y":
                 return pd.Series(
-                    pd.Categorical(key, categories=categories, ordered=True)
+                    pd.Categorical(key, categories=categories, ordered=ordered)
                 )
             return key
 
