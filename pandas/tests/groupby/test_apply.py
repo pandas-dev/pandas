@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from io import StringIO
 
 import numpy as np
@@ -63,15 +63,8 @@ def test_apply_trivial():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(
-    reason="GH#20066; function passed into apply "
-    "returns a DataFrame with the same index "
-    "as the one to create GroupBy object."
-)
 def test_apply_trivial_fail():
     # GH 20066
-    # trivial apply fails if the constant dataframe has the same index
-    # with the one used to create GroupBy object.
     df = pd.DataFrame(
         {"key": ["a", "a", "b", "b", "a"], "data": [1.0, 2.0, 3.0, 4.0, 5.0]},
         columns=["key", "data"],
@@ -384,6 +377,16 @@ def test_apply_frame_to_series(df):
     grouped = df.groupby(["A", "B"])
     result = grouped.apply(len)
     expected = grouped.count()["C"]
+    tm.assert_index_equal(result.index, expected.index)
+    tm.assert_numpy_array_equal(result.values, expected.values)
+
+
+def test_apply_frame_not_as_index_column_name(df):
+    # GH 35964 - path within _wrap_applied_output not hit by a test
+    grouped = df.groupby(["A", "B"], as_index=False)
+    result = grouped.apply(len)
+    expected = grouped.count().rename(columns={"C": np.nan}).drop(columns="D")
+    # TODO: Use assert_frame_equal when column name is not np.nan (GH 36306)
     tm.assert_index_equal(result.index, expected.index)
     tm.assert_numpy_array_equal(result.values, expected.values)
 
@@ -868,13 +871,14 @@ def test_apply_multi_level_name(category):
     b = [1, 2] * 5
     if category:
         b = pd.Categorical(b, categories=[1, 2, 3])
+        expected_index = pd.CategoricalIndex([1, 2], categories=[1, 2, 3], name="B")
+    else:
+        expected_index = pd.Index([1, 2], name="B")
     df = pd.DataFrame(
         {"A": np.arange(10), "B": b, "C": list(range(10)), "D": list(range(10))}
     ).set_index(["A", "B"])
     result = df.groupby("B").apply(lambda x: x.sum())
-    expected = pd.DataFrame(
-        {"C": [20, 25], "D": [20, 25]}, index=pd.Index([1, 2], name="B")
-    )
+    expected = pd.DataFrame({"C": [20, 25], "D": [20, 25]}, index=expected_index)
     tm.assert_frame_equal(result, expected)
     assert df.index.names == ["A", "B"]
 
@@ -952,9 +956,7 @@ def test_apply_function_returns_numpy_array():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "function", [lambda gr: gr.index, lambda gr: gr.index + 1 - 1],
-)
+@pytest.mark.parametrize("function", [lambda gr: gr.index, lambda gr: gr.index + 1 - 1])
 def test_apply_function_index_return(function):
     # GH: 22541
     df = pd.DataFrame([1, 2, 2, 2, 1, 2, 3, 1, 3, 1], columns=["id"])
@@ -1014,3 +1016,82 @@ def test_apply_with_timezones_aware():
     result2 = df2.groupby("x", group_keys=False).apply(lambda df: df[["x", "y"]].copy())
 
     tm.assert_frame_equal(result1, result2)
+
+
+def test_apply_is_unchanged_when_other_methods_are_called_first(reduction_func):
+    # GH #34656
+    # GH #34271
+    df = DataFrame(
+        {
+            "a": [99, 99, 99, 88, 88, 88],
+            "b": [1, 2, 3, 4, 5, 6],
+            "c": [10, 20, 30, 40, 50, 60],
+        }
+    )
+
+    expected = pd.DataFrame(
+        {"a": [264, 297], "b": [15, 6], "c": [150, 60]},
+        index=pd.Index([88, 99], name="a"),
+    )
+
+    # Check output when no other methods are called before .apply()
+    grp = df.groupby(by="a")
+    result = grp.apply(sum)
+    tm.assert_frame_equal(result, expected)
+
+    # Check output when another method is called before .apply()
+    grp = df.groupby(by="a")
+    args = {"nth": [0], "corrwith": [df]}.get(reduction_func, [])
+    _ = getattr(grp, reduction_func)(*args)
+    result = grp.apply(sum)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_apply_with_date_in_multiindex_does_not_convert_to_timestamp():
+    # GH 29617
+
+    df = pd.DataFrame(
+        {
+            "A": ["a", "a", "a", "b"],
+            "B": [
+                date(2020, 1, 10),
+                date(2020, 1, 10),
+                date(2020, 2, 10),
+                date(2020, 2, 10),
+            ],
+            "C": [1, 2, 3, 4],
+        },
+        index=pd.Index([100, 101, 102, 103], name="idx"),
+    )
+
+    grp = df.groupby(["A", "B"])
+    result = grp.apply(lambda x: x.head(1))
+
+    expected = df.iloc[[0, 2, 3]]
+    expected = expected.reset_index()
+    expected.index = pd.MultiIndex.from_frame(expected[["A", "B", "idx"]])
+    expected = expected.drop(columns="idx")
+
+    tm.assert_frame_equal(result, expected)
+    for val in result.index.levels[1]:
+        assert type(val) is date
+
+
+def test_apply_by_cols_equals_apply_by_rows_transposed():
+    # GH 16646
+    # Operating on the columns, or transposing and operating on the rows
+    # should give the same result. There was previously a bug where the
+    # by_rows operation would work fine, but by_cols would throw a ValueError
+
+    df = pd.DataFrame(
+        np.random.random([6, 4]),
+        columns=pd.MultiIndex.from_product([["A", "B"], [1, 2]]),
+    )
+
+    by_rows = df.T.groupby(axis=0, level=0).apply(
+        lambda x: x.droplevel(axis=0, level=0)
+    )
+    by_cols = df.groupby(axis=1, level=0).apply(lambda x: x.droplevel(axis=1, level=0))
+
+    tm.assert_frame_equal(by_cols, by_rows.T)
+    tm.assert_frame_equal(by_cols, df)
