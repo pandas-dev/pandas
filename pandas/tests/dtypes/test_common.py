@@ -213,7 +213,7 @@ def test_is_categorical_deprecation():
         com.is_categorical([1, 2, 3])
 
 
-def test_sparse_categorical_is_categorical():
+def test_is_categorical_sparse_categorical():
     # https://github.com/pandas-dev/pandas/issues/35793
     s = pd.Series(
         ["a", "b", "c"], dtype=pd.SparseDtype(CategoricalDtype(["a", "b", "c"]))
