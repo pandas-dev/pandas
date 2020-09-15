@@ -257,7 +257,7 @@ def array_with_unit_to_datetime(
                 if prec:
                     fresult = round(fresult, prec)
                 result = fresult.astype("M8[ns]", copy=False)
-            
+
             iresult = result.view("i8")
             iresult[mask] = NPY_NAT
 
