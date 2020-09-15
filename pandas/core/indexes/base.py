@@ -2627,19 +2627,7 @@ class Index(IndexOpsMixin, PandasObject):
                 result = self._outer_indexer(lvals, rvals)[0]
             else:
                 # We calculate the sorted union and resort it afterwards
-                new_index_sorted = self._outer_indexer(np.sort(lvals), np.sort(rvals))
-                l_reindexer = self.unique().reindex(new_index_sorted[0])[1]
-                if l_reindexer is None:
-                    result = lvals
-                else:
-                    l_result = self.unique().take(
-                        np.sort(l_reindexer[l_reindexer != -1])
-                    )
-                    r_reindexer = other.unique().reindex(new_index_sorted[0])[1]
-                    r_result = other.unique().take(
-                        np.sort(r_reindexer[new_index_sorted[1] == -1])
-                    )
-                    result = np.append(l_result, r_result)
+                result = self._outer_indexer(np.sort(lvals), np.sort(rvals))
         except TypeError:
             # incomparable objects
             result = list(lvals)
@@ -2648,6 +2636,20 @@ class Index(IndexOpsMixin, PandasObject):
             value_set = set(lvals)
             result.extend([x for x in rvals if x not in value_set])
             result = Index(result)._values  # do type inference here
+        else:
+            if sort is False or not self.is_monotonic or not other.is_monotonic:
+                l_reindexer = self.unique().reindex(result[0])[1]
+                if l_reindexer is None:
+                    result = lvals
+                else:
+                    l_result = self.unique().take(
+                        np.sort(l_reindexer[l_reindexer != -1])
+                    )
+                    r_reindexer = other.unique().reindex(result[0])[1]
+                    r_result = other.unique().take(
+                        np.sort(r_reindexer[result[1] == -1])
+                    )
+                    result = np.append(l_result, r_result)
         if sort is None and (not self.is_monotonic or not other.is_monotonic):
             try:
                 result = algos.safe_sort(result)

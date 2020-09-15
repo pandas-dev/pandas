@@ -15,7 +15,8 @@ from pandas import (
     Int64Index,
     RangeIndex,
     TimedeltaIndex,
-    UInt64Index, Index,
+    UInt64Index,
+    Index,
 )
 import pandas._testing as tm
 from pandas.api.types import pandas_dtype
@@ -113,7 +114,7 @@ def test_union_dtypes(left, right, expected):
         DatetimeIndex,
         CategoricalIndex,
         TimedeltaIndex,
-        lambda x: Index(x, dtype=object)
+        lambda x: Index(x, dtype=object),
     ],
 )
 def test_union_duplicate_index_subsets_of_each_other(cls):
@@ -137,7 +138,7 @@ def test_union_duplicate_index_subsets_of_each_other(cls):
         DatetimeIndex,
         CategoricalIndex,
         TimedeltaIndex,
-        lambda x: Index(x, dtype=object)
+        lambda x: Index(x, dtype=object),
     ],
 )
 def test_union_with_duplicate_index(cls):
