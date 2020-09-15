@@ -16,9 +16,17 @@ from typing import (
     Sequence,
     Tuple,
     Union,
+    cast,
 )
 
-from pandas._typing import AggFuncType, Axis, FrameOrSeries, Label
+from pandas._typing import (
+    AggFuncType,
+    AggFuncTypeBase,
+    Axis,
+    FrameOrSeries,
+    FrameOrSeriesUnion,
+    Label,
+)
 
 from pandas.core.dtypes.common import is_dict_like, is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
@@ -388,7 +396,7 @@ def validate_func_kwargs(
 
 def transform(
     obj: FrameOrSeries, func: AggFuncType, axis: Axis, *args, **kwargs,
-) -> FrameOrSeries:
+) -> FrameOrSeriesUnion:
     """
     Transform a DataFrame or Series
 
@@ -415,67 +423,94 @@ def transform(
     ValueError
         If the transform function fails or does not transform.
     """
-    from pandas.core.reshape.concat import concat
-
     is_series = obj.ndim == 1
-
     if obj._get_axis_number(axis) == 1:
         assert not is_series
         return transform(obj.T, func, 0, *args, **kwargs).T
 
-    if isinstance(func, list):
+    if is_list_like(func) and not is_dict_like(func):
+        func = cast(List[AggFuncTypeBase], func)
+        # Convert func equivalent dict
         if is_series:
             func = {com.get_callable_name(v) or v: v for v in func}
         else:
             func = {col: func for col in obj}
 
-    if isinstance(func, dict):
-        if not is_series:
-            cols = sorted(set(func.keys()) - set(obj.columns))
-            if len(cols) > 0:
-                raise SpecificationError(f"Column(s) {cols} do not exist")
-
-        if any(isinstance(v, dict) for v in func.values()):
-            # GH 15931 - deprecation of renaming keys
-            raise SpecificationError("nested renamer is not supported")
-
-        results = {}
-        for name, how in func.items():
-            colg = obj._gotitem(name, ndim=1)
-            try:
-                results[name] = transform(colg, how, 0, *args, **kwargs)
-            except Exception as e:
-                if str(e) == "Function did not transform":
-                    raise e
-
-        # combine results
-        if len(results) == 0:
+    if is_dict_like(func):
+        func = cast(Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]], func)
+        result = transform_dict_like(obj, func, *args, **kwargs)
+    else:
+        func = cast(AggFuncTypeBase, func)
+        try:
+            result = transform_str_or_callable(obj, func, *args, **kwargs)
+        except Exception:
             raise ValueError("Transform function failed")
-        return concat(results, axis=1)
-
-    # func is either str or callable
-    try:
-        if isinstance(func, str):
-            result = obj._try_aggregate_string_function(func, *args, **kwargs)
-        else:
-            f = obj._get_cython_func(func)
-            if f and not args and not kwargs:
-                result = getattr(obj, f)()
-            else:
-                try:
-                    result = obj.apply(func, args=args, **kwargs)
-                except Exception:
-                    result = func(obj, *args, **kwargs)
-    except Exception:
-        raise ValueError("Transform function failed")
 
     # Functions that transform may return empty Series/DataFrame
     # when the dtype is not appropriate
     if isinstance(result, (ABCSeries, ABCDataFrame)) and result.empty:
         raise ValueError("Transform function failed")
+
     if not isinstance(result, (ABCSeries, ABCDataFrame)) or not result.index.equals(
         obj.index
     ):
         raise ValueError("Function did not transform")
 
     return result
+
+
+def transform_dict_like(
+    obj: FrameOrSeries,
+    func: Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]],
+    *args,
+    **kwargs,
+):
+    """
+    Compute transform in the case of a dict-like func
+    """
+    from pandas.core.reshape.concat import concat
+
+    if obj.ndim != 1:
+        # Check for missing columns on a frame
+        cols = sorted(set(func.keys()) - set(obj.columns))
+        if len(cols) > 0:
+            raise SpecificationError(f"Column(s) {cols} do not exist")
+
+    if any(isinstance(v, dict) for v in func.values()):
+        # GH 15931 - deprecation of renaming keys
+        raise SpecificationError("nested renamer is not supported")
+
+    results: Dict[Label, FrameOrSeriesUnion] = {}
+    for name, how in func.items():
+        colg = obj._gotitem(name, ndim=1)
+        try:
+            results[name] = transform(colg, how, 0, *args, **kwargs)
+        except Exception as e:
+            if str(e) == "Function did not transform":
+                raise e
+
+    # combine results
+    if len(results) == 0:
+        raise ValueError("Transform function failed")
+    return concat(results, axis=1)
+
+
+def transform_str_or_callable(
+    obj: FrameOrSeries, func: AggFuncTypeBase, *args, **kwargs
+) -> FrameOrSeriesUnion:
+    """
+    Compute transform in the case of a string or callable func
+    """
+    if isinstance(func, str):
+        return obj._try_aggregate_string_function(func, *args, **kwargs)
+
+    if not args and not kwargs:
+        f = obj._get_cython_func(func)
+        if f:
+            return getattr(obj, f)()
+
+    # Two possible ways to use a UDF - apply or call directly
+    try:
+        return obj.apply(func, args=args, **kwargs)
+    except Exception:
+        return func(obj, *args, **kwargs)
