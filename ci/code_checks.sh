@@ -25,6 +25,26 @@ BASE_DIR="$(dirname $0)/.."
 RET=0
 CHECK=$1
 
+
+# Get lists of files tracked by git:
+
+function quote_if_needed {
+    awk '{ print $0 ~ /.*\s+.*/ ? "\""$0"\"" : $0 }'
+}
+
+function git_tracked_files {
+    [[ ! -z "$1" ]] && local patt="\\${1}$" || local patt="$"
+    local subdir=$2
+    git ls-tree --name-only -r HEAD $subdir | grep -e $patt | quote_if_needed
+}
+
+GIT_TRACKED_ALL=$(git_tracked_files)
+GIT_TRACKED_ALL_PY_FILES=$(git_tracked_files .py)
+GIT_TRACKED_DOCSOURCE_RST_FILES=$(git_tracked_files .rst doc/source)
+GIT_TRACKED_REFERENCE_RST_FILES=$(git_tracked_files .rst doc/source/reference)
+GIT_TRACKED_DEVELOPMENT_RST_FILES=$(git_tracked_files .rst doc/source/development)
+
+
 function invgrep {
     # grep with inverse exist status and formatting for azure-pipelines
     #
@@ -37,6 +57,8 @@ function invgrep {
     grep -n "$@" | sed "s/^/$INVGREP_PREPEND/" | sed "s/$/$INVGREP_APPEND/" ; EXIT_STATUS=${PIPESTATUS[0]}
     return $((! $EXIT_STATUS))
 }
+
+export -f invgrep;  # needed because of the use of xargs to pass in $GIT_TRACKED_ALL as args
 
 if [[ "$GITHUB_ACTIONS" == "true" ]]; then
     FLAKE8_FORMAT="##[error]%(path)s:%(row)s:%(col)s:%(code)s:%(text)s"
@@ -52,7 +74,7 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     black --version
 
     MSG='Checking black formatting' ; echo $MSG
-    black . --check
+    echo $GIT_TRACKED_ALL_PY_FILES | xargs black --check
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # `setup.cfg` contains the list of error codes that are being ignored in flake8
@@ -62,7 +84,7 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
 
     # pandas/_libs/src is C code, so no need to search there.
     MSG='Linting .py code' ; echo $MSG
-    flake8 --format="$FLAKE8_FORMAT" .
+    echo $GIT_TRACKED_ALL_PY_FILES | xargs flake8 --format="$FLAKE8_FORMAT"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Linting .pyx and .pxd code' ; echo $MSG
@@ -77,7 +99,7 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     flake8-rst --version
 
     MSG='Linting code-blocks in .rst documentation' ; echo $MSG
-    flake8-rst doc/source --filename=*.rst --format="$FLAKE8_FORMAT"
+    echo $GIT_TRACKED_DOCSOURCE_RST_FILES | xargs flake8-rst --format="$FLAKE8_FORMAT"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # Check that cython casting is of the form `<type>obj` as opposed to `<type> obj`;
@@ -100,35 +122,38 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     cpplint --quiet --extensions=c,h --headers=h --recursive --filter=-readability/casting,-runtime/int,-build/include_subdir pandas/_libs/src/*.h pandas/_libs/src/parser pandas/_libs/ujson pandas/_libs/tslibs/src/datetime pandas/_libs/*.cpp
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+
+    VALIDATE_CMD=$BASE_DIR/scripts/validate_unwanted_patterns.py
+
     MSG='Check for use of not concatenated strings' ; echo $MSG
     if [[ "$GITHUB_ACTIONS" == "true" ]]; then
-        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="strings_to_concatenate" --format="##[error]{source_path}:{line_number}:{msg}" .
+        echo $GIT_TRACKED_ALL_PY_FILES | xargs $VALIDATE_CMD --validation-type="strings_to_concatenate" --format="##[error]{source_path}:{line_number}:{msg}" --no-override
     else
-        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="strings_to_concatenate" .
+        echo $GIT_TRACKED_ALL_PY_FILES | xargs $VALIDATE_CMD --validation-type="strings_to_concatenate" --no-override
     fi
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for strings with wrong placed spaces' ; echo $MSG
     if [[ "$GITHUB_ACTIONS" == "true" ]]; then
-        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="strings_with_wrong_placed_whitespace" --format="##[error]{source_path}:{line_number}:{msg}" .
+        echo $GIT_TRACKED_ALL_PY_FILES | xargs $VALIDATE_CMD --validation-type="strings_with_wrong_placed_whitespace" --format="##[error]{source_path}:{line_number}:{msg}" --no-override
     else
-        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="strings_with_wrong_placed_whitespace" .
+        echo $GIT_TRACKED_ALL_PY_FILES | xargs $VALIDATE_CMD --validation-type="strings_with_wrong_placed_whitespace" --no-override
     fi
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for import of private attributes across modules' ; echo $MSG
     if [[ "$GITHUB_ACTIONS" == "true" ]]; then
-        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_import_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored --format="##[error]{source_path}:{line_number}:{msg}" pandas/
+        $VALIDATE_CMD --validation-type="private_import_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored --format="##[error]{source_path}:{line_number}:{msg}" pandas/
     else
-        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_import_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored pandas/
+        $VALIDATE_CMD --validation-type="private_import_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored pandas/
     fi
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for use of private functions across modules' ; echo $MSG
     if [[ "$GITHUB_ACTIONS" == "true" ]]; then
-        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored,doc/ --format="##[error]{source_path}:{line_number}:{msg}" pandas/
+        $VALIDATE_CMD --validation-type="private_function_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored,doc/ --format="##[error]{source_path}:{line_number}:{msg}" pandas/
     else
-        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored,doc/ pandas/
+        $VALIDATE_CMD --validation-type="private_function_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored,doc/ pandas/
     fi
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
@@ -239,7 +264,7 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for extra blank lines after the class definition' ; echo $MSG
-    invgrep -R --include="*.py" --include="*.pyx" -E 'class.*:\n\n( )+"""' .
+    invgrep -R --include="*.py" --include="*.pyx" -E 'class.*:\n\n( )+"""' pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for use of {foo!r} instead of {repr(foo)}' ; echo $MSG
@@ -272,7 +297,7 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
 
     MSG='Check that no file in the repo contains trailing whitespaces' ; echo $MSG
     INVGREP_APPEND=" <- trailing whitespaces found"
-    invgrep -RI --exclude=\*.{svg,c,cpp,html,js} --exclude-dir=env "\s$" *
+    echo $GIT_TRACKED_ALL | xargs bash -c 'invgrep -RI "\s$" "$@"' _
     RET=$(($RET + $?)) ; echo $MSG "DONE"
     unset INVGREP_APPEND
 fi
@@ -390,7 +415,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Validate correct capitalization among titles in documentation' ; echo $MSG
-    $BASE_DIR/scripts/validate_rst_title_capitalization.py $BASE_DIR/doc/source/development $BASE_DIR/doc/source/reference
+    echo "${GIT_TRACKED_REFERENCE_RST_FILES} ${GIT_TRACKED_DEVELOPMENT_RST_FILES}" | xargs $BASE_DIR/scripts/validate_rst_title_capitalization.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
