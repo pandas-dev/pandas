@@ -20,7 +20,6 @@ from pandas._typing import IndexKeyFunc
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
-    is_categorical_dtype,
     is_extension_array_dtype,
 )
 from pandas.core.dtypes.generic import ABCMultiIndex
