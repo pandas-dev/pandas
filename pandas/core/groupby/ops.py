@@ -624,10 +624,10 @@ class BaseGrouper:
             return self._aggregate_series_pure_python(obj, func)
 
         elif obj.index._has_complex_internals or isinstance(
-            obj.index, (RangeIndex, DatetimeIndex, TimedeltaIndex)
+            obj.index, (DatetimeIndex, TimedeltaIndex, RangeIndex)
         ):
             # Preempt TypeError in _aggregate_series_fast
-            # exclude RangeIndex because patching it in libreduction would
+            # exclude RangeIndex/DTI/TDI because patching it in libreduction would
             #  silently be incorrect
             return self._aggregate_series_pure_python(obj, func)
 

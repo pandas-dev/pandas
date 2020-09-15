@@ -75,7 +75,14 @@ from pandas.core.groupby.groupby import (
     group_selection_context,
 )
 from pandas.core.groupby.numba_ import generate_numba_func, split_for_numba
-from pandas.core.indexes.api import Index, MultiIndex, all_indexes_same
+from pandas.core.indexes.api import (
+    DatetimeIndex,
+    Index,
+    MultiIndex,
+    PeriodIndex,
+    TimedeltaIndex,
+    all_indexes_same,
+)
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager
 from pandas.core.series import Series
@@ -257,17 +264,27 @@ class SeriesGroupBy(GroupBy[Series]):
             if self.grouper.nkeys > 1:
                 return self._python_agg_general(func, *args, **kwargs)
 
-            try:
-                return self._python_agg_general(func, *args, **kwargs)
-            except (ValueError, KeyError):
-                # TODO: KeyError is raised in _python_agg_general,
-                #  see see test_groupby.test_basic
-                result = self._aggregate_named(func, *args, **kwargs)
+            if isinstance(
+                self._selected_obj.index, (DatetimeIndex, TimedeltaIndex, PeriodIndex)
+            ):
+                # using _python_agg_general would end up incorrectly patching
+                #  _index_data in reduction.pyx
+                result = self._aggregate_maybe_named(func, *args, **kwargs)
+            else:
+                try:
+                    return self._python_agg_general(func, *args, **kwargs)
+                except (ValueError, KeyError):
+                    # TODO: KeyError is raised in _python_agg_general,
+                    #  see see test_groupby.test_basic
+                    result = self._aggregate_maybe_named(func, *args, **kwargs)
 
-            index = Index(sorted(result), name=self.grouper.names[0])
+            index = self.grouper.result_index
+            assert index.name == self.grouper.names[0]
+
             ret = create_series_with_explicit_dtype(
                 result, index=index, dtype_if_empty=object
             )
+            ret.name = self._selected_obj.name  # test_metadata_propagation_indiv
 
         if not self.as_index:  # pragma: no cover
             print("Warning, ignoring as_index=True")
@@ -470,14 +487,34 @@ class SeriesGroupBy(GroupBy[Series]):
             )
             return self._reindex_output(result)
 
-    def _aggregate_named(self, func, *args, **kwargs):
+    def _aggregate_maybe_named(self, func, *args, **kwargs):
+        """
+        Try the named-aggregator first, then unnamed, which better matches
+        what libreduction does.
+        """
+        try:
+            return self._aggregate_named(func, *args, named=True, **kwargs)
+        except KeyError:
+            return self._aggregate_named(func, *args, named=False, **kwargs)
+
+    def _aggregate_named(self, func, *args, named: bool = True, **kwargs):
         result = {}
 
-        for name, group in self:
-            group.name = name
+        for name, group in self:  # TODO: could we have duplicate names?
+            if named:
+                group.name = name
+
             output = func(group, *args, **kwargs)
             if isinstance(output, (Series, Index, np.ndarray)):
-                raise ValueError("Must produce aggregated value")
+                if (
+                    isinstance(output, Series)
+                    and len(output) == 1
+                    and name in output.index
+                ):
+                    # FIXME: kludge for test_resampler_grouper.test_apply
+                    output = output.iloc[0]
+                else:
+                    raise ValueError("Must produce aggregated value")
             result[name] = output
 
         return result
