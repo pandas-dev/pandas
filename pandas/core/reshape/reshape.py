@@ -588,19 +588,15 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
     def _convert_level_number(level_num, columns):
         """
         Logic for converting the level number to something we can safely pass
-        to swaplevel:
+        to swaplevel.
 
-        We generally want to convert the level number into a level name, except
-        when columns do not have names, in which case we must leave as a level
-        number
+        If `level_num` matches a column name return the name from
+        position `level_num`, otherwise return `level_num`.
         """
         if level_num in columns.names:
             return columns.names[level_num]
-        else:
-            if columns.names[level_num] is None:
-                return level_num
-            else:
-                return columns.names[level_num]
+
+        return level_num
 
     this = frame.copy()
 
