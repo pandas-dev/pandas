@@ -407,6 +407,7 @@ def main(
     output_format: str,
     file_extensions_to_check: str,
     excluded_file_paths: str,
+    verbose: int,
 ) -> bool:
     """
     Main entry point of the script.
@@ -423,6 +424,8 @@ def main(
         Comma separated values of what file extensions to check.
     excluded_file_paths : str
         Comma separated values of what file paths to exclude during the check.
+    verbose : int
+        Verbosity level (currently only distinguishes between zero and nonzero).
 
     Returns
     -------
@@ -449,14 +452,22 @@ def main(
 
     def check_file(file_path: str):
         nonlocal is_failed
+        local_is_failed = False
+        if verbose:
+            print(f"Checking {file_path}...", file=sys.stderr, end="")
         with open(file_path) as file_obj:
             for line_number, msg in function(file_obj):
-                is_failed = True
+                local_is_failed = True
                 print(
                     output_format.format(
                         source_path=file_path, line_number=line_number, msg=msg
                     )
                 )
+            if not local_is_failed:
+                if verbose:
+                    print(" OK", file=sys.stderr)
+            else:
+                is_failed = True
 
     def is_ignored(path: str):
         path = os.path.abspath(os.path.normpath(path))
@@ -525,6 +536,12 @@ if __name__ == "__main__":
         default="asv_bench/env",
         help="Comma separated file paths to exclude.",
     )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="count",
+        help="Set the verbosity level to the number of times this flag is used.",
+    )
 
     args = parser.parse_args()
 
@@ -535,5 +552,6 @@ if __name__ == "__main__":
             output_format=args.format,
             file_extensions_to_check=args.included_file_extensions,
             excluded_file_paths=args.excluded_file_paths,
+            verbose=args.verbose,
         )
     )
