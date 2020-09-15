@@ -268,7 +268,7 @@ class ToDatetimeFromIntsFloats:
         self.timestamp_seconds_int = Series(
             range(1521080307, 1521685107), dtype="int64"
         )
-        self.timestamp_seconds_float = timestamp_seconds_int.astype("float64")
+        self.timestamp_seconds_float = self.timestamp_seconds_int.astype("float64")
 
     def to_datetime_int(self):
         to_datetime(self.timestamp_seconds_int, unit="s")
