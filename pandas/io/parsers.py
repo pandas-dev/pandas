@@ -338,9 +338,9 @@ memory_map : bool, default False
     option can improve performance because there is no longer any I/O overhead.
 float_precision : str, optional
     Specifies which converter the C engine should use for floating-point
-    values. The options are `None` or `high` for the ordinary converter,
-    `legacy` for the original lower precision pandas converter, and
-    `round_trip` for the round-trip converter.
+    values. The options are ``None`` or 'high' for the ordinary converter,
+    'legacy' for the original lower precision pandas converter, and
+    'round_trip' for the round-trip converter.
 
     .. versionchanged:: 1.2
 
