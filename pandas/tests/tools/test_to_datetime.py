@@ -1452,6 +1452,7 @@ class TestToDatetimeUnit:
             ]
             + [NaT]
         )
+        result = result.round("ms")
         tm.assert_series_equal(result, expected)
 
         s = pd.concat(
