@@ -98,6 +98,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         DatetimeLikeArrayMixin._hasnans.fget  # type: ignore[attr-defined]
     )
     _hasnans = hasnans  # for index / array -agnostic code
+    _can_union_without_object_cast = Index._can_union_without_object_cast
 
     @property
     def is_all_dates(self) -> bool:

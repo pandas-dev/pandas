@@ -15,19 +15,14 @@ from pandas.core.dtypes.common import (
     is_float,
     is_float_dtype,
     is_integer_dtype,
+    is_numeric_dtype,
     is_scalar,
     is_signed_integer_dtype,
     is_unsigned_integer_dtype,
     needs_i8_conversion,
     pandas_dtype,
 )
-from pandas.core.dtypes.generic import (
-    ABCFloat64Index,
-    ABCInt64Index,
-    ABCRangeIndex,
-    ABCSeries,
-    ABCUInt64Index,
-)
+from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms
@@ -270,11 +265,9 @@ class Int64Index(IntegerIndex):
             if not np.array_equal(data, subarr):
                 raise TypeError("Unsafe NumPy casting, you must explicitly cast")
 
-    def _is_compatible_with_other(self, other) -> bool:
-        return super()._is_compatible_with_other(other) or all(
-            isinstance(obj, (ABCInt64Index, ABCFloat64Index, ABCRangeIndex))
-            for obj in [self, other]
-        )
+    def _can_union_without_object_cast(self, other) -> bool:
+        # See GH#26778, further casting may occur in NumericIndex._union
+        return other.dtype == "f8" or other.dtype == self.dtype
 
 
 Int64Index._add_numeric_methods()
@@ -328,10 +321,9 @@ class UInt64Index(IntegerIndex):
             if not np.array_equal(data, subarr):
                 raise TypeError("Unsafe NumPy casting, you must explicitly cast")
 
-    def _is_compatible_with_other(self, other) -> bool:
-        return super()._is_compatible_with_other(other) or all(
-            isinstance(obj, (ABCUInt64Index, ABCFloat64Index)) for obj in [self, other]
-        )
+    def _can_union_without_object_cast(self, other) -> bool:
+        # See GH#26778, further casting may occur in NumericIndex._union
+        return other.dtype == "f8" or other.dtype == self.dtype
 
 
 UInt64Index._add_numeric_methods()
@@ -436,13 +428,9 @@ class Float64Index(NumericIndex):
             self._validate_index_level(level)
         return algorithms.isin(np.array(self), values)
 
-    def _is_compatible_with_other(self, other) -> bool:
-        return super()._is_compatible_with_other(other) or all(
-            isinstance(
-                obj, (ABCInt64Index, ABCFloat64Index, ABCUInt64Index, ABCRangeIndex)
-            )
-            for obj in [self, other]
-        )
+    def _can_union_without_object_cast(self, other) -> bool:
+        # See GH#26778, further casting may occur in NumericIndex._union
+        return is_numeric_dtype(other.dtype)
 
 
 Float64Index._add_numeric_methods()
