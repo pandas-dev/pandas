@@ -547,7 +547,7 @@ def interpolate_2d(
     values,
     method: str = "pad",
     axis: Axis = 0,
-    limit: Optional[str] = None,
+    limit: Optional[int] = None,
     limit_area: Optional[str] = None,
     fill_value: Optional[Hashable] = None,
     dtype: Optional[Dtype] = None,
