@@ -458,20 +458,24 @@ def main(
                     )
                 )
 
+    def is_ignored(path: str):
+        path = os.path.abspath(os.path.normpath(path))
+        return any(path.startswith(ignored_path) for ignored_path in PATHS_TO_IGNORE)
+
     if os.path.isfile(source_path):
         check_file(source_path)
     else:
         for subdir, _, files in os.walk(source_path):
-            if any(path in subdir for path in PATHS_TO_IGNORE):
+            if is_ignored(subdir):
                 continue
             for file_name in files:
-                if not any(
+                file_path = os.path.join(subdir, file_name)
+                if is_ignored(file_path) or not any(
                     file_name.endswith(extension)
                     for extension in FILE_EXTENSIONS_TO_CHECK
                 ):
                     continue
 
-                file_path = os.path.join(subdir, file_name)
                 check_file(file_path)
 
     return is_failed
