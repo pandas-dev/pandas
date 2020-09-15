@@ -2250,7 +2250,7 @@ class Index(IndexOpsMixin, PandasObject):
         DataFrame.fillna : Fill NaN values of a DataFrame.
         Series.fillna : Fill NaN Values of a Series.
         """
-        self._assert_can_do_op(value)
+        value = self._validate_scalar(value)
         if self.hasnans:
             result = self.putmask(self._isnan, value)
             if downcast is None:
@@ -4054,12 +4054,14 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return value
 
-    def _assert_can_do_op(self, value):
+    def _validate_scalar(self, value):
         """
-        Check value is valid for scalar op.
+        Check that this is a scalar value that we can use for setitem-like
+        operations without changing dtype.
         """
         if not is_scalar(value):
             raise TypeError(f"'value' must be a scalar, passed: {type(value).__name__}")
+        return value
 
     @property
     def _has_complex_internals(self) -> bool:
