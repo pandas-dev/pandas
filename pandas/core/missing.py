@@ -7,6 +7,7 @@ from typing import Any, List, Optional, Set, Union
 import numpy as np
 
 from pandas._libs import algos, lib
+from pandas._typing import Axis, Dtype, Hashable
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import infer_dtype_from_array
@@ -544,18 +545,21 @@ def _cubicspline_interpolate(xi, yi, x, axis=0, bc_type="not-a-knot", extrapolat
 
 def interpolate_2d(
     values,
-    method="pad",
-    axis=0,
-    limit=None,
-    limit_area=None,
-    fill_value=None,
-    dtype=None,
+    method: str = "pad",
+    axis: Axis = 0,
+    limit: Optional[str] = None,
+    limit_area: Optional[str] = None,
+    fill_value: Optional[Hashable] = None,
+    dtype: Optional[Dtype] = None,
 ):
     """
     Perform an actual interpolation of values, values will be make 2-d if
     needed fills inplace, returns the result.
     """
 
+    # `limit_area` is not supported by `pad_2d` and `backfill_2d`. Hence, the
+    # following code block does a recursive call and applies the interpolation
+    # and `limit_area` logic along a certain axis.
     if limit_area is not None:
 
         def func(values):
