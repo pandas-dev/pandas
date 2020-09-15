@@ -1882,17 +1882,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         """
         Return an item.
         """
-        if isinstance(key, (int, np.integer)):
-            i = self._codes[key]
-            return self._box_func(i)
-
-        key = check_array_indexer(self, key)
-
-        result = self._codes[key]
-        if result.ndim > 1:
+        result = super().__getitem__(key)
+        if np.ndim(result) > 1:
+            result = result._ndarray
             deprecate_ndim_indexing(result)
-            return result
-        return self._from_backing_data(result)
+        return result
 
     def _validate_setitem_value(self, value):
         value = extract_array(value, extract_numpy=True)

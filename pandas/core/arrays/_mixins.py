@@ -2,6 +2,7 @@ from typing import Any, Sequence, Tuple, TypeVar
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly, doc
@@ -29,6 +30,9 @@ class NDArrayBackedExtensionArray(ExtensionArray):
             self == self._from_backing_data(self._ndarray)
         """
         raise AbstractMethodError(self)
+
+    def _box_func(self, x):
+        return x
 
     # ------------------------------------------------------------------------
 
@@ -168,3 +172,22 @@ class NDArrayBackedExtensionArray(ExtensionArray):
 
     def _validate_setitem_value(self, value):
         return value
+
+    def __getitem__(self, key):
+        if lib.is_integer(key):
+            # fast-path
+            result = self._ndarray[key]
+            if self.ndim == 1:
+                return self._box_func(result)
+            return self._from_backing_data(result)
+
+        key = self._validate_getitem_key(key)
+        result = self._ndarray[key]
+        if lib.is_scalar(result):
+            return self._box_func(result)
+
+        result = self._from_backing_data(result)
+        return result
+
+    def _validate_getitem_key(self, key):
+        return check_array_indexer(self, key)
