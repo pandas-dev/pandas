@@ -1302,3 +1302,16 @@ def test_unstacking_multi_index_df():
         ),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_stack_positional_level_duplicate_column_names():
+    # https://github.com/pandas-dev/pandas/issues/36353
+    columns = pd.MultiIndex.from_product([("x", "y"), ("y", "z")], names=["a", "a"])
+    df = pd.DataFrame([[1, 1, 1, 1]], columns=columns)
+    result = df.stack(0)
+
+    new_columns = pd.Index(["y", "z"], name="a")
+    new_index = pd.MultiIndex.from_tuples([(0, "x"), (0, "y")], names=[None, "a"])
+    expected = pd.DataFrame([[1, 1], [1, 1]], index=new_index, columns=new_columns)
+
+    tm.assert_frame_equal(result, expected)
