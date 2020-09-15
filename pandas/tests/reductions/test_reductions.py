@@ -689,6 +689,12 @@ class TestSeriesReductions:
         result = getattr(Series(dtype=float), method)()
         assert pd.isna(result)
 
+        # Empty Mean
+        if method == "mean":
+            s = Series([], dtype=float)
+            result = getattr(s, method)()
+            assert np.isnan(result)
+
         # timedelta64[ns]
         tdser = Series([], dtype="m8[ns]")
         if method == "var":
