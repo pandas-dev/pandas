@@ -271,7 +271,6 @@ class TestSeriesFlexComparison:
         tm.assert_series_equal(left.gt(right), left > right)
         tm.assert_series_equal(left.ge(right), left >= right)
 
-        # axis
         for axis in [0, None, "index"]:
             tm.assert_series_equal(left.eq(right, axis=axis), left == right)
             tm.assert_series_equal(left.ne(right, axis=axis), left != right)
@@ -280,7 +279,6 @@ class TestSeriesFlexComparison:
             tm.assert_series_equal(left.gt(right, axis=axis), left > right)
             tm.assert_series_equal(left.ge(right, axis=axis), left >= right)
 
-        #
         msg = "No axis named 1 for object type"
         for op in ["eq", "ne", "le", "le", "gt", "ge"]:
             with pytest.raises(ValueError, match=msg):
@@ -553,32 +551,30 @@ class TestSeriesComparison:
         expected = Series([True, False])
         tm.assert_series_equal(result, expected)
 
-    def test_comparison_operators_with_nas(self):
+    @pytest.mark.parametrize("op", ["lt", "le", "gt", "ge", "eq", "ne"])
+    def test_comparison_operators_with_nas(self, op):
         ser = Series(bdate_range("1/1/2000", periods=10), dtype=object)
         ser[::2] = np.nan
 
         # test that comparisons work
-        ops = ["lt", "le", "gt", "ge", "eq", "ne"]
-        for op in ops:
-            val = ser[5]
+        val = ser[5]
 
-            f = getattr(operator, op)
-            result = f(ser, val)
+        f = getattr(operator, op)
+        result = f(ser, val)
 
-            expected = f(ser.dropna(), val).reindex(ser.index)
+        expected = f(ser.dropna(), val).reindex(ser.index)
 
-            if op == "ne":
-                expected = expected.fillna(True).astype(bool)
-            else:
-                expected = expected.fillna(False).astype(bool)
+        if op == "ne":
+            expected = expected.fillna(True).astype(bool)
+        else:
+            expected = expected.fillna(False).astype(bool)
 
-            tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
-            # FIXME: dont leave commented-out
-            # fffffffuuuuuuuuuuuu
-            # result = f(val, s)
-            # expected = f(val, s.dropna()).reindex(s.index)
-            # tm.assert_series_equal(result, expected)
+        # FIXME: dont leave commented-out
+        # result = f(val, s)
+        # expected = f(val, s.dropna()).reindex(s.index)
+        # tm.assert_series_equal(result, expected)
 
     def test_ne(self):
         ts = Series([3, 4, 5, 6, 7], [3, 4, 5, 6, 7], dtype=float)
@@ -586,35 +582,44 @@ class TestSeriesComparison:
         assert tm.equalContents(ts.index != 5, expected)
         assert tm.equalContents(~(ts.index == 5), expected)
 
-    def test_comp_ops_df_compat(self):
+    @pytest.mark.parametrize(
+        "left, right",
+        [
+            (
+                pd.Series([1, 2, 3], index=list("ABC"), name="x"),
+                pd.Series([2, 2, 2], index=list("ABD"), name="x"),
+            ),
+            (
+                pd.Series([1, 2, 3], index=list("ABC"), name="x"),
+                pd.Series([2, 2, 2, 2], index=list("ABCD"), name="x"),
+            ),
+        ],
+    )
+    @pytest.mark.parametrize("flip", [True, False])
+    def test_comp_ops_df_compat(self, left, right, flip):
         # GH 1134
-        s1 = pd.Series([1, 2, 3], index=list("ABC"), name="x")
-        s2 = pd.Series([2, 2, 2], index=list("ABD"), name="x")
+        if flip:
+            left, right = right, left
 
-        s3 = pd.Series([1, 2, 3], index=list("ABC"), name="x")
-        s4 = pd.Series([2, 2, 2, 2], index=list("ABCD"), name="x")
+        msg = "Can only compare identically-labeled Series objects"
+        with pytest.raises(ValueError, match=msg):
+            left == right
 
-        for left, right in [(s1, s2), (s2, s1), (s3, s4), (s4, s3)]:
+        with pytest.raises(ValueError, match=msg):
+            left != right
 
-            msg = "Can only compare identically-labeled Series objects"
-            with pytest.raises(ValueError, match=msg):
-                left == right
+        with pytest.raises(ValueError, match=msg):
+            left < right
 
-            with pytest.raises(ValueError, match=msg):
-                left != right
+        msg = "Can only compare identically-labeled DataFrame objects"
+        with pytest.raises(ValueError, match=msg):
+            left.to_frame() == right.to_frame()
 
-            with pytest.raises(ValueError, match=msg):
-                left < right
+        with pytest.raises(ValueError, match=msg):
+            left.to_frame() != right.to_frame()
 
-            msg = "Can only compare identically-labeled DataFrame objects"
-            with pytest.raises(ValueError, match=msg):
-                left.to_frame() == right.to_frame()
-
-            with pytest.raises(ValueError, match=msg):
-                left.to_frame() != right.to_frame()
-
-            with pytest.raises(ValueError, match=msg):
-                left.to_frame() < right.to_frame()
+        with pytest.raises(ValueError, match=msg):
+            left.to_frame() < right.to_frame()
 
     def test_compare_series_interval_keyword(self):
         # GH#25338
