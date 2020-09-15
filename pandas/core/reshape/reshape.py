@@ -764,8 +764,6 @@ def get_dummies(
     dtype : dtype, default np.uint8
         Data type for new columns. Only a single dtype is allowed.
 
-        .. versionadded:: 0.23.0
-
     Returns
     -------
     DataFrame

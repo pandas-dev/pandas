@@ -6,7 +6,7 @@ _shared_docs[
     "aggregate"
 ] = """\
 Aggregate using one or more operations over the specified axis.
-{versionadded}
+
 Parameters
 ----------
 func : function, str, list or dict
@@ -119,8 +119,6 @@ observed : bool, default False
     This only applies if any of the groupers are Categoricals.
     If True: only show observed values for categorical groupers.
     If False: show all values for categorical groupers.
-
-    .. versionadded:: 0.23.0
 dropna : bool, default True
     If True, and if group keys contain NA values, NA values together
     with row/column will be dropped.
@@ -154,7 +152,7 @@ or more columns are identifier variables (`id_vars`), while all other
 columns, considered measured variables (`value_vars`), are "unpivoted" to
 the row axis, leaving just two non-identifier columns, 'variable' and
 'value'.
-%(versionadded)s
+
 Parameters
 ----------
 id_vars : tuple, list, or ndarray, optional
@@ -256,4 +254,73 @@ If you have multi-index columns:
 0      a          B          E      1
 1      b          B          E      3
 2      c          B          E      5
+"""
+
+_shared_docs[
+    "transform"
+] = """\
+Call ``func`` on self producing a {klass} with transformed values.
+
+Produced {klass} will have same axis length as self.
+
+Parameters
+----------
+func : function, str, list or dict
+    Function to use for transforming the data. If a function, must either
+    work when passed a {klass} or when passed to {klass}.apply.
+
+    Accepted combinations are:
+
+    - function
+    - string function name
+    - list of functions and/or function names, e.g. ``[np.exp, 'sqrt']``
+    - dict of axis labels -> functions, function names or list of such.
+{axis}
+*args
+    Positional arguments to pass to `func`.
+**kwargs
+    Keyword arguments to pass to `func`.
+
+Returns
+-------
+{klass}
+    A {klass} that must have the same length as self.
+
+Raises
+------
+ValueError : If the returned {klass} has a different length than self.
+
+See Also
+--------
+{klass}.agg : Only perform aggregating type operations.
+{klass}.apply : Invoke function on a {klass}.
+
+Examples
+--------
+>>> df = pd.DataFrame({{'A': range(3), 'B': range(1, 4)}})
+>>> df
+   A  B
+0  0  1
+1  1  2
+2  2  3
+>>> df.transform(lambda x: x + 1)
+   A  B
+0  1  2
+1  2  3
+2  3  4
+
+Even though the resulting {klass} must have the same length as the
+input {klass}, it is possible to provide several input functions:
+
+>>> s = pd.Series(range(3))
+>>> s
+0    0
+1    1
+2    2
+dtype: int64
+>>> s.transform([np.sqrt, np.exp])
+       sqrt        exp
+0  0.000000   1.000000
+1  1.000000   2.718282
+2  1.414214   7.389056
 """
