@@ -106,6 +106,7 @@ dependencies:
   - cftime  # Needed for downstream xarray.CFTimeIndex test
   - pyreadstat  # pandas.read_spss
   - tabulate>=0.8.3  # DataFrame.to_markdown
+  - natsort  # DataFrame.sort_values
   - pip:
     - git+https://github.com/pandas-dev/pydata-sphinx-theme.git@master
     - git+https://github.com/numpy/numpydoc
