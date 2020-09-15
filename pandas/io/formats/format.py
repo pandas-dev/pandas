@@ -72,7 +72,7 @@ from pandas.io.common import stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
 
 if TYPE_CHECKING:
-    from pandas import Series, DataFrame, Categorical
+    from pandas import Categorical, DataFrame, Series
 
 FormattersType = Union[
     List[Callable], Tuple[Callable, ...], Mapping[Union[str, int], Callable]
@@ -80,7 +80,7 @@ FormattersType = Union[
 FloatFormatType = Union[str, Callable, "EngFormatter"]
 ColspaceType = Mapping[Label, Union[str, int]]
 ColspaceArgType = Union[
-    str, int, Sequence[Union[str, int]], Mapping[Label, Union[str, int]],
+    str, int, Sequence[Union[str, int]], Mapping[Label, Union[str, int]]
 ]
 
 common_docstring = """
@@ -256,7 +256,7 @@ class SeriesFormatter:
             float_format = get_option("display.float_format")
         self.float_format = float_format
         self.dtype = dtype
-        self.adj = _get_adjustment()
+        self.adj = get_adjustment()
 
         self._chk_truncate()
 
@@ -345,6 +345,7 @@ class SeriesFormatter:
             None,
             float_format=self.float_format,
             na_rep=self.na_rep,
+            leading_space=self.index,
         )
 
     def to_string(self) -> str:
@@ -439,7 +440,7 @@ class EastAsianTextAdjustment(TextAdjustment):
             return [x.rjust(_get_pad(x)) for x in texts]
 
 
-def _get_adjustment() -> TextAdjustment:
+def get_adjustment() -> TextAdjustment:
     use_east_asian_width = get_option("display.unicode.east_asian_width")
     if use_east_asian_width:
         return EastAsianTextAdjustment()
@@ -628,7 +629,7 @@ class DataFrameFormatter(TableFormatter):
             self.columns = frame.columns
 
         self._chk_truncate()
-        self.adj = _get_adjustment()
+        self.adj = get_adjustment()
 
     def _chk_truncate(self) -> None:
         """
@@ -741,7 +742,7 @@ class DataFrameFormatter(TableFormatter):
             for i, c in enumerate(frame):
                 fmt_values = self._format_col(i)
                 fmt_values = _make_fixed_width(
-                    fmt_values, self.justify, minimum=col_space.get(c, 0), adj=self.adj,
+                    fmt_values, self.justify, minimum=col_space.get(c, 0), adj=self.adj
                 )
                 stringified.append(fmt_values)
         else:
@@ -931,22 +932,25 @@ class DataFrameFormatter(TableFormatter):
         multirow: bool = False,
         caption: Optional[str] = None,
         label: Optional[str] = None,
+        position: Optional[str] = None,
     ) -> Optional[str]:
         """
         Render a DataFrame to a LaTeX tabular/longtable environment output.
         """
         from pandas.io.formats.latex import LatexFormatter
 
-        return LatexFormatter(
+        latex_formatter = LatexFormatter(
             self,
-            column_format=column_format,
             longtable=longtable,
+            column_format=column_format,
             multicolumn=multicolumn,
             multicolumn_format=multicolumn_format,
             multirow=multirow,
             caption=caption,
             label=label,
-        ).get_result(buf=buf, encoding=encoding)
+            position=position,
+        )
+        return latex_formatter.get_result(buf=buf, encoding=encoding)
 
     def _format_col(self, i: int) -> List[str]:
         frame = self.tr_frame
@@ -958,6 +962,7 @@ class DataFrameFormatter(TableFormatter):
             na_rep=self.na_rep,
             space=self.col_space.get(frame.columns[i]),
             decimal=self.decimal,
+            leading_space=self.index,
         )
 
     def to_html(
@@ -990,7 +995,7 @@ class DataFrameFormatter(TableFormatter):
         )
 
     def _get_formatted_column_labels(self, frame: "DataFrame") -> List[List[str]]:
-        from pandas.core.indexes.multi import _sparsify
+        from pandas.core.indexes.multi import sparsify_labels
 
         columns = frame.columns
 
@@ -1016,7 +1021,7 @@ class DataFrameFormatter(TableFormatter):
                 zip(*[[space_format(x, y) for y in x] for x in fmt_columns])
             )
             if self.sparsify and len(str_columns):
-                str_columns = _sparsify(str_columns)
+                str_columns = sparsify_labels(str_columns)
 
             str_columns = [list(x) for x in zip(*str_columns)]
         else:
@@ -1067,7 +1072,7 @@ class DataFrameFormatter(TableFormatter):
         fmt_index = [
             tuple(
                 _make_fixed_width(
-                    list(x), justify="left", minimum=col_space.get("", 0), adj=self.adj,
+                    list(x), justify="left", minimum=col_space.get("", 0), adj=self.adj
                 )
             )
             for x in fmt_index
@@ -1109,7 +1114,7 @@ def format_array(
     space: Optional[Union[str, int]] = None,
     justify: str = "right",
     decimal: str = ".",
-    leading_space: Optional[bool] = None,
+    leading_space: Optional[bool] = True,
     quoting: Optional[int] = None,
 ) -> List[str]:
     """
@@ -1125,7 +1130,7 @@ def format_array(
     space
     justify
     decimal
-    leading_space : bool, optional
+    leading_space : bool, optional, default True
         Whether the array should be formatted with a leading space.
         When an array as a column of a Series or DataFrame, we do want
         the leading space to pad between columns.
@@ -1192,7 +1197,7 @@ class GenericArrayFormatter:
         decimal: str = ".",
         quoting: Optional[int] = None,
         fixed_width: bool = True,
-        leading_space: Optional[bool] = None,
+        leading_space: Optional[bool] = True,
     ):
         self.values = values
         self.digits = digits
@@ -1393,9 +1398,11 @@ class FloatArrayFormatter(GenericArrayFormatter):
         float_format: Optional[FloatFormatType]
         if self.float_format is None:
             if self.fixed_width:
-                float_format = partial(
-                    "{value: .{digits:d}f}".format, digits=self.digits
-                )
+                if self.leading_space is True:
+                    fmt_str = "{value: .{digits:d}f}"
+                else:
+                    fmt_str = "{value:.{digits:d}f}"
+                float_format = partial(fmt_str.format, digits=self.digits)
             else:
                 float_format = self.float_format
         else:
@@ -1427,7 +1434,11 @@ class FloatArrayFormatter(GenericArrayFormatter):
             ).any()
 
         if has_small_values or (too_long and has_large_values):
-            float_format = partial("{value: .{digits:d}e}".format, digits=self.digits)
+            if self.leading_space is True:
+                fmt_str = "{value: .{digits:d}e}"
+            else:
+                fmt_str = "{value:.{digits:d}e}"
+            float_format = partial(fmt_str.format, digits=self.digits)
             formatted_values = format_values_with(float_format)
 
         return formatted_values
@@ -1442,7 +1453,11 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
 class IntArrayFormatter(GenericArrayFormatter):
     def _format_strings(self) -> List[str]:
-        formatter = self.formatter or (lambda x: f"{x: d}")
+        if self.leading_space is False:
+            formatter_str = lambda x: f"{x:d}".format(x=x)
+        else:
+            formatter_str = lambda x: f"{x: d}".format(x=x)
+        formatter = self.formatter or formatter_str
         fmt_values = [formatter(x) for x in self.values]
         return fmt_values
 
@@ -1471,7 +1486,7 @@ class Datetime64Formatter(GenericArrayFormatter):
 
         fmt_values = format_array_from_datetime(
             values.asi8.ravel(),
-            format=_get_format_datetime64_from_values(values, self.date_format),
+            format=get_format_datetime64_from_values(values, self.date_format),
             na_rep=self.nat_rep,
         ).reshape(values.shape)
         return fmt_values.tolist()
@@ -1571,7 +1586,7 @@ def format_percentiles(
     return [i + "%" for i in out]
 
 
-def _is_dates_only(
+def is_dates_only(
     values: Union[np.ndarray, DatetimeArray, Index, DatetimeIndex]
 ) -> bool:
     # return a boolean if we are only dates (and don't have a timezone)
@@ -1622,7 +1637,7 @@ def _format_datetime64_dateonly(
         return x._date_repr
 
 
-def _get_format_datetime64(
+def get_format_datetime64(
     is_dates_only: bool, nat_rep: str = "NaT", date_format: None = None
 ) -> Callable:
 
@@ -1634,7 +1649,7 @@ def _get_format_datetime64(
         return lambda x, tz=None: _format_datetime64(x, tz=tz, nat_rep=nat_rep)
 
 
-def _get_format_datetime64_from_values(
+def get_format_datetime64_from_values(
     values: Union[np.ndarray, DatetimeArray, DatetimeIndex], date_format: Optional[str]
 ) -> Optional[str]:
     """ given values and a date_format, return a string format """
@@ -1643,8 +1658,8 @@ def _get_format_datetime64_from_values(
         #  only accepts 1D values
         values = values.ravel()
 
-    is_dates_only = _is_dates_only(values)
-    if is_dates_only:
+    ido = is_dates_only(values)
+    if ido:
         return date_format or "%Y-%m-%d"
     return date_format
 
@@ -1653,9 +1668,9 @@ class Datetime64TZFormatter(Datetime64Formatter):
     def _format_strings(self) -> List[str]:
         """ we by definition have a TZ """
         values = self.values.astype(object)
-        is_dates_only = _is_dates_only(values)
-        formatter = self.formatter or _get_format_datetime64(
-            is_dates_only, date_format=self.date_format
+        ido = is_dates_only(values)
+        formatter = self.formatter or get_format_datetime64(
+            ido, date_format=self.date_format
         )
         fmt_values = [formatter(x) for x in values]
 
@@ -1675,13 +1690,13 @@ class Timedelta64Formatter(GenericArrayFormatter):
         self.box = box
 
     def _format_strings(self) -> List[str]:
-        formatter = self.formatter or _get_format_timedelta64(
+        formatter = self.formatter or get_format_timedelta64(
             self.values, nat_rep=self.nat_rep, box=self.box
         )
         return [formatter(x) for x in self.values]
 
 
-def _get_format_timedelta64(
+def get_format_timedelta64(
     values: Union[np.ndarray, TimedeltaIndex, TimedeltaArray],
     nat_rep: str = "NaT",
     box: bool = False,
@@ -1731,7 +1746,7 @@ def _make_fixed_width(
         return strings
 
     if adj is None:
-        adj = _get_adjustment()
+        adj = get_adjustment()
 
     max_len = max(adj.len(x) for x in strings)
 

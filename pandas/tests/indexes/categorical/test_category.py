@@ -43,7 +43,14 @@ class TestCategoricalIndex(Base):
         # GH 10039
         # set ops (+/-) raise TypeError
         idx = pd.Index(pd.Categorical(["a", "b"]))
-        msg = f"cannot perform {op_name} with this index type: CategoricalIndex"
+        cat_or_list = "'(Categorical|list)' and '(Categorical|list)'"
+        msg = "|".join(
+            [
+                f"cannot perform {op_name} with this index type: CategoricalIndex",
+                "can only concatenate list",
+                rf"unsupported operand type\(s\) for [\+-]: {cat_or_list}",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             func(idx)
 
@@ -395,15 +402,7 @@ class TestCategoricalIndex(Base):
         with pytest.raises(ValueError, match="Lengths must match"):
             ci1 == Index(["a", "b", "c"])
 
-        msg = (
-            "categorical index comparisons must have the same categories "
-            "and ordered attributes"
-            "|"
-            "Categoricals can only be compared if 'categories' are the same. "
-            "Categories are different lengths"
-            "|"
-            "Categoricals can only be compared if 'ordered' is the same"
-        )
+        msg = "Categoricals can only be compared if 'categories' are the same"
         with pytest.raises(TypeError, match=msg):
             ci1 == ci2
         with pytest.raises(TypeError, match=msg):
@@ -478,3 +477,9 @@ class TestCategoricalIndex(Base):
     def test_map_str(self):
         # See test_map.py
         pass
+
+    def test_format_different_scalar_lengths(self):
+        # GH35439
+        idx = CategoricalIndex(["aaaaaaaaa", "b"])
+        expected = ["aaaaaaaaa", "b"]
+        assert idx.format() == expected

@@ -53,6 +53,32 @@ need to implement certain operations expected by pandas users (for example
 the algorithm used in, ``Series.str.upper``). That work may be done outside of
 pandas.
 
+Consistent missing value handling
+---------------------------------
+
+Currently, pandas handles missing data differently for different data types. We
+use different types to indicate that a value is missing (``np.nan`` for
+floating-point data, ``np.nan`` or ``None`` for object-dtype data -- typically
+strings or booleans -- with missing values, and ``pd.NaT`` for datetimelike
+data). Integer data cannot store missing data or are cast to float. In addition,
+pandas 1.0 introduced a new missing value sentinel, ``pd.NA``, which is being
+used for the experimental nullable integer, boolean, and string data types.
+
+These different missing values have different behaviors in user-facing
+operations. Specifically, we introduced different semantics for the nullable
+data types for certain operations (e.g. propagating in comparison operations
+instead of comparing as False).
+
+Long term, we want to introduce consistent missing data handling for all data
+types. This includes consistent behavior in all operations (indexing, arithmetic
+operations, comparisons, etc.). We want to eventually make the new semantics the
+default.
+
+This has been discussed at
+`github #28095 <https://github.com/pandas-dev/pandas/issues/28095>`__ (and
+linked issues), and described in more detail in this
+`design doc <https://hackmd.io/@jorisvandenbossche/Sk0wMeAmB>`__.
+
 Apache Arrow interoperability
 -----------------------------
 

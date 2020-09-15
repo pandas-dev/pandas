@@ -161,8 +161,6 @@ class _HtmlFrameParser:
     displayed_only : bool
         Whether or not items with "display:none" should be ignored
 
-        .. versionadded:: 0.23.0
-
     Attributes
     ----------
     io : str or file-like
@@ -180,8 +178,6 @@ class _HtmlFrameParser:
 
     displayed_only : bool
         Whether or not items with "display:none" should be ignored
-
-        .. versionadded:: 0.23.0
 
     Notes
     -----
@@ -707,8 +703,8 @@ class _LxmlFrameParser(_HtmlFrameParser):
         --------
         pandas.io.html._HtmlFrameParser._build_doc
         """
-        from lxml.html import parse, fromstring, HTMLParser
         from lxml.etree import XMLSyntaxError
+        from lxml.html import HTMLParser, fromstring, parse
 
         parser = HTMLParser(recover=True, encoding=self.encoding)
 

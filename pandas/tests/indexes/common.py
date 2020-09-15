@@ -1,10 +1,11 @@
 import gc
-from typing import Optional, Type
+from typing import Type
 
 import numpy as np
 import pytest
 
 from pandas._libs import iNaT
+from pandas.compat.numpy import is_numpy_dev
 from pandas.errors import InvalidIndexError
 
 from pandas.core.dtypes.common import is_datetime64tz_dtype
@@ -32,7 +33,7 @@ from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 class Base:
     """ base class for index sub-class tests """
 
-    _holder: Optional[Type[Index]] = None
+    _holder: Type[Index]
     _compat_props = ["shape", "ndim", "size", "nbytes"]
 
     def create_index(self) -> Index:
@@ -145,22 +146,41 @@ class Base:
         # Check that this doesn't cover MultiIndex case, if/when it does,
         #  we can remove multi.test_compat.test_numeric_compat
         assert not isinstance(idx, MultiIndex)
+        if type(idx) is Index:
+            return
 
-        with pytest.raises(TypeError, match="cannot perform __mul__"):
+        typ = type(idx._data).__name__
+        lmsg = "|".join(
+            [
+                rf"unsupported operand type\(s\) for \*: '{typ}' and 'int'",
+                "cannot perform (__mul__|__truediv__|__floordiv__) with "
+                f"this index type: {typ}",
+            ]
+        )
+        with pytest.raises(TypeError, match=lmsg):
             idx * 1
-        with pytest.raises(TypeError, match="cannot perform __rmul__"):
+        rmsg = "|".join(
+            [
+                rf"unsupported operand type\(s\) for \*: 'int' and '{typ}'",
+                "cannot perform (__rmul__|__rtruediv__|__rfloordiv__) with "
+                f"this index type: {typ}",
+            ]
+        )
+        with pytest.raises(TypeError, match=rmsg):
             1 * idx
 
-        div_err = "cannot perform __truediv__"
+        div_err = lmsg.replace("*", "/")
         with pytest.raises(TypeError, match=div_err):
             idx / 1
-
-        div_err = div_err.replace(" __", " __r")
+        div_err = rmsg.replace("*", "/")
         with pytest.raises(TypeError, match=div_err):
             1 / idx
-        with pytest.raises(TypeError, match="cannot perform __floordiv__"):
+
+        floordiv_err = lmsg.replace("*", "//")
+        with pytest.raises(TypeError, match=floordiv_err):
             idx // 1
-        with pytest.raises(TypeError, match="cannot perform __rfloordiv__"):
+        floordiv_err = rmsg.replace("*", "//")
+        with pytest.raises(TypeError, match=floordiv_err):
             1 // idx
 
     def test_logical_compat(self):
@@ -249,6 +269,25 @@ class Base:
             # See gh-13365
             s3 = s1 * s2
             assert s3.index.name == "mario"
+
+    def test_copy_name2(self, index):
+        # gh-35592
+        if isinstance(index, MultiIndex):
+            return
+
+        assert index.copy(name="mario").name == "mario"
+
+        with pytest.raises(ValueError, match="Length of new names must be 1, got 2"):
+            index.copy(name=["mario", "luigi"])
+
+        msg = f"{type(index).__name__}.name must be a hashable type"
+        with pytest.raises(TypeError, match=msg):
+            index.copy(name=[["mario"]])
+
+    def test_copy_dtype_deprecated(self, index):
+        # GH35853
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            index.copy(dtype=object)
 
     def test_ensure_copied_data(self, index):
         # Check the "copy" argument of each Index.__new__ is honoured
@@ -417,7 +456,7 @@ class Base:
         with pytest.raises(TypeError, match=msg):
             getattr(index, method)(case)
 
-    def test_intersection_base(self, index):
+    def test_intersection_base(self, index, request):
         if isinstance(index, CategoricalIndex):
             return
 
@@ -434,6 +473,15 @@ class Base:
         # GH 10149
         cases = [klass(second.values) for klass in [np.array, Series, list]]
         for case in cases:
+            # https://github.com/pandas-dev/pandas/issues/35481
+            if (
+                is_numpy_dev
+                and isinstance(case, Series)
+                and isinstance(index, UInt64Index)
+            ):
+                mark = pytest.mark.xfail(reason="gh-35481")
+                request.node.add_marker(mark)
+
             result = first.intersection(case)
             assert tm.equalContents(result, second)
 
@@ -631,6 +679,18 @@ class Base:
             item = index_a[-2]
             tm.assert_numpy_array_equal(index_a == item, expected3)
             tm.assert_series_equal(series_a == item, Series(expected3))
+
+    def test_format(self):
+        # GH35439
+        idx = self.create_index()
+        expected = [str(x) for x in idx]
+        assert idx.format() == expected
+
+    def test_format_empty(self):
+        # GH35712
+        empty_idx = self._holder([])
+        assert empty_idx.format() == []
+        assert empty_idx.format(name=True) == [""]
 
     def test_hasnans_isnans(self, index):
         # GH 11343, added tests for hasnans / isnans

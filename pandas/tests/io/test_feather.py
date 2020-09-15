@@ -76,7 +76,7 @@ class TestFeather:
                     pd.Timestamp("20130103"),
                 ],
                 "dtns": pd.DatetimeIndex(
-                    list(pd.date_range("20130101", periods=3, freq="ns")), freq=None,
+                    list(pd.date_range("20130101", periods=3, freq="ns")), freq=None
                 ),
             }
         )

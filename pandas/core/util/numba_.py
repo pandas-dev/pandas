@@ -1,12 +1,10 @@
 """Common utilities for Numba operations"""
 from distutils.version import LooseVersion
-import inspect
 import types
 from typing import Callable, Dict, Optional, Tuple
 
 import numpy as np
 
-from pandas._typing import FrameOrSeries
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import NumbaUtilError
 
@@ -129,94 +127,3 @@ def jit_user_function(
             return impl
 
     return numba_func
-
-
-def split_for_numba(arg: FrameOrSeries) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Split pandas object into its components as numpy arrays for numba functions.
-
-    Parameters
-    ----------
-    arg : Series or DataFrame
-
-    Returns
-    -------
-    (ndarray, ndarray)
-        values, index
-    """
-    return arg.to_numpy(), arg.index.to_numpy()
-
-
-def validate_udf(func: Callable) -> None:
-    """
-    Validate user defined function for ops when using Numba.
-
-    The first signature arguments should include:
-
-    def f(values, index, ...):
-        ...
-
-    Parameters
-    ----------
-    func : function, default False
-        user defined function
-
-    Returns
-    -------
-    None
-
-    Raises
-    ------
-    NumbaUtilError
-    """
-    udf_signature = list(inspect.signature(func).parameters.keys())
-    expected_args = ["values", "index"]
-    min_number_args = len(expected_args)
-    if (
-        len(udf_signature) < min_number_args
-        or udf_signature[:min_number_args] != expected_args
-    ):
-        raise NumbaUtilError(
-            f"The first {min_number_args} arguments to {func.__name__} must be "
-            f"{expected_args}"
-        )
-
-
-def generate_numba_func(
-    func: Callable,
-    engine_kwargs: Optional[Dict[str, bool]],
-    kwargs: dict,
-    cache_key_str: str,
-) -> Tuple[Callable, Tuple[Callable, str]]:
-    """
-    Return a JITed function and cache key for the NUMBA_FUNC_CACHE
-
-    This _may_ be specific to groupby (as it's only used there currently).
-
-    Parameters
-    ----------
-    func : function
-        user defined function
-    engine_kwargs : dict or None
-        numba.jit arguments
-    kwargs : dict
-        kwargs for func
-    cache_key_str : str
-        string representing the second part of the cache key tuple
-
-    Returns
-    -------
-    (JITed function, cache key)
-
-    Raises
-    ------
-    NumbaUtilError
-    """
-    nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
-    check_kwargs_and_nopython(kwargs, nopython)
-    validate_udf(func)
-    cache_key = (func, cache_key_str)
-    numba_func = NUMBA_FUNC_CACHE.get(
-        cache_key, jit_user_function(func, nopython, nogil, parallel)
-    )
-    return numba_func, cache_key

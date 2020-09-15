@@ -3,6 +3,7 @@ Utilities for interpreting CSS from Stylers for formatting non-HTML outputs.
 """
 
 import re
+from typing import Optional
 import warnings
 
 
@@ -20,9 +21,7 @@ def _side_expander(prop_fmt: str):
         try:
             mapping = self.SIDE_SHORTHANDS[len(tokens)]
         except KeyError:
-            warnings.warn(
-                f'Could not expand "{prop}: {value}"', CSSWarning,
-            )
+            warnings.warn(f'Could not expand "{prop}: {value}"', CSSWarning)
             return
         for key, idx in zip(self.SIDES, mapping):
             yield prop_fmt.format(key), tokens[idx]
@@ -95,6 +94,7 @@ class CSSResolver:
                 props[prop] = val
 
         # 2. resolve relative font size
+        font_size: Optional[float]
         if props.get("font-size"):
             if "font-size" in inherited:
                 em_pt = inherited["font-size"]
@@ -117,10 +117,7 @@ class CSSResolver:
                 props[prop] = self.size_to_pt(
                     props[prop], em_pt=font_size, conversions=self.BORDER_WIDTH_RATIOS
                 )
-            for prop in [
-                f"margin-{side}",
-                f"padding-{side}",
-            ]:
+            for prop in [f"margin-{side}", f"padding-{side}"]:
                 if prop in props:
                     # TODO: support %
                     props[prop] = self.size_to_pt(
@@ -178,10 +175,11 @@ class CSSResolver:
             warnings.warn(f"Unhandled size: {repr(in_val)}", CSSWarning)
             return self.size_to_pt("1!!default", conversions=conversions)
 
-        try:
-            val, unit = re.match(r"^(\S*?)([a-zA-Z%!].*)", in_val).groups()
-        except AttributeError:
+        match = re.match(r"^(\S*?)([a-zA-Z%!].*)", in_val)
+        if match is None:
             return _error()
+
+        val, unit = match.groups()
         if val == "":
             # hack for 'large' etc.
             val = 1
