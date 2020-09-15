@@ -124,6 +124,8 @@ def test_compression_binary(compression_only):
     GH22555
     """
     df = tm.makeDataFrame()
+
+    # with a file
     with tm.ensure_clean() as path:
         with open(path, mode="wb") as file:
             df.to_csv(file, mode="wb", compression=compression_only)
@@ -131,6 +133,14 @@ def test_compression_binary(compression_only):
         tm.assert_frame_equal(
             df, pd.read_csv(path, index_col=0, compression=compression_only)
         )
+
+    # with BytesIO
+    file = io.BytesIO()
+    df.to_csv(file, mode="wb", compression=compression_only)
+    file.seek(0)  # file shouldn't be closed
+    tm.assert_frame_equal(
+        df, pd.read_csv(file, index_col=0, compression=compression_only)
+    )
 
 
 def test_gzip_reproducibility_file_name():

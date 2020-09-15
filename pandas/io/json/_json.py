@@ -19,15 +19,10 @@ from pandas import DataFrame, MultiIndex, Series, isna, to_datetime
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.reshape.concat import concat
 
-from pandas.io.common import (
-    get_compression_method,
-    get_filepath_or_buffer,
-    get_handle,
-    infer_compression,
-)
+from pandas.io.common import get_compression_method, get_filepath_or_buffer, get_handle
 from pandas.io.json._normalize import convert_to_line_delimits
 from pandas.io.json._table_schema import build_table_schema, parse_table_schema
-from pandas.io.parsers import _validate_integer
+from pandas.io.parsers import validate_integer
 
 loads = json.loads
 dumps = json.dumps
@@ -58,12 +53,15 @@ def to_json(
         )
 
     if path_or_buf is not None:
-        path_or_buf, _, _, should_close = get_filepath_or_buffer(
+        ioargs = get_filepath_or_buffer(
             path_or_buf,
             compression=compression,
             mode="wt",
             storage_options=storage_options,
         )
+        path_or_buf = ioargs.filepath_or_buffer
+        should_close = ioargs.should_close
+        compression = ioargs.compression
 
     if lines and orient != "records":
         raise ValueError("'lines' keyword only valid when 'orient' is records")
@@ -102,6 +100,8 @@ def to_json(
             fh.write(s)
         finally:
             fh.close()
+        for handle in handles:
+            handle.close()
     elif path_or_buf is None:
         return s
     else:
@@ -428,9 +428,6 @@ def read_json(
           - The DataFrame columns must be unique for orients ``'index'``,
             ``'columns'``, and ``'records'``.
 
-        .. versionadded:: 0.23.0
-           'table' as an allowed value for the ``orient`` argument
-
     typ : {'frame', 'series'}, default 'frame'
         The type of object to recover.
 
@@ -612,10 +609,7 @@ def read_json(
     if encoding is None:
         encoding = "utf-8"
 
-    compression_method, compression = get_compression_method(compression)
-    compression_method = infer_compression(path_or_buf, compression_method)
-    compression = dict(compression, method=compression_method)
-    filepath_or_buffer, _, compression, should_close = get_filepath_or_buffer(
+    ioargs = get_filepath_or_buffer(
         path_or_buf,
         encoding=encoding,
         compression=compression,
@@ -623,7 +617,7 @@ def read_json(
     )
 
     json_reader = JsonReader(
-        filepath_or_buffer,
+        ioargs.filepath_or_buffer,
         orient=orient,
         typ=typ,
         dtype=dtype,
@@ -633,10 +627,10 @@ def read_json(
         numpy=numpy,
         precise_float=precise_float,
         date_unit=date_unit,
-        encoding=encoding,
+        encoding=ioargs.encoding,
         lines=lines,
         chunksize=chunksize,
-        compression=compression,
+        compression=ioargs.compression,
         nrows=nrows,
     )
 
@@ -644,8 +638,9 @@ def read_json(
         return json_reader
 
     result = json_reader.read()
-    if should_close:
-        filepath_or_buffer.close()
+    if ioargs.should_close:
+        assert not isinstance(ioargs.filepath_or_buffer, str)
+        ioargs.filepath_or_buffer.close()
 
     return result
 
@@ -700,11 +695,11 @@ class JsonReader(abc.Iterator):
         self.file_handles: List[IO] = []
 
         if self.chunksize is not None:
-            self.chunksize = _validate_integer("chunksize", self.chunksize, 1)
+            self.chunksize = validate_integer("chunksize", self.chunksize, 1)
             if not self.lines:
                 raise ValueError("chunksize can only be passed if lines=True")
         if self.nrows is not None:
-            self.nrows = _validate_integer("nrows", self.nrows, 0)
+            self.nrows = validate_integer("nrows", self.nrows, 0)
             if not self.lines:
                 raise ValueError("nrows can only be passed if lines=True")
 

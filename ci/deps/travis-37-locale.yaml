@@ -21,13 +21,14 @@ dependencies:
   - jinja2
   - lxml=4.3.0
   - matplotlib=3.0.*
-  - moto
   - nomkl
   - numexpr
   - numpy
   - openpyxl
   - pandas-gbq=0.12.0
+  - pyarrow>=0.17
   - psycopg2=2.7
+  - pyarrow>=0.15.0 # GH #35813
   - pymysql=0.7.11
   - pytables
   - python-dateutil

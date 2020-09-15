@@ -2349,9 +2349,6 @@ _formatters = {
 
 
 def format_query(sql, *args):
-    """
-
-    """
     processed_args = []
     for arg in args:
         if isinstance(arg, float) and isna(arg):

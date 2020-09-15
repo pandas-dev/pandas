@@ -1,7 +1,7 @@
 """
 Base and utility classes for tseries type pandas objects.
 """
-from datetime import datetime
+from datetime import datetime, tzinfo
 from typing import Any, List, Optional, TypeVar, Union, cast
 
 import numpy as np
@@ -41,7 +41,6 @@ from pandas.core.indexes.extension import (
 )
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
-from pandas.core.sorting import ensure_key_mapped
 from pandas.core.tools.timedeltas import to_timedelta
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -81,9 +80,7 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
     DatetimeLikeArrayMixin,
     cache=True,
 )
-@inherit_names(
-    ["mean", "asi8", "freq", "freqstr", "_box_func"], DatetimeLikeArrayMixin,
-)
+@inherit_names(["mean", "asi8", "freq", "freqstr"], DatetimeLikeArrayMixin)
 class DatetimeIndexOpsMixin(ExtensionIndex):
     """
     Common ops mixin to support a unified interface datetimelike Index.
@@ -166,22 +163,6 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             is_scalar(res) or isinstance(res, slice) or (is_list_like(res) and len(res))
         )
 
-    def sort_values(self, return_indexer=False, ascending=True, key=None):
-        """
-        Return sorted copy of Index.
-        """
-        idx = ensure_key_mapped(self, key)
-
-        _as = idx.argsort()
-        if not ascending:
-            _as = _as[::-1]
-        sorted_index = self.take(_as)
-
-        if return_indexer:
-            return sorted_index, _as
-        else:
-            return sorted_index
-
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
         nv.validate_take(tuple(), kwargs)
@@ -246,7 +227,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             # quick check
             if len(i8) and self.is_monotonic:
                 if i8[0] != iNaT:
-                    return self._box_func(i8[0])
+                    return self._data._box_func(i8[0])
 
             if self.hasnans:
                 if skipna:
@@ -255,7 +236,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
                     return self._na_value
             else:
                 min_stamp = i8.min()
-            return self._box_func(min_stamp)
+            return self._data._box_func(min_stamp)
         except ValueError:
             return self._na_value
 
@@ -303,7 +284,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             # quick check
             if len(i8) and self.is_monotonic:
                 if i8[-1] != iNaT:
-                    return self._box_func(i8[-1])
+                    return self._data._box_func(i8[-1])
 
             if self.hasnans:
                 if skipna:
@@ -312,7 +293,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
                     return self._na_value
             else:
                 max_stamp = i8.max()
-            return self._box_func(max_stamp)
+            return self._data._box_func(max_stamp)
         except ValueError:
             return self._na_value
 
@@ -354,15 +335,20 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         """
         header = []
         if name:
-            fmt_name = ibase.pprint_thing(self.name, escape_chars=("\t", "\r", "\n"))
-            header.append(fmt_name)
+            header.append(
+                ibase.pprint_thing(self.name, escape_chars=("\t", "\r", "\n"))
+                if self.name is not None
+                else ""
+            )
 
         if formatter is not None:
             return header + list(self.map(formatter))
 
         return self._format_with_header(header, na_rep=na_rep, date_format=date_format)
 
-    def _format_with_header(self, header, na_rep="NaT", date_format=None) -> List[str]:
+    def _format_with_header(
+        self, header: List[str], na_rep: str = "NaT", date_format: Optional[str] = None
+    ) -> List[str]:
         return header + list(
             self._format_native_types(na_rep=na_rep, date_format=date_format)
         )
@@ -600,7 +586,9 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         else:
             self = cast(DatetimeTimedeltaMixin, self)
             freq = self.freq if self._can_fast_union(other) else None
-        new_data = type(self._data)._simple_new(joined, dtype=self.dtype, freq=freq)
+
+        new_data = self._data._from_backing_data(joined)
+        new_data._freq = freq
 
         return type(self)._simple_new(new_data, name=name)
 
@@ -626,6 +614,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
     Mixin class for methods shared by DatetimeIndex and TimedeltaIndex,
     but not PeriodIndex
     """
+
+    tz: Optional[tzinfo]
 
     # Compat for frequency inference, see GH#23789
     _is_monotonic_increasing = Index.is_monotonic_increasing
@@ -704,16 +694,16 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
                 if result.freq is None:
                     # TODO: no tests rely on this; needed?
                     result = result._with_freq("infer")
-            assert result.name == res_name
+            result.name = res_name
             return result
 
         elif not self._can_fast_intersect(other):
             result = Index.intersection(self, other, sort=sort)
-            assert result.name == res_name
             # We need to invalidate the freq because Index.intersection
             #  uses _shallow_copy on a view of self._data, which will preserve
             #  self.freq if we're not careful.
             result = result._with_freq(None)._with_freq("infer")
+            result.name = res_name
             return result
 
         # to make our life easier, "sort" the two ranges
