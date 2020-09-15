@@ -28,18 +28,18 @@ class TestTimestampConstructors:
             (
                 "2014-07-01 10:00",
                 datetime(2014, 7, 1, 10),
-                base_expected + 3600 * 1_000_000_000,
+                base_expected + 3600 * 1_000_000_000
             ),
             (
                 "2014-07-01 09:00:00.000008000",
                 datetime(2014, 7, 1, 9, 0, 0, 8),
-                base_expected + 8000,
+                base_expected + 8000
             ),
             (
                 "2014-07-01 09:00:00.000000005",
                 Timestamp("2014-07-01 09:00:00.000000005"),
-                base_expected + 5,
-            ),
+                base_expected + 5
+            )
         ]
 
         timezones = [
@@ -50,7 +50,7 @@ class TestTimestampConstructors:
             ("US/Eastern", -4),
             ("dateutil/US/Pacific", -7),
             (pytz.FixedOffset(-180), -3),
-            (dateutil.tz.tzoffset(None, 18000), 5),
+            (dateutil.tz.tzoffset(None, 18000), 5)
         ]
 
         for date_str, date, expected in tests:
@@ -93,7 +93,7 @@ class TestTimestampConstructors:
             (base_str, base_expected),
             ("2014-07-01 12:00:00+02:00", base_expected + 3600 * 1_000_000_000),
             ("2014-07-01 11:00:00.000008000+02:00", base_expected + 8000),
-            ("2014-07-01 11:00:00.000000005+02:00", base_expected + 5),
+            ("2014-07-01 11:00:00.000000005+02:00", base_expected + 5)
         ]
 
         timezones = [
@@ -104,7 +104,7 @@ class TestTimestampConstructors:
             ("US/Eastern", -4),
             ("dateutil/US/Pacific", -7),
             (pytz.FixedOffset(-180), -3),
-            (dateutil.tz.tzoffset(None, 18000), 5),
+            (dateutil.tz.tzoffset(None, 18000), 5)
         ]
 
         for date_str, expected in tests:
@@ -209,7 +209,7 @@ class TestTimestampConstructors:
             Timestamp(year=2017, month=10, day=22, tz=pytz.utc),
             Timestamp(datetime(2017, 10, 22), tzinfo=pytz.utc),
             Timestamp(datetime(2017, 10, 22), tz="UTC"),
-            Timestamp(datetime(2017, 10, 22), tz=pytz.utc),
+            Timestamp(datetime(2017, 10, 22), tz=pytz.utc)
         ]
         assert all(ts == stamps[0] for ts in stamps)
 
@@ -267,7 +267,7 @@ class TestTimestampConstructors:
                 hour=1,
                 minute=2,
                 second=3,
-                microsecond=999999,
+                microsecond=999999
             )
         ) == repr(Timestamp("2015-11-12 01:02:03.999999"))
 
@@ -306,7 +306,7 @@ class TestTimestampConstructors:
                 minute=4,
                 second=5,
                 microsecond=6,
-                nanosecond=1,
+                nanosecond=1
             ),
             Timestamp(
                 year=2000,
@@ -317,11 +317,11 @@ class TestTimestampConstructors:
                 second=5,
                 microsecond=6,
                 nanosecond=1,
-                tz="UTC",
+                tz="UTC"
             ),
             Timestamp(2000, 1, 2, 3, 4, 5, 6, 1, None),
-            Timestamp(2000, 1, 2, 3, 4, 5, 6, 1, pytz.UTC),
-        ],
+            Timestamp(2000, 1, 2, 3, 4, 5, 6, 1, pytz.UTC)
+        ]
     )
     def test_constructor_nanosecond(self, result):
         # GH 18898
@@ -346,8 +346,8 @@ class TestTimestampConstructors:
             "minute",
             "second",
             "microsecond",
-            "nanosecond",
-        ],
+            "nanosecond"
+        ]
     )
     def test_invalid_date_kwarg_with_string_input(self, arg):
         kwarg = {arg: 1}
@@ -538,7 +538,7 @@ class TestTimestampConstructors:
 
     @pytest.mark.skipif(
         not compat.PY38,
-        reason="datetime.fromisocalendar was added in Python version 3.8",
+        reason="datetime.fromisocalendar was added in Python version 3.8"
     )
     def test_constructor_fromisocalendar(self):
         # GH 30395

@@ -93,8 +93,8 @@ def test_comparison_ops():
         np.int_(0),
         np.float_(0),
         np.int_(-0),
-        np.float_(-0),
-    ],
+        np.float_(-0)
+    ]
 )
 @pytest.mark.parametrize("asarray", [True, False])
 def test_pow_special(value, asarray):

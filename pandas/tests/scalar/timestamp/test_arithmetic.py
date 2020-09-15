@@ -8,7 +8,7 @@ from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
     offsets,
-    to_offset,
+    to_offset
 )
 
 import pandas._testing as tm
@@ -142,8 +142,8 @@ class TestTimestampArithmetic:
             ("H", timedelta(hours=1), np.timedelta64(1, "h")),
             ("D", timedelta(days=1), np.timedelta64(1, "D")),
             ("W", timedelta(weeks=1), np.timedelta64(1, "W")),
-            ("M", None, np.timedelta64(1, "M")),
-        ],
+            ("M", None, np.timedelta64(1, "M"))
+        ]
     )
     def test_addition_subtraction_preserve_frequency(self, freq, td, td64):
         ts = Timestamp("2014-03-05 00:00:00", freq=freq)
@@ -174,8 +174,8 @@ class TestTimestampArithmetic:
             (np.timedelta64(-123, "ns"), -123),
             (np.timedelta64(1234567898, "ns"), 1234567898),
             (np.timedelta64(-123, "us"), -123000),
-            (np.timedelta64(-123, "ms"), -123000000),
-        ],
+            (np.timedelta64(-123, "ms"), -123000000)
+        ]
     )
     def test_timestamp_add_timedelta64_unit(self, other, expected_difference):
         ts = Timestamp(datetime.utcnow())
@@ -187,8 +187,8 @@ class TestTimestampArithmetic:
         "ts",
         [
             Timestamp("1776-07-04", freq="D"),
-            Timestamp("1776-07-04", tz="UTC", freq="D"),
-        ],
+            Timestamp("1776-07-04", tz="UTC", freq="D")
+        ]
     )
     @pytest.mark.parametrize(
         "other",
@@ -196,8 +196,8 @@ class TestTimestampArithmetic:
             1,
             np.int64(1),
             np.array([1, 2], dtype=np.int32),
-            np.array([3, 4], dtype=np.uint64),
-        ],
+            np.array([3, 4], dtype=np.uint64)
+        ]
     )
     def test_add_int_with_freq(self, ts, other):
         msg = "Addition/subtraction of integers and integer-arrays"
