@@ -12,11 +12,11 @@ from pandas import (
     CategoricalIndex,
     DatetimeIndex,
     Float64Index,
+    Index,
     Int64Index,
     RangeIndex,
     TimedeltaIndex,
     UInt64Index,
-    Index,
 )
 import pandas._testing as tm
 from pandas.api.types import pandas_dtype
