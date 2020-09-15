@@ -232,10 +232,14 @@ class TestDataFramePlots(TestPlotBase):
                 "a": np.random.rand(10),
                 "b": np.random.rand(10),
                 "c": to_datetime(
-                    np.random.randint(1582800000000000000, 1583500000000000000, 10)
+                    np.random.randint(
+                        1582800000000000000, 1583500000000000000, 10, dtype=np.int64
+                    )
                 ),
                 "d": to_datetime(
-                    np.random.randint(1582800000000000000, 1583500000000000000, 10)
+                    np.random.randint(
+                        1582800000000000000, 1583500000000000000, 10, dtype=np.int64
+                    )
                 ),
             }
         )
