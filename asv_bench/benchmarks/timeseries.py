@@ -265,15 +265,17 @@ class Lookup:
 
 class ToDatetimeFromIntsFloats:
     def setup(self):
-        timestamp_seconds_int = Series(range(1521080307, 1521685107), dtype="int64")
-        timestamp_seconds_float = timestamp_seconds_int.astype("float64")
+        self.timestamp_seconds_int = Series(
+            range(1521080307, 1521685107), dtype="int64"
+        )
+        self.timestamp_seconds_float = timestamp_seconds_int.astype("float64")
 
     def to_datetime_int(self):
-        to_datetime(timestamp_seconds_int, unit="s")
+        to_datetime(self.timestamp_seconds_int, unit="s")
 
     # float64 should about the same as int64
     def to_datetime_float(self):
-        to_datetime(timestamp_seconds_float, unit="s")
+        to_datetime(self.timestamp_seconds_float, unit="s")
 
 
 class ToDatetimeYYYYMMDD:
