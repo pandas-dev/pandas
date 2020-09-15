@@ -15,7 +15,7 @@ from pandas import (
     Int64Index,
     RangeIndex,
     TimedeltaIndex,
-    UInt64Index,
+    UInt64Index, Index,
 )
 import pandas._testing as tm
 from pandas.api.types import pandas_dtype
@@ -105,12 +105,24 @@ def test_union_dtypes(left, right, expected):
     assert result == expected
 
 
-def test_union_duplicate_index_subsets_of_each_other():
+@pytest.mark.parametrize(
+    "cls",
+    [
+        Int64Index,
+        Float64Index,
+        DatetimeIndex,
+        CategoricalIndex,
+        TimedeltaIndex,
+        lambda x: Index(x, dtype=object)
+    ],
+)
+def test_union_duplicate_index_subsets_of_each_other(cls):
     # GH: 31326
-    a = pd.Index([1, 2, 2, 3])
-    b = pd.Index([3, 3, 4])
-    expected = pd.Index([1, 2, 2, 3, 3, 4])
-
+    a = cls([1, 2, 2, 3])
+    b = cls([3, 3, 4])
+    expected = cls([1, 2, 2, 3, 3, 4])
+    if cls is CategoricalIndex:
+        expected = Index([1, 2, 2, 3, 3, 4], dtype="object")
     result = a.union(b)
     tm.assert_index_equal(result, expected)
     result = a.union(b, sort=False)
@@ -118,23 +130,32 @@ def test_union_duplicate_index_subsets_of_each_other():
 
 
 @pytest.mark.parametrize(
-    "func",
+    "cls",
     [
-        (Int64Index),
-        (Float64Index),
-        (DatetimeIndex),
-        (CategoricalIndex),
-        (TimedeltaIndex),
+        Int64Index,
+        Float64Index,
+        DatetimeIndex,
+        CategoricalIndex,
+        TimedeltaIndex,
+        lambda x: Index(x, dtype=object)
     ],
 )
-def test_union_with_duplicate_index(func):
+def test_union_with_duplicate_index(cls):
     # GH: 36289
-    idx1 = func([1, 0, 0])
-    idx2 = func([0, 1])
-    expected = func([0, 0, 1])
+    idx1 = cls([1, 0, 0])
+    idx2 = cls([0, 1])
+    expected = cls([0, 0, 1])
 
     result = idx1.union(idx2)
     tm.assert_index_equal(result, expected)
 
     result = idx2.union(idx1)
+    tm.assert_index_equal(result, expected)
+
+
+def test_union_duplicate_index_different_dtypes():
+    idx1 = Index([1, 2, 2, 3])
+    idx2 = Index(["1", "0", "0"])
+    expected = Index([1, 2, 2, 3, "1", "0", "0"])
+    result = idx1.union(idx2, sort=False)
     tm.assert_index_equal(result, expected)
