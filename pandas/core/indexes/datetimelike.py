@@ -98,7 +98,6 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         DatetimeLikeArrayMixin._hasnans.fget  # type: ignore[attr-defined]
     )
     _hasnans = hasnans  # for index / array -agnostic code
-    _can_union_without_object_cast = Index._can_union_without_object_cast
 
     @property
     def is_all_dates(self) -> bool:
@@ -577,6 +576,9 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
     # --------------------------------------------------------------------
     # Join/Set Methods
+
+    def _can_union_without_object_cast(self, other) -> bool:
+        return is_dtype_equal(self.dtype, other.dtype)
 
     def _wrap_joined_index(self, joined: np.ndarray, other):
         assert other.dtype == self.dtype, (other.dtype, self.dtype)
