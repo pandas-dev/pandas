@@ -10,6 +10,8 @@ from typing import Callable, Optional, Set, Tuple, Type, TypeVar
 
 import numpy as np
 
+from pandas.compat import PY39
+
 import pandas.core.common as com
 from pandas.core.computation.ops import (
     ARITH_OPS_SYMS,
@@ -186,7 +188,6 @@ _mod_nodes = _filter_nodes(ast.mod)
 _stmt_nodes = _filter_nodes(ast.stmt)
 _expr_nodes = _filter_nodes(ast.expr)
 _expr_context_nodes = _filter_nodes(ast.expr_context)
-_slice_nodes = _filter_nodes(ast.slice)
 _boolop_nodes = _filter_nodes(ast.boolop)
 _operator_nodes = _filter_nodes(ast.operator)
 _unary_op_nodes = _filter_nodes(ast.unaryop)
@@ -196,6 +197,9 @@ _handler_nodes = _filter_nodes(ast.excepthandler)
 _arguments_nodes = _filter_nodes(ast.arguments)
 _keyword_nodes = _filter_nodes(ast.keyword)
 _alias_nodes = _filter_nodes(ast.alias)
+
+if not PY39:
+    _slice_nodes = _filter_nodes(ast.slice)
 
 
 # nodes that we don't support directly but are needed for parsing
