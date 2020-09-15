@@ -2126,3 +2126,14 @@ def test_groupby_column_index_name_lost(func):
     df_grouped = df.groupby([1])
     result = getattr(df_grouped, func)().columns
     tm.assert_index_equal(result, expected)
+
+
+def test_groupby_duplicate_columns():
+    # GH: 31735
+    df = pd.DataFrame(
+        {"A": ["f", "e", "g", "h"], "B": ["a", "b", "c", "d"], "C": [1, 2, 3, 4],}
+    ).astype(object)
+    df.columns = ["A", "B", "B"]
+    result = df.groupby([0, 0, 0, 0]).min()
+    expected = pd.DataFrame([["e", "a", 1]], columns=["A", "B", "B"])
+    tm.assert_frame_equal(result, expected)
