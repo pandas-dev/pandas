@@ -595,31 +595,39 @@ class TestSeriesComparison:
             ),
         ],
     )
-    @pytest.mark.parametrize("flip", [True, False])
-    def test_comp_ops_df_compat(self, left, right, flip):
+    def test_comp_ops_df_compat(self, left, right):
         # GH 1134
-        if flip:
-            left, right = right, left
-
         msg = "Can only compare identically-labeled Series objects"
         with pytest.raises(ValueError, match=msg):
             left == right
+        with pytest.raises(ValueError, match=msg):
+            right == left
 
         with pytest.raises(ValueError, match=msg):
             left != right
+        with pytest.raises(ValueError, match=msg):
+            right != left
 
         with pytest.raises(ValueError, match=msg):
             left < right
+        with pytest.raises(ValueError, match=msg):
+            right < left
 
         msg = "Can only compare identically-labeled DataFrame objects"
         with pytest.raises(ValueError, match=msg):
             left.to_frame() == right.to_frame()
+        with pytest.raises(ValueError, match=msg):
+            right.to_frame() == left.to_frame()
 
         with pytest.raises(ValueError, match=msg):
             left.to_frame() != right.to_frame()
+        with pytest.raises(ValueError, match=msg):
+            right.to_frame() != left.to_frame()
 
         with pytest.raises(ValueError, match=msg):
             left.to_frame() < right.to_frame()
+        with pytest.raises(ValueError, match=msg):
+            right.to_frame() < left.to_frame()
 
     def test_compare_series_interval_keyword(self):
         # GH#25338
