@@ -691,3 +691,22 @@ class TestDataFrameSortKey:  # test key sorting (issue 27237)
         result = df.sort_values(1, key=lambda col: -col, axis=1)
         expected = df.loc[:, ::-1]
         tm.assert_frame_equal(result, expected)
+
+    def test_sort_values_key_casts_to_categorical(self):
+        # https://github.com/pandas-dev/pandas/issues/36383
+        categories = ["a", "b", "c"]
+        df = pd.DataFrame({"x": [3, 2, 1], "y": ["c", "b", "a"]})
+
+        def sorter(key):
+            if key.name == "y":
+                return pd.Series(
+                    pd.Categorical(key, categories=categories, ordered=True)
+                )
+            return key
+
+        result = df.sort_values(by=["x", "y"], key=sorter)
+        expected = pd.DataFrame(
+            {"x": [1, 2, 3], "y": ["a", "b", "c"]}, index=pd.Index([2, 1, 0])
+        )
+
+        tm.assert_frame_equal(result, expected)
