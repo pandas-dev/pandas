@@ -1,11 +1,21 @@
 """ miscellaneous sorting / groupby utilities """
 from collections import defaultdict
-from typing import TYPE_CHECKING, Callable, DefaultDict, Iterable, List, Optional, Tuple
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    DefaultDict,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 
 import numpy as np
 
 from pandas._libs import algos, hashtable, lib
 from pandas._libs.hashtable import unique_label_indices
+from pandas._typing import IndexKeyFunc
 
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -20,9 +30,62 @@ import pandas.core.algorithms as algorithms
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
-    from pandas.core.indexes.base import Index  # noqa:F401
+    from pandas.core.indexes.base import Index
 
 _INT64_MAX = np.iinfo(np.int64).max
+
+
+def get_indexer_indexer(
+    target: "Index",
+    level: Union[str, int, List[str], List[int]],
+    ascending: bool,
+    kind: str,
+    na_position: str,
+    sort_remaining: bool,
+    key: IndexKeyFunc,
+) -> Optional[np.array]:
+    """
+    Helper method that return the indexer according to input parameters for
+    the sort_index method of DataFrame and Series.
+
+    Parameters
+    ----------
+    target : Index
+    level : int or level name or list of ints or list of level names
+    ascending : bool or list of bools, default True
+    kind : {'quicksort', 'mergesort', 'heapsort'}, default 'quicksort'
+    na_position : {'first', 'last'}, default 'last'
+    sort_remaining : bool, default True
+    key : callable, optional
+
+    Returns
+    -------
+    Optional[ndarray]
+        The indexer for the new index.
+    """
+
+    target = ensure_key_mapped(target, key, levels=level)
+    target = target._sort_levels_monotonic()
+
+    if level is not None:
+        _, indexer = target.sortlevel(
+            level, ascending=ascending, sort_remaining=sort_remaining
+        )
+    elif isinstance(target, ABCMultiIndex):
+        indexer = lexsort_indexer(
+            target._get_codes_for_sorting(), orders=ascending, na_position=na_position,
+        )
+    else:
+        # Check monotonic-ness before sort an index (GH 11080)
+        if (ascending and target.is_monotonic_increasing) or (
+            not ascending and target.is_monotonic_decreasing
+        ):
+            return None
+
+        indexer = nargsort(
+            target, kind=kind, ascending=ascending, na_position=na_position
+        )
+    return indexer
 
 
 def get_group_index(labels, shape, sort: bool, xnull: bool):

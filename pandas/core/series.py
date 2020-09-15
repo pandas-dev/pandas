@@ -3463,59 +3463,17 @@ Keep all original rows and also all original values
         dtype: int64
         """
 
-        # TODO: this can be combined with DataFrame.sort_index impl as
-        # almost identical
-        inplace = validate_bool_kwarg(inplace, "inplace")
-        # Validate the axis parameter
-        self._get_axis_number(axis)
-        index = ensure_key_mapped(self.index, key, levels=level)
-
-        if level is not None:
-            new_index, indexer = index.sortlevel(
-                level, ascending=ascending, sort_remaining=sort_remaining
-            )
-
-        elif isinstance(index, MultiIndex):
-            from pandas.core.sorting import lexsort_indexer
-
-            labels = index._sort_levels_monotonic()
-
-            indexer = lexsort_indexer(
-                labels._get_codes_for_sorting(),
-                orders=ascending,
-                na_position=na_position,
-            )
-        else:
-            from pandas.core.sorting import nargsort
-
-            # Check monotonic-ness before sort an index
-            # GH11080
-            if (ascending and index.is_monotonic_increasing) or (
-                not ascending and index.is_monotonic_decreasing
-            ):
-                if inplace:
-                    return
-                else:
-                    return self.copy()
-
-            indexer = nargsort(
-                index, kind=kind, ascending=ascending, na_position=na_position
-            )
-
-        indexer = ensure_platform_int(indexer)
-        new_index = self.index.take(indexer)
-        new_index = new_index._sort_levels_monotonic()
-
-        new_values = self._values.take(indexer)
-        result = self._constructor(new_values, index=new_index)
-
-        if ignore_index:
-            result.index = ibase.default_index(len(result))
-
-        if inplace:
-            self._update_inplace(result)
-        else:
-            return result.__finalize__(self, method="sort_index")
+        return super().sort_index(
+            axis,
+            level,
+            ascending,
+            inplace,
+            kind,
+            na_position,
+            sort_remaining,
+            ignore_index,
+            key,
+        )
 
     def argsort(self, axis=0, kind="quicksort", order=None) -> "Series":
         """
