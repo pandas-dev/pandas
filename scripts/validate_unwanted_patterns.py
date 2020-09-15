@@ -407,6 +407,7 @@ def main(
     output_format: str,
     file_extensions_to_check: str,
     excluded_file_paths: str,
+    override: bool,
     verbose: int,
 ) -> bool:
     """
@@ -424,6 +425,9 @@ def main(
         Comma separated values of what file extensions to check.
     excluded_file_paths : str
         Comma separated values of what file paths to exclude during the check.
+    override:
+        Whether individual files mentioned in ``source_paths`` should override
+        ``excluded_file_paths``.
     verbose : int
         Verbosity level (currently only distinguishes between zero and nonzero).
 
@@ -475,7 +479,8 @@ def main(
 
     for source_path in source_paths:
         if os.path.isfile(source_path):
-            check_file(source_path)
+            if override or not is_ignored(source_path):
+                check_file(source_path)
         else:
             for subdir, _, files in os.walk(source_path):
                 if is_ignored(subdir):
@@ -534,7 +539,20 @@ if __name__ == "__main__":
     parser.add_argument(
         "--excluded-file-paths",
         default="asv_bench/env",
-        help="Comma separated file paths to exclude.",
+        help=(
+            "Comma separated file paths to exclude. If an individual file is "
+            "explicitly passed in `paths`, it overrides this setting, unless the "
+            "--no-override flag is used."
+        ),
+    )
+    parser.add_argument(
+        "--no-override",
+        dest="override",
+        action="store_false",
+        help=(
+            "Don't allow individual files explicitly mentioned in `pahts` to override "
+            "the excluded file paths (see --excluded-file-paths)."
+        ),
     )
     parser.add_argument(
         "-v",
@@ -552,6 +570,7 @@ if __name__ == "__main__":
             output_format=args.format,
             file_extensions_to_check=args.included_file_extensions,
             excluded_file_paths=args.excluded_file_paths,
+            override=args.override,
             verbose=args.verbose,
         )
     )
