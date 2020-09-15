@@ -36,7 +36,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays.interval import IntervalArray, _interval_shared_docs
@@ -934,7 +934,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
                 )
             left_insert = item.left
             right_insert = item.right
-        elif is_scalar(item) and isna(item):
+        elif is_valid_nat_for_dtype(item, self.left.dtype):
             # GH 18295
             left_insert = right_insert = item
         else:
