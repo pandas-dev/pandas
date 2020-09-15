@@ -308,7 +308,7 @@ you can obtain for free on the FRED website.
 ``dataframe_sql`` is a Python package that translates SQL syntax directly into
 operations on pandas DataFrames. This is useful when migrating from a database to
 using pandas or for users more comfortable with SQL looking for a way to interface
-with pandas
+with pandas.
 
 
 .. _ecosystem.domain:
