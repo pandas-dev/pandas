@@ -551,20 +551,20 @@ class TestSeriesComparison:
         expected = Series([True, False])
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("op", ["lt", "le", "gt", "ge", "eq", "ne"])
-    def test_comparison_operators_with_nas(self, op):
+    def test_comparison_operators_with_nas(self, all_compare_operators):
+        op = all_compare_operators
         ser = Series(bdate_range("1/1/2000", periods=10), dtype=object)
         ser[::2] = np.nan
+
+        f = getattr(operator, op)
 
         # test that comparisons work
         val = ser[5]
 
-        f = getattr(operator, op)
         result = f(ser, val)
-
         expected = f(ser.dropna(), val).reindex(ser.index)
 
-        if op == "ne":
+        if op == "__ne__":
             expected = expected.fillna(True).astype(bool)
         else:
             expected = expected.fillna(False).astype(bool)
@@ -572,8 +572,8 @@ class TestSeriesComparison:
         tm.assert_series_equal(result, expected)
 
         # FIXME: dont leave commented-out
-        # result = f(val, s)
-        # expected = f(val, s.dropna()).reindex(s.index)
+        # result = f(val, ser)
+        # expected = f(val, ser.dropna()).reindex(ser.index)
         # tm.assert_series_equal(result, expected)
 
     def test_ne(self):
