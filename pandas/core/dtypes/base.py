@@ -287,7 +287,9 @@ class ExtensionDtype:
             return False
         elif isinstance(dtype, cls):
             return True
-        elif hasattr(dtype, "subtype") and isinstance(dtype.subtype, cls):  # type: ignore[attr-defined]
+        elif hasattr(dtype, "subtype") and isinstance(
+            dtype.subtype, cls  # type: ignore[attr-defined]
+        ):
             return True
         if isinstance(dtype, str):
             try:
