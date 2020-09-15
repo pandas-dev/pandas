@@ -259,20 +259,12 @@ class PandasArray(
             result = type(self)(result)
         return result
 
-    def __setitem__(self, key, value) -> None:
-        key = self._validate_setitem_key(key)
-        value = self._validate_setitem_value(value)
-        self._ndarray[key] = value
-
     def _validate_setitem_value(self, value):
         value = extract_array(value, extract_numpy=True)
 
         if not lib.is_scalar(value):
             value = np.asarray(value, dtype=self._ndarray.dtype)
         return value
-
-    def _validate_setitem_key(self, key):
-        return check_array_indexer(self, key)
 
     def isna(self) -> np.ndarray:
         return isna(self._ndarray)

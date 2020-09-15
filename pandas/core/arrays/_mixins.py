@@ -9,6 +9,7 @@ from pandas.util._decorators import cache_readonly, doc
 from pandas.core.algorithms import take, unique
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays.base import ExtensionArray
+from pandas.core.indexers import check_array_indexer
 
 _T = TypeVar("_T", bound="NDArrayBackedExtensionArray")
 
@@ -156,3 +157,14 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         # TODO: after deprecation in datetimelikearraymixin is enforced,
         #  we can remove this and ust validate_fill_value directly
         return self._validate_fill_value(fill_value)
+
+    def __setitem__(self, key, value):
+        key = self._validate_setitem_key(key)
+        value = self._validate_setitem_value(value)
+        self._ndarray[key] = value
+
+    def _validate_setitem_key(self, key):
+        return check_array_indexer(self, key)
+
+    def _validate_setitem_value(self, value):
+        return value
