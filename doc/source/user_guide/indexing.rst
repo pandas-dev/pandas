@@ -1480,7 +1480,7 @@ default value.
    s.get('a')  # equivalent to s['a']
    s.get('x', default=-1)
 
-.. _indexing.lookup
+.. _indexing.lookup:
 
 Looking up values by index/column labels
 ----------------------------------------
