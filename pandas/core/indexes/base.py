@@ -2639,13 +2639,15 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             if sort is False or not self.is_monotonic or not other.is_monotonic:
                 l_reindexer = self.unique().reindex(result[0])[1]
+                r_reindexer = other.unique().reindex(result[0])[1]
                 if l_reindexer is None:
                     result = lvals
+                elif r_reindexer is None:
+                    result = rvals
                 else:
                     l_result = self.unique().take(
                         np.sort(l_reindexer[l_reindexer != -1])
                     )
-                    r_reindexer = other.unique().reindex(result[0])[1]
                     r_result = other.unique().take(
                         np.sort(r_reindexer[result[1] == -1])
                     )
