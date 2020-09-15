@@ -437,16 +437,18 @@ def main(
     if not os.path.exists(source_path):
         raise ValueError("Please enter a valid path, pointing to a file/directory.")
 
-    is_failed: bool = False
-    file_path: str = ""
-
     FILE_EXTENSIONS_TO_CHECK: FrozenSet[str] = frozenset(
         file_extensions_to_check.split(",")
     )
-    PATHS_TO_IGNORE = frozenset(excluded_file_paths.split(","))
+    PATHS_TO_IGNORE = frozenset(
+        os.path.abspath(os.path.normpath(path))
+        for path in excluded_file_paths.split(",")
+    )
 
-    if os.path.isfile(source_path):
-        file_path = source_path
+    is_failed: bool = False
+
+    def check_file(file_path: str):
+        nonlocal is_failed
         with open(file_path) as file_obj:
             for line_number, msg in function(file_obj):
                 is_failed = True
@@ -456,24 +458,21 @@ def main(
                     )
                 )
 
-    for subdir, _, files in os.walk(source_path):
-        if any(path in subdir for path in PATHS_TO_IGNORE):
-            continue
-        for file_name in files:
-            if not any(
-                file_name.endswith(extension) for extension in FILE_EXTENSIONS_TO_CHECK
-            ):
+    if os.path.isfile(source_path):
+        check_file(source_path)
+    else:
+        for subdir, _, files in os.walk(source_path):
+            if any(path in subdir for path in PATHS_TO_IGNORE):
                 continue
+            for file_name in files:
+                if not any(
+                    file_name.endswith(extension)
+                    for extension in FILE_EXTENSIONS_TO_CHECK
+                ):
+                    continue
 
-            file_path = os.path.join(subdir, file_name)
-            with open(file_path) as file_obj:
-                for line_number, msg in function(file_obj):
-                    is_failed = True
-                    print(
-                        output_format.format(
-                            source_path=file_path, line_number=line_number, msg=msg
-                        )
-                    )
+                file_path = os.path.join(subdir, file_name)
+                check_file(file_path)
 
     return is_failed
 
