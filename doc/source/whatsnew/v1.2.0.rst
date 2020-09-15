@@ -118,6 +118,7 @@ Other enhancements
 - :class:`Index` with object dtype supports division and multiplication (:issue:`34160`)
 - :meth:`DataFrame.explode` and :meth:`Series.explode` now support exploding of sets (:issue:`35614`)
 - `Styler` now allows direct CSS class name addition to individual data cells (:issue:`36159`)
+- :meth:`Rolling.mean()` and :meth:`Rolling.sum()` use Kahan summation to calculate the mean to avoid numerical problems (:issue:`10319`, :issue:`11645`, :issue:`13254`, :issue:`32761`, :issue:`36031`)
 
 .. _whatsnew_120.api_breaking.python:
 
