@@ -8,7 +8,7 @@ from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
     offsets,
-    to_offset
+    to_offset,
 )
 
 import pandas._testing as tm
