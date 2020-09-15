@@ -512,10 +512,8 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    def _maybe_cast_indexer(self, key):
-        code = self.categories.get_loc(key)
-        code = self.codes.dtype.type(code)
-        return code
+    def _maybe_cast_indexer(self, key) -> int:
+        return self._data._unbox_scalar(key)
 
     @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):

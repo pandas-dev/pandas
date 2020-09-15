@@ -697,7 +697,7 @@ class DatetimeLikeArrayMixin(
         return new_obj
 
     def _values_for_factorize(self):
-        return self.asi8, iNaT
+        return self._ndarray, iNaT
 
     @classmethod
     def _from_factorized(cls, values, original):
