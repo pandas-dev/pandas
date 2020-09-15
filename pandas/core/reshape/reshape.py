@@ -586,7 +586,9 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
     def _convert_level_number(level_num, columns):
         """
         Logic for converting the level number to something we can safely pass
-        to swaplevel. If `level_num` matches a column name return the name from
+        to swaplevel.
+
+        If `level_num` matches a column name return the name from
         position `level_num`, otherwise return `level_num`.
         """
         if level_num in columns.names:
