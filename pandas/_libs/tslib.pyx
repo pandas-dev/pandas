@@ -39,9 +39,9 @@ from pandas._libs.tslibs.parsing import parse_datetime_string
 from pandas._libs.tslibs.conversion cimport (
     _TSObject,
     cast_from_unit,
-    precision_from_unit,
     convert_datetime_to_tsobject,
     get_datetime64_nanos,
+    precision_from_unit,
 )
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
