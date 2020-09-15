@@ -474,6 +474,18 @@ class TestSeriesInterpolateData:
         result = s.interpolate(method="pad", limit_area="outside", limit=1)
         tm.assert_series_equal(result, expected)
 
+        # Test for all NaNs
+        s = Series([np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan])
+        expected = Series([np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan])
+        result = s.interpolate(method="pad", limit_area="outside", limit=1)
+        tm.assert_series_equal(result, expected)
+
+        # Test for no NaNs
+        s = Series([1, 2, 3, 4])
+        expected = Series([1, 2, 3, 4])
+        result = s.interpolate(method="pad", limit_area="outside", limit=1)
+        tm.assert_series_equal(result, expected)
+
     def test_interp_limit_area_with_backfill(self):
         # Test for issue #26796
         s = Series([np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan])
