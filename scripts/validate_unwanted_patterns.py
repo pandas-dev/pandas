@@ -16,7 +16,7 @@ import os
 import sys
 import token
 import tokenize
-from typing import IO, Callable, FrozenSet, Iterable, List, Set, Tuple
+from typing import IO, Callable, FrozenSet, Iterable, List, Sequence, Set, Tuple
 
 PRIVATE_IMPORTS_TO_IGNORE: Set[str] = {
     "_extension_array_shared_docs",
@@ -403,7 +403,7 @@ def strings_with_wrong_placed_whitespace(
 
 def main(
     function: Callable[[IO[str]], Iterable[Tuple[int, str]]],
-    source_path: str,
+    source_paths: Sequence[str],
     output_format: str,
     file_extensions_to_check: str,
     excluded_file_paths: str,
@@ -415,8 +415,8 @@ def main(
     ----------
     function : Callable
         Function to execute for the specified validation type.
-    source_path : str
-        Source path representing path to a file/directory.
+    source_paths : list of str
+        File paths of files and directories to check.
     output_format : str
         Output format of the error message.
     file_extensions_to_check : str
@@ -434,7 +434,7 @@ def main(
     ValueError
         If the `source_path` is not pointing to existing file/directory.
     """
-    if not os.path.exists(source_path):
+    if not all(os.path.exists(path) for path in source_paths):
         raise ValueError("Please enter a valid path, pointing to a file/directory.")
 
     FILE_EXTENSIONS_TO_CHECK: FrozenSet[str] = frozenset(
@@ -462,21 +462,22 @@ def main(
         path = os.path.abspath(os.path.normpath(path))
         return any(path.startswith(ignored_path) for ignored_path in PATHS_TO_IGNORE)
 
-    if os.path.isfile(source_path):
-        check_file(source_path)
-    else:
-        for subdir, _, files in os.walk(source_path):
-            if is_ignored(subdir):
-                continue
-            for file_name in files:
-                file_path = os.path.join(subdir, file_name)
-                if is_ignored(file_path) or not any(
-                    file_name.endswith(extension)
-                    for extension in FILE_EXTENSIONS_TO_CHECK
-                ):
+    for source_path in source_paths:
+        if os.path.isfile(source_path):
+            check_file(source_path)
+        else:
+            for subdir, _, files in os.walk(source_path):
+                if is_ignored(subdir):
                     continue
+                for file_name in files:
+                    file_path = os.path.join(subdir, file_name)
+                    if is_ignored(file_path) or not any(
+                        file_name.endswith(extension)
+                        for extension in FILE_EXTENSIONS_TO_CHECK
+                    ):
+                        continue
 
-                check_file(file_path)
+                    check_file(file_path)
 
     return is_failed
 
@@ -493,7 +494,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Unwanted patterns checker.")
 
     parser.add_argument(
-        "path", nargs="?", default=".", help="Source path of file/directory to check."
+        "paths",
+        nargs="*",
+        default=["."],
+        help=(
+            "Source path(s) of files and directories to check. If a directory is "
+            "specified, all its contents are checked recursively."
+        ),
     )
     parser.add_argument(
         "--format",
@@ -524,7 +531,7 @@ if __name__ == "__main__":
     sys.exit(
         main(
             function=globals().get(args.validation_type),  # type: ignore
-            source_path=args.path,
+            source_paths=args.paths,
             output_format=args.format,
             file_extensions_to_check=args.included_file_extensions,
             excluded_file_paths=args.excluded_file_paths,
