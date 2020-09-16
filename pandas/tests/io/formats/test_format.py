@@ -689,29 +689,31 @@ class TestDataFrameFormatting:
         )
         assert result == result2
 
-    def test_to_string_with_truncated_formatters(self):
+    @pytest.mark.parametrize(
+        "columns, output",
+        [
+            [
+                (dict(name='int', data=[1, 2, 3],
+                      formatter=lambda x: f"[1] {x}"),
+                 dict(name='float', data=[1.0, 2.0, 3.0],
+                      formatter=lambda x: f"[2] {x}"),
+                 dict(name='object', data=[(1, 2), True, False],
+                      formatter=lambda x: f"[3] {x}")),
+                 "    int  ...      object\n"
+                 + "0 [1] 1  ...  [3] (1, 2)\n"
+                 + "1 [1] 2  ...    [3] True\n"
+                 + "2 [1] 3  ...   [3] False"
+             ],
+        ],
+    )
+    def test_to_string_with_truncated_formatters(self, columns, output):
         df = DataFrame(
-            {
-                "int": [1, 2, 3],
-                "float": [1.0, 2.0, 3.0],
-                "object": [(1, 2), True, False],
-            },
-            columns=["int", "float", "object"],
-        )
-
-        formatters = [
-            ("int", lambda x: f"[1] {x}"),
-            ("float", lambda x: f"[2] {x}"),
-            ("object", lambda x: f"[3] {x}"),
-        ]
+            data=dict([(x['name'], x['data']) for x in columns]),
+            columns=[x['name'] for x in columns])
+        formatters = [(x['name'], x['formatter']) for x in columns]
         result = df.to_string(formatters=dict(formatters), max_cols=2)
         result2 = df.to_string(formatters=list(zip(*formatters))[1], max_cols=2)
-        assert result == (
-            "    int  ...      object\n"
-            "0 [1] 1  ...  [3] (1, 2)\n"
-            "1 [1] 2  ...    [3] True\n"
-            "2 [1] 3  ...   [3] False"
-        )
+        assert result == output
         assert result == result2
 
     def test_to_string_with_datetime64_monthformatter(self):
