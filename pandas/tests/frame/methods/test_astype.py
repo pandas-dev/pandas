@@ -587,3 +587,29 @@ class TestAstype:
             msg = "(Cannot cast)|(could not convert)"
             with pytest.raises((ValueError, TypeError), match=msg):
                 df.astype(float, errors=errors)
+
+    def test_astype_tz_conversion(self):
+        # GH 35973
+        val = {"tz": date_range("2020-08-30", freq="d", periods=2, tz="Europe/London")}
+        df, df2 = DataFrame(val), DataFrame(val)
+        df2['tz'] = df2['tz'].dt.tz_convert('Europe/Berlin')
+
+        tm.assert_frame_equal(df.astype({"tz": "datetime64[ns, Europe/Berlin]"}), df2)
+
+    @pytest.mark.parametrize("tz", ["UTC", "Europe/Berlin"])
+    def test_astype_tz_object_conversion(self, tz):
+        # GH 35973
+        # Test UTC, non-UTC inferred object to an original and specified tz.
+        vals = {
+            "timezones": date_range(
+                "2020-08-30", freq="d", periods=2, tz="Europe/London"
+            )
+        }
+        base = DataFrame(vals)
+
+        # convert base to input test param and then to object dtype
+        result = base.astype({"timezones": "datetime64[ns, {}]".format(tz)})
+        result = result.astype({"timezones": "object"})
+        # test conversion of object dtype to a specified tz, different to inferred.
+        result = result.astype({"timezones": "datetime64[ns, Europe/London]"})
+        tm.assert_frame_equal(base, result)

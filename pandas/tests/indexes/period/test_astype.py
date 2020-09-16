@@ -167,23 +167,3 @@ class TestPeriodIndexAsType:
         tm.assert_index_equal(res, exp)
         assert res.freq == exp.freq
 
-    def test_astype_tz_conversion_roundtrip(self):
-        # GH 35973
-        vals = {
-            "timezones": date_range(
-                "2020-08-30", freq="d", periods=2, tz="Europe/London"
-            )
-        }
-        df = DataFrame(vals)
-
-        # test UTC inferred object to specified tz
-        result = df.astype({"timezones": "datetime64[ns, UTC]"})  # convert tz to UTC
-        result = df.astype({"timezones": "object"})  # convert to string
-        result = df.astype({"timezones": "datetime64[ns, Europe/London]"})
-        tm.assert_frame_equal(df, result)
-
-        # test non-UTC inferred_tz to specified tz
-        result = df.astype({"timezones": "datetime64[ns, Europe/Berlin]"})
-        result = df.astype({"timezones": "object"})  # convert to string
-        result = df.astype({"timezones": "datetime64[ns, Europe/London]"})
-        tm.assert_frame_equal(df, result)

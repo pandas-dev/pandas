@@ -1956,13 +1956,6 @@ def sequence_to_dt64ns(
             elif inferred_tz:
                 tz = inferred_tz
 
-            # try:
-            #     tz = _maybe_infer_tz(tz, inferred_tz)
-            # except TypeError:
-            #     #  two timezones: convert to intended from base UTC repr
-            #     data = tzconversion.tz_convert_from_utc(data.view("i8"), tz)
-            #     data = data.view(DT64NS_DTYPE)
-
         data_dtype = data.dtype
 
     # `data` may have originally been a Categorical[datetime64[ns, tz]],
