@@ -260,29 +260,26 @@ class TestSeriesArithmetic:
 
 
 class TestSeriesFlexComparison:
-    def test_comparison_flex_basic(self):
+    @pytest.mark.parametrize("axis", [0, None, "index"])
+    def test_comparison_flex_basic(self, axis):
         left = pd.Series(np.random.randn(10))
         right = pd.Series(np.random.randn(10))
 
-        tm.assert_series_equal(left.eq(right), left == right)
-        tm.assert_series_equal(left.ne(right), left != right)
-        tm.assert_series_equal(left.le(right), left < right)
-        tm.assert_series_equal(left.lt(right), left <= right)
-        tm.assert_series_equal(left.gt(right), left > right)
-        tm.assert_series_equal(left.ge(right), left >= right)
+        tm.assert_series_equal(left.eq(right, axis=axis), left == right)
+        tm.assert_series_equal(left.ne(right, axis=axis), left != right)
+        tm.assert_series_equal(left.le(right, axis=axis), left < right)
+        tm.assert_series_equal(left.lt(right, axis=axis), left <= right)
+        tm.assert_series_equal(left.gt(right, axis=axis), left > right)
+        tm.assert_series_equal(left.ge(right, axis=axis), left >= right)
 
-        for axis in [0, None, "index"]:
-            tm.assert_series_equal(left.eq(right, axis=axis), left == right)
-            tm.assert_series_equal(left.ne(right, axis=axis), left != right)
-            tm.assert_series_equal(left.le(right, axis=axis), left < right)
-            tm.assert_series_equal(left.lt(right, axis=axis), left <= right)
-            tm.assert_series_equal(left.gt(right, axis=axis), left > right)
-            tm.assert_series_equal(left.ge(right, axis=axis), left >= right)
+    @pytest.mark.parametrize("op", ["eq", "ne", "le", "le", "gt", "ge"])
+    def test_comparison_bad_axis(self, op):
+        left = pd.Series(np.random.randn(10))
+        right = pd.Series(np.random.randn(10))
 
         msg = "No axis named 1 for object type"
-        for op in ["eq", "ne", "le", "le", "gt", "ge"]:
-            with pytest.raises(ValueError, match=msg):
-                getattr(left, op)(right, axis=1)
+        with pytest.raises(ValueError, match=msg):
+            getattr(left, op)(right, axis=1)
 
     def test_comparison_flex_alignment(self):
         left = Series([1, 3, 2], index=list("abc"))
@@ -306,27 +303,23 @@ class TestSeriesFlexComparison:
         exp = pd.Series([False, True, False, False], index=list("abcd"))
         tm.assert_series_equal(left.gt(right), exp)
 
-    def test_comparison_flex_alignment_fill(self):
+    @pytest.mark.parametrize(
+        "values, op, fill_value",
+        [
+            ([False, False, True, True], "eq", 2),
+            ([True, True, False, False], "ne", 2),
+            ([False, False, True, True], "le", 0),
+            ([False, False, False, True], "lt", 0),
+            ([True, True, True, False], "ge", 0),
+            ([True, True, False, False], "gt", 0),
+        ],
+    )
+    def test_comparison_flex_alignment_fill(self, values, op, fill_value):
         left = Series([1, 3, 2], index=list("abc"))
         right = Series([2, 2, 2], index=list("bcd"))
-
-        exp = pd.Series([False, False, True, True], index=list("abcd"))
-        tm.assert_series_equal(left.eq(right, fill_value=2), exp)
-
-        exp = pd.Series([True, True, False, False], index=list("abcd"))
-        tm.assert_series_equal(left.ne(right, fill_value=2), exp)
-
-        exp = pd.Series([False, False, True, True], index=list("abcd"))
-        tm.assert_series_equal(left.le(right, fill_value=0), exp)
-
-        exp = pd.Series([False, False, False, True], index=list("abcd"))
-        tm.assert_series_equal(left.lt(right, fill_value=0), exp)
-
-        exp = pd.Series([True, True, True, False], index=list("abcd"))
-        tm.assert_series_equal(left.ge(right, fill_value=0), exp)
-
-        exp = pd.Series([True, True, False, False], index=list("abcd"))
-        tm.assert_series_equal(left.gt(right, fill_value=0), exp)
+        result = getattr(left, op)(right, fill_value=fill_value)
+        expected = pd.Series(values, index=list("abcd"))
+        tm.assert_series_equal(result, expected)
 
 
 class TestSeriesComparison:
