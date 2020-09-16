@@ -1949,12 +1949,19 @@ def sequence_to_dt64ns(
             data, inferred_tz = objects_to_datetime64ns(
                 data, dayfirst=dayfirst, yearfirst=yearfirst
             )
-            try:
-                tz = _maybe_infer_tz(tz, inferred_tz)
-            except TypeError:
+            if tz and inferred_tz:
                 #  two timezones: convert to intended from base UTC repr
                 data = tzconversion.tz_convert_from_utc(data.view("i8"), tz)
                 data = data.view(DT64NS_DTYPE)
+            elif inferred_tz:
+                tz = inferred_tz
+
+            # try:
+            #     tz = _maybe_infer_tz(tz, inferred_tz)
+            # except TypeError:
+            #     #  two timezones: convert to intended from base UTC repr
+            #     data = tzconversion.tz_convert_from_utc(data.view("i8"), tz)
+            #     data = data.view(DT64NS_DTYPE)
 
         data_dtype = data.dtype
 
