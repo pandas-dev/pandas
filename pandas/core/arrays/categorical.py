@@ -1883,7 +1883,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         Return an item.
         """
         result = super().__getitem__(key)
-        if np.ndim(result) > 1:
+        if getattr(result, "ndim", 0) > 1:
             result = result._ndarray
             deprecate_ndim_indexing(result)
         return result
