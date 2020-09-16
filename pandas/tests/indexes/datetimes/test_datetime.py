@@ -51,7 +51,7 @@ class TestDatetimeIndex:
             "2010-01-02 00:00:00",
         ]
         expected1 = DatetimeIndex(
-            expected_list1, dtype="datetime64[ns, UTC]", freq=None,
+            expected_list1, dtype="datetime64[ns, UTC]", freq=None
         )
         expected2 = np.array([0] + [-1] * 21 + [23], dtype=np.dtype("intp"))
         tm.assert_index_equal(result1, expected1)

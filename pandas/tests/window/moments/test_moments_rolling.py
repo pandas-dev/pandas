@@ -150,14 +150,14 @@ def _check_moment_func(
 
             series_xp = (
                 get_result(
-                    series.reindex(list(series.index) + s), window=25, min_periods=minp,
+                    series.reindex(list(series.index) + s), window=25, min_periods=minp
                 )
                 .shift(-12)
                 .reindex(series.index)
             )
             frame_xp = (
                 get_result(
-                    frame.reindex(list(frame.index) + s), window=25, min_periods=minp,
+                    frame.reindex(list(frame.index) + s), window=25, min_periods=minp
                 )
                 .shift(-12)
                 .reindex(frame.index)
@@ -169,14 +169,14 @@ def _check_moment_func(
         else:
             series_xp = (
                 get_result(
-                    series.reindex(list(series.index) + s), window=25, min_periods=0,
+                    series.reindex(list(series.index) + s), window=25, min_periods=0
                 )
                 .shift(-12)
                 .reindex(series.index)
             )
             frame_xp = (
                 get_result(
-                    frame.reindex(list(frame.index) + s), window=25, min_periods=0,
+                    frame.reindex(list(frame.index) + s), window=25, min_periods=0
                 )
                 .shift(-12)
                 .reindex(frame.index)

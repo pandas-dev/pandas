@@ -40,7 +40,7 @@ class BaseIndexer:
     """Base class for window bounds calculations."""
 
     def __init__(
-        self, index_array: Optional[np.ndarray] = None, window_size: int = 0, **kwargs,
+        self, index_array: Optional[np.ndarray] = None, window_size: int = 0, **kwargs
     ):
         """
         Parameters
@@ -105,7 +105,7 @@ class VariableWindowIndexer(BaseIndexer):
     ) -> Tuple[np.ndarray, np.ndarray]:
 
         return calculate_variable_window_bounds(
-            num_values, self.window_size, min_periods, center, closed, self.index_array,
+            num_values, self.window_size, min_periods, center, closed, self.index_array
         )
 
 
@@ -316,7 +316,7 @@ class GroupbyRollingIndexer(BaseIndexer):
             # Cannot use groupby_indicies as they might not be monotonic with the object
             # we're rolling over
             window_indicies = np.arange(
-                window_indicies_start, window_indicies_start + len(indices),
+                window_indicies_start, window_indicies_start + len(indices)
             )
             window_indicies_start += len(indices)
             # Extend as we'll be slicing window like [start, end)

@@ -5,14 +5,14 @@ numpy>=1.16.5
 python-dateutil>=2.7.3
 pytz
 asv
-cython>=0.29.16
+cython>=0.29.21
 black==19.10b0
 cpplint
 flake8<3.8.0
 flake8-comprehensions>=3.1.0
 flake8-rst>=0.6.0,<=0.7.0
 isort>=5.2.1
-mypy==0.730
+mypy==0.782
 pycodestyle
 gitpython
 gitdb
@@ -73,6 +73,7 @@ xarray
 cftime
 pyreadstat
 tabulate>=0.8.3
+natsort
 git+https://github.com/pandas-dev/pydata-sphinx-theme.git@master
 git+https://github.com/numpy/numpydoc
 pyflakes>=2.2.0
