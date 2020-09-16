@@ -5,7 +5,7 @@ numpy>=1.15,<1.19.0
 python-dateutil>=2.7.3
 pytz
 asv
-cython>=0.29.16
+cython>=0.29.21
 black==19.10b0
 cpplint
 flake8<3.8.0
