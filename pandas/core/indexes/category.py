@@ -380,8 +380,9 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
     @doc(Index.fillna)
     def fillna(self, value, downcast=None):
-        self._assert_can_do_op(value)
-        return CategoricalIndex(self._data.fillna(value), name=self.name)
+        value = self._validate_scalar(value)
+        cat = self._data.fillna(value)
+        return type(self)._simple_new(cat, name=self.name)
 
     @cache_readonly
     def _engine(self):
@@ -512,10 +513,8 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    def _maybe_cast_indexer(self, key):
-        code = self.categories.get_loc(key)
-        code = self.codes.dtype.type(code)
-        return code
+    def _maybe_cast_indexer(self, key) -> int:
+        return self._data._unbox_scalar(key)
 
     @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
