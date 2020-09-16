@@ -454,6 +454,7 @@ class TableFormatter:
     is_truncated: bool
     formatters: FormattersType
     columns: Index
+    tr_frame: "DataFrame"
 
     @property
     def should_show_dimensions(self) -> bool:
