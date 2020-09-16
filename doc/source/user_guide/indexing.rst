@@ -1497,8 +1497,7 @@ rows with ``DataFrame.loc``.  For instance:
     df
     melt = df.melt('col')
     melt = melt.loc[melt['col'] == melt['variable'], 'value']
-    df['lookup'] = melt.reset_index(drop=True)
-    df
+    melt.reset_index(drop=True)
 
 Formerly this could be achieved with the dedicated ``DataFrame.lookup`` method
 which was deprecated in version 1.2.0.

@@ -28,15 +28,6 @@ Fixed regressions
 
 .. ---------------------------------------------------------------------------
 
-.. _whatsnew_112.deprecations:
-
-Deprecations
-~~~~~~~~~~~~
-
-- :meth:`DataFrame.lookup` is deprecated and will be removed in a future version, use :meth:`DataFrame.melt` and :meth:`DataFrame.loc` instead (:issue:`18682`)
-
-.. ---------------------------------------------------------------------------
-
 .. _whatsnew_112.bug_fixes:
 
 Bug fixes
