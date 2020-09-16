@@ -1285,9 +1285,16 @@ def test_stack_empty_frame(dropna):
 @pytest.mark.parametrize("fill_value", [None, 0])
 def test_stack_unstack_empty_frame(dropna, fill_value):
     # GH 36113
-    expected = DataFrame()
     result = DataFrame().stack(dropna=dropna).unstack(fill_value=fill_value)
+    expected = DataFrame()
     tm.assert_frame_equal(result, expected)
+
+
+def test_unstack_single_index_series():
+    # GH 36113
+    msg = "index must be a MultiIndex to unstack"
+    with pytest.raises(ValueError, match=msg):
+        Series().unstack()
 
 
 def test_unstacking_multi_index_df():
