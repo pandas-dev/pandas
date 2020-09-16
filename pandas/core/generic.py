@@ -7724,12 +7724,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         If the index of this {klass} is a :class:`~pandas.PeriodIndex`, the new index
         is the result of transforming the original index with
-        :meth:`PeriodIndex.asfreq pandas.PeriodIndex.asfreq` (so the original index
+        :meth:`PeriodIndex.asfreq <pandas.PeriodIndex.asfreq>` (so the original index
         will map one-to-one to the new index).
 
         Otherwise, the new index will be equivalent to ``pd.date_range(start, end,
         freq=freq)`` where ``start`` and ``end`` are, respectively, the first and
-        last entries in the original index. (see :func:`pandas.date_range`). The
+        last entries in the original index (see :func:`pandas.date_range`). The
         values corresponding to any timesteps in the new index which were not present
         in the original index will be null (``NaN``), unless a method for filling
         such unknowns is provided (see the ``method`` parameter below).
