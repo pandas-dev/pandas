@@ -27,6 +27,7 @@ except ImportError:
     pass
 
 pytest.importorskip("matplotlib.pyplot")
+dates = pytest.importorskip("matplotlib.dates")
 
 
 def test_registry_mpl_resets():
@@ -146,16 +147,13 @@ class TestDateTimeConverter:
 
     def test_conversion(self):
         rs = self.dtc.convert(["2012-1-1"], None, None)[0]
-        xp = datetime(2012, 1, 1).toordinal()
+        xp = dates.date2num(datetime(2012, 1, 1))
         assert rs == xp
 
         rs = self.dtc.convert("2012-1-1", None, None)
         assert rs == xp
 
         rs = self.dtc.convert(date(2012, 1, 1), None, None)
-        assert rs == xp
-
-        rs = self.dtc.convert(datetime(2012, 1, 1).toordinal(), None, None)
         assert rs == xp
 
         rs = self.dtc.convert("2012-1-1", None, None)

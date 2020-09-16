@@ -311,17 +311,17 @@ def init_windows_clipboard():
     global HGLOBAL, LPVOID, DWORD, LPCSTR, INT
     global HWND, HINSTANCE, HMENU, BOOL, UINT, HANDLE
     from ctypes.wintypes import (
-        HGLOBAL,
-        LPVOID,
+        BOOL,
         DWORD,
-        LPCSTR,
-        INT,
-        HWND,
+        HANDLE,
+        HGLOBAL,
         HINSTANCE,
         HMENU,
-        BOOL,
+        HWND,
+        INT,
+        LPCSTR,
+        LPVOID,
         UINT,
-        HANDLE,
     )
 
     windll = ctypes.windll
@@ -528,8 +528,8 @@ def determine_clipboard():
     # Setup for the MAC OS X platform:
     if os.name == "mac" or platform.system() == "Darwin":
         try:
-            import Foundation  # check if pyobjc is installed
             import AppKit
+            import Foundation  # check if pyobjc is installed
         except ImportError:
             return init_osx_pbcopy_clipboard()
         else:

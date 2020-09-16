@@ -160,10 +160,13 @@ class TestDataFrameIndexing:
         msg = "Columns must be same length as key"
         with pytest.raises(ValueError, match=msg):
             data[["A"]] = float_frame[["A", "B"]]
-
-        msg = "Length of values does not match length of index"
+        newcolumndata = range(len(data.index) - 1)
+        msg = (
+            rf"Length of values \({len(newcolumndata)}\) "
+            rf"does not match length of index \({len(data)}\)"
+        )
         with pytest.raises(ValueError, match=msg):
-            data["A"] = range(len(data.index) - 1)
+            data["A"] = newcolumndata
 
         df = DataFrame(0, index=range(3), columns=["tt1", "tt2"], dtype=np.int_)
         df.loc[1, ["tt1", "tt2"]] = [1, 2]
@@ -2108,7 +2111,7 @@ class TestDataFrameIndexing:
         )
         dg = df.pivot_table(index="i", columns="c", values=["x", "y"])
 
-        with pytest.raises(TypeError, match="is an invalid key"):
+        with pytest.raises(TypeError, match="unhashable type"):
             dg[:, 0]
 
         index = Index(range(2), name="i")

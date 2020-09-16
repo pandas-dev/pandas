@@ -394,3 +394,14 @@ class TestDataFrameIndexingCategorical:
 
         result = df.loc[["a"]].index.levels[0]
         tm.assert_index_equal(result, expected)
+
+    def test_categorical_filtering(self):
+        # GH22609 Verify filtering operations on DataFrames with categorical Series
+        df = pd.DataFrame(data=[[0, 0], [1, 1]], columns=["a", "b"])
+        df["b"] = df.b.astype("category")
+
+        result = df.where(df.a > 0)
+        expected = df.copy()
+        expected.loc[0, :] = np.nan
+
+        tm.assert_equal(result, expected)

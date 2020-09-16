@@ -336,10 +336,6 @@ examined :ref:`in the API <api.dataframe.missing>`.
 Interpolation
 ~~~~~~~~~~~~~
 
-.. versionadded:: 0.23.0
-
-  The ``limit_area`` keyword argument was added.
-
 Both Series and DataFrame objects have :meth:`~DataFrame.interpolate`
 that, by default, performs linear interpolation at missing data points.
 
@@ -507,8 +503,8 @@ By default, ``NaN`` values are filled in a ``forward`` direction. Use
    ser.interpolate(limit_direction='both')
 
 By default, ``NaN`` values are filled whether they are inside (surrounded by)
-existing valid values, or outside existing valid values. Introduced in v0.23
-the ``limit_area`` parameter restricts filling to either inside or outside values.
+existing valid values, or outside existing valid values. The ``limit_area``
+parameter restricts filling to either inside or outside values.
 
 .. ipython:: python
 
@@ -688,32 +684,6 @@ You can also operate on the DataFrame in place:
 .. ipython:: python
 
    df.replace(1.5, np.nan, inplace=True)
-
-.. warning::
-
-   When replacing multiple ``bool`` or ``datetime64`` objects, the first
-   argument to ``replace`` (``to_replace``) must match the type of the value
-   being replaced. For example,
-
-   .. code-block:: python
-
-      >>> s = pd.Series([True, False, True])
-      >>> s.replace({'a string': 'new value', True: False})  # raises
-      TypeError: Cannot compare types 'ndarray(dtype=bool)' and 'str'
-
-   will raise a ``TypeError`` because one of the ``dict`` keys is not of the
-   correct type for replacement.
-
-   However, when replacing a *single* object such as,
-
-   .. ipython:: python
-
-      s = pd.Series([True, False, True])
-      s.replace('a string', 'another string')
-
-   the original ``NDFrame`` object will be returned untouched. We're working on
-   unifying this API, but for backwards compatibility reasons we cannot break
-   the latter behavior. See :issue:`6354` for more details.
 
 Missing data casting rules and indexing
 ---------------------------------------

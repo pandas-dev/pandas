@@ -7,9 +7,9 @@ import numpy as np
 
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
-from pandas.core.generic import _shared_docs
-from pandas.core.groupby.base import GroupByMixin
+from pandas.core.groupby.base import GotItemMixin
 from pandas.core.indexes.api import MultiIndex
+from pandas.core.shared_docs import _shared_docs
 
 _shared_docs = dict(**_shared_docs)
 _doc_template = """
@@ -43,7 +43,7 @@ def _dispatch(name: str, *args, **kwargs):
     return outer
 
 
-class WindowGroupByMixin(GroupByMixin):
+class WindowGroupByMixin(GotItemMixin):
     """
     Provide the groupby facilities.
     """
@@ -52,7 +52,7 @@ class WindowGroupByMixin(GroupByMixin):
         kwargs.pop("parent", None)
         groupby = kwargs.pop("groupby", None)
         if groupby is None:
-            groupby, obj = obj, obj.obj
+            groupby, obj = obj, obj._selected_obj
         self._groupby = groupby
         self._groupby.mutated = True
         self._groupby.grouper.mutated = True
@@ -92,7 +92,7 @@ class WindowGroupByMixin(GroupByMixin):
         return self._groupby.apply(f)
 
 
-def _flex_binary_moment(arg1, arg2, f, pairwise=False):
+def flex_binary_moment(arg1, arg2, f, pairwise=False):
 
     if not (
         isinstance(arg1, (np.ndarray, ABCSeries, ABCDataFrame))
@@ -222,7 +222,7 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
             return dataframe_from_int_dict(results, arg1)
 
     else:
-        return _flex_binary_moment(arg2, arg1, f)
+        return flex_binary_moment(arg2, arg1, f)
 
 
 def zsqrt(x):

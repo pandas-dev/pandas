@@ -13,9 +13,15 @@ from pandas._libs.tslibs import iNaT
 from pandas.core.dtypes.common import is_period_dtype, needs_i8_conversion
 
 import pandas as pd
-from pandas import CategoricalIndex, Index, MultiIndex, RangeIndex
+from pandas import (
+    CategoricalIndex,
+    DatetimeIndex,
+    MultiIndex,
+    PeriodIndex,
+    RangeIndex,
+    TimedeltaIndex,
+)
 import pandas._testing as tm
-from pandas.core.indexes.api import union_indexes
 
 
 class TestCommon:
@@ -375,8 +381,7 @@ class TestCommon:
         "dtype",
         ["int64", "uint64", "float64", "category", "datetime64[ns]", "timedelta64[ns]"],
     )
-    @pytest.mark.parametrize("copy", [True, False])
-    def test_astype_preserves_name(self, index, dtype, copy):
+    def test_astype_preserves_name(self, index, dtype):
         # https://github.com/pandas-dev/pandas/issues/32013
         if isinstance(index, MultiIndex):
             index.names = ["idx" + str(i) for i in range(index.nlevels)]
@@ -385,10 +390,7 @@ class TestCommon:
 
         try:
             # Some of these conversions cannot succeed so we use a try / except
-            if copy:
-                result = index.copy(dtype=dtype)
-            else:
-                result = index.astype(dtype)
+            result = index.astype(dtype)
         except (ValueError, TypeError, NotImplementedError, SystemError):
             return
 
@@ -398,16 +400,44 @@ class TestCommon:
             assert result.name == index.name
 
 
-@pytest.mark.parametrize("arr", [[0, 1, 4, 3]])
-@pytest.mark.parametrize("dtype", ["int8", "int16", "int32", "int64"])
-def test_union_index_no_sort(arr, sort, dtype):
-    # GH 35092. Check that we don't sort with sort=False
-    ind1 = Index(arr[:2], dtype=dtype)
-    ind2 = Index(arr[2:], dtype=dtype)
+@pytest.mark.parametrize("na_position", [None, "middle"])
+def test_sort_values_invalid_na_position(index_with_missing, na_position):
+    if isinstance(index_with_missing, (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
+        # datetime-like indices will get na_position kwarg as part of
+        # synchronizing duplicate-sorting behavior, because we currently expect
+        # them, other indices, and Series to sort differently (xref 35922)
+        pytest.xfail("sort_values does not support na_position kwarg")
+    elif isinstance(index_with_missing, (CategoricalIndex, MultiIndex)):
+        pytest.xfail("missing value sorting order not defined for index type")
 
-    # sort is None indicates that we sort the combined index
-    if sort is None:
-        arr.sort()
-    expected = Index(arr, dtype=dtype)
-    result = union_indexes([ind1, ind2], sort=sort)
+    if na_position not in ["first", "last"]:
+        with pytest.raises(
+            ValueError, match=f"invalid na_position: {na_position}",
+        ):
+            index_with_missing.sort_values(na_position=na_position)
+
+
+@pytest.mark.parametrize("na_position", ["first", "last"])
+def test_sort_values_with_missing(index_with_missing, na_position):
+    # GH 35584. Test that sort_values works with missing values,
+    # sort non-missing and place missing according to na_position
+
+    if isinstance(index_with_missing, (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
+        # datetime-like indices will get na_position kwarg as part of
+        # synchronizing duplicate-sorting behavior, because we currently expect
+        # them, other indices, and Series to sort differently (xref 35922)
+        pytest.xfail("sort_values does not support na_position kwarg")
+    elif isinstance(index_with_missing, (CategoricalIndex, MultiIndex)):
+        pytest.xfail("missing value sorting order not defined for index type")
+
+    missing_count = np.sum(index_with_missing.isna())
+    not_na_vals = index_with_missing[index_with_missing.notna()].values
+    sorted_values = np.sort(not_na_vals)
+    if na_position == "first":
+        sorted_values = np.concatenate([[None] * missing_count, sorted_values])
+    else:
+        sorted_values = np.concatenate([sorted_values, [None] * missing_count])
+    expected = type(index_with_missing)(sorted_values)
+
+    result = index_with_missing.sort_values(na_position=na_position)
     tm.assert_index_equal(result, expected)

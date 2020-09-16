@@ -29,6 +29,8 @@ _any_string_method = [
     ("decode", ("UTF-8",), {}),
     ("encode", ("UTF-8",), {}),
     ("endswith", ("a",), {}),
+    ("endswith", ("a",), {"na": True}),
+    ("endswith", ("a",), {"na": False}),
     ("extract", ("([a-z]*)",), {"expand": False}),
     ("extract", ("([a-z]*)",), {"expand": True}),
     ("extractall", ("([a-z]*)",), {}),
@@ -58,6 +60,8 @@ _any_string_method = [
     ("split", (" ",), {"expand": False}),
     ("split", (" ",), {"expand": True}),
     ("startswith", ("a",), {}),
+    ("startswith", ("a",), {"na": True}),
+    ("startswith", ("a",), {"na": False}),
     # translating unicode points of "a" to "d"
     ("translate", ({97: 100},), {}),
     ("wrap", (2,), {}),
@@ -636,15 +640,8 @@ class TestStringMethods:
         # mixed list of indexed/unindexed
         u = np.array(["A", "B", "C", "D"])
         expected_outer = Series(["aaA", "bbB", "c-C", "ddD", "-e-"])
-
         # joint index of rhs [t, u]; u will be forced have index of s
-        # GH 35092. If right join, maintain order of t.index
-        if join == "inner":
-            rhs_idx = t.index & s.index
-        elif join == "right":
-            rhs_idx = t.index.union(s.index, sort=False)
-        else:
-            rhs_idx = t.index | s.index
+        rhs_idx = t.index & s.index if join == "inner" else t.index | s.index
 
         expected = expected_outer.loc[s.index.join(rhs_idx, how=join)]
         result = s.str.cat([t, u], join=join, na_rep="-")
@@ -845,15 +842,23 @@ class TestStringMethods:
         expected = Series([True, False, False, True, False])
         tm.assert_series_equal(result, expected)
 
-    def test_startswith(self):
-        values = Series(["om", np.nan, "foo_nom", "nom", "bar_foo", np.nan, "foo"])
+    @pytest.mark.parametrize("dtype", [None, "category"])
+    @pytest.mark.parametrize("null_value", [None, np.nan, pd.NA])
+    @pytest.mark.parametrize("na", [True, False])
+    def test_startswith(self, dtype, null_value, na):
+        # add category dtype parametrizations for GH-36241
+        values = Series(
+            ["om", null_value, "foo_nom", "nom", "bar_foo", null_value, "foo"],
+            dtype=dtype,
+        )
 
         result = values.str.startswith("foo")
         exp = Series([False, np.nan, True, False, False, np.nan, True])
         tm.assert_series_equal(result, exp)
 
-        result = values.str.startswith("foo", na=True)
-        tm.assert_series_equal(result, exp.fillna(True).astype(bool))
+        result = values.str.startswith("foo", na=na)
+        exp = Series([False, na, True, False, False, na, True])
+        tm.assert_series_equal(result, exp)
 
         # mixed
         mixed = np.array(
@@ -874,15 +879,23 @@ class TestStringMethods:
         )
         tm.assert_series_equal(rs, xp)
 
-    def test_endswith(self):
-        values = Series(["om", np.nan, "foo_nom", "nom", "bar_foo", np.nan, "foo"])
+    @pytest.mark.parametrize("dtype", [None, "category"])
+    @pytest.mark.parametrize("null_value", [None, np.nan, pd.NA])
+    @pytest.mark.parametrize("na", [True, False])
+    def test_endswith(self, dtype, null_value, na):
+        # add category dtype parametrizations for GH-36241
+        values = Series(
+            ["om", null_value, "foo_nom", "nom", "bar_foo", null_value, "foo"],
+            dtype=dtype,
+        )
 
         result = values.str.endswith("foo")
         exp = Series([False, np.nan, False, False, True, np.nan, True])
         tm.assert_series_equal(result, exp)
 
-        result = values.str.endswith("foo", na=False)
-        tm.assert_series_equal(result, exp.fillna(False).astype(bool))
+        result = values.str.endswith("foo", na=na)
+        exp = Series([False, na, False, False, True, na, True])
+        tm.assert_series_equal(result, exp)
 
         # mixed
         mixed = np.array(
@@ -3558,6 +3571,10 @@ def test_string_array(any_string_method):
         ):
             assert result.dtype == "boolean"
             result = result.astype(object)
+
+        elif expected.dtype == "bool":
+            assert result.dtype == "boolean"
+            result = result.astype("bool")
 
         elif expected.dtype == "float" and expected.isna().any():
             assert result.dtype == "Int64"

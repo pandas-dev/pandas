@@ -174,7 +174,7 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
     def _concat_same_type(cls, to_concat):
         return cls(np.concatenate([x._data for x in to_concat]))
 
-    def _reduce(self, name, skipna=True, **kwargs):
+    def _reduce(self, name: str, skipna: bool = True, **kwargs):
 
         if skipna:
             # If we don't have any NAs, we can ignore skipna
