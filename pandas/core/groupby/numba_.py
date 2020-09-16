@@ -4,32 +4,15 @@ from typing import Any, Callable, Dict, Optional, Tuple
 
 import numpy as np
 
-from pandas._typing import FrameOrSeries, Scalar
+from pandas._typing import Scalar
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.util.numba_ import (
     NUMBA_FUNC_CACHE,
     NumbaUtilError,
-    check_kwargs_and_nopython,
     get_jit_arguments,
     jit_user_function,
 )
-
-
-def split_for_numba(arg: FrameOrSeries) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Split pandas object into its components as numpy arrays for numba functions.
-
-    Parameters
-    ----------
-    arg : Series or DataFrame
-
-    Returns
-    -------
-    (ndarray, ndarray)
-        values, index
-    """
-    return arg.to_numpy(), arg.index.to_numpy()
 
 
 def validate_udf(func: Callable) -> None:
@@ -67,46 +50,6 @@ def validate_udf(func: Callable) -> None:
         )
 
 
-def generate_numba_func(
-    func: Callable,
-    engine_kwargs: Optional[Dict[str, bool]],
-    kwargs: dict,
-    cache_key_str: str,
-) -> Tuple[Callable, Tuple[Callable, str]]:
-    """
-    Return a JITed function and cache key for the NUMBA_FUNC_CACHE
-
-    This _may_ be specific to groupby (as it's only used there currently).
-
-    Parameters
-    ----------
-    func : function
-        user defined function
-    engine_kwargs : dict or None
-        numba.jit arguments
-    kwargs : dict
-        kwargs for func
-    cache_key_str : str
-        string representing the second part of the cache key tuple
-
-    Returns
-    -------
-    (JITed function, cache key)
-
-    Raises
-    ------
-    NumbaUtilError
-    """
-    nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
-    check_kwargs_and_nopython(kwargs, nopython)
-    validate_udf(func)
-    cache_key = (func, cache_key_str)
-    numba_func = NUMBA_FUNC_CACHE.get(
-        cache_key, jit_user_function(func, nopython, nogil, parallel)
-    )
-    return numba_func, cache_key
-
-
 def generate_numba_agg_func(
     args: Tuple,
     kwargs: Dict[str, Any],
@@ -120,7 +63,7 @@ def generate_numba_agg_func(
     2. Return a groupby agg function with the jitted function inline
 
     Configurations specified in engine_kwargs apply to both the user's
-    function _AND_ the rolling apply function.
+    function _AND_ the groupby evaluation loop.
 
     Parameters
     ----------
@@ -137,16 +80,15 @@ def generate_numba_agg_func(
     -------
     Numba function
     """
-    nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
-
-    check_kwargs_and_nopython(kwargs, nopython)
+    nopython, nogil, parallel = get_jit_arguments(engine_kwargs, kwargs)
 
     validate_udf(func)
+    cache_key = (func, "groupby_agg")
+    if cache_key in NUMBA_FUNC_CACHE:
+        return NUMBA_FUNC_CACHE[cache_key]
 
     numba_func = jit_user_function(func, nopython, nogil, parallel)
-
     numba = import_optional_dependency("numba")
-
     if parallel:
         loop_range = numba.prange
     else:
@@ -175,17 +117,17 @@ def generate_numba_agg_func(
 def generate_numba_transform_func(
     args: Tuple,
     kwargs: Dict[str, Any],
-    func: Callable[..., Scalar],
+    func: Callable[..., np.ndarray],
     engine_kwargs: Optional[Dict[str, bool]],
 ) -> Callable[[np.ndarray, np.ndarray, np.ndarray, np.ndarray, int, int], np.ndarray]:
     """
     Generate a numba jitted transform function specified by values from engine_kwargs.
 
     1. jit the user's function
-    2. Return a groupby agg function with the jitted function inline
+    2. Return a groupby transform function with the jitted function inline
 
     Configurations specified in engine_kwargs apply to both the user's
-    function _AND_ the rolling apply function.
+    function _AND_ the groupby evaluation loop.
 
     Parameters
     ----------
@@ -202,16 +144,15 @@ def generate_numba_transform_func(
     -------
     Numba function
     """
-    nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
-
-    check_kwargs_and_nopython(kwargs, nopython)
+    nopython, nogil, parallel = get_jit_arguments(engine_kwargs, kwargs)
 
     validate_udf(func)
+    cache_key = (func, "groupby_transform")
+    if cache_key in NUMBA_FUNC_CACHE:
+        return NUMBA_FUNC_CACHE[cache_key]
 
     numba_func = jit_user_function(func, nopython, nogil, parallel)
-
     numba = import_optional_dependency("numba")
-
     if parallel:
         loop_range = numba.prange
     else:
