@@ -245,9 +245,18 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         from pandas.core.ops.array_ops import maybe_upcast_datetimelike_array
 
         left = maybe_upcast_datetimelike_array(left)
+        right = extract_array(right, extract_numpy=True)
+        left = extract_array(left, extract_numpy=True)
         right = maybe_upcast_datetimelike_array(right)
-        result._left = extract_array(left, extract_numpy=True)
-        result._right = extract_array(right, extract_numpy=True)
+
+        lbase = getattr(left, "_ndarray", left).base
+        rbase = getattr(right, "_ndarray", right).base
+        if lbase is not None and lbase is rbase:
+            # If these share data, then setitem could corrupt our IA
+            right = right.copy()
+
+        result._left = left
+        result._right = right
         result._closed = closed
         if verify_integrity:
             result._validate()
