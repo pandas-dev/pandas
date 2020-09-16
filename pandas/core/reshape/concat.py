@@ -54,7 +54,7 @@ def concat(
 
 @overload
 def concat(
-    objs: Union[Iterable[FrameOrSeries], Mapping[Label, FrameOrSeries]],
+    objs: Union[Iterable[FrameOrSeriesUnion], Mapping[Label, FrameOrSeriesUnion]],
     axis=0,
     join: str = "outer",
     ignore_index: bool = False,
