@@ -572,10 +572,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
         return self._shallow_copy(keyarr)
 
-    @doc(Index._convert_index_indexer)
-    def _convert_index_indexer(self, keyarr):
-        return self._shallow_copy(keyarr)
-
     @doc(Index._maybe_cast_slice_bound)
     def _maybe_cast_slice_bound(self, label, side, kind):
         if kind == "loc":
