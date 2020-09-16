@@ -57,9 +57,8 @@ from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 from pandas.core.ops import get_op_result_name
 
 if TYPE_CHECKING:
-    from pandas import CategoricalIndex
+    from pandas import CategoricalIndex  # noqa:F401
 
-_VALID_CLOSED = {"left", "right", "both", "neither"}
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
 _index_doc_kwargs.update(
@@ -515,28 +514,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         # GH 23309
         return self._engine.is_overlapping
 
-    def _should_fallback_to_positional(self) -> bool:
-        # integer lookups in Series.__getitem__ are unambiguously
-        #  positional in this case
-        return self.dtype.subtype.kind in ["m", "M"]
-
-    def _maybe_cast_slice_bound(self, label, side, kind):
-        return getattr(self, side)._maybe_cast_slice_bound(label, side, kind)
-
-    @Appender(Index._convert_list_indexer.__doc__)
-    def _convert_list_indexer(self, keyarr):
-        """
-        we are passed a list-like indexer. Return the
-        indexer for matching intervals.
-        """
-        locs = self.get_indexer_for(keyarr)
-
-        # we have missing values
-        if (locs == -1).any():
-            raise KeyError
-
-        return locs
-
     def _can_reindex(self, indexer: np.ndarray) -> None:
         """
         Check if we are allowing reindexing with this particular indexer.
@@ -612,6 +589,8 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         if scalar:
             # Timestamp/Timedelta
             key_dtype, key_i8 = infer_dtype_from_scalar(key, pandas_dtype=True)
+            if lib.is_period(key):
+                key_i8 = key.ordinal
         else:
             # DatetimeIndex/TimedeltaIndex
             key_dtype, key_i8 = key.dtype, Index(key.asi8)
@@ -667,6 +646,9 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
                 label = _get_prev_label(label)
 
         return sub_idx._searchsorted_monotonic(label, side)
+
+    # --------------------------------------------------------------------
+    # Indexing Methods
 
     def get_loc(
         self, key, method: Optional[str] = None, tolerance=None
@@ -885,6 +867,30 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         return super()._convert_slice_indexer(key, kind)
 
+    def _should_fallback_to_positional(self) -> bool:
+        # integer lookups in Series.__getitem__ are unambiguously
+        #  positional in this case
+        return self.dtype.subtype.kind in ["m", "M"]
+
+    def _maybe_cast_slice_bound(self, label, side, kind):
+        return getattr(self, side)._maybe_cast_slice_bound(label, side, kind)
+
+    @Appender(Index._convert_list_indexer.__doc__)
+    def _convert_list_indexer(self, keyarr):
+        """
+        we are passed a list-like indexer. Return the
+        indexer for matching intervals.
+        """
+        locs = self.get_indexer_for(keyarr)
+
+        # we have missing values
+        if (locs == -1).any():
+            raise KeyError
+
+        return locs
+
+    # --------------------------------------------------------------------
+
     @Appender(Index.where.__doc__)
     def where(self, cond, other=None):
         if other is None:
@@ -1030,6 +1036,9 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             and self.closed == other.closed
         )
 
+    # --------------------------------------------------------------------
+    # Set Operations
+
     @Appender(Index.intersection.__doc__)
     @SetopCheck(op_name="intersection")
     def intersection(
@@ -1115,6 +1124,12 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         return func
 
+    union = _setop("union")
+    difference = _setop("difference")
+    symmetric_difference = _setop("symmetric_difference")
+
+    # --------------------------------------------------------------------
+
     @property
     def is_all_dates(self) -> bool:
         """
@@ -1122,10 +1137,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         as the check is done on the Interval itself
         """
         return False
-
-    union = _setop("union")
-    difference = _setop("difference")
-    symmetric_difference = _setop("symmetric_difference")
 
     # TODO: arithmetic operations
 

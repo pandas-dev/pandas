@@ -618,7 +618,7 @@ class TestIntervalIndex:
         expected = IntervalIndex([Interval(0, 1), Interval(1, 2), np.nan])
         tm.assert_index_equal(result, expected)
 
-        result = index.sort_values(ascending=False)
+        result = index.sort_values(ascending=False, na_position="first")
         expected = IntervalIndex([np.nan, Interval(1, 2), Interval(0, 1)])
         tm.assert_index_equal(result, expected)
 

@@ -16,7 +16,7 @@ from pandas._config import config, get_option
 
 from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslibs import timezones
-from pandas._typing import ArrayLike, FrameOrSeries, Label
+from pandas._typing import ArrayLike, FrameOrSeries, FrameOrSeriesUnion, Label
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
 from pandas.errors import PerformanceWarning
@@ -2566,7 +2566,7 @@ class Fixed:
 
     pandas_kind: str
     format_type: str = "fixed"  # GH#30962 needed by dask
-    obj_type: Type[Union[DataFrame, Series]]
+    obj_type: Type[FrameOrSeriesUnion]
     ndim: int
     encoding: str
     parent: HDFStore
@@ -4442,7 +4442,7 @@ class AppendableFrameTable(AppendableTable):
     pandas_kind = "frame_table"
     table_type = "appendable_frame"
     ndim = 2
-    obj_type: Type[Union[DataFrame, Series]] = DataFrame
+    obj_type: Type[FrameOrSeriesUnion] = DataFrame
 
     @property
     def is_transposed(self) -> bool:

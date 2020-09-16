@@ -1,4 +1,3 @@
-import re
 from typing import TYPE_CHECKING, List, Optional, Tuple
 import warnings
 
@@ -30,9 +29,16 @@ from pandas.core.dtypes.missing import isna, notna
 import pandas.core.common as com
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._matplotlib.compat import _mpl_ge_3_0_0
+from pandas.plotting._matplotlib.compat import mpl_ge_3_0_0
 from pandas.plotting._matplotlib.converter import register_pandas_matplotlib_converters
 from pandas.plotting._matplotlib.style import get_standard_colors
+from pandas.plotting._matplotlib.timeseries import (
+    decorate_axes,
+    format_dateaxis,
+    maybe_convert_index,
+    maybe_resample,
+    use_dynamic_x,
+)
 from pandas.plotting._matplotlib.tools import (
     create_subplots,
     flatten_axes,
@@ -46,6 +52,15 @@ from pandas.plotting._matplotlib.tools import (
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from matplotlib.axis import Axis
+
+
+def _color_in_style(style: str) -> bool:
+    """
+    Check if there is a color letter in the style string.
+    """
+    from matplotlib.colors import BASE_COLORS
+
+    return not set(BASE_COLORS).isdisjoint(style)
 
 
 class MPLPlot:
@@ -193,8 +208,6 @@ class MPLPlot:
         self._validate_color_args()
 
     def _validate_color_args(self):
-        import matplotlib.colors
-
         if (
             "color" in self.kwds
             and self.nseries == 1
@@ -226,13 +239,12 @@ class MPLPlot:
                 styles = [self.style]
             # need only a single match
             for s in styles:
-                for char in s:
-                    if char in matplotlib.colors.BASE_COLORS:
-                        raise ValueError(
-                            "Cannot pass 'style' string with a color symbol and "
-                            "'color' keyword argument. Please use one or the other or "
-                            "pass 'style' without a color symbol"
-                        )
+                if _color_in_style(s):
+                    raise ValueError(
+                        "Cannot pass 'style' string with a color symbol and "
+                        "'color' keyword argument. Please use one or the "
+                        "other or pass 'style' without a color symbol"
+                    )
 
     def _iter_data(self, data=None, keep_index=False, fillna=None):
         if data is None:
@@ -656,7 +668,7 @@ class MPLPlot:
             if style is not None:
                 args = (x, y, style)
             else:
-                args = (x, y)  # type:ignore[assignment]
+                args = (x, y)  # type: ignore[assignment]
             return ax.plot(*args, **kwds)
 
     def _get_index_name(self) -> Optional[str]:
@@ -732,7 +744,7 @@ class MPLPlot:
                 style = self.style
 
         has_color = "color" in kwds or self.colormap is not None
-        nocolor_style = style is None or re.match("[a-z]+", style) is None
+        nocolor_style = style is None or not _color_in_style(style)
         if (has_color or self.subplots) and nocolor_style:
             if isinstance(colors, dict):
                 kwds["color"] = colors[label]
@@ -932,7 +944,7 @@ class PlanePlot(MPLPlot):
         img = ax.collections[-1]
         cbar = self.fig.colorbar(img, ax=ax, **kwds)
 
-        if _mpl_ge_3_0_0():
+        if mpl_ge_3_0_0():
             # The workaround below is no longer necessary.
             return
 
@@ -1074,15 +1086,11 @@ class LinePlot(MPLPlot):
         return not self.x_compat and self.use_index and self._use_dynamic_x()
 
     def _use_dynamic_x(self):
-        from pandas.plotting._matplotlib.timeseries import _use_dynamic_x
-
-        return _use_dynamic_x(self._get_ax(0), self.data)
+        return use_dynamic_x(self._get_ax(0), self.data)
 
     def _make_plot(self):
         if self._is_ts_plot():
-            from pandas.plotting._matplotlib.timeseries import _maybe_convert_index
-
-            data = _maybe_convert_index(self._get_ax(0), self.data)
+            data = maybe_convert_index(self._get_ax(0), self.data)
 
             x = data.index  # dummy, not used
             plotf = self._ts_plot
@@ -1142,24 +1150,18 @@ class LinePlot(MPLPlot):
 
     @classmethod
     def _ts_plot(cls, ax: "Axes", x, data, style=None, **kwds):
-        from pandas.plotting._matplotlib.timeseries import (
-            _decorate_axes,
-            _maybe_resample,
-            format_dateaxis,
-        )
-
         # accept x to be consistent with normal plot func,
         # x is not passed to tsplot as it uses data.index as x coordinate
         # column_num must be in kwds for stacking purpose
-        freq, data = _maybe_resample(data, ax, kwds)
+        freq, data = maybe_resample(data, ax, kwds)
 
         # Set ax with freq info
-        _decorate_axes(ax, freq, kwds)
+        decorate_axes(ax, freq, kwds)
         # digging deeper
         if hasattr(ax, "left_ax"):
-            _decorate_axes(ax.left_ax, freq, kwds)
+            decorate_axes(ax.left_ax, freq, kwds)
         if hasattr(ax, "right_ax"):
-            _decorate_axes(ax.right_ax, freq, kwds)
+            decorate_axes(ax.right_ax, freq, kwds)
         ax._plot_data.append((data, cls._kind, kwds))
 
         lines = cls._plot(ax, data.index, data.values, style=style, **kwds)
@@ -1226,14 +1228,18 @@ class LinePlot(MPLPlot):
         if self._need_to_set_index:
             xticks = ax.get_xticks()
             xticklabels = [get_label(x) for x in xticks]
-            ax.set_xticklabels(xticklabels)
             ax.xaxis.set_major_locator(FixedLocator(xticks))
+            ax.set_xticklabels(xticklabels)
 
+        # If the index is an irregular time series, then by default
+        # we rotate the tick labels. The exception is if there are
+        # subplots which don't share their x-axes, in which we case
+        # we don't rotate the ticklabels as by default the subplots
+        # would be too close together.
         condition = (
             not self._use_dynamic_x()
-            and data.index.is_all_dates
-            and not self.subplots
-            or (self.subplots and self.sharex)
+            and (data.index.is_all_dates and self.use_index)
+            and (not self.subplots or (self.subplots and self.sharex))
         )
 
         index_name = self._get_index_name()

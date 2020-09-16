@@ -43,7 +43,7 @@ from pandas.core.dtypes.inference import (  # noqa:F401
     is_sequence,
 )
 
-_POSSIBLY_CAST_DTYPES = {
+POSSIBLY_CAST_DTYPES = {
     np.dtype(t).name
     for t in [
         "O",
@@ -635,8 +635,8 @@ def is_dtype_equal(source, target) -> bool:
     False
     """
     try:
-        source = _get_dtype(source)
-        target = _get_dtype(target)
+        source = get_dtype(source)
+        target = get_dtype(target)
         return source == target
     except (TypeError, AttributeError):
 
@@ -984,10 +984,10 @@ def is_datetime64_ns_dtype(arr_or_dtype) -> bool:
     if arr_or_dtype is None:
         return False
     try:
-        tipo = _get_dtype(arr_or_dtype)
+        tipo = get_dtype(arr_or_dtype)
     except TypeError:
         if is_datetime64tz_dtype(arr_or_dtype):
-            tipo = _get_dtype(arr_or_dtype.dtype)
+            tipo = get_dtype(arr_or_dtype.dtype)
         else:
             return False
     return tipo == DT64NS_DTYPE or getattr(tipo, "base", None) == DT64NS_DTYPE
@@ -1372,7 +1372,7 @@ def is_bool_dtype(arr_or_dtype) -> bool:
     if arr_or_dtype is None:
         return False
     try:
-        dtype = _get_dtype(arr_or_dtype)
+        dtype = get_dtype(arr_or_dtype)
     except TypeError:
         return False
 
@@ -1557,13 +1557,13 @@ def _is_dtype(arr_or_dtype, condition) -> bool:
     if arr_or_dtype is None:
         return False
     try:
-        dtype = _get_dtype(arr_or_dtype)
+        dtype = get_dtype(arr_or_dtype)
     except (TypeError, ValueError, UnicodeEncodeError):
         return False
     return condition(dtype)
 
 
-def _get_dtype(arr_or_dtype) -> DtypeObj:
+def get_dtype(arr_or_dtype) -> DtypeObj:
     """
     Get the dtype instance associated with an array
     or dtype object.
@@ -1694,7 +1694,7 @@ def infer_dtype_from_object(dtype):
         try:
             return infer_dtype_from_object(getattr(np, dtype))
         except (AttributeError, TypeError):
-            # Handles cases like _get_dtype(int) i.e.,
+            # Handles cases like get_dtype(int) i.e.,
             # Python objects that are valid dtypes
             # (unlike user-defined types, in general)
             #

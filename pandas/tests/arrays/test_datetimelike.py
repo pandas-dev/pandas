@@ -2,9 +2,10 @@ from typing import Type, Union
 
 import numpy as np
 import pytest
+import pytz
 
 from pandas._libs import OutOfBoundsDatetime
-from pandas.compat.numpy import _np_version_under1p18
+from pandas.compat.numpy import np_version_under1p18
 
 import pandas as pd
 import pandas._testing as tm
@@ -241,10 +242,15 @@ class SharedTests:
         expected = np.array([2, 3], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
-        # Following numpy convention, NaT goes at the beginning
-        #  (unlike NaN which goes at the end)
+        # GH#29884 match numpy convention on whether NaT goes
+        #  at the end or the beginning
         result = arr.searchsorted(pd.NaT)
-        assert result == 0
+        if np_version_under1p18:
+            # Following numpy convention, NaT goes at the beginning
+            #  (unlike NaN which goes at the end)
+            assert result == 0
+        else:
+            assert result == 10
 
     def test_getitem_2d(self, arr1d):
         # 2d slicing on a 1D array
@@ -277,15 +283,35 @@ class SharedTests:
         expected[:2] = expected[-2:]
         tm.assert_numpy_array_equal(arr.asi8, expected)
 
-    def test_setitem_str_array(self, arr1d):
-        if isinstance(arr1d, DatetimeArray) and arr1d.tz is not None:
-            pytest.xfail(reason="timezone comparisons inconsistent")
+    def test_setitem_strs(self, arr1d):
+        # Check that we parse strs in both scalar and listlike
+        if isinstance(arr1d, DatetimeArray):
+            tz = arr1d.tz
+            if (
+                tz is not None
+                and tz is not pytz.UTC
+                and not isinstance(tz, pytz._FixedOffset)
+            ):
+                # If we have e.g. tzutc(), when we cast to string and parse
+                #  back we get pytz.UTC, and then consider them different timezones
+                #  so incorrectly raise.
+                pytest.xfail(reason="timezone comparisons inconsistent")
+
+        # Setting list-like of strs
         expected = arr1d.copy()
         expected[[0, 1]] = arr1d[-2:]
 
-        arr1d[:2] = [str(x) for x in arr1d[-2:]]
+        result = arr1d.copy()
+        result[:2] = [str(x) for x in arr1d[-2:]]
+        tm.assert_equal(result, expected)
 
-        tm.assert_equal(arr1d, expected)
+        # Same thing but now for just a scalar str
+        expected = arr1d.copy()
+        expected[0] = arr1d[-1]
+
+        result = arr1d.copy()
+        result[0] = str(arr1d[-1])
+        tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("as_index", [True, False])
     def test_setitem_categorical(self, arr1d, as_index):
@@ -311,6 +337,16 @@ class SharedTests:
 
         with pytest.raises(TypeError, match="'value' should be a.* 'object'"):
             arr[0] = object()
+
+        msg = "cannot set using a list-like indexer with a different length"
+        with pytest.raises(ValueError, match=msg):
+            # GH#36339
+            arr[[]] = [arr[1]]
+
+        msg = "cannot set using a slice indexer with a different length than"
+        with pytest.raises(ValueError, match=msg):
+            # GH#36339
+            arr[1:1] = arr[:3]
 
     @pytest.mark.parametrize("box", [list, np.array, pd.Index, pd.Series])
     def test_setitem_numeric_raises(self, arr1d, box):
@@ -955,7 +991,7 @@ def test_invalid_nat_setitem_array(array, non_casting_nats):
     ],
 )
 def test_to_numpy_extra(array):
-    if _np_version_under1p18:
+    if np_version_under1p18:
         # np.isnan(NaT) raises, so use pandas'
         isnan = pd.isna
     else:
