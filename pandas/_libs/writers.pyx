@@ -1,18 +1,11 @@
 import cython
-from cython import Py_ssize_t
 
 from cpython.bytes cimport PyBytes_GET_SIZE
 
 import numpy as np
 
+from cpython cimport PyUnicode_GET_LENGTH
 from numpy cimport ndarray, uint8_t
-
-from pandas.compat import PY39
-
-if PY39:
-    from cpython.unicode cimport PyUnicode_GET_LENGTH as Unicode_GET_LENGTH
-else:
-    from cpython.unicode cimport PyUnicode_GET_SIZE as Unicode_GET_LENGTH
 
 ctypedef fused pandas_string:
     str
@@ -150,7 +143,7 @@ cpdef inline Py_ssize_t word_len(object val):
         Py_ssize_t l = 0
 
     if isinstance(val, str):
-        l = Unicode_GET_LENGTH(val)
+        l = PyUnicode_GET_LENGTH(val)
     elif isinstance(val, bytes):
         l = PyBytes_GET_SIZE(val)
 
