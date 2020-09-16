@@ -708,7 +708,7 @@ class TestDataFrameFormatting:
     )
     def test_to_string_with_truncated_formatters(self, columns, output):
         df = DataFrame(
-            data=dict([(x['name'], x['data']) for x in columns]),
+            data={x['name']: x['data'] for x in columns},
             columns=[x['name'] for x in columns])
         formatters = [(x['name'], x['formatter']) for x in columns]
         result = df.to_string(formatters=dict(formatters), max_cols=2)
