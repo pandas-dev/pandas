@@ -1751,7 +1751,8 @@ class SQLiteDatabase(PandasSQL):
             )
             return frame
 
-    def _fetchall_as_list(self, cur):
+    @staticmethod
+    def _fetchall_as_list(cur):
         result = cur.fetchall()
         if not isinstance(result, list):
             result = list(result)
@@ -1829,20 +1830,7 @@ class SQLiteDatabase(PandasSQL):
         table.create()
         table.insert(chunksize, method)
 
-    def has_table(self, name, schema=None):
-        # TODO(wesm): unused?
-        # escape = _get_valid_sqlite_name
-        # esc_name = escape(name)
-
-        wld = "?"
-        query = f"SELECT name FROM sqlite_master WHERE type='table' AND name={wld};"
-
-        return len(self.execute(query, [name]).fetchall()) > 0
-
-    def get_table(self, table_name, schema=None):
-        return None  # not supported in fallback mode
-
-    def drop_table(self, name, schema=None):
+    def drop_table(self, name):
         drop_sql = f"DROP TABLE {_get_valid_sqlite_name(name)}"
         self.execute(drop_sql)
 
