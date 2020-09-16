@@ -699,10 +699,10 @@ class TestDataFrameFormatting:
                       formatter=lambda x: f"[2] {x}"),
                  dict(name='object', data=[(1, 2), True, False],
                       formatter=lambda x: f"[3] {x}")),
-                 "    int  ...      object\n"
-                 + "0 [1] 1  ...  [3] (1, 2)\n"
-                 + "1 [1] 2  ...    [3] True\n"
-                 + "2 [1] 3  ...   [3] False"
+                "    int  ...      object\n"
+                + "0 [1] 1  ...  [3] (1, 2)\n"
+                + "1 [1] 2  ...    [3] True\n"
+                + "2 [1] 3  ...   [3] False"
              ],
         ],
     )
