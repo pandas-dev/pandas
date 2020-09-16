@@ -2232,3 +2232,13 @@ def test_object_casting_indexing_wraps_datetimelike():
     assert blk.dtype == "m8[ns]"  # we got the right block
     val = blk.iget((0, 0))
     assert isinstance(val, pd.Timedelta)
+
+
+def test_indexing_with_nullable_boolean_frame():
+    # https://github.com/pandas-dev/pandas/issues/36395
+    df = pd.DataFrame({"a": pd.array([1, 2, None]), "b": pd.array([1, 2, None])})
+    result = df[df == 1]
+    expected = pd.DataFrame(
+        {"a": pd.array([1, None, None]), "b": pd.array([1, None, None])}
+    )
+    tm.assert_frame_equal(result, expected)
