@@ -1873,7 +1873,7 @@ def get_schema(frame, name, keys=None, con=None, dtype=None, index=False):
     index : boolean, default: False
          Whether to include the index of the DataFrame in the sql schema.
 
-         .. versionadded:: 1.1.0
+         .. versionadded:: 1.2.0
 
     Returns
     -------
