@@ -703,7 +703,7 @@ class TestDataFrameFormatting:
                 + "0 [1] 1  ...  [3] (1, 2)\n"
                 + "1 [1] 2  ...    [3] True\n"
                 + "2 [1] 3  ...   [3] False"
-             ],
+            ],
         ],
     )
     def test_to_string_with_truncated_formatters(self, columns, output):
