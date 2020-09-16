@@ -21,7 +21,7 @@ class _ContextMapping(MutableMapping):
     _NO_DEFAULT_VALUE = object()
 
     def __init__(self, default_value=_NO_DEFAULT_VALUE):
-        d: dict = (
+        initial_dict: dict = (
             defaultdict(lambda: default_value)
             if default_value is not self._NO_DEFAULT_VALUE
             else dict()
@@ -29,9 +29,8 @@ class _ContextMapping(MutableMapping):
         # yes, we're creating a contextvar inside a closure, but it doesn't matter
         # because objects of this class will only be created at module level
         self._dict_var: contextvars.ContextVar[dict] = contextvars.ContextVar(
-            "_ContextMapping<{}>._dict_var".format(id(self))
+            "_ContextMapping<{}>._dict_var".format(id(self)), default=initial_dict
         )
-        self._dict_var.set(d)
 
     def __setitem__(self, k, v) -> None:
         d = self._dict_var.get().copy()
