@@ -1,5 +1,5 @@
 import operator
-from typing import TYPE_CHECKING, Optional, Type, Union
+from typing import TYPE_CHECKING, Type, Union
 
 import numpy as np
 
@@ -122,9 +122,6 @@ class StringArray(PandasArray):
 
     copy : bool, default False
         Whether to copy the array of data.
-    convert : bool, default False
-        If true, force conversion of non-na scalars to strings.
-        If False, raises a ValueError, if a scalar is neither a string nor na.
 
     Attributes
     ----------
@@ -165,15 +162,7 @@ class StringArray(PandasArray):
     ['1', '1']
     Length: 2, dtype: string
 
-    Instantiating StringArrays directly with non-strings arrays  will raise an error
-    unless ``convert=True``.
-
-    >>> pd.arrays.StringArray(np.array(['1', 1]))
-    ValueError: StringArray requires a sequence of strings or pandas.NA
-    >>> pd.arrays.StringArray(['1', 1], convert=True)
-    <StringArray>
-    ['1', '1']
-    Length: 2, dtype: string
+    However, instantiating StringArrays directly with non-strings will raise an error.
 
     For comparison methods, `StringArray` returns a :class:`pandas.BooleanArray`:
 
@@ -186,29 +175,22 @@ class StringArray(PandasArray):
     # undo the PandasArray hack
     _typ = "extension"
 
-    def __init__(self, values, copy=False, convert: bool = False):
+    def __init__(self, values, copy=False):
         values = extract_array(values)
-        if not isinstance(values, type(self)):
-            if convert:
-                na_val = StringDtype.na_value
-                values = lib.ensure_string_array(values, na_value=na_val, copy=copy)
-            else:
-                self._validate(values)
 
         super().__init__(values, copy=copy)
         self._dtype = StringDtype()
+        if not isinstance(values, type(self)):
+            self._validate()
 
-    def _validate(self, values: Optional[np.ndarray] = None) -> None:
+    def _validate(self):
         """Validate that we only store NA or strings."""
-        if values is None:
-            values = self._ndarray
-
-        if len(values) and not lib.is_string_array(values, skipna=True):
+        if len(self._ndarray) and not lib.is_string_array(self._ndarray, skipna=True):
             raise ValueError("StringArray requires a sequence of strings or pandas.NA")
-        if values.dtype != "object":
+        if self._ndarray.dtype != "object":
             raise ValueError(
                 "StringArray requires a sequence of strings or pandas.NA. Got "
-                f"'{values.dtype}' dtype instead."
+                f"'{self._ndarray.dtype}' dtype instead."
             )
 
     @classmethod
@@ -217,8 +199,18 @@ class StringArray(PandasArray):
             assert dtype == "string"
 
         result = np.asarray(scalars, dtype="object")
+        # convert non-na-likes to str, and nan-likes to StringDtype.na_value
+        result = lib.ensure_string_array(
+            result, na_value=StringDtype.na_value, copy=copy
+        )
 
-        return cls(result, copy=copy, convert=True)
+        # Manually creating new array avoids the validation step in the __init__, so is
+        # faster. Refactor need for validation?
+        new_string_array = object.__new__(cls)
+        new_string_array._dtype = StringDtype()
+        new_string_array._ndarray = result
+
+        return new_string_array
 
     @classmethod
     def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
