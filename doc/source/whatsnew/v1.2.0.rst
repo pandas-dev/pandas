@@ -313,10 +313,9 @@ I/O
 - In :meth:`read_csv` `float_precision='round_trip'` now handles `decimal` and `thousands` parameters (:issue:`35365`)
 - :meth:`to_pickle` and :meth:`read_pickle` were closing user-provided file objects (:issue:`35679`)
 - :meth:`to_csv` passes compression arguments for `'gzip'` always to `gzip.GzipFile` (:issue:`28103`)
-- :meth:`to_csv` did not support zip compression for binary file object not having a filename (:issue: `35058`)
+- :meth:`to_csv` did not support zip compression for binary file object not having a filename (:issue:`35058`)
 - :meth:`to_csv` and :meth:`read_csv` did not honor `compression` and `encoding` for path-like objects that are internally converted to file-like objects (:issue:`35677`, :issue:`26124`, and :issue:`32392`)
 - :meth:`to_picke` and :meth:`read_pickle` did not support compression for file-objects (:issue:`26237`, :issue:`29054`, and :issue:`29570`)
-- Bug in :meth:`read_excel` with `engine="odf"` caused ``UnboundLocalError`` in some cases where cells had nested child nodes (:issue:`36122`, and :issue:`35802`)
 
 Plotting
 ^^^^^^^^
