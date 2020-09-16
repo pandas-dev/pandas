@@ -851,6 +851,12 @@ and that the transformed data contains no NAs.
 Window and resample operations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. warning::
+
+    When using ``rolling()`` and an associated function the results are calculated using rolling sums. This means in case
+    of having values differing with magnitude ``1/np.finfo(np.double).eps`` results in truncation. It must be noted, that
+    large value may have an impact on windows, which do not include these values.
+
 It is possible to use ``resample()``, ``expanding()`` and
 ``rolling()`` as methods on groupbys.
 
