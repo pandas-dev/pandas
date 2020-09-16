@@ -559,7 +559,8 @@ def is_categorical_dtype(arr_or_dtype) -> bool:
     if isinstance(arr_or_dtype, ExtensionDtype):
         # GH#33400 fastpath for dtype object
         return ("category" == arr_or_dtype.name) or (
-            is_sparse(arr_or_dtype) and arr_or_dtype.subtype == "category"  # type: ignore[attr-defined]
+            is_sparse(arr_or_dtype)
+            and arr_or_dtype.subtype.name == "category"  # type: ignore[attr-defined]
         )
     if arr_or_dtype is None:
         return False
