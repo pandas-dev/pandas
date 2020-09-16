@@ -1171,6 +1171,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
     # -------------------------------------------------------------
     # Validators; ideally these can be de-duplicated
 
+    def _validate_where_value(self, value):
+        if is_scalar(value):
+            return self._validate_fill_value(value)
+        return self._validate_listlike(value)
+
     def _validate_insert_value(self, value) -> int:
         code = self.categories.get_indexer([value])
         if (code == -1) and not (is_scalar(value) and isna(value)):

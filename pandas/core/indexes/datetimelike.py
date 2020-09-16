@@ -484,7 +484,18 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             raise TypeError(f"Where requires matching dtype, not {oth}") from err
 
         result = np.where(cond, values, other).astype("i8")
-        arr = type(self._data)._simple_new(result, dtype=self.dtype)
+        arr = self._data._from_backing_data(result)
+        return type(self)._simple_new(arr, name=self.name)
+
+    def putmask(self, mask, value):
+        try:
+            value = self._data._validate_where_value(value)
+        except (TypeError, ValueError):
+            return self.astype(object).putmask(mask, value)
+
+        result = self._data._ndarray.copy()
+        np.putmask(result, mask, value)
+        arr = self._data._from_backing_data(result)
         return type(self)._simple_new(arr, name=self.name)
 
     def _summary(self, name=None) -> str:
