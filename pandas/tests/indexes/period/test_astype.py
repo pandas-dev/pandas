@@ -3,7 +3,6 @@ import pytest
 
 from pandas import (
     CategoricalIndex,
-    DataFrame,
     DatetimeIndex,
     Index,
     Int64Index,
@@ -12,7 +11,6 @@ from pandas import (
     PeriodIndex,
     Timedelta,
     UInt64Index,
-    date_range,
     period_range,
 )
 import pandas._testing as tm
