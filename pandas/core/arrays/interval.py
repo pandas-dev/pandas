@@ -70,8 +70,6 @@ closed : {'left', 'right', 'both', 'neither'}, default 'right'
     neither.
 dtype : dtype or None, default None
     If None, dtype will be inferred.
-
-    .. versionadded:: 0.23.0
 copy : bool, default False
     Copy the input data.
 %(name)s\
@@ -284,8 +282,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     dtype : dtype or None, default None
         If None, dtype will be inferred.
 
-        .. versionadded:: 0.23.0
-
     Returns
     -------
     %(klass)s
@@ -339,8 +335,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             Copy the data.
         dtype : dtype, optional
             If None, dtype will be inferred.
-
-            .. versionadded:: 0.23.0
 
         Returns
         -------
@@ -411,8 +405,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         By-default copy the data, this is compat only and ignored.
     dtype : dtype or None, default None
         If None, dtype will be inferred.
-
-        .. versionadded:: 0.23.0
 
     Returns
     -------
@@ -1172,8 +1164,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         na_tuple : bool, default True
             Returns NA as a tuple if True, ``(nan, nan)``, or just as the NA
             value itself if False, ``nan``.
-
-            .. versionadded:: 0.23.0
 
         Returns
         -------

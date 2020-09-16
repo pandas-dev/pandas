@@ -325,13 +325,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         d.update(self._get_attributes_dict())
         return _new_DatetimeIndex, (type(self), d), None
 
-    def _convert_for_op(self, value):
+    def _validate_fill_value(self, value):
         """
         Convert value to be insertable to ndarray.
         """
-        if self._has_same_tz(value):
-            return Timestamp(value).asm8
-        raise ValueError("Passed item and index have different timezone")
+        return self._data._validate_setitem_value(value)
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         """
