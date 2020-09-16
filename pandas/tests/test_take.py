@@ -31,7 +31,7 @@ def writeable(request):
         (np.int16, False),
         (np.int8, False),
         (np.object_, True),
-        (np.bool, False),
+        (np.bool_, False),
     ]
 )
 def dtype_can_hold_na(request):

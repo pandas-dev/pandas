@@ -140,6 +140,17 @@ class TestDataFrameReshape:
         expected = expected[["a", "b"]]
         tm.assert_frame_equal(result, expected)
 
+    def test_unstack_not_consolidated(self):
+        # Gh#34708
+        df = pd.DataFrame({"x": [1, 2, np.NaN], "y": [3.0, 4, np.NaN]})
+        df2 = df[["x"]]
+        df2["y"] = df["y"]
+        assert len(df2._mgr.blocks) == 2
+
+        res = df2.unstack()
+        expected = df.unstack()
+        tm.assert_series_equal(res, expected)
+
     def test_unstack_fill(self):
 
         # GH #9746: fill_value keyword argument for Series
@@ -160,7 +171,7 @@ class TestDataFrameReshape:
         # From a series with incorrect data type for fill_value
         result = data.unstack(fill_value=0.5)
         expected = DataFrame(
-            {"a": [1, 0.5, 5], "b": [2, 4, 0.5]}, index=["x", "y", "z"], dtype=np.float
+            {"a": [1, 0.5, 5], "b": [2, 4, 0.5]}, index=["x", "y", "z"], dtype=float
         )
         tm.assert_frame_equal(result, expected)
 
@@ -218,7 +229,7 @@ class TestDataFrameReshape:
         result = df.unstack(fill_value=0.5)
 
         rows = [[1, 3, 2, 4], [0.5, 5, 0.5, 6], [7, 0.5, 8, 0.5]]
-        expected = DataFrame(rows, index=list("xyz"), dtype=np.float)
+        expected = DataFrame(rows, index=list("xyz"), dtype=float)
         expected.columns = MultiIndex.from_tuples(
             [("A", "a"), ("A", "b"), ("B", "a"), ("B", "b")]
         )
@@ -406,7 +417,7 @@ class TestDataFrameReshape:
         result = df.unstack(unstack_idx)
 
         expected = pd.DataFrame(
-            expected_values, columns=expected_columns, index=expected_index,
+            expected_values, columns=expected_columns, index=expected_index
         )
         tm.assert_frame_equal(result, expected)
 
@@ -462,7 +473,8 @@ class TestDataFrameReshape:
         )
 
         df_named = df.copy()
-        df_named.columns.set_names(range(3), inplace=True)
+        return_value = df_named.columns.set_names(range(3), inplace=True)
+        assert return_value is None
 
         tm.assert_frame_equal(
             df_named.stack(level=[1, 2]), df_named.stack(level=1).stack(level=1)
@@ -795,7 +807,7 @@ class TestDataFrameReshape:
                 [["B", "C"], ["B", "D"]], names=["c1", "c2"]
             ),
             index=pd.MultiIndex.from_tuples(
-                [[10, 20, 30], [10, 20, 40]], names=["i1", "i2", "i3"],
+                [[10, 20, 30], [10, 20, 40]], names=["i1", "i2", "i3"]
             ),
         )
         assert df.unstack(["i2", "i1"]).columns.names[-2:] == ["i2", "i1"]
@@ -1289,4 +1301,17 @@ def test_unstacking_multi_index_df():
             names=[None, "gender", "employed", "kids"],
         ),
     )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_stack_positional_level_duplicate_column_names():
+    # https://github.com/pandas-dev/pandas/issues/36353
+    columns = pd.MultiIndex.from_product([("x", "y"), ("y", "z")], names=["a", "a"])
+    df = pd.DataFrame([[1, 1, 1, 1]], columns=columns)
+    result = df.stack(0)
+
+    new_columns = pd.Index(["y", "z"], name="a")
+    new_index = pd.MultiIndex.from_tuples([(0, "x"), (0, "y")], names=[None, "a"])
+    expected = pd.DataFrame([[1, 1], [1, 1]], index=new_index, columns=new_columns)
+
     tm.assert_frame_equal(result, expected)

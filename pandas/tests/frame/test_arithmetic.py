@@ -11,6 +11,7 @@ import pandas as pd
 from pandas import DataFrame, MultiIndex, Series
 import pandas._testing as tm
 import pandas.core.common as com
+from pandas.core.computation.expressions import _MIN_ELEMENTS, NUMEXPR_INSTALLED
 from pandas.tests.frame.common import _check_mixed_float, _check_mixed_int
 
 # -------------------------------------------------------------------
@@ -374,13 +375,13 @@ class TestFrameFlexArithmetic:
         result2 = df.floordiv(ser.values, axis=0)
         tm.assert_frame_equal(result2, expected)
 
-    @pytest.mark.slow
+    @pytest.mark.skipif(not NUMEXPR_INSTALLED, reason="numexpr not installed")
     @pytest.mark.parametrize("opname", ["floordiv", "pow"])
     def test_floordiv_axis0_numexpr_path(self, opname):
         # case that goes through numexpr and has to fall back to masked_arith_op
         op = getattr(operator, opname)
 
-        arr = np.arange(10 ** 6).reshape(100, -1)
+        arr = np.arange(_MIN_ELEMENTS + 100).reshape(_MIN_ELEMENTS // 100 + 1, -1) * 100
         df = pd.DataFrame(arr)
         df["C"] = 1.0
 
@@ -1416,7 +1417,7 @@ class TestFrameArithmeticUnsorted:
         columns = ["X", "Y", "Z"]
         df = pd.DataFrame(np.random.randn(3, 3), index=index, columns=columns)
 
-        align = pd.core.ops._align_method_FRAME
+        align = pd.core.ops.align_method_FRAME
         for val in [
             [1, 2, 3],
             (1, 2, 3),
@@ -1550,4 +1551,13 @@ def test_dataframe_operation_with_non_numeric_types(df, col_dtype):
     expected = pd.DataFrame([[0.0, np.nan], [3.0, np.nan]], columns=list("ab"))
     expected = expected.astype({"b": col_dtype})
     result = df + pd.Series([-1.0], index=list("a"))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_arith_reindex_with_duplicates():
+    # https://github.com/pandas-dev/pandas/issues/35194
+    df1 = pd.DataFrame(data=[[0]], columns=["second"])
+    df2 = pd.DataFrame(data=[[0, 0, 0]], columns=["first", "second", "second"])
+    result = df1 + df2
+    expected = pd.DataFrame([[np.nan, 0, 0]], columns=["first", "second", "second"])
     tm.assert_frame_equal(result, expected)

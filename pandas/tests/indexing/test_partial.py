@@ -650,3 +650,25 @@ class TestPartialSetting:
             s[labels]
         with pytest.raises(KeyError, match=msg):
             df.loc[labels]
+
+    def test_indexing_timeseries_regression(self):
+        # Issue 34860
+        arr = date_range("1/1/2008", "1/1/2009")
+        result = arr.to_series()["2008"]
+
+        rng = date_range(start="2008-01-01", end="2008-12-31")
+        expected = Series(rng, index=rng)
+
+        tm.assert_series_equal(result, expected)
+
+    def test_index_name_empty(self):
+        # GH 31368
+        df = pd.DataFrame({}, index=pd.RangeIndex(0, name="df_index"))
+        series = pd.Series(1.23, index=pd.RangeIndex(4, name="series_index"))
+
+        df["series"] = series
+        expected = pd.DataFrame(
+            {"series": [1.23] * 4}, index=pd.RangeIndex(4, name="df_index")
+        )
+
+        tm.assert_frame_equal(df, expected)

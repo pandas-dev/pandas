@@ -20,7 +20,6 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import register_extension_dtype
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
@@ -286,9 +285,9 @@ class BooleanArray(BaseMaskedArray):
         def map_string(s):
             if isna(s):
                 return s
-            elif s in ["True", "TRUE", "true"]:
+            elif s in ["True", "TRUE", "true", "1", "1.0"]:
                 return True
-            elif s in ["False", "FALSE", "false"]:
+            elif s in ["False", "FALSE", "false", "0", "0.0"]:
                 return False
             else:
                 raise ValueError(f"{s} cannot be cast to bool")
@@ -559,13 +558,10 @@ class BooleanArray(BaseMaskedArray):
 
     @classmethod
     def _create_logical_method(cls, op):
+        @ops.unpack_zerodim_and_defer(op.__name__)
         def logical_method(self, other):
-            if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-                # Rely on pandas to unbox and dispatch to us.
-                return NotImplemented
 
             assert op.__name__ in {"or_", "ror_", "and_", "rand_", "xor", "rxor"}
-            other = lib.item_from_zerodim(other)
             other_is_booleanarray = isinstance(other, BooleanArray)
             other_is_scalar = lib.is_scalar(other)
             mask = None
@@ -605,16 +601,14 @@ class BooleanArray(BaseMaskedArray):
 
     @classmethod
     def _create_comparison_method(cls, op):
+        @ops.unpack_zerodim_and_defer(op.__name__)
         def cmp_method(self, other):
             from pandas.arrays import IntegerArray
 
-            if isinstance(
-                other, (ABCDataFrame, ABCSeries, ABCIndexClass, IntegerArray)
-            ):
+            if isinstance(other, IntegerArray):
                 # Rely on pandas to unbox and dispatch to us.
                 return NotImplemented
 
-            other = lib.item_from_zerodim(other)
             mask = None
 
             if isinstance(other, BooleanArray):
@@ -693,13 +687,8 @@ class BooleanArray(BaseMaskedArray):
     def _create_arithmetic_method(cls, op):
         op_name = op.__name__
 
+        @ops.unpack_zerodim_and_defer(op_name)
         def boolean_arithmetic_method(self, other):
-
-            if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-                # Rely on pandas to unbox and dispatch to us.
-                return NotImplemented
-
-            other = lib.item_from_zerodim(other)
             mask = None
 
             if isinstance(other, BooleanArray):
@@ -717,11 +706,22 @@ class BooleanArray(BaseMaskedArray):
             # nans propagate
             if mask is None:
                 mask = self._mask
+                if other is libmissing.NA:
+                    mask |= True
             else:
                 mask = self._mask | mask
 
-            with np.errstate(all="ignore"):
-                result = op(self._data, other)
+            if other is libmissing.NA:
+                # if other is NA, the result will be all NA and we can't run the
+                # actual op, so we need to choose the resulting dtype manually
+                if op_name in {"floordiv", "rfloordiv", "mod", "rmod", "pow", "rpow"}:
+                    dtype = "int8"
+                else:
+                    dtype = "bool"
+                result = np.zeros(len(self._data), dtype=dtype)
+            else:
+                with np.errstate(all="ignore"):
+                    result = op(self._data, other)
 
             # divmod returns a tuple
             if op_name == "divmod":

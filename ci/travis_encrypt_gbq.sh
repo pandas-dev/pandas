@@ -19,7 +19,7 @@ if [[ ! -f $GBQ_JSON_FILE ]]; then
 fi
 
 echo "Encrypting $GBQ_JSON_FILE..."
-read -d "\n" TRAVIS_KEY TRAVIS_IV <<<$(travis encrypt-file $GBQ_JSON_FILE \
+read -d "\n" TRAVIS_KEY TRAVIS_IV <<<$(travis encrypt-file -r pandas-dev/pandas $GBQ_JSON_FILE \
 travis_gbq.json.enc -f | grep -o "\w*_iv\|\w*_key");
 
 echo "Adding your secure key to travis_gbq_config.txt ..."

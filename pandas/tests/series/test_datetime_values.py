@@ -625,7 +625,8 @@ class TestSeriesDatetimeValues:
     def test_dt_accessor_updates_on_inplace(self):
         s = Series(pd.date_range("2018-01-01", periods=10))
         s[2] = None
-        s.fillna(pd.Timestamp("2018-01-01"), inplace=True)
+        return_value = s.fillna(pd.Timestamp("2018-01-01"), inplace=True)
+        assert return_value is None
         result = s.dt.date
         assert result[0] == result[2]
 
@@ -681,6 +682,9 @@ class TestSeriesDatetimeValues:
             [[pd.NaT], [[np.NaN, np.NaN, np.NaN]]],
             [["2019-12-31", "2019-12-29"], [[2020, 1, 2], [2019, 52, 7]]],
             [["2010-01-01", pd.NaT], [[2009, 53, 5], [np.NaN, np.NaN, np.NaN]]],
+            # see GH#36032
+            [["2016-01-08", "2016-01-04"], [[2016, 1, 5], [2016, 1, 1]]],
+            [["2016-01-07", "2016-01-01"], [[2016, 1, 4], [2015, 53, 5]]],
         ],
     )
     def test_isocalendar(self, input_series, expected_output):

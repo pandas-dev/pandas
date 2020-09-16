@@ -15,7 +15,7 @@ class TestCategoricalIndex(Base):
     _holder = CategoricalIndex
 
     @pytest.fixture
-    def indices(self, request):
+    def index(self, request):
         return tm.makeCategoricalIndex(100)
 
     def create_index(self, categories=None, ordered=False):
@@ -43,7 +43,14 @@ class TestCategoricalIndex(Base):
         # GH 10039
         # set ops (+/-) raise TypeError
         idx = pd.Index(pd.Categorical(["a", "b"]))
-        msg = f"cannot perform {op_name} with this index type: CategoricalIndex"
+        cat_or_list = "'(Categorical|list)' and '(Categorical|list)'"
+        msg = "|".join(
+            [
+                f"cannot perform {op_name} with this index type: CategoricalIndex",
+                "can only concatenate list",
+                rf"unsupported operand type\(s\) for [\+-]: {cat_or_list}",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             func(idx)
 
@@ -270,9 +277,9 @@ class TestCategoricalIndex(Base):
                 [2, "a", "b"],
                 list("abc"),
                 {
-                    "first": np.zeros(shape=(3), dtype=np.bool),
-                    "last": np.zeros(shape=(3), dtype=np.bool),
-                    False: np.zeros(shape=(3), dtype=np.bool),
+                    "first": np.zeros(shape=(3), dtype=np.bool_),
+                    "last": np.zeros(shape=(3), dtype=np.bool_),
+                    False: np.zeros(shape=(3), dtype=np.bool_),
                 },
             ),
             (
@@ -354,7 +361,7 @@ class TestCategoricalIndex(Base):
         assert ci1.identical(ci1.copy())
         assert not ci1.identical(ci2)
 
-    def test_ensure_copied_data(self, indices):
+    def test_ensure_copied_data(self, index):
         # gh-12309: Check the "copy" argument of each
         # Index.__new__ is honored.
         #
@@ -364,12 +371,12 @@ class TestCategoricalIndex(Base):
         # FIXME: is this test still meaningful?
         _base = lambda ar: ar if getattr(ar, "base", None) is None else ar.base
 
-        result = CategoricalIndex(indices.values, copy=True)
-        tm.assert_index_equal(indices, result)
-        assert _base(indices.values) is not _base(result.values)
+        result = CategoricalIndex(index.values, copy=True)
+        tm.assert_index_equal(index, result)
+        assert _base(index.values) is not _base(result.values)
 
-        result = CategoricalIndex(indices.values, copy=False)
-        assert _base(indices.values) is _base(result.values)
+        result = CategoricalIndex(index.values, copy=False)
+        assert _base(index.values) is _base(result.values)
 
     def test_equals_categorical(self):
         ci1 = CategoricalIndex(["a", "b"], categories=["a", "b"], ordered=True)
@@ -395,15 +402,7 @@ class TestCategoricalIndex(Base):
         with pytest.raises(ValueError, match="Lengths must match"):
             ci1 == Index(["a", "b", "c"])
 
-        msg = (
-            "categorical index comparisons must have the same categories "
-            "and ordered attributes"
-            "|"
-            "Categoricals can only be compared if 'categories' are the same. "
-            "Categories are different lengths"
-            "|"
-            "Categoricals can only be compared if 'ordered' is the same"
-        )
+        msg = "Categoricals can only be compared if 'categories' are the same"
         with pytest.raises(TypeError, match=msg):
             ci1 == ci2
         with pytest.raises(TypeError, match=msg):
@@ -478,3 +477,9 @@ class TestCategoricalIndex(Base):
     def test_map_str(self):
         # See test_map.py
         pass
+
+    def test_format_different_scalar_lengths(self):
+        # GH35439
+        idx = CategoricalIndex(["aaaaaaaaa", "b"])
+        expected = ["aaaaaaaaa", "b"]
+        assert idx.format() == expected

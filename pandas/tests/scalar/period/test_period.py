@@ -6,9 +6,8 @@ import pytz
 
 from pandas._libs.tslibs import iNaT, period as libperiod
 from pandas._libs.tslibs.ccalendar import DAYS, MONTHS
-from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
 from pandas._libs.tslibs.parsing import DateParseError
-from pandas._libs.tslibs.period import IncompatibleFrequency
+from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG, IncompatibleFrequency
 from pandas._libs.tslibs.timezones import dateutil_gettz, maybe_get_tz
 from pandas.compat.numpy import np_datetime64_compat
 
@@ -49,8 +48,6 @@ class TestPeriodConstruction:
         i1 = Period("1982", freq="min")
         i2 = Period("1982", freq="MIN")
         assert i1 == i2
-        i2 = Period("1982", freq=("Min", 1))
-        assert i1 == i2
 
         i1 = Period(year=2005, month=3, day=1, freq="D")
         i2 = Period("3/1/2005", freq="D")
@@ -80,6 +77,10 @@ class TestPeriodConstruction:
         msg = "Invalid frequency: X"
         with pytest.raises(ValueError, match=msg):
             Period("2007-1-1", freq="X")
+
+        # GH#34703 tuple freq disallowed
+        with pytest.raises(TypeError, match="pass as a string instead"):
+            Period("1982", freq=("Min", 1))
 
     def test_construction_bday(self):
 
@@ -647,6 +648,26 @@ class TestPeriodMethods:
         result = per.to_timestamp("B", how="E")
 
         expected = pd.Timestamp("1990-01-06") - pd.Timedelta(nanoseconds=1)
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "ts, expected",
+        [
+            ("1970-01-01 00:00:00", 0),
+            ("1970-01-01 00:00:00.000001", 1),
+            ("1970-01-01 00:00:00.00001", 10),
+            ("1970-01-01 00:00:00.499", 499000),
+            ("1999-12-31 23:59:59.999", 999000),
+            ("1999-12-31 23:59:59.999999", 999999),
+            ("2050-12-31 23:59:59.5", 500000),
+            ("2050-12-31 23:59:59.500001", 500001),
+            ("2050-12-31 23:59:59.123456", 123456),
+        ],
+    )
+    @pytest.mark.parametrize("freq", [None, "us", "ns"])
+    def test_to_timestamp_microsecond(self, ts, expected, freq):
+        # GH 24444
+        result = Period(ts).to_timestamp(freq=freq).microsecond
         assert result == expected
 
     # --------------------------------------------------------------

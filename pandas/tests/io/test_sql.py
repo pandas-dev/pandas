@@ -48,10 +48,10 @@ from pandas.io.sql import read_sql_query, read_sql_table
 
 try:
     import sqlalchemy
-    import sqlalchemy.schema
-    import sqlalchemy.sql.sqltypes as sqltypes
     from sqlalchemy.ext import declarative
     from sqlalchemy.orm import session as sa_session
+    import sqlalchemy.schema
+    import sqlalchemy.sql.sqltypes as sqltypes
 
     SQLALCHEMY_INSTALLED = True
 except ImportError:
@@ -263,7 +263,8 @@ class SQLAlchemyMixIn(MixInBase):
         return table_list
 
     def _close_conn(self):
-        pass
+        # https://docs.sqlalchemy.org/en/13/core/connections.html#engine-disposal
+        self.conn.dispose()
 
 
 class PandasSQLTest:
@@ -278,7 +279,7 @@ class PandasSQLTest:
         else:
             return self.conn.cursor()
 
-    @pytest.fixture(params=[("data", "iris.csv")])
+    @pytest.fixture(params=[("io", "data", "csv", "iris.csv")])
     def load_iris_data(self, datapath, request):
         import io
 
@@ -1242,7 +1243,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def setup_class(cls):
         cls.setup_import()
         cls.setup_driver()
-        conn = cls.connect()
+        conn = cls.conn = cls.connect()
         conn.connect()
 
     def load_test_data_and_sql(self):
@@ -1364,7 +1365,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # Int column with NA values stays as float
         assert issubclass(df.IntColWithNull.dtype.type, np.floating)
         # Bool column with NA values becomes object
-        assert issubclass(df.BoolColWithNull.dtype.type, np.object)
+        assert issubclass(df.BoolColWithNull.dtype.type, object)
 
     def test_bigint(self):
         # int64 should be converted to BigInteger, GH7433
@@ -1813,6 +1814,24 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         DataFrame({"test_foo_data": [0, 1, 2]}).to_sql("test_foo_data", self.conn)
         main(self.conn)
 
+    @pytest.mark.parametrize(
+        "input",
+        [{"foo": [np.inf]}, {"foo": [-np.inf]}, {"foo": [-np.inf], "infe0": ["bar"]}],
+    )
+    def test_to_sql_with_negative_npinf(self, input):
+        # GH 34431
+
+        df = pd.DataFrame(input)
+
+        if self.flavor == "mysql":
+            msg = "inf cannot be used with MySQL"
+            with pytest.raises(ValueError, match=msg):
+                df.to_sql("foobar", self.conn, index=False)
+        else:
+            df.to_sql("foobar", self.conn, index=False)
+            res = sql.read_sql_table("foobar", self.conn)
+            tm.assert_equal(df, res)
+
     def test_temporary_table(self):
         test_data = "Hello, World!"
         expected = DataFrame({"spam": [test_data]})
@@ -1900,9 +1919,9 @@ class _TestMySQLAlchemy:
 
     @classmethod
     def connect(cls):
-        url = "mysql+{driver}://root@localhost/pandas_nosetest"
         return sqlalchemy.create_engine(
-            url.format(driver=cls.driver), connect_args=cls.connect_args
+            f"mysql+{cls.driver}://root@localhost/pandas_nosetest",
+            connect_args=cls.connect_args,
         )
 
     @classmethod
@@ -1969,8 +1988,9 @@ class _TestPostgreSQLAlchemy:
 
     @classmethod
     def connect(cls):
-        url = "postgresql+{driver}://postgres@localhost/pandas_nosetest"
-        return sqlalchemy.create_engine(url.format(driver=cls.driver))
+        return sqlalchemy.create_engine(
+            f"postgresql+{cls.driver}://postgres@localhost/pandas_nosetest"
+        )
 
     @classmethod
     def setup_driver(cls):
@@ -2329,9 +2349,6 @@ _formatters = {
 
 
 def format_query(sql, *args):
-    """
-
-    """
     processed_args = []
     for arg in args:
         if isinstance(arg, float) and isna(arg):
@@ -2388,7 +2405,7 @@ class TestXSQLite(SQLiteMixIn):
 
         result = sql.read_sql("select * from test", con=self.conn)
         result.index = frame.index
-        tm.assert_frame_equal(result, frame, check_less_precise=True)
+        tm.assert_frame_equal(result, frame, rtol=1e-3)
 
     def test_execute(self):
         frame = tm.makeTimeDataFrame()
@@ -2648,7 +2665,7 @@ class TestXMySQL(MySQLMixIn):
 
         result = sql.read_sql("select * from test", con=self.conn)
         result.index = frame.index
-        tm.assert_frame_equal(result, frame, check_less_precise=True)
+        tm.assert_frame_equal(result, frame, rtol=1e-3)
         # GH#32571 result comes back rounded to 6 digits in some builds;
         #  no obvious pattern
 

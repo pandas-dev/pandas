@@ -136,6 +136,10 @@ want to clone your fork to your machine::
 This creates the directory `pandas-yourname` and connects your repository to
 the upstream (main project) *pandas* repository.
 
+Note that performing a shallow clone (with ``--depth==N``, for some ``N`` greater
+or equal to 1) might break some tests and features as ``pd.show_versions()``
+as the version number cannot be computed anymore.
+
 .. _contributing.dev_env:
 
 Creating a development environment
@@ -149,13 +153,37 @@ to build the documentation locally before pushing your changes.
 Using a Docker container
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Instead of manually setting up a development environment, you can use Docker to
-automatically create the environment with just several commands. Pandas provides a `DockerFile`
-in the root directory to build a Docker image with a full pandas development environment.
+Instead of manually setting up a development environment, you can use `Docker
+<https://docs.docker.com/get-docker/>`_ to automatically create the environment with just several
+commands. Pandas provides a `DockerFile` in the root directory to build a Docker image
+with a full pandas development environment.
 
-Even easier, you can use the DockerFile to launch a remote session with Visual Studio Code,
+**Docker Commands**
+
+Pass your GitHub username in the `DockerFile` to use your own fork::
+
+    # Build the image pandas-yourname-env
+    docker build --tag pandas-yourname-env .
+    # Run a container and bind your local forked repo, pandas-yourname, to the container
+    docker run -it --rm -v path-to-pandas-yourname:/home/pandas-yourname pandas-yourname-env
+
+Even easier, you can integrate Docker with the following IDEs:
+
+**Visual Studio Code**
+
+You can use the DockerFile to launch a remote session with Visual Studio Code,
 a popular free IDE, using the `.devcontainer.json` file.
 See https://code.visualstudio.com/docs/remote/containers for details.
+
+**PyCharm (Professional)**
+
+Enable Docker support and use the Services tool window to build and manage images as well as
+run and interact with containers.
+See https://www.jetbrains.com/help/pycharm/docker.html for details.
+
+Note that you might need to rebuild the C extensions if/when you merge with upstream/master using::
+
+    python setup.py build_ext --inplace -j 4
 
 .. _contributing.dev_c:
 
@@ -176,6 +204,7 @@ You will need `Build Tools for Visual Studio 2017
 	You DO NOT need to install Visual Studio 2019.
 	You only need "Build Tools for Visual Studio 2019" found by
 	scrolling down to "All downloads" -> "Tools for Visual Studio 2019".
+	In the installer, select the "C++ build tools" workload.
 
 **Mac OS**
 
@@ -270,7 +299,7 @@ Creating a Python environment (pip)
 If you aren't using conda for your development environment, follow these instructions.
 You'll need to have at least Python 3.6.1 installed on your system.
 
-**Unix**/**Mac OS**
+**Unix**/**Mac OS with virtualenv**
 
 .. code-block:: bash
 
@@ -286,7 +315,31 @@ You'll need to have at least Python 3.6.1 installed on your system.
    python -m pip install -r requirements-dev.txt
 
    # Build and install pandas
-   python setup.py build_ext --inplace -j 0
+   python setup.py build_ext --inplace -j 4
+   python -m pip install -e . --no-build-isolation --no-use-pep517
+
+**Unix**/**Mac OS with pyenv**
+
+Consult the docs for setting up pyenv `here <https://github.com/pyenv/pyenv>`__.
+
+.. code-block:: bash
+
+   # Create a virtual environment
+   # Use an ENV_DIR of your choice. We'll use ~/Users/<yourname>/.pyenv/versions/pandas-dev
+
+   pyenv virtualenv <version> <name-to-give-it>
+
+   # For instance:
+   pyenv virtualenv 3.7.6 pandas-dev
+
+   # Activate the virtualenv
+   pyenv activate pandas-dev
+
+   # Now install the build dependencies in the cloned pandas repo
+   python -m pip install -r requirements-dev.txt
+
+   # Build and install pandas
+   python setup.py build_ext --inplace -j 4
    python -m pip install -e . --no-build-isolation --no-use-pep517
 
 **Windows**
@@ -312,7 +365,7 @@ should already exist.
    python -m pip install -r requirements-dev.txt
 
    # Build and install pandas
-   python setup.py build_ext --inplace -j 0
+   python setup.py build_ext --inplace -j 4
    python -m pip install -e . --no-build-isolation --no-use-pep517
 
 Creating a branch
@@ -723,7 +776,7 @@ Imports are alphabetically sorted within these sections.
 
 As part of :ref:`Continuous Integration <contributing.ci>` checks we run::
 
-    isort --recursive --check-only pandas
+    isort --check-only pandas
 
 to check that imports are correctly formatted as per the `setup.cfg`.
 
@@ -741,8 +794,6 @@ You should run::
     isort pandas/io/pytables.py
 
 to automatically format imports correctly. This will modify your local copy of the files.
-
-The `--recursive` flag can be passed to sort all files in a directory.
 
 Alternatively, you can run a command similar to what was suggested for ``black`` and ``flake8`` :ref:`right above <contributing.code-formatting>`::
 
