@@ -262,10 +262,10 @@ class TestSeriesArithmetic:
 class TestSeriesFlexComparison:
     @pytest.mark.parametrize("axis", [0, None, "index"])
     def test_comparison_flex_basic(self, axis, all_compare_operators):
-        op = all_compare_operators
+        op = all_compare_operators.strip("__")
         left = pd.Series(np.random.randn(10))
         right = pd.Series(np.random.randn(10))
-        result = getattr(left, op.strip("__"))(right, axis=axis)
+        result = getattr(left, op)(right, axis=axis)
         expected = getattr(operator, op)(left, right)
         tm.assert_series_equal(result, expected)
 
