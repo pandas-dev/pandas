@@ -96,6 +96,19 @@ For example:
    buffer = io.BytesIO()
    data.to_csv(buffer, mode="w+b", encoding="utf-8", compression="gzip")
 
+:.. _whatsnew_read_csv_table_precision_default:
+
+Change in default floating precision for ``read_csv`` and ``read_table``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For the C parsing engine, the methods :meth:`read_csv` and :meth:`read_table` previously defaulted to a parser that
+could read floating point numbers slightly incorrectly with respect to the last bit in precision.
+The option ``floating_precision="high"`` has always been available to avoid this issue.
+Beginning with this version, the default is now to use the more accurate parser by making
+``floating_precision=None`` correspond to the high precision parser, and the new option
+``floating_precision="legacy"`` to use the legacy parser. The change to using the higher precision
+parser by default should have no impact on performance. (:issue:`17154`)
+
 .. _whatsnew_120.enhancements.other:
 
 Other enhancements
@@ -105,6 +118,7 @@ Other enhancements
 - :class:`Index` with object dtype supports division and multiplication (:issue:`34160`)
 - :meth:`DataFrame.explode` and :meth:`Series.explode` now support exploding of sets (:issue:`35614`)
 - `Styler` now allows direct CSS class name addition to individual data cells (:issue:`36159`)
+- :meth:`Rolling.mean()` and :meth:`Rolling.sum()` use Kahan summation to calculate the mean to avoid numerical problems (:issue:`10319`, :issue:`11645`, :issue:`13254`, :issue:`32761`, :issue:`36031`)
 
 .. _whatsnew_120.api_breaking.python:
 
@@ -295,11 +309,12 @@ MultiIndex
 I/O
 ^^^
 
+- :func:`read_sas` no longer leaks resources on failure (:issue:`35566`)
 - Bug in :meth:`to_csv` caused a ``ValueError`` when it was called with a filename in combination with ``mode`` containing a ``b`` (:issue:`35058`)
 - In :meth:`read_csv` `float_precision='round_trip'` now handles `decimal` and `thousands` parameters (:issue:`35365`)
 - :meth:`to_pickle` and :meth:`read_pickle` were closing user-provided file objects (:issue:`35679`)
 - :meth:`to_csv` passes compression arguments for `'gzip'` always to `gzip.GzipFile` (:issue:`28103`)
-- :meth:`to_csv` did not support zip compression for binary file object not having a filename (:issue: `35058`)
+- :meth:`to_csv` did not support zip compression for binary file object not having a filename (:issue:`35058`)
 - :meth:`to_csv` and :meth:`read_csv` did not honor `compression` and `encoding` for path-like objects that are internally converted to file-like objects (:issue:`35677`, :issue:`26124`, and :issue:`32392`)
 - :meth:`to_picke` and :meth:`read_pickle` did not support compression for file-objects (:issue:`26237`, :issue:`29054`, and :issue:`29570`)
 
