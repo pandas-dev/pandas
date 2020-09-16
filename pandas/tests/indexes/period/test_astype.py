@@ -166,4 +166,3 @@ class TestPeriodIndexAsType:
         res = pi.astype("datetime64[ns, US/Eastern]", how="end")
         tm.assert_index_equal(res, exp)
         assert res.freq == exp.freq
-

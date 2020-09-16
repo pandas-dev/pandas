@@ -592,7 +592,7 @@ class TestAstype:
         # GH 35973
         val = {"tz": date_range("2020-08-30", freq="d", periods=2, tz="Europe/London")}
         df, df2 = DataFrame(val), DataFrame(val)
-        df2['tz'] = df2['tz'].dt.tz_convert('Europe/Berlin')
+        df2["tz"] = df2["tz"].dt.tz_convert("Europe/Berlin")
 
         tm.assert_frame_equal(df.astype({"tz": "datetime64[ns, Europe/Berlin]"}), df2)
 
@@ -608,8 +608,9 @@ class TestAstype:
         base = DataFrame(vals)
 
         # convert base to input test param and then to object dtype
-        result = base.astype({"timezones": "datetime64[ns, {}]".format(tz)})
-        result = result.astype({"timezones": "object"})
+        result = base.astype({"timezones": "datetime64[ns, {}]".format(tz)}).astype(
+            {"timezones": "object"}
+        )
         # test conversion of object dtype to a specified tz, different to inferred.
         result = result.astype({"timezones": "datetime64[ns, Europe/London]"})
         tm.assert_frame_equal(base, result)
