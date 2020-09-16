@@ -1079,7 +1079,8 @@ class SQLTable(PandasObject):
 
         return Text
 
-    def _get_dtype(self, sqltype):
+    @staticmethod
+    def _get_dtype(sqltype):
         from sqlalchemy.types import TIMESTAMP, Boolean, Date, DateTime, Float, Integer
 
         if isinstance(sqltype, Float):
