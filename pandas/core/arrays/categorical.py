@@ -1541,7 +1541,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         sorted_idx = nargsort(self, ascending=ascending, na_position=na_position)
 
         if inplace:
-            self._codes = self._codes[sorted_idx]
+            self._codes[:] = self._codes[sorted_idx]
         else:
             codes = self._codes[sorted_idx]
             return self._from_backing_data(codes)
