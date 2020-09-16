@@ -21,6 +21,6 @@ dependencies:
   # see comment above
   - pip
   - pip:
-    - cython>=0.29.16
+    - cython>=0.29.21
     - numpy>=1.16.5
     - pytest>=5.0.1
