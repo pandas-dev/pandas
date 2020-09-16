@@ -679,7 +679,7 @@ class TestTableOrientReader:
             {
                 "timezones": pd.date_range(
                     "2016-01-01", freq="d", periods=4, tz="US/Central"
-                )
+                )  # added in # GH 35973
             },
         ],
     )
@@ -731,6 +731,7 @@ class TestTableOrientReader:
     )
     @pytest.mark.skipif(sys.version_info[:3] == (3, 7, 0), reason="GH-35309")
     def test_read_json_table_timezones_orient(self, idx, vals, recwarn):
+        # GH 35973
         df = DataFrame(vals, index=idx)
         out = df.to_json(orient="table")
         result = pd.read_json(out, orient="table")
