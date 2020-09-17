@@ -67,6 +67,20 @@ else
     FLAKE8_FORMAT="default"
 fi
 
+
+function if_gh_actions {
+    # If this is running on GitHub Actions, echo the argument list, otherwise
+    # echo the empty string.
+    # Used to conditionally pass command-line arguments as in
+    #     $(if_gh_actions --baz spam) | xargs foo --bar
+    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
+        for arg in "$@"; do echo $arg; done | quote_if_needed
+    else
+        echo ""
+    fi
+}
+
+
 ### LINTING ###
 if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
 
@@ -126,35 +140,23 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     VALIDATE_CMD=$BASE_DIR/scripts/validate_unwanted_patterns.py
 
     MSG='Check for use of not concatenated strings' ; echo $MSG
-    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
-        echo $GIT_TRACKED_ALL_PY_FILES | xargs $VALIDATE_CMD --validation-type="strings_to_concatenate" --format="##[error]{source_path}:{line_number}:{msg}" --no-override
-    else
-        echo $GIT_TRACKED_ALL_PY_FILES | xargs $VALIDATE_CMD --validation-type="strings_to_concatenate" --no-override
-    fi
+    ARGS=$({ if_gh_actions --format="##[error]{source_path}:{line_number}:{msg}"; echo $GIT_TRACKED_ALL_PY_FILES; })
+    echo $ARGS | xargs $VALIDATE_CMD --validation-type="strings_to_concatenate" --no-override
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for strings with wrong placed spaces' ; echo $MSG
-    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
-        echo $GIT_TRACKED_ALL_PY_FILES | xargs $VALIDATE_CMD --validation-type="strings_with_wrong_placed_whitespace" --format="##[error]{source_path}:{line_number}:{msg}" --no-override
-    else
-        echo $GIT_TRACKED_ALL_PY_FILES | xargs $VALIDATE_CMD --validation-type="strings_with_wrong_placed_whitespace" --no-override
-    fi
+    ARGS=$({ if_gh_actions --format="##[error]{source_path}:{line_number}:{msg}"; echo $GIT_TRACKED_ALL_PY_FILES; })
+    echo $ARGS | xargs $VALIDATE_CMD --validation-type="strings_with_wrong_placed_whitespace" --no-override
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for import of private attributes across modules' ; echo $MSG
-    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
-        $VALIDATE_CMD --validation-type="private_import_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored --format="##[error]{source_path}:{line_number}:{msg}" pandas/
-    else
-        $VALIDATE_CMD --validation-type="private_import_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored pandas/
-    fi
+    ARGS=$(if_gh_actions --format="##[error]{source_path}:{line_number}:{msg}")
+    echo $ARGS | xargs $VALIDATE_CMD --validation-type="private_import_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored pandas/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for use of private functions across modules' ; echo $MSG
-    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
-        $VALIDATE_CMD --validation-type="private_function_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored,doc/ --format="##[error]{source_path}:{line_number}:{msg}" pandas/
-    else
-        $VALIDATE_CMD --validation-type="private_function_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored,doc/ pandas/
-    fi
+    ARGS=$(if_gh_actions --format="##[error]{source_path}:{line_number}:{msg}")
+    echo $ARGS | xargs $VALIDATE_CMD --validation-type="private_function_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored,doc/ pandas/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     echo "isort --version-number"
