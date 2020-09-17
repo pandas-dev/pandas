@@ -37,7 +37,7 @@ from pandas.core.dtypes.generic import (
     ABCPeriodIndex,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, notna
 
 from pandas.core.algorithms import take, value_counts
 from pandas.core.arrays.base import ExtensionArray, _extension_array_shared_docs
@@ -883,7 +883,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 )
             left_insert = value.left
             right_insert = value.right
-        elif is_scalar(value) and isna(value):
+        elif is_valid_nat_for_dtype(value, self.left.dtype):
             # GH#18295
             left_insert = right_insert = value
         else:

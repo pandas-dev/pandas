@@ -28,7 +28,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCUInt64Index,
 )
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core import algorithms
 import pandas.core.common as com
@@ -164,7 +164,12 @@ class NumericIndex(Index):
     def insert(self, loc: int, item):
         # treat NA values as nans:
         if is_scalar(item) and isna(item):
-            item = self._na_value
+            if is_valid_nat_for_dtype(item, self.dtype):
+                item = self._na_value
+            else:
+                # NaT, np.datetime64("NaT"), np.timedelta64("NaT")
+                return self.astype(object).insert(loc, item)
+
         return super().insert(loc, item)
 
     def _union(self, other, sort):
