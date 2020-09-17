@@ -537,8 +537,6 @@ class DataFrameFormatter(TableFormatter):
     __doc__ = __doc__ if __doc__ else ""
     __doc__ += common_docstring + return_docstring
 
-    col_space: ColspaceType
-
     def __init__(
         self,
         frame: "DataFrame",
@@ -638,11 +636,12 @@ class DataFrameFormatter(TableFormatter):
             self._columns = self.frame.columns
 
     @property
-    def col_space(self):
+    def col_space(self) -> ColspaceType:
         return self._col_space
 
     @col_space.setter
-    def col_space(self, col_space):
+    def col_space(self, col_space: Optional[ColspaceArgType]) -> None:
+        self._col_space: ColspaceType
         if col_space is None:
             self._col_space = {}
         elif isinstance(col_space, (int, str)):
@@ -662,6 +661,7 @@ class DataFrameFormatter(TableFormatter):
                     f"DataFrame number of columns({len(self.frame.columns)})"
                 )
             self._col_space = dict(zip(self.frame.columns, col_space))
+        assert self._col_space is not None
 
     @property
     def max_rows_displayed(self):
