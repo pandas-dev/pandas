@@ -8,7 +8,6 @@ import numpy as np
 
 from pandas._libs import NaT, Timedelta, iNaT, join as libjoin, lib
 from pandas._libs.tslibs import BaseOffset, Resolution, Tick, timezones
-from pandas._libs.tslibs.parsing import DateParseError
 from pandas._typing import Callable, Label
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -31,7 +30,6 @@ from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 from pandas.core.base import IndexOpsMixin
 import pandas.core.common as com
-from pandas.core.construction import array as pd_array, extract_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.extension import (
@@ -476,7 +474,18 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             raise TypeError(f"Where requires matching dtype, not {oth}") from err
 
         result = np.where(cond, values, other).astype("i8")
-        arr = type(self._data)._simple_new(result, dtype=self.dtype)
+        arr = self._data._from_backing_data(result)
+        return type(self)._simple_new(arr, name=self.name)
+
+    def putmask(self, mask, value):
+        try:
+            value = self._data._validate_where_value(value)
+        except (TypeError, ValueError):
+            return self.astype(object).putmask(mask, value)
+
+        result = self._data._ndarray.copy()
+        np.putmask(result, mask, value)
+        arr = self._data._from_backing_data(result)
         return type(self)._simple_new(arr, name=self.name)
 
     def _summary(self, name=None) -> str:
@@ -586,19 +595,12 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
     @doc(Index._convert_arr_indexer)
     def _convert_arr_indexer(self, keyarr):
-        if lib.infer_dtype(keyarr) == "string":
-            # Weak reasoning that indexer is a list of strings
-            # representing datetime or timedelta or period
-            try:
-                extension_arr = pd_array(keyarr, self.dtype)
-            except (ValueError, DateParseError):
-                # Fail to infer keyarr from self.dtype
-                return keyarr
-
-            converted_arr = extract_array(extension_arr, extract_numpy=True)
-        else:
-            converted_arr = com.asarray_tuplesafe(keyarr)
-        return converted_arr
+        try:
+            return self._data._validate_listlike(
+                keyarr, "convert_arr_indexer", cast_str=True, allow_object=True
+            )
+        except (ValueError, TypeError):
+            return com.asarray_tuplesafe(keyarr)
 
 
 class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
@@ -857,11 +859,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         """
         See Index.join
         """
-        if self._is_convertible_to_index_for_join(other):
-            try:
-                other = type(self)(other)
-            except (TypeError, ValueError):
-                pass
+        pself, pother = self._maybe_promote(other)
+        if pself is not self or pother is not other:
+            return pself.join(
+                pother, how=how, level=level, return_indexers=return_indexers, sort=sort
+            )
 
         this, other = self._maybe_utc_convert(other)
         return Index.join(
@@ -889,25 +891,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
                 this = self.tz_convert("UTC")
                 other = other.tz_convert("UTC")
         return this, other
-
-    @classmethod
-    def _is_convertible_to_index_for_join(cls, other: Index) -> bool:
-        """
-        return a boolean whether I can attempt conversion to a
-        DatetimeIndex/TimedeltaIndex
-        """
-        if isinstance(other, cls):
-            return False
-        elif len(other) > 0 and other.inferred_type not in (
-            "floating",
-            "mixed-integer",
-            "integer",
-            "integer-na",
-            "mixed-integer-float",
-            "mixed",
-        ):
-            return True
-        return False
 
     # --------------------------------------------------------------------
     # List-Like Methods
