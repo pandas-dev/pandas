@@ -684,6 +684,10 @@ class DataFrameFormatter(TableFormatter):
     def max_rows_displayed(self) -> int:
         return min(self.max_rows or len(self.frame), len(self.frame))
 
+    def _is_in_terminal(self) -> bool:
+        """Check if the output is to be shown in terminal."""
+        return bool(self.max_cols == 0 or self.max_rows == 0)
+
     def _chk_truncate(self) -> None:
         """
         Checks whether the frame should be truncated. If so, slices
@@ -697,7 +701,7 @@ class DataFrameFormatter(TableFormatter):
         self.max_rows_adj: Optional[int]
         max_rows_adj: Optional[int]
 
-        if max_cols == 0 or max_rows == 0:  # assume we are in the terminal
+        if self._is_in_terminal():
             (width, height) = get_terminal_size()
             if self.max_rows == 0:
                 dot_row = 1
