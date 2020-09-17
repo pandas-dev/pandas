@@ -318,10 +318,29 @@ Other enhancements
   compression library. Compression was also added to the low-level Stata-file writers
   :class:`~pandas.io.stata.StataWriter`, :class:`~pandas.io.stata.StataWriter117`,
   and :class:`~pandas.io.stata.StataWriterUTF8` (:issue:`26599`).
-- :meth:`HDFStore.put` now accepts `track_times` parameter. Parameter is passed to ``create_table`` method of ``PyTables`` (:issue:`32682`).
-- Make :class:`pandas.core.window.Rolling` and :class:`pandas.core.window.Expanding` iterable（:issue:`11704`)
-- Make ``option_context`` a :class:`contextlib.ContextDecorator`, which allows it to be used as a decorator over an entire function (:issue:`34253`).
-- :class:`~pandas.core.arrays.categorical.Categorical` now has methods for converting to and from dummy/ one-hot encoded variables: :meth:`Categorical.to_dummies` and :meth:`Categorical.from_dummies` respectively. :meth:`Categorical.to_dummies` is smaller in scope than :func:`~pandas.core.reshape.reshape.get_dummies`, which can still be used if you require the extra flexibility.
+- :meth:`HDFStore.put` now accepts a ``track_times`` parameter. This parameter is passed to the ``create_table`` method of ``PyTables`` (:issue:`32682`).
+- :meth:`Series.plot` and :meth:`DataFrame.plot` now accepts `xlabel` and `ylabel` parameters to present labels on x and y axis (:issue:`9093`).
+- Made :class:`pandas.core.window.rolling.Rolling` and :class:`pandas.core.window.expanding.Expanding` iterable（:issue:`11704`)
+- Made ``option_context`` a :class:`contextlib.ContextDecorator`, which allows it to be used as a decorator over an entire function (:issue:`34253`).
+- :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` now accept an ``errors`` argument (:issue:`22610`)
+- :meth:`~pandas.core.groupby.DataFrameGroupBy.groupby.transform` now allows ``func`` to be ``pad``, ``backfill`` and ``cumcount`` (:issue:`31269`).
+- :func:`read_json` now accepts an ``nrows`` parameter. (:issue:`33916`).
+- :meth:`DataFrame.hist`, :meth:`Series.hist`, :meth:`core.groupby.DataFrameGroupBy.hist`, and :meth:`core.groupby.SeriesGroupBy.hist` have gained the ``legend`` argument. Set to True to show a legend in the histogram. (:issue:`6279`)
+- :func:`concat` and :meth:`~DataFrame.append` now preserve extension dtypes, for example
+  combining a nullable integer column with a numpy integer column will no longer
+  result in object dtype but preserve the integer dtype (:issue:`33607`, :issue:`34339`, :issue:`34095`).
+- :func:`read_gbq` now allows to disable progress bar (:issue:`33360`).
+- :func:`read_gbq` now supports the ``max_results`` kwarg from ``pandas-gbq`` (:issue:`34639`).
+- :meth:`DataFrame.cov` and :meth:`Series.cov` now support a new parameter ``ddof`` to support delta degrees of freedom as in the corresponding numpy methods (:issue:`34611`).
+- :meth:`DataFrame.to_html` and :meth:`DataFrame.to_string`'s ``col_space`` parameter now accepts a list or dict to change only some specific columns' width (:issue:`28917`).
+- :meth:`DataFrame.to_excel` can now also write OpenOffice spreadsheet (.ods) files (:issue:`27222`)
+- :meth:`~Series.explode` now accepts ``ignore_index`` to reset the index, similar to :meth:`pd.concat` or :meth:`DataFrame.sort_values` (:issue:`34932`).
+- :meth:`DataFrame.to_markdown` and :meth:`Series.to_markdown` now accept ``index`` argument as an alias for tabulate's ``showindex`` (:issue:`32667`)
+- :meth:`read_csv` now accepts string values like "0", "0.0", "1", "1.0" as convertible to the nullable Boolean dtype (:issue:`34859`)
+- :class:`pandas.core.window.ExponentialMovingWindow` now supports a ``times`` argument that allows ``mean`` to be calculated with observations spaced by the timestamps in ``times`` (:issue:`34839`)
+- :meth:`DataFrame.agg` and :meth:`Series.agg` now accept named aggregation for renaming the output columns/indexes. (:issue:`26513`)
+- ``compute.use_numba`` now exists as a configuration option that utilizes the numba engine when available (:issue:`33966`, :issue:`35374`)
+- :meth:`Series.plot` now supports asymmetric error bars. Previously, if :meth:`Series.plot` received a "2xN" array with error values for `yerr` and/or `xerr`, the left/lower values (first row) were mirrored, while the right/upper values (second row) were ignored. Now, the first row represents the left/lower error values and the second row the right/upper error values. (:issue:`9536`)
 
 .. ---------------------------------------------------------------------------
 
