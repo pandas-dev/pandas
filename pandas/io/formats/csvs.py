@@ -334,18 +334,12 @@ class CSVFormatter:
             self._save_chunk(start_i, end_i)
 
     def _save_chunk(self, start_i: int, end_i: int) -> None:
-        ncols = self.obj.shape[-1]
-        data = [None] * ncols
-
         # create the data for a chunk
         slicer = slice(start_i, end_i)
-
         df = self.obj.iloc[slicer]
-        mgr = df._mgr
 
-        res = mgr.apply("to_native_types", **self._number_format)
-        for i in range(len(res.items)):
-            data[i] = res.iget_values(i)
+        res = df._mgr.to_native_types(**self._number_format)
+        data = [res.iget_values(i) for i in range(len(res.items))]
 
         ix = self.data_index.to_native_types(slicer=slicer, **self._number_format)
         libwriters.write_csv_rows(data, ix, self.nlevels, self.cols, self.writer)
