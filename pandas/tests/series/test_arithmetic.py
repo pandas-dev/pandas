@@ -278,27 +278,23 @@ class TestSeriesFlexComparison:
         with pytest.raises(ValueError, match=msg):
             getattr(left, op)(right, axis=1)
 
-    def test_comparison_flex_alignment(self):
+    @pytest.mark.parametrize(
+        "values, op",
+        [
+            ([False, False, True, False], "eq"),
+            ([True, True, False, True], "ne"),
+            ([False, False, True, False], "le"),
+            ([False, False, False, False], "lt"),
+            ([False, True, True, False], "ge"),
+            ([False, True, False, False], "gt"),
+        ],
+    )
+    def test_comparison_flex_alignment(self, values, op):
         left = Series([1, 3, 2], index=list("abc"))
         right = Series([2, 2, 2], index=list("bcd"))
-
-        exp = pd.Series([False, False, True, False], index=list("abcd"))
-        tm.assert_series_equal(left.eq(right), exp)
-
-        exp = pd.Series([True, True, False, True], index=list("abcd"))
-        tm.assert_series_equal(left.ne(right), exp)
-
-        exp = pd.Series([False, False, True, False], index=list("abcd"))
-        tm.assert_series_equal(left.le(right), exp)
-
-        exp = pd.Series([False, False, False, False], index=list("abcd"))
-        tm.assert_series_equal(left.lt(right), exp)
-
-        exp = pd.Series([False, True, True, False], index=list("abcd"))
-        tm.assert_series_equal(left.ge(right), exp)
-
-        exp = pd.Series([False, True, False, False], index=list("abcd"))
-        tm.assert_series_equal(left.gt(right), exp)
+        result = getattr(left, op)(right)
+        expected = pd.Series(values, index=list("abcd"))
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "values, op, fill_value",
