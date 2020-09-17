@@ -631,6 +631,13 @@ class BlockManager(PandasObject):
         bm._consolidate_inplace()
         return bm
 
+    def to_native_types(self, **kwargs) -> "BlockManager":
+        """
+        Convert values to native types (strings / python objects) that are used
+        in formatting (repr / csv).
+        """
+        return self.apply("to_native_types", **kwargs)
+
     def is_consolidated(self) -> bool:
         """
         Return True if more than one block with the same dtype
