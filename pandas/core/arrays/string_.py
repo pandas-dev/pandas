@@ -199,13 +199,18 @@ class StringArray(PandasArray):
             assert dtype == "string"
 
         result = np.asarray(scalars, dtype="object")
-
         # convert non-na-likes to str, and nan-likes to StringDtype.na_value
         result = lib.ensure_string_array(
             result, na_value=StringDtype.na_value, copy=copy
         )
 
-        return cls(result)
+        # Manually creating new array avoids the validation step in the __init__, so is
+        # faster. Refactor need for validation?
+        new_string_array = object.__new__(cls)
+        new_string_array._dtype = StringDtype()
+        new_string_array._ndarray = result
+
+        return new_string_array
 
     @classmethod
     def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
