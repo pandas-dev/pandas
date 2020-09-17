@@ -45,6 +45,7 @@ Bug fixes
 - Bug in :func:`read_spss` where passing a ``pathlib.Path`` as ``path`` would raise a ``TypeError`` (:issue:`33666`)
 - Bug in :meth:`Series.str.startswith` and :meth:`Series.str.endswith` with ``category`` dtype not propagating ``na`` parameter (:issue:`36241`)
 - Bug in :class:`Series` constructor where integer overflow would occur for sufficiently large scalar inputs when an index was provided (:issue:`36291`)
+- Bug in :meth:`DataFrame.sort_values` raising an ``AttributeError`` when sorting on a key that casts column to categorical dtype (:issue:`36383`)
 - Bug in :meth:`DataFrame.stack` raising a ``ValueError`` when stacking :class:`MultiIndex` columns based on position when the levels had duplicate names (:issue:`36353`)
 
 .. ---------------------------------------------------------------------------
