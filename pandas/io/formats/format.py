@@ -694,6 +694,10 @@ class DataFrameFormatter(TableFormatter):
         try:
             return self._max_cols_adj
         except AttributeError:
+            if not self._is_in_terminal():
+                self._max_cols_adj = self.max_cols
+                return self._max_cols_adj
+
             width, _ = get_terminal_size()
             if self._is_screen_narrow(width):
                 self._max_cols_adj = width
