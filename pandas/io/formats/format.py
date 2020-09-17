@@ -605,12 +605,7 @@ class DataFrameFormatter(TableFormatter):
         self.show_dimensions = show_dimensions
         self.table_id = table_id
         self.render_links = render_links
-
-        if justify is None:
-            self.justify = get_option("display.colheader_justify")
-        else:
-            self.justify = justify
-
+        self.justify = justify
         self.bold_rows = bold_rows
         self.escape = escape
 
@@ -638,6 +633,17 @@ class DataFrameFormatter(TableFormatter):
                 f"Formatters length({len(formatters)}) should match "
                 f"DataFrame number of columns({len(self.frame.columns)})"
             )
+
+    @property
+    def justify(self):
+        return self._justify
+
+    @justify.setter
+    def justify(self, justify):
+        if justify is None:
+            self._justify = get_option("display.colheader_justify")
+        else:
+            self._justify = justify
 
     def _chk_truncate(self) -> None:
         """
