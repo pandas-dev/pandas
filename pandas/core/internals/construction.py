@@ -13,6 +13,7 @@ from pandas._typing import Axis, DtypeObj, Scalar
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
+    construct_1d_ndarray_preserving_na,
     maybe_cast_to_datetime,
     maybe_convert_platform,
     maybe_infer_to_datetimelike,
@@ -189,15 +190,16 @@ def init_ndarray(values, index, columns, dtype: Optional[DtypeObj], copy: bool):
     # the dtypes will be coerced to a single dtype
     values = _prep_ndarray(values, copy=copy)
 
-    if dtype is not None:
-        if not is_dtype_equal(values.dtype, dtype):
-            try:
-                values = values.astype(dtype)
-            except Exception as orig:
-                # e.g. ValueError when trying to cast object dtype to float64
-                raise ValueError(
-                    f"failed to cast to '{dtype}' (Exception was: {orig})"
-                ) from orig
+    if not is_dtype_equal(values.dtype, dtype):
+        try:
+            values = construct_1d_ndarray_preserving_na(
+                values.ravel(), dtype=dtype, copy=False
+            ).reshape(values.shape)
+        except Exception as orig:
+            # e.g. ValueError when trying to cast object dtype to float64
+            raise ValueError(
+                f"failed to cast to '{dtype}' (Exception was: {orig})"
+            ) from orig
 
     # _prep_ndarray ensures that values.ndim == 2 at this point
     index, columns = _get_axes(

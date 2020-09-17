@@ -1618,7 +1618,7 @@ def construct_1d_ndarray_preserving_na(
     array(['1.0', '2.0', None], dtype=object)
     """
 
-    if dtype is not None and dtype.kind == "U":
+    if is_string_dtype(dtype):
         subarr = lib.ensure_string_array(values, convert_na_value=False, copy=copy)
     else:
         subarr = np.array(values, dtype=dtype, copy=copy)
