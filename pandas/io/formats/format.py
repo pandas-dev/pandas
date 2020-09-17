@@ -742,7 +742,7 @@ class DataFrameFormatter(TableFormatter):
         return bool(self.max_rows == 0 and len(self.frame) > max_height)
 
     @property
-    def truncate_h(self) -> bool:
+    def is_truncated_horizontally(self) -> bool:
         return bool(self.max_cols_adj and (len(self.columns) > self.max_cols_adj))
 
     @property
@@ -751,7 +751,7 @@ class DataFrameFormatter(TableFormatter):
 
     @property
     def is_truncated(self) -> bool:
-        return bool(self.truncate_h or self.truncate_v)
+        return bool(self.is_truncated_horizontally or self.truncate_v)
 
     def _chk_truncate(self) -> None:
         """
@@ -768,8 +768,9 @@ class DataFrameFormatter(TableFormatter):
         max_rows_adj = self.max_rows_adj
 
         frame = self.frame
-        if self.truncate_h:
-            # cast here since if truncate_h is True, max_cols_adj is not None
+        if self.is_truncated_horizontally:
+            # cast here since if is_truncated_horizontally is True
+            # max_cols_adj is not None
             max_cols_adj = cast(int, max_cols_adj)
             if max_cols_adj == 0:
                 col_num = len(frame.columns)
@@ -863,10 +864,10 @@ class DataFrameFormatter(TableFormatter):
             strcols.insert(0, str_index)
 
         # Add ... to signal truncated
-        truncate_h = self.truncate_h
+        is_truncated_horizontally = self.is_truncated_horizontally
         truncate_v = self.truncate_v
 
-        if truncate_h:
+        if is_truncated_horizontally:
             col_num = self.tr_col_num
             strcols.insert(self.tr_col_num + 1, [" ..."] * (len(str_index)))
         if truncate_v:
@@ -878,7 +879,7 @@ class DataFrameFormatter(TableFormatter):
                 # infer from above row
                 cwidth = self.adj.len(strcols[ix][row_num])
                 is_dot_col = False
-                if truncate_h:
+                if is_truncated_horizontally:
                     is_dot_col = ix == col_num + 1
                 if cwidth > 3 or is_dot_col:
                     my_str = "..."

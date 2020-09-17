@@ -236,7 +236,7 @@ class HTMLFormatter(TableFormatter):
         self.write("</table>", indent)
 
     def _write_col_header(self, indent: int) -> None:
-        truncate_h = self.fmt.truncate_h
+        is_truncated_horizontally = self.fmt.is_truncated_horizontally
         if isinstance(self.columns, MultiIndex):
             template = 'colspan="{span:d}" halign="left"'
 
@@ -249,7 +249,7 @@ class HTMLFormatter(TableFormatter):
             level_lengths = get_level_lengths(levels, sentinel)
             inner_lvl = len(level_lengths) - 1
             for lnum, (records, values) in enumerate(zip(level_lengths, levels)):
-                if truncate_h:
+                if is_truncated_horizontally:
                     # modify the header lines
                     ins_col = self.fmt.tr_col_num
                     if self.fmt.sparsify:
@@ -346,16 +346,16 @@ class HTMLFormatter(TableFormatter):
             row.extend(self._get_columns_formatted_values())
             align = self.fmt.justify
 
-            if truncate_h:
+            if is_truncated_horizontally:
                 ins_col = self.row_levels + self.fmt.tr_col_num
                 row.insert(ins_col, "...")
 
             self.write_tr(row, indent, self.indent_delta, header=True, align=align)
 
     def _write_row_header(self, indent: int) -> None:
-        truncate_h = self.fmt.truncate_h
+        is_truncated_horizontally = self.fmt.is_truncated_horizontally
         row = [x if x is not None else "" for x in self.frame.index.names] + [""] * (
-            self.ncols + (1 if truncate_h else 0)
+            self.ncols + (1 if is_truncated_horizontally else 0)
         )
         self.write_tr(row, indent, self.indent_delta, header=True)
 
@@ -390,7 +390,7 @@ class HTMLFormatter(TableFormatter):
     def _write_regular_rows(
         self, fmt_values: Mapping[int, List[str]], indent: int
     ) -> None:
-        truncate_h = self.fmt.truncate_h
+        is_truncated_horizontally = self.fmt.is_truncated_horizontally
         truncate_v = self.fmt.truncate_v
 
         nrows = len(self.fmt.tr_frame)
@@ -426,7 +426,7 @@ class HTMLFormatter(TableFormatter):
                 row.append("")
             row.extend(fmt_values[j][i] for j in range(self.ncols))
 
-            if truncate_h:
+            if is_truncated_horizontally:
                 dot_col_ix = self.fmt.tr_col_num + self.row_levels
                 row.insert(dot_col_ix, "...")
             self.write_tr(
@@ -438,7 +438,7 @@ class HTMLFormatter(TableFormatter):
     ) -> None:
         template = 'rowspan="{span}" valign="top"'
 
-        truncate_h = self.fmt.truncate_h
+        is_truncated_horizontally = self.fmt.is_truncated_horizontally
         truncate_v = self.fmt.truncate_v
         frame = self.fmt.tr_frame
         nrows = len(frame)
@@ -520,7 +520,7 @@ class HTMLFormatter(TableFormatter):
                     row.append(v)
 
                 row.extend(fmt_values[j][i] for j in range(self.ncols))
-                if truncate_h:
+                if is_truncated_horizontally:
                     row.insert(
                         self.row_levels - sparse_offset + self.fmt.tr_col_num, "..."
                     )
@@ -550,7 +550,7 @@ class HTMLFormatter(TableFormatter):
                 row = []
                 row.extend(idx_values[i])
                 row.extend(fmt_values[j][i] for j in range(self.ncols))
-                if truncate_h:
+                if is_truncated_horizontally:
                     row.insert(self.row_levels + self.fmt.tr_col_num, "...")
                 self.write_tr(
                     row,
