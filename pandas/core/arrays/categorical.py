@@ -451,58 +451,103 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         codes = ((df * mult_by).sum(axis=1, skipna=False) - 1).astype("Int64")
         return cls.from_codes(codes.fillna(-1), df.columns.values, ordered=ordered)
 
-    def to_dummies(self, na_column=None) -> "DataFrame":
+    def get_dummies(
+        self,
+        prefix=None,
+        prefix_sep="_",
+        dummy_na=False,
+        sparse=False,
+        drop_first=False,
+        dtype=None,
+    ) -> "DataFrame":
         """
-        Create a ``DataFrame`` of boolean dummy variables representing this object.
-
-        For more power over column names or to use a sparse matrix,
-        see :func:`pandas.get_dummies`.
+        Convert into dummy/indicator variables.
 
         Parameters
         ----------
-        na_column : Optional
-            If None, NA values will be represented as a row of zeros.
-            Otherwise, this is the name of a new column representing
-            those NA values.
+        prefix : str, default None
+            String to append DataFrame column names.
+        prefix_sep : str, default '_'
+            If appending prefix, separator/delimiter to use.
+        dummy_na : bool, default False
+            Add a column to indicate NaNs, if False NaNs are ignored.
+        sparse : bool, default False
+            Whether the dummy-encoded columns should be backed by
+            a :class:`SparseArray` (True) or a regular NumPy array (False).
+        drop_first : bool, default False
+            Whether to get k-1 dummies out of k categorical levels by removing the
+            first level.
+        dtype : dtype, default np.uint8
+            Data type for new columns. Only a single dtype is allowed.
 
         Returns
         -------
         DataFrame
-
-        Examples
-        --------
-        >>> Categorical(["a", "b", "c"]).to_dummies()
-           a      b      c
-        0  True   False  False
-        1  False  True   False
-        2  False  False  True
-
-        >>> Categorical(["a", "b", np.nan]).to_dummies()
-           a      b
-        0  True   False
-        1  False  True
-        2  False  False
-
-        >>> Categorical(["a", "b", np.nan]).to_dummies("other")
-           a      b      other
-        0  True   False  False
-        1  False  True   False
-        2  False  False  True
+            Dummy-coded data.
 
         See Also
         --------
-        :func:`pandas.get_dummies`
+        Series.str.get_dummies : Convert Series to dummy codes.
+        pandas.get_dummies : Convert categorical variable to dummy/indicator variables.
+
+        Examples
+        --------
+        >>> s = pd.Categorical(list('abca'))
+
+        >>> s.get_dummies()
+        a  b  c
+        0  1  0  0
+        1  0  1  0
+        2  0  0  1
+        3  1  0  0
+
+        >>> s1 = pd.Categorical(['a', 'b', np.nan])
+
+        >>> s1.get_dummies()
+        a  b
+        0  1  0
+        1  0  1
+        2  0  0
+
+        >>> s1.get_dummies(dummy_na=True)
+        a  b  NaN
+        0  1  0    0
+        1  0  1    0
+        2  0  0    1
+
+        >>> pd.Categorical(list('abcaa)).get_dummies()
+        a  b  c
+        0  1  0  0
+        1  0  1  0
+        2  0  0  1
+        3  1  0  0
+        4  1  0  0
+
+        >>> pd.Categorical(list('abcaa)).get_dummies(drop_first=True)
+        b  c
+        0  0  0
+        1  1  0
+        2  0  1
+        3  0  0
+        4  0  0
+
+        >>> pd.Categorical(list('abc')).get_dummies(dtype=float)
+            a    b    c
+        0  1.0  0.0  0.0
+        1  0.0  1.0  0.0
+        2  0.0  0.0  1.0
         """
-        from pandas import DataFrame, CategoricalIndex, Series
+        from pandas import _get_dummies_1d
 
-        eye = np.eye(len(self.categories) + 1, dtype=bool)
-        arr = eye[self.codes, :]
-
-        if na_column is None:
-            return DataFrame(arr[:, :-1], columns=CategoricalIndex(self.categories))
-        else:
-            cats = CategoricalIndex(Series(list(self.categories) + [na_column]))
-            return DataFrame(arr, columns=cats)
+        return _get_dummies_1d(
+            self,
+            prefix=prefix,
+            prefix_sep=prefix_sep,
+            dummy_na=dummy_na,
+            sparse=sparse,
+            drop_first=drop_first,
+            dtype=dtype,
+        )
 
     @property
     def dtype(self) -> CategoricalDtype:
