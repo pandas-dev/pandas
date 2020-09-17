@@ -609,9 +609,7 @@ class DatetimeLikeArrayMixin(
         if no_op:
             return
 
-        value = self._validate_setitem_value(value)
-        key = check_array_indexer(self, key)
-        self._ndarray[key] = value
+        super().__setitem__(key, value)
         self._maybe_clear_freq()
 
     def _maybe_clear_freq(self):
@@ -697,7 +695,7 @@ class DatetimeLikeArrayMixin(
         return new_obj
 
     def _values_for_factorize(self):
-        return self.asi8, iNaT
+        return self._ndarray, iNaT
 
     @classmethod
     def _from_factorized(cls, values, original):
@@ -847,8 +845,7 @@ class DatetimeLikeArrayMixin(
         if not is_list_like(value):
             value = self._validate_scalar(value, msg, cast_str=True)
         else:
-            # TODO: cast_str?  we accept it for scalar
-            value = self._validate_listlike(value, "searchsorted")
+            value = self._validate_listlike(value, "searchsorted", cast_str=True)
 
         rv = self._unbox(value)
         return self._rebox_native(rv)
