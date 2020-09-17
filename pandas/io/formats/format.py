@@ -688,6 +688,18 @@ class DataFrameFormatter(TableFormatter):
         """Check if the output is to be shown in terminal."""
         return bool(self.max_cols == 0 or self.max_rows == 0)
 
+    @property
+    def max_cols_adj(self) -> int:
+        try:
+            return self._max_cols_adj
+        except AttributeError:
+            width, _ = get_terminal_size()
+            if self.max_cols == 0 and len(self.frame.columns) > width:
+                self._max_cols_adj = width
+            else:
+                self._max_cols_adj = self.max_cols
+            return self._max_cols_adj
+
     def _chk_truncate(self) -> None:
         """
         Checks whether the frame should be truncated. If so, slices
@@ -718,8 +730,6 @@ class DataFrameFormatter(TableFormatter):
 
             # Format only rows and columns that could potentially fit the
             # screen
-            if max_cols == 0 and len(self.frame.columns) > width:
-                max_cols = width
             if max_rows == 0 and len(self.frame) > height:
                 max_rows = height
 
@@ -729,8 +739,6 @@ class DataFrameFormatter(TableFormatter):
                     # if truncated, set max_rows showed to min_rows
                     max_rows = min(self.min_rows, max_rows)
             self.max_rows_adj = max_rows
-        if not hasattr(self, "max_cols_adj"):
-            self.max_cols_adj = max_cols
 
         max_cols_adj = self.max_cols_adj
         max_rows_adj = self.max_rows_adj
@@ -919,7 +927,7 @@ class DataFrameFormatter(TableFormatter):
                 max_cols_adj = n_cols - self.index
                 # GH-21180. Ensure that we print at least two.
                 max_cols_adj = max(max_cols_adj, 2)
-                self.max_cols_adj = max_cols_adj
+                self._max_cols_adj = max_cols_adj
 
                 # Call again _chk_truncate to cut frame appropriately
                 # and then generate string representation
