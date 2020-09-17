@@ -347,7 +347,7 @@ cdef class {{name}}HashTable(HashTable):
             int ret = 0
             {{dtype}}_t val
             khiter_t k
-            int64_t[:] locs = np.empty(n, dtype=np.int64)
+            intp_t[:] locs = np.empty(n, dtype=np.intp)
 
         with nogil:
             for i in range(n):
@@ -680,7 +680,7 @@ cdef class StringHashTable(HashTable):
             object val
             const char *v
             khiter_t k
-            int64_t[:] locs = np.empty(n, dtype=np.int64)
+            intp_t[:] locs = np.empty(n, dtype=np.intp)
 
         # these by-definition *must* be strings
         vecs = <const char **>malloc(n * sizeof(char *))
@@ -986,7 +986,7 @@ cdef class PyObjectHashTable(HashTable):
             int ret = 0
             object val
             khiter_t k
-            int64_t[:] locs = np.empty(n, dtype=np.int64)
+            intp_t[:] locs = np.empty(n, dtype=np.intp)
 
         for i in range(n):
             val = values[i]
