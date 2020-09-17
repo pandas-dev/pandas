@@ -689,7 +689,8 @@ class DataFrameFormatter(TableFormatter):
         return bool(self.max_cols == 0 or self.max_rows == 0)
 
     @property
-    def max_cols_adj(self) -> int:
+    def max_cols_adj(self) -> Optional[int]:
+        """Number of columns fitting the screen."""
         try:
             return self._max_cols_adj
         except AttributeError:
@@ -700,18 +701,10 @@ class DataFrameFormatter(TableFormatter):
                 self._max_cols_adj = self.max_cols
             return self._max_cols_adj
 
-    def _chk_truncate(self) -> None:
-        """
-        Checks whether the frame should be truncated. If so, slices
-        the frame up.
-        """
-        from pandas.core.reshape.concat import concat
-
-        # Cut the data to the information actually printed
-        max_cols = self.max_cols
+    @property
+    def max_rows_adj(self) -> Optional[int]:
+        """Number of rows fitting the screen."""
         max_rows = self.max_rows
-        self.max_rows_adj: Optional[int]
-        max_rows_adj: Optional[int]
 
         if self._is_in_terminal():
             (width, height) = get_terminal_size()
@@ -725,20 +718,27 @@ class DataFrameFormatter(TableFormatter):
                 self.header = cast(bool, self.header)
                 n_add_rows = self.header + dot_row + show_dimension_rows + prompt_row
                 # rows available to fill with actual data
-                max_rows_adj = height - n_add_rows
-                self.max_rows_adj = max_rows_adj
+                return height - n_add_rows
 
-            # Format only rows and columns that could potentially fit the
-            # screen
-            if max_rows == 0 and len(self.frame) > height:
+            if self.max_rows == 0 and len(self.frame) > height:
                 max_rows = height
 
-        if not hasattr(self, "max_rows_adj"):
-            if max_rows:
-                if (len(self.frame) > max_rows) and self.min_rows:
-                    # if truncated, set max_rows showed to min_rows
-                    max_rows = min(self.min_rows, max_rows)
-            self.max_rows_adj = max_rows
+        if max_rows:
+            if (len(self.frame) > max_rows) and self.min_rows:
+                # if truncated, set max_rows showed to min_rows
+                max_rows = min(self.min_rows, max_rows)
+        return max_rows
+
+    def _chk_truncate(self) -> None:
+        """
+        Checks whether the frame should be truncated. If so, slices
+        the frame up.
+        """
+        from pandas.core.reshape.concat import concat
+
+        # Cut the data to the information actually printed
+        max_cols = self.max_cols
+        max_rows = self.max_rows
 
         max_cols_adj = self.max_cols_adj
         max_rows_adj = self.max_rows_adj
@@ -957,8 +957,7 @@ class DataFrameFormatter(TableFormatter):
         nbins = len(col_bins)
 
         if self.truncate_v:
-            # cast here since if truncate_v is True, max_rows_adj is not None
-            self.max_rows_adj = cast(int, self.max_rows_adj)
+            assert self.max_rows_adj is not None
             nrows = self.max_rows_adj + 1
         else:
             nrows = len(self.frame)
