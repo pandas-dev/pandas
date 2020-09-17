@@ -537,7 +537,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         1  0.0  1.0  0.0
         2  0.0  0.0  1.0
         """
-        from pandas import _get_dummies_1d
+        from pandas.core.reshape.reshape import _get_dummies_1d
 
         return _get_dummies_1d(
             self,
