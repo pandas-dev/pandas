@@ -154,7 +154,7 @@ class CSVFormatter:
 
         if cols is not None:
             if isinstance(cols, ABCIndexClass):
-                cols = cols.to_native_types(**self._number_format)
+                cols = cols._format_native_types(**self._number_format)
             else:
                 cols = list(cols)
             self.obj = self.obj.loc[:, cols]
@@ -163,7 +163,7 @@ class CSVFormatter:
         # and make sure sure cols is just a list of labels
         cols = self.obj.columns
         if isinstance(cols, ABCIndexClass):
-            return cols.to_native_types(**self._number_format)
+            return cols._format_native_types(**self._number_format)
         else:
             assert isinstance(cols, Sequence)
             return list(cols)
@@ -347,5 +347,5 @@ class CSVFormatter:
         for i in range(len(res.items)):
             data[i] = res.iget_values(i)
 
-        ix = self.data_index.to_native_types(slicer=slicer, **self._number_format)
+        ix = self.data_index[slicer]._format_native_types(**self._number_format)
         libwriters.write_csv_rows(data, ix, self.nlevels, self.cols, self.writer)
