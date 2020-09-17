@@ -575,26 +575,7 @@ class DataFrameFormatter(TableFormatter):
         self.formatters = formatters
         self.na_rep = na_rep
         self.decimal = decimal
-        if col_space is None:
-            self.col_space = {}
-        elif isinstance(col_space, (int, str)):
-            self.col_space = {"": col_space}
-            self.col_space.update({column: col_space for column in self.frame.columns})
-        elif isinstance(col_space, Mapping):
-            for column in col_space.keys():
-                if column not in self.frame.columns and column != "":
-                    raise ValueError(
-                        f"Col_space is defined for an unknown column: {column}"
-                    )
-            self.col_space = col_space
-        else:
-            if len(frame.columns) != len(col_space):
-                raise ValueError(
-                    f"Col_space length({len(col_space)}) should match "
-                    f"DataFrame number of columns({len(frame.columns)})"
-                )
-            self.col_space = dict(zip(self.frame.columns, col_space))
-
+        self.col_space = col_space
         self.header = header
         self.index = index
         self.line_width = line_width
@@ -650,6 +631,32 @@ class DataFrameFormatter(TableFormatter):
             self.frame = self.frame[self._columns]
         else:
             self._columns = self.frame.columns
+
+    @property
+    def col_space(self):
+        return self._col_space
+
+    @col_space.setter
+    def col_space(self, col_space):
+        if col_space is None:
+            self._col_space = {}
+        elif isinstance(col_space, (int, str)):
+            self._col_space = {"": col_space}
+            self._col_space.update({column: col_space for column in self.frame.columns})
+        elif isinstance(col_space, Mapping):
+            for column in col_space.keys():
+                if column not in self.frame.columns and column != "":
+                    raise ValueError(
+                        f"Col_space is defined for an unknown column: {column}"
+                    )
+            self._col_space = col_space
+        else:
+            if len(self.frame.columns) != len(col_space):
+                raise ValueError(
+                    f"Col_space length({len(col_space)}) should match "
+                    f"DataFrame number of columns({len(self.frame.columns)})"
+                )
+            self._col_space = dict(zip(self.frame.columns, col_space))
 
     def _chk_truncate(self) -> None:
         """
