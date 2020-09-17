@@ -606,7 +606,7 @@ This function is often used along with discretization functions like ``cut``:
 
    pd.get_dummies(pd.cut(values, bins))
 
-See also :func:`Series.str.get_dummies <pandas.Series.str.get_dummies>`.
+See also :func:`Series.str.get_dummies <pandas.Series.str.get_dummies>` and :func:`Categorical.get_dummies <pandas.Categorical.get_dummies>`.
 
 :func:`get_dummies` also accepts a ``DataFrame``. By default all categorical
 variables (categorical in the statistical sense, those with `object` or
@@ -678,6 +678,15 @@ To choose another dtype, use the ``dtype`` argument:
     df = pd.DataFrame({'A': list('abc'), 'B': [1.1, 2.2, 3.3]})
 
     pd.get_dummies(df, dtype=bool).dtypes
+
+A :class:`~pandas.Categorical` can be recovered from a :class:`~pandas.DataFrame` of such dummy variables using :meth:`~pandas.Categorical.from_dummies`.
+Use the ``prefix`` and ``prefix_sep`` arguments to select and rename columns which have had a prefix applied in the same way as :class:`~pandas.get_dummies` does.
+
+.. ipython:: python
+
+    df = pd.get_dummies(list("abca"))
+
+    pd.Categorical.from_dummies(df)
 
 
 .. _reshaping.factorize:
