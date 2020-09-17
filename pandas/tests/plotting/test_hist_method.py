@@ -239,7 +239,8 @@ class TestDataFramePlots(TestPlotBase):
                 "d": to_datetime(
                     np.random.randint(
                         1582800000000000000, 1583500000000000000, 10, dtype=np.int64
-                    )
+                    ),
+                    utc=True,
                 ),
             }
         )

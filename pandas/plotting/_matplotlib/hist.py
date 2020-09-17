@@ -422,7 +422,7 @@ def hist_frame(
     # GH32590
     columns_copy = data.columns
     numeric_data = data._get_numeric_data()
-    datetime_data = data.select_dtypes(include="datetime64[ns]")
+    datetime_data = data.select_dtypes(include=["datetime64", "datetimetz"])
     data = concat([numeric_data, datetime_data], axis=1)
     naxes = len(data.columns)
 
