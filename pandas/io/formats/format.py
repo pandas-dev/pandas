@@ -572,15 +572,7 @@ class DataFrameFormatter(TableFormatter):
         self.sparsify = sparsify
 
         self.float_format = float_format
-        if formatters is None:
-            self.formatters = {}
-        elif len(frame.columns) == len(formatters) or isinstance(formatters, dict):
-            self.formatters = formatters
-        else:
-            raise ValueError(
-                f"Formatters length({len(formatters)}) should match "
-                f"DataFrame number of columns({len(frame.columns)})"
-            )
+        self.formatters = formatters
         self.na_rep = na_rep
         self.decimal = decimal
         if col_space is None:
@@ -630,6 +622,22 @@ class DataFrameFormatter(TableFormatter):
 
         self._chk_truncate()
         self.adj = get_adjustment()
+
+    @property
+    def formatters(self):
+        return self._formatters
+
+    @formatters.setter
+    def formatters(self, formatters):
+        if formatters is None:
+            self._formatters = {}
+        elif len(self.frame.columns) == len(formatters) or isinstance(formatters, dict):
+            self._formatters = formatters
+        else:
+            raise ValueError(
+                f"Formatters length({len(formatters)}) should match "
+                f"DataFrame number of columns({len(self.frame.columns)})"
+            )
 
     def _chk_truncate(self) -> None:
         """
@@ -701,7 +709,7 @@ class DataFrameFormatter(TableFormatter):
                 # truncate formatter
                 if isinstance(self.formatters, (list, tuple)):
                     truncate_fmt = self.formatters
-                    self.formatters = [
+                    self._formatters = [
                         *truncate_fmt[:col_num],
                         *truncate_fmt[-col_num:],
                     ]
