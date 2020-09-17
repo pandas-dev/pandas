@@ -277,13 +277,12 @@ class SeriesGroupBy(GroupBy[Series]):
                     #  see see test_groupby.test_basic
                     result = self._aggregate_maybe_named(func, *args, **kwargs)
 
+            # name setting -> test_metadata_propagation_indiv
             index = self.grouper.result_index
-            assert index.name == self.grouper.names[0]
-
+            obj = self._selected_obj
             ret = create_series_with_explicit_dtype(
-                result, index=index, dtype_if_empty=object
+                result, index=index, dtype_if_empty=object, name=obj.name
             )
-            ret.name = self._selected_obj.name  # test_metadata_propagation_indiv
 
         if not self.as_index:  # pragma: no cover
             print("Warning, ignoring as_index=True")

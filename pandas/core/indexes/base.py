@@ -4053,7 +4053,9 @@ class Index(IndexOpsMixin, PandasObject):
         Indicates if an index is not directly backed by a numpy array
         """
         # used to avoid libreduction code paths, which raise or require conversion
-        return False
+        return isinstance(self, (ABCMultiIndex, ABCRangeIndex)) or not isinstance(
+            self._data, np.ndarray
+        )
 
     def _is_memory_usage_qualified(self) -> bool:
         """

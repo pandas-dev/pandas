@@ -45,14 +45,7 @@ import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.groupby import base, grouper
-from pandas.core.indexes.api import (
-    DatetimeIndex,
-    Index,
-    MultiIndex,
-    RangeIndex,
-    TimedeltaIndex,
-    ensure_index,
-)
+from pandas.core.indexes.api import Index, MultiIndex, ensure_index
 from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index,
@@ -163,18 +156,13 @@ class BaseGrouper:
         result_values = None
 
         sdata: FrameOrSeries = splitter._get_sorted_data()
-        if sdata.ndim == 2 and np.any(sdata.dtypes.apply(is_extension_array_dtype)):
-            # calling splitter.fast_apply will raise TypeError via apply_frame_axis0
-            #  if we pass EA instead of ndarray
-            #  TODO: can we have a workaround for EAs backed by ndarray?
-            pass
-
-        elif (
+        if (
             com.get_callable_name(f) not in base.plotting_methods
             and isinstance(splitter, FrameSplitter)
             and axis == 0
             # fast_apply/libreduction doesn't allow non-numpy backed indexes
-            and not sdata.index._has_complex_internals
+            #  or columns
+            and sdata._can_use_libreduction
         ):
             try:
                 result_values, mutated = splitter.fast_apply(f, sdata, group_keys)
@@ -616,19 +604,10 @@ class BaseGrouper:
             # SeriesGrouper would raise if we were to call _aggregate_series_fast
             return self._aggregate_series_pure_python(obj, func)
 
-        elif is_extension_array_dtype(obj.dtype):
+        elif not obj._can_use_libreduction:
             # _aggregate_series_fast would raise TypeError when
             #  calling libreduction.Slider
             # In the datetime64tz case it would incorrectly cast to tz-naive
-            # TODO: can we get a performant workaround for EAs backed by ndarray?
-            return self._aggregate_series_pure_python(obj, func)
-
-        elif obj.index._has_complex_internals or isinstance(
-            obj.index, (DatetimeIndex, TimedeltaIndex, RangeIndex)
-        ):
-            # Preempt TypeError in _aggregate_series_fast
-            # exclude RangeIndex/DTI/TDI because patching it in libreduction would
-            #  silently be incorrect
             return self._aggregate_series_pure_python(obj, func)
 
         try:

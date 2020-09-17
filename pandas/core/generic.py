@@ -404,6 +404,18 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         #  e.g. fastparquet
         return self._mgr
 
+    @property
+    def _can_use_libreduction(self) -> bool:
+        # groupby ops can only use libreduction fast-path if we are all-numpy
+        if self.index._has_complex_internals:
+            return False
+
+        is_invalid = lambda x: is_extension_array_dtype(x) or x.kind in ["m", "M"]
+        if self.ndim == 1:
+            return not is_invalid(self.dtype)
+        else:
+            return not self.dtypes.apply(is_invalid).any()
+
     # ----------------------------------------------------------------------
     # Axis
     _stat_axis_number = 0

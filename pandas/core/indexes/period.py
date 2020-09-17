@@ -247,11 +247,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     def values(self):
         return np.asarray(self)
 
-    @property
-    def _has_complex_internals(self):
-        # used to avoid libreduction code paths, which raise or require conversion
-        return True
-
     def _shallow_copy(self, values=None, name: Label = no_default):
         name = name if name is not no_default else self.name
         cache = self._cache.copy() if values is None else {}

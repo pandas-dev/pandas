@@ -343,11 +343,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         """ return the underlying data, which is a Categorical """
         return self._data
 
-    @property
-    def _has_complex_internals(self) -> bool:
-        # used to avoid libreduction code paths, which raise or require conversion
-        return True
-
     @doc(Index.__contains__)
     def __contains__(self, key: Any) -> bool:
         # if key is a NaN, check if any NaN is in self.
