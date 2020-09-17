@@ -640,17 +640,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if limit is not None:
             raise TypeError("limit is not supported for IntervalArray.")
 
-        if not isinstance(value, Interval):
-            msg = (
-                "'IntervalArray.fillna' only supports filling with a "
-                f"scalar 'pandas.Interval'. Got a '{type(value).__name__}' instead."
-            )
-            raise TypeError(msg)
+        value_left, value_right = self._validate_fillna_value(value)
 
-        self._check_closed_matches(value, name="value")
-
-        left = self.left.fillna(value=value.left)
-        right = self.right.fillna(value=value.right)
+        left = self.left.fillna(value=value_left)
+        right = self.right.fillna(value=value_right)
         return self._shallow_copy(left, right)
 
     @property
@@ -845,18 +838,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         fill_left = fill_right = fill_value
         if allow_fill:
-            if fill_value is None:
-                fill_left = fill_right = self.left._na_value
-            elif is_interval(fill_value):
-                self._check_closed_matches(fill_value, name="fill_value")
-                fill_left, fill_right = fill_value.left, fill_value.right
-            elif not is_scalar(fill_value) and notna(fill_value):
-                msg = (
-                    "'IntervalArray.fillna' only supports filling with a "
-                    "'scalar pandas.Interval or NA'. "
-                    f"Got a '{type(fill_value).__name__}' instead."
-                )
-                raise ValueError(msg)
+            fill_left, fill_right = self._validate_fill_value(fill_value)
 
         left_take = take(
             self.left, indices, allow_fill=allow_fill, fill_value=fill_left
@@ -866,6 +848,49 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         )
 
         return self._shallow_copy(left_take, right_take)
+
+    def _validate_fill_value(self, value):
+        if is_interval(value):
+            self._check_closed_matches(value, name="fill_value")
+            fill_left, fill_right = value.left, value.right
+        elif not is_scalar(value) and notna(value):
+            msg = (
+                "'IntervalArray.fillna' only supports filling with a "
+                "'scalar pandas.Interval or NA'. "
+                f"Got a '{type(value).__name__}' instead."
+            )
+            raise ValueError(msg)
+        else:
+            fill_left = fill_right = self.left._na_value
+        return fill_left, fill_right
+
+    def _validate_fillna_value(self, value):
+        if not isinstance(value, Interval):
+            msg = (
+                "'IntervalArray.fillna' only supports filling with a "
+                f"scalar 'pandas.Interval'. Got a '{type(value).__name__}' instead."
+            )
+            raise TypeError(msg)
+
+        self._check_closed_matches(value, name="value")
+        return value.left, value.right
+
+    def _validate_insert_value(self, value):
+        if isinstance(value, Interval):
+            if value.closed != self.closed:
+                raise ValueError(
+                    "inserted item must be closed on the same side as the index"
+                )
+            left_insert = value.left
+            right_insert = value.right
+        elif is_scalar(value) and isna(value):
+            # GH#18295
+            left_insert = right_insert = value
+        else:
+            raise ValueError(
+                "can only insert Interval objects and NA into an IntervalIndex"
+            )
+        return left_insert, right_insert
 
     def value_counts(self, dropna=True):
         """
