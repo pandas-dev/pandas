@@ -667,7 +667,7 @@ class DataFrameFormatter(TableFormatter):
         assert self._col_space is not None
 
     @property
-    def max_rows_displayed(self):
+    def max_rows_displayed(self) -> int:
         return min(self.max_rows or len(self.frame), len(self.frame))
 
     def _chk_truncate(self) -> None:
