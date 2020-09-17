@@ -43,7 +43,7 @@ from pandas.core.dtypes.inference import (  # noqa:F401
     is_sequence,
 )
 
-_POSSIBLY_CAST_DTYPES = {
+POSSIBLY_CAST_DTYPES = {
     np.dtype(t).name
     for t in [
         "O",

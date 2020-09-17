@@ -31,7 +31,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
-from pandas.core.algorithms import _factorize_array, unique
+from pandas.core.algorithms import factorize_array, unique
 from pandas.core.missing import backfill_1d, pad_1d
 from pandas.core.sorting import nargminmax, nargsort
 
@@ -45,8 +45,6 @@ class ExtensionArray:
     pandas will recognize instances of this class as proper arrays
     with a custom type and will not attempt to coerce them to objects. They
     may be stored directly inside a :class:`DataFrame` or :class:`Series`.
-
-    .. versionadded:: 0.23.0
 
     Attributes
     ----------
@@ -845,7 +843,7 @@ class ExtensionArray:
         #    Complete control over factorization.
         arr, na_value = self._values_for_factorize()
 
-        codes, uniques = _factorize_array(
+        codes, uniques = factorize_array(
             arr, na_sentinel=na_sentinel, na_value=na_value
         )
 

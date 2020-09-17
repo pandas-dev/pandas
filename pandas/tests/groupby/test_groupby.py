@@ -1183,6 +1183,18 @@ def test_groupby_dtype_inference_empty():
     tm.assert_frame_equal(result, expected, by_blocks=True)
 
 
+def test_groupby_unit64_float_conversion():
+    #  GH: 30859 groupby converts unit64 to floats sometimes
+    df = pd.DataFrame({"first": [1], "second": [1], "value": [16148277970000000000]})
+    result = df.groupby(["first", "second"])["value"].max()
+    expected = pd.Series(
+        [16148277970000000000],
+        pd.MultiIndex.from_product([[1], [1]], names=["first", "second"]),
+        name="value",
+    )
+    tm.assert_series_equal(result, expected)
+
+
 def test_groupby_list_infer_array_like(df):
     result = df.groupby(list(df["A"])).mean()
     expected = df.groupby(df["A"]).mean()
@@ -1949,13 +1961,6 @@ def test_shift_bfill_ffill_tz(tz_naive_fixture, op, expected):
     tm.assert_frame_equal(result, expected)
 
 
-def test_ffill_missing_arguments():
-    # GH 14955
-    df = pd.DataFrame({"a": [1, 2], "b": [1, 1]})
-    with pytest.raises(ValueError, match="Must specify a fill"):
-        df.groupby("b").fillna()
-
-
 def test_groupby_only_none_group():
     # see GH21624
     # this was crashing with "ValueError: Length of passed values is 1, index implies 0"
@@ -2123,14 +2128,12 @@ def test_groupby_column_index_name_lost(func):
     tm.assert_index_equal(result, expected)
 
 
-@pytest.mark.parametrize("func", ["ffill", "bfill"])
-def test_groupby_column_index_name_lost_fill_funcs(func):
-    # GH: 29764 groupby loses index sometimes
+def test_groupby_duplicate_columns():
+    # GH: 31735
     df = pd.DataFrame(
-        [[1, 1.0, -1.0], [1, np.nan, np.nan], [1, 2.0, -2.0]],
-        columns=pd.Index(["type", "a", "b"], name="idx"),
-    )
-    df_grouped = df.groupby(["type"])[["a", "b"]]
-    result = getattr(df_grouped, func)().columns
-    expected = pd.Index(["a", "b"], name="idx")
-    tm.assert_index_equal(result, expected)
+        {"A": ["f", "e", "g", "h"], "B": ["a", "b", "c", "d"], "C": [1, 2, 3, 4]}
+    ).astype(object)
+    df.columns = ["A", "B", "B"]
+    result = df.groupby([0, 0, 0, 0]).min()
+    expected = pd.DataFrame([["e", "a", 1]], columns=["A", "B", "B"])
+    tm.assert_frame_equal(result, expected)

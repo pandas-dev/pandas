@@ -1,3 +1,4 @@
+from functools import wraps
 from sys import getsizeof
 from typing import (
     TYPE_CHECKING,
@@ -150,6 +151,25 @@ class MultiIndexPyIntEngine(libindex.BaseMultiIndexCodesEngine, libindex.ObjectE
 
         # Multiple keys
         return np.bitwise_or.reduce(codes, axis=1)
+
+
+def names_compat(meth):
+    """
+    A decorator to allow either `name` or `names` keyword but not both.
+
+    This makes it easier to share code with base class.
+    """
+
+    @wraps(meth)
+    def new_meth(self_or_cls, *args, **kwargs):
+        if "name" in kwargs and "names" in kwargs:
+            raise TypeError("Can only provide one of `names` and `name`")
+        elif "name" in kwargs:
+            kwargs["names"] = kwargs.pop("name")
+
+        return meth(self_or_cls, *args, **kwargs)
+
+    return new_meth
 
 
 class MultiIndex(Index):
@@ -449,6 +469,7 @@ class MultiIndex(Index):
         )
 
     @classmethod
+    @names_compat
     def from_tuples(
         cls,
         tuples,
@@ -1337,14 +1358,14 @@ class MultiIndex(Index):
             if sparsify in [False, lib.no_default]:
                 sentinel = sparsify
             # little bit of a kludge job for #1217
-            result_levels = _sparsify(
+            result_levels = sparsify_labels(
                 result_levels, start=int(names), sentinel=sentinel
             )
 
         if adjoin:
-            from pandas.io.formats.format import _get_adjustment
+            from pandas.io.formats.format import get_adjustment
 
-            adj = _get_adjustment()
+            adj = get_adjustment()
             return adj.adjoin(space, *result_levels).split("\n")
         else:
             return result_levels
@@ -2512,10 +2533,6 @@ class MultiIndex(Index):
 
         return ensure_platform_int(indexer)
 
-    @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
-    def get_indexer_non_unique(self, target):
-        return super().get_indexer_non_unique(target)
-
     def get_slice_bound(
         self, label: Union[Hashable, Sequence[Hashable]], side: str, kind: str
     ) -> int:
@@ -3154,6 +3171,8 @@ class MultiIndex(Index):
 
         return indexer._values
 
+    # --------------------------------------------------------------------
+
     def _reorder_indexer(
         self,
         seq: Tuple[Union[Scalar, Iterable, AnyArrayLike], ...],
@@ -3633,10 +3652,6 @@ class MultiIndex(Index):
             verify_integrity=False,
         )
 
-    def _wrap_joined_index(self, joined, other):
-        names = self.names if self.names == other.names else None
-        return MultiIndex.from_tuples(joined, names=names)
-
     @doc(Index.isin)
     def isin(self, values, level=None):
         if level is None:
@@ -3690,7 +3705,7 @@ MultiIndex._add_numeric_methods_add_sub_disabled()
 MultiIndex._add_logical_methods_disabled()
 
 
-def _sparsify(label_list, start: int = 0, sentinel=""):
+def sparsify_labels(label_list, start: int = 0, sentinel=""):
     pivoted = list(zip(*label_list))
     k = len(label_list)
 

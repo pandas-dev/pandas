@@ -50,10 +50,10 @@ from pandas.core.internals.blocks import (
     DatetimeTZBlock,
     ExtensionBlock,
     ObjectValuesExtensionBlock,
-    _safe_reshape,
     extend_blocks,
     get_block_type,
     make_block,
+    safe_reshape,
 )
 from pandas.core.internals.ops import blockwise_all, operate_blockwise
 
@@ -1460,6 +1460,13 @@ class BlockManager(DataManager):
         bm._consolidate_inplace()
         return bm
 
+    def to_native_types(self, **kwargs) -> "BlockManager":
+        """
+        Convert values to native types (strings / python objects) that are used
+        in formatting (repr / csv).
+        """
+        return self.apply("to_native_types", **kwargs)
+
     def is_consolidated(self) -> bool:
         """
         Return True if more than one block with the same dtype
@@ -1844,7 +1851,7 @@ class BlockManager(DataManager):
 
         else:
             if value.ndim == self.ndim - 1:
-                value = _safe_reshape(value, (1,) + value.shape)
+                value = safe_reshape(value, (1,) + value.shape)
 
                 def value_getitem(placement):
                     return value
@@ -1967,7 +1974,7 @@ class BlockManager(DataManager):
 
         if value.ndim == self.ndim - 1 and not is_extension_array_dtype(value.dtype):
             # TODO(EA2D): special case not needed with 2D EAs
-            value = _safe_reshape(value, (1,) + value.shape)
+            value = safe_reshape(value, (1,) + value.shape)
 
         block = make_block(values=value, ndim=self.ndim, placement=slice(loc, loc + 1))
 

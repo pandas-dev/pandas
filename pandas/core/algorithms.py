@@ -262,7 +262,7 @@ def _get_values_for_rank(values):
     return values
 
 
-def _get_data_algo(values):
+def get_data_algo(values):
     values = _get_values_for_rank(values)
 
     ndtype = _check_object_for_strings(values)
@@ -462,7 +462,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     return f(comps, values)
 
 
-def _factorize_array(
+def factorize_array(
     values, na_sentinel: int = -1, size_hint=None, na_value=None, mask=None
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
@@ -491,7 +491,7 @@ def _factorize_array(
     codes : ndarray
     uniques : ndarray
     """
-    hash_klass, values = _get_data_algo(values)
+    hash_klass, values = get_data_algo(values)
 
     table = hash_klass(size_hint or len(values))
     uniques, codes = table.factorize(
@@ -671,7 +671,7 @@ def factorize(
         else:
             na_value = None
 
-        codes, uniques = _factorize_array(
+        codes, uniques = factorize_array(
             values, na_sentinel=na_sentinel, size_hint=size_hint, na_value=na_value
         )
 
@@ -1524,8 +1524,6 @@ def take(arr, indices, axis: int = 0, allow_fill: bool = False, fill_value=None)
     """
     Take elements from an array.
 
-    .. versionadded:: 0.23.0
-
     Parameters
     ----------
     arr : sequence
@@ -2086,7 +2084,7 @@ def safe_sort(
 
     if sorter is None:
         # mixed types
-        hash_klass, values = _get_data_algo(values)
+        hash_klass, values = get_data_algo(values)
         t = hash_klass(len(values))
         t.map_locations(values)
         sorter = ensure_platform_int(t.lookup(ordered))
