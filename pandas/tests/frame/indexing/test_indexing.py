@@ -1340,7 +1340,8 @@ class TestDataFrameIndexing:
         df = float_frame
         rows = list(df.index) * len(df.columns)
         cols = list(df.columns) * len(df.index)
-        result = df.lookup(rows, cols)
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.lookup(rows, cols)
 
         expected = np.array([df.loc[r, c] for r, c in zip(rows, cols)])
         tm.assert_numpy_array_equal(result, expected)
@@ -1349,7 +1350,8 @@ class TestDataFrameIndexing:
         df = float_string_frame
         rows = list(df.index) * len(df.columns)
         cols = list(df.columns) * len(df.index)
-        result = df.lookup(rows, cols)
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.lookup(rows, cols)
 
         expected = np.array(
             [df.loc[r, c] for r, c in zip(rows, cols)], dtype=np.object_
@@ -1365,7 +1367,8 @@ class TestDataFrameIndexing:
                 "mask_c": [False, True, False, True],
             }
         )
-        df["mask"] = df.lookup(df.index, "mask_" + df["label"])
+        with tm.assert_produces_warning(FutureWarning):
+            df["mask"] = df.lookup(df.index, "mask_" + df["label"])
 
         exp_mask = np.array(
             [df.loc[r, c] for r, c in zip(df.index, "mask_" + df["label"])]
@@ -1376,13 +1379,16 @@ class TestDataFrameIndexing:
 
     def test_lookup_raises(self, float_frame):
         with pytest.raises(KeyError, match="'One or more row labels was not found'"):
-            float_frame.lookup(["xyz"], ["A"])
+            with tm.assert_produces_warning(FutureWarning):
+                float_frame.lookup(["xyz"], ["A"])
 
         with pytest.raises(KeyError, match="'One or more column labels was not found'"):
-            float_frame.lookup([float_frame.index[0]], ["xyz"])
+            with tm.assert_produces_warning(FutureWarning):
+                float_frame.lookup([float_frame.index[0]], ["xyz"])
 
         with pytest.raises(ValueError, match="same size"):
-            float_frame.lookup(["a", "b", "c"], ["a"])
+            with tm.assert_produces_warning(FutureWarning):
+                float_frame.lookup(["a", "b", "c"], ["a"])
 
     def test_lookup_requires_unique_axes(self):
         # GH#33041 raise with a helpful error message
@@ -1393,14 +1399,17 @@ class TestDataFrameIndexing:
 
         # homogeneous-dtype case
         with pytest.raises(ValueError, match="requires unique index and columns"):
-            df.lookup(rows, cols)
+            with tm.assert_produces_warning(FutureWarning):
+                df.lookup(rows, cols)
         with pytest.raises(ValueError, match="requires unique index and columns"):
-            df.T.lookup(cols, rows)
+            with tm.assert_produces_warning(FutureWarning):
+                df.T.lookup(cols, rows)
 
         # heterogeneous dtype
         df["B"] = 0
         with pytest.raises(ValueError, match="requires unique index and columns"):
-            df.lookup(rows, cols)
+            with tm.assert_produces_warning(FutureWarning):
+                df.lookup(rows, cols)
 
     def test_set_value(self, float_frame):
         for idx in float_frame.index:
@@ -2242,3 +2251,12 @@ def test_indexing_with_nullable_boolean_frame():
         {"a": pd.array([1, None, None]), "b": pd.array([1, None, None])}
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_lookup_deprecated():
+    # GH18262
+    df = pd.DataFrame(
+        {"col": ["A", "A", "B", "B"], "A": [80, 23, np.nan, 22], "B": [80, 55, 76, 67]}
+    )
+    with tm.assert_produces_warning(FutureWarning):
+        df.lookup(df.index, df["col"])

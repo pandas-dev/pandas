@@ -1171,6 +1171,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
     # -------------------------------------------------------------
     # Validators; ideally these can be de-duplicated
 
+    def _validate_where_value(self, value):
+        if is_scalar(value):
+            return self._validate_fill_value(value)
+        return self._validate_listlike(value)
+
     def _validate_insert_value(self, value) -> int:
         code = self.categories.get_indexer([value])
         if (code == -1) and not (is_scalar(value) and isna(value)):
@@ -1541,7 +1546,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         sorted_idx = nargsort(self, ascending=ascending, na_position=na_position)
 
         if inplace:
-            self._codes = self._codes[sorted_idx]
+            self._codes[:] = self._codes[sorted_idx]
         else:
             codes = self._codes[sorted_idx]
             return self._from_backing_data(codes)
@@ -1882,17 +1887,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         """
         Return an item.
         """
-        if isinstance(key, (int, np.integer)):
-            i = self._codes[key]
-            return self._box_func(i)
-
-        key = check_array_indexer(self, key)
-
-        result = self._codes[key]
-        if result.ndim > 1:
+        result = super().__getitem__(key)
+        if getattr(result, "ndim", 0) > 1:
+            result = result._ndarray
             deprecate_ndim_indexing(result)
-            return result
-        return self._from_backing_data(result)
+        return result
 
     def _validate_setitem_value(self, value):
         value = extract_array(value, extract_numpy=True)
