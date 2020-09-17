@@ -255,7 +255,7 @@ cdef class IndexEngine:
 
     def get_indexer(self, values):
         self._ensure_mapping_populated()
-        return self.mapping.lookup(values).astype('intp')
+        return self.mapping.lookup(values)
 
     def get_indexer_non_unique(self, targets):
         """
