@@ -853,9 +853,10 @@ Window and resample operations
 
 .. warning::
 
-    When using ``rolling()`` and an associated function the results are calculated using rolling sums. This means in case
-    of having values differing with magnitude ``1/np.finfo(np.double).eps`` results in truncation. It must be noted, that
-    large value may have an impact on windows, which do not include these values.
+    When using ``rolling()`` and an associated function the results are calculated with rolling sums. As a consequence
+    when having values differing with magnitude :math:`1/np.finfo(np.double).eps` this results in truncation. It must be
+    noted, that large values may have an impact on windows, which do not include these values. The same holds true for
+    ``Rolling.var()`` for values differing with magnitude :math:`(1/np.finfo(np.double).eps)^{0.5}`.
 
 It is possible to use ``resample()``, ``expanding()`` and
 ``rolling()`` as methods on groupbys.
