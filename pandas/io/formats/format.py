@@ -597,11 +597,12 @@ class DataFrameFormatter(TableFormatter):
             self._sparsify = sparsify
 
     @property
-    def formatters(self):
+    def formatters(self) -> FormattersType:
         return self._formatters
 
     @formatters.setter
-    def formatters(self, formatters):
+    def formatters(self, formatters: Optional[FormattersType]) -> None:
+        self._formatters: FormattersType
         if formatters is None:
             self._formatters = {}
         elif len(self.frame.columns) == len(formatters) or isinstance(formatters, dict):
@@ -611,6 +612,7 @@ class DataFrameFormatter(TableFormatter):
                 f"Formatters length({len(formatters)}) should match "
                 f"DataFrame number of columns({len(self.frame.columns)})"
             )
+        assert self._formatters is not None
 
     @property
     def justify(self):
