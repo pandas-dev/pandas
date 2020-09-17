@@ -846,16 +846,17 @@ class Base:
     def test_putmask_with_wrong_mask(self):
         # GH18368
         index = self.create_index()
+        fill = index[0]
 
         msg = "putmask: mask and data must be the same size"
         with pytest.raises(ValueError, match=msg):
-            index.putmask(np.ones(len(index) + 1, np.bool_), 1)
+            index.putmask(np.ones(len(index) + 1, np.bool_), fill)
 
         with pytest.raises(ValueError, match=msg):
-            index.putmask(np.ones(len(index) - 1, np.bool_), 1)
+            index.putmask(np.ones(len(index) - 1, np.bool_), fill)
 
         with pytest.raises(ValueError, match=msg):
-            index.putmask("foo", 1)
+            index.putmask("foo", fill)
 
     @pytest.mark.parametrize("copy", [True, False])
     @pytest.mark.parametrize("name", [None, "foo"])
