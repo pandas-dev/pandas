@@ -585,10 +585,24 @@ class DataFrameFormatter(TableFormatter):
         self.show_index_names = index_names
         self.sparsify = sparsify
         self.float_format = float_format
-        self.formatters = formatters
+
+        # Ignoring error
+        # expression has type "Union[List[Callable[..., Any]],
+        # Tuple[Callable[..., Any], ...],
+        # Mapping[Union[str, int], Callable[..., Any]], None]",
+        # variable has type "Union[List[Callable[..., Any]],
+        # Tuple[Callable[..., Any], ...], Mapping[Union[str, int],
+        # Callable[..., Any]]]")
+        self.formatters = formatters  # type: ignore[assignment]
         self.na_rep = na_rep
         self.decimal = decimal
-        self.col_space = col_space
+
+        # Ignoring error
+        # expression has type "Union[str, int, Sequence[Union[str, int]],
+        # Mapping[Optional[Hashable], Union[str, int]], None]",
+        # variable has type "Mapping[Optional[Hashable], Union[str, int]]"
+        self.col_space = col_space  # type: ignore[assignment]
+
         self.header = header
         self.index = index
         self.line_width = line_width
@@ -601,7 +615,11 @@ class DataFrameFormatter(TableFormatter):
         self.justify = justify
         self.bold_rows = bold_rows
         self.escape = escape
-        self.columns = columns
+
+        # Ignoring error:
+        # expression has type "Optional[Sequence[str]]", variable has type "Index"
+        self.columns = columns  # type: ignore[assignment]
+
         self._chk_truncate()
         self.adj = get_adjustment()
 
