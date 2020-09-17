@@ -865,11 +865,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         """
         See Index.join
         """
-        if self._is_convertible_to_index_for_join(other):
-            try:
-                other = type(self)(other)
-            except (TypeError, ValueError):
-                pass
+        pself, pother = self._maybe_promote(other)
+        if pself is not self or pother is not other:
+            return pself.join(
+                pother, how=how, level=level, return_indexers=return_indexers, sort=sort
+            )
 
         this, other = self._maybe_utc_convert(other)
         return Index.join(
@@ -897,25 +897,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
                 this = self.tz_convert("UTC")
                 other = other.tz_convert("UTC")
         return this, other
-
-    @classmethod
-    def _is_convertible_to_index_for_join(cls, other: Index) -> bool:
-        """
-        return a boolean whether I can attempt conversion to a
-        DatetimeIndex/TimedeltaIndex
-        """
-        if isinstance(other, cls):
-            return False
-        elif len(other) > 0 and other.inferred_type not in (
-            "floating",
-            "mixed-integer",
-            "integer",
-            "integer-na",
-            "mixed-integer-float",
-            "mixed",
-        ):
-            return True
-        return False
 
     # --------------------------------------------------------------------
     # List-Like Methods
