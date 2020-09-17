@@ -565,12 +565,7 @@ class DataFrameFormatter(TableFormatter):
     ):
         self.frame = frame
         self.show_index_names = index_names
-
-        if sparsify is None:
-            sparsify = get_option("display.multi_sparse")
-
         self.sparsify = sparsify
-
         self.float_format = float_format
         self.formatters = formatters
         self.na_rep = na_rep
@@ -592,6 +587,17 @@ class DataFrameFormatter(TableFormatter):
         self.columns = columns
         self._chk_truncate()
         self.adj = get_adjustment()
+
+    @property
+    def sparsify(self):
+        return self._sparsify
+
+    @sparsify.setter
+    def sparsify(self, sparsify):
+        if sparsify is None:
+            self._sparsify = get_option("display.multi_sparse")
+        else:
+            self._sparsify = sparsify
 
     @property
     def formatters(self):
