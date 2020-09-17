@@ -741,12 +741,16 @@ class DataFrameFormatter(TableFormatter):
     def _get_number_of_auxillary_rows(self) -> int:
         dot_row = 1
         prompt_row = 1
+
         if self.show_dimensions:
             show_dimension_rows = 3
-        # assume we only get here if self.header is boolean.
-        # i.e. not to_latex() where self.header may be List[str]
-        self.header = cast(bool, self.header)
-        return self.header + dot_row + show_dimension_rows + prompt_row
+
+        if self.header:
+            header_row = 1
+        else:
+            header_row = 0
+
+        return header_row + dot_row + show_dimension_rows + prompt_row
 
     def _is_screen_short(self, max_height) -> bool:
         return bool(self.max_rows == 0 and len(self.frame) > max_height)
