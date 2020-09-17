@@ -741,6 +741,18 @@ class DataFrameFormatter(TableFormatter):
     def _is_screen_short(self, max_height) -> bool:
         return bool(self.max_rows == 0 and len(self.frame) > max_height)
 
+    @property
+    def truncate_h(self) -> bool:
+        return bool(self.max_cols_adj and (len(self.columns) > self.max_cols_adj))
+
+    @property
+    def truncate_v(self) -> bool:
+        return bool(self.max_rows_adj and (len(self.frame) > self.max_rows_adj))
+
+    @property
+    def is_truncated(self) -> bool:
+        return bool(self.truncate_h or self.truncate_v)
+
     def _chk_truncate(self) -> None:
         """
         Checks whether the frame should be truncated. If so, slices
@@ -755,11 +767,8 @@ class DataFrameFormatter(TableFormatter):
         max_cols_adj = self.max_cols_adj
         max_rows_adj = self.max_rows_adj
 
-        truncate_h = max_cols_adj and (len(self.columns) > max_cols_adj)
-        truncate_v = max_rows_adj and (len(self.frame) > max_rows_adj)
-
         frame = self.frame
-        if truncate_h:
+        if self.truncate_h:
             # cast here since if truncate_h is True, max_cols_adj is not None
             max_cols_adj = cast(int, max_cols_adj)
             if max_cols_adj == 0:
@@ -781,7 +790,7 @@ class DataFrameFormatter(TableFormatter):
                         *truncate_fmt[-col_num:],
                     ]
             self.tr_col_num = col_num
-        if truncate_v:
+        if self.truncate_v:
             # cast here since if truncate_v is True, max_rows_adj is not None
             max_rows_adj = cast(int, max_rows_adj)
             if max_rows_adj == 1:
@@ -795,9 +804,6 @@ class DataFrameFormatter(TableFormatter):
             self.tr_row_num = None
 
         self.tr_frame = frame
-        self.truncate_h = truncate_h
-        self.truncate_v = truncate_v
-        self.is_truncated = bool(self.truncate_h or self.truncate_v)
 
     def _to_str_columns(self) -> List[List[str]]:
         """
