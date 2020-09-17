@@ -380,6 +380,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         ordered: Optional[bool] = None,
         prefix=None,
         prefix_sep="_",
+        fillna=None,
     ) -> "Categorical":
         """Create a `Categorical` using a ``DataFrame`` of dummy variables.
 
@@ -405,6 +406,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         prefix_sep : str, default "_"
             If ``prefix`` is not ``None``, use as the separator
             between the prefix and the final name of the category.
+        fillna : optional bool, default None
+            How to handle NA values. If ``True`` or ``False``, NA is filled with that value.
+            If ``None``, raise a ValueError if there are any NA values.
 
         Raises
         ------
@@ -444,23 +448,35 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             ...
         ValueError: 1 record(s) belongs to multiple categories: [0]
         """
+        from pandas import Series
+
+        copied = False
         to_drop = dummies.columns[isna(dummies.columns.values)]
         if len(to_drop):
             dummies = dummies.drop(columns=to_drop)
+            copied = True
 
-        if prefix is not None:
+        if prefix is None:
+            cats = dummies.columns
+        else:
             pref = prefix + (prefix_sep or "")
-            name_map = dict()
+            cats = []
             to_keep = []
             for c in dummies.columns:
                 if isinstance(c, str) and c.startswith(pref):
                     to_keep.append(c)
-                    name_map[c] = c[len(pref) :]
-            dummies = dummies[to_keep].rename(columns=name_map)
+                    cats.append(c[len(pref) :])
+            dummies = dummies[to_keep]
 
         df = dummies.astype("boolean")
+        if fillna is not None:
+            df = df.fillna(fillna, inplace=copied)
 
-        multicat_rows = df.sum(axis=1, skipna=False) > 1
+        row_totals = df.sum(axis=1, skipna=False)
+        if row_totals.isna().any():
+            raise ValueError("Unhandled NA values in dummy array")
+
+        multicat_rows = row_totals > 1
         if multicat_rows.any():
             raise ValueError(
                 "{} record(s) belongs to multiple categories: {}".format(
@@ -468,13 +484,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
                 )
             )
 
-        mult_by = np.arange(df.shape[1]) + 1
-        #  000            000    0   -1
-        #  010            020    2    1
-        #  001 * 1,2,3 => 003 -> 3 -> 2 = correct codes
-        #  100            100    1    0
-        codes = ((df * mult_by).sum(axis=1, skipna=False) - 1).astype("Int64")
-        return cls.from_codes(codes.fillna(-1), df.columns.values, ordered=ordered)
+        codes = Series(np.full(len(row_totals), np.nan), index=df.index, dtype="Int64")
+        codes[row_totals == 0] = -1
+        row_idx, code = np.nonzero(df)
+        codes[row_idx] = code
+
+        return cls.from_codes(codes.fillna(-1), cats, ordered=ordered)
 
     def get_dummies(
         self,
