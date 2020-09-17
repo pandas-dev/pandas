@@ -695,11 +695,14 @@ class DataFrameFormatter(TableFormatter):
             return self._max_cols_adj
         except AttributeError:
             width, _ = get_terminal_size()
-            if self.max_cols == 0 and len(self.frame.columns) > width:
+            if self._is_screen_narrow(width):
                 self._max_cols_adj = width
             else:
                 self._max_cols_adj = self.max_cols
             return self._max_cols_adj
+
+    def _is_screen_narrow(self, max_width) -> bool:
+        return bool(self.max_cols == 0 and len(self.frame.columns) > max_width)
 
     @property
     def max_rows_adj(self) -> Optional[int]:
@@ -720,7 +723,7 @@ class DataFrameFormatter(TableFormatter):
                 # rows available to fill with actual data
                 return height - n_add_rows
 
-            if self.max_rows == 0 and len(self.frame) > height:
+            if self._is_screen_short(height):
                 max_rows = height
 
         if max_rows:
@@ -728,6 +731,9 @@ class DataFrameFormatter(TableFormatter):
                 # if truncated, set max_rows showed to min_rows
                 max_rows = min(self.min_rows, max_rows)
         return max_rows
+
+    def _is_screen_short(self, max_height) -> bool:
+        return bool(self.max_rows == 0 and len(self.frame) > max_height)
 
     def _chk_truncate(self) -> None:
         """
