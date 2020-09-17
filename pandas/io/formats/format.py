@@ -577,7 +577,6 @@ class DataFrameFormatter(TableFormatter):
         self.max_rows = max_rows
         self.min_rows = min_rows
         self.max_cols = max_cols
-        self.max_rows_displayed = min(max_rows or len(self.frame), len(self.frame))
         self.show_dimensions = show_dimensions
         self.table_id = table_id
         self.render_links = render_links
@@ -663,6 +662,10 @@ class DataFrameFormatter(TableFormatter):
                     f"DataFrame number of columns({len(self.frame.columns)})"
                 )
             self._col_space = dict(zip(self.frame.columns, col_space))
+
+    @property
+    def max_rows_displayed(self):
+        return min(self.max_rows or len(self.frame), len(self.frame))
 
     def _chk_truncate(self) -> None:
         """
