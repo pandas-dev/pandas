@@ -461,7 +461,13 @@ class TableFormatter:
     def formatters(self, formatters: FormattersType) -> None:
         self._formatters: FormattersType = formatters
 
-    columns: Index
+    @property
+    def columns(self) -> Index:
+        return self._columns
+
+    @columns.setter
+    def columns(self, columns: Index) -> None:
+        self._columns: Index = columns
 
     @property
     def should_show_dimensions(self) -> bool:
