@@ -178,14 +178,6 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
     @doc(IndexOpsMixin.searchsorted, klass="Datetime-like Index")
     def searchsorted(self, value, side="left", sorter=None):
-        if isinstance(value, str):
-            raise TypeError(
-                "searchsorted requires compatible dtype or scalar, "
-                f"not {type(value).__name__}"
-            )
-        if isinstance(value, Index):
-            value = value._data
-
         return self._data.searchsorted(value, side=side, sorter=sorter)
 
     _can_hold_na = True
