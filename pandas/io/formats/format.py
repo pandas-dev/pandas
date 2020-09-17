@@ -707,24 +707,26 @@ class DataFrameFormatter(TableFormatter):
     @property
     def max_rows_adj(self) -> Optional[int]:
         """Number of rows fitting the screen."""
-        max_rows = self.max_rows
+        if not self._is_in_terminal():
+            return self.max_rows
 
-        if self._is_in_terminal():
-            (width, height) = get_terminal_size()
-            if self.max_rows == 0:
-                dot_row = 1
-                prompt_row = 1
-                if self.show_dimensions:
-                    show_dimension_rows = 3
-                # assume we only get here if self.header is boolean.
-                # i.e. not to_latex() where self.header may be List[str]
-                self.header = cast(bool, self.header)
-                n_add_rows = self.header + dot_row + show_dimension_rows + prompt_row
-                # rows available to fill with actual data
-                return height - n_add_rows
+        (width, height) = get_terminal_size()
+        if self.max_rows == 0:
+            dot_row = 1
+            prompt_row = 1
+            if self.show_dimensions:
+                show_dimension_rows = 3
+            # assume we only get here if self.header is boolean.
+            # i.e. not to_latex() where self.header may be List[str]
+            self.header = cast(bool, self.header)
+            n_add_rows = self.header + dot_row + show_dimension_rows + prompt_row
+            # rows available to fill with actual data
+            return height - n_add_rows
 
-            if self._is_screen_short(height):
-                max_rows = height
+        if self._is_screen_short(height):
+            max_rows = height
+        else:
+            max_rows = self.max_rows
 
         if max_rows:
             if (len(self.frame) > max_rows) and self.min_rows:
