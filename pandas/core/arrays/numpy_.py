@@ -19,7 +19,6 @@ from pandas.core.array_algos import masked_reductions
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.arrays.base import ExtensionOpsMixin
 from pandas.core.construction import extract_array
-from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import backfill_1d, pad_1d
 
 
@@ -248,16 +247,11 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # Pandas ExtensionArray Interface
 
-    def __getitem__(self, item):
-        if isinstance(item, type(self)):
-            item = item._ndarray
+    def _validate_getitem_key(self, key):
+        if isinstance(key, type(self)):
+            key = key._ndarray
 
-        item = check_array_indexer(self, item)
-
-        result = self._ndarray[item]
-        if not lib.is_scalar(item):
-            result = type(self)(result)
-        return result
+        return super()._validate_getitem_key(key)
 
     def _validate_setitem_value(self, value):
         value = extract_array(value, extract_numpy=True)
