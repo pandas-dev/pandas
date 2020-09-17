@@ -280,6 +280,9 @@ def array(
     # this returns None for not-found dtypes.
     if isinstance(dtype, str):
         dtype = registry.find(dtype) or dtype
+    if isinstance(dtype, type) and issubclass(dtype, ExtensionDtype):
+        # Needed for test_array_not_registered GH#36136
+        dtype = dtype()
 
     if is_extension_array_dtype(dtype):
         cls = cast(ExtensionDtype, dtype).construct_array_type()
