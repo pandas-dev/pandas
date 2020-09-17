@@ -19,6 +19,14 @@ def test_to_native_types_method_deprecated():
 
     tm.assert_numpy_array_equal(result, expected)
 
+    # Make sure slicing works
+    expected = np.array(["2017-01-01", "2017-01-03"], dtype=object)
+
+    with tm.assert_produces_warning(FutureWarning):
+        result = index.to_native_types([0, 2])
+
+    tm.assert_numpy_array_equal(result, expected)
+
 
 def test_to_native_types():
     index = pd.date_range(freq="1D", periods=3, start="2017-01-01")
@@ -31,12 +39,6 @@ def test_to_native_types():
 
     # No NaN values, so na_rep has no effect
     result = index._format_native_types(na_rep="pandas")
-    tm.assert_numpy_array_equal(result, expected)
-
-    # Make sure slicing works
-    expected = np.array(["2017-01-01", "2017-01-03"], dtype=object)
-
-    result = index._format_native_types([0, 2])
     tm.assert_numpy_array_equal(result, expected)
 
     # Make sure date formatting works
