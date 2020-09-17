@@ -722,18 +722,10 @@ class DataFrameFormatter(TableFormatter):
         if not self._is_in_terminal():
             return self.max_rows
 
-        (width, height) = get_terminal_size()
+        _, height = get_terminal_size()
         if self.max_rows == 0:
-            dot_row = 1
-            prompt_row = 1
-            if self.show_dimensions:
-                show_dimension_rows = 3
-            # assume we only get here if self.header is boolean.
-            # i.e. not to_latex() where self.header may be List[str]
-            self.header = cast(bool, self.header)
-            n_add_rows = self.header + dot_row + show_dimension_rows + prompt_row
             # rows available to fill with actual data
-            return height - n_add_rows
+            return height - self._get_number_of_auxillary_rows()
 
         if self._is_screen_short(height):
             max_rows = height
@@ -745,6 +737,16 @@ class DataFrameFormatter(TableFormatter):
                 # if truncated, set max_rows showed to min_rows
                 max_rows = min(self.min_rows, max_rows)
         return max_rows
+
+    def _get_number_of_auxillary_rows(self) -> int:
+        dot_row = 1
+        prompt_row = 1
+        if self.show_dimensions:
+            show_dimension_rows = 3
+        # assume we only get here if self.header is boolean.
+        # i.e. not to_latex() where self.header may be List[str]
+        self.header = cast(bool, self.header)
+        return self.header + dot_row + show_dimension_rows + prompt_row
 
     def _is_screen_short(self, max_height) -> bool:
         return bool(self.max_rows == 0 and len(self.frame) > max_height)
