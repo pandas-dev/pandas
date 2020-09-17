@@ -841,7 +841,7 @@ class TestIsin:
         tm.assert_numpy_array_equal(expected, result)
 
     def test_same_nan_is_in_large(self):
-        # issue:`22205`
+        # https://github.com/pandas-dev/pandas/issues/22205
         s = np.tile(1.0, 1_000_001)
         s[0] = np.nan
         result = algos.isin(s, [np.nan, 1])
