@@ -484,6 +484,8 @@ with cf.config_prefix("mode"):
     )
     cf.register_option(
         "data_manager",
+        # TODO switch back to default of "block" before merging
+        # "block",
         "array",
         "internal manager type",
         validator=is_one_of_factory(["block", "array"]),

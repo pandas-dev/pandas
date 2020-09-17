@@ -437,8 +437,8 @@ class DataFrame(NDFrame):
         columns: Optional[Axes] = None,
         dtype: Optional[Dtype] = None,
         copy: bool = False,
-        # TODO setting default to "array" for testing purposes (the actual default
-        # needs to stay "block" initially of course for backwards compatibility)
+        # TODO do we want to keep this as a keyword as well? (I think it can be handy)
+        # can we somehow make it a "private" keyword? (`_manager` ?)
         manager: Optional[str] = None,
     ):
         if data is None:

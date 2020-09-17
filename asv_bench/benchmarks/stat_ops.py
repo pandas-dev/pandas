@@ -11,9 +11,6 @@ class FrameOps:
     param_names = ["op", "dtype", "axis"]
 
     def setup(self, op, dtype, axis):
-        if dtype == "Int64":
-            # XXX only dealing with numpy arrays in ArrayManager right now
-            raise NotImplementedError
         if op == "mad" and dtype == "Int64":
             # GH-33036, GH#33600
             raise NotImplementedError
