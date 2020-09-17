@@ -992,7 +992,7 @@ class StringMethods(NoNewAttributesMixin):
             If True, case sensitive.
         flags : int, default 0 (no flags)
             Flags to pass through to the re module, e.g. re.IGNORECASE.
-        na : scalar, optional.
+        na : scalar, optional
             Fill value for missing values. The default depends on dtype of the
             array. For object-dtype, ``numpy.nan`` is used. For ``StringDtype``,
             ``pandas.NA`` is used.
@@ -1117,7 +1117,7 @@ class StringMethods(NoNewAttributesMixin):
             If True, case sensitive.
         flags : int, default 0 (no flags)
             Regex module flags, e.g. re.IGNORECASE.
-        na : scalar, optional.
+        na : scalar, optional
             Fill value for missing values. The default depends on dtype of the
             array. For object-dtype, ``numpy.nan`` is used. For ``StringDtype``,
             ``pandas.NA`` is used.
