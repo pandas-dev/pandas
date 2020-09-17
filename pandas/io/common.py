@@ -7,6 +7,7 @@ from io import BufferedIOBase, BytesIO, RawIOBase
 import mmap
 import os
 import pathlib
+import re
 from typing import (
     IO,
     TYPE_CHECKING,
@@ -44,8 +45,6 @@ from pandas.compat import get_lzma_file, import_lzma
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import is_file_like
-
-from pandas._libs.json import loads
 
 lzma = import_lzma()
 
@@ -158,13 +157,12 @@ def urlopen(*args, **kwargs):
 def is_json(url: FilePathOrBuffer) -> bool:
     """
     Returns true if the given string looks like
-    something json.loads can handle
+    json
     """
-    try:
-        loads(url)
-
+    json_pattern = re.compile(r"^\s*[\[{]")
+    if json_pattern.match(url):
         return True
-    except:
+    else:
         return False
 
 
