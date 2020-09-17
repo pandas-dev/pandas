@@ -375,9 +375,16 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
 
     @classmethod
     def from_dummies(
-        cls, dummies: "DataFrame", ordered: Optional[bool] = None
+        cls,
+        dummies: "DataFrame",
+        ordered: Optional[bool] = None,
+        prefix=None,
+        prefix_sep="_",
     ) -> "Categorical":
         """Create a `Categorical` using a ``DataFrame`` of dummy variables.
+
+        Can use a subset of columns based on the ``prefix``
+        and ``prefix_sep`` parameters.
 
         The ``DataFrame`` must have no more than one truthy value per row.
         The columns of the ``DataFrame`` become the categories of the `Categorical`.
@@ -391,6 +398,13 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             Sparse dataframes are not supported.
         ordered : bool
             Whether or not this Categorical is ordered.
+        prefix : optional str
+            Only take columns whose names are strings starting
+            with this prefix and ``prefix_sep``,
+            stripping those elements from the resulting category names.
+        prefix_sep : str, default "_"
+            If ``prefix`` is not ``None``, use as the separator
+            between the prefix and the final name of the category.
 
         Raises
         ------
@@ -433,6 +447,17 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         to_drop = dummies.columns[isna(dummies.columns.values)]
         if len(to_drop):
             dummies = dummies.drop(columns=to_drop)
+
+        if prefix is not None:
+            pref = prefix + (prefix_sep or "")
+            name_map = dict()
+            to_keep = []
+            for c in dummies.columns:
+                if isinstance(c, str) and c.startswith(pref):
+                    to_keep.append(c)
+                    name_map[c] = c[len(pref) :]
+            dummies = dummies[to_keep].rename(columns=name_map)
+
         df = dummies.astype("boolean")
 
         multicat_rows = df.sum(axis=1, skipna=False) > 1
