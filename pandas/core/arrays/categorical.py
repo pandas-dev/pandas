@@ -515,7 +515,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         1  0  1    0
         2  0  0    1
 
-        >>> pd.Categorical(list('abcaa)).get_dummies()
+        >>> pd.Categorical(list('abcaa')).get_dummies()
         a  b  c
         0  1  0  0
         1  0  1  0
@@ -523,7 +523,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         3  1  0  0
         4  1  0  0
 
-        >>> pd.Categorical(list('abcaa)).get_dummies(drop_first=True)
+        >>> pd.Categorical(list('abcaa')).get_dummies(drop_first=True)
         b  c
         0  0  0
         1  1  0
