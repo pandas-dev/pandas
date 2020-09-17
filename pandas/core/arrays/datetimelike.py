@@ -539,23 +539,11 @@ class DatetimeLikeArrayMixin(
         This getitem defers to the underlying array, which by-definition can
         only handle list-likes, slices, and integer scalars
         """
-
-        if lib.is_integer(key):
-            # fast-path
-            result = self._ndarray[key]
-            if self.ndim == 1:
-                return self._box_func(result)
-            return self._from_backing_data(result)
-
-        key = self._validate_getitem_key(key)
-        result = self._ndarray[key]
+        result = super().__getitem__(key)
         if lib.is_scalar(result):
-            return self._box_func(result)
+            return result
 
-        result = self._from_backing_data(result)
-
-        freq = self._get_getitem_freq(key)
-        result._freq = freq
+        result._freq = self._get_getitem_freq(key)
         return result
 
     def _validate_getitem_key(self, key):
@@ -572,7 +560,7 @@ class DatetimeLikeArrayMixin(
             # this for now (would otherwise raise in check_array_indexer)
             pass
         else:
-            key = check_array_indexer(self, key)
+            key = super()._validate_getitem_key(key)
         return key
 
     def _get_getitem_freq(self, key):
@@ -582,7 +570,10 @@ class DatetimeLikeArrayMixin(
         is_period = is_period_dtype(self.dtype)
         if is_period:
             freq = self.freq
+        elif self.ndim != 1:
+            freq = None
         else:
+            key = self._validate_getitem_key(key)  # maybe ndarray[bool] -> slice
             freq = None
             if isinstance(key, slice):
                 if self.freq is not None and key.step is not None:
@@ -845,8 +836,7 @@ class DatetimeLikeArrayMixin(
         if not is_list_like(value):
             value = self._validate_scalar(value, msg, cast_str=True)
         else:
-            # TODO: cast_str?  we accept it for scalar
-            value = self._validate_listlike(value, "searchsorted")
+            value = self._validate_listlike(value, "searchsorted", cast_str=True)
 
         rv = self._unbox(value)
         return self._rebox_native(rv)
