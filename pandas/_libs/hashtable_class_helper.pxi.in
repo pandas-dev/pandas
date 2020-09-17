@@ -648,8 +648,8 @@ cdef class StringHashTable(HashTable):
     def get_indexer(self, ndarray[object] values):
         cdef:
             Py_ssize_t i, n = len(values)
-            ndarray[int64_t] labels = np.empty(n, dtype=np.int64)
-            int64_t *resbuf = <int64_t*>labels.data
+            ndarray[intp_t] labels = np.empty(n, dtype=np.intp)
+            intp_t *resbuf = <intp_t*>labels.data
             khiter_t k
             kh_str_t *table = self.table
             const char *v
