@@ -978,7 +978,7 @@ class StringMethods(NoNewAttributesMixin):
 
     @forbid_nonstring_types(["bytes"])
     def contains(self, pat, case=True, flags=0, na=None, regex=True):
-        """
+        r"""
         Test if pattern or regex is contained within a string of a Series or Index.
 
         Return boolean Series or Index based on whether a given pattern or regex is
@@ -1921,7 +1921,7 @@ class StringMethods(NoNewAttributesMixin):
 
     @forbid_nonstring_types(["bytes"])
     def count(self, pat, flags=0):
-        """
+        r"""
         Count occurrences of pattern in each string of the Series/Index.
 
         This function is used to count the number of times a particular regex
