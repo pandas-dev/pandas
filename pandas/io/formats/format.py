@@ -697,6 +697,8 @@ class DataFrameFormatter(TableFormatter):
     @property
     def max_cols_adj(self) -> Optional[int]:
         """Number of columns fitting the screen."""
+        self._max_cols_adj: Optional[int]
+
         try:
             return self._max_cols_adj
         except AttributeError:
@@ -766,22 +768,15 @@ class DataFrameFormatter(TableFormatter):
         """
         from pandas.core.reshape.concat import concat
 
-        # Cut the data to the information actually printed
-        max_cols = self.max_cols
-        max_rows = self.max_rows
-
-        max_cols_adj = self.max_cols_adj
-        max_rows_adj = self.max_rows_adj
-
         frame = self.frame
         if self.is_truncated_horizontally:
             # cast here since if is_truncated_horizontally is True
             # max_cols_adj is not None
-            max_cols_adj = cast(int, max_cols_adj)
+            max_cols_adj = cast(int, self.max_cols_adj)
             if max_cols_adj == 0:
                 col_num = len(frame.columns)
             elif max_cols_adj == 1:
-                max_cols = cast(int, max_cols)
+                max_cols = cast(int, self.max_cols)
                 frame = frame.iloc[:, :max_cols]
                 col_num = max_cols
             else:
@@ -797,13 +792,14 @@ class DataFrameFormatter(TableFormatter):
                         *truncate_fmt[-col_num:],
                     ]
             self.tr_col_num = col_num
+
         if self.is_truncated_vertically:
             # cast here since if is_truncated_vertically is True
             # max_rows_adj is not None
-            max_rows_adj = cast(int, max_rows_adj)
+            max_rows_adj = cast(int, self.max_rows_adj)
             if max_rows_adj == 1:
-                row_num = max_rows
-                frame = frame.iloc[:max_rows, :]
+                row_num = self.max_rows
+                frame = frame.iloc[:row_num, :]
             else:
                 row_num = max_rows_adj // 2
                 frame = concat((frame.iloc[:row_num, :], frame.iloc[-row_num:, :]))
@@ -870,14 +866,10 @@ class DataFrameFormatter(TableFormatter):
         if self.index:
             strcols.insert(0, str_index)
 
-        # Add ... to signal truncated
-        is_truncated_horizontally = self.is_truncated_horizontally
-        is_truncated_vertically = self.is_truncated_vertically
-
-        if is_truncated_horizontally:
+        if self.is_truncated_horizontally:
             col_num = self.tr_col_num
             strcols.insert(self.tr_col_num + 1, [" ..."] * (len(str_index)))
-        if is_truncated_vertically:
+        if self.is_truncated_vertically:
             n_header_rows = len(str_index) - len(frame)
             row_num = self.tr_row_num
             # cast here since if is_truncated_vertically is True
@@ -887,7 +879,7 @@ class DataFrameFormatter(TableFormatter):
                 # infer from above row
                 cwidth = self.adj.len(strcols[ix][row_num])
                 is_dot_col = False
-                if is_truncated_horizontally:
+                if self.is_truncated_horizontally:
                     is_dot_col = ix == col_num + 1
                 if cwidth > 3 or is_dot_col:
                     my_str = "..."
