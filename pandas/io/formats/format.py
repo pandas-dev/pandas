@@ -745,6 +745,7 @@ class DataFrameFormatter(TableFormatter):
             # rows available to fill with actual data
             return height - self._get_number_of_auxillary_rows()
 
+        max_rows: Optional[int]
         if self._is_screen_short(height):
             max_rows = height
         else:
