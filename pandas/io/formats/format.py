@@ -608,13 +608,7 @@ class DataFrameFormatter(TableFormatter):
         self.justify = justify
         self.bold_rows = bold_rows
         self.escape = escape
-
-        if columns is not None:
-            self.columns = ensure_index(columns)
-            self.frame = self.frame[self.columns]
-        else:
-            self.columns = frame.columns
-
+        self.columns = columns
         self._chk_truncate()
         self.adj = get_adjustment()
 
@@ -644,6 +638,18 @@ class DataFrameFormatter(TableFormatter):
             self._justify = get_option("display.colheader_justify")
         else:
             self._justify = justify
+
+    @property
+    def columns(self):
+        return self._columns
+
+    @columns.setter
+    def columns(self, columns):
+        if columns is not None:
+            self._columns = ensure_index(columns)
+            self.frame = self.frame[self._columns]
+        else:
+            self._columns = self.frame.columns
 
     def _chk_truncate(self) -> None:
         """
