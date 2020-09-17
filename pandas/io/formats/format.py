@@ -452,7 +452,15 @@ class TableFormatter:
 
     show_dimensions: Union[bool, str]
     is_truncated: bool
-    formatters: FormattersType
+
+    @property
+    def formatters(self) -> FormattersType:
+        return self._formatters
+
+    @formatters.setter
+    def formatters(self, formatters: FormattersType) -> None:
+        self._formatters: FormattersType = formatters
+
     columns: Index
 
     @property
