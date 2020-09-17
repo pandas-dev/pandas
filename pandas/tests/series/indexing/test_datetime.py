@@ -11,6 +11,7 @@ import pandas as pd
 from pandas import DataFrame, DatetimeIndex, NaT, Series, Timestamp, date_range
 import pandas._testing as tm
 
+
 """
 Also test support for datetime64[ns] in Series / DataFrame
 """
