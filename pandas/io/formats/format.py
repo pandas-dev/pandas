@@ -269,9 +269,9 @@ class SeriesFormatter:
         max_rows = self.max_rows
         # truncation determined by max_rows, actual truncated number of rows
         # used below by min_rows
-        truncate_v = max_rows and (len(self.series) > max_rows)
+        is_truncated_vertically = max_rows and (len(self.series) > max_rows)
         series = self.series
-        if truncate_v:
+        if is_truncated_vertically:
             max_rows = cast(int, max_rows)
             if min_rows:
                 # if min_rows is set (not None or 0), set max_rows to minimum
@@ -287,7 +287,7 @@ class SeriesFormatter:
         else:
             self.tr_row_num = None
         self.tr_series = series
-        self.truncate_v = truncate_v
+        self.is_truncated_vertically = is_truncated_vertically
 
     def _get_footer(self) -> str:
         name = self.series.name
@@ -306,7 +306,9 @@ class SeriesFormatter:
             series_name = pprint_thing(name, escape_chars=("\t", "\r", "\n"))
             footer += f"Name: {series_name}"
 
-        if self.length is True or (self.length == "truncate" and self.truncate_v):
+        if self.length is True or (
+            self.length == "truncate" and self.is_truncated_vertically
+        ):
             if footer:
                 footer += ", "
             footer += f"Length: {len(self.series)}"
@@ -358,7 +360,7 @@ class SeriesFormatter:
         fmt_index, have_header = self._get_formatted_index()
         fmt_values = self._get_formatted_values()
 
-        if self.truncate_v:
+        if self.is_truncated_vertically:
             n_header_rows = 0
             row_num = self.tr_row_num
             row_num = cast(int, row_num)
@@ -746,12 +748,12 @@ class DataFrameFormatter(TableFormatter):
         return bool(self.max_cols_adj and (len(self.columns) > self.max_cols_adj))
 
     @property
-    def truncate_v(self) -> bool:
+    def is_truncated_vertically(self) -> bool:
         return bool(self.max_rows_adj and (len(self.frame) > self.max_rows_adj))
 
     @property
     def is_truncated(self) -> bool:
-        return bool(self.is_truncated_horizontally or self.truncate_v)
+        return bool(self.is_truncated_horizontally or self.is_truncated_vertically)
 
     def _chk_truncate(self) -> None:
         """
@@ -791,8 +793,9 @@ class DataFrameFormatter(TableFormatter):
                         *truncate_fmt[-col_num:],
                     ]
             self.tr_col_num = col_num
-        if self.truncate_v:
-            # cast here since if truncate_v is True, max_rows_adj is not None
+        if self.is_truncated_vertically:
+            # cast here since if is_truncated_vertically is True
+            # max_rows_adj is not None
             max_rows_adj = cast(int, max_rows_adj)
             if max_rows_adj == 1:
                 row_num = max_rows
@@ -865,15 +868,16 @@ class DataFrameFormatter(TableFormatter):
 
         # Add ... to signal truncated
         is_truncated_horizontally = self.is_truncated_horizontally
-        truncate_v = self.truncate_v
+        is_truncated_vertically = self.is_truncated_vertically
 
         if is_truncated_horizontally:
             col_num = self.tr_col_num
             strcols.insert(self.tr_col_num + 1, [" ..."] * (len(str_index)))
-        if truncate_v:
+        if is_truncated_vertically:
             n_header_rows = len(str_index) - len(frame)
             row_num = self.tr_row_num
-            # cast here since if truncate_v is True, self.tr_row_num is not None
+            # cast here since if is_truncated_vertically is True
+            # self.tr_row_num is not None
             row_num = cast(int, row_num)
             for ix, col in enumerate(strcols):
                 # infer from above row
@@ -975,7 +979,7 @@ class DataFrameFormatter(TableFormatter):
         col_bins = _binify(col_widths, lwidth)
         nbins = len(col_bins)
 
-        if self.truncate_v:
+        if self.is_truncated_vertically:
             assert self.max_rows_adj is not None
             nrows = self.max_rows_adj + 1
         else:

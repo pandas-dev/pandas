@@ -391,7 +391,7 @@ class HTMLFormatter(TableFormatter):
         self, fmt_values: Mapping[int, List[str]], indent: int
     ) -> None:
         is_truncated_horizontally = self.fmt.is_truncated_horizontally
-        truncate_v = self.fmt.truncate_v
+        is_truncated_vertically = self.fmt.is_truncated_vertically
 
         nrows = len(self.fmt.tr_frame)
 
@@ -405,7 +405,7 @@ class HTMLFormatter(TableFormatter):
         row: List[str] = []
         for i in range(nrows):
 
-            if truncate_v and i == (self.fmt.tr_row_num):
+            if is_truncated_vertically and i == (self.fmt.tr_row_num):
                 str_sep_row = ["..."] * len(row)
                 self.write_tr(
                     str_sep_row,
@@ -439,7 +439,7 @@ class HTMLFormatter(TableFormatter):
         template = 'rowspan="{span}" valign="top"'
 
         is_truncated_horizontally = self.fmt.is_truncated_horizontally
-        truncate_v = self.fmt.truncate_v
+        is_truncated_vertically = self.fmt.is_truncated_vertically
         frame = self.fmt.tr_frame
         nrows = len(frame)
 
@@ -454,11 +454,11 @@ class HTMLFormatter(TableFormatter):
 
             level_lengths = get_level_lengths(levels, sentinel)
             inner_lvl = len(level_lengths) - 1
-            if truncate_v:
+            if is_truncated_vertically:
                 # Insert ... row and adjust idx_values and
                 # level_lengths to take this into account.
                 ins_row = self.fmt.tr_row_num
-                # cast here since if truncate_v is True, self.fmt.tr_row_num is not None
+                # cast here since if is_truncated_vertically is True, self.fmt.tr_row_num is not None
                 ins_row = cast(int, ins_row)
                 inserted = False
                 for lnum, records in enumerate(level_lengths):
@@ -534,7 +534,7 @@ class HTMLFormatter(TableFormatter):
         else:
             row = []
             for i in range(len(frame)):
-                if truncate_v and i == (self.fmt.tr_row_num):
+                if is_truncated_vertically and i == (self.fmt.tr_row_num):
                     str_sep_row = ["..."] * len(row)
                     self.write_tr(
                         str_sep_row,
