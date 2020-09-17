@@ -626,16 +626,17 @@ class DataFrameFormatter(TableFormatter):
             self._justify = justify
 
     @property
-    def columns(self):
+    def columns(self) -> Index:
         return self._columns
 
     @columns.setter
-    def columns(self, columns):
+    def columns(self, columns: Optional[Sequence[str]]) -> None:
         if columns is not None:
             self._columns = ensure_index(columns)
             self.frame = self.frame[self._columns]
         else:
             self._columns = self.frame.columns
+        assert self._columns is not None
 
     @property
     def col_space(self) -> ColspaceType:
