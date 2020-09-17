@@ -190,7 +190,7 @@ def init_ndarray(values, index, columns, dtype: Optional[DtypeObj], copy: bool):
     # the dtypes will be coerced to a single dtype
     values = _prep_ndarray(values, copy=copy)
 
-    if not is_dtype_equal(values.dtype, dtype):
+    if dtype is not None and not is_dtype_equal(values.dtype, dtype):
         try:
             values = construct_1d_ndarray_preserving_na(
                 values.ravel(), dtype=dtype, copy=False
