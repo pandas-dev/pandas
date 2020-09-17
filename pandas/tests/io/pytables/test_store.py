@@ -56,6 +56,10 @@ from pandas.io import pytables as pytables  # noqa: E402 isort:skip
 from pandas.io.pytables import TableIterator  # noqa: E402 isort:skip
 
 
+# TODO(ArrayManager) HDFStore relies on accessing the blocks
+pytestmark = td.skip_array_manager_not_yet_implemented
+
+
 _default_compressor = "blosc"
 ignore_natural_naming_warning = pytest.mark.filterwarnings(
     "ignore:object name:tables.exceptions.NaturalNameWarning"

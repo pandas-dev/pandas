@@ -447,7 +447,7 @@ class TestDataFrameMisc:
         expected = Series({np.dtype("object"): 10})
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.skip
+    @td.skip_array_manager_invalid_test
     def test_values(self, float_frame):
         float_frame.values[:, 0] = 5.0
         assert (float_frame.values[:, 0] == 5).all()

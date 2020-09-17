@@ -12,6 +12,10 @@ from pandas.tests.io.pytables.common import ensure_clean_path, ensure_clean_stor
 
 from pandas.io.pytables import read_hdf
 
+# TODO(ArrayManager) HDFStore relies on accessing the blocks
+pytestmark = td.skip_array_manager_not_yet_implemented
+
+
 # GH10447
 
 

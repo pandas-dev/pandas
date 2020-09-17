@@ -5368,7 +5368,7 @@ class DataFrame(NDFrame):
         )
 
         if ignore_index:
-            new_data.axes[1] = ibase.default_index(len(indexer))
+            new_data.set_axis(1, ibase.default_index(len(indexer)))
 
         result = self._constructor(new_data)
         if inplace:

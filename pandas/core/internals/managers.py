@@ -347,6 +347,9 @@ class ArrayManager(DataManager):
                         # otherwise we have an ndarray
                         kwargs[k] = obj[[i]]
 
+            if hasattr(arr, "tz") and arr.tz is None:
+                # DatetimeArray needs to be converted to ndarray for DatetimeBlock
+                arr = arr._data
             if isinstance(arr, np.ndarray):
                 arr = np.atleast_2d(arr)
             block = make_block(arr, placement=slice(0, 1, 1), ndim=2)
@@ -499,6 +502,9 @@ class ArrayManager(DataManager):
             regex=regex,
         )
 
+    def to_native_types(self, **kwargs):
+        return self.apply_with_block("to_native_types", **kwargs)
+
     @property
     def is_mixed_type(self) -> bool:
         return True
@@ -516,6 +522,12 @@ class ArrayManager(DataManager):
     def is_view(self) -> bool:
         """ return a boolean if we are a single block and are a view """
         # TODO what is this used for?
+        return False
+
+    @property
+    def _is_single_block(self) -> bool:
+        # TODO should we avoid using it from outside the blockmanager since
+        # it is a private property? (eg use is_mixed_type instead?)
         return False
 
     def get_bool_data(self, copy: bool = False) -> "BlockManager":
@@ -870,16 +882,6 @@ class ArrayManager(DataManager):
         values = np.empty(self.shape_proper[0], dtype=dtype)
         values.fill(fill_value)
         return values
-
-    def to_native_types(self, **kwargs):
-        result_arrays = []
-
-        for i, arr in enumerate(self.arrays):
-            block = make_block(np.atleast_2d(arr), placement=slice(0, 1, 1), ndim=2)
-            res = block.to_native_types(**kwargs)
-            result_arrays.append(res[0, :])
-
-        return result_arrays
 
     def unstack(self, unstacker, fill_value) -> "ArrayManager":
         """
