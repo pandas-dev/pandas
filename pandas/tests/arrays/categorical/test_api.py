@@ -408,19 +408,10 @@ class TestCategoricalAPI:
             [1, 1.5, "a", (1, "b"), np.nan],
         ],
     )
-    def test_to_dummies(self, vals):
+    def test_get_dummies(self, vals):
         # GH 8745
         cats = Categorical(Series(vals))
-        tm.assert_equal(cats.to_dummies(), get_dummies(cats).astype(bool))
-
-    def test_to_dummies_na_dtype(self):
-        # when dtype of NA column name != dtype of categories,
-        # check the cast to object
-        # GH 8745
-        cats = Categorical([1, 2, 2, 1, np.nan])
-        assert cats.dtype != object
-        dummies = cats.to_dummies(na_column="other")
-        assert dummies.columns.categories.dtype == object
+        tm.assert_equal(cats.get_dummies(), get_dummies(cats))
 
     @pytest.mark.parametrize(
         "vals",
