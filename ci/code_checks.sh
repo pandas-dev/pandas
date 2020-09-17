@@ -25,6 +25,11 @@ BASE_DIR="$(dirname $0)/.."
 RET=0
 CHECK=$1
 
+
+function quote_if_needed {
+    awk '{ print $0 ~ /.*\s+.*/ ? "\""$0"\"" : $0 }'
+}
+
 function invgrep {
     # grep with inverse exist status and formatting for azure-pipelines
     #
@@ -38,12 +43,26 @@ function invgrep {
     return $((! $EXIT_STATUS))
 }
 
+function if_gh_actions {
+    # If this is running on GitHub Actions, echo the argument list, otherwise
+    # echo the empty string.
+    # Used to conditionally pass command-line arguments as in
+    #     $(if_gh_actions --baz spam) | xargs foo --bar
+    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
+        for arg in "$@"; do echo $arg; done | quote_if_needed
+    else
+        echo ""
+    fi
+}
+
+
 if [[ "$GITHUB_ACTIONS" == "true" ]]; then
     FLAKE8_FORMAT="##[error]%(path)s:%(row)s:%(col)s:%(code)s:%(text)s"
     INVGREP_PREPEND="##[error]"
 else
     FLAKE8_FORMAT="default"
 fi
+
 
 ### LINTING ###
 if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
@@ -93,36 +112,24 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     cpplint --quiet --extensions=c,h --headers=h --recursive --filter=-readability/casting,-runtime/int,-build/include_subdir pandas/_libs/src/*.h pandas/_libs/src/parser pandas/_libs/ujson pandas/_libs/tslibs/src/datetime pandas/_libs/*.cpp
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+
+    VALIDATE_CMD=$BASE_DIR/scripts/validate_unwanted_patterns.py
+    FMT_ARGS=$(if_gh_actions --format="##[error]{source_path}:{line_number}:{msg}")
+
     MSG='Check for use of not concatenated strings' ; echo $MSG
-    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
-        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="strings_to_concatenate" --format="##[error]{source_path}:{line_number}:{msg}" .
-    else
-        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="strings_to_concatenate" .
-    fi
+    echo $FMT_ARGS | xargs $VALIDATE_CMD --validation-type="strings_to_concatenate" .
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for strings with wrong placed spaces' ; echo $MSG
-    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
-        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="strings_with_wrong_placed_whitespace" --format="##[error]{source_path}:{line_number}:{msg}" .
-    else
-        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="strings_with_wrong_placed_whitespace" .
-    fi
+    echo $FMT_ARGS | xargs $VALIDATE_CMD --validation-type="strings_with_wrong_placed_whitespace" .
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for import of private attributes across modules' ; echo $MSG
-    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
-        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_import_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored --format="##[error]{source_path}:{line_number}:{msg}" pandas/
-    else
-        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_import_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored pandas/
-    fi
+    echo $FMT_ARGS | xargs $VALIDATE_CMD --validation-type="private_import_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored pandas/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for use of private functions across modules' ; echo $MSG
-    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
-        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored,doc/ --format="##[error]{source_path}:{line_number}:{msg}" pandas/
-    else
-        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored,doc/ pandas/
-    fi
+    echo $FMT_ARGS | xargs $VALIDATE_CMD --validation-type="private_function_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored,doc/ pandas/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     echo "isort --version-number"
