@@ -85,10 +85,8 @@ class HTMLFormatter(TableFormatter):
     def _get_columns_formatted_values(self) -> Iterable:
         return self.columns
 
-    # https://github.com/python/mypy/issues/1237
-    # error: Signature of "is_truncated" incompatible with supertype "TableFormatter"
     @property
-    def is_truncated(self) -> bool:  # type: ignore[override]
+    def is_truncated(self) -> bool:
         return self.fmt.is_truncated
 
     @property

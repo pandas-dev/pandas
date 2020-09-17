@@ -453,7 +453,11 @@ def get_adjustment() -> TextAdjustment:
 class TableFormatter:
 
     show_dimensions: Union[bool, str]
-    is_truncated: bool
+
+    @property
+    def is_truncated(self) -> bool:
+        self._is_truncated: bool
+        return self._is_truncated
 
     @property
     def formatters(self) -> FormattersType:
