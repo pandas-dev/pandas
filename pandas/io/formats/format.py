@@ -681,9 +681,7 @@ class DataFrameFormatter(TableFormatter):
         max_rows_adj: Optional[int]
 
         if max_cols == 0 or max_rows == 0:  # assume we are in the terminal
-            (w, h) = get_terminal_size()
-            self.w = w
-            self.h = h
+            (width, height) = get_terminal_size()
             if self.max_rows == 0:
                 dot_row = 1
                 prompt_row = 1
@@ -694,15 +692,15 @@ class DataFrameFormatter(TableFormatter):
                 self.header = cast(bool, self.header)
                 n_add_rows = self.header + dot_row + show_dimension_rows + prompt_row
                 # rows available to fill with actual data
-                max_rows_adj = self.h - n_add_rows
+                max_rows_adj = height - n_add_rows
                 self.max_rows_adj = max_rows_adj
 
             # Format only rows and columns that could potentially fit the
             # screen
-            if max_cols == 0 and len(self.frame.columns) > w:
-                max_cols = w
-            if max_rows == 0 and len(self.frame) > h:
-                max_rows = h
+            if max_cols == 0 and len(self.frame.columns) > width:
+                max_cols = width
+            if max_rows == 0 and len(self.frame) > height:
+                max_rows = height
 
         if not hasattr(self, "max_rows_adj"):
             if max_rows:
@@ -880,7 +878,8 @@ class DataFrameFormatter(TableFormatter):
                 lines = self.adj.adjoin(1, *strcols).split("\n")
                 max_len = Series(lines).str.len().max()
                 # plus truncate dot col
-                dif = max_len - self.w
+                width, _ = get_terminal_size()
+                dif = max_len - width
                 # '+ 1' to avoid too wide repr (GH PR #17023)
                 adj_dif = dif + 1
                 col_lens = Series([Series(ele).apply(len).max() for ele in strcols])
