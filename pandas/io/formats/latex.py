@@ -431,13 +431,18 @@ class LongTableBuilder(GenericTableBuilder):
     >>> from pandas.io.formats import format as fmt
     >>> df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
     >>> formatter = fmt.DataFrameFormatter(df)
-    >>> builder = LongTableBuilder(formatter, caption='caption', label='lab',
-    ...                            column_format='lrl')
+    >>> builder = LongTableBuilder(formatter, caption='a long table',
+    ...                            label='tab:long', column_format='lrl')
     >>> table = builder.get_result()
     >>> print(table)
     \\begin{longtable}{lrl}
-    \\caption{caption}
-    \\label{lab}\\\\
+    \\caption{a long table}
+    \\label{tab:long}\\\\
+    \\toprule
+    {} &  a &   b \\\\
+    \\midrule
+    \\endfirsthead
+    \\caption[]{a long table} \\\\
     \\toprule
     {} &  a &   b \\\\
     \\midrule
