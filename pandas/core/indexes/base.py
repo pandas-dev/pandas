@@ -3252,7 +3252,7 @@ class Index(IndexOpsMixin, PandasObject):
             Return tuple-safe keys.
         """
         if isinstance(keyarr, Index):
-            keyarr = self._convert_index_indexer(keyarr)
+            pass
         else:
             keyarr = self._convert_arr_indexer(keyarr)
 
@@ -3273,21 +3273,6 @@ class Index(IndexOpsMixin, PandasObject):
         converted_keyarr : array-like
         """
         keyarr = com.asarray_tuplesafe(keyarr)
-        return keyarr
-
-    def _convert_index_indexer(self, keyarr):
-        """
-        Convert an Index indexer to the appropriate dtype.
-
-        Parameters
-        ----------
-        keyarr : Index (or sub-class)
-            Indexer to convert.
-
-        Returns
-        -------
-        converted_keyarr : Index (or sub-class)
-        """
         return keyarr
 
     def _convert_list_indexer(self, keyarr):
