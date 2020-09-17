@@ -507,7 +507,11 @@ class Base:
         for case in cases:
             if not isinstance(index, CategoricalIndex):
                 result = first.union(case)
-                assert tm.equalContents(result, everything)
+                assert tm.equalContents(result, everything), (
+                    result,
+                    everything,
+                    type(case),
+                )
 
         if isinstance(index, MultiIndex):
             msg = "other must be a MultiIndex or a list of tuples"
