@@ -456,7 +456,8 @@ class HTMLFormatter(TableFormatter):
                 # Insert ... row and adjust idx_values and
                 # level_lengths to take this into account.
                 ins_row = self.fmt.tr_row_num
-                # cast here since if is_truncated_vertically is True, self.fmt.tr_row_num is not None
+                # cast here since if is_truncated_vertically is True
+                # self.fmt.tr_row_num is not None
                 ins_row = cast(int, ins_row)
                 inserted = False
                 for lnum, records in enumerate(level_lengths):
