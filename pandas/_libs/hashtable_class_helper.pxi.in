@@ -551,7 +551,7 @@ cdef class {{name}}HashTable(HashTable):
     def get_labels_groupby(self, const {{dtype}}_t[:] values):
         cdef:
             Py_ssize_t i, n = len(values)
-            int64_t[:] labels
+            intp_t[:] labels
             Py_ssize_t idx, count = 0
             int ret = 0
             {{dtype}}_t val
@@ -559,7 +559,7 @@ cdef class {{name}}HashTable(HashTable):
             {{name}}Vector uniques = {{name}}Vector()
             {{name}}VectorData *ud
 
-        labels = np.empty(n, dtype=np.int64)
+        labels = np.empty(n, dtype=np.intp)
         ud = uniques.data
 
         with nogil:
