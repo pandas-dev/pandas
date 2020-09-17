@@ -1,6 +1,6 @@
 import re
 import textwrap
-from typing import Pattern, Union
+from typing import Pattern, Set, Union
 import unicodedata
 import warnings
 
@@ -341,22 +341,23 @@ class ObjectArrayMethods(BaseStringArrayMethods):
         from pandas import Series
 
         arr = Series(self._array).fillna("")
+        assert isinstance(arr, Series)  # fillna returns Optional[Series]
         try:
             arr = sep + arr + sep
         except TypeError:
             arr = sep + arr.astype(str) + sep
 
-        tags = set()
+        tags: Set[str] = set()
         for ts in Series(arr).str.split(sep):
             tags.update(ts)
-        tags = sorted(tags - {""})
+        tags2 = sorted(tags - {""})
 
-        dummies = np.empty((len(arr), len(tags)), dtype=np.int64)
+        dummies = np.empty((len(arr), len(tags2)), dtype=np.int64)
 
-        for i, t in enumerate(tags):
+        for i, t in enumerate(tags2):
             pat = sep + t + sep
             dummies[:, i] = lib.map_infer(arr.to_numpy(), lambda x: pat in x)
-        return dummies, tags
+        return dummies, tags2
 
     def upper(self):
         return self._map(lambda x: x.upper())

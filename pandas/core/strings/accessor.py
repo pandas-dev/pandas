@@ -2,7 +2,7 @@ import codecs
 from functools import wraps
 import operator
 import re
-from typing import Dict, List
+from typing import Dict, List, Optional
 import warnings
 
 import numpy as np
@@ -312,6 +312,7 @@ class StringMethods(NoNewAttributesMixin):
         else:
             index = self._orig.index
             # This is a mess.
+            dtype: Optional[str]
             if self._is_string and returns_string:
                 dtype = "string"
             else:
@@ -369,7 +370,7 @@ class StringMethods(NoNewAttributesMixin):
                 or (isinstance(x, np.ndarray) and x.ndim == 1)
                 for x in others
             ):
-                los = []
+                los: List[Series] = []
                 while others:  # iterate through list and append each element
                     los = los + self._get_series_list(others.pop(0))
                 return los
