@@ -1841,7 +1841,7 @@ class SQLiteDatabase(PandasSQL):
         return len(self.execute(query, [name]).fetchall()) > 0
 
     @staticmethod
-    def get_table(self, table_name, schema=None):
+    def get_table(table_name, schema=None):
         return None  # not supported in fallback mode
 
     def drop_table(self, name, schema=None):
