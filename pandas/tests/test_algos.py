@@ -849,7 +849,7 @@ class TestIsin:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_same_nan_is_in_large_series(self):
-        # issue:`#25395`
+        # https://github.com/pandas-dev/pandas/issues/22205
         s = np.tile(1.0, 1_000_001)
         series = pd.Series(s)
         s[0] = np.nan
