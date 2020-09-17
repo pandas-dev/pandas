@@ -143,7 +143,6 @@ from pandas.core.internals.construction import (
 )
 from pandas.core.reshape.melt import melt
 from pandas.core.series import Series
-from pandas.core.sorting import ensure_key_mapped
 
 from pandas.io.common import get_filepath_or_buffer
 from pandas.io.formats import console, format as fmt
@@ -3843,9 +3842,14 @@ class DataFrame(NDFrame):
     def lookup(self, row_labels, col_labels) -> np.ndarray:
         """
         Label-based "fancy indexing" function for DataFrame.
-
         Given equal-length arrays of row and column labels, return an
         array of the values corresponding to each (row, col) pair.
+
+        .. deprecated:: 1.2.0
+            DataFrame.lookup is deprecated,
+            use DataFrame.melt and DataFrame.loc instead.
+            For an example see :meth:`~pandas.DataFrame.lookup`
+            in the user guide.
 
         Parameters
         ----------
@@ -3859,6 +3863,14 @@ class DataFrame(NDFrame):
         numpy.ndarray
             The found values.
         """
+        msg = (
+            "The 'lookup' method is deprecated and will be"
+            "removed in a future version."
+            "You can use DataFrame.melt and DataFrame.loc"
+            "as a substitute."
+        )
+        warnings.warn(msg, FutureWarning, stacklevel=2)
+
         n = len(row_labels)
         if n != len(col_labels):
             raise ValueError("Row labels must have same size as column labels")
@@ -5448,62 +5460,17 @@ class DataFrame(NDFrame):
         C  3
         d  4
         """
-        # TODO: this can be combined with Series.sort_index impl as
-        # almost identical
-
-        inplace = validate_bool_kwarg(inplace, "inplace")
-
-        axis = self._get_axis_number(axis)
-        labels = self._get_axis(axis)
-        labels = ensure_key_mapped(labels, key, levels=level)
-
-        # make sure that the axis is lexsorted to start
-        # if not we need to reconstruct to get the correct indexer
-        labels = labels._sort_levels_monotonic()
-        if level is not None:
-            new_axis, indexer = labels.sortlevel(
-                level, ascending=ascending, sort_remaining=sort_remaining
-            )
-
-        elif isinstance(labels, MultiIndex):
-            from pandas.core.sorting import lexsort_indexer
-
-            indexer = lexsort_indexer(
-                labels._get_codes_for_sorting(),
-                orders=ascending,
-                na_position=na_position,
-            )
-        else:
-            from pandas.core.sorting import nargsort
-
-            # Check monotonic-ness before sort an index
-            # GH11080
-            if (ascending and labels.is_monotonic_increasing) or (
-                not ascending and labels.is_monotonic_decreasing
-            ):
-                if inplace:
-                    return
-                else:
-                    return self.copy()
-
-            indexer = nargsort(
-                labels, kind=kind, ascending=ascending, na_position=na_position
-            )
-
-        baxis = self._get_block_manager_axis(axis)
-        new_data = self._mgr.take(indexer, axis=baxis, verify=False)
-
-        # reconstruct axis if needed
-        new_data.axes[baxis] = new_data.axes[baxis]._sort_levels_monotonic()
-
-        if ignore_index:
-            new_data.axes[1] = ibase.default_index(len(indexer))
-
-        result = self._constructor(new_data)
-        if inplace:
-            return self._update_inplace(result)
-        else:
-            return result.__finalize__(self, method="sort_index")
+        return super().sort_index(
+            axis,
+            level,
+            ascending,
+            inplace,
+            kind,
+            na_position,
+            sort_remaining,
+            ignore_index,
+            key,
+        )
 
     def value_counts(
         self,

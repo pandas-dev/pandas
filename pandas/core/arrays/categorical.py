@@ -94,7 +94,7 @@ def _cat_compare_op(op):
 
         if is_scalar(other):
             if other in self.categories:
-                i = self.categories.get_loc(other)
+                i = self._unbox_scalar(other)
                 ret = op(self._codes, i)
 
                 if opname not in {"__eq__", "__ge__", "__gt__"}:
@@ -1185,8 +1185,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         # searchsorted is very performance sensitive. By converting codes
         # to same dtype as self.codes, we get much faster performance.
         if is_scalar(value):
-            codes = self.categories.get_loc(value)
-            codes = self.codes.dtype.type(codes)
+            codes = self._unbox_scalar(value)
         else:
             locs = [self.categories.get_loc(x) for x in value]
             codes = np.array(locs, dtype=self.codes.dtype)
@@ -1213,7 +1212,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         if isna(fill_value):
             fill_value = -1
         elif fill_value in self.categories:
-            fill_value = self.categories.get_loc(fill_value)
+            fill_value = self._unbox_scalar(fill_value)
         else:
             raise ValueError(
                 f"'fill_value={fill_value}' is not present "
@@ -1681,7 +1680,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
                     if isna(value):
                         codes[mask] = -1
                     else:
-                        codes[mask] = self.categories.get_loc(value)
+                        codes[mask] = self._unbox_scalar(value)
 
             else:
                 raise TypeError(
@@ -1734,6 +1733,17 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             codes = self.categories.get_indexer(target)
 
         return codes
+
+    def _unbox_scalar(self, key) -> int:
+        # searchsorted is very performance sensitive. By converting codes
+        # to same dtype as self.codes, we get much faster performance.
+        code = self.categories.get_loc(key)
+        code = self._codes.dtype.type(code)
+        return code
+
+    def _unbox_listlike(self, value):
+        unboxed = self.categories.get_indexer(value)
+        return unboxed.astype(self._ndarray.dtype, copy=False)
 
     # ------------------------------------------------------------------
 
@@ -1885,20 +1895,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             return result
         return self._from_backing_data(result)
 
-    def __setitem__(self, key, value):
-        """
-        Item assignment.
-
-        Raises
-        ------
-        ValueError
-            If (one or more) Value is not in categories or if a assigned
-            `Categorical` does not have the same categories
-        """
-        key = self._validate_setitem_key(key)
-        value = self._validate_setitem_value(value)
-        self._ndarray[key] = value
-
     def _validate_setitem_value(self, value):
         value = extract_array(value, extract_numpy=True)
 
@@ -1926,11 +1922,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
                 "category, set the categories first"
             )
 
-        lindexer = self.categories.get_indexer(rvalue)
-        if isinstance(lindexer, np.ndarray) and lindexer.dtype.kind == "i":
-            lindexer = lindexer.astype(self._ndarray.dtype)
-
-        return lindexer
+        return self._unbox_listlike(rvalue)
 
     def _validate_setitem_key(self, key):
         if lib.is_integer(key):
@@ -2156,8 +2148,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         return cat.set_categories(cat.categories.take(take_codes))
 
     def _values_for_factorize(self):
-        codes = self.codes.astype("int64")
-        return codes, -1
+        return self._ndarray, -1
 
     @classmethod
     def _from_factorized(cls, uniques, original):
