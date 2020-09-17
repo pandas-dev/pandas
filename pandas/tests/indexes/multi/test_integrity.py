@@ -118,6 +118,7 @@ def test_consistency():
     assert index.is_unique is False
 
 
+@pytest.mark.arm_slow
 def test_hash_collisions():
     # non-smoke test that we don't get hash collisions
 

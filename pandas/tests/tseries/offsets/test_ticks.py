@@ -64,6 +64,7 @@ def test_tick_add_sub(cls, n, m):
     assert left - right == expected
 
 
+@pytest.mark.arm_slow
 @pytest.mark.parametrize("cls", tick_classes)
 @settings(deadline=None)
 @example(n=2, m=3)

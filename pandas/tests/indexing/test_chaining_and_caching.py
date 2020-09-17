@@ -132,6 +132,7 @@ class TestChaining:
         result = df.head()
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.arm_slow
     def test_detect_chained_assignment(self):
 
         pd.set_option("chained_assignment", "raise")
