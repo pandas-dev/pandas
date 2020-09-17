@@ -425,7 +425,7 @@ class TestCategoricalAPI:
     def test_dummies_roundtrip(self, vals):
         # GH 8745
         cats = Categorical(Series(vals))
-        dummies = cats.to_dummies()
+        dummies = cats.get_dummies()
         cats2 = Categorical.from_dummies(dummies)
         tm.assert_equal(cats, cats2)
 
