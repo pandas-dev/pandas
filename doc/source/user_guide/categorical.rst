@@ -136,14 +136,6 @@ with each row having False in all but one column (True).
 These are called `dummy variables <https://en.wikipedia.org/wiki/Dummy_variable_(statistics)>`_, or one-hot encoding.
 :class:`pandas.Categorical` objects can easily be converted to and from such an encoding.
 
-The :meth:`pandas.Categorical.from_dummies` class method accepts a dataframe
-whose dtypes are coercible to boolean, and an ``ordered`` argument
-for whether the resulting ``Categorical`` should be considered ordered
-(like the ``Categorical`` constructor).
-A column with a NA index will be ignored.
-Any row which is entirely falsey, or has a missing value,
-will be uncategorised.
-
 :meth:`pandas.Categorical.get_dummies` produces a dataframe of dummy variables.
 It works in the same way and supports most of the same arguments as :func:`pandas.get_dummies`.
 
@@ -152,10 +144,25 @@ It works in the same way and supports most of the same arguments as :func:`panda
     cat = pd.Categorical(["a", "b", "b", "c"])
     cat
 
-    dummies = cat.get_dummies()
+    cat.get_dummies()
+
+The :meth:`pandas.Categorical.from_dummies` class method accepts a dataframe
+whose dtypes are coercible to boolean, and an ``ordered`` argument
+for whether the resulting ``Categorical`` should be considered ordered
+(like the ``Categorical`` constructor).
+A column with a NA index will be ignored.
+Any row which is entirely falsey, or has a missing value,
+will be uncategorised.
+In the same way that :func:`pandas.get_dummies` can add a prefix to string category names,
+:meth:`~pandas.Categorical.from_dummies` can filter a dataframe for columns with a prefix:
+the resulting ``Categorical`` will have the prefix stripped from its categories.
+
+.. ipython:: python
+
+    dummies = pd.get_dummies(["a", "b", "b", "c"], prefix="cat")
     dummies
 
-    pd.Categorical.from_dummies(dummies)
+    pd.Categorical.from_dummies(dummies, prefix="cat")
 
 
 .. versionadded:: 1.2.0
