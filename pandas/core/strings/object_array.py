@@ -1,6 +1,6 @@
 import re
 import textwrap
-from typing import Pattern, Set, Union
+from typing import Pattern, Set, Union, cast
 import unicodedata
 import warnings
 
@@ -341,11 +341,12 @@ class ObjectArrayMethods(BaseStringArrayMethods):
         from pandas import Series
 
         arr = Series(self._array).fillna("")
-        assert isinstance(arr, Series)  # fillna returns Optional[Series]
         try:
             arr = sep + arr + sep
         except TypeError:
+            arr = cast(Series, arr)
             arr = sep + arr.astype(str) + sep
+        arr = cast(Series, arr)
 
         tags: Set[str] = set()
         for ts in Series(arr).str.split(sep):
