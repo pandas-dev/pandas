@@ -25,7 +25,7 @@ repos:
           - file
         args: [--append-config=flake8/cython-template.cfg]
 -   repo: https://github.com/pre-commit/mirrors-isort
-    rev: v4.3.21
+    rev: v5.2.2
     hooks:
     -   id: isort
         language: python_venv
