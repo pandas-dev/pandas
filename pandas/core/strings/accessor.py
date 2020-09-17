@@ -1203,7 +1203,7 @@ class StringMethods(NoNewAttributesMixin):
             - If True, assumes the passed-in pattern is a regular expression.
             - If False, treats the pattern as a literal string
             - Cannot be set to False if `pat` is a compiled regex or `repl` is
-            a callable.
+              a callable.
 
             .. versionadded:: 0.23.0
 
@@ -1217,7 +1217,7 @@ class StringMethods(NoNewAttributesMixin):
         ------
         ValueError
             * if `regex` is False and `repl` is a callable or `pat` is a compiled
-            regex
+              regex
             * if `pat` is a compiled regex and `case` or `flags` is set
 
         Notes
