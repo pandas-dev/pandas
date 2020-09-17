@@ -26,6 +26,7 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
+    is_bool_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_list_like,
@@ -37,7 +38,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.dtypes.missing import array_equals, isna
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import ExtensionArray, PandasDtype
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.base import PandasObject
 from pandas.core.construction import extract_array
@@ -116,12 +117,12 @@ class ArrayManager(DataManager):
         "arrays",
     ]
 
-    arrays: List[np.ndarray]
+    arrays: List[Union[np.ndarray, ExtensionArray]]
     axes: Sequence[Index]
 
     def __init__(
         self,
-        arrays: List[np.ndarray],
+        arrays: List[Union[np.ndarray, ExtensionArray]],
         axes: Sequence[Index],
         do_integrity_check: bool = True,
     ):
@@ -212,11 +213,16 @@ class ArrayManager(DataManager):
                 "Number of passed arrays must equal the size of the column Index: "
                 f"{len(self.arrays)} arrays vs {n_columns} columns."
             )
-        for array in self.arrays:
-            if not len(array) == n_rows:
+        for arr in self.arrays:
+            if not len(arr) == n_rows:
                 raise ValueError(
                     "Passed arrays should have the same length as the rows Index: "
-                    f"{len(array)} vs {n_rows} rows"
+                    f"{len(arr)} vs {n_rows} rows"
+                )
+            if not isinstance(arr, (np.ndarray, ExtensionArray)):
+                raise ValueError(
+                    "Passed arrays should be np.ndarray or ExtensionArray instances, "
+                    f"got {type(arr)} instead"
                 )
 
     def reduce(self: T, func) -> T:
@@ -224,8 +230,8 @@ class ArrayManager(DataManager):
         assert self.ndim == 2
 
         res_arrays = []
-        for array in self.arrays:
-            res = func(array)
+        for arr in self.arrays:
+            res = func(arr)
             res_arrays.append(np.array([res]))
 
         index = Index([0])  # placeholder
@@ -290,7 +296,7 @@ class ArrayManager(DataManager):
                         else:
                             kwargs[k] = obj.iloc[:, i]._values
                     else:
-                        # otherwise we have an ndarray
+                        # otherwise we have an array-like
                         kwargs[k] = obj[i]
 
             try:
@@ -302,6 +308,9 @@ class ArrayManager(DataManager):
                 if not ignore_failures:
                     raise
                 continue
+            # if not isinstance(applied, ExtensionArray):
+            #     # TODO not all EA operations return new EAs (eg astype)
+            #     applied = array(applied)
             result_arrays.append(applied)
             result_indices.append(i)
 
@@ -323,10 +332,9 @@ class ArrayManager(DataManager):
 
         result_arrays = []
 
-        for i, array in enumerate(self.arrays):
+        for i, arr in enumerate(self.arrays):
 
             if aligned_args:
-
                 for k, obj in aligned_args.items():
                     if isinstance(obj, (ABCSeries, ABCDataFrame)):
                         # The caller is responsible for ensuring that
@@ -339,13 +347,17 @@ class ArrayManager(DataManager):
                         # otherwise we have an ndarray
                         kwargs[k] = obj[[i]]
 
-            block = make_block(np.atleast_2d(array), placement=slice(0, 1, 1), ndim=2)
+            if isinstance(arr, np.ndarray):
+                arr = np.atleast_2d(arr)
+            block = make_block(arr, placement=slice(0, 1, 1), ndim=2)
             applied = getattr(block, f)(**kwargs)
             while isinstance(applied, list):
                 # ObjectBlock gives double nested result?, some functions give no list
                 applied = applied[0]
-            applied_array = applied.values[0, :]
-            result_arrays.append(applied_array)
+            arr = applied.values
+            if isinstance(arr, np.ndarray):
+                arr = arr[0, :]
+            result_arrays.append(arr)
 
         return type(self)(result_arrays, self._axes)
 
@@ -419,7 +431,7 @@ class ArrayManager(DataManager):
 
             mask = isna(array)
             if limit is not None:
-                limit = libalgos._validate_limit(None, limit=limit)
+                limit = libalgos.validate_limit(None, limit=limit)
                 mask[mask.cumsum() > limit] = False
 
             # if not self._can_hold_na:
@@ -430,7 +442,10 @@ class ArrayManager(DataManager):
             if not inplace:
                 array = array.copy()
 
-            np.putmask(array, mask, value)
+            # np.putmask(array, mask, value)
+            if np.any(mask):
+                # TODO allow invalid value if there is nothing to fill?
+                array[mask] = value
             return array
 
         return self.apply(array_fillna, value=value, limit=limit, inplace=inplace)
@@ -510,7 +525,7 @@ class ArrayManager(DataManager):
         copy : bool, default False
             Whether to copy the blocks
         """
-        mask = self.get_dtypes() == np.dtype("bool")
+        mask = np.array([is_bool_dtype(t) for t in self.get_dtypes()], dtype="object")
         arrays = [self.arrays[i] for i in np.nonzero(mask)[0]]
         # TODO copy?
         new_axes = [self._axes[0], self._axes[1][mask]]
@@ -598,6 +613,15 @@ class ArrayManager(DataManager):
         if not dtype:
             dtype = _interleaved_dtype(self.arrays)
 
+        if isinstance(dtype, SparseDtype):
+            dtype = dtype.subtype
+        elif isinstance(dtype, PandasDtype):
+            dtype = dtype.numpy_dtype
+        elif is_extension_array_dtype(dtype):
+            dtype = "object"
+        elif is_dtype_equal(dtype, str):
+            dtype = "object"
+
         result = np.empty(self.shape_proper, dtype=dtype)
 
         for i, arr in enumerate(self.arrays):
@@ -636,7 +660,22 @@ class ArrayManager(DataManager):
         np.ndarray or ExtensionArray
         """
         dtype = _interleaved_dtype(self.arrays)
-        return np.array([a[loc] for a in self.arrays], dtype=dtype)
+
+        if isinstance(dtype, SparseDtype):
+            temp_dtype = dtype.subtype
+        elif isinstance(dtype, PandasDtype):
+            temp_dtype = dtype.numpy_dtype
+        elif is_extension_array_dtype(dtype):
+            temp_dtype = "object"
+        elif is_dtype_equal(dtype, str):
+            temp_dtype = "object"
+        else:
+            temp_dtype = dtype
+
+        result = np.array([arr[loc] for arr in self.arrays], dtype=temp_dtype)
+        if isinstance(dtype, ExtensionDtype):
+            result = dtype.construct_array_type()._from_sequence(result, dtype=dtype)
+        return result
 
     def iget(self, i: int) -> "SingleBlockManager":
         """
@@ -669,15 +708,14 @@ class ArrayManager(DataManager):
         contained in the current set of items
         """
         if lib.is_integer(loc):
-            # TODO normalize array -> this should in theory not be needed
-            if isinstance(value, ExtensionArray):
-                import pytest
-
-                pytest.skip()
-            value = np.asarray(value)
-            # assert isinstance(value, np.ndarray)
-            if value.ndim == 2:
+            # TODO normalize array -> this should in theory not be needed?
+            value = extract_array(value, extract_numpy=True)
+            if isinstance(value, np.ndarray) and value.ndim == 2:
                 value = value[0, :]
+
+            assert isinstance(value, (np.ndarray, ExtensionArray))
+            # value = np.asarray(value)
+            # assert isinstance(value, np.ndarray)
             assert len(value) == len(self._axes[0])
             self.arrays[loc] = value
             return
@@ -708,6 +746,7 @@ class ArrayManager(DataManager):
         # insert to the axis; this could possibly raise a TypeError
         new_axis = self.items.insert(loc, item)
 
+        value = extract_array(value, extract_numpy=True)
         if value.ndim == 2:
             value = value[0, :]
         # TODO self.arrays can be empty
@@ -784,13 +823,13 @@ class ArrayManager(DataManager):
         else:
             new_arrays = [
                 algos.take(
-                    array,
+                    arr,
                     indexer,
                     allow_fill=True,
                     fill_value=fill_value,
                     # if fill_value is not None else blk.fill_value
                 )
-                for array in self.arrays
+                for arr in self.arrays
             ]
 
         new_axes = list(self._axes)
@@ -835,8 +874,8 @@ class ArrayManager(DataManager):
     def to_native_types(self, **kwargs):
         result_arrays = []
 
-        for i, array in enumerate(self.arrays):
-            block = make_block(np.atleast_2d(array), placement=slice(0, 1, 1), ndim=2)
+        for i, arr in enumerate(self.arrays):
+            block = make_block(np.atleast_2d(arr), placement=slice(0, 1, 1), ndim=2)
             res = block.to_native_types(**kwargs)
             result_arrays.append(res[0, :])
 
@@ -2321,8 +2360,8 @@ class SingleBlockManager(BlockManager):
             raise IndexError("Requested axis not found in manager")
 
         blk = self._block
-        array = blk._slice(slobj)
-        block = blk.make_block_same_class(array, placement=slice(0, len(array)))
+        arr = blk._slice(slobj)
+        block = blk.make_block_same_class(arr, placement=slice(0, len(arr)))
         return type(self)(block, self.index[slobj])
 
     @property

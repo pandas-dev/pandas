@@ -53,7 +53,7 @@ def concatenate_block_managers(
             # TODO for now only fastpath without indexers
             mgrs = [t[0] for t in mgrs_indexers]
             arrays = [
-                np.concatenate([mgrs[i].arrays[j] for i in range(len(mgrs))])
+                concat_compat([mgrs[i].arrays[j] for i in range(len(mgrs))], axis=0)
                 for j in range(len(mgrs[0].arrays))
             ]
             return ArrayManager(arrays, [axes[1], axes[0]])
