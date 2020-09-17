@@ -36,7 +36,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
+from pandas.core.dtypes.missing import isna
 
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays.interval import IntervalArray, _interval_shared_docs
@@ -333,7 +333,9 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     # --------------------------------------------------------------------
 
     @Appender(Index._shallow_copy.__doc__)
-    def _shallow_copy(self, values=None, name: Label = lib.no_default):
+    def _shallow_copy(
+        self, values: Optional[IntervalArray] = None, name: Label = lib.no_default
+    ):
         name = self.name if name is lib.no_default else name
         cache = self._cache.copy() if values is None else {}
         if values is None:
@@ -927,20 +929,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         -------
         IntervalIndex
         """
-        if isinstance(item, Interval):
-            if item.closed != self.closed:
-                raise ValueError(
-                    "inserted item must be closed on the same side as the index"
-                )
-            left_insert = item.left
-            right_insert = item.right
-        elif is_valid_nat_for_dtype(item, self.left.dtype):
-            # GH 18295
-            left_insert = right_insert = item
-        else:
-            raise ValueError(
-                "can only insert Interval objects and NA into an IntervalIndex"
-            )
+        left_insert, right_insert = self._data._validate_insert_value(item)
 
         new_left = self.left.insert(loc, left_insert)
         new_right = self.right.insert(loc, right_insert)

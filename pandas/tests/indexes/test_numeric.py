@@ -635,7 +635,11 @@ def test_range_float_union_dtype():
     tm.assert_index_equal(result, expected)
 
 
-def test_uint_index_does_not_convert_to_float64():
+@pytest.mark.parametrize(
+    "box",
+    [list, lambda x: np.array(x, dtype=object), lambda x: pd.Index(x, dtype=object)],
+)
+def test_uint_index_does_not_convert_to_float64(box):
     # https://github.com/pandas-dev/pandas/issues/28279
     # https://github.com/pandas-dev/pandas/issues/28023
     series = pd.Series(
@@ -650,7 +654,7 @@ def test_uint_index_does_not_convert_to_float64():
         ],
     )
 
-    result = series.loc[[7606741985629028552, 17876870360202815256]]
+    result = series.loc[box([7606741985629028552, 17876870360202815256])]
 
     expected = UInt64Index(
         [7606741985629028552, 17876870360202815256, 17876870360202815256],

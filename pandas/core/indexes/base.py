@@ -2250,7 +2250,7 @@ class Index(IndexOpsMixin, PandasObject):
         DataFrame.fillna : Fill NaN values of a DataFrame.
         Series.fillna : Fill NaN Values of a Series.
         """
-        self._assert_can_do_op(value)
+        value = self._validate_scalar(value)
         if self.hasnans:
             result = self.putmask(self._isnan, value)
             if downcast is None:
@@ -3252,7 +3252,7 @@ class Index(IndexOpsMixin, PandasObject):
             Return tuple-safe keys.
         """
         if isinstance(keyarr, Index):
-            keyarr = self._convert_index_indexer(keyarr)
+            pass
         else:
             keyarr = self._convert_arr_indexer(keyarr)
 
@@ -3273,21 +3273,6 @@ class Index(IndexOpsMixin, PandasObject):
         converted_keyarr : array-like
         """
         keyarr = com.asarray_tuplesafe(keyarr)
-        return keyarr
-
-    def _convert_index_indexer(self, keyarr):
-        """
-        Convert an Index indexer to the appropriate dtype.
-
-        Parameters
-        ----------
-        keyarr : Index (or sub-class)
-            Indexer to convert.
-
-        Returns
-        -------
-        converted_keyarr : Index (or sub-class)
-        """
         return keyarr
 
     def _convert_list_indexer(self, keyarr):
@@ -4053,12 +4038,14 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return value
 
-    def _assert_can_do_op(self, value):
+    def _validate_scalar(self, value):
         """
-        Check value is valid for scalar op.
+        Check that this is a scalar value that we can use for setitem-like
+        operations without changing dtype.
         """
         if not is_scalar(value):
             raise TypeError(f"'value' must be a scalar, passed: {type(value).__name__}")
+        return value
 
     @property
     def _has_complex_internals(self) -> bool:
@@ -4230,9 +4217,6 @@ class Index(IndexOpsMixin, PandasObject):
         try:
             converted = self._validate_fill_value(value)
             np.putmask(values, mask, converted)
-            if is_period_dtype(self.dtype):
-                # .values cast to object, so we need to cast back
-                values = type(self)(values)._data
             return self._shallow_copy(values)
         except (ValueError, TypeError) as err:
             if is_object_dtype(self):
