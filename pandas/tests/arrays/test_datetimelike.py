@@ -252,6 +252,47 @@ class SharedTests:
         else:
             assert result == 10
 
+    @pytest.mark.parametrize("box", [None, "index", "series"])
+    def test_searchsorted_castable_strings(self, arr1d, box):
+        if isinstance(arr1d, DatetimeArray):
+            tz = arr1d.tz
+            if (
+                tz is not None
+                and tz is not pytz.UTC
+                and not isinstance(tz, pytz._FixedOffset)
+            ):
+                # If we have e.g. tzutc(), when we cast to string and parse
+                #  back we get pytz.UTC, and then consider them different timezones
+                #  so incorrectly raise.
+                pytest.xfail(reason="timezone comparisons inconsistent")
+
+        arr = arr1d
+        if box is None:
+            pass
+        elif box == "index":
+            # Test the equivalent Index.searchsorted method while we're here
+            arr = self.index_cls(arr)
+        else:
+            # Test the equivalent Series.searchsorted method while we're here
+            arr = pd.Series(arr)
+
+        # scalar
+        result = arr.searchsorted(str(arr[1]))
+        assert result == 1
+
+        result = arr.searchsorted(str(arr[2]), side="right")
+        assert result == 3
+
+        result = arr.searchsorted([str(x) for x in arr[1:3]])
+        expected = np.array([1, 2], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            arr.searchsorted("foo")
+
+        with pytest.raises(TypeError):
+            arr.searchsorted([str(arr[1]), "baz"])
+
     def test_getitem_2d(self, arr1d):
         # 2d slicing on a 1D array
         expected = type(arr1d)(arr1d._data[:, np.newaxis], dtype=arr1d.dtype)
