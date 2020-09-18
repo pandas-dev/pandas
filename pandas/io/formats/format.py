@@ -67,6 +67,7 @@ from pandas.core.construction import extract_array
 from pandas.core.indexes.api import Index, MultiIndex, PeriodIndex, ensure_index
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
+from pandas.core.reshape.concat import concat
 
 from pandas.io.common import stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
@@ -791,48 +792,53 @@ class DataFrameFormatter(TableFormatter):
         Checks whether the frame should be truncated. If so, slices
         the frame up.
         """
-        from pandas.core.reshape.concat import concat
+        self.tr_frame = self.frame.copy()
 
-        frame = self.frame
         if self.is_truncated_horizontally:
-            # cast here since if is_truncated_horizontally is True
-            # max_cols_adj is not None
-            max_cols_adj = cast(int, self.max_cols_adj)
-            if max_cols_adj == 0:
-                col_num = len(frame.columns)
-            elif max_cols_adj == 1:
-                max_cols = cast(int, self.max_cols)
-                frame = frame.iloc[:, :max_cols]
-                col_num = max_cols
-            else:
-                col_num = max_cols_adj // 2
-                frame = concat(
-                    (frame.iloc[:, :col_num], frame.iloc[:, -col_num:]), axis=1
-                )
-                # truncate formatter
-                if isinstance(self.formatters, (list, tuple)):
-                    truncate_fmt = self.formatters
-                    self._formatters = [
-                        *truncate_fmt[:col_num],
-                        *truncate_fmt[-col_num:],
-                    ]
-            self.tr_col_num = col_num
-
+            self._truncate_horizontally()
         if self.is_truncated_vertically:
-            # cast here since if is_truncated_vertically is True
-            # max_rows_adj is not None
-            max_rows_adj = cast(int, self.max_rows_adj)
-            if max_rows_adj == 1:
-                row_num = self.max_rows
-                frame = frame.iloc[:row_num, :]
-            else:
-                row_num = max_rows_adj // 2
-                frame = concat((frame.iloc[:row_num, :], frame.iloc[-row_num:, :]))
-            self.tr_row_num = row_num
+            self._truncate_vertically()
         else:
             self.tr_row_num = None
 
-        self.tr_frame = frame
+    def _truncate_horizontally(self):
+        # cast here since if is_truncated_horizontally is True
+        # max_cols_adj is not None
+        max_cols_adj = cast(int, self.max_cols_adj)
+        if max_cols_adj == 0:
+            col_num = len(self.tr_frame.columns)
+        elif max_cols_adj == 1:
+            max_cols = cast(int, self.max_cols)
+            self.tr_frame = self.tr_frame.iloc[:, :max_cols]
+            col_num = max_cols
+        else:
+            col_num = max_cols_adj // 2
+            self.tr_frame = concat(
+                (self.tr_frame.iloc[:, :col_num], self.tr_frame.iloc[:, -col_num:]),
+                axis=1,
+            )
+            # truncate formatter
+            if isinstance(self.formatters, (list, tuple)):
+                truncate_fmt = self.formatters
+                self._formatters = [
+                    *truncate_fmt[:col_num],
+                    *truncate_fmt[-col_num:],
+                ]
+        self.tr_col_num = col_num
+
+    def _truncate_vertically(self):
+        # cast here since if is_truncated_vertically is True
+        # max_rows_adj is not None
+        max_rows_adj = cast(int, self.max_rows_adj)
+        if max_rows_adj == 1:
+            row_num = self.max_rows
+            self.tr_frame = self.tr_frame.iloc[:row_num, :]
+        else:
+            row_num = max_rows_adj // 2
+            self.tr_frame = concat(
+                (self.tr_frame.iloc[:row_num, :], self.tr_frame.iloc[-row_num:, :])
+            )
+        self.tr_row_num = row_num
 
     def _to_str_columns(self) -> List[List[str]]:
         """
