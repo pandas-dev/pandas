@@ -805,7 +805,6 @@ class DataFrameFormatter(TableFormatter):
         max_cols_adj = cast(int, self.max_cols_adj)
 
         col_num = max_cols_adj // 2
-
         if col_num >= 1:
             cols_to_keep = [
                 x for x in range(self.frame.shape[1])
@@ -819,8 +818,8 @@ class DataFrameFormatter(TableFormatter):
                 self._formatters = slicer(self.formatters)
         else:
             max_cols = cast(int, self.max_cols)
-            self.tr_frame = self.tr_frame.iloc[:, :max_cols]
             col_num = max_cols
+            self.tr_frame = self.tr_frame.iloc[:, :col_num]
 
         self.tr_col_num = col_num
 
@@ -828,14 +827,14 @@ class DataFrameFormatter(TableFormatter):
         # cast here since if is_truncated_vertically is True
         # max_rows_adj is not None
         max_rows_adj = cast(int, self.max_rows_adj)
-        if max_rows_adj == 1:
-            row_num = self.max_rows
-            self.tr_frame = self.tr_frame.iloc[:row_num, :]
-        else:
-            row_num = max_rows_adj // 2
+        row_num = max_rows_adj // 2
+        if row_num >= 1:
             self.tr_frame = concat(
                 (self.tr_frame.iloc[:row_num, :], self.tr_frame.iloc[-row_num:, :])
             )
+        else:
+            row_num = self.max_rows
+            self.tr_frame = self.tr_frame.iloc[:row_num, :]
         self.tr_row_num = row_num
 
     def _get_strcols_without_index(self):
