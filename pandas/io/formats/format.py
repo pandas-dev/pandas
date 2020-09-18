@@ -10,6 +10,7 @@ import decimal
 from functools import partial
 from io import StringIO
 import math
+from operator import itemgetter
 import re
 from shutil import get_terminal_size
 from typing import (
@@ -808,17 +809,18 @@ class DataFrameFormatter(TableFormatter):
             col_num = max_cols
         else:
             col_num = max_cols_adj // 2
-            self.tr_frame = concat(
-                (self.tr_frame.iloc[:, :col_num], self.tr_frame.iloc[:, -col_num:]),
-                axis=1,
-            )
+
+            cols_to_keep = [
+                x for x in range(self.frame.shape[1])
+                if x < col_num or x >= len(self.frame.columns) - col_num
+            ]
+            self.tr_frame = self.tr_frame.iloc[:, cols_to_keep]
+
             # truncate formatter
             if isinstance(self.formatters, (list, tuple)):
-                truncate_fmt = self.formatters
-                self._formatters = [
-                    *truncate_fmt[:col_num],
-                    *truncate_fmt[-col_num:],
-                ]
+                slicer = itemgetter(*cols_to_keep)
+                self._formatters = slicer(self.formatters)
+
         self.tr_col_num = col_num
 
     def _truncate_vertically(self):
