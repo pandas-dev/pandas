@@ -291,7 +291,7 @@ class PandasSQLTest:
         self.drop_table("iris")
         self._get_exec().execute(SQL_STRINGS["create_iris"][self.flavor])
 
-        with io.open(iris_csv_file, mode="r", newline=None) as iris_csv:
+        with open(iris_csv_file, mode="r", newline=None) as iris_csv:
             r = csv.reader(iris_csv)
             next(r)  # skip header row
             ins = SQL_STRINGS["insert_iris"][self.flavor]

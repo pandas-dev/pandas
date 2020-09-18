@@ -30,3 +30,9 @@ repos:
     -   id: isort
         language: python_venv
         exclude: ^pandas/__init__\.py$|^pandas/core/api\.py$
+- repo: https://github.com/asottile/pyupgrade
+  rev: v2.7.2
+  hooks:
+    - id: pyupgrade
+      args: ['--py37-plus']
+      language: python_venv
