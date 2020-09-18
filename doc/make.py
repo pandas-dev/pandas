@@ -86,7 +86,7 @@ class DocBuilder:
             except AttributeError as err:
                 raise ImportError(f"Could not import {single_doc}") from err
             else:
-                return single_doc[len("pandas.") :]
+                return single_doc[len("pandas."):]
         else:
             raise ValueError(
                 f"--single={single_doc} not understood. "
@@ -139,7 +139,7 @@ class DocBuilder:
             "-d",
             os.path.join(BUILD_PATH, "doctrees"),
             SOURCE_PATH,
-            os.path.join(BUILD_PATH, kind),
+            os.path.join(BUILD_PATH, kind)
         ]
         return subprocess.call(cmd)
 
@@ -286,12 +286,12 @@ def main():
 
     joined = ",".join(cmds)
     argparser = argparse.ArgumentParser(
-        description="pandas documentation builder", epilog=f"Commands: {joined}",
+        description="pandas documentation builder", epilog=f"Commands: {joined}"
     )
 
     joined = ", ".join(cmds)
     argparser.add_argument(
-        "command", nargs="?", default="html", help=f"command to run: {joined}",
+        "command", nargs="?", default="html", help=f"command to run: {joined}"
     )
     argparser.add_argument(
         "--num-jobs", type=int, default=0, help="number of jobs used by sphinx-build"
@@ -308,7 +308,7 @@ def main():
             "filename (relative to the 'source' folder) of section or method name to "
             "compile, e.g. 'development/contributing.rst', "
             "'ecosystem.rst', 'pandas.DataFrame.join'"
-        ),
+        )
     )
     argparser.add_argument(
         "--python-path", type=str, default=os.path.dirname(DOC_PATH), help="path"
@@ -321,13 +321,13 @@ def main():
         help=(
             "increase verbosity (can be repeated), "
             "passed to the sphinx build command"
-        ),
+        )
     )
     argparser.add_argument(
         "--warnings-are-errors",
         "-W",
         action="store_true",
-        help="fail if warnings are raised",
+        help="fail if warnings are raised"
     )
     args = argparser.parse_args()
 
@@ -352,7 +352,7 @@ def main():
         not args.no_api,
         args.single,
         args.verbosity,
-        args.warnings_are_errors,
+        args.warnings_are_errors
     )
     return getattr(builder, args.command)()
 
