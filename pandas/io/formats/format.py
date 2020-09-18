@@ -798,10 +798,8 @@ class DataFrameFormatter(TableFormatter):
             self._truncate_vertically()
 
     def _truncate_horizontally(self) -> None:
-        # cast here since if is_truncated_horizontally is True
-        # max_cols_adj is not None
-        max_cols_adj = cast(int, self.max_cols_adj)
-        col_num = max_cols_adj // 2
+        assert self.max_cols_adj is not None
+        col_num = self.max_cols_adj // 2
         if col_num >= 1:
             cols_to_keep = [
                 x
@@ -820,10 +818,8 @@ class DataFrameFormatter(TableFormatter):
         self.tr_col_num = col_num
 
     def _truncate_vertically(self) -> None:
-        # cast here since if is_truncated_vertically is True
-        # max_rows_adj is not None
-        max_rows_adj = cast(int, self.max_rows_adj)
-        row_num = max_rows_adj // 2
+        assert self.max_rows_adj is not None
+        row_num = self.max_rows_adj // 2
         if row_num >= 1:
             rows_to_keep = [
                 x
