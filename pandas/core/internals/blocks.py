@@ -38,6 +38,7 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_float_dtype,
     is_integer,
+    is_float,
     is_integer_dtype,
     is_interval_dtype,
     is_list_like,
@@ -2066,7 +2067,7 @@ class IntBlock(NumericBlock):
                 and not issubclass(tipo.type, (np.datetime64, np.timedelta64))
                 and self.dtype.itemsize >= tipo.itemsize
             )
-        return is_integer(element)
+        return is_integer(element) or is_float(element)
 
 
 class DatetimeLikeBlockMixin:
