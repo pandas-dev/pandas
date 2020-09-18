@@ -1217,6 +1217,8 @@ class TestToDatetimeUnit:
 
     @pytest.mark.parametrize("cache", [True, False])
     def test_unit_rounding(self, cache):
+        # GH 14156 & GH 20445: argument will incur floating point errors
+        # but no premature rounding
         result = pd.to_datetime(1434743731.8770001, unit="s", cache=cache)
         expected = pd.Timestamp("2015-06-19 19:55:31.877000192")
         assert result == expected
@@ -1452,6 +1454,7 @@ class TestToDatetimeUnit:
             ]
             + [NaT]
         )
+        # GH20455 argument will incur floating point errors but no premature rounding
         result = result.round("ms")
         tm.assert_series_equal(result, expected)
 
