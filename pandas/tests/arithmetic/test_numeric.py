@@ -106,8 +106,6 @@ class TestNumericComparisons:
         tm.assert_equal(result, ~expected)
 
         msg = "Invalid comparison between dtype=float64 and str"
-        if box is pd.Index:
-            msg = "'<' not supported between instances of 'numpy.ndarray' and"
         with pytest.raises(TypeError, match=msg):
             obj < "a"
 

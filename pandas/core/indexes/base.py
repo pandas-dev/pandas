@@ -140,7 +140,7 @@ def _make_comparison_op(op, cls):
 
         else:
             with np.errstate(all="ignore"):
-                result = op(self._values, np.asarray(other))
+                result = ops.comparison_op(self._values, np.asarray(other), op)
 
         if is_bool_dtype(result):
             return result
