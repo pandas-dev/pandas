@@ -685,7 +685,7 @@ class DatetimeLikeArrayMixin(
                 raise InvalidComparison(other)
 
         if isinstance(other, self._recognized_scalars) or other is NaT:
-            other = self._scalar_type(other)
+            other = self._scalar_type(other)  # type:ignore [call-arg]
             self._check_compatible_with(other)
 
         elif not is_list_like(other):
