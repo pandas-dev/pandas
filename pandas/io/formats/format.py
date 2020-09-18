@@ -717,19 +717,19 @@ class DataFrameFormatter(TableFormatter):
         """Number of columns fitting the screen."""
         self._max_cols_adj: Optional[int]
 
-        try:
+        if hasattr(self, "_max_cols_adj"):
             return self._max_cols_adj
-        except AttributeError:
-            if not self._is_in_terminal():
-                self._max_cols_adj = self.max_cols
-                return self._max_cols_adj
 
-            width, _ = get_terminal_size()
-            if self._is_screen_narrow(width):
-                self._max_cols_adj = width
-            else:
-                self._max_cols_adj = self.max_cols
+        if not self._is_in_terminal():
+            self._max_cols_adj = self.max_cols
             return self._max_cols_adj
+
+        width, _ = get_terminal_size()
+        if self._is_screen_narrow(width):
+            self._max_cols_adj = width
+        else:
+            self._max_cols_adj = self.max_cols
+        return self._max_cols_adj
 
     def _is_screen_narrow(self, max_width) -> bool:
         return bool(self.max_cols == 0 and len(self.frame.columns) > max_width)
