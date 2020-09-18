@@ -689,12 +689,17 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
             result.set_axis(index, axis=self.axis, inplace=True)
             result = result.sort_index(axis=self.axis)
 
-        if (
+        # result.index is a standard index => may need to restore original index
+
+        if (  # check if rows were dropped
             self.dropna
-            and self.axis == 0
-            and len(result.index) < len(self._selected_obj.index)
+            and not self.axis  # if self.axis == 1 rows are never dropped
+            and len(result) < len(self._selected_obj)  # rows dropped iff NaNs present
         ):
-            result.index = self._selected_obj.index[result.index]
+            # use result.index to select from index of original object
+            original_index = self._selected_obj.index[result.index]
+
+            result.index = original_index
         else:
             result.set_axis(self.obj._get_axis(self.axis), axis=self.axis, inplace=True)
         return result
