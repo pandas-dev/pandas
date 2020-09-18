@@ -1726,7 +1726,7 @@ def test_iteration_open_handle(all_parsers):
         with open(path, "w") as f:
             f.write("AAA\nBBB\nCCC\nDDD\nEEE\nFFF\nGGG")
 
-        with open(path, "r") as f:
+        with open(path) as f:
             for line in f:
                 if "CCC" in line:
                     break

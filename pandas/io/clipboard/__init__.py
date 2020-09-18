@@ -274,7 +274,7 @@ def init_dev_clipboard_clipboard():
             fo.write(text)
 
     def paste_dev_clipboard() -> str:
-        with open("/dev/clipboard", "rt") as fo:
+        with open("/dev/clipboard") as fo:
             content = fo.read()
         return content
 
@@ -521,7 +521,7 @@ def determine_clipboard():
         return init_windows_clipboard()
 
     if platform.system() == "Linux":
-        with open("/proc/version", "r") as f:
+        with open("/proc/version") as f:
             if "Microsoft" in f.read():
                 return init_wsl_clipboard()
 

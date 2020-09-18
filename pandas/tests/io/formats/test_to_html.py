@@ -137,7 +137,7 @@ def test_to_html_encoding(float_frame, tmp_path):
     # GH 28663
     path = tmp_path / "test.html"
     float_frame.to_html(path, encoding="gbk")
-    with open(str(path), "r", encoding="gbk") as f:
+    with open(str(path), encoding="gbk") as f:
         assert float_frame.to_html() == f.read()
 
 

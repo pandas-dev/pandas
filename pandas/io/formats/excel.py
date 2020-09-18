@@ -587,8 +587,7 @@ class ExcelFormatter:
         else:
             coloffset = 0
 
-        for cell in self._generate_body(coloffset):
-            yield cell
+        yield from self._generate_body(coloffset)
 
     def _format_hierarchical_rows(self):
         has_aliases = isinstance(self.header, (tuple, list, np.ndarray, ABCIndex))
@@ -664,8 +663,7 @@ class ExcelFormatter:
                         )
                     gcolidx += 1
 
-        for cell in self._generate_body(gcolidx):
-            yield cell
+        yield from self._generate_body(gcolidx)
 
     def _generate_body(self, coloffset: int):
         if self.styler is None:

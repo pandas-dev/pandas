@@ -25,7 +25,7 @@ def safe_close(store):
     try:
         if store is not None:
             store.close()
-    except IOError:
+    except OSError:
         pass
 
 

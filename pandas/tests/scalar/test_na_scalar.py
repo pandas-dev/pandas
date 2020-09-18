@@ -28,9 +28,9 @@ def test_format():
     assert format(NA, ">10") == "      <NA>"
     assert format(NA, "xxx") == "<NA>"  # NA is flexible, accept any format spec
 
-    assert "{}".format(NA) == "<NA>"
-    assert "{:>10}".format(NA) == "      <NA>"
-    assert "{:xxx}".format(NA) == "<NA>"
+    assert f"{NA}" == "<NA>"
+    assert f"{NA:>10}" == "      <NA>"
+    assert f"{NA:xxx}" == "<NA>"
 
 
 def test_truthiness():

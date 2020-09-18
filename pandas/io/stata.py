@@ -1077,7 +1077,7 @@ class StataReader(StataParser, abc.Iterator):
         """ close the handle if its open """
         try:
             self.path_or_buf.close()
-        except IOError:
+        except OSError:
             pass
 
     def _set_encoding(self) -> None:

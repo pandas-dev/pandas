@@ -386,7 +386,7 @@ class TestGetDummies:
         "get_dummies_kwargs,expected",
         [
             (
-                {"data": DataFrame(({"ä": ["a"]}))},
+                {"data": DataFrame({"ä": ["a"]})},
                 DataFrame({"ä_a": [1]}, dtype=np.uint8),
             ),
             (

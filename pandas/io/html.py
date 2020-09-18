@@ -719,7 +719,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
                 r = r.getroot()
             except AttributeError:
                 pass
-        except (UnicodeDecodeError, IOError) as e:
+        except (UnicodeDecodeError, OSError) as e:
             # if the input is a blob of html goop
             if not is_url(self.io):
                 r = fromstring(self.io, parser=parser)

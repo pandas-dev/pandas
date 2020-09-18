@@ -21,7 +21,7 @@ class TestToLatex:
         with tm.ensure_clean("test.tex") as path:
             float_frame.to_latex(path)
 
-            with open(path, "r") as f:
+            with open(path) as f:
                 assert float_frame.to_latex() == f.read()
 
         # test with utf-8 and encoding option (GH 7061)

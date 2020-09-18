@@ -180,7 +180,7 @@ class TestSeriesAnalytics:
 
         # mean
         result = (s - s.min()).mean()
-        expected = pd.Timedelta((pd.TimedeltaIndex((s - s.min())).asi8 / len(s)).sum())
+        expected = pd.Timedelta((pd.TimedeltaIndex(s - s.min()).asi8 / len(s)).sum())
 
         # the computation is converted to float so
         # might be some loss of precision

@@ -49,7 +49,7 @@ class TestSeriesConstructors:
             (lambda: Series({}), True),
             (lambda: Series(()), False),  # creates a RangeIndex
             (lambda: Series([]), False),  # creates a RangeIndex
-            (lambda: Series((_ for _ in [])), False),  # creates a RangeIndex
+            (lambda: Series(_ for _ in []), False),  # creates a RangeIndex
             (lambda: Series(data=None), True),
             (lambda: Series(data={}), True),
             (lambda: Series(data=()), False),  # creates a RangeIndex
@@ -222,8 +222,7 @@ class TestSeriesConstructors:
         # GH 21987
         class Iter:
             def __iter__(self):
-                for i in range(10):
-                    yield i
+                yield from range(10)
 
         expected = Series(list(range(10)), dtype="int64")
         result = Series(Iter(), dtype="int64")

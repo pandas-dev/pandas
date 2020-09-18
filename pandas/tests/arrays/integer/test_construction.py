@@ -29,7 +29,7 @@ def test_from_dtype_from_float(data):
 
     # from int / array
     expected = pd.Series(data).dropna().reset_index(drop=True)
-    dropped = np.array(data.dropna()).astype(np.dtype((dtype.type)))
+    dropped = np.array(data.dropna()).astype(np.dtype(dtype.type))
     result = pd.Series(dropped, dtype=str(dtype))
     tm.assert_series_equal(result, expected)
 

@@ -409,7 +409,7 @@ elif sys.version_info[:2] >= (3, 7):
 
         def __getitem__(self, parameters):
             item = typing._type_check(
-                parameters, "{} accepts only single type".format(self._name)
+                parameters, f"{self._name} accepts only single type"
             )
             return _GenericAlias(self, (item,))
 
@@ -1671,7 +1671,7 @@ elif PEP_560:
                 params = (params,)
             if not params and cls is not Tuple:
                 raise TypeError(
-                    "Parameter list to {}[...] cannot be empty".format(cls.__qualname__)
+                    f"Parameter list to {cls.__qualname__}[...] cannot be empty"
                 )
             msg = "Parameters to generic types must be types."
             params = tuple(_type_check(p, msg) for p in params)
@@ -2113,7 +2113,7 @@ elif PEP_560:
             return _AnnotatedAlias(origin, metadata)
 
         def __init_subclass__(cls, *args, **kwargs):
-            raise TypeError("Cannot subclass {}.Annotated".format(cls.__module__))
+            raise TypeError(f"Cannot subclass {cls.__module__}.Annotated")
 
     def _strip_annotations(t):
         """Strips the annotations from a given type.
@@ -2195,7 +2195,7 @@ elif HAVE_ANNOTATED:
             else:
                 tp_repr = origin[0]._tree_repr(origin)
             metadata_reprs = ", ".join(repr(arg) for arg in metadata)
-            return "%s[%s, %s]" % (cls, tp_repr, metadata_reprs)
+            return f"{cls}[{tp_repr}, {metadata_reprs}]"
 
         def _subs_tree(self, tvars=None, args=None):  # noqa
             if self is Annotated:
@@ -2382,7 +2382,7 @@ elif sys.version_info[:2] >= (3, 9):
 
         It's invalid when used anywhere except as in the example above.
         """
-        raise TypeError("{} is not subscriptable".format(self))
+        raise TypeError(f"{self} is not subscriptable")
 
 
 elif sys.version_info[:2] >= (3, 7):

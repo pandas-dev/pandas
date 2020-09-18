@@ -364,7 +364,7 @@ def read_hdf(
 
     if isinstance(path_or_buf, HDFStore):
         if not path_or_buf.is_open:
-            raise IOError("The HDFStore must be open for reading.")
+            raise OSError("The HDFStore must be open for reading.")
 
         store = path_or_buf
         auto_close = False
@@ -693,7 +693,7 @@ class HDFStore:
 
         try:
             self._handle = tables.open_file(self._path, self._mode, **kwargs)
-        except IOError as err:  # pragma: no cover
+        except OSError as err:  # pragma: no cover
             if "can not be written" in str(err):
                 print(f"Opening {self._path} in read-only mode")
                 self._handle = tables.open_file(self._path, "r", **kwargs)
@@ -724,7 +724,7 @@ class HDFStore:
             # trying to read from a non-existent file causes an error which
             # is not part of IOError, make it one
             if self._mode == "r" and "Unable to open/create file" in str(err):
-                raise IOError(str(err)) from err
+                raise OSError(str(err)) from err
             raise
 
     def close(self):
