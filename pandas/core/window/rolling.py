@@ -1908,7 +1908,7 @@ class RollingAndExpandingMixin(RollingMixin):
                 window=window, min_periods=self.min_periods, center=self.center
             )
 
-            return a.cov(b, **kwargs) / (a.var(**kwargs) * b.var(**kwargs)) ** 0.5
+            return a.cov(b, **kwargs) / (a.std(**kwargs) * b.std(**kwargs))
 
         return flex_binary_moment(
             self._selected_obj, other._selected_obj, _get_corr, pairwise=bool(pairwise)
