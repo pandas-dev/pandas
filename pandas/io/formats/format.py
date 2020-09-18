@@ -962,57 +962,56 @@ class DataFrameFormatter(TableFormatter):
     def _get_string_representation(self):
         from pandas import Series
 
-        frame = self.frame
-
-        if len(frame.columns) == 0 or len(frame.index) == 0:
+        if self.frame.empty:
             info_line = (
                 f"Empty {type(self.frame).__name__}\n"
-                f"Columns: {pprint_thing(frame.columns)}\n"
-                f"Index: {pprint_thing(frame.index)}"
+                f"Columns: {pprint_thing(self.frame.columns)}\n"
+                f"Index: {pprint_thing(self.frame.index)}"
             )
-            text = info_line
-        else:
+            return info_line
 
-            strcols = self._to_str_columns()
-            if self.line_width is None:  # no need to wrap around just print
-                # the whole frame
-                text = self.adj.adjoin(1, *strcols)
-            elif (
-                not isinstance(self.max_cols, int) or self.max_cols > 0
-            ):  # need to wrap around
-                text = self._join_multiline(*strcols)
-            else:  # max_cols == 0. Try to fit frame to terminal
-                lines = self.adj.adjoin(1, *strcols).split("\n")
-                max_len = Series(lines).str.len().max()
-                # plus truncate dot col
-                width, _ = get_terminal_size()
-                dif = max_len - width
-                # '+ 1' to avoid too wide repr (GH PR #17023)
-                adj_dif = dif + 1
-                col_lens = Series([Series(ele).apply(len).max() for ele in strcols])
-                n_cols = len(col_lens)
-                counter = 0
-                while adj_dif > 0 and n_cols > 1:
-                    counter += 1
-                    mid = int(round(n_cols / 2.0))
-                    mid_ix = col_lens.index[mid]
-                    col_len = col_lens[mid_ix]
-                    # adjoin adds one
-                    adj_dif -= col_len + 1
-                    col_lens = col_lens.drop(mid_ix)
-                    n_cols = len(col_lens)
-                # subtract index column
-                max_cols_adj = n_cols - self.index
-                # GH-21180. Ensure that we print at least two.
-                max_cols_adj = max(max_cols_adj, 2)
-                self._max_cols_adj = max_cols_adj
+        strcols = self._to_str_columns()
 
-                # Call again _chk_truncate to cut frame appropriately
-                # and then generate string representation
-                self._chk_truncate()
-                strcols = self._to_str_columns()
-                text = self.adj.adjoin(1, *strcols)
-        return text
+        if self.line_width is None:
+            # no need to wrap around just print the whole frame
+            return self.adj.adjoin(1, *strcols)
+
+        if (not isinstance(self.max_cols, int) or self.max_cols > 0):
+            # need to wrap around
+            return self._join_multiline(*strcols)
+
+        # max_cols == 0. Try to fit frame to terminal
+        lines = self.adj.adjoin(1, *strcols).split("\n")
+        max_len = Series(lines).str.len().max()
+        # plus truncate dot col
+        width, _ = get_terminal_size()
+        dif = max_len - width
+        # '+ 1' to avoid too wide repr (GH PR #17023)
+        adj_dif = dif + 1
+        col_lens = Series([Series(ele).apply(len).max() for ele in strcols])
+        n_cols = len(col_lens)
+        counter = 0
+        while adj_dif > 0 and n_cols > 1:
+            counter += 1
+            mid = int(round(n_cols / 2.0))
+            mid_ix = col_lens.index[mid]
+            col_len = col_lens[mid_ix]
+            # adjoin adds one
+            adj_dif -= col_len + 1
+            col_lens = col_lens.drop(mid_ix)
+            n_cols = len(col_lens)
+
+        # subtract index column
+        max_cols_adj = n_cols - self.index
+        # GH-21180. Ensure that we print at least two.
+        max_cols_adj = max(max_cols_adj, 2)
+        self._max_cols_adj = max_cols_adj
+
+        # Call again _chk_truncate to cut frame appropriately
+        # and then generate string representation
+        self._chk_truncate()
+        strcols = self._to_str_columns()
+        return self.adj.adjoin(1, *strcols)
 
     def _join_multiline(self, *args) -> str:
         lwidth = self.line_width
