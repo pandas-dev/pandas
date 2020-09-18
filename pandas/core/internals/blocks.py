@@ -2067,7 +2067,7 @@ class IntBlock(NumericBlock):
                 and not issubclass(tipo.type, (np.datetime64, np.timedelta64))
                 and self.dtype.itemsize >= tipo.itemsize
             )
-        return is_integer(element) or is_float(element)
+        return is_integer(element) or (is_float(element) and element.is_integer())
 
 
 class DatetimeLikeBlockMixin:
