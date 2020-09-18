@@ -916,11 +916,17 @@ class DataFrameFormatter(TableFormatter):
         index_length = len(str_index)
 
         if self.is_truncated_horizontally:
-            strcols.insert(self.tr_col_num + 1, [" ..."] * (len(str_index)))
+            strcols = self._insert_dot_separator_horizontal(strcols, index_length)
 
         if self.is_truncated_vertically:
             strcols = self._insert_dot_separator_vertical(strcols, index_length)
 
+        return strcols
+
+    def _insert_dot_separator_horizontal(
+        self, strcols: List[List[str]], index_length: int
+    ) -> List[List[str]]:
+        strcols.insert(self.tr_col_num + 1, [" ..."] * index_length)
         return strcols
 
     def _insert_dot_separator_vertical(
