@@ -797,11 +797,10 @@ class DataFrameFormatter(TableFormatter):
         if self.is_truncated_vertically:
             self._truncate_vertically()
 
-    def _truncate_horizontally(self):
+    def _truncate_horizontally(self) -> None:
         # cast here since if is_truncated_horizontally is True
         # max_cols_adj is not None
         max_cols_adj = cast(int, self.max_cols_adj)
-
         col_num = max_cols_adj // 2
         if col_num >= 1:
             cols_to_keep = [
@@ -816,13 +815,11 @@ class DataFrameFormatter(TableFormatter):
                 slicer = itemgetter(*cols_to_keep)
                 self._formatters = slicer(self.formatters)
         else:
-            max_cols = cast(int, self.max_cols)
-            col_num = max_cols
+            col_num = cast(int, self.max_cols)
             self.tr_frame = self.tr_frame.iloc[:, :col_num]
-
         self.tr_col_num = col_num
 
-    def _truncate_vertically(self):
+    def _truncate_vertically(self) -> None:
         # cast here since if is_truncated_vertically is True
         # max_rows_adj is not None
         max_rows_adj = cast(int, self.max_rows_adj)
@@ -835,11 +832,11 @@ class DataFrameFormatter(TableFormatter):
             ]
             self.tr_frame = self.tr_frame.iloc[rows_to_keep, :]
         else:
-            row_num = self.max_rows
+            row_num = cast(int, self.max_rows)
             self.tr_frame = self.tr_frame.iloc[:row_num, :]
         self.tr_row_num = row_num
 
-    def _get_strcols_without_index(self):
+    def _get_strcols_without_index(self) -> List[List[str]]:
         # TODO check this comment validity
         # this method is not used by to_html where self.col_space
         # could be a string so safe to cast
@@ -911,7 +908,7 @@ class DataFrameFormatter(TableFormatter):
 
         return strcols
 
-    def _insert_dot_separators(self, strcols):
+    def _insert_dot_separators(self, strcols: List[List[str]]) -> List[List[str]]:
         str_index = self._get_formatted_index(self.tr_frame)
         index_length = len(str_index)
 
@@ -971,10 +968,10 @@ class DataFrameFormatter(TableFormatter):
             buf.write(self._dimensions_info)
 
     @property
-    def _dimensions_info(self):
+    def _dimensions_info(self) -> str:
         return f"\n\n[{len(self.frame)} rows x {len(self.frame.columns)} columns]"
 
-    def _get_string_representation(self):
+    def _get_string_representation(self) -> str:
         if self.frame.empty:
             info_line = (
                 f"Empty {type(self.frame).__name__}\n"
@@ -996,7 +993,7 @@ class DataFrameFormatter(TableFormatter):
         # max_cols == 0. Try to fit frame to terminal
         return self._fit_strcols_to_terminal_width(strcols)
 
-    def _fit_strcols_to_terminal_width(self, strcols):
+    def _fit_strcols_to_terminal_width(self, strcols) -> str:
         from pandas import Series
 
         lines = self.adj.adjoin(1, *strcols).split("\n")
