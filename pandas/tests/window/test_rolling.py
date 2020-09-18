@@ -779,7 +779,7 @@ def test_rolling_numerical_too_large_numbers():
 )
 def test_rolling_corr_timedelta_index(index, window):
     # GH: 31286
-    x = pd.Series(np.random.randn(5), index=index)
+    x = pd.Series([1, 2, 3, 4, 5], index=index)
     y = x.copy()
     x[0:2] = 0.0
     result = x.rolling(window).corr(y)
