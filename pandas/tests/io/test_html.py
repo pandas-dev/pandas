@@ -114,7 +114,7 @@ class TestReadHtml:
                 c_idx_names=False,
                 r_idx_names=False,
             )
-            .applymap("{0:.3f}".format)
+            .applymap("{:.3f}".format)
             .astype(float)
         )
         out = df.to_html()
