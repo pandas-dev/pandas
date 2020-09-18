@@ -263,8 +263,6 @@ class SeriesFormatter:
         self._chk_truncate()
 
     def _chk_truncate(self) -> None:
-        from pandas.core.reshape.concat import concat
-
         self.tr_row_num: Optional[int]
 
         min_rows = self.min_rows
