@@ -233,8 +233,9 @@ see the :ref:`groupby docs <groupby.transform.window_resample>`.
 
     When using ``rolling()`` and an associated function the results are calculated with rolling sums. As a consequence
     when having values differing with magnitude :math:`1/np.finfo(np.double).eps` this results in truncation. It must be
-    noted, that large values may have an impact on windows, which do not include these values. Kahan summation is used
-    to compute the rolling sums to preserve accuracy as much as possible.The same holds true for ``Rolling.var()`` for
+    noted, that large values may have an impact on windows, which do not include these values. `Kahan summation
+    <https://en.wikipedia.org/wiki/Kahan_summation_algorithm>`__ is used
+    to compute the rolling sums to preserve accuracy as much as possible. The same holds true for ``Rolling.var()`` for
     values differing with magnitude :math:`(1/np.finfo(np.double).eps)^{0.5}`.
 
 We work with ``rolling``, ``expanding`` and ``exponentially weighted`` data through the corresponding
