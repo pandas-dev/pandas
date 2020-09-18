@@ -138,6 +138,10 @@ def _make_comparison_op(op, cls):
             with np.errstate(all="ignore"):
                 result = ops.comp_method_OBJECT_ARRAY(op, self._values, other)
 
+        elif is_interval_dtype(self.dtype):
+            with np.errstate(all="ignore"):
+                result = op(self._values, np.asarray(other))
+
         else:
             with np.errstate(all="ignore"):
                 result = ops.comparison_op(self._values, np.asarray(other), op)
