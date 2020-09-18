@@ -1040,18 +1040,18 @@ class DataFrameFormatter(TableFormatter):
             nrows = len(self.frame)
 
         str_lst = []
-        st = 0
-        for i, ed in enumerate(col_bins):
-            row = strcols[st:ed]
+        start = 0
+        for i, end in enumerate(col_bins):
+            row = strcols[start:end]
             if self.index:
                 row.insert(0, idx)
             if nbins > 1:
-                if ed <= len(strcols) and i < nbins - 1:
+                if end <= len(strcols) and i < nbins - 1:
                     row.append([" \\"] + ["  "] * (nrows - 1))
                 else:
                     row.append([" "] * nrows)
             str_lst.append(self.adj.adjoin(adjoin_width, *row))
-            st = ed
+            start = end
         return "\n\n".join(str_lst)
 
     def to_string(
