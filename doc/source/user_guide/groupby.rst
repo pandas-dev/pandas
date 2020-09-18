@@ -849,7 +849,7 @@ and that the transformed data contains no NAs.
 .. _groupby.transform.window_resample:
 
 Window and resample operations
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 It is possible to use ``resample()``, ``expanding()`` and
 ``rolling()`` as methods on groupbys.
