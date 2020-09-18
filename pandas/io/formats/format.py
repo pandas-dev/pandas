@@ -848,8 +848,6 @@ class DataFrameFormatter(TableFormatter):
         frame = self.tr_frame
         # may include levels names also
 
-        str_index = self._get_formatted_index(frame)
-
         if not is_list_like(self.header) and not self.header:
             stringified = []
             for i, c in enumerate(frame):
@@ -890,6 +888,7 @@ class DataFrameFormatter(TableFormatter):
                 cheader = self.adj.justify(cheader, max_len, mode=self.justify)
                 stringified.append(cheader + fmt_values)
 
+        str_index = self._get_formatted_index(frame)
         strcols = stringified
         if self.index:
             strcols.insert(0, str_index)
@@ -897,6 +896,7 @@ class DataFrameFormatter(TableFormatter):
         if self.is_truncated_horizontally:
             col_num = self.tr_col_num
             strcols.insert(self.tr_col_num + 1, [" ..."] * (len(str_index)))
+
         if self.is_truncated_vertically:
             n_header_rows = len(str_index) - len(frame)
             row_num = self.tr_row_num
@@ -923,6 +923,7 @@ class DataFrameFormatter(TableFormatter):
                     dot_mode = "right"
                 dot_str = self.adj.justify([my_str], cwidth, mode=dot_mode)[0]
                 strcols[ix].insert(row_num + n_header_rows, dot_str)
+
         return strcols
 
     def write_result(self, buf: IO[str]) -> None:
