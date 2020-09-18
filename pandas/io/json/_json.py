@@ -821,7 +821,7 @@ class JsonReader(abc.Iterator):
         if self.should_close:
             try:
                 self.open_stream.close()
-            except (IOError, AttributeError):
+            except (OSError, AttributeError):
                 pass
         for file_handle in self.file_handles:
             file_handle.close()
