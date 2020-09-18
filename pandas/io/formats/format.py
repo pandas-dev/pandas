@@ -807,7 +807,8 @@ class DataFrameFormatter(TableFormatter):
         col_num = max_cols_adj // 2
         if col_num >= 1:
             cols_to_keep = [
-                x for x in range(self.frame.shape[1])
+                x
+                for x in range(self.frame.shape[1])
                 if x < col_num or x >= len(self.frame.columns) - col_num
             ]
             self.tr_frame = self.tr_frame.iloc[:, cols_to_keep]
@@ -830,7 +831,8 @@ class DataFrameFormatter(TableFormatter):
         row_num = max_rows_adj // 2
         if row_num >= 1:
             rows_to_keep = [
-                x for x in range(self.frame.shape[0])
+                x
+                for x in range(self.frame.shape[0])
                 if x < row_num or x >= len(self.frame) - row_num
             ]
             self.tr_frame = self.tr_frame.iloc[rows_to_keep, :]
