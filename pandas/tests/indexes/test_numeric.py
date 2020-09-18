@@ -84,10 +84,14 @@ class Numeric(Base):
             expected = {ex_keys[0]: idx[[0, 5]], ex_keys[1]: idx[[1, 4]]}
             tm.assert_dict_equal(idx.groupby(to_groupby), expected)
 
-    def test_insert(self, nulls_fixture):
+    def test_insert_na(self, nulls_fixture):
         # GH 18295 (test missing)
         index = self.create_index()
-        expected = Float64Index([index[0], np.nan] + list(index[1:]))
+
+        if nulls_fixture is pd.NaT:
+            expected = Index([index[0], pd.NaT] + list(index[1:]), dtype=object)
+        else:
+            expected = Float64Index([index[0], np.nan] + list(index[1:]))
         result = index.insert(1, nulls_fixture)
         tm.assert_index_equal(result, expected)
 
@@ -394,7 +398,7 @@ class NumericInt(Numeric):
         same_values_different_type = Index(i, dtype=object)
         assert not i.identical(same_values_different_type)
 
-        i = index.copy(dtype=object)
+        i = index.astype(dtype=object)
         i = i.rename("foo")
         same_values = Index(i, dtype=object)
         assert same_values.identical(i)
@@ -402,7 +406,7 @@ class NumericInt(Numeric):
         assert not i.identical(index)
         assert Index(same_values, name="foo", dtype=object).identical(i)
 
-        assert not index.copy(dtype=object).identical(index.copy(dtype=self._dtype))
+        assert not index.astype(dtype=object).identical(index.astype(dtype=self._dtype))
 
     def test_union_noncomparable(self):
         # corner case, non-Int64Index
@@ -631,7 +635,11 @@ def test_range_float_union_dtype():
     tm.assert_index_equal(result, expected)
 
 
-def test_uint_index_does_not_convert_to_float64():
+@pytest.mark.parametrize(
+    "box",
+    [list, lambda x: np.array(x, dtype=object), lambda x: pd.Index(x, dtype=object)],
+)
+def test_uint_index_does_not_convert_to_float64(box):
     # https://github.com/pandas-dev/pandas/issues/28279
     # https://github.com/pandas-dev/pandas/issues/28023
     series = pd.Series(
@@ -646,7 +654,7 @@ def test_uint_index_does_not_convert_to_float64():
         ],
     )
 
-    result = series.loc[[7606741985629028552, 17876870360202815256]]
+    result = series.loc[box([7606741985629028552, 17876870360202815256])]
 
     expected = UInt64Index(
         [7606741985629028552, 17876870360202815256, 17876870360202815256],
@@ -679,3 +687,22 @@ def test_float64_index_difference():
 
     result = string_index.difference(float_index)
     tm.assert_index_equal(result, string_index)
+
+
+class TestGetSliceBounds:
+    @pytest.mark.parametrize("kind", ["getitem", "loc", None])
+    @pytest.mark.parametrize("side, expected", [("left", 4), ("right", 5)])
+    def test_get_slice_bounds_within(self, kind, side, expected):
+        index = Index(range(6))
+        result = index.get_slice_bound(4, kind=kind, side=side)
+        assert result == expected
+
+    @pytest.mark.parametrize("kind", ["getitem", "loc", None])
+    @pytest.mark.parametrize("side", ["left", "right"])
+    @pytest.mark.parametrize(
+        "bound, expected", [(-1, 0), (10, 6)],
+    )
+    def test_get_slice_bounds_outside(self, kind, side, expected, bound):
+        index = Index(range(6))
+        result = index.get_slice_bound(bound, kind=kind, side=side)
+        assert result == expected

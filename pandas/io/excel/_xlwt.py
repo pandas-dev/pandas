@@ -1,10 +1,15 @@
+from typing import TYPE_CHECKING, Dict
+
 import pandas._libs.json as json
 
 from pandas.io.excel._base import ExcelWriter
-from pandas.io.excel._util import _validate_freeze_panes
+from pandas.io.excel._util import validate_freeze_panes
+
+if TYPE_CHECKING:
+    from xlwt import XFStyle
 
 
-class _XlwtWriter(ExcelWriter):
+class XlwtWriter(ExcelWriter):
     engine = "xlwt"
     supported_extensions = (".xls",)
 
@@ -29,12 +34,11 @@ class _XlwtWriter(ExcelWriter):
         """
         Save workbook to disk.
         """
-        return self.book.save(self.path)
+        self.book.save(self.path)
 
     def write_cells(
         self, cells, sheet_name=None, startrow=0, startcol=0, freeze_panes=None
     ):
-        # Write the frame cells using xlwt.
 
         sheet_name = self._get_sheet_name(sheet_name)
 
@@ -44,12 +48,12 @@ class _XlwtWriter(ExcelWriter):
             wks = self.book.add_sheet(sheet_name)
             self.sheets[sheet_name] = wks
 
-        if _validate_freeze_panes(freeze_panes):
+        if validate_freeze_panes(freeze_panes):
             wks.set_panes_frozen(True)
             wks.set_horz_split_pos(freeze_panes[0])
             wks.set_vert_split_pos(freeze_panes[1])
 
-        style_dict = {}
+        style_dict: Dict[str, XFStyle] = {}
 
         for cell in cells:
             val, fmt = self._value_with_fmt(cell.val)
@@ -101,14 +105,14 @@ class _XlwtWriter(ExcelWriter):
                     f"{key}: {cls._style_to_xlwt(value, False)}"
                     for key, value in item.items()
                 ]
-                out = f"{(line_sep).join(it)} "
+                out = f"{line_sep.join(it)} "
                 return out
             else:
                 it = [
                     f"{key} {cls._style_to_xlwt(value, False)}"
                     for key, value in item.items()
                 ]
-                out = f"{(field_sep).join(it)} "
+                out = f"{field_sep.join(it)} "
                 return out
         else:
             item = f"{item}"

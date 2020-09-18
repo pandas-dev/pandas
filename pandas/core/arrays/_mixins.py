@@ -2,12 +2,15 @@ from typing import Any, Sequence, Tuple, TypeVar
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import cache_readonly, doc
 
 from pandas.core.algorithms import take, unique
+from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays.base import ExtensionArray
+from pandas.core.indexers import check_array_indexer
 
 _T = TypeVar("_T", bound="NDArrayBackedExtensionArray")
 
@@ -28,6 +31,12 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         """
         raise AbstractMethodError(self)
 
+    def _box_func(self, x):
+        """
+        Wrap numpy type in our dtype.type if necessary.
+        """
+        return x
+
     # ------------------------------------------------------------------------
 
     def take(
@@ -40,7 +49,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
             fill_value = self._validate_fill_value(fill_value)
 
         new_data = take(
-            self._ndarray, indices, allow_fill=allow_fill, fill_value=fill_value,
+            self._ndarray, indices, allow_fill=allow_fill, fill_value=fill_value
         )
         return self._from_backing_data(new_data)
 
@@ -101,6 +110,9 @@ class NDArrayBackedExtensionArray(ExtensionArray):
 
     # ------------------------------------------------------------------------
 
+    def _values_for_argsort(self):
+        return self._ndarray
+
     def copy(self: _T) -> _T:
         new_data = self._ndarray.copy()
         return self._from_backing_data(new_data)
@@ -120,3 +132,65 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     def unique(self: _T) -> _T:
         new_data = unique(self._ndarray)
         return self._from_backing_data(new_data)
+
+    @classmethod
+    @doc(ExtensionArray._concat_same_type)
+    def _concat_same_type(cls, to_concat, axis: int = 0):
+        dtypes = {str(x.dtype) for x in to_concat}
+        if len(dtypes) != 1:
+            raise ValueError("to_concat must have the same dtype (tz)", dtypes)
+
+        new_values = [x._ndarray for x in to_concat]
+        new_values = np.concatenate(new_values, axis=axis)
+        return to_concat[0]._from_backing_data(new_values)
+
+    @doc(ExtensionArray.searchsorted)
+    def searchsorted(self, value, side="left", sorter=None):
+        value = self._validate_searchsorted_value(value)
+        return self._ndarray.searchsorted(value, side=side, sorter=sorter)
+
+    def _validate_searchsorted_value(self, value):
+        return value
+
+    @doc(ExtensionArray.shift)
+    def shift(self, periods=1, fill_value=None, axis=0):
+
+        fill_value = self._validate_shift_value(fill_value)
+        new_values = shift(self._ndarray, periods, axis, fill_value)
+
+        return self._from_backing_data(new_values)
+
+    def _validate_shift_value(self, fill_value):
+        # TODO: after deprecation in datetimelikearraymixin is enforced,
+        #  we can remove this and ust validate_fill_value directly
+        return self._validate_fill_value(fill_value)
+
+    def __setitem__(self, key, value):
+        key = self._validate_setitem_key(key)
+        value = self._validate_setitem_value(value)
+        self._ndarray[key] = value
+
+    def _validate_setitem_key(self, key):
+        return check_array_indexer(self, key)
+
+    def _validate_setitem_value(self, value):
+        return value
+
+    def __getitem__(self, key):
+        if lib.is_integer(key):
+            # fast-path
+            result = self._ndarray[key]
+            if self.ndim == 1:
+                return self._box_func(result)
+            return self._from_backing_data(result)
+
+        key = self._validate_getitem_key(key)
+        result = self._ndarray[key]
+        if lib.is_scalar(result):
+            return self._box_func(result)
+
+        result = self._from_backing_data(result)
+        return result
+
+    def _validate_getitem_key(self, key):
+        return check_array_indexer(self, key)

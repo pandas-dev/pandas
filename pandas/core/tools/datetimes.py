@@ -20,8 +20,8 @@ from pandas._libs import tslib, tslibs
 from pandas._libs.tslibs import Timestamp, conversion, parsing
 from pandas._libs.tslibs.parsing import (  # noqa
     DateParseError,
-    _format_is_iso,
-    _guess_datetime_format,
+    format_is_iso,
+    guess_datetime_format,
 )
 from pandas._libs.tslibs.strptime import array_strptime
 from pandas._typing import ArrayLike, Label, Timezone
@@ -73,7 +73,7 @@ def _guess_datetime_format_for_array(arr, **kwargs):
     # Try to guess the format based on the first non-NaN element
     non_nan_elements = notna(arr).nonzero()[0]
     if len(non_nan_elements):
-        return _guess_datetime_format(arr[non_nan_elements[0]], **kwargs)
+        return guess_datetime_format(arr[non_nan_elements[0]], **kwargs)
 
 
 def should_cache(
@@ -307,9 +307,7 @@ def _convert_listlike_datetimes(
         if not isinstance(arg, (DatetimeArray, DatetimeIndex)):
             return DatetimeIndex(arg, tz=tz, name=name)
         if tz == "utc":
-            # error: Item "DatetimeIndex" of "Union[DatetimeArray, DatetimeIndex]" has
-            # no attribute "tz_convert"
-            arg = arg.tz_convert(None).tz_localize(tz)  # type: ignore[union-attr]
+            arg = arg.tz_convert(None).tz_localize(tz)
         return arg
 
     elif is_datetime64_ns_dtype(arg_dtype):
@@ -389,7 +387,7 @@ def _convert_listlike_datetimes(
         # datetime strings, so in those cases don't use the inferred
         # format because this path makes process slower in this
         # special case
-        format_is_iso8601 = _format_is_iso(format)
+        format_is_iso8601 = format_is_iso(format)
         if format_is_iso8601:
             require_iso8601 = not infer_datetime_format
             format = None
@@ -681,8 +679,6 @@ def to_datetime(
         date strings, especially ones with timezone offsets. The cache is only
         used when there are at least 50 values. The presence of out-of-bounds
         values will render the cache unusable and may slow down parsing.
-
-        .. versionadded:: 0.23.0
 
         .. versionchanged:: 0.25.0
             - changed default value from False to True.

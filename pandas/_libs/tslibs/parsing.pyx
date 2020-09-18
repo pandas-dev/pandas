@@ -381,7 +381,8 @@ cdef inline object _parse_dateabbr_string(object date_string, datetime default,
                                           object freq):
     cdef:
         object ret
-        int year, quarter = -1, month, mnum, date_len
+        # year initialized to prevent compiler warnings
+        int year = -1, quarter = -1, month, mnum, date_len
 
     # special handling for possibilities eg, 2Q2005, 2Q05, 2005Q1, 05Q1
     assert isinstance(date_string, str)
@@ -770,7 +771,7 @@ class _timelex:
 _DATEUTIL_LEXER_SPLIT = _timelex.split
 
 
-def _format_is_iso(f) -> bint:
+def format_is_iso(f: str) -> bint:
     """
     Does format match the iso8601 set that can be handled by the C parser?
     Generally of form YYYY-MM-DDTHH:MM:SS - date separator can be different
@@ -788,7 +789,7 @@ def _format_is_iso(f) -> bint:
     return False
 
 
-def _guess_datetime_format(
+def guess_datetime_format(
     dt_str,
     bint dayfirst=False,
     dt_str_parse=du_parse,

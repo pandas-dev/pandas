@@ -34,7 +34,7 @@ def is_platform_mac():
 
 
 min_numpy_ver = "1.16.5"
-min_cython_ver = "0.29.16"  # note: sync with pyproject.toml
+min_cython_ver = "0.29.21"  # note: sync with pyproject.toml
 
 try:
     import Cython
@@ -199,6 +199,7 @@ CLASSIFIERS = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
     "Programming Language :: Cython",
     "Topic :: Scientific/Engineering",
 ]
@@ -455,6 +456,9 @@ if is_platform_mac():
 
     if sys.version_info[:2] == (3, 8):  # GH 33239
         extra_compile_args.append("-Wno-error=deprecated-declarations")
+
+    # https://github.com/pandas-dev/pandas/issues/35559
+    extra_compile_args.append("-Wno-error=unreachable-code")
 
 # enable coverage by building cython files by setting the environment variable
 # "PANDAS_CYTHON_COVERAGE" (with a Truthy value) or by running build_ext

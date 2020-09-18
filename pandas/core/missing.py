@@ -228,7 +228,7 @@ def interpolate_1d(
             )
 
     # default limit is unlimited GH #16282
-    limit = algos._validate_limit(nobs=None, limit=limit)
+    limit = algos.validate_limit(nobs=None, limit=limit)
 
     # These are sets of index pointers to invalid values... i.e. {0, 1, etc...
     all_nans = set(np.flatnonzero(invalid))

@@ -287,16 +287,19 @@ Quoting, compression, and file format
 
 compression : {``'infer'``, ``'gzip'``, ``'bz2'``, ``'zip'``, ``'xz'``, ``None``, ``dict``}, default ``'infer'``
   For on-the-fly decompression of on-disk data. If 'infer', then use gzip,
-  bz2, zip, or xz if filepath_or_buffer is a string ending in '.gz', '.bz2',
+  bz2, zip, or xz if ``filepath_or_buffer`` is path-like ending in '.gz', '.bz2',
   '.zip', or '.xz', respectively, and no decompression otherwise. If using 'zip',
   the ZIP file must contain only one data file to be read in.
   Set to ``None`` for no decompression. Can also be a dict with key ``'method'``
-  set to one of {``'zip'``, ``'gzip'``, ``'bz2'``}, and other keys set to
-  compression settings. As an example, the following could be passed for
-  faster compression: ``compression={'method': 'gzip', 'compresslevel': 1}``.
+  set to one of {``'zip'``, ``'gzip'``, ``'bz2'``} and other key-value pairs are
+  forwarded to ``zipfile.ZipFile``, ``gzip.GzipFile``, or ``bz2.BZ2File``.
+  As an example, the following could be passed for faster compression and to
+  create a reproducible gzip archive:
+  ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
 
   .. versionchanged:: 0.24.0 'infer' option added and set to default.
   .. versionchanged:: 1.1.0 dict option extended to support ``gzip`` and ``bz2``.
+  .. versionchanged:: 1.2.0 Previous versions forwarded dict entries for 'gzip' to `gzip.open`.
 thousands : str, default ``None``
   Thousands separator.
 decimal : str, default ``'.'``
@@ -927,7 +930,7 @@ take full advantage of the flexibility of the date parsing API:
 .. ipython:: python
 
    df = pd.read_csv('tmp.csv', header=None, parse_dates=date_spec,
-                    date_parser=pd.io.date_converters.parse_date_time)
+                    date_parser=pd.to_datetime)
    df
 
 Pandas will try to call the ``date_parser`` function in three different ways. If
@@ -938,11 +941,6 @@ an exception is raised, the next one is tried:
 
 2. If #1 fails, ``date_parser`` is called with all the columns
    concatenated row-wise into a single array (e.g., ``date_parser(['2013 1', '2013 2'])``).
-
-3. If #2 fails, ``date_parser`` is called once for every row with one or more
-   string arguments from the columns indicated with `parse_dates`
-   (e.g., ``date_parser('2013', '1')`` for the first row, ``date_parser('2013', '2')``
-   for the second, etc.).
 
 Note that performance-wise, you should try these methods of parsing dates in order:
 
@@ -955,14 +953,6 @@ Note that performance-wise, you should try these methods of parsing dates in ord
    For optimal performance, this should be vectorized, i.e., it should accept arrays
    as arguments.
 
-You can explore the date parsing functionality in
-`date_converters.py <https://github.com/pandas-dev/pandas/blob/master/pandas/io/date_converters.py>`__
-and add your own. We would love to turn this module into a community supported
-set of date/time parsers. To get you started, ``date_converters.py`` contains
-functions to parse dual date and time columns, year/month/day columns,
-and year/month/day/hour/minute/second columns. It also contains a
-``generic_parser`` function so you can curry it with a function that deals with
-a single date rather than the entire array.
 
 .. ipython:: python
    :suppress:
@@ -2370,8 +2360,6 @@ A few notes on the generated table schema:
       then ``level_<i>`` is used.
 
 
-.. versionadded:: 0.23.0
-
 ``read_json`` also accepts ``orient='table'`` as an argument. This allows for
 the preservation of metadata such as dtypes and index names in a
 round-trippable manner.
@@ -2409,7 +2397,7 @@ indicate missing values and the subsequent read cannot distinguish the intent.
 
    os.remove('test.json')
 
-.. _Table Schema: https://specs.frictionlessdata.io/json-table-schema/
+.. _Table Schema: https://specs.frictionlessdata.io/table-schema/
 
 HTML
 ----
@@ -3021,19 +3009,12 @@ It is often the case that users will insert columns to do temporary computations
 in Excel and you may not want to read in those columns. ``read_excel`` takes
 a ``usecols`` keyword to allow you to specify a subset of columns to parse.
 
-.. deprecated:: 0.24.0
+.. versionchanged:: 1.0.0
 
-Passing in an integer for ``usecols`` has been deprecated. Please pass in a list
+Passing in an integer for ``usecols`` will no longer work. Please pass in a list
 of ints from 0 to ``usecols`` inclusive instead.
 
-If ``usecols`` is an integer, then it is assumed to indicate the last column
-to be parsed.
-
-.. code-block:: python
-
-   pd.read_excel('path_to_file.xls', 'Sheet1', usecols=2)
-
-You can also specify a comma-delimited set of Excel columns and ranges as a string:
+You can specify a comma-delimited set of Excel columns and ranges as a string:
 
 .. code-block:: python
 

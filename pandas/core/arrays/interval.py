@@ -5,7 +5,12 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs.interval import Interval, IntervalMixin, intervals_to_interval_bounds
+from pandas._libs.interval import (
+    VALID_CLOSED,
+    Interval,
+    IntervalMixin,
+    intervals_to_interval_bounds,
+)
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
 
@@ -32,7 +37,7 @@ from pandas.core.dtypes.generic import (
     ABCPeriodIndex,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, notna
 
 from pandas.core.algorithms import take, value_counts
 from pandas.core.arrays.base import ExtensionArray, _extension_array_shared_docs
@@ -42,7 +47,6 @@ from pandas.core.construction import array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.indexes.base import ensure_index
 
-_VALID_CLOSED = {"left", "right", "both", "neither"}
 _interval_shared_docs = {}
 
 _shared_docs_kwargs = dict(
@@ -67,8 +71,6 @@ closed : {'left', 'right', 'both', 'neither'}, default 'right'
     neither.
 dtype : dtype or None, default None
     If None, dtype will be inferred.
-
-    .. versionadded:: 0.23.0
 copy : bool, default False
     Copy the input data.
 %(name)s\
@@ -275,8 +277,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     dtype : dtype or None, default None
         If None, dtype will be inferred.
 
-        .. versionadded:: 0.23.0
-
     Returns
     -------
     %(klass)s
@@ -330,8 +330,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             Copy the data.
         dtype : dtype, optional
             If None, dtype will be inferred.
-
-            .. versionadded:: 0.23.0
 
         Returns
         -------
@@ -403,8 +401,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     dtype : dtype or None, default None
         If None, dtype will be inferred.
 
-        .. versionadded:: 0.23.0
-
     Returns
     -------
     %(klass)s
@@ -475,7 +471,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         * left and right have the same missing values
         * left is always below right
         """
-        if self.closed not in _VALID_CLOSED:
+        if self.closed not in VALID_CLOSED:
             msg = f"invalid option for 'closed': {self.closed}"
             raise ValueError(msg)
         if len(self.left) != len(self.right):
@@ -644,17 +640,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if limit is not None:
             raise TypeError("limit is not supported for IntervalArray.")
 
-        if not isinstance(value, Interval):
-            msg = (
-                "'IntervalArray.fillna' only supports filling with a "
-                f"scalar 'pandas.Interval'. Got a '{type(value).__name__}' instead."
-            )
-            raise TypeError(msg)
+        value_left, value_right = self._validate_fillna_value(value)
 
-        self._check_closed_matches(value, name="value")
-
-        left = self.left.fillna(value=value.left)
-        right = self.right.fillna(value=value.right)
+        left = self.left.fillna(value=value_left)
+        right = self.right.fillna(value=value_right)
         return self._shallow_copy(left, right)
 
     @property
@@ -849,18 +838,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         fill_left = fill_right = fill_value
         if allow_fill:
-            if fill_value is None:
-                fill_left = fill_right = self.left._na_value
-            elif is_interval(fill_value):
-                self._check_closed_matches(fill_value, name="fill_value")
-                fill_left, fill_right = fill_value.left, fill_value.right
-            elif not is_scalar(fill_value) and notna(fill_value):
-                msg = (
-                    "'IntervalArray.fillna' only supports filling with a "
-                    "'scalar pandas.Interval or NA'. "
-                    f"Got a '{type(fill_value).__name__}' instead."
-                )
-                raise ValueError(msg)
+            fill_left, fill_right = self._validate_fill_value(fill_value)
 
         left_take = take(
             self.left, indices, allow_fill=allow_fill, fill_value=fill_left
@@ -870,6 +848,49 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         )
 
         return self._shallow_copy(left_take, right_take)
+
+    def _validate_fill_value(self, value):
+        if is_interval(value):
+            self._check_closed_matches(value, name="fill_value")
+            fill_left, fill_right = value.left, value.right
+        elif not is_scalar(value) and notna(value):
+            msg = (
+                "'IntervalArray.fillna' only supports filling with a "
+                "'scalar pandas.Interval or NA'. "
+                f"Got a '{type(value).__name__}' instead."
+            )
+            raise ValueError(msg)
+        else:
+            fill_left = fill_right = self.left._na_value
+        return fill_left, fill_right
+
+    def _validate_fillna_value(self, value):
+        if not isinstance(value, Interval):
+            msg = (
+                "'IntervalArray.fillna' only supports filling with a "
+                f"scalar 'pandas.Interval'. Got a '{type(value).__name__}' instead."
+            )
+            raise TypeError(msg)
+
+        self._check_closed_matches(value, name="value")
+        return value.left, value.right
+
+    def _validate_insert_value(self, value):
+        if isinstance(value, Interval):
+            if value.closed != self.closed:
+                raise ValueError(
+                    "inserted item must be closed on the same side as the index"
+                )
+            left_insert = value.left
+            right_insert = value.right
+        elif is_valid_nat_for_dtype(value, self.left.dtype):
+            # GH#18295
+            left_insert = right_insert = value
+        else:
+            raise ValueError(
+                "can only insert Interval objects and NA into an IntervalIndex"
+            )
+        return left_insert, right_insert
 
     def value_counts(self, dropna=True):
         """
@@ -1012,7 +1033,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         )
     )
     def set_closed(self, closed):
-        if closed not in _VALID_CLOSED:
+        if closed not in VALID_CLOSED:
             msg = f"invalid option for 'closed': {closed}"
             raise ValueError(msg)
 
@@ -1162,8 +1183,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         na_tuple : bool, default True
             Returns NA as a tuple if True, ``(nan, nan)``, or just as the NA
             value itself if False, ``nan``.
-
-            .. versionadded:: 0.23.0
 
         Returns
         -------

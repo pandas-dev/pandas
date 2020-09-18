@@ -3,8 +3,7 @@ channels:
   - conda-forge
 dependencies:
   # required
-  # Pin numpy<1.19 until MPL 3.3.0 is released.
-  - numpy>=1.16.5,<1.19.0
+  - numpy>=1.16.5
   - python=3
   - python-dateutil>=2.7.3
   - pytz
@@ -13,7 +12,7 @@ dependencies:
   - asv
 
   # building
-  - cython>=0.29.16
+  - cython>=0.29.21
 
   # code checks
   - black=19.10b0
@@ -22,13 +21,13 @@ dependencies:
   - flake8-comprehensions>=3.1.0  # used by flake8, linting of unnecessary comprehensions
   - flake8-rst>=0.6.0,<=0.7.0  # linting of code blocks in rst files
   - isort>=5.2.1  # check that imports are in the right order
-  - mypy=0.730
+  - mypy=0.782
   - pycodestyle  # used by flake8
 
   # documentation
   - gitpython  # obtain contributors from git for whatsnew
-  - gitdb2=2.0.6  # GH-32060
-  - sphinx<=3.1.1
+  - gitdb
+  - sphinx
 
   # documentation (jupyter notebooks)
   - nbconvert>=5.4.1
@@ -52,6 +51,7 @@ dependencies:
   - botocore>=1.11
   - hypothesis>=3.82
   - moto  # mock S3
+  - flask
   - pytest>=5.0.1
   - pytest-cov
   - pytest-xdist>=1.21
@@ -73,7 +73,7 @@ dependencies:
   - ipykernel
   - ipython>=7.11.1
   - jinja2  # pandas.Styler
-  - matplotlib>=2.2.2,<3.3.0  # pandas.plotting, Series.plot, DataFrame.plot
+  - matplotlib>=2.2.2  # pandas.plotting, Series.plot, DataFrame.plot
   - numexpr>=2.6.8
   - scipy>=1.2
   - numba>=0.46.0
@@ -106,6 +106,7 @@ dependencies:
   - cftime  # Needed for downstream xarray.CFTimeIndex test
   - pyreadstat  # pandas.read_spss
   - tabulate>=0.8.3  # DataFrame.to_markdown
+  - natsort  # DataFrame.sort_values
   - pip:
     - git+https://github.com/pandas-dev/pydata-sphinx-theme.git@master
     - git+https://github.com/numpy/numpydoc

@@ -676,7 +676,7 @@ def test_ops_not_as_index(reduction_func):
     if reduction_func in ("corrwith",):
         pytest.skip("Test not applicable")
 
-    if reduction_func in ("nth", "ngroup",):
+    if reduction_func in ("nth", "ngroup"):
         pytest.skip("Skip until behavior is determined (GH #5755)")
 
     df = DataFrame(np.random.randint(0, 5, size=(100, 2)), columns=["a", "b"])
@@ -1181,6 +1181,18 @@ def test_groupby_dtype_inference_empty():
     exp_index = Index([], name="x", dtype=np.float64)
     expected = DataFrame({"range": Series([], index=exp_index, dtype="int64")})
     tm.assert_frame_equal(result, expected, by_blocks=True)
+
+
+def test_groupby_unit64_float_conversion():
+    #  GH: 30859 groupby converts unit64 to floats sometimes
+    df = pd.DataFrame({"first": [1], "second": [1], "value": [16148277970000000000]})
+    result = df.groupby(["first", "second"])["value"].max()
+    expected = pd.Series(
+        [16148277970000000000],
+        pd.MultiIndex.from_product([[1], [1]], names=["first", "second"]),
+        name="value",
+    )
+    tm.assert_series_equal(result, expected)
 
 
 def test_groupby_list_infer_array_like(df):
@@ -1949,13 +1961,6 @@ def test_shift_bfill_ffill_tz(tz_naive_fixture, op, expected):
     tm.assert_frame_equal(result, expected)
 
 
-def test_ffill_missing_arguments():
-    # GH 14955
-    df = pd.DataFrame({"a": [1, 2], "b": [1, 1]})
-    with pytest.raises(ValueError, match="Must specify a fill"):
-        df.groupby("b").fillna()
-
-
 def test_groupby_only_none_group():
     # see GH21624
     # this was crashing with "ValueError: Length of passed values is 1, index implies 0"
@@ -2069,3 +2074,66 @@ def test_group_on_two_row_multiindex_returns_one_tuple_key():
     assert len(result) == 1
     key = (1, 2)
     assert (result[key] == expected[key]).all()
+
+
+@pytest.mark.parametrize(
+    "klass, attr, value",
+    [
+        (DataFrame, "axis", 1),
+        (DataFrame, "level", "a"),
+        (DataFrame, "as_index", False),
+        (DataFrame, "sort", False),
+        (DataFrame, "group_keys", False),
+        (DataFrame, "squeeze", True),
+        (DataFrame, "observed", True),
+        (DataFrame, "dropna", False),
+        pytest.param(
+            Series,
+            "axis",
+            1,
+            marks=pytest.mark.xfail(
+                reason="GH 35443: Attribute currently not passed on to series"
+            ),
+        ),
+        (Series, "level", "a"),
+        (Series, "as_index", False),
+        (Series, "sort", False),
+        (Series, "group_keys", False),
+        (Series, "squeeze", True),
+        (Series, "observed", True),
+        (Series, "dropna", False),
+    ],
+)
+@pytest.mark.filterwarnings(
+    "ignore:The `squeeze` parameter is deprecated:FutureWarning"
+)
+def test_subsetting_columns_keeps_attrs(klass, attr, value):
+    # GH 9959 - When subsetting columns, don't drop attributes
+    df = pd.DataFrame({"a": [1], "b": [2], "c": [3]})
+    if attr != "axis":
+        df = df.set_index("a")
+
+    expected = df.groupby("a", **{attr: value})
+    result = expected[["b"]] if klass is DataFrame else expected["b"]
+    assert getattr(result, attr) == getattr(expected, attr)
+
+
+@pytest.mark.parametrize("func", ["sum", "any", "shift"])
+def test_groupby_column_index_name_lost(func):
+    # GH: 29764 groupby loses index sometimes
+    expected = pd.Index(["a"], name="idx")
+    df = pd.DataFrame([[1]], columns=expected)
+    df_grouped = df.groupby([1])
+    result = getattr(df_grouped, func)().columns
+    tm.assert_index_equal(result, expected)
+
+
+def test_groupby_duplicate_columns():
+    # GH: 31735
+    df = pd.DataFrame(
+        {"A": ["f", "e", "g", "h"], "B": ["a", "b", "c", "d"], "C": [1, 2, 3, 4]}
+    ).astype(object)
+    df.columns = ["A", "B", "B"]
+    result = df.groupby([0, 0, 0, 0]).min()
+    expected = pd.DataFrame([["e", "a", 1]], columns=["A", "B", "B"])
+    tm.assert_frame_equal(result, expected)

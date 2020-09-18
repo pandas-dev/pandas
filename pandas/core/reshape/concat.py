@@ -11,6 +11,7 @@ from pandas._typing import FrameOrSeries, FrameOrSeriesUnion, Label
 
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays.categorical import (
     factorize_from_iterable,
@@ -121,7 +122,6 @@ def concat(
         This has no effect when ``join='inner'``, which already preserves
         the order of the non-concatenation axis.
 
-        .. versionadded:: 0.23.0
         .. versionchanged:: 1.0.0
 
            Changed to not sort by default.
@@ -500,7 +500,7 @@ class _Concatenator:
                 mgrs_indexers.append((obj._mgr, indexers))
 
             new_data = concatenate_block_managers(
-                mgrs_indexers, self.new_axes, concat_axis=self.bm_axis, copy=self.copy,
+                mgrs_indexers, self.new_axes, concat_axis=self.bm_axis, copy=self.copy
             )
             if not self.copy:
                 new_data._consolidate_inplace()
@@ -624,10 +624,11 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
         for hlevel, level in zip(zipped, levels):
             to_concat = []
             for key, index in zip(hlevel, indexes):
-                mask = level == key
+                # Find matching codes, include matching nan values as equal.
+                mask = (isna(level) & isna(key)) | (level == key)
                 if not mask.any():
                     raise ValueError(f"Key {key} not in level {level}")
-                i = np.nonzero(level == key)[0][0]
+                i = np.nonzero(mask)[0][0]
 
                 to_concat.append(np.repeat(i, len(index)))
             codes_list.append(np.concatenate(to_concat))

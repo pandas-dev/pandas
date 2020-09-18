@@ -8,16 +8,23 @@ import pytest
 from pandas._libs import iNaT, lib
 
 from pandas.core.dtypes.common import is_categorical_dtype, is_datetime64tz_dtype
-from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    DatetimeTZDtype,
+    IntervalDtype,
+    PeriodDtype,
+)
 
 import pandas as pd
 from pandas import (
     Categorical,
     DataFrame,
     Index,
+    Interval,
     IntervalIndex,
     MultiIndex,
     NaT,
+    Period,
     Series,
     Timestamp,
     date_range,
@@ -1075,6 +1082,26 @@ class TestSeriesConstructors:
         expected = Series([1, 0, 2], index=list("bac"))
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "data,dtype",
+        [
+            (Period("2020-01"), PeriodDtype("M")),
+            (Interval(left=0, right=5), IntervalDtype("int64")),
+            (
+                Timestamp("2011-01-01", tz="US/Eastern"),
+                DatetimeTZDtype(tz="US/Eastern"),
+            ),
+        ],
+    )
+    def test_constructor_dict_extension(self, data, dtype):
+        d = {"a": data}
+        result = Series(d, index=["a"])
+        expected = Series(data, index=["a"], dtype=dtype)
+
+        assert result.dtype == dtype
+
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("value", [2, np.nan, None, float("nan")])
     def test_constructor_dict_nan_key(self, value):
         # GH 18480
@@ -1448,4 +1475,36 @@ class TestSeriesConstructors:
         # https://github.com/pandas-dev/pandas/pull/33846
         result = Series("M", index=[1, 2, 3], dtype="string")
         expected = pd.Series(["M", "M", "M"], index=[1, 2, 3], dtype="string")
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "values",
+        [
+            [np.datetime64("2012-01-01"), np.datetime64("2013-01-01")],
+            ["2012-01-01", "2013-01-01"],
+        ],
+    )
+    def test_constructor_sparse_datetime64(self, values):
+        # https://github.com/pandas-dev/pandas/issues/35762
+        dtype = pd.SparseDtype("datetime64[ns]")
+        result = pd.Series(values, dtype=dtype)
+        arr = pd.arrays.SparseArray(values, dtype=dtype)
+        expected = pd.Series(arr)
+        tm.assert_series_equal(result, expected)
+
+    def test_construction_from_ordered_collection(self):
+        # https://github.com/pandas-dev/pandas/issues/36044
+        result = Series({"a": 1, "b": 2}.keys())
+        expected = Series(["a", "b"])
+        tm.assert_series_equal(result, expected)
+
+        result = Series({"a": 1, "b": 2}.values())
+        expected = Series([1, 2])
+        tm.assert_series_equal(result, expected)
+
+    def test_construction_from_large_int_scalar_no_overflow(self):
+        # https://github.com/pandas-dev/pandas/issues/36291
+        n = 1_000_000_000_000_000_000_000
+        result = Series(n, index=[0])
+        expected = Series(n)
         tm.assert_series_equal(result, expected)
