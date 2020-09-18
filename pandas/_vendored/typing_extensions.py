@@ -2195,7 +2195,7 @@ elif HAVE_ANNOTATED:
             else:
                 tp_repr = origin[0]._tree_repr(origin)
             metadata_reprs = ", ".join(repr(arg) for arg in metadata)
-            return "%s[%s, %s]" % (cls, tp_repr, metadata_reprs)
+            return "{}[{}, {}]".format(cls, tp_repr, metadata_reprs)
 
         def _subs_tree(self, tvars=None, args=None):  # noqa
             if self is Annotated:
