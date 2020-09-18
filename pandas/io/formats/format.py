@@ -920,15 +920,15 @@ class DataFrameFormatter(TableFormatter):
         if self.is_truncated_vertically:
             n_header_rows = len(str_index) - len(self.tr_frame)
             row_num = self.tr_row_num
-            # cast here since if is_truncated_vertically is True
-            # self.tr_row_num is not None
-            row_num = cast(int, row_num)
             for ix, col in enumerate(strcols):
                 # infer from above row
                 cwidth = self.adj.len(col[row_num])
-                is_dot_col = False
+
                 if self.is_truncated_horizontally:
                     is_dot_col = ix == self.tr_col_num + 1
+                else:
+                    is_dot_col = False
+
                 if cwidth > 3 or is_dot_col:
                     dots = "..."
                 else:
@@ -941,6 +941,7 @@ class DataFrameFormatter(TableFormatter):
                     dot_mode = "right"
                 else:
                     dot_mode = "right"
+
                 dot_str = self.adj.justify([dots], cwidth, mode=dot_mode)[0]
                 col.insert(row_num + n_header_rows, dot_str)
 
