@@ -73,12 +73,6 @@ class Styler:
         List of {selector: (attr, value)} dicts; see Notes.
     uuid : str, default None
         A unique identifier to avoid CSS collisions; generated automatically.
-    uuid_len : int, default 5
-        If ``uuid`` is not specified, the length of the ``uuid`` to randomly generate
-        expressed in hex characters, in range [0, 32].
-
-        .. versionadded:: 1.2.0
-
     caption : str, default None
         Caption to attach to the table.
     table_attributes : str, default None
@@ -94,6 +88,12 @@ class Styler:
         If ``na_rep`` is None, no special formatting is applied.
 
         .. versionadded:: 1.0.0
+
+    uuid_len : int, default 5
+        If ``uuid`` is not specified, the length of the ``uuid`` to randomly generate
+        expressed in hex characters, in range [0, 32].
+
+        .. versionadded:: 1.2.0
 
     Attributes
     ----------
@@ -146,11 +146,11 @@ class Styler:
         precision: Optional[int] = None,
         table_styles: Optional[List[Dict[str, List[Tuple[str, str]]]]] = None,
         uuid: Optional[str] = None,
-        uuid_len: int = 5,
         caption: Optional[str] = None,
         table_attributes: Optional[str] = None,
         cell_ids: bool = True,
         na_rep: Optional[str] = None,
+        uuid_len: int = 5,
     ):
         self.ctx: DefaultDict[Tuple[int, int], List[str]] = defaultdict(list)
         self._todo: List[Tuple[Callable, Tuple, Dict]] = []
