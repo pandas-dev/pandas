@@ -1447,7 +1447,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                     "select * from types_test_data", self.conn, chunksize=1
                 )
             ),
-        ignore_index = True
+            ignore_index=True
         )
         col = df.DateColWithTz
         assert is_datetime64tz_dtype(col.dtype)
