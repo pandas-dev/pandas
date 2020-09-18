@@ -87,11 +87,9 @@ class FloatingDtype(BaseMaskedDtype):
         # for now only handle other floating types
         if not all(isinstance(t, FloatingDtype) for t in dtypes):
             return None
-        np_dtype = np.find_common_type(
-            [t.numpy_dtype for t in dtypes], []  # type: ignore
-        )
+        np_dtype = np.find_common_type([t.numpy_dtype for t in dtypes], [])
         if np.issubdtype(np_dtype, np.floating):
-            return _dtypes[str(np_dtype)]
+            return FLOAT_STR_TO_DTYPE[str(np_dtype)]
         return None
 
     def __from_arrow__(
@@ -101,6 +99,7 @@ class FloatingDtype(BaseMaskedDtype):
         Construct FloatingArray from pyarrow Array/ChunkedArray.
         """
         import pyarrow  # noqa: F811
+
         from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
 
         pyarrow_type = pyarrow.from_numpy_dtype(self.type)
@@ -153,7 +152,7 @@ def coerce_to_array(
 
         if not issubclass(type(dtype), FloatingDtype):
             try:
-                dtype = _dtypes[str(np.dtype(dtype))]
+                dtype = FLOAT_STR_TO_DTYPE[str(np.dtype(dtype))]
             except KeyError as err:
                 raise ValueError(f"invalid dtype specified {dtype}") from err
 
@@ -284,7 +283,7 @@ class FloatingArray(BaseMaskedArray):
 
     @cache_readonly
     def dtype(self) -> FloatingDtype:
-        return _dtypes[str(self._data.dtype)]
+        return FLOAT_STR_TO_DTYPE[str(self._data.dtype)]
 
     def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
         if not (isinstance(values, np.ndarray) and values.dtype.kind == "f"):
@@ -382,7 +381,7 @@ class FloatingArray(BaseMaskedArray):
             if incompatible type with an FloatingDtype, equivalent of same_kind
             casting
         """
-        from pandas.core.arrays.string_ import StringDtype, StringArray
+        from pandas.core.arrays.string_ import StringArray, StringDtype
 
         dtype = pandas_dtype(dtype)
 
@@ -629,7 +628,7 @@ class Float64Dtype(FloatingDtype):
     __doc__ = _dtype_docstring.format(dtype="float64")
 
 
-_dtypes = {
+FLOAT_STR_TO_DTYPE = {
     "float32": Float32Dtype(),
     "float64": Float64Dtype(),
 }
