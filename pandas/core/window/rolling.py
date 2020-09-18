@@ -25,7 +25,6 @@ import pandas._libs.window.aggregations as window_aggregations
 from pandas._typing import ArrayLike, Axis, FrameOrSeries, FrameOrSeriesUnion
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
-from pandas.core.dtypes.cast import infer_dtype_from
 from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
 
 from pandas.core.dtypes.common import (
