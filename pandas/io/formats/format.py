@@ -803,13 +803,10 @@ class DataFrameFormatter(TableFormatter):
         # cast here since if is_truncated_horizontally is True
         # max_cols_adj is not None
         max_cols_adj = cast(int, self.max_cols_adj)
-        if max_cols_adj == 1:
-            max_cols = cast(int, self.max_cols)
-            self.tr_frame = self.tr_frame.iloc[:, :max_cols]
-            col_num = max_cols
-        else:
-            col_num = max_cols_adj // 2
 
+        col_num = max_cols_adj // 2
+
+        if col_num >= 1:
             cols_to_keep = [
                 x for x in range(self.frame.shape[1])
                 if x < col_num or x >= len(self.frame.columns) - col_num
@@ -820,6 +817,10 @@ class DataFrameFormatter(TableFormatter):
             if isinstance(self.formatters, (list, tuple)):
                 slicer = itemgetter(*cols_to_keep)
                 self._formatters = slicer(self.formatters)
+        else:
+            max_cols = cast(int, self.max_cols)
+            self.tr_frame = self.tr_frame.iloc[:, :max_cols]
+            col_num = max_cols
 
         self.tr_col_num = col_num
 
