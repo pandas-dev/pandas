@@ -976,7 +976,7 @@ class DataFrameFormatter(TableFormatter):
             # no need to wrap around just print the whole frame
             return self.adj.adjoin(1, *strcols)
 
-        if (not isinstance(self.max_cols, int) or self.max_cols > 0):
+        if self.max_cols is None or self.max_cols > 0:
             # need to wrap around
             return self._join_multiline(*strcols)
 
