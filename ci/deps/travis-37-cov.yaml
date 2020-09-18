@@ -15,7 +15,6 @@ dependencies:
   # pandas dependencies
   - beautifulsoup4
   - botocore>=1.11
-  - cython>=0.29.16
   - dask
   - fastparquet>=0.3.2
   - fsspec>=0.7.4
@@ -31,12 +30,13 @@ dependencies:
   - odfpy
   - openpyxl
   - pandas-gbq
-  - google-cloud-bigquery>=1.27.2
+  - google-cloud-bigquery>=1.27.2 # GH 36436
   - psycopg2
   - pyarrow>=0.15.0
   - pymysql
   - pytables
   - python-snappy
+  - python-dateutil
   - pytz
   - s3fs>=0.4.0
   - scikit-learn
@@ -52,5 +52,4 @@ dependencies:
     - brotlipy
     - coverage
     - pandas-datareader
-    - python-dateutil
     - pyxlsb

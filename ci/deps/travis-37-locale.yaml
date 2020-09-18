@@ -26,7 +26,7 @@ dependencies:
   - numpy
   - openpyxl
   - pandas-gbq
-  - google-cloud-bigquery>=1.27.2
+  - google-cloud-bigquery>=1.27.2 # GH 36436
   - pyarrow>=0.17
   - psycopg2=2.7
   - pyarrow>=0.15.0 # GH #35813
