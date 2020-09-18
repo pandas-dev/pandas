@@ -67,6 +67,15 @@ from pandas.tseries import frequencies
 DTScalarOrNaT = Union[DatetimeLikeScalar, NaTType]
 
 
+class InvalidComparison(Exception):
+    """
+    Raised by _validate_comparison_value to indicate to caller it should
+    return invalid_comparison.
+    """
+
+    pass
+
+
 def _datetimelike_array_cmp(cls, op):
     """
     Wrap comparison operations to convert Timestamp/Timedelta/Period-like to
@@ -75,36 +84,6 @@ def _datetimelike_array_cmp(cls, op):
     opname = f"__{op.__name__}__"
     nat_result = opname == "__ne__"
 
-    class InvalidComparison(Exception):
-        pass
-
-    def _validate_comparison_value(self, other):
-        if isinstance(other, str):
-            try:
-                # GH#18435 strings get a pass from tzawareness compat
-                other = self._scalar_from_string(other)
-            except ValueError:
-                # failed to parse as Timestamp/Timedelta/Period
-                raise InvalidComparison(other)
-
-        if isinstance(other, self._recognized_scalars) or other is NaT:
-            other = self._scalar_type(other)
-            self._check_compatible_with(other)
-
-        elif not is_list_like(other):
-            raise InvalidComparison(other)
-
-        elif len(other) != len(self):
-            raise ValueError("Lengths must match")
-
-        else:
-            try:
-                other = self._validate_listlike(other, opname, allow_object=True)
-            except TypeError as err:
-                raise InvalidComparison(other) from err
-
-        return other
-
     @unpack_zerodim_and_defer(opname)
     def wrapper(self, other):
         if self.ndim > 1 and getattr(other, "shape", None) == self.shape:
@@ -112,7 +91,7 @@ def _datetimelike_array_cmp(cls, op):
             return op(self.ravel(), other.ravel()).reshape(self.shape)
 
         try:
-            other = _validate_comparison_value(self, other)
+            other = self._validate_comparison_value(other, opname)
         except InvalidComparison:
             return invalid_comparison(self, other, op)
 
@@ -695,6 +674,33 @@ class DatetimeLikeArrayMixin(
     # ------------------------------------------------------------------
     # Validation Methods
     # TODO: try to de-duplicate these, ensure identical behavior
+
+    def _validate_comparison_value(self, other, opname: str):
+        if isinstance(other, str):
+            try:
+                # GH#18435 strings get a pass from tzawareness compat
+                other = self._scalar_from_string(other)
+            except ValueError:
+                # failed to parse as Timestamp/Timedelta/Period
+                raise InvalidComparison(other)
+
+        if isinstance(other, self._recognized_scalars) or other is NaT:
+            other = self._scalar_type(other)
+            self._check_compatible_with(other)
+
+        elif not is_list_like(other):
+            raise InvalidComparison(other)
+
+        elif len(other) != len(self):
+            raise ValueError("Lengths must match")
+
+        else:
+            try:
+                other = self._validate_listlike(other, opname, allow_object=True)
+            except TypeError as err:
+                raise InvalidComparison(other) from err
+
+        return other
 
     def _validate_fill_value(self, fill_value):
         """
