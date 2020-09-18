@@ -837,7 +837,7 @@ class DataFrameFormatter(TableFormatter):
             )
         self.tr_row_num = row_num
 
-    def _get_strcols(self) -> List[List[str]]:
+    def _get_strcols_without_index(self):
         # TODO check this comment validity
         # this method is not used by to_html where self.col_space
         # could be a string so safe to cast
@@ -854,39 +854,45 @@ class DataFrameFormatter(TableFormatter):
                     fmt_values, self.justify, minimum=col_space.get(c, 0), adj=self.adj
                 )
                 strcols.append(fmt_values)
+            return strcols
+
+        if is_list_like(self.header):
+            # cast here since can't be bool if is_list_like
+            self.header = cast(List[str], self.header)
+            if len(self.header) != len(self.columns):
+                raise ValueError(
+                    f"Writing {len(self.columns)} cols "
+                    f"but got {len(self.header)} aliases"
+                )
+            str_columns = [[label] for label in self.header]
         else:
-            if is_list_like(self.header):
-                # cast here since can't be bool if is_list_like
-                self.header = cast(List[str], self.header)
-                if len(self.header) != len(self.columns):
-                    raise ValueError(
-                        f"Writing {len(self.columns)} cols "
-                        f"but got {len(self.header)} aliases"
-                    )
-                str_columns = [[label] for label in self.header]
-            else:
-                str_columns = self._get_formatted_column_labels(frame)
+            str_columns = self._get_formatted_column_labels(frame)
 
-            if self.show_row_idx_names:
-                for x in str_columns:
-                    x.append("")
+        if self.show_row_idx_names:
+            for x in str_columns:
+                x.append("")
 
-            strcols = []
-            for i, c in enumerate(frame):
-                cheader = str_columns[i]
-                header_colwidth = max(
-                    col_space.get(c, 0), *(self.adj.len(x) for x in cheader)
-                )
-                fmt_values = self._format_col(i)
-                fmt_values = _make_fixed_width(
-                    fmt_values, self.justify, minimum=header_colwidth, adj=self.adj
-                )
+        strcols = []
+        for i, c in enumerate(frame):
+            cheader = str_columns[i]
+            header_colwidth = max(
+                col_space.get(c, 0), *(self.adj.len(x) for x in cheader)
+            )
+            fmt_values = self._format_col(i)
+            fmt_values = _make_fixed_width(
+                fmt_values, self.justify, minimum=header_colwidth, adj=self.adj
+            )
 
-                max_len = max(max(self.adj.len(x) for x in fmt_values), header_colwidth)
-                cheader = self.adj.justify(cheader, max_len, mode=self.justify)
-                strcols.append(cheader + fmt_values)
+            max_len = max(max(self.adj.len(x) for x in fmt_values), header_colwidth)
+            cheader = self.adj.justify(cheader, max_len, mode=self.justify)
+            strcols.append(cheader + fmt_values)
 
-        str_index = self._get_formatted_index(frame)
+        return strcols
+
+    def _get_strcols(self) -> List[List[str]]:
+        strcols = self._get_strcols_without_index()
+
+        str_index = self._get_formatted_index(self.tr_frame)
         if self.index:
             strcols.insert(0, str_index)
 
