@@ -837,10 +837,8 @@ class DataFrameFormatter(TableFormatter):
             )
         self.tr_row_num = row_num
 
-    def _to_str_columns(self) -> List[List[str]]:
-        """
-        Render a DataFrame to a list of columns (as lists of strings).
-        """
+    def _get_strcols(self) -> List[List[str]]:
+        # TODO check this comment validity
         # this method is not used by to_html where self.col_space
         # could be a string so safe to cast
         col_space = {k: cast(int, v) for k, v in self.col_space.items()}
@@ -893,11 +891,21 @@ class DataFrameFormatter(TableFormatter):
         if self.index:
             strcols.insert(0, str_index)
 
+        return strcols
+
+    def _to_str_columns(self) -> List[List[str]]:
+        """
+        Render a DataFrame to a list of columns (as lists of strings).
+        """
+        strcols = self._get_strcols()
+
+        str_index = self._get_formatted_index(self.tr_frame)
+
         if self.is_truncated_horizontally:
             strcols.insert(self.tr_col_num + 1, [" ..."] * (len(str_index)))
 
         if self.is_truncated_vertically:
-            n_header_rows = len(str_index) - len(frame)
+            n_header_rows = len(str_index) - len(self.tr_frame)
             row_num = self.tr_row_num
             # cast here since if is_truncated_vertically is True
             # self.tr_row_num is not None
