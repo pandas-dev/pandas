@@ -907,11 +907,11 @@ class DataFrameFormatter(TableFormatter):
         strcols = self._get_strcols()
 
         if self.is_truncated:
-            strcols = self._truncate_strcols(strcols)
+            strcols = self._insert_dot_separators(strcols)
 
         return strcols
 
-    def _truncate_strcols(self, strcols):
+    def _insert_dot_separators(self, strcols):
         str_index = self._get_formatted_index(self.tr_frame)
         index_length = len(str_index)
 
