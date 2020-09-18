@@ -131,7 +131,7 @@ def test_use_global_config():
 
 @td.skip_if_no("numba", "0.46.0")
 @pytest.mark.parametrize(
-    "agg_func", [["min", "max"], "min", {"B": ["min", "max"], "C": "sum"}],
+    "agg_func", [["min", "max"], "min", {"B": ["min", "max"], "C": "sum"}]
 )
 def test_multifunc_notimplimented(agg_func):
     data = DataFrame(
