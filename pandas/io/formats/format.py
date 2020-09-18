@@ -960,8 +960,6 @@ class DataFrameFormatter(TableFormatter):
             buf.write(dim_str)
 
     def _get_string_representation(self):
-        from pandas import Series
-
         if self.frame.empty:
             info_line = (
                 f"Empty {type(self.frame).__name__}\n"
@@ -981,6 +979,11 @@ class DataFrameFormatter(TableFormatter):
             return self._join_multiline(*strcols)
 
         # max_cols == 0. Try to fit frame to terminal
+        return self._fit_strcols_to_terminal_width(strcols)
+
+    def _fit_strcols_to_terminal_width(self, strcols):
+        from pandas import Series
+
         lines = self.adj.adjoin(1, *strcols).split("\n")
         max_len = Series(lines).str.len().max()
         # plus truncate dot col
