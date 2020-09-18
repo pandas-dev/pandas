@@ -62,8 +62,7 @@ def flatten(l):
     """
     for el in l:
         if iterable_not_string(el):
-            for s in flatten(el):
-                yield s
+            yield from flatten(el)
         else:
             yield el
 
